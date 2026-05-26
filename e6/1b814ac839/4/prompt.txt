@@ -1,0 +1,10 @@
+Search the KNIRVSERVER backend codebase for the BuntDB migration function `MigrateCDEKeysToDVE`. Check:
+1. Is the function defined in buntdb_manager.go? Read the file and search for "MigrateCDEKeysToDVE" or "MigrateCDE" or "migrateCDE"
+2. Is it called from main.go anywhere?
+3. Do the BuntDB collection constants exist as DVE_* versions? Look for DVEEnvironmentsCollection, DVESessionsCollection, DVEProjectsCollection
+
+Also check if legacy cde_* collection constants still exist (CDEEnvironmentsCollection etc.)
+
+Working directory: /home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK
+
+Return the findings: whether the migration function exists, whether it's called from main.go, what collection constants exist, and any gaps found.

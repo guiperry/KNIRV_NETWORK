@@ -1,0 +1,1657 @@
+{
+  "info": {
+    "id": "ses_19afc492dffeazux63roMEZ1NN",
+    "slug": "crisp-star",
+    "projectID": "04b7e1a8120cdaa36434d2d66f64522e4313fe2b",
+    "directory": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK",
+    "path": "",
+    "parentID": "ses_19b6cf607fferUMyPL7UJu9z6F",
+    "title": "Audit Phase 1 BuntDB migration (@explore subagent)",
+    "agent": "explore",
+    "model": {
+      "id": "big-pickle",
+      "providerID": "opencode",
+      "variant": "default"
+    },
+    "version": "1.15.10",
+    "summary": {
+      "additions": 0,
+      "deletions": 0,
+      "files": 0
+    },
+    "cost": 0,
+    "tokens": {
+      "input": 30043,
+      "output": 3832,
+      "reasoning": 1691,
+      "cache": {
+        "read": 189312,
+        "write": 0
+      }
+    },
+    "permission": [
+      {
+        "permission": "todowrite",
+        "action": "deny",
+        "pattern": "*"
+      },
+      {
+        "permission": "task",
+        "action": "deny",
+        "pattern": "*"
+      }
+    ],
+    "time": {
+      "created": 1779811202770,
+      "updated": 1779811342863
+    }
+  },
+  "messages": [
+    {
+      "info": {
+        "role": "user",
+        "time": {
+          "created": 1779811202828
+        },
+        "tools": {
+          "todowrite": false,
+          "task": false
+        },
+        "agent": "explore",
+        "model": {
+          "providerID": "opencode",
+          "modelID": "big-pickle"
+        },
+        "summary": {
+          "diffs": []
+        },
+        "id": "msg_e6503b701001YZXjDttgsjdJLC",
+        "sessionID": "ses_19afc492dffeazux63roMEZ1NN"
+      },
+      "parts": [
+        {
+          "type": "text",
+          "text": "Search the KNIRVSERVER backend codebase for the BuntDB migration function `MigrateCDEKeysToDVE`. Check:\n1. Is the function defined in buntdb_manager.go? Read the file and search for \"MigrateCDEKeysToDVE\" or \"MigrateCDE\" or \"migrateCDE\"\n2. Is it called from main.go anywhere?\n3. Do the BuntDB collection constants exist as DVE_* versions? Look for DVEEnvironmentsCollection, DVESessionsCollection, DVEProjectsCollection\n\nAlso check if legacy cde_* collection constants still exist (CDEEnvironmentsCollection etc.)\n\nWorking directory: /home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK\n\nReturn the findings: whether the migration function exists, whether it's called from main.go, what collection constants exist, and any gaps found.",
+          "id": "prt_e6503b72a001mE3dwC6pOT821J",
+          "sessionID": "ses_19afc492dffeazux63roMEZ1NN",
+          "messageID": "msg_e6503b701001YZXjDttgsjdJLC"
+        }
+      ]
+    },
+    {
+      "info": {
+        "parentID": "msg_e6503b701001YZXjDttgsjdJLC",
+        "role": "assistant",
+        "mode": "explore",
+        "agent": "explore",
+        "path": {
+          "cwd": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK",
+          "root": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK"
+        },
+        "cost": 0,
+        "tokens": {
+          "total": 7986,
+          "input": 7556,
+          "output": 411,
+          "reasoning": 19,
+          "cache": {
+            "write": 0,
+            "read": 0
+          }
+        },
+        "modelID": "big-pickle",
+        "providerID": "opencode",
+        "time": {
+          "created": 1779811203006,
+          "completed": 1779811209058
+        },
+        "finish": "tool-calls",
+        "id": "msg_e6503b7be001BEilVpCF4rJ4e0",
+        "sessionID": "ses_19afc492dffeazux63roMEZ1NN"
+      },
+      "parts": [
+        {
+          "snapshot": "93001fd24c979517d23bd62daea3ad2e95bae7c4",
+          "type": "step-start",
+          "id": "prt_e6503be09001EVZ334ZhUHyJOI",
+          "sessionID": "ses_19afc492dffeazux63roMEZ1NN",
+          "messageID": "msg_e6503b7be001BEilVpCF4rJ4e0"
+        },
+        {
+          "type": "reasoning",
+          "text": "Let me systematically search for all the requested items across the KNIRVSERVER backend codebase.",
+          "time": {
+            "start": 1779811205259,
+            "end": 1779811205553
+          },
+          "id": "prt_e6503c08b001WT1AHFgalLzynB",
+          "sessionID": "ses_19afc492dffeazux63roMEZ1NN",
+          "messageID": "msg_e6503b7be001BEilVpCF4rJ4e0"
+        },
+        {
+          "type": "tool",
+          "tool": "glob",
+          "callID": "call_00_fRVGTib6d3WFBTX9m1oe7780",
+          "state": {
+            "status": "completed",
+            "input": {
+              "pattern": "packages/KNIRVSERVER/**/buntdb_manager.go"
+            },
+            "output": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/data_engine/buntdb_manager.go",
+            "metadata": {
+              "count": 1,
+              "truncated": false
+            },
+            "title": "",
+            "time": {
+              "start": 1779811205712,
+              "end": 1779811205947
+            }
+          },
+          "id": "prt_e6503c1cc001IKNWesGTy624i5",
+          "sessionID": "ses_19afc492dffeazux63roMEZ1NN",
+          "messageID": "msg_e6503b7be001BEilVpCF4rJ4e0"
+        },
+        {
+          "type": "tool",
+          "tool": "grep",
+          "callID": "call_01_uTNgThrI7GzBrbtN2qfF4979",
+          "state": {
+            "status": "completed",
+            "input": {
+              "pattern": "MigrateCDE|MigrateCDEKeysToDVE|migrateCDE",
+              "path": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER"
+            },
+            "output": "Found 6 matches\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/README.md:\n  Line 689: Existing BuntDB data keyed under legacy `cde_*` prefixes is automatically migrated to `dve_*` prefixes at startup via `BuntDBManager.MigrateCDEKeysToDVE()`. Safe to call multiple times — already-migrated records are skipped.\n\n\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/data_engine/buntdb_manager_test.go:\n  Line 725: func TestMigrateCDEKeysToDVE(t *testing.T) {\n\n  Line 784: \terr = manager.MigrateCDEKeysToDVE()\n\n  Line 829: \terr = manager.MigrateCDEKeysToDVE()\n\n\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/data_engine/buntdb_manager.go:\n  Line 1088: // MigrateCDEKeysToDVE re-keys all legacy \"cde_*\" BuntDB records to \"dve_*\".\n\n  Line 1090: func (m *BuntDBManager) MigrateCDEKeysToDVE() error {\n",
+            "metadata": {
+              "matches": 6,
+              "truncated": false
+            },
+            "title": "MigrateCDE|MigrateCDEKeysToDVE|migrateCDE",
+            "time": {
+              "start": 1779811206237,
+              "end": 1779811206697
+            }
+          },
+          "id": "prt_e6503c2d60014qoG0JymIINXw1",
+          "sessionID": "ses_19afc492dffeazux63roMEZ1NN",
+          "messageID": "msg_e6503b7be001BEilVpCF4rJ4e0"
+        },
+        {
+          "type": "tool",
+          "tool": "grep",
+          "callID": "call_02_ONlmprSBeRs6kFqftzBG4962",
+          "state": {
+            "status": "completed",
+            "input": {
+              "pattern": "DVE(E)nvironmentsCollection|DVE(S)essionsCollection|DVE(P)rojectsCollection",
+              "path": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER"
+            },
+            "output": "Found 6 matches\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/data_engine/buntdb_manager.go:\n  Line 45: \tDVEEnvironmentsCollection = \"dve_environments:\"\n\n  Line 46: \tDVESessionsCollection     = \"dve_sessions:\"\n\n  Line 47: \tDVEProjectsCollection     = \"dve_projects:\"\n\n  Line 773: \t\t\"cde_environments\":   DVEEnvironmentsCollection,\n\n  Line 774: \t\t\"cde_sessions\":       DVESessionsCollection,\n\n  Line 775: \t\t\"cde_projects\":       DVEProjectsCollection,\n",
+            "metadata": {
+              "matches": 6,
+              "truncated": false
+            },
+            "title": "DVE(E)nvironmentsCollection|DVE(S)essionsCollection|DVE(P)rojectsCollection",
+            "time": {
+              "start": 1779811206791,
+              "end": 1779811207041
+            }
+          },
+          "id": "prt_e6503c4b0001hjAfIkkw70qmS1",
+          "sessionID": "ses_19afc492dffeazux63roMEZ1NN",
+          "messageID": "msg_e6503b7be001BEilVpCF4rJ4e0"
+        },
+        {
+          "type": "tool",
+          "tool": "grep",
+          "callID": "call_03_HxJYK8fgmxx4Sp5dyPlw3543",
+          "state": {
+            "status": "completed",
+            "input": {
+              "pattern": "CDE(E)nvironmentsCollection|CDE(S)essionsCollection|CDE(P)rojectsCollection",
+              "path": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER"
+            },
+            "output": "No files found",
+            "metadata": {
+              "matches": 0,
+              "truncated": false
+            },
+            "title": "CDE(E)nvironmentsCollection|CDE(S)essionsCollection|CDE(P)rojectsCollection",
+            "time": {
+              "start": 1779811207271,
+              "end": 1779811207496
+            }
+          },
+          "id": "prt_e6503c6b5001DA8fTmqLQJlb2v",
+          "sessionID": "ses_19afc492dffeazux63roMEZ1NN",
+          "messageID": "msg_e6503b7be001BEilVpCF4rJ4e0"
+        },
+        {
+          "type": "tool",
+          "tool": "grep",
+          "callID": "call_04_yN4n1aPj4iJSjbIIjH516474",
+          "state": {
+            "status": "completed",
+            "input": {
+              "pattern": "MigrateCDE",
+              "path": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER"
+            },
+            "output": "Found 6 matches\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/README.md:\n  Line 689: Existing BuntDB data keyed under legacy `cde_*` prefixes is automatically migrated to `dve_*` prefixes at startup via `BuntDBManager.MigrateCDEKeysToDVE()`. Safe to call multiple times — already-migrated records are skipped.\n\n\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/data_engine/buntdb_manager_test.go:\n  Line 725: func TestMigrateCDEKeysToDVE(t *testing.T) {\n\n  Line 784: \terr = manager.MigrateCDEKeysToDVE()\n\n  Line 829: \terr = manager.MigrateCDEKeysToDVE()\n\n\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/data_engine/buntdb_manager.go:\n  Line 1088: // MigrateCDEKeysToDVE re-keys all legacy \"cde_*\" BuntDB records to \"dve_*\".\n\n  Line 1090: func (m *BuntDBManager) MigrateCDEKeysToDVE() error {\n",
+            "metadata": {
+              "matches": 6,
+              "truncated": false
+            },
+            "title": "MigrateCDE",
+            "time": {
+              "start": 1779811207567,
+              "end": 1779811207780
+            }
+          },
+          "id": "prt_e6503c86e0015zPUUXVNwUW3Kw",
+          "sessionID": "ses_19afc492dffeazux63roMEZ1NN",
+          "messageID": "msg_e6503b7be001BEilVpCF4rJ4e0"
+        },
+        {
+          "reason": "tool-calls",
+          "snapshot": "93001fd24c979517d23bd62daea3ad2e95bae7c4",
+          "type": "step-finish",
+          "tokens": {
+            "total": 7986,
+            "input": 7556,
+            "output": 411,
+            "reasoning": 19,
+            "cache": {
+              "write": 0,
+              "read": 0
+            }
+          },
+          "cost": 0,
+          "id": "prt_e6503ccb8001wdDjbn0usf6Dv8",
+          "sessionID": "ses_19afc492dffeazux63roMEZ1NN",
+          "messageID": "msg_e6503b7be001BEilVpCF4rJ4e0"
+        }
+      ]
+    },
+    {
+      "info": {
+        "parentID": "msg_e6503b701001YZXjDttgsjdJLC",
+        "role": "assistant",
+        "mode": "explore",
+        "agent": "explore",
+        "path": {
+          "cwd": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK",
+          "root": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK"
+        },
+        "cost": 0,
+        "tokens": {
+          "total": 9340,
+          "input": 903,
+          "output": 436,
+          "reasoning": 65,
+          "cache": {
+            "write": 0,
+            "read": 7936
+          }
+        },
+        "modelID": "big-pickle",
+        "providerID": "opencode",
+        "time": {
+          "created": 1779811209076,
+          "completed": 1779811221038
+        },
+        "finish": "tool-calls",
+        "id": "msg_e6503cf74001rvwwS8NCwDJ91U",
+        "sessionID": "ses_19afc492dffeazux63roMEZ1NN"
+      },
+      "parts": [
+        {
+          "snapshot": "93001fd24c979517d23bd62daea3ad2e95bae7c4",
+          "type": "step-start",
+          "id": "prt_e6503d81e001Wf4nrzTfECNGWr",
+          "sessionID": "ses_19afc492dffeazux63roMEZ1NN",
+          "messageID": "msg_e6503cf74001rvwwS8NCwDJ91U"
+        },
+        {
+          "type": "reasoning",
+          "text": "Good, I have initial results. Let me now:\n1. Read the relevant section of buntdb_manager.go to see the migration function and the constants\n2. Check if MigrateCDEKeysToDVE is called from main.go or anywhere in the startup flow\n3. Check if legacy CDE constants exist",
+          "time": {
+            "start": 1779811212362,
+            "end": 1779811212869
+          },
+          "id": "prt_e6503dc4a001cXh7iZfnqmfH8D",
+          "sessionID": "ses_19afc492dffeazux63roMEZ1NN",
+          "messageID": "msg_e6503cf74001rvwwS8NCwDJ91U"
+        },
+        {
+          "type": "text",
+          "text": "Now let me read the actual migration function and the constants section, and check if it's called from any startup path.",
+          "time": {
+            "start": 1779811212892,
+            "end": 1779811215283
+          },
+          "id": "prt_e6503de5c0016qTeeoXqWcQ5Gc",
+          "sessionID": "ses_19afc492dffeazux63roMEZ1NN",
+          "messageID": "msg_e6503cf74001rvwwS8NCwDJ91U"
+        },
+        {
+          "type": "tool",
+          "tool": "read",
+          "callID": "call_00_SxBImoJYAMbNtPfhHVvk7295",
+          "state": {
+            "status": "completed",
+            "input": {
+              "filePath": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/data_engine/buntdb_manager.go",
+              "offset": 1,
+              "limit": 60
+            },
+            "output": "<path>/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/data_engine/buntdb_manager.go</path>\n<type>file</type>\n<content>\n1: package data_engine\n2: \n3: import (\n4: \t\"encoding/json\"\n5: \t\"fmt\"\n6: \t\"strings\"\n7: \t\"sync\"\n8: \t\"time\"\n9: \n10: \t\"github.com/tidwall/buntdb\"\n11: )\n12: \n13: // BuntDBManager manages the embedded BuntDB database\n14: type BuntDBManager struct {\n15: \tdb      *buntdb.DB\n16: \tdbPath  string\n17: \tindexes map[string]string\n18: \tmu      sync.RWMutex\n19: }\n20: \n21: // BuntDB collections as defined in the NEXUS_MERGE.md\n22: const (\n23: \t// Core Data Collections\n24: \tMetricsCollection = \"metrics:\"\n25: \tAlertsCollection  = \"alerts:\"\n26: \tReportsCollection = \"reports:\"\n27: \tConfigCollection  = \"config:\"\n28: \n29: \t// User Management Collections\n30: \tUsersCollection    = \"users:\"\n31: \tAuthCollection     = \"auth:\"\n32: \tSessionsCollection = \"sessions:\"\n33: \n34: \t// Model Management Collections\n35: \tModelsCollection        = \"objects:\"\n36: \tModelBinariesCollection = \"model_binaries:\"\n37: \tModelRuntimeCollection  = \"model_runtime:\"\n38: \n39: \t// DVE Node Collections\n40: \tDVENodesCollection          = \"dve_nodes:\"\n41: \tValidationTasksCollection   = \"validation_tasks:\"\n42: \tValidationResultsCollection = \"validation_results:\"\n43: \n44: \t// CDE (Cloud Development Environment) Collections\n45: \tDVEEnvironmentsCollection = \"dve_environments:\"\n46: \tDVESessionsCollection     = \"dve_sessions:\"\n47: \tDVEProjectsCollection     = \"dve_projects:\"\n48: \n49: \t// Report Collections (User vs System)\n50: \tUserReportsCollection   = \"user_reports:\"\n51: \tSystemReportsCollection = \"system_reports:\"\n52: \n53: \t// Cross-DVE Communication Collections\n54: \tDVEMessagesCollection = \"dve_messages:\"\n55: \tDVERoutingCollection  = \"dve_routing:\"\n56: \tDVERegistryCollection = \"dve_registry:\"\n57: )\n58: \n59: // MetricEntry represents a metric entry in BuntDB\n60: type MetricEntry struct {\n\n(Showing lines 1-60 of 1127. Use offset=61 to continue.)\n</content>",
+            "metadata": {
+              "preview": "package data_engine\n\nimport (\n\t\"encoding/json\"\n\t\"fmt\"\n\t\"strings\"\n\t\"sync\"\n\t\"time\"\n\n\t\"github.com/tidwall/buntdb\"\n)\n\n// BuntDBManager manages the embedded BuntDB database\ntype BuntDBManager struct {\n\tdb      *buntdb.DB\n\tdbPath  string\n\tindexes map[string]string\n\tmu      sync.RWMutex\n}\n",
+              "truncated": true,
+              "loaded": []
+            },
+            "title": "packages/KNIRVSERVER/backend/internal/data_engine/buntdb_manager.go",
+            "time": {
+              "start": 1779811213594,
+              "end": 1779811214264
+            }
+          },
+          "id": "prt_e6503df460010a84jiLBhHw4bh",
+          "sessionID": "ses_19afc492dffeazux63roMEZ1NN",
+          "messageID": "msg_e6503cf74001rvwwS8NCwDJ91U"
+        },
+        {
+          "type": "tool",
+          "tool": "read",
+          "callID": "call_01_pJL2TmvzIElAtDdzmC6b3471",
+          "state": {
+            "status": "completed",
+            "input": {
+              "filePath": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/data_engine/buntdb_manager.go",
+              "offset": 1080,
+              "limit": 100
+            },
+            "output": "<path>/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/data_engine/buntdb_manager.go</path>\n<type>file</type>\n<content>\n1080: \t\t\tkeys = append(keys, key)\n1081: \t\t\treturn true\n1082: \t\t})\n1083: \t})\n1084: \n1085: \treturn keys, err\n1086: }\n1087: \n1088: // MigrateCDEKeysToDVE re-keys all legacy \"cde_*\" BuntDB records to \"dve_*\".\n1089: // Safe to call multiple times — skips already-migrated records.\n1090: func (m *BuntDBManager) MigrateCDEKeysToDVE() error {\n1091: \tm.mu.Lock()\n1092: \tdefer m.mu.Unlock()\n1093: \n1094: \tlegacyPrefixes := [][2]string{\n1095: \t\t{\"cde_environments:\", \"dve_environments:\"},\n1096: \t\t{\"cde_sessions:\", \"dve_sessions:\"},\n1097: \t\t{\"cde_projects:\", \"dve_projects:\"},\n1098: \t}\n1099: \treturn m.db.Update(func(tx *buntdb.Tx) error {\n1100: \t\tvar pairs [][2]string\n1101: \t\tfor _, pfx := range legacyPrefixes {\n1102: \t\t\terr := tx.AscendKeys(pfx[0]+\"*\", func(k, v string) bool {\n1103: \t\t\t\tnewKey := pfx[1] + k[len(pfx[0]):]\n1104: \t\t\t\tpairs = append(pairs, [2]string{k, newKey + \"\\x00\" + v})\n1105: \t\t\t\treturn true\n1106: \t\t\t})\n1107: \t\t\tif err != nil {\n1108: \t\t\t\treturn err\n1109: \t\t\t}\n1110: \t\t}\n1111: \t\tfor _, p := range pairs {\n1112: \t\t\tsep := strings.IndexByte(p[1], '\\x00')\n1113: \t\t\tif sep < 0 {\n1114: \t\t\t\tcontinue\n1115: \t\t\t}\n1116: \t\t\tnewKey := p[1][:sep]\n1117: \t\t\tvalue := p[1][sep+1:]\n1118: \t\t\tif _, _, err := tx.Set(newKey, value, nil); err != nil {\n1119: \t\t\t\treturn err\n1120: \t\t\t}\n1121: \t\t\tif _, err := tx.Delete(p[0]); err != nil {\n1122: \t\t\t\treturn err\n1123: \t\t\t}\n1124: \t\t}\n1125: \t\treturn nil\n1126: \t})\n1127: }\n\n(End of file - total 1127 lines)\n</content>",
+            "metadata": {
+              "preview": "\t\t\tkeys = append(keys, key)\n\t\t\treturn true\n\t\t})\n\t})\n\n\treturn keys, err\n}\n\n// MigrateCDEKeysToDVE re-keys all legacy \"cde_*\" BuntDB records to \"dve_*\".\n// Safe to call multiple times — skips already-migrated records.\nfunc (m *BuntDBManager) MigrateCDEKeysToDVE() error {\n\tm.mu.Lock()\n\tdefer m.mu.Unlock()\n\n\tlegacyPrefixes := [][2]string{\n\t\t{\"cde_environments:\", \"dve_environments:\"},\n\t\t{\"cde_sessions:\", \"dve_sessions:\"},\n\t\t{\"cde_projects:\", \"dve_projects:\"},\n\t}\n\treturn m.db.Update(func(tx *buntdb.Tx) error {",
+              "truncated": false,
+              "loaded": []
+            },
+            "title": "packages/KNIRVSERVER/backend/internal/data_engine/buntdb_manager.go",
+            "time": {
+              "start": 1779811213976,
+              "end": 1779811214906
+            }
+          },
+          "id": "prt_e6503e12f001GQ9HQ6b2uf8F0X",
+          "sessionID": "ses_19afc492dffeazux63roMEZ1NN",
+          "messageID": "msg_e6503cf74001rvwwS8NCwDJ91U"
+        },
+        {
+          "type": "tool",
+          "tool": "grep",
+          "callID": "call_02_o1golBtFYVHgUUcMQBYX2328",
+          "state": {
+            "status": "completed",
+            "input": {
+              "pattern": "MigrateCDE|migrateCDE",
+              "path": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER",
+              "include": "*.go"
+            },
+            "output": "Found 5 matches\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/data_engine/buntdb_manager_test.go:\n  Line 725: func TestMigrateCDEKeysToDVE(t *testing.T) {\n\n  Line 784: \terr = manager.MigrateCDEKeysToDVE()\n\n  Line 829: \terr = manager.MigrateCDEKeysToDVE()\n\n\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/data_engine/buntdb_manager.go:\n  Line 1088: // MigrateCDEKeysToDVE re-keys all legacy \"cde_*\" BuntDB records to \"dve_*\".\n\n  Line 1090: func (m *BuntDBManager) MigrateCDEKeysToDVE() error {\n",
+            "metadata": {
+              "matches": 5,
+              "truncated": false
+            },
+            "title": "MigrateCDE|migrateCDE",
+            "time": {
+              "start": 1779811214437,
+              "end": 1779811214835
+            }
+          },
+          "id": "prt_e6503e2d4001mRM2azdf1OXSIl",
+          "sessionID": "ses_19afc492dffeazux63roMEZ1NN",
+          "messageID": "msg_e6503cf74001rvwwS8NCwDJ91U"
+        },
+        {
+          "type": "tool",
+          "tool": "grep",
+          "callID": "call_03_lIoeDRzOIkWLNrb553U64704",
+          "state": {
+            "status": "completed",
+            "input": {
+              "pattern": "CDEEnvironment|CDESession|CDEProject|cde_environment|cde_session|cde_project",
+              "path": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/data_engine"
+            },
+            "output": "Found 16 matches\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/data_engine/buntdb_manager_test.go:\n  Line 563: \tassert.Equal(t, 0, stats[\"cde_environments_count\"])\n\n  Line 564: \tassert.Equal(t, 0, stats[\"cde_sessions_count\"])\n\n  Line 565: \tassert.Equal(t, 0, stats[\"cde_projects_count\"])\n\n  Line 734: \t// Insert legacy \"cde_environments:\" test records directly via raw buntdb API\n\n  Line 736: \t\t_, _, err := tx.Set(\"cde_environments:env1\", `{\"id\":\"env1\",\"name\":\"test-env\"}`, nil)\n\n  Line 740: \t\t_, _, err = tx.Set(\"cde_environments:env2\", `{\"id\":\"env2\",\"name\":\"dev-env\"}`, nil)\n\n  Line 745: \t// Insert legacy \"cde_sessions:\" test records\n\n  Line 747: \t\t_, _, err := tx.Set(\"cde_sessions:sess1\", `{\"id\":\"sess1\",\"user\":\"user1\"}`, nil)\n\n  Line 752: \t// Insert legacy \"cde_projects:\" test records\n\n  Line 754: \t\t_, _, err := tx.Set(\"cde_projects:proj1\", `{\"id\":\"proj1\",\"name\":\"my-project\"}`, nil)\n\n\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/data_engine/buntdb_manager.go:\n  Line 773: \t\t\"cde_environments\":   DVEEnvironmentsCollection,\n\n  Line 774: \t\t\"cde_sessions\":       DVESessionsCollection,\n\n  Line 775: \t\t\"cde_projects\":       DVEProjectsCollection,\n\n  Line 1095: \t\t{\"cde_environments:\", \"dve_environments:\"},\n\n  Line 1096: \t\t{\"cde_sessions:\", \"dve_sessions:\"},\n\n  Line 1097: \t\t{\"cde_projects:\", \"dve_projects:\"},\n",
+            "metadata": {
+              "matches": 16,
+              "truncated": false
+            },
+            "title": "CDEEnvironment|CDESession|CDEProject|cde_environment|cde_session|cde_project",
+            "time": {
+              "start": 1779811215046,
+              "end": 1779811215566
+            }
+          },
+          "id": "prt_e6503e4a10019SjJOB4dPcDaMt",
+          "sessionID": "ses_19afc492dffeazux63roMEZ1NN",
+          "messageID": "msg_e6503cf74001rvwwS8NCwDJ91U"
+        },
+        {
+          "reason": "tool-calls",
+          "snapshot": "93001fd24c979517d23bd62daea3ad2e95bae7c4",
+          "type": "step-finish",
+          "tokens": {
+            "total": 9340,
+            "input": 903,
+            "output": 436,
+            "reasoning": 65,
+            "cache": {
+              "write": 0,
+              "read": 7936
+            }
+          },
+          "cost": 0,
+          "id": "prt_e6503f451001fcbxHYS0ZDeO5D",
+          "sessionID": "ses_19afc492dffeazux63roMEZ1NN",
+          "messageID": "msg_e6503cf74001rvwwS8NCwDJ91U"
+        }
+      ]
+    },
+    {
+      "info": {
+        "parentID": "msg_e6503b701001YZXjDttgsjdJLC",
+        "role": "assistant",
+        "mode": "explore",
+        "agent": "explore",
+        "path": {
+          "cwd": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK",
+          "root": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK"
+        },
+        "cost": 0,
+        "tokens": {
+          "total": 11862,
+          "input": 2155,
+          "output": 418,
+          "reasoning": 73,
+          "cache": {
+            "write": 0,
+            "read": 9216
+          }
+        },
+        "modelID": "big-pickle",
+        "providerID": "opencode",
+        "time": {
+          "created": 1779811221081,
+          "completed": 1779811239272
+        },
+        "finish": "tool-calls",
+        "id": "msg_e6503fe59001ZEK77DuRQX6EMb",
+        "sessionID": "ses_19afc492dffeazux63roMEZ1NN"
+      },
+      "parts": [
+        {
+          "snapshot": "93001fd24c979517d23bd62daea3ad2e95bae7c4",
+          "type": "step-start",
+          "id": "prt_e650406a3001Zk9w1iOI0DHZgg",
+          "sessionID": "ses_19afc492dffeazux63roMEZ1NN",
+          "messageID": "msg_e6503fe59001ZEK77DuRQX6EMb"
+        },
+        {
+          "type": "reasoning",
+          "text": "Now let me check:\n1. Is `MigrateCDEKeysToDVE` called from any startup flow / main.go?\n2. Do legacy CDE* collection constants exist as actual Go constants?\n\nLet me search for where `MigrateCDEKeysToDVE` is invoked in the codebase (outside of test files and the definition itself).",
+          "time": {
+            "start": 1779811223809,
+            "end": 1779811224540
+          },
+          "id": "prt_e65040901001kNJ5lpcI0JvmxR",
+          "sessionID": "ses_19afc492dffeazux63roMEZ1NN",
+          "messageID": "msg_e6503fe59001ZEK77DuRQX6EMb"
+        },
+        {
+          "type": "text",
+          "text": "Now let me check whether `MigrateCDEKeysToDVE` is actually called from any startup flow, and look for legacy CDE constants.",
+          "time": {
+            "start": 1779811224547,
+            "end": 1779811226658
+          },
+          "id": "prt_e65040be3001El1lfDX4csUR2x",
+          "sessionID": "ses_19afc492dffeazux63roMEZ1NN",
+          "messageID": "msg_e6503fe59001ZEK77DuRQX6EMb"
+        },
+        {
+          "type": "tool",
+          "tool": "grep",
+          "callID": "call_00_WOoehUzIQ0CaXXUXt8r41558",
+          "state": {
+            "status": "completed",
+            "input": {
+              "pattern": "MigrateCDEKeysToDVE",
+              "path": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend",
+              "include": "*.go"
+            },
+            "output": "Found 5 matches\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/data_engine/buntdb_manager_test.go:\n  Line 725: func TestMigrateCDEKeysToDVE(t *testing.T) {\n\n  Line 784: \terr = manager.MigrateCDEKeysToDVE()\n\n  Line 829: \terr = manager.MigrateCDEKeysToDVE()\n\n\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/data_engine/buntdb_manager.go:\n  Line 1088: // MigrateCDEKeysToDVE re-keys all legacy \"cde_*\" BuntDB records to \"dve_*\".\n\n  Line 1090: func (m *BuntDBManager) MigrateCDEKeysToDVE() error {\n",
+            "metadata": {
+              "matches": 5,
+              "truncated": false
+            },
+            "title": "MigrateCDEKeysToDVE",
+            "time": {
+              "start": 1779811225341,
+              "end": 1779811225541
+            }
+          },
+          "id": "prt_e65040cb2001Zk2cUzkvVsRm5N",
+          "sessionID": "ses_19afc492dffeazux63roMEZ1NN",
+          "messageID": "msg_e6503fe59001ZEK77DuRQX6EMb"
+        },
+        {
+          "type": "tool",
+          "tool": "grep",
+          "callID": "call_01_JG30WVkV5AoHPuuzvZV51190",
+          "state": {
+            "status": "completed",
+            "input": {
+              "pattern": "MigrateCDEKeysToDVE",
+              "path": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER",
+              "include": "main.go"
+            },
+            "output": "No files found",
+            "metadata": {
+              "matches": 0,
+              "truncated": false
+            },
+            "title": "MigrateCDEKeysToDVE",
+            "time": {
+              "start": 1779811225701,
+              "end": 1779811225924
+            }
+          },
+          "id": "prt_e65040f15001fLWVKFUWgGkZtH",
+          "sessionID": "ses_19afc492dffeazux63roMEZ1NN",
+          "messageID": "msg_e6503fe59001ZEK77DuRQX6EMb"
+        },
+        {
+          "type": "tool",
+          "tool": "grep",
+          "callID": "call_02_FSsoEMixLkKsPtqczw2P0449",
+          "state": {
+            "status": "completed",
+            "input": {
+              "pattern": "CDE(Environments|Sessions|Projects)Collection",
+              "path": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER"
+            },
+            "output": "No files found",
+            "metadata": {
+              "matches": 0,
+              "truncated": false
+            },
+            "title": "CDE(Environments|Sessions|Projects)Collection",
+            "time": {
+              "start": 1779811226258,
+              "end": 1779811226690
+            }
+          },
+          "id": "prt_e65041086001TRRc0lDq2KepLS",
+          "sessionID": "ses_19afc492dffeazux63roMEZ1NN",
+          "messageID": "msg_e6503fe59001ZEK77DuRQX6EMb"
+        },
+        {
+          "type": "tool",
+          "tool": "grep",
+          "callID": "call_03_5GdsnkvLctLgRSLsjg1Z6168",
+          "state": {
+            "status": "completed",
+            "input": {
+              "pattern": "MigrateCDE",
+              "path": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER",
+              "include": "main.go"
+            },
+            "output": "No files found",
+            "metadata": {
+              "matches": 0,
+              "truncated": false
+            },
+            "title": "MigrateCDE",
+            "time": {
+              "start": 1779811226649,
+              "end": 1779811226873
+            }
+          },
+          "id": "prt_e6504129b001w6FGMaSU2sAJIl",
+          "sessionID": "ses_19afc492dffeazux63roMEZ1NN",
+          "messageID": "msg_e6503fe59001ZEK77DuRQX6EMb"
+        },
+        {
+          "reason": "tool-calls",
+          "snapshot": "93001fd24c979517d23bd62daea3ad2e95bae7c4",
+          "type": "step-finish",
+          "tokens": {
+            "total": 11862,
+            "input": 2155,
+            "output": 418,
+            "reasoning": 73,
+            "cache": {
+              "write": 0,
+              "read": 9216
+            }
+          },
+          "cost": 0,
+          "id": "prt_e65043f89001My7Glbfv9H6rcc",
+          "sessionID": "ses_19afc492dffeazux63roMEZ1NN",
+          "messageID": "msg_e6503fe59001ZEK77DuRQX6EMb"
+        }
+      ]
+    },
+    {
+      "info": {
+        "parentID": "msg_e6503b701001YZXjDttgsjdJLC",
+        "role": "assistant",
+        "mode": "explore",
+        "agent": "explore",
+        "path": {
+          "cwd": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK",
+          "root": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK"
+        },
+        "cost": 0,
+        "tokens": {
+          "total": 12633,
+          "input": 337,
+          "output": 368,
+          "reasoning": 152,
+          "cache": {
+            "write": 0,
+            "read": 11776
+          }
+        },
+        "modelID": "big-pickle",
+        "providerID": "opencode",
+        "time": {
+          "created": 1779811239349,
+          "completed": 1779811259010
+        },
+        "finish": "tool-calls",
+        "id": "msg_e650445b5001F3ZZ4YwsL5EkVj",
+        "sessionID": "ses_19afc492dffeazux63roMEZ1NN"
+      },
+      "parts": [
+        {
+          "snapshot": "93001fd24c979517d23bd62daea3ad2e95bae7c4",
+          "type": "step-start",
+          "id": "prt_e65045114001wvGn8w4m4IXPrP",
+          "sessionID": "ses_19afc492dffeazux63roMEZ1NN",
+          "messageID": "msg_e650445b5001F3ZZ4YwsL5EkVj"
+        },
+        {
+          "type": "reasoning",
+          "text": "So the function `MigrateCDEKeysToDVE` is:\n- Defined in `buntdb_manager.go` at line 1090\n- Only called from the test file `buntdb_manager_test.go` at lines 784 and 829\n- NOT called from any `main.go`\n- NOT called from any other production code path\n\nNow let me also check if there's a `BuntDBManager` initialization or startup flow somewhere that might call this function indirectly, like in a New/Init method.\n\nLet me also check if there's some other startup file that might call it, like in `cmd/`, `backend/cmd/`, or if there's some initialization of BuntDBManager that wraps the call.",
+          "time": {
+            "start": 1779811242822,
+            "end": 1779811244429
+          },
+          "id": "prt_e650453460011NeVEJsejtv249",
+          "sessionID": "ses_19afc492dffeazux63roMEZ1NN",
+          "messageID": "msg_e650445b5001F3ZZ4YwsL5EkVj"
+        },
+        {
+          "type": "text",
+          "text": "Let me also check for any startup/init path that might trigger the migration indirectly, and check the main.go files for BuntDB initialization.",
+          "time": {
+            "start": 1779811244434,
+            "end": 1779811246485
+          },
+          "id": "prt_e65045992001YUYr4ENOTr7wFP",
+          "sessionID": "ses_19afc492dffeazux63roMEZ1NN",
+          "messageID": "msg_e650445b5001F3ZZ4YwsL5EkVj"
+        },
+        {
+          "type": "tool",
+          "tool": "grep",
+          "callID": "call_00_zj00y4bEFXWPWQz9Y3Io3098",
+          "state": {
+            "status": "completed",
+            "input": {
+              "pattern": "func NewBuntDBManager|func.*BuntDBManager.*Init|BuntDBManager.*Start",
+              "path": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend"
+            },
+            "output": "Found 1 matches\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/data_engine/buntdb_manager.go:\n  Line 207: func NewBuntDBManager(dbPath string) (*BuntDBManager, error) {\n",
+            "metadata": {
+              "matches": 1,
+              "truncated": false
+            },
+            "title": "func NewBuntDBManager|func.*BuntDBManager.*Init|BuntDBManager.*Start",
+            "time": {
+              "start": 1779811245119,
+              "end": 1779811245433
+            }
+          },
+          "id": "prt_e65045a370019Ps0nYJiuW4NcX",
+          "sessionID": "ses_19afc492dffeazux63roMEZ1NN",
+          "messageID": "msg_e650445b5001F3ZZ4YwsL5EkVj"
+        },
+        {
+          "type": "tool",
+          "tool": "grep",
+          "callID": "call_01_M8cPRdonJ9t0nbUr1AlO4743",
+          "state": {
+            "status": "completed",
+            "input": {
+              "pattern": "buntdb|BuntDB",
+              "path": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER",
+              "include": "main.go"
+            },
+            "output": "Found 6 matches\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/cmd/backend_server/main.go:\n  Line 106: \tdb                     *database.BuntDBManager\n\n  Line 129: \tdataEngine                   *data_engine.BuntDBDataEngine\n\n  Line 613: \tdbManager, err := database.NewBuntDB(cfg.Database.Path)\n\n  Line 712: \tdataEngineConfig := data_engine.BuntDBDataEngineConfig{\n\n  Line 727: \tdataEngine, err := data_engine.NewBuntDBDataEngine(dataEngineConfig)\n\n  Line 3064: func initializeTEEEnvironment(ctx context.Context, db *database.BuntDBManager) error {\n",
+            "metadata": {
+              "matches": 6,
+              "truncated": false
+            },
+            "title": "buntdb|BuntDB",
+            "time": {
+              "start": 1779811245598,
+              "end": 1779811246270
+            }
+          },
+          "id": "prt_e65045c73001rKH3YJNBPi9vCg",
+          "sessionID": "ses_19afc492dffeazux63roMEZ1NN",
+          "messageID": "msg_e650445b5001F3ZZ4YwsL5EkVj"
+        },
+        {
+          "type": "tool",
+          "tool": "glob",
+          "callID": "call_02_f4ZMESaMqnkYPE6P6Sgf1270",
+          "state": {
+            "status": "completed",
+            "input": {
+              "pattern": "packages/KNIRVSERVER/**/main.go"
+            },
+            "output": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/cmd/backend_server/main.go\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/main.go\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/ebpf/demo/main.go\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/cmd/root_key_encryptor/main.go\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/cmd/bootnode_key_encryptor/main.go\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/cmd/os_builder/main.go\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/cmd/container_deployer/main.go",
+            "metadata": {
+              "count": 7,
+              "truncated": false
+            },
+            "title": "",
+            "time": {
+              "start": 1779811245874,
+              "end": 1779811247236
+            }
+          },
+          "id": "prt_e65045e50001Da2jpryD5GBnaQ",
+          "sessionID": "ses_19afc492dffeazux63roMEZ1NN",
+          "messageID": "msg_e650445b5001F3ZZ4YwsL5EkVj"
+        },
+        {
+          "type": "tool",
+          "tool": "grep",
+          "callID": "call_03_YDTxY4o7u9CJx5WG9mNe2022",
+          "state": {
+            "status": "completed",
+            "input": {
+              "pattern": "BuntDBManager",
+              "path": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend",
+              "include": "*.go"
+            },
+            "output": "Found 209 matches (showing first 100)\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/data_engine/buntdb_manager_test.go:\n  Line 16: \tmanager, err := NewBuntDBManager(dbPath)\n\n  Line 65: \tmanager, err := NewBuntDBManager(dbPath)\n\n  Line 95: \tmanager, err := NewBuntDBManager(dbPath)\n\n  Line 125: \tmanager, err := NewBuntDBManager(dbPath)\n\n  Line 171: \tmanager, err := NewBuntDBManager(dbPath)\n\n  Line 221: \tmanager, err := NewBuntDBManager(dbPath)\n\n  Line 270: \tmanager, err := NewBuntDBManager(dbPath)\n\n  Line 317: \tmanager, err := NewBuntDBManager(dbPath)\n\n  Line 352: \tmanager, err := NewBuntDBManager(dbPath)\n\n  Line 378: \tmanager, err := NewBuntDBManager(dbPath)\n\n  Line 403: \tmanager, err := NewBuntDBManager(dbPath)\n\n  Line 445: \tmanager, err := NewBuntDBManager(dbPath)\n\n  Line 479: \tmanager, err := NewBuntDBManager(dbPath)\n\n  Line 519: \tmanager, err := NewBuntDBManager(dbPath)\n\n  Line 580: \tmanager, err := NewBuntDBManager(dbPath)\n\n  Line 633: \tmanager, err := NewBuntDBManager(dbPath)\n\n  Line 698: \tmanager, err := NewBuntDBManager(dbPath)\n\n  Line 728: \tmanager, err := NewBuntDBManager(dbPath)\n\n\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/cmd/backend_server/main.go:\n  Line 106: \tdb                     *database.BuntDBManager\n\n  Line 3064: func initializeTEEEnvironment(ctx context.Context, db *database.BuntDBManager) error {\n\n\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/data_engine/buntdb_manager.go:\n  Line 13: // BuntDBManager manages the embedded BuntDB database\n\n  Line 14: type BuntDBManager struct {\n\n  Line 206: // NewBuntDBManager creates a new BuntDB manager\n\n  Line 207: func NewBuntDBManager(dbPath string) (*BuntDBManager, error) {\n\n  Line 213: \tmanager := &BuntDBManager{\n\n  Line 229: func (m *BuntDBManager) Close() error {\n\n  Line 234: func (m *BuntDBManager) GetDB() *buntdb.DB {\n\n  Line 239: func (m *BuntDBManager) createIndexes() error {\n\n  Line 283: func (m *BuntDBManager) StoreMetric(metric *MetricEntry) error {\n\n  Line 300: func (m *BuntDBManager) GetMetrics(source, metricType string, since time.Time, limit int) ([]*MetricEntry, error) {\n\n  Line 355: func (m *BuntDBManager) StoreAlert(alert *AlertEntry) error {\n\n  Line 372: func (m *BuntDBManager) GetAlerts(severity, status string, since time.Time, limit int) ([]*AlertEntry, error) {\n\n  Line 411: func (m *BuntDBManager) ResolveAlert(alertID string) error {\n\n  Line 443: func (m *BuntDBManager) StoreReport(report *ReportEntry, isUserReport bool) error {\n\n  Line 466: func (m *BuntDBManager) GetReports(reportType string, isUserReport bool, since time.Time, limit int) ([]*ReportEntry, error) {\n\n  Line 532: func (m *BuntDBManager) StoreUserReport(report *UserReportEntry) error {\n\n  Line 549: func (m *BuntDBManager) StoreSystemReport(report *SystemReportEntry) error {\n\n  Line 566: func (m *BuntDBManager) GetUserReports(userID string, since time.Time, until time.Time) ([]*UserReportEntry, error) {\n\n  Line 597: func (m *BuntDBManager) GetSystemReports(since time.Time, until time.Time) ([]*SystemReportEntry, error) {\n\n  Line 626: func (m *BuntDBManager) StoreEvent(event *EventEntry) error {\n\n  Line 644: func (m *BuntDBManager) GetEvents(eventType, source string, since time.Time, limit int) ([]*EventEntry, error) {\n\n  Line 689: func (m *BuntDBManager) CleanupOldMetrics(maxAge time.Duration) error {\n\n  Line 732: func (m *BuntDBManager) GetStats() (map[string]interface{}, error) {\n\n  Line 814: func (m *BuntDBManager) countKeysWithPrefix(prefix string) int {\n\n  Line 841: func (m *BuntDBManager) CreateAuth(auth *AuthEntry) error {\n\n  Line 860: func (m *BuntDBManager) GetAuth(authID string) (*AuthEntry, error) {\n\n  Line 882: func (m *BuntDBManager) GetAuthByToken(tokenHash string) (*AuthEntry, error) {\n\n  Line 919: func (m *BuntDBManager) RevokeAuth(authID string) error {\n\n  Line 948: func (m *BuntDBManager) CleanupExpiredAuth() error {\n\n  Line 990: func (m *BuntDBManager) CreateSession(session *SessionEntry) error {\n\n  Line 1010: func (m *BuntDBManager) GetSession(sessionID string) (*SessionEntry, error) {\n\n  Line 1032: func (m *BuntDBManager) StoreJSON(key string, data []byte) error {\n\n  Line 1043: func (m *BuntDBManager) GetJSON(key string, dest interface{}) error {\n\n  Line 1062: func (m *BuntDBManager) DeleteJSON(key string) error {\n\n  Line 1073: func (m *BuntDBManager) GetAllKeysWithPrefix(prefix string) ([]string, error) {\n\n  Line 1090: func (m *BuntDBManager) MigrateCDEKeysToDVE() error {\n\n\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/dverental/dve_rental_service.go:\n  Line 31: \tdb               *database.BuntDBManager\n\n  Line 52: func NewDVERentalService(db *database.BuntDBManager) (*DVERentalService, error) {\n\n\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/agent/agent_service.go:\n  Line 64: \tdb          *database.BuntDBManager\n\n  Line 76: func NewAgentService(db *database.BuntDBManager) *AgentService {\n\n\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/agent/agent_service_test.go:\n  Line 19: func newTestDB(t *testing.T) *database.BuntDBManager {\n\n\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/workflow/workflow_service.go:\n  Line 241: \tdb               *database.BuntDBManager\n\n  Line 252: func NewWorkflowService(db *database.BuntDBManager) *WorkflowService {\n\n\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/cognitiveengine/cognitive_engine.go:\n  Line 34: \tdb               *database.BuntDBManager\n\n  Line 196: func NewCognitiveEngine(db *database.BuntDBManager, validationClient ValidationClient, inferenceClient InferenceClient, modelManager ModelManagerClient) *CognitiveEngine {\n\n  Line 204: \tdb *database.BuntDBManager,\n\n\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/dverental/dve_rental_service_test.go:\n  Line 46: func setupTestDVERentalService(t *testing.T) (*DVERentalService, *database.BuntDBManager) {\n\n\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/failover/failover_service.go:\n  Line 54: \tdb         *database.BuntDBManager\n\n  Line 64: func NewFailoverService(config *FailoverConfig, db *database.BuntDBManager) *FailoverService {\n\n\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/dvemanager/instance_registry.go:\n  Line 20: \tdb        *database.BuntDBManager\n\n  Line 45: func NewInstanceRegistry(db *database.BuntDBManager, cfg *config.DVEDiscoveryConfig) (*InstanceRegistry, error) {\n\n\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/dvemanager/dve_manager.go:\n  Line 26: \tdb                   *database.BuntDBManager\n\n  Line 54: func NewDVEManager(db *database.BuntDBManager, p2pManager *p2p.DVEP2PManager, ebpfMgr ebpf.ManagerInterface, cfg *config.Config) (*DVEManager, error) {\n\n\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/dvemanager/hasher_grpc_server.go:\n  Line 33: \tdb         *database.BuntDBManager\n\n  Line 38: func NewHasherGRPCServer(socketPath string, db *database.BuntDBManager) *HasherGRPCServer {\n\n\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/dvemanager/chain_native_discovery.go:\n  Line 53: \tdb                 *database.BuntDBManager\n\n  Line 66: func NewChainNativeNodeDiscovery(db *database.BuntDBManager, registry ChainNodeRegistry, reputationEngine ReputationEngine) *ChainNativeNodeDiscovery {\n\n  Line 493: \tdb *database.BuntDBManager\n\n  Line 496: func NewDVEDefaultReputationEngine(db *database.BuntDBManager) *DVEDefaultReputationEngine {\n\n\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/evidence/anchoring_service.go:\n  Line 53: \tdb            *database.BuntDBManager\n\n  Line 61: func NewAnchoringService(db *database.BuntDBManager, pqcManager *pqc.EncryptionManager, keyID string) *AnchoringService {\n\n\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/secrets/secret_manager.go:\n  Line 68: \tdb            *database.BuntDBManager\n\n  Line 76: func NewSecretManager(db *database.BuntDBManager) *SecretManager {\n\n\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/auth/user_service_test.go:\n  Line 18: func setupTestDB(t *testing.T) *database.BuntDBManager {\n\n\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/auth/user_service.go:\n  Line 53: \tdb     *database.BuntDBManager\n\n  Line 58: func NewUserService(db *database.BuntDBManager) *UserService {\n\n  Line 66: func NewUserServiceWithConfig(db *database.BuntDBManager, config AuthConfig) *UserService {\n\n\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/auth/user_service_mock_test.go:\n  Line 9: // MockBuntDBManager is a mock implementation of the database manager\n\n  Line 10: type MockBuntDBManager struct {\n\n  Line 14: func (m *MockBuntDBManager) StoreJSON(key string, value interface{}) error {\n\n  Line 19: func (m *MockBuntDBManager) GetJSON(key string, value interface{}) error {\n\n  Line 24: func (m *MockBuntDBManager) ViewTransaction(fn func(tx interface{}) error) error {\n\n  Line 29: func (m *MockBuntDBManager) Close() error {\n\n\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/guardrails/guardrail_manager.go:\n  Line 74: \tdb               *database.BuntDBManager\n\n  Line 88: func NewDynamicGuardrailManager(db *database.BuntDBManager) *DynamicGuardrailManager {\n\n  Line 532: \tdb                    *database.BuntDBManager\n\n  Line 575: func NewPolicyEngine(db *database.BuntDBManager, gm *DynamicGuardrailManager) *PolicyEngine {\n\n\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/icme/faiss_manager.go:\n  Line 33: \tdb       *database.BuntDBManager\n\n  Line 37: func NewFAISSIndexManager(db *database.BuntDBManager, logger *zap.Logger) (*FAISSIndexManager, error) {\n\n\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/icme/service.go:\n  Line 25: \tdb             *database.BuntDBManager\n\n\n(Results truncated: showing 100 of 209 matches (109 hidden). Consider using a more specific path or pattern.)",
+            "metadata": {
+              "matches": 209,
+              "truncated": true
+            },
+            "title": "BuntDBManager",
+            "time": {
+              "start": 1779811246475,
+              "end": 1779811247330
+            }
+          },
+          "id": "prt_e65045f870013qOseN8qcMYFIy",
+          "sessionID": "ses_19afc492dffeazux63roMEZ1NN",
+          "messageID": "msg_e650445b5001F3ZZ4YwsL5EkVj"
+        },
+        {
+          "reason": "tool-calls",
+          "snapshot": "93001fd24c979517d23bd62daea3ad2e95bae7c4",
+          "type": "step-finish",
+          "tokens": {
+            "total": 12633,
+            "input": 337,
+            "output": 368,
+            "reasoning": 152,
+            "cache": {
+              "write": 0,
+              "read": 11776
+            }
+          },
+          "cost": 0,
+          "id": "prt_e65048e2f001TCaNUXXpDtWRb5",
+          "sessionID": "ses_19afc492dffeazux63roMEZ1NN",
+          "messageID": "msg_e650445b5001F3ZZ4YwsL5EkVj"
+        }
+      ]
+    },
+    {
+      "info": {
+        "parentID": "msg_e6503b701001YZXjDttgsjdJLC",
+        "role": "assistant",
+        "mode": "explore",
+        "agent": "explore",
+        "path": {
+          "cwd": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK",
+          "root": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK"
+        },
+        "cost": 0,
+        "tokens": {
+          "total": 16843,
+          "input": 3855,
+          "output": 338,
+          "reasoning": 106,
+          "cache": {
+            "write": 0,
+            "read": 12544
+          }
+        },
+        "modelID": "big-pickle",
+        "providerID": "opencode",
+        "time": {
+          "created": 1779811259048,
+          "completed": 1779811266777
+        },
+        "finish": "tool-calls",
+        "id": "msg_e650492a8001L1WpIyNgCrYJQZ",
+        "sessionID": "ses_19afc492dffeazux63roMEZ1NN"
+      },
+      "parts": [
+        {
+          "snapshot": "93001fd24c979517d23bd62daea3ad2e95bae7c4",
+          "type": "step-start",
+          "id": "prt_e65049ae1001KlB7A8ldz48dQC",
+          "sessionID": "ses_19afc492dffeazux63roMEZ1NN",
+          "messageID": "msg_e650492a8001L1WpIyNgCrYJQZ"
+        },
+        {
+          "type": "reasoning",
+          "text": "Now let me look at the key startup files more carefully:\n1. `packages/KNIRVSERVER/backend/cmd/backend_server/main.go` - The main server\n2. `packages/KNIRVSERVER/main.go` - The entry point\n\nLet me read the relevant sections to check if MigrateCDEKeysToDVE is called during initialization.\n\nAlso, let me specifically check the `NewBuntDBManager` function and `createIndexes` to see if migration is called inside.",
+          "time": {
+            "start": 1779811261788,
+            "end": 1779811262647
+          },
+          "id": "prt_e65049d5c001ZnbdAtbQTG93Si",
+          "sessionID": "ses_19afc492dffeazux63roMEZ1NN",
+          "messageID": "msg_e650492a8001L1WpIyNgCrYJQZ"
+        },
+        {
+          "type": "text",
+          "text": "Let me check the `NewBuntDBManager` function to see if migration is called inside it, and also check the main startup flow.",
+          "time": {
+            "start": 1779811262675,
+            "end": 1779811264707
+          },
+          "id": "prt_e6504a0d3001NTA5d5D4idz53M",
+          "sessionID": "ses_19afc492dffeazux63roMEZ1NN",
+          "messageID": "msg_e650492a8001L1WpIyNgCrYJQZ"
+        },
+        {
+          "type": "tool",
+          "tool": "read",
+          "callID": "call_00_8BCD6fOJzJUwPCXwkw8i0529",
+          "state": {
+            "status": "completed",
+            "input": {
+              "offset": 200,
+              "filePath": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/data_engine/buntdb_manager.go",
+              "limit": 50
+            },
+            "output": "<path>/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/data_engine/buntdb_manager.go</path>\n<type>file</type>\n<content>\n200: \tWarnings    []string               `json:\"warnings,omitempty\"`\n201: \tCreatedAt   time.Time              `json:\"created_at\"`\n202: \tValidatedBy string                 `json:\"validated_by\"`\n203: \tMetadata    map[string]interface{} `json:\"metadata\"`\n204: }\n205: \n206: // NewBuntDBManager creates a new BuntDB manager\n207: func NewBuntDBManager(dbPath string) (*BuntDBManager, error) {\n208: \tdb, err := buntdb.Open(dbPath)\n209: \tif err != nil {\n210: \t\treturn nil, fmt.Errorf(\"failed to open BuntDB: %w\", err)\n211: \t}\n212: \n213: \tmanager := &BuntDBManager{\n214: \t\tdb:      db,\n215: \t\tdbPath:  dbPath,\n216: \t\tindexes: make(map[string]string),\n217: \t}\n218: \n219: \t// Create indexes for efficient querying\n220: \tif err := manager.createIndexes(); err != nil {\n221: \t\tdb.Close()\n222: \t\treturn nil, fmt.Errorf(\"failed to create indexes: %w\", err)\n223: \t}\n224: \n225: \treturn manager, nil\n226: }\n227: \n228: // Close closes the BuntDB connection\n229: func (m *BuntDBManager) Close() error {\n230: \treturn m.db.Close()\n231: }\n232: \n233: // GetDB returns the underlying *buntdb.DB instance for direct access\n234: func (m *BuntDBManager) GetDB() *buntdb.DB {\n235: \treturn m.db\n236: }\n237: \n238: // createIndexes creates indexes for efficient querying\n239: func (m *BuntDBManager) createIndexes() error {\n240: \treturn m.db.Update(func(tx *buntdb.Tx) error {\n241: \t\t// Metrics indexes\n242: \t\ttx.CreateIndex(\"metrics_time\", MetricsCollection+\"*\", buntdb.IndexJSON(\"timestamp\"))\n243: \t\ttx.CreateIndex(\"metrics_source\", MetricsCollection+\"*\", buntdb.IndexJSON(\"source\"))\n244: \t\ttx.CreateIndex(\"metrics_type\", MetricsCollection+\"*\", buntdb.IndexJSON(\"type\"))\n245: \n246: \t\t// Alerts indexes\n247: \t\ttx.CreateIndex(\"alerts_time\", AlertsCollection+\"*\", buntdb.IndexJSON(\"timestamp\"))\n248: \t\ttx.CreateIndex(\"alerts_severity\", AlertsCollection+\"*\", buntdb.IndexJSON(\"severity\"))\n249: \t\ttx.CreateIndex(\"alerts_status\", AlertsCollection+\"*\", buntdb.IndexJSON(\"status\"))\n\n(Showing lines 200-249 of 1127. Use offset=250 to continue.)\n</content>",
+            "metadata": {
+              "preview": "\tWarnings    []string               `json:\"warnings,omitempty\"`\n\tCreatedAt   time.Time              `json:\"created_at\"`\n\tValidatedBy string                 `json:\"validated_by\"`\n\tMetadata    map[string]interface{} `json:\"metadata\"`\n}\n\n// NewBuntDBManager creates a new BuntDB manager\nfunc NewBuntDBManager(dbPath string) (*BuntDBManager, error) {\n\tdb, err := buntdb.Open(dbPath)\n\tif err != nil {\n\t\treturn nil, fmt.Errorf(\"failed to open BuntDB: %w\", err)\n\t}\n\n\tmanager := &BuntDBManager{\n\t\tdb:      db,\n\t\tdbPath:  dbPath,\n\t\tindexes: make(map[string]string),\n\t}\n\n\t// Create indexes for efficient querying",
+              "truncated": true,
+              "loaded": []
+            },
+            "title": "packages/KNIRVSERVER/backend/internal/data_engine/buntdb_manager.go",
+            "time": {
+              "start": 1779811263508,
+              "end": 1779811263826
+            }
+          },
+          "id": "prt_e6504a23c001HRWSLDZsJQqapM",
+          "sessionID": "ses_19afc492dffeazux63roMEZ1NN",
+          "messageID": "msg_e650492a8001L1WpIyNgCrYJQZ"
+        },
+        {
+          "type": "tool",
+          "tool": "read",
+          "callID": "call_01_a8vfe1zQGQUOxJiAoYRo1280",
+          "state": {
+            "status": "completed",
+            "input": {
+              "offset": 600,
+              "filePath": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/cmd/backend_server/main.go",
+              "limit": 50
+            },
+            "output": "<path>/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/cmd/backend_server/main.go</path>\n<type>file</type>\n<content>\n600: \t}\n601: \n602: \treturn knirvoracle.NewManager(oracleCfg, logger)\n603: }\n604: \n605: func NewServer(cfg *config.Config, rootKeySecrets *pb.RootKeyFileContentProto) (*Server, error) {\n606: \t// Initialize logging\n607: \tlogger, err := initLogging(cfg)\n608: \tif err != nil {\n609: \t\treturn nil, fmt.Errorf(\"failed to initialize logging: %w\", err)\n610: \t}\n611: \n612: \t// Initialize database\n613: \tdbManager, err := database.NewBuntDB(cfg.Database.Path)\n614: \tif err != nil {\n615: \t\tlogger.Error(\"Failed to initialize database\", zap.Error(err))\n616: \t\treturn nil, fmt.Errorf(\"failed to initialize database: %w\", err)\n617: \t}\n618: \tdbManager.EnableKNIRVBASE(cfg.Database.UseKNIRVBASE)\n619: \tlog.Printf(\"Database initialized (KNIRVBASE bridge: %v)\", cfg.Database.UseKNIRVBASE)\n620: \n621: \t// Initialize eBPF Manager first (required for P2P security integration)\n622: \tebpfManager := ebpf.NewManager()\n623: \tebpfConfig := &ebpf.Config{\n624: \t\tPrograms: []ebpf.ProgramConfig{\n625: \t\t\t{Name: \"syscall_trace\", Enabled: true},\n626: \t\t\t{Name: \"sandbox_lsm\", Enabled: true},\n627: \t\t\t{Name: \"virtual_ns\", Enabled: true},\n628: \t\t\t{Name: \"telemetry\", Enabled: true},\n629: \t\t},\n630: \t}\n631: \n632: \t// Initialize eBPF manager with context\n633: \tebpfCtx := context.Background()\n634: \tif err := ebpfManager.Initialize(ebpfCtx, ebpfConfig); err != nil {\n635: \t\tlog.Printf(\"Warning: Failed to initialize eBPF manager: %v\", err)\n636: \t\tlog.Printf(\"eBPF features will be disabled. This may be due to insufficient kernel capabilities.\")\n637: \t\tebpfManager = nil // Disable eBPF if initialization fails\n638: \t} else {\n639: \t\tlog.Println(\"eBPF Manager initialized successfully\")\n640: \t}\n641: \n642: \t// Initialize XDP Manager and P2P Security Service (eBPF/XDP firewall integration)\n643: \tvar p2pSecurityService *p2p.P2PService\n644: \tif ebpfManager != nil {\n645: \t\txdpManager := ebpf.NewXDPManager(ebpfManager)\n646: \t\tif err := xdpManager.InitializeXDP(); err != nil {\n647: \t\t\tlog.Printf(\"Warning: Failed to initialize XDP manager: %v\", err)\n648: \t\t} else {\n649: \t\t\tp2pSecurityService, err = p2p.NewP2PService(xdpManager)\n\n(Showing lines 600-649 of 3277. Use offset=650 to continue.)\n</content>",
+            "metadata": {
+              "preview": "\t}\n\n\treturn knirvoracle.NewManager(oracleCfg, logger)\n}\n\nfunc NewServer(cfg *config.Config, rootKeySecrets *pb.RootKeyFileContentProto) (*Server, error) {\n\t// Initialize logging\n\tlogger, err := initLogging(cfg)\n\tif err != nil {\n\t\treturn nil, fmt.Errorf(\"failed to initialize logging: %w\", err)\n\t}\n\n\t// Initialize database\n\tdbManager, err := database.NewBuntDB(cfg.Database.Path)\n\tif err != nil {\n\t\tlogger.Error(\"Failed to initialize database\", zap.Error(err))\n\t\treturn nil, fmt.Errorf(\"failed to initialize database: %w\", err)\n\t}\n\tdbManager.EnableKNIRVBASE(cfg.Database.UseKNIRVBASE)\n\tlog.Printf(\"Database initialized (KNIRVBASE bridge: %v)\", cfg.Database.UseKNIRVBASE)",
+              "truncated": true,
+              "loaded": []
+            },
+            "title": "packages/KNIRVSERVER/backend/cmd/backend_server/main.go",
+            "time": {
+              "start": 1779811264152,
+              "end": 1779811264844
+            }
+          },
+          "id": "prt_e6504a430001uD6p75Tg6S80Bo",
+          "sessionID": "ses_19afc492dffeazux63roMEZ1NN",
+          "messageID": "msg_e650492a8001L1WpIyNgCrYJQZ"
+        },
+        {
+          "type": "tool",
+          "tool": "read",
+          "callID": "call_02_bzy2qXFJ3l9LLqdjaNBd2324",
+          "state": {
+            "status": "completed",
+            "input": {
+              "offset": 700,
+              "filePath": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/cmd/backend_server/main.go",
+              "limit": 50
+            },
+            "output": "<path>/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/cmd/backend_server/main.go</path>\n<type>file</type>\n<content>\n700: \t\t} else {\n701: \t\t\tcfg.ModelServer.StoragePath = filepath.Join(appDataDir, \"models\")\n702: \t\t\tlogger.Info(\"Setting fabric server storage path to app data directory\", zap.String(\"path\", cfg.ModelServer.StoragePath))\n703: \t\t}\n704: \t}\n705: \n706: \tpluginServer, err := pluginserver.NewPluginServer(cfg, dbManager)\n707: \tif err != nil {\n708: \t\treturn nil, fmt.Errorf(\"failed to initialize fabric server: %w\", err)\n709: \t}\n710: \n711: \t// Initialize data engine\n712: \tdataEngineConfig := data_engine.BuntDBDataEngineConfig{\n713: \t\tDatabasePath:     cfg.Database.Path,\n714: \t\tEnableWebSocket:  true,\n715: \t\tEnableRESTAPI:    true,\n716: \t\tWebSocketPort:    8082,\n717: \t\tRESTAPIPort:      7080,\n718: \t\tWindowSize:       time.Minute * 5,\n719: \t\tMetricsInterval:  time.Second * 30,\n720: \t\tMetricsRetention: time.Hour * 24 * 7,  // 7 days\n721: \t\tAlertsRetention:  time.Hour * 24 * 30, // 30 days\n722: \t\tEventsRetention:  time.Hour * 24 * 7,  // 7 days\n723: \t\tBatchSize:        100,\n724: \t\tFlushInterval:    time.Second * 10,\n725: \t\tMaxMemoryUsage:   1024 * 1024 * 100, // 100MB\n726: \t}\n727: \tdataEngine, err := data_engine.NewBuntDBDataEngine(dataEngineConfig)\n728: \tif err != nil {\n729: \t\treturn nil, fmt.Errorf(\"failed to initialize data engine: %w\", err)\n730: \t}\n731: \n732: \t// Initialize inference service\n733: \tinferenceService, err := inference.NewInferenceService(dbManager)\n734: \tif err != nil {\n735: \t\treturn nil, fmt.Errorf(\"failed to initialize inference service: %w\", err)\n736: \t}\n737: \n738: \t// Initialize InferenceSwitcher for internal transformer routing.\n739: \t// When the HEART Gorgonite model finishes pre-training, text generation\n740: \t// is routed through the internal transformer instead of external LLMs.\n741: \theartURL := fmt.Sprintf(\"http://127.0.0.1:%d\", cfg.Hasher.HeadlessPort)\n742: \theartGenerator := inference.NewHeartTextGenerator(heartURL)\n743: \tswitcher := inference.NewInferenceSwitcher(heartGenerator, &inference.InferenceServiceAdapter{Svc: inferenceService})\n744: \tinferenceService.SetInferenceSwitcher(switcher)\n745: \tlog.Printf(\"InferenceSwitcher configured: HEART at %s\", heartURL)\n746: \n747: \t// Initialize TEE Security service with Kali environment detection\n748: \tteeSecurityService, err := teesecurity.NewTEESecurityService(dbManager)\n749: \tif err != nil {\n\n(Showing lines 700-749 of 3277. Use offset=750 to continue.)\n</content>",
+            "metadata": {
+              "preview": "\t\t} else {\n\t\t\tcfg.ModelServer.StoragePath = filepath.Join(appDataDir, \"models\")\n\t\t\tlogger.Info(\"Setting fabric server storage path to app data directory\", zap.String(\"path\", cfg.ModelServer.StoragePath))\n\t\t}\n\t}\n\n\tpluginServer, err := pluginserver.NewPluginServer(cfg, dbManager)\n\tif err != nil {\n\t\treturn nil, fmt.Errorf(\"failed to initialize fabric server: %w\", err)\n\t}\n\n\t// Initialize data engine\n\tdataEngineConfig := data_engine.BuntDBDataEngineConfig{\n\t\tDatabasePath:     cfg.Database.Path,\n\t\tEnableWebSocket:  true,\n\t\tEnableRESTAPI:    true,\n\t\tWebSocketPort:    8082,\n\t\tRESTAPIPort:      7080,\n\t\tWindowSize:       time.Minute * 5,\n\t\tMetricsInterval:  time.Second * 30,",
+              "truncated": true,
+              "loaded": []
+            },
+            "title": "packages/KNIRVSERVER/backend/cmd/backend_server/main.go",
+            "time": {
+              "start": 1779811264495,
+              "end": 1779811265157
+            }
+          },
+          "id": "prt_e6504a6a30014TPTEUlECZAAlS",
+          "sessionID": "ses_19afc492dffeazux63roMEZ1NN",
+          "messageID": "msg_e650492a8001L1WpIyNgCrYJQZ"
+        },
+        {
+          "reason": "tool-calls",
+          "snapshot": "93001fd24c979517d23bd62daea3ad2e95bae7c4",
+          "type": "step-finish",
+          "tokens": {
+            "total": 16843,
+            "input": 3855,
+            "output": 338,
+            "reasoning": 106,
+            "cache": {
+              "write": 0,
+              "read": 12544
+            }
+          },
+          "cost": 0,
+          "id": "prt_e6504add2001azWqE32Adktzb0",
+          "sessionID": "ses_19afc492dffeazux63roMEZ1NN",
+          "messageID": "msg_e650492a8001L1WpIyNgCrYJQZ"
+        }
+      ]
+    },
+    {
+      "info": {
+        "parentID": "msg_e6503b701001YZXjDttgsjdJLC",
+        "role": "assistant",
+        "mode": "explore",
+        "agent": "explore",
+        "path": {
+          "cwd": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK",
+          "root": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK"
+        },
+        "cost": 0,
+        "tokens": {
+          "total": 19329,
+          "input": 2299,
+          "output": 158,
+          "reasoning": 104,
+          "cache": {
+            "write": 0,
+            "read": 16768
+          }
+        },
+        "modelID": "big-pickle",
+        "providerID": "opencode",
+        "time": {
+          "created": 1779811266795,
+          "completed": 1779811281364
+        },
+        "finish": "tool-calls",
+        "id": "msg_e6504b0eb001WIIcgwvq1W1173",
+        "sessionID": "ses_19afc492dffeazux63roMEZ1NN"
+      },
+      "parts": [
+        {
+          "snapshot": "93001fd24c979517d23bd62daea3ad2e95bae7c4",
+          "type": "step-start",
+          "id": "prt_e6504ba09001xApU8xxg4d0yj3",
+          "sessionID": "ses_19afc492dffeazux63roMEZ1NN",
+          "messageID": "msg_e6504b0eb001WIIcgwvq1W1173"
+        },
+        {
+          "type": "reasoning",
+          "text": "I notice that the main.go uses `database.NewBuntDB` not `data_engine.NewBuntDBManager`. Let me check what `NewBuntDB` is. It seems to be a different package. Also, let me check whether `MigrateCDEKeysToDVE` is ever called in the entire KNIRVSERVER production code (outside test files and the definition itself).\n\nLet me also check the `database.NewBuntDB` function to see if migration is called inside it.",
+          "time": {
+            "start": 1779811269716,
+            "end": 1779811270983
+          },
+          "id": "prt_e6504bc54001WuKP6Qoj85ERLu",
+          "sessionID": "ses_19afc492dffeazux63roMEZ1NN",
+          "messageID": "msg_e6504b0eb001WIIcgwvq1W1173"
+        },
+        {
+          "type": "tool",
+          "tool": "grep",
+          "callID": "call_00_laQUAWECoXP6Rr2exxKb9383",
+          "state": {
+            "status": "completed",
+            "input": {
+              "pattern": "func NewBuntDB",
+              "path": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/database"
+            },
+            "output": "Found 1 matches\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/database/buntdb.go:\n  Line 55: func NewBuntDB(path string) (*BuntDBManager, error) {\n",
+            "metadata": {
+              "matches": 1,
+              "truncated": false
+            },
+            "title": "func NewBuntDB",
+            "time": {
+              "start": 1779811271360,
+              "end": 1779811271870
+            }
+          },
+          "id": "prt_e6504c15a001XRAFOm2Pm463n8",
+          "sessionID": "ses_19afc492dffeazux63roMEZ1NN",
+          "messageID": "msg_e6504b0eb001WIIcgwvq1W1173"
+        },
+        {
+          "type": "tool",
+          "tool": "read",
+          "callID": "call_01_VzCN1VBrof9lbm6Edwin3334",
+          "state": {
+            "status": "completed",
+            "input": {
+              "filePath": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/database"
+            },
+            "output": "<path>/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/database</path>\n<type>directory</type>\n<entries>\nbuntdb_test.go\nbuntdb.go\nknirvbase.go\n\n(3 entries)\n</entries>",
+            "metadata": {
+              "preview": "buntdb_test.go\nbuntdb.go\nknirvbase.go",
+              "truncated": false,
+              "loaded": []
+            },
+            "title": "packages/KNIRVSERVER/backend/internal/database",
+            "time": {
+              "start": 1779811271748,
+              "end": 1779811271789
+            }
+          },
+          "id": "prt_e6504c2d70010h4NoTUFHkBrZ4",
+          "sessionID": "ses_19afc492dffeazux63roMEZ1NN",
+          "messageID": "msg_e6504b0eb001WIIcgwvq1W1173"
+        },
+        {
+          "reason": "tool-calls",
+          "snapshot": "93001fd24c979517d23bd62daea3ad2e95bae7c4",
+          "type": "step-finish",
+          "tokens": {
+            "total": 19329,
+            "input": 2299,
+            "output": 158,
+            "reasoning": 104,
+            "cache": {
+              "write": 0,
+              "read": 16768
+            }
+          },
+          "cost": 0,
+          "id": "prt_e6504e3d6001m7dXEZKGQJbZZl",
+          "sessionID": "ses_19afc492dffeazux63roMEZ1NN",
+          "messageID": "msg_e6504b0eb001WIIcgwvq1W1173"
+        }
+      ]
+    },
+    {
+      "info": {
+        "parentID": "msg_e6503b701001YZXjDttgsjdJLC",
+        "role": "assistant",
+        "mode": "explore",
+        "agent": "explore",
+        "path": {
+          "cwd": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK",
+          "root": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK"
+        },
+        "cost": 0,
+        "tokens": {
+          "total": 19598,
+          "input": 155,
+          "output": 80,
+          "reasoning": 35,
+          "cache": {
+            "write": 0,
+            "read": 19328
+          }
+        },
+        "modelID": "big-pickle",
+        "providerID": "opencode",
+        "time": {
+          "created": 1779811281417,
+          "completed": 1779811293841
+        },
+        "finish": "tool-calls",
+        "id": "msg_e6504ea09001E0LHCA8gl8w8A2",
+        "sessionID": "ses_19afc492dffeazux63roMEZ1NN"
+      },
+      "parts": [
+        {
+          "snapshot": "93001fd24c979517d23bd62daea3ad2e95bae7c4",
+          "type": "step-start",
+          "id": "prt_e6504f48a001PJ4q9wKUhfjDO9",
+          "sessionID": "ses_19afc492dffeazux63roMEZ1NN",
+          "messageID": "msg_e6504ea09001E0LHCA8gl8w8A2"
+        },
+        {
+          "type": "reasoning",
+          "text": "Let me read the `database/buntdb.go` to see what `NewBuntDB` does — it might call `MigrateCDEKeysToDVE`.",
+          "time": {
+            "start": 1779811284807,
+            "end": 1779811285276
+          },
+          "id": "prt_e6504f74700137a2W6EGruYUq4",
+          "sessionID": "ses_19afc492dffeazux63roMEZ1NN",
+          "messageID": "msg_e6504ea09001E0LHCA8gl8w8A2"
+        },
+        {
+          "type": "tool",
+          "tool": "read",
+          "callID": "call_00_pOmhwYBdl4sm5AAawCm96964",
+          "state": {
+            "status": "completed",
+            "input": {
+              "filePath": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/database/buntdb.go"
+            },
+            "output": "<path>/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/database/buntdb.go</path>\n<type>file</type>\n<content>\n1: package database\n2: \n3: import (\n4: \t\"context\"\n5: \t\"encoding/json\"\n6: \t\"fmt\"\n7: \t\"io\"\n8: \t\"log\"\n9: \t\"os\"\n10: \t\"os/user\"\n11: \t\"path/filepath\"\n12: \t\"strings\"\n13: \t\"sync\"\n14: \t\"time\"\n15: \n16: \t\"github.com/tidwall/buntdb\"\n17: )\n18: \n19: // getAppDataDir returns the OS-specific application data directory for KNIRV-SERVER\n20: func getAppDataDir() (string, error) {\n21: \tusr, err := user.Current()\n22: \tif err != nil {\n23: \t\treturn \"\", fmt.Errorf(\"failed to get current user: %v\", err)\n24: \t}\n25: \tappDataDir := filepath.Join(usr.HomeDir, \".local\", \"share\", \"knirvnexus\", \"backend_server\")\n26: \tif err := os.MkdirAll(appDataDir, 0755); err != nil {\n27: \t\treturn \"\", fmt.Errorf(\"failed to create app data directory: %v\", err)\n28: \t}\n29: \treturn appDataDir, nil\n30: }\n31: \n32: // BuntDBManager manages BuntDB operations with custom indexes and corruption prevention\n33: type BuntDBManager struct {\n34: \tdb        *buntdb.DB\n35: \tdbPath    string\n36: \tmu        sync.RWMutex\n37: \tknirvbase *KNIRVBASEManager\n38: \n39: \t// Corruption prevention\n40: \tbackupDir      string\n41: \tautoBackup     bool\n42: \tbackupInterval time.Duration\n43: \tmaxBackups     int\n44: \n45: \t// Context for background operations\n46: \tctx    context.Context\n47: \tcancel context.CancelFunc\n48: \n49: \t// Health monitoring\n50: \tlastHealthCheck time.Time\n51: \tisHealthy       bool\n52: }\n53: \n54: // NewBuntDB creates a new BuntDB instance with custom indexes and corruption prevention\n55: func NewBuntDB(path string) (*BuntDBManager, error) {\n56: \t// Validate database file before opening\n57: \tif err := validateDatabaseFile(path); err != nil {\n58: \t\tlog.Printf(\"Database validation failed, attempting recovery: %v\", err)\n59: \t\tif err := recoverDatabase(path); err != nil {\n60: \t\t\treturn nil, fmt.Errorf(\"failed to recover database: %w\", err)\n61: \t\t}\n62: \t}\n63: \n64: \t// Try to open the database\n65: \tdb, err := buntdb.Open(path)\n66: \tif err != nil {\n67: \t\t// If opening fails even after validation passed, try recovery once more\n68: \t\tlog.Printf(\"Database opening failed after validation, attempting recovery: %v\", err)\n69: \t\tif err := recoverDatabase(path); err != nil {\n70: \t\t\treturn nil, fmt.Errorf(\"failed to open BuntDB even after recovery: %w\", err)\n71: \t\t}\n72: \t\t// Try opening again after recovery\n73: \t\tdb, err = buntdb.Open(path)\n74: \t\tif err != nil {\n75: \t\t\treturn nil, fmt.Errorf(\"failed to open BuntDB: %w\", err)\n76: \t\t}\n77: \t}\n78: \n79: \tctx, cancel := context.WithCancel(context.Background())\n80: \n81: \t// Use OS application data directory for backups\n82: \tappDataDir, err := getAppDataDir()\n83: \tvar backupDir string\n84: \tif err != nil {\n85: \t\tlog.Printf(\"Warning: Failed to get app data directory, falling back to relative path: %v\", err)\n86: \t\tbackupDir = filepath.Dir(filepath.Dir(path)) + \"/backups\"\n87: \t} else {\n88: \t\tbackupDir = filepath.Join(appDataDir, \"backups\")\n89: \t}\n90: \n91: \tlog.Printf(\"Database backup directory set to: %s (for db path: %s)\", backupDir, path)\n92: \n93: \tmanager := &BuntDBManager{\n94: \t\tdb:              db,\n95: \t\tdbPath:          path,\n96: \t\tbackupDir:       backupDir,\n97: \t\tautoBackup:      true,\n98: \t\tbackupInterval:  30 * time.Minute,\n99: \t\tmaxBackups:      10,\n100: \t\tctx:             ctx,\n101: \t\tcancel:          cancel,\n102: \t\tlastHealthCheck: time.Now(),\n103: \t\tisHealthy:       true,\n104: \t\tknirvbase:       NewKNIRVBASEManager(false, nil, nil, \"\"), // Disabled by default during Phase 1\n105: \t}\n106: \n107: \t// Create backup directory\n108: \tif err := os.MkdirAll(manager.backupDir, 0755); err != nil {\n109: \t\tlog.Printf(\"Warning: Failed to create backup directory: %v\", err)\n110: \t\tmanager.autoBackup = false\n111: \t}\n112: \n113: \t// Create custom indexes\n114: \tif err := manager.createIndexes(); err != nil {\n115: \t\tdb.Close()\n116: \t\tcancel()\n117: \t\treturn nil, fmt.Errorf(\"failed to create indexes: %w\", err)\n118: \t}\n119: \n120: \t// Start background health monitoring and backup\n121: \tgo manager.backgroundMaintenance()\n122: \n123: \treturn manager, nil\n124: }\n125: \n126: // createIndexes creates all necessary indexes for DVE operations\n127: func (bm *BuntDBManager) createIndexes() error {\n128: \treturn bm.db.Update(func(tx *buntdb.Tx) error {\n129: \t\t// DVE Node indexes\n130: \t\ttx.CreateIndex(\"nodes_by_status\", \"dve:nodes:*\", buntdb.IndexJSON(\"status\"))\n131: \t\ttx.CreateIndex(\"nodes_by_tee_type\", \"dve:nodes:*\", buntdb.IndexJSON(\"tee_type\"))\n132: \t\ttx.CreateIndex(\"nodes_by_reputation\", \"dve:nodes:*\", buntdb.IndexJSON(\"reputation_score\"))\n133: \t\ttx.CreateIndex(\"nodes_by_stake\", \"dve:nodes:*\", buntdb.IndexJSON(\"stake_amount\"))\n134: \t\ttx.CreateIndex(\"nodes_by_location\", \"dve:nodes:*\", buntdb.IndexJSON(\"location\"))\n135: \t\ttx.CreateIndex(\"nodes_by_created_at\", \"dve:nodes:*\", buntdb.IndexJSON(\"created_at\"))\n136: \n137: \t\t// Validation Task indexes\n138: \t\ttx.CreateIndex(\"tasks_by_status\", \"validation:tasks:*\", buntdb.IndexJSON(\"status\"))\n139: \t\ttx.CreateIndex(\"tasks_by_priority\", \"validation:tasks:*\", buntdb.IndexJSON(\"priority\"))\n140: \t\ttx.CreateIndex(\"tasks_by_type\", \"validation:tasks:*\", buntdb.IndexJSON(\"type\"))\n141: \t\ttx.CreateIndex(\"tasks_by_created_at\", \"validation:tasks:*\", buntdb.IndexJSON(\"created_at\"))\n142: \t\ttx.CreateIndex(\"tasks_by_assigned_node\", \"validation:tasks:*\", buntdb.IndexJSON(\"assigned_node_id\"))\n143: \n144: \t\t// Validation Proof indexes\n145: \t\ttx.CreateIndex(\"proofs_by_task_id\", \"validation:proofs:*\", buntdb.IndexJSON(\"task_id\"))\n146: \t\ttx.CreateIndex(\"proofs_by_validator\", \"validation:proofs:*\", buntdb.IndexJSON(\"validator_node_id\"))\n147: \t\ttx.CreateIndex(\"proofs_by_status\", \"validation:proofs:*\", buntdb.IndexJSON(\"status\"))\n148: \n149: \t\t// TEE Attestation indexes\n150: \t\ttx.CreateIndex(\"attestations_by_node\", \"tee:attestations:*\", buntdb.IndexJSON(\"node_id\"))\n151: \t\ttx.CreateIndex(\"attestations_by_type\", \"tee:attestations:*\", buntdb.IndexJSON(\"tee_type\"))\n152: \t\ttx.CreateIndex(\"attestations_by_status\", \"tee:attestations:*\", buntdb.IndexJSON(\"status\"))\n153: \n154: \t\t// User Management indexes\n155: \t\ttx.CreateIndex(\"users_by_email\", \"users:profiles:*\", buntdb.IndexJSON(\"email\"))\n156: \t\ttx.CreateIndex(\"users_by_username\", \"users:profiles:*\", buntdb.IndexJSON(\"username\"))\n157: \t\ttx.CreateIndex(\"users_by_role\", \"users:profiles:*\", buntdb.IndexJSON(\"role\"))\n158: \t\ttx.CreateIndex(\"users_by_created_at\", \"users:profiles:*\", buntdb.IndexJSON(\"created_at\"))\n159: \n160: \t\t// Session indexes\n161: \t\ttx.CreateIndex(\"sessions_by_user_id\", \"users:sessions:*\", buntdb.IndexJSON(\"user_id\"))\n162: \t\ttx.CreateIndex(\"sessions_by_expires_at\", \"users:sessions:*\", buntdb.IndexJSON(\"expires_at\"))\n163: \n164: \t\t// Report indexes\n165: \t\ttx.CreateIndex(\"reports_by_type\", \"reports:*\", buntdb.IndexJSON(\"type\"))\n166: \t\ttx.CreateIndex(\"reports_by_created_at\", \"reports:*\", buntdb.IndexJSON(\"created_at\"))\n167: \t\ttx.CreateIndex(\"reports_by_user\", \"reports:*\", buntdb.IndexJSON(\"generated_by\"))\n168: \t\ttx.CreateIndex(\"reports_by_format\", \"reports:*\", buntdb.IndexJSON(\"format\"))\n169: \n170: \t\t// Report Template indexes\n171: \t\ttx.CreateIndex(\"templates_by_type\", \"report:templates:*\", buntdb.IndexJSON(\"type\"))\n172: \t\ttx.CreateIndex(\"templates_by_created_by\", \"report:templates:*\", buntdb.IndexJSON(\"created_by\"))\n173: \t\ttx.CreateIndex(\"templates_by_public\", \"report:templates:*\", buntdb.IndexJSON(\"is_public\"))\n174: \n175: \t\t// Metrics indexes\n176: \t\ttx.CreateIndex(\"metrics_by_timestamp\", \"metrics:historical:*\", buntdb.IndexJSON(\"timestamp\"))\n177: \t\ttx.CreateIndex(\"metrics_by_type\", \"metrics:historical:*\", buntdb.IndexJSON(\"type\"))\n178: \t\ttx.CreateIndex(\"metrics_by_node_id\", \"metrics:historical:*\", buntdb.IndexJSON(\"node_id\"))\n179: \n180: \t\t// Spatial index for geographic node distribution\n181: \t\ttx.CreateSpatialIndex(\"nodes_by_coordinates\", \"dve:nodes:*\", buntdb.IndexRect)\n182: \n183: \t\t// KNIRVGATEWAY indexes - TURN relay sessions\n184: \t\t// key pattern: gateway:turn:sessions:<session_id>\n185: \t\t// fields: peer_id, status (active|expired), udp_port, tcp_port, created_at, expires_at\n186: \t\ttx.CreateIndex(\"turn_sessions_by_status\", \"gateway:turn:sessions:*\", buntdb.IndexJSON(\"status\"))\n187: \t\ttx.CreateIndex(\"turn_sessions_by_peer\", \"gateway:turn:sessions:*\", buntdb.IndexJSON(\"peer_id\"))\n188: \t\ttx.CreateIndex(\"turn_sessions_by_created_at\", \"gateway:turn:sessions:*\", buntdb.IndexJSON(\"created_at\"))\n189: \t\ttx.CreateIndex(\"turn_sessions_by_expires_at\", \"gateway:turn:sessions:*\", buntdb.IndexJSON(\"expires_at\"))\n190: \n191: \t\t// KNIRVGATEWAY indexes - tunnel registrations\n192: \t\t// key pattern: gateway:tunnels:<tunnel_id>\n193: \t\t// fields: peer_id, status (registered|connected|disconnected), created_at, public_host\n194: \t\ttx.CreateIndex(\"tunnels_by_status\", \"gateway:tunnels:*\", buntdb.IndexJSON(\"status\"))\n195: \t\ttx.CreateIndex(\"tunnels_by_peer\", \"gateway:tunnels:*\", buntdb.IndexJSON(\"peer_id\"))\n196: \t\ttx.CreateIndex(\"tunnels_by_created_at\", \"gateway:tunnels:*\", buntdb.IndexJSON(\"created_at\"))\n197: \n198: \t\t// KNIRVGATEWAY indexes - API key records (shared auth between gateway and backend)\n199: \t\t// key pattern: gateway:apikeys:<key_id>\n200: \t\t// fields: user_id, is_active, scopes, created_at, expires_at, risk_score\n201: \t\ttx.CreateIndex(\"apikeys_by_user\", \"gateway:apikeys:*\", buntdb.IndexJSON(\"user_id\"))\n202: \t\ttx.CreateIndex(\"apikeys_by_active\", \"gateway:apikeys:*\", buntdb.IndexJSON(\"is_active\"))\n203: \t\ttx.CreateIndex(\"apikeys_by_expires_at\", \"gateway:apikeys:*\", buntdb.IndexJSON(\"expires_at\"))\n204: \n205: \t\t// KNIRVGATEWAY indexes - health snapshots (rolling history for dashboard)\n206: \t\t// key pattern: gateway:health:<timestamp>\n207: \t\t// fields: status (healthy|degraded|down), turn_running, timestamp\n208: \t\ttx.CreateIndex(\"gateway_health_by_timestamp\", \"gateway:health:*\", buntdb.IndexJSON(\"timestamp\"))\n209: \t\ttx.CreateIndex(\"gateway_health_by_status\", \"gateway:health:*\", buntdb.IndexJSON(\"status\"))\n210: \n211: \t\treturn nil\n212: \t})\n213: }\n214: \n215: // GetDB returns the underlying BuntDB instance\n216: func (bm *BuntDBManager) GetDB() *buntdb.DB {\n217: \treturn bm.db\n218: }\n219: \n220: // Close closes the database connection with graceful shutdown\n221: func (bm *BuntDBManager) Close() error {\n222: \tbm.mu.Lock()\n223: \tdefer bm.mu.Unlock()\n224: \n225: \t// Cancel background operations\n226: \tif bm.cancel != nil {\n227: \t\tbm.cancel()\n228: \t}\n229: \n230: \t// Create final backup before closing\n231: \tif bm.autoBackup && bm.isHealthy {\n232: \t\tif err := bm.createBackup(\"final\"); err != nil {\n233: \t\t\tlog.Printf(\"Warning: Failed to create final backup: %v\", err)\n234: \t\t}\n235: \t}\n236: \n237: \t// Close database\n238: \tif bm.db != nil {\n239: \t\treturn bm.db.Close()\n240: \t}\n241: \n242: \treturn nil\n243: }\n244: \n245: // StoreJSON stores a JSON object with the given key\n246: func (bm *BuntDBManager) StoreJSON(key string, data interface{}) error {\n247: \t// 1. Store in BuntDB (Primary)\n248: \terr := bm.db.Update(func(tx *buntdb.Tx) error {\n249: \t\tjsonData, err := json.Marshal(data)\n250: \t\tif err != nil {\n251: \t\t\treturn err\n252: \t\t}\n253: \t\t_, _, err = tx.Set(key, string(jsonData), nil)\n254: \t\treturn err\n255: \t})\n256: \n257: \t// 2. Dual-write to KNIRVBASE (Secondary/Bridge)\n258: \tif bm.knirvbase != nil {\n259: \t\t// Asynchronous write to avoid slowing down main flow\n260: \t\tgo func() {\n261: \t\t\t_ = bm.knirvbase.StoreObject(context.Background(), key, data)\n262: \t\t}()\n263: \t}\n264: \n265: \treturn err\n266: }\n267: \n268: // GetJSON retrieves and unmarshals a JSON object\n269: func (bm *BuntDBManager) GetJSON(key string, dest interface{}) error {\n270: \t// 1. Try KNIRVBASE first if enabled (Primary/Bridge)\n271: \tif bm.knirvbase != nil && bm.knirvbase.enabled {\n272: \t\terr := bm.knirvbase.GetObject(context.Background(), key, dest)\n273: \t\tif err == nil {\n274: \t\t\treturn nil\n275: \t\t}\n276: \t\t// If error is anything other than \"not found\", we might want to log it\n277: \t\t// but we still fall back to BuntDB\n278: \t}\n279: \n280: \t// 2. Fallback to BuntDB (Legacy)\n281: \treturn bm.db.View(func(tx *buntdb.Tx) error {\n282: \t\tvalue, err := tx.Get(key)\n283: \t\tif err != nil {\n284: \t\t\treturn err\n285: \t\t}\n286: \t\treturn json.Unmarshal([]byte(value), dest)\n287: \t})\n288: }\n289: \n290: // SetJSON marshals and stores a JSON object\n291: func (bm *BuntDBManager) SetJSON(key string, value interface{}) error {\n292: \tdata, err := json.Marshal(value)\n293: \tif err != nil {\n294: \t\treturn err\n295: \t}\n296: \n297: \tif bm.knirvbase != nil && bm.knirvbase.enabled {\n298: \t\terr := bm.knirvbase.StoreObject(context.Background(), key, string(data))\n299: \t\tif err == nil {\n300: \t\t\treturn nil\n301: \t\t}\n302: \t}\n303: \n304: \treturn bm.db.Update(func(tx *buntdb.Tx) error {\n305: \t\t_, err := tx.Delete(key)\n306: \t\tif err != nil && err.Error() != \"not found\" {\n307: \t\t\treturn err\n308: \t\t}\n309: \t\t_, _, err = tx.Set(key, string(data), nil)\n310: \t\treturn err\n311: \t})\n312: }\n313: \n314: // DeleteKey deletes a key from the database\n315: func (bm *BuntDBManager) DeleteKey(key string) error {\n316: \treturn bm.db.Update(func(tx *buntdb.Tx) error {\n317: \t\t_, err := tx.Delete(key)\n318: \t\treturn err\n319: \t})\n320: }\n321: \n322: // ListKeys returns all keys matching a pattern\n323: func (bm *BuntDBManager) ListKeys(pattern string) ([]string, error) {\n324: \tvar keys []string\n325: \n326: \t// If pattern is empty, iterate through all keys\n327: \tif pattern == \"\" {\n328: \t\terr := bm.db.View(func(tx *buntdb.Tx) error {\n329: \t\t\treturn tx.Ascend(\"\", func(key, value string) bool {\n330: \t\t\t\tkeys = append(keys, key)\n331: \t\t\t\treturn true\n332: \t\t\t})\n333: \t\t})\n334: \t\treturn keys, err\n335: \t}\n336: \n337: \t// Otherwise use the pattern\n338: \terr := bm.db.View(func(tx *buntdb.Tx) error {\n339: \t\treturn tx.AscendKeys(pattern, func(key, value string) bool {\n340: \t\t\tkeys = append(keys, key)\n341: \t\t\treturn true\n342: \t\t})\n343: \t})\n344: \treturn keys, err\n345: }\n346: \n347: // CountKeys returns the count of keys matching a pattern\n348: func (bm *BuntDBManager) CountKeys(pattern string) (int, error) {\n349: \tcount := 0\n350: \terr := bm.db.View(func(tx *buntdb.Tx) error {\n351: \t\treturn tx.Ascend(pattern, func(key, value string) bool {\n352: \t\t\tcount++\n353: \t\t\treturn true\n354: \t\t})\n355: \t})\n356: \treturn count, err\n357: }\n358: \n359: // SetWithTTL stores a key-value pair with a time-to-live\n360: func (bm *BuntDBManager) SetWithTTL(key, value string, ttl time.Duration) error {\n361: \t// 1. Store in BuntDB\n362: \terr := bm.db.Update(func(tx *buntdb.Tx) error {\n363: \t\topts := &buntdb.SetOptions{Expires: true, TTL: ttl}\n364: \t\t_, _, err := tx.Set(key, value, opts)\n365: \t\treturn err\n366: \t})\n367: \n368: \t// 2. Dual-write to KNIRVBASE\n369: \tif bm.knirvbase != nil {\n370: \t\tgo func() {\n371: \t\t\t_ = bm.knirvbase.SetWithTTL(context.Background(), key, value, ttl)\n372: \t\t}()\n373: \t}\n374: \n375: \treturn err\n376: }\n377: \n378: // EnableKNIRVBASE enables or disables the KNIRVBASE bridge\n379: func (bm *BuntDBManager) EnableKNIRVBASE(enabled bool) {\n380: \tbm.mu.Lock()\n381: \tdefer bm.mu.Unlock()\n382: \tif bm.knirvbase != nil {\n383: \t\tbm.knirvbase.enabled = enabled\n384: \t}\n385: }\n386: \n387: // SetKNIRVBASE sets the KNIRVBASE manager instance\n388: func (bm *BuntDBManager) SetKNIRVBASE(knirvbase *KNIRVBASEManager) {\n389: \tbm.mu.Lock()\n390: \tdefer bm.mu.Unlock()\n391: \tbm.knirvbase = knirvbase\n392: }\n393: \n394: // GetKNIRVBASEStatus returns the status of the KNIRVBASE persistence layer\n395: func (bm *BuntDBManager) GetKNIRVBASEStatus() (string, map[string]interface{}) {\n396: \tif bm.knirvbase == nil {\n397: \t\treturn \"not_initialized\", nil\n398: \t}\n399: \treturn bm.knirvbase.GetStatus()\n400: }\n401: \n402: // GetObjectsByPrefix retrieves all objects with a given prefix, unmarshaling them into a slice\n403: func (bm *BuntDBManager) GetObjectsByPrefix(prefix string, handler func(key string, value []byte) bool) error {\n404: \t// 1. Try KNIRVBASE first if enabled\n405: \tif bm.knirvbase != nil && bm.knirvbase.enabled {\n406: \t\t// This is a simplified implementation for the prototype\n407: \t\t// In a real system, we'd use the Query method with tags\n408: \t\tkeys, err := bm.knirvbase.Query(context.Background(), strings.TrimSuffix(prefix, \":\"))\n409: \t\tif err == nil && len(keys) > 0 {\n410: \t\t\tfor _, key := range keys {\n411: \t\t\t\t// Filter by prefix (Query might return more broad results)\n412: \t\t\t\tif !strings.HasPrefix(key, prefix) {\n413: \t\t\t\t\tcontinue\n414: \t\t\t\t}\n415: \n416: \t\t\t\tvar data json.RawMessage\n417: \t\t\t\tif err := bm.knirvbase.GetObject(context.Background(), key, &data); err == nil {\n418: \t\t\t\t\tif !handler(key, data) {\n419: \t\t\t\t\t\treturn nil\n420: \t\t\t\t\t}\n421: \t\t\t\t}\n422: \t\t\t}\n423: \t\t\treturn nil\n424: \t\t}\n425: \t}\n426: \n427: \t// 2. Fallback to BuntDB\n428: \treturn bm.db.View(func(tx *buntdb.Tx) error {\n429: \t\treturn tx.AscendKeys(prefix+\"*\", func(key, value string) bool {\n430: \t\t\treturn handler(key, []byte(value))\n431: \t\t})\n432: \t})\n433: }\n434: \n435: // Transaction executes a function within a database transaction\n436: func (bm *BuntDBManager) Transaction(fn func(*buntdb.Tx) error) error {\n437: \treturn bm.db.Update(fn)\n438: }\n439: \n440: // ViewTransaction executes a read-only function within a database transaction\n441: func (bm *BuntDBManager) ViewTransaction(fn func(*buntdb.Tx) error) error {\n442: \treturn bm.db.View(fn)\n443: }\n444: \n445: // GetValue retrieves a value from the database by key\n446: func (bm *BuntDBManager) GetValue(key string) (string, error) {\n447: \tvar value string\n448: \terr := bm.db.View(func(tx *buntdb.Tx) error {\n449: \t\tval, err := tx.Get(key)\n450: \t\tif err != nil {\n451: \t\t\treturn err\n452: \t\t}\n453: \t\tvalue = val\n454: \t\treturn nil\n455: \t})\n456: \treturn value, err\n457: }\n458: \n459: // SetValue stores a value in the database with a given key\n460: func (bm *BuntDBManager) SetValue(key, value string) error {\n461: \treturn bm.db.Update(func(tx *buntdb.Tx) error {\n462: \t\t_, _, err := tx.Set(key, value, nil)\n463: \t\treturn err\n464: \t})\n465: }\n466: \n467: // backgroundMaintenance runs periodic health checks and backups\n468: func (bm *BuntDBManager) backgroundMaintenance() {\n469: \thealthTicker := time.NewTicker(5 * time.Minute)\n470: \tbackupTicker := time.NewTicker(bm.backupInterval)\n471: \tdefer healthTicker.Stop()\n472: \tdefer backupTicker.Stop()\n473: \n474: \tfor {\n475: \t\tselect {\n476: \t\tcase <-bm.ctx.Done():\n477: \t\t\treturn\n478: \t\tcase <-healthTicker.C:\n479: \t\t\tbm.performHealthCheck()\n480: \t\tcase <-backupTicker.C:\n481: \t\t\tif bm.autoBackup {\n482: \t\t\t\tif err := bm.createBackup(\"auto\"); err != nil {\n483: \t\t\t\t\tlog.Printf(\"Auto backup failed: %v\", err)\n484: \t\t\t\t}\n485: \t\t\t}\n486: \t\t}\n487: \t}\n488: }\n489: \n490: // performHealthCheck checks database integrity\n491: func (bm *BuntDBManager) performHealthCheck() {\n492: \tbm.mu.Lock()\n493: \tdefer bm.mu.Unlock()\n494: \n495: \t// Simple health check - try to read a key\n496: \terr := bm.db.View(func(tx *buntdb.Tx) error {\n497: \t\t// Try to iterate through a small number of keys\n498: \t\tcount := 0\n499: \t\treturn tx.Ascend(\"\", func(key, value string) bool {\n500: \t\t\tcount++\n501: \t\t\treturn count < 10 // Only check first 10 keys\n502: \t\t})\n503: \t})\n504: \n505: \tbm.lastHealthCheck = time.Now()\n506: \tbm.isHealthy = (err == nil)\n507: \n508: \tif !bm.isHealthy {\n509: \t\tlog.Printf(\"Database health check failed: %v\", err)\n510: \t}\n511: }\n512: \n513: // createBackup creates a backup of the database\n514: func (bm *BuntDBManager) createBackup(suffix string) error {\n515: \tif !bm.autoBackup {\n516: \t\treturn nil\n517: \t}\n518: \n519: \ttimestamp := time.Now().Format(\"20060102_150405\")\n520: \tbackupPath := filepath.Join(bm.backupDir, fmt.Sprintf(\"nexus_%s_%s.db\", suffix, timestamp))\n521: \n522: \t// Create backup file\n523: \tbackupFile, err := os.Create(backupPath)\n524: \tif err != nil {\n525: \t\treturn fmt.Errorf(\"failed to create backup file: %w\", err)\n526: \t}\n527: \tdefer backupFile.Close()\n528: \n529: \t// Perform backup by copying all key-value pairs\n530: \terr = bm.db.View(func(tx *buntdb.Tx) error {\n531: \t\t// Create a temporary database for backup\n532: \t\ttempDB, err := buntdb.Open(\":memory:\")\n533: \t\tif err != nil {\n534: \t\t\treturn err\n535: \t\t}\n536: \t\tdefer tempDB.Close()\n537: \n538: \t\t// Copy all data to temp database\n539: \t\terr = tempDB.Update(func(tempTx *buntdb.Tx) error {\n540: \t\t\treturn tx.Ascend(\"\", func(key, value string) bool {\n541: \t\t\t\ttempTx.Set(key, value, nil)\n542: \t\t\t\treturn true\n543: \t\t\t})\n544: \t\t})\n545: \t\tif err != nil {\n546: \t\t\treturn err\n547: \t\t}\n548: \n549: \t\t// Save temp database to file\n550: \t\treturn tempDB.Save(backupFile)\n551: \t})\n552: \n553: \tif err != nil {\n554: \t\tos.Remove(backupPath) // Clean up failed backup\n555: \t\treturn fmt.Errorf(\"failed to write backup: %w\", err)\n556: \t}\n557: \n558: \tlog.Printf(\"Database backup created: %s\", backupPath)\n559: \n560: \t// Clean up old backups\n561: \tbm.cleanupOldBackups()\n562: \n563: \treturn nil\n564: }\n565: \n566: // cleanupOldBackups removes old backup files\n567: func (bm *BuntDBManager) cleanupOldBackups() {\n568: \tfiles, err := filepath.Glob(filepath.Join(bm.backupDir, \"nexus_*.db\"))\n569: \tif err != nil {\n570: \t\tlog.Printf(\"Failed to list backup files: %v\", err)\n571: \t\treturn\n572: \t}\n573: \n574: \tif len(files) <= bm.maxBackups {\n575: \t\treturn\n576: \t}\n577: \n578: \t// Sort files by modification time and remove oldest\n579: \ttype fileInfo struct {\n580: \t\tpath    string\n581: \t\tmodTime time.Time\n582: \t}\n583: \n584: \tvar fileInfos []fileInfo\n585: \tfor _, file := range files {\n586: \t\tif stat, err := os.Stat(file); err == nil {\n587: \t\t\tfileInfos = append(fileInfos, fileInfo{\n588: \t\t\t\tpath:    file,\n589: \t\t\t\tmodTime: stat.ModTime(),\n590: \t\t\t})\n591: \t\t}\n592: \t}\n593: \n594: \t// Sort by modification time (oldest first)\n595: \tfor i := 0; i < len(fileInfos)-1; i++ {\n596: \t\tfor j := i + 1; j < len(fileInfos); j++ {\n597: \t\t\tif fileInfos[i].modTime.After(fileInfos[j].modTime) {\n598: \t\t\t\tfileInfos[i], fileInfos[j] = fileInfos[j], fileInfos[i]\n599: \t\t\t}\n600: \t\t}\n601: \t}\n602: \n603: \t// Remove oldest files\n604: \ttoRemove := len(fileInfos) - bm.maxBackups\n605: \tfor i := 0; i < toRemove; i++ {\n606: \t\tif err := os.Remove(fileInfos[i].path); err != nil {\n607: \t\t\tlog.Printf(\"Failed to remove old backup %s: %v\", fileInfos[i].path, err)\n608: \t\t} else {\n609: \t\t\tlog.Printf(\"Removed old backup: %s\", fileInfos[i].path)\n610: \t\t}\n611: \t}\n612: }\n613: \n614: // validateDatabaseFile checks if a database file is valid\n615: func validateDatabaseFile(path string) error {\n616: \t// Check if file exists\n617: \tif _, err := os.Stat(path); os.IsNotExist(err) {\n618: \t\treturn nil // File doesn't exist, which is fine for new databases\n619: \t}\n620: \n621: \t// Check if file is readable\n622: \tfile, err := os.Open(path)\n623: \tif err != nil {\n624: \t\treturn fmt.Errorf(\"cannot open database file: %w\", err)\n625: \t}\n626: \tdefer file.Close()\n627: \n628: \t// Check file size (empty files or very small files might be corrupted)\n629: \tstat, err := file.Stat()\n630: \tif err != nil {\n631: \t\treturn fmt.Errorf(\"cannot stat database file: %w\", err)\n632: \t}\n633: \n634: \tif stat.Size() > 0 && stat.Size() < 100 {\n635: \t\treturn fmt.Errorf(\"database file too small, possibly corrupted\")\n636: \t}\n637: \n638: \t// Note: BuntDB uses a text-based format that may start with various characters\n639: \t// We don't reject based on file content alone, we rely on buntdb.Open to validate\n640: \n641: \t// Try to open with BuntDB to check basic integrity\n642: \ttestDB, err := buntdb.Open(path)\n643: \tif err != nil {\n644: \t\treturn fmt.Errorf(\"database file corrupted: %w\", err)\n645: \t}\n646: \n647: \t// Try to perform a simple read operation to ensure database is actually usable\n648: \terr = testDB.View(func(tx *buntdb.Tx) error {\n649: \t\t// Try to iterate through a small number of keys\n650: \t\tcount := 0\n651: \t\treturn tx.Ascend(\"\", func(key, value string) bool {\n652: \t\t\tcount++\n653: \t\t\treturn count < 5 // Only check first 5 keys\n654: \t\t})\n655: \t})\n656: \n657: \ttestDB.Close()\n658: \n659: \tif err != nil && err != buntdb.ErrNotFound {\n660: \t\t// ErrNotFound is okay - empty database\n661: \t\treturn fmt.Errorf(\"database file corrupted (cannot read data): %w\", err)\n662: \t}\n663: \n664: \treturn nil\n665: }\n666: \n667: // recoverDatabase attempts to recover a corrupted database\n668: func recoverDatabase(path string) error {\n669: \tlog.Printf(\"Attempting to recover database: %s\", path)\n670: \n671: \t// Use same backup directory logic as NewBuntDB\n672: \tappDataDir, err := getAppDataDir()\n673: \tvar backupDir string\n674: \tif err != nil {\n675: \t\tlog.Printf(\"Warning: Failed to get app data directory for recovery, falling back to relative path: %v\", err)\n676: \t\tbackupDir = filepath.Dir(filepath.Dir(path)) + \"/backups\"\n677: \t} else {\n678: \t\tbackupDir = filepath.Join(appDataDir, \"backups\")\n679: \t}\n680: \n681: \tbackupPattern := filepath.Join(backupDir, \"nexus_*.db\")\n682: \n683: \tbackups, err := filepath.Glob(backupPattern)\n684: \tif err != nil || len(backups) == 0 {\n685: \t\tlog.Printf(\"No backup files found, creating new database\")\n686: \t\t// Remove corrupted file and let BuntDB create a new one\n687: \t\tif err := os.Remove(path); err != nil && !os.IsNotExist(err) {\n688: \t\t\treturn fmt.Errorf(\"failed to remove corrupted database: %w\", err)\n689: \t\t}\n690: \t\treturn nil\n691: \t}\n692: \n693: \t// Find the most recent backup\n694: \tvar latestBackup string\n695: \tvar latestTime time.Time\n696: \n697: \tfor _, backup := range backups {\n698: \t\tif stat, err := os.Stat(backup); err == nil {\n699: \t\t\tif stat.ModTime().After(latestTime) {\n700: \t\t\t\tlatestTime = stat.ModTime()\n701: \t\t\t\tlatestBackup = backup\n702: \t\t\t}\n703: \t\t}\n704: \t}\n705: \n706: \tif latestBackup == \"\" {\n707: \t\treturn fmt.Errorf(\"no valid backup found\")\n708: \t}\n709: \n710: \t// Check if the backup is also corrupted (e.g., RESP format)\n711: \tif err := validateDatabaseFile(latestBackup); err != nil {\n712: \t\tlog.Printf(\"Backup file %s is also corrupted: %v\", latestBackup, err)\n713: \t\t// Try other backups\n714: \t\tvalidBackup := \"\"\n715: \t\tfor _, backup := range backups {\n716: \t\t\tif backup == latestBackup {\n717: \t\t\t\tcontinue // Already know this one is corrupted\n718: \t\t\t}\n719: \t\t\tif err := validateDatabaseFile(backup); err == nil {\n720: \t\t\t\tvalidBackup = backup\n721: \t\t\t\tbreak\n722: \t\t\t}\n723: \t\t}\n724: \n725: \t\tif validBackup == \"\" {\n726: \t\t\tlog.Printf(\"All backup files are corrupted, removing all and starting fresh\")\n727: \t\t\t// Remove all corrupted backups\n728: \t\t\tfor _, backup := range backups {\n729: \t\t\t\tif err := os.Remove(backup); err != nil {\n730: \t\t\t\t\tlog.Printf(\"Failed to remove corrupted backup %s: %v\", backup, err)\n731: \t\t\t\t}\n732: \t\t\t}\n733: \t\t\t// Remove main database file\n734: \t\t\tif err := os.Remove(path); err != nil && !os.IsNotExist(err) {\n735: \t\t\t\treturn fmt.Errorf(\"failed to remove corrupted database: %w\", err)\n736: \t\t\t}\n737: \t\t\treturn nil\n738: \t\t}\n739: \t\tlatestBackup = validBackup\n740: \t}\n741: \n742: \tlog.Printf(\"Restoring from backup: %s\", latestBackup)\n743: \n744: \t// Copy backup to main database location\n745: \tsrc, err := os.Open(latestBackup)\n746: \tif err != nil {\n747: \t\treturn fmt.Errorf(\"failed to open backup file: %w\", err)\n748: \t}\n749: \tdefer src.Close()\n750: \n751: \tdst, err := os.Create(path)\n752: \tif err != nil {\n753: \t\treturn fmt.Errorf(\"failed to create new database file: %w\", err)\n754: \t}\n755: \tdefer dst.Close()\n756: \n757: \tif _, err := io.Copy(dst, src); err != nil {\n758: \t\treturn fmt.Errorf(\"failed to copy backup: %w\", err)\n759: \t}\n760: \n761: \tlog.Printf(\"Database recovered from backup successfully\")\n762: \treturn nil\n763: }\n\n(End of file - total 763 lines)\n</content>",
+            "metadata": {
+              "preview": "package database\n\nimport (\n\t\"context\"\n\t\"encoding/json\"\n\t\"fmt\"\n\t\"io\"\n\t\"log\"\n\t\"os\"\n\t\"os/user\"\n\t\"path/filepath\"\n\t\"strings\"\n\t\"sync\"\n\t\"time\"\n\n\t\"github.com/tidwall/buntdb\"\n)\n\n// getAppDataDir returns the OS-specific application data directory for KNIRV-SERVER\nfunc getAppDataDir() (string, error) {",
+              "truncated": false,
+              "loaded": []
+            },
+            "title": "packages/KNIRVSERVER/backend/internal/database/buntdb.go",
+            "time": {
+              "start": 1779811285683,
+              "end": 1779811286206
+            }
+          },
+          "id": "prt_e6504f932001kR4cRUn96i0e3G",
+          "sessionID": "ses_19afc492dffeazux63roMEZ1NN",
+          "messageID": "msg_e6504ea09001E0LHCA8gl8w8A2"
+        },
+        {
+          "reason": "tool-calls",
+          "snapshot": "93001fd24c979517d23bd62daea3ad2e95bae7c4",
+          "type": "step-finish",
+          "tokens": {
+            "total": 19598,
+            "input": 155,
+            "output": 80,
+            "reasoning": 35,
+            "cache": {
+              "write": 0,
+              "read": 19328
+            }
+          },
+          "cost": 0,
+          "id": "prt_e6505112c001j7x06hY7CH0rYz",
+          "sessionID": "ses_19afc492dffeazux63roMEZ1NN",
+          "messageID": "msg_e6504ea09001E0LHCA8gl8w8A2"
+        }
+      ]
+    },
+    {
+      "info": {
+        "parentID": "msg_e6503b701001YZXjDttgsjdJLC",
+        "role": "assistant",
+        "mode": "explore",
+        "agent": "explore",
+        "path": {
+          "cwd": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK",
+          "root": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK"
+        },
+        "cost": 0,
+        "tokens": {
+          "total": 29098,
+          "input": 9002,
+          "output": 243,
+          "reasoning": 269,
+          "cache": {
+            "write": 0,
+            "read": 19584
+          }
+        },
+        "modelID": "big-pickle",
+        "providerID": "opencode",
+        "time": {
+          "created": 1779811293862,
+          "completed": 1779811305278
+        },
+        "finish": "tool-calls",
+        "id": "msg_e65051aa6001m13uDeechcXqWH",
+        "sessionID": "ses_19afc492dffeazux63roMEZ1NN"
+      },
+      "parts": [
+        {
+          "snapshot": "93001fd24c979517d23bd62daea3ad2e95bae7c4",
+          "type": "step-start",
+          "id": "prt_e6505268900144bQjzTkIM5n4T",
+          "sessionID": "ses_19afc492dffeazux63roMEZ1NN",
+          "messageID": "msg_e65051aa6001m13uDeechcXqWH"
+        },
+        {
+          "type": "reasoning",
+          "text": "Now I have all the information I need. Let me also check the `data_engine/buntdb_manager.go` GetStats function for how it references the legacy CDE constants, and also check if the `data_engine.BuntDBManager` type has a `MigrateCDEKeysToDVE` method on it while also confirming the `database.BuntDBManager` type does NOT.\n\nActually, looking back at the data, the function `MigrateCDEKeysToDVE` is defined on the `data_engine.BuntDBManager` struct (at line 1090 of `buntdb_manager.go` in `data_engine` package).\n\nBut in `backend/cmd/backend_server/main.go`, the server uses `database.NewBuntDB` which returns a `database.BuntDBManager` — a completely different type in the `database` package.\n\nSo the migration function exists on `data_engine.BuntDBManager` but the server actually uses `database.BuntDBManager` (from `internal/database/buntdb.go`), which does NOT have a `MigrateCDEKeysToDVE` method.\n\nLet me compile all my findings now.\n\nLet me also verify the GetStats function mentioned in the test to see if it references the legacy CDE counts.",
+          "time": {
+            "start": 1779811297834,
+            "end": 1779811300223
+          },
+          "id": "prt_e65052a2a001vjUCzD8WfVLMQQ",
+          "sessionID": "ses_19afc492dffeazux63roMEZ1NN",
+          "messageID": "msg_e65051aa6001m13uDeechcXqWH"
+        },
+        {
+          "type": "text",
+          "text": "Let me verify one more thing — the `GetStats` function in `data_engine/buntdb_manager.go` that references the legacy CDE counters, and check whether both `BuntDBManager` types are actually distinct.",
+          "time": {
+            "start": 1779811300228,
+            "end": 1779811301809
+          },
+          "id": "prt_e650533840010ycdkfaWL3pZn1",
+          "sessionID": "ses_19afc492dffeazux63roMEZ1NN",
+          "messageID": "msg_e65051aa6001m13uDeechcXqWH"
+        },
+        {
+          "type": "tool",
+          "tool": "read",
+          "callID": "call_00_0brWTH93UHrA4hf8PKlj0029",
+          "state": {
+            "status": "completed",
+            "input": {
+              "offset": 730,
+              "filePath": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/data_engine/buntdb_manager.go",
+              "limit": 90
+            },
+            "output": "<path>/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/data_engine/buntdb_manager.go</path>\n<type>file</type>\n<content>\n730: \n731: // GetStats returns database statistics\n732: func (m *BuntDBManager) GetStats() (map[string]interface{}, error) {\n733: \tm.mu.RLock()\n734: \tdefer m.mu.RUnlock()\n735: \n736: \tstats := make(map[string]interface{})\n737: \n738: \t// Count total keys\n739: \ttotalKeys := 0\n740: \terr := m.db.View(func(tx *buntdb.Tx) error {\n741: \t\treturn tx.Ascend(\"\", func(key, value string) bool {\n742: \t\t\ttotalKeys++\n743: \t\t\treturn true\n744: \t\t})\n745: \t})\n746: \n747: \tif err != nil {\n748: \t\treturn nil, err\n749: \t}\n750: \n751: \tstats[\"total_keys\"] = totalKeys\n752: \tstats[\"database_path\"] = m.dbPath\n753: \tstats[\"collections\"] = map[string]int{\n754: \t\t\"metrics\":   m.countKeysWithPrefix(MetricsCollection),\n755: \t\t\"alerts\":    m.countKeysWithPrefix(AlertsCollection),\n756: \t\t\"users\":     m.countKeysWithPrefix(UsersCollection),\n757: \t\t\"objects\":   m.countKeysWithPrefix(ModelsCollection),\n758: \t\t\"dve_nodes\": m.countKeysWithPrefix(DVENodesCollection),\n759: \t}\n760: \n761: \t// Count all keys in each collection\n762: \tcollections := map[string]string{\n763: \t\t\"metrics\":            MetricsCollection,\n764: \t\t\"alerts\":             AlertsCollection,\n765: \t\t\"reports\":            ReportsCollection,\n766: \t\t\"user_reports\":       UserReportsCollection,\n767: \t\t\"system_reports\":     SystemReportsCollection,\n768: \t\t\"users\":              UsersCollection,\n769: \t\t\"objects\":            ModelsCollection,\n770: \t\t\"dve_nodes\":          DVENodesCollection,\n771: \t\t\"validation_tasks\":   ValidationTasksCollection,\n772: \t\t\"validation_results\": ValidationResultsCollection,\n773: \t\t\"cde_environments\":   DVEEnvironmentsCollection,\n774: \t\t\"cde_sessions\":       DVESessionsCollection,\n775: \t\t\"cde_projects\":       DVEProjectsCollection,\n776: \t\t\"dve_messages\":       DVEMessagesCollection,\n777: \t\t\"dve_routing\":        DVERoutingCollection,\n778: \t\t\"dve_registry\":       DVERegistryCollection,\n779: \t\t\"model_binaries\":     ModelBinariesCollection,\n780: \t\t\"model_runtime\":      ModelRuntimeCollection,\n781: \t\t\"config\":             ConfigCollection,\n782: \t\t\"auth\":               AuthCollection,\n783: \t\t\"sessions\":           SessionsCollection,\n784: \t}\n785: \n786: \t// Initialize all counts to 0\n787: \tfor name := range collections {\n788: \t\tstats[name+\"_count\"] = 0\n789: \t}\n790: \n791: \tfor name, prefix := range collections {\n792: \t\tcount := 0\n793: \t\terr := m.db.View(func(tx *buntdb.Tx) error {\n794: \t\t\treturn tx.Ascend(\"\", func(key, value string) bool {\n795: \t\t\t\tif strings.HasPrefix(key, prefix) {\n796: \t\t\t\t\tcount++\n797: \t\t\t\t}\n798: \t\t\t\treturn true\n799: \t\t\t})\n800: \t\t})\n801: \t\tif err != nil {\n802: \t\t\t// If there's an error, keep count as 0\n803: \t\t\tcontinue\n804: \t\t}\n805: \t\tstats[name+\"_count\"] = count\n806: \t}\n807: \n808: \t// The counts are already set in the loop above, no need to duplicate\n809: \n810: \treturn stats, nil\n811: }\n812: \n813: // countKeysWithPrefix counts keys with a specific prefix\n814: func (m *BuntDBManager) countKeysWithPrefix(prefix string) int {\n815: \tcount := 0\n816: \terr := m.db.View(func(tx *buntdb.Tx) error {\n817: \t\treturn tx.Ascend(prefix+\"*\", func(key, value string) bool {\n818: \t\t\tcount++\n819: \t\t\treturn true\n\n(Showing lines 730-819 of 1127. Use offset=820 to continue.)\n</content>",
+            "metadata": {
+              "preview": "\n// GetStats returns database statistics\nfunc (m *BuntDBManager) GetStats() (map[string]interface{}, error) {\n\tm.mu.RLock()\n\tdefer m.mu.RUnlock()\n\n\tstats := make(map[string]interface{})\n\n\t// Count total keys\n\ttotalKeys := 0\n\terr := m.db.View(func(tx *buntdb.Tx) error {\n\t\treturn tx.Ascend(\"\", func(key, value string) bool {\n\t\t\ttotalKeys++\n\t\t\treturn true\n\t\t})\n\t})\n\n\tif err != nil {\n\t\treturn nil, err\n\t}",
+              "truncated": true,
+              "loaded": []
+            },
+            "title": "packages/KNIRVSERVER/backend/internal/data_engine/buntdb_manager.go",
+            "time": {
+              "start": 1779811301251,
+              "end": 1779811301964
+            }
+          },
+          "id": "prt_e6505357900112lDsIAQpn3p93",
+          "sessionID": "ses_19afc492dffeazux63roMEZ1NN",
+          "messageID": "msg_e65051aa6001m13uDeechcXqWH"
+        },
+        {
+          "type": "tool",
+          "tool": "grep",
+          "callID": "call_01_xZemV6iKm7a8VsDDVaWw4263",
+          "state": {
+            "status": "completed",
+            "input": {
+              "pattern": "func.*MigrateCDE",
+              "path": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/database"
+            },
+            "output": "No files found",
+            "metadata": {
+              "matches": 0,
+              "truncated": false
+            },
+            "title": "func.*MigrateCDE",
+            "time": {
+              "start": 1779811301754,
+              "end": 1779811302086
+            }
+          },
+          "id": "prt_e6505378b001SZMIWFC6w5d3Xn",
+          "sessionID": "ses_19afc492dffeazux63roMEZ1NN",
+          "messageID": "msg_e65051aa6001m13uDeechcXqWH"
+        },
+        {
+          "reason": "tool-calls",
+          "snapshot": "93001fd24c979517d23bd62daea3ad2e95bae7c4",
+          "type": "step-finish",
+          "tokens": {
+            "total": 29098,
+            "input": 9002,
+            "output": 243,
+            "reasoning": 269,
+            "cache": {
+              "write": 0,
+              "read": 19584
+            }
+          },
+          "cost": 0,
+          "id": "prt_e650541a8001MwDKMcovSaIrVT",
+          "sessionID": "ses_19afc492dffeazux63roMEZ1NN",
+          "messageID": "msg_e65051aa6001m13uDeechcXqWH"
+        }
+      ]
+    },
+    {
+      "info": {
+        "parentID": "msg_e6503b701001YZXjDttgsjdJLC",
+        "role": "assistant",
+        "mode": "explore",
+        "agent": "explore",
+        "path": {
+          "cwd": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK",
+          "root": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK"
+        },
+        "cost": 0,
+        "tokens": {
+          "total": 30953,
+          "input": 1111,
+          "output": 163,
+          "reasoning": 623,
+          "cache": {
+            "write": 0,
+            "read": 29056
+          }
+        },
+        "modelID": "big-pickle",
+        "providerID": "opencode",
+        "time": {
+          "created": 1779811305300,
+          "completed": 1779811321400
+        },
+        "finish": "tool-calls",
+        "id": "msg_e650547540013qjpr4FdmjFxCr",
+        "sessionID": "ses_19afc492dffeazux63roMEZ1NN"
+      },
+      "parts": [
+        {
+          "snapshot": "93001fd24c979517d23bd62daea3ad2e95bae7c4",
+          "type": "step-start",
+          "id": "prt_e6505565d001pnBKhP1clL1fyW",
+          "sessionID": "ses_19afc492dffeazux63roMEZ1NN",
+          "messageID": "msg_e650547540013qjpr4FdmjFxCr"
+        },
+        {
+          "type": "reasoning",
+          "text": "Now I have a complete picture. Let me compile the findings.\n\nKey findings:\n\n1. **Function `MigrateCDEKeysToDVE` definition**: YES, it is defined in `buntdb_manager.go` at line 1088-1127, in the `data_engine` package (`packages/KNIRVSERVER/backend/internal/data_engine/buntdb_manager.go`). It is **NOT** defined in the `database` package.\n\n2. **Is it called from main.go?**: NO. The main.go at `packages/KNIRVSERVER/backend/cmd/backend_server/main.go` uses `database.NewBuntDB` (from `internal/database/buntdb.go`), which returns a `database.BuntDBManager`. This type does NOT have a `MigrateCDEKeysToDVE` method. The function is only defined on `data_engine.BuntDBManager`. And there is no invocation anywhere in main.go or any other production code — it is only called from the test file.\n\n3. **DVE_* collection constants**: YES, they exist:\n   - `DVEEnvironmentsCollection = \"dve_environments:\"` (line 45)\n   - `DVESessionsCollection = \"dve_sessions:\"` (line 46)\n   - `DVEProjectsCollection = \"dve_projects:\"` (line 47)\n\n4. **Legacy CDE_* collection constants**: NO, they do NOT exist as Go constants. There is no `CDEEnvironmentsCollection` constant. The legacy `cde_*` prefixes only appear as:\n   - String literals in the migration function (lines 1095-1097): `\"cde_environments:\"`, `\"cde_sessions:\"`, `\"cde_projects:\"`\n   - Map keys in `GetStats` (lines 773-775): `\"cde_environments\"`, `\"cde_sessions\"`, `\"cde_projects\"` (which map to the `DVE` prefixed constants)\n\n5. **Gap**: The migration function exists but is never called from production code. The `README.md` at line 689 claims it runs at startup (`automatically migrated at startup via BuntDBManager.MigrateCDEKeysToDVE()`), but in reality:\n   - The main.go uses `database.BuntDBManager` (from `internal/database/buntdb.go`)\n   - The migration function is on `data_engine.BuntDBManager` (from `internal/data_engine/buntdb_manager.go`)\n   - Even the `data_engine.BuntDBManager` is created and used via `data_engine.NewBuntDBDataEngine()` (line 727), but `MigrateCDEKeysToDVE` is never called in that flow either\n\nLet me also double check if `NewBuntDBDataEngine` calls the migration:",
+          "time": {
+            "start": 1779811309714,
+            "end": 1779811314859
+          },
+          "id": "prt_e65055892001KfzlRNG750icA3",
+          "sessionID": "ses_19afc492dffeazux63roMEZ1NN",
+          "messageID": "msg_e650547540013qjpr4FdmjFxCr"
+        },
+        {
+          "type": "text",
+          "text": "Let me also check if `NewBuntDBDataEngine` calls the migration function during its initialization.",
+          "time": {
+            "start": 1779811314865,
+            "end": 1779811315827
+          },
+          "id": "prt_e65056cb1001Qb2u5C4dhucAt0",
+          "sessionID": "ses_19afc492dffeazux63roMEZ1NN",
+          "messageID": "msg_e650547540013qjpr4FdmjFxCr"
+        },
+        {
+          "type": "tool",
+          "tool": "grep",
+          "callID": "call_00_NCE2XDW3JqMO1s6XMDAn6927",
+          "state": {
+            "status": "completed",
+            "input": {
+              "pattern": "func NewBuntDBDataEngine",
+              "path": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/data_engine"
+            },
+            "output": "Found 2 matches\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/data_engine/buntdb_data_engine.go:\n  Line 49: func NewBuntDBDataEngine(config BuntDBDataEngineConfig) (*BuntDBDataEngine, error) {\n\n\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/data_engine/handlers.go:\n  Line 241: func NewBuntDBDataEngineHandlers(dataEngine *BuntDBDataEngine) *BuntDBDataEngineHandlers {\n",
+            "metadata": {
+              "matches": 2,
+              "truncated": false
+            },
+            "title": "func NewBuntDBDataEngine",
+            "time": {
+              "start": 1779811315520,
+              "end": 1779811316096
+            }
+          },
+          "id": "prt_e65056d6f001lHJ4Zgg2jSX3rf",
+          "sessionID": "ses_19afc492dffeazux63roMEZ1NN",
+          "messageID": "msg_e650547540013qjpr4FdmjFxCr"
+        },
+        {
+          "type": "tool",
+          "tool": "glob",
+          "callID": "call_01_p82AQrTYgVE2ab48du6V4634",
+          "state": {
+            "status": "completed",
+            "input": {
+              "pattern": "packages/KNIRVSERVER/backend/internal/data_engine/*.go"
+            },
+            "output": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/data_engine/buntdb_manager_test.go\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/data_engine/buntdb_manager.go\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/data_engine/buntdb_data_engine.go\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/data_engine/stream_processor.go\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/data_engine/anomaly_detector_test.go\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/data_engine/chroma_db_test.go\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/data_engine/windowed_aggregator.go\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/data_engine/event_producer_test.go\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/data_engine/data_engine_test.go\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/data_engine/websocket_server.go\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/data_engine/chroma_db.go\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/data_engine/windowed_aggregator_test.go\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/data_engine/llm_fingerprint.go\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/data_engine/stream_processor_test.go\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/data_engine/telemetry_ingestion_test.go\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/data_engine/handlers.go\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/data_engine/alerting_test.go\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/data_engine/alerting.go\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/data_engine/anomaly_detector.go\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/data_engine/rest_api.go\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/data_engine/buntdb_extended_test.go\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/data_engine/telemetry_ingestion.go\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/data_engine/buntdb_extended.go\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/data_engine/websocket_server_test.go\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/data_engine/buntdb_data_engine_test.go\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/data_engine/routes.go\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/data_engine/event_producer.go\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/data_engine/data_engine.go",
+            "metadata": {
+              "count": 28,
+              "truncated": false
+            },
+            "title": "",
+            "time": {
+              "start": 1779811315708,
+              "end": 1779811316677
+            }
+          },
+          "id": "prt_e65056fc4001grNzrCwsfVCfRD",
+          "sessionID": "ses_19afc492dffeazux63roMEZ1NN",
+          "messageID": "msg_e650547540013qjpr4FdmjFxCr"
+        },
+        {
+          "reason": "tool-calls",
+          "snapshot": "93001fd24c979517d23bd62daea3ad2e95bae7c4",
+          "type": "step-finish",
+          "tokens": {
+            "total": 30953,
+            "input": 1111,
+            "output": 163,
+            "reasoning": 623,
+            "cache": {
+              "write": 0,
+              "read": 29056
+            }
+          },
+          "cost": 0,
+          "id": "prt_e65058092001FPomxOXTDgDBcu",
+          "sessionID": "ses_19afc492dffeazux63roMEZ1NN",
+          "messageID": "msg_e650547540013qjpr4FdmjFxCr"
+        }
+      ]
+    },
+    {
+      "info": {
+        "parentID": "msg_e6503b701001YZXjDttgsjdJLC",
+        "role": "assistant",
+        "mode": "explore",
+        "agent": "explore",
+        "path": {
+          "cwd": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK",
+          "root": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK"
+        },
+        "cost": 0,
+        "tokens": {
+          "total": 32376,
+          "input": 1384,
+          "output": 116,
+          "reasoning": 28,
+          "cache": {
+            "write": 0,
+            "read": 30848
+          }
+        },
+        "modelID": "big-pickle",
+        "providerID": "opencode",
+        "time": {
+          "created": 1779811321457,
+          "completed": 1779811335257
+        },
+        "finish": "tool-calls",
+        "id": "msg_e65058671001AllIyaFHFwKf0t",
+        "sessionID": "ses_19afc492dffeazux63roMEZ1NN"
+      },
+      "parts": [
+        {
+          "snapshot": "93001fd24c979517d23bd62daea3ad2e95bae7c4",
+          "type": "step-start",
+          "id": "prt_e6505958b001PkMnwvLckPGbU7",
+          "sessionID": "ses_19afc492dffeazux63roMEZ1NN",
+          "messageID": "msg_e65058671001AllIyaFHFwKf0t"
+        },
+        {
+          "type": "reasoning",
+          "text": "Let me check `NewBuntDBDataEngine` to see if it calls `MigrateCDEKeysToDVE` internally.",
+          "time": {
+            "start": 1779811325711,
+            "end": 1779811326090
+          },
+          "id": "prt_e6505970f0015JC2oKt79j9W4b",
+          "sessionID": "ses_19afc492dffeazux63roMEZ1NN",
+          "messageID": "msg_e65058671001AllIyaFHFwKf0t"
+        },
+        {
+          "type": "tool",
+          "tool": "read",
+          "callID": "call_00_yPCt6LavwvLHny60bnEO1924",
+          "state": {
+            "status": "completed",
+            "input": {
+              "offset": 1,
+              "filePath": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/data_engine/buntdb_data_engine.go",
+              "limit": 120
+            },
+            "output": "<path>/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/data_engine/buntdb_data_engine.go</path>\n<type>file</type>\n<content>\n1: package data_engine\n2: \n3: import (\n4: \t\"context\"\n5: \t\"fmt\"\n6: \t\"sync\"\n7: \t\"time\"\n8: )\n9: \n10: // BuntDBDataEngine is the main data engine using BuntDB\n11: type BuntDBDataEngine struct {\n12: \tdb         *BuntDBManager\n13: \taggregator *WindowedAggregator\n14: \talerting   *AlertingSystem\n15: \n16: \tconfig    BuntDBDataEngineConfig\n17: \tisRunning bool\n18: \tctx       context.Context\n19: \tcancel    context.CancelFunc\n20: \tmutex     sync.RWMutex\n21: \n22: \t// Channels for communication with UI\n23: \talertChan   chan Alert\n24: \tmetricsChan chan *MetricsSnapshot\n25: }\n26: \n27: // BuntDBDataEngineConfig contains configuration for the BuntDB data engine\n28: type BuntDBDataEngineConfig struct {\n29: \tDatabasePath    string\n30: \tEnableWebSocket bool\n31: \tEnableRESTAPI   bool\n32: \tWebSocketPort   int\n33: \tRESTAPIPort     int\n34: \tWindowSize      time.Duration\n35: \tMetricsInterval time.Duration\n36: \n37: \t// Data retention settings\n38: \tMetricsRetention time.Duration\n39: \tAlertsRetention  time.Duration\n40: \tEventsRetention  time.Duration\n41: \n42: \t// Performance settings\n43: \tBatchSize      int\n44: \tFlushInterval  time.Duration\n45: \tMaxMemoryUsage int64\n46: }\n47: \n48: // NewBuntDBDataEngine creates a new BuntDB-based data engine\n49: func NewBuntDBDataEngine(config BuntDBDataEngineConfig) (*BuntDBDataEngine, error) {\n50: \tctx, cancel := context.WithCancel(context.Background())\n51: \n52: \t// Initialize BuntDB manager\n53: \tdb, err := NewBuntDBManager(config.DatabasePath)\n54: \tif err != nil {\n55: \t\tcancel()\n56: \t\treturn nil, fmt.Errorf(\"failed to create BuntDB manager: %w\", err)\n57: \t}\n58: \n59: \treturn &BuntDBDataEngine{\n60: \t\tdb:          db,\n61: \t\tconfig:      config,\n62: \t\tctx:         ctx,\n63: \t\tcancel:      cancel,\n64: \t\talertChan:   make(chan Alert, 100),\n65: \t\tmetricsChan: make(chan *MetricsSnapshot, 10),\n66: \t}, nil\n67: }\n68: \n69: // Start starts the BuntDB data engine\n70: func (d *BuntDBDataEngine) Start() error {\n71: \td.mutex.Lock()\n72: \tdefer d.mutex.Unlock()\n73: \n74: \tif d.isRunning {\n75: \t\treturn fmt.Errorf(\"data engine is already running\")\n76: \t}\n77: \n78: \t// Create windowed aggregator\n79: \td.aggregator = NewWindowedAggregator(SlidingWindow, d.config.WindowSize)\n80: \n81: \t// Create alerting system\n82: \td.alerting = NewAlertingSystem(1000)\n83: \n84: \t// Register alert handler\n85: \td.alerting.RegisterHandler(d.handleAlert)\n86: \n87: \t// Register default alert rules\n88: \td.registerDefaultAlertRules()\n89: \n90: \t// Note: WebSocket and REST API servers are handled by the main DataEngine\n91: \t// BuntDBDataEngine is just a storage backend\n92: \n93: \t// Start background tasks\n94: \tgo d.reportMetrics()\n95: \tgo d.cleanupOldData()\n96: \tgo d.processMetricsBatch()\n97: \n98: \td.isRunning = true\n99: \treturn nil\n100: }\n101: \n102: // Stop stops the BuntDB data engine\n103: func (d *BuntDBDataEngine) Stop() error {\n104: \td.mutex.Lock()\n105: \tdefer d.mutex.Unlock()\n106: \n107: \tif !d.isRunning {\n108: \t\treturn nil\n109: \t}\n110: \n111: \t// Cancel context\n112: \td.cancel()\n113: \n114: \t// Stop components\n115: \tif d.alerting != nil {\n116: \t\td.alerting.Close()\n117: \t}\n118: \n119: \t// Note: WebSocket and REST API servers are handled by the main DataEngine\n120: \n\n(Showing lines 1-120 of 592. Use offset=121 to continue.)\n</content>",
+            "metadata": {
+              "preview": "package data_engine\n\nimport (\n\t\"context\"\n\t\"fmt\"\n\t\"sync\"\n\t\"time\"\n)\n\n// BuntDBDataEngine is the main data engine using BuntDB\ntype BuntDBDataEngine struct {\n\tdb         *BuntDBManager\n\taggregator *WindowedAggregator\n\talerting   *AlertingSystem\n\n\tconfig    BuntDBDataEngineConfig\n\tisRunning bool\n\tctx       context.Context\n\tcancel    context.CancelFunc\n\tmutex     sync.RWMutex",
+              "truncated": true,
+              "loaded": []
+            },
+            "title": "packages/KNIRVSERVER/backend/internal/data_engine/buntdb_data_engine.go",
+            "time": {
+              "start": 1779811326557,
+              "end": 1779811326946
+            }
+          },
+          "id": "prt_e65059891001jliOHuj3KsuiAb",
+          "sessionID": "ses_19afc492dffeazux63roMEZ1NN",
+          "messageID": "msg_e65058671001AllIyaFHFwKf0t"
+        },
+        {
+          "reason": "tool-calls",
+          "snapshot": "93001fd24c979517d23bd62daea3ad2e95bae7c4",
+          "type": "step-finish",
+          "tokens": {
+            "total": 32376,
+            "input": 1384,
+            "output": 116,
+            "reasoning": 28,
+            "cache": {
+              "write": 0,
+              "read": 30848
+            }
+          },
+          "cost": 0,
+          "id": "prt_e6505b830001IpVHGvw0ANTSdX",
+          "sessionID": "ses_19afc492dffeazux63roMEZ1NN",
+          "messageID": "msg_e65058671001AllIyaFHFwKf0t"
+        }
+      ]
+    },
+    {
+      "info": {
+        "parentID": "msg_e6503b701001YZXjDttgsjdJLC",
+        "role": "assistant",
+        "mode": "explore",
+        "agent": "explore",
+        "path": {
+          "cwd": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK",
+          "root": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK"
+        },
+        "cost": 0,
+        "tokens": {
+          "total": 34860,
+          "input": 1286,
+          "output": 1101,
+          "reasoning": 217,
+          "cache": {
+            "write": 0,
+            "read": 32256
+          }
+        },
+        "modelID": "big-pickle",
+        "providerID": "opencode",
+        "time": {
+          "created": 1779811335291,
+          "completed": 1779811354074
+        },
+        "finish": "stop",
+        "id": "msg_e6505bc7b0018jNJToWpkc1x7R",
+        "sessionID": "ses_19afc492dffeazux63roMEZ1NN"
+      },
+      "parts": [
+        {
+          "snapshot": "93001fd24c979517d23bd62daea3ad2e95bae7c4",
+          "type": "step-start",
+          "id": "prt_e6505c9f900116zzySku34fBOs",
+          "sessionID": "ses_19afc492dffeazux63roMEZ1NN",
+          "messageID": "msg_e6505bc7b0018jNJToWpkc1x7R"
+        },
+        {
+          "type": "reasoning",
+          "text": "Now I have a complete picture. Let me summarize my findings.\n\nThe `NewBuntDBDataEngine` creates a `BuntDBManager` (from the `data_engine` package) at line 53 via `NewBuntDBManager`, but it does NOT call `MigrateCDEKeysToDVE`. \n\nSo the situation is:\n- The migration function exists on `data_engine.BuntDBManager`\n- The `data_engine.BuntDBManager` is created by `NewBuntDBDataEngine` but migration is never invoked\n- The server startup in `backend/cmd/backend_server/main.go` creates a `database.BuntDBManager` (from `internal/database/buntdb.go`), which is a completely different type that doesn't even have this migration method\n- The `data_engine.BuntDBDataEngine` is also created in main.go (line 727), but its initialization (`NewBuntDBDataEngine`) does not call migration\n- The only place the migration is called is in tests",
+          "time": {
+            "start": 1779811339368,
+            "end": 1779811341145
+          },
+          "id": "prt_e6505cc68001LbV24yGvlZnONP",
+          "sessionID": "ses_19afc492dffeazux63roMEZ1NN",
+          "messageID": "msg_e6505bc7b0018jNJToWpkc1x7R"
+        },
+        {
+          "type": "text",
+          "text": "Here is a complete summary of the findings:\n\n---\n\n## 1. Is `MigrateCDEKeysToDVE` defined in `buntdb_manager.go`?\n\n**Yes.** The function is defined at:\n\n**`/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/data_engine/buntdb_manager.go`**, lines 1088–1127.\n\n```go\nfunc (m *BuntDBManager) MigrateCDEKeysToDVE() error {\n```\n\nIt iterates over three legacy-to-new prefix pairs and re-keys all records:\n- `cde_environments:` → `dve_environments:`\n- `cde_sessions:` → `dve_sessions:`\n- `cde_projects:` → `dve_projects:`\n\nIt is defined on `data_engine.BuntDBManager` (the one in the `data_engine` package).\n\n---\n\n## 2. Is it called from `main.go` anywhere?\n\n**No.** It is **never called in any production code path**. The only callers are the test file:\n\n- `/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/data_engine/buntdb_manager_test.go` — lines 784 and 829.\n\nThe server startup in **`backend/cmd/backend_server/main.go`** uses a *different* `BuntDBManager` type:\n\n- **Line 613:** `database.NewBuntDB(cfg.Database.Path)` returns a `database.BuntDBManager` (from `internal/database/buntdb.go`). This type does **not** have a `MigrateCDEKeysToDVE` method at all.\n- **Line 727:** `data_engine.NewBuntDBDataEngine(dataEngineConfig)` is also created (which does use the `data_engine` package's `BuntDBManager`), but its `NewBuntDBDataEngine` constructor (line 49–67 in `buntdb_data_engine.go`) does **not** call `MigrateCDEKeysToDVE` either.\n\n**Gap:** The README.md (line 689) claims: *\"Existing BuntDB data keyed under legacy `cde_*` prefixes is automatically migrated to `dve_*` prefixes at startup via `BuntDBManager.MigrateCDEKeysToDVE()`.\"* This statement is **incorrect** — the migration function is defined but never invoked at startup.\n\n---\n\n## 3. Do DVE_* collection constants exist?\n\n**Yes:** All three `DVE_*` collection constants are defined in `data_engine/buntdb_manager.go` (lines 44–47):\n\n```go\nDVEEnvironmentsCollection = \"dve_environments:\"   // line 45\nDVESessionsCollection     = \"dve_sessions:\"       // line 46\nDVEProjectsCollection     = \"dve_projects:\"       // line 47\n```\n\n---\n\n## 4. Do legacy CDE_* collection constants still exist?\n\n**No.** There are **no** Go constants like `CDEEnvironmentsCollection`, `CDESessionsCollection`, or `CDEProjectsCollection`.\n\nThe legacy `cde_*` strings only appear as:\n- **Raw string literals** inside `MigrateCDEKeysToDVE` (lines 1095–1097) for the migration mapping.\n- **Map keys** in `GetStats` (lines 773–775) — `\"cde_environments\"`, `\"cde_sessions\"`, `\"cde_projects\"` — which are just display names mapped to the DVE constants.\n\n---\n\n## Summary of Gaps Found\n\n| Item | Status |\n|------|--------|\n| `MigrateCDEKeysToDVE` defined? | **Yes** — in `data_engine/buntdb_manager.go:1090` |\n| Called from main.go / startup? | **No** — only called from tests (2 call sites in `buntdb_manager_test.go`) |\n| `DVE*` collection constants exist? | **Yes** — all three defined (lines 45–47) |\n| Legacy `CDE*` collection constants exist? | **No** — no `CDE*` constants defined anywhere |\n| Doc vs. reality mismatch? | **Yes** — README.md claims automatic startup migration, but the function is never wired into the production startup flow |\n| Dual `BuntDBManager` types? | **Yes** — there are two unrelated `BuntDBManager` types: `database.BuntDBManager` (used by main.go startup) and `data_engine.BuntDBManager` (has the migration method but its migration is never called) |\n\n**Primary finding:** The migration function `MigrateCDEKeysToDVE` is **orphaned** — fully defined and tested, but never connected to the server initialization path. If a database still contains legacy `cde_*` keys, they will not be migrated at startup.",
+          "time": {
+            "start": 1779811341151,
+            "end": 1779811350097
+          },
+          "id": "prt_e6505d35e001Wff36Irl6A037V",
+          "sessionID": "ses_19afc492dffeazux63roMEZ1NN",
+          "messageID": "msg_e6505bc7b0018jNJToWpkc1x7R"
+        },
+        {
+          "reason": "stop",
+          "snapshot": "93001fd24c979517d23bd62daea3ad2e95bae7c4",
+          "type": "step-finish",
+          "tokens": {
+            "total": 34860,
+            "input": 1286,
+            "output": 1101,
+            "reasoning": 217,
+            "cache": {
+              "write": 0,
+              "read": 32256
+            }
+          },
+          "cost": 0,
+          "id": "prt_e650602a9001CQSCYWLx7M4Qac",
+          "sessionID": "ses_19afc492dffeazux63roMEZ1NN",
+          "messageID": "msg_e6505bc7b0018jNJToWpkc1x7R"
+        }
+      ]
+    }
+  ]
+}
