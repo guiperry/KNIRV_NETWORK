@@ -1,0 +1,1 @@
+In the KNIRVGATEWAY WebGUI, Please move the Role Switcher from its current floating position in the top right corner of the view to the Auth Testing page exclusively.
