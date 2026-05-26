@@ -89,7 +89,7 @@ func getHasherAppDataDir() string {
 	if homeDir, err := os.UserHomeDir(); err == nil {
 		return filepath.Join(homeDir, ".local", "share", "knirvserver")
 	}
-	return "data"
+	return filepath.Join(os.TempDir(), "knirvserver", "data")
 }
 
 func NewManager(cfg *ManagerConfig, logger *zap.Logger) *Manager {

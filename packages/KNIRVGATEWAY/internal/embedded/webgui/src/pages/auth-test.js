@@ -3,6 +3,7 @@ import { useNavigation } from '../hooks/useNavigation';
 import PageLayout from '../components/PageLayout';
 import PageHeader from '../components/PageHeader';
 import GlassyCard from '../components/GlassyCard';
+import RoleSwitcher from '../components/RoleSwitcher';
 import { useRole } from '../contexts/RoleContext';
 import styles from './auth-test.module.css';
 
@@ -186,12 +187,21 @@ export default function AuthTest() {
         </div>
       </GlassyCard>
 
+      {/* Role Switcher */}
+      <GlassyCard className={styles.roleSwitcherCard}>
+        <h3>Role Switcher</h3>
+        <p>Switch between different user roles and networks to test authentication scenarios</p>
+        <div className={styles.roleSwitcherWrapper}>
+          <RoleSwitcher />
+        </div>
+      </GlassyCard>
+
       {/* Instructions */}
       <GlassyCard className={styles.instructionsCard}>
         <h3>Testing Instructions</h3>
         <div className={styles.instructions}>
           <div className={styles.instruction}>
-            <strong>1. Role Switching:</strong> Use the role switcher in the top-right corner to test different roles
+            <strong>1. Role Switching:</strong> Use the role switcher above to test different roles
           </div>
           <div className={styles.instruction}>
             <strong>2. Page Access:</strong> Click on page buttons above to test navigation permissions

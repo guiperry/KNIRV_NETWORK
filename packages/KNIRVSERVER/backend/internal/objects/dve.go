@@ -22,6 +22,11 @@ type RegisterNodeRequest struct {
 	BrowserVersion string   `json:"browser_version,omitempty"`
 	WalletAddress  string   `json:"wallet_address,omitempty"`
 	BadgeNFTIDs    []string `json:"badge_nft_ids,omitempty"`
+
+	// IsDemo marks this node as a demonstration node seeded at startup.
+	// Demo nodes are heartbeated by DVEManager independently and filtered
+	// separately from user-created DVE nodes.
+	IsDemo bool `json:"is_demo,omitempty"`
 }
 
 // DVENode represents a DVE (Deterministic Validation Environment) node
@@ -78,6 +83,11 @@ type DVENode struct {
 	BrowserVersion string   `json:"browser_version,omitempty"`  // Browser/extension version
 	WSConnectionID string   `json:"ws_connection_id,omitempty"` // Active WebSocket session ID
 	BadgeNFTIDs    []string `json:"badge_nft_ids,omitempty"`    // Held badge NFT token IDs
+
+	// IsDemo marks nodes seeded at startup for demonstration purposes.
+	// Demo nodes are heartbeated by DVEManager and survive restarts.
+	// User-created DVE nodes always have IsDemo = false.
+	IsDemo bool `json:"is_demo,omitempty"`
 }
 
 // ValidationTask represents a validation task in the DVE network

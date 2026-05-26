@@ -126,7 +126,7 @@ func getAppDataDir() string {
 	if usr, err := user.Current(); err == nil {
 		return filepath.Join(usr.HomeDir, ".local", "share", "knirvserver")
 	}
-	return "data"
+	return filepath.Join(os.TempDir(), "knirvserver", "data")
 }
 
 func DefaultConfig() *ManagerConfig {

@@ -60,7 +60,7 @@ func getAgentAppDataDir() string {
 	if home, err := os.UserHomeDir(); err == nil {
 		return filepath.Join(home, ".local", "share", "knirvserver")
 	}
-	return "data"
+	return filepath.Join(os.TempDir(), "knirvserver", "data")
 }
 
 // resolveBinaryPath returns the first path where the knirvagent binary exists.

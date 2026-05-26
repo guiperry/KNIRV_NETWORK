@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import { useRole } from '../contexts/RoleContext';
-import RoleSwitcher from './RoleSwitcher';
 
 export default function RoleProtectedRoute({ children }) {
   const { role, isAuthenticated, canAccess, getUserInfo } = useRole();
@@ -151,9 +150,6 @@ export default function RoleProtectedRoute({ children }) {
             )}
           </div>
         </div>
-
-        {/* Role Switcher for Development/Testing */}
-        <RoleSwitcher />
       </div>
     );
   }

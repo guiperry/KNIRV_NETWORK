@@ -54,6 +54,7 @@ type KnirvagentManagerInterface interface {
 type DVEManagerInterface interface {
 	RegisterNode(req *objects.RegisterNodeRequest) (*objects.DVENode, error)
 	UpdateNode(nodeID string, updates map[string]interface{}) (*objects.DVENode, error)
+	HeartbeatNode(nodeID string) error
 }
 
 type DVECreationService struct {
@@ -69,17 +70,22 @@ type DVECreationService struct {
 	cleanupInterval       time.Duration
 	minStakeAmount        int64
 	gracePeriod           int64
+	// sessionCreations tracks creation IDs that were created in the current
+	// runtime session (not loaded from DB). Only these are heartbeated so that
+	// stale DVE nodes from previous sessions do not reappear after a restart.
+	sessionCreations      map[string]bool
 }
 
 func NewDVECreationService(db *database.BuntDBManager) (*DVECreationService, error) {
 	log.Printf("[DVE Creation] Creating new DVE creation service")
 	service := &DVECreationService{
-		db:              db,
-		activeCreations: make(map[string]*objects.DVECreation),
-		activeSessions:  make(map[string]*objects.DVESession),
-		cleanupInterval: 5 * time.Minute,
-		minStakeAmount:  1000,
-		gracePeriod:     7 * 24 * 60 * 60,
+		db:               db,
+		activeCreations:  make(map[string]*objects.DVECreation),
+		activeSessions:   make(map[string]*objects.DVESession),
+		sessionCreations: make(map[string]bool),
+		cleanupInterval:  5 * time.Minute,
+		minStakeAmount:   1000,
+		gracePeriod:      7 * 24 * 60 * 60,
 	}
 
 	if err := service.loadFromDatabase(); err != nil {
@@ -201,6 +207,7 @@ func (dcs *DVECreationService) CreateDVENode(req *objects.DVECreationRequest) (*
 	}
 
 	dcs.activeCreations[creation.ID] = creation
+	dcs.sessionCreations[creation.ID] = true // Track as current-session creation
 	dcs.mu.Unlock()
 
 	// Synchronously register the node in the DVE manager so it appears in the
@@ -866,14 +873,22 @@ func (dcs *DVECreationService) refreshActiveNodeHeartbeats() {
 	dcs.mu.RLock()
 	var nodeIDs []string
 	for _, creation := range dcs.activeCreations {
-		if creation.Status == "active" && creation.DVENodeID != "" {
+		// Only heartbeat nodes from creations made in the current runtime session.
+		// Creations loaded from DB at startup are excluded — their nodes start as
+		// "offline" and must not be silently resurrected after a server restart.
+		if !dcs.sessionCreations[creation.ID] {
+			continue
+		}
+		// Include both "active" and "pending" so a newly created DVE node is
+		// kept alive during the brief window before provisioning completes.
+		if (creation.Status == "active" || creation.Status == "pending") && creation.DVENodeID != "" {
 			nodeIDs = append(nodeIDs, creation.DVENodeID)
 		}
 	}
 	dcs.mu.RUnlock()
 
 	for _, nodeID := range nodeIDs {
-		if _, err := dcs.dveManager.UpdateNode(nodeID, map[string]interface{}{"status": "online"}); err != nil {
+		if err := dcs.dveManager.HeartbeatNode(nodeID); err != nil {
 			log.Printf("[DVE Creation] Warning: Failed to refresh heartbeat for node %s: %v", nodeID, err)
 		}
 	}

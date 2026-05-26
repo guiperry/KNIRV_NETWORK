@@ -27,7 +27,7 @@ func getGatewayAppDataDir() string {
 	if home, err := os.UserHomeDir(); err == nil {
 		return filepath.Join(home, ".local", "share", "knirvserver")
 	}
-	return "data"
+	return filepath.Join(os.TempDir(), "knirvserver", "data")
 }
 
 // killStaleGateway sends SIGTERM (then SIGKILL after 2 s) to any running

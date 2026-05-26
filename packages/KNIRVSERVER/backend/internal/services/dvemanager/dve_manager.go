@@ -136,6 +136,7 @@ func (dm *DVEManager) Start(ctx context.Context) error {
 	go dm.monitorNodes()
 	go dm.cleanupExpiredNodes()
 	go dm.updateMetrics()
+	go dm.demoHeartbeatRoutine()
 
 	// Load existing nodes from database
 	if err := dm.loadNodesFromDB(); err != nil {
@@ -217,6 +218,7 @@ func (dm *DVEManager) registerNodeInternal(req *objects.RegisterNodeRequest) (*o
 		UpdatedAt:       time.Now(),
 		Latitude:        req.Latitude,
 		Longitude:       req.Longitude,
+		IsDemo:          req.IsDemo,
 	}
 
 	// Set browser-extension specific defaults
@@ -440,7 +442,11 @@ func (dm *DVEManager) storeTask(task *objects.ValidationTask) error {
 	})
 }
 
-// loadNodesFromDB loads existing nodes from database
+// loadNodesFromDB loads existing nodes from database.
+// Non-demo nodes are reset to "offline" so stale user-DVE nodes from previous
+// sessions do not appear as "online" in the WebGUI on the next startup.
+// Demo nodes (IsDemo == true) are left as-is so they remain visible until
+// the demoHeartbeatRoutine takes over.
 func (dm *DVEManager) loadNodesFromDB() error {
 	return dm.db.GetObjectsByPrefix("dve:nodes:", func(key string, value []byte) bool {
 		var node objects.DVENode
@@ -448,17 +454,26 @@ func (dm *DVEManager) loadNodesFromDB() error {
 			log.Printf("Error loading node from DB: %v", err)
 			return true
 		}
+		if !node.IsDemo && node.Status == "online" {
+			node.Status = "offline"
+			node.UpdatedAt = time.Now()
+			if err := dm.storeNode(&node); err != nil {
+				log.Printf("Warning: failed to reset node %s to offline on startup: %v", node.ID, err)
+			}
+		}
 		dm.nodeTracker.AddNode(&node)
 		return true
 	})
 }
 
-// seedDemoDVENodesIfEmpty seeds demo DVE nodes if the database is empty
-// In production mode, this uses chain-native discovery instead of demo nodes
+// seedDemoDVENodesIfEmpty seeds demo DVE nodes when no online nodes exist.
+// Online-count (not total-count) is used so that stale offline nodes from
+// previous sessions do not prevent demo nodes from appearing on startup.
+// In production mode with chain-native discovery, chain nodes are used instead.
 func (dm *DVEManager) seedDemoDVENodesIfEmpty() error {
-	totalNodes := dm.nodeTracker.GetTotalNodes()
-	if totalNodes > 0 {
-		log.Printf("DVE nodes already exist (%d nodes), skipping node seeding", totalNodes)
+	onlineNodes := dm.nodeTracker.GetActiveNodes()
+	if len(onlineNodes) > 0 {
+		log.Printf("Online DVE nodes already exist (%d nodes), skipping demo seeding", len(onlineNodes))
 		return nil
 	}
 
@@ -513,6 +528,7 @@ func (dm *DVEManager) seedDemoDVENodesIfEmpty() error {
 			Capabilities: []string{"validation", "attestation", "sgx-compute"},
 			Latitude:     40.7128,
 			Longitude:    -74.0060,
+			IsDemo:       true,
 		},
 		{
 			Name:         "Demo DVE Node 2 (SEV-SNP - US-West)",
@@ -524,6 +540,7 @@ func (dm *DVEManager) seedDemoDVENodesIfEmpty() error {
 			Capabilities: []string{"validation", "attestation", "sev-snp-compute"},
 			Latitude:     34.0522,
 			Longitude:    -118.2437,
+			IsDemo:       true,
 		},
 		{
 			Name:         "Demo DVE Node 3 (TDX - EU-Central)",
@@ -535,6 +552,7 @@ func (dm *DVEManager) seedDemoDVENodesIfEmpty() error {
 			Capabilities: []string{"validation", "attestation", "tdx-compute", "ml-inference"},
 			Latitude:     52.5200,
 			Longitude:    13.4050,
+			IsDemo:       true,
 		},
 		{
 			Name:         "Demo DVE Node 4 (Software TEE - Asia-Pacific)",
@@ -546,6 +564,7 @@ func (dm *DVEManager) seedDemoDVENodesIfEmpty() error {
 			Capabilities: []string{"validation", "software-tee"},
 			Latitude:     1.3521,
 			Longitude:    103.8198,
+			IsDemo:       true,
 		},
 		{
 			Name:         "Demo DVE Node 5 (SGX - EU-West)",
@@ -557,6 +576,7 @@ func (dm *DVEManager) seedDemoDVENodesIfEmpty() error {
 			Capabilities: []string{"validation", "attestation", "sgx-compute", "ml-inference"},
 			Latitude:     53.3498,
 			Longitude:    -6.2603,
+			IsDemo:       true,
 		},
 		{
 			Name:         "Demo Browser DVE Node",
@@ -564,6 +584,7 @@ func (dm *DVEManager) seedDemoDVENodesIfEmpty() error {
 			StakeAmount:  5000,
 			Location:     "browser",
 			Capabilities: []string{"policy-check", "signature-verify", "reasoning-simple", "skill-lint"},
+			IsDemo:       true,
 		},
 	}
 
@@ -620,6 +641,55 @@ func (dm *DVEManager) handleNodeHeartbeat(msg *objects.P2PMessage) error {
 	// Update last heartbeat time
 	dm.nodeTracker.UpdateHeartbeat(nodeID)
 	return nil
+}
+
+// refreshDemoNodeHeartbeats scans BuntDB for IsDemo nodes and heartbeats each one.
+func (dm *DVEManager) refreshDemoNodeHeartbeats() {
+	var demoIDs []string
+	_ = dm.db.GetObjectsByPrefix("dve:nodes:", func(key string, value []byte) bool {
+		var node objects.DVENode
+		if err := json.Unmarshal(value, &node); err != nil {
+			return true
+		}
+		if node.IsDemo {
+			demoIDs = append(demoIDs, node.ID)
+		}
+		return true
+	})
+	for _, id := range demoIDs {
+		if err := dm.HeartbeatNode(id); err != nil {
+			log.Printf("[DVE Demo] Warning: failed to heartbeat demo node %s: %v", id, err)
+		}
+	}
+	if len(demoIDs) > 0 {
+		log.Printf("[DVE Demo] Refreshed heartbeat for %d demo nodes", len(demoIDs))
+	}
+}
+
+// demoHeartbeatRoutine keeps demo DVE nodes (IsDemo == true) alive so they
+// remain visible in the WebGUI even though no DVECreation record exists for them.
+// Fires immediately on start (to rescue nodes loaded from a previous session
+// before checkNodeHealth can mark them stale), then every 60 seconds.
+func (dm *DVEManager) demoHeartbeatRoutine() {
+	// Small delay so loadNodesFromDB and seedDemoDVENodesIfEmpty finish first.
+	select {
+	case <-dm.ctx.Done():
+		return
+	case <-time.After(2 * time.Second):
+	}
+	dm.refreshDemoNodeHeartbeats()
+
+	ticker := time.NewTicker(60 * time.Second)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-dm.ctx.Done():
+			return
+		case <-ticker.C:
+			dm.refreshDemoNodeHeartbeats()
+		}
+	}
 }
 
 // monitorNodes monitors node health and status
@@ -917,6 +987,35 @@ func (dm *DVEManager) GetNode(nodeID string) (*objects.DVENode, error) {
 	}
 
 	return node, nil
+}
+
+// HeartbeatNode refreshes the LastHeartbeat for nodeID in both the in-memory
+// nodeTracker and the database so that:
+//   - checkNodeHealth (reads nodeTracker) does not mark the node offline
+//   - GetNodes (reads DB) continues to return status "online"
+//
+// Intentionally does NOT hold dm.mu: BuntDB is internally thread-safe, and
+// avoiding the write lock prevents new readers (GetNodes/RLock) from being
+// starved while the heartbeat is written.
+func (dm *DVEManager) HeartbeatNode(nodeID string) error {
+	if nodeID == "" {
+		return fmt.Errorf("nodeID must not be empty")
+	}
+
+	// Refresh in-memory tracker so checkNodeHealth skips this node.
+	dm.nodeTracker.UpdateHeartbeat(nodeID)
+
+	// Persist refreshed heartbeat + online status to DB so GetNodes (which
+	// reads the DB, not the tracker) also returns status "online".
+	node, err := dm.getNodeFromDB(nodeID)
+	if err != nil {
+		// Node not in DB yet — nothing to persist; tracker update is enough.
+		return nil
+	}
+	node.LastHeartbeat = time.Now()
+	node.Status = "online"
+	node.UpdatedAt = time.Now()
+	return dm.storeNode(node)
 }
 
 // UpdateNode updates a DVE node with new information

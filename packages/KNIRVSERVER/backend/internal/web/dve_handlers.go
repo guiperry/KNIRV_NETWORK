@@ -984,7 +984,9 @@ func (h *DVEHandlers) GetSupervisorAgentStatus(w http.ResponseWriter, r *http.Re
 	}
 	running := status != "offline"
 
-	healthErr := h.knirvagentManager.HealthCheck(context.Background())
+	healthCtx, healthCancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer healthCancel()
+	healthErr := h.knirvagentManager.HealthCheck(healthCtx)
 	healthStatus := "healthy"
 	if healthErr != nil {
 		healthStatus = "unhealthy"

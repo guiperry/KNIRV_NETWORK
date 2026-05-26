@@ -269,6 +269,16 @@
   color: #e74c3c;
 }
 
+.roleSwitcherCard {
+  margin-bottom: 20px;
+}
+
+.roleSwitcherWrapper {
+  margin-top: 16px;
+  display: flex;
+  justify-content: flex-start;
+}
+
 .instructionsCard {
   margin-bottom: 20px;
 }

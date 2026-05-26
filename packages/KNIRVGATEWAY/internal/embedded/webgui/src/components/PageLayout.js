@@ -2,7 +2,6 @@ import React from 'react';
 import styles from './PageLayout.module.css';
 import SideNavigation from './SideNavigation';
 import SearchBar from './SearchBar';
-import RoleSwitcher from './RoleSwitcher';
 import Footer from './Footer';
 import { useRole } from '../contexts/RoleContext';
 
@@ -40,9 +39,6 @@ const PageLayout = ({
         {/* Footer */}
         <Footer />
       </div>
-
-      {/* Role Switcher for Development/Testing */}
-      <RoleSwitcher />
     </div>
   );
 };

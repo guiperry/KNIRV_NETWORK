@@ -88,7 +88,7 @@ func setDefaultConfig(v *viper.Viper) {
 	v.SetDefault("ui.theme", "dark")
 
 	// Blockchain settings
-	v.SetDefault("blockchain.data_dir", "data")
+	v.SetDefault("blockchain.data_dir", "/var/lib/knirvserver/knirvchain")
 	v.SetDefault("blockchain.block_time", 5)
 
 	// Wallet settings
@@ -102,7 +102,7 @@ func setDefaultConfig(v *viper.Viper) {
 	v.SetDefault("logging.level", "info")
 	appDataDir, _ := GetAppDataDir()
 	if appDataDir == "" {
-		appDataDir = "data"
+		appDataDir = "/var/lib/knirvserver/knirvchain"
 	}
 	v.SetDefault("logging.file", filepath.Join(appDataDir, "logs", "KNIRVCHAIN.log"))
 }
