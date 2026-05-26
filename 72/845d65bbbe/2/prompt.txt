@@ -1,0 +1,4 @@
+In the KNIRVSERVER, we have a rogue data directory being created in the var/lib/knirvserver/bin directory. This should not be there, there is already a data folder being created and
+utilized in the var/lib/knirvserver/data directory, it should be set to the latter one. 
+
+This issue might be comming from one of the KNIRVSERVER's submodules also... Please use socraticode to check all possibilities for a fix.

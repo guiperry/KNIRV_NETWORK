@@ -3,10 +3,11 @@
   "checkpoint_id": "72845d65bbbe",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 4,
+  "checkpoints_count": 6,
   "files_touched": [
     "modp/output/PChecker/obj/Debug/net8.0/KnirvNetwork.AssemblyInfo.cs",
     "modp/output/PChecker/obj/Debug/net8.0/KnirvNetwork.AssemblyInfoInputs.cache",
+    "packages/KNIRVCHAIN/config/config_integration.go",
     "packages/KNIRVGATEWAY/internal/embedded/webgui/src/components/PageLayout.js",
     "packages/KNIRVGATEWAY/internal/embedded/webgui/src/components/RoleProtectedRoute.js",
     "packages/KNIRVGATEWAY/internal/embedded/webgui/src/components/RoleSwitcher.module.css",
@@ -16,7 +17,14 @@
     "packages/KNIRVSERVER/backend/internal/objects/dve.go",
     "packages/KNIRVSERVER/backend/internal/services/dvecreation/dve_creation_service.go",
     "packages/KNIRVSERVER/backend/internal/services/dvemanager/dve_manager.go",
-    "packages/KNIRVSERVER/backend/internal/web/dve_handlers.go"
+    "packages/KNIRVSERVER/backend/internal/web/dve_handlers.go",
+    "packages/KNIRVSERVER/pkg/knirvagent/manager.go",
+    "packages/KNIRVSERVER/pkg/knirvarena/manager.go",
+    "packages/KNIRVSERVER/pkg/knirvchain/manager.go",
+    "packages/KNIRVSERVER/pkg/knirvgateway/manager.go",
+    "packages/KNIRVSERVER/pkg/knirvgraph/manager.go",
+    "packages/KNIRVSERVER/pkg/knirvhasher/manager.go",
+    "packages/KNIRVSERVER/pkg/knirvoracle/manager.go"
   ],
   "sessions": [
     {
@@ -30,13 +38,19 @@
       "transcript": "/72/845d65bbbe/1/full.jsonl",
       "content_hash": "/72/845d65bbbe/1/content_hash.txt",
       "prompt": "/72/845d65bbbe/1/prompt.txt"
+    },
+    {
+      "metadata": "/72/845d65bbbe/2/metadata.json",
+      "transcript": "/72/845d65bbbe/2/full.jsonl",
+      "content_hash": "/72/845d65bbbe/2/content_hash.txt",
+      "prompt": "/72/845d65bbbe/2/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 80943,
+    "input_tokens": 257665,
     "cache_creation_tokens": 379889,
-    "cache_read_tokens": 8473989,
-    "output_tokens": 99420,
-    "api_call_count": 92
+    "cache_read_tokens": 17042821,
+    "output_tokens": 113404,
+    "api_call_count": 170
   }
 }
