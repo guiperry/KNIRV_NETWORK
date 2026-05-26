@@ -1,0 +1,71 @@
+{
+  "cli_version": "0.5.5",
+  "checkpoint_id": "72845d65bbbe",
+  "session_id": "ae818a56-9a15-41d6-a7f3-b0ad8122564f",
+  "strategy": "manual-commit",
+  "created_at": "2026-05-26T03:27:21.015640035Z",
+  "branch": "main",
+  "checkpoints_count": 3,
+  "files_touched": [
+    "packages/KNIRVGATEWAY/internal/embedded/webgui/src/components/PageLayout.js",
+    "packages/KNIRVGATEWAY/internal/embedded/webgui/src/components/RoleProtectedRoute.js",
+    "packages/KNIRVGATEWAY/internal/embedded/webgui/src/components/RoleSwitcher.module.css",
+    "packages/KNIRVGATEWAY/internal/embedded/webgui/src/pages/auth-test.js",
+    "packages/KNIRVGATEWAY/internal/embedded/webgui/src/pages/auth-test.module.css",
+    "packages/KNIRVSERVER/backend/CALIBER_LEARNINGS.md",
+    "packages/KNIRVSERVER/backend/internal/objects/dve.go",
+    "packages/KNIRVSERVER/backend/internal/services/dvecreation/dve_creation_service.go",
+    "packages/KNIRVSERVER/backend/internal/services/dvemanager/dve_manager.go",
+    "packages/KNIRVSERVER/backend/internal/web/dve_handlers.go"
+  ],
+  "agent": "Claude Code",
+  "model": "claude-sonnet-4-6",
+  "turn_id": "859b188d0b18",
+  "checkpoint_transcript_start": 396,
+  "transcript_lines_at_start": 396,
+  "token_usage": {
+    "input_tokens": 65,
+    "cache_creation_tokens": 379889,
+    "cache_read_tokens": 6174981,
+    "output_tokens": 87647,
+    "api_call_count": 56
+  },
+  "session_metrics": {
+    "turn_count": 4
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-05-26T03:27:20.861088017Z",
+    "agent_lines": 183,
+    "agent_removed": 48,
+    "human_added": 10,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 193,
+    "total_lines_changed": 251,
+    "agent_percentage": 92.03187250996015,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 2,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 3,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    }
+  ]
+}
