@@ -1,0 +1,101 @@
+{
+  "cli_version": "0.5.5",
+  "checkpoint_id": "e61b814ac839",
+  "session_id": "39d8c236-8887-4636-84da-1d5779b6ef0e",
+  "strategy": "manual-commit",
+  "created_at": "2026-05-26T16:56:51.694850915Z",
+  "branch": "main",
+  "checkpoints_count": 3,
+  "files_touched": [
+    "OverlayFS_Implementation.html",
+    "integration-tests/dve_overlayfs_test.go",
+    "packages/KNIRVSERVER/README.md",
+    "packages/KNIRVSERVER/backend/cmd/backend_server/main.go",
+    "packages/KNIRVSERVER/backend/cmd/backend_server/main_test.go",
+    "packages/KNIRVSERVER/backend/go.mod",
+    "packages/KNIRVSERVER/backend/go.sum",
+    "packages/KNIRVSERVER/backend/internal/config/config.go",
+    "packages/KNIRVSERVER/backend/internal/config/config_test.go",
+    "packages/KNIRVSERVER/backend/internal/data_engine/buntdb_manager.go",
+    "packages/KNIRVSERVER/backend/internal/ebpf/ebpf_integration_test.go",
+    "packages/KNIRVSERVER/backend/internal/objects/dve_rental.go",
+    "packages/KNIRVSERVER/backend/internal/objects/dve_rental_test.go",
+    "packages/KNIRVSERVER/backend/internal/services/cde/cde_service.go",
+    "packages/KNIRVSERVER/backend/internal/services/cde/cde_service_test.go",
+    "packages/KNIRVSERVER/backend/internal/services/cde/handlers.go",
+    "packages/KNIRVSERVER/backend/internal/services/cde/resource_pool.go",
+    "packages/KNIRVSERVER/backend/internal/services/cde/resource_pool_test.go",
+    "packages/KNIRVSERVER/backend/internal/services/cde/routes.go",
+    "packages/KNIRVSERVER/backend/internal/services/dve_workspace/bin/busybox-static",
+    "packages/KNIRVSERVER/backend/internal/services/dve_workspace/busybox.go",
+    "packages/KNIRVSERVER/backend/internal/services/dve_workspace/dve_service.go",
+    "packages/KNIRVSERVER/backend/internal/services/dve_workspace/dve_service_test.go",
+    "packages/KNIRVSERVER/backend/internal/services/dve_workspace/dve_workspace_test.go",
+    "packages/KNIRVSERVER/backend/internal/services/dve_workspace/handlers.go",
+    "packages/KNIRVSERVER/backend/internal/services/dve_workspace/namespace.go",
+    "packages/KNIRVSERVER/backend/internal/services/dve_workspace/overlayfs.go",
+    "packages/KNIRVSERVER/backend/internal/services/dve_workspace/resource_pool.go",
+    "packages/KNIRVSERVER/backend/internal/services/dve_workspace/resource_pool_test.go",
+    "packages/KNIRVSERVER/backend/internal/services/dve_workspace/routes.go",
+    "packages/KNIRVSERVER/backend/internal/services/dve_workspace/wazero_executor.go",
+    "packages/KNIRVSERVER/backend/internal/services/dve_workspace/wazero_executor_test.go",
+    "packages/KNIRVSERVER/backend/internal/services/dverental/dve_rental_service.go",
+    "packages/KNIRVSERVER/backend/internal/services/dverental/dve_rental_service_test.go",
+    "packages/KNIRVSERVER/backend/internal/services/dverental/rental_helpers.go",
+    "packages/KNIRVSERVER/config/development.yaml",
+    "packages/KNIRVSERVER/config/production.yaml",
+    "packages/KNIRVSERVER/config/test.yaml",
+    "packages/KNIRVSERVER/config/testnet.yaml",
+    "packages/KNIRVSERVER/frontend/src/components/dashboard/__tests__/dashboard-wrapper-access.test.tsx",
+    "packages/KNIRVSERVER/frontend/src/components/dashboard/dashboard-wrapper.tsx",
+    "packages/KNIRVSERVER/frontend/src/components/dashboard/dve-workspace-settings.tsx"
+  ],
+  "agent": "Claude Code",
+  "model": "claude-sonnet-4-6",
+  "turn_id": "f0901e61d769",
+  "token_usage": {
+    "input_tokens": 93,
+    "cache_creation_tokens": 289732,
+    "cache_read_tokens": 3211815,
+    "output_tokens": 95499,
+    "api_call_count": 43
+  },
+  "session_metrics": {
+    "turn_count": 3
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-05-26T16:56:51.468966556Z",
+    "agent_lines": 6025,
+    "agent_removed": 2561,
+    "human_added": 1104,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 7129,
+    "total_lines_changed": 9891,
+    "agent_percentage": 86.80618744313013,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 2,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 3,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    }
+  ]
+}
