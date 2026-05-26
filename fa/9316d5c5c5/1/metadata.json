@@ -1,0 +1,68 @@
+{
+  "cli_version": "0.5.5",
+  "checkpoint_id": "fa9316d5c5c5",
+  "session_id": "ses_19eef8bcaffeY66E8KqEXkW5fF",
+  "strategy": "manual-commit",
+  "created_at": "2026-05-26T17:46:46.838472454Z",
+  "branch": "main",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "LICENSE",
+    "OverlayFS_Implementation.html",
+    "Wallet_Alignment.md",
+    "devtools/KNIRVKEY/bootnode_key_encryptor/go.mod",
+    "devtools/KNIRVKEY/bootnode_key_encryptor/go.sum",
+    "devtools/KNIRVKEY/bootnode_key_encryptor/main.go",
+    "devtools/KNIRVKEY/bootnode_key_encryptor/main_test.go",
+    "devtools/KNIRVKEY/enterprise_key_encryptor/go.mod",
+    "devtools/KNIRVKEY/enterprise_key_encryptor/go.sum",
+    "devtools/KNIRVKEY/enterprise_key_encryptor/main.go",
+    "devtools/KNIRVKEY/enterprise_key_encryptor/main_test.go",
+    "knirvhasher_cli_refactor.md",
+    "modp/output/PChecker/obj/Debug/net8.0/KnirvNetwork.AssemblyInfo.cs",
+    "modp/output/PChecker/obj/Debug/net8.0/KnirvNetwork.AssemblyInfoInputs.cache",
+    "transformer_implementation.md",
+    "transformer_opportunities.md",
+    "transformer_opportunities_KNIRV.md",
+    "value_proposition_strategies.html"
+  ],
+  "agent": "OpenCode",
+  "model": "",
+  "turn_id": "9c7536a5de61",
+  "initial_attribution": {
+    "calculated_at": "2026-05-26T17:46:46.832964187Z",
+    "agent_lines": 0,
+    "agent_removed": 0,
+    "human_added": 0,
+    "human_modified": 3,
+    "human_removed": 9904,
+    "total_committed": 0,
+    "total_lines_changed": 9907,
+    "agent_percentage": 0,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 326,
+      "user_lines_removed": 2,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        ".claude/settings.local.json": 96,
+        "packages/KNIRVARENA/.claude/settings.local.json": 16,
+        "packages/KNIRVCHAIN/.claude/settings.local.json": 15,
+        "packages/KNIRVGATEWAY/.claude/settings.local.json": 23,
+        "packages/KNIRVGRAPH/.claude/settings.local.json": 9,
+        "packages/KNIRVSERVER/backend/internal/embedded/graphrag-rs/.vscode/settings.json": 133,
+        "packages/KNIRVSERVER/backend/internal/services/dvecreation/dve_creation_service.go": 2,
+        "packages/KNIRVSERVER/backend/internal/services/dvemanager/dve_manager.go": 29,
+        "packages/KNIRVSERVER/backend/internal/web/dve_handlers.go": 3
+      },
+      "user_removed_per_file": {
+        "packages/KNIRVSERVER/backend/internal/services/dvecreation/dve_creation_service.go": 1,
+        "packages/KNIRVSERVER/backend/internal/web/dve_handlers.go": 1
+      }
+    }
+  ]
+}
