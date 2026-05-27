@@ -1,0 +1,27 @@
+{
+  "cli_version": "0.5.5",
+  "checkpoint_id": "33534f645204",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "packages/KNIRVGATEWAY/internal/server/server.go",
+    "packages/KNIRVSERVER/backend/cmd/backend_server/main.go",
+    "packages/KNIRVSERVER/backend/internal/services/dvemanager/dve_manager.go"
+  ],
+  "sessions": [
+    {
+      "metadata": "/33/534f645204/0/metadata.json",
+      "transcript": "/33/534f645204/0/full.jsonl",
+      "content_hash": "/33/534f645204/0/content_hash.txt",
+      "prompt": ""
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 92,
+    "cache_creation_tokens": 195471,
+    "cache_read_tokens": 10249755,
+    "output_tokens": 48948,
+    "api_call_count": 88
+  }
+}
