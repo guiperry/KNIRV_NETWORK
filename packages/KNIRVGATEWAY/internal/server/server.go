@@ -469,6 +469,15 @@ func (s *Server) setupRoutes() error {
 		s.logger.Warn("Inner Agent WS tunnel not configured — /ws/* will not be available")
 	}
 
+	// Backend WebSocket tunnel — forward the unified KNIRVSERVER /ws endpoints
+	// over the backend Unix socket so the browser can connect through the
+	// gateway's public HTTP port.
+	if s.config.BackendSocketPath != "" {
+		r.HandleFunc("/ws", s.handleBackendWebSocketProxy).Methods("GET")
+		r.PathPrefix("/ws/").HandlerFunc(s.handleBackendWebSocketProxy).Methods("GET")
+		s.logger.Info("Backend WS proxy registered", zap.String("socket", s.config.BackendSocketPath))
+	}
+
 	// Phase 4: Replace WebGUI mock endpoints with real proxy destinations.
 	// /api/transactions → oracle proxy (Cosmos tx history)
 	if oracleProxy != nil {
@@ -854,6 +863,80 @@ func newSocketProxy(socketPath, targetBase string) *httputil.ReverseProxy {
 		return nil
 	}
 	return proxy
+}
+
+func (s *Server) handleBackendWebSocketProxy(w http.ResponseWriter, r *http.Request) {
+	if s.config.BackendSocketPath == "" {
+		http.Error(w, "backend websocket proxy not configured", http.StatusServiceUnavailable)
+		return
+	}
+
+	if !websocket.IsWebSocketUpgrade(r) {
+		http.Error(w, "websocket upgrade required", http.StatusBadRequest)
+		return
+	}
+
+	upstreamConn, err := net.Dial("unix", s.config.BackendSocketPath)
+	if err != nil {
+		status := http.StatusBadGateway
+		if os.IsNotExist(err) {
+			status = http.StatusServiceUnavailable
+		}
+		http.Error(w, "backend websocket unavailable", status)
+		return
+	}
+
+	hijacker, ok := w.(http.Hijacker)
+	if !ok {
+		upstreamConn.Close()
+		http.Error(w, "websocket hijacking unsupported", http.StatusInternalServerError)
+		return
+	}
+
+	clientConn, clientBuf, err := hijacker.Hijack()
+	if err != nil {
+		upstreamConn.Close()
+		http.Error(w, "failed to hijack websocket connection", http.StatusInternalServerError)
+		return
+	}
+
+	req := r.Clone(r.Context())
+	req.URL.Scheme = "http"
+	req.URL.Host = "unix"
+	req.Host = "unix"
+	req.RequestURI = ""
+
+	if err := req.Write(upstreamConn); err != nil {
+		clientConn.Close()
+		upstreamConn.Close()
+		return
+	}
+
+	if clientBuf.Reader.Buffered() > 0 {
+		if _, err := io.CopyN(upstreamConn, clientBuf, int64(clientBuf.Reader.Buffered())); err != nil {
+			clientConn.Close()
+			upstreamConn.Close()
+			return
+		}
+	}
+
+	if err := clientBuf.Flush(); err != nil {
+		clientConn.Close()
+		upstreamConn.Close()
+		return
+	}
+
+	go func() {
+		defer clientConn.Close()
+		defer upstreamConn.Close()
+		io.Copy(upstreamConn, clientConn) //nolint:errcheck
+	}()
+
+	go func() {
+		defer clientConn.Close()
+		defer upstreamConn.Close()
+		io.Copy(clientConn, upstreamConn) //nolint:errcheck
+	}()
 }
 
 // dynamicAgentProxy returns an http.Handler that routes /api/agent/{dveId}/*
@@ -1674,4 +1757,3 @@ func createCID(id, resourceType string) (cid.Cid, error) {
 	}
 	return cid.NewCidV1(cid.Raw, hash), nil
 }
-

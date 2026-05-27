@@ -448,7 +448,11 @@ func (dm *DVEManager) storeTask(task *objects.ValidationTask) error {
 // Demo nodes (IsDemo == true) are left as-is so they remain visible until
 // the demoHeartbeatRoutine takes over.
 func (dm *DVEManager) loadNodesFromDB() error {
-	return dm.db.GetObjectsByPrefix("dve:nodes:", func(key string, value []byte) bool {
+	// Collect nodes to reset outside the read transaction to avoid a deadlock:
+	// storeNode opens a write transaction (db.Update), which cannot be nested
+	// inside the read transaction (db.View) opened by GetObjectsByPrefix.
+	var toReset []objects.DVENode
+	if err := dm.db.GetObjectsByPrefix("dve:nodes:", func(key string, value []byte) bool {
 		var node objects.DVENode
 		if err := json.Unmarshal(value, &node); err != nil {
 			log.Printf("Error loading node from DB: %v", err)
@@ -457,13 +461,19 @@ func (dm *DVEManager) loadNodesFromDB() error {
 		if !node.IsDemo && node.Status == "online" {
 			node.Status = "offline"
 			node.UpdatedAt = time.Now()
-			if err := dm.storeNode(&node); err != nil {
-				log.Printf("Warning: failed to reset node %s to offline on startup: %v", node.ID, err)
-			}
+			toReset = append(toReset, node)
 		}
 		dm.nodeTracker.AddNode(&node)
 		return true
-	})
+	}); err != nil {
+		return err
+	}
+	for i := range toReset {
+		if err := dm.storeNode(&toReset[i]); err != nil {
+			log.Printf("Warning: failed to reset node %s to offline on startup: %v", toReset[i].ID, err)
+		}
+	}
+	return nil
 }
 
 // seedDemoDVENodesIfEmpty seeds demo DVE nodes when no online nodes exist.

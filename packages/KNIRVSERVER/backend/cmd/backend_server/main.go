@@ -937,6 +937,17 @@ func NewServer(cfg *config.Config, rootKeySecrets *pb.RootKeyFileContentProto) (
 	}
 	activeMemoryService := active_memory.NewActiveMemoryService(vaultService, reasoningEngine, mdStorage, solutionValidator)
 
+	// Finalize the backend API socket path before configuring embedded proxies
+	// that depend on it, such as KNIRVGATEWAY.
+	if cfg.API.SocketPath == "" && cfg.SocketDir != "" {
+		cfg.API.SocketPath = filepath.Join(cfg.SocketDir, "backend.sock")
+		log.Printf("Using default API socket path: %s", cfg.API.SocketPath)
+	}
+	if cfg.Gateway.BackendSocketPath == "" && cfg.API.SocketPath != "" {
+		cfg.Gateway.BackendSocketPath = cfg.API.SocketPath
+		log.Printf("Using backend API socket path for gateway proxy: %s", cfg.Gateway.BackendSocketPath)
+	}
+
 	// Initialize embedded KNIRVGATEWAY for P2P TURN/Tunnel services
 	var gatewayManager *knirvgateway.Manager
 	if cfg.Gateway.Enabled {
@@ -1674,12 +1685,6 @@ func NewServer(cfg *config.Config, rootKeySecrets *pb.RootKeyFileContentProto) (
 
 	// Create context for service lifecycle management
 	ctx, cancel := context.WithCancel(context.Background())
-
-	// Initialize SocketPath if SocketDir is present but SocketPath is empty
-	if cfg.API.SocketPath == "" && cfg.SocketDir != "" {
-		cfg.API.SocketPath = filepath.Join(cfg.SocketDir, "backend.sock")
-		log.Printf("Using default API socket path: %s", cfg.API.SocketPath)
-	}
 
 	server := &Server{
 		config:                       cfg,
