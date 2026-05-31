@@ -1,0 +1,57 @@
+{
+  "cli_version": "0.5.5",
+  "checkpoint_id": "69814640f4ec",
+  "session_id": "45bc6e91-502c-4363-bd54-23c281eaf0fb",
+  "strategy": "manual-commit",
+  "created_at": "2026-05-31T03:34:09.245041278Z",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "modp/output/PChecker/obj/Debug/net8.0/KnirvNetwork.AssemblyInfo.cs",
+    "modp/output/PChecker/obj/Debug/net8.0/KnirvNetwork.AssemblyInfoInputs.cache",
+    "packages/KNIRVHASHER/Makefile",
+    "packages/KNIRVHASHER/pipeline/1_DATA_MINER/internal/app/processor.go",
+    "packages/KNIRVHASHER/pipeline/3_DATA_TRAINER/pkg/simulator/hasher_wrapper.go",
+    "packages/KNIRVSERVER/API_Refactor.md",
+    "packages/KNIRVSERVER/IntentionalContextMemoryEngine.md",
+    "packages/KNIRVSERVER/WASM_Integration_Investigation.md",
+    "packages/KNIRVSERVER/backend/cmd/backend_server/main.go",
+    "packages/KNIRVSERVER/backend/internal/services/websocket/log_stream.go",
+    "packages/KNIRVSERVER/frontend/src/components/dashboard/dashboard-wrapper.tsx",
+    "packages/KNIRVSERVER/integration_status.md"
+  ],
+  "agent": "Claude Code",
+  "model": "",
+  "turn_id": "c6536b91df48",
+  "token_usage": {
+    "input_tokens": 1620,
+    "cache_creation_tokens": 68127,
+    "cache_read_tokens": 783345,
+    "output_tokens": 7572,
+    "api_call_count": 17
+  },
+  "session_metrics": {
+    "turn_count": 1
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-05-31T03:34:08.800153902Z",
+    "agent_lines": 302,
+    "agent_removed": 3990,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 302,
+    "total_lines_changed": 4292,
+    "agent_percentage": 100,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    }
+  ]
+}

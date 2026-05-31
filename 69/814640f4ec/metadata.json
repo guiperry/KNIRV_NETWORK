@@ -1,0 +1,36 @@
+{
+  "cli_version": "0.5.5",
+  "checkpoint_id": "69814640f4ec",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "modp/output/PChecker/obj/Debug/net8.0/KnirvNetwork.AssemblyInfo.cs",
+    "modp/output/PChecker/obj/Debug/net8.0/KnirvNetwork.AssemblyInfoInputs.cache",
+    "packages/KNIRVHASHER/Makefile",
+    "packages/KNIRVHASHER/pipeline/1_DATA_MINER/internal/app/processor.go",
+    "packages/KNIRVHASHER/pipeline/3_DATA_TRAINER/pkg/simulator/hasher_wrapper.go",
+    "packages/KNIRVSERVER/API_Refactor.md",
+    "packages/KNIRVSERVER/IntentionalContextMemoryEngine.md",
+    "packages/KNIRVSERVER/WASM_Integration_Investigation.md",
+    "packages/KNIRVSERVER/backend/cmd/backend_server/main.go",
+    "packages/KNIRVSERVER/backend/internal/services/websocket/log_stream.go",
+    "packages/KNIRVSERVER/frontend/src/components/dashboard/dashboard-wrapper.tsx",
+    "packages/KNIRVSERVER/integration_status.md"
+  ],
+  "sessions": [
+    {
+      "metadata": "/69/814640f4ec/0/metadata.json",
+      "transcript": "/69/814640f4ec/0/full.jsonl",
+      "content_hash": "/69/814640f4ec/0/content_hash.txt",
+      "prompt": ""
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 1620,
+    "cache_creation_tokens": 68127,
+    "cache_read_tokens": 783345,
+    "output_tokens": 7572,
+    "api_call_count": 17
+  }
+}
