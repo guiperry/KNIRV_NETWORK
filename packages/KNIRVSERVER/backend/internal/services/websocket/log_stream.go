@@ -1,6 +1,7 @@
 package websocket
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -211,4 +212,102 @@ func (h *LogStreamHandler) GetLogBuffer() []LogEvent {
 	result := make([]LogEvent, len(h.logBuffer))
 	copy(result, h.logBuffer)
 	return result
+}
+
+// moduleHeartbeatMessages defines rotating status messages per module for dashboard tiles.
+var moduleHeartbeatMessages = map[string][]string{
+	"oracle": {
+		"Oracle heartbeat OK",
+		"Attestation round completed",
+		"Price feed updated",
+		"Signature verified",
+		"Block header committed",
+		"Root key loaded",
+		"Consensus round passed",
+	},
+	"knirvgraph": {
+		"Graph sync complete",
+		"Context trace indexed",
+		"Embedding written",
+		"Node relation resolved",
+		"GraphRAG query served",
+		"Vector index updated",
+		"Skill fabric slice flushed",
+	},
+	"knirvchain": {
+		"Block produced",
+		"Skill node minted",
+		"Error node resolved",
+		"Idea node registered",
+		"NRN transfer validated",
+		"Merkle root computed",
+		"Chain heartbeat OK",
+	},
+	"knirvgateway": {
+		"TURN relay active",
+		"NAT traversal OK",
+		"Peer negotiation complete",
+		"ICE candidate exchanged",
+		"Tunnel keepalive sent",
+		"P2P session established",
+		"Gateway heartbeat OK",
+	},
+	"knirvbase": {
+		"Kyber-768 handshake OK",
+		"Fabric slice committed",
+		"Dilithium-3 signature valid",
+		"Memory shard synced",
+		"PQC key rotation scheduled",
+		"Snapshot persisted",
+		"Base heartbeat OK",
+	},
+	"knirvhasher": {
+		"Dilithium hash chain updated",
+		"Merkle root computed",
+		"Batch verified",
+		"PQC hash cycle complete",
+		"Work unit processed",
+		"Hash stream flushed",
+		"Hasher heartbeat OK",
+	},
+	"knirvarena": {
+		"Arena session active",
+		"Agent match in progress",
+		"Telemetry stream OK",
+		"Dataset submitted",
+		"Reward anchor updated",
+		"TRL slice indexed",
+		"Arena heartbeat OK",
+	},
+	"badgelab": {
+		"Badge template registry synced",
+		"Template validated",
+		"Credential issued",
+		"Policy attachment OK",
+		"Badge schema updated",
+		"Mint request queued",
+		"BadgeLab heartbeat OK",
+	},
+}
+
+// StartModuleHeartbeats emits rotating status logs for dashboard tile modules.
+// Runs until ctx is cancelled. Call once after all services are started.
+func (h *LogStreamHandler) StartModuleHeartbeats(ctx context.Context) {
+	go func() {
+		ticker := time.NewTicker(10 * time.Second)
+		defer ticker.Stop()
+		counters := make(map[string]int)
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				for module, messages := range moduleHeartbeatMessages {
+					idx := counters[module] % len(messages)
+					counters[module]++
+					h.EmitLog(module, "info", messages[idx], "heartbeat", nil)
+				}
+			}
+		}
+	}()
 }

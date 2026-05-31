@@ -1,11 +1,13 @@
 package simulator
 
 import (
+	"context"
 	"encoding/binary"
 	"fmt"
 	"os/exec"
 	"strings"
 	"sync"
+	"time"
 
 	"knirvhasher/pkg/hashing/core"
 	"knirvhasher/pkg/hashing/methods/cuda"
@@ -110,11 +112,18 @@ func (h *HasherWrapper) createHashMethod() (core.HashMethod, error) {
 	}
 }
 
-// isCUDAAvailable checks if CUDA is available on the system
+// isCUDAAvailable checks if CUDA is available on the system with a 5-second timeout.
+// nvidia-smi can hang indefinitely on systems with flaky GPU drivers, so a timeout
+// prevents the data-trainer from blocking at startup.
 func (h *HasherWrapper) isCUDAAvailable() bool {
-	cmd := exec.Command("nvidia-smi")
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	cmd := exec.CommandContext(ctx, "nvidia-smi")
 	err := cmd.Run()
-	return err == nil
+	if err != nil {
+		return false
+	}
+	return ctx.Err() == nil
 }
 
 // SetHashMethod allows injection of a specific HashMethod (e.g., ASIC, CUDA)

@@ -778,9 +778,7 @@ function DashboardWrapperInner({ children, onRentDVE }: DashboardWrapperProps) {
                               <div className="text-2xl font-bold text-gray-200">Root Node</div>
                               <p className="text-xs text-gray-500 mb-3">Verifiable data feeds & attestation</p>
                               <div className="bg-black/40 rounded-lg p-2 font-mono text-[9px] text-green-400/80 h-16 overflow-hidden">
-                                <div className="line-clamp-1">[10:45:21] Oracle heartbeat OK</div>
-                                <div className="line-clamp-1">[10:45:22] Attestation round #882</div>
-                                <div className="line-clamp-1">[10:45:23] Price feed updated</div>
+                                <ModuleLogViewer module="oracle" maxLines={3} maxHeight="h-14" className="text-green-400/80" />
                               </div>
                             </CardContent>
                           </Card>
@@ -864,9 +862,7 @@ function DashboardWrapperInner({ children, onRentDVE }: DashboardWrapperProps) {
                               <div className="text-2xl font-bold text-gray-200">Encrypted</div>
                               <p className="text-xs text-gray-500 mb-3">PQC Markdown persistence active</p>
                               <div className="bg-black/40 rounded-lg p-2 font-mono text-[9px] text-indigo-400/80 h-16 overflow-hidden">
-                                <div className="line-clamp-1">[10:45:21] Kyber-768 Handshake OK</div>
-                                <div className="line-clamp-1">[10:45:22] Committing .md fabric slice...</div>
-                                <div className="line-clamp-1">[10:45:23] Dilithium-3 Signature Valid</div>
+                                <ModuleLogViewer module="knirvbase" maxLines={3} maxHeight="h-14" />
                               </div>
                             </CardContent>
                           </Card>
@@ -887,9 +883,7 @@ function DashboardWrapperInner({ children, onRentDVE }: DashboardWrapperProps) {
                               <div className="text-2xl font-bold text-gray-200">Hashing</div>
                               <p className="text-xs text-gray-500 mb-3">PQC-accelerated hash operations</p>
                               <div className="bg-black/40 rounded-lg p-2 font-mono text-[9px] text-cyan-400/80 h-16 overflow-hidden">
-                                <div className="line-clamp-1">[10:45:21] Dilithium hash chain</div>
-                                <div className="line-clamp-1">[10:45:22] Merkle root computed</div>
-                                <div className="line-clamp-1">[10:45:23] Batch verified</div>
+                                <ModuleLogViewer module="knirvhasher" maxLines={3} maxHeight="h-14" />
                               </div>
                             </CardContent>
                           </Card>
@@ -910,9 +904,7 @@ function DashboardWrapperInner({ children, onRentDVE }: DashboardWrapperProps) {
                               <div className="text-2xl font-bold text-gray-200">3D RTS</div>
                               <p className="text-xs text-gray-500 mb-3">Real-time strategy simulation</p>
                               <div className="bg-black/40 rounded-lg p-2 font-mono text-[9px] text-purple-400/80 h-16 overflow-hidden">
-                                <div className="line-clamp-1">[10:45:21] Arena session active</div>
-                                <div className="line-clamp-1">[10:45:22] Agent vs agent match</div>
-                                <div className="line-clamp-1">[10:45:23] Telemetry stream OK</div>
+                                <ModuleLogViewer module="knirvarena" maxLines={3} maxHeight="h-14" />
                               </div>
                             </CardContent>
                           </Card>
@@ -933,9 +925,7 @@ function DashboardWrapperInner({ children, onRentDVE }: DashboardWrapperProps) {
                               <div className="text-2xl font-bold text-gray-200">Badge Lab</div>
                               <p className="text-xs text-gray-500 mb-3">Browse and mint badge templates</p>
                               <div className="bg-black/40 rounded-lg p-2 font-mono text-[9px] text-amber-400/80 h-16 overflow-hidden">
-                                <div className="line-clamp-1">Badge template registry active</div>
-                                <div className="line-clamp-1">Save badges as reusable templates</div>
-                                <div className="line-clamp-1">Attach to DVE via Policy Editor</div>
+                                <ModuleLogViewer module="badgelab" maxLines={3} maxHeight="h-14" />
                               </div>
                             </CardContent>
                           </Card>

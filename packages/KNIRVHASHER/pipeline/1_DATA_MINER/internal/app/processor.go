@@ -748,11 +748,11 @@ func RunContinuousWorkflow(ctx context.Context, config *Config, statsManager *St
 			fmt.Printf("🐐 Records processed: %d\n", papersProcessed)
 			fmt.Printf("📈 Embeddings generated: %d\n", embeddingsGenerated)
 
-			// In GOAT mode, we might want to exit after one successful run if not continuous
-			if !config.EnableArxivMining {
-				fmt.Println("🏁 GOAT mode completed. Exiting workflow.")
-				return nil
-			}
+			// Continue to next iteration to process more batches
+			// from the GOAT dataset (the checkpoint advances the offset
+			// so each iteration fetches new records).
+			fmt.Println("🏁 GOAT batch completed. Continuing to next batch in loop.")
+			continue
 		}
 
 		// First, check if we have existing papers to process
@@ -1530,179 +1530,208 @@ func RunGoatMiningPhase(ctx context.Context, config *Config, provider embedder.E
 	offset := cp.LastOffset
 	length := 100
 
-	hfURL := fmt.Sprintf("https://datasets-server.huggingface.co/rows?dataset=stallone%%2Fgoat&config=completion&split=train&offset=%d&length=%d", offset, length)
-
-	fmt.Printf("🌐 Fetching GOAT dataset from: %s\n", hfURL)
-
-	client := &http.Client{Timeout: 30 * time.Second}
-	resp, err := client.Get(hfURL)
-	if err != nil {
-		return 0, 0, fmt.Errorf("failed to fetch GOAT dataset: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return 0, 0, fmt.Errorf("Hugging Face API returned status %d", resp.StatusCode)
-	}
-
-	var hfResponse struct {
-		Rows []struct {
-			Row struct {
-				Input  string `json:"input"`
-				Output string `json:"output"`
-				DocID  string `json:"doc_id"`
-			} `json:"row"`
-		} `json:"rows"`
-	}
-
-	if err := json.NewDecoder(resp.Body).Decode(&hfResponse); err != nil {
-		return 0, 0, fmt.Errorf("failed to decode GOAT response: %w", err)
-	}
-
-	fmt.Printf("📊 Received %d rows from GOAT dataset\n", len(hfResponse.Rows))
-
-	// Filter out already-processed records
-	type pendingRow struct {
-		row struct {
-			Input  string `json:"input"`
-			Output string `json:"output"`
-			DocID  string `json:"doc_id"`
-		}
-		index int
-	}
-	var pending []pendingRow
-	skipped := 0
-	for i, hfRow := range hfResponse.Rows {
-		if cp.ProcessedIDs[hfRow.Row.DocID] {
-			skipped++
-			continue
-		}
-		pending = append(pending, pendingRow{row: hfRow.Row, index: i})
-	}
-	if skipped > 0 {
-		fmt.Printf("⏭️  Skipped %d already-processed records, %d new records to process\n", skipped, len(pending))
-	}
-	if len(pending) == 0 {
-		fmt.Printf("✅ All %d records in this batch already processed. Advancing offset to %d.\n",
-			len(hfResponse.Rows), offset+length)
-		cp.LastOffset = offset + length
-		if data, err := json.Marshal(cp); err == nil {
-			os.WriteFile(checkpointPath, data, 0644)
-		}
-		return 0, 0, nil
-	}
-
-	// Create JSON output file
-	alpacaJsonPath := strings.TrimSuffix(config.OutputFile, ".json") + "_goat_alpaca.json"
-	fmt.Printf("📝 Creating GOAT Alpaca JSON output: %s\n", alpacaJsonPath)
-	if err := os.MkdirAll(filepath.Dir(alpacaJsonPath), 0755); err != nil {
-		return 0, 0, fmt.Errorf("failed to create json directory: %w", err)
-	}
-
-	jsonFile, err := os.Create(alpacaJsonPath)
-	if err != nil {
-		return 0, 0, fmt.Errorf("failed to create json file: %w", err)
-	}
-	defer jsonFile.Close()
-
-	jsonFile.WriteString("[\n")
-
-	var allAlpacaRecords []AlpacaDocumentRecord
-	totalEmbeddingsGenerated := 0
-	recordsProcessed := 0
-	firstRecord := true
-
-	for i, p := range pending {
-		select {
-		case <-ctx.Done():
-			return recordsProcessed, totalEmbeddingsGenerated, ctx.Err()
-		default:
+	// Retry loop for transient Hugging Face API errors (502, 503, etc.)
+	const maxRetries = 5
+	var lastErr error
+	for retry := 0; retry < maxRetries; retry++ {
+		if retry > 0 {
+			backoff := time.Duration(retry*10) * time.Second
+			fmt.Printf("⏳ Retrying in %v (attempt %d/%d)...\n", backoff, retry+1, maxRetries)
+			select {
+			case <-ctx.Done():
+				return 0, 0, ctx.Err()
+			case <-time.After(backoff):
+			}
 		}
 
-		row := p.row
-		fmt.Printf("🔢 Processing record %d/%d (ID: %s)\n", i+1, len(pending), row.DocID)
+		hfURL := fmt.Sprintf("https://datasets-server.huggingface.co/rows?dataset=stallone%%2Fgoat&config=completion&split=train&offset=%d&length=%d", offset, length)
 
-		// Map to Alpaca structure
-		alpaca := &AlpacaRecord{
-			Instruction: "Solve the following arithmetic problem.",
-			Input:       row.Input,
-			Output:      row.Output,
-		}
+		fmt.Printf("🌐 Fetching GOAT dataset from: %s\n", hfURL)
 
-		// Extract NLP metadata
-		var tokens []string
-		var offsets []int32
-		var posTags []int
-		var tenses []int
-		var depHashes []uint32
-
-		// Use the full interaction text for NLP metadata to ensure token alignment
-		content := fmt.Sprintf("Instruction: %s\nInput: %s\nOutput: %s", alpaca.Instruction, alpaca.Input, alpaca.Output)
-
-		if nlpBridge != nil {
-			tokens, offsets, posTags, tenses, depHashes = nlpBridge.ProcessText(content)
-		}
-
-		// Get embedding
-		embedText := content
-
-		fmt.Printf("🌐 Getting embedding for record %d...\n", i+1)
-		embedding, err := provider.GetEmbedding(embedText)
+		client := &http.Client{Timeout: 60 * time.Second}
+		resp, err := client.Get(hfURL)
 		if err != nil {
-			fmt.Printf("❌ Failed to generate embedding for record %d: %v\n", i+1, err)
+			lastErr = fmt.Errorf("failed to fetch GOAT dataset: %w", err)
+			fmt.Printf("⚠️  HTTP error: %v\n", lastErr)
 			continue
 		}
 
-		// Create full record
-		alpacaRecord := AlpacaDocumentRecord{
-			AlpacaRecord: *alpaca,
-			FileName:     fmt.Sprintf("hf://stallone/goat/%s", row.DocID),
-			ChunkID:      int32(i),
-			Content:      content,
-			Embedding:    embedding,
-			Tokens:       tokens,
-			TokenOffsets: offsets,
-			POSTags:      posTags,
-			Tenses:       tenses,
-			DepHashes:    depHashes,
-		}
+		if resp.StatusCode == http.StatusOK {
+			// Success — process response below
+			defer resp.Body.Close()
+			var hfResponse struct {
+				Rows []struct {
+					Row struct {
+						Input  string `json:"input"`
+						Output string `json:"output"`
+						DocID  string `json:"doc_id"`
+					} `json:"row"`
+				} `json:"rows"`
+			}
+			if err := json.NewDecoder(resp.Body).Decode(&hfResponse); err != nil {
+				resp.Body.Close()
+				return 0, 0, fmt.Errorf("failed to decode GOAT response: %w", err)
+			}
+			fmt.Printf("📊 Received %d rows from GOAT dataset\n", len(hfResponse.Rows))
 
-		allAlpacaRecords = append(allAlpacaRecords, alpacaRecord)
+			// Filter out already-processed records
+			type pendingRow struct {
+				row struct {
+					Input  string `json:"input"`
+					Output string `json:"output"`
+					DocID  string `json:"doc_id"`
+				}
+				index int
+			}
+			var pending []pendingRow
+			skipped := 0
+			for i, hfRow := range hfResponse.Rows {
+				if cp.ProcessedIDs[hfRow.Row.DocID] {
+					skipped++
+					continue
+				}
+				pending = append(pending, pendingRow{row: hfRow.Row, index: i})
+			}
+			if skipped > 0 {
+				fmt.Printf("⏭️  Skipped %d already-processed records, %d new records to process\n", skipped, len(pending))
+			}
+			if len(pending) == 0 {
+				fmt.Printf("✅ All %d records in this batch already processed. Advancing offset to %d.\n",
+					len(hfResponse.Rows), offset+length)
+				cp.LastOffset = offset + length
+				if data, err := json.Marshal(cp); err == nil {
+					os.WriteFile(checkpointPath, data, 0644)
+				}
+				resp.Body.Close()
+				return 0, 0, nil
+			}
+			resp.Body.Close()
 
-		// Write to JSON
-		if !firstRecord {
-			jsonFile.WriteString(",")
-		}
-		recordBytes, _ := formatAlpacaRecord(alpacaRecord)
-		jsonFile.Write(recordBytes)
-		firstRecord = false
+			// Create JSON output file
+			alpacaJsonPath := strings.TrimSuffix(config.OutputFile, ".json") + "_goat_alpaca.json"
+			fmt.Printf("📝 Creating GOAT Alpaca JSON output: %s\n", alpacaJsonPath)
+			if err := os.MkdirAll(filepath.Dir(alpacaJsonPath), 0755); err != nil {
+				return 0, 0, fmt.Errorf("failed to create json directory: %w", err)
+			}
 
-		totalEmbeddingsGenerated++
-		recordsProcessed++
+			jsonFile, err := os.Create(alpacaJsonPath)
+			if err != nil {
+				return 0, 0, fmt.Errorf("failed to create json file: %w", err)
+			}
+			defer jsonFile.Close()
 
-		// Mark as processed in checkpoint and save
-		cp.ProcessedIDs[row.DocID] = true
-		cp.LastOffset = offset + p.index + 1
-		if data, err := json.Marshal(cp); err == nil {
-			os.WriteFile(checkpointPath, data, 0644)
-		}
+			jsonFile.WriteString("[\n")
 
-		// Sync quota (only for hybrid provider)
-		if hp, ok := provider.(*embedder.HybridEmbeddingProvider); ok {
-			used, max, _ := hp.RequestTracker.GetStats()
-			statsManager.RecordCloudflareUsage(used, max)
+			var allAlpacaRecords []AlpacaDocumentRecord
+			totalEmbeddingsGenerated := 0
+			recordsProcessed := 0
+			firstRecord := true
+
+			for i, p := range pending {
+				select {
+				case <-ctx.Done():
+					return recordsProcessed, totalEmbeddingsGenerated, ctx.Err()
+				default:
+				}
+
+				row := p.row
+				fmt.Printf("🔢 Processing record %d/%d (ID: %s)\n", i+1, len(pending), row.DocID)
+
+				// Map to Alpaca structure
+				alpaca := &AlpacaRecord{
+					Instruction: "Solve the following arithmetic problem.",
+					Input:       row.Input,
+					Output:      row.Output,
+				}
+
+				// Extract NLP metadata
+				var tokens []string
+				var offsets []int32
+				var posTags []int
+				var tenses []int
+				var depHashes []uint32
+
+				// Use the full interaction text for NLP metadata to ensure token alignment
+				content := fmt.Sprintf("Instruction: %s\nInput: %s\nOutput: %s", alpaca.Instruction, alpaca.Input, alpaca.Output)
+
+				if nlpBridge != nil {
+					tokens, offsets, posTags, tenses, depHashes = nlpBridge.ProcessText(content)
+				}
+
+				// Get embedding
+				embedText := content
+
+				fmt.Printf("🌐 Getting embedding for record %d...\n", i+1)
+				embedding, err := provider.GetEmbedding(embedText)
+				if err != nil {
+					fmt.Printf("❌ Failed to generate embedding for record %d: %v\n", i+1, err)
+					continue
+				}
+
+				// Create full record
+				alpacaRecord := AlpacaDocumentRecord{
+					AlpacaRecord: *alpaca,
+					FileName:     fmt.Sprintf("hf://stallone/goat/%s", row.DocID),
+					ChunkID:      int32(i),
+					Content:      content,
+					Embedding:    embedding,
+					Tokens:       tokens,
+					TokenOffsets: offsets,
+					POSTags:      posTags,
+					Tenses:       tenses,
+					DepHashes:    depHashes,
+				}
+
+				allAlpacaRecords = append(allAlpacaRecords, alpacaRecord)
+
+				// Write to JSON
+				if !firstRecord {
+					jsonFile.WriteString(",")
+				}
+				recordBytes, _ := formatAlpacaRecord(alpacaRecord)
+				jsonFile.Write(recordBytes)
+				firstRecord = false
+
+				totalEmbeddingsGenerated++
+				recordsProcessed++
+
+				// Mark as processed in checkpoint and save
+				cp.ProcessedIDs[row.DocID] = true
+				cp.LastOffset = offset + p.index + 1
+				if data, err := json.Marshal(cp); err == nil {
+					os.WriteFile(checkpointPath, data, 0644)
+				}
+
+				// Sync quota (only for hybrid provider)
+				if hp, ok := provider.(*embedder.HybridEmbeddingProvider); ok {
+					used, max, _ := hp.RequestTracker.GetStats()
+					statsManager.RecordCloudflareUsage(used, max)
+				}
+			}
+
+			jsonFile.WriteString("\n]")
+
+			// Write to Arrow
+			arrowPath := strings.TrimSuffix(config.OutputFile, ".json") + "_goat_alpaca.arrow"
+			fmt.Printf("📝 Writing GOAT Alpaca Arrow IPC output: %s\n", arrowPath)
+			if err := WriteAlpacaDocumentRecordsToArrowIPC(arrowPath, allAlpacaRecords); err != nil {
+				fmt.Printf("❌ Failed to write Arrow IPC output: %v\n", err)
+			}
+
+			fmt.Printf("🎉 GOAT Mining completed: %d records processed\n", recordsProcessed)
+			return recordsProcessed, totalEmbeddingsGenerated, nil
+
+		} else {
+			// Non-200 status — retry with backoff
+			resp.Body.Close()
+			lastErr = fmt.Errorf("Hugging Face API returned status %d", resp.StatusCode)
+			fmt.Printf("⚠️  %v\n", lastErr)
 		}
 	}
 
-	jsonFile.WriteString("\n]")
-
-	// Write to Arrow
-	arrowPath := strings.TrimSuffix(config.OutputFile, ".json") + "_goat_alpaca.arrow"
-	fmt.Printf("📝 Writing GOAT Alpaca Arrow IPC output: %s\n", arrowPath)
-	if err := WriteAlpacaDocumentRecordsToArrowIPC(arrowPath, allAlpacaRecords); err != nil {
-		fmt.Printf("❌ Failed to write Arrow IPC output: %v\n", err)
+	// All retries exhausted
+	if lastErr != nil {
+		return 0, 0, fmt.Errorf("GOAT fetch failed after %d retries: %w", maxRetries, lastErr)
 	}
-
-	fmt.Printf("🎉 GOAT Mining completed: %d records processed\n", recordsProcessed)
-	return recordsProcessed, totalEmbeddingsGenerated, nil
+	return 0, 0, fmt.Errorf("GOAT fetch failed after %d retries: no valid response", maxRetries)
 }

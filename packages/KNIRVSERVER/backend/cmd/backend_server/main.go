@@ -1957,6 +1957,9 @@ func (s *Server) setupRoutes() {
 	// Wire module logging to SSE handler
 	logging.SetLogStreamHandler(logStreamHandler)
 
+	// Start periodic heartbeat logs for dashboard tile cards
+	logStreamHandler.StartModuleHeartbeats(s.ctx)
+
 	// Wire EventBroadcaster into WebSocket for comprehensive event streaming
 	if s.eventBroadcaster != nil {
 		s.eventBroadcaster = websocket.NewEventBroadcaster(wsService)

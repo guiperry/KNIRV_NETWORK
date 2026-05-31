@@ -349,6 +349,7 @@ build-data-encoder:
 	@mkdir -p $(EMBED_DIR)
 	cd $(PIPELINE_DIR)/2_DATA_ENCODER && $(MAKE) build
 	@cp $(PIPELINE_DIR)/2_DATA_ENCODER/bin/data-encoder $(EMBED_DIR)/data-encoder
+	@chmod 755 $(EMBED_DIR)/data-encoder
 	@echo "✅ Built: $(EMBED_DIR)/data-encoder"
 
 ## build-data-trainer: Build data trainer pipeline binary
