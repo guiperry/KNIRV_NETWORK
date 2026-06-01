@@ -46,6 +46,11 @@ const Footer = () => {
                 </Link>
               </li>
               <li>
+                <Link href="/blog" data-config-nav="blog" className="text-white/70 hover:knirv-text-primary transition-colors text-sm">
+                  Blog
+                </Link>
+              </li>
+              <li>
                 <Link href="/api-docs" data-config-nav="api_docs" className="text-white/70 hover:knirv-text-primary transition-colors text-sm">
                   API Reference
                 </Link>
