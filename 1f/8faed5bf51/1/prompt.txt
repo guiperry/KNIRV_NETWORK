@@ -1,0 +1,13 @@
+Explore the KNIRVSERVER backend codebase at /home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend to understand the existing code structure. I need to understand:
+
+1. Read the directory structure under backend/internal/services/pluginmanagement/ - list all files and their contents
+2. Read the directory structure under backend/internal/services/plugins/fintech/ - list all files and their contents
+3. Read backend/internal/config/config.go - full contents
+4. Read backend/cmd/backend_server/main.go - full contents
+5. Read backend/internal/web/ - look for plugin_management_handlers.go or similar files
+6. Read the directory listing of backend/internal/services/plugins/ - what plugins exist
+7. Check if there's a go.mod at the backend/ level
+8. Look for any existing test files in the pluginmanagement directory
+9. Look at the go.mod to understand module name and dependencies
+
+Return the FULL contents of all these files. This is critical - I need every line of each file to understand the complete current state.

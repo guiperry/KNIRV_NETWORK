@@ -1,7 +1,9 @@
 {
   "cli_version": "0.5.5",
   "checkpoint_id": "1f8faed5bf51",
+  "session_id": "ses_17ff723ecffe9EolMREJhJyARX",
   "strategy": "manual-commit",
+  "created_at": "2026-06-01T01:35:13.599934811Z",
   "branch": "main",
   "checkpoints_count": 0,
   "files_touched": [
@@ -29,25 +31,44 @@
     "packages/KNIRVSERVER/frontend/src/hooks/use-builtin-plugins.ts",
     "packages/KNIRVSERVER/frontend/src/hooks/use-fintech-validator.ts"
   ],
-  "sessions": [
-    {
-      "metadata": "/1f/8faed5bf51/0/metadata.json",
-      "transcript": "/1f/8faed5bf51/0/full.jsonl",
-      "content_hash": "/1f/8faed5bf51/0/content_hash.txt",
-      "prompt": ""
-    },
-    {
-      "metadata": "/1f/8faed5bf51/1/metadata.json",
-      "transcript": "/1f/8faed5bf51/1/full.jsonl",
-      "content_hash": "/1f/8faed5bf51/1/content_hash.txt",
-      "prompt": "/1f/8faed5bf51/1/prompt.txt"
-    }
-  ],
+  "agent": "OpenCode",
+  "model": "",
+  "turn_id": "f365ba76b0a9",
   "token_usage": {
     "input_tokens": 110935,
     "cache_creation_tokens": 0,
     "cache_read_tokens": 280704,
     "output_tokens": 5314,
     "api_call_count": 6
-  }
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-06-01T01:35:13.54622962Z",
+    "agent_lines": 0,
+    "agent_removed": 0,
+    "human_added": 1857,
+    "human_modified": 26,
+    "human_removed": 0,
+    "total_committed": 1857,
+    "total_lines_changed": 1883,
+    "agent_percentage": 0,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 1665,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        ".claude/settings.local.json": 96,
+        "packages/KNIRVARENA/.claude/settings.local.json": 16,
+        "packages/KNIRVCHAIN/.claude/settings.local.json": 15,
+        "packages/KNIRVGATEWAY/.claude/settings.local.json": 23,
+        "packages/KNIRVGRAPH/.claude/settings.local.json": 9,
+        "packages/KNIRVSERVER/backend/internal/embedded/graphrag-rs/.vscode/settings.json": 133,
+        "packages/KNIRVSERVER/fintechImplementationPlan.html": 1373
+      }
+    }
+  ]
 }
