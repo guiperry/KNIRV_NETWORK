@@ -1,0 +1,34 @@
+{
+  "cli_version": "0.5.5",
+  "checkpoint_id": "58d873d7b367",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 2,
+  "files_touched": [
+    "packages/KNIRVHASHER/.gitignore",
+    "packages/KNIRVHASHER/cmd/cli/main.go",
+    "packages/KNIRVHASHER/internal/cli/chat/chat.go",
+    "packages/KNIRVHASHER/internal/cli/controller/controller.go",
+    "packages/KNIRVHASHER/internal/cli/embedded/binaries.go",
+    "packages/KNIRVHASHER/internal/cli/headless/server.go",
+    "packages/KNIRVHASHER/internal/cli/headless/server_test.go",
+    "packages/KNIRVHASHER/internal/cli/headless/types.go",
+    "packages/KNIRVHASHER/internal/cli/ui/chat_test.go",
+    "packages/KNIRVHASHER/internal/cli/ui/ui.go"
+  ],
+  "sessions": [
+    {
+      "metadata": "/58/d873d7b367/0/metadata.json",
+      "transcript": "/58/d873d7b367/0/full.jsonl",
+      "content_hash": "/58/d873d7b367/0/content_hash.txt",
+      "prompt": ""
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 2973,
+    "cache_creation_tokens": 118346,
+    "cache_read_tokens": 3396762,
+    "output_tokens": 24222,
+    "api_call_count": 47
+  }
+}
