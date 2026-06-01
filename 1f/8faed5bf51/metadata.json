@@ -1,0 +1,40 @@
+{
+  "cli_version": "0.5.5",
+  "checkpoint_id": "1f8faed5bf51",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "packages/KNIRVSERVER/backend/internal/config/config.go",
+    "packages/KNIRVSERVER/backend/internal/oracle/payments/handler.go",
+    "packages/KNIRVSERVER/backend/internal/services/pluginmanagement/builtin_plugin.go",
+    "packages/KNIRVSERVER/backend/internal/services/pluginmanagement/builtin_plugin_test.go",
+    "packages/KNIRVSERVER/backend/internal/services/pluginmanagement/plugin_management_service.go",
+    "packages/KNIRVSERVER/backend/internal/services/plugins/fintech/fintech_validator/handlers.go",
+    "packages/KNIRVSERVER/backend/internal/services/plugins/fintech/fintech_validator/plugin_adapter.go",
+    "packages/KNIRVSERVER/backend/internal/services/plugins/fintech/fintech_validator/plugin_lifecycle_test.go",
+    "packages/KNIRVSERVER/backend/internal/services/plugins/fintech/fintech_validator/service.go",
+    "packages/KNIRVSERVER/backend/internal/services/validation/certificate/certificate.go",
+    "packages/KNIRVSERVER/backend/internal/services/validation/evidence/evidence.go",
+    "packages/KNIRVSERVER/backend/internal/services/validation/evidence/evidence_test.go",
+    "packages/KNIRVSERVER/backend/internal/services/validation/fidelity/fidelity.go",
+    "packages/KNIRVSERVER/backend/internal/services/validation/streaming/streaming.go",
+    "packages/KNIRVSERVER/backend/internal/services/validation/tracer/tracer.go",
+    "packages/KNIRVSERVER/backend/internal/services/validation/tracer/tracer_test.go",
+    "packages/KNIRVSERVER/backend/internal/services/validation/trajectory/trajectory.go",
+    "packages/KNIRVSERVER/backend/internal/web/plugin_management_handlers.go",
+    "packages/KNIRVSERVER/fintechImplementationPlan.html",
+    "packages/KNIRVSERVER/frontend/src/components/dashboard/builtin-plugin-card.tsx",
+    "packages/KNIRVSERVER/frontend/src/components/dashboard/financial-compliance-dashboard.tsx",
+    "packages/KNIRVSERVER/frontend/src/hooks/use-builtin-plugins.ts",
+    "packages/KNIRVSERVER/frontend/src/hooks/use-fintech-validator.ts"
+  ],
+  "sessions": [
+    {
+      "metadata": "/1f/8faed5bf51/0/metadata.json",
+      "transcript": "/1f/8faed5bf51/0/full.jsonl",
+      "content_hash": "/1f/8faed5bf51/0/content_hash.txt",
+      "prompt": ""
+    }
+  ]
+}

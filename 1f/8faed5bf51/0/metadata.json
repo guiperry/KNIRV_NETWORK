@@ -1,0 +1,67 @@
+{
+  "cli_version": "0.5.5",
+  "checkpoint_id": "1f8faed5bf51",
+  "session_id": "ses_17ff71e08ffetafca0vtjKdxiK",
+  "strategy": "manual-commit",
+  "created_at": "2026-06-01T01:35:12.717679577Z",
+  "branch": "main",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "packages/KNIRVSERVER/backend/internal/config/config.go",
+    "packages/KNIRVSERVER/backend/internal/oracle/payments/handler.go",
+    "packages/KNIRVSERVER/backend/internal/services/pluginmanagement/builtin_plugin.go",
+    "packages/KNIRVSERVER/backend/internal/services/pluginmanagement/builtin_plugin_test.go",
+    "packages/KNIRVSERVER/backend/internal/services/pluginmanagement/plugin_management_service.go",
+    "packages/KNIRVSERVER/backend/internal/services/plugins/fintech/fintech_validator/handlers.go",
+    "packages/KNIRVSERVER/backend/internal/services/plugins/fintech/fintech_validator/plugin_adapter.go",
+    "packages/KNIRVSERVER/backend/internal/services/plugins/fintech/fintech_validator/plugin_lifecycle_test.go",
+    "packages/KNIRVSERVER/backend/internal/services/plugins/fintech/fintech_validator/service.go",
+    "packages/KNIRVSERVER/backend/internal/services/validation/certificate/certificate.go",
+    "packages/KNIRVSERVER/backend/internal/services/validation/evidence/evidence.go",
+    "packages/KNIRVSERVER/backend/internal/services/validation/evidence/evidence_test.go",
+    "packages/KNIRVSERVER/backend/internal/services/validation/fidelity/fidelity.go",
+    "packages/KNIRVSERVER/backend/internal/services/validation/streaming/streaming.go",
+    "packages/KNIRVSERVER/backend/internal/services/validation/tracer/tracer.go",
+    "packages/KNIRVSERVER/backend/internal/services/validation/tracer/tracer_test.go",
+    "packages/KNIRVSERVER/backend/internal/services/validation/trajectory/trajectory.go",
+    "packages/KNIRVSERVER/backend/internal/web/plugin_management_handlers.go",
+    "packages/KNIRVSERVER/fintechImplementationPlan.html",
+    "packages/KNIRVSERVER/frontend/src/components/dashboard/builtin-plugin-card.tsx",
+    "packages/KNIRVSERVER/frontend/src/components/dashboard/financial-compliance-dashboard.tsx",
+    "packages/KNIRVSERVER/frontend/src/hooks/use-builtin-plugins.ts",
+    "packages/KNIRVSERVER/frontend/src/hooks/use-fintech-validator.ts"
+  ],
+  "agent": "OpenCode",
+  "model": "",
+  "turn_id": "da4945021566",
+  "initial_attribution": {
+    "calculated_at": "2026-06-01T01:35:12.711248165Z",
+    "agent_lines": 0,
+    "agent_removed": 0,
+    "human_added": 1857,
+    "human_modified": 26,
+    "human_removed": 0,
+    "total_committed": 1857,
+    "total_lines_changed": 1883,
+    "agent_percentage": 0,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 1665,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        ".claude/settings.local.json": 96,
+        "packages/KNIRVARENA/.claude/settings.local.json": 16,
+        "packages/KNIRVCHAIN/.claude/settings.local.json": 15,
+        "packages/KNIRVGATEWAY/.claude/settings.local.json": 23,
+        "packages/KNIRVGRAPH/.claude/settings.local.json": 9,
+        "packages/KNIRVSERVER/backend/internal/embedded/graphrag-rs/.vscode/settings.json": 133,
+        "packages/KNIRVSERVER/fintechImplementationPlan.html": 1373
+      }
+    }
+  ]
+}
