@@ -61,8 +61,7 @@ coverage/
 *coverage/
 *coverage/*
 
-*database/
-*database/*
+devtools/KNIRVTESTNET/database/
 
 KNIRVTESTNET/data/knirvgraph/data/
 
