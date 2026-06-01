@@ -48,10 +48,29 @@ type ReverseProxyConfig struct {
 	ListenAddr string `mapstructure:"listen_addr"`
 }
 
-// FintechConfig defines FinTech validator configuration
+// FintechConfig defines FinTech validator configuration — compliance-specific flags only.
 type FintechConfig struct {
-	Enabled         bool    `mapstructure:"enabled"`
-	IntentThreshold float64 `mapstructure:"intent_threshold"`
+	Enabled               bool    `mapstructure:"enabled"`
+	IntentThreshold       float64 `mapstructure:"intent_threshold"`
+	EnableAML             bool    `mapstructure:"enable_aml"`
+	EnableKYC             bool    `mapstructure:"enable_kyc"`
+	EnableSEC             bool    `mapstructure:"enable_sec"`
+	EnableBasel           bool    `mapstructure:"enable_basel"`
+	EnableScenarioTesting bool    `mapstructure:"enable_scenarios"`
+}
+
+// PluginValidationConfig defines platform-level validation service flags for the plugin system.
+type PluginValidationConfig struct {
+	EnableEvidenceSigning   bool   `mapstructure:"enable_evidence_signing"`
+	AutoSignEvidencePacks   bool   `mapstructure:"auto_sign_evidence"`
+	EnableCertification     bool   `mapstructure:"enable_certification"`
+	MasterKeyID             string `mapstructure:"master_key_id"`
+	EnableNRVTracing        bool   `mapstructure:"enable_nrv_tracing"`
+	EnableFidelityScoring   bool   `mapstructure:"enable_fidelity_scoring"`
+	EnableTrajectoryCapture bool   `mapstructure:"enable_trajectory_capture"`
+	EnableReplayEngine      bool   `mapstructure:"enable_replay_engine"`
+	EnableTickStreaming      bool   `mapstructure:"enable_tick_streaming"`
+	TickServerPort          string `mapstructure:"tick_server_port"`
 }
 
 // GatewayConfig defines embedded KNIRVGATEWAY configuration
@@ -209,8 +228,9 @@ type Config struct {
 	Security    SecurityConfig    `mapstructure:"security"`
 	Roles       RolesConfig       `mapstructure:"roles"`
 	Network     NetworkConfig     `mapstructure:"network"`
-	Validation  ValidationConfig  `mapstructure:"validation"`
-	Fintech     FintechConfig     `mapstructure:"fintech"`
+	Validation       ValidationConfig       `mapstructure:"validation"`
+	PluginValidation PluginValidationConfig `mapstructure:"plugin_validation"`
+	Fintech          FintechConfig          `mapstructure:"fintech"`
 	Stripe      StripeConfig      `mapstructure:"stripe"`
 	PayPal      PayPalConfig      `mapstructure:"paypal"`
 	Email       EmailConfig       `mapstructure:"email"`

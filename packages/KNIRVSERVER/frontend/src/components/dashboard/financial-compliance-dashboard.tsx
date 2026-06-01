@@ -71,10 +71,25 @@ export function FinancialComplianceDashboard({ className }: FinancialComplianceD
     detectKYCBypass,
     detectPositionLimits,
     validate,
+    isPluginEnabled,
   } = useFinTechValidator();
 
   const [selectedTraceId, setSelectedTraceId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('overview');
+
+  // Plugin disabled guard — show a friendly message when the validator is off.
+  if (!isPluginEnabled && !isLoading) {
+    return (
+      <div className={className} style={{ padding: '24px', textAlign: 'center', color: '#888' }}>
+        <Shield style={{ width: 48, height: 48, margin: '0 auto 12px', opacity: 0.4 }} />
+        <h3 style={{ marginBottom: '8px' }}>FinTech Compliance Validator is disabled</h3>
+        <p style={{ fontSize: '14px' }}>
+          Enable the <strong>FinTech Compliance Validator</strong> plugin to access compliance
+          dashboards, NRV traces, and evidence packs.
+        </p>
+      </div>
+    );
+  }
 
   useEffect(() => {
     fetchNRVTraces();

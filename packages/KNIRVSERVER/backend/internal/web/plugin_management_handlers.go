@@ -506,6 +506,88 @@ func (h *PluginManagementHandlers) PostPluginTemplate(w http.ResponseWriter, r *
 	json.NewEncoder(w).Encode(response)
 }
 
+// HandleListBuiltins handles GET /api/plugins/builtins
+func (h *PluginManagementHandlers) HandleListBuiltins(w http.ResponseWriter, r *http.Request) {
+	builtins := h.pluginManagementService.ListBuiltins()
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"builtins": builtins,
+	})
+}
+
+// HandleToggleBuiltin handles POST /api/plugins/builtin/{id}/toggle
+func (h *PluginManagementHandlers) HandleToggleBuiltin(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	id := vars["id"]
+
+	var body struct {
+		Enable bool `json:"enable"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(PluginManagementResponse{
+			Success:   false,
+			Error:     "Invalid request body",
+			Timestamp: time.Now().Format(time.RFC3339),
+		})
+		return
+	}
+
+	if err := h.pluginManagementService.ToggleBuiltin(r.Context(), id, body.Enable); err != nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusNotFound)
+		json.NewEncoder(w).Encode(PluginManagementResponse{
+			Success:   false,
+			Error:     err.Error(),
+			Timestamp: time.Now().Format(time.RFC3339),
+		})
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"plugin_id": id,
+		"enabled":   body.Enable,
+	})
+}
+
+// HandleUpdateBuiltinConfig handles PATCH /api/plugins/builtin/{id}/config
+func (h *PluginManagementHandlers) HandleUpdateBuiltinConfig(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	id := vars["id"]
+
+	var patch map[string]interface{}
+	if err := json.NewDecoder(r.Body).Decode(&patch); err != nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(PluginManagementResponse{
+			Success:   false,
+			Error:     "Invalid request body",
+			Timestamp: time.Now().Format(time.RFC3339),
+		})
+		return
+	}
+
+	if err := h.pluginManagementService.UpdateBuiltinConfig(id, patch); err != nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(PluginManagementResponse{
+			Success:   false,
+			Error:     err.Error(),
+			Timestamp: time.Now().Format(time.RFC3339),
+		})
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"plugin_id": id,
+		"updated":   true,
+	})
+}
+
 // RegisterRoutes registers the plugin management routes with the router
 func (h *PluginManagementHandlers) RegisterRoutes(r *mux.Router, authMiddleware *middleware.AuthMiddleware) {
 	// Create a subrouter for plugin management endpoints
@@ -537,4 +619,10 @@ func (h *PluginManagementHandlers) RegisterRoutes(r *mux.Router, authMiddleware 
 
 	// Summary (public for development)
 	pluginRouter.HandleFunc("/summary", h.GetPluginSummary).Methods("GET")
+
+	// Builtin plugin routes under /api/plugins
+	apiRouter := r.PathPrefix("/api/plugins").Subrouter()
+	apiRouter.HandleFunc("/builtins", h.HandleListBuiltins).Methods("GET")
+	apiRouter.HandleFunc("/builtin/{id}/toggle", h.HandleToggleBuiltin).Methods("POST")
+	apiRouter.HandleFunc("/builtin/{id}/config", h.HandleUpdateBuiltinConfig).Methods("PATCH")
 }

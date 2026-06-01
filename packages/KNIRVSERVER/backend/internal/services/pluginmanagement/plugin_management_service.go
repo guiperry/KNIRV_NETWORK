@@ -1,13 +1,15 @@
 package pluginmanagement
 
 import (
-	"backend_server/internal/database"
-	"backend_server/internal/objects"
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
 	"sync"
 	"time"
+
+	"backend_server/internal/database"
+	"backend_server/internal/objects"
 
 	"github.com/tidwall/buntdb"
 )
@@ -37,6 +39,9 @@ type PluginManagementService struct {
 
 	// Lifecycle management
 	pluginServer interface{}
+
+	// Builtin first-party plugins
+	builtins map[string]BuiltinPlugin
 }
 
 type PluginInfo struct {
@@ -60,6 +65,7 @@ func NewPluginManagementService(db *database.BuntDBManager) *PluginManagementSer
 		maxPlugins:            100,
 		maxInstancesPerPlugin: 10,
 		monitoringInterval:    30 * time.Second,
+		builtins:              make(map[string]BuiltinPlugin),
 		defaultResourceLimits: &objects.PluginResourceLimits{
 			MaxMemoryMB:      512,
 			MaxCPUPercent:    80.0,
@@ -78,6 +84,130 @@ func NewPluginManagementService(db *database.BuntDBManager) *PluginManagementSer
 	service.loadPluginData()
 
 	return service
+}
+
+// RegisterBuiltin registers a first-party builtin plugin in the registry.
+func (ams *PluginManagementService) RegisterBuiltin(p BuiltinPlugin) {
+	ams.mu.Lock()
+	defer ams.mu.Unlock()
+	ams.builtins[p.PluginID()] = p
+}
+
+// ListBuiltins returns the serializable view of all registered builtins.
+func (ams *PluginManagementService) ListBuiltins() []BuiltinPluginInfo {
+	ams.mu.RLock()
+	defer ams.mu.RUnlock()
+
+	out := make([]BuiltinPluginInfo, 0, len(ams.builtins))
+	for _, p := range ams.builtins {
+		out = append(out, BuiltinPluginInfo{
+			ID:          p.PluginID(),
+			Name:        p.PluginName(),
+			Category:    p.Category(),
+			Description: p.Description(),
+			Version:     p.Version(),
+			Enabled:     p.IsEnabled(),
+			Running:     p.IsRunning(),
+		})
+	}
+	return out
+}
+
+// ToggleBuiltin enables or disables a builtin plugin, persisting the state.
+func (ams *PluginManagementService) ToggleBuiltin(ctx context.Context, id string, enable bool) error {
+	ams.mu.RLock()
+	p, ok := ams.builtins[id]
+	ams.mu.RUnlock()
+
+	if !ok {
+		return fmt.Errorf("builtin plugin not found: %s", id)
+	}
+
+	var err error
+	if enable {
+		err = p.Start(ctx)
+	} else {
+		err = p.Stop(ctx)
+	}
+	if err != nil {
+		return fmt.Errorf("failed to toggle builtin plugin %s: %w", id, err)
+	}
+
+	ams.saveBuiltinState(id, enable)
+	return nil
+}
+
+// StartBuiltins reads persisted state and starts all enabled builtins.
+// Call this from main.go after all builtins are registered.
+func (ams *PluginManagementService) StartBuiltins(ctx context.Context) {
+	ams.mu.RLock()
+	plugins := make(map[string]BuiltinPlugin, len(ams.builtins))
+	for k, v := range ams.builtins {
+		plugins[k] = v
+	}
+	ams.mu.RUnlock()
+
+	for id, p := range plugins {
+		enabled, err := ams.loadBuiltinState(id)
+		if err != nil {
+			// No persisted state — use the plugin's own IsEnabled() value.
+			enabled = p.IsEnabled()
+		}
+		if enabled {
+			if startErr := p.Start(ctx); startErr != nil {
+				log.Printf("Warning: failed to start builtin plugin %s: %v", id, startErr)
+			} else {
+				log.Printf("Builtin plugin started: %s", id)
+			}
+		}
+	}
+}
+
+// saveBuiltinState persists the enabled/disabled state of a builtin in buntdb.
+func (ams *PluginManagementService) saveBuiltinState(id string, enabled bool) {
+	value := "false"
+	if enabled {
+		value = "true"
+	}
+	ams.db.Transaction(func(tx *buntdb.Tx) error {
+		_, _, err := tx.Set("builtin_state:"+id, value, nil)
+		return err
+	})
+}
+
+// loadBuiltinState reads the persisted enabled state of a builtin from buntdb.
+func (ams *PluginManagementService) loadBuiltinState(id string) (bool, error) {
+	var value string
+	err := ams.db.Transaction(func(tx *buntdb.Tx) error {
+		v, err := tx.Get("builtin_state:" + id)
+		if err != nil {
+			return err
+		}
+		value = v
+		return nil
+	})
+	if err != nil {
+		return false, err
+	}
+	return value == "true", nil
+}
+
+// UpdateBuiltinConfig applies a raw config patch to a builtin plugin that implements ConfigurablePlugin.
+func (ams *PluginManagementService) UpdateBuiltinConfig(id string, patch map[string]interface{}) error {
+	ams.mu.RLock()
+	p, ok := ams.builtins[id]
+	ams.mu.RUnlock()
+
+	if !ok {
+		return fmt.Errorf("builtin plugin not found: %s", id)
+	}
+
+	cp, ok := p.(ConfigurablePlugin)
+	if !ok {
+		return fmt.Errorf("builtin plugin %s does not support runtime config updates", id)
+	}
+
+	return cp.UpdateRawConfig(patch)
 }
 
 // SetPluginServerReference sets reference to the plugin server for integration

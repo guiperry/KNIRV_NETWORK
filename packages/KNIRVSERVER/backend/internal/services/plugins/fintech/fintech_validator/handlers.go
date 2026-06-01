@@ -23,24 +23,38 @@ func NewHandlers(service *FinTechValidatorService) *Handlers {
 	return &Handlers{service: service}
 }
 
-// RegisterRoutes registers all FinTech validation routes
-func (h *Handlers) RegisterRoutes(r *mux.Router, authMiddleware *middleware.AuthMiddleware) {
-	// Skip registration if the service is not enabled
-	if h.service.Config == nil || !h.service.Config.Enabled {
-		return
-	}
+// requireEnabled is middleware that returns 503 if the plugin is not running.
+func (h *Handlers) requireEnabled(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if !h.service.IsRunning() {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusServiceUnavailable)
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"error":   "FinTech Compliance Validator is disabled",
+				"enabled": false,
+				"running": false,
+			})
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
 
+// RegisterRoutes registers all FinTech validation routes.
+// Routes are always registered so that the status endpoint is reachable even when disabled.
+func (h *Handlers) RegisterRoutes(r *mux.Router, authMiddleware *middleware.AuthMiddleware) {
 	// Create subrouter for FinTech endpoints
 	fintechRouter := r.PathPrefix("/api/fintech").Subrouter()
 
-	// Public status endpoint
+	// Public status endpoint — always available regardless of enabled state.
 	fintechRouter.HandleFunc("/status", h.HandleGetStatus).Methods("GET")
 
-	// Protected routes
+	// Protected routes — gated by auth AND by requireEnabled middleware.
 	protectedRouter := fintechRouter.PathPrefix("").Subrouter()
 	if authMiddleware != nil {
 		protectedRouter.Use(authMiddleware.RequireAuth)
 	}
+	protectedRouter.Use(h.requireEnabled)
 
 	// Validation routes
 	protectedRouter.HandleFunc("/validate", h.HandleValidate).Methods("POST")
@@ -115,10 +129,22 @@ func (h *Handlers) RegisterRoutes(r *mux.Router, authMiddleware *middleware.Auth
 func (h *Handlers) HandleGetStatus(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
+	cfg := h.service.RuntimeConfig()
+	complianceFeatures := map[string]bool{}
+	if cfg != nil {
+		complianceFeatures["kyc"] = cfg.EnableKYCChecks
+		complianceFeatures["aml"] = cfg.EnableAMLChecks
+		complianceFeatures["sec"] = cfg.EnableSECChecks
+		complianceFeatures["basel"] = cfg.EnableBaselChecks
+		complianceFeatures["scenarios"] = cfg.EnableScenarioTesting
+	}
+
 	response := map[string]interface{}{
-		"status":     "operational",
-		"version":    "1.0.0",
-		"ontologies": len(h.service.GetOntologies()),
+		"enabled":             h.service.IsEnabled(),
+		"running":             h.service.IsRunning(),
+		"version":             "1.0.0",
+		"ontologies":          len(h.service.GetOntologies()),
+		"compliance_features": complianceFeatures,
 	}
 
 	json.NewEncoder(w).Encode(response)

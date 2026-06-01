@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"sync"
 	"time"
 
 	"backend_server/internal/ebpf"
@@ -38,6 +39,8 @@ type TrajectoryStore interface {
 // FinTechValidatorService provides financial AI agent validation
 type FinTechValidatorService struct {
 	Config                *Config
+	mu                    sync.RWMutex
+	running               bool
 	validationCore        *validation.ValidationCore
 	ontologyRegistry      *ontology.OntologyRegistry
 	complianceEngine      *ontology.ComplianceEngine
@@ -61,13 +64,66 @@ type FinTechValidatorService struct {
 	tickStreamManager *fintech.TickStreamManager
 }
 
+// ConfigPatch carries optional overrides for FinTechValidatorService configuration.
+// Only non-nil fields are applied during UpdateConfig.
+type ConfigPatch struct {
+	Enabled               *bool
+	EnableAMLChecks       *bool
+	EnableKYCChecks       *bool
+	EnableSECChecks       *bool
+	EnableBaselChecks     *bool
+	EnableScenarioTesting *bool
+}
+
+// RuntimeConfig returns a copy of the current configuration under a read lock.
+func (s *FinTechValidatorService) RuntimeConfig() *Config {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	if s.Config == nil {
+		return nil
+	}
+	c := *s.Config
+	return &c
+}
+
+// UpdateConfig applies non-nil patch fields to the configuration under a write lock.
+func (s *FinTechValidatorService) UpdateConfig(patch *ConfigPatch) error {
+	if patch == nil {
+		return nil
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.Config == nil {
+		return fmt.Errorf("fintech-validator: config is nil")
+	}
+	if patch.Enabled != nil {
+		s.Config.Enabled = *patch.Enabled
+	}
+	if patch.EnableAMLChecks != nil {
+		s.Config.EnableAMLChecks = *patch.EnableAMLChecks
+	}
+	if patch.EnableKYCChecks != nil {
+		s.Config.EnableKYCChecks = *patch.EnableKYCChecks
+	}
+	if patch.EnableSECChecks != nil {
+		s.Config.EnableSECChecks = *patch.EnableSECChecks
+	}
+	if patch.EnableBaselChecks != nil {
+		s.Config.EnableBaselChecks = *patch.EnableBaselChecks
+	}
+	if patch.EnableScenarioTesting != nil {
+		s.Config.EnableScenarioTesting = *patch.EnableScenarioTesting
+	}
+	return nil
+}
+
 // Config holds configuration for the FinTech validator service
 type Config struct {
 	Enabled               bool
 	EnableAMLChecks       bool
-	EnableKYCCheks        bool
-	EnableSECCheks        bool
-	EnableBaselCheks      bool
+	EnableKYCChecks       bool
+	EnableSECChecks       bool
+	EnableBaselChecks     bool
 	AutoSignEvidencePacks bool
 	MasterKeyID           string
 	EnableScenarioTesting bool
@@ -103,7 +159,7 @@ func NewFinTechValidatorService(
 	// Load built-in ontologies based on configuration
 	loader := ontology.NewOntologyLoader(registry)
 
-	if config.EnableAMLChecks || config.EnableKYCCheks || config.EnableSECCheks || config.EnableBaselCheks {
+	if config.EnableAMLChecks || config.EnableKYCChecks || config.EnableSECChecks || config.EnableBaselChecks {
 		if err := loader.LoadBuiltInOntologies(); err != nil {
 			return nil, fmt.Errorf("failed to load built-in ontologies: %w", err)
 		}
@@ -200,6 +256,7 @@ func NewFinTechValidatorService(
 
 	return &FinTechValidatorService{
 		Config:                config,
+		running:               config.Enabled,
 		validationCore:        validationCore,
 		ontologyRegistry:      registry,
 		complianceEngine:      complianceEngine,
@@ -1438,13 +1495,16 @@ func (s *FinTechValidatorService) IsTickStreamingEnabled() bool {
 	return s.tickStreamManager != nil
 }
 
-// IsEnabled returns whether the FinTech validator service is enabled
+// IsEnabled returns whether the FinTech validator service is enabled.
 func (s *FinTechValidatorService) IsEnabled() bool {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
 	return s.Config != nil && s.Config.Enabled
 }
 
-// IsRunning returns whether the FinTech validator service is running
+// IsRunning returns whether the FinTech validator service is currently running.
 func (s *FinTechValidatorService) IsRunning() bool {
-	// For now, if it's initialized and enabled, we consider it running
-	return s.IsEnabled()
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.running
 }
