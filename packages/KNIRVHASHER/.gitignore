@@ -98,6 +98,6 @@ pipeline/3_DATA_TRAINER/data-trainer
 hasher-host
 /pipeline/3_DATA_TRAINER/data
 /pipeline/3_DATA_TRAINER/data
-cli
+/cli
 /pipeline/AlpacaDataCleaned-main
 pipeline/AlpacaDataCleaned-main.zip
