@@ -37,9 +37,10 @@ require (
 	github.com/tidwall/buntdb v1.3.0
 	github.com/wk8/go-ordered-map/v2 v2.1.8
 	golang.org/x/crypto v0.48.0
-	golang.org/x/sys v0.41.0
+	golang.org/x/sys v0.42.0
 	golang.org/x/term v0.40.0
 	google.golang.org/grpc v1.79.1
+	knirv-server v0.0.0-00010101000000-000000000000
 	knirvarena v0.0.0-00010101000000-000000000000
 	knirvhasher v0.0.0-00010101000000-000000000000
 	lukechampine.com/blake3 v1.4.1
@@ -226,3 +227,5 @@ require (
 replace knirvarena => ../pkg/knirvarena
 
 replace backend_server/pkg/knirvagent => ../pkg/knirvagent
+
+replace knirv-server => ../

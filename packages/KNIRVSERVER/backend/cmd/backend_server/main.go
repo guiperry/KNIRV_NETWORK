@@ -2007,6 +2007,9 @@ func (s *Server) setupRoutes() {
 
 	// Register KNIRVGRAPH routes
 	knirvGraphHandlers := web.NewKnirvGraphHandlers(s.db, s.graphSyncManager)
+	if s.graphRAGClient != nil {
+		knirvGraphHandlers.SetGraphRAGClient(s.graphRAGClient)
+	}
 	s.router.HandleFunc("/api/knirvgraph/error-node", knirvGraphHandlers.CreateErrorNode).Methods("POST", "OPTIONS")
 	s.router.HandleFunc("/api/knirvgraph/error-nodes", knirvGraphHandlers.GetErrorNodes).Methods("GET", "OPTIONS")
 	s.router.HandleFunc("/api/knirvgraph/error-queue", knirvGraphHandlers.GetErrorQueue).Methods("GET", "OPTIONS")

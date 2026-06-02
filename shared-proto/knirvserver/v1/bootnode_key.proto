@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package KNIRVSERVER;
+
+option go_package = "./;proto";
+
+message BootnodeKeyFileContentProto {
+  string master_wallet_key = 1;
+}
+
+message EncryptedBootnodeKeyFile {
+  bytes encrypted_content = 1;
+  bytes salt = 2;
+  bytes nonce = 3;
+}

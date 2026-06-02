@@ -1,6 +1,7 @@
 package web
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -8,6 +9,8 @@ import (
 	"time"
 
 	"backend_server/internal/database"
+
+	graphrag "knirv-server/pkg/embedded/graphrag"
 )
 
 type SyncManager interface {
@@ -17,6 +20,7 @@ type SyncManager interface {
 type KnirvGraphHandlers struct {
 	db          *database.BuntDBManager
 	syncManager SyncManager
+	graphrag    *graphrag.Client
 }
 
 func NewKnirvGraphHandlers(db *database.BuntDBManager, syncManager SyncManager) *KnirvGraphHandlers {
@@ -24,6 +28,10 @@ func NewKnirvGraphHandlers(db *database.BuntDBManager, syncManager SyncManager) 
 		db:          db,
 		syncManager: syncManager,
 	}
+}
+
+func (h *KnirvGraphHandlers) SetGraphRAGClient(c *graphrag.Client) {
+	h.graphrag = c
 }
 
 type ErrorNodeRequest struct {
@@ -111,6 +119,17 @@ func (h *KnirvGraphHandlers) CreateErrorNode(w http.ResponseWriter, r *http.Requ
 	}
 
 	log.Printf("Error node created: %s for task: %s", nodeID, req.TaskID)
+
+	// Sync error details to GraphRAG knowledge graph
+	if h.graphrag != nil && req.ErrorDetails != "" {
+		go func(docID, content string) {
+			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+			defer cancel()
+			if _, err := h.graphrag.IndexDocumentWithResult(ctx, docID, []byte(content)); err != nil {
+				log.Printf("GraphRAG sync failed for error node %s: %v", docID, err)
+			}
+		}(nodeID, req.ErrorDetails)
+	}
 
 	response := ErrorNodeResponse{
 		NodeID:    nodeID,

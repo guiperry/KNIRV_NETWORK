@@ -30,6 +30,16 @@ type GraphNode struct {
 	Timestamp time.Time              `json:"timestamp"`
 }
 
+type GraphEdge struct {
+	EdgeID    string                 `json:"edge_id"`
+	SourceID  string                 `json:"source_id"`
+	TargetID  string                 `json:"target_id"`
+	Type      string                 `json:"type"`
+	Weight    float64                `json:"weight"`
+	Data      map[string]interface{} `json:"data"`
+	Timestamp time.Time              `json:"timestamp"`
+}
+
 type CommitRequest struct {
 	Node    GraphNode `json:"node"`
 	Message string    `json:"message"`
@@ -39,6 +49,19 @@ type CommitRequest struct {
 type CommitResponse struct {
 	Success    bool   `json:"success"`
 	CommitHash string `json:"commit_hash,omitempty"`
+	Error      string `json:"error,omitempty"`
+}
+
+type BulkEdgeRequest struct {
+	Edges   []GraphEdge `json:"edges"`
+	Message string      `json:"message"`
+	Author  string      `json:"author"`
+}
+
+type BulkEdgeResponse struct {
+	Success    bool   `json:"success"`
+	CommitHash string `json:"commit_hash,omitempty"`
+	EdgeCount  int    `json:"edge_count"`
 	Error      string `json:"error,omitempty"`
 }
 
@@ -71,6 +94,67 @@ func (c *Client) CommitNode(ctx context.Context, node GraphNode, message, author
 	}
 
 	return nil
+}
+
+func (c *Client) CreateEdge(ctx context.Context, edge GraphEdge) error {
+	body, err := json.Marshal(edge)
+	if err != nil {
+		return fmt.Errorf("failed to marshal edge: %w", err)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL+"/edge", bytes.NewReader(body))
+	if err != nil {
+		return fmt.Errorf("failed to create edge request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := c.client.Do(req)
+	if err != nil {
+		return fmt.Errorf("failed to send edge request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode >= 400 {
+		var be BulkEdgeResponse
+		if json.NewDecoder(resp.Body).Decode(&be) == nil && be.Error != "" {
+			return fmt.Errorf("edge create failed: %s", be.Error)
+		}
+		return fmt.Errorf("edge create returned status %d", resp.StatusCode)
+	}
+
+	return nil
+}
+
+func (c *Client) BulkCommit(ctx context.Context, edges []GraphEdge, message, author string) (*BulkEdgeResponse, error) {
+	reqBody := BulkEdgeRequest{
+		Edges:   edges,
+		Message: message,
+		Author:  author,
+	}
+
+	body, err := json.Marshal(reqBody)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal bulk edge request: %w", err)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL+"/edges/bulk", bytes.NewReader(body))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create bulk edge request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := c.client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to send bulk edge request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	var result BulkEdgeResponse
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, fmt.Errorf("failed to decode bulk edge response: %w", err)
+	}
+
+	return &result, nil
 }
 
 func (c *Client) Health(ctx context.Context) error {

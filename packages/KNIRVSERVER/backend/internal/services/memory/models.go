@@ -1,6 +1,10 @@
 package memory
 
-import "time"
+import (
+	"time"
+
+	knirvgraph "knirv-server/pkg/embedded/graphrag"
+)
 
 // ErrorNode represents a documented failure state in the network
 type ErrorNode struct {
@@ -75,31 +79,6 @@ type QueryResult struct {
 	Timestamp time.Time         `json:"timestamp"`
 }
 
-// GraphNode represents a node in the GraphRAG index
-type GraphNode struct {
-	ID    string                 `json:"id"`
-	Type  string                 `json:"type"`
-	Data  map[string]interface{} `json:"data"`
-	Score float64                `json:"score"`
-}
-
-// GraphEdge represents an edge in the GraphRAG index
-type GraphEdge struct {
-	Source     string                 `json:"source"`
-	Target     string                 `json:"target"`
-	Type       string                 `json:"type"`
-	Weight     float64                `json:"weight"`
-	Attributes map[string]interface{} `json:"attributes"`
-}
-
-// TextChunk represents a text chunk from the knowledge base
-type TextChunk struct {
-	ID        string  `json:"id"`
-	Content   string  `json:"content"`
-	Relevance float64 `json:"relevance"`
-	Source    string  `json:"source,omitempty"`
-}
-
 // KnowledgeBase represents a GraphRAG-powered knowledge base
 type KnowledgeBase struct {
 	ID             string                 `json:"id"`
@@ -126,14 +105,9 @@ type KnowledgeBase struct {
 	DeployedBy     *string                `json:"deployed_by,omitempty"`
 }
 
-// IndexStatus represents the status of a GraphRAG index build
-type IndexStatus struct {
-	KBID         string    `json:"kb_id"`
-	Status       string    `json:"status"`
-	Progress     float64   `json:"progress"`
-	NodesCount   int       `json:"nodes_count"`
-	EdgesCount   int       `json:"edges_count"`
-	ChunksCount  int       `json:"chunks_count"`
-	LastUpdated  time.Time `json:"last_updated"`
-	ErrorMessage string    `json:"error_message,omitempty"`
-}
+type (
+	GraphNode    = knirvgraph.Node
+	GraphEdge    = knirvgraph.Edge
+	TextChunk    = knirvgraph.Chunk
+	IndexStatus  = knirvgraph.IndexStatus
+)

@@ -13,6 +13,7 @@ use std::ffi::{CStr, CString};
 use std::os::raw::{c_char, c_int};
 use std::sync::Mutex;
 
+use crate::vector::EmbeddingGenerator;
 use crate::{Config, GraphRAG};
 
 // ---------------------------------------------------------------------------
@@ -187,6 +188,122 @@ pub extern "C" fn graphrag_query(
     }
 
     to_raw_cstring(payload)
+}
+
+/// Generate embeddings for a JSON array of text strings.
+///
+/// `texts_json` is a NUL-terminated JSON array of strings, e.g. `["hello","world"]`.
+/// Returns a NUL-terminated JSON array of float arrays, e.g.
+/// `[[0.1,0.2,...],[0.3,0.4,...]]`.  The caller **must** free the returned
+/// pointer with `graphrag_free_string`.  Returns NULL on error.
+///
+/// `result_len` is set to the byte length of the returned string (excluding
+/// the NUL terminator).
+#[no_mangle]
+pub extern "C" fn graphrag_embed_texts(
+    texts_json: *const c_char,
+    _texts_len: usize,
+    result_len: *mut usize,
+) -> *mut c_char {
+    let json_str = match unsafe { cstr_to_str(texts_json) } {
+        Some(s) => s,
+        None => return std::ptr::null_mut(),
+    };
+
+    let texts: Vec<String> = match serde_json::from_str(json_str) {
+        Ok(t) => t,
+        Err(_) => return std::ptr::null_mut(),
+    };
+
+    if texts.is_empty() {
+        return std::ptr::null_mut();
+    }
+
+    let str_refs: Vec<&str> = texts.iter().map(|s| s.as_str()).collect();
+    let mut generator = EmbeddingGenerator::new(128);
+    let embeddings = generator.batch_generate(&str_refs);
+
+    let payload = match serde_json::to_string(&embeddings) {
+        Ok(s) => s,
+        Err(_) => return std::ptr::null_mut(),
+    };
+
+    if !result_len.is_null() {
+        unsafe { *result_len = payload.len() };
+    }
+
+    to_raw_cstring(payload)
+}
+
+/// Return the entities and relationships extracted by the last index operation.
+///
+/// Returns a NUL-terminated JSON object with the structure:
+/// ```json
+/// {
+///   "entities": [{"id":"...","name":"...","entity_type":"...","confidence":0.0}],
+///   "relationships": [{"source":"...","target":"...","relation_type":"...","confidence":0.0}],
+///   "entity_count": 0,
+///   "relationship_count": 0
+/// }
+/// ```
+/// The caller **must** free the returned pointer with `graphrag_free_string`.
+/// Returns NULL if no graph has been built yet, or on error.
+///
+/// `result_len` is set to the byte length of the returned string (excluding
+/// the NUL terminator).
+#[no_mangle]
+pub extern "C" fn graphrag_get_last_extraction(result_len: *mut usize) -> *mut c_char {
+    let payload = match lock_instance(|g| {
+        let kg = match g.knowledge_graph() {
+            Some(kg) => kg,
+            None => return serde_json::json!({ "entities": [], "relationships": [], "entity_count": 0, "relationship_count": 0 }),
+        };
+
+        let entities: Vec<serde_json::Value> = kg
+            .entities()
+            .map(|e| {
+                serde_json::json!({
+                    "id": e.id.to_string(),
+                    "name": e.name,
+                    "entity_type": e.entity_type,
+                    "confidence": e.confidence,
+                })
+            })
+            .collect();
+
+        let relationships: Vec<serde_json::Value> = kg
+            .relationships()
+            .map(|r| {
+                serde_json::json!({
+                    "source": r.source.to_string(),
+                    "target": r.target.to_string(),
+                    "relation_type": r.relation_type,
+                    "confidence": r.confidence,
+                })
+            })
+            .collect();
+
+        serde_json::json!({
+            "entities": entities,
+            "relationships": relationships,
+            "entity_count": kg.entity_count(),
+            "relationship_count": kg.relationship_count(),
+        })
+    }) {
+        Some(v) => v,
+        None => return std::ptr::null_mut(),
+    };
+
+    let payload_str = match serde_json::to_string(&payload) {
+        Ok(s) => s,
+        Err(_) => return std::ptr::null_mut(),
+    };
+
+    if !result_len.is_null() {
+        unsafe { *result_len = payload_str.len() };
+    }
+
+    to_raw_cstring(payload_str)
 }
 
 /// Free a string previously returned by `graphrag_query`.

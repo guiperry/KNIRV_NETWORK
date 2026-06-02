@@ -100,6 +100,44 @@ func (s *BluntDBStorage) Batch() Batch {
 	}
 }
 
+// KB index prefix operations
+const KBIndexPrefix = "kb_index_"
+
+func (s *BluntDBStorage) PutKBIndex(kbID string, data []byte) error {
+	key := KBIndexPrefix + kbID
+	return s.Put([]byte(key), data)
+}
+
+func (s *BluntDBStorage) GetKBIndex(kbID string) ([]byte, error) {
+	key := KBIndexPrefix + kbID
+	return s.Get([]byte(key))
+}
+
+func (s *BluntDBStorage) ListKBIndexes() ([]string, error) {
+	var ids []string
+	err := s.db.View(func(txn *badger.Txn) error {
+		opts := badger.DefaultIteratorOptions
+		opts.Prefix = []byte(KBIndexPrefix)
+		it := txn.NewIterator(opts)
+		defer it.Close()
+		for it.Seek([]byte(KBIndexPrefix)); it.ValidForPrefix([]byte(KBIndexPrefix)); it.Next() {
+			key := string(it.Item().Key())
+			id := strings.TrimPrefix(key, KBIndexPrefix)
+			ids = append(ids, id)
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return ids, nil
+}
+
+func (s *BluntDBStorage) DeleteKBIndex(kbID string) error {
+	key := KBIndexPrefix + kbID
+	return s.Delete([]byte(key))
+}
+
 // Graph-specific storage operations
 func (s *BluntDBStorage) GetNode(nodeID string) ([]byte, error) {
 	key := fmt.Sprintf("node_%s", nodeID)

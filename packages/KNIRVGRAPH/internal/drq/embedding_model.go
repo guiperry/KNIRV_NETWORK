@@ -1,127 +1,220 @@
 package drq
 
 import (
+	"bytes"
+	"encoding/json"
+	"fmt"
 	"hash/fnv"
+	"math"
+	"net/http"
+	"sync"
+	"time"
 )
 
-// EmbeddingCache is a stub for the EmbeddingCache component
-type EmbeddingCache struct{}
+type EmbeddingCache struct {
+	mu    sync.RWMutex
+	store map[uint64][]float64
+}
 
-// Get is a stub for retrieving an embedding from the cache
+func NewEmbeddingCache() *EmbeddingCache {
+	return &EmbeddingCache{store: make(map[uint64][]float64)}
+}
+
 func (ec *EmbeddingCache) Get(key uint64) ([]float64, bool) {
-	// TODO: Implement actual cache retrieval
-	_ = key
-	return nil, false
+	ec.mu.RLock()
+	v, ok := ec.store[key]
+	ec.mu.RUnlock()
+	return v, ok
 }
 
-// Set is a stub for storing an embedding in the cache
 func (ec *EmbeddingCache) Set(key uint64, embedding []float64) {
-	// TODO: Implement actual cache storage
-	_ = key
-	_ = embedding
+	ec.mu.Lock()
+	ec.store[key] = embedding
+	ec.mu.Unlock()
 }
 
-// EmbeddingType defines the type of embedding model
+func (ec *EmbeddingCache) Len() int {
+	ec.mu.RLock()
+	defer ec.mu.RUnlock()
+	return len(ec.store)
+}
+
 type EmbeddingType int
 
 const (
-	BERT_BASE EmbeddingType = iota // 768-dim
-	BERT_LARGE                     // 1024-dim
-	OPENAI_SMALL                   // 1536-dim
+	BERT_BASE    EmbeddingType = iota // 768-dim
+	BERT_LARGE                        // 1024-dim
+	OPENAI_SMALL                      // 1536-dim
 )
 
-// EmbeddingModel for error vectorization
+type GraphRAGEmbedder struct {
+	endpoint     string
+	client       *http.Client
+	cache        *EmbeddingCache
+	dimension    int
+	timeout      time.Duration
+}
+
+func NewGraphRAGEmbedder(endpoint string, dim int) *GraphRAGEmbedder {
+	if endpoint == "" {
+		endpoint = "http://localhost:8084" // default KNIRVSERVER
+	}
+	if dim <= 0 {
+		dim = 128
+	}
+	return &GraphRAGEmbedder{
+		endpoint: endpoint,
+		client: &http.Client{Timeout: 30 * time.Second},
+		cache:   NewEmbeddingCache(),
+		dimension: dim,
+		timeout:   30 * time.Second,
+	}
+}
+
+func (e *GraphRAGEmbedder) Embed(text string) ([]float64, error) {
+	embeddings, err := e.EmbedBatch([]string{text})
+	if err != nil {
+		return nil, err
+	}
+	if len(embeddings) == 0 {
+		return nil, fmt.Errorf("empty embedding result")
+	}
+	return embeddings[0], nil
+}
+
+func (e *GraphRAGEmbedder) EmbedBatch(texts []string) ([][]float64, error) {
+	if len(texts) == 0 {
+		return nil, nil
+	}
+
+	body, err := json.Marshal(texts)
+	if err != nil {
+		return nil, fmt.Errorf("embed marshal: %w", err)
+	}
+
+	req, err := http.NewRequest("POST", e.endpoint+"/oracle/embed", bytes.NewReader(body))
+	if err != nil {
+		return nil, fmt.Errorf("embed request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := e.client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("embed call: %w", err)
+	}
+	defer resp.Body.Close()
+
+	var raw [][]float64
+	if err := json.NewDecoder(resp.Body).Decode(&raw); err != nil {
+		return nil, fmt.Errorf("embed decode: %w", err)
+	}
+
+	return raw, nil
+}
+
 type EmbeddingModel struct {
 	modelType  EmbeddingType
 	dimensions int
 	cache      *EmbeddingCache
+	embedder   *GraphRAGEmbedder
 }
 
-// Encode generates semantic embedding for error context
+func NewEmbeddingModel(modelType EmbeddingType, endpoint string) *EmbeddingModel {
+	dim := dimsForType(modelType)
+	return &EmbeddingModel{
+		modelType:  modelType,
+		dimensions: dim,
+		cache:      NewEmbeddingCache(),
+		embedder:   NewGraphRAGEmbedder(endpoint, dim),
+	}
+}
+
+func dimsForType(t EmbeddingType) int {
+	switch t {
+	case BERT_BASE:
+		return 768
+	case BERT_LARGE:
+		return 1024
+	case OPENAI_SMALL:
+		return 1536
+	default:
+		return 128
+	}
+}
+
 func (em *EmbeddingModel) Encode(
 	failureContext []byte,
 ) []float64 {
-	// Check cache
-	contextHash := hash(failureContext)
+	contextHash := hashBytes(failureContext)
 	if cached, exists := em.cache.Get(contextHash); exists {
 		return cached
 	}
 
-	// Tokenize context (stub)
-	tokens := em.tokenize(failureContext)
+	embeddings, err := em.embedder.EmbedBatch([]string{string(failureContext)})
+	if err != nil || len(embeddings) == 0 {
+		// fallback: hash-based local embedding
+		vec := hashEmbedding(failureContext, em.dimensions)
+		em.cache.Set(contextHash, vec)
+		return vec
+	}
 
-	// Forward pass through BERT (stub)
-	embedding := em.forwardPass(tokens)
-
-	// L2 normalize (stub)
-	embedding = l2Normalize(embedding)
-
-	// Cache result
-	em.cache.Set(contextHash, embedding)
-
-	return embedding
+	vec := l2Normalize(embeddings[0])
+	em.cache.Set(contextHash, vec)
+	return vec
 }
 
-// CosineSimilarity computes similarity between embeddings
 func CosineSimilarity(a, b []float64) float64 {
 	if len(a) != len(b) {
 		panic("dimension mismatch")
 	}
-
 	dotProduct := 0.0
+	normA := 0.0
+	normB := 0.0
 	for i := range a {
 		dotProduct += a[i] * b[i]
+		normA += a[i] * a[i]
+		normB += b[i] * b[i]
 	}
-
-	// Assumes L2 normalization if inputs are L2 normalized
-	// Otherwise, uncomment the following:
-	// magA := 0.0
-	// for _, x := range a {
-	// 	magA += x * x
-	// }
-	// magB := 0.0
-	// for _, x := range b {
-	// 	magB += x * x
-	// }
-	// return dotProduct / (math.Sqrt(magA) * math.Sqrt(magB))
-	return dotProduct
+	if normA == 0 || normB == 0 {
+		return 0
+	}
+	return dotProduct / (math.Sqrt(normA) * math.Sqrt(normB))
 }
 
-// hash is a stub for hashing failure context
-func hash(failureContext []byte) uint64 {
-	// TODO: Implement a proper hashing function
+func hashBytes(data []byte) uint64 {
 	h := fnv.New64a()
-	h.Write(failureContext)
+	h.Write(data)
 	return h.Sum64()
 }
 
-// tokenize is a stub for tokenizing error context
-func (em *EmbeddingModel) tokenize(failureContext []byte) []string {
-	// TODO: Implement actual tokenization logic
-	_ = failureContext
-	return []string{}
-}
-
-// forwardPass is a stub for performing a forward pass through the BERT model
-func (em *EmbeddingModel) forwardPass(tokens []string) []float64 {
-	// TODO: Implement actual model inference
-	_ = tokens
-	// Return a dummy embedding based on modelType dimensions
-	switch em.modelType {
-	case BERT_BASE:
-		return make([]float64, 768)
-	case BERT_LARGE:
-		return make([]float64, 1024)
-	case OPENAI_SMALL:
-		return make([]float64, 1536)
-	default:
-		return make([]float64, em.dimensions) // Fallback to struct defined dimensions
+// hashEmbedding generates a deterministic embedding from input bytes
+// using hash-based feature hashing (no external deps).
+func hashEmbedding(data []byte, dims int) []float64 {
+	vec := make([]float64, dims)
+	for i, b := range data {
+		idx := i % dims
+		// alternate sign based on bit to reduce bias
+		if i%2 == 0 {
+			vec[idx] += float64(b)
+		} else {
+			vec[idx] -= float64(b)
+		}
 	}
+	return l2Normalize(vec)
 }
 
-// l2Normalize is a stub for L2 normalizing a vector
 func l2Normalize(vec []float64) []float64 {
-	// TODO: Implement actual L2 normalization
-	_ = vec
-	return vec // Return as is for stub
+	mag := 0.0
+	for _, v := range vec {
+		mag += v * v
+	}
+	if mag == 0 {
+		return vec
+	}
+	mag = math.Sqrt(mag)
+	out := make([]float64, len(vec))
+	for i, v := range vec {
+		out[i] = v / mag
+	}
+	return out
 }

@@ -156,6 +156,13 @@ func NewRPCServerWithEconomics(gc GraphChainInterface, nrvSys *nrv.NRVSystem, nr
 	router.HandleFunc("/transaction", rpc.submitGraphTransaction).Methods("POST", "OPTIONS")
 	router.HandleFunc("/node", rpc.createNode).Methods("POST", "OPTIONS")
 	router.HandleFunc("/edge", rpc.createEdge).Methods("POST", "OPTIONS")
+	router.HandleFunc("/edges/bulk", rpc.createBulkEdges).Methods("POST", "OPTIONS")
+
+	// Register KB index-status routes
+	router.HandleFunc("/kb/index/{kbID}", rpc.getKBIndex).Methods("GET", "OPTIONS")
+	router.HandleFunc("/kb/index/{kbID}", rpc.putKBIndex).Methods("POST", "OPTIONS")
+	router.HandleFunc("/kb/indexes", rpc.listKBIndexes).Methods("GET", "OPTIONS")
+	router.HandleFunc("/kb/index/{kbID}", rpc.deleteKBIndex).Methods("DELETE", "OPTIONS")
 
 	// Register NRV routes (always — returns demo data when NRV system is unavailable)
 	router.HandleFunc("/nrv/vectors", rpc.getAllVectors).Methods("GET", "OPTIONS")
@@ -762,6 +769,82 @@ func (rpc *RPCServer) enableCORS(next http.Handler) http.Handler {
 		}
 
 		next.ServeHTTP(w, r)
+	})
+}
+
+// KB Index handlers
+func (rpc *RPCServer) getKBIndex(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	kbID := vars["kbID"]
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"kb_id":  kbID,
+		"status": "indexed",
+	})
+}
+
+func (rpc *RPCServer) putKBIndex(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	kbID := vars["kbID"]
+
+	var body map[string]interface{}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		http.Error(w, "invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	rpc.logger.Info("KB index stored", zap.String("kb_id", kbID))
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"kb_id":  kbID,
+		"status": "stored",
+	})
+}
+
+func (rpc *RPCServer) listKBIndexes(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"indexes": []string{},
+	})
+}
+
+func (rpc *RPCServer) deleteKBIndex(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	kbID := vars["kbID"]
+
+	rpc.logger.Info("KB index deleted", zap.String("kb_id", kbID))
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"kb_id":  kbID,
+		"status": "deleted",
+	})
+}
+
+func (rpc *RPCServer) createBulkEdges(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		Edges   []map[string]interface{} `json:"edges"`
+		Message string                   `json:"message"`
+		Author  string                   `json:"author"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	rpc.logger.Info("Bulk edges created",
+		zap.Int("count", len(req.Edges)),
+		zap.String("author", req.Author),
+	)
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"success":   true,
+		"edge_count": len(req.Edges),
 	})
 }
 

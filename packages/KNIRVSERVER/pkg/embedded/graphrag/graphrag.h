@@ -13,6 +13,8 @@ int graphrag_shutdown(void);
 int graphrag_health_check(void);
 int graphrag_index_document(const char* doc_id, const char* content, size_t content_len);
 char* graphrag_query(const char* query, int limit, size_t* result_len);
+char* graphrag_embed_texts(const char* texts_json, size_t texts_len, size_t* result_len);
+char* graphrag_get_last_extraction(size_t* result_len);
 void graphrag_free_string(char* ptr);
 
 #ifdef __cplusplus

@@ -1,0 +1,45 @@
+syntax = "proto3";
+
+package KNIRVSERVER;
+
+option go_package = "./;proto";
+
+// RootKeyFileContentProto holds all secrets stored in the AES-encrypted root.key file
+// loaded by KNIRVSERVER root nodes (packages/KNIRVSERVER/bin/root.key).
+// Access gated by ORACLE_KEY_PASSWORD env var; presence enables /oracle/ routes.
+// For the KNIRVCHAIN variant, see knirvchain/v1/root_key.proto.
+message RootKeyFileContentProto {
+  string stripe_secret_key = 1;
+  string stripe_webhook_secret = 2;
+  string coinbase_api_key = 3;
+  string coinbase_webhook_secret = 4;
+  string root_private_key_hex = 5;
+
+  string jwt_secret = 10;
+  string knirv_jwt_secret = 11;
+  string gemini_api_key = 12;
+  string deepseek_api_key = 13;
+  string cerebras_api_key = 14;
+  string tls_cert = 16;
+  string tls_key = 17;
+
+  string cloudflare_api_token = 18;
+  string cloudflare_zone_id = 19;
+  string smtp_password = 20;
+  string default_github_token = 21;
+
+  // KNIRVHASHER device credentials (KNIRVSERVER-only)
+  string device_ip = 22;
+  string device_password = 23;
+  string device_username = 24;
+
+  // Cloudflare extras (KNIRVSERVER-only)
+  string cloudflare_embeddings_url = 25;
+  string cloudflare_account_id = 26;
+}
+
+message EncryptedRootKeyFile {
+  bytes encrypted_content = 1;
+  bytes salt = 2;
+  bytes nonce = 3;
+}

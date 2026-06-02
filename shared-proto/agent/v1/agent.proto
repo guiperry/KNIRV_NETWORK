@@ -1,21 +1,21 @@
 syntax = "proto3";
 
-package knirv.model.v1;
+package knirv.agent.v1;
 
 import "lora/v1/lora.proto";
 
-option go_package = "github.com/guiperry/KNIRV_NETWORK/pkg/gen/knirv/model/v1;modelv1";
+option go_package = "github.com/guiperry/KNIRV_NETWORK/pkg/gen/knirv/agent/v1;agentv1";
 
-// Model compilation messages
-message ModelCompilationRequest {
-  string model_name = 1;
-  string model_description = 2;
+// Agent compilation messages
+message AgentCompilationRequest {
+  string agent_name = 1;
+  string agent_description = 2;
   repeated knirv.lora.v1.LoRAAdapter adapters = 3;
-  ModelConfig config = 4;
-  bytes cortex_wasm = 5; // Pre-compiled cortex.wasm from Rust
+  AgentConfig config = 4;
+  bytes cortex_wasm = 5;
 }
 
-message ModelConfig {
+message AgentConfig {
   string target_platform = 1; // "typescript", "golang", "rust"
   bool enable_lora = 2;
   uint32 max_memory_mb = 3;
@@ -23,29 +23,29 @@ message ModelConfig {
   map<string, string> environment = 5;
 }
 
-message ModelCompilationResult {
-  string model_id = 1;
-  bytes model_wasm = 2;
+message AgentCompilationResult {
+  string agent_id = 1;
+  bytes agent_wasm = 2;
   uint64 size_bytes = 3;
   string checksum = 4;
   repeated string validation_errors = 5;
-  ModelManifest manifest = 6;
+  AgentManifest manifest = 6;
 }
 
-message ModelManifest {
-  string model_id = 1;
-  string model_name = 2;
+message AgentManifest {
+  string agent_id = 1;
+  string agent_name = 2;
   string description = 3;
   string version = 4;
   repeated string capabilities = 5;
   repeated knirv.lora.v1.LoRAAdapter embedded_skills = 6;
-  ModelConfig config = 7;
+  AgentConfig config = 7;
   uint64 created_timestamp = 8;
   string checksum = 9;
 }
 
-// Model Runtime Messages
-message ModelRuntimeConfig {
+// Agent Runtime Messages
+message AgentRuntimeConfig {
   string runtime_type = 1; // "wasmtime", "wasmer", "browser"
   map<string, string> options = 2;
   uint32 memory_limit_mb = 3;
@@ -53,17 +53,17 @@ message ModelRuntimeConfig {
   bool enable_debugging = 5;
 }
 
-message ModelExecutionRequest {
-  string model_id = 1;
+message AgentExecutionRequest {
+  string agent_id = 1;
   string task_description = 2;
   map<string, string> parameters = 3;
-  ModelRuntimeConfig runtime_config = 4;
+  AgentRuntimeConfig runtime_config = 4;
   optional string context = 5;
 }
 
-message ModelExecutionResult {
+message AgentExecutionResult {
   string execution_id = 1;
-  ModelExecutionStatus status = 2;
+  AgentExecutionStatus status = 2;
   optional string result = 3;
   optional string error_message = 4;
   uint64 execution_time_ms = 5;
@@ -71,27 +71,27 @@ message ModelExecutionResult {
   repeated string debug_logs = 7;
 }
 
-enum ModelExecutionStatus {
+enum AgentExecutionStatus {
   EXECUTION_SUCCESS = 0;
   EXECUTION_FAILURE = 1;
   EXECUTION_TIMEOUT = 2;
   EXECUTION_MEMORY_LIMIT = 3;
 }
 
-// Model Deployment Messages
-message ModelDeploymentRequest {
-  string model_id = 1;
+// Agent Deployment Messages
+message AgentDeploymentRequest {
+  string agent_id = 1;
   DeploymentTarget target = 2;
   map<string, string> deployment_config = 3;
 }
 
 message DeploymentTarget {
-  string platform = 1; // "knirvcontroller", "knirvengine", "cloud"
+  string platform = 1; // "knirvserver", "knirvgateway", "cloud"
   string endpoint = 2;
   map<string, string> credentials = 3;
 }
 
-message ModelDeploymentResult {
+message AgentDeploymentResult {
   string deployment_id = 1;
   DeploymentStatus status = 2;
   optional string endpoint_url = 3;
@@ -105,10 +105,10 @@ enum DeploymentStatus {
   DEPLOYMENT_PENDING = 2;
 }
 
-// Model Validation Messages
-message ModelValidationRequest {
-  bytes model_wasm = 1;
-  ModelConfig config = 2;
+// Agent Validation Messages
+message AgentValidationRequest {
+  bytes agent_wasm = 1;
+  AgentConfig config = 2;
   repeated ValidationTest tests = 3;
 }
 
@@ -118,7 +118,7 @@ message ValidationTest {
   map<string, string> test_parameters = 3;
 }
 
-message ModelValidationResult {
+message AgentValidationResult {
   bool passed = 1;
   repeated ValidationTestResult test_results = 2;
   repeated string errors = 3;

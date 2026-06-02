@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"sync"
 	"time"
+
+	graphragffi "knirv-server/pkg/embedded/graphrag"
 )
 
 // KnowledgeBase represents a GraphRAG-powered knowledge base
@@ -66,59 +68,14 @@ type Summary struct {
 	UploadedModels int `json:"uploaded_models"`
 }
 
-// GraphRAGQuery represents a query to the GraphRAG engine
-type GraphRAGQuery struct {
-	Query  string                 `json:"query"`
-	Mode   string                 `json:"mode"` // local, global, hybrid
-	Limit  int                    `json:"limit"`
-	Params map[string]interface{} `json:"params"`
-}
-
-// GraphRAGResult represents the result of a GraphRAG query
-type GraphRAGResult struct {
-	ID        string      `json:"id"`
-	Query     string      `json:"query"`
-	Mode      string      `json:"mode"` // local, global, hybrid
-	Nodes     []GraphNode `json:"nodes"`
-	Edges     []GraphEdge `json:"edges"`
-	Chunks    []TextChunk `json:"chunks"`
-	Summary   string      `json:"summary"`
-	Score     float64     `json:"score"`
-	Timestamp time.Time   `json:"timestamp"`
-}
-
-type GraphNode struct {
-	ID    string                 `json:"id"`
-	Type  string                 `json:"type"`
-	Data  map[string]interface{} `json:"data"`
-	Score float64                `json:"score"`
-}
-
-type GraphEdge struct {
-	Source     string                 `json:"source"`
-	Target     string                 `json:"target"`
-	Type       string                 `json:"type"`
-	Weight     float64                `json:"weight"`
-	Attributes map[string]interface{} `json:"attributes"`
-}
-
-type TextChunk struct {
-	ID        string  `json:"id"`
-	Content   string  `json:"content"`
-	Relevance float64 `json:"relevance"`
-	Source    string  `json:"source,omitempty"`
-}
-
-type IndexStatus struct {
-	KBId         string    `json:"kb_id"`
-	Status       string    `json:"status"` // building, ready, failed
-	Progress     float64   `json:"progress"`
-	NodesCount   int       `json:"nodes_count"`
-	EdgesCount   int       `json:"edges_count"`
-	ChunksCount  int       `json:"chunks_count"`
-	LastUpdated  time.Time `json:"last_updated"`
-	ErrorMessage string    `json:"error_message,omitempty"`
-}
+type (
+	GraphRAGQuery  = graphragffi.GraphQuery
+	GraphRAGResult = graphragffi.GraphResult
+	GraphNode      = graphragffi.Node
+	GraphEdge      = graphragffi.Edge
+	TextChunk      = graphragffi.Chunk
+	IndexStatus    = graphragffi.IndexStatus
+)
 
 // KnowledgeBaseService manages knowledge bases
 type KnowledgeBaseService struct {
@@ -128,20 +85,16 @@ type KnowledgeBaseService struct {
 	indexes  map[string]*IndexStatus
 }
 
-// GraphRAGInterface defines the FFI boundary with the graphrag-rs library
-type GraphRAGInterface interface {
-	// Query executes a query against the GraphRAG index
-	Query(ctx context.Context, kbID string, query *GraphRAGQuery) (*GraphRAGResult, error)
+// GraphRAGClient is a type alias for the shared graphrag Client
+type GraphRAGClient = graphragffi.Client
 
-	// BuildIndex creates or rebuilds the GraphRAG index
-	BuildIndex(ctx context.Context, kbID string, strategy string) (*IndexStatus, error)
-
-	// GetIndexStatus returns the current index state
-	GetIndexStatus(ctx context.Context, kbID string) (*IndexStatus, error)
-
-	// Close cleans up FFI resources
-	Close() error
+// NewGraphRAGClient creates a new GraphRAG FFI client
+func NewGraphRAGClient() *GraphRAGClient {
+	return graphragffi.NewClient(nil)
 }
+
+// GraphRAGInterface defines the FFI boundary with the graphrag-rs library
+type GraphRAGInterface = graphragffi.Interface
 
 // NewKnowledgeBaseService creates a new knowledge base service
 func NewKnowledgeBaseService(graphRAG GraphRAGInterface) *KnowledgeBaseService {

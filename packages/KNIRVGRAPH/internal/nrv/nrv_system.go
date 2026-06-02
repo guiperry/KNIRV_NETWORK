@@ -12,28 +12,35 @@ import (
 	"time"
 )
 
+// EmbeddingProvider generates vector embeddings for text.
+type EmbeddingProvider interface {
+	Embed(text string) ([]float64, error)
+	EmbedBatch(texts []string) ([][]float64, error)
+}
+
 // NRVSystem manages Network Resolution Vectors
 type NRVSystem struct {
-	localPeerID     string
-	vectors         map[string]*NetworkResolutionVector
-	errorNodes      map[string]*ErrorNode
-	skillNodes      map[string]*SkillNode
-	contextNodes    map[string]*ContextNode
-	ideaNodes       map[string]*IdeaNode
-	capabilityNodes map[string]*CapabilityNode
-	propertyNodes   map[string]*PropertyNode
-	vectorsMutex    sync.RWMutex
-	errorsMutex     sync.RWMutex
-	skillsMutex     sync.RWMutex
-	contextMutex    sync.RWMutex
-	ideaMutex       sync.RWMutex
-	capabilityMutex sync.RWMutex
-	propertyMutex   sync.RWMutex
-	updateChannel   chan VectorUpdate
-	config          *NRVConfig
-	ctx             context.Context
-	cancel          context.CancelFunc
-	stopOnce        sync.Once
+	localPeerID      string
+	vectors          map[string]*NetworkResolutionVector
+	errorNodes       map[string]*ErrorNode
+	skillNodes       map[string]*SkillNode
+	contextNodes     map[string]*ContextNode
+	ideaNodes        map[string]*IdeaNode
+	capabilityNodes  map[string]*CapabilityNode
+	propertyNodes    map[string]*PropertyNode
+	vectorsMutex     sync.RWMutex
+	errorsMutex      sync.RWMutex
+	skillsMutex      sync.RWMutex
+	contextMutex     sync.RWMutex
+	ideaMutex        sync.RWMutex
+	capabilityMutex  sync.RWMutex
+	propertyMutex    sync.RWMutex
+	updateChannel    chan VectorUpdate
+	config           *NRVConfig
+	embedding        EmbeddingProvider
+	ctx              context.Context
+	cancel           context.CancelFunc
+	stopOnce         sync.Once
 }
 
 // NewNRVSystem creates a new NRV system instance
@@ -68,6 +75,16 @@ func (nrv *NRVSystem) Start() error {
 	go nrv.periodicVectorMaintenance()
 
 	return nil
+}
+
+// SetEmbeddingProvider injects an embedding provider for vectorizing error contexts.
+func (nrv *NRVSystem) SetEmbeddingProvider(ep EmbeddingProvider) {
+	nrv.embedding = ep
+}
+
+// GetEmbeddingProvider returns the current embedding provider (may be nil).
+func (nrv *NRVSystem) GetEmbeddingProvider() EmbeddingProvider {
+	return nrv.embedding
 }
 
 // Stop shuts down the NRV system

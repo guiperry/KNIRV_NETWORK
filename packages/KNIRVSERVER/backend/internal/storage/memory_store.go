@@ -1,11 +1,15 @@
 package storage
 
 import (
+	"context"
 	"sync"
 
 	"backend_server/internal/services/memory"
 	"backend_server/internal/storage/mdstorage"
+	"go.uber.org/zap"
 )
+
+var memoryStoreLogger, _ = zap.NewProduction()
 
 // MemoryStore unifies access to all memory storage backends
 type MemoryStore struct {
@@ -76,9 +80,23 @@ func (s *MemoryStore) syncToGraphRAG(doc *mdstorage.MarkdownDocument) {
 		return
 	}
 
-	// Build or update GraphRAG index with document content
-	// This is a placeholder - actual implementation would call the FFI bridge
-	_ = doc
+	content := string(doc.Content)
+	if content == "" {
+		return
+	}
+
+	if err := s.graphrag.IndexDocument(context.Background(), doc.ID, []byte(content)); err != nil {
+		memoryStoreLogger.Warn("failed to index document in graphrag",
+			zap.String("doc_id", doc.ID),
+			zap.Error(err),
+		)
+		return
+	}
+
+	memoryStoreLogger.Debug("synced document to GraphRAG",
+		zap.String("doc_id", doc.ID),
+		zap.String("type", doc.Type),
+	)
 }
 
 // updateOntology updates the ontology with information from a document

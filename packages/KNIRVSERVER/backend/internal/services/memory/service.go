@@ -374,18 +374,20 @@ func (s *UnifiedMemorySystem) syncToGraphRAG(docID string) {
 		s.logger.Error("failed to load document for GraphRAG sync", zap.Error(err))
 		return
 	}
-	_ = doc // Mark as used
 
-	// Build or update GraphRAG index with document content
-	status, err := s.graphRAGClient.BuildIndex(context.Background(), "default", "incremental")
+	if len(doc.Content) == 0 {
+		s.logger.Warn("document has no content for GraphRAG sync", zap.String("doc_id", docID))
+		return
+	}
+
+	_, err = s.graphRAGClient.IndexDocumentWithResult(context.Background(), docID, doc.Content)
 	if err != nil {
-		s.logger.Error("failed to sync to GraphRAG", zap.Error(err))
+		s.logger.Error("failed to sync document to GraphRAG", zap.Error(err))
 		return
 	}
 
 	s.logger.Debug("synced document to GraphRAG",
 		zap.String("doc_id", docID),
-		zap.String("status", status.Status),
 	)
 }
 
