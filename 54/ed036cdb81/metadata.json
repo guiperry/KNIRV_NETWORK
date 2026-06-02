@@ -1,0 +1,38 @@
+{
+  "cli_version": "0.5.5",
+  "checkpoint_id": "54ed036cdb81",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "shared-proto/README.md",
+    "shared-proto/agent/v1/agent.proto",
+    "shared-proto/blockchain/v1/blockchain.proto",
+    "shared-proto/chain/v1/chain.proto",
+    "shared-proto/graph/v1/graph.proto",
+    "shared-proto/hasher/v1/hasher.proto",
+    "shared-proto/knirvchain/v1/bootnode_key.proto",
+    "shared-proto/knirvchain/v1/hashing.proto",
+    "shared-proto/knirvchain/v1/mcp_context.proto",
+    "shared-proto/knirvchain/v1/mcp_descriptors.proto",
+    "shared-proto/knirvchain/v1/root_key.proto",
+    "shared-proto/knirvserver/v1/bootnode_key.proto",
+    "shared-proto/knirvserver/v1/root_key.proto",
+    "shared-proto/model/v1/model.proto"
+  ],
+  "sessions": [
+    {
+      "metadata": "/54/ed036cdb81/0/metadata.json",
+      "transcript": "/54/ed036cdb81/0/full.jsonl",
+      "content_hash": "/54/ed036cdb81/0/content_hash.txt",
+      "prompt": ""
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 2500,
+    "cache_creation_tokens": 81541,
+    "cache_read_tokens": 777294,
+    "output_tokens": 24108,
+    "api_call_count": 15
+  }
+}

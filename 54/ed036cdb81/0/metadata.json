@@ -1,0 +1,59 @@
+{
+  "cli_version": "0.5.5",
+  "checkpoint_id": "54ed036cdb81",
+  "session_id": "4796d2de-f6a3-47a5-8863-4b97367041fc",
+  "strategy": "manual-commit",
+  "created_at": "2026-06-02T16:12:17.360876721Z",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "shared-proto/README.md",
+    "shared-proto/agent/v1/agent.proto",
+    "shared-proto/blockchain/v1/blockchain.proto",
+    "shared-proto/chain/v1/chain.proto",
+    "shared-proto/graph/v1/graph.proto",
+    "shared-proto/hasher/v1/hasher.proto",
+    "shared-proto/knirvchain/v1/bootnode_key.proto",
+    "shared-proto/knirvchain/v1/hashing.proto",
+    "shared-proto/knirvchain/v1/mcp_context.proto",
+    "shared-proto/knirvchain/v1/mcp_descriptors.proto",
+    "shared-proto/knirvchain/v1/root_key.proto",
+    "shared-proto/knirvserver/v1/bootnode_key.proto",
+    "shared-proto/knirvserver/v1/root_key.proto",
+    "shared-proto/model/v1/model.proto"
+  ],
+  "agent": "Claude Code",
+  "model": "claude-sonnet-4-6",
+  "turn_id": "45c05a403f04",
+  "token_usage": {
+    "input_tokens": 2500,
+    "cache_creation_tokens": 81541,
+    "cache_read_tokens": 777294,
+    "output_tokens": 24108,
+    "api_call_count": 15
+  },
+  "session_metrics": {
+    "turn_count": 1
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-06-02T16:12:17.241861974Z",
+    "agent_lines": 1079,
+    "agent_removed": 328,
+    "human_added": 49584,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 50663,
+    "total_lines_changed": 98226,
+    "agent_percentage": 1.432410970618777,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    }
+  ]
+}
