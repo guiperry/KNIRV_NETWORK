@@ -3,8 +3,14 @@
   "checkpoint_id": "54ed036cdb81",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 1,
+  "checkpoints_count": 2,
   "files_touched": [
+    "packages/KNIRVSERVER/backend/go.mod",
+    "packages/KNIRVSERVER/backend/go.sum",
+    "packages/KNIRVSERVER/backend/internal/services/knowledge_base/graphrag_ffi.go",
+    "packages/KNIRVSERVER/backend/internal/services/memory/graphrag.go",
+    "packages/KNIRVSERVER/backend/internal/storage/memory_store.go",
+    "packages/KNIRVSERVER/pkg/embedded/graphrag/graphrag.go",
     "shared-proto/README.md",
     "shared-proto/agent/v1/agent.proto",
     "shared-proto/blockchain/v1/blockchain.proto",
@@ -26,13 +32,19 @@
       "transcript": "/54/ed036cdb81/0/full.jsonl",
       "content_hash": "/54/ed036cdb81/0/content_hash.txt",
       "prompt": ""
+    },
+    {
+      "metadata": "/54/ed036cdb81/1/metadata.json",
+      "transcript": "/54/ed036cdb81/1/full.jsonl",
+      "content_hash": "/54/ed036cdb81/1/content_hash.txt",
+      "prompt": "/54/ed036cdb81/1/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 2500,
+    "input_tokens": 90360,
     "cache_creation_tokens": 81541,
-    "cache_read_tokens": 777294,
-    "output_tokens": 24108,
-    "api_call_count": 15
+    "cache_read_tokens": 1358670,
+    "output_tokens": 30195,
+    "api_call_count": 25
   }
 }

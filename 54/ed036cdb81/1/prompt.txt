@@ -1,0 +1,15 @@
+I need to understand the Rust GraphRAG core library to implement two new C FFI functions. Please explore these areas and return the key code structures:
+
+1. Read `/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/embedded/graphrag-rs/graphrag-core/src/core/mod.rs` - find the `KnowledgeGraph` struct and see what entities(), relationships(), entity_count(), relationship_count() methods look like, and what Entity and Relationship structs contain.
+
+2. Read `/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/embedded/graphrag-rs/graphrag-core/src/embeddings/mod.rs` - understand how embeddings work, what providers exist, and how to call the embedding system from the GraphRAG struct.
+
+3. Read `/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/embedded/graphrag-rs/graphrag-core/src/inference.rs` and `/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/embedded/graphrag-rs/graphrag-core/src/embeddings/api_providers.rs` - to understand how to compute embeddings for arbitrary text.
+
+4. Read `/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/embedded/graphrag-rs/graphrag-core/src/retrieval/mod.rs` and `/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/embedded/graphrag-rs/graphrag-core/src/embeddings/config.rs` to understand the retrieval and embedding systems.
+
+Return the key struct definitions, method signatures, and any relevant function signatures that would help implement:
+- A function that takes a JSON array of text strings and returns a JSON array of float arrays (embeddings)
+- A function that returns the last extraction result (entities + relationships from the knowledge graph after adding a document)
+
+Focus on the actual struct fields, method signatures with their return types, and any embedding provider traits.
