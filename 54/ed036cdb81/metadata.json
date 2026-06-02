@@ -3,8 +3,9 @@
   "checkpoint_id": "54ed036cdb81",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 5,
+  "checkpoints_count": 6,
   "files_touched": [
+    "graphIntegrationPlan.html",
     "packages/KNIRVGRAPH/internal/drq/embedding_model.go",
     "packages/KNIRVGRAPH/internal/network/rpc.go",
     "packages/KNIRVGRAPH/internal/nrv/nrv_system.go",
@@ -650,13 +651,19 @@
       "transcript": "/54/ed036cdb81/3/full.jsonl",
       "content_hash": "/54/ed036cdb81/3/content_hash.txt",
       "prompt": "/54/ed036cdb81/3/prompt.txt"
+    },
+    {
+      "metadata": "/54/ed036cdb81/4/metadata.json",
+      "transcript": "/54/ed036cdb81/4/full.jsonl",
+      "content_hash": "/54/ed036cdb81/4/content_hash.txt",
+      "prompt": "/54/ed036cdb81/4/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 643601,
+    "input_tokens": 738325,
     "cache_creation_tokens": 81541,
-    "cache_read_tokens": 19948238,
-    "output_tokens": 97995,
-    "api_call_count": 227
+    "cache_read_tokens": 21746126,
+    "output_tokens": 132021,
+    "api_call_count": 248
   }
 }

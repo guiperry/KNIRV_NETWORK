@@ -1,0 +1,13 @@
+In the KNIRVSERVER, we have an embedded graphrag rust application and a separate KNIRVGRAPH application that is also embedded. I want to draft a new "graphMigrationPlan.html" file that maps all of the missing functionality from the graphrag into the KNIRVGRAPH, then details the implementation to remove the graphrag implementation from the build completely. ALl of this should be in your generated file. Do not proceed with the implementation yourself!
+
+---
+
+In the new graphMigrationPlan.html, Replace the Ollama/ONNX vector embeddings with my custom text-embedder located here:https://github.com/guiperry/text-embedder/ for golang. Update the documentation with this.
+
+---
+
+Now, using the information discovered in this report, I want you to draft a new "graphIntegrationPlan.html" file that details the alternative option of keeping the graphRag and how to make both the KNIRVGRAPH and the graphRag work together and integrate in the KNIRVSERVER effectively. This should guide on full implementation on partial implementations, replacing all stubs and TODOs.
+
+---
+
+All graphrag client and graphrag management of the graphrag from the KNIRVSERVER should go in the KNIRVSERVER/pkg/embedded/graphrag folder, not in internal. Please fix in the graphIntegrationPlan.html
