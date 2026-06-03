@@ -1,0 +1,26 @@
+{
+  "cli_version": "0.5.5",
+  "checkpoint_id": "6a54b4140a99",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "modp/INTEGRATION_README.md",
+    "packages/KNIRVAGENT/cmd/knirvagent/main.go"
+  ],
+  "sessions": [
+    {
+      "metadata": "/6a/54b4140a99/0/metadata.json",
+      "transcript": "/6a/54b4140a99/0/full.jsonl",
+      "content_hash": "/6a/54b4140a99/0/content_hash.txt",
+      "prompt": ""
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 603,
+    "cache_creation_tokens": 181729,
+    "cache_read_tokens": 8018621,
+    "output_tokens": 55755,
+    "api_call_count": 88
+  }
+}
