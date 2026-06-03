@@ -1,0 +1,33 @@
+{
+  "cli_version": "0.5.5",
+  "checkpoint_id": "dc30fd653d02",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 2,
+  "files_touched": [
+    "packages/KNIRVAGENT/cmd/knirvagent/main.go",
+    "packages/KNIRVARENA/flythrough.html",
+    "packages/KNIRVARENA/public/flythrough.html",
+    "packages/KNIRVSERVER/backend/cmd/backend_server/main.go",
+    "packages/KNIRVSERVER/backend/internal/dvetemplates/public_page.gohtml",
+    "packages/KNIRVSERVER/frontend/src/components/dashboard/agent-command-center.tsx",
+    "packages/KNIRVSERVER/frontend/src/components/dashboard/dve-verification-iframe.tsx",
+    "packages/KNIRVSERVER/frontend/src/components/dashboard/dve-workspace-explorer.tsx",
+    "packages/KNIRVSERVER/frontend/src/components/dashboard/viewport-panel.tsx"
+  ],
+  "sessions": [
+    {
+      "metadata": "/dc/30fd653d02/0/metadata.json",
+      "transcript": "/dc/30fd653d02/0/full.jsonl",
+      "content_hash": "/dc/30fd653d02/0/content_hash.txt",
+      "prompt": ""
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 2459,
+    "cache_creation_tokens": 283419,
+    "cache_read_tokens": 10939790,
+    "output_tokens": 93891,
+    "api_call_count": 127
+  }
+}
