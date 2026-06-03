@@ -398,7 +398,7 @@ const initialPersonas: AgentPersona[] = persisted.personas?.length
 export const useKnirvana = create<KnirvanaState>()(
   subscribeWithSelector((set, get) => ({
     // Initial state
-    gamePhase: "menu",
+    gamePhase: "playing",
     gameTime: 0,
     epochNumber: persisted.epochNumber ?? 0,
     usingMockLLM: llmSvc.isUsingMock(),

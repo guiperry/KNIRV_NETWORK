@@ -435,6 +435,9 @@ func loadSecretsFromKeyFile(logger *zap.Logger) (*pb.RootKeyFileContentProto, er
 	// Ensure .env files are loaded before checking environment variables.
 	// Try multiple search paths to find .env files with different environment names.
 	envSearchPaths := []string{
+		// Absolute system path first — works regardless of working directory.
+		"/var/lib/knirvserver/.env",
+		"/etc/knirv-server/.env",
 		".env.development",
 		".env.testnet",
 		".env",

@@ -2,11 +2,14 @@ package web
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"backend_server/internal/objects"
 	"backend_server/internal/services/dvemanager"
@@ -16,6 +19,49 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+type mockSupervisorAgentManager struct {
+	socketPath string
+	started    map[string]bool
+}
+
+func newMockSupervisorAgentManager() *mockSupervisorAgentManager {
+	return &mockSupervisorAgentManager{
+		socketPath: filepath.Join("/tmp", "knirvagent-test.sock"),
+		started:    make(map[string]bool),
+	}
+}
+
+func (m *mockSupervisorAgentManager) IsRunning() bool {
+	return len(m.started) > 0
+}
+
+func (m *mockSupervisorAgentManager) HealthCheck(context.Context) error {
+	if len(m.started) == 0 {
+		return context.Canceled
+	}
+	return nil
+}
+
+func (m *mockSupervisorAgentManager) GetBaseURL() string {
+	return "http://localhost"
+}
+
+func (m *mockSupervisorAgentManager) StartAgent(_ context.Context, dveID string, _ time.Duration) error {
+	m.started[dveID] = true
+	return nil
+}
+
+func (m *mockSupervisorAgentManager) RunningCount() int {
+	return len(m.started)
+}
+
+func (m *mockSupervisorAgentManager) GetSocketPathForDVE(dveID string) (string, error) {
+	if !m.started[dveID] {
+		return "", context.Canceled
+	}
+	return m.socketPath, nil
+}
 
 func TestNewDVEHandlers(t *testing.T) {
 	dveManager := &dvemanager.DVEManager{}
@@ -230,6 +276,43 @@ func TestDVEHandlers_GetDVENodeErrorResolutionEndpoint_MissingID(t *testing.T) {
 	require.NoError(t, err)
 	assert.False(t, response.Success)
 	assert.Contains(t, response.Error, "Node ID is required")
+}
+
+func TestDVEHandlers_GetSupervisorAgentSession_LazyProvisionWithoutNodeLookup(t *testing.T) {
+	handlers := NewDVEHandlers(nil, nil)
+	mockMgr := newMockSupervisorAgentManager()
+	handlers.SetKnirvagentManager(mockMgr)
+
+	req := httptest.NewRequest("GET", "/api/dve/test-node/supervisor-agent/session", nil)
+	req = mux.SetURLVars(req, map[string]string{"nodeId": "test-node"})
+	w := httptest.NewRecorder()
+
+	handlers.GetSupervisorAgentSession(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	var response map[string]interface{}
+	require.NoError(t, json.NewDecoder(w.Body).Decode(&response))
+	assert.Equal(t, "/ws/dve/test-node/agent", response["ws_url"])
+	assert.True(t, mockMgr.started["test-node"])
+}
+
+func TestDVEHandlers_GetSupervisorAgentStatus_LazyProvisionWithoutNodeLookup(t *testing.T) {
+	handlers := NewDVEHandlers(nil, nil)
+	mockMgr := newMockSupervisorAgentManager()
+	handlers.SetKnirvagentManager(mockMgr)
+
+	req := httptest.NewRequest("GET", "/api/dve/test-node/supervisor-agent/status", nil)
+	req = mux.SetURLVars(req, map[string]string{"nodeId": "test-node"})
+	w := httptest.NewRecorder()
+
+	handlers.GetSupervisorAgentStatus(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	var response map[string]interface{}
+	require.NoError(t, json.NewDecoder(w.Body).Decode(&response))
+	assert.Equal(t, "online", response["status"])
+	assert.Equal(t, "healthy", response["health"])
+	assert.True(t, mockMgr.started["test-node"])
 }
 
 func TestDVEHandlers_RegisterRoutes(t *testing.T) {

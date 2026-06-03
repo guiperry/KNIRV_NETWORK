@@ -90,7 +90,6 @@ export function DVEVerificationIframe({ isOpen, onClose, dveId, dveName }: DVEVe
           src={dvePageUrl}
           className="w-full h-full border-0"
           title={`DVE File Manager — ${dveName || dveId}`}
-          sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
           onLoad={() => setLoading(false)}
           onError={() => { setLoading(false); setError(true); }}
         />

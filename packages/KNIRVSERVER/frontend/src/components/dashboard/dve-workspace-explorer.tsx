@@ -92,8 +92,7 @@ export function DVEWorkspaceExplorer({ isOpen, onClose, dveId, dveName, initialT
           src={dvePageUrl}
           className="w-full h-full border-0"
           title={`DVE File Manager — ${dveName || dveId}`}
-          sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
-          onLoad={() => setLoading(false)}
+onLoad={() => setLoading(false)}
           onError={() => { setLoading(false); setError(true); }}
         />
       )}

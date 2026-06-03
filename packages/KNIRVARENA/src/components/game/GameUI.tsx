@@ -5,7 +5,6 @@ import { SabotageType } from '../../engine/Sabotage';
 import VerifierOverlay from './VerifierOverlay';
 import EpochResultsPanel from './EpochResultsPanel';
 import { initializeTournamentController } from '../../engine/TournamentControllerIntegration';
-import { GameMenu } from './GameMenu';
 import { AgentManagementModal } from '../modals/AgentManagementModal';
 
 interface SubAgent {
@@ -30,7 +29,6 @@ export default function GameUI() {
     selectErrorNode,
     selectedAgent,
     selectAgent,
-    startGame,
     pauseGame,
     createAgent,
     deployAgent,
@@ -109,11 +107,6 @@ export default function GameUI() {
 
   return (
     <div className="fixed inset-0 pointer-events-none z-[100000]">
-      {/* ── Game Menu ── */}
-      {gamePhase === 'menu' && (
-        <GameMenu onStart={startGame} usingMockLLM={usingMockLLM} />
-      )}
-
       {/* ── Top bar ──────────────────────────────────────────────────────── */}
       {gamePhase !== 'menu' && (
         <div className="absolute top-4 left-4 right-4 flex gap-3 z-50 flex-wrap pointer-events-auto">

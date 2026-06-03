@@ -722,50 +722,11 @@ func serverCmd() {
 		os.Exit(1)
 	}
 
-	// Remove any existing socket file
+	// Create the Unix socket IMMEDIATELY — before config load or provider init.
+	// This lets the parent's waitForSocket return right away, so startup failures
+	// (missing API keys, bad config) surface as a health-check miss rather than a
+	// 30-second blind wait in the backend handler.
 	os.Remove(socketPath)
-
-	cfg, err := loadConfig()
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error loading config: %v\n", err)
-		os.Exit(1)
-	}
-
-	// Debug: log what the config actually has after loading
-	fmt.Fprintf(os.Stderr, "[KNIRVAGENT] DEBUG: cfg.Providers.Gemini.APIKey=%q (len=%d)\n",
-		cfg.Providers.Gemini.APIKey, len(cfg.Providers.Gemini.APIKey))
-	fmt.Fprintf(os.Stderr, "[KNIRVAGENT] DEBUG: cfg.Providers.DeepSeek.APIKey=%q (len=%d)\n",
-		cfg.Providers.DeepSeek.APIKey, len(cfg.Providers.DeepSeek.APIKey))
-	fmt.Fprintf(os.Stderr, "[KNIRVAGENT] DEBUG: cfg.Providers.ShengSuanYun.APIKey=%q (len=%d)\n",
-		cfg.Providers.ShengSuanYun.APIKey, len(cfg.Providers.ShengSuanYun.APIKey))
-	fmt.Fprintf(os.Stderr, "[KNIRVAGENT] DEBUG: cfg.Providers.OpenRouter.APIKey=%q (len=%d)\n",
-		cfg.Providers.OpenRouter.APIKey, len(cfg.Providers.OpenRouter.APIKey))
-	fmt.Fprintf(os.Stderr, "[KNIRVAGENT] DEBUG: cfg.Agents.Defaults.Provider=%q\n",
-		cfg.Agents.Defaults.Provider)
-	fmt.Fprintf(os.Stderr, "[KNIRVAGENT] DEBUG: cfg.Agents.Defaults.Model=%q\n",
-		cfg.Agents.Defaults.Model)
-
-	// Debug: log whether API keys are available as env vars
-	for _, key := range []string{"GEMINI_API_KEY", "DEEPSEEK_API_KEY", "CEREBRAS_API_KEY", "ANTHROPIC_API_KEY", "OPENAI_API_KEY"} {
-		if val, ok := os.LookupEnv(key); ok && val != "" {
-			fmt.Fprintf(os.Stderr, "[KNIRVAGENT] DEBUG: %s is set (len=%d)\n", key, len(val))
-		} else if ok {
-			fmt.Fprintf(os.Stderr, "[KNIRVAGENT] DEBUG: %s is set but EMPTY\n", key)
-		} else {
-			fmt.Fprintf(os.Stderr, "[KNIRVAGENT] DEBUG: %s is NOT SET\n", key)
-		}
-	}
-
-	provider, err := createProviderWithFallback(cfg)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error creating provider: %v\n", err)
-		os.Exit(1)
-	}
-
-	// Create the Unix socket FIRST so the parent (AgentManager.StartAgent)
-	// sees it immediately via waitForSocket, avoiding the 30-second timeout.
-	// Provider validation runs AFTER this point so it cannot delay socket
-	// visibility regardless of how many fallback providers need to be tested.
 	listener, err := net.Listen("unix", socketPath)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error listening on socket %s: %v\n", socketPath, err)
@@ -776,6 +737,18 @@ func serverCmd() {
 
 	// Set permissions so the backend_server can connect
 	os.Chmod(socketPath, 0666)
+
+	cfg, err := loadConfig()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error loading config: %v\n", err)
+		os.Exit(1)
+	}
+
+	provider, err := createProviderWithFallback(cfg)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error creating provider: %v\n", err)
+		os.Exit(1)
+	}
 
 	// Build runtime fallback providers and validate the primary provider.
 	// Runs after socket creation so the parent's waitForSocket already succeeded.

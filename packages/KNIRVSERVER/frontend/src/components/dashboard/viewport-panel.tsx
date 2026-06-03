@@ -151,7 +151,6 @@ const ViewportPanel: React.FC<ViewportPanelProps> = ({
             src={loadedUrl}
             className="w-full h-full border-0"
             title={`DVE Viewport — ${nodeName || 'Container UI'}`}
-            sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals"
             onLoad={() => setIsLoading(false)}
             onError={() => { setIsLoading(false); setLoadError(true); }}
           />

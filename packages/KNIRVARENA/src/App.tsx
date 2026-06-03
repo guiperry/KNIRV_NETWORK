@@ -6,7 +6,6 @@ import { initSentry } from './utils/sentry';
 
 // Receiver components
 import { KnirvShell } from './components/KnirvShell';
-import { GameMenu } from './components/game/GameMenu';
 
 import { NetworkStatus } from './components/NetworkStatus';
 import { NRVVisualization } from './components/NRVVisualization';
@@ -185,7 +184,6 @@ const ReceiverInterface = () => {
   const gamePhase = gameStore.gamePhase;
   const [shellStatus, setShellStatus] = useState<'idle' | 'processing' | 'listening' | 'error'>('idle');
   const [isVoiceActive, setIsVoiceActive] = useState(false);
-  const [hasSeenIntro, setHasSeenIntro] = useState(false);
   const [currentNRVs, setCurrentNRVs] = useState<NRV[]>([]);
   const [selectedNRV, setSelectedNRV] = useState<NRV | null>(null);
   const [availableAgents, setAvailableAgents] = useState<Agent[]>([]);
@@ -796,18 +794,6 @@ const ReceiverInterface = () => {
           onUDCOpen={handleUDCOpen}
           onWalletOpen={handleWalletOpen}
         />
-
-        {gamePhase === 'menu' && !hasSeenIntro && (
-          <div className="absolute inset-0 z-[999999] pointer-events-auto">
-            <GameMenu 
-              onStart={() => {
-                gameStore.startGame();
-                setHasSeenIntro(true);
-              }} 
-              usingMockLLM={gameStore.usingMockLLM}
-            />
-          </div>
-        )}
 
         <NRVVisualization
           nrvs={currentNRVs}

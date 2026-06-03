@@ -462,7 +462,6 @@ export const AgentCommandCenter: React.FC<AgentCommandCenterProps> = ({
                   title="Agent Viewport"
                   className="w-full"
                   style={{ height: '480px', border: 'none' }}
-                  sandbox="allow-scripts allow-same-origin allow-forms"
                   data-testid="agent-viewport-iframe"
                 />
               </div>

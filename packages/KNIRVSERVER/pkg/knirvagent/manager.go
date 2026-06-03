@@ -205,6 +205,43 @@ func (am *AgentManager) SetWorkspaceResolver(resolver func(dveID string) (string
 	am.workspaceResolver = resolver
 }
 
+// applyWorkspaceResolver exports the per-DVE workspace into the subprocess
+// environment when a resolver is configured.
+func (am *AgentManager) applyWorkspaceResolver(cmd *exec.Cmd, dveID string) {
+	am.mu.RLock()
+	resolver := am.workspaceResolver
+	am.mu.RUnlock()
+	if resolver == nil {
+		return
+	}
+
+	wsPath, err := resolver(dveID)
+	if err != nil {
+		am.logger.Warn("KNIRVAGENT workspace resolver failed",
+			zap.String("dveID", dveID),
+			zap.Error(err),
+		)
+		return
+	}
+
+	wsPath = strings.TrimSpace(wsPath)
+	if wsPath == "" {
+		am.logger.Warn("KNIRVAGENT workspace resolver returned an empty path",
+			zap.String("dveID", dveID),
+		)
+		return
+	}
+
+	cmd.Env = append(cmd.Env,
+		fmt.Sprintf("KNIRV_AGENTS_DEFAULTS_WORKSPACE=%s", wsPath),
+		"KNIRV_AGENTS_DEFAULTS_RESTRICT_TO_WORKSPACE=true",
+	)
+	am.logger.Info("KNIRVAGENT workspace resolved",
+		zap.String("dveID", dveID),
+		zap.String("workspace", wsPath),
+	)
+}
+
 // StartAgent spawns a new KNIRVAGENT subprocess for the given DVE ID.
 // It blocks until the agent's socket is ready (up to StartTimeout).
 func (am *AgentManager) StartAgent(ctx context.Context, dveID string, startTimeout time.Duration) (*AgentProcess, error) {
@@ -266,17 +303,7 @@ func (am *AgentManager) StartAgent(ctx context.Context, dveID string, startTimeo
 
 	// If we have a per-DVE workspace resolver, export it for this subprocess so
 	// both the supervisor and inner PTY sessions operate on the DVE workspace.
-	am.mu.RLock()
-	resolver := am.workspaceResolver
-	am.mu.RUnlock()
-	if resolver != nil {
-		if wsPath, err := resolver(dveID); err == nil && wsPath != "" {
-			cmd.Env = append(cmd.Env,
-				fmt.Sprintf("KNIRV_AGENTS_DEFAULTS_WORKSPACE=%s", wsPath),
-				"KNIRV_AGENTS_DEFAULTS_RESTRICT_TO_WORKSPACE=true",
-			)
-		}
-	}
+	am.applyWorkspaceResolver(cmd, dveID)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.SysProcAttr = &syscall.SysProcAttr{

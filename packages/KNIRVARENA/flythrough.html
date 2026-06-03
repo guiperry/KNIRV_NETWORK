@@ -26,6 +26,14 @@
 </head>
 <body>
 
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js"
+        }
+    }
+    </script>
+
     <div id="ui">
         <div class="data-header">NODE_VELOCITY</div>
         <div id="speedometer">0.00 u/s</div>
@@ -54,7 +62,7 @@
     </div>
 
     <script type="module">
-      import * as THREE from '/three.module.min.js';
+      import * as THREE from 'three';
       window.THREE = THREE;
 
       // Now run the main code
