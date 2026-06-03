@@ -336,7 +336,7 @@ export default function ConstellationMenu() {
                 </svg>
                 <span className="relative z-10 text-xl font-bold tracking-[0.15em] text-white"
                   style={{ textShadow: "0 0 10px rgba(255, 255, 255, 0.8), 0 0 20px rgba(72, 136, 255,0.6)" }}>
-                  KNIRVANA
+                  KNIRVARENA
                 </span>
               </div>
               <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full"
@@ -449,7 +449,7 @@ export default function ConstellationMenu() {
               }}
             >
               <span className="text-xl font-bold tracking-[0.15em] text-white" style={{ textShadow: "0 0 20px rgba(255,255,255,0.9)" }}>
-                KNIRVANA
+                KNIRVARENA
               </span>
             </motion.div>
           </motion.div>

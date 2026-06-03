@@ -119,7 +119,7 @@ export default function GameUI() {
         <div className="absolute top-4 left-4 right-4 flex gap-3 z-50 flex-wrap pointer-events-auto">
           {/* Game title / phase */}
           <div className="bg-gray-900/80 backdrop-blur-sm border border-cyan-500/30 rounded-lg p-3 flex-shrink-0">
-            <div className="text-cyan-400 font-bold">KNIRVANA</div>
+            <div className="text-cyan-400 font-bold">KNIRVARENA</div>
             <div className="text-gray-400 text-xs">
               Phase: <span className="text-cyan-300">{gamePhase}</span>
               {usingMockLLM && (

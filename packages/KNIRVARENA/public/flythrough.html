@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ERGO | Deep Blue Stream</title>
+    <title>KNIRVARENA</title>
     <style>
         body { margin: 0; overflow: hidden; background: #000510; font-family: 'Courier New', monospace; color: #00ffff; }
         #ui { position: absolute; top: 20px; left: 20px; pointer-events: none; }
@@ -36,7 +36,7 @@
         <div class="data-header">>> PACKET_LOSS_STABILIZED</div>
         <h2 id="node-id" style="margin: 10px 0;">NODE_0x0000</h2>
         <p style="font-size: 12px; line-height: 1.6; color: #aaccff;">Sub-cluster identified. Converging on global minimum. Adjusting weights for local rewards.</p>
-        <button onclick="enterNode()">INJECT_RFT_AGENT</button>
+        <button onclick="enterNode()">ENTER ARENA</button>
         <button onclick="nextCluster()">Bypass Cluster</button>
     </div>
 
@@ -154,7 +154,13 @@
             scene.remove(currentCluster);
             currentCluster = createCluster(camera.position.z - 350);
         };
-        window.enterNode = () => console.log("Initializing Node Interface...");
+        window.enterNode = () => {
+            if (window.top !== window.self) {
+                window.parent.postMessage({ type: 'CLOSE_TRAVERSE_CLUSTERS' }, '*');
+            } else {
+                window.location.href = './?arena=1';
+            }
+        };
         window.closeNodePanel = () => {
             document.getElementById('node-panel').classList.remove('visible');
         };
@@ -399,7 +405,13 @@
             scene.remove(currentCluster);
             currentCluster = createCluster(camera.position.z - 350);
         };
-        window.enterNode = () => console.log("Initializing Node Interface...");
+        window.enterNode = () => {
+            if (window.top !== window.self) {
+                window.parent.postMessage({ type: 'CLOSE_TRAVERSE_CLUSTERS' }, '*');
+            } else {
+                window.location.href = './?arena=1';
+            }
+        };
         window.closeNodePanel = () => {
             document.getElementById('node-panel').classList.remove('visible');
         };

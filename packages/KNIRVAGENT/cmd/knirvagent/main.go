@@ -762,21 +762,10 @@ func serverCmd() {
 		os.Exit(1)
 	}
 
-	// Build runtime fallback providers so the agent can switch on auth errors.
-	// We pre-create each provider here (at startup) so there's no overhead at
-	// the time of the actual fallback.
-	runtimeFallbacks := buildRuntimeFallbacks(cfg)
-
-	// Validate the primary provider with a quick test call and promote the
-	// first working fallback when the primary key is invalid.  This runs before
-	// the socket is created so the parent (AgentManager) always sees the
-	// correct provider name in the health endpoint.
-	provider, runtimeFallbacks = validateAndPromoteProvider(provider, cfg, runtimeFallbacks)
-
-	// Create the Unix socket FIRST, before any potentially-blocking agent
-	// initialization.  This ensures the parent (AgentManager.StartAgent)
-	// sees the socket immediately via waitForSocket, avoiding the 30-second
-	// timeout that would otherwise kill the agent process.
+	// Create the Unix socket FIRST so the parent (AgentManager.StartAgent)
+	// sees it immediately via waitForSocket, avoiding the 30-second timeout.
+	// Provider validation runs AFTER this point so it cannot delay socket
+	// visibility regardless of how many fallback providers need to be tested.
 	listener, err := net.Listen("unix", socketPath)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error listening on socket %s: %v\n", socketPath, err)
@@ -787,6 +776,13 @@ func serverCmd() {
 
 	// Set permissions so the backend_server can connect
 	os.Chmod(socketPath, 0666)
+
+	// Build runtime fallback providers and validate the primary provider.
+	// Runs after socket creation so the parent's waitForSocket already succeeded.
+	// Any requests that arrive during validation are held in the kernel accept
+	// queue and processed once http.Serve starts below.
+	runtimeFallbacks := buildRuntimeFallbacks(cfg)
+	provider, runtimeFallbacks = validateAndPromoteProvider(provider, cfg, runtimeFallbacks)
 
 	msgBus := bus.NewMessageBus()
 	agentLoop := agent.NewAgentLoop(cfg, msgBus, provider)

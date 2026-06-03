@@ -4,8 +4,8 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="./vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Error Resolution Gamming Operation</title>
-    <meta name="description" content="KNIRV Controller - Unified cognitive shell and management interface" />
+    <title>KNIRVARENA</title>
+    <meta name="description" content="KNIRVARENA - Decentralized Trusted Execution Network" />
 
     <!-- PWA Manifest -->
     <link rel="manifest" href="./manifest.json" />
@@ -14,7 +14,7 @@
     <meta name="theme-color" content="#1e40af" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta name="apple-mobile-web-app-title" content="KNIRV Controller" />
+    <meta name="apple-mobile-web-app-title" content="KNIRVARENA" />
     <meta name="mobile-web-app-capable" content="yes" />
 
     <!-- Apple Touch Icons -->
@@ -93,10 +93,17 @@
       <!-- Loading screen shown while app initializes -->
       <div class="loading-screen" id="loading-screen">
         <div class="loading-spinner"></div>
-        <div class="loading-text">Initializing ERGO ARENA...</div>
+        <div class="loading-text">Loading KNIRVARENA...</div>
       </div>
     </div>
     
+    <script>
+      // Redirect to flythrough.html as the landing page (unless returning from flythrough)
+      if (!window.location.search.includes('arena=1')) {
+        window.location.replace('flythrough.html');
+      }
+    </script>
+
     <!-- PWA Installation Script -->
     <script type="module" src="/install.js"></script>
 
@@ -126,7 +133,7 @@
         console.error('Unhandled promise rejection:', event.reason);
       });
 
-      // Service Worker Registration (guard non-secure contexts like file://)
+      // Service Worker Registration
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
           const isSecureContext = (location.protocol === 'https:' || location.protocol === 'http:');
@@ -137,14 +144,11 @@
           navigator.serviceWorker.register('./sw.js')
             .then((registration) => {
               console.log('SW registered: ', registration);
-
-              // Check for updates
               registration.addEventListener('updatefound', () => {
                 const newWorker = registration.installing;
                 if (newWorker) {
                   newWorker.addEventListener('statechange', () => {
                     if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                      // New content is available, prompt user to refresh
                       if (confirm('New version available! Refresh to update?')) {
                         window.location.reload();
                       }
