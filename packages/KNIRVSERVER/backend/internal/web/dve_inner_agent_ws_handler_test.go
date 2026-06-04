@@ -1,9 +1,11 @@
 package web_test
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"backend_server/internal/web"
 
@@ -20,6 +22,10 @@ type mockInnerAgentMgr struct {
 
 func (m *mockInnerAgentMgr) InnerAgentClient(dveID string) (*http.Client, string, error) {
 	return m.client, m.socketPath, m.err
+}
+
+func (m *mockInnerAgentMgr) StartAgent(context.Context, string, time.Duration) error {
+	return nil
 }
 
 // ── Constructor ──────────────────────────────────────────────────────────────

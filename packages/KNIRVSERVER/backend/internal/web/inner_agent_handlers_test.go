@@ -1,11 +1,13 @@
 package web_test
 
 import (
+	"context"
 	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"backend_server/internal/web"
 
@@ -26,6 +28,10 @@ func (m *mockInnerAgentProxy) ForwardToInnerAgent(dveID, method, path string, bo
 
 func (m *mockInnerAgentProxy) GetSocketPath(dveID string) (string, error) {
 	return m.path, m.err
+}
+
+func (m *mockInnerAgentProxy) StartAgent(context.Context, string, time.Duration) error {
+	return nil
 }
 
 // ── Constructor ──────────────────────────────────────────────────────────────

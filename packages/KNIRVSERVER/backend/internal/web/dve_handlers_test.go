@@ -278,7 +278,7 @@ func TestDVEHandlers_GetDVENodeErrorResolutionEndpoint_MissingID(t *testing.T) {
 	assert.Contains(t, response.Error, "Node ID is required")
 }
 
-func TestDVEHandlers_GetSupervisorAgentSession_LazyProvisionWithoutNodeLookup(t *testing.T) {
+func TestDVEHandlers_GetSupervisorAgentSession_OnDemandStart(t *testing.T) {
 	handlers := NewDVEHandlers(nil, nil)
 	mockMgr := newMockSupervisorAgentManager()
 	handlers.SetKnirvagentManager(mockMgr)
@@ -293,7 +293,7 @@ func TestDVEHandlers_GetSupervisorAgentSession_LazyProvisionWithoutNodeLookup(t 
 	var response map[string]interface{}
 	require.NoError(t, json.NewDecoder(w.Body).Decode(&response))
 	assert.Equal(t, "/ws/dve/test-node/agent", response["ws_url"])
-	assert.False(t, mockMgr.started["test-node"])
+	assert.True(t, mockMgr.started["test-node"])
 }
 
 func TestDVEHandlers_GetSupervisorAgentStatus_LazyProvisionWithoutNodeLookup(t *testing.T) {

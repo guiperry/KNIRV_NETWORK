@@ -2,7 +2,9 @@ package web
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"log"
 	"net/http"
@@ -15,6 +17,7 @@ import (
 
 type InnerAgentManagerInterface interface {
 	InnerAgentClient(dveID string) (*http.Client, string, error)
+	StartAgent(ctx context.Context, dveID string, startTimeout time.Duration) error
 }
 
 type DVEInnerAgentWSHandler struct {
@@ -53,6 +56,25 @@ func NewDVEInnerAgentWSHandler(mgr InnerAgentManagerInterface) *DVEInnerAgentWSH
 	}
 }
 
+func (h *DVEInnerAgentWSHandler) ensureInnerAgentReady(ctx context.Context, dveID string) error {
+	if h.agentManager == nil {
+		return errors.New("agent manager not available")
+	}
+
+	if _, _, err := h.agentManager.InnerAgentClient(dveID); err == nil {
+		return nil
+	}
+
+	startCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+
+	if err := h.agentManager.StartAgent(startCtx, dveID, 30*time.Second); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (h *DVEInnerAgentWSHandler) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	dveID := vars["dveId"]
@@ -67,10 +89,9 @@ func (h *DVEInnerAgentWSHandler) HandleWebSocket(w http.ResponseWriter, r *http.
 		return
 	}
 
-	_, _, err := h.agentManager.InnerAgentClient(dveID)
-	if err != nil {
+	if err := h.ensureInnerAgentReady(r.Context(), dveID); err != nil {
 		log.Printf("[DVE Inner Agent WS] No agent for DVE %s: %v", dveID, err)
-		http.Error(w, "no agent for DVE: "+err.Error(), http.StatusNotFound)
+		http.Error(w, "KNIRVAGENT inner agent not available: "+err.Error(), http.StatusServiceUnavailable)
 		return
 	}
 
@@ -259,4 +280,3 @@ func (h *DVEInnerAgentWSHandler) RegisterRoutes(r *mux.Router) {
 	r.HandleFunc("/ws/dve/{dveId}/inner/stream/{sessionId}", h.HandleWebSocket)
 	r.HandleFunc("/ws/dve/{dveId}/inner", h.HandleWebSocket)
 }
-

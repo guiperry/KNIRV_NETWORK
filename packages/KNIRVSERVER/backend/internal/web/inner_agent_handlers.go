@@ -1,9 +1,12 @@
 package web
 
 import (
+	"context"
+	"errors"
 	"io"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/gorilla/mux"
 )
@@ -11,6 +14,7 @@ import (
 type InnerAgentManagerProxy interface {
 	ForwardToInnerAgent(dveID, method, path string, body io.Reader) (*http.Response, error)
 	GetSocketPath(dveID string) (string, error)
+	StartAgent(ctx context.Context, dveID string, startTimeout time.Duration) error
 }
 
 type InnerAgentHandlers struct {
@@ -19,6 +23,25 @@ type InnerAgentHandlers struct {
 
 func NewInnerAgentHandlers(proxy InnerAgentManagerProxy) *InnerAgentHandlers {
 	return &InnerAgentHandlers{proxy: proxy}
+}
+
+func (h *InnerAgentHandlers) ensureInnerAgentReady(ctx context.Context, dveID string) error {
+	if h.proxy == nil {
+		return errors.New("inner agent manager not available")
+	}
+
+	if _, err := h.proxy.GetSocketPath(dveID); err == nil {
+		return nil
+	}
+
+	startCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+
+	if err := h.proxy.StartAgent(startCtx, dveID, 30*time.Second); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (h *InnerAgentHandlers) RegisterRoutes(r *mux.Router) {
@@ -33,10 +56,16 @@ func (h *InnerAgentHandlers) RegisterRoutes(r *mux.Router) {
 }
 
 func (h *InnerAgentHandlers) forward(w http.ResponseWriter, r *http.Request, dveID, innerPath string) {
+	if err := h.ensureInnerAgentReady(r.Context(), dveID); err != nil {
+		log.Printf("[InnerAgent] Ready check failed DVE=%s path=%s: %v", dveID, innerPath, err)
+		http.Error(w, "KNIRVAGENT inner agent not available: "+err.Error(), http.StatusServiceUnavailable)
+		return
+	}
+
 	resp, err := h.proxy.ForwardToInnerAgent(dveID, r.Method, innerPath, r.Body)
 	if err != nil {
 		log.Printf("[InnerAgent] Forward error DVE=%s path=%s: %v", dveID, innerPath, err)
-		http.Error(w, err.Error(), http.StatusBadGateway)
+		http.Error(w, "KNIRVAGENT inner agent proxy failed: "+err.Error(), http.StatusBadGateway)
 		return
 	}
 	defer resp.Body.Close()
@@ -96,6 +125,11 @@ func (h *InnerAgentHandlers) HandleSessionStream(w http.ResponseWriter, r *http.
 	dveID := mux.Vars(r)["dveId"]
 	sessionID := mux.Vars(r)["sessionId"]
 
+	if err := h.ensureInnerAgentReady(r.Context(), dveID); err != nil {
+		http.Error(w, "KNIRVAGENT inner agent not available: "+err.Error(), http.StatusServiceUnavailable)
+		return
+	}
+
 	w.Header().Set("Content-Type", "application/octet-stream")
 	w.Header().Set("Transfer-Encoding", "chunked")
 	w.Header().Set("X-Accel-Buffering", "no")
@@ -125,5 +159,3 @@ func (h *InnerAgentHandlers) HandleSessionStream(w http.ResponseWriter, r *http.
 		}
 	}
 }
-
-

@@ -1016,6 +1016,17 @@ func (h *DVEHandlers) GetSupervisorAgentSession(w http.ResponseWriter, r *http.R
 	running := false
 	if _, err := h.knirvagentManager.GetSocketPathForDVE(nodeID); err == nil {
 		running = true
+	} else {
+		startCtx, cancel := context.WithTimeout(r.Context(), 30*time.Second)
+		defer cancel()
+		if err := h.knirvagentManager.StartAgent(startCtx, nodeID, 30*time.Second); err != nil {
+			w.WriteHeader(http.StatusServiceUnavailable)
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"error": "KNIRVAGENT could not start for this DVE: " + err.Error(),
+			})
+			return
+		}
+		running = true
 	}
 
 	json.NewEncoder(w).Encode(map[string]interface{}{
