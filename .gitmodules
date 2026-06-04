@@ -1,3 +1,6 @@
 [submodule "packages/KNIRVBASE"]
   path = packages/KNIRVBASE
   url = https://github.com/knirvcorp/knirvbase.git
+[submodule "websites/KNIRV_DECK"]
+  path = websites/KNIRV_DECK
+  url = https://github.com/guiperry/KNIRV_DECK.git

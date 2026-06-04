@@ -140,7 +140,7 @@ const TestRunner = ({ repoUrl, agentConfig }: TestRunnerProps) => {
             <Button 
               onClick={runAutoFix}
               disabled={isRunning}
-              className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
+              className="w-full bg-gradient-to-r from-blue-400 to-blue-700 hover:from-blue-500 hover:to-blue-800"
             >
               <Zap className="w-4 h-4 mr-2" />
               Run with Auto-Fix

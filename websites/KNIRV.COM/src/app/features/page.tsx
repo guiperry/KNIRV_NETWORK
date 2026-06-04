@@ -5,6 +5,7 @@ import { Bot, Zap, Globe, Settings, Sparkles, CheckCircle, Cpu, Shield, BarChart
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import Link from 'next/link';
+import KnirvLogo from '@/components/KnirvLogo'
 
 export default function Features() {
   const features = [
@@ -52,12 +53,7 @@ export default function Features() {
       <nav className="dve-nav">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            <Link href="/" className="flex items-center space-x-2" aria-label="Go to homepage">
-              <Bot className="h-8 w-8 knirv-text-primary" />
-              <span className="text-2xl font-bold knirv-gradient-text">
-                KNIRV
-              </span>
-            </Link>
+            <KnirvLogo />
           </div>
         </div>
       </nav>

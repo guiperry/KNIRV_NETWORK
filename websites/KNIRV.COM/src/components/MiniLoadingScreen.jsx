@@ -53,9 +53,9 @@ const MiniLoadingScreen = ({
       {/* Animated Icon */}
       <div className="relative">
         {animated && (
-          <div className="absolute inset-0 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full animate-pulse opacity-20 scale-150"></div>
+          <div className="absolute inset-0 bg-gradient-to-r from-blue-400 to-blue-700 rounded-full animate-pulse opacity-20 scale-150"></div>
         )}
-        <div className={`relative ${currentSize.padding} ${isLogoIcon ? 'bg-white rounded-xl' : 'bg-gradient-to-r from-purple-500/20 to-blue-500/20 rounded-full'} border border-purple-500/30`}>
+        <div className={`relative ${currentSize.padding} ${isLogoIcon ? 'bg-white rounded-xl' : 'bg-gradient-to-r from-blue-400/20 to-blue-700/20 rounded-full'} border border-blue-500/30`}>
           {isLogoIcon ? (
             isLoaded ? (
               <img
@@ -70,19 +70,19 @@ const MiniLoadingScreen = ({
               />
             ) : (
               <div className="flex items-center justify-center h-full w-full">
-                <div className={`w-4 h-4 border-2 border-purple-500 border-t-transparent rounded-full animate-spin`}></div>
+                <div className={`w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin`}></div>
               </div>
             )
           ) : (
-            <IconComponent className={`${currentSize.icon} text-purple-400 ${animated ? 'animate-pulse' : ''}`} />
+            <IconComponent className={`${currentSize.icon} text-blue-400 ${animated ? 'animate-pulse' : ''}`} />
           )}
           {/* Fallback icon for logo */}
           {isLogoIcon && (
-            <Zap className={`${currentSize.icon} text-purple-400 ${animated ? 'animate-pulse' : ''} hidden`} />
+            <Zap className={`${currentSize.icon} text-blue-400 ${animated ? 'animate-pulse' : ''} hidden`} />
           )}
         </div>
         {animated && (
-          <div className="absolute inset-0 border-2 border-purple-500/30 rounded-full animate-ping"></div>
+          <div className="absolute inset-0 border-2 border-blue-500/30 rounded-full animate-ping"></div>
         )}
       </div>
 
@@ -97,7 +97,7 @@ const MiniLoadingScreen = ({
           <div className="w-full space-y-2">
             <div className={`w-full bg-slate-700/50 rounded-full ${currentSize.progress} overflow-hidden`}>
               <div 
-                className="h-full bg-gradient-to-r from-purple-500 to-blue-500 transition-all duration-500 ease-out"
+                className="h-full bg-gradient-to-r from-blue-400 to-blue-700 transition-all duration-500 ease-out"
                 style={{ width: `${Math.min(100, Math.max(0, progress))}%` }}
               ></div>
             </div>
@@ -110,9 +110,9 @@ const MiniLoadingScreen = ({
         {/* Animated Dots (when no progress bar) */}
         {(!showProgress || progress === null) && animated && (
           <div className="flex justify-center space-x-1">
-            <div className="w-1.5 h-1.5 bg-purple-400 rounded-full animate-bounce"></div>
+            <div className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-bounce"></div>
             <div className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-            <div className="w-1.5 h-1.5 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+            <div className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
           </div>
         )}
       </div>

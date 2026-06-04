@@ -1,27 +1,17 @@
 import React from 'react'
 import Link from 'next/link'
-import Image from 'next/image'
+import { Network } from 'lucide-react'
 
 export default function KnirvLogo() {
   return (
     <Link href="/" data-config-nav="home" className="flex items-center gap-3 group" aria-label="Go to homepage">
-      <div className="relative flex h-11 w-11 items-center justify-center rounded-2xl border border-white/10 bg-[#0d1628] shadow-[0_0_0_1px_rgba(0,212,255,0.08),0_18px_40px_rgba(0,0,0,0.25)]">
-        <Image
-          src="/logo/knirv-logo.png"
-          alt="KNIRV Logo"
-          fill
-          style={{ objectFit: 'contain' }}
-          className="drop-shadow-[0_0_20px_rgba(0,212,255,0.18)]"
-        />
-      </div>
-      <div className="leading-none">
-        <span className="block text-2xl font-extrabold tracking-tight knirv-gradient-text">KNIRV</span>
-        <div className="mt-1 text-[10px] leading-tight tracking-[0.22em] text-white/60 uppercase">
-          Key Neural Intelligence
-          <br />
-          Reasoning Validation
+      <div className="relative">
+        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-400 flex items-center justify-center">
+          <Network className="w-4 h-4 text-white" />
         </div>
+        <div className="absolute inset-0 rounded-lg bg-blue-500/40 blur-sm -z-10" />
       </div>
+      <span className="text-xl font-black tracking-tight text-white">KNIRV</span>
     </Link>
   )
 }

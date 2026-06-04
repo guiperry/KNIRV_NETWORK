@@ -21,7 +21,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={fontClass}>
+      <body className={`${fontClass} bg-[#040810] text-white`}>
         <AuthProvider>
           <OnboardingProvider>
             <ChatProvider>

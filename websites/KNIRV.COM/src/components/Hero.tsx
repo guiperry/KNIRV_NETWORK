@@ -283,9 +283,9 @@ const Hero = ({ onGetStarted }: HeroProps) => {
               {/* Zero-Copy Memory */}
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <div className="group p-6 bg-white/5 border border-white/10 rounded-2xl hover:border-purple-500/50 hover:bg-white/10 transition-all cursor-pointer">
-                    <div className="flex items-center justify-center w-12 h-12 bg-purple-500/10 rounded-xl mb-4 group-hover:bg-purple-500/20 transition-colors">
-                      <Cpu className="w-6 h-6 text-purple-400" />
+                  <div className="group p-6 bg-white/5 border border-white/10 rounded-2xl hover:border-blue-500/50 hover:bg-white/10 transition-all cursor-pointer">
+                    <div className="flex items-center justify-center w-12 h-12 bg-blue-500/10 rounded-xl mb-4 group-hover:bg-blue-500/20 transition-colors">
+                      <Cpu className="w-6 h-6 text-blue-400" />
                     </div>
                     <h3 className="font-bold text-white mb-2">Zero-Copy Memory</h3>
                     <p className="text-sm text-slate-400">Direct binary context streaming to agent memory</p>
@@ -294,17 +294,17 @@ const Hero = ({ onGetStarted }: HeroProps) => {
                 <TooltipContent side="bottom" className="max-w-sm p-4 bg-slate-900 border-slate-700">
                   <div className="space-y-3">
                     <div className="flex items-center space-x-2">
-                      <Cpu className="w-5 h-5 text-purple-400" />
+                      <Cpu className="w-5 h-5 text-blue-400" />
                       <span className="font-bold text-white">Zero-Copy Memory Architecture</span>
                     </div>
                     <p className="text-xs text-slate-300">Direct memory access without serialization overhead</p>
                     <div className="space-y-2">
-                      <div className="p-2 bg-purple-500/5 rounded border border-purple-500/20">
-                        <div className="text-xs font-bold text-purple-400 mb-1">Schema Discovery</div>
+                      <div className="p-2 bg-blue-500/5 rounded border border-blue-500/20">
+                        <div className="text-xs font-bold text-blue-400 mb-1">Schema Discovery</div>
                         <p className="text-xs text-slate-400">Returns location and schema of specific memory batches for efficient access</p>
                       </div>
-                      <div className="p-2 bg-purple-500/5 rounded border border-purple-500/20">
-                        <div className="text-xs font-bold text-purple-400 mb-1">Direct Memory Streaming</div>
+                      <div className="p-2 bg-blue-500/5 rounded border border-blue-500/20">
+                        <div className="text-xs font-bold text-blue-400 mb-1">Direct Memory Streaming</div>
                         <p className="text-xs text-slate-400">Streams binary context directly to the agent&apos;s memory space without copying</p>
                       </div>
                     </div>

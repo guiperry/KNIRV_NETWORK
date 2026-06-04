@@ -413,8 +413,8 @@ export function PolicyCertsModal({ isOpen, onClose, onSave, initialCerts = [], i
           {/* Custom Rules Section */}
           <div className="border-t border-white/10 pt-6 mt-6">
             <div className="flex items-center gap-3 mb-4">
-              <div className="p-2 bg-purple-600/20 rounded-lg">
-                <Cpu className="text-purple-500" size={20} />
+              <div className="p-2 bg-blue-600/20 rounded-lg">
+                <Cpu className="text-blue-500" size={20} />
               </div>
               <div>
                 <h3 className="font-bold text-white">Custom Rules</h3>
@@ -474,7 +474,7 @@ export function PolicyCertsModal({ isOpen, onClose, onSave, initialCerts = [], i
             </ScrollArea>
 
             {showAddRuleForm ? (
-              <div className="p-4 bg-white/5 border border-purple-500/30 rounded-xl space-y-4">
+              <div className="p-4 bg-white/5 border border-blue-500/30 rounded-xl space-y-4">
                 <div className="space-y-2">
                   <Label className="text-xs uppercase font-bold text-slate-500 tracking-wider">
                     Rule Name *
@@ -546,7 +546,7 @@ export function PolicyCertsModal({ isOpen, onClose, onSave, initialCerts = [], i
                   </Button>
                   <Button
                     onClick={addRule}
-                    className="flex-1 bg-purple-600 hover:bg-purple-500 text-white"
+                    className="flex-1 bg-blue-600 hover:bg-blue-500 text-white"
                   >
                     Add Rule
                   </Button>
@@ -556,7 +556,7 @@ export function PolicyCertsModal({ isOpen, onClose, onSave, initialCerts = [], i
               <Button
                 variant="outline"
                 onClick={() => setShowAddRuleForm(true)}
-                className="w-full border-dashed border-white/20 text-slate-400 hover:text-white hover:border-purple-500/50 hover:bg-purple-500/10"
+                className="w-full border-dashed border-white/20 text-slate-400 hover:text-white hover:border-blue-500/50 hover:bg-blue-500/10"
               >
                 <Plus size={18} className="mr-2" />
                 Add Custom Rule

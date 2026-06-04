@@ -1,9 +1,10 @@
 'use client';
 
 import React from 'react';
-import { Bot, Globe, Code, Database, Smartphone, Cloud, Puzzle, Zap } from 'lucide-react';
+import { Globe, Code, Database, Smartphone, Cloud, Puzzle, Zap } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import KnirvLogo from '@/components/KnirvLogo'
 
 export default function IntegrationsPage() {
   const integrations = [
@@ -57,12 +58,7 @@ export default function IntegrationsPage() {
       <nav className="dve-nav">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-              <div className="flex items-center space-x-2">
-              <Bot className="h-8 w-8 knirv-text-primary" />
-              <span className="text-2xl font-bold knirv-gradient-text">
-                KNIRV
-              </span>
-            </div>
+              <KnirvLogo />
           </div>
         </div>
       </nav>

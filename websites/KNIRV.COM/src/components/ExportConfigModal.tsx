@@ -100,7 +100,7 @@ const ExportConfigModal = ({
       <DialogContent className="bg-slate-900 border-white/10 text-white max-w-2xl max-h-[80vh]">
         <DialogHeader>
           <DialogTitle className="text-white text-xl flex items-center">
-            <FileText className="h-5 w-5 mr-2 text-purple-400" />
+            <FileText className="h-5 w-5 mr-2 text-blue-400" />
             Export Configuration
           </DialogTitle>
           <DialogDescription className="text-white/70">
@@ -137,7 +137,7 @@ const ExportConfigModal = ({
               </Button>
               <Button
                 onClick={handleDownload}
-                className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white"
+                className="bg-gradient-to-r from-blue-400 to-blue-700 hover:from-blue-500 hover:to-blue-800 text-white"
               >
                 <Download className="h-4 w-4 mr-2" />
                 Download

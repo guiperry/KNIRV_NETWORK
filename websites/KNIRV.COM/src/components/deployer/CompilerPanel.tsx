@@ -702,7 +702,7 @@ const CompilerPanel = ({
           <Card className="bg-slate-800/50 border-slate-700">
             <CardHeader>
               <CardTitle className="text-white flex items-center space-x-2">
-                <Package className="w-5 h-5 text-purple-400" />
+                <Package className="w-5 h-5 text-blue-400" />
                 <span>Compiler Settings</span>
               </CardTitle>
             </CardHeader>
@@ -775,14 +775,14 @@ const CompilerPanel = ({
           <Card className="bg-slate-800/50 border-slate-700">
             <CardHeader>
               <CardTitle className="text-white flex items-center space-x-2">
-                <Settings className="w-5 h-5 text-purple-400" />
+                <Settings className="w-5 h-5 text-blue-400" />
                 <span>Advanced Settings</span>
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="space-y-4">
                 <h3 className="text-lg font-medium text-white flex items-center">
-                  <Shield className="w-4 h-4 mr-2 text-purple-400" />
+                  <Shield className="w-4 h-4 mr-2 text-blue-400" />
                   Trusted Execution Environment
                 </h3>
                 
@@ -857,7 +857,7 @@ const CompilerPanel = ({
               
               <div className="space-y-4 pt-2">
                 <h3 className="text-lg font-medium text-white flex items-center">
-                  <Cpu className="w-4 h-4 mr-2 text-purple-400" />
+                  <Cpu className="w-4 h-4 mr-2 text-blue-400" />
                   Agent Capabilities
                 </h3>
                 
@@ -888,7 +888,7 @@ const CompilerPanel = ({
           <Card className="bg-slate-800/50 border-slate-700">
             <CardHeader>
               <CardTitle className="text-white flex items-center space-x-2">
-                <Terminal className="w-5 h-5 text-purple-400" />
+                <Terminal className="w-5 h-5 text-blue-400" />
                 <span>Compiler Logs</span>
               </CardTitle>
             </CardHeader>

@@ -181,11 +181,11 @@ const Dashboard = ({
               </CardContent>
             </Card>
 
-            <Card className="bg-gradient-to-br from-purple-900/20 to-indigo-900/20 border-purple-500/30 backdrop-blur-lg cursor-pointer hover:from-purple-800/30 hover:to-indigo-800/30 transition-all"
+            <Card className="bg-gradient-to-br from-blue-900/20 to-indigo-900/20 border-blue-500/30 backdrop-blur-lg cursor-pointer hover:from-blue-800/30 hover:to-indigo-800/30 transition-all"
                   onClick={() => window.open('https://knirv.com/nexus-portal', '_blank')}>
               <CardContent className="p-6 text-center">
-                <div className="w-12 h-12 bg-purple-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Rocket className="w-6 h-6 text-purple-400" />
+                <div className="w-12 h-12 bg-blue-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Rocket className="w-6 h-6 text-blue-400" />
                 </div>
                 <h3 className="text-lg font-bold text-white mb-2">Deploy to DVE</h3>
                 <p className="text-slate-300 text-sm">
@@ -229,7 +229,7 @@ const Dashboard = ({
                   <Card key={index} className="bg-white/5 border-white/10 backdrop-blur-lg">
                     <CardContent className="p-6">
                       <div className="flex items-center justify-between mb-4">
-                        <stat.icon className="h-8 w-8 text-purple-400" />
+                        <stat.icon className="h-8 w-8 text-blue-400" />
                         <Badge variant="outline" className="border-green-400/50 text-green-400">
                           {stat.change}
                         </Badge>
@@ -245,17 +245,17 @@ const Dashboard = ({
 
               <Tabs defaultValue="overview" className="w-full">
                 <TabsList className="grid w-full grid-cols-4 bg-white/5 border border-white/10">
-                  <TabsTrigger value="overview" className="data-[state=active]:bg-purple-500/20">
+                  <TabsTrigger value="overview" className="data-[state=active]:bg-blue-500/20">
                     Overview
                   </TabsTrigger>
-                  <TabsTrigger value="deployments" className="data-[state=active]:bg-purple-500/20">
+                  <TabsTrigger value="deployments" className="data-[state=active]:bg-blue-500/20">
                     Deployments
                   </TabsTrigger>
-                  <TabsTrigger value="monitoring" className="data-[state=active]:bg-purple-500/20">
+                  <TabsTrigger value="monitoring" className="data-[state=active]:bg-blue-500/20">
                     <Monitor className="h-4 w-4 mr-2" />
                     Monitoring
                   </TabsTrigger>
-                  <TabsTrigger value="settings" className="data-[state=active]:bg-purple-500/20">
+                  <TabsTrigger value="settings" className="data-[state=active]:bg-blue-500/20">
                     Settings
                   </TabsTrigger>
                 </TabsList>
@@ -292,7 +292,7 @@ const Dashboard = ({
                     <Card className="bg-white/5 border-white/10 backdrop-blur-lg">
                       <CardHeader>
                         <CardTitle className="text-white flex items-center">
-                          <Activity className="h-5 w-5 mr-2 text-purple-400" />
+                          <Activity className="h-5 w-5 mr-2 text-blue-400" />
                           Recent Activity
                         </CardTitle>
                       </CardHeader>
@@ -315,7 +315,7 @@ const Dashboard = ({
                   <Card className="bg-white/5 border-white/10 backdrop-blur-lg">
                     <CardHeader>
                       <CardTitle className="text-white flex items-center">
-                        <History className="h-5 w-5 mr-2 text-purple-400" />
+                        <History className="h-5 w-5 mr-2 text-blue-400" />
                         Deployment History
                       </CardTitle>
                       <CardDescription className="text-white/70">
@@ -337,7 +337,7 @@ const Dashboard = ({
                                     variant="outline"
                                     className={`text-xs ${
                                       deployment.environment === 'production'
-                                        ? 'border-purple-400/50 text-purple-400'
+                                        ? 'border-blue-400/50 text-blue-400'
                                         : 'border-blue-400/50 text-blue-400'
                                     }`}
                                   >
@@ -373,7 +373,7 @@ const Dashboard = ({
                       <Card key={index} className="bg-white/5 border-white/10 backdrop-blur-lg">
                         <CardContent className="p-6">
                           <div className="flex items-center justify-between mb-4">
-                            <Monitor className="h-6 w-6 text-purple-400" />
+                            <Monitor className="h-6 w-6 text-blue-400" />
                             <Badge
                               variant="outline"
                               className={`text-xs ${

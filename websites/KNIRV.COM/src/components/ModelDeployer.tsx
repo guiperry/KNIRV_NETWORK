@@ -187,7 +187,7 @@ const ModelDeployer = ({ modelConfig, onDeployed, onConnectToTargets, onCompilat
     switch (stage) {
       case 'preprocessing': return 'text-yellow-400';
       case 'training': return 'text-blue-400';
-      case 'validation': return 'text-purple-400';
+      case 'validation': return 'text-blue-400';
       case 'compilation': return 'text-green-400';
       case 'deployment': return 'text-cyan-400';
       default: return 'text-slate-400';

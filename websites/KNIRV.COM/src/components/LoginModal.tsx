@@ -184,10 +184,10 @@ const LoginModal = ({ open, onOpenChange, onLoginSuccess }: LoginModalProps) => 
         
         <Tabs defaultValue="signin" className="w-full">
           <TabsList className="grid w-full grid-cols-2 bg-white/5 border border-white/10">
-            <TabsTrigger value="signin" className="data-[state=active]:bg-purple-500/20">
+            <TabsTrigger value="signin" className="data-[state=active]:bg-blue-500/20">
               Sign In
             </TabsTrigger>
-            <TabsTrigger value="signup" className="data-[state=active]:bg-purple-500/20">
+            <TabsTrigger value="signup" className="data-[state=active]:bg-blue-500/20">
               Sign Up
             </TabsTrigger>
           </TabsList>
@@ -234,7 +234,7 @@ const LoginModal = ({ open, onOpenChange, onLoginSuccess }: LoginModalProps) => 
               <Button
                 onClick={handleLogin}
                 disabled={isLoading}
-                className="w-full bg-purple-600 hover:bg-purple-700 text-white disabled:opacity-50"
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50"
               >
                 {isLoading ? "Signing In..." : "Sign In"}
               </Button>
@@ -331,7 +331,7 @@ const LoginModal = ({ open, onOpenChange, onLoginSuccess }: LoginModalProps) => 
               <Button
                 onClick={handleSignUp}
                 disabled={isLoading}
-                className="w-full bg-purple-600 hover:bg-purple-700 text-white disabled:opacity-50"
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50"
               >
                 {isLoading ? "Creating Account..." : "Create Account"}
               </Button>

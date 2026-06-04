@@ -16,7 +16,7 @@
     --primary: 191 100% 50%;
     --primary-foreground: 220 40% 5%;
 
-    --secondary: 262 73% 55%;
+    --secondary: 224 76% 48%;
     --secondary-foreground: 227 100% 95%;
 
     --muted: 217 33% 15%;
@@ -35,24 +35,33 @@
     --radius: 0.95rem;
 
     --knirv-primary: #00d4ff;
-    --knirv-secondary: #7c3aed;
+    --knirv-secondary: #1d4ed8;
     --knirv-primary-rgb: 0, 212, 255;
-    --knirv-secondary-rgb: 124, 58, 237;
+    --knirv-secondary-rgb: 29, 78, 216;
   }
 
   html {
     scroll-behavior: smooth;
+    min-height: 100%;
+    background-color: #040810;
     background:
       radial-gradient(circle at top left, rgba(0, 212, 255, 0.14), transparent 28%),
-      radial-gradient(circle at 82% 8%, rgba(124, 58, 237, 0.12), transparent 24%),
+      radial-gradient(circle at 82% 8%, rgba(29, 78, 216, 0.12), transparent 24%),
       linear-gradient(180deg, #040810 0%, #080f1e 42%, #040810 100%);
+    color-scheme: dark;
   }
 
   body {
     @apply bg-background text-foreground antialiased;
+    min-height: 100%;
+    margin: 0;
+    overflow-x: hidden;
+    overscroll-behavior-y: none;
+    background-attachment: fixed;
+    background-color: #040810;
     background:
       radial-gradient(circle at top left, rgba(0, 212, 255, 0.14), transparent 28%),
-      radial-gradient(circle at 82% 8%, rgba(124, 58, 237, 0.12), transparent 24%),
+      radial-gradient(circle at 82% 8%, rgba(29, 78, 216, 0.12), transparent 24%),
       linear-gradient(180deg, #040810 0%, #080f1e 42%, #040810 100%);
     color: hsl(var(--foreground));
     font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -64,6 +73,11 @@
 
   a {
     color: inherit;
+  }
+
+  #__next {
+    min-height: 100%;
+    background-color: #040810;
   }
 
   ::selection {
@@ -123,7 +137,7 @@
     left: 30%;
     width: 500px;
     height: 500px;
-    background: radial-gradient(ellipse, rgba(124, 58, 237, 0.05) 0%, transparent 65%);
+    background: radial-gradient(ellipse, rgba(29, 78, 216, 0.05) 0%, transparent 65%);
     pointer-events: none;
   }
 
@@ -173,9 +187,9 @@
   }
 
   .dve-pill-secondary {
-    border-color: rgba(124, 58, 237, 0.3);
-    background: rgba(124, 58, 237, 0.08);
-    color: #c4b5fd;
+    border-color: rgba(29, 78, 216, 0.3);
+    background: rgba(29, 78, 216, 0.08);
+    color: #bfdbfe;
   }
 
   .dve-callout {
@@ -226,7 +240,7 @@
   }
 
   .knirv-gradient-text {
-    background: linear-gradient(135deg, #eef2ff 0%, var(--knirv-primary) 52%, var(--knirv-secondary) 100%);
+    background: linear-gradient(135deg, var(--knirv-primary) 0%, var(--knirv-secondary) 100%);
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;

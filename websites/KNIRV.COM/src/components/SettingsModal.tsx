@@ -33,16 +33,16 @@ const SettingsModal = ({ open, onOpenChange }: SettingsModalProps) => {
         
         <Tabs defaultValue="general" className="w-full">
           <TabsList className="grid w-full grid-cols-4 bg-white/5 border border-white/10">
-            <TabsTrigger value="general" className="data-[state=active]:bg-purple-500/20">
+            <TabsTrigger value="general" className="data-[state=active]:bg-blue-500/20">
               General
             </TabsTrigger>
-            <TabsTrigger value="notifications" className="data-[state=active]:bg-purple-500/20">
+            <TabsTrigger value="notifications" className="data-[state=active]:bg-blue-500/20">
               Notifications
             </TabsTrigger>
-            <TabsTrigger value="security" className="data-[state=active]:bg-purple-500/20">
+            <TabsTrigger value="security" className="data-[state=active]:bg-blue-500/20">
               Security
             </TabsTrigger>
-            <TabsTrigger value="appearance" className="data-[state=active]:bg-purple-500/20">
+            <TabsTrigger value="appearance" className="data-[state=active]:bg-blue-500/20">
               Appearance
             </TabsTrigger>
           </TabsList>
@@ -145,7 +145,7 @@ const SettingsModal = ({ open, onOpenChange }: SettingsModalProps) => {
               <div>
                 <Label className="text-white">Theme Color</Label>
                 <div className="flex space-x-2 mt-2">
-                  <div className="w-8 h-8 rounded-full bg-purple-500 border-2 border-white cursor-pointer"></div>
+                  <div className="w-8 h-8 rounded-full bg-blue-500 border-2 border-white cursor-pointer"></div>
                   <div className="w-8 h-8 rounded-full bg-blue-500 border border-white/20 cursor-pointer"></div>
                   <div className="w-8 h-8 rounded-full bg-green-500 border border-white/20 cursor-pointer"></div>
                   <div className="w-8 h-8 rounded-full bg-red-500 border border-white/20 cursor-pointer"></div>
@@ -165,7 +165,7 @@ const SettingsModal = ({ open, onOpenChange }: SettingsModalProps) => {
           </Button>
           <Button 
             onClick={() => onOpenChange(false)}
-            className="bg-purple-600 hover:bg-purple-700 text-white"
+            className="bg-blue-600 hover:bg-blue-700 text-white"
           >
             Save Changes
           </Button>

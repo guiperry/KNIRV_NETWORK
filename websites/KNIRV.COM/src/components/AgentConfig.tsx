@@ -1394,7 +1394,7 @@ const AgentConfig = ({
         <div className="lg:col-span-2 space-y-6">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="grid w-full grid-cols-6 bg-white/5 border border-white/10">
-              <TabsTrigger value="identity" className="data-[state=active]:bg-purple-500/20">
+              <TabsTrigger value="identity" className="data-[state=active]:bg-blue-500/20">
                 {completedTabs.has('identity') ? (
                   <CheckCircle className="h-4 w-4 mr-2 text-green-400 flex-shrink-0" />
                 ) : (
@@ -1405,7 +1405,7 @@ const AgentConfig = ({
               <TabsTrigger
                 value="api-keys"
                 disabled={!agentRegistered}
-                className={`data-[state=active]:bg-purple-500/20 ${!agentRegistered ? 'opacity-50 cursor-not-allowed' : ''}`}
+                className={`data-[state=active]:bg-blue-500/20 ${!agentRegistered ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
                 {completedTabs.has('api-keys') ? (
                   <CheckCircle className="h-4 w-4 mr-2 text-green-400 flex-shrink-0" />
@@ -1417,7 +1417,7 @@ const AgentConfig = ({
               <TabsTrigger
                 value="personality"
                 disabled={!agentRegistered}
-                className={`data-[state=active]:bg-purple-500/20 ${!agentRegistered ? 'opacity-50 cursor-not-allowed' : ''}`}
+                className={`data-[state=active]:bg-blue-500/20 ${!agentRegistered ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
                 {completedTabs.has('personality') ? (
                   <CheckCircle className="h-4 w-4 mr-2 text-green-400 flex-shrink-0" />
@@ -1429,7 +1429,7 @@ const AgentConfig = ({
               <TabsTrigger
                 value="capabilities"
                 disabled={!agentRegistered}
-                className={`data-[state=active]:bg-purple-500/20 ${!agentRegistered ? 'opacity-50 cursor-not-allowed' : ''}`}
+                className={`data-[state=active]:bg-blue-500/20 ${!agentRegistered ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
                 {completedTabs.has('capabilities') ? (
                   <CheckCircle className="h-4 w-4 mr-2 text-green-400 flex-shrink-0" />
@@ -1441,7 +1441,7 @@ const AgentConfig = ({
               <TabsTrigger
                 value="compile"
                 disabled={!agentRegistered}
-                className={`data-[state=active]:bg-purple-500/20 ${!agentRegistered ? 'opacity-50 cursor-not-allowed' : ''}`}
+                className={`data-[state=active]:bg-blue-500/20 ${!agentRegistered ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
                 {completedTabs.has('compile') ? (
                   <CheckCircle className="h-4 w-4 mr-2 text-green-400 flex-shrink-0" />
@@ -1453,7 +1453,7 @@ const AgentConfig = ({
               <TabsTrigger
                 value="test"
                 disabled={!compilationComplete}
-                className={`data-[state=active]:bg-purple-500/20 ${!compilationComplete ? 'opacity-50 cursor-not-allowed' : ''}`}
+                className={`data-[state=active]:bg-blue-500/20 ${!compilationComplete ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
                 {completedTabs.has('test') ? (
                   <CheckCircle className="h-4 w-4 mr-2 text-green-400" />
@@ -1756,7 +1756,7 @@ const AgentConfig = ({
               <Card className="bg-white/5 border-white/10 backdrop-blur-lg">
                 <CardHeader>
                   <CardTitle className="text-white flex items-center">
-                    <Key className="h-5 w-5 mr-2 text-purple-400" />
+                    <Key className="h-5 w-5 mr-2 text-blue-400" />
                     API Keys Configuration
                   </CardTitle>
                   <CardDescription className="text-white/70">
@@ -1861,7 +1861,7 @@ const AgentConfig = ({
                           key={p.id}
                           className={`cursor-pointer transition-all ${
                             personality === p.id
-                              ? 'bg-purple-500/20 border-purple-500/50'
+                              ? 'bg-blue-500/20 border-blue-500/50'
                               : 'bg-white/5 border-white/10 hover:bg-white/10'
                           }`}
                           onClick={() => setPersonality(p.id)}
@@ -1938,7 +1938,7 @@ const AgentConfig = ({
               <Card className="bg-white/5 border-white/10 backdrop-blur-lg">
                 <CardHeader>
                   <CardTitle className="text-white flex items-center">
-                    <Server className="h-5 w-5 mr-2 text-purple-400" />
+                    <Server className="h-5 w-5 mr-2 text-blue-400" />
                     MCP Server Connections
                   </CardTitle>
                   <CardDescription className="text-white/70">
@@ -1980,7 +1980,7 @@ const AgentConfig = ({
                     </div>
                     <Button
                       onClick={addMcpServer}
-                      className="bg-purple-500 hover:bg-purple-600 text-white"
+                      className="bg-blue-500 hover:bg-blue-600 text-white"
                     >
                       <Plus className="h-4 w-4 mr-2" />
                       Add Server
@@ -2175,7 +2175,7 @@ const AgentConfig = ({
                 disabled={!agentRegistered || isCompiling}
                 className={`${
                   agentRegistered && !isCompiling
-                    ? 'bg-purple-600 hover:bg-purple-700 text-white'
+                    ? 'bg-blue-600 hover:bg-blue-700 text-white'
                     : isCompiling && compileStatus === 'success'
                       ? 'bg-green-600 text-white cursor-not-allowed'
                       : 'bg-gray-600 text-gray-400 cursor-not-allowed'
@@ -2364,19 +2364,19 @@ const AgentConfig = ({
           <Card className="bg-white/5 border-white/10 backdrop-blur-lg">
             <CardHeader>
               <CardTitle className="text-white flex items-center">
-                <Sparkles className="h-5 w-5 mr-2 text-purple-400" />
+                <Sparkles className="h-5 w-5 mr-2 text-blue-400" />
                 Agent Preview
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="bg-white/10 rounded-lg p-4">
                 <div className="flex items-center space-x-3 mb-3">
-                  <div className="w-8 h-8 bg-gradient-to-r from-purple-400 to-blue-400 rounded-full flex items-center justify-center">
+                  <div className="w-8 h-8 bg-gradient-to-r from-blue-300 to-blue-600 rounded-full flex items-center justify-center">
                     <Bot className="h-4 w-4 text-white" />
                   </div>
                   <div>
                     <p className="text-white font-medium">{agentName}</p>
-                    <Badge variant="outline" className="border-purple-400/50 text-purple-400 text-xs">
+                    <Badge variant="outline" className="border-blue-400/50 text-blue-400 text-xs">
                       {personality}
                     </Badge>
                   </div>
@@ -2439,7 +2439,7 @@ const AgentConfig = ({
             disabled={!configProcessComplete || agentDeployed}
             className={`w-full py-6 ${
               configProcessComplete && !agentDeployed
-                ? 'bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white'
+                ? 'bg-gradient-to-r from-blue-400 to-blue-700 hover:from-blue-500 hover:to-blue-800 text-white'
                 : 'bg-gray-600 text-gray-400 cursor-not-allowed'
             }`}
             size="lg"

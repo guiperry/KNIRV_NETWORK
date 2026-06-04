@@ -158,7 +158,7 @@ const LocalDeploymentGuide = ({ agentName, platform: initialPlatform, onDownload
             </div>
             <Button
               onClick={() => handleDownloadEngine(platform)}
-              className="w-full bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600"
+              className="w-full bg-gradient-to-r from-blue-400 to-blue-700 hover:from-blue-500 hover:to-blue-800"
             >
               <Download className="h-4 w-4 mr-2" />
               Download Engine for {config.name}
@@ -480,7 +480,7 @@ const LocalDeploymentGuide = ({ agentName, platform: initialPlatform, onDownload
             <div
               className={`w-10 h-10 rounded-full flex items-center justify-center ${
                 index <= activeStep
-                  ? 'bg-purple-500 text-white'
+                  ? 'bg-blue-500 text-white'
                   : 'bg-white/10 text-white/50'
               }`}
             >
@@ -489,7 +489,7 @@ const LocalDeploymentGuide = ({ agentName, platform: initialPlatform, onDownload
             {index < steps.length - 1 && (
               <div
                 className={`w-16 h-1 mx-2 ${
-                  index < activeStep ? 'bg-purple-500' : 'bg-white/10'
+                  index < activeStep ? 'bg-blue-500' : 'bg-white/10'
                 }`}
               />
             )}
@@ -500,7 +500,7 @@ const LocalDeploymentGuide = ({ agentName, platform: initialPlatform, onDownload
       <Card className="bg-white/5 border-white/10 backdrop-blur-lg">
         <CardHeader>
           <CardTitle className="text-white flex items-center">
-            {React.createElement(steps[activeStep].icon, { className: "h-5 w-5 mr-2 text-purple-400" })}
+            {React.createElement(steps[activeStep].icon, { className: "h-5 w-5 mr-2 text-blue-400" })}
             {steps[activeStep].title}
           </CardTitle>
           <CardDescription className="text-white/70">
@@ -524,7 +524,7 @@ const LocalDeploymentGuide = ({ agentName, platform: initialPlatform, onDownload
         <Button
           onClick={() => setActiveStep(Math.min(steps.length - 1, activeStep + 1))}
           disabled={activeStep === steps.length - 1}
-          className="bg-purple-500 hover:bg-purple-600 text-white"
+          className="bg-blue-500 hover:bg-blue-600 text-white"
         >
           Next
         </Button>
@@ -544,13 +544,13 @@ const LocalDeploymentGuide = ({ agentName, platform: initialPlatform, onDownload
         <CardContent>
           <Tabs defaultValue="common" className="w-full">
             <TabsList className="grid w-full grid-cols-3 bg-white/5 border border-white/10">
-              <TabsTrigger value="common" className="data-[state=active]:bg-purple-500/20">
+              <TabsTrigger value="common" className="data-[state=active]:bg-blue-500/20">
                 Common Issues
               </TabsTrigger>
-              <TabsTrigger value="performance" className="data-[state=active]:bg-purple-500/20">
+              <TabsTrigger value="performance" className="data-[state=active]:bg-blue-500/20">
                 Performance
               </TabsTrigger>
-              <TabsTrigger value="support" className="data-[state=active]:bg-purple-500/20">
+              <TabsTrigger value="support" className="data-[state=active]:bg-blue-500/20">
                 Support
               </TabsTrigger>
             </TabsList>

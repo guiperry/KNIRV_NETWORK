@@ -2,9 +2,10 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import KnirvLogo from '@/components/KnirvLogo';
 import { Button } from "@/components/ui/button";
 import {
-  Shield, Cpu, Database, Network, Terminal, Zap, Layers,
+  Shield, Cpu, Database, Terminal, Zap, Layers,
   Key, Globe, BarChart3, Award, FileKey, Workflow, Coins,
   Bot, Eye, ChevronRight, Lock, Activity, Blocks,
   Server, GitBranch, Radio, Scan, FlaskConical, CheckCircle
@@ -148,7 +149,7 @@ const colorMap: Record<string, { bg: string; border: string; text: string; glow:
   blue:    { bg: 'bg-blue-500/10',    border: 'border-blue-500/30',    text: 'text-blue-400',    glow: 'group-hover:shadow-blue-500/20' },
   green:   { bg: 'bg-green-500/10',   border: 'border-green-500/30',   text: 'text-green-400',   glow: 'group-hover:shadow-green-500/20' },
   cyan:    { bg: 'bg-cyan-500/10',    border: 'border-cyan-500/30',    text: 'text-cyan-400',    glow: 'group-hover:shadow-cyan-500/20' },
-  purple:  { bg: 'bg-purple-500/10',  border: 'border-purple-500/30',  text: 'text-purple-400',  glow: 'group-hover:shadow-purple-500/20' },
+  purple:  { bg: 'bg-blue-500/10',  border: 'border-blue-500/30',  text: 'text-blue-400',  glow: 'group-hover:shadow-blue-500/20' },
   amber:   { bg: 'bg-amber-500/10',   border: 'border-amber-500/30',   text: 'text-amber-400',   glow: 'group-hover:shadow-amber-500/20' },
   emerald: { bg: 'bg-emerald-500/10', border: 'border-emerald-500/30', text: 'text-emerald-400', glow: 'group-hover:shadow-emerald-500/20' },
   red:     { bg: 'bg-red-500/10',     border: 'border-red-500/30',     text: 'text-red-400',     glow: 'group-hover:shadow-red-500/20' },
@@ -193,16 +194,7 @@ const Index = () => {
       ════════════════════════════════════════════════════════ */}
       <nav className="fixed top-0 left-0 right-0 z-50 dve-nav">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <div className="relative">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-400 flex items-center justify-center">
-                <Network className="w-4 h-4 text-white" />
-              </div>
-              <div className="absolute inset-0 rounded-lg bg-blue-500/40 blur-sm -z-10" />
-            </div>
-            <span className="text-xl font-black tracking-tight text-white">KNIRV</span>
-            <span className="hidden sm:block text-xs font-semibold text-white/30 uppercase tracking-widest ml-1 mt-px">SERVER</span>
-          </div>
+          <KnirvLogo />
           <div className="flex items-center gap-3">
             <Link href="/documentation">
               <Button variant="ghost" size="sm" className="text-white/60 hover:text-white text-sm">Docs</Button>

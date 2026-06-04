@@ -223,7 +223,7 @@ const AgentHeaderActions = ({
     <Button 
       variant="outline" 
       onClick={() => setSettingsModalOpen(true)}
-      className="border-purple-400/50 text-purple-400 hover:bg-purple-400/10 hover:text-purple-300"
+      className="border-blue-400/50 text-blue-400 hover:bg-blue-400/10 hover:text-blue-300"
     >
       <Settings className="h-4 w-4 mr-2" />
       Settings

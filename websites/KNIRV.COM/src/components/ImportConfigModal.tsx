@@ -83,7 +83,7 @@ const ImportConfigModal = ({ open, onOpenChange, onFileUpload }: ImportConfigMod
       <DialogContent className="bg-slate-900 border-white/10 text-white max-w-md">
         <DialogHeader>
           <DialogTitle className="text-white text-xl flex items-center">
-            <Upload className="h-5 w-5 mr-2 text-purple-400" />
+            <Upload className="h-5 w-5 mr-2 text-blue-400" />
             Import Configuration
           </DialogTitle>
           <DialogDescription className="text-white/70">
@@ -96,7 +96,7 @@ const ImportConfigModal = ({ open, onOpenChange, onFileUpload }: ImportConfigMod
           <div
             className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
               isDragging
-                ? 'border-purple-400 bg-purple-400/10'
+                ? 'border-blue-400 bg-blue-400/10'
                 : 'border-white/20 hover:border-white/40'
             }`}
             onDrop={handleFileDrop}
@@ -137,7 +137,7 @@ const ImportConfigModal = ({ open, onOpenChange, onFileUpload }: ImportConfigMod
                   Drag and drop your configuration file here, or{' '}
                   <label
                     htmlFor="config-upload-modal"
-                    className="text-purple-400 hover:text-purple-300 cursor-pointer underline"
+                    className="text-blue-400 hover:text-blue-300 cursor-pointer underline"
                   >
                     browse files
                   </label>
@@ -161,7 +161,7 @@ const ImportConfigModal = ({ open, onOpenChange, onFileUpload }: ImportConfigMod
             {uploadedFile && !uploadError && (
               <Button
                 onClick={() => onOpenChange(false)}
-                className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white"
+                className="bg-gradient-to-r from-blue-400 to-blue-700 hover:from-blue-500 hover:to-blue-800 text-white"
               >
                 Done
               </Button>

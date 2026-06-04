@@ -3,6 +3,7 @@ import { Calendar, User, Tag, ArrowLeft } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import KnirvLogo from '@/components/KnirvLogo'
 import "../styles/blog.css";
 
 interface BlogPostPageProps {
@@ -36,11 +37,7 @@ export default function BlogPostPage({ params }: BlogPostPageProps) {
       <nav className="dve-nav">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            <Link href="/" data-config-nav="home" className="flex items-center space-x-2" aria-label="Go to homepage">
-              <span className="text-2xl font-bold knirv-gradient-text">
-                KNIRV
-              </span>
-            </Link>
+            <KnirvLogo />
           </div>
         </div>
       </nav>

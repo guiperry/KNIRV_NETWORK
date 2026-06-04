@@ -412,7 +412,7 @@ const CloudCortexInfoCard = ({ onReset }: CloudCortexInfoCardProps) => {
                       </div>
                       <div className="h-2 bg-slate-700 rounded-full overflow-hidden">
                         <div 
-                          className="h-full bg-purple-500 transition-all duration-500"
+                          className="h-full bg-blue-500 transition-all duration-500"
                           style={{ width: `${(metrics.storageUsed / metrics.storageTotal) * 100}%` }}
                         />
                       </div>
@@ -437,7 +437,7 @@ const CloudCortexInfoCard = ({ onReset }: CloudCortexInfoCardProps) => {
                         <div className="text-xs text-slate-500">Active Datasets</div>
                       </div>
                       <div className="p-4 bg-slate-800/50 rounded-lg text-center">
-                        <div className="text-2xl font-bold text-purple-400 mb-1">12ms</div>
+                        <div className="text-2xl font-bold text-blue-400 mb-1">12ms</div>
                         <div className="text-xs text-slate-500">Avg Response Time</div>
                       </div>
                     </div>

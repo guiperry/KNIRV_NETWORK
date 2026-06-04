@@ -1,9 +1,10 @@
-import { Bot, Calendar, User, ArrowRight, Tag, TrendingUp, Search } from "lucide-react";
+import { Calendar, User, ArrowRight, Tag, TrendingUp, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
+import KnirvLogo from "@/components/KnirvLogo";
 import { getBlogPosts, formatDate } from "./lib/blog-utils";
 
 export default function BlogPage() {
@@ -27,12 +28,7 @@ export default function BlogPage() {
   <nav className="dve-nav">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            <Link href="/" data-config-nav="home" className="flex items-center space-x-2" aria-label="Go to homepage">
-              <Bot className="h-8 w-8 knirv-text-primary" />
-              <span className="text-2xl font-bold knirv-gradient-text">
-                KNIRV
-              </span>
-            </Link>
+            <KnirvLogo />
             <div className="flex items-center space-x-4">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-white/40 h-4 w-4" />

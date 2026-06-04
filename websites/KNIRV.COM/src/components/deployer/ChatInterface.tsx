@@ -252,17 +252,17 @@ const ChatInterface = ({
   const getStepIcon = () => {
     switch (currentDeploymentStep) {
       case 'dashboard':
-        return <LayoutDashboard className="w-5 h-5 text-purple-400" />;
+        return <LayoutDashboard className="w-5 h-5 text-blue-400" />;
       case 'repository':
-        return <GitBranch className="w-5 h-5 text-purple-400" />;
+        return <GitBranch className="w-5 h-5 text-blue-400" />;
       case 'compile':
-        return <Code className="w-5 h-5 text-purple-400" />;
+        return <Code className="w-5 h-5 text-blue-400" />;
       case 'tests':
-        return <TestTube className="w-5 h-5 text-purple-400" />;
+        return <TestTube className="w-5 h-5 text-blue-400" />;
       case 'deploy':
-        return <Cloud className="w-5 h-5 text-purple-400" />;
+        return <Cloud className="w-5 h-5 text-blue-400" />;
       default:
-        return <Rocket className="w-5 h-5 text-purple-400" />;
+        return <Rocket className="w-5 h-5 text-blue-400" />;
     }
   };
 
@@ -295,7 +295,7 @@ const ChatInterface = ({
             <CardTitle className="text-white">{getStepTitle()}</CardTitle>
             <Badge
               variant="outline"
-              className="ml-2 text-purple-400 border-purple-400"
+              className="ml-2 text-blue-400 border-blue-400"
             >
               {currentDeploymentStep.charAt(0).toUpperCase() + currentDeploymentStep.slice(1)}
             </Badge>
@@ -348,9 +348,9 @@ const ChatInterface = ({
                 >
                   <div className={`p-2 rounded-full ${
                     msg.sender === "user"
-                      ? "bg-purple-500"
+                      ? "bg-blue-500"
                       : msg.type === "deploy"
-                        ? "bg-gradient-to-r from-purple-500 to-pink-500"
+                        ? "bg-gradient-to-r from-blue-400 to-blue-700"
                         : msg.type === "fix"
                           ? "bg-emerald-500"
                           : msg.type === "analysis"
@@ -369,7 +369,7 @@ const ChatInterface = ({
                   </div>
                   <div className={`max-w-[70%] p-3 rounded-lg ${
                     msg.sender === "user"
-                      ? "bg-purple-500 text-white"
+                      ? "bg-blue-500 text-white"
                       : "bg-slate-700 text-slate-100"
                   }`}>
                     <div className="whitespace-pre-wrap text-sm">{msg.content}</div>
@@ -381,7 +381,7 @@ const ChatInterface = ({
               ))}
               {isTyping && (
                 <div className="flex items-start space-x-3">
-                  <div className="p-2 rounded-full bg-gradient-to-r from-purple-500 to-pink-500">
+                  <div className="p-2 rounded-full bg-gradient-to-r from-blue-400 to-blue-700">
                     <Rocket className="w-4 h-4 text-white" />
                   </div>
                   <div className="bg-slate-700 p-3 rounded-lg">
@@ -408,7 +408,7 @@ const ChatInterface = ({
               />
               <Button
                 onClick={handleSendMessage}
-                className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
+                className="bg-gradient-to-r from-blue-400 to-blue-700 hover:from-blue-500 hover:to-blue-800"
                 disabled={isTyping || loading || !message.trim()}
               >
                 <Send className="w-4 h-4" />

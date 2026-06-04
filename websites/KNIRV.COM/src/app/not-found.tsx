@@ -1,9 +1,10 @@
 'use client';
 
 import React from 'react';
-import { Bot, Home, ArrowLeft } from 'lucide-react';
+import { Home, ArrowLeft } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import Link from 'next/link';
+import KnirvLogo from '@/components/KnirvLogo'
 
 export default function NotFound() {
   return (
@@ -11,7 +12,7 @@ export default function NotFound() {
       <div className="dve-card max-w-md mx-auto text-center px-6 py-8 sm:px-8">
         {/* Logo */}
         <div className="flex justify-center mb-8">
-          <Bot className="h-16 w-16 knirv-text-primary" />
+          <KnirvLogo />
         </div>
         
         {/* 404 Text */}

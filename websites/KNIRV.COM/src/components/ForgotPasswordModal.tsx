@@ -111,7 +111,7 @@ const ForgotPasswordModal = ({ open, onOpenChange }: ForgotPasswordModalProps) =
               <Button
                 type="submit"
                 disabled={isLoading}
-                className="flex-1 bg-purple-600 hover:bg-purple-700 text-white disabled:opacity-50"
+                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50"
               >
                 {isLoading ? "Sending..." : "Send Reset Email"}
               </Button>
@@ -130,7 +130,7 @@ const ForgotPasswordModal = ({ open, onOpenChange }: ForgotPasswordModalProps) =
             
             <Button
               onClick={handleClose}
-              className="w-full bg-purple-600 hover:bg-purple-700 text-white"
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white"
             >
               Done
             </Button>

@@ -176,7 +176,7 @@ const DeploymentPanel = ({ repoUrl, agentConfig, onDeployComplete, compiledPlugi
         <Card className="bg-slate-800/50 border-slate-700">
           <CardHeader>
             <CardTitle className="text-white flex items-center space-x-2">
-              <Cloud className="w-5 h-5 text-purple-400" />
+              <Cloud className="w-5 h-5 text-blue-400" />
               <span>Choose Deployment Platform</span>
             </CardTitle>
           </CardHeader>
@@ -189,7 +189,7 @@ const DeploymentPanel = ({ repoUrl, agentConfig, onDeployComplete, compiledPlugi
                     selectedPlatform === platform.id
                       ? platform.type === 'knirv'
                         ? "knirv-border-primary bg-blue-500/20 knirv-glow"
-                        : "border-purple-400 bg-purple-500/20"
+                        : "border-blue-400 bg-blue-500/20"
                       : platform.type === 'knirv'
                         ? "knirv-border-primary/50 hover:knirv-border-primary"
                         : "border-slate-600 hover:border-slate-500"
@@ -225,7 +225,7 @@ const DeploymentPanel = ({ repoUrl, agentConfig, onDeployComplete, compiledPlugi
             <Button
               onClick={handleDeploy}
               disabled={!selectedPlatform || isDeploying}
-              className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
+              className="w-full bg-gradient-to-r from-blue-400 to-blue-700 hover:from-blue-500 hover:to-blue-800"
             >
               {isDeploying ? (
                 <>
@@ -265,7 +265,7 @@ const DeploymentPanel = ({ repoUrl, agentConfig, onDeployComplete, compiledPlugi
                 </div>
               )}
               {deploymentStatus === "deploying" && (
-                <div className="text-purple-400">
+                <div className="text-blue-400">
                   <Loader2 className="w-12 h-12 mx-auto mb-4 animate-spin" />
                   Deploying to platform...
                 </div>
