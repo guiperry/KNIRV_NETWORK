@@ -3,7 +3,7 @@
   "checkpoint_id": "e2e2453714f2",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 0,
+  "checkpoints_count": 1,
   "files_touched": [
     "packages/KNIRVBASE"
   ],
@@ -18,6 +18,12 @@
       "metadata": "/e2/e2453714f2/1/metadata.json",
       "transcript": "/e2/e2453714f2/1/full.jsonl",
       "content_hash": "/e2/e2453714f2/1/content_hash.txt",
+      "prompt": ""
+    },
+    {
+      "metadata": "/e2/e2453714f2/2/metadata.json",
+      "transcript": "/e2/e2453714f2/2/full.jsonl",
+      "content_hash": "/e2/e2453714f2/2/content_hash.txt",
       "prompt": ""
     }
   ]
