@@ -122,7 +122,8 @@ func runSystemInit(cmd *cobra.Command, args []string) error {
 
 			switch name {
 			case "knirvoracle":
-				client = core.NewKNIRVRootClient(service.Config, log)
+				log.Debug("Skipping direct KNIRVORACLE client; gateway-backed operations are used instead")
+				continue
 			case "knirvgateway":
 				client = core.NewKNIRVGatewayClient(service.Config, log)
 			case "knirvserver":
@@ -153,6 +154,15 @@ func runSystemInit(cmd *cobra.Command, args []string) error {
 	// Step 3: Initialize Wallet System
 	fmt.Println("\n💰 Step 3: Initializing Enhanced Wallet System...")
 	if !skipWallet {
+		walletCtx, walletCancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer walletCancel()
+
+		bootstrapAddress, err := resolveBootstrapWalletAddress(walletCtx)
+		if err != nil {
+			return fmt.Errorf("failed to bootstrap wallet address from oracle: %w", err)
+		}
+		fmt.Printf("   ✓ Bootstrapped wallet address: %s\n", bootstrapAddress)
+
 		walletManager := core.NewWalletManager(cfg.WalletDirectory, log)
 
 		// Initialize XION wallet manager if enabled
@@ -164,8 +174,8 @@ func runSystemInit(cmd *cobra.Command, args []string) error {
 
 		// Initialize NRN token manager if enabled
 		if cfg.KNIRV.Wallet.NRN.Enabled {
-			knirvRootClient := core.NewKNIRVRootClient(&cfg.KNIRV.Services.KNIRVRoot, log)
-			nrnManager := core.NewNRNTokenManager(&cfg.KNIRV.Wallet, knirvRootClient, log)
+			knirvGatewayClient := core.NewKNIRVGatewayClient(&cfg.KNIRV.Services.KNIRVGateway, log)
+			nrnManager := core.NewNRNTokenManager(&cfg.KNIRV.Wallet, knirvGatewayClient, log)
 			fmt.Println("   ✓ NRN Token management initialized")
 			_ = nrnManager // Use the variable to avoid unused warning
 		}

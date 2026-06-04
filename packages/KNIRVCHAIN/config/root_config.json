@@ -6,6 +6,10 @@
   "walletPort": 0,
   "noWalletServer": true,
   "chainID": "agent-root-9999",
+  "consensus": {
+    "p2p_enabled": false,
+    "chain_id": "agent-root-9999"
+  },
   "sharedDatabasePath": "root_data/agent_root.db",
   "minersAddress": "YOUR_CREATOR_WALLET_ADDRESS_HERE",
   "masterAddress": "YOUR_CREATOR_WALLET_ADDRESS_HERE",

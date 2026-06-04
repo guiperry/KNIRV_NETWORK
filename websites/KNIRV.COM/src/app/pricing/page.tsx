@@ -64,9 +64,9 @@ export default function Pricing() {
   ];
 
   return (
-  <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-black">
+    <div className="dve-page">
       {/* Navigation */}
-  <nav className="border-b border-white/10 bg-slate-900/50 backdrop-blur-lg">
+      <nav className="dve-nav">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
     <KnirvLogo />
@@ -145,19 +145,19 @@ export default function Pricing() {
         <div className="max-w-4xl mx-auto">
           <h2 className="text-3xl font-bold text-white text-center mb-12">Frequently Asked Questions</h2>
           <div className="space-y-6">
-            <Card className="bg-white/5 border-white/10 backdrop-blur-sm">
+            <Card className="dve-card">
               <CardContent className="p-6">
                 <h3 className="text-white font-semibold text-lg mb-2">Can I change plans anytime?</h3>
                 <p className="text-white/70">Yes, you can upgrade or downgrade your plan at any time. Changes take effect immediately.</p>
               </CardContent>
             </Card>
-            <Card className="bg-white/5 border-white/10 backdrop-blur-sm">
+            <Card className="dve-card">
               <CardContent className="p-6">
                 <h3 className="text-white font-semibold text-lg mb-2">What happens if I exceed my message limit?</h3>
                 <p className="text-white/70">We'll notify you when you're approaching your limit. You can upgrade your plan or purchase additional messages.</p>
               </CardContent>
             </Card>
-            <Card className="bg-white/5 border-white/10 backdrop-blur-sm">
+            <Card className="dve-card">
               <CardContent className="p-6">
                 <h3 className="text-white font-semibold text-lg mb-2">Do you offer refunds?</h3>
                 <p className="text-white/70">Yes, we offer a 30-day money-back guarantee for all paid plans.</p>

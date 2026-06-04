@@ -20,11 +20,11 @@ import (
 
 	"KNIRVCHAIN/internal/blockchain"
 	"KNIRVCHAIN/internal/dataengine"
-	"KNIRVCHAIN/internal/dht"
 	"KNIRVCHAIN/internal/inference"
 	"KNIRVCHAIN/internal/inference/agentify"
 	"KNIRVCHAIN/internal/installation"
 	"KNIRVCHAIN/internal/network"
+	"KNIRVCHAIN/internal/p2p"
 
 	"github.com/joho/godotenv"
 
@@ -45,13 +45,13 @@ var mainChromemManager sync.Map
 var globalAgentInferencer *agentify.AgentInferencer
 var globalInferenceService *inference.InferenceService
 
-type DiscoveryManager = dht.DiscoveryClient
+type DiscoveryManager = p2p.GatewayClient
 
 type BlockchainStruct = blockchain.BlockchainStruct
 
 type LevelDB = database.LevelDB
 
-type P2PConsensusManager = dht.P2PConsensusManager
+type P2PConsensusManager = p2p.P2PConsensusManager
 
 // NewBlockchain provides a proper implementation from internal/blockchain; do not redefine Shutdown here.
 
@@ -331,7 +331,7 @@ func initPaymentProcessor(_ interface{}, _ *LevelDB, _ interface{}) (*PaymentPro
 
 type BlockchainServer = blockchain.BlockchainServer
 
-func NewBlockchainServer(port uint64, socketPath string, bc *BlockchainStruct, db *LevelDB, discoveryMgr dht.DiscoveryService, p2pPort int) *BlockchainServer {
+func NewBlockchainServer(port uint64, socketPath string, bc *BlockchainStruct, db *LevelDB, discoveryMgr p2p.DiscoveryService, p2pPort int) *BlockchainServer {
 	return blockchain.NewBlockchainServer(port, socketPath, bc, db, discoveryMgr, p2pPort)
 }
 
@@ -870,6 +870,19 @@ func main() {
 			log.Printf("Installation is complete. Continuing with node initialization...")
 		}
 	}
+
+	// Consensus config validation
+	if err := config.ValidateConsensusConfig(cfg); err != nil {
+		log.Fatalf("Consensus config validation failed: %v", err)
+	}
+
+	// Dual toggle: config value AND/OR CLI flag
+	// --disable-p2p CLI flag can override config, but if not set, use config value
+	if !flagsSet["disable-p2p"] {
+		disableP2P = new(bool)
+		*disableP2P = !cfg.Consensus.P2PEnabled
+	}
+
 	applyEmbeddedRuntimeOverrides(cfg)
 	if cfg.SocketPath != "" {
 		log.Printf("Embedded runtime socket path override active: %s", cfg.SocketPath)
@@ -914,7 +927,7 @@ func main() {
 	// --- Declare variables needed for GUI pre-initialization ---
 	var guiNodeConfig *config.Config = nil // Which config is for the GUI node
 	var guiDB *LevelDB
-	var guiDiscoveryMgr dht.DiscoveryService
+	var guiDiscoveryMgr p2p.DiscoveryService
 	var guiBC *BlockchainStruct
 	// p2pConsensusMgr is now handled locally where needed
 	var guiInitErr error
@@ -1212,7 +1225,7 @@ func main() {
 			}
 		}
 		if guiInitErr == nil { // Pass guiNodeConfig to NewDiscoveryManager
-			guiDiscoveryMgr, guiInitErr = dht.NewDiscoveryClient(guiNodeConfig.ChainID, int(guiNodeConfig.P2PPort), guiNodeConfig.ClientOnly, guiNodeConfig.IsBootnode, nodeRole, guiNodeConfig)
+			guiDiscoveryMgr, guiInitErr = p2p.NewGatewayClient(guiNodeConfig.ChainID, int(guiNodeConfig.P2PPort), guiNodeConfig.ClientOnly, guiNodeConfig.IsBootnode, nodeRole, guiNodeConfig)
 		}
 		if guiInitErr == nil {
 			// Get the global ChromemManager from the sync.Map
@@ -1434,7 +1447,7 @@ func startNodeWithComponents(
 	disableP2P bool,
 	isNetworkMode bool,
 	db *LevelDB, // Pre-initialized
-	discoveryMgr dht.DiscoveryService, // Pre-initialized
+	discoveryMgr p2p.DiscoveryService, // Pre-initialized
 	bc *BlockchainStruct, // Pre-initialized
 ) (*P2PConsensusManager, error) { // Return the manager
 	applyEmbeddedRuntimeOverrides(&cfg)
@@ -1443,7 +1456,7 @@ func startNodeWithComponents(
 	// Create P2P Consensus Manager first (skip if disabled)
 	if !disableP2P {
 		var err error
-		p2pConsensusMgr, err = dht.NewP2PConsensusManager(bc, discoveryMgr, nodeRole)
+		p2pConsensusMgr, err = p2p.NewP2PConsensusManager(bc, discoveryMgr, nodeRole)
 		if err != nil {
 			// Clean up already initialized components if manager fails
 			// Note: Closing shared components here might be problematic if they are used elsewhere.
@@ -1712,7 +1725,7 @@ func startNode(ctx context.Context, wg *sync.WaitGroup, cfg config.Config, role 
 		}
 
 		// 4. Discovery Manager
-		discoveryMgr, err := dht.NewDiscoveryClient(cfg.ChainID, int(cfg.P2PPort), cfg.ClientOnly, cfg.IsBootnode, role, &cfg) // Pass &cfg
+		discoveryMgr, err := p2p.NewGatewayClient(cfg.ChainID, int(cfg.P2PPort), cfg.ClientOnly, cfg.IsBootnode, role, &cfg) // Pass &cfg
 
 		if err != nil {
 			log.Printf("[%s][%s] ERROR: Failed to initialize discovery manager: %v", role.String(), cfg.ChainID, err)
@@ -1744,7 +1757,7 @@ func startNode(ctx context.Context, wg *sync.WaitGroup, cfg config.Config, role 
 
 		// P2P consensus manager (skip if disabled)
 		if !disableP2P {
-			p2pConsensusMgr, err := dht.NewP2PConsensusManager(bc, discoveryMgr, role)
+			p2pConsensusMgr, err := p2p.NewP2PConsensusManager(bc, discoveryMgr, role)
 			if err != nil {
 				log.Printf("[%s][%s] WARNING: Failed to initialize P2P consensus manager: %v", role.String(), cfg.ChainID, err)
 			} else {
@@ -2005,7 +2018,7 @@ func waitForShutdownSignal(cancel context.CancelFunc, wg *sync.WaitGroup, config
 }
 
 // integrateInferenceEngineWithDHT integrates the inference engine with the DHT for sharing metrics
-func integrateInferenceEngineWithDHT(discoveryMgr dht.DiscoveryService) error {
+func integrateInferenceEngineWithDHT(discoveryMgr p2p.DiscoveryService) error {
 	if discoveryMgr == nil {
 		return fmt.Errorf("discovery manager is not available")
 	}

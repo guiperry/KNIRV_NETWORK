@@ -3,6 +3,10 @@
   "p2pPort": 6050,
   "noWalletServer": true,
   "chainID": "agent-dev-UNIQUEID-FROM-INSTALL",
+  "consensus": {
+    "p2p_enabled": false,
+    "chain_id": "agent-dev-UNIQUEID-FROM-INSTALL"
+  },
   "sharedDatabasePath": "dev_data/dev_agent-dev-UNIQUEID-FROM-INSTALL.db",
   "minersAddress": "PEER_WALLET_ADDRESS_FROM_INSTALL",
   "installComplete": false,

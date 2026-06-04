@@ -81,7 +81,7 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("knirv.wallet.xion.meta_account", true)
 	v.SetDefault("knirv.wallet.xion.gasless", true)
 	v.SetDefault("knirv.wallet.nrn.enabled", true)
-	v.SetDefault("knirv.wallet.nrn.faucet_url", "http://localhost:9999/faucet")
+	v.SetDefault("knirv.wallet.nrn.faucet_url", "https://gateway.knirv.network")
 	v.SetDefault("knirv.wallet.nrn.auto_refill", true)
 	v.SetDefault("knirv.wallet.nrn.min_balance", "1000")
 

@@ -593,7 +593,8 @@ func newClientManager(registry *core.ServiceRegistry) *core.KNIRVClientManager {
 		var client core.KNIRVServiceClient
 		switch name {
 		case "knirvoracle":
-			client = core.NewKNIRVRootClient(service.Config, log)
+			log.Debug("Skipping direct KNIRVORACLE client; gateway-backed operations are used instead")
+			continue
 		case "knirvgateway":
 			client = core.NewKNIRVGatewayClient(service.Config, log)
 		case "knirvserver":

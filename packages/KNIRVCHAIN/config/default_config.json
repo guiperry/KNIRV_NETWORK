@@ -7,6 +7,10 @@
   "useGUI": false,
   "reflectionURLs": [],
   "chainID": "agent-network-main",
+  "consensus": {
+    "p2p_enabled": false,
+    "chain_id": "agent-network-main"
+  },
   "installComplete": false,
   "paymentProcessor": {
     "enabled": false,

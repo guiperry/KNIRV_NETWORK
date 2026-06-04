@@ -4,73 +4,243 @@
 
 @layer base {
   :root {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
+    --background: 220 40% 4%;
+    --foreground: 227 100% 95%;
 
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
+    --card: 218 40% 8%;
+    --card-foreground: 227 100% 95%;
 
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 218 40% 8%;
+    --popover-foreground: 227 100% 95%;
 
-    --primary: 220 100% 50%;
-    --primary-foreground: 222.2 47.4% 11.2%;
+    --primary: 191 100% 50%;
+    --primary-foreground: 220 40% 5%;
 
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 262 73% 55%;
+    --secondary-foreground: 227 100% 95%;
 
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
+    --muted: 217 33% 15%;
+    --muted-foreground: 215 18% 67%;
 
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
+    --accent: 217 33% 15%;
+    --accent-foreground: 227 100% 95%;
 
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 72% 54%;
+    --destructive-foreground: 227 100% 95%;
 
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 220 100% 50%;
+    --border: 211 40% 17%;
+    --input: 211 40% 17%;
+    --ring: 191 100% 50%;
 
-    --radius: 0.5rem;
+    --radius: 0.95rem;
 
-    /* KNIRV Brand Colors */
-    --knirv-primary: #00c0fa;
-    --knirv-secondary: #2b56f5;
-    --knirv-primary-rgb: 0, 192, 250;
-    --knirv-secondary-rgb: 43, 86, 245;
+    --knirv-primary: #00d4ff;
+    --knirv-secondary: #7c3aed;
+    --knirv-primary-rgb: 0, 212, 255;
+    --knirv-secondary-rgb: 124, 58, 237;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    background:
+      radial-gradient(circle at top left, rgba(0, 212, 255, 0.14), transparent 28%),
+      radial-gradient(circle at 82% 8%, rgba(124, 58, 237, 0.12), transparent 24%),
+      linear-gradient(180deg, #040810 0%, #080f1e 42%, #040810 100%);
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    background:
+      radial-gradient(circle at top left, rgba(0, 212, 255, 0.14), transparent 28%),
+      radial-gradient(circle at 82% 8%, rgba(124, 58, 237, 0.12), transparent 24%),
+      linear-gradient(180deg, #040810 0%, #080f1e 42%, #040810 100%);
+    color: hsl(var(--foreground));
+    font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  }
+
+  * {
+    border-color: hsl(var(--border));
+  }
+
+  a {
+    color: inherit;
+  }
+
+  ::selection {
+    background: rgba(0, 212, 255, 0.24);
+    color: #ffffff;
   }
 }
 
-@layer base {
-  * {
-    @apply border-border;
+@layer components {
+  .dve-page {
+    min-height: 100vh;
+    background:
+      radial-gradient(circle at top left, rgba(0, 212, 255, 0.14), transparent 28%),
+      radial-gradient(circle at 82% 8%, rgba(124, 58, 237, 0.12), transparent 24%),
+      linear-gradient(180deg, #040810 0%, #080f1e 42%, #040810 100%);
+    color: hsl(var(--foreground));
   }
-  body {
-    @apply bg-background text-foreground;
+
+  .dve-nav {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    border-bottom: 1px solid rgba(0, 212, 255, 0.12);
+    background: rgba(4, 8, 16, 0.96);
+    backdrop-filter: blur(16px);
+  }
+
+  .dve-shell {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 0 24px;
+  }
+
+  .dve-hero {
+    position: relative;
+    overflow: hidden;
+    padding: 5rem 2rem 4rem;
+    text-align: center;
+  }
+
+  .dve-hero::before {
+    content: "";
+    position: absolute;
+    top: -30%;
+    left: 50%;
+    width: 900px;
+    height: 700px;
+    transform: translateX(-50%);
+    background: radial-gradient(ellipse, rgba(0, 212, 255, 0.07) 0%, transparent 65%);
+    pointer-events: none;
+  }
+
+  .dve-hero::after {
+    content: "";
+    position: absolute;
+    top: 20%;
+    left: 30%;
+    width: 500px;
+    height: 500px;
+    background: radial-gradient(ellipse, rgba(124, 58, 237, 0.05) 0%, transparent 65%);
+    pointer-events: none;
+  }
+
+  .dve-section {
+    padding: 4rem 2rem;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  .dve-section + .dve-section {
+    border-top: 1px solid rgba(0, 212, 255, 0.12);
+  }
+
+  .dve-section-label {
+    font-family: "JetBrains Mono", "Fira Code", monospace;
+    font-size: 0.72rem;
+    color: #00d4ff;
+    letter-spacing: 0.15em;
+    margin-bottom: 0.75rem;
+    text-transform: uppercase;
+  }
+
+  .dve-card {
+    background: linear-gradient(180deg, rgba(13, 22, 40, 0.9), rgba(8, 15, 30, 0.9));
+    border: 1px solid rgba(0, 212, 255, 0.12);
+    border-radius: 16px;
+    box-shadow: 0 18px 60px rgba(0, 0, 0, 0.28);
+    backdrop-filter: blur(16px);
+  }
+
+  .dve-card:hover {
+    border-color: rgba(0, 212, 255, 0.28);
+  }
+
+  .dve-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.3rem 0.8rem;
+    border-radius: 999px;
+    font-family: "JetBrains Mono", "Fira Code", monospace;
+    font-size: 0.72rem;
+    font-weight: 500;
+    border: 1px solid rgba(0, 212, 255, 0.3);
+    background: rgba(0, 212, 255, 0.08);
+    color: #00d4ff;
+  }
+
+  .dve-pill-secondary {
+    border-color: rgba(124, 58, 237, 0.3);
+    background: rgba(124, 58, 237, 0.08);
+    color: #c4b5fd;
+  }
+
+  .dve-callout {
+    background: rgba(0, 212, 255, 0.06);
+    border: 1px solid rgba(0, 212, 255, 0.2);
+    border-left: 3px solid #00d4ff;
+    border-radius: 8px;
+    padding: 1rem 1.25rem;
+    margin: 1rem 0;
+  }
+
+  .dve-callout-warn {
+    background: rgba(245, 158, 11, 0.06);
+    border-color: rgba(245, 158, 11, 0.3);
+    border-left-color: #f59e0b;
+  }
+
+  .dve-prose {
+    color: #b8d4f0;
+    max-width: none;
+  }
+
+  .dve-prose h1,
+  .dve-prose h2,
+  .dve-prose h3 {
+    color: #eef2ff;
+  }
+
+  .dve-prose p,
+  .dve-prose li {
+    color: #9fb0cb;
+  }
+
+  .dve-divider {
+    border-top: 1px solid rgba(0, 212, 255, 0.12);
+  }
+
+  .dve-surface {
+    background: rgba(13, 22, 40, 0.9);
+    border: 1px solid rgba(0, 212, 255, 0.12);
+    backdrop-filter: blur(16px);
   }
 }
 
 @layer utilities {
   .knirv-gradient {
-    background: linear-gradient(135deg, var(--knirv-primary) 0%, var(--knirv-secondary) 50%, #000000 100%);
+    background: linear-gradient(135deg, var(--knirv-primary) 0%, var(--knirv-secondary) 100%);
   }
 
   .knirv-gradient-text {
-    background: linear-gradient(135deg, var(--knirv-primary) 0%, var(--knirv-secondary) 100%);
+    background: linear-gradient(135deg, #eef2ff 0%, var(--knirv-primary) 52%, var(--knirv-secondary) 100%);
     -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
     background-clip: text;
+    -webkit-text-fill-color: transparent;
   }
 
   .knirv-card-gradient {
-    background: linear-gradient(135deg, rgba(0, 192, 250, 0.1) 0%, rgba(43, 86, 245, 0.1) 100%);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(0, 192, 250, 0.2);
+    background: linear-gradient(180deg, rgba(13, 22, 40, 0.9), rgba(8, 15, 30, 0.9));
+    border: 1px solid rgba(0, 212, 255, 0.12);
+    box-shadow: 0 18px 60px rgba(0, 0, 0, 0.28);
+    backdrop-filter: blur(16px);
   }
 
   .knirv-glow {
-    box-shadow: 0 0 20px rgba(0, 192, 250, 0.3);
+    box-shadow: 0 0 24px rgba(0, 212, 255, 0.24);
   }
 
   .knirv-border-gradient {
@@ -100,5 +270,103 @@
 
   .knirv-border-secondary {
     border-color: var(--knirv-secondary);
+  }
+
+  .bg-white\/5 {
+    background-color: rgba(13, 22, 40, 0.9) !important;
+  }
+
+  .bg-white\/10 {
+    background-color: rgba(17, 30, 51, 0.9) !important;
+  }
+
+  .bg-white\/20 {
+    background-color: rgba(24, 39, 63, 0.9) !important;
+  }
+
+  .bg-black\/20 {
+    background-color: rgba(8, 15, 30, 0.78) !important;
+  }
+
+  .bg-black\/40 {
+    background-color: rgba(8, 15, 30, 0.9) !important;
+  }
+
+  .border-white\/5 {
+    border-color: rgba(0, 212, 255, 0.12) !important;
+  }
+
+  .border-white\/10 {
+    border-color: rgba(0, 212, 255, 0.16) !important;
+  }
+
+  .border-white\/20 {
+    border-color: rgba(0, 212, 255, 0.22) !important;
+  }
+
+  .text-white\/80 {
+    color: #cbd5e1 !important;
+  }
+
+  .text-white\/70 {
+    color: #9fb0cb !important;
+  }
+
+  .text-white\/60 {
+    color: #7f91ad !important;
+  }
+
+  .text-white\/50 {
+    color: #64748b !important;
+  }
+
+  .text-white\/40 {
+    color: #55657e !important;
+  }
+
+  .text-blue-400 {
+    color: #00d4ff !important;
+  }
+
+  .text-blue-300 {
+    color: #7dd3fc !important;
+  }
+
+  .text-blue-500 {
+    color: #00b8ff !important;
+  }
+
+  .bg-blue-500\/10 {
+    background-color: rgba(0, 212, 255, 0.1) !important;
+  }
+
+  .bg-blue-500\/20 {
+    background-color: rgba(0, 212, 255, 0.18) !important;
+  }
+
+  .bg-blue-600 {
+    background-color: #00b8ff !important;
+  }
+
+  .border-blue-500\/30 {
+    border-color: rgba(0, 212, 255, 0.3) !important;
+  }
+
+  .ring-blue-500\/30 {
+    --tw-ring-color: rgba(0, 212, 255, 0.3) !important;
+  }
+
+  .from-knirv-primary {
+    --tw-gradient-from: var(--knirv-primary) var(--tw-gradient-from-position);
+    --tw-gradient-to: rgb(0 212 255 / 0) var(--tw-gradient-to-position);
+    --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
+  }
+
+  .via-knirv-primary {
+    --tw-gradient-stops: var(--tw-gradient-from), var(--knirv-primary) var(--tw-gradient-via-position), var(--tw-gradient-to);
+  }
+
+  .to-knirv-secondary {
+    --tw-gradient-to: var(--knirv-secondary) var(--tw-gradient-to-position);
   }
 }

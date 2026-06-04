@@ -104,10 +104,10 @@ const ResetPasswordPage = () => {
 
   if (isSuccess) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 flex items-center justify-center p-4">
-        <Card className="w-full max-w-md bg-gray-900/95 backdrop-blur-sm border-white/10">
+      <div className="dve-page flex items-center justify-center p-4">
+        <Card className="w-full max-w-md dve-card">
           <CardHeader className="text-center">
-            <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-500/15">
               <Lock className="w-8 h-8 text-green-400" />
             </div>
             <CardTitle className="text-white">Password Updated!</CardTitle>
@@ -118,7 +118,7 @@ const ResetPasswordPage = () => {
           <CardContent>
             <Button
               onClick={() => router.push('/')}
-              className="w-full bg-purple-600 hover:bg-purple-700 text-white"
+              className="w-full bg-gradient-to-r from-knirv-primary to-knirv-secondary text-white hover:from-knirv-secondary hover:to-knirv-primary"
             >
               Go to Home
             </Button>
@@ -129,8 +129,8 @@ const ResetPasswordPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 flex items-center justify-center p-4">
-      <Card className="w-full max-w-md bg-gray-900/95 backdrop-blur-sm border-white/10">
+    <div className="dve-page flex items-center justify-center p-4">
+      <Card className="w-full max-w-md dve-card">
         <CardHeader className="text-center">
           <CardTitle className="text-white">Reset Your Password</CardTitle>
           <CardDescription className="text-white/70">
@@ -192,7 +192,7 @@ const ResetPasswordPage = () => {
             <Button
               type="submit"
               disabled={isLoading}
-              className="w-full bg-purple-600 hover:bg-purple-700 text-white disabled:opacity-50"
+              className="w-full bg-gradient-to-r from-knirv-primary to-knirv-secondary text-white hover:from-knirv-secondary hover:to-knirv-primary disabled:opacity-50"
             >
               {isLoading ? "Updating Password..." : "Update Password"}
             </Button>

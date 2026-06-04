@@ -229,6 +229,14 @@ func (s *Server) setupRoutes() error {
 	r.HandleFunc("/p2p/peers", s.handleP2PPeers).Methods("GET")
 	r.HandleFunc("/p2p/self-addrs", s.handleP2PSelfAddrs).Methods("GET")
 	r.HandleFunc("/p2p/peer-id", s.handleP2PPeerID).Methods("GET")
+	r.HandleFunc("/p2p/publish-operation", s.handlePublishOperation).Methods("POST")
+	r.HandleFunc("/p2p/sync-request", s.handleP2PSyncRequest).Methods("POST")
+	r.HandleFunc("/p2p/health", s.handleP2PHealth).Methods("GET")
+
+	// KNIRVBASE proxy endpoints (Phase 4)
+	r.HandleFunc("/knirvbase/register-callback", s.handleBaseRegisterCallback).Methods("POST")
+	r.HandleFunc("/knirvbase/publish-op", s.handlePublishOperation).Methods("POST")
+	r.HandleFunc("/knirvbase/discover", s.handleBaseDiscovery).Methods("GET")
 
 	// Register auth routes directly
 	s.authHandler.RegisterRoutes(r)
@@ -1747,6 +1755,97 @@ func (s *Server) handleP2PPeerID(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{"peer_id": s.dhtManager.GetPeerID()})
+}
+
+// KNIRVBASE proxy handlers
+
+func (s *Server) handleBaseRegisterCallback(w http.ResponseWriter, r *http.Request) {
+	if s.dhtManager == nil {
+		http.Error(w, "DHT not initialized", http.StatusServiceUnavailable)
+		return
+	}
+	var req struct {
+		SocketPath string `json:"socket_path"`
+		NetworkID  string `json:"network_id"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "bad request", http.StatusBadRequest)
+		return
+	}
+	s.dhtManager.SetBaseCallbackSocket(req.SocketPath)
+	if req.NetworkID != "" {
+		if err := s.dhtManager.SetupCRDTPubSub(req.NetworkID); err != nil {
+			http.Error(w, fmt.Sprintf("pubsub setup: %v", err), http.StatusInternalServerError)
+			return
+		}
+	}
+	json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
+}
+
+func (s *Server) handlePublishOperation(w http.ResponseWriter, r *http.Request) {
+	if s.dhtManager == nil {
+		http.Error(w, "DHT not initialized", http.StatusServiceUnavailable)
+		return
+	}
+	data, err := io.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, "read error", http.StatusBadRequest)
+		return
+	}
+	if err := s.dhtManager.PublishOperation(r.Context(), data); err != nil {
+		http.Error(w, fmt.Sprintf("publish: %v", err), http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+}
+
+func (s *Server) handleBaseDiscovery(w http.ResponseWriter, r *http.Request) {
+	if s.dhtManager == nil {
+		http.Error(w, "DHT not initialized", http.StatusServiceUnavailable)
+		return
+	}
+	networkID := r.URL.Query().Get("network_id")
+	if networkID == "" {
+		http.Error(w, "network_id required", http.StatusBadRequest)
+		return
+	}
+	peers, err := s.dhtManager.FindBasePeers(r.Context(), networkID)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("discover: %v", err), http.StatusInternalServerError)
+		return
+	}
+	json.NewEncoder(w).Encode(peers)
+}
+
+func (s *Server) handleP2PSyncRequest(w http.ResponseWriter, r *http.Request) {
+	if s.dhtManager == nil {
+		http.Error(w, "DHT not initialized", http.StatusServiceUnavailable)
+		return
+	}
+	data, err := io.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, "read error", http.StatusBadRequest)
+		return
+	}
+	// Forward sync request through CRDT operation channel
+	if err := s.dhtManager.PublishOperation(r.Context(), data); err != nil {
+		http.Error(w, fmt.Sprintf("sync: %v", err), http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+}
+
+func (s *Server) handleP2PHealth(w http.ResponseWriter, r *http.Request) {
+	peerCount := 0
+	uptime := "0s"
+	if s.dhtManager != nil {
+		peerCount = len(s.dhtManager.GetConnectedPeers())
+	}
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"status":     "healthy",
+		"peers":      peerCount,
+		"uptime":     uptime,
+	})
 }
 
 // createCID creates a CID from a resource ID and type.

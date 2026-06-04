@@ -29,6 +29,9 @@ type ConsensusManager interface {
 	// Mining state management
 	GetMiningLockState() bool
 	GetUpdateRequired() bool
+
+	// Runtime enable/disable
+	SetEnabled(bool)
 }
 
 // DiscoveryService interface removed to avoid conflict with discovery_interface.go

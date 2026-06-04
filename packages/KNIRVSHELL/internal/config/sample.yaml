@@ -79,7 +79,7 @@ knirv:
     # NRN Token Management
     nrn:
       enabled: true
-      faucet_url: "http://localhost:9999/faucet"
+      faucet_url: "https://gateway.knirv.network"
       auto_refill: true
       min_balance: "1000"
   

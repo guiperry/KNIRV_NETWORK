@@ -16,8 +16,8 @@ export default function BlogPostPage({ params }: BlogPostPageProps) {
 
   if (!post) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-black flex items-center justify-center">
-        <div className="text-center">
+      <div className="dve-page flex items-center justify-center">
+        <div className="dve-card text-center">
           <h1 className="text-4xl font-bold text-white mb-4">Blog Post Not Found</h1>
           <p className="text-white/70 mb-8">The blog post you're looking for doesn't exist.</p>
           <Link href="/blog">
@@ -31,9 +31,9 @@ export default function BlogPostPage({ params }: BlogPostPageProps) {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-black">
+    <div className="dve-page">
       {/* Navigation */}
-      <nav className="border-b border-white/10 bg-slate-900/50 backdrop-blur-lg">
+      <nav className="dve-nav">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <Link href="/" data-config-nav="home" className="flex items-center space-x-2" aria-label="Go to homepage">

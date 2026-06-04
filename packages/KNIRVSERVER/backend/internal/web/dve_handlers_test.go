@@ -293,7 +293,7 @@ func TestDVEHandlers_GetSupervisorAgentSession_LazyProvisionWithoutNodeLookup(t 
 	var response map[string]interface{}
 	require.NoError(t, json.NewDecoder(w.Body).Decode(&response))
 	assert.Equal(t, "/ws/dve/test-node/agent", response["ws_url"])
-	assert.True(t, mockMgr.started["test-node"])
+	assert.False(t, mockMgr.started["test-node"])
 }
 
 func TestDVEHandlers_GetSupervisorAgentStatus_LazyProvisionWithoutNodeLookup(t *testing.T) {
@@ -310,9 +310,9 @@ func TestDVEHandlers_GetSupervisorAgentStatus_LazyProvisionWithoutNodeLookup(t *
 	assert.Equal(t, http.StatusOK, w.Code)
 	var response map[string]interface{}
 	require.NoError(t, json.NewDecoder(w.Body).Decode(&response))
-	assert.Equal(t, "online", response["status"])
-	assert.Equal(t, "healthy", response["health"])
-	assert.True(t, mockMgr.started["test-node"])
+	assert.Equal(t, "offline", response["status"])
+	assert.Equal(t, "unhealthy", response["health"])
+	assert.False(t, mockMgr.started["test-node"])
 }
 
 func TestDVEHandlers_RegisterRoutes(t *testing.T) {

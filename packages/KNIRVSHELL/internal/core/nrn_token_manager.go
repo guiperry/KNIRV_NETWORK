@@ -17,12 +17,17 @@ import (
 
 // NRNTokenManager manages NRN token operations
 type NRNTokenManager struct {
-	config          *config.WalletConfig
-	logger          *logrus.Logger
-	balance         *big.Int
-	transactions    []*NRNTransaction
-	faucetClient    *FaucetClient
-	knirvRootClient *KNIRVRootClient
+	config        *config.WalletConfig
+	logger        *logrus.Logger
+	balance       *big.Int
+	transactions  []*NRNTransaction
+	faucetClient  *FaucetClient
+	balanceClient NRNBalanceClient
+}
+
+// NRNBalanceClient resolves balances through the network.
+type NRNBalanceClient interface {
+	GetNRNBalance(ctx context.Context, address string) (string, error)
 }
 
 // NRNTransaction represents an NRN token transaction
@@ -103,7 +108,7 @@ type FaucetHistory struct {
 }
 
 // NewNRNTokenManager creates a new NRN token manager
-func NewNRNTokenManager(cfg *config.WalletConfig, knirvRootClient *KNIRVRootClient, logger *logrus.Logger) *NRNTokenManager {
+func NewNRNTokenManager(cfg *config.WalletConfig, balanceClient NRNBalanceClient, logger *logrus.Logger) *NRNTokenManager {
 	faucetClient := &FaucetClient{
 		APIClient: NewAPIClient(cfg.NRN.FaucetURL, WithLogger(logger)),
 		faucetURL: cfg.NRN.FaucetURL,
@@ -111,12 +116,12 @@ func NewNRNTokenManager(cfg *config.WalletConfig, knirvRootClient *KNIRVRootClie
 	}
 
 	return &NRNTokenManager{
-		config:          cfg,
-		logger:          logger,
-		balance:         big.NewInt(0),
-		transactions:    make([]*NRNTransaction, 0),
-		faucetClient:    faucetClient,
-		knirvRootClient: knirvRootClient,
+		config:        cfg,
+		logger:        logger,
+		balance:       big.NewInt(0),
+		transactions:  make([]*NRNTransaction, 0),
+		faucetClient:  faucetClient,
+		balanceClient: balanceClient,
 	}
 }
 
@@ -129,8 +134,12 @@ func (ntm *NRNTokenManager) GetBalance() *big.Int {
 func (ntm *NRNTokenManager) UpdateBalance(ctx context.Context, address string) error {
 	ntm.logger.Debugf("Updating NRN balance for address: %s", address)
 
-	// Get balance from KNIRVORACLE
-	balanceStr, err := ntm.knirvRootClient.GetNRNBalance(ctx, address)
+	if ntm.balanceClient == nil {
+		return fmt.Errorf("balance client not configured")
+	}
+
+	// Get balance from the network gateway
+	balanceStr, err := ntm.balanceClient.GetNRNBalance(ctx, address)
 	if err != nil {
 		return fmt.Errorf("failed to get NRN balance: %w", err)
 	}
@@ -342,10 +351,11 @@ func generateTransactionHash(tx *NRNTransaction) []byte {
 func (fc *FaucetClient) RequestTokens(ctx context.Context, address string, amount int, reason string) (*FaucetResponse, error) {
 	fc.logger.Debugf("Requesting %d NRV tokens for address: %s", amount, address)
 
-	request := FaucetRequest{
-		Address: address,
-		Amount:  amount,
-		Reason:  reason,
+	request := map[string]interface{}{
+		"address": address,
+		"amount":  amount,
+		"reason":  reason,
+		"network": "public-testnet",
 	}
 
 	requestBody, err := json.Marshal(request)
@@ -368,13 +378,42 @@ func (fc *FaucetClient) RequestTokens(ctx context.Context, address string, amoun
 	}
 	defer resp.Body.Close()
 
-	var response FaucetResponse
-	if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
-		return nil, fmt.Errorf("failed to decode response: %w", err)
+	var envelope struct {
+		Success bool            `json:"success"`
+		Data    json.RawMessage `json:"data"`
+		Error   string          `json:"error"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&envelope); err != nil {
+		return nil, fmt.Errorf("failed to decode response envelope: %w", err)
+	}
+
+	response := &FaucetResponse{
+		Success: envelope.Success,
+		Error:   envelope.Error,
+	}
+
+	if len(envelope.Data) > 0 {
+		var gatewayResponse GatewayFaucetResponse
+		if err := json.Unmarshal(envelope.Data, &gatewayResponse); err != nil {
+			return nil, fmt.Errorf("failed to decode gateway faucet response: %w", err)
+		}
+
+		response.Success = gatewayResponse.Success
+		response.Error = gatewayResponse.Error
+		if gatewayResponse.Transaction != nil {
+			response.RequestID = gatewayResponse.Transaction.ID
+			response.Address = gatewayResponse.Transaction.Recipient
+			response.Timestamp = gatewayResponse.Transaction.Timestamp.Format(time.RFC3339)
+			response.TxHash = gatewayResponse.Transaction.ID
+			response.Amount = amount
+		}
+		if gatewayResponse.Message != "" {
+			response.EstimatedConfirm = gatewayResponse.Message
+		}
 	}
 
 	fc.logger.Debugf("Faucet response: success=%v, request_id=%s", response.Success, response.RequestID)
-	return &response, nil
+	return response, nil
 }
 
 // GetStatus retrieves the current faucet status
@@ -436,7 +475,7 @@ func (fc *FaucetClient) GetHistory(ctx context.Context, address string, limit in
 func (fc *FaucetClient) CheckHealth(ctx context.Context) (map[string]interface{}, error) {
 	fc.logger.Debug("Checking faucet health")
 
-	req, err := http.NewRequestWithContext(ctx, "GET", fc.faucetURL+"/api/faucet/health", nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", fc.faucetURL+"/api/economics/health", nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
@@ -562,12 +601,12 @@ func (ntm *NRNTokenManager) ValidateAddress(address string) error {
 		return fmt.Errorf("address cannot be empty")
 	}
 
-	if !strings.HasPrefix(address, "knirv1") {
-		return fmt.Errorf("address must start with 'knirv1'")
+	if !strings.HasPrefix(address, "0x") {
+		return fmt.Errorf("address must start with '0x'")
 	}
 
-	if len(address) < 20 {
-		return fmt.Errorf("address too short (minimum 20 characters)")
+	if len(address) != 42 {
+		return fmt.Errorf("address must be 42 characters long")
 	}
 
 	// Additional validation can be added here

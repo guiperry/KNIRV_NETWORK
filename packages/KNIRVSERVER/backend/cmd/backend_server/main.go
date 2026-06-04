@@ -43,10 +43,14 @@ import (
 	"backend_server/internal/services/endpoints"
 	"backend_server/internal/services/evidence"
 	"backend_server/internal/services/guardrails"
+	"backend_server/internal/services/identitybridge"
 	icme "backend_server/internal/services/icme"
+	"backend_server/internal/services/mcphardening"
+	"backend_server/internal/services/policyadapter"
 	inference "backend_server/internal/services/inferencer"
 	"backend_server/internal/services/knowledge_base"
 	"backend_server/internal/services/onboarding"
+	"backend_server/internal/services/reliability"
 	"backend_server/internal/services/p2p"
 	fabricmanagement "backend_server/internal/services/pluginmanagement"
 	pluginserver "backend_server/internal/services/pluginserver"
@@ -197,6 +201,12 @@ type Server struct {
 
 	// GraphRAG Knowledge Base Engine
 	graphRAGClient *knowledge_base.GraphRAGClient
+
+	// Governance Toolkit services (Phases 1-4 roadmap)
+	governanceIdentity  *identitybridge.IdentityBridge
+	governancePolicy    *policyadapter.PolicyAdapter
+	governanceReliablity *reliability.ReliabilityController
+	governanceMCP       *mcphardening.MCPGateway
 
 	// Context for managing service lifecycle
 	ctx    context.Context
@@ -2371,6 +2381,19 @@ func (s *Server) setupRoutes() {
 		log.Println("Knowledge Base handlers wired with GraphRAG FFI engine")
 	}
 
+	// Initialize Governance Toolkit services (roadmap Phases 1-4)
+	s.governanceIdentity = identitybridge.NewIdentityBridge()
+	s.governancePolicy = policyadapter.NewPolicyAdapter()
+	s.governanceReliablity = reliability.NewReliabilityController()
+	s.governanceMCP = mcphardening.NewMCPGateway()
+	governanceHandlers := web.NewGovernanceHandlers(
+		s.governanceIdentity,
+		s.governancePolicy,
+		s.governanceReliablity,
+		s.governanceMCP,
+	)
+	log.Println("Governance Toolkit handlers initialized (Phases 1-4: identity, policy, reliability, MCP)")
+
 	apiRouter := web.NewAPIRouter(
 		dveHandlers,
 		web.NewPluginManagementHandlers(s.fabricManagementService),
@@ -2380,6 +2403,7 @@ func (s *Server) setupRoutes() {
 		web.NewOnboardingHandlers(s.onboardingService),
 		web.NewCognitiveEngineHandlers(s.cognitiveEngine),
 		kbHandlers,
+		governanceHandlers,
 		authMiddleware,
 		browserDVEHub,
 	)

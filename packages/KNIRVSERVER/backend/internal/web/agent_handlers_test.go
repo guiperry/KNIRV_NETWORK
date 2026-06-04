@@ -139,11 +139,10 @@ func TestAgentHandlers_GetAgentStatus_TimestampPresent(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// POST /api/dve/{id}/agent/launch  (nil UCM → error)
+// POST /api/dve/{id}/agent/launch  (managed response)
 // ---------------------------------------------------------------------------
 
 func TestAgentHandlers_LaunchAgent_NilUCM(t *testing.T) {
-	// Service has a nil UCM; LaunchAgent must return an error → 500.
 	svc := newStartedAgentService(t)
 	h := NewAgentHandlers(svc)
 
@@ -153,10 +152,15 @@ func TestAgentHandlers_LaunchAgent_NilUCM(t *testing.T) {
 
 	h.LaunchAgent(w, req)
 
-	assert.Equal(t, http.StatusInternalServerError, w.Code)
+	assert.Equal(t, http.StatusOK, w.Code)
 	resp := decodeResp(t, w.Body)
-	errMsg, _ := resp["error"].(string)
-	assert.NotEmpty(t, errMsg, "response must contain an error message")
+	assert.Equal(t, true, resp["success"])
+
+	data, ok := resp["data"].(map[string]interface{})
+	require.True(t, ok, "data field must be an object")
+	assert.Equal(t, "dve-launch", data["dve_id"])
+	assert.Equal(t, "managed", data["status"])
+	assert.Equal(t, "knirvagent", data["provider"])
 }
 
 // ---------------------------------------------------------------------------
@@ -221,7 +225,6 @@ func TestAgentHandlers_SubmitAgentTask_InvalidJSON(t *testing.T) {
 }
 
 func TestAgentHandlers_SubmitAgentTask_NonRunningDVE(t *testing.T) {
-	// The DVE has no running agent → SubmitTask returns error → 500.
 	svc := newStartedAgentService(t)
 	h := NewAgentHandlers(svc)
 
@@ -235,10 +238,15 @@ func TestAgentHandlers_SubmitAgentTask_NonRunningDVE(t *testing.T) {
 
 	h.SubmitAgentTask(w, req)
 
-	assert.Equal(t, http.StatusInternalServerError, w.Code)
+	assert.Equal(t, http.StatusCreated, w.Code)
 	resp := decodeResp(t, w.Body)
-	errMsg, _ := resp["error"].(string)
-	assert.Contains(t, errMsg, "no running agent")
+	assert.Equal(t, true, resp["success"])
+
+	data, ok := resp["data"].(map[string]interface{})
+	require.True(t, ok, "data field must be an object")
+	assert.Equal(t, "dve-no-agent", data["dve_id"])
+	assert.Equal(t, "My Task", data["title"])
+	assert.Equal(t, "pending", data["status"])
 }
 
 // ---------------------------------------------------------------------------
@@ -352,8 +360,7 @@ func TestAgentHandlers_FullRoute_LaunchViaRouter(t *testing.T) {
 
 	router.ServeHTTP(w, req)
 
-	// UCM is nil → error is expected, but route must resolve (not 404/405).
-	assert.Equal(t, http.StatusInternalServerError, w.Code)
+	assert.Equal(t, http.StatusOK, w.Code)
 }
 
 func TestAgentHandlers_FullRoute_SubmitTaskMissingTitle(t *testing.T) {

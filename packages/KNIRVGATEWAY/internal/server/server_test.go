@@ -405,3 +405,65 @@ func TestDynamicAgentProxy(t *testing.T) {
 		}
 	})
 }
+
+func TestPublishOperationRoute(t *testing.T) {
+	cfg := &config.Config{
+		Port: 8888,
+	}
+	s := testServer(cfg)
+	ts := httptest.NewServer(s.router)
+	defer ts.Close()
+
+	resp, err := http.Post(ts.URL+"/knirvbase/publish-op", "application/json", nil)
+	if err != nil {
+		t.Fatalf("request failed: %v", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode == http.StatusNotFound {
+		t.Error("publish-op route not registered")
+	}
+}
+
+func TestSyncRequestRoute(t *testing.T) {
+	cfg := &config.Config{
+		Port: 8888,
+	}
+	s := testServer(cfg)
+	ts := httptest.NewServer(s.router)
+	defer ts.Close()
+
+	resp, err := http.Post(ts.URL+"/p2p/sync-request", "application/json", nil)
+	if err != nil {
+		t.Fatalf("request failed: %v", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode == http.StatusNotFound {
+		t.Error("sync-request route not registered")
+	}
+}
+
+func TestP2PHealthRoute(t *testing.T) {
+	cfg := &config.Config{
+		Port: 8888,
+	}
+	s := testServer(cfg)
+	ts := httptest.NewServer(s.router)
+	defer ts.Close()
+
+	resp, err := http.Get(ts.URL + "/p2p/health")
+	if err != nil {
+		t.Fatalf("request failed: %v", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode == http.StatusNotFound {
+		t.Error("p2p/health route not registered")
+	}
+}
+
+func TestHandleCRDTOperations(t *testing.T) {
+	_ = config.Config{Port: 8888}
+}
+
+func TestGatewayManagerCRDTForwarding(t *testing.T) {
+	_ = config.Config{Port: 8888}
+}

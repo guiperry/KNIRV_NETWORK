@@ -160,33 +160,29 @@ func runEconomicsBalance(cmd *cobra.Command, args []string) error {
 	if len(args) > 0 {
 		address = args[0]
 	} else {
-		// Get address from wallet
-		if walletName == "" {
-			return fmt.Errorf("wallet name or address required")
-		}
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
 
-		walletManager := core.NewWalletManager(cfg.KNIRV.Wallet.Directory, log)
-		wallet, err := walletManager.GetWallet(walletName)
+		address, err = resolveWalletAddress(ctx, walletName)
 		if err != nil {
-			return fmt.Errorf("failed to get wallet: %w", err)
+			return err
 		}
-		address = wallet.Address
 	}
 
-	// Create KNIRVORACLE client
-	knirvRootClient := core.NewKNIRVRootClient(&cfg.KNIRV.Services.KNIRVRoot, log)
+	// Create KNIRVGATEWAY client
+	knirvGatewayClient := core.NewKNIRVGatewayClient(&cfg.KNIRV.Services.KNIRVGateway, log)
 
 	// Connect to KNIRVORACLE
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	if err := knirvRootClient.Connect(ctx); err != nil {
-		return fmt.Errorf("failed to connect to KNIRVORACLE: %w", err)
+	if err := knirvGatewayClient.Connect(ctx); err != nil {
+		return fmt.Errorf("failed to connect to KNIRVGATEWAY: %w", err)
 	}
-	defer knirvRootClient.Disconnect()
+	defer knirvGatewayClient.Disconnect()
 
 	// Get balance
-	balance, err := knirvRootClient.GetNRNBalance(ctx, address)
+	balance, err := knirvGatewayClient.GetNRNBalance(ctx, address)
 	if err != nil {
 		return fmt.Errorf("failed to get balance: %w", err)
 	}
@@ -217,36 +213,30 @@ func runEconomicsTransfer(cmd *cobra.Command, args []string) error {
 	}
 
 	// Get wallet
-	if walletName == "" {
-		return fmt.Errorf("wallet name required")
-	}
-
-	walletManager := core.NewWalletManager(cfg.KNIRV.Wallet.Directory, log)
-	wallet, err := walletManager.GetWallet(walletName)
-	if err != nil {
-		return fmt.Errorf("failed to get wallet: %w", err)
-	}
-
-	// Create KNIRVORACLE client and NRN token manager
-	knirvRootClient := core.NewKNIRVRootClient(&cfg.KNIRV.Services.KNIRVRoot, log)
-	nrnManager := core.NewNRNTokenManager(&cfg.KNIRV.Wallet, knirvRootClient, log)
-
-	// Connect to KNIRVORACLE
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	if err := knirvRootClient.Connect(ctx); err != nil {
-		return fmt.Errorf("failed to connect to KNIRVORACLE: %w", err)
+	fromAddress, err := resolveWalletAddress(ctx, walletName)
+	if err != nil {
+		return err
 	}
-	defer knirvRootClient.Disconnect()
+
+	// Create KNIRVGATEWAY client and NRN token manager
+	knirvGatewayClient := core.NewKNIRVGatewayClient(&cfg.KNIRV.Services.KNIRVGateway, log)
+	nrnManager := core.NewNRNTokenManager(&cfg.KNIRV.Wallet, knirvGatewayClient, log)
+
+	if err := knirvGatewayClient.Connect(ctx); err != nil {
+		return fmt.Errorf("failed to connect to KNIRVGATEWAY: %w", err)
+	}
+	defer knirvGatewayClient.Disconnect()
 
 	// Update balance first
-	if err := nrnManager.UpdateBalance(ctx, wallet.Address); err != nil {
+	if err := nrnManager.UpdateBalance(ctx, fromAddress); err != nil {
 		return fmt.Errorf("failed to update balance: %w", err)
 	}
 
 	// Perform transfer
-	tx, err := nrnManager.Transfer(ctx, wallet.Address, to, amount)
+	tx, err := nrnManager.Transfer(ctx, fromAddress, to, amount)
 	if err != nil {
 		return fmt.Errorf("transfer failed: %w", err)
 	}
@@ -274,56 +264,45 @@ func runEconomicsFaucet(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to load config: %w", err)
 	}
 
-	// Get wallet
-	if walletName == "" {
-		return fmt.Errorf("wallet name required")
-	}
-
-	walletManager := core.NewWalletManager(cfg.KNIRV.Wallet.Directory, log)
-	wallet, err := walletManager.GetWallet(walletName)
-	if err != nil {
-		return fmt.Errorf("failed to get wallet: %w", err)
-	}
-
-	// Create KNIRVORACLE client and NRN token manager
-	knirvRootClient := core.NewKNIRVRootClient(&cfg.KNIRV.Services.KNIRVRoot, log)
-	nrnManager := core.NewNRNTokenManager(&cfg.KNIRV.Wallet, knirvRootClient, log)
-
-	// Connect to KNIRVORACLE
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 
-	if err := knirvRootClient.Connect(ctx); err != nil {
-		return fmt.Errorf("failed to connect to KNIRVORACLE: %w", err)
+	address, err := resolveWalletAddress(ctx, walletName)
+	if err != nil {
+		return err
 	}
-	defer knirvRootClient.Disconnect()
 
-	// Use enhanced faucet request with retry logic
-	reason := faucetReason
-	if reason == "" {
-		reason = "CLI request"
+	// Create KNIRVGATEWAY client
+	knirvGatewayClient := core.NewKNIRVGatewayClient(&cfg.KNIRV.Services.KNIRVGateway, log)
+
+	if err := knirvGatewayClient.Connect(ctx); err != nil {
+		return fmt.Errorf("failed to connect to KNIRVGATEWAY: %w", err)
 	}
+	defer knirvGatewayClient.Disconnect()
 
 	fmt.Printf("Requesting %s NRV tokens from testnet faucet...\n", amount)
-	fmt.Printf("Address: %s\n", wallet.Address)
-	if reason != "CLI request" {
-		fmt.Printf("Reason: %s\n", reason)
+	fmt.Printf("Address: %s\n", address)
+	if faucetReason != "" {
+		fmt.Printf("Reason: %s\n", faucetReason)
 	}
-	fmt.Printf("Max retries: %d\n", maxRetries)
 	fmt.Println()
 
-	tx, err := nrnManager.RequestFromFaucetWithRetry(ctx, wallet.Address, amount, reason, maxRetries)
+	response, err := knirvGatewayClient.RequestNRNFromFaucet(ctx, address, amount, resolveFaucetNetwork(cfg.KNIRV.Network.Environment))
 	if err != nil {
 		return fmt.Errorf("faucet request failed: %w", err)
 	}
 
 	fmt.Printf("✅ Testnet faucet request successful!\n")
-	fmt.Printf("Transaction Hash: %s\n", tx.Hash)
-	fmt.Printf("Request ID: %s\n", tx.ID)
-	fmt.Printf("Address: %s\n", tx.To)
-	fmt.Printf("Amount: %s NRV\n", tx.Amount.String())
-	fmt.Printf("Status: %s\n", tx.Status)
-	fmt.Printf("Timestamp: %s\n", tx.Timestamp.Format(time.RFC3339))
+	if response.Transaction != nil {
+		fmt.Printf("Transaction ID: %s\n", response.Transaction.ID)
+		fmt.Printf("Address: %s\n", response.Transaction.Recipient)
+		fmt.Printf("Amount: %s %s\n", response.Transaction.Amount, response.Transaction.Token)
+		fmt.Printf("Network: %s\n", response.Transaction.Network)
+		fmt.Printf("Timestamp: %s\n", response.Transaction.Timestamp.Format(time.RFC3339))
+	}
+	if response.Message != "" {
+		fmt.Printf("Message: %s\n", response.Message)
+	}
 
 	return nil
 }
@@ -336,8 +315,8 @@ func runEconomicsHistory(cmd *cobra.Command, args []string) error {
 	}
 
 	// Create NRN token manager
-	knirvRootClient := core.NewKNIRVRootClient(&cfg.KNIRV.Services.KNIRVRoot, log)
-	nrnManager := core.NewNRNTokenManager(&cfg.KNIRV.Wallet, knirvRootClient, log)
+	knirvGatewayClient := core.NewKNIRVGatewayClient(&cfg.KNIRV.Services.KNIRVGateway, log)
+	nrnManager := core.NewNRNTokenManager(&cfg.KNIRV.Wallet, knirvGatewayClient, log)
 
 	// Get transaction history
 	history := nrnManager.GetTransactionHistory()
@@ -375,8 +354,8 @@ func runEconomicsStats(cmd *cobra.Command, args []string) error {
 	}
 
 	// Create NRN token manager
-	knirvRootClient := core.NewKNIRVRootClient(&cfg.KNIRV.Services.KNIRVRoot, log)
-	nrnManager := core.NewNRNTokenManager(&cfg.KNIRV.Wallet, knirvRootClient, log)
+	knirvGatewayClient := core.NewKNIRVGatewayClient(&cfg.KNIRV.Services.KNIRVGateway, log)
+	nrnManager := core.NewNRNTokenManager(&cfg.KNIRV.Wallet, knirvGatewayClient, log)
 
 	// Get statistics
 	stats := nrnManager.GetNRNStats()
@@ -422,49 +401,30 @@ func runEconomicsFaucetStatus(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to load config: %w", err)
 	}
 
-	// Create KNIRVORACLE client and NRN token manager
-	knirvRootClient := core.NewKNIRVRootClient(&cfg.KNIRV.Services.KNIRVRoot, log)
-	nrnManager := core.NewNRNTokenManager(&cfg.KNIRV.Wallet, knirvRootClient, log)
-
-	// Connect to KNIRVORACLE
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	if err := knirvRootClient.Connect(ctx); err != nil {
-		return fmt.Errorf("failed to connect to KNIRVORACLE: %w", err)
+	address, err := resolveWalletAddress(ctx, walletName)
+	if err != nil {
+		return err
 	}
-	defer knirvRootClient.Disconnect()
 
-	// Get faucet status
-	status, err := nrnManager.GetFaucetStatus(ctx)
+	knirvGatewayClient := core.NewKNIRVGatewayClient(&cfg.KNIRV.Services.KNIRVGateway, log)
+	if err := knirvGatewayClient.Connect(ctx); err != nil {
+		return fmt.Errorf("failed to connect to KNIRVGATEWAY: %w", err)
+	}
+	defer knirvGatewayClient.Disconnect()
+
+	status, err := knirvGatewayClient.CheckFaucetStatus(ctx, address, resolveFaucetNetwork(cfg.KNIRV.Network.Environment))
 	if err != nil {
 		return fmt.Errorf("failed to get faucet status: %w", err)
 	}
 
 	fmt.Printf("🚰 Testnet Faucet Status\n")
 	fmt.Printf("========================\n")
-	fmt.Printf("Enabled: %v\n", status.FaucetEnabled)
-	fmt.Printf("Current Balance: %d NRV\n", status.CurrentBalance)
-	fmt.Printf("Daily Limit: %d NRV\n", status.DailyLimit)
-	fmt.Printf("Remaining Today: %d NRV\n", status.RemainingToday)
-	fmt.Printf("Queue Size: %d requests\n", status.CurrentQueueSize)
-	fmt.Printf("Success Rate Today: %.1f%%\n", status.SuccessRateToday*100)
-
-	if status.LastFunding != "" {
-		fmt.Printf("Last Funding: %s\n", status.LastFunding)
-	}
-	if status.NextFundingEst != "" {
-		fmt.Printf("Next Funding Est: %s\n", status.NextFundingEst)
-	}
-
-	fmt.Printf("\nRate Limits:\n")
-	for key, value := range status.RateLimits {
-		fmt.Printf("  %s: %v\n", key, value)
-	}
-
-	fmt.Printf("\nSupported Amounts:\n")
-	for key, value := range status.SupportedAmounts {
-		fmt.Printf("  %s: %v\n", key, value)
+	fmt.Printf("Address: %s\n", address)
+	for key, value := range status {
+		fmt.Printf("%s: %v\n", key, value)
 	}
 
 	return nil
@@ -482,17 +442,13 @@ func runEconomicsFaucetHistory(cmd *cobra.Command, args []string) error {
 	if len(args) > 0 {
 		address = args[0]
 	} else {
-		// Get address from wallet
-		if walletName == "" {
-			return fmt.Errorf("wallet name or address required")
-		}
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
 
-		walletManager := core.NewWalletManager(cfg.KNIRV.Wallet.Directory, log)
-		wallet, err := walletManager.GetWallet(walletName)
+		address, err = resolveWalletAddress(ctx, walletName)
 		if err != nil {
-			return fmt.Errorf("failed to get wallet: %w", err)
+			return err
 		}
-		address = wallet.Address
 	}
 
 	// Parse limit
@@ -503,50 +459,30 @@ func runEconomicsFaucetHistory(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	// Create KNIRVORACLE client and NRN token manager
-	knirvRootClient := core.NewKNIRVRootClient(&cfg.KNIRV.Services.KNIRVRoot, log)
-	nrnManager := core.NewNRNTokenManager(&cfg.KNIRV.Wallet, knirvRootClient, log)
+	// Local transaction history is still useful even when the network faucet
+	// is served through the gateway.
+	knirvGatewayClient := core.NewKNIRVGatewayClient(&cfg.KNIRV.Services.KNIRVGateway, log)
+	nrnManager := core.NewNRNTokenManager(&cfg.KNIRV.Wallet, knirvGatewayClient, log)
 
-	// Connect to KNIRVORACLE
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
-
-	if err := knirvRootClient.Connect(ctx); err != nil {
-		return fmt.Errorf("failed to connect to KNIRVORACLE: %w", err)
-	}
-	defer knirvRootClient.Disconnect()
-
-	// Get faucet history
-	history, err := nrnManager.GetFaucetHistory(ctx, address, limit)
-	if err != nil {
-		return fmt.Errorf("failed to get faucet history: %w", err)
+	history := nrnManager.GetTransactionHistory()
+	if len(history) == 0 {
+		fmt.Printf("No local faucet history found for %s\n", truncateAddress(address))
+		return nil
 	}
 
 	fmt.Printf("📜 Faucet History for %s\n", truncateAddress(address))
 	fmt.Printf("=====================================\n")
-	fmt.Printf("Total Requests: %d\n", history.TotalRequests)
-	fmt.Printf("Total Amount: %d NRV\n", history.TotalAmount)
-	fmt.Printf("Showing last %d entries:\n\n", len(history.History))
+	fmt.Printf("Showing last %d local entries:\n\n", min(limit, len(history)))
 
-	if len(history.History) == 0 {
-		fmt.Println("No faucet requests found.")
-		return nil
-	}
-
-	for i, entry := range history.History {
-		fmt.Printf("%d. Request ID: %s\n", i+1, entry.RequestID)
-		fmt.Printf("   Amount: %d NRV\n", entry.Amount)
+	for i := 0; i < len(history) && i < limit; i++ {
+		entry := history[i]
+		fmt.Printf("%d. ID: %s\n", i+1, entry.ID)
+		fmt.Printf("   Hash: %s\n", entry.Hash)
+		fmt.Printf("   From: %s\n", entry.From)
+		fmt.Printf("   To: %s\n", entry.To)
+		fmt.Printf("   Amount: %s\n", entry.Amount.String())
 		fmt.Printf("   Status: %s\n", entry.Status)
-		fmt.Printf("   Timestamp: %s\n", entry.Timestamp)
-		if entry.TxHash != "" {
-			fmt.Printf("   TX Hash: %s\n", entry.TxHash)
-		}
-		if entry.Error != "" {
-			fmt.Printf("   Error: %s\n", entry.Error)
-		}
-		if entry.Reason != "" {
-			fmt.Printf("   Reason: %s\n", entry.Reason)
-		}
+		fmt.Printf("   Timestamp: %s\n", entry.Timestamp.Format(time.RFC3339))
 		fmt.Println()
 	}
 
@@ -560,21 +496,17 @@ func runEconomicsFaucetHealth(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to load config: %w", err)
 	}
 
-	// Create KNIRVORACLE client and NRN token manager
-	knirvRootClient := core.NewKNIRVRootClient(&cfg.KNIRV.Services.KNIRVRoot, log)
-	nrnManager := core.NewNRNTokenManager(&cfg.KNIRV.Wallet, knirvRootClient, log)
-
-	// Connect to KNIRVORACLE
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	if err := knirvRootClient.Connect(ctx); err != nil {
-		return fmt.Errorf("failed to connect to KNIRVORACLE: %w", err)
+	knirvGatewayClient := core.NewKNIRVGatewayClient(&cfg.KNIRV.Services.KNIRVGateway, log)
+	if err := knirvGatewayClient.Connect(ctx); err != nil {
+		return fmt.Errorf("failed to connect to KNIRVGATEWAY: %w", err)
 	}
-	defer knirvRootClient.Disconnect()
+	defer knirvGatewayClient.Disconnect()
 
 	// Check faucet health
-	health, err := nrnManager.CheckFaucetHealth(ctx)
+	health, err := knirvGatewayClient.CheckFaucetHealth(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to check faucet health: %w", err)
 	}

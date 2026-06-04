@@ -267,7 +267,7 @@ class KNIRVConfigLoader {
                     documentation: "documentation/static/",
                     support: "support-desk/src/",
                     forum: "forum/src/",
-                    blog: "https://blog.knirv.com"
+                    blog: "https://knirv.com/blog"
                 }
             },
             features: {

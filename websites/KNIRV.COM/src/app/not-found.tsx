@@ -7,20 +7,20 @@ import Link from 'next/link';
 
 export default function NotFound() {
   return (
-  <div className="min-h-screen bg-gradient-to-br from-slate-900 via-knirv-primary to-slate-900 flex items-center justify-center">
-      <div className="max-w-md mx-auto text-center px-4">
+  <div className="dve-page flex items-center justify-center">
+      <div className="dve-card max-w-md mx-auto text-center px-6 py-8 sm:px-8">
         {/* Logo */}
         <div className="flex justify-center mb-8">
           <Bot className="h-16 w-16 knirv-text-primary" />
         </div>
         
         {/* 404 Text */}
-  <h1 className="text-8xl font-bold knirv-gradient-text mb-4">
+  <h1 className="mb-4 text-8xl font-bold knirv-gradient-text">
           404
         </h1>
         
         {/* Error Message */}
-        <h2 className="text-2xl font-bold text-white mb-4">
+        <h2 className="mb-4 text-2xl font-bold text-white">
           Page Not Found
         </h2>
         
@@ -48,8 +48,8 @@ export default function NotFound() {
         </div>
         
         {/* Additional Help */}
-        <div className="mt-12 pt-8 border-t border-white/10">
-          <p className="text-white/50 text-sm mb-4">
+        <div className="mt-12 border-t border-white/10 pt-8">
+          <p className="mb-4 text-sm text-white/50">
             Need help? Try these popular pages:
           </p>
           <div className="space-y-2">

@@ -65,9 +65,9 @@ export default function ContactPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-black">
+    <div className="dve-page">
       {/* Navigation */}
-      <nav className="border-b border-white/10 bg-slate-900/50 backdrop-blur-lg">
+      <nav className="dve-nav">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <KnirvLogo />
@@ -119,7 +119,7 @@ export default function ContactPage() {
             {/* Form */}
             <div>
               <h2 className="text-3xl font-bold text-white mb-8">Send us a Message</h2>
-              <Card className="bg-white/5 border-white/10 backdrop-blur-lg">
+              <Card className="dve-card">
                 <CardContent className="p-8">
                   <form className="space-y-6">
                     <div className="grid grid-cols-2 gap-4">
@@ -194,7 +194,7 @@ export default function ContactPage() {
               <h2 className="text-3xl font-bold text-white mb-8">Contact Information</h2>
               <div className="space-y-6">
                 {departments.map((dept, index) => (
-                  <Card key={index} className="bg-white/5 border-white/10 backdrop-blur-lg">
+                  <Card key={index} className="dve-card">
                     <CardContent className="p-6">
                       <div className="flex items-center space-x-4">
                         <div className="flex-shrink-0">
@@ -222,7 +222,7 @@ export default function ContactPage() {
           <h2 className="text-3xl font-bold text-white text-center mb-12">Our Offices</h2>
           <div className="grid md:grid-cols-3 gap-8">
             {offices.map((office, index) => (
-              <Card key={index} className="bg-white/5 border-white/10 backdrop-blur-lg">
+              <Card key={index} className="dve-card">
                 <CardContent className="p-6">
                   <div className="flex items-start space-x-4">
                     <div className="flex-shrink-0">

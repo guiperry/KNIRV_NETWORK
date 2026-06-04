@@ -3,6 +3,10 @@
   "httpPort": 5001,
   "p2pPort": 6001,
   "chainID": "agent-bootnode-5001",
+  "consensus": {
+    "p2p_enabled": false,
+    "chain_id": "agent-bootnode-5001"
+  },
   "sharedDatabasePath": "bootnode_data/bootnode_agent-bootnode-5001.db",
   "install_complete": true,
   "bootnodeSettings": {

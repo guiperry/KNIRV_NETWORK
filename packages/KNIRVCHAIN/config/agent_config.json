@@ -2,6 +2,10 @@
   "httpPort": 5050,
   "p2pPort": 6050,
   "chainID": "agent-node-5050",
+  "consensus": {
+    "p2p_enabled": false,
+    "chain_id": "agent-node-5050"
+  },
   "sharedDatabasePath": "agent_data/agent_node.db",
   "installComplete": true,
   "agent_mode": {

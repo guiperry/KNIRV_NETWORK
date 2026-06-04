@@ -17,7 +17,11 @@
   "is_network_mode": false,
   "testnet": {
     "enabled": true,
-    "chain_id": "knirv-testnet-1",
+  "chain_id": "knirv-testnet-1",
+  "consensus": {
+    "p2p_enabled": false,
+    "chain_id": "knirv-testnet-1"
+  },
     "api_port": 1317,
     "rpc_port": 26657,
     "p2p_port": 26656,

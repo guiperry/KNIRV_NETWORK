@@ -335,6 +335,8 @@ func (m *MockP2PConsensusManager) OnProposalReceived(handler p2p.ProposalHandler
 	return nil
 }
 
+func (m *MockP2PConsensusManager) SetEnabled(_ bool) {}
+
 // Mining state management - these are the important ones for ProofOfWorkMining
 func (m *MockP2PConsensusManager) GetMiningLockState() bool {
 	return m.miningLocked

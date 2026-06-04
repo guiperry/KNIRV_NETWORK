@@ -123,6 +123,12 @@ type DHTManager struct {
 	chainCallbackSocket string
 	chainCallbackClient *http.Client
 
+	// KNIRVBASE proxy state
+	baseCallbackSocket string
+	baseCallbackClient *http.Client
+	baseOpsTopic      *pubsub.Topic
+	baseOpsSub        *pubsub.Subscription
+
 	// Resource cache for broadcast system
 	resourceCache ResourceCacheInterface
 
@@ -524,6 +530,114 @@ func (dm *DHTManager) SetChainCallbackSocket(socketPath string) {
 			},
 		},
 	}
+}
+
+// SetBaseCallbackSocket updates the Unix socket path for KNIRVBASE callbacks.
+func (dm *DHTManager) SetBaseCallbackSocket(socketPath string) {
+	dm.mutex.Lock()
+	defer dm.mutex.Unlock()
+	dm.baseCallbackSocket = socketPath
+	if socketPath != "" {
+		dm.baseCallbackClient = &http.Client{
+			Transport: &http.Transport{
+				DialContext: func(_ context.Context, _, _ string) (net.Conn, error) {
+					return net.Dial("unix", socketPath)
+				},
+			},
+			Timeout: 30 * time.Second,
+		}
+	} else {
+		dm.baseCallbackClient = nil
+	}
+}
+
+// SetupCRDTPubSub joins a GossipSub topic for CRDT operations scoped to a networkID.
+func (dm *DHTManager) SetupCRDTPubSub(networkID string) error {
+	topicName := networkID + ".ops"
+	topic, err := dm.pubsub.Join(topicName)
+	if err != nil {
+		return fmt.Errorf("join topic %s: %w", topicName, err)
+	}
+	sub, err := topic.Subscribe()
+	if err != nil {
+		return fmt.Errorf("subscribe topic %s: %w", topicName, err)
+	}
+	dm.mutex.Lock()
+	dm.baseOpsTopic = topic
+	dm.baseOpsSub = sub
+	dm.mutex.Unlock()
+
+	// Start handling incoming operations
+	go dm.handleBaseCRDTOperations(sub, topicName)
+	return nil
+}
+
+// PublishOperation publishes a CRDT operation to the GossipSub topic.
+func (dm *DHTManager) PublishOperation(ctx context.Context, data []byte) error {
+	dm.mutex.RLock()
+	topic := dm.baseOpsTopic
+	dm.mutex.RUnlock()
+	if topic == nil {
+		return fmt.Errorf("CRDT pubsub topic not set up")
+	}
+	return topic.Publish(ctx, data)
+}
+
+// handleBaseCRDTOperations receives CRDT ops from GossipSub and forwards to KNIRVBASE.
+func (dm *DHTManager) handleBaseCRDTOperations(sub *pubsub.Subscription, topicName string) {
+	for {
+		msg, err := sub.Next(dm.ctx)
+		if err != nil {
+			select {
+			case <-dm.ctx.Done():
+				return
+			default:
+				continue
+			}
+		}
+		// Don't process our own messages
+		if msg.GetFrom() == dm.host.ID() {
+			continue
+		}
+		dm.forwardToBase("/internal/p2p/received-op", msg.Data)
+	}
+}
+
+// HandleCRDTOperations forwards an incoming CRDT operation to KNIRVBASE.
+// This is the exported entry point called by KNIRVCHAIN/HTTP handlers.
+func (dm *DHTManager) HandleCRDTOperations(ctx context.Context, data []byte) error {
+	path := "/internal/p2p/received-op"
+	dm.forwardToBase(path, data)
+	return nil
+}
+
+// forwardToBase forwards data to KNIRVBASE via Unix socket callback.
+func (dm *DHTManager) forwardToBase(path string, data []byte) {
+	dm.mutex.RLock()
+	client := dm.baseCallbackClient
+	socket := dm.baseCallbackSocket
+	dm.mutex.RUnlock()
+	if client == nil || socket == "" {
+		return
+	}
+	url := "http://knirvbase" + path
+	resp, err := client.Post(url, "application/json", bytes.NewReader(data))
+	if err != nil {
+		return
+	}
+	resp.Body.Close()
+}
+
+// PublishToBaseDiscovery lets peers discover KNIRVBASE resources via DHT.
+func (dm *DHTManager) PublishToBaseDiscovery(ctx context.Context, networkID string) error {
+	serviceID := "knirvbase-" + networkID
+	return dm.AnnounceService(ctx, serviceID)
+}
+
+// FindBasePeers discovers other KNIRVBASE peers via DHT.
+func (dm *DHTManager) FindBasePeers(ctx context.Context, networkID string) ([]peer.AddrInfo, error) {
+	serviceID := "knirvbase-" + networkID
+	return dm.FindServices(ctx, serviceID)
 }
 
 // GetPeerID returns the local peer ID.

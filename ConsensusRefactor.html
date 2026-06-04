@@ -1,0 +1,1229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KNIRV Network — P2P Consensus Refactor Plan</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --fg: #e6edf3;
+    --accent: #58a6ff;
+    --green: #3fb950;
+    --orange: #d29922;
+    --red: #f85149;
+    --purple: #bc8cff;
+    --cyan: #39d2c0;
+    --border: #30363d;
+    --card-bg: #161b22;
+    --code-bg: #1c2128;
+    --dim: #8b949e;
+    --yellow: #e3b341;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Noto Sans, Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--fg);
+    line-height: 1.6;
+    padding: 2rem;
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+  h1 { font-size: 2rem; border-bottom: 2px solid var(--accent); padding-bottom: .5rem; margin-bottom: 1.5rem; color: var(--accent); }
+  h2 { font-size: 1.4rem; margin-top: 2rem; margin-bottom: .75rem; color: var(--cyan); border-left: 3px solid var(--cyan); padding-left: .75rem; }
+  h3 { font-size: 1.1rem; margin-top: 1.5rem; margin-bottom: .5rem; color: var(--purple); }
+  h4 { font-size: 1rem; margin-top: 1rem; margin-bottom: .25rem; color: var(--yellow); }
+  p, li { margin-bottom: .5rem; color: var(--dim); }
+  strong { color: var(--fg); font-weight: 600; }
+  code {
+    background: var(--code-bg);
+    padding: .15em .4em;
+    border-radius: 4px;
+    font-size: .85em;
+    border: 1px solid var(--border);
+    color: var(--orange);
+  }
+  pre {
+    background: var(--code-bg);
+    padding: 1rem;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    overflow-x: auto;
+    margin: .75rem 0;
+    font-size: .85rem;
+    line-height: 1.5;
+  }
+  pre code { background: none; border: none; padding: 0; color: var(--fg); }
+  .meta { color: var(--dim); font-size: .9rem; margin-bottom: 2rem; }
+  .card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1.25rem;
+    margin: 1rem 0;
+  }
+  .card h4 { margin-top: 0; }
+  .arch {
+    display: flex; gap: 1rem; flex-wrap: wrap; margin: 1rem 0;
+  }
+  .arch-box {
+    flex: 1; min-width: 200px;
+    background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; padding: 1rem;
+  }
+  .arch-box h4 { margin-top: 0; text-align: center; }
+  .arch-box ul { font-size: .85rem; }
+  .status-dot {
+    display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px;
+  }
+  .dot-new { background: var(--red); }
+  .dot-existing { background: var(--green); }
+  .dot-modify { background: var(--orange); }
+  table {
+    width: 100%; border-collapse: collapse; margin: 1rem 0;
+  }
+  th, td {
+    text-align: left; padding: .5rem .75rem; border-bottom: 1px solid var(--border); font-size: .9rem;
+  }
+  th { color: var(--cyan); font-weight: 600; }
+  tr:hover td { background: var(--card-bg); }
+  .tag {
+    display: inline-block; font-size: .75rem; padding: 2px 8px; border-radius: 12px; font-weight: 600;
+  }
+  .tag-new { background: #3fb95022; color: var(--green); border: 1px solid var(--green); }
+  .tag-modify { background: #d2992222; color: var(--orange); border: 1px solid var(--orange); }
+  .tag-existing { background: #58a6ff22; color: var(--accent); border: 1px solid var(--accent); }
+  .tag-remove { background: #f8514922; color: var(--red); border: 1px solid var(--red); }
+  .flow {
+    display: flex; align-items: center; justify-content: center; gap: .5rem; flex-wrap: wrap;
+    padding: 1rem; background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; margin: 1rem 0;
+    font-family: monospace; font-size: .85rem;
+  }
+  .flow-node {
+    background: var(--code-bg); padding: .4rem .8rem; border-radius: 6px; border: 1px solid var(--border);
+  }
+  .flow-arrow { color: var(--dim); font-size: 1.2rem; }
+  hr { border: none; border-top: 1px solid var(--border); margin: 2rem 0; }
+  .toc { background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; padding: 1.25rem; margin: 1rem 0; }
+  .toc a { color: var(--accent); text-decoration: none; }
+  .toc a:hover { text-decoration: underline; }
+  .toc ul { list-style: none; }
+  .toc li { margin: .25rem 0; }
+  .decision { border-left: 3px solid var(--purple); padding-left: 1rem; margin: .75rem 0; }
+</style>
+</head>
+<body>
+
+<h1>KNIRV Network — P2P Consensus Refactor</h1>
+<p class="meta">
+  Status: <span class="tag tag-new">PLAN (DRAFT)</span>
+  &nbsp;|&nbsp; Last updated: 2026-06-04
+  &nbsp;|&nbsp; Author: AI-assisted (opencode/big-pickle)
+</p>
+
+<div class="toc">
+<h4>Contents</h4>
+<ul>
+  <li><a href="#context">1. Context &amp; Motivation</a></li>
+  <li><a href="#current-state">2. Current State Analysis</a></li>
+  <li><a href="#architecture">3. Target Architecture</a></li>
+  <li><a href="#three-modes">4. The Three Consensus Modes</a></li>
+  <li><a href="#gateway-mode">5. Shared Gateway Proxy Mode (Default)</a></li>
+  <li><a href="#standalone-chain">6. Standalone KNIRVCHAIN Mode</a></li>
+  <li><a href="#standalone-base">7. Standalone KNIRVBASE Mode</a></li>
+  <li><a href="#discovery">8. Gateway Presence Discovery</a></li>
+  <li><a href="#config">9. Configuration Surface</a></li>
+  <li><a href="#files">10. File Manifest</a></li>
+  <li><a href="#tests">11. Test Plan</a></li>
+  <li><a href="#phases">12. Implementation Phases</a></li>
+  <li><a href="#appendix">13. Appendix: Reference Flows</a></li>
+</ul>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="context">1. Context &amp; Motivation</h2>
+
+<div class="card">
+<p><strong>Problem:</strong> KNIRVCHAIN and KNIRVBASE each independently implement P2P consensus with different transport stacks (libp2p vs custom TCP). Neither is optional by default. There is no shared P2P layer, and the gateway's role as a consensus proxy is not formalized for KNIRVBASE.</p>
+
+<p><strong>Goals:</strong></p>
+<ol>
+  <li><strong>Migrate</strong> P2P consensus data sync into <strong>KNIRVBASE</strong> as the default network layer.</li>
+  <li><strong>Make both packages P2P-optional</strong> with config toggles and CLI fallbacks.</li>
+  <li><strong>ChainID</strong> scopes all KNIRVCHAIN sync; <strong>NetworkID</strong> scopes all KNIRVBASE sync.</li>
+  <li><strong>Unified proxy</strong> via KNIRVGATEWAY when present; falling back to standalone TCP otherwise.</li>
+  <li><strong>No cross-package Go imports</strong> — three independent implementations following the same pattern.</li>
+</ol>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="current-state">2. Current State Analysis</h2>
+
+<h3>2.1 What Each Package Has Today</h3>
+
+<table>
+<thead>
+<tr>
+  <th>Aspect</th>
+  <th>KNIRVCHAIN</th>
+  <th>KNIRVBASE</th>
+  <th>KNIRVGATEWAY</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><strong>P2P Library</strong></td>
+  <td>libp2p v0.39.1 (DHT + mDNS + circuit relay)</td>
+  <td>Custom TCP (raw sockets, JSON messages)</td>
+  <td>libp2p v0.39.1 (DHT + GossipSub + relay)</td>
+</tr>
+<tr>
+  <td><strong>Consensus Model</strong></td>
+  <td>Gateway-proxied via KNIRVGATEWAY Unix socket</td>
+  <td>CRDT-based (vector clocks, LWW, operation log)</td>
+  <td>Central libp2p host + Kademlia DHT + GossipSub</td>
+</tr>
+<tr>
+  <td><strong>Transport Discovery</strong></td>
+  <td>Auto-detect: Unix socket → gateway, else direct libp2p</td>
+  <td>Raw TCP only (no fallback)</td>
+  <td>N/A (always gateway)</td>
+</tr>
+<tr>
+  <td><strong>Identity</strong></td>
+  <td><code>Config.ChainID</code> (string)</td>
+  <td><code>Options.DistributedNetworkID</code> (string)</td>
+  <td>libp2p PeerID</td>
+</tr>
+<tr>
+  <td><strong>Toggle</strong></td>
+  <td><code>--disable-p2p</code> CLI flag (partial)</td>
+  <td><code>Options.DistributedEnabled</code> (boolean)</td>
+  <td><code>DISABLE_DHT</code> env var</td>
+</tr>
+<tr>
+  <td><strong>Default State</strong></td>
+  <td>P2P enabled</td>
+  <td>P2P enabled</td>
+  <td>DHT enabled</td>
+</tr>
+</tbody>
+</table>
+
+<h3>2.2 Gateway Proxy Flow (Already Working for KNIRVCHAIN)</h3>
+
+<div class="flow">
+  <span class="flow-node">KNIRVCHAIN</span>
+  <span class="flow-arrow">→</span>
+  <span class="flow-node">dht/client.go</span>
+  <span class="flow-arrow">→</span>
+  <span class="flow-node">HTTP POST (Unix socket)</span>
+  <span class="flow-arrow">→</span>
+  <span class="flow-node">KNIRVGATEWAY<br>localhost:8080</span>
+  <span class="flow-arrow">→</span>
+  <span class="flow-node">libp2p DHT<br>+ GossipSub</span>
+  <span class="flow-arrow">→</span>
+  <span class="flow-node">P2P Network</span>
+</div>
+
+<p><strong>Discovery of gateway:</strong> KNIRVCHAIN's <code>GatewayClient</code> (in <code>internal/p2p/gateway_client.go</code>, consolidated from <code>internal/dht/client.go</code>) attempts to connect to the gateway at <code>localhost:8080</code>. If reachable, it registers its Unix socket callback path and delegates all P2P to the gateway. If unreachable, KNIRVCHAIN falls back to direct in-process libp2p via <code>internal/p2p/discovery_manager.go</code>.</p>
+
+<h3>2.3 Relevant File Paths (Current)</h3>
+
+<table>
+<thead>
+<tr><th>Package</th><th>Path</th><th>Purpose</th><th>Status</th></tr>
+</thead>
+<tbody>
+<tr><td>KNIRVCHAIN</td><td><code>internal/p2p/interfaces.go</code></td><td>ConsensusManager, SyncManagerInterface, etc.</td><td><span class="tag tag-existing">EXISTING</span></td></tr>
+<tr><td>KNIRVCHAIN</td><td><code>internal/p2p/p2p_consensus.go</code></td><td>P2PConsensusManager — gateway-proxied consensus</td><td><span class="tag tag-existing">EXISTING</span></td></tr>
+<tr><td>KNIRVCHAIN</td><td><code>internal/p2p/sync_manager.go</code></td><td>ChromemSyncManager — ChromemDB sync</td><td><span class="tag tag-existing">EXISTING</span></td></tr>
+<tr><td>KNIRVCHAIN</td><td><code>internal/p2p/discovery_interface.go</code></td><td>DiscoveryService interface</td><td><span class="tag tag-existing">EXISTING</span></td></tr>
+<tr><td>KNIRVCHAIN</td><td><code>internal/p2p/discovery_manager.go</code></td><td>DiscoveryManager — direct libp2p DHT (standalone)</td><td><span class="tag tag-existing">EXISTING</span></td></tr>
+<tr><td>KNIRVCHAIN</td><td><code>internal/p2p/gateway_client.go</code></td><td>GatewayClient — gateway HTTP client (consolidated from <code>internal/dht/</code>)</td><td><span class="tag tag-new">NEW</span></td></tr>
+<tr><td>KNIRVCHAIN</td><td><code>config/config.go</code></td><td>Config struct (~700 lines, has ChainID)</td><td><span class="tag tag-modify">MODIFY</span></td></tr>
+<tr><td>KNIRVCHAIN</td><td><code>cmd/knirvchain/main.go</code></td><td>startNode(), startNodeWithComponents() — has disableP2P</td><td><span class="tag tag-modify">MODIFY</span></td></tr>
+<tr><td>KNIRVBASE</td><td><code>pkg/knirvbase/knirvbase.go</code></td><td>Options struct (DistributedEnabled, DistributedNetworkID)</td><td><span class="tag tag-modify">MODIFY</span></td></tr>
+<tr><td>KNIRVBASE</td><td><code>internal/network/network_manager.go</code></td><td>NetworkManager — custom TCP P2P</td><td><span class="tag tag-remove">DEPRECATE</span></td></tr>
+<tr><td>KNIRVBASE</td><td><code>internal/types/types.go</code></td><td>DistributedDocument, Operation, ProtocolMessage</td><td><span class="tag tag-modify">MODIFY</span></td></tr>
+<tr><td>KNIRVBASE</td><td><code>internal/clock/vector_clock.go</code></td><td>Vector clock for CRDT ordering</td><td><span class="tag tag-existing">EXISTING</span></td></tr>
+<tr><td>KNIRVBASE</td><td><code>internal/collection/distributed_collection.go</code></td><td>Distributed collection with CRDT sync</td><td><span class="tag tag-modify">MODIFY</span></td></tr>
+<tr><td>KNIRVBASE</td><td><code>internal/database/distributed_database.go</code></td><td>Distributed database orchestration</td><td><span class="tag tag-modify">MODIFY</span></td></tr>
+<tr><td>KNIRVGATEWAY</td><td><code>internal/dht/manager.go</code></td><td>DHTManager — full libp2p host, DHT, GossipSub</td><td><span class="tag tag-modify">MODIFY</span></td></tr>
+<tr><td>KNIRVGATEWAY</td><td><code>internal/dht/types.go</code></td><td>DHTManagerInterface, ResourceEntry</td><td><span class="tag tag-existing">EXISTING</span></td></tr>
+<tr><td>KNIRVGATEWAY</td><td><code>internal/config/config.go</code></td><td>Gateway config (ChainP2PPort, ChainCallbackSocket, etc.)</td><td><span class="tag tag-modify">MODIFY</span></td></tr>
+<tr><td>KNIRVGATEWAY</td><td><code>internal/server/server.go</code></td><td>HTTP server, DHT init, P2P proxy route handlers</td><td><span class="tag tag-modify">MODIFY</span></td></tr>
+</tbody>
+</table>
+
+<!-- ============================================================ -->
+<h2 id="architecture">3. Target Architecture</h2>
+
+<h3>3.1 Decision Matrix</h3>
+
+<table>
+<thead>
+<tr>
+  <th>Gateway Present?</th>
+  <th>Package</th>
+  <th>Transport</th>
+  <th>Implementation</th>
+  <th>Default?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><strong>No</strong></td>
+  <td>KNIRVCHAIN</td>
+  <td>Direct TCP (libp2p)</td>
+  <td><code>internal/p2p/discovery_manager.go</code></td>
+  <td>Off</td>
+</tr>
+<tr>
+  <td><strong>No</strong></td>
+  <td>KNIRVBASE</td>
+  <td>Direct TCP (libp2p)</td>
+  <td><code>internal/p2pconsensus/</code> (NEW)</td>
+  <td>On</td>
+</tr>
+<tr>
+  <td><strong>Yes</strong></td>
+  <td>KNIRVCHAIN</td>
+  <td>Unix socket → gateway</td>
+  <td><code>internal/p2p/gateway_client.go</code> (consolidated)</td>
+  <td>Off</td>
+</tr>
+<tr>
+  <td><strong>Yes</strong></td>
+  <td>KNIRVBASE</td>
+  <td>Unix socket → gateway</td>
+  <td><code>internal/p2pconsensus/gateway_proxy.go</code> (NEW)</td>
+  <td>On</td>
+</tr>
+<tr>
+  <td><strong>Yes</strong></td>
+  <td>KNIRVGATEWAY</td>
+  <td>libp2p (central host)</td>
+  <td><code>internal/dht/manager.go</code> (existing)</td>
+  <td>On</td>
+</tr>
+</tbody>
+</table>
+
+<h3>3.2 Architecture Diagram</h3>
+
+<pre>
+┌─────────────────────────────────────────────────────────────┐
+│                    GATEWAY PRESENT                           │
+│                                                              │
+│  ┌──────────────┐    Unix socket     ┌──────────────────┐    │
+│  │  KNIRVCHAIN   │───────────────────▶│                  │    │
+│  │  (P2P off)    │  /p2p/publish-*   │   KNIRVGATEWAY   │    │
+│  │               │◀───────────────────│                  │    │
+│  │  Uses:        │  /internal/p2p/*  │  libp2p host     │    │
+│  │  dht/client   │                   │  + DHT + GossipSub│    │
+│  └──────────────┘                    │  + chain sync     │    │
+│                                      │                    │    │
+│  ┌──────────────┐    Unix socket     │                    │    │
+│  │  KNIRVBASE    │───────────────────▶│                    │    │
+│  │  (P2P on)     │  /knirvbase/...   │                    │    │
+│  │               │◀───────────────────│                    │    │
+│  │  Uses:        │  callbacks        └────────▲───────────┘    │
+│  │  gateway_proxy│                          │                 │
+│  └──────────────┘                    libp2p  │                 │
+│                                       DHT    │                 │
+│                                      ┌───────▼───────────┐     │
+│                                      │   P2P Network     │     │
+│                                      │   (remote peers)  │     │
+│                                      └───────────────────┘     │
+└─────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────┐
+│                  NO GATEWAY (Standalone)                      │
+│                                                              │
+│  ┌──────────────┐    Direct libp2p    ┌──────────────────┐    │
+│  │  KNIRVCHAIN   │───────────────────▶│                  │    │
+│  │  (P2P off)    │  TCP DHT + mDNS   │   P2P Network    │    │
+│  │               │◀───────────────────│                  │    │
+│  │  Uses:        │  libp2p streams   └──────────────────┘    │
+│  │  discovery_mgr│                                            │
+│  └──────────────┘                                            │
+│                                                              │
+│  ┌──────────────┐    Direct libp2p    ┌──────────────────┐    │
+│  │  KNIRVBASE    │───────────────────▶│                  │    │
+│  │  (P2P on)     │  TCP DHT + mDNS   │   P2P Network    │    │
+│  │               │◀───────────────────│                  │    │
+│  │  Uses:        │  libp2p streams   └──────────────────┘    │
+│  │  discovery_mgr│                                            │
+│  └──────────────┘                                            │
+└─────────────────────────────────────────────────────────────┘
+</pre>
+
+<!-- ============================================================ -->
+<h2 id="three-modes">4. The Three Consensus Modes</h2>
+
+<div class="arch">
+  <div class="arch-box">
+    <h4>🔷 Mode 1: KNIRVCHAIN Standalone</h4>
+    <ul>
+      <li><strong>Condition:</strong> P2P enabled, gateway unreachable</li>
+      <li><strong>Transport:</strong> Direct libp2p TCP</li>
+      <li><strong>Entry:</strong> <code>internal/p2p/discovery_manager.go</code></li>
+      <li><strong>Default:</strong> <span class="tag tag-remove">OFF</span></li>
+      <li><strong>Identity:</strong> <code>ChainID</code></li>
+      <li><strong>Action:</strong> <span class="tag tag-modify">Make optional + polish</span></li>
+    </ul>
+  </div>
+  <div class="arch-box">
+    <h4>🟢 Mode 2: KNIRVBASE Standalone</h4>
+    <ul>
+      <li><strong>Condition:</strong> P2P enabled, gateway unreachable</li>
+      <li><strong>Transport:</strong> Direct libp2p TCP (not custom TCP)</li>
+      <li><strong>Entry:</strong> <code>internal/p2pconsensus/</code> (NEW)</li>
+      <li><strong>Default:</strong> <span class="tag tag-new">ON</span></li>
+      <li><strong>Identity:</strong> <code>NetworkID</code></li>
+      <li><strong>Action:</strong> <span class="tag tag-new">Build new</span></li>
+    </ul>
+  </div>
+  <div class="arch-box">
+    <h4>🟣 Mode 3: KNIRVGATEWAY Shared</h4>
+    <ul>
+      <li><strong>Condition:</strong> Gateway running + P2P enabled</li>
+      <li><strong>Transport:</strong> Unix socket → gateway libp2p</li>
+      <li><strong>Entry:</strong> <code>internal/dht/</code> + <code>internal/p2pconsensus/gateway_proxy.go</code></li>
+      <li><strong>Default:</strong> <span class="tag tag-modify">ON (when gateway present)</span></li>
+      <li><strong>Identity:</strong> ChainID / NetworkID</li>
+      <li><strong>Action:</strong> <span class="tag tag-modify">Extend for KNIRVBASE</span></li>
+    </ul>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="gateway-mode">5. Shared Gateway Proxy Mode (Default when gateway is present)</h2>
+
+<h3>5.1 How It Works for KNIRVCHAIN (Already Implemented)</h3>
+
+<pre>
+Chain sees gateway on localhost:8080 →
+  dht/client.go registers callback socket →
+  gateway stores socket path via SetChainCallbackSocket() →
+  gateway creates libp2p host + DHT + GossipSub →
+    joins {chainID}.blocks and {chainID}.transactions topics →
+  chain's P2PConsensusManager can:
+    - BroadcastBlock / BroadcastTransaction via POST /p2p/publish-*
+    - Receive blocks/txs via gateway → POST /internal/p2p/received-*
+    - Request sync via POST /internal/chain/sync
+    - Discover peers via /dht/find, /dht/cache-resource
+</pre>
+
+<h3>5.2 Extension for KNIRVBASE (New)</h3>
+
+<p>The gateway must be extended to support KNIRVBASE as a second proxy client, using <strong>NetworkID</strong> for topic isolation.</p>
+
+<h4>5.2.1 KNIRVGATEWAY Changes</h4>
+
+<table>
+<thead>
+<tr><th>File</th><th>Change</th></tr>
+</thead>
+<tbody>
+<tr>
+  <td><code>internal/config/config.go</code></td>
+  <td>Add <code>BaseCallbackSocket</code> field (Unix socket path for KNIRVBASE callbacks)</td>
+</tr>
+<tr>
+  <td><code>internal/dht/manager.go</code></td>
+  <td>
+    Add methods:<br>
+    <code>SetBaseCallbackSocket(socketPath)</code><br>
+    <code>SetupCRDTPubSub(networkID)</code> — joins <code>{networkID}.ops</code> topic<br>
+    <code>forwardToBase(path, data)</code> — POST to KNIRVBASE's Unix socket<br>
+    <code>PublishOperation(ctx, op)</code> — publishes CRDT operations to GossipSub<br>
+    <code>HandleCRDTOperations()</code> — goroutine to receive CRDT ops from topic
+  </td>
+</tr>
+<tr>
+  <td><code>internal/server/server.go</code></td>
+  <td>
+    Add handlers:<br>
+    <code>handleBaseRegisterCallback</code> — <code>POST /knirvbase/register-callback</code><br>
+    <code>handlePublishOperation</code> — <code>POST /knirvbase/publish-op</code><br>
+    <code>handleBaseDiscovery</code> — <code>GET /knirvbase/discover</code>
+  </td>
+</tr>
+</tbody>
+</table>
+
+<h4>5.2.2 KNIRVBASE Gateway Proxy Client (New Package)</h4>
+
+<p><strong>Location:</strong> <code>packages/KNIRVBASE/internal/p2pconsensus/gateway_proxy.go</code></p>
+
+<pre>
+type GatewayProxy struct {
+    gatewayURL   string          // e.g. "http://localhost:8080"
+    networkID    string
+    callbackPath string          // our Unix socket path
+    client       *http.Client    // Unix socket dialer for callbacks
+    mu           sync.RWMutex
+}
+
+func NewGatewayProxy(gatewayURL, networkID, callbackPath string) *GatewayProxy
+func (g *GatewayProxy) Register() error           // POST /knirvbase/register-callback
+func (g *GatewayProxy) PublishOperation(ctx, op)  // POST /knirvbase/publish-op
+func (g *GatewayProxy) DiscoverPeers(query)        // GET /knirvbase/discover
+func (g *GatewayProxy) Health() bool              // check gateway reachable
+func (g *GatewayProxy) Close()
+</pre>
+
+<h4>5.2.3 KNIRVBASE Socket Server (New)</h4>
+
+<p><strong>Location:</strong> <code>packages/KNIRVBASE/internal/p2pconsensus/socket_server.go</code></p>
+
+<p>Analogous to KNIRVCHAIN's <code>BlockchainServer.handleP2PReceivedBlock</code> — a lightweight HTTP server on a Unix socket that the gateway calls into:</p>
+
+<pre>
+type SocketServer struct {
+    socketPath string
+    server     *http.Server
+    handler    ConsensusHandler  // interface for processing inbound ops
+}
+
+func NewSocketServer(socketPath string, handler ConsensusHandler) *SocketServer
+func (s *SocketServer) Serve() error                 // listen + serve on Unix socket
+func (s *SocketServer) Stop(ctx) error               // graceful shutdown
+</pre>
+
+<p>Registers endpoints:</p>
+<ul>
+  <li><code>POST /internal/p2p/received-op</code> — CRDT operations from gateway</li>
+  <li><code>POST /internal/p2p/received-sync-request</code> — sync requests from gateway</li>
+</ul>
+
+<h4>5.2.4 Discovery Logic</h4>
+
+<p>In <code>Options</code> / <code>New()</code>: if <code>Options.Consensus.GatewayURL</code> is set and <code>Options.Consensus.Enabled == true</code>, create a <code>GatewayProxy</code>. If the proxy connects successfully, use gateway mode. Otherwise, fall back to standalone mode.</p>
+
+<!-- ============================================================ -->
+<h2 id="standalone-chain">6. Standalone KNIRVCHAIN Mode</h2>
+
+<h3>6.1 What Exists</h3>
+
+<p><code>internal/p2p/discovery_manager.go</code> — full standalone libp2p implementation with DHT discovery, mDNS, circuit relay. Used when the gateway is unreachable.</p>
+
+<p><code>internal/p2p/p2p_consensus.go</code> — <code>P2PConsensusManager</code> that works with both gateway-proxied and direct discovery.</p>
+
+<h3>6.2 What Changes</h3>
+
+<table>
+<thead>
+<tr><th>File</th><th>Change</th></tr>
+</thead>
+<tbody>
+<tr>
+  <td><code>config/config.go</code></td>
+  <td>Add <code>Consensus P2PConsensusConfig</code> with <code>P2PEnabled bool</code> (default: <code>false</code>), <code>ChainID string</code></td>
+</tr>
+<tr>
+  <td><code>cmd/knirvchain/main.go</code></td>
+  <td>
+    Dual toggle: <code>--disable-p2p</code> CLI flag overrides <code>cfg.Consensus.P2PEnabled</code><br>
+    <code>p2pEnabled = cfg.Consensus.P2PEnabled &amp;&amp; !disableP2Pflag</code>
+  </td>
+</tr>
+<tr>
+  <td><code>config/*.json</code> (7 files)</td>
+  <td>Add <code>"consensus": { "p2p_enabled": false, "chain_id": "KNIRVCHAIN" }</code></td>
+</tr>
+<tr>
+  <td><code>internal/p2p/p2p_consensus.go</code></td>
+  <td>Ensure ChainID scopes all broadcast/sync messages; add <code>SetEnabled(bool)</code></td>
+</tr>
+<tr>
+  <td><code>internal/p2p/sync_manager.go</code></td>
+  <td>Add ChainID prefix to ChromemDB sync keys</td>
+</tr>
+</tbody>
+</table>
+
+<h3>6.3 Dual Toggle Logic</h3>
+
+<pre>
+// New consensus config
+type P2PConsensusConfig struct {
+    P2PEnabled bool   `json:"p2p_enabled" mapstructure:"p2p_enabled"`
+    ChainID    string `json:"chain_id"    mapstructure:"chain_id"`
+}
+
+Config.Consensus = P2PConsensusConfig{P2PEnabled: false} // DEFAULT OFF
+
+// main.go — fallback chain
+p2pEnabled := cfg.Consensus.P2PEnabled
+if cmdFlags.DisableP2P != nil &amp;&amp; *cmdFlags.DisableP2P {
+    p2pEnabled = false  // CLI always wins
+}
+// If disableP2P flag was not set, fall back to config value
+</pre>
+
+<!-- ============================================================ -->
+<h2 id="standalone-base">7. Standalone KNIRVBASE Mode</h2>
+
+<h3>7.1 What Changes</h3>
+
+<table>
+<thead>
+<tr><th>Path</th><th>Change</th></tr>
+</thead>
+<tbody>
+<tr>
+  <td><code>internal/p2pconsensus/</code> (NEW)</td>
+  <td>New package — canonical P2P consensus for KNIRVBASE</td>
+</tr>
+<tr>
+  <td><code>pkg/knirvbase/knirvbase.go</code></td>
+  <td>Add <code>Consensus ConsensusConfig</code> to Options; keep <code>DistributedEnabled</code> as alias</td>
+</tr>
+<tr>
+  <td><code>internal/network/network_manager.go</code></td>
+  <td>Deprecate — mark with comment; rely on p2pconsensus package</td>
+</tr>
+<tr>
+  <td><code>internal/collection/distributed_collection.go</code></td>
+  <td>Route sync through <code>p2pconsensus.Manager</code> instead of raw TCP</td>
+</tr>
+<tr>
+  <td><code>internal/database/distributed_database.go</code></td>
+  <td>Route sync through <code>p2pconsensus.Manager</code> instead of raw TCP</td>
+</tr>
+<tr>
+  <td><code>internal/types/types.go</code></td>
+  <td>Add <code>NetworkID</code> field to <code>NetworkConfig</code></td>
+</tr>
+</tbody>
+</table>
+
+<h3>7.2 New Files in <code>internal/p2pconsensus/</code></h3>
+
+<table>
+<thead>
+<tr><th>File</th><th>Contents</th></tr>
+</thead>
+<tbody>
+<tr>
+  <td><code>interfaces.go</code></td>
+  <td>
+    <code>ConsensusManager</code> — Start/Stop/Status/Peers<br>
+    <code>SyncManager</code> — PushSync/PullSync/ResolveSyncState<br>
+    <code>EventHandler</code> — OnBlockReceived/OnTxReceived/OnSyncRequest<br>
+    <code>DiscoveryService</code> — FindPeers/Announce/Resolve
+  </td>
+</tr>
+<tr>
+  <td><code>config.go</code></td>
+  <td>
+    <code>ConsensusConfig</code> struct — <code>Enabled</code>, <code>NetworkID</code>, <code>Mode</code> (gateway|standalone), <code>GatewayURL</code>, <code>ListenAddr</code>, <code>Port</code>, <code>BootstrapPeers</code>
+  </td>
+</tr>
+<tr>
+  <td><code>manager.go</code></td>
+  <td>
+    <code>P2PConsensusManager</code> — top-level orchestrator<br>
+    Detects gateway presence on init<br>
+    Routes to <code>GatewayProxy</code> or <code>StandaloneConsensus</code>
+  </td>
+</tr>
+<tr>
+  <td><code>standalone.go</code></td>
+  <td>
+    <code>StandaloneConsensus</code> — direct libp2p implementation for KNIRVBASE<br>
+    Uses libp2p host + DHT + GossipSub<br>
+    CRDT operations broadcast on <code>{networkID}.ops</code> topic<br>
+    Bootstrap peer discovery via DHT
+  </td>
+</tr>
+<tr>
+  <td><code>gateway_proxy.go</code></td>
+  <td>
+    <code>GatewayProxy</code> — Unix socket client to KNIRVGATEWAY<br>
+    Registers callback, publishes ops, discovers peers
+  </td>
+</tr>
+<tr>
+  <td><code>socket_server.go</code></td>
+  <td>
+    <code>SocketServer</code> — lightweight HTTP on Unix socket<br>
+    Receives ops/sync from gateway
+  </td>
+</tr>
+<tr>
+  <td><code>types.go</code></td>
+  <td>
+    <code>PeerInfo</code>, <code>P2PMessage</code>, <code>SyncRequest</code>, <code>SyncResponse</code>, <code>OperationEnvelope</code>
+  </td>
+</tr>
+</tbody>
+</table>
+
+<h3>7.3 Standalone Mode Transport</h3>
+
+<p><strong>Important:</strong> The standalone mode for KNIRVBASE uses <strong>libp2p</strong>, not the current custom TCP. This is necessary to maintain a consistent transport abstraction between standalone and gateway modes (both use libp2p-style identity, streams, and protocols).</p>
+
+<p>The existing <code>internal/network/</code> package is deprecated and should be replaced by the new libp2p-based implementation in <code>internal/p2pconsensus/standalone.go</code>.</p>
+
+<pre>
+// go.mod addition (KNIRVBASE)
+require (
+    github.com/libp2p/go-libp2p v0.39.1
+    github.com/libp2p/go-libp2p-kad-dht v0.29.1
+    github.com/libp2p/go-libp2p-pubsub v0.13.1
+    // matching KNIRVCHAIN versions
+)
+</pre>
+
+<!-- ============================================================ -->
+<h2 id="discovery">8. Gateway Presence Discovery</h2>
+
+<h3>8.1 Algorithm</h3>
+
+<p>Both KNIRVCHAIN and KNIRVBASE use the same pattern to determine which transport mode to use:</p>
+
+<pre>
+func detectGateway(gatewayURL string, timeout time.Duration) bool {
+    // Attempt GET /p2p/health (or /health) on gatewayURL
+    ctx, cancel := context.WithTimeout(context.Background(), timeout)
+    defer cancel()
+    req, _ := http.NewRequestWithContext(ctx, "GET", gatewayURL+"/p2p/health", nil)
+    resp, err := http.DefaultClient.Do(req)
+    if err != nil {
+        return false  // gateway not reachable, use standalone
+    }
+    defer resp.Body.Close()
+    return resp.StatusCode == 200
+}
+</pre>
+
+<p><strong>Incorporated into <code>Options</code> / <code>Config</code> init:</strong></p>
+
+<pre>
+// KNIRVBASE
+cfg := Options.Consensus
+if cfg.Enabled {
+    if cfg.GatewayURL != "" &amp;&amp; detectGateway(cfg.GatewayURL, 2*time.Second) {
+        mode = "gateway"
+    } else {
+        mode = "standalone"
+    }
+} else {
+    mode = "disabled"
+}
+</pre>
+
+<p><strong>Gateway unreachable behavior:</strong> If the gateway was previously reachable but becomes unreachable, the proxy client should retry with exponential backoff. After <code>n</code> consecutive failures, fall back to standalone mode. When the gateway comes back, switch back to proxy mode.</p>
+
+<h3>8.2 Gateway Health Endpoint (New)</h3>
+
+<p>Add to KNIRVGATEWAY <code>internal/server/server.go</code>:</p>
+
+<pre>
+GET /p2p/health → 200 OK { "status": "healthy", "peers": 42, "uptime": "3h12m" }
+</pre>
+
+<p>This is used by both packages for presence detection and by external monitoring.</p>
+
+<!-- ============================================================ -->
+<h2 id="config">9. Configuration Surface</h2>
+
+<h3>9.1 KNIRVCHAIN Config</h3>
+
+<pre>
+// In config/config.go, add:
+type ConsensusConfig struct {
+    P2PEnabled        bool     `json:"p2p_enabled"     mapstructure:"p2p_enabled"`
+    ChainID           string   `json:"chain_id"        mapstructure:"chain_id"`
+    GatewayURL        string   `json:"gateway_url"     mapstructure:"gateway_url"`       // e.g. "http://localhost:8080"
+    GatewayTimeout    string   `json:"gateway_timeout" mapstructure:"gateway_timeout"`   // e.g. "2s"
+    StandalonePort    int      `json:"standalone_port" mapstructure:"standalone_port"`   // libp2p port (fallback)
+    BootstrapPeers    []string `json:"bootstrap_peers" mapstructure:"bootstrap_peers"`
+}
+
+Config.Consensus = ConsensusConfig{
+    P2PEnabled:        false,                           // DEFAULT OFF
+    ChainID:           "KNIRVCHAIN",
+    GatewayURL:        "http://localhost:8080",
+    GatewayTimeout:    "2s",
+    StandalonePort:    4001,
+    BootstrapPeers:    []string{},
+}
+</pre>
+
+<h3>9.2 KNIRVBASE Options</h3>
+
+<pre>
+// In pkg/knirvbase/knirvbase.go:
+
+type ConsensusConfig struct {
+    Enabled         bool     `json:"enabled"`
+    NetworkID       string   `json:"network_id"`
+    Mode            string   `json:"mode"`              // "auto" | "gateway" | "standalone" | "disabled"
+    GatewayURL      string   `json:"gateway_url"`
+    GatewayTimeout  string   `json:"gateway_timeout"`
+    ListenAddr      string   `json:"listen_addr"`
+    Port            int      `json:"port"`
+    BootstrapPeers  []string `json:"bootstrap_peers"`
+}
+
+type Options struct {
+    // ... existing fields
+
+    // New: consolidated consensus config
+    Consensus ConsensusConfig
+
+    // Deprecated: use Consensus.Enabled and Consensus.NetworkID instead
+    DistributedEnabled   bool    `json:"-"`
+    DistributedNetworkID string  `json:"-"`
+}
+
+func DefaultOptions() Options {
+    return Options{
+        // ... existing defaults ...
+        Consensus: ConsensusConfig{
+            Enabled:        true,                        // DEFAULT ON
+            NetworkID:      "knirvbase-default",
+            Mode:           "auto",
+            GatewayURL:     "http://localhost:8080",
+            GatewayTimeout: "2s",
+            ListenAddr:     "0.0.0.0",
+            Port:           4002,
+            BootstrapPeers: []string{},
+        },
+    }
+}
+</pre>
+
+<h3>9.3 KNIRVGATEWAY Config</h3>
+
+<pre>
+// In internal/config/config.go:
+
+type Config struct {
+    // ... existing fields ...
+
+    // KNIRVBASE callback support (new)
+    BaseCallbackSocket  string `envconfig:"BASE_CALLBACK_SOCKET"`
+    BaseNetworkID       string `envconfig:"BASE_NETWORK_ID"`      // topic isolation
+}
+</pre>
+
+<!-- ============================================================ -->
+<h2 id="files">10. File Manifest</h2>
+
+<h3>10.1 New Files</h3>
+
+<table>
+<thead>
+<tr><th>File</th><th>Status</th><th>Approx. LOC</th></tr>
+</thead>
+<tbody>
+<tr><td><code>packages/KNIRVBASE/internal/p2pconsensus/interfaces.go</code></td><td><span class="tag tag-new">NEW</span></td><td>80</td></tr>
+<tr><td><code>packages/KNIRVBASE/internal/p2pconsensus/config.go</code></td><td><span class="tag tag-new">NEW</span></td><td>40</td></tr>
+<tr><td><code>packages/KNIRVBASE/internal/p2pconsensus/types.go</code></td><td><span class="tag tag-new">NEW</span></td><td>60</td></tr>
+<tr><td><code>packages/KNIRVBASE/internal/p2pconsensus/manager.go</code></td><td><span class="tag tag-new">NEW</span></td><td>200</td></tr>
+<tr><td><code>packages/KNIRVBASE/internal/p2pconsensus/standalone.go</code></td><td><span class="tag tag-new">NEW</span></td><td>350</td></tr>
+<tr><td><code>packages/KNIRVBASE/internal/p2pconsensus/gateway_proxy.go</code></td><td><span class="tag tag-new">NEW</span></td><td>200</td></tr>
+<tr><td><code>packages/KNIRVBASE/internal/p2pconsensus/socket_server.go</code></td><td><span class="tag tag-new">NEW</span></td><td>120</td></tr>
+<tr><td><code>packages/KNIRVBASE/internal/p2pconsensus/discovery.go</code></td><td><span class="tag tag-new">NEW</span></td><td>80</td></tr>
+</tbody>
+</table>
+
+<h3>10.2 Modified Files</h3>
+
+<table>
+<thead>
+<tr><th>File</th><th>Change</th></tr>
+</thead>
+<tbody>
+<tr>
+  <td><code>packages/KNIRVCHAIN/config/config.go</code></td>
+  <td>Add <code>ConsensusConfig</code> struct, default <code>P2PEnabled: false</code></td>
+</tr>
+<tr>
+  <td><code>packages/KNIRVCHAIN/config/*.json</code></td>
+  <td>Add <code>"consensus": { "p2p_enabled": false, "chain_id": "..." }</code></td>
+</tr>
+<tr>
+  <td><code>packages/KNIRVCHAIN/config/validation.go</code></td>
+  <td>Validate <code>ChainID</code> is non-empty when <code>P2PEnabled</code> is true</td>
+</tr>
+<tr>
+  <td><code>packages/KNIRVCHAIN/cmd/knirvchain/main.go</code></td>
+  <td>Dual toggle logic; gateway discovery; pass config-based flags</td>
+</tr>
+<tr>
+  <td><code>packages/KNIRVCHAIN/cmd/knirvchain/main_root.go</code></td>
+  <td>Update init calls to pass <code>cfg.Consensus</code> instead of hardcoded values</td>
+</tr>
+<tr>
+  <td><code>packages/KNIRVCHAIN/cmd/knirvchain/main_bootnode.go</code></td>
+  <td>Same as above</td>
+</tr>
+<tr>
+  <td><code>packages/KNIRVCHAIN/cmd/knirvchain/main_client.go</code></td>
+  <td>Same as above</td>
+</tr>
+<tr>
+  <td><code>packages/KNIRVCHAIN/cmd/knirvchain/main_developer.go</code></td>
+  <td>Same as above</td>
+</tr>
+<tr>
+  <td><code>packages/KNIRVCHAIN/internal/p2p/p2p_consensus.go</code></td>
+  <td>ChainID scoping in messages; <code>SetEnabled</code> method</td>
+</tr>
+<tr>
+  <td><code>packages/KNIRVCHAIN/internal/p2p/sync_manager.go</code></td>
+  <td>ChainID prefix in sync keys</td>
+</tr>
+<tr>
+  <td><code>packages/KNIRVCHAIN/internal/p2p/interfaces.go</code></td>
+  <td>Add <code>SetEnabled(bool)</code> to <code>ConsensusManager</code></td>
+</tr>
+<tr>
+  <td><code>packages/KNIRVBASE/pkg/knirvbase/knirvbase.go</code></td>
+  <td>Add <code>Consensus ConsensusConfig</code> to <code>Options</code>; deprecate distributed fields</td>
+</tr>
+<tr>
+  <td><code>packages/KNIRVBASE/internal/types/types.go</code></td>
+  <td>Add <code>NetworkID</code> to <code>NetworkConfig</code></td>
+</tr>
+<tr>
+  <td><code>packages/KNIRVBASE/internal/collection/distributed_collection.go</code></td>
+  <td>Route sync through <code>p2pconsensus</code> instead of raw TCP</td>
+</tr>
+<tr>
+  <td><code>packages/KNIRVBASE/internal/database/distributed_database.go</code></td>
+  <td>Route sync through <code>p2pconsensus</code> instead of raw TCP</td>
+</tr>
+<tr>
+  <td><code>packages/KNIRVBASE/internal/network/network_manager.go</code></td>
+  <td>Add deprecation notice; forward to <code>p2pconsensus</code></td>
+</tr>
+<tr>
+  <td><code>packages/KNIRVGATEWAY/internal/config/config.go</code></td>
+  <td>Add <code>BaseCallbackSocket</code>, <code>BaseNetworkID</code></td>
+</tr>
+<tr>
+  <td><code>packages/KNIRVGATEWAY/internal/dht/manager.go</code></td>
+  <td>Add KNIRVBASE proxy support (CRDT topics, callbacks)</td>
+</tr>
+<tr>
+  <td><code>packages/KNIRVGATEWAY/internal/server/server.go</code></td>
+  <td>Add <code>/knirvbase/*</code> route handlers</td>
+</tr>
+</tbody>
+</table>
+
+<h3>10.3 Deprecated / Removed</h3>
+
+<table>
+<thead>
+<tr><th>File</th><th>Reason</th></tr>
+</thead>
+<tbody>
+<tr>
+  <td><code>packages/KNIRVCHAIN/internal/dht/client.go</code></td>
+  <td>Moved to <code>internal/p2p/gateway_client.go</code> — all P2P code consolidated in one package</td>
+</tr>
+<tr>
+  <td><code>packages/KNIRVCHAIN/internal/dht/p2p_bridge.go</code></td>
+  <td>Removed — unnecessary type re-exports; direct imports from <code>internal/p2p</code> used instead</td>
+</tr>
+<tr>
+  <td><code>packages/KNIRVCHAIN/internal/dht/</code> (directory)</td>
+  <td>Deleted after moving client.go; all functionality lives in <code>internal/p2p/</code></td>
+</tr>
+<tr>
+  <td><code>packages/KNIRVBASE/internal/network/network_manager.go</code></td>
+  <td>Replaced by libp2p-based standalone in <code>internal/p2pconsensus/</code></td>
+</tr>
+<tr>
+  <td><code>packages/KNIRVBASE/internal/network/mock_network.go</code></td>
+  <td>Replaced by test mocks in <code>p2pconsensus/</code></td>
+</tr>
+</tbody>
+</table>
+
+<!-- ============================================================ -->
+<h2 id="tests">11. Test Plan</h2>
+
+<h3>11.1 KNIRVCHAIN Tests</h3>
+
+<table>
+<thead>
+<tr><th>Test</th><th>Location</th><th>What it verifies</th></tr>
+</thead>
+<tbody>
+<tr><td><code>TestP2P_DefaultDisabled</code></td><td><code>tests/unit/p2p_config_test.go</code></td><td>Node starts without P2P when <code>p2p_enabled: false</code></td></tr>
+<tr><td><code>TestP2P_CLIOverride</code></td><td><code>tests/unit/p2p_config_test.go</code></td><td><code>--disable-p2p=false</code> overrides config <code>p2p_enabled: true</code></td></tr>
+<tr><td><code>TestP2P_CLIFallback</code></td><td><code>tests/unit/p2p_config_test.go</code></td><td>No CLI flag = config value applies</td></tr>
+<tr><td><code>TestP2P_ChainIDScopedSync</code></td><td><code>tests/unit/p2p_consensus_test.go</code></td><td>Sync messages from different ChainIDs are isolated</td></tr>
+<tr><td><code>TestP2P_GatewayDiscovery</code></td><td><code>tests/integration/</code></td><td>Gateway auto-detected when reachable; standalone fallback when not</td></tr>
+<tr><td><code>TestP2P_ValidateConfig</code></td><td><code>config/validation_test.go</code></td><td>Validation rejects <code>p2p_enabled: true</code> with empty <code>chain_id</code></td></tr>
+</tbody>
+</table>
+
+<h3>11.2 KNIRVBASE Tests</h3>
+
+<table>
+<thead>
+<tr><th>Test</th><th>Location</th><th>What it verifies</th></tr>
+</thead>
+<tbody>
+<tr><td><code>TestConsensus_DefaultEnabled</code></td><td><code>internal/p2pconsensus/manager_test.go</code></td><td>P2P consensus initializes by default</td></tr>
+<tr><td><code>TestConsensus_Disabled</code></td><td><code>internal/p2pconsensus/manager_test.go</code></td><td>DB works locally when <code>Enabled: false</code></td></tr>
+<tr><td><code>TestConsensus_ModeAutoGateway</code></td><td><code>internal/p2pconsensus/discovery_test.go</code></td><td><code>Mode: "auto"</code> selects gateway when reachable</td></tr>
+<tr><td><code>TestConsensus_ModeAutoStandalone</code></td><td><code>internal/p2pconsensus/discovery_test.go</code></td><td><code>Mode: "auto"</code> selects standalone when gateway unreachable</td></tr>
+<tr><td><code>TestConsensus_GatewayProxyConnect</code></td><td><code>internal/p2pconsensus/gateway_proxy_test.go</code></td><td>Gateway connects, registers callback, publishes op</td></tr>
+<tr><td><code>TestConsensus_StandaloneCRDT</code></td><td><code>internal/p2pconsensus/standalone_test.go</code></td><td>Standalone mode broadcasts CRDT ops via libp2p GossipSub</td></tr>
+<tr><td><code>TestConsensus_NetworkIDScopedOps</code></td><td><code>internal/p2pconsensus/standalone_test.go</code></td><td>CRDT topics are NetworkID-scoped, isolated from other networks</td></tr>
+<tr><td><code>TestConsensus_DeprecatedFields</code></td><td><code>pkg/knirvbase/knirvbase_test.go</code></td><td>Backward compat: <code>DistributedEnabled</code> maps to <code>Consensus.Enabled</code></td></tr>
+</tbody>
+</table>
+
+<h3>11.3 KNIRVGATEWAY Tests</h3>
+
+<table>
+<thead>
+<tr><th>Test</th><th>Location</th><th>What it verifies</th></tr>
+</thead>
+<tbody>
+<tr><td><code>TestBaseRegisterCallback</code></td><td><code>internal/server/server_test.go</code></td><td>KNIRVBASE registers callback successfully</td></tr>
+<tr><td><code>TestBasePublishOp</code></td><td><code>internal/dht/manager_test.go</code></td><td>Gateway publishes CRDT ops to GossipSub topic</td></tr>
+<tr><td><code>TestBaseCallbackForward</code></td><td><code>internal/dht/manager_test.go</code></td><td>Gateway forwards received ops to KNIRVBASE Unix socket</td></tr>
+<tr><td><code>TestHealthEndpoint</code></td><td><code>internal/server/server_test.go</code></td><td><code>GET /p2p/health</code> returns 200</td></tr>
+</tbody>
+</table>
+
+<h3>11.4 Integration Tests</h3>
+
+<table>
+<thead>
+<tr><th>Test</th><th>Location</th><th>What it verifies</th></tr>
+</thead>
+<tbody>
+<tr><td><code>TestSharedGatewayDualClient</code></td><td><code>integration-tests/</code></td><td>Both KNIRVCHAIN and KNIRVBASE connected to same gateway</td></tr>
+<tr><td><code>TestStandaloneChainP2P</code></td><td><code>integration-tests/</code></td><td>Two KNIRVCHAIN nodes sync without gateway (both standalone)</td></tr>
+<tr><td><code>TestStandaloneBaseP2P</code></td><td><code>integration-tests/</code></td><td>Two KNIRVBASE instances sync without gateway (both standalone)</td></tr>
+<tr><td><code>TestGatewayFailover</code></td><td><code>integration-tests/</code></td><td>Node starts with gateway, gateway dies, node falls back to standalone</td></tr>
+</tbody>
+</table>
+
+<!-- ============================================================ -->
+<h2 id="phases">12. Implementation Phases</h2>
+
+<h3>Phase 1: KNIRVCHAIN — Make P2P Optional (Config + CLI) + Consolidate</h3>
+<p><em>Priority: High | Effort: Small | Dependencies: None</em></p>
+<table>
+<thead>
+<tr><th>Step</th><th>File(s)</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td>1.1</td><td><code>config/config.go</code></td><td>Add <code>Consensus P2PConsensusConfig</code> with <code>P2PEnabled bool</code> (default <code>false</code>) and <code>ChainID string</code></td></tr>
+<tr><td>1.2</td><td><code>config/validation.go</code></td><td>Add validation: <code>P2PEnabled && ChainID == ""</code> → error</td></tr>
+<tr><td>1.3</td><td><code>config/*.json</code> (7 files)</td><td>Add <code>"consensus": { "p2p_enabled": false, "chain_id": "KNIRVCHAIN" }</code></td></tr>
+<tr><td>1.4</td><td><code>cmd/knirvchain/main.go</code></td><td>Dual toggle: CLI flag <code>--disable-p2p</code> overrides <code>cfg.Consensus.P2PEnabled</code></td></tr>
+<tr><td>1.5</td><td><code>cmd/knirvchain/main*.go</code></td><td>Update all entry points to pass config-based P2P toggle</td></tr>
+<tr><td>1.6</td><td><code>internal/p2p/p2p_consensus.go</code></td><td>Add <code>SetEnabled(bool)</code>; scope broadcast/sync messages with ChainID</td></tr>
+<tr><td>1.7</td><td><code>internal/p2p/sync_manager.go</code></td><td>Add ChainID prefix to ChromemDB sync keys</td></tr>
+<tr><td><strong>1.8</strong></td><td><code>internal/dht/ → internal/p2p/gateway_client.go</code></td><td><strong>Consolidate:</strong> Move <code>internal/dht/client.go</code> into <code>internal/p2p/gateway_client.go</code>. Remove <code>internal/dht/p2p_bridge.go</code> (re-exports). Delete the <code>internal/dht/</code> directory entirely. Update all imports.</td></tr>
+</tbody>
+</table>
+
+<h3>Phase 2: KNIRVBASE — New p2pconsensus Package</h3>
+<p><em>Priority: High | Effort: Large | Dependencies: Phase 1</em></p>
+<table>
+<thead>
+<tr><th>Step</th><th>File(s)</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td>2.1</td><td><code>internal/p2pconsensus/interfaces.go</code></td><td>Define consensus interfaces (ConsensusManager, SyncManager, EventHandler, DiscoveryService)</td></tr>
+<tr><td>2.2</td><td><code>internal/p2pconsensus/config.go</code></td><td>Define ConsensusConfig (Enabled, NetworkID, Mode, GatewayURL, etc.)</td></tr>
+<tr><td>2.3</td><td><code>internal/p2pconsensus/types.go</code></td><td>PeerInfo, P2PMessage, SyncRequest/Response, OperationEnvelope</td></tr>
+<tr><td>2.4</td><td><code>internal/p2pconsensus/discovery.go</code></td><td>Gateway presence detection (health check); mode auto-selection</td></tr>
+<tr><td>2.5</td><td><code>internal/p2pconsensus/standalone.go</code></td><td>libp2p-based standalone consensus (add libp2p to KNIRVBASE go.mod)</td></tr>
+<tr><td>2.6</td><td><code>internal/p2pconsensus/gateway_proxy.go</code></td><td>Gateway proxy client: register, publish, discover</td></tr>
+<tr><td>2.7</td><td><code>internal/p2pconsensus/socket_server.go</code></td><td>Unix socket HTTP server for gateway callbacks</td></tr>
+<tr><td>2.8</td><td><code>internal/p2pconsensus/manager.go</code></td><td>P2PConsensusManager: auto-detect mode, delegate to standalone or gateway proxy</td></tr>
+</tbody>
+</table>
+
+<h3>Phase 3: KNIRVBASE — Integration into Existing Code</h3>
+<p><em>Priority: High | Effort: Medium | Dependencies: Phase 2</em></p>
+<table>
+<thead>
+<tr><th>Step</th><th>File(s)</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td>3.1</td><td><code>pkg/knirvbase/knirvbase.go</code></td><td>Add <code>Consensus ConsensusConfig</code> to <code>Options</code>; keep deprecated fields as aliases</td></tr>
+<tr><td>3.2</td><td><code>pkg/knirvbase/knirvbase.go</code></td><td>Update <code>New()</code> to initialize <code>P2PConsensusManager</code> based on config</td></tr>
+<tr><td>3.3</td><td><code>internal/collection/distributed_collection.go</code></td><td>Route sync through <code>p2pconsensus.Manager</code> instead of raw TCP</td></tr>
+<tr><td>3.4</td><td><code>internal/database/distributed_database.go</code></td><td>Route sync through <code>p2pconsensus.Manager</code> instead of raw TCP</td></tr>
+<tr><td>3.5</td><td><code>internal/types/types.go</code></td><td>Add <code>NetworkID</code> to <code>NetworkConfig</code>; document CRDT operation envelope</td></tr>
+<tr><td>3.6</td><td><code>internal/network/network_manager.go</code></td><td>Add deprecation notice + forward methods to p2pconsensus</td></tr>
+</tbody>
+</table>
+
+<h3>Phase 4: KNIRVGATEWAY — Extend for KNIRVBASE</h3>
+<p><em>Priority: High | Effort: Medium | Dependencies: Phase 2</em></p>
+<table>
+<thead>
+<tr><th>Step</th><th>File(s)</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td>4.1</td><td><code>internal/config/config.go</code></td><td>Add <code>BaseCallbackSocket</code>, <code>BaseNetworkID</code></td></tr>
+<tr><td>4.2</td><td><code>internal/dht/manager.go</code></td><td>Add <code>SetBaseCallbackSocket</code>; add <code>SetupCRDTPubSub</code>; add <code>forwardToBase</code>; add <code>PublishOperation</code>; add <code>HandleCRDTOperations</code> goroutine</td></tr>
+<tr><td>4.3</td><td><code>internal/server/server.go</code></td><td>Add <code>POST /knirvbase/register-callback</code>, <code>POST /knirvbase/publish-op</code>, <code>GET /knirvbase/discover</code></td></tr>
+<tr><td>4.4</td><td><code>internal/server/server.go</code></td><td>Add <code>GET /p2p/health</code> endpoint</td></tr>
+</tbody>
+</table>
+
+<h3>Phase 5: Tests + Documentation</h3>
+<p><em>Priority: Medium | Effort: Medium | Dependencies: Phases 1-4</em></p>
+<table>
+<thead>
+<tr><th>Step</th><th>Area</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td>5.1</td><td>KNIRVCHAIN tests</td><td>Config validation, CLI override, ChainID scoping, gateway discovery</td></tr>
+<tr><td>5.2</td><td>KNIRVBASE tests</td><td>Manager init, mode detection, standalone CRDT, gateway proxy, NetworkID scoping</td></tr>
+<tr><td>5.3</td><td>KNIRVGATEWAY tests</td><td>Callback registration, op publishing, forwarding, health endpoint</td></tr>
+<tr><td>5.4</td><td>Integration tests</td><td>Shared gateway, standalone failover, dual-client gateway</td></tr>
+<tr><td>5.5</td><td>AGENTS.md</td><td>Update component map, add p2pconsensus module, update architecture section</td></tr>
+<tr><td>5.6</td><td>CALIBER_LEARNINGS.md</td><td>Log new P2P architecture decisions</td></tr>
+</tbody>
+</table>
+
+<!-- ============================================================ -->
+<h2 id="appendix">13. Appendix: Reference Flows</h2>
+
+<h3>13.1 Gateway Proxy Flow (KNIRVBASE → Gateway → Network)</h3>
+
+<pre>
+1. KNIRVBASE starts
+2. Options.Consensus.Enabled == true
+3. detectGateway("http://localhost:8080", 2s) → true
+4. Creates GatewayProxy(gatewayURL, networkID, callbackSocket)
+5. GatewayProxy.Register() → POST /knirvbase/register-callback
+   { "socket_path": "/tmp/knirvbase.sock", "network_id": "knirvbase-default" }
+6. Gateway stores callback socket, creates HTTP client (Unix dialer)
+7. Gateway calls SetupCRDTPubSub(networkID) → joins "{networkID}.ops" GossipSub topic
+8. KNIRVBASE SocketServer starts listening on /tmp/knirvbase.sock
+
+--- CRDT operation broadcast (KNIRVBASE → Network) ---
+9.  distributed_collection.Put(doc)
+10. → p2pconsensus.Manager.PublishOperation(op)
+11. → GatewayProxy.PublishOperation(ctx, op)
+12. → POST /knirvbase/publish-op (JSON body)
+13. → Gateway DHTManager.PublishOperation(ctx, op)
+14. → publishes to "{networkID}.ops" GossipSub topic
+15. → remote peers receive via their gateway subscriptions
+
+--- CRDT operation receive (Network → KNIRVBASE) ---
+16. Remote peer publishes to "{networkID}.ops" topic
+17. Gateway HandleCRDTOperations() goroutine receives from sub
+18. → forwardToBase("/internal/p2p/received-op", opData)
+19. → POST /internal/p2p/received-op (via Unix socket HTTP)
+20. → KNIRVBASE SocketServer handler
+21. → p2pconsensus.Manager.HandleReceivedOperation(op)
+22. → distributed_collection.Merge(op)
+</pre>
+
+<h3>13.2 Standalone Flow (KNIRVBASE → Direct libp2p → Network)</h3>
+
+<pre>
+1. KNIRVBASE starts
+2. Options.Consensus.Enabled == true
+3. detectGateway("http://localhost:8080", 2s) → false (or Mode == "standalone")
+4. Creates StandaloneConsensus(networkID, listenAddr, port, bootstrapPeers)
+5. Creates libp2p host + Kademlia DHT + GossipSub
+6. Joins "{networkID}.ops" GossipSub topic
+7. Connects to bootstrap peers (or waits for mDNS discovery)
+
+--- CRDT operation broadcast ---
+8.  distributed_collection.Put(doc)
+9.  → p2pconsensus.Manager.PublishOperation(op)
+10. → StandaloneConsensus.PublishOperation(ctx, op)
+11. → publishes to "{networkID}.ops" GossipSub topic via local libp2p host
+12. → remote peers receive directly
+
+--- CRDT operation receive ---
+13. Local HandleCRDTOperations() goroutine receives from sub
+14. → p2pconsensus.Manager.HandleReceivedOperation(op)
+15. → distributed_collection.Merge(op)
+</pre>
+
+<h3>13.3 ChainID / NetworkID Isolation</h3>
+
+<pre>
+KNIRVCHAIN:
+  - DHT protocol prefix:  /KNIRVCHAIN-dht/{ChainID}/{peerID[:8]}
+  - GossipSub topics:     {ChainID}.blocks, {ChainID}.transactions
+  - Sync request header:  X-Chain-ID: {ChainID}
+  - ChromemDB key prefix: {ChainID}:{key}
+
+KNIRVBASE:
+  - GossipSub topics:     {NetworkID}.ops
+  - Sync request header:  X-Network-ID: {NetworkID}
+  - CRDT op envelope:     {NetworkID}:{op_id}
+
+Gateway (when shared):
+  - Topics are created per identity string
+  - Messages from different identities are isolated at the topic level
+  - Callback routing uses identity to determine which socket to forward to
+</pre>
+
+<h3>13.4 Key Design Decisions</h3>
+
+<div class="decision">
+  <strong>DD-1:</strong> No cross-package Go imports. Three independent implementations share design patterns but are independently maintained.
+</div>
+<div class="decision">
+  <strong>DD-2:</strong> KNIRVCHAIN P2P defaults to OFF. KNIRVBASE P2P defaults to ON. This reflects KNIRVBASE's role as the default network layer.
+</div>
+<div class="decision">
+  <strong>DD-3:</strong> Gateway proxy uses Unix domain socket HTTP, not raw streams. This matches the existing KNIRVCHAIN↔Gateway protocol.
+</div>
+<div class="decision">
+  <strong>DD-4:</strong> KNIRVBASE standalone uses libp2p, not the current custom TCP. This ensures transport consistency between modes and reuses the existing libp2p expertise in the project.
+</div>
+<div class="decision">
+  <strong>DD-5:</strong> CLI flag always overrides config value (defense in depth for P2P disable).
+</div>
+<div class="decision">
+  <strong>DD-6:</strong> Gateway presence discovery is implicit (health check on configured URL). Mode is explicitly configurable as "auto" | "gateway" | "standalone" | "disabled" for operational control.
+</div>
+<div class="decision">
+  <strong>DD-7:</strong> The existing <code>internal/network/</code> package in KNIRVBASE is deprecated but not removed immediately. Forwarding methods ensure backward compatibility during the transition.
+</div>
+
+<h3>13.5 Gateway GossipSub Topic Naming</h3>
+
+<pre>
+// KNIRVCHAIN topics (existing)
+{chainID}.blocks
+{chainID}.transactions
+network_control
+graph-announcements
+
+// KNIRVBASE topics (new)
+{networkID}.ops           ← CRDT operations
+{networkID}.sync          ← sync requests (for pull-based sync)
+</pre>
+
+<p>Topic isolation ensures that KNIRVCHAIN and KNIRVBASE traffic does not interfere, even when both share the same gateway and libp2p host.</p>
+
+<hr>
+
+<p style="text-align: center; color: var(--dim); font-size: .85rem;">
+  KNIRV Network — ConsensusRefactor.html &nbsp;|&nbsp; Plan Draft v1.0 &nbsp;|&nbsp; 2026-06-04
+</p>
+
+</body>
+</html>

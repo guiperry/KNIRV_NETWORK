@@ -2,7 +2,9 @@ package core
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/KNIRV/KNIRV_NETWORK/KNIRVSHELL/internal/config"
 	"github.com/sirupsen/logrus"
@@ -50,6 +52,30 @@ type PoAuDResult struct {
 	Details     map[string]interface{} `json:"details"`
 	Timestamp   string                 `json:"timestamp"`
 	ValidatedBy string                 `json:"validated_by"`
+}
+
+// GatewayFaucetTransaction mirrors the gateway payment transaction payload.
+type GatewayFaucetTransaction struct {
+	ID        string    `json:"id"`
+	Amount    string    `json:"amount"`
+	Token     string    `json:"token"`
+	Recipient string    `json:"recipient"`
+	Network   string    `json:"network"`
+	Timestamp time.Time `json:"timestamp"`
+}
+
+// GatewayFaucetResponse mirrors the gateway payment faucet response payload.
+type GatewayFaucetResponse struct {
+	Success     bool                      `json:"success"`
+	Transaction *GatewayFaucetTransaction `json:"transaction,omitempty"`
+	Message     string                    `json:"message,omitempty"`
+	Error       string                    `json:"error,omitempty"`
+}
+
+type gatewayAPIResponse struct {
+	Success bool            `json:"success"`
+	Data    json.RawMessage `json:"data"`
+	Error   string          `json:"error"`
 }
 
 // NewKNIRVGatewayClient creates a new KNIRVGATEWAY client
@@ -221,6 +247,98 @@ func (c *KNIRVGatewayClient) GetEconomicsData(ctx context.Context) (map[string]i
 	err := c.Get(ctx, endpoint, &data)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get economics data: %w", err)
+	}
+
+	return data, nil
+}
+
+// GetNRNBalance retrieves the NRN balance for an address through the gateway.
+func (c *KNIRVGatewayClient) GetNRNBalance(ctx context.Context, address string) (string, error) {
+	var response map[string]interface{}
+	endpoint := fmt.Sprintf("/balance/%s", address)
+
+	if err := c.Get(ctx, endpoint, &response); err != nil {
+		return "", fmt.Errorf("failed to get NRN balance: %w", err)
+	}
+
+	balance, ok := response["balance"].(string)
+	if ok {
+		return balance, nil
+	}
+
+	if numeric, ok := response["balance"].(float64); ok {
+		return fmt.Sprintf("%.0f", numeric), nil
+	}
+
+	return "", fmt.Errorf("invalid balance response format")
+}
+
+// RequestNRNFromFaucet requests NRN through the gateway payment service.
+func (c *KNIRVGatewayClient) RequestNRNFromFaucet(ctx context.Context, address string, amount string, network string) (*GatewayFaucetResponse, error) {
+	request := map[string]string{
+		"address": address,
+		"amount":  amount,
+		"network": network,
+	}
+
+	var envelope gatewayAPIResponse
+	if err := c.Post(ctx, "/api/faucet/request", request, &envelope); err != nil {
+		return nil, fmt.Errorf("failed to request faucet funds: %w", err)
+	}
+
+	var response GatewayFaucetResponse
+	if len(envelope.Data) > 0 {
+		if err := json.Unmarshal(envelope.Data, &response); err != nil {
+			return nil, fmt.Errorf("failed to decode faucet response: %w", err)
+		}
+	} else {
+		response.Success = envelope.Success
+		response.Error = envelope.Error
+	}
+
+	return &response, nil
+}
+
+// CheckFaucetStatus checks whether the faucet can issue funds to an address.
+func (c *KNIRVGatewayClient) CheckFaucetStatus(ctx context.Context, address string, network string) (map[string]interface{}, error) {
+	var envelope gatewayAPIResponse
+	endpoint := fmt.Sprintf("/api/faucet/status/%s?network=%s", address, network)
+	if err := c.Get(ctx, endpoint, &envelope); err != nil {
+		return nil, fmt.Errorf("failed to get faucet status: %w", err)
+	}
+
+	if len(envelope.Data) == 0 {
+		return map[string]interface{}{
+			"success": envelope.Success,
+			"error":   envelope.Error,
+		}, nil
+	}
+
+	var data map[string]interface{}
+	if err := json.Unmarshal(envelope.Data, &data); err != nil {
+		return nil, fmt.Errorf("failed to decode faucet status: %w", err)
+	}
+
+	return data, nil
+}
+
+// CheckFaucetHealth returns the economics service health through the gateway.
+func (c *KNIRVGatewayClient) CheckFaucetHealth(ctx context.Context) (map[string]interface{}, error) {
+	var envelope gatewayAPIResponse
+	if err := c.Get(ctx, "/api/economics/health", &envelope); err != nil {
+		return nil, fmt.Errorf("failed to get faucet health: %w", err)
+	}
+
+	if len(envelope.Data) == 0 {
+		return map[string]interface{}{
+			"success": envelope.Success,
+			"error":   envelope.Error,
+		}, nil
+	}
+
+	var data map[string]interface{}
+	if err := json.Unmarshal(envelope.Data, &data); err != nil {
+		return nil, fmt.Errorf("failed to decode faucet health: %w", err)
 	}
 
 	return data, nil

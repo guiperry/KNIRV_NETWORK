@@ -91,9 +91,9 @@ export default function TutorialsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-black">
+    <div className="dve-page">
       {/* Navigation */}
-      <nav className="border-b border-white/10 bg-slate-900/50 backdrop-blur-lg">
+      <nav className="dve-nav">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <KnirvLogo />
@@ -230,7 +230,7 @@ export default function TutorialsPage() {
             Follow our structured learning path to master KNIRV from basics to advanced concepts.
           </p>
           <div className="grid md:grid-cols-3 gap-8">
-            <Card className="bg-white/5 border-white/10 backdrop-blur-lg">
+            <Card className="dve-card">
               <CardContent className="p-8 text-center">
                 <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
                   <span className="text-2xl">🌱</span>
@@ -243,7 +243,7 @@ export default function TutorialsPage() {
               </CardContent>
             </Card>
             
-            <Card className="bg-white/5 border-white/10 backdrop-blur-lg">
+            <Card className="dve-card">
               <CardContent className="p-8 text-center">
                 <div className="w-16 h-16 bg-yellow-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
                   <span className="text-2xl">🚀</span>
@@ -256,7 +256,7 @@ export default function TutorialsPage() {
               </CardContent>
             </Card>
             
-            <Card className="bg-white/5 border-white/10 backdrop-blur-lg">
+            <Card className="dve-card">
               <CardContent className="p-8 text-center">
                 <div className="w-16 h-16 bg-knirv-secondary/20 rounded-full flex items-center justify-center mx-auto mb-4">
                   <span className="text-2xl">⚡</span>

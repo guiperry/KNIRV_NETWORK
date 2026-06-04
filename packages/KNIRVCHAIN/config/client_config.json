@@ -3,6 +3,10 @@
   "noWalletServer": true,
   "sharedDatabasePath": "client_data/client_agent.db",
   "installComplete": true,
+  "consensus": {
+    "p2p_enabled": false,
+    "chain_id": "client-node"
+  },
   "data_engine": {
     "enabled": true,
     "kafka_brokers": ["localhost:9092"],

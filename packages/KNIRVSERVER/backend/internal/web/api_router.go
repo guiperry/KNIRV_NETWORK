@@ -19,6 +19,7 @@ type APIRouter struct {
 	onboardingHandlers      *OnboardingHandlers
 	cognitiveEngineHandlers *CognitiveEngineHandlers
 	knowledgeBaseHandlers   *KnowledgeBaseHandlers
+	governanceHandlers      *GovernanceHandlers
 	authMiddleware          *middleware.AuthMiddleware
 	browserDVEHub           *BrowserDVEHub
 }
@@ -33,6 +34,7 @@ func NewAPIRouter(
 	onboardingHandlers *OnboardingHandlers,
 	cognitiveEngineHandlers *CognitiveEngineHandlers,
 	knowledgeBaseHandlers *KnowledgeBaseHandlers,
+	governanceHandlers *GovernanceHandlers,
 	authMiddleware *middleware.AuthMiddleware,
 	browserDVEHub *BrowserDVEHub,
 ) *APIRouter {
@@ -45,6 +47,7 @@ func NewAPIRouter(
 		onboardingHandlers:      onboardingHandlers,
 		cognitiveEngineHandlers: cognitiveEngineHandlers,
 		knowledgeBaseHandlers:   knowledgeBaseHandlers,
+		governanceHandlers:      governanceHandlers,
 		authMiddleware:          authMiddleware,
 		browserDVEHub:           browserDVEHub,
 	}
@@ -101,6 +104,11 @@ func (ar *APIRouter) RegisterRoutes(r *mux.Router) {
 
 	// Register Knowledge Base routes under /api/v1/knowledge-base/
 	ar.registerKnowledgeBaseRoutes(apiV1)
+
+	// Register Governance routes under /api/v1/governance/
+	if ar.governanceHandlers != nil {
+		ar.governanceHandlers.RegisterRoutes(apiV1)
+	}
 
 	// Register backward compatibility redirects
 	ar.registerBackwardCompatibilityRoutes(r)

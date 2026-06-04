@@ -48,9 +48,11 @@ type P2PConsensusManager struct {
 	ctx        context.Context
 	cancel     context.CancelFunc
 
+	chainID       string
 	gatewaySocket string
 	gatewayClient *http.Client
 
+	enabled       bool
 	miningLocked   bool
 	isSyncing      bool
 	networkPaused  bool
@@ -81,23 +83,50 @@ func NewP2PConsensusManager(blockchain Blockchain, discoveryManager DiscoverySer
 		}
 	}
 
+	chainID := ""
+	if blockchain != nil {
+		chainID = blockchain.GetChainID()
+	}
+
 	manager := &P2PConsensusManager{
 		blockchain:    blockchain,
 		nodeRole:      role,
+		chainID:       chainID,
 		ctx:           ctx,
 		cancel:        cancel,
 		gatewaySocket: gatewaySocket,
 		gatewayClient: gatewayClient,
+		enabled:       true,
 		stopChan:      make(chan struct{}),
 	}
 
 	return manager, nil
 }
 
+// SetEnabled toggles consensus on or off.
+func (pcm *P2PConsensusManager) SetEnabled(enabled bool) {
+	pcm.mu.Lock()
+	defer pcm.mu.Unlock()
+	pcm.enabled = enabled
+	if !enabled {
+		pcm.Stop()
+	}
+}
+
+// GetChainID returns the scoped chain identifier.
+func (pcm *P2PConsensusManager) GetChainID() string {
+	return pcm.chainID
+}
+
 // Start begins the consensus process.
 func (pcm *P2PConsensusManager) Start() {
+	if !pcm.enabled {
+		log.Printf("[%s] P2P consensus is disabled, skipping start", pcm.nodeRole.String())
+		return
+	}
 	log.Printf("[%s][%s] Starting P2P consensus manager...", pcm.nodeRole.String(), pcm.blockchain.GetChainID())
 	go pcm.runForkResolution()
+
 	log.Printf("[%s][%s] P2P consensus manager started successfully.", pcm.nodeRole.String(), pcm.blockchain.GetChainID())
 }
 
@@ -191,7 +220,15 @@ func (pcm *P2PConsensusManager) processReceivedTransaction(txData []byte) {
 
 // BroadcastBlock publishes a block via KNIRVGATEWAY.
 func (pcm *P2PConsensusManager) BroadcastBlock(block *Block) error {
-	blockData, err := json.Marshal(block)
+	// Wrap with ChainID for topic isolation
+	wrapper := struct {
+		ChainID string      `json:"chain_id"`
+		Block   interface{} `json:"block"`
+	}{
+		ChainID: pcm.chainID,
+		Block:   block,
+	}
+	blockData, err := json.Marshal(wrapper)
 	if err != nil {
 		return fmt.Errorf("failed to marshal block: %w", err)
 	}
@@ -206,7 +243,15 @@ func (pcm *P2PConsensusManager) BroadcastBlock(block *Block) error {
 
 // BroadcastTransaction publishes a transaction via KNIRVGATEWAY.
 func (pcm *P2PConsensusManager) BroadcastTransaction(transaction *Transaction) error {
-	txData, err := json.Marshal(transaction)
+	// Wrap with ChainID for topic isolation
+	wrapper := struct {
+		ChainID     string      `json:"chain_id"`
+		Transaction interface{} `json:"transaction"`
+	}{
+		ChainID:     pcm.chainID,
+		Transaction: transaction,
+	}
+	txData, err := json.Marshal(wrapper)
 	if err != nil {
 		return fmt.Errorf("failed to marshal transaction: %w", err)
 	}

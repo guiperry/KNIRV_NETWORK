@@ -497,3 +497,11 @@ func PrintValidationResult(result *ValidationResult) {
 
 	fmt.Println("=====================================")
 }
+
+// ValidateConsensusConfig validates P2P consensus configuration
+func ValidateConsensusConfig(cfg *Config) error {
+	if cfg.Consensus.P2PEnabled && cfg.Consensus.ChainID == "" {
+		return fmt.Errorf("chain_id must be non-empty when p2p_enabled is true")
+	}
+	return nil
+}

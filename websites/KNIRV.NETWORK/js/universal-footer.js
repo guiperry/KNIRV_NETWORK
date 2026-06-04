@@ -64,10 +64,8 @@ class KNIRVUniversalFooter {
                     <div class="footer-section">
                         <h4>Developer Tools</h4>
                         <ul>
-                            <li><a href="${this.getLink('navigation.graphchain_explorer')}">Graphchain Explorer</a></li>
                             <li><a href="${this.getLink('navigation.documentation')}">Documentation</a></li>
                             <li><a href="${this.getLink('navigation.developer_portal')}">Developer Portal</a></li>
-                            <li><a href="${this.getLink('navigation.agentify')}">Agentify</a></li>
                         </ul>
                     </div>
 

@@ -18,6 +18,10 @@ interface InnerSession {
   toolName: string;
 }
 
+type WebSocketConnectResult =
+  | { ok: true; ws: WebSocket }
+  | { ok: false; error: string };
+
 interface ConsolePanelProps {
   isOpen: boolean;
   onClose: () => void;
@@ -54,10 +58,64 @@ const ConsolePanel: React.FC<ConsolePanelProps> = ({
   
   const dragControls = useDragControls();
 
-  const updateConnectionModeRef = (mode: 'knirvshell' | 'knirvagent' | 'ssh' | 'local') => {
+  const updateConnectionModeRef = useCallback((mode: 'knirvshell' | 'knirvagent' | 'ssh' | 'local') => {
     connectionModeRef.current = mode;
     setConnectionMode(mode);
-  };
+  }, []);
+
+  const waitForWebSocketOpen = useCallback((ws: WebSocket, timeoutMs: number) => {
+    return new Promise<WebSocketConnectResult>((resolve) => {
+      let settled = false;
+
+      const finish = (result: WebSocketConnectResult) => {
+        if (settled) return;
+        settled = true;
+        window.clearTimeout(timer);
+        ws.removeEventListener('open', handleOpen);
+        ws.removeEventListener('error', handleError);
+        ws.removeEventListener('close', handleClose);
+        resolve(result);
+      };
+
+      const handleOpen = () => finish({ ok: true, ws });
+      const handleError = () => finish({ ok: false, error: 'websocket connection error' });
+      const handleClose = () => finish({ ok: false, error: 'websocket closed before opening' });
+
+      const timer = window.setTimeout(() => {
+        try {
+          ws.close();
+        } catch {
+          // ignore close errors on stale sockets
+        }
+        finish({ ok: false, error: `websocket open timed out after ${Math.round(timeoutMs / 1000)}s` });
+      }, timeoutMs);
+
+      ws.addEventListener('open', handleOpen);
+      ws.addEventListener('error', handleError);
+      ws.addEventListener('close', handleClose);
+    });
+  }, []);
+
+  const writeConnectionError = useCallback((term: XTermTerminal, label: string, message: string) => {
+    term.writeln(`\x1b[31m[${label}] ${message}\x1b[0m`);
+  }, []);
+
+  const readResponseError = useCallback(async (resp: Response) => {
+    const raw = await resp.text();
+    if (!raw) {
+      return `HTTP ${resp.status}`;
+    }
+
+    try {
+      const parsed = JSON.parse(raw) as { error?: string; message?: string };
+      if (parsed.error) return parsed.error;
+      if (parsed.message) return parsed.message;
+    } catch {
+      // fall through to raw body text
+    }
+
+    return raw.slice(0, 200);
+  }, []);
 
   const { fetchFabricLogs } = useFabricManagement();
 
@@ -133,7 +191,7 @@ const ConsolePanel: React.FC<ConsolePanelProps> = ({
     } catch {
       return false;
     }
-  }, [nodeId]);
+  }, [nodeId, updateConnectionModeRef]);
 
   // Send input to KNIRVCLI session
   const sendToKNIRVCLI = useCallback(async (input: string) => {
@@ -150,91 +208,169 @@ const ConsolePanel: React.FC<ConsolePanelProps> = ({
   // Attempt to connect the terminal to the backend SSH WebSocket for the given node.
   const connectSSH = useCallback(async (term: XTermTerminal) => {
     if (!nodeId) return false;
+    const timeoutMs = 5000;
+    const controller = new AbortController();
+    const requestTimeout = window.setTimeout(() => controller.abort(), timeoutMs);
     try {
       const resp = await fetch(`${API_BASE_URL}/api/dve/${nodeId}/ssh-session`, {
         method: 'POST',
         headers: getAuthHeaders(),
         body: JSON.stringify({ username: 'dve-admin' }),
+        signal: controller.signal,
       });
-      if (!resp.ok) return false;
+      window.clearTimeout(requestTimeout);
+      if (!resp.ok) {
+        const errorText = await readResponseError(resp);
+        writeConnectionError(term, 'SSH', `${errorText}. Falling back to KNIRVCLI.`);
+        return false;
+      }
       const data = await resp.json();
+      if (!data?.ws_url) {
+        writeConnectionError(term, 'SSH', 'missing websocket URL from session endpoint');
+        return false;
+      }
       const wsProto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
       const wsHost = window.location.host;
       const ws = new WebSocket(`${wsProto}//${wsHost}${data.ws_url}`);
       wsRef.current = ws;
-      updateConnectionModeRef('ssh');
-
-      ws.onopen = () => {
-        setSshConnected(true);
-        term.writeln('\x1b[32m[CONNECTED] SSH tunnel established via TEE enclave.\x1b[0m');
-        term.write('\x1b[1;32m$ \x1b[0m');
-      };
+      let connectionEstablished = false;
       ws.onmessage = (ev) => {
-        const msg = JSON.parse(ev.data);
-        if (msg.type === 'data') term.write(msg.data);
-      };
-      ws.onerror = () => {
-        setSshConnected(false);
-        term.writeln('\x1b[31m[SSH] Connection error — falling back to local shell.\x1b[0m');
+        try {
+          const msg = JSON.parse(ev.data);
+          if (msg.type === 'data') term.write(msg.data);
+        } catch (err) {
+          writeConnectionError(term, 'SSH', `unexpected websocket payload: ${err instanceof Error ? err.message : 'invalid JSON'}`);
+        }
       };
       ws.onclose = () => {
         setSshConnected(false);
+        if (wsRef.current === ws) {
+          wsRef.current = null;
+        }
+        if (connectionEstablished) {
+          term.writeln('\r\n\x1b[31m[SSH] Connection closed.\x1b[0m');
+        }
       };
+
+      const opened = await waitForWebSocketOpen(ws, timeoutMs);
+      if (!opened.ok) {
+        if (wsRef.current === ws) {
+          wsRef.current = null;
+        }
+        writeConnectionError(term, 'SSH', `${opened.error}. Falling back to KNIRVCLI.`);
+        return false;
+      }
+
+      connectionEstablished = true;
+      updateConnectionModeRef('ssh');
+      setSshConnected(true);
+      term.writeln('\x1b[32m[CONNECTED] SSH tunnel established via TEE enclave.\x1b[0m');
+      term.write('\x1b[1;32m$ \x1b[0m');
       return true;
-    } catch {
+    } catch (error) {
+      window.clearTimeout(requestTimeout);
+      if (error instanceof DOMException && error.name === 'AbortError') {
+        writeConnectionError(term, 'SSH', `session request timed out after ${Math.round(timeoutMs / 1000)}s`);
+      } else {
+        writeConnectionError(term, 'SSH', `session request failed: ${error instanceof Error ? error.message : 'unknown error'}`);
+      }
       return false;
     }
-  }, [nodeId]);
+  }, [nodeId, readResponseError, updateConnectionModeRef, waitForWebSocketOpen, writeConnectionError]);
 
   // Attempt to connect the terminal to the DVE Supervisor Agent (KNIRVAGENT).
   const connectKNIRVAGENT = useCallback(async (term: XTermTerminal) => {
     if (!nodeId) return false;
+    const timeoutMs = 5000;
+    const controller = new AbortController();
+    const requestTimeout = window.setTimeout(() => controller.abort(), timeoutMs);
     try {
       const resp = await fetch(`${API_BASE_URL}/api/dve/${nodeId}/supervisor-agent/session`, {
         headers: getAuthHeaders(),
+        signal: controller.signal,
       });
-      if (!resp.ok) return false;
+      window.clearTimeout(requestTimeout);
+      if (!resp.ok) {
+        const errorText = await readResponseError(resp);
+        writeConnectionError(term, 'KNIRVAGENT', `${errorText}. Falling back to SSH.`);
+        return false;
+      }
       const data = await resp.json();
+      if (!data?.running) {
+        writeConnectionError(
+          term,
+          'KNIRVAGENT',
+          data?.error
+            ? `${data.error}. Falling back to SSH.`
+            : `supervisor is not ready for node ${nodeId}. Falling back to SSH.`
+        );
+        return false;
+      }
+      if (!data?.ws_url) {
+        writeConnectionError(term, 'KNIRVAGENT', 'missing websocket URL from session endpoint');
+        return false;
+      }
       const wsProto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
       const wsHost = window.location.host;
       const ws = new WebSocket(`${wsProto}//${wsHost}${data.ws_url}`);
       wsRef.current = ws;
-      updateConnectionModeRef('knirvagent');
-
-      ws.onopen = () => {
-        setSshConnected(true);
-        term.writeln('\x1b[35m[CONNECTED] DVE Supervisor Agent (KNIRVAGENT) link established.\x1b[0m');
-        term.writeln('\x1b[35m[INFO] Your terminal input will be relayed to the KNIRVAGENT supervisor.\x1b[0m');
-        term.write('\x1b[1;35magent> \x1b[0m');
-      };
+      let connectionEstablished = false;
       ws.onmessage = (ev) => {
-        const msg = JSON.parse(ev.data);
-        if (msg.type === 'data') {
-          if (agentProcessingRef.current) {
-            term.write('\r\x1b[2K');
-            agentProcessingRef.current = false;
+        try {
+          const msg = JSON.parse(ev.data);
+          if (msg.type === 'data') {
+            if (agentProcessingRef.current) {
+              term.write('\r\x1b[2K');
+              agentProcessingRef.current = false;
+            }
+            term.write(msg.data);
+          } else if (msg.type === 'prompt') {
+            if (agentProcessingRef.current) {
+              term.write('\r\x1b[2K');
+              agentProcessingRef.current = false;
+            }
+            term.write('\x1b[1;35magent> \x1b[0m');
           }
-          term.write(msg.data);
-        } else if (msg.type === 'prompt') {
-          if (agentProcessingRef.current) {
-            term.write('\r\x1b[2K');
-            agentProcessingRef.current = false;
-          }
-          term.write('\x1b[1;35magent> \x1b[0m');
+        } catch (err) {
+          writeConnectionError(term, 'KNIRVAGENT', `unexpected websocket payload: ${err instanceof Error ? err.message : 'invalid JSON'}`);
         }
-      };
-      ws.onerror = () => {
-        setSshConnected(false);
-        term.writeln('\x1b[33m[KNIRVAGENT] Connection unavailable — trying SSH fallback.\x1b[0m');
       };
       ws.onclose = () => {
         setSshConnected(false);
+        if (wsRef.current === ws) {
+          wsRef.current = null;
+        }
+        if (connectionEstablished) {
+          term.writeln('\r\n\x1b[31m[KNIRVAGENT] Connection closed.\x1b[0m');
+        }
       };
+
+      const opened = await waitForWebSocketOpen(ws, timeoutMs);
+      if (!opened.ok) {
+        if (wsRef.current === ws) {
+          wsRef.current = null;
+        }
+        writeConnectionError(term, 'KNIRVAGENT', `${opened.error}. Falling back to SSH.`);
+        return false;
+      }
+
+      connectionEstablished = true;
+      updateConnectionModeRef('knirvagent');
+      setSshConnected(true);
+      term.writeln('\x1b[35m[CONNECTED] DVE Supervisor Agent (KNIRVAGENT) link established.\x1b[0m');
+      term.writeln('\x1b[35m[INFO] Your terminal input will be relayed to the KNIRVAGENT supervisor.\x1b[0m');
+      term.write('\x1b[1;35magent> \x1b[0m');
       return true;
-    } catch {
+    } catch (error) {
+      window.clearTimeout(requestTimeout);
+      if (error instanceof DOMException && error.name === 'AbortError') {
+        writeConnectionError(term, 'KNIRVAGENT', `session request timed out after ${Math.round(timeoutMs / 1000)}s`);
+      } else {
+        writeConnectionError(term, 'KNIRVAGENT', `session request failed: ${error instanceof Error ? error.message : 'unknown error'}`);
+      }
       return false;
     }
-  }, [nodeId]);
+  }, [nodeId, readResponseError, updateConnectionModeRef, waitForWebSocketOpen, writeConnectionError]);
 
   const loadRealLogs = useCallback(async () => {
     if (!fabricId || !xtermRef.current) return;
@@ -410,7 +546,7 @@ const ConsolePanel: React.FC<ConsolePanelProps> = ({
         if (cleanup) cleanup();
       };
     }
-  }, [isOpen, nodeId, loadRealLogs, connectSSH]);
+  }, [isOpen, connectKNIRVAGENT, connectKNIRVCLI, connectSSH, loadRealLogs, nodeId]);
 
   if (!isOpen) return null;
 

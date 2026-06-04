@@ -88,9 +88,9 @@ export default function SupportPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-black">
+    <div className="dve-page">
       {/* Navigation */}
-      <nav className="border-b border-white/10 bg-slate-900/50 backdrop-blur-lg">
+      <nav className="dve-nav">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <KnirvLogo />
@@ -184,7 +184,7 @@ export default function SupportPage() {
             </Badge>
           </div>
           
-          <Card className="bg-white/5 border-white/10 backdrop-blur-lg">
+          <Card className="dve-card">
             <CardContent className="p-8">
               <div className="space-y-6">
                 {statusItems.map((item, index) => (
@@ -224,7 +224,7 @@ export default function SupportPage() {
           <h2 className="text-4xl font-bold text-white text-center mb-16">Frequently Asked Questions</h2>
           <div className="grid md:grid-cols-2 gap-8">
             {faqCategories.map((category, index) => (
-              <Card key={index} className="bg-white/5 border-white/10 backdrop-blur-lg">
+              <Card key={index} className="dve-card">
                 <CardContent className="p-8">
                   <h3 className="text-2xl font-semibold text-white mb-6">{category.title}</h3>
                   <div className="space-y-4">
@@ -252,7 +252,7 @@ export default function SupportPage() {
             </p>
           </div>
           
-          <Card className="bg-white/5 border-white/10 backdrop-blur-lg">
+          <Card className="dve-card">
             <CardContent className="p-8">
               <form className="space-y-6">
                 <div className="grid md:grid-cols-2 gap-6">

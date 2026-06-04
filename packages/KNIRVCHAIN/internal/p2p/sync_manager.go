@@ -289,14 +289,15 @@ func convertStringMetadata(metadata map[string]string) map[string]interface{} {
 
 // ChromemSyncManager handles synchronization between LevelDB and ChromemDB
 type ChromemSyncManager struct {
-	client                         *chromem.DB // Use chromem.DB as the client
+	client                         *chromem.DB
+	ef                             chromem.EmbeddingFunc
+	cef                            *CerebrasEmbeddingClient
+	mu                             sync.RWMutex
+	db                             *LevelDB
+	chainID                        string
 	transactionCollection          *chromem.Collection
 	contextRecordCollection        *chromem.Collection
 	capabilityDescriptorCollection *chromem.Collection
-	mu                             sync.RWMutex
-	ef                             chromem.EmbeddingFunc    // Embedding function adapter
-	cef                            *CerebrasEmbeddingClient // Deterministic Cerebras embedding client
-	db                             *LevelDB                 // Add LevelDB client
 }
 
 // EmbedFunc is a function that implements the embedding functionality using deterministic embeddings
@@ -306,7 +307,7 @@ func EmbedFunc(ctx context.Context, cef *CerebrasEmbeddingClient, text string) (
 }
 
 // NewChromemSyncManager creates a new ChromemDB sync manager
-func NewChromemSyncManager(chromemClient *chromem.DB, cerebrasAPICfg *config.CerebrasConfig, db *LevelDB) (*ChromemSyncManager, error) {
+func NewChromemSyncManager(chromemClient *chromem.DB, cerebrasAPICfg *config.CerebrasConfig, db *LevelDB, chainID string) (*ChromemSyncManager, error) {
 	// Initialize ChromemDB persistent client
 	if db == nil {
 		return nil, fmt.Errorf("LevelDB client cannot be nil for ChromemSyncManager")
@@ -351,34 +352,40 @@ func NewChromemSyncManager(chromemClient *chromem.DB, cerebrasAPICfg *config.Cer
 		}
 	}
 
+	collectionPrefix := ""
+	if chainID != "" {
+		collectionPrefix = chainID + "_"
+	}
+
 	csm := &ChromemSyncManager{
 		client: client,
 		ef:     embeddingFunc,
 		cef:    cef, // Will be nil in test env
 		mu:     sync.RWMutex{},
 		db:     db, // Store the LevelDB client
+		chainID: chainID,
 	}
 
-	// Get or create collections, passing the embedding function
+	// Get or create collections with ChainID-prefixed names
 	// chromem-go requires the EF when getting/creating collections for persistent DBs
 	var err error
-	csm.transactionCollection, err = client.GetOrCreateCollection("transactions", make(map[string]string), csm.ef)
+	csm.transactionCollection, err = client.GetOrCreateCollection(collectionPrefix+"transactions", make(map[string]string), csm.ef)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get/create transactions collection: %w", err)
+		return nil, fmt.Errorf("failed to get/create %stransactions collection: %w", collectionPrefix, err)
 	}
-	log.Printf("ChromemDB: transactions collection ready.")
+	log.Printf("ChromemDB: %stransactions collection ready.", collectionPrefix)
 
-	csm.contextRecordCollection, err = client.GetOrCreateCollection("context_records", make(map[string]string), csm.ef)
+	csm.contextRecordCollection, err = client.GetOrCreateCollection(collectionPrefix+"context_records", make(map[string]string), csm.ef)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get/create context_records collection: %w", err)
+		return nil, fmt.Errorf("failed to get/create %scontext_records collection: %w", collectionPrefix, err)
 	}
-	log.Printf("ChromemDB: context_records collection ready.")
+	log.Printf("ChromemDB: %scontext_records collection ready.", collectionPrefix)
 
-	csm.capabilityDescriptorCollection, err = client.GetOrCreateCollection("capability_descriptors", make(map[string]string), csm.ef)
+	csm.capabilityDescriptorCollection, err = client.GetOrCreateCollection(collectionPrefix+"capability_descriptors", make(map[string]string), csm.ef)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get/create capability_descriptors collection: %w", err)
+		return nil, fmt.Errorf("failed to get/create %scapability_descriptors collection: %w", collectionPrefix, err)
 	}
-	log.Printf("ChromemDB: capability_descriptors collection ready.")
+	log.Printf("ChromemDB: %scapability_descriptors collection ready.", collectionPrefix)
 
 	return csm, nil
 }

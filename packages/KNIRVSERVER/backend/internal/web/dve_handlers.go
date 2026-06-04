@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -25,11 +24,11 @@ type wsBroadcaster interface {
 }
 
 type DVEHandlers struct {
-	dveManager          *dvemanager.DVEManager
-	dveCreationService  *dvecreation.DVECreationService
-	sessionManager *session.SessionManager
-	wsBroadcaster  wsBroadcaster
-	agentService   interface {
+	dveManager         *dvemanager.DVEManager
+	dveCreationService *dvecreation.DVECreationService
+	sessionManager     *session.SessionManager
+	wsBroadcaster      wsBroadcaster
+	agentService       interface {
 		BroadcastAgentMessage(dveID string, message string)
 	}
 	knirvagentManager interface {
@@ -47,7 +46,7 @@ type DVEHandlers struct {
 // accessed through dveManager's delegation methods (merged from dvecreation).
 func NewDVEHandlers(dveManager *dvemanager.DVEManager, dveCreationService *dvecreation.DVECreationService) *DVEHandlers {
 	return &DVEHandlers{
-		dveManager: dveManager,
+		dveManager:         dveManager,
 		dveCreationService: dveCreationService,
 	}
 }
@@ -79,36 +78,6 @@ func (h *DVEHandlers) SetKnirvagentManager(mgr interface {
 	GetSocketPathForDVE(dveID string) (string, error)
 }) {
 	h.knirvagentManager = mgr
-}
-
-// ensureSupervisorAgentStarted attempts lazy provisioning for a DVE supervisor
-// agent. It no longer requires a successful DVE node lookup because the agent
-// itself only needs the DVE ID and workspace resolver. The node lookup is kept
-// as a best-effort log hint when available.
-func (h *DVEHandlers) ensureSupervisorAgentStarted(nodeID string, reason string) {
-	if h.knirvagentManager == nil || nodeID == "" {
-		return
-	}
-
-	if _, err := h.knirvagentManager.GetSocketPathForDVE(nodeID); err == nil {
-		return
-	}
-
-	if h.dveManager != nil {
-		if node, err := h.dveManager.GetNode(nodeID); err == nil && node != nil {
-			log.Printf("[DVE] Lazy-provisioning KNIRVAGENT for %s on node %s (%s)", reason, nodeID, node.Name)
-		} else {
-			log.Printf("[DVE] Lazy-provisioning KNIRVAGENT for %s on node %s without node metadata: %v", reason, nodeID, err)
-		}
-	} else {
-		log.Printf("[DVE] Lazy-provisioning KNIRVAGENT for %s on node %s", reason, nodeID)
-	}
-
-	startCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
-	if err := h.knirvagentManager.StartAgent(startCtx, nodeID, 30*time.Second); err != nil {
-		log.Printf("[DVE] Lazy-provisioning failed for %s on node %s: %v", reason, nodeID, err)
-	}
 }
 
 // GetDVEWorkers handles GET /api/dve/workers — aggregates DVE nodes + tasks as active workers
@@ -976,9 +945,8 @@ func (h *DVEHandlers) GetDVENodeErrorResolutionEndpoint(w http.ResponseWriter, r
 	json.NewEncoder(w).Encode(response)
 }
 
-// GetSupervisorAgentStatus handles GET /api/dve/{nodeId}/supervisor-agent/status
+// GetSupervisorAgentStatus handles GET /api/dve/{nodeId}/supervisor-agent/status.
 // Returns the current health status of the KNIRVAGENT supervisor for this DVE.
-// If the node exists but no agent is running yet, it attempts to start one (lazy provisioning).
 func (h *DVEHandlers) GetSupervisorAgentStatus(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
@@ -991,11 +959,6 @@ func (h *DVEHandlers) GetSupervisorAgentStatus(w http.ResponseWriter, r *http.Re
 	}
 
 	nodeID := mux.Vars(r)["nodeId"]
-
-	// Lazy-provision: if no agent is running for THIS specific DVE, start one.
-	// Check per-DVE socket — not just "any agent running" — so that accessing a
-	// second DVE while a first DVE's agent is active still triggers provisioning.
-	h.ensureSupervisorAgentStarted(nodeID, "status")
 
 	// Check per-DVE status
 	status := "offline"
@@ -1019,20 +982,21 @@ func (h *DVEHandlers) GetSupervisorAgentStatus(w http.ResponseWriter, r *http.Re
 	}
 
 	json.NewEncoder(w).Encode(map[string]interface{}{
-		"status":        status,
-		"health":        healthStatus,
-		"running":       running,
-		"base_url":      h.knirvagentManager.GetBaseURL(),
-		"agent_type":    "knirvagent",
-		"role":          "supervisor",
-		"node_id":       nodeID,
-		"timestamp":     getCurrentTimestamp(),
+		"status":     status,
+		"health":     healthStatus,
+		"running":    running,
+		"base_url":   h.knirvagentManager.GetBaseURL(),
+		"agent_type": "knirvagent",
+		"role":       "supervisor",
+		"node_id":    nodeID,
+		"timestamp":  getCurrentTimestamp(),
 	})
 }
 
 // GetSupervisorAgentSession handles GET /api/dve/{nodeId}/supervisor-agent/session
 // Returns a WebSocket URL for real-time communication with the KNIRVAGENT supervisor.
-// If the node exists but no agent is running, attempts lazy provisioning first.
+// The websocket upgrade phase is responsible for waiting briefly on the socket
+// if the agent is still finishing startup.
 func (h *DVEHandlers) GetSupervisorAgentSession(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
@@ -1046,28 +1010,18 @@ func (h *DVEHandlers) GetSupervisorAgentSession(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	// Lazy-provision if no agent is running for THIS specific DVE (regardless of
-	// whether agents for other DVEs are already running).
-	h.ensureSupervisorAgentStarted(nodeID, "session")
-
-	// Verify the agent socket exists for this specific DVE (covers both
-	// "never started" and "failed to provision" cases).
-	if _, err := h.knirvagentManager.GetSocketPathForDVE(nodeID); err != nil {
-		w.WriteHeader(http.StatusServiceUnavailable)
-		json.NewEncoder(w).Encode(map[string]interface{}{
-			"error": "KNIRVAGENT not available for this DVE: " + err.Error(),
-		})
-		return
-	}
-
 	// The session URL points to the backend WebSocket proxy which relays
 	// I/O between the frontend terminal and the KNIRVAGENT subprocess.
 	wsURL := fmt.Sprintf("/ws/dve/%s/agent", nodeID)
+	running := false
+	if _, err := h.knirvagentManager.GetSocketPathForDVE(nodeID); err == nil {
+		running = true
+	}
 
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"ws_url":    wsURL,
 		"base_url":  h.knirvagentManager.GetBaseURL(),
-		"running":   true,
+		"running":   running,
 		"timestamp": getCurrentTimestamp(),
 	})
 }

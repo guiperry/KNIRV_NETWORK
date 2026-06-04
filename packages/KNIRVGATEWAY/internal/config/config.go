@@ -94,6 +94,10 @@ type Config struct {
 
 	// KNIRVARENA socket path (in-process static bundle server)
 	ArenaSocketPath string // /var/lib/knirvserver/sockets/arena.sock
+
+	// KNIRVBASE callback support
+	BaseCallbackSocket string `envconfig:"BASE_CALLBACK_SOCKET"`
+	BaseNetworkID      string `envconfig:"BASE_NETWORK_ID"`
 }
 
 func Load() (*Config, error) {
@@ -150,6 +154,8 @@ func Load() (*Config, error) {
 		AgentMaxConcurrent:      getEnvInt("AGENT_MAX_CONCURRENT", 32),
 		HasherSocketPath:        getEnv("HASHER_SOCKET_PATH", "/var/run/knirvhasher.sock"),
 		ArenaSocketPath:          getEnv("ARENA_SOCKET_PATH", ""),
+		BaseCallbackSocket:      getEnv("BASE_CALLBACK_SOCKET", ""),
+		BaseNetworkID:           getEnv("BASE_NETWORK_ID", ""),
 	}
 
 	return cfg, nil

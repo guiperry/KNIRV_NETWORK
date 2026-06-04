@@ -339,6 +339,16 @@ type PoAuDConfig struct {
 	StatusAdvertiseInterval time.Duration `json:"status_advertise_interval" mapstructure:"status_advertise_interval"`
 }
 
+// ConsensusConfig holds P2P consensus configuration
+type ConsensusConfig struct {
+	P2PEnabled     bool     `json:"p2p_enabled" mapstructure:"p2p_enabled"`
+	ChainID        string   `json:"chain_id" mapstructure:"chain_id"`
+	GatewayURL     string   `json:"gateway_url" mapstructure:"gateway_url"`
+	GatewayTimeout string   `json:"gateway_timeout" mapstructure:"gateway_timeout"`
+	StandalonePort int      `json:"standalone_port" mapstructure:"standalone_port"`
+	BootstrapPeers []string `json:"bootstrap_peers" mapstructure:"bootstrap_peers"`
+}
+
 // Config holds the application configuration
 type Config struct {
 	NodeName                string                     `json:"node_name,omitempty" mapstructure:"node_name,nodeName"` // Node name for identification
@@ -389,6 +399,9 @@ type Config struct {
 
 	// Network Monitor configuration
 	NetworkMonitor NetworkMonitorConfig `json:"network_monitor" mapstructure:"network_monitor"`
+
+	// P2P Consensus configuration
+	Consensus ConsensusConfig `json:"consensus" mapstructure:"consensus"`
 }
 
 // Add a struct to hold Chromem-specific configuration within the main config
@@ -527,6 +540,16 @@ func DefaultConfig() *Config {
 			WebMode:   true,  // Default to web mode (headless)
 			Port:      8091,  // Default port for web interface
 			AutoStart: false, // Don't auto-start by default
+		},
+
+		// P2P Consensus configuration defaults
+		Consensus: ConsensusConfig{
+			P2PEnabled:     false,
+			ChainID:        "KNIRVCHAIN",
+			GatewayURL:     "http://localhost:8080",
+			GatewayTimeout: "2s",
+			StandalonePort: 4001,
+			BootstrapPeers: []string{},
 		},
 	}
 }
