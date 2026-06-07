@@ -1,0 +1,31 @@
+{
+  "cli_version": "0.5.5",
+  "checkpoint_id": "2427c68f3071",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 3,
+  "files_touched": [
+    "packages/KNIRVSERVER/backend/cmd/container_deployer/container_deployer",
+    "packages/KNIRVSERVER/backend/internal/web/dve_agent_ws_handler.go",
+    "packages/KNIRVSERVER/backend/internal/web/dve_handlers.go",
+    "packages/KNIRVSERVER/frontend/src/components/dashboard/console-panel.tsx",
+    "packages/KNIRVSERVER/frontend/src/components/dashboard/dve-workspace-panel.tsx",
+    "packages/KNIRVSERVER/pkg/knirvagent/manager.go",
+    "packages/KNIRVSERVER/pkg/knirvagent/manager_ext_test.go"
+  ],
+  "sessions": [
+    {
+      "metadata": "/24/27c68f3071/0/metadata.json",
+      "transcript": "/24/27c68f3071/0/full.jsonl",
+      "content_hash": "/24/27c68f3071/0/content_hash.txt",
+      "prompt": ""
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 544,
+    "cache_creation_tokens": 95708,
+    "cache_read_tokens": 3559002,
+    "output_tokens": 33595,
+    "api_call_count": 53
+  }
+}

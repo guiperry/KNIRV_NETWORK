@@ -1,0 +1,66 @@
+{
+  "cli_version": "0.5.5",
+  "checkpoint_id": "2427c68f3071",
+  "session_id": "601a811c-bb51-42aa-a058-1d5150c1e8e3",
+  "strategy": "manual-commit",
+  "created_at": "2026-06-07T19:02:49.317677394Z",
+  "branch": "main",
+  "checkpoints_count": 3,
+  "files_touched": [
+    "packages/KNIRVSERVER/backend/cmd/container_deployer/container_deployer",
+    "packages/KNIRVSERVER/backend/internal/web/dve_agent_ws_handler.go",
+    "packages/KNIRVSERVER/backend/internal/web/dve_handlers.go",
+    "packages/KNIRVSERVER/frontend/src/components/dashboard/console-panel.tsx",
+    "packages/KNIRVSERVER/frontend/src/components/dashboard/dve-workspace-panel.tsx",
+    "packages/KNIRVSERVER/pkg/knirvagent/manager.go",
+    "packages/KNIRVSERVER/pkg/knirvagent/manager_ext_test.go"
+  ],
+  "agent": "Claude Code",
+  "model": "claude-sonnet-4-6",
+  "turn_id": "cc310df4c2b5",
+  "token_usage": {
+    "input_tokens": 544,
+    "cache_creation_tokens": 95708,
+    "cache_read_tokens": 3559002,
+    "output_tokens": 33595,
+    "api_call_count": 53
+  },
+  "session_metrics": {
+    "turn_count": 3
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-06-07T19:02:48.286171381Z",
+    "agent_lines": 95,
+    "agent_removed": 63,
+    "human_added": 1,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 96,
+    "total_lines_changed": 159,
+    "agent_percentage": 99.37106918238993,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 2,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 3,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    }
+  ]
+}
