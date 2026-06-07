@@ -2,10 +2,13 @@ package knirvagent
 
 import (
 	"errors"
+	"net"
 	"os/exec"
+	"path/filepath"
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zaptest/observer"
 )
@@ -46,6 +49,24 @@ func TestManager_InnerAgentClient_NotRunning(t *testing.T) {
 	if socketPath != "" {
 		t.Errorf("expected empty socket path, got %q", socketPath)
 	}
+}
+
+func TestManager_GetSocketPathForDVE_FallsBackToSocketFile(t *testing.T) {
+	socketDir := t.TempDir()
+	mgr := NewManager(&ManagerConfig{
+		StartTimeout: 1 * time.Second,
+		StopTimeout:  1 * time.Second,
+		SocketPath:   filepath.Join(socketDir, "manager.sock"),
+	}, newTestLogger())
+
+	socketPath := filepath.Join(socketDir, "agent-dve-restart.sock")
+	ln, err := net.Listen("unix", socketPath)
+	require.NoError(t, err)
+	defer ln.Close()
+
+	got, err := mgr.GetSocketPathForDVE("dve-restart")
+	require.NoError(t, err)
+	require.Equal(t, socketPath, got)
 }
 
 func TestAgentManager_applyWorkspaceResolver_LogsFailures(t *testing.T) {

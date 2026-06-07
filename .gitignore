@@ -161,3 +161,4 @@ packages/KNIRVHASHER/hasher-cli
 packages/KNIRVSERVER/pkg/embedded/validationchain/bin/validationchain
 packages/KNIRVSERVER/pkg/knirvarena/bin/knirvarena.tar.gz
 .claude/worktrees/agent-aa1753e6bd1c5eb7d/
+packages/KNIRVSERVER/backend/cmd/container_deployer/container_deployer

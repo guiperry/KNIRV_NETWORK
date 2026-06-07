@@ -208,9 +208,10 @@ const ConsolePanel: React.FC<ConsolePanelProps> = ({
   // Attempt to connect the terminal to the backend SSH WebSocket for the given node.
   const connectSSH = useCallback(async (term: XTermTerminal) => {
     if (!nodeId) return false;
-    const timeoutMs = 5000;
+    const requestTimeoutMs = 30000;
+    const websocketTimeoutMs = 10000;
     const controller = new AbortController();
-    const requestTimeout = window.setTimeout(() => controller.abort(), timeoutMs);
+    const requestTimeout = window.setTimeout(() => controller.abort(), requestTimeoutMs);
     try {
       const resp = await fetch(`${API_BASE_URL}/api/dve/${nodeId}/ssh-session`, {
         method: 'POST',
@@ -252,7 +253,7 @@ const ConsolePanel: React.FC<ConsolePanelProps> = ({
         }
       };
 
-      const opened = await waitForWebSocketOpen(ws, timeoutMs);
+      const opened = await waitForWebSocketOpen(ws, websocketTimeoutMs);
       if (!opened.ok) {
         if (wsRef.current === ws) {
           wsRef.current = null;
@@ -270,7 +271,7 @@ const ConsolePanel: React.FC<ConsolePanelProps> = ({
     } catch (error) {
       window.clearTimeout(requestTimeout);
       if (error instanceof DOMException && error.name === 'AbortError') {
-        writeConnectionError(term, 'SSH', `session request timed out after ${Math.round(timeoutMs / 1000)}s`);
+        writeConnectionError(term, 'SSH', `session request timed out after ${Math.round(requestTimeoutMs / 1000)}s`);
       } else {
         writeConnectionError(term, 'SSH', `session request failed: ${error instanceof Error ? error.message : 'unknown error'}`);
       }
@@ -281,9 +282,10 @@ const ConsolePanel: React.FC<ConsolePanelProps> = ({
   // Attempt to connect the terminal to the DVE Supervisor Agent (KNIRVAGENT).
   const connectKNIRVAGENT = useCallback(async (term: XTermTerminal) => {
     if (!nodeId) return false;
-    const timeoutMs = 5000;
+    const requestTimeoutMs = 30000;
+    const websocketTimeoutMs = 10000;
     const controller = new AbortController();
-    const requestTimeout = window.setTimeout(() => controller.abort(), timeoutMs);
+    const requestTimeout = window.setTimeout(() => controller.abort(), requestTimeoutMs);
     try {
       const resp = await fetch(`${API_BASE_URL}/api/dve/${nodeId}/supervisor-agent/session`, {
         headers: getAuthHeaders(),
@@ -345,7 +347,7 @@ const ConsolePanel: React.FC<ConsolePanelProps> = ({
         }
       };
 
-      const opened = await waitForWebSocketOpen(ws, timeoutMs);
+      const opened = await waitForWebSocketOpen(ws, websocketTimeoutMs);
       if (!opened.ok) {
         if (wsRef.current === ws) {
           wsRef.current = null;
@@ -364,7 +366,7 @@ const ConsolePanel: React.FC<ConsolePanelProps> = ({
     } catch (error) {
       window.clearTimeout(requestTimeout);
       if (error instanceof DOMException && error.name === 'AbortError') {
-        writeConnectionError(term, 'KNIRVAGENT', `session request timed out after ${Math.round(timeoutMs / 1000)}s`);
+        writeConnectionError(term, 'KNIRVAGENT', `session request timed out after ${Math.round(requestTimeoutMs / 1000)}s`);
       } else {
         writeConnectionError(term, 'KNIRVAGENT', `session request failed: ${error instanceof Error ? error.message : 'unknown error'}`);
       }

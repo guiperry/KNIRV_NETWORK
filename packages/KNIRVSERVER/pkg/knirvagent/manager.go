@@ -23,16 +23,17 @@ import (
 // ──────────────────────────────────────────────
 
 // killStaleAgent sends SIGTERM (then SIGKILL after 2 s) to any running
-// processes whose executable matches the given binary name.
-func killStaleAgent(binaryPath string) {
-	if binaryPath == "" {
+// processes whose command line includes the given socket path.
+// This narrows cleanup to the DVE being started instead of killing every
+// knirvagent instance on the host.
+func killStaleAgent(socketPath string) {
+	if socketPath == "" {
 		return
 	}
-	binaryName := filepath.Base(binaryPath)
-	if cmd := exec.Command("pkill", "-TERM", "-x", binaryName); cmd.Run() == nil {
+	if cmd := exec.Command("pkill", "-TERM", "-f", socketPath); cmd.Run() == nil {
 		time.Sleep(1 * time.Second)
 	}
-	exec.Command("pkill", "-KILL", "-x", binaryName).Run() //nolint:errcheck
+	exec.Command("pkill", "-KILL", "-f", socketPath).Run() //nolint:errcheck
 }
 
 func getAgentAppDataDir() string {
@@ -161,13 +162,13 @@ type AgentManager struct {
 
 // AgentManagerConfig configures the AgentManager.
 type AgentManagerConfig struct {
-	BinaryPath      string
-	SocketDir       string
-	MaxConcurrent   int
-	StartTimeout    time.Duration
-	StopTimeout     time.Duration
-	HealthInterval  time.Duration
-	ExtraEnv        []string
+	BinaryPath     string
+	SocketDir      string
+	MaxConcurrent  int
+	StartTimeout   time.Duration
+	StopTimeout    time.Duration
+	HealthInterval time.Duration
+	ExtraEnv       []string
 }
 
 // HealthStatus represents the health status of an agent.
@@ -279,9 +280,15 @@ func (am *AgentManager) StartAgent(ctx context.Context, dveID string, startTimeo
 	}
 
 	socketPath := filepath.Join(am.socketDir, fmt.Sprintf("agent-%s.sock", dveID))
+	// Snapshot the workspace resolver while holding the write lock so we can
+	// call it (and applyWorkspaceResolver) after releasing the lock, avoiding
+	// a deadlock where applyWorkspaceResolver tries to acquire RLock while the
+	// write lock is still held.
+	resolver := am.workspaceResolver
+	am.mu.Unlock()
 
-	// Kill any stale instance for this DVE
-	killStaleAgent(resolvedPath)
+	// Kill any stale instance for this DVE only. Do not touch other agents.
+	killStaleAgent(socketPath)
 	os.Remove(socketPath)
 
 	am.logger.Info("Starting KNIRVAGENT for DVE",
@@ -301,9 +308,24 @@ func (am *AgentManager) StartAgent(ctx context.Context, dveID string, startTimeo
 	cmd.Env = os.Environ()
 	cmd.Env = append(cmd.Env, am.extraEnv...)
 
-	// If we have a per-DVE workspace resolver, export it for this subprocess so
-	// both the supervisor and inner PTY sessions operate on the DVE workspace.
-	am.applyWorkspaceResolver(cmd, dveID)
+	// Apply per-DVE workspace env using the resolver snapshot (no lock needed).
+	if resolver != nil {
+		if wsPath, err := resolver(dveID); err == nil && wsPath != "" {
+			cmd.Env = append(cmd.Env,
+				fmt.Sprintf("KNIRV_AGENTS_DEFAULTS_WORKSPACE=%s", wsPath),
+				"KNIRV_AGENTS_DEFAULTS_RESTRICT_TO_WORKSPACE=true",
+			)
+			am.logger.Info("KNIRVAGENT workspace resolved",
+				zap.String("dveID", dveID),
+				zap.String("workspace", wsPath),
+			)
+		} else if err != nil {
+			am.logger.Warn("KNIRVAGENT workspace resolver failed",
+				zap.String("dveID", dveID),
+				zap.Error(err),
+			)
+		}
+	}
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.SysProcAttr = &syscall.SysProcAttr{
@@ -311,7 +333,6 @@ func (am *AgentManager) StartAgent(ctx context.Context, dveID string, startTimeo
 	}
 
 	if err := cmd.Start(); err != nil {
-		am.mu.Unlock()
 		return nil, fmt.Errorf("failed to start KNIRVAGENT for DVE %s: %w", dveID, err)
 	}
 
@@ -326,6 +347,7 @@ func (am *AgentManager) StartAgent(ctx context.Context, dveID string, startTimeo
 		Healthy:    false,
 	}
 
+	am.mu.Lock()
 	am.agents[dveID] = ap
 	am.mu.Unlock()
 
@@ -570,6 +592,11 @@ func (am *AgentManager) GetSocketPath(dveID string) (string, error) {
 	if _, err := os.Stat(socketPath); err != nil {
 		return "", fmt.Errorf("no agent running for DVE %s (socket %s not found)", dveID, socketPath)
 	}
+	conn, err := net.DialTimeout("unix", socketPath, 250*time.Millisecond)
+	if err != nil {
+		return "", fmt.Errorf("no agent running for DVE %s (socket %s not accepting connections): %w", dveID, socketPath, err)
+	}
+	conn.Close()
 	// Re-register as an AgentProcess so future lookups use the fast path.
 	// Mark it healthy since the socket file is present and connectable.
 	ap := &AgentProcess{
@@ -720,7 +747,7 @@ type ManagerConfig struct {
 
 // Manager is the legacy manager type. New code should use AgentManager.
 type Manager struct {
-	inner *AgentManager
+	inner  *AgentManager
 	logger *zap.Logger
 	cfg    *ManagerConfig
 }
@@ -782,11 +809,7 @@ func (m *Manager) RunningCount() int {
 
 // GetSocketPathForDVE returns the Unix socket path for the agent of a specific DVE.
 func (m *Manager) GetSocketPathForDVE(dveID string) (string, error) {
-	ap, err := m.inner.GetAgent(dveID)
-	if err != nil {
-		return "", err
-	}
-	return ap.SocketPath, nil
+	return m.inner.GetSocketPath(dveID)
 }
 
 // Start starts the agent manager. In the new multi-DVE model, this is a no-op

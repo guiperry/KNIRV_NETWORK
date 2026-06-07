@@ -69,7 +69,9 @@ const DVEWorkspacePanel: React.FC<DVEWorkspacePanelProps> = ({
         });
         if (resp.ok) {
           const data = await resp.json();
-          setSupervisorStatus(data.status === 'online' ? 'online' : 'offline');
+          setSupervisorStatus(data.status === 'online' ? 'online' : data.status === 'initializing' ? 'loading' : 'offline');
+        } else if (resp.status === 503) {
+          setSupervisorStatus('loading');
         } else {
           setSupervisorStatus('unavailable');
         }

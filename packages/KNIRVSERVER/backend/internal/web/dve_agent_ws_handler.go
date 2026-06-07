@@ -81,23 +81,13 @@ func (h *DVEAgentWSHandler) HandleWebSocket(w http.ResponseWriter, r *http.Reque
 	// Look up the per-DVE agent socket path from the AgentManager
 	socketPath, err := h.agentManager.GetSocketPathForDVE(nodeID)
 	if err != nil {
-		// If the agent is still coming up, give it a short grace period instead
-		// of hanging the browser on a long websocket upgrade.
-		deadline := time.Now().Add(5 * time.Second)
-		ticker := time.NewTicker(250 * time.Millisecond)
-		defer ticker.Stop()
-		for time.Now().Before(deadline) {
-			select {
-			case <-r.Context().Done():
-				http.Error(w, "KNIRVAGENT connection cancelled", http.StatusRequestTimeout)
-				return
-			case <-ticker.C:
-			}
-			socketPath, err = h.agentManager.GetSocketPathForDVE(nodeID)
-			if err == nil {
-				break
-			}
+		startCtx, cancel := context.WithTimeout(r.Context(), 30*time.Second)
+		defer cancel()
+		if startErr := h.agentManager.StartAgent(startCtx, nodeID, 30*time.Second); startErr != nil {
+			http.Error(w, "KNIRVAGENT not available for this DVE: "+startErr.Error(), http.StatusServiceUnavailable)
+			return
 		}
+		socketPath, err = h.agentManager.GetSocketPathForDVE(nodeID)
 		if err != nil {
 			http.Error(w, "KNIRVAGENT not available for this DVE: "+err.Error(), http.StatusServiceUnavailable)
 			return

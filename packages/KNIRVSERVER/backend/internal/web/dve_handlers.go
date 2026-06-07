@@ -960,25 +960,19 @@ func (h *DVEHandlers) GetSupervisorAgentStatus(w http.ResponseWriter, r *http.Re
 
 	nodeID := mux.Vars(r)["nodeId"]
 
-	// Check per-DVE status
+	// Check per-DVE status using only the socket path. Health sweeps can block
+	// behind other agents and cause the proxy timeout path to fire.
 	status := "offline"
+	healthStatus := "unhealthy"
+	running := false
 	if _, err := h.knirvagentManager.GetSocketPathForDVE(nodeID); err == nil {
 		status = "online"
+		healthStatus = "healthy"
+		running = true
 	} else if h.knirvagentManager.IsRunning() {
 		status = "initializing"
-	}
-	running := status != "offline"
-
-	healthCtx, healthCancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer healthCancel()
-	healthErr := h.knirvagentManager.HealthCheck(healthCtx)
-	healthStatus := "healthy"
-	if healthErr != nil {
-		healthStatus = "unhealthy"
-	}
-	// Override health if we just provisioned (socket might not be ready yet)
-	if status == "initializing" {
 		healthStatus = "booting"
+		running = true
 	}
 
 	json.NewEncoder(w).Encode(map[string]interface{}{
