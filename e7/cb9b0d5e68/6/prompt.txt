@@ -1,0 +1,5 @@
+Audit the codebase against the implemented @PortableDVEImplementation.html ensuring the implementation is complete and all tests pass as detailed in the file.
+
+---
+
+Continue if you have next steps, or stop and ask for clarification if you are unsure how to proceed.
