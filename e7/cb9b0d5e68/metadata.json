@@ -3,7 +3,7 @@
   "checkpoint_id": "e7cb9b0d5e68",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 7,
+  "checkpoints_count": 8,
   "files_touched": [
     "CALIBER_LEARNINGS.md",
     "CLAUDE.md",
@@ -9130,13 +9130,19 @@
       "transcript": "/e7/cb9b0d5e68/3/full.jsonl",
       "content_hash": "/e7/cb9b0d5e68/3/content_hash.txt",
       "prompt": "/e7/cb9b0d5e68/3/prompt.txt"
+    },
+    {
+      "metadata": "/e7/cb9b0d5e68/4/metadata.json",
+      "transcript": "/e7/cb9b0d5e68/4/full.jsonl",
+      "content_hash": "/e7/cb9b0d5e68/4/content_hash.txt",
+      "prompt": "/e7/cb9b0d5e68/4/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 42853,
+    "input_tokens": 99929,
     "cache_creation_tokens": 401217,
-    "cache_read_tokens": 11138237,
-    "output_tokens": 53322,
-    "api_call_count": 102
+    "cache_read_tokens": 11290301,
+    "output_tokens": 60972,
+    "api_call_count": 107
   }
 }

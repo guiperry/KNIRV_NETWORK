@@ -1,0 +1,9 @@
+Search the codebase at /home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK for ALL test files related to DVE pod. Use these search patterns:
+1. Glob for *_test.go files containing "dve" or "pod" or "DVE" or "agent" 
+2. Search for files matching "**/test*/*.go", "**/*test*.*", "**/*spec*.*" that mention "dve" or "pod"
+3. Search for Makefile targets mentioning "dve" or "pod"
+4. Search for any shell scripts (*.sh) mentioning "dve" or "pod"
+
+Also search the entire codebase for the string "dvepod" and "dve_pod" to find all references.
+
+Return all matching files with their full paths and a snippet of context showing the match.
