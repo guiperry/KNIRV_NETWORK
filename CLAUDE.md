@@ -14,7 +14,6 @@ KNIRV Network — Decentralized Trusted Execution Network (D-TEN). Transforms AI
 | `packages/KNIRVBASE/ts` | Node 18+ | `packages/KNIRVBASE/ts/package-lock.json` |
 | `packages/KNIRVARENA` | TS/React/Three.js | `packages/KNIRVARENA/packages/ts_client_2/` |
 | `packages/KNIRVHEART` | Python/Go | `packages/KNIRVHEART/HEART/` |
-| `devtools/KNIRVTESTNET` | Node.js | `devtools/KNIRVTESTNET/Makefile` |
 | `devtools/KNIRVSYNC` | Go | `devtools/KNIRVSYNC/go.mod` |
 | `devtools/network-monitor` | Go | `devtools/network-monitor/go.mod` |
 | `integration-tests` | Go | `integration-tests/go.mod` |
@@ -46,13 +45,19 @@ KNIRV Network — Decentralized Trusted Execution Network (D-TEN). Transforms AI
 
 ```bash
 make tests                              # run all tests
-make testnet-tests                      # quick testnet tests
-make testnet-start                      # start testnet
-make testnet-stop                       # stop testnet
-make testnet-status                     # testnet health
+make testnet-build                      # build KNIRVSERVER for testnet
+make testnet-start                      # start KNIRVSERVER --testnet (all embedded services)
+make testnet-stop                       # stop KNIRVSERVER testnet
+make testnet-status                     # show KNIRVSERVER testnet status
+make testnet-tests                      # start testnet + run integration tests
 make docs                               # generate docs
 make deploy-full ENVIRONMENT=production CLOUD_PROVIDER=aws
 ```
+
+**Testnet entry point:** `packages/KNIRVSERVER/backend/cmd/backend_server/main.go --testnet`
+**Testnet config:** `packages/KNIRVSERVER/config/testnet.yaml`
+**Service ports:** KNIRVSERVER `:8084` · KNIRVCHAIN `:8090` · KNIRVGRAPH `:8082` · KNIRVGATEWAY `:8888` · KNIRVORACLE `:1317`
+**Testnet status:** `curl localhost:8084/testnet/status`
 
 ## Go Tests (Per Package)
 
@@ -65,17 +70,22 @@ cd devtools/KNIRVSYNC && go test -v ./...
 cd devtools/network-monitor && go test -v ./...
 ```
 
-## Testnet Scripts (`devtools/KNIRVTESTNET/scripts/`)
+## Testnet (`KNIRVSERVER --testnet`)
+
+KNIRVTESTNET has been replaced by a `--testnet` flag on KNIRVSERVER which starts
+all services (KNIRVCHAIN, KNIRVGRAPH, KNIRVGATEWAY, KNIRVORACLE) as embedded subprocesses.
 
 ```bash
-./scripts/start-testnet.sh              # start all services
-./scripts/stop-testnet.sh               # stop all services
-./scripts/health-check.sh               # service health
-./scripts/validate-config.sh            # config validation
-./scripts/run-tests.sh                  # integration tests
-./scripts/run-tests.sh --all            # full test suite
-./scripts/build-all.sh                  # build all services
-node scripts/load-endpoints.js testnet  # load testnet endpoints
+# Start the full testnet
+make testnet-start
+# or run directly:
+cd packages/KNIRVSERVER && ./bin/knirvserver --testnet
+
+# Check testnet health
+curl http://localhost:8084/testnet/status
+
+# Get dev auth tokens
+curl http://localhost:8084/auth/testnet-tokens
 ```
 
 **Config files:** `devtools/KNIRVTESTNET/config/testnet-config.yaml` · `devtools/KNIRVTESTNET/config/knirvserver-testnet-config.yaml` · `devtools/KNIRVTESTNET/config/knirvrouter-testnet.env` · `devtools/KNIRVTESTNET/.env`

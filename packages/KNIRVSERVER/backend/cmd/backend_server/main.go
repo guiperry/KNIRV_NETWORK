@@ -1934,6 +1934,13 @@ func (s *Server) setupRoutes() {
 	s.router.HandleFunc("/health", s.handleHealth).Methods("GET")
 	s.router.HandleFunc("/api/health", s.handleHealth).Methods("GET")
 
+	// Testnet-only status and token endpoints
+	if s.config.Testnet {
+		s.router.HandleFunc("/testnet/status", s.handleTestnetStatus).Methods("GET")
+		s.router.HandleFunc("/auth/testnet-tokens", s.handleTestnetTokens).Methods("GET")
+		log.Println("Testnet status + token routes registered")
+	}
+
 	// Prometheus metrics endpoint
 	s.router.Handle("/metrics", promhttp.Handler()).Methods("GET")
 
@@ -2394,6 +2401,7 @@ func (s *Server) setupRoutes() {
 	)
 	log.Println("Governance Toolkit handlers initialized (Phases 1-4: identity, policy, reliability, MCP)")
 
+	dvePodHandler := web.NewDVEPodHandler(fmt.Sprintf("http://localhost:%d", s.config.API.Port))
 	apiRouter := web.NewAPIRouter(
 		dveHandlers,
 		web.NewPluginManagementHandlers(s.fabricManagementService),
@@ -2406,6 +2414,7 @@ func (s *Server) setupRoutes() {
 		governanceHandlers,
 		authMiddleware,
 		browserDVEHub,
+		dvePodHandler,
 	)
 	apiRouter.RegisterRoutes(s.router)
 	log.Println("Unified API router configured")
@@ -3274,9 +3283,83 @@ func logSecurityValidationReport(report *teesecurity.KaliSecurityValidationRepor
 	log.Printf("  Disk Space: %s KB", report.DiskSpaceKB)
 }
 
+// applyTestnetOverrides enforces testnet-appropriate settings on top of whatever
+// config file was loaded.  Port defaults are only set when the config left them
+// at zero so an explicit config file can still override individual values.
+func applyTestnetOverrides(cfg *config.Config) {
+	cfg.Testnet = true
+	cfg.Environment = "testnet"
+	cfg.Chain.ChainID = "testnet"
+
+	// Enable all embedded managers
+	cfg.Chain.Enabled = true
+	cfg.Graph.Enabled = true
+	cfg.Gateway.Enabled = true
+	cfg.Hasher.Enabled = false // heavy; opt-in via config
+
+	// Relaxed security for local testnet
+	cfg.Security.AuthRequired = false
+	cfg.TEE.Type = "software" // software-based TEE simulation
+
+	// Set port defaults only when unset
+	if cfg.API.Port == 0 {
+		cfg.API.Port = 8084
+	}
+	if cfg.Chain.APIPort == 0 {
+		cfg.Chain.APIPort = 8090
+	}
+	if cfg.Graph.APIPort == 0 {
+		cfg.Graph.APIPort = 8082
+	}
+	if cfg.Gateway.Port == 0 {
+		cfg.Gateway.Port = 8888
+	}
+
+	log.Println("[testnet] Testnet overrides applied — all embedded managers enabled, auth relaxed")
+}
+
+// handleTestnetStatus returns a JSON snapshot of all embedded manager states.
+func (s *Server) handleTestnetStatus(w http.ResponseWriter, r *http.Request) {
+	type managerStatus struct {
+		Running bool `json:"running"`
+	}
+	status := map[string]interface{}{
+		"testnet": true,
+		"services": map[string]managerStatus{
+			"knirvchain":   {Running: s.chainManager != nil && s.chainManager.IsRunning()},
+			"knirvgraph":   {Running: s.graphManager != nil && s.graphManager.IsRunning()},
+			"knirvgateway": {Running: s.gatewayManager != nil && s.gatewayManager.IsRunning()},
+			"knirvoracle":  {Running: s.oracleManager != nil && s.oracleManager.IsRunning()},
+			"knirvhasher":  {Running: s.hasherManager != nil && s.hasherManager.IsRunning()},
+		},
+		"ports": map[string]int{
+			"knirvserver":  s.config.API.Port,
+			"knirvchain":   s.config.Chain.APIPort,
+			"knirvgraph":   s.config.Graph.APIPort,
+			"knirvgateway": s.config.Gateway.Port,
+		},
+	}
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(status)
+}
+
+// handleTestnetTokens returns the static dev tokens used by integration tests
+// and the old KNIRVGATEWAY /auth/testnet-tokens endpoint.
+func (s *Server) handleTestnetTokens(w http.ResponseWriter, r *http.Request) {
+	tokens := map[string]string{
+		"admin":     "testnet-admin-123",
+		"validator": "testnet-validator-456",
+		"observer":  "testnet-observer-789",
+		"token":     "testnet-admin-123", // legacy single-token field
+	}
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(tokens)
+}
+
 func run() error {
 	// Parse command line flags
 	var configFile = flag.String("config", "", "Path to configuration file")
+	var testnetMode = flag.Bool("testnet", false, "Run in testnet mode with all embedded services enabled")
 	flag.Parse()
 
 	// Print version information
@@ -3287,13 +3370,32 @@ func run() error {
 		return fmt.Errorf("unexpected arguments: %v", flag.Args())
 	}
 
+	// Resolve testnet mode from flag or env var
+	isTestnet := *testnetMode || os.Getenv("KNIRVSERVER_TESTNET") == "true"
+
+	// When --testnet is set and no explicit --config, auto-load testnet.yaml
+	if isTestnet && *configFile == "" {
+		candidates := []string{
+			"config/testnet.yaml",
+			"packages/KNIRVSERVER/config/testnet.yaml",
+			filepath.Join(filepath.Dir(os.Args[0]), "config/testnet.yaml"),
+		}
+		for _, p := range candidates {
+			if _, err := os.Stat(p); err == nil {
+				viper.SetConfigFile(p)
+				log.Printf("[testnet] Loading testnet config: %s", p)
+				break
+			}
+		}
+	}
+
 	// Set config file if provided, otherwise use relative path from backend directory
 	if *configFile != "" {
 		if _, err := os.Stat(*configFile); os.IsNotExist(err) {
 			return fmt.Errorf("config file does not exist: %s", *configFile)
 		}
 		viper.SetConfigFile(*configFile)
-	} else {
+	} else if !isTestnet {
 		// Try app data directory first
 		appDataDir, _ := getOSAppDataDir()
 		appDataConfigPath := filepath.Join(appDataDir, "config", "production.yaml")
@@ -3323,6 +3425,11 @@ func run() error {
 	}
 	if config.Database.Path == "" {
 		return fmt.Errorf("database path is not configured")
+	}
+
+	// Apply testnet overrides on top of whatever config was loaded
+	if isTestnet {
+		applyTestnetOverrides(config)
 	}
 
 	// Load secrets from root.key and apply to config

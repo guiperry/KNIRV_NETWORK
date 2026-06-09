@@ -290,6 +290,18 @@ build:
 	@mkdir -p ${OUTPUT_DIR} # Ensure the output directory exists
 	go build -o=${OUTPUT_DIR}/${BINARY_NAME} ${MAIN_PACKAGE_PATH}
 
+## build/dvepod-wasm: build DVE Pod WASM module (requires tinygo)
+.PHONY: build/dvepod-wasm
+build/dvepod-wasm:
+	@echo "Building DVE Pod WASM module..."
+	@if ! which tinygo >/dev/null 2>&1; then \
+		echo "ERROR: tinygo is required to build the WASM module."; \
+		echo "Install: https://tinygo.org/getting-started/install/"; \
+		exit 1; \
+	fi
+	cd dvepod && tinygo build -target=wasi -o ../internal/dvepod/dvepod.wasm ./cmd/dvepod/
+	@echo "DVE Pod WASM module built: internal/dvepod/dvepod.wasm"
+
 ## build/all: build the application for all target platforms
 .PHONY: build/all
 build/all:

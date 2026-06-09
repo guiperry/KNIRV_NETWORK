@@ -22,6 +22,7 @@ type APIRouter struct {
 	governanceHandlers      *GovernanceHandlers
 	authMiddleware          *middleware.AuthMiddleware
 	browserDVEHub           *BrowserDVEHub
+	dvePodHandler           *DVEPodHandler
 }
 
 // NewAPIRouter creates a new unified API router
@@ -37,6 +38,7 @@ func NewAPIRouter(
 	governanceHandlers *GovernanceHandlers,
 	authMiddleware *middleware.AuthMiddleware,
 	browserDVEHub *BrowserDVEHub,
+	dvePodHandler *DVEPodHandler,
 ) *APIRouter {
 	return &APIRouter{
 		dveHandlers:             dveHandlers,
@@ -50,6 +52,7 @@ func NewAPIRouter(
 		governanceHandlers:      governanceHandlers,
 		authMiddleware:          authMiddleware,
 		browserDVEHub:           browserDVEHub,
+		dvePodHandler:           dvePodHandler,
 	}
 }
 
@@ -152,6 +155,11 @@ func (ar *APIRouter) registerDVERoutes(apiV1 *mux.Router) {
 
 	// P2P network
 	dveRouter.HandleFunc("/peers", ar.dveHandlers.GetP2PPeers).Methods("GET", "OPTIONS")
+
+	// DVE Pod registration (portable DVE)
+	if ar.dvePodHandler != nil {
+		ar.dvePodHandler.RegisterRoutes(apiV1)
+	}
 }
 
 // registerPluginRoutes registers Plugin management routes

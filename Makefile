@@ -51,7 +51,7 @@ help: ## Show this help message
 	@echo ""
 	@echo "$(YELLOW)Examples:$(NC)"
 	@echo "  make tests                    # Run comprehensive test suite"
-	@echo "  make testnet-tests           # Start KNIRVTESTNET and run tests"
+	@echo "  make testnet-tests           # Start KNIRVSERVER --testnet and run integration tests"
 	@echo "  make test-quick              # Run quick tests only"
 	@echo "  make test-coverage           # Generate coverage reports"
 	@echo "  make doc-scan                # Scan for documentation gaps"
@@ -331,20 +331,39 @@ testnet-ip: ## Get current testnet IP address and update SSH config
 	@echo "$(BLUE)Getting testnet IP address...$(NC)"
 	@./scripts/get-testnet-ip.sh get-ip
 
+KNIRVSERVER_TESTNET_PID ?= /tmp/knirvserver-testnet.pid
+
+.PHONY: testnet-build
+testnet-build: ## Build KNIRVSERVER binary for testnet
+	@echo "$(BLUE)Building KNIRVSERVER for testnet...$(NC)"
+	@cd packages/KNIRVSERVER && go build -o bin/knirvserver ./backend/cmd/backend_server/
+	@echo "$(GREEN)✓ KNIRVSERVER built$(NC)"
+
 .PHONY: testnet-start
-testnet-start: ## Start the testnet EC2 instance
-	@echo "$(BLUE)Starting testnet instance...$(NC)"
-	@./scripts/get-testnet-ip.sh start
+testnet-start: testnet-build ## Start KNIRVSERVER in --testnet mode (all embedded services)
+	@echo "$(GREEN)Starting KNIRVSERVER --testnet ...$(NC)"
+	@cd packages/KNIRVSERVER && \
+		./bin/knirvserver --testnet & echo $$! > $(KNIRVSERVER_TESTNET_PID)
+	@echo "$(BLUE)PID stored in $(KNIRVSERVER_TESTNET_PID)$(NC)"
+	@sleep 5
+	@curl -sf http://localhost:8084/health > /dev/null && \
+		echo "$(GREEN)✓ KNIRVSERVER healthy$(NC)" || \
+		echo "$(YELLOW)⏳ KNIRVSERVER still initialising — check logs$(NC)"
 
 .PHONY: testnet-stop
-testnet-stop: ## Stop the testnet EC2 instance
-	@echo "$(BLUE)Stopping testnet instance...$(NC)"
-	@./scripts/get-testnet-ip.sh stop
+testnet-stop: ## Stop KNIRVSERVER testnet
+	@if [ -f $(KNIRVSERVER_TESTNET_PID) ]; then \
+		kill $$(cat $(KNIRVSERVER_TESTNET_PID)) 2>/dev/null || true; \
+		rm -f $(KNIRVSERVER_TESTNET_PID); \
+		echo "$(GREEN)✓ KNIRVSERVER testnet stopped$(NC)"; \
+	else \
+		echo "$(YELLOW)⚠ No testnet PID file found$(NC)"; \
+	fi
 
 .PHONY: testnet-status
-testnet-status: ## Show testnet instance status
-	@echo "$(BLUE)Checking testnet status...$(NC)"
-	@./scripts/get-testnet-ip.sh status
+testnet-status: ## Show KNIRVSERVER testnet status
+	@curl -sf http://localhost:8084/testnet/status | python3 -m json.tool 2>/dev/null || \
+		echo "$(YELLOW)Testnet not running — try: make testnet-start$(NC)"
 
 .PHONY: testnet-ssh
 testnet-ssh: ## SSH into the testnet instance
@@ -624,15 +643,14 @@ test-clean: ## Clean test reports and coverage data
 	@echo "$(GREEN)✓ Test artifacts cleaned$(NC)"
 
 .PHONY: testnet-tests
-testnet-tests: ## Start KNIRVTESTNET and run comprehensive tests
-	@echo "$(BLUE)🧪 Starting KNIRVTESTNET and running comprehensive tests...$(NC)"
-	@echo "========================================================"
-	@if [ -f "devtools/KNIRVTESTNET/Makefile" ]; then \
-		cd devtools/KNIRVTESTNET && $(MAKE) testnet; \
-		echo "$(GREEN)✓ KNIRVTESTNET tests completed$(NC)"; \
-	else \
-		echo "$(YELLOW)⚠ KNIRVTESTNET Makefile not found$(NC)"; \
-	fi
+testnet-tests: testnet-start ## Start KNIRVSERVER --testnet then run integration tests
+	@echo "$(BLUE)🧪 Waiting for embedded services to initialise...$(NC)"
+	@sleep 10
+	@echo "$(BLUE)Running integration tests...$(NC)"
+	@cd integration-tests && go test -v -timeout 300s ./... ; \
+		RESULT=$$? ; \
+		$(MAKE) -C .. testnet-stop 2>/dev/null || $(MAKE) testnet-stop ; \
+		exit $$RESULT
 
 # =============================================================================
 # PHASE 6 COMPREHENSIVE TESTING SUITE
@@ -1751,14 +1769,8 @@ build-knirvheart: ## Build KNIRVHEART (Python/Go hybrid)
 	fi
 
 .PHONY: build-knirvtestnet
-build-knirvtestnet: ## Build KNIRVTESTNET (Node.js testnet)
-	@echo "$(BLUE)Building KNIRVTESTNET...$(NC)"
-	@if [ -d "devtools/KNIRVTESTNET" ]; then \
-		cd devtools/KNIRVTESTNET && npm install && npm run build 2>/dev/null || echo "Build attempted"; \
-		echo "$(GREEN)✓ KNIRVTESTNET built$(NC)"; \
-	else \
-		echo "$(YELLOW)⚠ KNIRVTESTNET directory not found$(NC)"; \
-	fi
+build-knirvtestnet: testnet-build ## Alias for testnet-build (KNIRVTESTNET replaced by KNIRVSERVER --testnet)
+
 
 .PHONY: build-knirvsync
 build-knirvsync: ## Build KNIRVSYNC (Go documentation sync tool)

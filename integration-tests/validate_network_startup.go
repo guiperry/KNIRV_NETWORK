@@ -132,13 +132,21 @@ func (nv *NetworkValidator) checkAllServices() error {
 	return nil
 }
 
-// getAuthToken retrieves authentication token from gateway
+// getAuthToken retrieves authentication token from the gateway or, if the
+// gateway proxy is unavailable, directly from KNIRVSERVER's testnet endpoint.
 func (nv *NetworkValidator) getAuthToken() error {
+	// Primary: embedded gateway proxy
 	tokenURL := "http://localhost:8888/auth/testnet-tokens"
+	// Fallback: direct KNIRVSERVER testnet route
+	fallbackTokenURL := "http://localhost:8084/auth/testnet-tokens"
 
 	resp, err := nv.client.Get(tokenURL)
 	if err != nil {
-		return fmt.Errorf("failed to get token: %w", err)
+		// Try fallback before giving up
+		resp, err = nv.client.Get(fallbackTokenURL)
+		if err != nil {
+			return fmt.Errorf("failed to get token from gateway (%s) or server (%s): %w", tokenURL, fallbackTokenURL, err)
+		}
 	}
 	defer resp.Body.Close()
 

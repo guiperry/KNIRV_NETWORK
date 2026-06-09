@@ -4,7 +4,7 @@
 # Operational Mode
 mode: headless
 environment: testnet
-chain_id: knirv-server-testnet
+chain_id: testnet
 node_role: dve-manager
 testnet: true
 
@@ -44,20 +44,20 @@ database:
 
 # Security Configuration
 security:
-  auth_required: true
+  auth_required: false
   tls_enabled: false
   tls_cert_file: ""
   tls_key_file: ""
   audit_logging: false
-  jwt_secret: "${KNIRV_JWT_SECRET:testnet-jwt-secret-change-this-in-production}"
-  enable_rate_limiting: true
-  rate_limit_requests_per_minute: 60
+  jwt_secret: "knirv_testnet_jwt_secret_2025_secure_token_for_development_only"
+  enable_rate_limiting: false
+  rate_limit_requests_per_minute: 1000
   enable_request_logging: true
   enable_security_headers: true
 
 # Authentication Configuration
 auth:
-  jwt_secret: "${KNIRV_JWT_SECRET:testnet-jwt-secret-change-this-in-production}"
+  jwt_secret: "knirv_testnet_jwt_secret_2025_secure_token_for_development_only"
   token_expiry: "24h"
   refresh_token_expiry: "168h"  # 7 days
   enable_oauth: false
@@ -120,7 +120,7 @@ validation:
 
 # TEE (Trusted Execution Environment) Configuration
 tee:
-  type: "software"  # sgx | sev-snp | tdx | software
+  type: "software"  # sgx | sev-snp | tdx | software — software = simulation
   sgx:
     enclave_file: ""
     spid_file: ""
@@ -286,4 +286,33 @@ validation_chain:
   data_path: /var/lib/knirvserver/validationchain/data
   chain_id: "validation-testnet"
   start_timeout: 30
+  stop_timeout: 10
+
+# Embedded KNIRVCHAIN
+chain:
+  enabled: true
+  chain_id: testnet
+  role: validator
+  api_port: 8090
+  p2p_port: 9090
+  data_path: "./data/knirvchain"
+  start_timeout: 60
+  stop_timeout: 10
+
+# Embedded KNIRVGRAPH
+graph:
+  enabled: true
+  api_port: 8082
+  p2p_port: 9082
+  data_path: "./data/knirvgraph"
+  sync_interval: "30s"
+  start_timeout: 60
+  stop_timeout: 10
+
+# Embedded KNIRVGATEWAY
+gateway:
+  enabled: true
+  port: 8888
+  auth_secret: "knirv_testnet_jwt_secret_2025_secure_token_for_development_only"
+  start_timeout: 60
   stop_timeout: 10

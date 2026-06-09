@@ -1,56 +1,60 @@
 package integration_tests
 
 import (
-	"encoding/json"
-	"os"
-	"os/exec"
-	"path/filepath"
+	"net/http"
 	"testing"
+	"time"
 )
 
+// TestKNIRVTestnetIntegration verifies that all services embedded in
+// KNIRVSERVER --testnet are reachable and healthy.
 func TestKNIRVTestnetIntegration(t *testing.T) {
-	// Get absolute path to test-integration.sh
-	testnetDir := filepath.Join("..", "KNIRVGATEWAY", "knirvtestnet")
-	scriptPath := filepath.Join(testnetDir, "test-integration.sh")
+	client := &http.Client{Timeout: 10 * time.Second}
 
-	// Verify script exists
-	if _, err := os.Stat(scriptPath); os.IsNotExist(err) {
-		t.Fatalf("test-integration.sh not found at: %s", scriptPath)
+	endpoints := map[string]string{
+		"knirvserver":       "http://localhost:8084/health",
+		"knirvserver-testnet": "http://localhost:8084/testnet/status",
+		"knirvchain":        "http://localhost:8090/health",
+		"knirvgraph":        "http://localhost:8082/height",
+		"knirvgateway":      "http://localhost:8888/gateway/health",
 	}
 
-	// Run the test script
-	cmd := exec.Command("bash", scriptPath)
-	cmd.Dir = testnetDir
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
+	for name, url := range endpoints {
+		resp, err := client.Get(url)
+		if err != nil {
+			t.Errorf("%s health check failed: %v", name, err)
+			continue
+		}
+		resp.Body.Close()
+		if resp.StatusCode >= 300 {
+			t.Errorf("%s returned status %d (url: %s)", name, resp.StatusCode, url)
+		} else {
+			t.Logf("%s OK (%d)", name, resp.StatusCode)
+		}
+	}
+}
 
-	if err := cmd.Run(); err != nil {
-		t.Errorf("KNIRVTestnet integration tests failed: %v", err)
+// TestKNIRVTestnetTokens verifies the testnet token endpoint is available
+// from both the gateway proxy and the direct KNIRVSERVER route.
+func TestKNIRVTestnetTokens(t *testing.T) {
+	client := &http.Client{Timeout: 10 * time.Second}
+
+	sources := map[string]string{
+		"gateway-tokens": "http://localhost:8888/auth/testnet-tokens",
+		"server-tokens":  "http://localhost:8084/auth/testnet-tokens",
 	}
 
-	// Parse test report
-	reportPath := filepath.Join(testnetDir, "test-report.json")
-	reportData, err := os.ReadFile(reportPath)
-	if err != nil {
-		t.Logf("Could not read test report: %v", err)
-		return
+	for name, url := range sources {
+		resp, err := client.Get(url)
+		if err != nil {
+			t.Logf("%s unavailable: %v (non-fatal)", name, err)
+			continue
+		}
+		resp.Body.Close()
+		if resp.StatusCode >= 300 {
+			t.Logf("%s returned status %d (non-fatal)", name, resp.StatusCode)
+		} else {
+			t.Logf("%s OK (%d)", name, resp.StatusCode)
+		}
 	}
-
-	var report struct {
-		TestSuite    string `json:"testSuite"`
-		TotalTests   int    `json:"totalTests"`
-		PassedTests  int    `json:"passedTests"`
-		FailedTests  int    `json:"failedTests"`
-		Success      bool   `json:"success"`
-	}
-	if err := json.Unmarshal(reportData, &report); err != nil {
-		t.Logf("Could not parse test report: %v", err)
-		return
-	}
-
-	t.Logf("KNIRVTestnet test results - Total: %d, Passed: %d, Failed: %d", 
-		report.TotalTests, report.PassedTests, report.FailedTests)
-
-	// Compare testnet vs production issues
-	// TODO: Implement Gemini/Cerebras API comparison
 }

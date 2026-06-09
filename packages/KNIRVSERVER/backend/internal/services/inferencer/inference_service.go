@@ -207,15 +207,15 @@ var providerChain = []struct {
 	APIKeyEnvVar string
 	MaxTokens    int
 }{
-	{ProviderName: "gemini", ModelName: "gemini-2.5-flash", APIKeyEnvVar: "GEMINI_API_KEY", MaxTokens: 100000},
 	{ProviderName: "deepseek", ModelName: "deepseek-chat", APIKeyEnvVar: "DEEPSEEK_API_KEY", MaxTokens: 8000},
+	{ProviderName: "gemini", ModelName: "gemini-2.5-flash", APIKeyEnvVar: "GEMINI_API_KEY", MaxTokens: 100000},
 	{ProviderName: "cerebras", ModelName: "cerebras/Llama-3.3-70B", APIKeyEnvVar: "CEREBRAS_API_KEY", MaxTokens: 8000},
 	{ProviderName: "openai", ModelName: "gpt-4o", APIKeyEnvVar: "OPENAI_API_KEY", MaxTokens: 8000},
 	{ProviderName: "anthropic", ModelName: "claude-sonnet-4-20250514", APIKeyEnvVar: "ANTHROPIC_API_KEY", MaxTokens: 8000},
 }
 
 // Start configures the service with the ordered provider fallback chain.
-// Gemini is the primary; all others are fallbacks tried in order on 429/quota errors.
+// Deepseek is the primary; all others are fallbacks tried in order on 429/quota errors.
 func (s *InferenceService) Start() error {
 	log.Println("InferenceService: Starting with provider fallback chain...")
 	s.mutex.Lock()

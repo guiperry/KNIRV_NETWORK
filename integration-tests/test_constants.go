@@ -8,7 +8,7 @@ import (
 
 // Shared test configuration constants
 const (
-	// Service URLs
+	// Service URLs — production/integration ports
 	KNIRVWALLETURL       = "http://localhost:3000" // KNIRVWALLET Unified Server
 	KNIRVRouterURL       = "http://localhost:8085" // KNIRVROUTER
 	KNIRVGraphURL        = "http://localhost:8081" // KNIRVGRAPH
@@ -16,6 +16,21 @@ const (
 	KNIRVOracleURL       = "http://localhost:8086" // KNIRVORACLE
 	KNIRVServerURL       = "http://localhost:8090" // KNIRVSERVER (updated port)
 	KNIRVSERVER_BASE_URL = "http://localhost:8090" // Alternative name for compatibility
+
+	// KNIRVSERVER --testnet canonical addresses
+	TestnetServerURL  = "http://localhost:8084" // KNIRVSERVER --testnet API
+	TestnetStatusURL  = "http://localhost:8084/testnet/status"
+	TestnetTokensURL  = "http://localhost:8084/auth/testnet-tokens"
+	GatewayURL        = "http://localhost:8888"                    // KNIRVGATEWAY (embedded)
+	TestnetChainURL   = "http://localhost:8090"                    // KNIRVCHAIN (embedded)
+	TestnetGraphURL   = "http://localhost:8082"                    // KNIRVGRAPH (embedded)
+	TestnetOracleURL  = "http://localhost:1317"                    // KNIRVORACLE (embedded)
+
+	// KNIRVCONTROLLER URL (used by demo workflow and infrastructure tests)
+	KNIRVControllerURL = "http://localhost:8087" // KNIRVCONTROLLER
+
+	// KNIRVNEXUS alias — same as TestnetServerURL; used by older infrastructure tests
+	KNIRVNexusURL = "http://localhost:8084" // KNIRVSERVER/KNIRVNEXUS
 
 	// Timeouts
 	TestTimeout  = 60 * time.Second // Standard test timeout

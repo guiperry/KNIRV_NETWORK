@@ -34,6 +34,14 @@ A comprehensive command-line interface that provides full integration with the e
 - **Interactive terminal UI**: Interactive shell (REPL) with command history and tab completion
 - **Configuration management**: Environment-specific overrides and service-specific settings
 
+### 6. Portable DVE Pods
+- **Self-contained WASM environments**: Run isolated DVE Pods with embedded KNIRVAGENT via `knirv dve pod new`
+- **BusyBox toolset**: Built-in commands (ls, cat, echo, mkdir, curl, ps, df, etc.) for file and system operations
+- **TEE attestation**: P-256 ECDSA identity keypair with self-attestation reports
+- **Docking protocol**: Connect pod to a KNIRVSERVER with `dock <url>` for bridged mode with chain session management
+- **Export as HTML**: Self-contained browser bundle with `knirv dve pod bundle` — runs in any modern browser without install
+- **Build WASM binary**: `make build/dvepod-wasm` (requires TinyGo)
+
 ## 📋 Installation and Setup
 
 ### Prerequisites
@@ -453,6 +461,14 @@ The configuration supports:
 - `mcp nrv query-skills [error-type]` - Query available skills
 - `mcp nrv query-errors [status]` - Query error nodes
 - `mcp nrv stats` - Show NRV system statistics
+
+### DVE Pod Commands
+- `dve pod new` - Create and launch a new DVE Pod (extracts embedded WASM)
+- `dve pod run --pod-id <id>` - Resume an existing DVE Pod
+- `dve pod list` - List all local DVE Pods
+- `dve pod dock --server <url>` - Dock a pod to a KNIRVSERVER
+- `dve pod bundle --output <path>` - Export as self-contained HTML
+- `dve pod status` - Show DVE Pod system status
 
 ## 🔧 Development
 
