@@ -1,0 +1,37 @@
+{
+  "cli_version": "0.5.5",
+  "checkpoint_id": "20aad7085274",
+  "session_id": "ses_1528d09d1ffexxgHjC1CoZ4ixl",
+  "strategy": "manual-commit",
+  "created_at": "2026-06-09T18:36:12.596895047Z",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "websites/clarion.md"
+  ],
+  "agent": "OpenCode",
+  "model": "big-pickle",
+  "turn_id": "9e7003ae904b",
+  "token_usage": {
+    "input_tokens": 40227,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 196992,
+    "output_tokens": 947,
+    "api_call_count": 6
+  },
+  "session_metrics": {
+    "turn_count": 1
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-06-09T18:36:12.571598841Z",
+    "agent_lines": 0,
+    "agent_removed": 394,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 0,
+    "total_lines_changed": 394,
+    "agent_percentage": 100,
+    "metric_version": 2
+  }
+}
