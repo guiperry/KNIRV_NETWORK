@@ -1,0 +1,12 @@
+Search the codebase at /home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK for all files related to "dve", "dvepod", "dve_pod", "portable DVE", "DVEPod", "dve-pod", and "knirv dve". 
+
+Return a comprehensive list of all files found, including their full paths, categorized by:
+1. Go source files (any .go files related to DVE)
+2. HTML files related to DVE
+3. JavaScript/TypeScript files related to DVE
+4. Test files related to DVE
+5. Any other files (config, docs, etc.)
+
+For each file found, provide a brief description of what it contains (based on its path and any first few lines you can read).
+
+Be very thorough - search using multiple patterns and look in all subdirectories.
