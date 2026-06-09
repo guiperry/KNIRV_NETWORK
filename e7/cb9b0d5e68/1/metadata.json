@@ -1,9 +1,11 @@
 {
   "cli_version": "0.5.5",
   "checkpoint_id": "e7cb9b0d5e68",
+  "session_id": "1c7742df-4703-4df9-bf4b-ad6f7e21f478",
   "strategy": "manual-commit",
+  "created_at": "2026-06-09T18:11:41.618257188Z",
   "branch": "main",
-  "checkpoints_count": 5,
+  "checkpoints_count": 2,
   "files_touched": [
     "CALIBER_LEARNINGS.md",
     "CLAUDE.md",
@@ -9104,25 +9106,45 @@
     "testnetMigrationPlan.md",
     "valueProps.md"
   ],
-  "sessions": [
+  "agent": "Claude Code",
+  "model": "claude-sonnet-4-6",
+  "turn_id": "2579b0af443a",
+  "token_usage": {
+    "input_tokens": 9,
+    "cache_creation_tokens": 80470,
+    "cache_read_tokens": 281771,
+    "output_tokens": 13543,
+    "api_call_count": 5
+  },
+  "session_metrics": {
+    "turn_count": 2
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-06-09T18:11:41.530868974Z",
+    "agent_lines": 4501,
+    "agent_removed": 1793531,
+    "human_added": 396,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 4897,
+    "total_lines_changed": 1798430,
+    "agent_percentage": 99.97786958625024,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
     {
-      "metadata": "/e7/cb9b0d5e68/0/metadata.json",
-      "transcript": "/e7/cb9b0d5e68/0/full.jsonl",
-      "content_hash": "/e7/cb9b0d5e68/0/content_hash.txt",
-      "prompt": ""
+      "checkpoint_number": 1,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
     },
     {
-      "metadata": "/e7/cb9b0d5e68/1/metadata.json",
-      "transcript": "/e7/cb9b0d5e68/1/full.jsonl",
-      "content_hash": "/e7/cb9b0d5e68/1/content_hash.txt",
-      "prompt": ""
+      "checkpoint_number": 2,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
     }
-  ],
-  "token_usage": {
-    "input_tokens": 2609,
-    "cache_creation_tokens": 347343,
-    "cache_read_tokens": 10242459,
-    "output_tokens": 48083,
-    "api_call_count": 81
-  }
+  ]
 }
