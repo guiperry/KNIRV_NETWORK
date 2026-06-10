@@ -68,20 +68,26 @@ type TrustMapping struct {
 }
 
 type IdentityBridge struct {
-	mu           sync.RWMutex
-	envelopes    map[string]*TrustEnvelope
-	mappings     map[string]*TrustMapping
-	attributes   map[string]*IdentityAttributes
-	defaultTTL   time.Duration
+	mu              sync.RWMutex
+	envelopes       map[string]*TrustEnvelope
+	mappings        map[string]*TrustMapping
+	attributes      map[string]*IdentityAttributes
+	defaultTTL      time.Duration
+	revocationList  *RevocationList
 }
 
 func NewIdentityBridge() *IdentityBridge {
 	return &IdentityBridge{
-		envelopes:  make(map[string]*TrustEnvelope),
-		mappings:   make(map[string]*TrustMapping),
-		attributes: make(map[string]*IdentityAttributes),
-		defaultTTL: 24 * time.Hour,
+		envelopes:       make(map[string]*TrustEnvelope),
+		mappings:        make(map[string]*TrustMapping),
+		attributes:      make(map[string]*IdentityAttributes),
+		defaultTTL:      24 * time.Hour,
+		revocationList:  NewRevocationList(),
 	}
+}
+
+func (ib *IdentityBridge) RevocationList() *RevocationList {
+	return ib.revocationList
 }
 
 func (ib *IdentityBridge) SetDefaultTTL(ttl time.Duration) {
@@ -93,6 +99,10 @@ func (ib *IdentityBridge) SetDefaultTTL(ttl time.Duration) {
 func (ib *IdentityBridge) CreateEnvelope(nodeID, agentID string, source IdentitySource, attrs *IdentityAttributes) *TrustEnvelope {
 	ib.mu.Lock()
 	defer ib.mu.Unlock()
+
+	if ib.revocationList.IsRevoked(nodeID) {
+		return nil
+	}
 
 	if attrs == nil {
 		attrs = &IdentityAttributes{
@@ -128,6 +138,9 @@ func (ib *IdentityBridge) GetEnvelope(identityID string) (*TrustEnvelope, bool) 
 	defer ib.mu.RUnlock()
 	env, ok := ib.envelopes[identityID]
 	if !ok {
+		return nil, false
+	}
+	if ib.revocationList.IsRevoked(env.NodeID) {
 		return nil, false
 	}
 	if time.Now().UTC().After(env.ExpiresAt) {

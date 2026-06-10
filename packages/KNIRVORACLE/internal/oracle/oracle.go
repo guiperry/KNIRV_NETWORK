@@ -13,6 +13,7 @@ import (
 	"github.com/knirvcorp/knirvoracle/internal/oracle/consensus"
 	"github.com/knirvcorp/knirvoracle/internal/oracle/crosschain"
 	"github.com/knirvcorp/knirvoracle/internal/oracle/crypto"
+	"github.com/knirvcorp/knirvoracle/internal/oracle/did"
 	"github.com/knirvcorp/knirvoracle/internal/oracle/economics"
 	"github.com/knirvcorp/knirvoracle/internal/oracle/governance"
 	"github.com/knirvcorp/knirvoracle/internal/oracle/ibc"
@@ -39,6 +40,9 @@ type Oracle struct {
 	rollupsMu        sync.RWMutex
 	rollups          map[string]*types.RollupRecord
 	rollupsPath      string
+
+	// DID resolver
+	didResolver *did.Resolver
 
 	// Configuration
 	config *OracleConfig
@@ -198,9 +202,12 @@ func NewOracle(config *OracleConfig, logger *zap.Logger) (*Oracle, error) {
 	}
 	p2pManager := p2p.NewP2PManager(p2pConfig, logger)
 
+	didResolver := did.NewResolver(did.NewMemoryStore())
+
 	oracle := &Oracle{
 		nrnToken:         nrnToken,
 		governanceSystem: governanceSystem,
+		didResolver:      didResolver,
 		economicsEngine:  economicsEngine,
 		consensusEngine:  consensusEngine,
 		ibcHandler:       ibcHandler,
@@ -431,6 +438,11 @@ func (o *Oracle) GetP2PManager() *p2p.P2PManager {
 // GetBridgeManager returns the bridge manager
 func (o *Oracle) GetBridgeManager() *crosschain.BridgeManager {
 	return o.bridgeManager
+}
+
+// GetDIDResolver returns the DID resolver
+func (o *Oracle) GetDIDResolver() *did.Resolver {
+	return o.didResolver
 }
 
 // GetStatus returns the current status of the oracle

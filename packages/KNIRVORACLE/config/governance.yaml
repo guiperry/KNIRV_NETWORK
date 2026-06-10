@@ -1,0 +1,20 @@
+# KNIRVORACLE Governance Configuration
+# Applied when root.key is present (oracle routes active)
+
+did:
+  resolver:
+    cache_ttl: 5m
+    max_resolution_depth: 3
+  registration:
+    require_signature: true
+    allowed_verification_methods:
+      - Ed25519VerificationKey2020
+      - JsonWebKey2020
+
+oracle_policy:
+  default_effect: deny
+  max_policy_size: 1048576
+
+compliance:
+  event_retention_days: 90
+  max_chain_depth: 10000

@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"time"
 
+	"backend_server/internal/services/compliance"
 	"backend_server/internal/services/identitybridge"
 	"backend_server/internal/services/mcphardening"
 	"backend_server/internal/services/policyadapter"
@@ -14,10 +15,18 @@ import (
 )
 
 type GovernanceHandlers struct {
-	identityBridge  *identitybridge.IdentityBridge
-	policyAdapter   *policyadapter.PolicyAdapter
-	reliabilityCtrl *reliability.ReliabilityController
-	mcpGateway      *mcphardening.MCPGateway
+	identityBridge    *identitybridge.IdentityBridge
+	policyAdapter     *policyadapter.PolicyAdapter
+	reliabilityCtrl   *reliability.ReliabilityController
+	mcpGateway        *mcphardening.MCPGateway
+	schemaValidator   *mcphardening.SchemaValidator
+	injectionDetector *mcphardening.InjectionDetector
+	responseSanitizer *mcphardening.ResponseSanitizer
+	sloBudget         *reliability.SLOBudget
+	dveBindingManager *reliability.DVEBindingManager
+	escalationManager *reliability.EscalationManager
+	correlator        *compliance.Correlator
+	complianceFm      *compliance.FrameworkManager
 }
 
 func NewGovernanceHandlers(
@@ -25,12 +34,28 @@ func NewGovernanceHandlers(
 	pa *policyadapter.PolicyAdapter,
 	rc *reliability.ReliabilityController,
 	mcp *mcphardening.MCPGateway,
+	sv *mcphardening.SchemaValidator,
+	id *mcphardening.InjectionDetector,
+	rs *mcphardening.ResponseSanitizer,
+	sb *reliability.SLOBudget,
+	dbm *reliability.DVEBindingManager,
+	em *reliability.EscalationManager,
+	corr *compliance.Correlator,
+	cf *compliance.FrameworkManager,
 ) *GovernanceHandlers {
 	return &GovernanceHandlers{
-		identityBridge:  ib,
-		policyAdapter:   pa,
-		reliabilityCtrl: rc,
-		mcpGateway:      mcp,
+		identityBridge:    ib,
+		policyAdapter:     pa,
+		reliabilityCtrl:   rc,
+		mcpGateway:        mcp,
+		schemaValidator:   sv,
+		injectionDetector: id,
+		responseSanitizer: rs,
+		sloBudget:         sb,
+		dveBindingManager: dbm,
+		escalationManager: em,
+		correlator:        corr,
+		complianceFm:      cf,
 	}
 }
 
@@ -86,6 +111,32 @@ func (gh *GovernanceHandlers) RegisterRoutes(apiV1 *mux.Router) {
 	mcpRouter.HandleFunc("/audit", gh.GetAuditLog).Methods("GET", "OPTIONS")
 	mcpRouter.HandleFunc("/signatures", gh.RegisterSignature).Methods("POST", "OPTIONS")
 	mcpRouter.HandleFunc("/stats", gh.MCPStats).Methods("GET", "OPTIONS")
+	mcpRouter.HandleFunc("/schema/validate", gh.ValidateToolSchema).Methods("POST", "OPTIONS")
+	mcpRouter.HandleFunc("/injection/scan", gh.ScanInjection).Methods("POST", "OPTIONS")
+	mcpRouter.HandleFunc("/response/sanitize", gh.SanitizeResponse).Methods("POST", "OPTIONS")
+
+	reliabilityRouter.HandleFunc("/slos", gh.ListSLOs).Methods("GET", "OPTIONS")
+	reliabilityRouter.HandleFunc("/slos/define", gh.DefineSLO).Methods("POST", "OPTIONS")
+	reliabilityRouter.HandleFunc("/slos/{name}/status", gh.GetSLOStatus).Methods("GET", "OPTIONS")
+	reliabilityRouter.HandleFunc("/slos/{name}/metric", gh.RecordSLO).Methods("POST", "OPTIONS")
+	reliabilityRouter.HandleFunc("/dve-bindings", gh.ListDVEBindings).Methods("GET", "OPTIONS")
+	reliabilityRouter.HandleFunc("/dve-bindings/bind", gh.BindDVE).Methods("POST", "OPTIONS")
+	reliabilityRouter.HandleFunc("/dve-bindings/{breaker}/unbind", gh.UnbindDVE).Methods("DELETE", "OPTIONS")
+	reliabilityRouter.HandleFunc("/escalation/routes", gh.ListEscalationRoutes).Methods("GET", "OPTIONS")
+	reliabilityRouter.HandleFunc("/escalation/routes/add", gh.AddEscalationRoute).Methods("POST", "OPTIONS")
+	reliabilityRouter.HandleFunc("/escalation/history", gh.GetEscalationHistory).Methods("GET", "OPTIONS")
+
+	identityRouter.HandleFunc("/revoke", gh.RevokeNode).Methods("POST", "OPTIONS")
+	identityRouter.HandleFunc("/revoked/{nodeID}", gh.CheckRevoked).Methods("GET", "OPTIONS")
+
+	complianceRouter := govRouter.PathPrefix("/compliance").Subrouter()
+	complianceRouter.HandleFunc("/events", gh.RecordComplianceEvent).Methods("POST", "OPTIONS")
+	complianceRouter.HandleFunc("/events", gh.ListComplianceEvents).Methods("GET", "OPTIONS")
+	complianceRouter.HandleFunc("/events/{nodeID}", gh.ListNodeComplianceEvents).Methods("GET", "OPTIONS")
+	complianceRouter.HandleFunc("/frameworks", gh.ListComplianceFrameworks).Methods("GET", "OPTIONS")
+	complianceRouter.HandleFunc("/frameworks/{id}", gh.GetComplianceFramework).Methods("GET", "OPTIONS")
+	complianceRouter.HandleFunc("/status", gh.GetComplianceStatus).Methods("GET", "OPTIONS")
+	complianceRouter.HandleFunc("/chain/verify", gh.VerifyComplianceChain).Methods("GET", "OPTIONS")
 }
 
 func (gh *GovernanceHandlers) CreateEnvelope(w http.ResponseWriter, r *http.Request) {
@@ -568,4 +619,257 @@ func (gh *GovernanceHandlers) RegisterSignature(w http.ResponseWriter, r *http.R
 
 func (gh *GovernanceHandlers) MCPStats(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(gh.mcpGateway.GetStatistics())
+}
+
+func (gh *GovernanceHandlers) ValidateToolSchema(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		ToolName string                 `json:"tool_name"`
+		Args     map[string]interface{} `json:"args"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, `{"error":"invalid request body"}`, http.StatusBadRequest)
+		return
+	}
+	valid, reason := gh.schemaValidator.ValidateArgs(req.ToolName, req.Args)
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"valid":  valid,
+		"reason": reason,
+	})
+}
+
+func (gh *GovernanceHandlers) ScanInjection(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		Args map[string]interface{} `json:"args"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, `{"error":"invalid request body"}`, http.StatusBadRequest)
+		return
+	}
+	flagged := gh.injectionDetector.ScanArguments(req.Args)
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"flagged": flagged,
+		"count":   len(flagged),
+	})
+}
+
+func (gh *GovernanceHandlers) SanitizeResponse(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		Content string `json:"content"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, `{"error":"invalid request body"}`, http.StatusBadRequest)
+		return
+	}
+	sanitized, modified := gh.responseSanitizer.Sanitize(req.Content)
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"sanitized": sanitized,
+		"modified":  modified,
+	})
+}
+
+func (gh *GovernanceHandlers) DefineSLO(w http.ResponseWriter, r *http.Request) {
+	var config reliability.SLOConfig
+	if err := json.NewDecoder(r.Body).Decode(&config); err != nil {
+		http.Error(w, `{"error":"invalid request body"}`, http.StatusBadRequest)
+		return
+	}
+	gh.sloBudget.DefineSLO(config)
+	json.NewEncoder(w).Encode(map[string]string{"status": "defined"})
+}
+
+func (gh *GovernanceHandlers) ListSLOs(w http.ResponseWriter, r *http.Request) {
+	slos := gh.sloBudget.ListSLOs()
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"slos":  slos,
+		"count": len(slos),
+	})
+}
+
+func (gh *GovernanceHandlers) GetSLOStatus(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	status := gh.sloBudget.GetStatus(vars["name"])
+	if status == nil {
+		http.Error(w, `{"error":"SLO not found"}`, http.StatusNotFound)
+		return
+	}
+	json.NewEncoder(w).Encode(status)
+}
+
+func (gh *GovernanceHandlers) RecordSLO(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	var req struct {
+		Value float64 `json:"value"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, `{"error":"invalid request body"}`, http.StatusBadRequest)
+		return
+	}
+	gh.sloBudget.RecordMetric(vars["name"], req.Value)
+	json.NewEncoder(w).Encode(map[string]string{"status": "recorded"})
+}
+
+func (gh *GovernanceHandlers) BindDVE(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		DVEID     string `json:"dve_id"`
+		NodeID    string `json:"node_id"`
+		AgentID   string `json:"agent_id"`
+		BreakerID string `json:"breaker_id"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, `{"error":"invalid request body"}`, http.StatusBadRequest)
+		return
+	}
+	binding := gh.dveBindingManager.Bind(req.DVEID, req.NodeID, req.AgentID, req.BreakerID)
+	json.NewEncoder(w).Encode(binding)
+}
+
+func (gh *GovernanceHandlers) ListDVEBindings(w http.ResponseWriter, r *http.Request) {
+	bindings := gh.dveBindingManager.ListBindings()
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"bindings": bindings,
+		"count":    len(bindings),
+	})
+}
+
+func (gh *GovernanceHandlers) UnbindDVE(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	gh.dveBindingManager.Unbind(vars["breaker"])
+	json.NewEncoder(w).Encode(map[string]string{"status": "unbound"})
+}
+
+func (gh *GovernanceHandlers) AddEscalationRoute(w http.ResponseWriter, r *http.Request) {
+	var route reliability.EscalationRoute
+	if err := json.NewDecoder(r.Body).Decode(&route); err != nil {
+		http.Error(w, `{"error":"invalid request body"}`, http.StatusBadRequest)
+		return
+	}
+	gh.escalationManager.AddRoute(route)
+	json.NewEncoder(w).Encode(map[string]string{"status": "added"})
+}
+
+func (gh *GovernanceHandlers) ListEscalationRoutes(w http.ResponseWriter, r *http.Request) {
+	level := r.URL.Query().Get("level")
+	if level != "" {
+		routes := gh.escalationManager.GetRoutes(reliability.EscalationLevel(level))
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"routes": routes,
+			"count":  len(routes),
+		})
+		return
+	}
+	var all []reliability.EscalationRoute
+	for _, l := range []reliability.EscalationLevel{
+		reliability.EscalationLevelWarning,
+		reliability.EscalationLevelCritical,
+		reliability.EscalationLevelShutdown,
+	} {
+		all = append(all, gh.escalationManager.GetRoutes(l)...)
+	}
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"routes": all,
+		"count":  len(all),
+	})
+}
+
+func (gh *GovernanceHandlers) GetEscalationHistory(w http.ResponseWriter, r *http.Request) {
+	nodeID := r.URL.Query().Get("node_id")
+	history := gh.escalationManager.GetHistory(nodeID, 100)
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"history": history,
+		"count":   len(history),
+	})
+}
+
+func (gh *GovernanceHandlers) RevokeNode(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		IdentityID string `json:"identity_id"`
+		NodeID     string `json:"node_id"`
+		Reason     string `json:"reason"`
+		RevokedBy  string `json:"revoked_by"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, `{"error":"invalid request body"}`, http.StatusBadRequest)
+		return
+	}
+	entry := gh.identityBridge.RevocationList().Revoke(req.IdentityID, req.NodeID, req.Reason, req.RevokedBy)
+	json.NewEncoder(w).Encode(entry)
+}
+
+func (gh *GovernanceHandlers) CheckRevoked(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	revoked := gh.identityBridge.RevocationList().IsRevoked(vars["nodeID"])
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"node_id": vars["nodeID"],
+		"revoked": revoked,
+	})
+}
+
+func (gh *GovernanceHandlers) RecordComplianceEvent(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		NodeID    string                 `json:"node_id"`
+		AgentID   string                 `json:"agent_id"`
+		EventType string                 `json:"event_type"`
+		Severity  string                 `json:"severity"`
+		Details   map[string]interface{} `json:"details"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, `{"error":"invalid request body"}`, http.StatusBadRequest)
+		return
+	}
+	event := gh.correlator.RecordEvent(req.NodeID, req.AgentID, req.EventType, req.Severity, req.Details)
+	json.NewEncoder(w).Encode(event)
+}
+
+func (gh *GovernanceHandlers) ListComplianceEvents(w http.ResponseWriter, r *http.Request) {
+	nodeID := r.URL.Query().Get("node_id")
+	events := gh.correlator.GetEvents(nodeID, 100)
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"events": events,
+		"count":  len(events),
+	})
+}
+
+func (gh *GovernanceHandlers) ListNodeComplianceEvents(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	events := gh.correlator.GetEvents(vars["nodeID"], 100)
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"events": events,
+		"count":  len(events),
+	})
+}
+
+func (gh *GovernanceHandlers) ListComplianceFrameworks(w http.ResponseWriter, r *http.Request) {
+	frameworks := gh.complianceFm.ListFrameworks()
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"frameworks": frameworks,
+		"count":      len(frameworks),
+	})
+}
+
+func (gh *GovernanceHandlers) GetComplianceFramework(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	fw, ok := gh.complianceFm.GetFramework(compliance.FrameworkID(vars["id"]))
+	if !ok {
+		http.Error(w, `{"error":"framework not found"}`, http.StatusNotFound)
+		return
+	}
+	json.NewEncoder(w).Encode(fw)
+}
+
+func (gh *GovernanceHandlers) GetComplianceStatus(w http.ResponseWriter, r *http.Request) {
+	nodeID := r.URL.Query().Get("node_id")
+	if nodeID == "" {
+		http.Error(w, `{"error":"node_id query param required"}`, http.StatusBadRequest)
+		return
+	}
+	status := gh.complianceFm.GetNodeCompliance(nodeID)
+	json.NewEncoder(w).Encode(status)
+}
+
+func (gh *GovernanceHandlers) VerifyComplianceChain(w http.ResponseWriter, r *http.Request) {
+	valid := gh.correlator.VerifyChain()
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"valid": valid,
+		"tip":   gh.correlator.TipHash(),
+	})
 }

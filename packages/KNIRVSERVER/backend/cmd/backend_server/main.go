@@ -34,6 +34,7 @@ import (
 	transactionchain "backend_server/internal/services/blockchain/transactionchain"
 	"backend_server/internal/services/blockchain/validationchain"
 	"backend_server/internal/services/cognitiveengine"
+	"backend_server/internal/services/compliance"
 	"backend_server/internal/services/container"
 	"backend_server/internal/services/controllerintegration"
 	"backend_server/internal/services/dns"
@@ -202,11 +203,19 @@ type Server struct {
 	// GraphRAG Knowledge Base Engine
 	graphRAGClient *knowledge_base.GraphRAGClient
 
-	// Governance Toolkit services (Phases 1-4 roadmap)
-	governanceIdentity  *identitybridge.IdentityBridge
-	governancePolicy    *policyadapter.PolicyAdapter
-	governanceReliablity *reliability.ReliabilityController
-	governanceMCP       *mcphardening.MCPGateway
+	// Governance Toolkit services (Phases 1-6)
+	governanceIdentity    *identitybridge.IdentityBridge
+	governancePolicy      *policyadapter.PolicyAdapter
+	governanceReliablity  *reliability.ReliabilityController
+	governanceMCP         *mcphardening.MCPGateway
+	governanceSchemaVal   *mcphardening.SchemaValidator
+	governanceInjectDet   *mcphardening.InjectionDetector
+	governanceRespSan     *mcphardening.ResponseSanitizer
+	governanceSLO         *reliability.SLOBudget
+	governanceDVE         *reliability.DVEBindingManager
+	governanceEscal       *reliability.EscalationManager
+	governanceCorrelator  *compliance.Correlator
+	governanceCompFw      *compliance.FrameworkManager
 
 	// Context for managing service lifecycle
 	ctx    context.Context
@@ -2388,18 +2397,34 @@ func (s *Server) setupRoutes() {
 		log.Println("Knowledge Base handlers wired with GraphRAG FFI engine")
 	}
 
-	// Initialize Governance Toolkit services (roadmap Phases 1-4)
+	// Initialize Governance Toolkit services (Phases 1-6)
 	s.governanceIdentity = identitybridge.NewIdentityBridge()
 	s.governancePolicy = policyadapter.NewPolicyAdapter()
 	s.governanceReliablity = reliability.NewReliabilityController()
 	s.governanceMCP = mcphardening.NewMCPGateway()
+	s.governanceSchemaVal = mcphardening.NewSchemaValidator()
+	s.governanceInjectDet = mcphardening.NewInjectionDetector()
+	s.governanceRespSan = mcphardening.NewResponseSanitizer()
+	s.governanceSLO = reliability.NewSLOBudget()
+	s.governanceDVE = reliability.NewDVEBindingManager()
+	s.governanceEscal = reliability.NewEscalationManager()
+	s.governanceCorrelator = compliance.NewCorrelator()
+	s.governanceCompFw = compliance.NewFrameworkManager()
 	governanceHandlers := web.NewGovernanceHandlers(
 		s.governanceIdentity,
 		s.governancePolicy,
 		s.governanceReliablity,
 		s.governanceMCP,
+		s.governanceSchemaVal,
+		s.governanceInjectDet,
+		s.governanceRespSan,
+		s.governanceSLO,
+		s.governanceDVE,
+		s.governanceEscal,
+		s.governanceCorrelator,
+		s.governanceCompFw,
 	)
-	log.Println("Governance Toolkit handlers initialized (Phases 1-4: identity, policy, reliability, MCP)")
+	log.Println("Governance Toolkit handlers initialized (Phases 1-6: identity, policy, reliability, MCP, hardening, compliance)")
 
 	dvePodHandler := web.NewDVEPodHandler(fmt.Sprintf("http://localhost:%d", s.config.API.Port))
 	apiRouter := web.NewAPIRouter(
