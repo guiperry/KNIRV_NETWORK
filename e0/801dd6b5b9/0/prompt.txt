@@ -1,0 +1,14 @@
+update the websites/KNIRV_DECK so that it reflects current status of the code 
+  base in 3 different marketing tiers: Tier I: AI Policy Guardrails Engine.     
+  Tier II: Deterministic AI Validation Network. Tier III: Decentralized         
+  Security Exploit Resolution Platform. Utilize the @valueProps.md and          
+  @value_proposition_strategies.html files for your reference. Do the math,     
+  show the value for investors vigorously.
+
+---
+
+update the favicon in the KNIRV_DECK to match that of KNIRV.COM
+
+---
+
+Continue if you have next steps, or stop and ask for clarification if you are unsure how to proceed.
