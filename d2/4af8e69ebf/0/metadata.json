@@ -1,0 +1,60 @@
+{
+  "cli_version": "0.5.5",
+  "checkpoint_id": "d24af8e69ebf",
+  "session_id": "5236b5dc-79d4-497a-bab9-14b631632253",
+  "strategy": "manual-commit",
+  "created_at": "2026-06-10T04:39:12.374425527Z",
+  "branch": "main",
+  "checkpoints_count": 3,
+  "files_touched": [
+    "governan_implementation_plan.md"
+  ],
+  "agent": "Claude Code",
+  "model": "claude-sonnet-4-6",
+  "turn_id": "7ad2528af624",
+  "token_usage": {
+    "input_tokens": 35,
+    "cache_creation_tokens": 111925,
+    "cache_read_tokens": 3051350,
+    "output_tokens": 32648,
+    "api_call_count": 29
+  },
+  "session_metrics": {
+    "turn_count": 3
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-06-10T04:39:12.197147659Z",
+    "agent_lines": 971,
+    "agent_removed": 0,
+    "human_added": 5491,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 6462,
+    "total_lines_changed": 6575,
+    "agent_percentage": 14.7680608365019,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 2,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 3,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    }
+  ]
+}
