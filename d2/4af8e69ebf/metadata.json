@@ -3,7 +3,7 @@
   "checkpoint_id": "d24af8e69ebf",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 5,
+  "checkpoints_count": 6,
   "files_touched": [
     "governan_implementation_plan.md",
     "packages/KNIRVORACLE/config/governance.yaml",
@@ -70,6 +70,12 @@
       "transcript": "/d2/4af8e69ebf/1/full.jsonl",
       "content_hash": "/d2/4af8e69ebf/1/content_hash.txt",
       "prompt": "/d2/4af8e69ebf/1/prompt.txt"
+    },
+    {
+      "metadata": "/d2/4af8e69ebf/2/metadata.json",
+      "transcript": "/d2/4af8e69ebf/2/full.jsonl",
+      "content_hash": "/d2/4af8e69ebf/2/content_hash.txt",
+      "prompt": ""
     }
   ],
   "token_usage": {
