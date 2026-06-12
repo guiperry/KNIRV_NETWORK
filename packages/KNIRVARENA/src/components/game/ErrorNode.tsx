@@ -23,6 +23,7 @@ export default function ErrorNode({ node, isSelected, onSelect }: ErrorNodeProps
   const isSculpting = useKnirvana(state => state.isSculpting);
   const isNoiseInjecting = useKnirvana(state => state.isNoiseInjecting);
   const addRewardAnchor = useKnirvana(state => state.addRewardAnchor);
+  const openDVEWorkspace = useKnirvana(state => state.openDVEWorkspace);
   const setSculpting = useKnirvana(state => state.setSculpting);
   const selectedErrorNode = useKnirvana(state => state.selectedErrorNode);
   const errorNodes = useKnirvana(state => state.errorNodes);
@@ -106,6 +107,12 @@ export default function ErrorNode({ node, isSelected, onSelect }: ErrorNodeProps
     const anchorX = node.position.x + Math.cos(angle) * radius;
     const anchorZ = node.position.z + Math.sin(angle) * radius;
 
+    // One validation node per spike — ignore repeat clicks
+    const occupied = rewardAnchors.some(
+      a => Math.abs(a.position.x - anchorX) < 0.05 && Math.abs(a.position.z - anchorZ) < 0.05
+    );
+    if (occupied) return;
+
     const errorNodeData = selectedErrorNode
       ? errorNodes.find(n => n.id === selectedErrorNode)
       : null;
@@ -144,12 +151,22 @@ export default function ErrorNode({ node, isSelected, onSelect }: ErrorNodeProps
     });
   };
 
+  // Clicking the node selects it; outside anchor-placement modes it also
+  // opens the node's own DVE workspace.
+  const handleNodeClick = (e: ThreeEvent<MouseEvent>) => {
+    e.stopPropagation();
+    onSelect();
+    if (!isAnalyzing && !isSculpting && !isNoiseInjecting) {
+      openDVEWorkspace(node.id);
+    }
+  };
+
   const color = node.isBeingSolved ? "#ff6600" : "#ff0000";
 
   return (
     // Initial position set here; useFrame overrides position.y every frame for the elevation animation
     <group ref={groupRef} position={[node.position.x, node.position.y + 1, node.position.z]}>
-      <mesh ref={meshRef} onClick={onSelect} castShadow receiveShadow>
+      <mesh ref={meshRef} onClick={handleNodeClick} castShadow receiveShadow>
         <sphereGeometry args={[0.8, 16, 16]} />
         <meshStandardMaterial
           color={color}

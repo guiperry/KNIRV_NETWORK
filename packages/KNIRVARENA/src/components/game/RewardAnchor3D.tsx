@@ -16,6 +16,7 @@ export default function RewardAnchor3D({ anchor }: RewardAnchor3DProps) {
   const orientGroupRef = useRef<THREE.Group>(null);
   const outerGroupRef = useRef<THREE.Group>(null);
   const sunkOffsetRef = useRef(0);
+  const outerYRef = useRef(anchor.position.y);
   const straightenProgressRef = useRef(0);
   const commitProgressRef = useRef(0);
 
@@ -59,6 +60,7 @@ export default function RewardAnchor3D({ anchor }: RewardAnchor3DProps) {
 
       // Sink the outer group below the grid
       outerGroupRef.current.position.y = anchor.position.y - eased * SINK_DEPTH;
+      outerYRef.current = outerGroupRef.current.position.y;
 
       // Rotate from vertical → horizontal
       orientGroupRef.current.quaternion.slerpQuaternions(
@@ -97,9 +99,15 @@ export default function RewardAnchor3D({ anchor }: RewardAnchor3DProps) {
       }
     }
 
-    // ── Outer group Y (normal float/sink) ────────────────────────────────
+    // ── Outer group Y ─────────────────────────────────────────────────────
+    // Committed anchors STAY sunk beneath the grid — they must never pop
+    // back up, even after straightening flips them vertical again.
     if (outerGroupRef.current) {
-      outerGroupRef.current.position.y = anchor.position.y;
+      const targetY = anchor.isCommitted
+        ? anchor.position.y - SINK_DEPTH
+        : anchor.position.y;
+      outerYRef.current += (targetY - outerYRef.current) * Math.min(delta * 3, 1);
+      outerGroupRef.current.position.y = outerYRef.current;
     }
 
     // ── Float / sink (only when vertical) ────────────────────────────────

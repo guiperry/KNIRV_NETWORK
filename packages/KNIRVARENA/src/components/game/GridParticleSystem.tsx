@@ -3,6 +3,7 @@ import { useRef, useMemo } from "react";
 import { useFrame } from "@react-three/fiber";
 import { useThemeStore } from "../../stores/useThemeStore";
 import { ErrorNode } from "./stores/useKnirvana";
+import { sampleGridDip } from "./gridDepthField";
 
 interface Particle {
   x: number;
@@ -229,9 +230,9 @@ export default function GridParticleSystem({ errorNodes }: { errorNodes: ErrorNo
           colors[idx] = themeColors.swirl.r * brightness;
           colors[idx + 1] = themeColors.swirl.g * brightness;
           colors[idx + 2] = themeColors.swirl.b * brightness;
-          
+
           positions[idx] = p.x;
-          positions[idx + 1] = FLOOR_Y; // Lock to floor
+          positions[idx + 1] = FLOOR_Y - sampleGridDip(p.x, p.z); // Ride the grid surface
           positions[idx + 2] = p.z;
           
         } else {
@@ -268,7 +269,7 @@ export default function GridParticleSystem({ errorNodes }: { errorNodes: ErrorNo
           colors[idx + 2] = themeColors.normal.b * brightness;
           
           positions[idx] = p.x;
-          positions[idx + 1] = FLOOR_Y; // Lock to floor
+          positions[idx + 1] = FLOOR_Y - sampleGridDip(p.x, p.z); // Ride the grid surface
           positions[idx + 2] = p.z;
         }
       }
@@ -304,7 +305,7 @@ export default function GridParticleSystem({ errorNodes }: { errorNodes: ErrorNo
           positions[idx] = (ph.lineIndex - 10) * GRID_SIZE;
           positions[idx + 2] = ph.position;
         }
-        positions[idx + 1] = FLOOR_Y; // Lock to floor
+        positions[idx + 1] = FLOOR_Y - sampleGridDip(positions[idx], positions[idx + 2]); // Ride the grid surface
 
         const flash = Math.sin(time * 8 + ph.flashPhase);
         const baseBrightness = flash > 0.5 ? 1.5 + flash * 0.5 : 0.3;

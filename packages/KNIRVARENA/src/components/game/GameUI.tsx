@@ -1,11 +1,23 @@
 import React, { useState, useEffect } from 'react';
-import { useKnirvana, RewardAnchor } from './stores/useKnirvana';
+import { useKnirvana, isRingSet, isRingCommitted, ringCount, RING_SIZE } from './stores/useKnirvana';
 import { useAudio } from './stores/useAudio';
 import { SabotageType } from '../../engine/Sabotage';
 import VerifierOverlay from './VerifierOverlay';
 import EpochResultsPanel from './EpochResultsPanel';
+import DVEWorkspaceModal from './DVEWorkspaceModal';
 import { initializeTournamentController } from '../../engine/TournamentControllerIntegration';
 import { AgentManagementModal } from '../modals/AgentManagementModal';
+
+// ── Next logical action guidance ──────────────────────────────────────────
+
+type NextActionId =
+  | 'analyze' | 'place' | 'set' | 'sculpt'
+  | 'create' | 'deploy' | 'straightening' | 'assign' | 'epoch';
+
+interface NextAction {
+  id: NextActionId;
+  hint: string;
+}
 
 interface SubAgent {
   id: string;
@@ -67,25 +79,73 @@ export default function GameUI() {
 
   const commitSetAnchors = useKnirvana(s => s.commitSetAnchors);
   const setAllStraightenedAnchors = useKnirvana(s => s.setAllStraightenedAnchors);
+  const toasts = useKnirvana(s => s.toasts);
+  const pushToast = useKnirvana(s => s.pushToast);
+  const openDVEWorkspace = useKnirvana(s => s.openDVEWorkspace);
 
-  const { isMuted, toggleMute } = useAudio();
+  const { isMuted, toggleMute, playSfx } = useAudio();
   const [isEpochRunning, setIsEpochRunning] = useState(false);
   const [showEpochResults, setShowEpochResults] = useState(false);
   const [preloadedPrompt] = useState<string>('');
 
   // Sculpt is enabled once every spike position around any error node has a set anchor
-  const hasFullRingSet = React.useMemo(() => {
-    if (errorNodes.length === 0 || rewardAnchors.length === 0) return false;
-    const RADIUS = 1.5;
-    return errorNodes.some(node =>
-      Array.from({ length: 8 }).every((_, i) => {
-        const angle = (i / 8) * Math.PI * 2;
-        const sx = node.position.x + Math.cos(angle) * RADIUS;
-        const sz = node.position.z + Math.sin(angle) * RADIUS;
-        return rewardAnchors.some(a => a.isSet && !a.isCommitted && Math.abs(a.position.x - sx) < 0.05 && Math.abs(a.position.z - sz) < 0.05);
-      })
+  const hasFullRingSet = React.useMemo(
+    () => errorNodes.some(node =>
+      isRingSet(node.id, rewardAnchors) && !isRingCommitted(node.id, rewardAnchors)
+    ),
+    [errorNodes, rewardAnchors]
+  );
+
+  // ── Next logical action ────────────────────────────────────────────────
+  const nextAction: NextAction = React.useMemo(() => {
+    if (isStraighteningAnchors) {
+      return { id: 'straightening', hint: 'Agents are straightening the validation ring…' };
+    }
+
+    const maxRing = errorNodes.reduce((m, n) => Math.max(m, ringCount(n.id, rewardAnchors)), 0);
+    const anyUnset = rewardAnchors.some(a => !a.isSet);
+    const committedNode = errorNodes.find(n => isRingCommitted(n.id, rewardAnchors));
+    const horizontalCommitted = rewardAnchors.some(a => a.isCommitted && a.isHorizontal);
+    const straightenedNode = errorNodes.find(n =>
+      isRingCommitted(n.id, rewardAnchors) &&
+      !rewardAnchors.some(a => a.linkedErrorNode === n.id && a.isCommitted && a.isHorizontal)
     );
-  }, [errorNodes, rewardAnchors]);
+
+    if (maxRing === 0 && !isAnalyzing) {
+      return { id: 'analyze', hint: 'Analyze the grid to reveal validation spike points around error nodes.' };
+    }
+    if (maxRing < RING_SIZE && !committedNode) {
+      if (!isAnalyzing) {
+        return { id: 'analyze', hint: `Re-enter Analyze mode to finish the validation ring (${maxRing}/${RING_SIZE} placed).` };
+      }
+      return { id: 'place', hint: `Click the white spikes around one error node — ${RING_SIZE - maxRing} more validation node${RING_SIZE - maxRing > 1 ? 's' : ''} to go.` };
+    }
+    if (anyUnset && !hasFullRingSet) {
+      return { id: 'set', hint: 'Configure your validation nodes — Set All, or View each anchor to tune weights.' };
+    }
+    if (hasFullRingSet) {
+      return { id: 'sculpt', hint: 'Sculpt the completed ring — it will sink beneath the grid and lock in.' };
+    }
+    if (committedNode && horizontalCommitted) {
+      if (stagedAgents.length === 0) {
+        return { id: 'create', hint: 'Create agents — they are needed to straighten the sunken validation ring.' };
+      }
+      return { id: 'deploy', hint: 'Deploy your staged agents to straighten the validation ring.' };
+    }
+    if (straightenedNode && !straightenedNode.isBeingSolved) {
+      return { id: 'assign', hint: `Open ${straightenedNode.type} and assign an agent to start the resolution (10 NRN).` };
+    }
+    if (errorNodes.some(n => n.isBeingSolved)) {
+      return { id: 'epoch', hint: 'Run an epoch — your agents compete to resolve the error and hijack the skill slot.' };
+    }
+    return { id: 'analyze', hint: 'Analyze the grid to find your next error node.' };
+  }, [isStraighteningAnchors, errorNodes, rewardAnchors, isAnalyzing, hasFullRingSet, stagedAgents.length]);
+
+  // Amber pulse on whichever control is the next logical step
+  const glowIf = (...ids: NextActionId[]) =>
+    ids.includes(nextAction.id)
+      ? ' ring-2 ring-amber-300 shadow-[0_0_16px_rgba(251,191,36,0.65)] animate-pulse'
+      : '';
   const [sabotageType, setSabotageType] = useState<SabotageType>(SabotageType.NOISE_INJECTION);
   const [sabotageMagnitude, setSabotageMagnitude] = useState<number>(1);
   const [isVerifying, setIsVerifying] = useState(false);
@@ -207,7 +267,7 @@ export default function GameUI() {
                     isEpochRunning
                       ? 'bg-yellow-700 text-white cursor-not-allowed'
                       : 'bg-green-600 hover:bg-green-500 text-white'
-                  }`}
+                  }${glowIf('epoch')}`}
                 >
                   {isEpochRunning ? 'Running...' : 'Run Epoch'}
                 </button>
@@ -294,7 +354,7 @@ export default function GameUI() {
                 isStraighteningAnchors
                   ? 'bg-yellow-700 cursor-not-allowed'
                   : 'bg-blue-600 hover:bg-blue-500'
-              }`}
+              }${glowIf('deploy', 'create')}`}
             >
               {isStraighteningAnchors
                 ? 'Straightening...'
@@ -412,11 +472,18 @@ export default function GameUI() {
               {selectedAgent && !errorNode?.isBeingSolved && !stagedAgents.some(s => s.id === selectedAgent) && (
                 <button
                   onClick={() => deployAgent(selectedAgent, selectedErrorNode)}
-                  className="mt-2 w-full bg-cyan-700 hover:bg-cyan-600 text-white px-2 py-1.5 rounded text-xs pointer-events-auto transition-colors"
+                  className={`mt-2 w-full bg-cyan-700 hover:bg-cyan-600 text-white px-2 py-1.5 rounded text-xs pointer-events-auto transition-colors${glowIf('assign')}`}
                 >
                   Deploy Agent (10 NRN)
                 </button>
               )}
+
+              <button
+                onClick={() => openDVEWorkspace(selectedErrorNode)}
+                className="mt-2 w-full bg-blue-800 hover:bg-blue-700 border border-blue-500/40 text-blue-200 px-2 py-1.5 rounded text-xs pointer-events-auto transition-colors"
+              >
+                Open DVE Workspace
+              </button>
             </div>
           </div>
         );
@@ -426,8 +493,38 @@ export default function GameUI() {
       {gamePhase !== 'menu' && isSculpting && (
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none">
           <div className="bg-yellow-500/20 border-2 border-yellow-500 rounded-lg px-6 py-3 text-yellow-300 text-sm text-center">
-            Click on the arena floor to place a reward anchor
+            Click the white spikes around an error node to place validation nodes
           </div>
+        </div>
+      )}
+
+      {/* ── Next-action guidance banner ───────────────────────────────────── */}
+      {gamePhase !== 'menu' && (
+        <div className="absolute bottom-[4.5rem] left-1/2 -translate-x-1/2 z-50 pointer-events-none max-w-xl px-4">
+          <div className="bg-gray-950/85 backdrop-blur-sm border border-amber-400/40 rounded-full px-4 py-1.5 flex items-center gap-2 shadow-[0_0_14px_rgba(251,191,36,0.25)]">
+            <span className="text-amber-300 text-[10px] font-bold tracking-widest flex-shrink-0 animate-pulse">NEXT ▸</span>
+            <span className="text-amber-100/90 text-xs truncate">{nextAction.hint}</span>
+          </div>
+        </div>
+      )}
+
+      {/* ── Toast notifications ───────────────────────────────────────────── */}
+      {toasts.length > 0 && (
+        <div className="absolute top-24 left-1/2 -translate-x-1/2 z-[60] flex flex-col items-center gap-2 pointer-events-none">
+          {toasts.map(t => (
+            <div
+              key={t.id}
+              className={`px-4 py-2 rounded-lg text-xs font-medium backdrop-blur-sm border shadow-lg animate-pulse-once ${
+                t.tone === 'success'
+                  ? 'bg-emerald-900/80 border-emerald-400/50 text-emerald-200'
+                  : t.tone === 'warn'
+                    ? 'bg-red-900/80 border-red-400/50 text-red-200'
+                    : 'bg-gray-900/80 border-cyan-400/40 text-cyan-100'
+              }`}
+            >
+              {t.text}
+            </div>
+          ))}
         </div>
       )}
 
@@ -435,12 +532,12 @@ export default function GameUI() {
       {gamePhase !== 'menu' && (
         <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-50 flex-wrap justify-center pointer-events-auto">
           <button
-            onClick={() => setAnalyzing(!isAnalyzing)}
+            onClick={() => { playSfx('click'); setAnalyzing(!isAnalyzing); }}
             className={`px-4 py-2 rounded-lg pointer-events-auto text-sm transition-colors ${
               isAnalyzing
                 ? 'bg-red-500 ring-2 ring-red-300 text-white'
                 : 'bg-red-700 hover:bg-red-600 text-white'
-            }`}
+            }${glowIf('analyze')}`}
           >
             {isAnalyzing ? 'Analyzing + Anchoring' : 'Analyze'}
           </button>
@@ -463,15 +560,14 @@ export default function GameUI() {
 
           <button
             onClick={() => {
-              const hasStraightened = rewardAnchors.some(a => !a.isHorizontal && !a.isSet);
-              if (hasStraightened) setAllStraightenedAnchors();
+              if (rewardAnchors.some(a => !a.isSet)) setAllStraightenedAnchors();
             }}
-            disabled={!rewardAnchors.some(a => !a.isHorizontal && !a.isSet)}
+            disabled={!rewardAnchors.some(a => !a.isSet)}
             className={`px-4 py-2 rounded-lg pointer-events-auto text-sm transition-colors ${
-              rewardAnchors.some(a => !a.isHorizontal && !a.isSet)
+              rewardAnchors.some(a => !a.isSet)
                 ? 'bg-cyan-600 hover:bg-cyan-500 text-white'
                 : 'bg-gray-700 text-gray-500 cursor-not-allowed'
-            }`}
+            }${glowIf('set')}`}
           >
             Set All
           </button>
@@ -485,17 +581,18 @@ export default function GameUI() {
               hasFullRingSet
                 ? 'bg-green-600 hover:bg-green-500 text-white ring-2 ring-green-300'
                 : 'bg-gray-700 text-gray-500 cursor-not-allowed'
-            }`}
+            }${glowIf('sculpt')}`}
           >
             Sculpt{!hasFullRingSet ? ' (Ring Incomplete)' : ''}
           </button>
 
           <button
             onClick={async () => {
+              playSfx('click');
               setIsVerifying(true);
               await new Promise(r => setTimeout(r, 1500));
               setIsVerifying(false);
-              alert('Dataset format verification complete. All anchors are valid.');
+              pushToast('Dataset format verification complete — all anchors valid', 'success');
             }}
             disabled={rewardAnchors.length === 0}
             className={`px-4 py-2 rounded-lg pointer-events-auto text-sm transition-colors ${
@@ -511,10 +608,11 @@ export default function GameUI() {
 
           <button
             onClick={async () => {
+              playSfx('click');
               setIsTranspiling(true);
               await new Promise(r => setTimeout(r, 2000));
               setIsTranspiling(false);
-              alert(`Transpiled ${rewardAnchors.length} anchor(s) to NRV data objects.`);
+              pushToast(`Transpiled ${rewardAnchors.length} anchor(s) to NRV data objects`, 'success');
             }}
             disabled={rewardAnchors.length === 0}
             className={`px-4 py-2 rounded-lg pointer-events-auto text-sm transition-colors ${
@@ -576,6 +674,9 @@ export default function GameUI() {
           </div>
         );
       })()}
+
+      {/* ── Per-error-node DVE workspace ──────────────────────────────────── */}
+      <DVEWorkspaceModal />
     </div>
   );
 }

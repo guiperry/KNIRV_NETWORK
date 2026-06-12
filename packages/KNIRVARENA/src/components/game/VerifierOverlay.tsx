@@ -11,14 +11,14 @@ interface VerifierOverlayProps {
 
 // ── TRL dataset templates keyed by error node type ────────────────────────
 
-interface DatasetTemplate {
+export interface DatasetTemplate {
   format: string;
   trlTrainer: string;
   description: string;
   example: Record<string, unknown>;
 }
 
-const DATASET_TEMPLATES: Record<string, DatasetTemplate> = {
+export const DATASET_TEMPLATES: Record<string, DatasetTemplate> = {
   'Memory Leak': {
     format: 'Prompt-Completion',
     trlTrainer: 'SFTTrainer',
@@ -67,7 +67,7 @@ const DATASET_TEMPLATES: Record<string, DatasetTemplate> = {
   },
 };
 
-const DEFAULT_TEMPLATE: DatasetTemplate = {
+export const DEFAULT_TEMPLATE: DatasetTemplate = {
   format: 'Language Modeling',
   trlTrainer: 'SFTTrainer',
   description: 'Plain text format for general language model fine-tuning.',

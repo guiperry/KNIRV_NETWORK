@@ -7,6 +7,9 @@ import { TrainingManager } from "../../../engine/TrainingManager";
 import { SabotageEngine, SabotageType } from "../../../engine/Sabotage";
 import { getGameLLMService, DEFAULT_PERSONAS, type AgentPersona, type SolutionProposal } from "../../../services/gameLLMService";
 import { CHALLENGES, getChallengeForType, type Challenge } from "../../../data/challenges";
+import { useAudio, type SfxName } from "./useAudio";
+
+const sfx = (name: SfxName) => useAudio.getState().playSfx(name);
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -95,6 +98,64 @@ export interface RewardAnchor {
   };
 }
 
+// ── Validation ring helpers ───────────────────────────────────────────────
+// A "validation node" is a standard reward anchor placed on one of the 8
+// spike positions around an error node. The full set forms the node's
+// validation ring.
+
+export const RING_SIZE = 8;
+export const RING_RADIUS = 1.5;
+
+const spikeKey = (a: RewardAnchor) => `${a.position.x.toFixed(2)},${a.position.z.toFixed(2)}`;
+
+/** All validation anchors (non-noise) linked to the given error node. */
+export function getRingAnchors(nodeId: string, anchors: RewardAnchor[]): RewardAnchor[] {
+  return anchors.filter(a => a.linkedErrorNode === nodeId && a.anchorType !== 'noise');
+}
+
+/** Number of distinct spike positions occupied around the node. */
+export function ringCount(nodeId: string, anchors: RewardAnchor[]): number {
+  return new Set(getRingAnchors(nodeId, anchors).map(spikeKey)).size;
+}
+
+export function isRingComplete(nodeId: string, anchors: RewardAnchor[]): boolean {
+  return ringCount(nodeId, anchors) >= RING_SIZE;
+}
+
+export function isRingSet(nodeId: string, anchors: RewardAnchor[]): boolean {
+  const ring = getRingAnchors(nodeId, anchors);
+  const setKeys = new Set(ring.filter(a => a.isSet).map(spikeKey));
+  return setKeys.size >= RING_SIZE;
+}
+
+export function isRingCommitted(nodeId: string, anchors: RewardAnchor[]): boolean {
+  const ring = getRingAnchors(nodeId, anchors);
+  const committedKeys = new Set(ring.filter(a => a.isCommitted).map(spikeKey));
+  return committedKeys.size >= RING_SIZE;
+}
+
+/** Error nodes whose full validation ring has been committed (sculpted). */
+export function getCommittedRingNodes(errorNodes: ErrorNode[], anchors: RewardAnchor[]): ErrorNode[] {
+  return errorNodes.filter(n => isRingCommitted(n.id, anchors));
+}
+
+// ── DVE workspace (one per error node) ────────────────────────────────────
+
+export interface DVEWorkspaceMeta {
+  workspaceId: string;          // unique, stable id assigned to the node
+  nodeId: string;
+  createdAt: number;
+  lastTab: 'overview' | 'validation' | 'dataset' | 'console';
+  lastPage: string | null;      // explorer page id ("overview" or anchor id)
+  log: string[];                // activity log shown in the workspace
+}
+
+export interface GameToast {
+  id: string;
+  text: string;
+  tone: 'info' | 'success' | 'warn';
+}
+
 export interface Agent {
   id: string;
   name: string;
@@ -176,6 +237,13 @@ export interface KnirvanaState {
   selectedRewardAnchor: string | null;
   showAnchorConfigModal: boolean;
 
+  // DVE workspaces — one unique workspace per error node
+  dveWorkspaceNodeId: string | null;
+  dveWorkspaces: Record<string, DVEWorkspaceMeta>;
+
+  // Toast notifications
+  toasts: GameToast[];
+
   // Analyze / sculpt modes
   isAnalyzing: boolean;
   isSculpting: boolean;
@@ -201,6 +269,16 @@ export interface KnirvanaState {
 
   selectErrorNode: (id: string | null) => void;
   selectAgent: (id: string | null) => void;
+
+  // DVE workspace actions
+  openDVEWorkspace: (nodeId: string) => void;
+  closeDVEWorkspace: () => void;
+  updateDVEWorkspace: (nodeId: string, updates: Partial<DVEWorkspaceMeta>) => void;
+  appendDVELog: (nodeId: string, line: string) => void;
+
+  // Toast actions
+  pushToast: (text: string, tone?: GameToast['tone']) => void;
+  dismissToast: (id: string) => void;
 
   setAnalyzing: (analyzing: boolean) => void;
   setSculpting: (sculpting: boolean) => void;
@@ -429,6 +507,11 @@ export const useKnirvana = create<KnirvanaState>()(
     selectedRewardAnchor: null,
     showAnchorConfigModal: false,
 
+    dveWorkspaceNodeId: null,
+    dveWorkspaces: {},
+
+    toasts: [],
+
     isAnalyzing: false,
     isSculpting: false,
     isNoiseInjecting: false,
@@ -458,6 +541,7 @@ export const useKnirvana = create<KnirvanaState>()(
       get().updateDeployAnimations();
 
       const state = get();
+      const resolvedNodes: ErrorNode[] = [];
       const updatedErrorNodes = state.errorNodes.map(node => {
         if (node.isBeingSolved && node.progress < 1) {
           const agent = state.agents.find(a => a.id === node.solverAgent);
@@ -465,8 +549,7 @@ export const useKnirvana = create<KnirvanaState>()(
           const newProgress = Math.min(1, node.progress + progressRate * delta);
 
           if (newProgress >= 1 && node.progress < 1) {
-            get().addNRN(node.bounty);
-            set((s) => ({ errorsResolved: s.errorsResolved + 1 }));
+            resolvedNodes.push(node);
           }
 
           return { ...node, progress: newProgress };
@@ -474,13 +557,148 @@ export const useKnirvana = create<KnirvanaState>()(
         return node;
       });
 
-      set({ errorNodes: updatedErrorNodes });
+      if (resolvedNodes.length === 0) {
+        set({ errorNodes: updatedErrorNodes });
+        return;
+      }
+
+      // ── Error resolution: ErrorNode → SkillNode transformation ─────────
+      const resolvedIds = new Set(resolvedNodes.map(n => n.id));
+      let bounty = 0;
+      const newSkillNodes: SkillNode[] = [];
+      const replacementNodes: ErrorNode[] = [];
+
+      resolvedNodes.forEach((node, i) => {
+        bounty += node.bounty;
+        const solver = state.agents.find(a => a.id === node.solverAgent);
+        newSkillNodes.push({
+          id: `skill-from-${node.id}`,
+          position: { ...node.position },
+          name: `${node.type} Resolution`,
+          creator: solver?.name ?? 'Unknown Agent',
+          usageCount: 0,
+        });
+
+        // Keep the arena populated — a fresh error surfaces elsewhere
+        const challenge = getChallengeForType(node.type as Parameters<typeof getChallengeForType>[0]);
+        replacementNodes.push({
+          id: `error-${Date.now()}-${i}`,
+          position: {
+            x: (Math.random() - 0.5) * 40,
+            y: 0,
+            z: (Math.random() - 0.5) * 40,
+          },
+          type: node.type,
+          difficulty: challenge.difficulty,
+          bounty: challenge.bounty,
+          isBeingSolved: false,
+          progress: 0,
+          challengeId: challenge.id,
+        });
+
+        get().appendDVELog(node.id, `RESOLVED — skill.md minted, +${node.bounty} NRN`);
+        get().pushToast(`${node.type} resolved! +${node.bounty} NRN — skill node minted`, 'success');
+      });
+
+      set((s) => ({
+        errorNodes: [
+          ...updatedErrorNodes.filter(n => !resolvedIds.has(n.id)),
+          ...replacementNodes,
+        ],
+        skillNodes: [...s.skillNodes, ...newSkillNodes],
+        // Free the solver agents and reward them with experience
+        agents: s.agents.map(a =>
+          a.target && resolvedIds.has(a.target)
+            ? { ...a, target: null, status: 'idle' as const, experience: a.experience + 25 }
+            : a
+        ),
+        // Spent validation anchors are consumed with the node
+        rewardAnchors: s.rewardAnchors.filter(a => !a.linkedErrorNode || !resolvedIds.has(a.linkedErrorNode)),
+        errorsResolved: s.errorsResolved + resolvedNodes.length,
+        skillsLearned: s.skillsLearned + resolvedNodes.length,
+        nrnBalance: s.nrnBalance + bounty,
+        selectedErrorNode: s.selectedErrorNode && resolvedIds.has(s.selectedErrorNode) ? null : s.selectedErrorNode,
+        dveWorkspaceNodeId: s.dveWorkspaceNodeId && resolvedIds.has(s.dveWorkspaceNodeId) ? null : s.dveWorkspaceNodeId,
+      }));
+
+      sfx('resolve');
     },
 
     // ── Selection ─────────────────────────────────────────────────────────
 
-    selectErrorNode: (id) => set({ selectedErrorNode: id }),
-    selectAgent: (id) => set({ selectedAgent: id }),
+    selectErrorNode: (id) => {
+      if (id && id !== get().selectedErrorNode) sfx('select');
+      set({ selectedErrorNode: id });
+    },
+    selectAgent: (id) => {
+      if (id && id !== get().selectedAgent) sfx('select');
+      set({ selectedAgent: id });
+    },
+
+    // ── DVE workspaces ────────────────────────────────────────────────────
+
+    openDVEWorkspace: (nodeId) => {
+      const state = get();
+      const existing = state.dveWorkspaces[nodeId];
+      if (existing) {
+        set({ dveWorkspaceNodeId: nodeId, selectedErrorNode: nodeId });
+      } else {
+        // First open — assign a unique workspace to this node
+        const meta: DVEWorkspaceMeta = {
+          workspaceId: `DVE-${nodeId.replace(/^error-/, '')}-${Date.now().toString(36).toUpperCase()}`,
+          nodeId,
+          createdAt: Date.now(),
+          lastTab: 'overview',
+          lastPage: 'overview',
+          log: [`Workspace provisioned for ${nodeId}`],
+        };
+        set(s => ({
+          dveWorkspaceNodeId: nodeId,
+          selectedErrorNode: nodeId,
+          dveWorkspaces: { ...s.dveWorkspaces, [nodeId]: meta },
+        }));
+      }
+      sfx('open');
+    },
+
+    closeDVEWorkspace: () => {
+      if (get().dveWorkspaceNodeId) sfx('close');
+      set({ dveWorkspaceNodeId: null });
+    },
+
+    updateDVEWorkspace: (nodeId, updates) => {
+      set(s => {
+        const meta = s.dveWorkspaces[nodeId];
+        if (!meta) return s;
+        return { dveWorkspaces: { ...s.dveWorkspaces, [nodeId]: { ...meta, ...updates } } };
+      });
+    },
+
+    appendDVELog: (nodeId, line) => {
+      set(s => {
+        const meta = s.dveWorkspaces[nodeId];
+        if (!meta) return s;
+        const stamp = new Date().toLocaleTimeString();
+        return {
+          dveWorkspaces: {
+            ...s.dveWorkspaces,
+            [nodeId]: { ...meta, log: [...meta.log.slice(-49), `[${stamp}] ${line}`] },
+          },
+        };
+      });
+    },
+
+    // ── Toasts ────────────────────────────────────────────────────────────
+
+    pushToast: (text, tone = 'info') => {
+      const id = `toast-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+      set(s => ({ toasts: [...s.toasts.slice(-3), { id, text, tone }] }));
+      setTimeout(() => get().dismissToast(id), 4500);
+    },
+
+    dismissToast: (id) => {
+      set(s => ({ toasts: s.toasts.filter(t => t.id !== id) }));
+    },
 
     // ── Analyze / sculpt ──────────────────────────────────────────────────
 
@@ -503,17 +721,28 @@ export const useKnirvana = create<KnirvanaState>()(
       set(state => ({
         rewardAnchors: [...state.rewardAnchors, { ...anchor, isHorizontal: true }],
       }));
+      sfx('place');
+      if (anchor.linkedErrorNode) {
+        get().appendDVELog(anchor.linkedErrorNode, `Validation node ${anchor.id} placed`);
+      }
     },
 
     selectRewardAnchor: (id) => set({ selectedRewardAnchor: id, showAnchorConfigModal: false }),
     setShowAnchorConfigModal: (show) => set({ showAnchorConfigModal: show }),
 
     updateRewardAnchor: (id, updates) => {
+      const before = get().rewardAnchors.find(a => a.id === id);
       set(state => ({
         rewardAnchors: state.rewardAnchors.map(anchor =>
           anchor.id === id ? { ...anchor, ...updates } : anchor
         ),
       }));
+      if (updates.isSet && before && !before.isSet) {
+        sfx('set');
+        if (before.linkedErrorNode) {
+          get().appendDVELog(before.linkedErrorNode, `Validation node ${id} configured and set`);
+        }
+      }
     },
 
     removeRewardAnchor: (id) => {
@@ -524,14 +753,19 @@ export const useKnirvana = create<KnirvanaState>()(
     },
 
     setAllStraightenedAnchors: () => {
+      const unset = get().rewardAnchors.filter(a => !a.isSet);
+      if (unset.length === 0) return;
       set(state => ({
         rewardAnchors: state.rewardAnchors.map(anchor =>
-          !anchor.isHorizontal && !anchor.isSet ? { ...anchor, isSet: true } : anchor
+          !anchor.isSet ? { ...anchor, isSet: true } : anchor
         ),
       }));
+      sfx('set');
+      get().pushToast(`${unset.length} validation node${unset.length > 1 ? 's' : ''} set`, 'info');
     },
 
     commitSetAnchors: () => {
+      const committing = get().rewardAnchors.filter(a => a.isSet && !a.isCommitted);
       set(state => ({
         rewardAnchors: state.rewardAnchors.map(anchor =>
           anchor.isSet && !anchor.isCommitted
@@ -540,20 +774,34 @@ export const useKnirvana = create<KnirvanaState>()(
         ),
         // Straightening is triggered by Deploy, not here
       }));
+      if (committing.length > 0) {
+        sfx('sculpt');
+        get().pushToast('Validation ring committed — the grid yields beneath it', 'success');
+        const nodeIds = new Set(committing.map(a => a.linkedErrorNode).filter(Boolean) as string[]);
+        nodeIds.forEach(id => get().appendDVELog(id, 'Validation ring committed (sculpted beneath grid)'));
+      }
     },
 
     startStraighteningSequence: () => {
       console.log('Starting straightening sequence');
+      sfx('straighten');
       set({ isStraighteningAnchors: true });
     },
 
     completeStraightening: () => {
+      const straightened = get().rewardAnchors.filter(a => a.isHorizontal);
       set(state => ({
         isStraighteningAnchors: false,
         rewardAnchors: state.rewardAnchors.map(anchor =>
           anchor.isHorizontal ? { ...anchor, isHorizontal: false } : anchor
         ),
       }));
+      if (straightened.length > 0) {
+        sfx('set');
+        get().pushToast('Validation ring straightened — dataset templates unlocked', 'success');
+        const nodeIds = new Set(straightened.map(a => a.linkedErrorNode).filter(Boolean) as string[]);
+        nodeIds.forEach(id => get().appendDVELog(id, 'Agents straightened the validation ring'));
+      }
     },
 
     // ── Deploy animations ─────────────────────────────────────────────────
@@ -643,6 +891,11 @@ export const useKnirvana = create<KnirvanaState>()(
         };
 
         set((s) => ({ agents: [...s.agents, newAgent] }));
+        sfx('set');
+        get().pushToast(`${newAgent.name} created and staged`, 'success');
+      } else {
+        sfx('error');
+        get().pushToast(`Not enough NRN — agent costs ${cost}`, 'warn');
       }
     },
 
@@ -661,6 +914,11 @@ export const useKnirvana = create<KnirvanaState>()(
               : node
           ),
         }));
+        sfx('deploy');
+        get().appendDVELog(nodeId, `Agent ${agentId} assigned — resolution in progress`);
+      } else {
+        sfx('error');
+        get().pushToast('Not enough NRN — deployment costs 10', 'warn');
       }
     },
 
@@ -690,6 +948,7 @@ export const useKnirvana = create<KnirvanaState>()(
             : agent
         ),
       }));
+      sfx('deploy');
     },
 
     deployOne: (agentId) => {
@@ -708,6 +967,7 @@ export const useKnirvana = create<KnirvanaState>()(
             : agent
         ),
       }));
+      sfx('deploy');
     },
 
     stageAgent: (agentId) => {
@@ -781,6 +1041,7 @@ export const useKnirvana = create<KnirvanaState>()(
     runEpoch: async () => {
       const state = get();
       if (state.gamePhase !== 'playing') return;
+      sfx('epoch');
 
       const epochNumber = state.epochNumber + 1;
       set({ epochNumber });
@@ -842,6 +1103,8 @@ export const useKnirvana = create<KnirvanaState>()(
         newIncumbentScore = winner.score;
         // Award extra NRN for hijacking the skill slot
         get().addNRN(Math.round(challenge.bounty * 1.5));
+        sfx('win');
+        get().pushToast(`${winner.agentName} hijacked the skill slot! +${Math.round(challenge.bounty * 1.5)} NRN`, 'success');
       }
 
       // Update persona win rates
@@ -886,6 +1149,11 @@ export const useKnirvana = create<KnirvanaState>()(
               a.id === targetAgentId ? { ...targetAgent } : a
             ),
           }));
+          sfx('sabotage');
+          get().pushToast(`Sabotage (${type}) applied to ${targetAgent.name}`, 'warn');
+        } else {
+          sfx('error');
+          get().pushToast(`Not enough NRN — sabotage costs ${cost}`, 'warn');
         }
       }
     },

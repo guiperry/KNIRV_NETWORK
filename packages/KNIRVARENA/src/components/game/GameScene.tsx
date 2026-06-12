@@ -11,6 +11,7 @@ import { useThemeStore } from "../../stores/useThemeStore";
 import DeployAnimation from "./DeployAnimation";
 import GridParticleSystem from "./GridParticleSystem";
 import AnchorStraighteningSequence from "./AnchorStraighteningSequence";
+import ArenaGrid from "./ArenaGrid";
 
 export default function GameScene() {
   const sceneRef = useRef<THREE.Group>(null);
@@ -75,43 +76,15 @@ export default function GameScene() {
       <GameLights />
       <CameraController />
 
-      {/* TRON grid floor - theme aware, clickable for sculpt mode */}
-      <mesh
-        rotation={[-Math.PI / 2, 0, 0]}
-        position={[0, -0.1, 0]}
-        receiveShadow
-        onClick={handleFloorClick}
-      >
-        <planeGeometry args={[100, 100, 50, 50]} />
-        <meshStandardMaterial
-          color={themeColors.floor}
-          wireframe={true}
-          transparent={true}
-          opacity={themeColors.floorOpacity}
-        />
-      </mesh>
-
-      {/* Solid floor for raycasting clicks */}
-      <mesh
-        rotation={[-Math.PI / 2, 0, 0]}
-        position={[0, -0.11, 0]}
-        onClick={handleFloorClick}
-        visible={false}
-      >
-        <planeGeometry args={[100, 100]} />
-        <meshBasicMaterial transparent opacity={0} />
-      </mesh>
-
-      {/* Grid lines - theme aware */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]}>
-        <planeGeometry args={[100, 100, 25, 25]} />
-        <meshBasicMaterial
-          color={themeColors.grid}
-          transparent
-          opacity={themeColors.gridOpacity}
-          wireframe
-        />
-      </mesh>
+      {/* TRON grid floor — theme aware, sinks parabolically beneath
+          error nodes whose validation ring has been committed */}
+      <ArenaGrid
+        floorColor={themeColors.floor}
+        gridColor={themeColors.grid}
+        floorOpacity={themeColors.floorOpacity}
+        gridOpacity={themeColors.gridOpacity}
+        onFloorClick={handleFloorClick}
+      />
       
       {/* Grid Particle System - electrical pulses shooting through grid */}
       <GridParticleSystem key={themeMode} errorNodes={errorNodes} />
