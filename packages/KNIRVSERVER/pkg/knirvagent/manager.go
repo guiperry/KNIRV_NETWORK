@@ -802,6 +802,19 @@ func (m *Manager) StartAgent(ctx context.Context, dveID string, startTimeout tim
 	return err
 }
 
+// SetExtraEnv replaces the environment overrides passed to future agent starts.
+func (m *Manager) SetExtraEnv(extra []string) {
+	if m == nil || m.inner == nil {
+		return
+	}
+
+	m.inner.mu.Lock()
+	defer m.inner.mu.Unlock()
+
+	m.cfg.ExtraEnv = append([]string(nil), extra...)
+	m.inner.extraEnv = append([]string(nil), extra...)
+}
+
 // RunningCount returns the number of running agents.
 func (m *Manager) RunningCount() int {
 	return m.inner.RunningCount()
@@ -822,6 +835,11 @@ func (m *Manager) Start(ctx context.Context) error {
 // Stop stops all running agents.
 func (m *Manager) Stop(ctx context.Context) error {
 	return m.inner.StopAll(ctx)
+}
+
+// StopAgent stops the agent for a specific DVE.
+func (m *Manager) StopAgent(dveID string, stopTimeout time.Duration) error {
+	return m.inner.StopAgent(dveID, stopTimeout)
 }
 
 // IsRunning returns true if any agents are running.

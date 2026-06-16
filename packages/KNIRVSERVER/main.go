@@ -5,6 +5,7 @@ import (
 	"compress/gzip"
 	"context"
 	"embed"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"io"
@@ -20,11 +21,14 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
+	knirvagent "github.com/KNIRV/KNIRV_NETWORK/KNIRVAGENT"
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/viper"
+	"go.uber.org/zap"
 	"knirv-server/updater"
 )
 
@@ -79,7 +83,7 @@ type Config struct {
 	GatewayPort   int    `mapstructure:"gateway_port"`
 	GatewaySocket string `mapstructure:"gateway_socket"`
 	LogLevel      string `mapstructure:"log_level"`
-	Testnet bool `mapstructure:"testnet"`
+	Testnet       bool   `mapstructure:"testnet"`
 }
 
 // EmbeddedFS wraps the embedded filesystem for serving static files
@@ -197,13 +201,502 @@ func (efs *EmbeddedFS) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 // ServerApp represents the main application
 type ServerApp struct {
-	config        *Config
-	router        *gin.Engine
-	server        *http.Server
-	backendCmd    *exec.Cmd
-	backendPath   string
-	tempDir       string
-	upd           *updater.Updater
+	config       *Config
+	router       *gin.Engine
+	server       *http.Server
+	agentControl *AgentControlServer
+	backendCmd   *exec.Cmd
+	backendPath  string
+	tempDir      string
+	upd          *updater.Updater
+}
+
+const defaultAgentControlSocketName = "knirvagent-control.sock"
+
+type agentSupervisor interface {
+	SetWorkspaceResolver(func(dveID string) (string, error))
+	SetExtraEnv([]string)
+	StartAgent(ctx context.Context, dveID string, startTimeout time.Duration) error
+	StopAgent(dveID string, stopTimeout time.Duration) error
+	GetSocketPathForDVE(dveID string) (string, error)
+	RunningCount() int
+	IsRunning() bool
+	HealthCheck(ctx context.Context) error
+	GetBaseURL() string
+	Stop(ctx context.Context) error
+}
+
+type AgentControlServer struct {
+	socketPath string
+	appDataDir string
+	manager    agentSupervisor
+	server     *http.Server
+	listener   net.Listener
+
+	mu            sync.RWMutex
+	workspacePath map[string]string
+	baseExtraEnv  []string
+	started       bool
+}
+
+type agentControlStartRequest struct {
+	WorkspacePath  string   `json:"workspace_path,omitempty"`
+	ExtraEnv       []string `json:"extra_env,omitempty"`
+	StartTimeoutMS int64    `json:"start_timeout_ms,omitempty"`
+}
+
+type agentControlAgentResponse struct {
+	OK            bool   `json:"ok"`
+	DVEID         string `json:"dve_id,omitempty"`
+	SocketPath    string `json:"socket_path,omitempty"`
+	WorkspacePath string `json:"workspace_path,omitempty"`
+	RunningCount  int    `json:"running_count,omitempty"`
+	Error         string `json:"error,omitempty"`
+}
+
+type agentControlStatusResponse struct {
+	OK           bool   `json:"ok"`
+	Running      bool   `json:"running"`
+	Healthy      bool   `json:"healthy"`
+	RunningCount int    `json:"running_count"`
+	BaseURL      string `json:"base_url"`
+	SocketPath   string `json:"socket_path"`
+	Timestamp    string `json:"timestamp"`
+	Error        string `json:"error,omitempty"`
+}
+
+func defaultAgentControlSocketPath(appDataDir string) string {
+	if strings.TrimSpace(appDataDir) == "" {
+		appDataDir = "/var/lib/knirvserver"
+	}
+	return filepath.Join(appDataDir, "sockets", defaultAgentControlSocketName)
+}
+
+func mergeEnvSlices(base, extra []string) []string {
+	seen := make(map[string]struct{}, len(base)+len(extra))
+	result := make([]string, 0, len(base)+len(extra))
+
+	appendUnique := func(list []string) {
+		for _, item := range list {
+			item = strings.TrimSpace(item)
+			if item == "" {
+				continue
+			}
+			if _, ok := seen[item]; ok {
+				continue
+			}
+			seen[item] = struct{}{}
+			result = append(result, item)
+		}
+	}
+
+	appendUnique(base)
+	appendUnique(extra)
+	return result
+}
+
+func newAgentControlServer(manager agentSupervisor, socketPath, appDataDir string) *AgentControlServer {
+	srv := &AgentControlServer{
+		socketPath:    socketPath,
+		appDataDir:    appDataDir,
+		manager:       manager,
+		workspacePath: make(map[string]string),
+		baseExtraEnv:  collectAgentExtraEnv(),
+	}
+
+	if srv.manager != nil {
+		srv.manager.SetWorkspaceResolver(srv.resolveWorkspacePath)
+		srv.manager.SetExtraEnv(srv.baseExtraEnv)
+	}
+
+	return srv
+}
+
+func (app *ServerApp) startAgentControl() error {
+	if app.agentControl != nil {
+		return nil
+	}
+
+	appDataDir, err := getAppDataDir()
+	if err != nil {
+		return fmt.Errorf("failed to resolve app data directory: %w", err)
+	}
+
+	controlSocket := defaultAgentControlSocketPath(appDataDir)
+	binDir := filepath.Join(appDataDir, "bin")
+	agentBinaryPath, err := knirvagent.ExtractEmbeddedBinary(binDir)
+	if err != nil {
+		return fmt.Errorf("failed to extract KNIRVAGENT binary: %w", err)
+	}
+
+	managerCfg := knirvagent.DefaultManagerConfig()
+	managerCfg.SocketPath = controlSocket
+	managerCfg.BinaryPath = agentBinaryPath
+	managerCfg.ExtraEnv = collectAgentExtraEnv()
+
+	manager := knirvagent.NewManager(managerCfg, zap.NewNop())
+	control := newAgentControlServer(manager, controlSocket, appDataDir)
+	if err := control.Start(); err != nil {
+		return err
+	}
+
+	app.agentControl = control
+	return nil
+}
+
+func (app *ServerApp) stopAgentControl() {
+	if app.agentControl == nil {
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	if err := app.agentControl.Stop(ctx); err != nil {
+		log.Printf("Error stopping KNIRVAGENT control server: %v", err)
+	}
+	app.agentControl = nil
+}
+
+func collectAgentExtraEnv() []string {
+	envNames := []string{"GEMINI_API_KEY", "DEEPSEEK_API_KEY", "CEREBRAS_API_KEY"}
+	extras := make([]string, 0, len(envNames))
+	for _, name := range envNames {
+		if val := strings.TrimSpace(os.Getenv(name)); val != "" {
+			extras = append(extras, fmt.Sprintf("%s=%s", name, val))
+		}
+	}
+	return extras
+}
+
+func (s *AgentControlServer) resolveWorkspacePath(dveID string) (string, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	workspacePath, ok := s.workspacePath[dveID]
+	if !ok || strings.TrimSpace(workspacePath) == "" {
+		return "", fmt.Errorf("workspace path not configured for DVE %s", dveID)
+	}
+	return workspacePath, nil
+}
+
+func (s *AgentControlServer) updateWorkspacePath(dveID, workspacePath string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if strings.TrimSpace(workspacePath) == "" {
+		return
+	}
+	s.workspacePath[dveID] = workspacePath
+}
+
+func (s *AgentControlServer) setMergedEnv(extra []string) {
+	if s.manager == nil {
+		return
+	}
+	s.manager.SetExtraEnv(mergeEnvSlices(s.baseExtraEnv, extra))
+}
+
+func (s *AgentControlServer) routes() http.Handler {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/control/status", s.handleStatus)
+	mux.HandleFunc("/control/agents/", s.handleAgents)
+	return mux
+}
+
+func (s *AgentControlServer) Start() error {
+	if s == nil || s.manager == nil {
+		return fmt.Errorf("agent control server not configured")
+	}
+	if s.started {
+		return nil
+	}
+
+	if s.socketPath == "" {
+		s.socketPath = defaultAgentControlSocketPath(s.appDataDir)
+	}
+	if err := os.MkdirAll(filepath.Dir(s.socketPath), 0755); err != nil {
+		return fmt.Errorf("failed to create control socket directory: %w", err)
+	}
+	if err := os.RemoveAll(s.socketPath); err != nil {
+		return fmt.Errorf("failed to remove stale control socket: %w", err)
+	}
+
+	listener, err := net.Listen("unix", s.socketPath)
+	if err != nil {
+		return fmt.Errorf("failed to bind control socket %s: %w", s.socketPath, err)
+	}
+	if err := os.Chmod(s.socketPath, 0600); err != nil {
+		_ = listener.Close()
+		return fmt.Errorf("failed to chmod control socket %s: %w", s.socketPath, err)
+	}
+
+	s.listener = listener
+	s.server = &http.Server{Handler: s.routes()}
+	s.started = true
+
+	go func() {
+		if err := s.server.Serve(listener); err != nil && err != http.ErrServerClosed {
+			log.Printf("KNIRVAGENT control server stopped with error: %v", err)
+		}
+	}()
+
+	log.Printf("KNIRVAGENT control server started on %s", s.socketPath)
+	return nil
+}
+
+func (s *AgentControlServer) Stop(ctx context.Context) error {
+	if s == nil {
+		return nil
+	}
+
+	if s.server != nil {
+		if err := s.server.Shutdown(ctx); err != nil {
+			log.Printf("KNIRVAGENT control server shutdown error: %v", err)
+		}
+	}
+	if s.manager != nil {
+		if err := s.manager.Stop(ctx); err != nil {
+			log.Printf("KNIRVAGENT agent stop error during control shutdown: %v", err)
+		}
+	}
+	if s.listener != nil {
+		_ = s.listener.Close()
+	}
+	if s.socketPath != "" {
+		_ = os.Remove(s.socketPath)
+	}
+	s.started = false
+	return nil
+}
+
+func (s *AgentControlServer) handleAgents(w http.ResponseWriter, r *http.Request) {
+	trimmed := strings.TrimPrefix(r.URL.Path, "/control/agents/")
+	parts := strings.Split(strings.Trim(trimmed, "/"), "/")
+	if len(parts) == 0 || parts[0] == "" {
+		http.Error(w, "dve id required", http.StatusBadRequest)
+		return
+	}
+
+	dveID := parts[0]
+	action := ""
+	if len(parts) > 1 {
+		action = parts[1]
+	}
+
+	switch r.Method {
+	case http.MethodPost:
+		if action != "start" {
+			http.Error(w, "unsupported control route", http.StatusNotFound)
+			return
+		}
+		s.handleStart(w, r, dveID)
+	case http.MethodDelete:
+		if action != "" {
+			http.Error(w, "unsupported control route", http.StatusNotFound)
+			return
+		}
+		s.handleStop(w, r, dveID)
+	case http.MethodGet:
+		switch action {
+		case "":
+			s.handleAgentStatus(w, r, dveID)
+		case "socket":
+			s.handleSocket(w, r, dveID)
+		case "health":
+			s.handleAgentHealth(w, r, dveID)
+		default:
+			http.Error(w, "unsupported control route", http.StatusNotFound)
+		}
+	default:
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+	}
+}
+
+func (s *AgentControlServer) handleStatus(w http.ResponseWriter, r *http.Request) {
+	healthy := s.manager != nil && s.manager.HealthCheck(r.Context()) == nil
+	running := false
+	runningCount := 0
+	baseURL := "http://localhost"
+	if s.manager != nil {
+		running = s.manager.IsRunning()
+		runningCount = s.manager.RunningCount()
+		baseURL = s.manager.GetBaseURL()
+	}
+	writeJSON(w, http.StatusOK, agentControlStatusResponse{
+		OK:           true,
+		Running:      running,
+		Healthy:      healthy,
+		RunningCount: runningCount,
+		BaseURL:      baseURL,
+		SocketPath:   s.socketPath,
+		Timestamp:    time.Now().UTC().Format(time.RFC3339),
+	})
+}
+
+func (s *AgentControlServer) handleStart(w http.ResponseWriter, r *http.Request, dveID string) {
+	if s.manager == nil {
+		http.Error(w, "knirvagent manager not configured", http.StatusServiceUnavailable)
+		return
+	}
+
+	var req agentControlStartRequest
+	if r.Body != nil {
+		defer r.Body.Close()
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil && err != http.ErrBodyNotAllowed {
+			http.Error(w, fmt.Sprintf("invalid start request: %v", err), http.StatusBadRequest)
+			return
+		}
+	}
+
+	workspacePath := strings.TrimSpace(req.WorkspacePath)
+	if workspacePath == "" {
+		if resolved, err := s.resolveWorkspacePath(dveID); err == nil {
+			workspacePath = resolved
+		}
+	}
+	if workspacePath == "" {
+		http.Error(w, fmt.Sprintf("workspace path not configured for DVE %s", dveID), http.StatusBadRequest)
+		return
+	}
+
+	s.updateWorkspacePath(dveID, workspacePath)
+	s.setMergedEnv(req.ExtraEnv)
+
+	startTimeout := time.Duration(req.StartTimeoutMS) * time.Millisecond
+	if startTimeout <= 0 {
+		startTimeout = 30 * time.Second
+	}
+
+	startCtx, cancel := context.WithTimeout(r.Context(), startTimeout)
+	defer cancel()
+
+	if err := s.manager.StartAgent(startCtx, dveID, startTimeout); err != nil {
+		http.Error(w, fmt.Sprintf("failed to start knirvagent: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	socketPath, err := s.manager.GetSocketPathForDVE(dveID)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("agent started but socket unavailable: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	writeJSON(w, http.StatusOK, agentControlAgentResponse{
+		OK:            true,
+		DVEID:         dveID,
+		SocketPath:    socketPath,
+		WorkspacePath: workspacePath,
+		RunningCount:  s.manager.RunningCount(),
+	})
+}
+
+func (s *AgentControlServer) handleStop(w http.ResponseWriter, r *http.Request, dveID string) {
+	if s.manager == nil {
+		http.Error(w, "knirvagent manager not configured", http.StatusServiceUnavailable)
+		return
+	}
+
+	stopTimeout := 10 * time.Second
+	if err := s.manager.StopAgent(dveID, stopTimeout); err != nil {
+		http.Error(w, fmt.Sprintf("failed to stop knirvagent: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	writeJSON(w, http.StatusOK, agentControlAgentResponse{
+		OK:           true,
+		DVEID:        dveID,
+		RunningCount: s.manager.RunningCount(),
+	})
+}
+
+func (s *AgentControlServer) handleSocket(w http.ResponseWriter, r *http.Request, dveID string) {
+	if s.manager == nil {
+		http.Error(w, "knirvagent manager not configured", http.StatusServiceUnavailable)
+		return
+	}
+
+	socketPath, err := s.manager.GetSocketPathForDVE(dveID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
+
+	workspacePath, _ := s.resolveWorkspacePath(dveID)
+	writeJSON(w, http.StatusOK, agentControlAgentResponse{
+		OK:            true,
+		DVEID:         dveID,
+		SocketPath:    socketPath,
+		WorkspacePath: workspacePath,
+		RunningCount:  s.manager.RunningCount(),
+	})
+}
+
+func (s *AgentControlServer) handleAgentStatus(w http.ResponseWriter, r *http.Request, dveID string) {
+	socketPath, err := s.manager.GetSocketPathForDVE(dveID)
+	if err != nil {
+		writeJSON(w, http.StatusNotFound, agentControlAgentResponse{
+			OK:    false,
+			DVEID: dveID,
+			Error: err.Error(),
+		})
+		return
+	}
+
+	workspacePath, _ := s.resolveWorkspacePath(dveID)
+	writeJSON(w, http.StatusOK, agentControlAgentResponse{
+		OK:            true,
+		DVEID:         dveID,
+		SocketPath:    socketPath,
+		WorkspacePath: workspacePath,
+		RunningCount:  s.manager.RunningCount(),
+	})
+}
+
+func (s *AgentControlServer) handleAgentHealth(w http.ResponseWriter, r *http.Request, dveID string) {
+	socketPath, err := s.manager.GetSocketPathForDVE(dveID)
+	if err != nil {
+		writeJSON(w, http.StatusNotFound, agentControlAgentResponse{
+			OK:    false,
+			DVEID: dveID,
+			Error: err.Error(),
+		})
+		return
+	}
+
+	healthy := false
+	if stat, err := os.Stat(socketPath); err == nil && !stat.IsDir() {
+		conn, dialErr := net.DialTimeout("unix", socketPath, 250*time.Millisecond)
+		if dialErr == nil {
+			healthy = true
+			_ = conn.Close()
+		}
+	}
+
+	workspacePath, _ := s.resolveWorkspacePath(dveID)
+	running := false
+	runningCount := 0
+	if s.manager != nil {
+		running = s.manager.IsRunning()
+		runningCount = s.manager.RunningCount()
+	}
+	writeJSON(w, http.StatusOK, map[string]interface{}{
+		"ok":             true,
+		"dve_id":         dveID,
+		"socket_path":    socketPath,
+		"workspace_path": workspacePath,
+		"healthy":        healthy,
+		"running":        running,
+		"running_count":  runningCount,
+		"timestamp":      time.Now().UTC().Format(time.RFC3339),
+	})
+}
+
+func writeJSON(w http.ResponseWriter, status int, payload interface{}) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	if err := json.NewEncoder(w).Encode(payload); err != nil {
+		log.Printf("failed to encode knirvagent control response: %v", err)
+	}
 }
 
 func unixSocketTransport(socketPath string) *http.Transport {
@@ -709,8 +1202,6 @@ func (app *ServerApp) setupRoutes() error {
 		})
 	})
 
-
-
 	gatewayTransport := socketProxyTransport(app.config.GatewaySocket)
 	gatewayBase := gatewayBaseURL(app.config)
 
@@ -1150,6 +1641,10 @@ func (app *ServerApp) startBackend() error {
 		log.Println("Starting backend in testnet mode with simplified security")
 	}
 
+	if controlSocket := defaultAgentControlSocketPath(mustAppDataDir()); controlSocket != "" {
+		env = append(env, fmt.Sprintf("KNIRV_AGENT_CONTROL_SOCKET=%s", controlSocket))
+	}
+
 	// Propagate ORACLE_KEY_PASSWORD from the parent environment so the
 	// backend_server subprocess can decrypt root.key without needing an
 	// interactive terminal.  Without this the backend silently skips all
@@ -1204,6 +1699,13 @@ func (app *ServerApp) startBackend() error {
 	return nil
 }
 
+func mustAppDataDir() string {
+	if dir, err := getAppDataDir(); err == nil {
+		return dir
+	}
+	return filepath.Join(os.TempDir(), "knirvserver", "data")
+}
+
 // stopBackend stops the unified backend service
 func (app *ServerApp) stopBackend() {
 	if app.backendCmd != nil && app.backendCmd.Process != nil {
@@ -1245,6 +1747,10 @@ func (app *ServerApp) stopBackend() {
 
 // Start starts the KNIRV-SERVER application
 func (app *ServerApp) Start() error {
+	if err := app.startAgentControl(); err != nil {
+		return err
+	}
+
 	// Start backend first
 	if err := app.startBackend(); err != nil {
 		return err
@@ -1288,6 +1794,9 @@ func (app *ServerApp) Stop() error {
 
 	// Stop backend
 	app.stopBackend()
+
+	// Stop agent control plane and all running agents.
+	app.stopAgentControl()
 
 	// Clean up temp directory
 	if app.tempDir != "" {

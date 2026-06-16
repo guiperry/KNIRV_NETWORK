@@ -6,10 +6,65 @@
 
 set -euo pipefail
 
-# Script configuration - paths adjusted for KNIRVSERVER/scripts location
+# Script configuration - tolerate either the public package layout or the
+# private KNIRV_CORP checkout passed in from the Makefile.
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-KNIRVNEXUS_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
-BACKEND_DIR="${KNIRVNEXUS_ROOT}/backend"
+
+resolve_workspace_root() {
+    if [[ -n "${KNIRVSERVER_WORKSPACE_DIR:-}" && -d "${KNIRVSERVER_WORKSPACE_DIR}" ]]; then
+        printf '%s\n' "${KNIRVSERVER_WORKSPACE_DIR}"
+        return
+    fi
+
+    if [[ -n "${KNIRVSERVER_BACKEND_DIR:-}" && -d "${KNIRVSERVER_BACKEND_DIR}" ]]; then
+        local parent
+        parent="$(cd "$(dirname "${KNIRVSERVER_BACKEND_DIR}")" && pwd)"
+        if [[ -d "${parent}/scripts" || -d "${parent}/backend" || -f "${parent}/go.mod" ]]; then
+            printf '%s\n' "${parent}"
+            return
+        fi
+        printf '%s\n' "${KNIRVSERVER_BACKEND_DIR}"
+        return
+    fi
+
+    local package_root
+    package_root="$(cd "${SCRIPT_DIR}/.." && pwd)"
+    if [[ -d "${package_root}/backend" || -f "${package_root}/go.mod" ]]; then
+        printf '%s\n' "${package_root}"
+        return
+    fi
+
+    if [[ -d "/home/gperry/Documents/GitHub/KNIRV/KNIRV_CORP/server" ]]; then
+        printf '%s\n' "/home/gperry/Documents/GitHub/KNIRV/KNIRV_CORP/server"
+        return
+    fi
+
+    if [[ -d "/home/gperry/Documents/GitHub/KNIRV/KNIRV_CORP/backend" ]]; then
+        printf '%s\n' "/home/gperry/Documents/GitHub/KNIRV/KNIRV_CORP/backend"
+        return
+    fi
+
+    printf '%s\n' "${package_root}"
+}
+
+resolve_backend_dir() {
+    if [[ -n "${KNIRVSERVER_BACKEND_DIR:-}" && -d "${KNIRVSERVER_BACKEND_DIR}" ]]; then
+        printf '%s\n' "${KNIRVSERVER_BACKEND_DIR}"
+        return
+    fi
+
+    local workspace_root
+    workspace_root="$(resolve_workspace_root)"
+    if [[ -d "${workspace_root}/backend" ]]; then
+        printf '%s\n' "${workspace_root}/backend"
+        return
+    fi
+
+    printf '%s\n' "${workspace_root}"
+}
+
+KNIRVNEXUS_ROOT="$(resolve_workspace_root)"
+BACKEND_DIR="$(resolve_backend_dir)"
 PROJECT_ROOT="$(cd "${KNIRVNEXUS_ROOT}/.." && pwd)"
 
 # Test configuration
@@ -421,4 +476,3 @@ main() {
 # Parse arguments and run main function
 parse_args "$@"
 main
-

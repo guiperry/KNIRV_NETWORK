@@ -9,7 +9,9 @@ GIT_COMMIT := $(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
 
 # Directories
 ROOT_DIR := $(shell pwd)
-BACKEND_DIR := $(ROOT_DIR)/backend
+SERVER_WORKSPACE_DIR := $(shell if [ -n "$$KNIRVSERVER_WORKSPACE_DIR" ] && [ -d "$$KNIRVSERVER_WORKSPACE_DIR" ]; then printf '%s' "$$KNIRVSERVER_WORKSPACE_DIR"; elif [ -d "$(ROOT_DIR)/../../../KNIRV_CORP/server" ]; then printf '%s' "$(ROOT_DIR)/../../../KNIRV_CORP/server"; elif [ -d "$(ROOT_DIR)/../../../KNIRV_CORP/backend" ]; then printf '%s' "$(ROOT_DIR)/../../../KNIRV_CORP/backend"; else printf '%s' "$(ROOT_DIR)"; fi)
+SERVER_BACKEND_DIR := $(shell if [ -n "$$KNIRVSERVER_BACKEND_DIR" ] && [ -d "$$KNIRVSERVER_BACKEND_DIR" ]; then printf '%s' "$$KNIRVSERVER_BACKEND_DIR"; elif [ -d "$(SERVER_WORKSPACE_DIR)/backend" ]; then printf '%s' "$(SERVER_WORKSPACE_DIR)/backend"; else printf '%s' "$(SERVER_WORKSPACE_DIR)"; fi)
+BACKEND_DIR := $(SERVER_BACKEND_DIR)
 FRONTEND_DIR := $(ROOT_DIR)/frontend
 DESKTOP_DIR := $(ROOT_DIR)/desktop
 GATEWAY_DIR := $(ROOT_DIR)/pkg/knirvgateway
@@ -44,6 +46,7 @@ AGENT_PKG_BIN := $(AGENT_DIR)/bin/knirvagent
 ARENA_DIR := $(ROOT_DIR)/pkg/knirvarena
 ARENA_SRC_DIR := $(ROOT_DIR)/../KNIRVARENA
 ARENA_PKG_BUNDLE := $(ARENA_DIR)/bin/knirvarena.tar.gz
+SCRIPTS_DIR := $(shell if [ -d "$(SERVER_WORKSPACE_DIR)/scripts" ]; then printf '%s' "$(SERVER_WORKSPACE_DIR)/scripts"; else printf '%s' "$(ROOT_DIR)/scripts"; fi)
 BUILD_DIR := $(ROOT_DIR)/build
 DIST_DIR := $(ROOT_DIR)/dist
 DEPLOYMENT_DIR := $(ROOT_DIR)/deployment
@@ -61,6 +64,7 @@ GO_VERSION := 1.21
 GOOS := $(shell go env GOOS)
 GOARCH := $(shell go env GOARCH)
 CGO_ENABLED := 1
+export GOFLAGS := -buildvcs=false
 
 # Build flags
 LDFLAGS := -X main.Version=$(VERSION) \
@@ -102,13 +106,13 @@ help: ## Show this help message
 # eBPF Generation
 ebpf-generate: ## Generate eBPF Go code from C programs
 	@echo "Generating eBPF programs..."
-	cd backend/internal/ebpf && go generate
+	cd $(BACKEND_DIR)/internal/ebpf && go generate
 	@echo "eBPF generation completed"
 
 # ProtoBuf Generation
 proto: ## Generate protobuf Go code from .proto files
 	@echo "Generating protobuf files..."
-	cd backend/internal/proto && go generate
+	cd $(BACKEND_DIR)/internal/proto && go generate
 	@echo "Protobuf generation completed"
 
 # Dependency Management
@@ -244,7 +248,7 @@ test-complete: test-all test-privileged ## Run complete test suite including pri
 
 test-go: deps-go ## Run Go unit tests
 	@echo "$(BLUE)Running Go unit tests...$(NC)"
-	@./scripts/run-tests.sh unit
+	@KNIRVSERVER_WORKSPACE_DIR=$(SERVER_WORKSPACE_DIR) KNIRVSERVER_BACKEND_DIR=$(BACKEND_DIR) $(SCRIPTS_DIR)/run-tests.sh unit
 
 test-frontend: deps-node ## Run frontend tests
 	@echo "$(BLUE)Running frontend tests...$(NC)"
@@ -252,29 +256,29 @@ test-frontend: deps-node ## Run frontend tests
 
 test-integration: deps-go ## Run integration tests
 	@echo "$(BLUE)Running integration tests...$(NC)"
-	@./scripts/run-tests.sh integration
+	@KNIRVSERVER_WORKSPACE_DIR=$(SERVER_WORKSPACE_DIR) KNIRVSERVER_BACKEND_DIR=$(BACKEND_DIR) $(SCRIPTS_DIR)/run-tests.sh integration
 
 test-e2e: deps-go ## Run end-to-end tests
 	@echo "$(BLUE)Running end-to-end tests...$(NC)"
-	@./scripts/run-tests.sh e2e
+	@KNIRVSERVER_WORKSPACE_DIR=$(SERVER_WORKSPACE_DIR) KNIRVSERVER_BACKEND_DIR=$(BACKEND_DIR) $(SCRIPTS_DIR)/run-tests.sh e2e
 
 test-architecture: deps-go ## Test the new three-tier architecture
 	@echo "$(BLUE)Testing architecture...$(NC)"
-	@./scripts/run-tests.sh architecture
+	@KNIRVSERVER_WORKSPACE_DIR=$(SERVER_WORKSPACE_DIR) KNIRVSERVER_BACKEND_DIR=$(BACKEND_DIR) $(SCRIPTS_DIR)/run-tests.sh architecture
 
 test-privileged: ## Run privileged tests in Docker container (cgroups, namespaces, etc.)
 	@echo "$(BLUE)Running privileged tests in Docker container...$(NC)"
-	@./scripts/test-server-privileged.sh $(if $(SHOW_BUILD),--show-build)
+	@KNIRVSERVER_WORKSPACE_DIR=$(SERVER_WORKSPACE_DIR) KNIRVSERVER_BACKEND_DIR=$(BACKEND_DIR) $(SCRIPTS_DIR)/test-server-privileged.sh $(if $(SHOW_BUILD),--show-build)
 	@echo "$(GREEN)Privileged tests completed$(NC)"
 
 test-privileged-quick: ## Run privileged tests using existing container
 	@echo "$(BLUE)Running quick privileged tests...$(NC)"
-	@./scripts/test-server-privileged.sh --no-deploy $(if $(SHOW_BUILD),--show-build)
+	@KNIRVSERVER_WORKSPACE_DIR=$(SERVER_WORKSPACE_DIR) KNIRVSERVER_BACKEND_DIR=$(BACKEND_DIR) $(SCRIPTS_DIR)/test-server-privileged.sh --no-deploy $(if $(SHOW_BUILD),--show-build)
 	@echo "$(GREEN)Quick privileged tests completed$(NC)"
 
 test-privileged-full: ## Run full privileged tests with cleanup
 	@echo "$(BLUE)Running full privileged tests with cleanup...$(NC)"
-	@./scripts/test-server-privileged.sh --cleanup $(if $(SHOW_BUILD),--show-build)
+	@KNIRVSERVER_WORKSPACE_DIR=$(SERVER_WORKSPACE_DIR) KNIRVSERVER_BACKEND_DIR=$(BACKEND_DIR) $(SCRIPTS_DIR)/test-server-privileged.sh --cleanup $(if $(SHOW_BUILD),--show-build)
 	@echo "$(GREEN)Full privileged tests completed$(NC)"
 
 # Linting and Formatting

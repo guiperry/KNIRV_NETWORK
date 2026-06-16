@@ -13,7 +13,63 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 # Configuration
-PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+resolve_workspace_root() {
+    if [[ -n "${KNIRVSERVER_WORKSPACE_DIR:-}" && -d "${KNIRVSERVER_WORKSPACE_DIR}" ]]; then
+        printf '%s\n' "${KNIRVSERVER_WORKSPACE_DIR}"
+        return
+    fi
+
+    if [[ -n "${KNIRVSERVER_BACKEND_DIR:-}" && -d "${KNIRVSERVER_BACKEND_DIR}" ]]; then
+        local parent
+        parent="$(cd "$(dirname "${KNIRVSERVER_BACKEND_DIR}")" && pwd)"
+        if [[ -d "${parent}/scripts" || -d "${parent}/backend" || -f "${parent}/go.mod" ]]; then
+            printf '%s\n' "${parent}"
+            return
+        fi
+        printf '%s\n' "${KNIRVSERVER_BACKEND_DIR}"
+        return
+    fi
+
+    local package_root
+    package_root="$(cd "${SCRIPT_DIR}/.." && pwd)"
+    if [[ -d "${package_root}/backend" || -f "${package_root}/go.mod" ]]; then
+        printf '%s\n' "${package_root}"
+        return
+    fi
+
+    if [[ -d "/home/gperry/Documents/GitHub/KNIRV/KNIRV_CORP/server" ]]; then
+        printf '%s\n' "/home/gperry/Documents/GitHub/KNIRV/KNIRV_CORP/server"
+        return
+    fi
+
+    if [[ -d "/home/gperry/Documents/GitHub/KNIRV/KNIRV_CORP/backend" ]]; then
+        printf '%s\n' "/home/gperry/Documents/GitHub/KNIRV/KNIRV_CORP/backend"
+        return
+    fi
+
+    printf '%s\n' "${package_root}"
+}
+
+resolve_backend_dir() {
+    if [[ -n "${KNIRVSERVER_BACKEND_DIR:-}" && -d "${KNIRVSERVER_BACKEND_DIR}" ]]; then
+        printf '%s\n' "${KNIRVSERVER_BACKEND_DIR}"
+        return
+    fi
+
+    local workspace_root
+    workspace_root="$(resolve_workspace_root)"
+    if [[ -d "${workspace_root}/backend" ]]; then
+        printf '%s\n' "${workspace_root}/backend"
+        return
+    fi
+
+    printf '%s\n' "${workspace_root}"
+}
+
+PROJECT_ROOT="$(resolve_workspace_root)"
+BACKEND_DIR="$(resolve_backend_dir)"
 TEST_DIR="$PROJECT_ROOT/test-results"
 LOG_FILE="$TEST_DIR/operational-modes-test.log"
 
@@ -40,6 +96,8 @@ warning() {
 # Test functions
 test_configuration_loading() {
     log "Testing configuration loading..."
+
+    cd "$BACKEND_DIR"
     
     # Test with testnet environment
     export KNIRV_ENV=testnet
@@ -64,6 +122,8 @@ test_configuration_loading() {
 
 test_headless_mode() {
     log "Testing headless mode..."
+
+    cd "$BACKEND_DIR"
     
     # Start in headless mode
     export KNIRV_MODE=headless
@@ -104,6 +164,8 @@ test_headless_mode() {
 
 test_gui_mode() {
     log "Testing GUI mode..."
+
+    cd "$BACKEND_DIR"
     
     # Start in GUI mode
     export KNIRV_MODE=gui

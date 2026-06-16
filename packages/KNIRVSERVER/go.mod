@@ -4,13 +4,17 @@ go 1.25.0
 
 replace knirv-server/updater => ./updater
 
+replace github.com/KNIRV/KNIRV_NETWORK/KNIRVAGENT => ./pkg/knirvagent
+
 replace github.com/KNIRV/KNIRV_NETWORK/KNIRVSERVER/pkg/knirvgateway => ./pkg/knirvgateway
 
 replace hasher => ./pkg/knirvhasher
 
 require (
+	github.com/KNIRV/KNIRV_NETWORK/KNIRVAGENT v0.0.0
 	github.com/gin-gonic/gin v1.10.1
 	github.com/spf13/viper v1.20.1
+	go.uber.org/zap v1.26.0
 )
 
 require (
@@ -42,7 +46,7 @@ require (
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ugorji/go/codec v1.2.12 // indirect
 	go.uber.org/atomic v1.9.0 // indirect
-	go.uber.org/multierr v1.9.0 // indirect
+	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/arch v0.8.0 // indirect
 	golang.org/x/crypto v0.32.0 // indirect
 	golang.org/x/net v0.33.0 // indirect

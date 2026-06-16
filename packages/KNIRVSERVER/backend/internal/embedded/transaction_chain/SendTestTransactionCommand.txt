@@ -1,1 +1,0 @@
- Invoke-WebRequest -Uri http://localhost:3000/transactions -Method POST -ContentType "application/json" -Body '{"sender": "Alice", "recipient": "Bob", "amount": 11}'
