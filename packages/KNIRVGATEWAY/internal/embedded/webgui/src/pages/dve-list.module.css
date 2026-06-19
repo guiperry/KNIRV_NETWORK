@@ -49,6 +49,27 @@
   border-color: rgba(124, 77, 255, 0.4);
 }
 
+.newDveBtn {
+  background: linear-gradient(135deg, #7c4dff 0%, #00bcd4 100%);
+  border: none;
+  color: #fff;
+  padding: 10px 22px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  transition: all 0.2s;
+  margin-top: auto;
+  box-shadow: 0 2px 12px rgba(124, 77, 255, 0.3);
+}
+
+.newDveBtn:hover {
+  background: linear-gradient(135deg, #9c6fff 0%, #26c6da 100%);
+  box-shadow: 0 4px 20px rgba(124, 77, 255, 0.5);
+  transform: translateY(-1px);
+}
+
 /* Grid */
 .grid {
   display: grid;

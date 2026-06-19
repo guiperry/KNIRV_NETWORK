@@ -1,7 +1,0 @@
-agents:
-  - name: sample-echo
-    description: Example local agent used to validate KNIRVSHELL supervision.
-    type: local
-    path: /bin/echo
-    args:
-      - KNIRVSHELL sample agent

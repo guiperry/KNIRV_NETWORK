@@ -14,38 +14,35 @@ export default function Models() {
   };
 
   const openCodexBuilder = () => {
-    // This would open the primary-website in an iframe
-    window.open('/primary-website', '_blank');
+    window.location.href = '/codex-builder';
   };
 
-  const openModelsDEX = () => {
-    // Navigate to models DEX (formerly inventory with onboarding)
+  const openDVEDEX = () => {
     window.location.href = '/models-dex';
   };
 
-  const openKNIRVINFERENCEDAO = () => {
-    // Navigate to KNIRVINFERENCE DAO
-    window.location.href = '/knirvinference-dao';
+  const openMyDVEs = () => {
+    window.location.href = '/dve-list';
   };
 
   return (
-    <PageLayout activePage={activePage} pageTitle="Models" onSearch={handleSearch}>
-      <PageHeader 
-        title="Models"
-        subtitle="Build, deploy, and manage AI models on the KNIRV network"
-        titleColor="#007bff"
+    <PageLayout activePage={activePage} pageTitle="DVE Overview" onSearch={handleSearch}>
+      <PageHeader
+        title="Distributed Validation Environments"
+        subtitle="Deploy, manage, and exchange sovereign compute environments on the KNIRV network"
+        titleColor="#7c4dff"
       />
 
       <div className={styles.gridContainer}>
         {/* Codex Builder */}
         <GlassyCard className={styles.modelCard}>
           <div className={styles.cardIcon}>
-            <i className="fas fa-hammer" style={{ fontSize: '2rem', color: '#007bff' }}></i>
+            <i className="fas fa-hammer" style={{ fontSize: '2rem', color: '#7c4dff' }}></i>
           </div>
-          <h3 className={styles.cardTitle}>Codex Builder</h3>
+          <h3 className={styles.cardTitle}>DVE Codex Builder</h3>
           <p className={styles.cardDescription}>
-            Build and compile AI models using our integrated development environment. 
-            Create custom models with advanced tooling and real-time compilation.
+            Pre-build custom environments with the toolchains and SDKs of your preference.
+            Design and compile sovereign DVEs for any workload.
           </p>
           <button onClick={openCodexBuilder} className={styles.actionButton}>
             <i className="fas fa-external-link-alt" style={{ marginRight: '8px' }}></i>
@@ -53,72 +50,62 @@ export default function Models() {
           </button>
         </GlassyCard>
 
-        {/* Models DEX */}
+        {/* DVE DEX */}
         <GlassyCard className={styles.modelCard}>
           <div className={styles.cardIcon}>
             <i className="fas fa-exchange-alt" style={{ fontSize: '2rem', color: '#28a745' }}></i>
           </div>
-          <h3 className={styles.cardTitle}>Models DEX</h3>
+          <h3 className={styles.cardTitle}>DVE DEX</h3>
           <p className={styles.cardDescription}>
-            Decentralized exchange for AI models. Trade, buy, and sell model ownership rights.
-            Browse listed inventory and discover new models.
+            Decentralized exchange for Distributed Validation Environments. Trade, buy, and sell
+            DVE ownership rights. Browse listed inventory and discover curated environments.
           </p>
           <div className={styles.statsContainer}>
             <div className={styles.stat}>
               <div className={styles.statValue}>156</div>
-              <div className={styles.statLabel}>Listed Models</div>
+              <div className={styles.statLabel}>Listed DVEs</div>
             </div>
             <div className={styles.stat}>
               <div className={styles.statValue}>42</div>
               <div className={styles.statLabel}>Active Traders</div>
             </div>
           </div>
-          <button onClick={openModelsDEX} className={styles.actionButton}>
+          <button onClick={openDVEDEX} className={styles.actionButton}>
             <i className="fas fa-store" style={{ marginRight: '8px' }}></i>
             Browse DEX
           </button>
         </GlassyCard>
 
-        {/* KNIRVINFERENCE DAO */}
+        {/* My DVEs */}
         <GlassyCard className={styles.modelCard}>
           <div className={styles.cardIcon}>
-            <i className="fas fa-vote-yea" style={{ fontSize: '2rem', color: '#ffc107' }}></i>
+            <i className="fas fa-server" style={{ fontSize: '2rem', color: '#00bcd4' }}></i>
           </div>
-          <h3 className={styles.cardTitle}>KNIRVINFERENCE DAO</h3>
+          <h3 className={styles.cardTitle}>My DVEs</h3>
           <p className={styles.cardDescription}>
-            Participate in decentralized governance for network inference models.
-            Vote on bootnode elections and network model governance proposals.
+            Manage your active Distributed Validation Environments. Monitor status,
+            launch workspaces, and control your sovereign compute nodes.
           </p>
-          <div className={styles.governanceStats}>
-            <div className={styles.governanceItem}>
-              <span className={styles.governanceLabel}>Active Proposals:</span>
-              <span className={styles.governanceValue}>3</span>
-            </div>
-            <div className={styles.governanceItem}>
-              <span className={styles.governanceLabel}>Your Voting Power:</span>
-              <span className={styles.governanceValue}>1,250 NRN</span>
-            </div>
-          </div>
-          <button onClick={openKNIRVINFERENCEDAO} className={styles.actionButton}>
-            <i className="fas fa-gavel" style={{ marginRight: '8px' }}></i>
-            Enter DAO
+          <button onClick={openMyDVEs} className={styles.actionButton}>
+            <i className="fas fa-th-large" style={{ marginRight: '8px' }}></i>
+            View My DVEs
           </button>
         </GlassyCard>
 
-        {/* Model Statistics */}
+        {/* Network Statistics */}
         <GlassyCard className={styles.statsCard}>
           <h3 className={styles.cardTitle}>
-            <i className="fas fa-chart-bar" style={{ marginRight: '10px', color: '#007bff' }}></i>
+            <i className="fas fa-chart-bar" style={{ marginRight: '10px', color: '#7c4dff' }}></i>
             Network Statistics
           </h3>
           <div className={styles.networkStats}>
             <div className={styles.networkStat}>
               <div className={styles.networkStatValue}>2,847</div>
-              <div className={styles.networkStatLabel}>Total Models</div>
+              <div className={styles.networkStatLabel}>Total DVEs</div>
             </div>
             <div className={styles.networkStat}>
               <div className={styles.networkStatValue}>1,234</div>
-              <div className={styles.networkStatLabel}>Active Models</div>
+              <div className={styles.networkStatLabel}>Active DVEs</div>
             </div>
             <div className={styles.networkStat}>
               <div className={styles.networkStatValue}>89.5%</div>
@@ -126,7 +113,7 @@ export default function Models() {
             </div>
             <div className={styles.networkStat}>
               <div className={styles.networkStatValue}>456</div>
-              <div className={styles.networkStatLabel}>Developers</div>
+              <div className={styles.networkStatLabel}>Operators</div>
             </div>
           </div>
         </GlassyCard>
@@ -134,35 +121,35 @@ export default function Models() {
         {/* Recent Activity */}
         <GlassyCard className={styles.activityCard}>
           <h3 className={styles.cardTitle}>
-            <i className="fas fa-clock" style={{ marginRight: '10px', color: '#007bff' }}></i>
+            <i className="fas fa-clock" style={{ marginRight: '10px', color: '#7c4dff' }}></i>
             Recent Activity
           </h3>
           <div className={styles.activityList}>
             <div className={styles.activityItem}>
-              <div className={styles.activityIcon}>🤖</div>
+              <div className={styles.activityIcon}>🖥️</div>
               <div className={styles.activityContent}>
-                <div className={styles.activityTitle}>New model deployed</div>
+                <div className={styles.activityTitle}>New DVE provisioned</div>
                 <div className={styles.activityTime}>2 minutes ago</div>
               </div>
             </div>
             <div className={styles.activityItem}>
               <div className={styles.activityIcon}>💱</div>
               <div className={styles.activityContent}>
-                <div className={styles.activityTitle}>Model traded on DEX</div>
+                <div className={styles.activityTitle}>DVE traded on DEX</div>
                 <div className={styles.activityTime}>15 minutes ago</div>
-              </div>
-            </div>
-            <div className={styles.activityItem}>
-              <div className={styles.activityIcon}>🗳️</div>
-              <div className={styles.activityContent}>
-                <div className={styles.activityTitle}>New governance proposal</div>
-                <div className={styles.activityTime}>1 hour ago</div>
               </div>
             </div>
             <div className={styles.activityItem}>
               <div className={styles.activityIcon}>🔧</div>
               <div className={styles.activityContent}>
-                <div className={styles.activityTitle}>Model updated</div>
+                <div className={styles.activityTitle}>DVE Codex updated</div>
+                <div className={styles.activityTime}>1 hour ago</div>
+              </div>
+            </div>
+            <div className={styles.activityItem}>
+              <div className={styles.activityIcon}>🛡️</div>
+              <div className={styles.activityContent}>
+                <div className={styles.activityTitle}>DVE validation completed</div>
                 <div className={styles.activityTime}>3 hours ago</div>
               </div>
             </div>

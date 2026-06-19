@@ -25,47 +25,46 @@ export default function ModelsDEX() {
   };
 
   const loadModelListings = () => {
-    // Simulate loading model listings from API
     const mockModels = [
       {
         id: '1',
-        name: 'GPT-4 Fine-tuned',
-        type: 'Language Model',
+        name: 'Compute DVE Alpha',
+        type: 'Compute',
         owner: '0x1234...abcd',
         price: '150 NRN',
         performance: '94.5%',
         status: 'active',
-        description: 'Fine-tuned GPT-4 model for code generation'
+        description: 'High-performance compute DVE optimized for ML workloads'
       },
       {
         id: '2',
-        name: 'Vision Transformer',
-        type: 'Computer Vision',
+        name: 'TEE-SGX Vault DVE',
+        type: 'TEE-SGX',
         owner: '0x5678...efgh',
         price: '200 NRN',
         performance: '97.2%',
         status: 'active',
-        description: 'Advanced image classification model'
+        description: 'Secure enclave DVE with Intel SGX attestation'
       },
       {
         id: '3',
-        name: 'BERT Sentiment',
-        type: 'NLP',
+        name: 'Inference Engine DVE',
+        type: 'Inference',
         owner: '0x9abc...ijkl',
         price: '75 NRN',
         performance: '91.8%',
         status: 'pending',
-        description: 'Sentiment analysis model based on BERT'
+        description: 'Optimized inference DVE with multi-model support'
       },
       {
         id: '4',
-        name: 'ResNet-50 Custom',
-        type: 'Computer Vision',
+        name: 'Storage DVE Prime',
+        type: 'Storage',
         owner: '0xdef0...mnop',
         price: '120 NRN',
         performance: '89.3%',
         status: 'sold',
-        description: 'Custom ResNet-50 for medical imaging'
+        description: 'Distributed storage DVE with redundancy guarantees'
       }
     ];
     setModels(mockModels);
@@ -86,7 +85,7 @@ export default function ModelsDEX() {
 
   // Table headers
   const tableHeaders = [
-    { label: 'Model Name' },
+    { label: 'DVE Name' },
     { label: 'Type' },
     { label: 'Owner' },
     { label: 'Price', align: 'right' },
@@ -140,24 +139,24 @@ export default function ModelsDEX() {
     </tr>
   );
 
-  const categories = ['all', 'Language Model', 'Computer Vision', 'NLP', 'Audio', 'Multimodal'];
+  const categories = ['all', 'Compute', 'Storage', 'Inference', 'TEE-SGX', 'TEE-SEV', 'General'];
 
   return (
-    <PageLayout activePage={activePage} pageTitle="Models DEX" onSearch={handleSearch}>
+    <PageLayout activePage={activePage} pageTitle="DVE DEX" onSearch={handleSearch}>
       {showOnboarding && <OnboardingFlow onComplete={handleOnboardingComplete} />}
-      
-      <PageHeader 
-        title="Models DEX"
-        subtitle="Decentralized exchange for AI model ownership rights"
-        titleColor="#007bff"
+
+      <PageHeader
+        title="DVE DEX"
+        subtitle="Decentralized exchange for Distributed Validation Environment ownership rights"
+        titleColor="#7c4dff"
       />
 
       {/* Category Filter */}
       <GlassyCard className={styles.filterCard}>
         <div className={styles.filterHeader}>
           <h3 className={styles.filterTitle}>
-            <i className="fas fa-filter" style={{ marginRight: '10px', color: '#007bff' }}></i>
-            Filter Models
+            <i className="fas fa-filter" style={{ marginRight: '10px', color: '#7c4dff' }}></i>
+            Filter DVEs
           </h3>
         </div>
         <div className={styles.categoryFilters}>
@@ -180,7 +179,7 @@ export default function ModelsDEX() {
         <GlassyCard className={styles.statCard}>
           <div className={styles.statIcon}>📊</div>
           <div className={styles.statValue}>{models.length}</div>
-          <div className={styles.statLabel}>Total Models</div>
+          <div className={styles.statLabel}>Total DVEs</div>
         </GlassyCard>
         <GlassyCard className={styles.statCard}>
           <div className={styles.statIcon}>🔥</div>

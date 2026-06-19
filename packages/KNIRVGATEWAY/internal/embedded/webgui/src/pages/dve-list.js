@@ -27,8 +27,38 @@ export default function DVEList() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [modal, setModal] = useState({ open: false, title: '', src: '' });
+  const [nrnBalance, setNrnBalance] = useState(null);
+  const [newDveError, setNewDveError] = useState('');
 
   const handleSearch = (q) => setSearchQuery(q);
+
+  const fetchNrnBalance = async () => {
+    try {
+      const res = await api.get('/api/v1/wallet/balance');
+      const balance = res.data?.nrn_balance ?? res.data?.balance ?? 0;
+      setNrnBalance(Number(balance));
+    } catch {
+      setNrnBalance(0);
+    }
+  };
+
+  const handleNewDve = async () => {
+    setNewDveError('');
+    let balance = nrnBalance;
+    if (balance === null) {
+      await fetchNrnBalance();
+      balance = nrnBalance;
+    }
+    if (balance !== null && balance <= 0) {
+      setNewDveError('Insufficient NRN balance. Fund your KNIRVCONTROLLER wallet to rent a DVE.');
+      return;
+    }
+    setModal({
+      open: true,
+      title: 'Rent a New DVE',
+      src: '/api/v1/dve/provision?embedded=true',
+    });
+  };
 
   const fetchNodes = async () => {
     setIsLoading(true);
@@ -54,6 +84,7 @@ export default function DVEList() {
   // DVEs appear without a manual page reload.
   useEffect(() => {
     fetchNodes();
+    fetchNrnBalance();
     const interval = setInterval(fetchNodes, 10_000);
     return () => clearInterval(interval);
   }, []);
@@ -96,12 +127,32 @@ export default function DVEList() {
           <span className={styles.statValue} style={{ color: '#7c4dff' }}>{allNodes.length}</span>
           <span className={styles.statLabel}>Total Registered</span>
         </div>
+        {nrnBalance !== null && (
+          <div className={styles.statCard}>
+            <span className={styles.statValue} style={{ color: '#00bcd4' }}>{nrnBalance.toLocaleString()}</span>
+            <span className={styles.statLabel}>NRN Balance</span>
+          </div>
+        )}
+        <button className={styles.newDveBtn} onClick={handleNewDve} title="Rent a new DVE using NRN balance">
+          + New DVE
+        </button>
         <div className={styles.statCard}>
           <button className={styles.refreshBtn} onClick={fetchNodes} title="Refresh">
             ↻ Refresh
           </button>
         </div>
       </div>
+
+      {/* New DVE insufficient balance error */}
+      {newDveError && (
+        <GlassyCard darker className={styles.centerState} style={{ marginBottom: '16px' }}>
+          <div className={styles.errorIcon}>💳</div>
+          <p className={styles.errorText}>{newDveError}</p>
+          <button className={styles.retryBtn} onClick={() => window.location.href = '/payment-gateway'}>
+            Fund Wallet
+          </button>
+        </GlassyCard>
+      )}
 
       {/* Loading state */}
       {isLoading && (

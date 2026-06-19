@@ -39,13 +39,8 @@ resolve_workspace_root() {
         return
     fi
 
-    if [[ -d "/home/gperry/Documents/GitHub/KNIRV/KNIRV_CORP/server" ]]; then
-        printf '%s\n' "/home/gperry/Documents/GitHub/KNIRV/KNIRV_CORP/server"
-        return
-    fi
-
-    if [[ -d "/home/gperry/Documents/GitHub/KNIRV/KNIRV_CORP/backend" ]]; then
-        printf '%s\n' "/home/gperry/Documents/GitHub/KNIRV/KNIRV_CORP/backend"
+    if [[ -d "/home/gperry/Documents/GitHub/KNIRV/KNIRV_CORP/packages/server" ]]; then
+        printf '%s\n' "/home/gperry/Documents/GitHub/KNIRV/KNIRV_CORP/packages/server"
         return
     fi
 
@@ -310,8 +305,6 @@ main() {
     log "Project root: $PROJECT_ROOT"
     log "Test results will be saved to: $TEST_DIR"
     
-    cd "$PROJECT_ROOT"
-    
     # Check if Go is available
     if ! command -v go &> /dev/null; then
         error "Go is not installed or not in PATH"
@@ -320,7 +313,8 @@ main() {
     
     # Check if project builds
     log "Building project..."
-    if go build -o "$TEST_DIR/knirv-server" cmd/backend_server/main.go; then
+    cd "$BACKEND_DIR"
+    if go build -o "$TEST_DIR/knirv-server" ./cmd/backend_server/main.go; then
         success "Project builds successfully"
     else
         error "Project build failed"

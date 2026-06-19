@@ -102,11 +102,11 @@ export default function CodexBuilder() {
   };
 
   return (
-    <PageLayout activePage={activePage} pageTitle="Codex Builder" onSearch={handleSearch}>
-      <PageHeader 
-        title="Codex Builder"
-        subtitle="Build, train, and deploy AI models and codex systems"
-        titleColor="#007bff"
+    <PageLayout activePage={activePage} pageTitle="DVE Codex Builder" onSearch={handleSearch}>
+      <PageHeader
+        title="DVE Codex Builder"
+        subtitle="Pre-build custom environments with the toolchains and SDKs of your preference"
+        titleColor="#7c4dff"
       />
 
       {/* Tab Navigation */}

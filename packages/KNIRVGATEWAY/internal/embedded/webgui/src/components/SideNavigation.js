@@ -7,6 +7,15 @@ import IframeModal from './IframeModal';
 const NAV_ITEMS = [
   // Dashboard
   { id: 'dashboard', label: 'Dashboard', icon: '🏠' },
+  // Environments section (DVEs) — top of nav per product decision
+  { id: 'environments', label: 'Environments', icon: '🌍', children: [
+    { id: 'dve-list', label: 'My DVEs', icon: '🖥️' },
+    { id: 'models', label: 'DVE Overview', icon: '📊' },
+    { id: 'codex-builder', label: 'DVE Codex Builder', icon: '🛠️' },
+    { id: 'models-dex', label: 'DVE DEX', icon: '💱' },
+  ]},
+  // Arena
+  { id: 'arena', label: 'KNIRVARENA', icon: '🏟️' },
   // Quick Access
   { id: 'controller-status', label: 'KNIRVCONTROLLER Status', icon: '🔌' },
   { id: 'qr-connect', label: 'QR Connect', icon: '📱' },
@@ -26,12 +35,6 @@ const NAV_ITEMS = [
   // Chain Explorers
   { id: 'transaction-explorer', label: 'Transactions', icon: '⚡' },
   { id: 'validation-explorer', label: 'Validations', icon: '🛡️' },
-  // Models section
-  { id: 'models', label: 'Models', icon: '🤖', children: [
-    { id: 'models', label: 'Models Overview', icon: '🤖' },
-    { id: 'codex-builder', label: 'Codex Builder', icon: '🛠️' },
-    { id: 'models-dex', label: 'Models DEX', icon: '💱' },
-  ]},
   // Governance section
   { id: 'governance', label: 'Governance', icon: '🏛️', children: [
     { id: 'bootnode-dao', label: 'Bootnode DAO', icon: '🗳️' },
@@ -44,8 +47,6 @@ const NAV_ITEMS = [
     { id: 'properties', label: 'Properties', icon: '🏷️' },
     { id: 'settlement', label: 'Settlement', icon: '📝' },
   ]},
-  // My DVEs
-  { id: 'dve-list', label: 'My DVEs', icon: '🖥️' },
   // Settings
   { id: 'settings', label: 'Settings', icon: '⚙️' },
   // Network Admin (Root role only)
@@ -89,7 +90,7 @@ const SideNavigation = ({ activePage }) => {
   const handleItemClick = async (id, hasChildren) => {
     if (hasChildren) return toggleSection(id);
 
-    if (id === 'payment-gateway' || id === 'operator-registry' || id === 'tunnel-registry' || id === 'dve-list') {
+    if (id === 'payment-gateway' || id === 'operator-registry' || id === 'tunnel-registry' || id === 'dve-list' || id === 'arena') {
       return handleNavigation(id);
     }
 

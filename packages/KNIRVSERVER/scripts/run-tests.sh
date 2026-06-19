@@ -7,7 +7,7 @@
 set -euo pipefail
 
 # Script configuration - tolerate either the public package layout or the
-# private KNIRV_CORP checkout passed in from the Makefile.
+# private KNIRV_CORP checkout rooted at packages/server.
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 resolve_workspace_root() {
@@ -34,13 +34,8 @@ resolve_workspace_root() {
         return
     fi
 
-    if [[ -d "/home/gperry/Documents/GitHub/KNIRV/KNIRV_CORP/server" ]]; then
-        printf '%s\n' "/home/gperry/Documents/GitHub/KNIRV/KNIRV_CORP/server"
-        return
-    fi
-
-    if [[ -d "/home/gperry/Documents/GitHub/KNIRV/KNIRV_CORP/backend" ]]; then
-        printf '%s\n' "/home/gperry/Documents/GitHub/KNIRV/KNIRV_CORP/backend"
+    if [[ -d "/home/gperry/Documents/GitHub/KNIRV/KNIRV_CORP/packages/server" ]]; then
+        printf '%s\n' "/home/gperry/Documents/GitHub/KNIRV/KNIRV_CORP/packages/server"
         return
     fi
 

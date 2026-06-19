@@ -9,7 +9,7 @@ GIT_COMMIT := $(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
 
 # Directories
 ROOT_DIR := $(shell pwd)
-SERVER_WORKSPACE_DIR := $(shell if [ -n "$$KNIRVSERVER_WORKSPACE_DIR" ] && [ -d "$$KNIRVSERVER_WORKSPACE_DIR" ]; then printf '%s' "$$KNIRVSERVER_WORKSPACE_DIR"; elif [ -d "$(ROOT_DIR)/../../../KNIRV_CORP/server" ]; then printf '%s' "$(ROOT_DIR)/../../../KNIRV_CORP/server"; elif [ -d "$(ROOT_DIR)/../../../KNIRV_CORP/backend" ]; then printf '%s' "$(ROOT_DIR)/../../../KNIRV_CORP/backend"; else printf '%s' "$(ROOT_DIR)"; fi)
+SERVER_WORKSPACE_DIR := $(shell if [ -n "$$KNIRVSERVER_WORKSPACE_DIR" ] && [ -d "$$KNIRVSERVER_WORKSPACE_DIR" ]; then printf '%s' "$$KNIRVSERVER_WORKSPACE_DIR"; elif [ -d "$(ROOT_DIR)/../../../KNIRV_CORP/packages/server" ]; then printf '%s' "$(ROOT_DIR)/../../../KNIRV_CORP/packages/server"; else printf '%s' "$(ROOT_DIR)"; fi)
 SERVER_BACKEND_DIR := $(shell if [ -n "$$KNIRVSERVER_BACKEND_DIR" ] && [ -d "$$KNIRVSERVER_BACKEND_DIR" ]; then printf '%s' "$$KNIRVSERVER_BACKEND_DIR"; elif [ -d "$(SERVER_WORKSPACE_DIR)/backend" ]; then printf '%s' "$(SERVER_WORKSPACE_DIR)/backend"; else printf '%s' "$(SERVER_WORKSPACE_DIR)"; fi)
 BACKEND_DIR := $(SERVER_BACKEND_DIR)
 FRONTEND_DIR := $(ROOT_DIR)/frontend
