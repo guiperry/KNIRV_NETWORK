@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Step 4: Deploy Agent - KNIRV Developer Portal</title>
-    <meta name="description" content="Deploy your agent to the KNIRV D-TEN network">
+    <title>Step 4: Go Live - KNIRV Developer Portal</title>
+    <meta name="description" content="Connect your DVE to KNIRVCHAIN and go live on the KNIRV network">
     <link rel="shortcut icon" href="favicon.png">
 
     <!-- Font Awesome for icons -->
@@ -19,7 +19,7 @@
         <nav class="sidebar">
             <div class="dashboard-title">
                 <h1>KNIRV Developer Portal</h1>
-                <p style="color: var(--transparent-white-7); font-size: 0.9rem;">D-TEN Network</p>
+                <p style="color: var(--transparent-white-7); font-size: 0.9rem;">DVE Platform</p>
             </div>
 
             <!-- Navigation Items -->
@@ -35,41 +35,17 @@
                 <i class="fas fa-rocket"></i>
                 <span>Getting Started</span>
             </a>
-            <a href="agent-management.html" class="nav-item">
-                <i class="fas fa-robot"></i>
-                <span>Agent Management</span>
-            </a>
-            <a href="skill-registry.html" class="nav-item">
-                <i class="fas fa-cogs"></i>
-                <span>Skill Registry</span>
-            </a>
-            <a href="udc-management.html" class="nav-item">
-                <i class="fas fa-certificate"></i>
-                <span>UDC Management</span>
-            </a>
-            <a href="agent-skill-exchange.html" class="nav-item">
-                <i class="fas fa-exchange-alt"></i>
-                <span>Agent/Skill Exchange</span>
-            </a>
-            <a href="error-node-explorer.html" class="nav-item">
-                <i class="fas fa-search"></i>
-                <span>ErrorNode Explorer</span>
+            <a href="#" class="nav-item" onclick="return false;">
+                <i class="fas fa-book"></i>
+                <span>Documentation</span>
             </a>
             <a href="api-sdk.html" class="nav-item">
                 <i class="fas fa-code"></i>
-                <span>API & SDK</span>
-            </a>
-            <a href="wallet-management.html" class="nav-item">
-                <i class="fas fa-wallet"></i>
-                <span>KNIRV Wallets</span>
-            </a>
-            <a href="tesnet-sandbox.html" class="nav-item">
-                <i class="fas fa-flask"></i>
-                <span>TESNET & Sandbox</span>
+                <span>API &amp; SDK</span>
             </a>
             <a href="community-support.html" class="nav-item">
                 <i class="fas fa-users"></i>
-                <span>Community & Support</span>
+                <span>Community &amp; Support</span>
             </a>
         </nav>
 
@@ -78,7 +54,7 @@
             <!-- Top Navigation -->
             <div class="top-nav">
                 <div>
-                    <h1 class="page-title">Getting Started - Step 4</h1>
+                    <h1 class="page-title">Go Live</h1>
                 </div>
                 <div class="user-controls">
                     <i class="control-icon fas fa-bell" title="Notifications"></i>
@@ -92,396 +68,141 @@
                 <h2 style="color: var(--bright-blue); margin-bottom: 20px; font-size: 1.3rem;">Your Progress</h2>
                 <div style="display: flex; justify-content: space-between; margin-bottom: 20px;">
                     <div style="text-align: center; flex: 1;">
-                        <div style="width: 40px; height: 40px; border-radius: 50%; background-color: var(--bright-blue); display: flex; align-items: center; justify-content: center; margin: 0 auto 10px; color: white; font-weight: bold;">✓</div>
+                        <div style="width: 40px; height: 40px; border-radius: 50%; background-color: var(--bright-blue); display: flex; align-items: center; justify-content: center; margin: 0 auto 10px; color: white; font-weight: bold;">&#10003;</div>
                         <div style="font-size: 0.9em; color: var(--white);">Environment</div>
                     </div>
                     <div style="text-align: center; flex: 1;">
-                        <div style="width: 40px; height: 40px; border-radius: 50%; background-color: var(--bright-blue); display: flex; align-items: center; justify-content: center; margin: 0 auto 10px; color: white; font-weight: bold;">✓</div>
-                        <div style="font-size: 0.9em; color: var(--white);">Agent Registration</div>
+                        <div style="width: 40px; height: 40px; border-radius: 50%; background-color: var(--bright-blue); display: flex; align-items: center; justify-content: center; margin: 0 auto 10px; color: white; font-weight: bold;">&#10003;</div>
+                        <div style="font-size: 0.9em; color: var(--white);">Launch DVE</div>
                     </div>
                     <div style="text-align: center; flex: 1;">
-                        <div style="width: 40px; height: 40px; border-radius: 50%; background-color: var(--bright-blue); display: flex; align-items: center; justify-content: center; margin: 0 auto 10px; color: white; font-weight: bold;">✓</div>
-                        <div style="font-size: 0.9em; color: var(--white);">Configuration</div>
+                        <div style="width: 40px; height: 40px; border-radius: 50%; background-color: var(--bright-blue); display: flex; align-items: center; justify-content: center; margin: 0 auto 10px; color: white; font-weight: bold;">&#10003;</div>
+                        <div style="font-size: 0.9em; color: var(--white);">Policies</div>
                     </div>
                     <div style="text-align: center; flex: 1;">
                         <div style="width: 40px; height: 40px; border-radius: 50%; background-color: var(--bright-blue); display: flex; align-items: center; justify-content: center; margin: 0 auto 10px; color: white; font-weight: bold;">4</div>
-                        <div style="font-size: 0.9em; color: var(--white);">Deploy</div>
+                        <div style="font-size: 0.9em; color: var(--white);">Go Live</div>
                     </div>
                 </div>
                 <div style="background-color: var(--transparent-white-1); height: 4px; border-radius: 2px; margin-bottom: 10px;">
                     <div style="background-color: var(--bright-blue); height: 100%; width: 100%; border-radius: 2px;"></div>
                 </div>
-                <p style="color: var(--transparent-white-7); font-size: 0.9em; text-align: center;">Step 4 of 4 - Deploy your agent to the KNIRV D-TEN network</p>
+                <p style="color: var(--transparent-white-7); font-size: 0.9em; text-align: center;">Step 4 of 4 — Activate your DVE on KNIRVCHAIN</p>
             </div>
 
-            <!-- Step 4: Agent Deployment -->
+            <!-- Step 4: Go Live -->
             <div class="glass-card">
                 <h2 style="color: var(--bright-blue); margin-bottom: 20px; font-size: 1.3rem;">
-                    <i class="fas fa-rocket" style="margin-right: 10px;"></i>Step 4: Agent Deployment
+                    <i class="fas fa-globe" style="margin-right: 10px;"></i>Step 4: Connect to KNIRVCHAIN &amp; Go Live
                 </h2>
+                <p style="color: var(--transparent-white-7); margin-bottom: 25px;">
+                    Activating your DVE makes it live on the KNIRV network — it begins accepting workloads under your configured policies and all execution results are committed to KNIRVCHAIN for immutable audit.
+                </p>
 
+                <!-- Activate -->
                 <div style="margin-bottom: 30px;">
-                    <p style="color: var(--transparent-white-7); margin-bottom: 20px;">
-                        Deploy your configured agent to the KNIRV D-TEN network. Your agent will be deployed to a KNIRV-SERVER DVE for secure execution.
+                    <h3 style="color: var(--white); margin-bottom: 15px;">Activate Your DVE</h3>
+                    <div class="code-block" style="margin-bottom: 15px;">
+                        <code>knirv dve activate --dve-id YOUR_DVE_ID<br>knirv dve health --dve-id YOUR_DVE_ID</code>
+                    </div>
+                    <p style="color: var(--transparent-white-7); font-size: 0.9em;">
+                        Activation triggers the first on-chain attestation commit and opens the DVE's endpoint for incoming workloads.
                     </p>
                 </div>
 
-                <!-- Deployment Options -->
+                <!-- Verify blockchain commit -->
                 <div style="margin-bottom: 30px;">
-                    <h3 style="color: var(--white); margin-bottom: 15px;">Deployment Environment</h3>
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
-                        <div class="deployment-option" onclick="selectDeployment('testnet')" data-env="testnet">
-                            <div style="display: flex; align-items: center; margin-bottom: 15px;">
-                                <input type="radio" name="deployment" id="deploy-testnet" style="margin-right: 10px;">
-                                <i class="fas fa-flask" style="color: var(--bright-blue); margin-right: 10px; font-size: 1.5em;"></i>
-                                <div>
-                                    <h4 style="color: var(--white); margin: 0;">KNIRV Testnet</h4>
-                                    <p style="color: var(--transparent-white-7); margin: 0; font-size: 0.9em;">Recommended for development</p>
-                                </div>
-                            </div>
-                            <p style="color: var(--transparent-white-7); font-size: 0.9em; margin-bottom: 10px;">
-                                Deploy to the KNIRV testnet for safe testing and development. Free NRN tokens provided.
-                            </p>
-                            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-                                <span style="background-color: var(--transparent-white-1); padding: 4px 8px; border-radius: 12px; font-size: 0.8rem;">Free Testing</span>
-                                <span style="background-color: var(--transparent-white-1); padding: 4px 8px; border-radius: 12px; font-size: 0.8rem;">Safe Environment</span>
-                                <span style="background-color: var(--transparent-white-1); padding: 4px 8px; border-radius: 12px; font-size: 0.8rem;">Full Features</span>
-                            </div>
-                        </div>
+                    <h3 style="color: var(--white); margin-bottom: 15px;">Verify Your Blockchain Commits</h3>
+                    <p style="color: var(--transparent-white-7); font-size: 0.9em; margin-bottom: 15px;">
+                        Once live, every policy application and execution result writes to KNIRVCHAIN. Inspect your audit trail:
+                    </p>
+                    <div class="code-block" style="margin-bottom: 15px;">
+                        <code>knirv chain audit --dve-id YOUR_DVE_ID --limit 10</code>
+                    </div>
+                    <div class="code-block">
+                        <code>const client = new KnirvClient({ apiKey: 'YOUR_API_KEY' });<br><br>const audit = await client.chain.getAuditLog({<br>&nbsp;&nbsp;dveId: 'YOUR_DVE_ID',<br>&nbsp;&nbsp;limit: 10,<br>});<br><br>audit.entries.forEach(e => console.log(e.txHash, e.event, e.timestamp));</code>
+                    </div>
+                </div>
 
-                        <div class="deployment-option" onclick="selectDeployment('mainnet')" data-env="mainnet">
-                            <div style="display: flex; align-items: center; margin-bottom: 15px;">
-                                <input type="radio" name="deployment" id="deploy-mainnet" style="margin-right: 10px;">
-                                <i class="fas fa-globe" style="color: var(--knirv-purple); margin-right: 10px; font-size: 1.5em;"></i>
-                                <div>
-                                    <h4 style="color: var(--white); margin: 0;">KNIRV Mainnet</h4>
-                                    <p style="color: var(--transparent-white-7); margin: 0; font-size: 0.9em;">Production deployment</p>
-                                </div>
-                            </div>
-                            <p style="color: var(--transparent-white-7); font-size: 0.9em; margin-bottom: 10px;">
-                                Deploy to the production KNIRV network. Requires NRN tokens for operation.
-                            </p>
-                            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-                                <span style="background-color: var(--transparent-white-1); padding: 4px 8px; border-radius: 12px; font-size: 0.8rem;">Production Ready</span>
-                                <span style="background-color: var(--transparent-white-1); padding: 4px 8px; border-radius: 12px; font-size: 0.8rem;">Real NRN Costs</span>
-                                <span style="background-color: var(--transparent-white-1); padding: 4px 8px; border-radius: 12px; font-size: 0.8rem;">Global Network</span>
-                            </div>
+                <!-- DVE health panel -->
+                <div style="margin-bottom: 25px;">
+                    <h3 style="color: var(--white); margin-bottom: 15px;">Health &amp; Attestation Status</h3>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                        <div style="padding: 18px; background-color: rgba(34, 197, 94, 0.08); border-radius: 10px; border: 1px solid rgba(34, 197, 94, 0.2); text-align: center;">
+                            <i class="fas fa-heartbeat" style="color: #22c55e; font-size: 1.5em; margin-bottom: 8px;"></i>
+                            <div style="color: #22c55e; font-weight: 600;">DVE Health</div>
+                            <div style="color: var(--transparent-white-7); font-size: 0.85em; margin-top: 4px;">Live attestation heartbeat</div>
+                        </div>
+                        <div style="padding: 18px; background-color: rgba(0,192,250,0.08); border-radius: 10px; border: 1px solid rgba(0,192,250,0.2); text-align: center;">
+                            <i class="fas fa-link" style="color: var(--bright-blue); font-size: 1.5em; margin-bottom: 8px;"></i>
+                            <div style="color: var(--bright-blue); font-weight: 600;">Chain Sync</div>
+                            <div style="color: var(--transparent-white-7); font-size: 0.85em; margin-top: 4px;">KNIRVCHAIN commit status</div>
+                        </div>
+                        <div style="padding: 18px; background-color: rgba(139,92,246,0.08); border-radius: 10px; border: 1px solid rgba(139,92,246,0.2); text-align: center;">
+                            <i class="fas fa-sliders-h" style="color: var(--knirv-purple); font-size: 1.5em; margin-bottom: 8px;"></i>
+                            <div style="color: var(--knirv-purple); font-weight: 600;">Policy Version</div>
+                            <div style="color: var(--transparent-white-7); font-size: 0.85em; margin-top: 4px;">Active policy revision on chain</div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Deployment Configuration -->
-                <div id="deploymentConfig" style="margin-bottom: 30px; display: none;">
-                    <h3 style="color: var(--white); margin-bottom: 15px;">Deployment Configuration</h3>
-                    <div style="display: grid; gap: 20px;">
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-                            <div>
-                                <label style="color: var(--white); display: block; margin-bottom: 5px;">Instance Name</label>
-                                <input type="text" id="instanceName" placeholder="my-agent-v1" style="width: 100%; padding: 10px; background-color: var(--transparent-white-1); border: 1px solid var(--transparent-white-2); border-radius: 5px; color: var(--white);">
-                            </div>
-                            <div>
-                                <label style="color: var(--white); display: block; margin-bottom: 5px;">Region</label>
-                                <select id="region" style="width: 100%; padding: 10px; background-color: var(--transparent-white-1); border: 1px solid var(--transparent-white-2); border-radius: 5px; color: var(--white);">
-                                    <option value="us-east">US East</option>
-                                    <option value="us-west">US West</option>
-                                    <option value="eu-central">EU Central</option>
-                                    <option value="asia-pacific">Asia Pacific</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div>
-                            <label style="color: var(--white); display: block; margin-bottom: 5px;">
-                                <input type="checkbox" id="autoScale" style="margin-right: 8px;">
-                                Enable Auto-scaling
-                            </label>
-                            <p style="color: var(--transparent-white-7); font-size: 0.9em; margin-top: 5px;">
-                                Automatically scale your agent based on demand (additional NRN costs may apply)
-                            </p>
-                        </div>
-                    </div>
+                <!-- Upgrade path -->
+                <div style="padding: 18px; background: rgba(245,158,11,0.08); border-radius: 10px; border: 1px solid rgba(245,158,11,0.2); margin-bottom: 25px;">
+                    <h4 style="color: #f59e0b; margin-bottom: 8px;">
+                        <i class="fas fa-arrow-up" style="margin-right: 8px;"></i>Ready to Scale?
+                    </h4>
+                    <p style="color: var(--transparent-white-7); font-size: 0.9em; margin-bottom: 10px;">
+                        Your free DVE is live. When you need more:
+                    </p>
+                    <ul style="color: var(--transparent-white-7); font-size: 0.9em; margin-left: 20px; line-height: 1.9;">
+                        <li><strong style="color: var(--white);">Professional ($199/mo)</strong> — Unlimited DVEs, Cognitive Engine adaptive policies, KNIRVARENA access</li>
+                        <li><strong style="color: var(--white);">Enterprise (Custom)</strong> — eBPF kernel bridge, Badge Lab attestation, Guardrails enforcement</li>
+                        <li><strong style="color: var(--white);">Custom (Self-Hosted)</strong> — Full KNIRVSERVER, ICME memory, root oracle, source license</li>
+                    </ul>
                 </div>
 
-                <!-- WASM Agent Core Build Deployment Sequence -->
-                <div class="glass-card" style="margin-bottom: 30px;">
-                    <h3 style="color: var(--bright-blue); margin-bottom: 20px; font-size: 1.2rem;">
-                        <i class="fas fa-cogs" style="margin-right: 10px;"></i>WASM Agent Core Build Deployment Sequence
-                    </h3>
-
-                    <div style="margin-bottom: 25px;">
-                        <p style="color: var(--transparent-white-7); margin-bottom: 15px;">
-                            The KNIRV agent deployment process involves compiling your agent-core to WebAssembly (WASM) and deploying it through a secure, multi-stage pipeline. This ensures optimal performance and security across the D-TEN network.
-                        </p>
+                <!-- Completion -->
+                <div style="text-align: center; padding: 20px; background: rgba(34, 197, 94, 0.08); border-radius: 10px; border: 1px solid rgba(34, 197, 94, 0.2);">
+                    <i class="fas fa-check-circle" style="color: #22c55e; font-size: 3em; margin-bottom: 15px;"></i>
+                    <h3 style="color: #22c55e; margin-bottom: 10px;">Your DVE is Live</h3>
+                    <p style="color: var(--transparent-white-7); margin-bottom: 20px;">
+                        Congratulations — your Distributed Validation Environment is deployed, policy-governed, and committing its audit trail to KNIRVCHAIN.
+                    </p>
+                    <div style="display: flex; gap: 15px; justify-content: center; flex-wrap: wrap;">
+                        <a href="api-sdk.html" class="btn-primary" style="text-decoration: none;">
+                            <i class="fas fa-code" style="margin-right: 8px;"></i>Explore the SDK
+                        </a>
+                        <a href="community-support.html" class="btn-outline" style="text-decoration: none;">
+                            <i class="fas fa-users" style="margin-right: 8px;"></i>Join the Community
+                        </a>
                     </div>
-
-                    <!-- Build Pipeline Steps -->
-                    <div style="margin-bottom: 25px;">
-                        <h4 style="color: var(--white); margin-bottom: 15px;">Build Pipeline Overview</h4>
-                        <div style="display: grid; gap: 15px;">
-
-                            <!-- Step 1: Agent Core Compilation -->
-                            <div style="display: flex; align-items: flex-start; padding: 15px; background-color: var(--transparent-white-05); border-radius: 8px; border-left: 4px solid var(--bright-blue);">
-                                <div style="width: 30px; height: 30px; background-color: var(--bright-blue); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 15px; flex-shrink: 0;">
-                                    <span style="color: white; font-weight: bold; font-size: 0.9em;">1</span>
-                                </div>
-                                <div style="flex: 1;">
-                                    <h5 style="color: var(--white); margin-bottom: 8px;">Agent Core Compilation</h5>
-                                    <p style="color: var(--transparent-white-7); font-size: 0.9em; margin-bottom: 10px;">
-                                        Your TypeScript agent-core is compiled to WebAssembly using the KNIRVCONTROLLER build pipeline.
-                                    </p>
-                                    <div style="background-color: var(--transparent-white-1); padding: 10px; border-radius: 5px; font-family: monospace; font-size: 0.8em; color: var(--transparent-white-8);">
-                                        <div>$ knirv build --target=wasm --model=<span style="color: var(--bright-blue);">[selected-model]</span></div>
-                                        <div style="color: var(--transparent-white-6);">→ Compiling cognitive shell templates...</div>
-                                        <div style="color: var(--transparent-white-6);">→ Embedding model weights...</div>
-                                        <div style="color: var(--transparent-white-6);">→ Generating agent.wasm</div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Step 2: WASM Optimization -->
-                            <div style="display: flex; align-items: flex-start; padding: 15px; background-color: var(--transparent-white-05); border-radius: 8px; border-left: 4px solid var(--knirv-purple);">
-                                <div style="width: 30px; height: 30px; background-color: var(--knirv-purple); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 15px; flex-shrink: 0;">
-                                    <span style="color: white; font-weight: bold; font-size: 0.9em;">2</span>
-                                </div>
-                                <div style="flex: 1;">
-                                    <h5 style="color: var(--white); margin-bottom: 8px;">WASM Optimization & Validation</h5>
-                                    <p style="color: var(--transparent-white-7); font-size: 0.9em; margin-bottom: 10px;">
-                                        The compiled WASM is optimized for size and performance, then validated for security and compatibility.
-                                    </p>
-                                    <ul style="color: var(--transparent-white-7); font-size: 0.9em; margin-left: 20px;">
-                                        <li>Size optimization using wasm-opt</li>
-                                        <li>Security validation and sandboxing checks</li>
-                                        <li>D-TEN network compatibility verification</li>
-                                        <li>LoRA adapter integration validation</li>
-                                    </ul>
-                                </div>
-                            </div>
-
-                            <!-- Step 3: Package Creation -->
-                            <div style="display: flex; align-items: flex-start; padding: 15px; background-color: var(--transparent-white-05); border-radius: 8px; border-left: 4px solid #28a745;">
-                                <div style="width: 30px; height: 30px; background-color: #28a745; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 15px; flex-shrink: 0;">
-                                    <span style="color: white; font-weight: bold; font-size: 0.9em;">3</span>
-                                </div>
-                                <div style="flex: 1;">
-                                    <h5 style="color: var(--white); margin-bottom: 8px;">Deployment Package Creation</h5>
-                                    <p style="color: var(--transparent-white-7); font-size: 0.9em; margin-bottom: 10px;">
-                                        A complete deployment package is created containing the WASM binary, metadata, and configuration.
-                                    </p>
-                                    <div style="background-color: var(--transparent-white-1); padding: 10px; border-radius: 5px;">
-                                        <div style="font-family: monospace; font-size: 0.8em; color: var(--transparent-white-8);">
-                                            <div>📦 agent-deployment.tar.gz</div>
-                                            <div style="margin-left: 15px; color: var(--transparent-white-6);">├── agent.wasm</div>
-                                            <div style="margin-left: 15px; color: var(--transparent-white-6);">├── manifest.json</div>
-                                            <div style="margin-left: 15px; color: var(--transparent-white-6);">├── config/</div>
-                                            <div style="margin-left: 15px; color: var(--transparent-white-6);">└── metadata.json</div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Step 4: Network Deployment -->
-                            <div style="display: flex; align-items: flex-start; padding: 15px; background-color: var(--transparent-white-05); border-radius: 8px; border-left: 4px solid #ffc107;">
-                                <div style="width: 30px; height: 30px; background-color: #ffc107; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 15px; flex-shrink: 0;">
-                                    <span style="color: white; font-weight: bold; font-size: 0.9em;">4</span>
-                                </div>
-                                <div style="flex: 1;">
-                                    <h5 style="color: var(--white); margin-bottom: 8px;">Network Deployment & Registration</h5>
-                                    <p style="color: var(--transparent-white-7); font-size: 0.9em; margin-bottom: 10px;">
-                                        The package is deployed to KNIRVSERVER DVE and registered with KNIRVORACLE for network discovery.
-                                    </p>
-                                    <ul style="color: var(--transparent-white-7); font-size: 0.9em; margin-left: 20px;">
-                                        <li>Upload to secure KNIRVSERVER environment</li>
-                                        <li>Agent registration with KNIRVORACLE</li>
-                                        <li>Network capability announcement</li>
-                                        <li>Health check and monitoring setup</li>
-                                    </ul>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Technical Requirements -->
-                    <div style="margin-bottom: 25px;">
-                        <h4 style="color: var(--white); margin-bottom: 15px;">Technical Requirements</h4>
-                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px;">
-                            <div style="padding: 15px; background-color: var(--transparent-white-1); border-radius: 8px;">
-                                <h5 style="color: var(--bright-blue); margin-bottom: 10px;">
-                                    <i class="fas fa-microchip" style="margin-right: 8px;"></i>WASM Runtime
-                                </h5>
-                                <ul style="color: var(--transparent-white-7); font-size: 0.9em; margin-left: 20px;">
-                                    <li>WebAssembly System Interface (WASI)</li>
-                                    <li>Memory limit: 512MB - 2GB</li>
-                                    <li>Execution timeout: 30s per invocation</li>
-                                </ul>
-                            </div>
-                            <div style="padding: 15px; background-color: var(--transparent-white-1); border-radius: 8px;">
-                                <h5 style="color: var(--knirv-purple); margin-bottom: 10px;">
-                                    <i class="fas fa-shield-alt" style="margin-right: 8px;"></i>Security
-                                </h5>
-                                <ul style="color: var(--transparent-white-7); font-size: 0.9em; margin-left: 20px;">
-                                    <li>Sandboxed execution environment</li>
-                                    <li>No direct file system access</li>
-                                    <li>Network access via KNIRV APIs only</li>
-                                </ul>
-                            </div>
-                            <div style="padding: 15px; background-color: var(--transparent-white-1); border-radius: 8px;">
-                                <h5 style="color: #28a745; margin-bottom: 10px;">
-                                    <i class="fas fa-network-wired" style="margin-right: 8px;"></i>Network Integration
-                                </h5>
-                                <ul style="color: var(--transparent-white-7); font-size: 0.9em; margin-left: 20px;">
-                                    <li>KNIRVORACLE registration required</li>
-                                    <li>LoRA adapter compatibility</li>
-                                    <li>Real-time skill invocation support</li>
-                                </ul>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Deployment Commands -->
-                    <div style="margin-bottom: 20px;">
-                        <h4 style="color: var(--white); margin-bottom: 15px;">Command Reference</h4>
-                        <div style="background-color: var(--transparent-white-1); padding: 15px; border-radius: 8px; font-family: monospace; font-size: 0.9em;">
-                            <div style="color: var(--transparent-white-6); margin-bottom: 10px;"># Build agent for deployment</div>
-                            <div style="color: var(--white); margin-bottom: 15px;">knirv build --target=wasm --model=phi-3-mini --optimize</div>
-
-                            <div style="color: var(--transparent-white-6); margin-bottom: 10px;"># Deploy to testnet</div>
-                            <div style="color: var(--white); margin-bottom: 15px;">knirv deploy --env=testnet --region=us-east</div>
-
-                            <div style="color: var(--transparent-white-6); margin-bottom: 10px;"># Monitor deployment status</div>
-                            <div style="color: var(--white);">knirv status --deployment-id=[deployment-id]</div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Deployment Actions -->
-                <div style="display: flex; gap: 15px; justify-content: center;">
-                    <button class="btn-secondary" onclick="goBack()">
-                        <i class="fas fa-arrow-left" style="margin-right: 8px;"></i>Back to Step 3
-                    </button>
-                    <button class="btn-primary" id="deployButton" onclick="deployAgent()" disabled>
-                        <i class="fas fa-rocket" style="margin-right: 8px;"></i>Deploy Agent
-                    </button>
                 </div>
             </div>
 
-            <!-- Deployment Status -->
-            <div id="deploymentStatus" class="glass-card" style="display: none;">
-                <h3 style="color: var(--bright-blue); margin-bottom: 15px;">Deployment Status</h3>
-                <div id="statusContent">
-                    <!-- Status content will be populated by JavaScript -->
+            <!-- Navigation -->
+            <div class="glass-card">
+                <div style="display: flex; gap: 15px; justify-content: space-between; flex-wrap: wrap;">
+                    <a href="getting-started-step3.html" class="btn-outline" style="text-decoration: none;">
+                        <i class="fas fa-arrow-left" style="margin-right: 8px;"></i>Back: Configure Policies
+                    </a>
+                    <a href="index.html" class="btn-secondary" style="text-decoration: none;">
+                        <i class="fas fa-home" style="margin-right: 8px;"></i>Return to Dashboard
+                    </a>
                 </div>
             </div>
+
         </main>
     </div>
 
     <!-- JavaScript -->
-    <script src="js/portal.js"></script>
-    <script>
-        function selectDeployment(env) {
-            // Update radio button
-            document.getElementById('deploy-' + env).checked = true;
-            
-            // Show deployment configuration
-            document.getElementById('deploymentConfig').style.display = 'block';
-            
-            // Enable deploy button
-            document.getElementById('deployButton').disabled = false;
-            
-            // Update deployment options styling
-            document.querySelectorAll('.deployment-option').forEach(option => {
-                option.classList.remove('selected');
-            });
-            document.querySelector(`[data-env="${env}"]`).classList.add('selected');
-        }
-
-        function goBack() {
-            window.location.href = 'getting-started-step3.html';
-        }
-
-        function deployAgent() {
-            const selectedEnv = document.querySelector('input[name="deployment"]:checked').id.replace('deploy-', '');
-            const instanceName = document.getElementById('instanceName').value || 'my-agent-v1';
-            const region = document.getElementById('region').value;
-            const autoScale = document.getElementById('autoScale').checked;
-
-            // Show deployment status
-            const statusDiv = document.getElementById('deploymentStatus');
-            const statusContent = document.getElementById('statusContent');
-            
-            statusDiv.style.display = 'block';
-            statusContent.innerHTML = `
-                <div style="text-align: center; padding: 20px;">
-                    <div style="width: 60px; height: 60px; border: 4px solid var(--transparent-white-2); border-top: 4px solid var(--bright-blue); border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 15px;"></div>
-                    <p style="color: var(--white); margin-bottom: 10px;">Deploying agent to KNIRV-SERVER DVE...</p>
-                    <p style="color: var(--transparent-white-7); font-size: 0.9em;">Environment: ${selectedEnv.toUpperCase()}</p>
-                    <p style="color: var(--transparent-white-7); font-size: 0.9em;">Region: ${region}</p>
-                </div>
-            `;
-
-            // Simulate deployment process
-            let progress = 0;
-            const steps = [
-                'Initializing KNIRV-SERVER DVE...',
-                'Uploading agent configuration...',
-                'Setting up execution environment...',
-                'Connecting to KNIRV-ORACLE...',
-                'Registering with KNIRVGRAPH...',
-                'Starting agent instance...',
-                'Deployment complete!'
-            ];
-
-            const deploymentInterval = setInterval(() => {
-                if (progress < steps.length - 1) {
-                    statusContent.innerHTML = `
-                        <div style="text-align: center; padding: 20px;">
-                            <div style="width: 60px; height: 60px; border: 4px solid var(--transparent-white-2); border-top: 4px solid var(--bright-blue); border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 15px;"></div>
-                            <p style="color: var(--white); margin-bottom: 10px;">${steps[progress]}</p>
-                            <div style="background-color: var(--transparent-white-1); height: 4px; border-radius: 2px; margin: 15px 0;">
-                                <div style="background-color: var(--bright-blue); height: 100%; width: ${(progress / (steps.length - 1)) * 100}%; border-radius: 2px; transition: width 0.5s;"></div>
-                            </div>
-                            <p style="color: var(--transparent-white-7); font-size: 0.9em;">Step ${progress + 1} of ${steps.length - 1}</p>
-                        </div>
-                    `;
-                    progress++;
-                } else {
-                    clearInterval(deploymentInterval);
-                    const agentUrl = `https://${selectedEnv}.knirv.network/agents/${instanceName}`;
-                    statusContent.innerHTML = `
-                        <div style="text-align: center; padding: 20px;">
-                            <div style="width: 60px; height: 60px; background-color: var(--bright-blue); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 15px;">
-                                <i class="fas fa-check" style="color: white; font-size: 1.5em;"></i>
-                            </div>
-                            <h4 style="color: var(--bright-blue); margin-bottom: 15px;">Deployment Successful!</h4>
-                            <div style="background-color: var(--transparent-white-05); border-radius: 10px; padding: 20px; margin-bottom: 20px; text-align: left;">
-                                <p style="color: var(--white); margin-bottom: 5px;"><strong>Agent URL:</strong> ${agentUrl}</p>
-                                <p style="color: var(--white); margin-bottom: 5px;"><strong>Instance:</strong> ${instanceName}</p>
-                                <p style="color: var(--white); margin-bottom: 5px;"><strong>Environment:</strong> ${selectedEnv.toUpperCase()}</p>
-                                <p style="color: var(--white); margin-bottom: 5px;"><strong>Region:</strong> ${region}</p>
-                                <p style="color: var(--white);"><strong>Status:</strong> <span style="color: var(--bright-blue);">Running</span></p>
-                            </div>
-                            <div style="display: flex; gap: 15px; justify-content: center;">
-                                <button class="btn-secondary" onclick="window.open('${agentUrl}', '_blank')">
-                                    <i class="fas fa-external-link-alt" style="margin-right: 8px;"></i>View Agent
-                                </button>
-                                <button class="btn-primary" onclick="completeTutorial()">
-                                    <i class="fas fa-trophy" style="margin-right: 8px;"></i>Complete Tutorial
-                                </button>
-                            </div>
-                        </div>
-                    `;
-                }
-            }, 2000);
-        }
-
-        function completeTutorial() {
-            window.knirvPortal.showNotification('Congratulations! You have successfully completed the KNIRV D-TEN onboarding process.', 'success');
-            setTimeout(() => {
-                window.location.href = 'index.html';
-            }, 2000);
-        }
-    </script>
-    <!-- Additional Scripts -->
     <script src="js/config-loader.js"></script>
+    <script src="js/portal.js"></script>
     <script src="js/auth.js"></script>
     <script src="../js/universal-footer.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            localStorage.setItem('knirv_getting_started_step', 4);
+        });
+    </script>
 </body>
 </html>

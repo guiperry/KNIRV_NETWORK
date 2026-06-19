@@ -22,7 +22,7 @@
         <nav class="sidebar">
             <div class="dashboard-title">
                 <h1>KNIRV Developer Portal</h1>
-                <p style="color: var(--transparent-white-7); font-size: 0.9rem;">D-TEN Network</p>
+                <p style="color: var(--transparent-white-7); font-size: 0.9rem;">DVE Platform</p>
             </div>
 
             <!-- Navigation Items -->
@@ -38,41 +38,13 @@
                 <i class="fas fa-rocket"></i>
                 <span>Getting Started</span>
             </a>
-            <a href="agent-management.html" class="nav-item">
-                <i class="fas fa-robot"></i>
-                <span>Agent Management</span>
-            </a>
-            <a href="skill-registry.html" class="nav-item">
-                <i class="fas fa-cogs"></i>
-                <span>Skill Registry</span>
-            </a>
-            <a href="udc-management.html" class="nav-item">
-                <i class="fas fa-certificate"></i>
-                <span>UDC Management</span>
-            </a>
-            <a href="agent-skill-exchange.html" class="nav-item">
-                <i class="fas fa-exchange-alt"></i>
-                <span>Agent/Skill Exchange</span>
-            </a>
-            <a href="error-node-explorer.html" class="nav-item">
-                <i class="fas fa-search"></i>
-                <span>ErrorNode Explorer</span>
-            </a>
             <a href="api-sdk.html" class="nav-item active">
                 <i class="fas fa-code"></i>
-                <span>API & SDK</span>
-            </a>
-            <a href="wallet-management.html" class="nav-item">
-                <i class="fas fa-wallet"></i>
-                <span>KNIRV Wallets</span>
-            </a>
-            <a href="tesnet-sandbox.html" class="nav-item">
-                <i class="fas fa-flask"></i>
-                <span>TESNET & Sandbox</span>
+                <span>API &amp; SDK</span>
             </a>
             <a href="community-support.html" class="nav-item">
                 <i class="fas fa-users"></i>
-                <span>Community & Support</span>
+                <span>Community &amp; Support</span>
             </a>
         </nav>
 
@@ -188,36 +160,35 @@
                     <i class="fas fa-code" style="margin-right: 10px;"></i>Code Examples
                 </h2>
                 <div style="margin-bottom: 20px;">
-                    <h3 style="color: var(--knirv-purple); margin-bottom: 10px;">Register an Agent</h3>
+                    <h3 style="color: var(--knirv-purple); margin-bottom: 10px;">Create a DVE</h3>
                     <div class="code-block">
                         <code>
-import { KNIRVClient } from '@knirv/sdk';<br><br>
-const client = new KNIRVClient({<br>
+import { KnirvClient } from '@knirv/sdk';<br><br>
+const client = new KnirvClient({<br>
 &nbsp;&nbsp;apiKey: 'your-api-key',<br>
 &nbsp;&nbsp;network: 'mainnet'<br>
 });<br><br>
-const agent = await client.agents.register({<br>
-&nbsp;&nbsp;name: 'MyAgent',<br>
-&nbsp;&nbsp;capabilities: ['nlp', 'vision'],<br>
-&nbsp;&nbsp;description: 'AI agent for text and image processing'<br>
-});
+const dve = await client.dve.create({<br>
+&nbsp;&nbsp;name: 'my-dve',<br>
+&nbsp;&nbsp;tier: 'free',<br>
+&nbsp;&nbsp;region: 'us-east',<br>
+});<br><br>
+console.log(dve.id, dve.attestationEndpoint);
                         </code>
                     </div>
                 </div>
 
                 <div style="margin-bottom: 20px;">
-                    <h3 style="color: var(--knirv-purple); margin-bottom: 10px;">Publish a Skill</h3>
+                    <h3 style="color: var(--knirv-purple); margin-bottom: 10px;">Apply a Policy</h3>
                     <div class="code-block">
                         <code>
-const skill = await client.skills.publish({<br>
-&nbsp;&nbsp;name: 'sentiment-analysis',<br>
-&nbsp;&nbsp;category: 'nlp',<br>
-&nbsp;&nbsp;code: skillImplementation,<br>
-&nbsp;&nbsp;metadata: {<br>
-&nbsp;&nbsp;&nbsp;&nbsp;version: '1.0.0',<br>
-&nbsp;&nbsp;&nbsp;&nbsp;author: 'developer@example.com'<br>
-&nbsp;&nbsp;}<br>
-});
+await client.dve.applyPolicy(dve.id, {<br>
+&nbsp;&nbsp;admission: { require_auth: true, max_payload_kb: 512 },<br>
+&nbsp;&nbsp;execution: { max_memory_mb: 512, timeout_seconds: 30 },<br>
+&nbsp;&nbsp;commit: { on: ['execution_complete', 'error'], chain: 'knirvchain' },<br>
+});<br><br>
+const audit = await client.chain.getAuditLog({ dveId: dve.id, limit: 10 });<br>
+audit.entries.forEach(e => console.log(e.txHash, e.event));
                         </code>
                     </div>
                 </div>

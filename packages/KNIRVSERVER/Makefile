@@ -37,9 +37,6 @@ ENCODER_SRC_DIR := $(ROOT_DIR)/../KNIRVHASHER/pipeline/2_DATA_ENCODER
 ENCODER_PKG_BIN := $(HASHER_DIR)/internal/cli/embedded/bin/data-encoder
 TRAINER_SRC_DIR := $(ROOT_DIR)/../KNIRVHASHER/pipeline/3_DATA_TRAINER
 TRAINER_PKG_BIN := $(HASHER_DIR)/internal/cli/embedded/bin/data-trainer
-SHELL_DIR := $(ROOT_DIR)/pkg/knirvshell
-SHELL_SRC_DIR := $(ROOT_DIR)/../KNIRVSHELL
-SHELL_PKG_BIN := $(SHELL_DIR)/bin/knirvshell
 AGENT_DIR := $(ROOT_DIR)/pkg/knirvagent
 AGENT_SRC_DIR := $(ROOT_DIR)/../KNIRVAGENT
 AGENT_PKG_BIN := $(AGENT_DIR)/bin/knirvagent
@@ -63,8 +60,27 @@ EMBEDDED_BUILD_DIR := $(ROOT_DIR)/build/embedded
 GO_VERSION := 1.21
 GOOS := $(shell go env GOOS)
 GOARCH := $(shell go env GOARCH)
+HOST_ARCH := $(shell uname -m)
 CGO_ENABLED := 1
 export GOFLAGS := -buildvcs=false
+
+# eBPF C header configuration
+# bpf2go needs the arch-specific system header path on Debian/Ubuntu hosts
+# so clang can resolve <asm/types.h>.
+ifeq ($(HOST_ARCH),x86_64)
+BPF2GO_CFLAGS := -I/usr/include/x86_64-linux-gnu
+else ifeq ($(HOST_ARCH),aarch64)
+BPF2GO_CFLAGS := -I/usr/include/aarch64-linux-gnu
+else ifeq ($(HOST_ARCH),arm64)
+BPF2GO_CFLAGS := -I/usr/include/aarch64-linux-gnu
+else ifeq ($(HOST_ARCH),armv7l)
+BPF2GO_CFLAGS := -I/usr/include/arm-linux-gnueabihf
+else ifeq ($(HOST_ARCH),armv7)
+BPF2GO_CFLAGS := -I/usr/include/arm-linux-gnueabihf
+else ifeq ($(HOST_ARCH),riscv64)
+BPF2GO_CFLAGS := -I/usr/include/riscv64-linux-gnu
+endif
+export BPF2GO_CFLAGS
 
 # Build flags
 LDFLAGS := -X main.Version=$(VERSION) \
@@ -91,7 +107,7 @@ YELLOW := \033[1;33m
 BLUE := \033[0;34m
 NC := \033[0m # No Color
 
-.PHONY: help all clean build test deploy install deps frontend backend binary relink docker os deployer key-encryptor deploy-dev-local ebpf-generate proto kali-docker-image gateway-build gateway-deps gateway-clean graph-build graph-deps graph-clean chain-build chain-deps chain-clean oracle-build oracle-deps oracle-clean hasher-build hasher-deps hasher-clean shell-build shell-deps shell-clean agent-build agent-deps agent-clean arena-build arena-deps arena-clean build-full
+.PHONY: help all clean build test deploy install deps frontend backend binary relink docker os deployer key-encryptor deploy-dev-local ebpf-generate proto kali-docker-image gateway-build gateway-deps gateway-clean graph-build graph-deps graph-clean chain-build chain-deps chain-clean oracle-build oracle-deps oracle-clean hasher-build hasher-deps hasher-clean agent-build agent-deps agent-clean arena-build arena-deps arena-clean build-full
 
 # Default target
 all: proto frontend backend binary
@@ -162,7 +178,7 @@ frontend-dev: deps-node ## Start frontend development server
 	cd $(FRONTEND_DIR) && $(NPM_CMD) run dev
 
 # Backend Build (cmd/backend_server only)
-backend: deps-go gateway-build graph-build chain-build oracle-build hasher-build shell-build agent-build arena-build embedded-build ## Build complete Go backend service package
+backend: deps-go gateway-build graph-build chain-build oracle-build hasher-build agent-build arena-build embedded-build ## Build complete Go backend service package
 	@echo "$(BLUE)Building complete backend package binary...$(NC)"
 	@rm -f $(BACKEND_DIR)/backend_server bin/backend_server
 	cd $(BACKEND_DIR) && go build -ldflags "$(LDFLAGS)" -o backend_server ./cmd/backend_server
@@ -199,10 +215,10 @@ key-encryptor: ## Build root_key_encryptor binary
 
 # Unified Binary (Frontend + Desktop + Backend + embedded pkg modules)
 # main.go embeds: bin/backend_server, config/*, desktop/dist/*, frontend/out/*
-# Module-owned binaries like KNIRVGATEWAY, KNIRVGRAPH, KNIRVCHAIN, KNIRVORACLE, KNIRVHASHER, KNIRVSHELL, and KNIRVAGENT
+# Module-owned binaries like KNIRVGATEWAY, KNIRVGRAPH, KNIRVCHAIN, KNIRVORACLE, KNIRVHASHER, and KNIRVAGENT
 # are embedded and extracted by their pkg modules.
-binary: proto ebpf-generate frontend backend arena-build ## Build unified binary embedding frontend, desktop, backend, KNIRVGATEWAY, KNIRVGRAPH, KNIRVCHAIN, KNIRVORACLE, KNIRVHASHER, KNIRVSHELL, KNIRVAGENT, and KNIRVARENA
-	@echo "$(BLUE)Creating unified binary (embeds frontend, desktop, backend, KNIRVGATEWAY, KNIRVGRAPH, KNIRVCHAIN, KNIRVORACLE, KNIRVHASHER, and KNIRVSHELL)...$(NC)"
+binary: proto ebpf-generate frontend backend arena-build ## Build unified binary embedding frontend, desktop, backend, KNIRVGATEWAY, KNIRVGRAPH, KNIRVCHAIN, KNIRVORACLE, KNIRVHASHER, KNIRVAGENT, and KNIRVARENA
+	@echo "$(BLUE)Creating unified binary (embeds frontend, desktop, backend, KNIRVGATEWAY, KNIRVGRAPH, KNIRVCHAIN, KNIRVORACLE, KNIRVHASHER)...$(NC)"
 	@mkdir -p $(DIST_DIR)
 	@rm -f $(DIST_DIR)/knirv-server
 	go build -ldflags "$(LDFLAGS)" -o $(DIST_DIR)/knirv-server .
@@ -368,11 +384,10 @@ clean: ## Clean build outputs (preserves node_modules and Go module cache)
 	rm -rf $(BUILD_DIR) $(DIST_DIR)
 	rm -rf $(BACKEND_DIR)/bin
 	rm -f bin/backend_server
-	rm -f $(GATEWAY_PKG_BIN) $(GRAPH_PKG_BIN) $(CHAIN_PKG_BIN) $(ORACLE_PKG_BIN) $(HASHER_PKG_BIN) $(SHELL_PKG_BIN) $(AGENT_PKG_BIN) $(ARENA_PKG_BUNDLE)
+	rm -f $(GATEWAY_PKG_BIN) $(GRAPH_PKG_BIN) $(CHAIN_PKG_BIN) $(ORACLE_PKG_BIN) $(HASHER_PKG_BIN) $(AGENT_PKG_BIN) $(ARENA_PKG_BUNDLE)
 	rm -rf $(FRONTEND_DIR)/.next $(FRONTEND_DIR)/out
 	cd $(GATEWAY_DIR) && go clean
 	cd $(HASHER_DIR) && go clean
-	cd $(SHELL_DIR) && go clean
 	cd $(AGENT_DIR) && go clean
 	rm -rf $(ARENA_DIR)/bin
 
@@ -562,27 +577,6 @@ hasher-clean: ## Clean KNIRVHASHER build artifacts
 	@echo "$(BLUE)Cleaning KNIRVHASHER artifacts...$(NC)"
 	rm -f $(HASHER_PKG_BIN)
 	cd $(HASHER_SRC_DIR) && go clean
-
-# KNIRVSHELL (Embedded) targets
-shell-deps: ## Install KNIRVSHELL dependencies
-	@echo "$(BLUE)Installing KNIRVSHELL dependencies...$(NC)"
-	cd $(SHELL_SRC_DIR) && go mod download && go mod tidy
-
-shell-build: shell-deps ## Build KNIRVSHELL binary into pkg/knirvshell/bin/ (required before binary target)
-	@echo "$(BLUE)Building KNIRVSHELL binary...$(NC)"
-	@mkdir -p $(SHELL_DIR)/bin
-	@rm -f $(SHELL_PKG_BIN)
-	cd $(SHELL_SRC_DIR) && go build -ldflags "-s -w" -o $(SHELL_PKG_BIN) .
-	@echo "$(BLUE)Compressing KNIRVSHELL binary with gzip...$(NC)"
-	@rm -f $(SHELL_PKG_BIN).tmp
-	@gzip -cf $(SHELL_PKG_BIN) > $(SHELL_PKG_BIN).tmp && mv $(SHELL_PKG_BIN).tmp $(SHELL_PKG_BIN)
-	@echo "$(GREEN)KNIRVSHELL binary built: $(SHELL_PKG_BIN)$(NC)"
-
-shell-clean: ## Clean KNIRVSHELL build artifacts
-	@echo "$(BLUE)Cleaning KNIRVSHELL artifacts...$(NC)"
-	rm -f $(SHELL_PKG_BIN)
-	cd $(SHELL_SRC_DIR) && go clean
-
 
 # Internal Embedded Programs - Transaction Chain (Node.js)
 transaction-chain-deps: ## Install transaction_chain dependencies

@@ -1,11 +1,13 @@
 {
   "navigation": {
-    "main_site": "https://knirv.com",
+    "main_site": "https://knirv.network",
     "documentation": "../documentation/static/",
     "graphchain_explorer": "../graphchain-explorer/",
     "nexus_portal": "../nexus-portal/",
     "support_desk": "../support-desk/",
-    "forum": "../forum/"
+    "forum": "../forum/",
+    "developer_portal": "../developer-portal/",
+    "products": "../index.html"
   },
   "external_services": {
     "payment_oracle": "https://payments.knirv.network",

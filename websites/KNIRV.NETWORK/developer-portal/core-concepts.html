@@ -19,7 +19,7 @@
         <nav class="sidebar">
             <div class="dashboard-title">
                 <h1>KNIRV Developer Portal</h1>
-                <p style="color: var(--transparent-white-7); font-size: 0.9rem;">D-TEN Network</p>
+                <p style="color: var(--transparent-white-7); font-size: 0.9rem;">DVE Platform</p>
             </div>
 
             <!-- Navigation Items -->
@@ -35,41 +35,17 @@
                 <i class="fas fa-rocket"></i>
                 <span>Getting Started</span>
             </a>
-            <a href="agent-management.html" class="nav-item">
-                <i class="fas fa-robot"></i>
-                <span>Agent Management</span>
-            </a>
-            <a href="skill-registry.html" class="nav-item">
-                <i class="fas fa-cogs"></i>
-                <span>Skill Registry</span>
-            </a>
-            <a href="udc-management.html" class="nav-item">
-                <i class="fas fa-certificate"></i>
-                <span>UDC Management</span>
-            </a>
-            <a href="agent-skill-exchange.html" class="nav-item">
-                <i class="fas fa-exchange-alt"></i>
-                <span>Agent/Skill Exchange</span>
-            </a>
-            <a href="error-node-explorer.html" class="nav-item">
-                <i class="fas fa-search"></i>
-                <span>ErrorNode Explorer</span>
+            <a href="#" class="nav-item" onclick="openDocumentation(); return false;">
+                <i class="fas fa-book"></i>
+                <span>Documentation</span>
             </a>
             <a href="api-sdk.html" class="nav-item">
                 <i class="fas fa-code"></i>
-                <span>API & SDK</span>
-            </a>
-            <a href="wallet-management.html" class="nav-item">
-                <i class="fas fa-wallet"></i>
-                <span>KNIRV Wallets</span>
-            </a>
-            <a href="tesnet-sandbox.html" class="nav-item">
-                <i class="fas fa-flask"></i>
-                <span>TESNET & Sandbox</span>
+                <span>API &amp; SDK</span>
             </a>
             <a href="community-support.html" class="nav-item">
                 <i class="fas fa-users"></i>
-                <span>Community & Support</span>
+                <span>Community &amp; Support</span>
             </a>
         </nav>
 
@@ -93,9 +69,9 @@
                     <div style="width: 80px; height: 80px; border-radius: 50%; background: linear-gradient(135deg, var(--bright-blue) 0%, var(--knirv-purple) 100%); display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; font-size: 2.5em;">
                         <i class="fas fa-brain" style="color: var(--white);"></i>
                     </div>
-                    <h1 style="color: var(--bright-blue); margin-bottom: 10px; font-size: 2rem;">KNIRV D-TEN Architecture</h1>
-                    <p style="color: var(--transparent-white-7); max-width: 600px; margin: 0 auto;">
-                        Understand the twelve layers of the Decentralized Trusted Execution Network and how they work together to create autonomous intelligence.
+                    <h1 style="color: var(--bright-blue); margin-bottom: 10px; font-size: 2rem;">KNIRV DVE Architecture</h1>
+                    <p style="color: var(--transparent-white-7); max-width: 650px; margin: 0 auto;">
+                        The DVE (Distributed Validation Environment) is the primary service layer of the KNIRV network — a sovereign, policy-governed compute container backed by cryptographic attestation and an immutable KNIRVCHAIN audit trail. The full D-TEN architecture beneath it provides the decentralized infrastructure that makes DVEs verifiable.
                     </p>
                 </div>
             </div>
@@ -106,7 +82,7 @@
                     <i class="fas fa-layer-group" style="margin-right: 10px;"></i>The Twelve Layers of D-TEN
                 </h2>
                 <p style="color: var(--transparent-white-7); margin-bottom: 30px;">
-                    The KNIRV D-TEN (Decentralized Trusted Execution Network) is built on a twelve-layer architecture that enables autonomous agents to learn, adapt, and collaborate in a decentralized environment.
+                    The KNIRV D-TEN (Decentralized Trusted Execution Network) provides the infrastructure beneath every DVE. Layer 5 — <strong style="color: var(--white);">KNIRV-SERVER DVE</strong> — is where developers interact directly: it hosts the Policy Editor, issues validation proofs, and commits results to KNIRVCHAIN.
                 </p>
 
                 <!-- Layer Grid -->
@@ -372,33 +348,53 @@
                 </h2>
 
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px;">
-                    <!-- ErrorNodes -->
+                    <!-- DVE -->
                     <div style="padding: 20px; background-color: var(--transparent-white-05); border-radius: 10px; border-left: 4px solid var(--bright-blue);">
                         <h3 style="color: var(--bright-blue); margin-bottom: 10px;">
+                            <i class="fas fa-server" style="margin-right: 8px;"></i>DVE
+                        </h3>
+                        <p style="color: var(--transparent-white-7); font-size: 0.9rem;">
+                            A Distributed Validation Environment is a sovereign compute container with cryptographic attestation, policy governance, and a blockchain-committed audit trail.
+                        </p>
+                    </div>
+
+                    <!-- Policy Editor -->
+                    <div style="padding: 20px; background-color: var(--transparent-white-05); border-radius: 10px; border-left: 4px solid var(--knirv-purple);">
+                        <h3 style="color: var(--knirv-purple); margin-bottom: 10px;">
+                            <i class="fas fa-sliders-h" style="margin-right: 8px;"></i>Policy Editor
+                        </h3>
+                        <p style="color: var(--transparent-white-7); font-size: 0.9rem;">
+                            Define governance rules that control how your DVE accepts, executes, and reports on workloads. Policies are versioned and committed on-chain.
+                        </p>
+                    </div>
+
+                    <!-- Blockchain Commit -->
+                    <div style="padding: 20px; background-color: var(--transparent-white-05); border-radius: 10px; border-left: 4px solid var(--knirv-purple-light);">
+                        <h3 style="color: var(--knirv-purple-light); margin-bottom: 10px;">
+                            <i class="fas fa-link" style="margin-right: 8px;"></i>Blockchain Commit
+                        </h3>
+                        <p style="color: var(--transparent-white-7); font-size: 0.9rem;">
+                            Every policy change and execution result is committed to KNIRVCHAIN, producing a tamper-proof audit trail verifiable by any third party.
+                        </p>
+                    </div>
+
+                    <!-- ErrorNodes -->
+                    <div style="padding: 20px; background-color: var(--transparent-white-05); border-radius: 10px; border-left: 4px solid #f59e0b;">
+                        <h3 style="color: #f59e0b; margin-bottom: 10px;">
                             <i class="fas fa-exclamation-triangle" style="margin-right: 8px;"></i>ErrorNodes
                         </h3>
                         <p style="color: var(--transparent-white-7); font-size: 0.9rem;">
-                            Failed AI attempts that become learning opportunities. Instead of discarding failures, KNIRV transforms them into valuable training data for the network.
+                            Failed AI attempts that become learning opportunities. KNIRV transforms validation failures into structured training data for the network's collective intelligence.
                         </p>
                     </div>
 
-                    <!-- Autonomous Agents -->
-                    <div style="padding: 20px; background-color: var(--transparent-white-05); border-radius: 10px; border-left: 4px solid var(--knirv-purple);">
-                        <h3 style="color: var(--knirv-purple); margin-bottom: 10px;">
-                            <i class="fas fa-robot" style="margin-right: 8px;"></i>Autonomous Agents
+                    <!-- Cognitive Engine -->
+                    <div style="padding: 20px; background-color: var(--transparent-white-05); border-radius: 10px; border-left: 4px solid #22c55e;">
+                        <h3 style="color: #22c55e; margin-bottom: 10px;">
+                            <i class="fas fa-brain" style="margin-right: 8px;"></i>Cognitive Engine <span style="font-size:0.75em; opacity:0.7;">(Pro)</span>
                         </h3>
                         <p style="color: var(--transparent-white-7); font-size: 0.9rem;">
-                            Self-governing AI entities that can learn, adapt, and make decisions independently while contributing to the collective intelligence of the network.
-                        </p>
-                    </div>
-
-                    <!-- Collective Intelligence -->
-                    <div style="padding: 20px; background-color: var(--transparent-white-05); border-radius: 10px; border-left: 4px solid var(--knirv-purple-light);">
-                        <h3 style="color: var(--knirv-purple-light); margin-bottom: 10px;">
-                            <i class="fas fa-network-wired" style="margin-right: 8px;"></i>Collective Intelligence
-                        </h3>
-                        <p style="color: var(--transparent-white-7); font-size: 0.9rem;">
-                            The emergent intelligence that arises from the collaboration and knowledge sharing between multiple autonomous agents in the network.
+                            Adaptive AI governance layer that automatically tunes policies and detects anomalies — available on the Professional tier and above.
                         </p>
                     </div>
 
@@ -408,7 +404,7 @@
                             <i class="fas fa-coins" style="margin-right: 8px;"></i>NRN Tokens
                         </h3>
                         <p style="color: var(--transparent-white-7); font-size: 0.9rem;">
-                            Network Resolution Notices - the native token that facilitates transactions, rewards learning, and enables autonomous economic activity.
+                            Network Resolution Notices — the native token used to fund DVE compute, reward error resolution, and enable autonomous economic activity.
                         </p>
                     </div>
                 </div>
@@ -420,18 +416,13 @@
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px;">
                     <a href="getting-started.html" class="hover-lift" style="display: block; padding: 20px; background-color: var(--transparent-white-05); border-radius: 10px; text-decoration: none; color: var(--white); text-align: center;">
                         <i class="fas fa-rocket" style="font-size: 2em; color: var(--bright-blue); margin-bottom: 10px;"></i>
-                        <h4 style="margin-bottom: 5px;">Start Building</h4>
-                        <p style="color: var(--transparent-white-7); font-size: 0.9em;">Follow our getting started guide</p>
-                    </a>
-                    <a href="agent-management.html" class="hover-lift" style="display: block; padding: 20px; background-color: var(--transparent-white-05); border-radius: 10px; text-decoration: none; color: var(--white); text-align: center;">
-                        <i class="fas fa-robot" style="font-size: 2em; color: var(--knirv-purple); margin-bottom: 10px;"></i>
-                        <h4 style="margin-bottom: 5px;">Register Agent</h4>
-                        <p style="color: var(--transparent-white-7); font-size: 0.9em;">Create your first autonomous agent</p>
+                        <h4 style="margin-bottom: 5px;">Launch Your DVE</h4>
+                        <p style="color: var(--transparent-white-7); font-size: 0.9em;">Step-by-step DVE deployment guide</p>
                     </a>
                     <a href="api-sdk.html" class="hover-lift" style="display: block; padding: 20px; background-color: var(--transparent-white-05); border-radius: 10px; text-decoration: none; color: var(--white); text-align: center;">
                         <i class="fas fa-code" style="font-size: 2em; color: var(--knirv-purple-light); margin-bottom: 10px;"></i>
                         <h4 style="margin-bottom: 5px;">API Documentation</h4>
-                        <p style="color: var(--transparent-white-7); font-size: 0.9em;">Explore the KNIRV SDK</p>
+                        <p style="color: var(--transparent-white-7); font-size: 0.9em;">Explore the KNIRVBASE SDK</p>
                     </a>
                 </div>
             </div>
