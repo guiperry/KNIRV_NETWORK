@@ -179,6 +179,11 @@ echo "2. Killing backend server..."
 kill_by_pattern "backend_server" "SIGTERM" "true"
 kill_by_pattern "bin/backend_server" "SIGTERM" "true"
 
+# Kill installer / GUI monitor
+echo ""
+echo "2.5. Killing installer and detached GUI monitor..."
+kill_by_pattern "knirvserver" "SIGTERM" "true"
+
 # Kill container deployer
 echo ""
 echo "3. Killing container deployer..."

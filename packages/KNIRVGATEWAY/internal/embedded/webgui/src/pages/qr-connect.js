@@ -1,82 +1,187 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+import { QRCodeSVG } from 'qrcode.react';
+import { useNavigation } from '../hooks/useNavigation';
+import PageLayout from '../components/PageLayout';
+import PageHeader from '../components/PageHeader';
+import GlassyCard from '../components/GlassyCard';
+import { useRole } from '../contexts/RoleContext';
 
-// Minimal QR Connect page: accepts a controller URL via query or manual input
-// Future enhancement: display QR and parse scanned payloads
+// Connection types the KNIRVCONTROLLER can scan from this gateway.
+const TARGETS = [
+  { id: 'webgui',  label: 'WebGUI Session',    icon: '🖥️',  description: 'Authenticate your KNIRVCONTROLLER wallet into this dashboard.' },
+  { id: 'server',  label: 'KNIRVSERVER',        icon: '🌐',  description: 'Connect the controller to the backing KNIRVSERVER node.' },
+  { id: 'bridge',  label: 'KNIRVBRIDGE',        icon: '🌉',  description: 'Link to the KNIRVBRIDGE cross-chain relay.' },
+];
+
+function generateSessionToken() {
+  const arr = new Uint8Array(24);
+  crypto.getRandomValues(arr);
+  return Array.from(arr).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
 export default function QRConnectPage() {
-  const [controllerUrl, setControllerUrl] = useState('');
-  const [status, setStatus] = useState('');
+  const { activePage } = useNavigation('qr-connect');
+  const { role } = useRole();
 
+  const [selectedTarget, setSelectedTarget] = useState('webgui');
+  const [sessionToken, setSessionToken] = useState(() => generateSessionToken());
+  const [copied, setCopied] = useState(false);
+  const [connected, setConnected] = useState(false);
+  const [connectedAt, setConnectedAt] = useState('');
+  const pollRef = useRef(null);
+
+  // Build the knirv:// URI that the controller will scan.
+  const gatewayOrigin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:8080';
+  const knirvUri = `knirv://connect?v=1&type=${selectedTarget}&endpoint=${encodeURIComponent(gatewayOrigin)}&token=${sessionToken}&network=local`;
+
+  // Poll /session/controller to detect when the KNIRVCONTROLLER has connected.
   useEffect(() => {
-    // Allow setting via query ?controllerUrl=https://...
-    try {
-      const url = new URL(window.location.href);
-      const q = url.searchParams.get('controllerUrl');
-      if (q) setControllerUrl(q);
-    } catch (_) {}
-  }, []);
+    if (connected) return;
 
-  async function save() {
-    setStatus('');
-    try {
-      const r = await fetch('/session/controller', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ controllerUrl })
-      });
-      const j = await r.json();
-      if (!r.ok) throw new Error(j?.error || 'Failed');
-      setStatus('Saved. You can now open My API Endpoints.');
-    } catch (e) {
-      setStatus(`Error: ${e.message}`);
-    }
+    const check = async () => {
+      try {
+        const res = await fetch('/session/controller', { credentials: 'include' });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data && data.controllerUrl) {
+          setConnected(true);
+          setConnectedAt(new Date().toLocaleTimeString());
+          clearInterval(pollRef.current);
+        }
+      } catch {}
+    };
+
+    pollRef.current = setInterval(check, 3000);
+    return () => clearInterval(pollRef.current);
+  }, [connected, selectedTarget]);
+
+  // Reset session when target changes.
+  useEffect(() => {
+    setSessionToken(generateSessionToken());
+    setConnected(false);
+    setConnectedAt('');
+  }, [selectedTarget]);
+
+  function regenerate() {
+    setSessionToken(generateSessionToken());
+    setConnected(false);
+    setConnectedAt('');
+  }
+
+  function copyUri() {
+    navigator.clipboard.writeText(knirvUri).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
   }
 
   return (
-    <div style={styles.page}>
-      <h1 style={styles.title}>QR Connect</h1>
-      <p style={styles.desc}>Paste your KNIRVCONTROLLER base URL (e.g., http://localhost:3000) or arrive via QR deep link.</p>
+    <PageLayout activePage={activePage} pageTitle="QR Connect">
+      <PageHeader
+        title="QR Connect"
+        subtitle="Scan a QR code with KNIRVCONTROLLER to link your wallet to this gateway or a network service."
+      />
 
-      <div style={styles.row}>
-        <input
-          style={styles.input}
-          value={controllerUrl}
-          onChange={(e) => setControllerUrl(e.target.value)}
-          placeholder="https://your-controller-host"
-        />
-        <button style={styles.button} onClick={save}>Save</button>
-      </div>
+      {/* Target selector */}
+      <GlassyCard title="Select Connection Target">
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+          {TARGETS.map(t => (
+            <button
+              key={t.id}
+              onClick={() => setSelectedTarget(t.id)}
+              style={{
+                flex: '1 1 160px',
+                padding: '14px 16px',
+                borderRadius: 10,
+                border: `1px solid ${selectedTarget === t.id ? 'rgba(0,192,250,0.6)' : 'rgba(255,255,255,0.1)'}`,
+                background: selectedTarget === t.id ? 'rgba(0,192,250,0.12)' : 'rgba(255,255,255,0.03)',
+                color: selectedTarget === t.id ? '#00c0fa' : 'rgba(255,255,255,0.7)',
+                cursor: 'pointer',
+                textAlign: 'left',
+                transition: 'all 0.15s',
+              }}
+            >
+              <div style={{ fontSize: 22, marginBottom: 6 }}>{t.icon}</div>
+              <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 4 }}>{t.label}</div>
+              <div style={{ fontSize: 11, opacity: 0.7, lineHeight: 1.4 }}>{t.description}</div>
+            </button>
+          ))}
+        </div>
+      </GlassyCard>
 
-      {status && <div style={styles.status}>{status}</div>}
+      {/* QR code display */}
+      <GlassyCard title="Scan with KNIRVCONTROLLER">
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20 }}>
+          {/* Status badge */}
+          {connected ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 16px', borderRadius: 20, background: 'rgba(46,204,113,0.15)', border: '1px solid rgba(46,204,113,0.4)' }}>
+              <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#2ecc71', display: 'inline-block' }} />
+              <span style={{ color: '#2ecc71', fontSize: 13, fontWeight: 600 }}>Controller connected at {connectedAt}</span>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 16px', borderRadius: 20, background: 'rgba(0,192,250,0.08)', border: '1px solid rgba(0,192,250,0.2)' }}>
+              <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#00c0fa', display: 'inline-block', animation: 'pulse 1.4s ease-in-out infinite' }} />
+              <span style={{ color: 'rgba(0,192,250,0.9)', fontSize: 13 }}>Waiting for scan…</span>
+            </div>
+          )}
 
-      <div style={styles.tip}>
-        Tip: Once saved, "My API Endpoints" will open your controller at <code>/controller</code> through the oracle.
-      </div>
-    </div>
+          {/* QR */}
+          <div style={{ background: '#fff', padding: 16, borderRadius: 12 }}>
+            <QRCodeSVG
+              value={knirvUri}
+              size={220}
+              level="H"
+              includeMargin={false}
+            />
+          </div>
+
+          <div style={{ textAlign: 'center', maxWidth: 340 }}>
+            <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 13, margin: '0 0 4px' }}>
+              Open KNIRVCONTROLLER → tap <strong style={{ color: '#fff' }}>Scan QR</strong>
+            </p>
+            <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: 11, margin: 0 }}>
+              Session token rotates every time you change target or regenerate.
+            </p>
+          </div>
+
+          {/* URI display + copy */}
+          <div style={{ width: '100%', maxWidth: 440, background: 'rgba(0,0,0,0.25)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, padding: '10px 14px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+              <span style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'rgba(255,255,255,0.35)' }}>URI</span>
+              <button
+                onClick={copyUri}
+                style={{ background: 'none', border: 'none', color: copied ? '#2ecc71' : 'rgba(255,255,255,0.5)', fontSize: 11, cursor: 'pointer', padding: '2px 6px' }}
+              >
+                {copied ? '✓ Copied' : 'Copy'}
+              </button>
+            </div>
+            <code style={{ fontSize: 10, color: 'rgba(255,255,255,0.6)', wordBreak: 'break-all', display: 'block', lineHeight: 1.6 }}>
+              {knirvUri}
+            </code>
+          </div>
+
+          {/* Actions */}
+          <div style={{ display: 'flex', gap: 10 }}>
+            <button
+              onClick={regenerate}
+              style={{ padding: '9px 20px', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 8, background: 'transparent', color: 'rgba(255,255,255,0.7)', cursor: 'pointer', fontSize: 13, transition: 'all 0.15s' }}
+            >
+              ↺ New Token
+            </button>
+          </div>
+        </div>
+      </GlassyCard>
+
+      {/* How it works */}
+      <GlassyCard title="How it works">
+        <ol style={{ margin: 0, paddingLeft: 20, color: 'rgba(255,255,255,0.6)', fontSize: 13, lineHeight: 1.8 }}>
+          <li>Select the connection target above.</li>
+          <li>Open KNIRVCONTROLLER on your phone and tap <strong style={{ color: '#fff' }}>Scan QR</strong>.</li>
+          <li>Point the camera at the code — the app will parse the <code style={{ color: '#00c0fa' }}>knirv://</code> URI automatically.</li>
+          <li>Confirm the connection in the app. Your wallet address and role are then available in this session.</li>
+          <li>The token is single-use. Tap <strong style={{ color: '#fff' }}>New Token</strong> to invalidate the current code and generate a fresh one.</li>
+        </ol>
+      </GlassyCard>
+    </PageLayout>
   );
 }
-
-const styles = {
-  page: { padding: 24, color: '#e6efff' },
-  title: { fontSize: 24, marginBottom: 8 },
-  desc: { opacity: 0.8 },
-  row: { display: 'flex', gap: 8, marginTop: 16 },
-  input: {
-    flex: 1,
-    padding: '10px 12px',
-    borderRadius: 8,
-    border: '1px solid rgba(255,255,255,0.2)',
-    background: 'rgba(255,255,255,0.06)',
-    color: '#e6efff'
-  },
-  button: {
-    padding: '10px 16px',
-    borderRadius: 8,
-    border: '1px solid rgba(255,255,255,0.2)',
-    background: '#0b5cff',
-    color: 'white',
-    cursor: 'pointer'
-  },
-  status: { marginTop: 12 },
-  tip: { marginTop: 16, opacity: 0.8 }
-};

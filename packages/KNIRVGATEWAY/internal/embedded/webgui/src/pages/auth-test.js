@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useNavigation } from '../hooks/useNavigation';
 import PageLayout from '../components/PageLayout';
 import PageHeader from '../components/PageHeader';
@@ -7,211 +7,232 @@ import RoleSwitcher from '../components/RoleSwitcher';
 import { useRole } from '../contexts/RoleContext';
 import styles from './auth-test.module.css';
 
+const ROLES = ['Root', 'Bootnode', 'Dev', 'General'];
+
+// Master page list — rows in the permission matrix.
+// isSection rows are non-interactive visual dividers.
+// isGroup marks a collapsible nav group toggle (e.g. "Environments").
+// indent marks a child page that lives inside a group.
+const ALL_PAGES = [
+  { id: 'dashboard', label: 'Dashboard' },
+
+  { id: '__sec_env', label: 'Environments', isSection: true },
+  { id: 'environments', label: 'Environments (group)', isGroup: true },
+  { id: 'dve-list',      label: 'My DVEs',            indent: true },
+  { id: 'models',        label: 'DVE Overview',        indent: true },
+  { id: 'codex-builder', label: 'DVE Codex Builder',   indent: true },
+  { id: 'models-dex',    label: 'DVE DEX',             indent: true },
+
+  { id: '__sec_quick', label: 'Quick Access', isSection: true },
+  { id: 'arena',             label: 'KNIRVARENA' },
+  { id: 'controller-status', label: 'KNIRVCONTROLLER Status' },
+  { id: 'qr-connect',        label: 'QR Connect' },
+  { id: 'my-endpoints',      label: 'My API Endpoints' },
+  { id: 'payment-gateway',   label: 'Payment Gateway' },
+
+  { id: '__sec_monitor', label: 'Monitor', isSection: true },
+  { id: 'monitor',            label: 'Monitor (group)',    isGroup: true },
+  { id: 'network-monitor',    label: 'Network Monitor',   indent: true },
+  { id: 'graph-explorer',     label: 'Graph Explorer',    indent: true },
+  { id: 'chain-explorer',     label: 'Chain Explorer',    indent: true },
+  { id: 'chain-explorer-new', label: 'Chain Explorer (New)', indent: true },
+  { id: 'oracle-explorer',    label: 'Oracle Explorer',   indent: true },
+  { id: 'peers',              label: 'Peers',             indent: true },
+  { id: 'operator-registry',  label: 'Operator Registry', indent: true },
+  { id: 'tunnel-registry',    label: 'Tunnel Registry',   indent: true },
+  { id: 'error-explorer',     label: 'Error Explorer',    indent: true },
+  { id: 'transaction-explorer', label: 'Transactions' },
+  { id: 'validation-explorer',  label: 'Validations' },
+
+  { id: '__sec_governance', label: 'Governance', isSection: true },
+  { id: 'governance',            label: 'Governance (group)',      isGroup: true },
+  { id: 'bootnode-dao',          label: 'Bootnode DAO',           indent: true },
+  { id: 'network-inference-dao', label: 'Network Inference DAO',  indent: true },
+
+  { id: '__sec_marketplace', label: 'Marketplace', isSection: true },
+  { id: 'marketplace',  label: 'Marketplace (group)', isGroup: true },
+  { id: 'skills',       label: 'Skills',              indent: true },
+  { id: 'capabilities', label: 'Capabilities',        indent: true },
+  { id: 'properties',   label: 'Properties',          indent: true },
+  { id: 'settlement',   label: 'Settlement',          indent: true },
+
+  { id: '__sec_graphchain', label: 'Graphchain', isSection: true },
+  { id: 'graphchain',           label: 'Graphchain' },
+  { id: 'graphchain-dashboard', label: 'Graphchain Dashboard' },
+  { id: 'graphchain-errors',    label: 'Graphchain Errors' },
+  { id: 'graphchain-skills',    label: 'Graphchain Skills' },
+
+  { id: '__sec_my', label: 'My Items', isSection: true },
+  { id: 'my-models',            label: 'My Models' },
+  { id: 'my-wallets',           label: 'My Wallets' },
+  { id: 'my-skills',            label: 'My Skills' },
+  { id: 'my-capabilities',      label: 'My Capabilities' },
+  { id: 'my-properties',        label: 'My Properties' },
+  { id: 'nft-property-explorer', label: 'NFT Property Explorer' },
+  { id: 'nft-capability-manager', label: 'NFT Capability Manager' },
+  { id: 'add-capability',       label: 'Add Capability' },
+
+  { id: '__sec_tools', label: 'Tools & Finance', isSection: true },
+  { id: 'tools',     label: 'Tools' },
+  { id: 'basic',     label: 'Basic' },
+  { id: 'advanced',  label: 'Advanced' },
+  { id: 'explorer',  label: 'Explorer' },
+  { id: 'inventory', label: 'Inventory' },
+  { id: 'blockchain', label: 'Blockchain' },
+  { id: 'dex',       label: 'DEX' },
+  { id: 'daos',      label: 'DAOs' },
+
+  { id: '__sec_admin', label: 'Admin', isSection: true },
+  { id: 'settings',      label: 'Settings' },
+  { id: 'network-admin', label: 'Network Admin' },
+  { id: 'auth-test',     label: 'Role Permissions (this page)' },
+];
+
+const INTERACTIVE_PAGES = ALL_PAGES.filter(p => !p.isSection);
+
 export default function AuthTest() {
-  const { activePage, handleNavigation } = useNavigation('auth-test');
-  const { role, network, isAuthenticated, canAccess, getUserInfo } = useRole();
-  const [authHistory, setAuthHistory] = useState([]);
+  const { activePage } = useNavigation('auth-test');
+  const { role: currentRole, pageAccess, updatePageAccess, defaultPageAccess } = useRole();
 
-  useEffect(() => {
-    // Log authentication state changes
-    const timestamp = new Date().toLocaleTimeString();
-    const newEntry = {
-      timestamp,
-      role,
-      network,
-      isAuthenticated,
-      userAgent: navigator.userAgent.substring(0, 50) + '...'
-    };
-    
-    setAuthHistory(prev => [newEntry, ...prev.slice(0, 9)]); // Keep last 10 entries
-  }, [role, network, isAuthenticated]);
+  // Local draft: map of role → Set<pageId>
+  const [draft, setDraft] = useState(() => {
+    const init = {};
+    for (const r of ROLES) init[r] = new Set(pageAccess[r] || []);
+    return init;
+  });
 
-  const rolePermissions = {
-    Root: [
-      'dashboard', 'inventory', 'vault', 'blockchain', 'dex', 'daos',
-      'nft-vault', 'nft-capability-manager', 'add-capability',
-      'settlement', 'network-admin', 'peers', 'explorer', 'capabilities'
-    ],
-    Bootnode: [
-      'dashboard', 'inventory', 'vault', 'blockchain', 'dex', 'daos',
-      'nft-vault', 'nft-capability-manager', 'add-capability',
-      'settlement', 'peers', 'explorer', 'capabilities'
-    ],
-    Dev: [
-      'dashboard', 'inventory', 'vault', 'blockchain', 'dex',
-      'nft-vault', 'nft-capability-manager', 'add-capability',
-      'explorer', 'capabilities'
-    ],
-    General: [
-      'dashboard', 'inventory', 'dex', 'nft-capability-manager', 'capabilities'
-    ]
+  const [saving, setSaving] = useState(false);
+  const [dirty, setDirty] = useState(false);
+
+  const toggle = (pageId, r) => {
+    setDraft(prev => {
+      const next = { ...prev, [r]: new Set(prev[r]) };
+      next[r].has(pageId) ? next[r].delete(pageId) : next[r].add(pageId);
+      return next;
+    });
+    setDirty(true);
   };
 
-  const allPages = [
-    'dashboard', 'inventory', 'vault', 'blockchain', 'dex', 'daos',
-    'nft-vault', 'nft-capability-manager', 'add-capability',
-    'settlement', 'network-admin', 'peers', 'explorer', 'capabilities'
-  ];
-
-  const testPageAccess = (page) => {
-    try {
-      handleNavigation(page);
-    } catch (error) {
-      console.error(`Failed to navigate to ${page}:`, error);
-    }
+  const toggleAll = (r) => {
+    const allIds = INTERACTIVE_PAGES.map(p => p.id);
+    const isFull = allIds.every(id => draft[r].has(id));
+    setDraft(prev => ({
+      ...prev,
+      [r]: isFull ? new Set() : new Set(allIds),
+    }));
+    setDirty(true);
   };
 
-  const userInfo = getUserInfo();
-  const allowedPages = rolePermissions[role] || [];
-  const deniedPages = allPages.filter(page => !allowedPages.includes(page));
+  const resetToDefaults = () => {
+    const reset = {};
+    for (const r of ROLES) reset[r] = new Set(defaultPageAccess[r] || []);
+    setDraft(reset);
+    setDirty(true);
+  };
+
+  const handleSave = () => {
+    const newAccess = {};
+    for (const r of ROLES) newAccess[r] = Array.from(draft[r]);
+    updatePageAccess(newAccess);
+    setSaving(true);
+    setTimeout(() => window.location.reload(), 900);
+  };
+
+  // Count per role for the column header
+  const counts = useMemo(() =>
+    Object.fromEntries(ROLES.map(r => [r, draft[r].size])),
+    [draft]
+  );
 
   return (
-    <PageLayout
-      activePage={activePage}
-      pageTitle="Authentication Testing"
-    >
+    <PageLayout activePage={activePage} pageTitle="Role Permissions">
       <PageHeader
-        title="Authentication & Role Testing"
-        subtitle="Test different user roles and authentication scenarios"
+        title="Role Access Configuration"
+        subtitle="Check which pages each role can see. Changes take effect after Save & Apply."
       />
 
-      {/* Current Authentication Status */}
-      <GlassyCard className={styles.statusCard}>
-        <h3>Current Authentication Status</h3>
-        <div className={styles.statusGrid}>
-          <div className={styles.statusItem}>
-            <span className={styles.statusLabel}>Role:</span>
-            <span className={`${styles.statusValue} ${styles[role?.toLowerCase()]}`}>
-              {userInfo.displayName}
-            </span>
-          </div>
-          <div className={styles.statusItem}>
-            <span className={styles.statusLabel}>Network:</span>
-            <span className={styles.statusValue}>{userInfo.networkDisplay}</span>
-          </div>
-          <div className={styles.statusItem}>
-            <span className={styles.statusLabel}>Authenticated:</span>
-            <span className={`${styles.statusValue} ${isAuthenticated ? styles.authenticated : styles.notAuthenticated}`}>
-              {isAuthenticated ? 'Yes' : 'No'}
-            </span>
-          </div>
-          <div className={styles.statusItem}>
-            <span className={styles.statusLabel}>Demo Mode:</span>
-            <span className={styles.statusValue}>
-              {localStorage.getItem('knirv_demo_mode') === 'true' ? 'Enabled' : 'Disabled'}
-            </span>
-          </div>
-        </div>
+      {/* Role switcher */}
+      <GlassyCard title="Switch Active Role">
+        <p className={styles.roleSwitcherHint}>
+          Change your session role here to preview how the navigation looks after saving.
+        </p>
+        <RoleSwitcher />
       </GlassyCard>
 
-      {/* Page Access Testing */}
-      <GlassyCard className={styles.accessCard}>
-        <h3>Page Access Testing</h3>
-        <p>Test which pages your current role can access. Green = Allowed, Red = Denied</p>
-        
-        <div className={styles.accessSection}>
-          <h4>Allowed Pages ({allowedPages.length})</h4>
-          <div className={styles.pageGrid}>
-            {allowedPages.map(page => (
-              <button
-                key={page}
-                className={`${styles.pageButton} ${styles.allowed}`}
-                onClick={() => testPageAccess(page)}
-                title={`Navigate to ${page}`}
-              >
-                {page}
-              </button>
-            ))}
-          </div>
+      {/* Action bar */}
+      <div className={styles.actionBar}>
+        <button className={styles.resetBtn} onClick={resetToDefaults} disabled={saving}>
+          ↺ Reset to Defaults
+        </button>
+        <div className={styles.actionRight}>
+          {saving && <span className={styles.savingMsg}>✓ Saved — reloading…</span>}
+          <button
+            className={`${styles.saveBtn} ${dirty && !saving ? styles.saveBtnDirty : ''}`}
+            onClick={handleSave}
+            disabled={saving || !dirty}
+          >
+            Save &amp; Apply
+          </button>
         </div>
+      </div>
 
-        <div className={styles.accessSection}>
-          <h4>Denied Pages ({deniedPages.length})</h4>
-          <div className={styles.pageGrid}>
-            {deniedPages.map(page => (
-              <button
-                key={page}
-                className={`${styles.pageButton} ${styles.denied}`}
-                onClick={() => testPageAccess(page)}
-                title={`Try to navigate to ${page} (should be blocked)`}
-              >
-                {page}
-              </button>
-            ))}
-          </div>
-        </div>
-      </GlassyCard>
-
-      {/* Role Comparison */}
-      <GlassyCard className={styles.comparisonCard}>
-        <h3>Role Permission Comparison</h3>
-        <div className={styles.roleComparison}>
-          {Object.entries(rolePermissions).map(([roleName, pages]) => (
-            <div key={roleName} className={styles.roleColumn}>
-              <h4 className={`${styles.roleHeader} ${styles[roleName.toLowerCase()]}`}>
-                {roleName} ({pages.length} pages)
-              </h4>
-              <div className={styles.permissionList}>
-                {pages.map(page => (
-                  <div
-                    key={page}
-                    className={`${styles.permissionItem} ${role === roleName ? styles.current : ''}`}
-                  >
-                    {page}
-                  </div>
+      {/* Permission matrix */}
+      <GlassyCard>
+        <div className={styles.tableWrap}>
+          <table className={styles.matrix}>
+            <thead>
+              <tr>
+                <th className={styles.pageCol}>Page / Feature</th>
+                {ROLES.map(r => (
+                  <th key={r} className={`${styles.roleCol} ${styles['role_' + r.toLowerCase()]}`}>
+                    <div className={styles.roleColName}>
+                      {r}
+                      {r === currentRole && <span className={styles.youBadge}>you</span>}
+                    </div>
+                    <div className={styles.roleColCount}>{counts[r]} pages</div>
+                    <button className={styles.toggleAllBtn} onClick={() => toggleAll(r)}>
+                      {INTERACTIVE_PAGES.every(p => draft[r].has(p.id)) ? 'Clear all' : 'Select all'}
+                    </button>
+                  </th>
                 ))}
-              </div>
-            </div>
-          ))}
-        </div>
-      </GlassyCard>
-
-      {/* Authentication History */}
-      <GlassyCard className={styles.historyCard}>
-        <h3>Authentication History</h3>
-        <div className={styles.historyList}>
-          {authHistory.map((entry, index) => (
-            <div key={index} className={styles.historyEntry}>
-              <div className={styles.historyTime}>{entry.timestamp}</div>
-              <div className={styles.historyDetails}>
-                <span className={`${styles.historyRole} ${styles[entry.role?.toLowerCase()]}`}>
-                  {entry.role}
-                </span>
-                <span className={styles.historyNetwork}>{entry.network}</span>
-                <span className={`${styles.historyAuth} ${entry.isAuthenticated ? styles.authenticated : styles.notAuthenticated}`}>
-                  {entry.isAuthenticated ? 'Auth' : 'No Auth'}
-                </span>
-              </div>
-            </div>
-          ))}
-        </div>
-      </GlassyCard>
-
-      {/* Role Switcher */}
-      <GlassyCard className={styles.roleSwitcherCard}>
-        <h3>Role Switcher</h3>
-        <p>Switch between different user roles and networks to test authentication scenarios</p>
-        <div className={styles.roleSwitcherWrapper}>
-          <RoleSwitcher />
-        </div>
-      </GlassyCard>
-
-      {/* Instructions */}
-      <GlassyCard className={styles.instructionsCard}>
-        <h3>Testing Instructions</h3>
-        <div className={styles.instructions}>
-          <div className={styles.instruction}>
-            <strong>1. Role Switching:</strong> Use the role switcher above to test different roles
-          </div>
-          <div className={styles.instruction}>
-            <strong>2. Page Access:</strong> Click on page buttons above to test navigation permissions
-          </div>
-          <div className={styles.instruction}>
-            <strong>3. Authentication:</strong> Use "Clear Auth & Show Login" to test the login screen
-          </div>
-          <div className={styles.instruction}>
-            <strong>4. Network Testing:</strong> Switch between different networks to test connectivity
-          </div>
+              </tr>
+            </thead>
+            <tbody>
+              {ALL_PAGES.map(page => {
+                if (page.isSection) {
+                  return (
+                    <tr key={page.id} className={styles.sectionRow}>
+                      <td colSpan={5} className={styles.sectionCell}>
+                        {page.label}
+                      </td>
+                    </tr>
+                  );
+                }
+                return (
+                  <tr key={page.id} className={`${styles.pageRow} ${page.isGroup ? styles.groupRow : ''}`}>
+                    <td className={`${styles.pageLabel} ${page.indent ? styles.indented : ''}`}>
+                      {page.indent && <span className={styles.treeLine}>└</span>}
+                      <span className={styles.pageName}>{page.label}</span>
+                      <span className={styles.pageId}>{page.id}</span>
+                    </td>
+                    {ROLES.map(r => {
+                      const checked = draft[r].has(page.id);
+                      return (
+                        <td key={r} className={`${styles.checkCell} ${checked ? styles.checkedCell : ''}`}>
+                          <input
+                            type="checkbox"
+                            className={styles.checkbox}
+                            checked={checked}
+                            onChange={() => toggle(page.id, r)}
+                          />
+                        </td>
+                      );
+                    })}
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
       </GlassyCard>
     </PageLayout>

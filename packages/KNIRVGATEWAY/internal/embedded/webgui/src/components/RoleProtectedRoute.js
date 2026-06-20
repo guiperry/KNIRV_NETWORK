@@ -32,13 +32,12 @@ export default function RoleProtectedRoute({ children }) {
           return;
         }
 
-        // Prevent redirect loop - only redirect once
-        if (!redirectAttempted && !window.location.search.includes('redirect=webgui')) {
+        // Redirect once to KNIRV.NETWORK login, passing this gateway's origin as callback
+        if (!redirectAttempted) {
           setRedirectAttempted(true);
-          // In production, redirect to main website for authentication
-          const mainWebsiteUrl = window.location.origin;
-          console.log('[WebGUI] Redirecting to main website for authentication');
-          window.location.href = `${mainWebsiteUrl}?redirect=webgui`;
+          const gateway = encodeURIComponent(window.location.origin);
+          console.log('[WebGUI] Redirecting to KNIRV.NETWORK for authentication');
+          window.location.href = `https://knirv.network?gateway=${gateway}`;
           return;
         }
 
@@ -114,10 +113,13 @@ export default function RoleProtectedRoute({ children }) {
       }}>
         <div style={{ textAlign: 'center', maxWidth: '400px', padding: '20px' }}>
           <h2>Authentication Required</h2>
-          <p>Please log in through the main KNIRV website to access the WebGUI.</p>
+          <p>Log in via KNIRV.NETWORK to connect this local instance.</p>
           <div style={{ marginTop: '20px' }}>
             <button
-              onClick={() => window.location.href = window.location.origin}
+              onClick={() => {
+                const gateway = encodeURIComponent(window.location.origin);
+                window.location.href = `https://knirv.network?gateway=${gateway}`;
+              }}
               style={{
                 background: 'rgba(255,255,255,0.2)',
                 border: '1px solid rgba(255,255,255,0.3)',
@@ -128,7 +130,7 @@ export default function RoleProtectedRoute({ children }) {
                 marginRight: '10px'
               }}
             >
-              Go to Main Website
+              Login via KNIRV.NETWORK
             </button>
             {isDevelopment && (
               <button

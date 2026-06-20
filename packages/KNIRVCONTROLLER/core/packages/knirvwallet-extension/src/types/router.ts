@@ -90,6 +90,9 @@ export enum RoutePath {
   WebQuestionnaire = '/web/questionnaire',
   WebAccountAdd = '/web/account-add',
   WebAccountImport = '/web/account-import',
+
+  // KNIRV QR scanner — connect to KNIRVSERVER / KNIRVGATEWAY / KNIRVBRIDGE / website
+  QrScan = '/wallet/qr-scan',
 }
 
 export type RouteParams = {

@@ -831,11 +831,22 @@ func knirvGatewayConfigJSON(cfg *config.Config) string {
 }
 
 // wrapWithSecurityHeaders adds security-related HTTP headers to all responses.
+// It also handles Chrome's Private Network Access (PNA) preflight: when a
+// public origin (e.g. https://knirv.network) tries to reach a loopback or
+// LAN address the browser first sends an OPTIONS preflight containing
+// "Access-Control-Request-Private-Network: true".  The server must echo back
+// "Access-Control-Allow-Private-Network: true" or the real request is blocked.
 func wrapWithSecurityHeaders(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("X-Frame-Options", "SAMEORIGIN")
 		w.Header().Set("Content-Security-Policy", "frame-ancestors 'self' http://localhost:8080 http://localhost:8090")
 		w.Header().Set("X-Content-Type-Options", "nosniff")
+
+		// Private Network Access opt-in (Chrome PNA spec).
+		if r.Header.Get("Access-Control-Request-Private-Network") == "true" {
+			w.Header().Set("Access-Control-Allow-Private-Network", "true")
+		}
+
 		next.ServeHTTP(w, r)
 	})
 }

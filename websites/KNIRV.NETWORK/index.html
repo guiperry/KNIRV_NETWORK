@@ -1788,23 +1788,55 @@ Join us: https://discord.gg/knirv">
 
         init() {
            this.updateNetworkStatus();
-           this.autoDetectNetworks();
            this.setupEventListeners();
 
-           // Check for saved network connection
-           const savedNetwork = localStorage.getItem('knirv_network');
-           if (savedNetwork) {
-             try {
-               const networkData = JSON.parse(savedNetwork);
-               this.connectToNetwork(networkData.url, networkData.type, networkData.name);
-             } catch (e) {
-               console.warn('Failed to restore saved network connection:', e);
+           // Detect gateway callback FIRST so autoDetectNetworks can skip the
+           // PNA-blocked loopback fetch when we already know the gateway URL.
+           try {
+             const _gp = new URLSearchParams(window.location.search);
+             const _gw = _gp.get('gateway');
+             if (_gw && this._isValidGatewayUrl(_gw)) {
+               this.pendingGatewayCallback = _gw;
+               this.networks.localTestnet = { url: _gw, name: 'Local Instance', type: 'local-testnet', available: true };
+               this.currentNetwork = this.networks.localTestnet;
+               const _open = () => {
+                 const el = document.getElementById('login-modal');
+                 if (el) new bootstrap.Modal(el).show();
+               };
+               if (document.readyState === 'loading') {
+                 document.addEventListener('DOMContentLoaded', _open);
+               } else {
+                 setTimeout(_open, 400);
+               }
+             }
+           } catch (_) {}
+
+           this.autoDetectNetworks();
+
+           // Check for saved network connection (skip if we have a gateway callback)
+           if (!this.pendingGatewayCallback) {
+             const savedNetwork = localStorage.getItem('knirv_network');
+             if (savedNetwork) {
+               try {
+                 const networkData = JSON.parse(savedNetwork);
+                 this.connectToNetwork(networkData.url, networkData.type, networkData.name);
+               } catch (e) {
+                 console.warn('Failed to restore saved network connection:', e);
+               }
              }
            }
            // Don't auto-connect to demo network - let the login modal handle network selection
          }
 
-        setupEventListeners() {
+        // Validate the gateway URL is well-formed (local or public — supports future testnet/mainnet gateways).
+        _isValidGatewayUrl(url) {
+          try {
+            const parsed = new URL(url);
+            return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+          } catch { return false; }
+        }
+
+
            // Network selector dropdown
            document.addEventListener('click', (e) => {
              if (e.target.matches('[data-network-action]')) {
@@ -1828,17 +1860,21 @@ Join us: https://discord.gg/knirv">
          }
 
         async autoDetectNetworks() {
-          // Check local testnet
-          try {
-            const response = await fetch('http://localhost:8080/health', { 
-              method: 'GET',
-              timeout: 2000 
-            });
-            if (response.ok) {
-              this.networks.localTestnet.available = true;
+          // Skip the loopback health check when we're in gateway-callback mode:
+          // the gateway URL is already known and Chrome's Private Network Access
+          // policy would block a fetch from this public origin to localhost anyway.
+          if (!this.pendingGatewayCallback) {
+            try {
+              const response = await fetch('http://localhost:8080/health', {
+                method: 'GET',
+                timeout: 2000
+              });
+              if (response.ok) {
+                this.networks.localTestnet.available = true;
+              }
+            } catch (e) {
+              this.networks.localTestnet.available = false;
             }
-          } catch (e) {
-            this.networks.localTestnet.available = false;
           }
 
           // Check public testnet
@@ -1868,24 +1904,31 @@ Join us: https://discord.gg/knirv">
 
         async connectToNetwork(url, type, name) {
           try {
-            // Test connection
-            const response = await fetch(`${url}/health`, { 
-              method: 'GET',
-              timeout: 10000 
-            });
-            
-            if (response.ok) {
-              this.currentNetwork = { url, type, name };
-              this.connectionStatus = 'connected';
-              
-              // Save to localStorage
-              localStorage.setItem('knirv_network', JSON.stringify(this.currentNetwork));
-              
-              this.updateNetworkStatus();
-              this.showConnectionSuccess(name);
-            } else {
-              throw new Error('Network health check failed');
+            // When this is the gateway-callback URL, skip the health check:
+            // Chrome's Private Network Access policy blocks public→loopback
+            // fetches unless the server has had time to return the PNA header.
+            // We trust the URL because the user arrived here via our own redirect.
+            const skipHealthCheck = this.pendingGatewayCallback && url === this.pendingGatewayCallback;
+
+            if (!skipHealthCheck) {
+              // Test connection
+              const response = await fetch(`${url}/health`, {
+                method: 'GET',
+                timeout: 10000
+              });
+              if (!response.ok) {
+                throw new Error('Network health check failed');
+              }
             }
+
+            this.currentNetwork = { url, type, name };
+            this.connectionStatus = 'connected';
+
+            // Save to localStorage
+            localStorage.setItem('knirv_network', JSON.stringify(this.currentNetwork));
+
+            this.updateNetworkStatus();
+            this.showConnectionSuccess(name);
           } catch (error) {
             this.connectionStatus = 'disconnected';
             this.currentNetwork = null;
@@ -2080,7 +2123,7 @@ Join us: https://discord.gg/knirv">
               }
 
               // Redirect to WebGUI (developer-portal)
-              this.redirectToWebGUI();
+              this.redirectToWebGUI(data);
             } else {
               throw new Error('Invalid credentials');
             }
@@ -2092,7 +2135,7 @@ Join us: https://discord.gg/knirv">
           }
         }
 
-        redirectToWebGUI() {
+        redirectToWebGUI(authData) {
           // Close modal first
           const modal = bootstrap.Modal.getInstance(document.getElementById('login-modal'));
           if (modal) {
@@ -2102,9 +2145,20 @@ Join us: https://discord.gg/knirv">
           // Show success message
           this.showNotification('Login successful! Redirecting to WebGUI...', 'success');
 
-          // Redirect after a short delay
           setTimeout(() => {
-            window.location.href = '/dashboard';
+            if (this.pendingGatewayCallback) {
+              // Return to the local gateway with auth params so RoleContext can authenticate
+              const role = authData?.user?.role || 'General';
+              const token = authData?.token || '';
+              const network = this.currentNetwork?.type || 'local-testnet';
+              const dest = new URL(this.pendingGatewayCallback);
+              dest.searchParams.set('role', role);
+              dest.searchParams.set('network', network);
+              dest.searchParams.set('token', token);
+              window.location.href = dest.toString();
+            } else {
+              window.location.href = '/dashboard';
+            }
           }, 1500);
         }
 

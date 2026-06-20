@@ -51,8 +51,8 @@ const NAV_ITEMS = [
   { id: 'settings', label: 'Settings', icon: '⚙️' },
   // Network Admin (Root role only)
   { id: 'network-admin', label: 'Network Admin', icon: '👑' },
-  // Auth Testing (Root role only)
-  { id: 'auth-test', label: 'Auth Testing', icon: '🔐' },
+  // Role Permission Configuration
+  { id: 'auth-test', label: 'Role Permissions', icon: '🔐' },
 ];
 
 const SideNavigation = ({ activePage }) => {

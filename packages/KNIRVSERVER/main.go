@@ -19,6 +19,7 @@ import (
 	"os/exec"
 	"os/signal"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -1565,6 +1566,187 @@ func waitForPortFreeMain(port int, deadline time.Duration) bool {
 	return false
 }
 
+// killTCPPortListenersMain aggressively terminates anything listening on the given TCP port.
+// This is intentionally best-effort and non-interactive so startup can self-heal stale runs.
+func killTCPPortListenersMain(port int) {
+	portSpec := fmt.Sprintf("%d/tcp", port)
+
+	// Prefer fuser when available because it directly targets the socket and does not
+	// require us to infer PIDs from tool output.
+	if _, err := exec.LookPath("fuser"); err == nil {
+		ctx, cancel := context.WithTimeout(context.Background(), 8*time.Second)
+		defer cancel()
+
+		if out, err := exec.CommandContext(ctx, "fuser", "-k", "-TERM", portSpec).CombinedOutput(); err == nil {
+			if len(strings.TrimSpace(string(out))) > 0 {
+				log.Printf("fuser terminated listeners on port %d: %s", port, strings.TrimSpace(string(out)))
+			} else {
+				log.Printf("fuser terminated listeners on port %d", port)
+			}
+		}
+
+		// Give listeners a moment to exit, then escalate if needed.
+		time.Sleep(1 * time.Second)
+		if waitForPortFreeMain(port, 500*time.Millisecond) {
+			return
+		}
+
+		_, _ = exec.CommandContext(ctx, "fuser", "-k", "-KILL", portSpec).CombinedOutput()
+		time.Sleep(500 * time.Millisecond)
+		if waitForPortFreeMain(port, 500*time.Millisecond) {
+			return
+		}
+	}
+
+	pids := listenerPIDsOnTCPPortMain(port)
+	if len(pids) == 0 {
+		log.Printf("No listener PIDs found for port %d", port)
+		return
+	}
+
+	log.Printf("Port %d is in use by PID(s): %v", port, pids)
+	for _, pid := range pids {
+		if err := syscall.Kill(pid, syscall.SIGTERM); err != nil {
+			log.Printf("Failed to SIGTERM PID %d on port %d: %v", pid, port, err)
+		}
+	}
+
+	time.Sleep(1 * time.Second)
+
+	stillAlive := make([]int, 0, len(pids))
+	for _, pid := range pids {
+		if err := syscall.Kill(pid, 0); err == nil {
+			stillAlive = append(stillAlive, pid)
+		}
+	}
+
+	if len(stillAlive) > 0 {
+		log.Printf("Escalating to SIGKILL for PID(s): %v", stillAlive)
+		for _, pid := range stillAlive {
+			if err := syscall.Kill(pid, syscall.SIGKILL); err != nil {
+				log.Printf("Failed to SIGKILL PID %d on port %d: %v", pid, port, err)
+			}
+		}
+	}
+}
+
+func listenerPIDsOnTCPPortMain(port int) []int {
+	pids := listenerPIDsViaLsofMain(port)
+	if len(pids) > 0 {
+		return uniqueIntsMain(pids)
+	}
+
+	return uniqueIntsMain(listenerPIDsViaSSMain(port))
+}
+
+func listenerPIDsViaLsofMain(port int) []int {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	out, err := exec.CommandContext(ctx, "lsof", "-nP", "-t", fmt.Sprintf("-iTCP:%d", port), "-sTCP:LISTEN").Output()
+	if err != nil && len(out) == 0 {
+		return nil
+	}
+
+	return parsePIDLinesMain(string(out))
+}
+
+func listenerPIDsViaSSMain(port int) []int {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	out, err := exec.CommandContext(ctx, "ss", "-H", "-ltnp").Output()
+	if err != nil && len(out) == 0 {
+		return nil
+	}
+
+	pidPattern := regexp.MustCompile(`pid=([0-9]+)`)
+	target := fmt.Sprintf(":%d", port)
+	seen := make(map[int]struct{})
+	var pids []int
+
+	for _, line := range strings.Split(string(out), "\n") {
+		if !strings.Contains(line, target) || !strings.Contains(line, "pid=") {
+			continue
+		}
+		matches := pidPattern.FindAllStringSubmatch(line, -1)
+		for _, match := range matches {
+			if len(match) < 2 {
+				continue
+			}
+			pid, err := strconv.Atoi(match[1])
+			if err != nil {
+				continue
+			}
+			if _, ok := seen[pid]; ok {
+				continue
+			}
+			seen[pid] = struct{}{}
+			pids = append(pids, pid)
+		}
+	}
+
+	return pids
+}
+
+func parsePIDLinesMain(output string) []int {
+	seen := make(map[int]struct{})
+	var pids []int
+
+	for _, line := range strings.Split(output, "\n") {
+		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
+		}
+		pid, err := strconv.Atoi(line)
+		if err != nil {
+			continue
+		}
+		if _, ok := seen[pid]; ok {
+			continue
+		}
+		seen[pid] = struct{}{}
+		pids = append(pids, pid)
+	}
+
+	return pids
+}
+
+func uniqueIntsMain(values []int) []int {
+	if len(values) == 0 {
+		return nil
+	}
+
+	seen := make(map[int]struct{}, len(values))
+	out := make([]int, 0, len(values))
+	for _, value := range values {
+		if _, ok := seen[value]; ok {
+			continue
+		}
+		seen[value] = struct{}{}
+		out = append(out, value)
+	}
+	return out
+}
+
+// ensureMainHTTPPortFree kills any existing listeners on the main HTTP port before startup.
+func ensureMainHTTPPortFree(port int) error {
+	if waitForPortFreeMain(port, 250*time.Millisecond) {
+		return nil
+	}
+
+	log.Printf("Port %d is already in use; attempting automatic cleanup...", port)
+	killTCPPortListenersMain(port)
+
+	deadline := 10 * time.Second
+	if waitForPortFreeMain(port, deadline) {
+		log.Printf("Port %d is now free", port)
+		return nil
+	}
+
+	return fmt.Errorf("port %d is still in use after automatic cleanup", port)
+}
+
 // startBackend starts the embedded unified backend service
 func (app *ServerApp) startBackend() error {
 	if app.config.BackendSocket != "" {
@@ -1747,6 +1929,10 @@ func (app *ServerApp) stopBackend() {
 
 // Start starts the KNIRV-SERVER application
 func (app *ServerApp) Start() error {
+	if err := ensureMainHTTPPortFree(app.config.Port); err != nil {
+		return err
+	}
+
 	if err := app.startAgentControl(); err != nil {
 		return err
 	}

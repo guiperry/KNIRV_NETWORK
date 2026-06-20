@@ -11,7 +11,7 @@ import Link from 'next/link';
 export default function Pricing() {
   const plans = [
     {
-      name: "Free",
+      name: "Starter",
       price: "Free",
       description: "Sovereign DVE management with blockchain-native policy controls",
       features: [
@@ -25,7 +25,7 @@ export default function Pricing() {
       buttonText: "Get Started",
       popular: false,
       icon: <Server className="h-6 w-6 knirv-text-primary" />,
-      href: "/auth",
+      href: "/get-started",
     },
     {
       name: "Professional",
