@@ -417,7 +417,8 @@ function DashboardWrapperInner({ children, onRentDVE }: DashboardWrapperProps) {
         fabricInputs: config.fabricInputs,
         guardrails: config.guardrails,
         connectionData: config.connectionData,
-        completedConnections: config.completedConnections
+        completedConnections: config.completedConnections,
+        databaseConfig: config.databaseConfig
       },
       privacyPreferences: config.privacySettings,
       isOnboardingComplete: true,
@@ -443,6 +444,7 @@ function DashboardWrapperInner({ children, onRentDVE }: DashboardWrapperProps) {
           guardrails: config.guardrails,
           connection_data: config.connectionData,
           privacy_settings: config.privacySettings,
+          database_config: config.databaseConfig,
           commit_to_chain: true // Commit policies to blockchain
         })
       });

@@ -4,7 +4,6 @@ import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
 import { 
   Shield, 
   Key, 
@@ -13,21 +12,21 @@ import {
   ChevronRight,
   ChevronLeft,
   CheckCircle2,
-  Lock,
   Smartphone,
   Download,
   Settings,
   Home,
   SlidersHorizontal,
-  Cpu,
-  Mail,
   Loader2
 } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import { APIKeysModal, type APIKeyEntry } from "./modals/APIKeysModal";
 import { MCPServersModal, type MCPServerEntry } from "./modals/MCPServersModal";
 import { PolicyCertsModal, type PolicyCert, type CustomRule } from "./modals/PolicyCertsModal";
 import { PreferencesModal, type PrivacySettings } from "./modals/PreferencesModal";
+import { DatabaseConfigModal, type DatabaseConfig } from "./modals/DatabaseConfigModal";
+import { KnowledgeIngestModal } from "./modals/KnowledgeIngestModal";
+import QRCodeDisplay from "@/components/controller/qr-code-display";
+import { useAuth } from '@/lib/auth-context';
 import { API_BASE_URL, getAuthHeaders } from '@/lib/api';
 
 interface OnboardingGuideProps {
@@ -47,6 +46,7 @@ interface OnboardingGuideProps {
     };
     completedConnections: string[];
     privacySettings: PrivacySettings;
+    databaseConfig: DatabaseConfig;
   }) => void;
   onReset?: () => void;
 }
@@ -68,23 +68,60 @@ interface FormData {
   };
   completedConnections: string[];
   privacySettings: PrivacySettings;
+  databaseConfig: DatabaseConfig;
 }
 
-const fabricInputs = [
-  { id: 'api-keys', icon: Key, label: 'API Keys', desc: 'Secure LLM & Service Credentials' },
-  { id: 'mcp-servers', icon: Terminal, label: 'MCP Servers', desc: 'Model Context Protocol Integrations' },
-  { id: 'policy-certs', icon: Database, label: 'Policy Certs', desc: 'Kernel Guardrails & Custom Rules' },
-  { id: 'preferences', icon: SlidersHorizontal, label: 'Preferences', desc: 'Data Management & Privacy Settings' },
-  { id: 'repo-ingest', icon: Database, label: 'Knowledge Ingest', desc: 'Import repositories & documents to graph' }
+type ConfigCard = {
+  id: string;
+  icon: React.ComponentType<{ size?: number; className?: string }>;
+  label: string;
+  desc: string;
+  modalId: string;
+};
+
+const governanceCards: ConfigCard[] = [
+  { id: 'policy-certs', icon: Database, label: 'Policy Certs', desc: 'Kernel Guardrails & Custom Rules', modalId: 'policy-certs' },
+  { id: 'preferences', icon: SlidersHorizontal, label: 'Preferences', desc: 'Data Management & Privacy Settings', modalId: 'preferences' }
 ];
 
-const guardrailPolicies = [
-  { id: 'network-drift', label: 'Outbound Network Drift', value: 'High Accuracy (Strict)', defaultEnabled: true },
-  { id: 'filesystem-access', label: 'Filesystem Access Depth', value: 'Restricted to /mnt/server', defaultEnabled: true },
-  { id: 'compute-cost', label: 'Compute Cost Cap', value: '$100.00 / Session', defaultEnabled: true }
+const connectionCards: ConfigCard[] = [
+  { id: 'api-keys', icon: Key, label: 'API Keys', desc: 'Secure LLM & Service Credentials', modalId: 'api-keys' },
+  { id: 'mcp-servers', icon: Terminal, label: 'MCP Servers', desc: 'Model Context Protocol Integrations', modalId: 'mcp-servers' }
 ];
+
+const dataCards: ConfigCard[] = [
+  { id: 'knowledge-ingest', icon: Database, label: 'Knowledge Ingest', desc: 'Import repositories and documents to graph', modalId: 'knowledge-ingest' },
+  { id: 'database-config', icon: Database, label: 'Database Config', desc: 'Confirm KNIRVBASE schema and external MCP mapping', modalId: 'database-config' }
+];
+
+const defaultDatabaseConfig: DatabaseConfig = {
+  internalSchemaName: 'KNIRVBASE',
+  internalSchemaVersion: 'v1',
+  internalTables: [
+    'users',
+    'sessions',
+    'memory_entries',
+    'knowledge_graph_nodes',
+    'knowledge_graph_edges',
+    'policy_rules',
+    'audit_events'
+  ],
+  externalMcpDatabase: {
+    enabled: false,
+    name: '',
+    provider: '',
+    selectedServerId: '',
+    saveProfile: false,
+    saveMemory: true,
+    saveKnowledgeGraph: true,
+    savePolicies: true,
+    saveAuditTrail: true,
+  },
+  notes: 'KNIRVBASE keeps the canonical internal schema; external MCP databases receive only the selected mirrored data classes.',
+};
 
 const OnboardingGuide = ({ onComplete, onReset }: OnboardingGuideProps) => {
+  const { user } = useAuth();
   const [step, setStep] = useState(1);
   const [progress, setProgress] = useState(25);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -92,6 +129,7 @@ const OnboardingGuide = ({ onComplete, onReset }: OnboardingGuideProps) => {
   const [ingestUrl, setIngestUrl] = useState('');
   const [isIngesting, setIsIngesting] = useState(false);
   const [ingestLog, setIngestLog] = useState<string[]>([]);
+  const [isQrModalOpen, setIsQrModalOpen] = useState(false);
   const [formData, setFormData] = useState<FormData>({
     walletName: '',
     selectedInputs: [],
@@ -117,7 +155,8 @@ const OnboardingGuide = ({ onComplete, onReset }: OnboardingGuideProps) => {
       dataRetentionDays: 90,
       autoDeleteInactive: true,
       thirdPartyIntegrations: false
-    }
+    },
+    databaseConfig: defaultDatabaseConfig
   });
 
   const handleIngestRepo = async () => {
@@ -135,13 +174,16 @@ const OnboardingGuide = ({ onComplete, onReset }: OnboardingGuideProps) => {
         setIngestLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] ✓ ${data.message || 'Ingestion queued'}`]);
         setFormData(prev => ({
           ...prev,
+          selectedInputs: prev.selectedInputs.includes('knowledge-ingest')
+            ? prev.selectedInputs
+            : [...prev.selectedInputs, 'knowledge-ingest'],
           connectionData: {
             ...prev.connectionData,
             ingestedRepos: [...prev.connectionData.ingestedRepos, ingestUrl.trim()]
           },
-          completedConnections: prev.completedConnections.includes('repo-ingest')
+          completedConnections: prev.completedConnections.includes('knowledge-ingest')
             ? prev.completedConnections
-            : [...prev.completedConnections, 'repo-ingest']
+            : [...prev.completedConnections, 'knowledge-ingest']
         }));
         setIngestUrl('');
       } else {
@@ -200,10 +242,10 @@ const OnboardingGuide = ({ onComplete, onReset }: OnboardingGuideProps) => {
   const [activeModal, setActiveModal] = useState<string | null>(null);
 
   const steps = [
-    { id: 1, title: 'Identity', description: 'Initialize Data Fabric' },
-    { id: 2, title: 'Connections', description: 'Map Fabric Inputs' },
-    { id: 3, title: 'Governance', description: 'Set Kernel Guardrails' },
-    { id: 4, title: 'Sovereignty', description: 'Secure the Vault' }
+    { id: 1, title: 'Sovereignty', description: 'Secure the Vault' },
+    { id: 2, title: 'Governance', description: 'Set Kernel Guardrails' },
+    { id: 3, title: 'Connections', description: 'Map Fabric Inputs' },
+    { id: 4, title: 'Data', description: 'Initialize Data Fabric' }
   ];
 
   const submitOrganizationContext = async (walletName: string) => {
@@ -214,6 +256,9 @@ const OnboardingGuide = ({ onComplete, onReset }: OnboardingGuideProps) => {
       const orgPayload = {
         organization_id: walletName,
         name: walletName,
+        metadata: {
+          database_config: formData.databaseConfig,
+        },
         value_system: {
           guidelines,
           stated_values: statedValues,
@@ -269,7 +314,8 @@ const OnboardingGuide = ({ onComplete, onReset }: OnboardingGuideProps) => {
           guardrails: formData.guardrails,
           connectionData: formData.connectionData,
           completedConnections: formData.completedConnections,
-          privacySettings: formData.privacySettings
+          privacySettings: formData.privacySettings,
+          databaseConfig: formData.databaseConfig
         });
       } catch (error) {
         setSubmitError('Failed to complete onboarding. Please try again.');
@@ -286,15 +332,6 @@ const OnboardingGuide = ({ onComplete, onReset }: OnboardingGuideProps) => {
     }
   };
 
-  const toggleInput = (inputId: string) => {
-    setFormData(prev => ({
-      ...prev,
-      selectedInputs: prev.selectedInputs.includes(inputId)
-        ? prev.selectedInputs.filter(id => id !== inputId)
-        : [...prev.selectedInputs, inputId]
-    }));
-  };
-
   const openModal = (modalId: string) => {
     setActiveModal(modalId);
   };
@@ -303,8 +340,8 @@ const OnboardingGuide = ({ onComplete, onReset }: OnboardingGuideProps) => {
     setActiveModal(null);
   };
 
-  const isConnectionComplete = (connectionId: string) => {
-    switch (connectionId) {
+  const isConfigured = (configId: string) => {
+    switch (configId) {
       case 'api-keys':
         return formData.connectionData.apiKeys.length > 0;
       case 'mcp-servers':
@@ -313,8 +350,10 @@ const OnboardingGuide = ({ onComplete, onReset }: OnboardingGuideProps) => {
         return formData.connectionData.policyCerts.length > 0 || formData.connectionData.customRules.length > 0;
       case 'preferences':
         return formData.completedConnections.includes('preferences');
-      case 'repo-ingest':
+      case 'knowledge-ingest':
         return formData.connectionData.ingestedRepos.length > 0;
+      case 'database-config':
+        return formData.completedConnections.includes('database-config');
       default:
         return false;
     }
@@ -324,6 +363,9 @@ const OnboardingGuide = ({ onComplete, onReset }: OnboardingGuideProps) => {
     setFormData(prev => ({
       ...prev,
       connectionData: { ...prev.connectionData, apiKeys },
+      selectedInputs: prev.selectedInputs.includes('api-keys')
+        ? prev.selectedInputs
+        : [...prev.selectedInputs, 'api-keys'],
       completedConnections: prev.completedConnections.includes('api-keys')
         ? prev.completedConnections
         : [...prev.completedConnections, 'api-keys']
@@ -334,6 +376,9 @@ const OnboardingGuide = ({ onComplete, onReset }: OnboardingGuideProps) => {
     setFormData(prev => ({
       ...prev,
       connectionData: { ...prev.connectionData, mcpServers },
+      selectedInputs: prev.selectedInputs.includes('mcp-servers')
+        ? prev.selectedInputs
+        : [...prev.selectedInputs, 'mcp-servers'],
       completedConnections: prev.completedConnections.includes('mcp-servers')
         ? prev.completedConnections
         : [...prev.completedConnections, 'mcp-servers']
@@ -344,6 +389,9 @@ const OnboardingGuide = ({ onComplete, onReset }: OnboardingGuideProps) => {
     setFormData(prev => ({
       ...prev,
       connectionData: { ...prev.connectionData, policyCerts, customRules },
+      selectedInputs: prev.selectedInputs.includes('policy-certs')
+        ? prev.selectedInputs
+        : [...prev.selectedInputs, 'policy-certs'],
       completedConnections: prev.completedConnections.includes('policy-certs')
         ? prev.completedConnections
         : [...prev.completedConnections, 'policy-certs']
@@ -354,20 +402,71 @@ const OnboardingGuide = ({ onComplete, onReset }: OnboardingGuideProps) => {
     setFormData(prev => ({
       ...prev,
       privacySettings,
+      selectedInputs: prev.selectedInputs.includes('preferences')
+        ? prev.selectedInputs
+        : [...prev.selectedInputs, 'preferences'],
       completedConnections: prev.completedConnections.includes('preferences')
         ? prev.completedConnections
         : [...prev.completedConnections, 'preferences']
     }));
   };
 
-  const toggleGuardrail = (guardrailId: string) => {
+  const handleSaveDatabaseConfig = (databaseConfig: DatabaseConfig) => {
     setFormData(prev => ({
       ...prev,
-      guardrails: {
-        ...prev.guardrails,
-        [guardrailId]: !prev.guardrails[guardrailId as keyof typeof prev.guardrails]
-      }
+      databaseConfig,
+      selectedInputs: prev.selectedInputs.includes('database-config')
+        ? prev.selectedInputs
+        : [...prev.selectedInputs, 'database-config'],
+      completedConnections: prev.completedConnections.includes('database-config')
+        ? prev.completedConnections
+        : [...prev.completedConnections, 'database-config']
     }));
+  };
+
+  const handleOpenQRModal = () => {
+    setIsQrModalOpen(true);
+  };
+
+  const renderConfigCard = (item: ConfigCard) => {
+    const Icon = item.icon;
+    const isComplete = isConfigured(item.id);
+
+    return (
+      <div
+        key={item.id}
+        onClick={() => openModal(item.modalId)}
+        className={`group cursor-pointer p-6 rounded-2xl transition-interactive ${
+          isComplete
+            ? 'bg-green-500/10 border border-green-500'
+            : 'bg-white/5 border border-white/10 hover:border-blue-500/50 hover:bg-white/10'
+        }`}
+      >
+        <div className="flex justify-between items-start mb-4">
+          <div className={`p-3 rounded-lg transition-colors ${
+            isComplete ? 'bg-green-600/20' : 'bg-blue-600/10 group-hover:bg-blue-600/20'
+          }`}>
+            <Icon className={isComplete ? 'text-green-500' : 'text-blue-500'} size={24} />
+          </div>
+          <div className={`w-5 h-5 border rounded-full flex items-center justify-center transition-interactive ${
+            isComplete
+              ? 'border-green-500 bg-green-500'
+              : 'border-white/20 group-hover:border-blue-500'
+          }`}>
+            {isComplete ? (
+              <CheckCircle2 size={14} className="text-white" />
+            ) : (
+              <Settings size={14} className="text-blue-500" />
+            )}
+          </div>
+        </div>
+        <h4 className="font-bold mb-1">{item.label}</h4>
+        <p className="text-xs text-slate-500">{item.desc}</p>
+        {isComplete && (
+          <p className="text-xs text-green-400 mt-2 font-medium">Configured</p>
+        )}
+      </div>
+    );
   };
 
   return (
@@ -424,218 +523,52 @@ const OnboardingGuide = ({ onComplete, onReset }: OnboardingGuideProps) => {
           ))}
         </div>
 
+        {submitError && (
+          <div className="mb-6 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+            {submitError}
+          </div>
+        )}
+
         {/* Dynamic Content Area */}
         <div className="min-h-[400px]">
           {step === 1 && (
             <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
               <div className="mb-8 space-y-2">
-                <h2 className="text-4xl font-extrabold tracking-tight">Initialize Your <span className="text-blue-500">Data Fabric.</span></h2>
-                <p className="text-slate-400">The Data Fabric is a secure metadata container that defines your agent&apos;s private data layer for short and long term memory, we call it the fabric.</p>
+                <h2 className="text-4xl font-extrabold tracking-tight">Secure Your <span className="text-blue-500">Sovereignty.</span></h2>
+                <p className="text-slate-400">Generate the real KNIRVCONTROLLER pairing QR code and complete device trust before the rest of the fabric comes online.</p>
               </div>
-              <div className="bg-white/5 border border-white/10 p-8 rounded-2xl space-y-6">
-                <div className="space-y-2">
-                  <Label className="text-xs uppercase font-bold text-slate-500 tracking-widest">Fabric Identifier</Label>
-                  <Input 
-                    type="text" 
-                    value={formData.walletName}
-                    onChange={(e) => setFormData(prev => ({ ...prev, walletName: e.target.value }))}
-                    placeholder="e.g. ALPHA-STRATEGIC-FABRIC"
-                    className="w-full bg-black/40 border-white/10 rounded-xl px-4 py-4 text-xl font-bold focus:ring-2 focus:ring-blue-500 focus:outline-none transition-interactive placeholder:text-slate-700 h-auto"
-                  />
-                </div>
-                <div className="p-4 bg-blue-500/5 border border-blue-500/20 rounded-lg flex items-start space-x-4">
-                  <Shield className="text-blue-500 shrink-0 mt-1" size={20} />
-                  <p className="text-sm text-slate-400 leading-relaxed">
-                    This identifier will be used to anchor your data container's <span className="text-blue-400 font-bold">Kernel Guardrails</span>. Once initialized, the container geometry is encrypted and stored in the Nexus as a living data fabric.
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {step === 2 && (
-            <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
-              <div className="mb-8 space-y-2">
-                <h2 className="text-4xl font-extrabold tracking-tight">Map Your <span className="text-blue-500">Fabric Inputs.</span></h2>
-                <p className="text-slate-400">Mount the tools and credentials your agents require for autonomous operation.</p>
-              </div>
-              <div className="grid md:grid-cols-2 gap-4">
-                {fabricInputs.map((item) => {
-                  const Icon = item.icon;
-                  const isComplete = isConnectionComplete(item.id);
-                  return (
-                    <div 
-                      key={item.id} 
-                      onClick={() => openModal(item.id)}
-                      className={`group cursor-pointer p-6 rounded-2xl transition-interactive ${
-                        isComplete 
-                          ? 'bg-green-500/10 border border-green-500' 
-                          : 'bg-white/5 border border-white/10 hover:border-blue-500/50 hover:bg-white/10'
-                      }`}
-                    >
-                      <div className="flex justify-between items-start mb-4">
-                        <div className={`p-3 rounded-lg transition-colors ${
-                          isComplete ? 'bg-green-600/20' : 'bg-blue-600/10 group-hover:bg-blue-600/20'
-                        }`}>
-                          <Icon className={isComplete ? 'text-green-500' : 'text-blue-500'} size={24} />
-                        </div>
-                        <div className={`w-5 h-5 border rounded-full flex items-center justify-center transition-interactive ${
-                          isComplete 
-                            ? 'border-green-500 bg-green-500' 
-                            : 'border-white/20 group-hover:border-blue-500'
-                        }`}>
-                          {isComplete ? (
-                            <CheckCircle2 size={14} className="text-white" />
-                          ) : (
-                            <Settings size={14} className="text-blue-500" />
-                          )}
-                        </div>
-                      </div>
-                      <h4 className="font-bold mb-1">{item.label}</h4>
-                      <p className="text-xs text-slate-500">{item.desc}</p>
-                      {isComplete && (
-                        <p className="text-xs text-green-400 mt-2 font-medium">Configured</p>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-              
-              {/* Knowledge Repository Ingestion */}
-              <div className="mt-6 p-4 bg-white/5 border border-white/10 rounded-xl">
-                <h3 className="text-sm font-bold text-white mb-3 flex items-center gap-2">
-                  <Database className="w-4 h-4 text-blue-500" />
-                  Knowledge Repository Ingestion
-                </h3>
-                <p className="text-xs text-slate-400 mb-4">
-                  Import Git repositories or documents into your knowledge graph for context-aware reasoning.
-                </p>
-                <div className="flex gap-2">
-                  <Input 
-                    type="text"
-                    value={ingestUrl}
-                    onChange={(e) => setIngestUrl(e.target.value)}
-                    onKeyDown={(e) => { if (e.key === 'Enter') handleIngestRepo(); }}
-                    placeholder="https://github.com/org/repo"
-                    className="flex-1 bg-black/40 border-white/10 text-white text-sm font-mono"
-                  />
-                  <Button 
-                    onClick={handleIngestRepo} 
-                    disabled={isIngesting || !ingestUrl.trim()}
-                    className="bg-blue-600 hover:bg-blue-500"
-                  >
-                    {isIngesting ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Ingest'}
-                  </Button>
-                </div>
-                {ingestLog.length > 0 && (
-                  <div className="mt-3 bg-black/40 rounded p-2 font-mono text-[10px] text-green-400 max-h-20 overflow-y-auto">
-                    {ingestLog.map((line, i) => <div key={i}>{line}</div>)}
-                  </div>
-                )}
-                {formData.connectionData.ingestedRepos.length > 0 && (
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {formData.connectionData.ingestedRepos.map((repo, i) => (
-                      <Badge key={i} variant="outline" className="border-blue-500/30 text-blue-400 text-xs">
-                        {repo.split('/').slice(-2).join('/')}
-                      </Badge>
-                    ))}
-                  </div>
-                )}
-              </div>
-              
-              {/* Completion Progress */}
-              <div className="mt-6 p-4 bg-white/5 border border-white/10 rounded-xl">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs uppercase font-bold text-slate-500 tracking-wider">Configuration Progress</span>
-                  <span className="text-sm text-slate-400">
-                    {formData.completedConnections.length} of {fabricInputs.length} completed
-                  </span>
-                </div>
-                <div className="h-2 bg-white/5 rounded-full overflow-hidden">
-                  <div 
-                    className="h-full bg-blue-600 transition-all duration-500"
-                    style={{ width: `${(formData.completedConnections.length / fabricInputs.length) * 100}%` }}
-                  />
-                </div>
-              </div>
-            </div>
-          )}
-
-          {step === 3 && (
-            <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
-              <div className="mb-8 space-y-2">
-                <h2 className="text-4xl font-extrabold tracking-tight">Configure <span className="text-blue-500">Kernel Guardrails.</span></h2>
-                <p className="text-slate-400">Set the automated kill-switches that govern agent behavior at the system level.</p>
-              </div>
-              <div className="space-y-4">
-                {guardrailPolicies.map((policy, idx) => {
-                  const isEnabled = formData.guardrails[policy.id as keyof typeof formData.guardrails] ?? policy.defaultEnabled;
-                  return (
-                    <div key={policy.id} className="flex items-center justify-between p-6 bg-white/5 border border-white/10 rounded-2xl">
-                      <div className="space-y-1">
-                        <span className="text-[10px] uppercase font-bold text-blue-500 tracking-tighter">Policy 0{idx + 1}</span>
-                        <h4 className="font-bold text-lg">{policy.label}</h4>
-                        <p className="text-sm text-slate-500 italic">{policy.value}</p>
-                      </div>
-                      <div className="flex items-center space-x-4">
-                        <div className="h-12 w-[1px] bg-white/10 mx-4" />
-                        <button
-                          onClick={() => toggleGuardrail(policy.id)}
-                          className={`text-xs mono font-bold px-3 py-1 rounded border transition-interactive ${
-                            isEnabled
-                              ? 'text-green-500 bg-green-500/10 border-green-500/20'
-                              : 'text-slate-500 bg-slate-500/10 border-slate-500/20'
-                          }`}
-                        >
-                          {isEnabled ? 'ENABLED' : 'DISABLED'}
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {step === 4 && (
-            <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
-              {/* Success Message */}
-              <div className="text-center mb-8">
-                <div className="inline-flex items-center justify-center p-3 bg-green-500/10 rounded-full mb-4">
-                  <CheckCircle2 className="text-green-500" size={32} />
-                </div>
-                <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight mb-3">
-                  Welcome to Your <span className="text-blue-500">Data Fabric.</span>
-                </h2>
-                <p className="text-slate-400 max-w-2xl mx-auto">
-                  Your private cloud cortex is ready. Download the mobile app to complete your setup and secure your vault.
-                </p>
-              </div>
-
-              <div className="grid md:grid-cols-2 gap-8 items-start">
-                {/* Left Column - Instructions */}
+              <div className="grid md:grid-cols-[1.2fr_0.8fr] gap-6">
                 <div className="space-y-4">
-                  {/* Email Confirmation Notice */}
-                  <div className="p-5 bg-green-500/5 border border-green-500/20 rounded-xl">
-                    <div className="flex items-start space-x-3">
-                      <Mail className="text-green-500 shrink-0 mt-1" size={20} />
-                      <div>
-                        <h3 className="font-bold mb-1 text-green-400">Configuration Complete</h3>
-                        <p className="text-sm text-slate-400">
-                          Your Data Fabric has been configured. Download the mobile wallet 
-                          to complete your setup and manage your vault on the go.
-                        </p>
-                      </div>
+                  <div className="bg-white/5 border border-white/10 p-8 rounded-2xl space-y-6">
+                    <div className="p-4 bg-blue-500/5 border border-blue-500/20 rounded-lg flex items-start space-x-4">
+                      <Shield className="text-blue-500 shrink-0 mt-1" size={20} />
+                      <p className="text-sm text-slate-400 leading-relaxed">
+                        This pairing flow uses the controller integration service to mint a signed QR payload that the KNIRVCONTROLLER can scan and confirm.
+                      </p>
                     </div>
+                    <div className="space-y-3">
+                      <Label className="text-xs uppercase font-bold text-slate-500 tracking-widest">Controller Pairing ID</Label>
+                      <Input
+                        type="text"
+                        value={user?.user || formData.walletName || 'knirv-controller'}
+                        readOnly
+                        className="w-full bg-black/40 border-white/10 rounded-xl px-4 py-4 text-lg font-bold focus:ring-2 focus:ring-blue-500 focus:outline-none transition-interactive placeholder:text-slate-700 h-auto"
+                      />
+                    </div>
+                    <Button
+                      onClick={handleOpenQRModal}
+                      className="w-full bg-blue-600 hover:bg-blue-500 text-white rounded-xl py-6 font-bold"
+                    >
+                      <Smartphone className="mr-2" size={18} />
+                      Generate KNIRVCONTROLLER QR Code
+                    </Button>
                   </div>
 
-                  {/* Download Options */}
                   <div className="p-5 bg-white/5 border border-white/10 rounded-xl">
                     <h3 className="font-bold mb-3 flex items-center text-sm">
                       <Download className="mr-2 text-blue-500" size={16} />
                       Download Options
                     </h3>
-                    
                     <div className="space-y-2">
                       <button
                         onClick={() => window.open('https://beta-controller.knirv.com/', '_blank')}
@@ -650,35 +583,19 @@ const OnboardingGuide = ({ onComplete, onReset }: OnboardingGuideProps) => {
                         </div>
                         <ChevronRight size={16} className="text-slate-500" />
                       </button>
-
-                      <div className="grid grid-cols-2 gap-2">
-                        <button
-                          onClick={() => window.open('https://releases.knirv.network/knirvcontroller-ios-pwa.zip', '_blank')}
-                          className="p-3 bg-white/5 border border-white/10 rounded-lg hover:border-blue-500/50 hover:bg-white/5 transition-colors text-center text-sm"
-                        >
-                          <Download size={14} className="inline mr-1" />
-                          iOS ZIP
-                        </button>
-                        <button
-                          onClick={() => window.open('https://releases.knirv.network/knirvcontroller-android-pwa.zip', '_blank')}
-                          className="p-3 bg-white/5 border border-white/10 rounded-lg hover:border-blue-500/50 hover:bg-white/5 transition-colors text-center text-sm"
-                        >
-                          <Download size={14} className="inline mr-1" />
-                          Android
-                        </button>
-                      </div>
                     </div>
                   </div>
+                </div>
 
-                  {/* Setup Steps */}
+                <div className="space-y-4">
                   <div className="p-5 bg-white/5 border border-white/10 rounded-xl">
-                    <h3 className="font-bold mb-3 text-sm">Setup Steps</h3>
+                    <h3 className="font-bold mb-3 text-sm">Pairing Steps</h3>
                     <div className="space-y-3">
                       {[
-                        { step: 1, text: 'Download the KNIRV Mobile Wallet app' },
-                        { step: 2, text: 'Install and open the application' },
-                        { step: 3, text: 'Scan the QR code to pair your device' },
-                        { step: 4, text: 'Complete biometric authorization' }
+                        { step: 1, text: 'Open the QR generator modal' },
+                        { step: 2, text: 'Scan the signed code in KNIRVCONTROLLER' },
+                        { step: 3, text: 'Approve the pairing request' },
+                        { step: 4, text: 'Continue to onboarding configuration' }
                       ].map((item) => (
                         <div key={item.step} className="flex items-center space-x-3">
                           <div className="w-6 h-6 rounded-full bg-blue-600 flex items-center justify-center text-xs font-bold shrink-0">
@@ -689,39 +606,85 @@ const OnboardingGuide = ({ onComplete, onReset }: OnboardingGuideProps) => {
                       ))}
                     </div>
                   </div>
+
+                  <div className="p-5 bg-blue-500/5 border border-blue-500/20 rounded-xl">
+                    <h3 className="font-bold mb-2 text-sm text-blue-300">Session Note</h3>
+                    <p className="text-sm text-slate-400 leading-relaxed">
+                      The QR generator uses the current authenticated user when available. If no session is active, it falls back to the KNIRV controller identifier.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {step === 2 && (
+            <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
+              <div className="mb-8 space-y-2">
+                <h2 className="text-4xl font-extrabold tracking-tight">Configure <span className="text-blue-500">Kernel Guardrails.</span></h2>
+                <p className="text-slate-400">Policy and privacy controls now live here. The old guardrail toggles were removed in favor of the modal workflow.</p>
+              </div>
+              <div className="grid md:grid-cols-2 gap-4">
+                {governanceCards.map(renderConfigCard)}
+              </div>
+            </div>
+          )}
+
+          {step === 3 && (
+            <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
+              <div className="mb-8 space-y-2">
+                <h2 className="text-4xl font-extrabold tracking-tight">Map Your <span className="text-blue-500">Fabric Inputs.</span></h2>
+                <p className="text-slate-400">Mount the tools and credentials your agents require for autonomous operation.</p>
+              </div>
+              <div className="grid md:grid-cols-2 gap-4">
+                {connectionCards.map(renderConfigCard)}
+              </div>
+            </div>
+          )}
+
+          {step === 4 && (
+            <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
+              <div className="mb-8 space-y-2">
+                <h2 className="text-4xl font-extrabold tracking-tight">Initialize Your <span className="text-blue-500">Data Fabric.</span></h2>
+                <p className="text-slate-400">The Data phase now owns the fabric identity, repository ingestion, and database schema controls.</p>
+              </div>
+              <div className="grid gap-6">
+                <div className="bg-white/5 border border-white/10 p-8 rounded-2xl space-y-6">
+                  <div className="space-y-2">
+                    <Label className="text-xs uppercase font-bold text-slate-500 tracking-widest">Fabric Identifier</Label>
+                    <Input 
+                      type="text" 
+                      value={formData.walletName}
+                      onChange={(e) => setFormData(prev => ({ ...prev, walletName: e.target.value }))}
+                      placeholder="e.g. ALPHA-STRATEGIC-FABRIC"
+                      className="w-full bg-black/40 border-white/10 rounded-xl px-4 py-4 text-xl font-bold focus:ring-2 focus:ring-blue-500 focus:outline-none transition-interactive placeholder:text-slate-700 h-auto"
+                    />
+                  </div>
+                  <div className="p-4 bg-blue-500/5 border border-blue-500/20 rounded-lg flex items-start space-x-4">
+                    <Shield className="text-blue-500 shrink-0 mt-1" size={20} />
+                    <p className="text-sm text-slate-400 leading-relaxed">
+                      This identifier anchors the internal KNIRVBASE record and the metadata that your selected external MCP database mirrors.
+                    </p>
+                  </div>
                 </div>
 
-                {/* Right Column - QR Code */}
-                <div className="flex flex-col items-center">
-                  <div className="bg-white/5 border border-white/10 p-6 rounded-xl w-full">
-                    <div className="flex items-center justify-between mb-4">
-                      <h3 className="font-bold flex items-center text-sm">
-                        <Shield className="mr-2 text-blue-500" size={16} />
-                        Secure Download
-                      </h3>
-                      <span className="text-xs bg-blue-500/20 text-blue-400 px-2 py-1 rounded border border-blue-500/30">
-                        Valid for 15 min
-                      </span>
-                    </div>
+                <div className="grid md:grid-cols-2 gap-4">
+                  {dataCards.map(renderConfigCard)}
+                </div>
 
-                    {/* QR Code */}
-                    <div className="flex flex-col items-center space-y-3 mb-4">
-                      <div className="p-3 bg-white rounded-lg shadow-[0_0_30px_rgba(59,130,246,0.2)]">
-                        <div className="w-40 h-40 bg-slate-100 flex items-center justify-center">
-                          <span className="text-xs text-slate-400 text-center px-4">
-                            QR Code will be generated
-                          </span>
-                        </div>
-                      </div>
-                      <p className="text-xs text-slate-400 text-center">
-                        Scan with your mobile device to download
-                      </p>
+                <div className="p-5 bg-white/5 border border-white/10 rounded-xl">
+                  <h3 className="font-bold mb-3 text-sm">Data Routing Summary</h3>
+                  <div className="grid md:grid-cols-2 gap-3 text-sm text-slate-400">
+                    <div className="p-4 rounded-lg bg-black/30 border border-white/5">
+                      <div className="text-xs uppercase text-blue-400 font-bold mb-1">Internal KNIRVBASE</div>
+                      <div>{formData.databaseConfig.internalSchemaName} {formData.databaseConfig.internalSchemaVersion}</div>
+                      <div className="text-xs text-slate-500 mt-1">{formData.databaseConfig.internalTables.length} tables tracked</div>
                     </div>
-
-                    {/* Connection Info */}
-                    <div className="pt-4 border-t border-white/10">
-                      <div className="text-xs text-slate-500 space-y-1 font-mono text-center">
-                        <div>Session: <span className="text-slate-400">FABRIC-{Math.random().toString(36).substr(2, 6).toUpperCase()}</span></div>
+                    <div className="p-4 rounded-lg bg-black/30 border border-white/5">
+                      <div className="text-xs uppercase text-blue-400 font-bold mb-1">External MCP Mirror</div>
+                      <div>{formData.databaseConfig.externalMcpDatabase.enabled ? 'Enabled' : 'Disabled'}</div>
+                      <div className="text-xs text-slate-500 mt-1">
+                        {formData.connectionData.ingestedRepos.length} repositories queued for graph ingestion
                       </div>
                     </div>
                   </div>
@@ -751,7 +714,7 @@ const OnboardingGuide = ({ onComplete, onReset }: OnboardingGuideProps) => {
             {isSubmitting ? (
               <>
                 <Loader2 size={18} className="animate-spin" />
-                <span>Setting up Guardrails...</span>
+                <span>Finalizing Setup...</span>
               </>
             ) : (
               <>
@@ -799,6 +762,29 @@ const OnboardingGuide = ({ onComplete, onReset }: OnboardingGuideProps) => {
         onClose={closeModal}
         onSave={handleSavePreferences}
         initialSettings={formData.privacySettings}
+      />
+      <KnowledgeIngestModal
+        isOpen={activeModal === 'knowledge-ingest'}
+        onClose={closeModal}
+        ingestUrl={ingestUrl}
+        setIngestUrl={setIngestUrl}
+        ingestLog={ingestLog}
+        isIngesting={isIngesting}
+        onIngest={handleIngestRepo}
+        ingestedRepos={formData.connectionData.ingestedRepos}
+      />
+      <DatabaseConfigModal
+        isOpen={activeModal === 'database-config'}
+        onClose={closeModal}
+        onSave={handleSaveDatabaseConfig}
+        initialConfig={formData.databaseConfig}
+      />
+      <QRCodeDisplay
+        isOpen={isQrModalOpen}
+        onClose={() => setIsQrModalOpen(false)}
+        userId={user?.user || formData.walletName || 'knirv-controller'}
+        deviceType="desktop"
+        capabilities={['remote_control', 'file_transfer', 'screen_share']}
       />
     </div>
   );

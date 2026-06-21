@@ -54,10 +54,10 @@ export default function QRCodeDisplay({
 
   // Generate QR code when component opens
   useEffect(() => {
-    if (isOpen && !qrCode && !isLoading) {
+    if (isOpen && (!qrCode || qrCode.status !== 'active') && !isLoading) {
       handleGenerateQRCode();
     }
-  }, [isOpen]);
+  }, [isOpen, qrCode, isLoading]);
 
   // Connect WebSocket for real-time updates
   useEffect(() => {

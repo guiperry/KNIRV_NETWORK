@@ -1,47 +1,87 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { X, ArrowLeft, ExternalLink, Loader2, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { useAuth } from '@/lib/auth-context';
 
 // Port scanning — same logic as p2p-transport-access-modal
 let cachedGatewayPort: string | null = null;
 
-async function checkHealth(port: string): Promise<boolean> {
+type GatewayStatus = 'healthy' | 'found_but_down' | 'not_gateway';
+
+// Check whether a port hosts the KNIRVGATEWAY.
+//
+// 'healthy'        — gateway is up, /health returns 200 with mode field.
+// 'found_but_down' — gateway process is present but returning 503 (starting
+//                    up or temporarily overloaded). We still record this port
+//                    and show the error UI rather than landing on an unrelated
+//                    service that happens to have a /health endpoint (e.g. KNIRVCHAIN).
+// 'not_gateway'    — wrong service, connection refused, or timeout.
+//
+// GET (not HEAD) so we can read the JSON body and confirm it's the KNIRVGATEWAY
+// via the `mode` field (GatewayMode) that only its health handler emits.
+async function checkGatewayPort(port: string): Promise<GatewayStatus> {
   try {
     const resp = await fetch(`http://localhost:${port}/health`, {
-      method: 'HEAD',
+      method: 'GET',
       signal: AbortSignal.timeout(2000),
     });
-    return resp.ok || resp.type === 'opaque';
+    if (resp.type === 'opaque') return 'healthy'; // no-cors opaque — assume ok
+    if (resp.status === 503) return 'found_but_down';
+    if (!resp.ok) return 'not_gateway';
+    const data = await resp.json();
+    if (typeof data.mode === 'string' && data.status === 'healthy') return 'healthy';
+    return 'not_gateway';
   } catch {
-    return false;
+    return 'not_gateway'; // connection refused, timeout, or JSON parse error
   }
 }
 
-async function scanForGateway(): Promise<string> {
-  if (cachedGatewayPort) return cachedGatewayPort;
-  const envPort = process.env.NEXT_PUBLIC_GATEWAY_PORT;
-  if (envPort) {
-    if (await checkHealth(envPort)) { cachedGatewayPort = envPort; return cachedGatewayPort; }
+async function scanForGateway(): Promise<{ port: string; healthy: boolean }> {
+  if (cachedGatewayPort) return { port: cachedGatewayPort, healthy: true };
+
+  // Priority order: env override, then documented KNIRVGATEWAY default (:8888),
+  // then dev overrides (:8080/:8081), then KNIRVCHAIN (:8090) as last resort.
+  const candidates = [
+    process.env.NEXT_PUBLIC_GATEWAY_PORT,
+    '8888', '8080', '8081', '8090',
+  ].filter(Boolean) as string[];
+
+  let foundButDown: string | null = null;
+
+  for (const port of candidates) {
+    const status = await checkGatewayPort(port);
+    if (status === 'healthy') {
+      cachedGatewayPort = port;
+      return { port, healthy: true };
+    }
+    if (status === 'found_but_down' && !foundButDown) {
+      foundButDown = port; // keep scanning in case a later port is healthy
+    }
   }
-  const currentPort = String(window.location.port || '80');
-  if (await checkHealth(currentPort)) { cachedGatewayPort = currentPort; return cachedGatewayPort; }
-  for (const port of ['8081', '8080', '8090']) {
-    if (await checkHealth(port)) { cachedGatewayPort = port; return cachedGatewayPort; }
-  }
-  return '8090';
+
+  // Gateway present but not ready — use the identified port, report unhealthy.
+  if (foundButDown) return { port: foundButDown, healthy: false };
+
+  // Nothing found — fall back to the documented default and report unhealthy.
+  return { port: '8888', healthy: false };
 }
 
 function buildWebGuiUrl(port: string, page?: string): string {
-  // Match the P2PTransportAccessModal pattern: use /gateway proxy when on wrapper port
-  if (port === String(window.location.port || '80') || port === '8090') {
-    if (page) return `http://localhost:${port}/gateway/${encodeURIComponent(page)}`;
-    return `http://localhost:${port}/gateway`;
+  // If the discovered gateway port matches the KNIRVSERVER's own port, traffic
+  // is routed through the server's /gateway proxy — use that path prefix.
+  // Any other port means the gateway is running standalone; serve from root.
+  const serverPort = String(window.location.port || '80');
+  if (port === serverPort) {
+    return page
+      ? `http://localhost:${port}/gateway/${encodeURIComponent(page)}`
+      : `http://localhost:${port}/gateway`;
   }
-  if (page) return `http://localhost:${port}/${encodeURIComponent(page)}`;
-  return `http://localhost:${port}/dashboard`;
+  return page
+    ? `http://localhost:${port}/${encodeURIComponent(page)}`
+    : `http://localhost:${port}/dashboard`;
 }
 
 interface WebguiIframeModalProps {
@@ -51,29 +91,61 @@ interface WebguiIframeModalProps {
 }
 
 export function WebguiIframeModal({ isOpen, onClose, page }: WebguiIframeModalProps) {
+  const { user } = useAuth();
+  const iframeRef = useRef<HTMLIFrameElement>(null);
   const [webGuiUrl, setWebGuiUrl] = useState<string>('');
   const [webGuiLoading, setWebGuiLoading] = useState(false);
   const [webGuiError, setWebGuiError] = useState(false);
 
   useEffect(() => {
     if (isOpen && !webGuiUrl) {
-      scanForGateway().then(port => setWebGuiUrl(buildWebGuiUrl(port, page)));
+      // Reset cached port so each open re-probes rather than reusing a stale
+      // result from a previous scan (e.g. gateway restarted on a different port).
+      cachedGatewayPort = null;
+      setWebGuiError(false);
+      setWebGuiLoading(true);
+      scanForGateway().then(({ port, healthy }) => {
+        setWebGuiUrl(buildWebGuiUrl(port, page));
+        setWebGuiLoading(false);
+        if (!healthy) setWebGuiError(true);
+      });
     }
   }, [isOpen, page]);
+
+  // Respond to KNIRV_AUTH_REQUEST from the WebGUI iframe.
+  // The iframe sends this when it has no local auth and detects it is embedded.
+  // We reply with the KNIRVSERVER's current user so the WebGUI can skip the
+  // KNIRV.NETWORK redirect and authenticate directly.
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleAuthRequest = (event: MessageEvent) => {
+      if (!event.data || event.data.type !== 'KNIRV_AUTH_REQUEST') return;
+      if (!iframeRef.current) return;
+
+      const token = localStorage.getItem('knirv_nexus_token') ?? '';
+      const role  = user?.role ?? localStorage.getItem('knirv_nexus_role') ?? 'admin';
+
+      iframeRef.current.contentWindow?.postMessage(
+        { type: 'KNIRV_AUTH_RESPONSE', role, network: 'local', token },
+        '*'
+      );
+    };
+
+    window.addEventListener('message', handleAuthRequest);
+    return () => window.removeEventListener('message', handleAuthRequest);
+  }, [isOpen, user]);
 
   const openWebGui = useCallback(async () => {
     setWebGuiError(false);
     setWebGuiLoading(true);
-    try {
-      const port = await scanForGateway();
-      const baseUrl = `http://localhost:${port}`;
-      await fetch(`${baseUrl}/health`, { method: 'HEAD', mode: 'no-cors', signal: AbortSignal.timeout(4000) });
-      setWebGuiLoading(false);
-    } catch {
-      setWebGuiLoading(false);
-      setWebGuiError(true);
-    }
-  }, []);
+    setWebGuiUrl(''); // force re-probe on retry
+    cachedGatewayPort = null;
+    const { port, healthy } = await scanForGateway();
+    setWebGuiUrl(buildWebGuiUrl(port, page));
+    setWebGuiLoading(false);
+    if (!healthy) setWebGuiError(true);
+  }, [page]);
 
   if (!isOpen) return null;
 
@@ -133,6 +205,7 @@ export function WebguiIframeModal({ isOpen, onClose, page }: WebguiIframeModalPr
 
         {!webGuiError && (
           <iframe
+            ref={iframeRef}
             src={webGuiLoading ? undefined : webGuiUrl}
             className="w-full h-full border-0"
             title="KNIRV Network WebGUI"

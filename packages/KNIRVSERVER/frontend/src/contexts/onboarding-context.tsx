@@ -5,6 +5,7 @@ import { API_BASE_URL } from '@/lib/api';
 import type { APIKeyEntry } from '@/components/onboarding/modals/APIKeysModal';
 import type { MCPServerEntry } from '@/components/onboarding/modals/MCPServersModal';
 import type { PolicyCert, CustomRule } from '@/components/onboarding/modals/PolicyCertsModal';
+import type { DatabaseConfig } from '@/components/onboarding/modals/DatabaseConfigModal';
 
 // New simplified onboarding flow
 // Old flow: hero -> connect -> configure -> deploy -> dashboard
@@ -50,6 +51,7 @@ export interface DataWalletConfig {
     customRules: CustomRule[];
   };
   completedConnections: string[];
+  databaseConfig?: DatabaseConfig;
 }
 
 export interface PrivacyPreferences {
@@ -133,6 +135,7 @@ const defaultState: OnboardingState = {
     customRules: []
   },
   completedConnections: [],
+  databaseConfig: undefined,
   
   // Legacy defaults
   connectedApp: null,
@@ -297,6 +300,7 @@ export const OnboardingProvider: React.FC<{children: React.ReactNode}> = ({ chil
             guardrails: state.dataWalletConfig.guardrails,
             connection_data: state.dataWalletConfig.connectionData,
             privacy_settings: state.privacyPreferences ?? {},
+            database_config: state.dataWalletConfig.databaseConfig,
             commit_to_chain: false,
           }),
         });

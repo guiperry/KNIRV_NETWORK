@@ -83,6 +83,20 @@ export const RoleProvider = ({ children }) => {
     return DEFAULT_PAGE_ACCESS;
   });
 
+  // Authenticate from a postMessage response (used when embedded in KNIRVSERVER iframe).
+  const applyAuthMessage = (data) => {
+    const normalizedRole = normalizeRole(data.role || 'admin');
+    const net = data.network || 'local';
+    const tok = data.token || '';
+    setRole(normalizedRole);
+    setNetwork(net);
+    setIsAuthenticated(true);
+    localStorage.setItem('knirv_user_role', normalizedRole);
+    localStorage.setItem('knirv_network', net);
+    if (tok) localStorage.setItem('knirv_auth_token', tok);
+    console.log('[RoleContext] Authenticated via parent frame postMessage, role:', normalizedRole);
+  };
+
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const urlRole = urlParams.get('role');
@@ -115,6 +129,20 @@ export const RoleProvider = ({ children }) => {
       setNetwork('demo');
       setIsAuthenticated(true);
       console.log('[RoleContext] Demo mode enabled with Root access');
+    } else if (typeof window !== 'undefined' && window.self !== window.top) {
+      // Running inside a parent frame (e.g. KNIRVSERVER WebGUI modal).
+      // Request the parent's current auth credentials via postMessage.
+      const onAuthResponse = (event) => {
+        if (!event.data || event.data.type !== 'KNIRV_AUTH_RESPONSE') return;
+        window.removeEventListener('message', onAuthResponse);
+        applyAuthMessage(event.data);
+      };
+      window.addEventListener('message', onAuthResponse);
+      window.parent.postMessage({ type: 'KNIRV_AUTH_REQUEST' }, '*');
+
+      // Timeout: if the parent doesn't respond in 2 s, remove the listener
+      // so the normal unauthenticated flow (redirect / auth screen) can run.
+      setTimeout(() => window.removeEventListener('message', onAuthResponse), 2000);
     }
   }, [serverInfo]);
 

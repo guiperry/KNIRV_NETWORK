@@ -50,6 +50,7 @@
   top: 100%;
   right: 0;
   margin-top: 8px;
+  z-index: 9999;
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(15px);
   border: 1px solid rgba(0, 0, 0, 0.1);

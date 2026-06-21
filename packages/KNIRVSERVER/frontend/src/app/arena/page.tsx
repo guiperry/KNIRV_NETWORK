@@ -23,7 +23,7 @@ export default function ArenaPage() {
     // Check if arena service is available by probing /arena endpoint
     const checkArenaHealth = async () => {
       try {
-        const response = await fetch('/arena/health', {
+        const response = await fetch('http://localhost:8090/arena/health', {
           method: 'GET',
           headers: {
             'Accept': 'application/json',
@@ -100,7 +100,7 @@ export default function ArenaPage() {
     <div className="w-full h-screen bg-[#030a18] overflow-hidden">
       {/* Arena is served via iframe from /arena/* endpoints */}
       <iframe
-        src="/arena/"
+        src="http://localhost:8090/arena/"
         className="w-full h-full border-none"
         title="KNIRVARENA - 3D Game Arena"
         sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-pointer-lock"
