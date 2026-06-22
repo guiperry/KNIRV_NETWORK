@@ -1,564 +1,759 @@
 <!DOCTYPE html>
 <html lang="en" class="scroll-smooth">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KNIRV Corporation: The Key to AI Supremacy</title>
-    
-    <!-- Load Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- Load Chart.js for graphs -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    
-    <!-- Configure Tailwind with custom brand colors -->
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        'knirv-blue': '#0A2A4E',
-                        'knirv-green': '#00FF9B',
-                        'knirv-red': '#FF4136',
-                        'knirv-gray': '#a0aec0', // Lighter gray for text
-                        'knirv-dark-gray': '#2d3748', // Darker gray for cards
-                    },
-                    fontFamily: {
-                        sans: ['Inter', 'sans-serif'],
-                    }
-                }
-            }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="KNIRV investor page: 3 products, 1 network, the trust layer for AI validation, governance, and exploit resolution.">
+  <title>KNIRV Corporation | Investor Pitch</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            knirv: {
+              bg: "#09111d",
+              panel: "#101c2c",
+              panelAlt: "#14253a",
+              border: "#24364f",
+              text: "#d6def0",
+              muted: "#95a7c7",
+              blue: "#38a0ff",
+              green: "#34d399",
+              gold: "#f3c969",
+              red: "#f87171",
+            },
+          },
+          fontFamily: {
+            display: ["'Exo 2'", "sans-serif"],
+            body: ["'Inter'", "sans-serif"],
+            mono: ["'JetBrains Mono'", "monospace"],
+          },
+          boxShadow: {
+            glow: "0 0 0 1px rgba(56, 160, 255, 0.2), 0 24px 80px rgba(7, 14, 26, 0.45)",
+          },
         }
-    </script>
-    
-    <!-- Use Inter font -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet">
-    
-    <style>
-        /* Base styling */
-        body {
-            font-family: 'Inter', sans-serif;
-            -webkit-font-smoothing: antialiased;
-            -moz-osx-font-smoothing: grayscale;
-        }
-        /* Custom gradient for the hero section */
-        .hero-gradient {
-            background: linear-gradient(180deg, #0A2A4E 0%, #1a202c 100%);
-        }
-        /* Custom gradient for section titles */
-        .title-gradient {
-            background: linear-gradient(90deg, #00FF9B 0%, #00c9ff 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-    </style>
+      }
+    }
+  </script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@300;400;500;600;700;800;900&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      color-scheme: dark;
+    }
+
+    html {
+      background:
+        radial-gradient(circle at top left, rgba(56, 160, 255, 0.14), transparent 26%),
+        radial-gradient(circle at 80% 20%, rgba(52, 211, 153, 0.12), transparent 22%),
+        linear-gradient(180deg, #09111d 0%, #07101b 60%, #050b14 100%);
+    }
+
+    body {
+      font-family: "Inter", sans-serif;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      background: transparent;
+      color: #d6def0;
+    }
+
+    .glass-card {
+      background: linear-gradient(180deg, rgba(16, 28, 44, 0.92) 0%, rgba(10, 18, 30, 0.94) 100%);
+      border: 1px solid rgba(148, 163, 184, 0.16);
+      box-shadow: 0 24px 80px rgba(7, 14, 26, 0.35);
+      backdrop-filter: blur(18px);
+    }
+
+    .hero-grid {
+      background-image:
+        linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+      background-size: 72px 72px;
+      mask-image: radial-gradient(circle at center, black 35%, transparent 100%);
+    }
+
+    .title-gradient {
+      background: linear-gradient(90deg, #38a0ff 0%, #34d399 55%, #f3c969 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .section-label {
+      letter-spacing: 0.24em;
+      text-transform: uppercase;
+    }
+  </style>
 </head>
-<body class="bg-gray-900 text-knirv-gray overflow-x-hidden">
+<body class="overflow-x-hidden">
+  <header class="relative border-b border-white/5">
+    <div class="absolute inset-0 hero-grid pointer-events-none opacity-35"></div>
 
-    <!-- Header & Hero Section -->
-    <header class="hero-gradient text-white">
-        <nav class="container mx-auto px-6 py-6 flex justify-between items-center">
-            <div class="text-2xl font-extrabold">
-                KNIRV<span class="text-knirv-green">.</span>
-            </div>
-            <div>
-                <a href="#contact" class="bg-knirv-green text-knirv-blue font-bold py-2 px-5 rounded-lg hover:bg-white transition duration-300">
-                    Schedule Demo
-                </a>
-            </div>
-        </nav>
+    <nav class="relative z-10 mx-auto flex max-w-7xl items-center justify-between px-6 py-6 lg:px-8">
+      <a href="#top" class="font-display text-2xl font-black tracking-tight text-white">
+        KNIRV<span class="text-knirv-green">.</span>
+      </a>
+      <div class="hidden items-center gap-6 text-sm font-medium text-knirv-muted md:flex">
+        <a href="#problem" class="transition hover:text-white">Problem</a>
+        <a href="#products" class="transition hover:text-white">Products</a>
+        <a href="#financials" class="transition hover:text-white">Financials</a>
+        <a href="#ask" class="transition hover:text-white">Ask</a>
+      </div>
+      <a href="#contact" class="rounded-full border border-knirv-green/40 bg-knirv-green/10 px-4 py-2 text-sm font-semibold text-knirv-green transition hover:bg-knirv-green/15">
+        Contact Investors
+      </a>
+    </nav>
 
-        <div class="container mx-auto px-6 pt-20 pb-32 text-center">
-            <h1 class="text-4xl md:text-6xl font-extrabold leading-tight mb-6">
-                KNIRV CORPORATION:
-                <span class="block title-gradient">THE KEY TO AI SUPREMACY</span>
+    <section id="top" class="relative mx-auto max-w-7xl px-6 pb-16 pt-4 lg:px-8 lg:pb-24 lg:pt-8">
+      <div class="grid gap-12 lg:grid-cols-[1.05fr_0.95fr] lg:items-center">
+        <div class="space-y-8">
+          <div class="flex flex-wrap items-center gap-3 text-xs font-semibold uppercase tracking-[0.28em] text-knirv-muted">
+            <span class="rounded-full border border-white/10 bg-white/5 px-3 py-1">Confidential Investor Presentation</span>
+            <span class="rounded-full border border-knirv-blue/30 bg-knirv-blue/10 px-3 py-1 text-knirv-blue">Series A</span>
+            <span class="rounded-full border border-knirv-green/30 bg-knirv-green/10 text-knirv-green px-3 py-1">Trust Layer</span>
+          </div>
+
+          <div class="space-y-4">
+            <h1 class="font-display text-5xl font-black leading-[0.95] tracking-tight text-white md:text-7xl">
+              <span class="title-gradient">3 Products.</span>
+              <span class="block">1 Network.</span>
+              <span class="block text-3xl font-semibold text-knirv-muted md:text-4xl">The Trust Layer for the AI economy.</span>
             </h1>
-            <p class="text-xl md:text-2xl text-knirv-gray max-w-3xl mx-auto mb-10">
-                We don't just build AI. We build enterprise-grade AI that can <span class="text-knirv-green font-semibold">prove it.</span>
-                Every decision. Every prediction. Cryptographically verified.
+            <p class="max-w-3xl text-lg leading-8 text-knirv-muted md:text-xl">
+              KNIRV turns enterprise AI, validation infrastructure, and exploit resolution into one coordinated platform:
+              policy guardrails, deterministic execution, and neutral security arbitration.
             </p>
-            <a href="#blueprint" class="bg-knirv-green text-knirv-blue font-bold py-3 px-8 rounded-lg text-lg hover:bg-white transition duration-300">
-                View 90-Day Plan
+          </div>
+
+          <div class="flex flex-wrap gap-3">
+            <a href="#products" class="rounded-full bg-white px-5 py-3 text-sm font-semibold text-slate-950 transition hover:bg-knirv-green hover:text-slate-950">
+              View the 3-Tier Platform
             </a>
+            <a href="#financials" class="rounded-full border border-white/10 bg-white/5 px-5 py-3 text-sm font-semibold text-white transition hover:border-knirv-blue/40 hover:bg-knirv-blue/10">
+              See the Financial Path
+            </a>
+          </div>
+
+          <div class="grid gap-4 sm:grid-cols-3">
+            <div class="glass-card rounded-2xl p-5">
+              <div class="text-xs section-label text-knirv-muted">Raise</div>
+              <div class="mt-2 font-display text-3xl font-black text-white">$25M</div>
+              <p class="mt-2 text-sm text-knirv-muted">Series A to scale product, distribution, and core infra.</p>
+            </div>
+            <div class="glass-card rounded-2xl p-5">
+              <div class="text-xs section-label text-knirv-muted">Year 5</div>
+              <div class="mt-2 font-display text-3xl font-black text-knirv-green">$550M</div>
+              <p class="mt-2 text-sm text-knirv-muted">Combined revenue target across all three tiers.</p>
+            </div>
+            <div class="glass-card rounded-2xl p-5">
+              <div class="text-xs section-label text-knirv-muted">Exit</div>
+              <div class="mt-2 font-display text-3xl font-black text-knirv-gold">$5-10B</div>
+              <p class="mt-2 text-sm text-knirv-muted">Target exit trajectory as the trust layer expands.</p>
+            </div>
+          </div>
         </div>
-    </header>
 
-    <!-- Main Content -->
-    <main>
-
-        <!-- The Problem Section -->
-        <section id="problem" class="py-20 bg-gray-900">
-            <div class="container mx-auto px-6">
-                <div class="text-center max-w-3xl mx-auto">
-                    <h2 class="text-3xl md:text-4xl font-extrabold text-white mb-4">
-                        STOP PRETENDING YOUR AI WORKS
-                    </h2>
-                    <p class="text-lg text-knirv-gray mb-6">
-                        Your enterprise AI is gambling with hallucinations. That \$2M compliance solution is failing, and your trading algorithms are bleeding money.
-                    </p>
-                    <p class="text-2xl text-knirv-red font-bold mb-12">
-                        Unvalidated AI is a \$10 trillion time bomb.
-                    </p>
-                </div>
-
-                <!-- Brutal Math Stats -->
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                    <div class="bg-knirv-dark-gray border border-knirv-red/50 rounded-lg p-6 text-center shadow-xl">
-                        <div class="text-5xl font-extrabold text-knirv-red mb-3">77%</div>
-                        <div class="text-white font-semibold">Reliability</div>
-                        <p class="text-sm">on 5-step AI processes (if you're lucky).</p>
-                    </div>
-                    <div class="bg-knirv-dark-gray border border-knirv-red/50 rounded-lg p-6 text-center shadow-xl">
-                        <div class="text-5xl font-extrabold text-knirv-red mb-3">60%</div>
-                        <div class="text-white font-semibold">Success Rate</div>
-                        <p class="text-sm">on 10-step enterprise workflows.</p>
-                    </div>
-                    <div class="bg-knirv-dark-gray border border-knirv-red/50 rounded-lg p-6 text-center shadow-xl">
-                        <div class="text-5xl font-extrabold text-knirv-red mb-3">23%</div>
-                        <div class="text-white font-semibold">Accuracy</div>
-                        <p class="text-sm">on complex enterprise automation.</p>
-                    </div>
-                    <div class="bg-knirv-dark-gray border border-knirv-red/50 rounded-lg p-6 text-center shadow-xl">
-                        <div class="text-5xl font-extrabold text-knirv-red mb-3">\$47</div>
-                        <div class="text-white font-semibold">Per API Call</div>
-                        <p class="text-sm">for processes that need human babysitting.</p>
-                    </div>
-                </div>
+        <div class="space-y-4">
+          <div class="glass-card rounded-3xl p-4 shadow-glow">
+            <div class="flex items-center justify-between px-2 pb-4">
+              <div>
+                <p class="section-label text-xs text-knirv-muted">Investor Video</p>
+                <h2 class="font-display text-2xl font-bold text-white">KNIRV deck walkthrough</h2>
+              </div>
+              <div class="rounded-full border border-knirv-green/30 bg-knirv-green/10 px-3 py-1 text-xs font-semibold text-knirv-green">
+                Featured
+              </div>
             </div>
-        </section>
-
-        <!-- The Solution Section -->
-        <section id="solution" class="py-24 bg-knirv-dark-gray">
-            <div class="container mx-auto px-6 text-center">
-                <h2 class="text-3xl md:text-4xl font-extrabold text-white mb-6">
-                    INTRODUCING: KEY NEURAL INTELLIGENCE REASONING VALIDATION
-                </h2>
-                <p class="text-xl text-knirv-gray max-w-3xl mx-auto mb-12">
-                    We commercialized <span class="text-white font-semibold">Deterministic Validation Environments (DVEs)</span> that transform AI failures into enterprise-grade, verifiable intelligence.
-                </p>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-                    <!-- Icon SVGs from Heroicons -->
-                    <div class="bg-gray-900 p-8 rounded-lg shadow-2xl">
-                        <svg class="w-12 h-12 text-knirv-green mx-auto mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        <h3 class="text-2xl font-bold text-white mb-2">Cryptographically Verified</h3>
-                        <p>Every decision, every prediction, every action is proven on-chain.</p>
-                    </div>
-                    <div class="bg-gray-900 p-8 rounded-lg shadow-2xl">
-                        <svg class="w-12 h-12 text-knirv-green mx-auto mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
-                        </svg>
-                        <h3 class="text-2xl font-bold text-white mb-2">Legally Defensible</h3>
-                        <p>Generate immutable audit trails for compliance and regulatory demands.</p>
-                    </div>
-                    <div class="bg-gray-900 p-8 rounded-lg shadow-2xl">
-                        <svg class="w-12 h-12 text-knirv-green mx-auto mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 013 6h-.75m0 0v-.75A.75.75 0 013 4.5h.75m0 0H21m-12 6h.008v.008H9v-.008zm.3-5.192c.318.155.65.295.994.422m0 0V18.75m0 0A60.063 60.063 0 0018.75 16.5m-9.362-8.132a60.063 60.063 0 00-9.362 8.132" />
-                        </svg>
-                        <h3 class="text-2xl font-bold text-white mb-2">Economically Guaranteed</h3>
-                        <p>Our Proof-of-Solution model ensures you only pay for what works.</p>
-                    </div>
-                </div>
+            <div class="overflow-hidden rounded-2xl border border-white/10 bg-black">
+              <div class="aspect-video">
+                <iframe
+                  class="h-full w-full"
+                  src="https://www.youtube.com/embed/P6DuvOAtppg?rel=0&modestbranding=1"
+                  title="KNIRV investor video"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  allowfullscreen
+                ></iframe>
+              </div>
             </div>
-        </section>
+          </div>
 
-        <!-- 90-Day Blueprint Section -->
-        <section id="blueprint" class="py-24 bg-gray-900">
-            <div class="container mx-auto px-6">
-                <div class="text-center max-w-3xl mx-auto mb-16">
-                    <h2 class="text-3xl md:text-4xl font-extrabold text-white mb-4">
-                        THE <span class="title-gradient">\$890K IN 90 DAYS</span> BLUEPRINT
-                    </h2>
-                    <p class="text-lg text-knirv-gray">
-                        A three-month plan to establish immediate revenue and market dominance.
-                    </p>
-                </div>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-                    <!-- Month 1 -->
-                    <div class="bg-knirv-dark-gray p-8 rounded-lg border-t-4 border-knirv-green shadow-xl">
-                        <div class="text-sm font-bold text-knirv-green mb-2">MONTH 1</div>
-                        <div class="text-3xl font-extrabold text-white mb-4">\$150,000</div>
-                        <h3 class="text-xl font-bold text-white mb-3">Immediate Revenue Engine</h3>
-                        <ul class="list-disc list-inside space-y-2">
-                            <li>Enterprise RTR PoC Development</li>
-                            <li>AI Security & Trust Audits</li>
-                            <li>Target Fortune 1000 CIOs</li>
-                        </ul>
-                    </div>
-                    <!-- Month 2 -->
-                    <div class="bg-knirv-dark-gray p-8 rounded-lg border-t-4 border-knirv-green shadow-xl">
-                        <div class="text-sm font-bold text-knirv-green mb-2">MONTH 2</div>
-                        <div class="text-3xl font-extrabold text-white mb-4">\$310,000</div>
-                        <h3 class="text-xl font-bold text-white mb-3">Scale the Machine</h3>
-                        <ul class="list-disc list-inside space-y-2">
-                            <li>AI Model Cloud Dev Environment</li>
-                            <li>Full SDK Access (SaaS Revenue)</li>
-                            <li>\$60k/contract average</li>
-                        </ul>
-                    </div>
-                    <!-- Month 3 -->
-                    <div class="bg-knirv-dark-gray p-8 rounded-lg border-t-4 border-knirv-green shadow-xl">
-                        <div class="text-sm font-bold text-knirv-green mb-2">MONTH 3</div>
-                        <div class="text-3xl font-extrabold text-white mb-4">\$430,000</div>
-                        <h3 class="text-xl font-bold text-white mb-3">Enterprise Domination</h3>
-                        <ul class="list-disc list-inside space-y-2">
-                            <li>Autonomous Business Process Impl.</li>
-                            <li>Target large-scale workflows</li>
-                            <li>\$50k-\$200k+ per project</li>
-                        </ul>
-                    </div>
-                </div>
+          <div class="glass-card rounded-3xl p-6">
+            <div class="grid gap-4 sm:grid-cols-2">
+              <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
+                <div class="text-xs section-label text-knirv-muted">Positioning</div>
+                <div class="mt-2 font-semibold text-white">Enterprise trust infrastructure for AI</div>
+              </div>
+              <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
+                <div class="text-xs section-label text-knirv-muted">Architecture</div>
+                <div class="mt-2 font-semibold text-white">Policy, validation, security</div>
+              </div>
+              <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
+                <div class="text-xs section-label text-knirv-muted">Timing</div>
+                <div class="mt-2 font-semibold text-white">Revenue wedge ships first</div>
+              </div>
+              <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
+                <div class="text-xs section-label text-knirv-muted">Moat</div>
+                <div class="mt-2 font-semibold text-white">3 independent products, one network</div>
+              </div>
             </div>
-        </section>
+          </div>
+        </div>
+      </div>
+    </section>
+  </header>
 
-        <!-- Unfair Advantages -->
-        <section id="advantages" class="py-24 bg-knirv-blue">
-            <div class="container mx-auto px-6">
-                <div class="text-center max-w-3xl mx-auto mb-16">
-                    <h2 class="text-3xl md:text-4xl font-extrabold text-white mb-4">
-                        OUR UNFAIR ADVANTAGES
-                    </h2>
-                    <p class="text-lg text-knirv-gray">
-                        Why competitors can't copy our model.
-                    </p>
-                </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                    <div class="bg-knirv-dark-gray p-6 rounded-lg shadow-lg">
-                        <h3 class="text-xl font-bold text-knirv-green mb-3">Profitable Failure Marketplace</h3>
-                        <p>We monetize every failed AI attempt. Every failure becomes a sellable knowledge asset. <span class="text-white font-semibold">Zero competition.</span></p>
-                    </div>
-                    <div class="bg-knirv-dark-gray p-6 rounded-lg shadow-lg">
-                        <h3 class="text-xl font-bold text-knirv-green mb-3">Hardware-Backed Security</h3>
-                        <p>Intel SGX, AMD SEV, and ARM TrustZone integration provides cryptographic proof of every AI decision.</p>
-                    </div>
-                    <div class="bg-knirv-dark-gray p-6 rounded-lg shadow-lg">
-                        <h3 class="text-xl font-bold text-knirv-green mb-3">Multi-Chain Domination</h3>
-                        <p>While others focus on single chains, KNIRV captures multiple major blockchain networks simultaneously.</p>
-                    </div>
-                    <div class="bg-knirv-dark-gray p-6 rounded-lg shadow-lg">
-                        <h3 class="text-xl font-bold text-knirv-green mb-3">Enterprise SaaS Model</h3>
-                        <p>Predictable B2B subscriptions, higher LTV, and immediate cash flow while others chase token speculation.</p>
-                    </div>
-                </div>
+  <main class="relative">
+    <section id="problem" class="border-y border-white/5 bg-black/10 py-20">
+      <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <div class="max-w-3xl">
+          <p class="section-label text-xs font-semibold text-knirv-blue">Problem</p>
+          <h2 class="mt-3 font-display text-4xl font-black text-white md:text-5xl">
+            The trust deficit is the market.
+          </h2>
+          <p class="mt-4 text-lg leading-8 text-knirv-muted">
+            Enterprises are deploying AI into compliance-sensitive workflows without auditability, deterministic execution, or a credible dispute layer.
+            KNIRV packages the missing infrastructure into a single network.
+          </p>
+        </div>
+
+        <div class="mt-10 grid gap-6 lg:grid-cols-3">
+          <article class="glass-card rounded-3xl p-6">
+            <div class="section-label text-xs font-semibold text-knirv-blue">Tier I</div>
+            <h3 class="mt-3 font-display text-2xl font-bold text-white">No AI governance</h3>
+            <p class="mt-3 text-sm leading-7 text-knirv-muted">
+              Enterprises deploying AI agents have no post-hoc audit capability. Compliance teams cannot prove what the system did, when it did it, or why.
+            </p>
+            <p class="mt-4 text-sm font-semibold text-knirv-blue">EU AI Act enforcement is forcing the issue.</p>
+          </article>
+          <article class="glass-card rounded-3xl p-6">
+            <div class="section-label text-xs font-semibold text-knirv-green">Tier II</div>
+            <h3 class="mt-3 font-display text-2xl font-bold text-white">Unvalidated execution</h3>
+            <p class="mt-3 text-sm leading-7 text-knirv-muted">
+              A 10-step AI process at 95% step accuracy still fails 40% of the time end-to-end. Without deterministic runtime, the cost of failure becomes enterprise waste.
+            </p>
+            <p class="mt-4 text-sm font-semibold text-knirv-green">$47 average failed call cost is the wedge.</p>
+          </article>
+          <article class="glass-card rounded-3xl p-6">
+            <div class="section-label text-xs font-semibold text-knirv-gold">Tier III</div>
+            <h3 class="mt-3 font-display text-2xl font-bold text-white">Security disclosure chaos</h3>
+            <p class="mt-3 text-sm leading-7 text-knirv-muted">
+              Bug bounty, disclosure, and exploit resolution still lack chain-of-custody, neutral halt authority, and an actuarial model for payouts and sequencing.
+            </p>
+            <p class="mt-4 text-sm font-semibold text-knirv-gold">KNIRV turns that chaos into infrastructure.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section id="products" class="py-20">
+      <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <div class="max-w-3xl">
+          <p class="section-label text-xs font-semibold text-knirv-green">Products</p>
+          <h2 class="mt-3 font-display text-4xl font-black text-white md:text-5xl">
+            Three standalone products. One network effect.
+          </h2>
+          <p class="mt-4 text-lg leading-8 text-knirv-muted">
+            Each tier can ship and sell independently. Combined, they create the full trust stack for regulated AI, validated execution, and security arbitration.
+          </p>
+        </div>
+
+        <div class="mt-10 grid gap-6 xl:grid-cols-3">
+          <article class="glass-card flex h-full flex-col overflow-hidden rounded-[1.75rem]">
+            <div class="border-b border-white/10 bg-gradient-to-br from-knirv-blue/15 to-transparent p-6">
+              <div class="flex items-center justify-between">
+                <span class="section-label text-xs font-semibold text-knirv-blue">Tier I</span>
+                <span class="rounded-full border border-knirv-blue/30 bg-knirv-blue/10 px-3 py-1 text-xs font-semibold text-knirv-blue">$15B TAM</span>
+              </div>
+              <h3 class="mt-4 font-display text-3xl font-bold text-white">AI Policy Guardrails Engine</h3>
+              <p class="mt-2 text-sm italic text-knirv-muted">Guardrails with receipts</p>
             </div>
-        </section>
-        
-        <!-- 5-Year Trajectory with Chart -->
-        <section id="trajectory" class="py-24 bg-gray-900">
-            <div class="container mx-auto px-6">
-                <div class="text-center max-w-3xl mx-auto mb-16">
-                    <h2 class="text-3xl md:text-4xl font-extrabold text-white mb-4">
-                        THE <span class="title-gradient">\$500M-\$1.2B</span> FIVE-YEAR TRAJECTORY
-                    </h2>
-                    <p class="text-lg text-knirv-gray">
-                        Our projection for rapid market leadership and category domination.
-                    </p>
+            <div class="flex-1 p-6">
+              <ul class="space-y-3 text-sm text-knirv-muted">
+                <li>Blockchain-anchored policy enforcement</li>
+                <li>7 guardrail types and 5 compliance frameworks</li>
+                <li>Adaptive thresholds driven by the cognitive engine</li>
+                <li>80+ REST endpoints with OpenAPI 3.1</li>
+              </ul>
+              <div class="mt-6 grid gap-3 text-sm">
+                <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
+                  <div class="text-xs section-label text-knirv-muted">Buyers</div>
+                  <div class="mt-1 text-white">CISO, Chief Compliance Officer, EU AI Act teams</div>
                 </div>
-                
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-                    <!-- Chart Canvas -->
-                    <div class="bg-knirv-dark-gray p-8 rounded-lg shadow-2xl">
-                        <h3 class="text-2xl font-bold text-white mb-6 text-center">Projected Annual Revenue (in Millions)</h3>
-                        <canvas id="revenueChart"></canvas>
-                    </div>
-                    
-                    <!-- Key Metrics -->
-                    <div class="text-left">
-                        <div class="grid grid-cols-2 gap-6">
-                            <div class="bg-knirv-dark-gray p-6 rounded-lg">
-                                <div class="text-sm font-bold text-knirv-green">YEAR 1</div>
-                                <div class="text-3xl font-extrabold text-white">\$5M</div>
-                                <p>Foundation Building</p>
-                            </div>
-                            <div class="bg-knirv-dark-gray p-6 rounded-lg">
-                                <div class="text-sm font-bold text-knirv-green">YEAR 2</div>
-                                <div class="text-3xl font-extrabold text-white">\$26M</div>
-                                <p>Market Penetration</p>
-                            </div>
-                            <div class="bg-knirv-dark-gray p-6 rounded-lg">
-                                <div class="text-sm font-bold text-knirv-green">YEAR 3</div>
-                                <div class="text-3xl font-extrabold text-white">\$100M</div>
-                                <p>Enterprise Adoption</p>
-                            </div>
-                            <div class="bg-knirv-dark-gray p-6 rounded-lg">
-                                <div class="text-sm font-bold text-knirv-green">YEAR 4</div>
-                                <div class="text-3xl font-extrabold text-white">\$275M</div>
-                                <p>Market Leadership</p>
-                            </div>
-                            <div class="bg-knirv-dark-gray p-6 rounded-lg col-span-2">
-                                <div class="text-sm font-bold text-knirv-green">YEAR 5</div>
-                                <div class="text-4xl font-extrabold text-white">\$550M</div>
-                                <p>Category Domination</p>
-                            </div>
-                        </div>
-                         <div class="mt-8 grid grid-cols-2 gap-6">
-                            <div class="bg-knirv-blue p-6 rounded-lg text-center">
-                                <div class="text-2xl font-bold text-white">24-36 mo.</div>
-                                <p class="text-knirv-gray">Break-Even</p>
-                            </div>
-                            <div class="bg-knirv-blue p-6 rounded-lg text-center">
-                                <div class="text-2xl font-bold text-white">\$5-10B</div>
-                                <p class="text-knirv-gray">Target Exit Valuation</p>
-                            </div>
-                        </div>
-                    </div>
+                <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
+                  <div class="text-xs section-label text-knirv-muted">Pricing</div>
+                  <div class="mt-1 text-white">$20K-$150K/yr enterprise, $199-$999/mo SaaS</div>
                 </div>
+                <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
+                  <div class="text-xs section-label text-knirv-muted">Status</div>
+                  <div class="mt-1 text-white">Shipping Q3 2026, 6 weeks to first revenue</div>
+                </div>
+              </div>
             </div>
-        </section>
+          </article>
 
-        <!-- Competitive Landscape -->
-        <section id="competition" class="py-24 bg-knirv-dark-gray">
-            <div class="container mx-auto px-6">
-                <div class="text-center max-w-3xl mx-auto mb-16">
-                    <h2 class="text-3xl md:text-4xl font-extrabold text-white mb-4">
-                        THE COMPETITIVE ADVANTAGE MATRIX
-                    </h2>
-                    <p class="text-lg text-knirv-gray">
-                        We're the only platform that provides enterprise-grade verification, multi-chain operation, and profitable failure monetization.
-                    </p>
-                </div>
-                
-                <div class="overflow-x-auto shadow-2xl rounded-lg">
-                    <table class="w-full min-w-max text-left text-white">
-                        <thead class="bg-knirv-blue text-knirv-green uppercase text-sm font-semibold">
-                            <tr>
-                                <th class="py-4 px-6">Capability</th>
-                                <th class="py-4 px-6 text-center">KNIRV</th>
-                                <th class="py-4 px-6 text-center">ASI Alliance</th>
-                                <th class="py-4 px-6 text-center">ChainGPT</th>
-                                <th class="py-4 px-6 text-center">Others</th>
-                            </tr>
-                        </thead>
-                        <tbody class="bg-gray-800 divide-y divide-gray-700">
-                            <!-- Checkmark SVG -->
-                            <svg class="hidden" id="check-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6">
-                              <path fill-rule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12zm13.36-1.814a.75.75 0 10-1.22-.872l-3.236 4.53L9.53 12.22a.75.75 0 00-1.06 1.06l2.25 2.25a.75.75 0 001.14-.094l3.75-5.25z" clip-rule="evenodd" />
-                            </svg>
-                            <!-- Cross SVG -->
-                            <svg class="hidden" id="cross-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6">
-                              <path fill-rule="evenodd" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25zm-1.72 6.97a.75.75 0 10-1.06 1.06L10.94 12l-1.72 1.72a.75.75 0 101.06 1.06L12 13.06l1.72 1.72a.75.75 0 101.06-1.06L13.06 12l1.72-1.72a.75.75 0 10-1.06-1.06L12 10.94l-1.72-1.72z" clip-rule="evenodd" />
-                            </svg>
-
-                            <tr class="hover:bg-gray-700">
-                                <td class="py-4 px-6 font-semibold">Enterprise SaaS Model</td>
-                                <td class="py-4 px-6 text-center"><span class="text-2xl">✅</span></td>
-                                <td class="py-4 px-6 text-center"><span class="text-2xl">❌</span></td>
-                                <td class="py-4 px-6 text-center"><span class="text-2xl">❌</span></td>
-                                <td class="py-4 px-6 text-center"><span class="text-2xl">❌</span></td>
-                            </tr>
-                            <tr class="hover:bg-gray-700">
-                                <td class="py-4 px-6 font-semibold">Failure Monetization</td>
-                                <td class="py-4 px-6 text-center"><span class="text-2xl">✅</span></td>
-                                <td class="py-4 px-6 text-center"><span class="text-2xl">❌</span></td>
-                                <td class="py-4 px-6 text-center"><span class="text-2xl">❌</span></td>
-                                <td class="py-4 px-6 text-center"><span class="text-2xl">❌</span></td>
-                            </tr>
-                            <tr class="hover:bg-gray-700">
-                                <td class="py-4 px-6 font-semibold">Multi-Chain Operation</td>
-                                <td class="py-4 px-6 text-center"><span class="text-2xl">✅</span></td>
-                                <td class="py-4 px-6 text-center"><span class="text-2xl">❌</span></td>
-                                <td class="py-4 px-6 text-center"><span class="text-2xl">❌</span></td>
-                                <td class="py-4 px-6 text-center"><span class="text-2xl">❌</span></td>
-                            </tr>
-                            <tr class="hover:bg-gray-700">
-                                <td class="py-4 px-6 font-semibold">TEE Security</td>
-                                <td class="py-4 px-6 text-center"><span class="text-2xl">✅</span></td>
-                                <td class="py-4 px-6 text-center"><span class="text-2xl">❌</span></td>
-                                <td class="py-4 px-6 text-center"><span class="text-2xl">❌</span></td>
-                                <td class="py-4 px-6 text-center"><span class="text-2xl">❌</span></td>
-                            </tr>
-                            <tr class="hover:bg-gray-700">
-                                <td class="py-4 px-6 font-semibold">Gaming Integration</td>
-                                <td class="py-4 px-6 text-center"><span class="text-2xl">✅</span></td>
-                                <td class="py-4 px-6 text-center"><span class="text-2xl">❌</span></td>
-                                <td class="py-4 px-6 text-center"><span class="text-2xl">❌</span></td>
-                                <td class="py-4 px-6 text-center"><span class="text-2xl">❌</span></td>
-                            </tr>
-                            <tr class="hover:bg-gray-700">
-                                <td class="py-4 px-6 font-semibold">Verifiable Execution</td>
-                                <td class="py-4 px-6 text-center"><span class="text-2xl">✅</span></td>
-                                <td class="py-4 px-6 text-center"><span class="text-2xl">❌</span></td>
-                                <td class="py-4 px-6 text-center"><span class="text-2xl">❌</span></td>
-                                <td class="py-4 px-6 text-center"><span class="text-2xl">❌</span></td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
+          <article class="glass-card flex h-full flex-col overflow-hidden rounded-[1.75rem] border-knirv-green/25">
+            <div class="border-b border-white/10 bg-gradient-to-br from-knirv-green/15 to-transparent p-6">
+              <div class="flex items-center justify-between">
+                <span class="section-label text-xs font-semibold text-knirv-green">Tier II</span>
+                <span class="rounded-full border border-knirv-green/30 bg-knirv-green/10 px-3 py-1 text-xs font-semibold text-knirv-green">$35B TAM</span>
+              </div>
+              <h3 class="mt-4 font-display text-3xl font-bold text-white">Deterministic AI Validation Network</h3>
+              <p class="mt-2 text-sm italic text-knirv-muted">Prove every step</p>
             </div>
-        </section>
-
-        <!-- Target Markets -->
-        <section id="markets" class="py-24 bg-gray-900">
-            <div class="container mx-auto px-6">
-                <div class="text-center max-w-3xl mx-auto mb-16">
-                    <h2 class="text-3xl md:text-4xl font-extrabold text-white mb-4">
-                        CUSTOMERS WRITING CHECKS TODAY
-                    </h2>
-                    <p class="text-lg text-knirv-gray">
-                        High-value opportunities in critical enterprise sectors.
-                    </p>
+            <div class="flex-1 p-6">
+              <ul class="space-y-3 text-sm text-knirv-muted">
+                <li>DVE nodes with eBPF telemetry and deterministic execution</li>
+                <li>WASM sandboxing for untrusted code</li>
+                <li>PoAu-D consensus and sovereign IBC chain support</li>
+                <li>TEE attestation hooks for SGX, SEV, and TrustZone</li>
+              </ul>
+              <div class="mt-6 grid gap-3 text-sm">
+                <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
+                  <div class="text-xs section-label text-knirv-muted">Buyers</div>
+                  <div class="mt-1 text-white">VP Engineering, MLOps teams, AI agent builders</div>
                 </div>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-                    <div class="bg-knirv-dark-gray p-8 rounded-lg shadow-xl border-l-4 border-knirv-green">
-                        <h3 class="text-2xl font-bold text-white mb-3">Financial Services</h3>
-                        <p class="text-sm text-knirv-green font-semibold mb-4">(\$335.8B Market by 2030)</p>
-                        <ul class="list-disc list-inside space-y-2">
-                            <li>Real-time fraud detection</li>
-                            <li>Algorithmic trading validation</li>
-                            <li>Automated compliance monitoring</li>
-                        </ul>
-                    </div>
-                    <div class="bg-knirv-dark-gray p-8 rounded-lg shadow-xl border-l-4 border-knirv-green">
-                        <h3 class="text-2xl font-bold text-white mb-3">Healthcare</h3>
-                        <p class="text-sm text-knirv-green font-semibold mb-4">(\$50B+ Opportunity)</p>
-                        <ul class="list-disc list-inside space-y-2">
-                            <li>HIPAA-compliant clinical decision support</li>
-                            <li>Drug discovery acceleration</li>
-                            <li>Medical imaging analysis</li>
-                        </ul>
-                    </div>
-                    <div class="bg-knirv-dark-gray p-8 rounded-lg shadow-xl border-l-4 border-knirv-green">
-                        <h3 class="text-2xl font-bold text-white mb-3">Logistics</h3>
-                        <p class="text-sm text-knirv-green font-semibold mb-4">(Massive Efficiency Gains)</p>
-                        <ul class="list-disc list-inside space-y-2">
-                            <li>Dynamic route optimization</li>
-                            <li>Supply chain optimization</li>
-                            <li>Receiving department automation</li>
-                        </ul>
-                    </div>
+                <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
+                  <div class="text-xs section-label text-knirv-muted">Pricing</div>
+                  <div class="mt-1 text-white">$0.50-$5.00/vCPU-hr DVE, $50K+ bootnodes</div>
                 </div>
+                <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
+                  <div class="text-xs section-label text-knirv-muted">Status</div>
+                  <div class="mt-1 text-white">Testnet live, mainnet Q2 2026</div>
+                </div>
+              </div>
             </div>
-        </section>
+          </article>
 
-        <!-- Call to Action -->
-        <section id="contact" class="py-32 hero-gradient">
-            <div class="container mx-auto px-6 text-center">
-                <h2 class="text-4xl md:text-5xl font-extrabold text-white max-w-3xl mx-auto leading-tight mb-8">
-                    The question isn't whether AI validation will be a massive market.
-                    <span class="block title-gradient mt-4">It's whether you'll be part of the company that owns it.</span>
-                </h2>
-                <a href="https://demo.knirv.com" target="_blank" class="bg-knirv-green text-knirv-blue font-bold py-4 px-10 rounded-lg text-xl hover:bg-white transition duration-300 shadow-2xl">
-                    Schedule Your Enterprise Demo
+          <article class="glass-card flex h-full flex-col overflow-hidden rounded-[1.75rem]">
+            <div class="border-b border-white/10 bg-gradient-to-br from-knirv-gold/15 to-transparent p-6">
+              <div class="flex items-center justify-between">
+                <span class="section-label text-xs font-semibold text-knirv-gold">Tier III</span>
+                <span class="rounded-full border border-knirv-gold/30 bg-knirv-gold/10 px-3 py-1 text-xs font-semibold text-knirv-gold">$8B TAM</span>
+              </div>
+              <h3 class="mt-4 font-display text-3xl font-bold text-white">Security Exploit Resolution</h3>
+              <p class="mt-2 text-sm italic text-knirv-muted">Neutral arbitration layer</p>
+            </div>
+            <div class="flex-1 p-6">
+              <ul class="space-y-3 text-sm text-knirv-muted">
+                <li>Forensic chain-of-custody for bug bounty submissions</li>
+                <li>Andon Cord distributed halt authority</li>
+                <li>Blind peer review and coordinated disclosure workflows</li>
+                <li>Patch collision sequencing and premium integration tiers</li>
+              </ul>
+              <div class="mt-6 grid gap-3 text-sm">
+                <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
+                  <div class="text-xs section-label text-knirv-muted">Buyers</div>
+                  <div class="mt-1 text-white">CISO, bug bounty platforms, cyber insurers</div>
+                </div>
+                <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
+                  <div class="text-xs section-label text-knirv-muted">Pricing</div>
+                  <div class="mt-1 text-white">Per-submission SaaS, staking, and transaction fees</div>
+                </div>
+                <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
+                  <div class="text-xs section-label text-knirv-muted">Status</div>
+                  <div class="mt-1 text-white">Design complete, shipping Q4 2026</div>
+                </div>
+              </div>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section id="financials" class="border-y border-white/5 bg-black/10 py-20">
+      <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <div class="max-w-3xl">
+          <p class="section-label text-xs font-semibold text-knirv-blue">Financials</p>
+          <h2 class="mt-3 font-display text-4xl font-black text-white md:text-5xl">
+            Built for a $5M to $550M trajectory.
+          </h2>
+          <p class="mt-4 text-lg leading-8 text-knirv-muted">
+            The business is designed to start with the lowest-friction revenue wedge, then compound across validation infrastructure and exploit resolution.
+          </p>
+        </div>
+
+        <div class="mt-10 grid gap-8 lg:grid-cols-[1.5fr_0.9fr]">
+          <div class="glass-card rounded-[1.75rem] p-5 lg:p-6">
+            <div class="flex items-center justify-between gap-4 px-1 pb-4">
+              <div>
+                <h3 class="font-display text-2xl font-bold text-white">5-Year Revenue Projection</h3>
+                <p class="text-sm text-knirv-muted">Combined annual revenue by tier, in millions</p>
+              </div>
+              <div class="rounded-full border border-knirv-green/30 bg-knirv-green/10 px-3 py-1 text-xs font-semibold text-knirv-green">
+                Combined target: $550M
+              </div>
+            </div>
+            <div class="h-[340px]">
+              <canvas id="revenueChart"></canvas>
+            </div>
+          </div>
+
+          <div class="grid gap-4">
+            <div class="glass-card rounded-3xl p-6">
+              <div class="text-xs section-label text-knirv-muted">Year 5 Revenue</div>
+              <div class="mt-2 font-display text-4xl font-black text-knirv-green">$550M</div>
+              <p class="mt-3 text-sm leading-7 text-knirv-muted">Category-scale revenue across three independent product lines.</p>
+            </div>
+            <div class="glass-card rounded-3xl p-6">
+              <div class="text-xs section-label text-knirv-muted">Break-even</div>
+              <div class="mt-2 font-display text-4xl font-black text-knirv-blue">24-36 months</div>
+              <p class="mt-3 text-sm leading-7 text-knirv-muted">The platform is structured to monetize early via Tier I before heavier infra ramps.</p>
+            </div>
+            <div class="glass-card rounded-3xl p-6">
+              <div class="text-xs section-label text-knirv-muted">Token Sale</div>
+              <div class="mt-2 font-display text-4xl font-black text-knirv-gold">$100M</div>
+              <p class="mt-3 text-sm leading-7 text-knirv-muted">Q4 2026 token sale cadence from the deck’s financing path.</p>
+            </div>
+            <div class="glass-card rounded-3xl p-6">
+              <div class="text-xs section-label text-knirv-muted">Target Exit</div>
+              <div class="mt-2 font-display text-4xl font-black text-white">$5-10B</div>
+              <p class="mt-3 text-sm leading-7 text-knirv-muted">The trust layer expands into a platform acquisition or category-defining public company outcome.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="competition" class="py-20">
+      <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <div class="max-w-3xl">
+          <p class="section-label text-xs font-semibold text-knirv-gold">Moat</p>
+          <h2 class="mt-3 font-display text-4xl font-black text-white md:text-5xl">
+            No competitor spans all three layers.
+          </h2>
+          <p class="mt-4 text-lg leading-8 text-knirv-muted">
+            Competitors solve a slice of the problem. KNIRV owns the intersection.
+          </p>
+        </div>
+
+        <div class="mt-10 overflow-hidden rounded-[1.75rem] glass-card">
+          <div class="overflow-x-auto">
+            <table class="min-w-full text-left text-sm">
+              <thead class="border-b border-white/10 bg-white/5 text-knirv-muted">
+                <tr>
+                  <th class="px-6 py-4 font-semibold">Platform</th>
+                  <th class="px-6 py-4 text-center font-semibold text-knirv-blue">Guardrails</th>
+                  <th class="px-6 py-4 text-center font-semibold text-knirv-green">Validation</th>
+                  <th class="px-6 py-4 text-center font-semibold text-knirv-gold">Security</th>
+                  <th class="px-6 py-4 font-semibold">Moat Analysis</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-white/10">
+                <tr class="bg-knirv-blue/10">
+                  <td class="px-6 py-4 font-semibold text-white">KNIRV</td>
+                  <td class="px-6 py-4 text-center text-2xl text-knirv-green">✓</td>
+                  <td class="px-6 py-4 text-center text-2xl text-knirv-green">✓</td>
+                  <td class="px-6 py-4 text-center text-2xl text-knirv-green">✓</td>
+                  <td class="px-6 py-4 text-knirv-muted">Only full-stack AI trust layer</td>
+                </tr>
+                <tr>
+                  <td class="px-6 py-4 font-medium text-white">ASI Alliance</td>
+                  <td class="px-6 py-4 text-center text-2xl text-knirv-red">✕</td>
+                  <td class="px-6 py-4 text-center text-2xl text-knirv-red">✕</td>
+                  <td class="px-6 py-4 text-center text-2xl text-knirv-red">✕</td>
+                  <td class="px-6 py-4 text-knirv-muted">Speculative tokens, no enterprise validation</td>
+                </tr>
+                <tr>
+                  <td class="px-6 py-4 font-medium text-white">ChainGPT</td>
+                  <td class="px-6 py-4 text-center text-2xl text-knirv-red">✕</td>
+                  <td class="px-6 py-4 text-center text-2xl text-knirv-red">✕</td>
+                  <td class="px-6 py-4 text-center text-2xl text-knirv-red">✕</td>
+                  <td class="px-6 py-4 text-knirv-muted">Consumer AI, no audit infrastructure</td>
+                </tr>
+                <tr>
+                  <td class="px-6 py-4 font-medium text-white">LangSmith / Humanloop</td>
+                  <td class="px-6 py-4 text-center text-2xl text-yellow-300">◐</td>
+                  <td class="px-6 py-4 text-center text-2xl text-knirv-red">✕</td>
+                  <td class="px-6 py-4 text-center text-2xl text-knirv-red">✕</td>
+                  <td class="px-6 py-4 text-knirv-muted">Post-hoc observability, no enforcement</td>
+                </tr>
+                <tr>
+                  <td class="px-6 py-4 font-medium text-white">Guardrails AI</td>
+                  <td class="px-6 py-4 text-center text-2xl text-knirv-green">✓</td>
+                  <td class="px-6 py-4 text-center text-2xl text-knirv-red">✕</td>
+                  <td class="px-6 py-4 text-center text-2xl text-knirv-red">✕</td>
+                  <td class="px-6 py-4 text-knirv-muted">App-layer only, no kernel telemetry</td>
+                </tr>
+                <tr>
+                  <td class="px-6 py-4 font-medium text-white">HackerOne / Bugcrowd</td>
+                  <td class="px-6 py-4 text-center text-2xl text-knirv-red">✕</td>
+                  <td class="px-6 py-4 text-center text-2xl text-knirv-red">✕</td>
+                  <td class="px-6 py-4 text-center text-2xl text-yellow-300">◐</td>
+                  <td class="px-6 py-4 text-knirv-muted">Human-mediated, no chain-of-custody</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="mt-6 grid gap-4 lg:grid-cols-3">
+          <div class="glass-card rounded-3xl p-6">
+            <h3 class="font-display text-xl font-bold text-white">No governance competitor</h3>
+            <p class="mt-2 text-sm leading-7 text-knirv-muted">Policy-only tools stop short of enforcement and evidence.</p>
+          </div>
+          <div class="glass-card rounded-3xl p-6">
+            <h3 class="font-display text-xl font-bold text-white">No validation competitor</h3>
+            <p class="mt-2 text-sm leading-7 text-knirv-muted">Observability tools are post-hoc. KNIRV is pre-enforcement and deterministic.</p>
+          </div>
+          <div class="glass-card rounded-3xl p-6">
+            <h3 class="font-display text-xl font-bold text-white">No security platform</h3>
+            <p class="mt-2 text-sm leading-7 text-knirv-muted">Bug bounty marketplaces do not coordinate disclosures as infrastructure.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="ask" class="border-y border-white/5 bg-black/10 py-20">
+      <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <div class="max-w-3xl">
+          <p class="section-label text-xs font-semibold text-knirv-blue">Investment</p>
+          <h2 class="mt-3 font-display text-4xl font-black text-white md:text-5xl">
+            The ask is designed to fund all three revenue wedges.
+          </h2>
+          <p class="mt-4 text-lg leading-8 text-knirv-muted">
+            This round is about shipping the wedge, proving the network, and creating the infrastructure that makes the later expansion credible.
+          </p>
+        </div>
+
+        <div class="mt-10 grid gap-6 lg:grid-cols-[0.95fr_1.05fr]">
+          <div class="glass-card rounded-[1.75rem] p-6">
+            <div class="flex items-center justify-between">
+              <div>
+                <div class="section-label text-xs font-semibold text-knirv-green">Series A</div>
+                <div class="mt-2 font-display text-5xl font-black text-white">$25M</div>
+              </div>
+              <div class="rounded-full border border-knirv-green/30 bg-knirv-green/10 px-3 py-1 text-xs font-semibold text-knirv-green">
+                Current round
+              </div>
+            </div>
+
+            <div class="mt-6 space-y-3 text-sm">
+              <div class="flex items-center justify-between rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
+                <span class="text-knirv-muted">Instrument</span>
+                <span class="font-semibold text-white">Post-money SAFE</span>
+              </div>
+              <div class="flex items-center justify-between rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
+                <span class="text-knirv-muted">Use of funds</span>
+                <span class="font-semibold text-white">3-tier product + team</span>
+              </div>
+              <div class="flex items-center justify-between rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
+                <span class="text-knirv-muted">Target close</span>
+                <span class="font-semibold text-white">Q3 2026</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid gap-4 sm:grid-cols-2">
+            <div class="glass-card rounded-3xl p-6">
+              <div class="section-label text-xs font-semibold text-knirv-blue">Allocation</div>
+              <div class="mt-3 space-y-3 text-sm text-knirv-muted">
+                <div class="flex items-center justify-between gap-4">
+                  <span>Tier I: Guardrails Engine</span>
+                  <span class="font-semibold text-white">$8M</span>
+                </div>
+                <div class="flex items-center justify-between gap-4">
+                  <span>Tier II: Validation Network</span>
+                  <span class="font-semibold text-white">$10M</span>
+                </div>
+                <div class="flex items-center justify-between gap-4">
+                  <span>Tier III: Security Platform</span>
+                  <span class="font-semibold text-white">$7M</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="glass-card rounded-3xl p-6">
+              <div class="section-label text-xs font-semibold text-knirv-gold">Why It Works</div>
+              <div class="mt-3 space-y-3 text-sm text-knirv-muted">
+                <div>3 independent products = 3 revenue streams</div>
+                <div>Hardware-backed moat across Intel, AMD, and ARM</div>
+                <div>$58B TAM with a clear cross-sell path</div>
+                <div>Tier I funds the wedge; Tier II and III compound the network</div>
+              </div>
+            </div>
+
+            <div class="glass-card rounded-3xl p-6 sm:col-span-2">
+              <div class="section-label text-xs font-semibold text-knirv-muted">Investor protections</div>
+              <div class="mt-4 grid gap-4 md:grid-cols-4">
+                <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
+                  <div class="font-semibold text-white">IP moat</div>
+                  <p class="mt-2 text-xs leading-6 text-knirv-muted">Patent portfolio and evidence-oriented product design.</p>
+                </div>
+                <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
+                  <div class="font-semibold text-white">Audit rights</div>
+                  <p class="mt-2 text-xs leading-6 text-knirv-muted">Financial and security auditability as part of the network story.</p>
+                </div>
+                <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
+                  <div class="font-semibold text-white">Board seat</div>
+                  <p class="mt-2 text-xs leading-6 text-knirv-muted">Lead investors receive governance participation.</p>
+                </div>
+                <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
+                  <div class="font-semibold text-white">Asset-backed</div>
+                  <p class="mt-2 text-xs leading-6 text-knirv-muted">Hardware integrations and verifiable execution increase defensibility.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="contact" class="py-20">
+      <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <div class="glass-card overflow-hidden rounded-[2rem]">
+          <div class="grid gap-0 lg:grid-cols-[1.05fr_0.95fr]">
+            <div class="p-8 lg:p-12">
+              <p class="section-label text-xs font-semibold text-knirv-muted">Closing</p>
+              <h2 class="mt-3 max-w-2xl font-display text-4xl font-black leading-tight text-white md:text-5xl">
+                Ready to back the trust layer for the AI economy?
+              </h2>
+              <p class="mt-4 max-w-2xl text-lg leading-8 text-knirv-muted">
+                KNIRV is building the infrastructure that makes AI provably trustworthy, not merely claimed to be.
+              </p>
+
+              <div class="mt-8 flex flex-wrap gap-3">
+                <a href="mailto:investors@knirv.com" class="rounded-full bg-white px-5 py-3 text-sm font-semibold text-slate-950 transition hover:bg-knirv-green">
+                  investors@knirv.com
                 </a>
-            </div>
-        </section>
-    </main>
+                <a href="https://demo.knirv.com" target="_blank" rel="noreferrer" class="rounded-full border border-white/10 bg-white/5 px-5 py-3 text-sm font-semibold text-white transition hover:border-knirv-blue/40 hover:bg-knirv-blue/10">
+                  Schedule Demo
+                </a>
+              </div>
 
-    <!-- Footer -->
-    <footer class="bg-knirv-blue text-knirv-gray py-16">
-        <div class="container mx-auto px-6">
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
-                <div>
-                    <div class="text-2xl font-extrabold text-white mb-3">
-                        KNIRV<span class="text-knirv-green">.</span>
-                    </div>
-                    <p class="text-sm">The Enterprise AI Platform That Can Prove It.</p>
+              <div class="mt-10 grid gap-4 sm:grid-cols-3">
+                <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
+                  <div class="text-xs section-label text-knirv-blue">Tier I</div>
+                  <div class="mt-2 font-semibold text-white">AI Policy Guardrails</div>
                 </div>
-                <div>
-                    <h4 class="text-lg font-semibold text-white mb-4">Contact</h4>
-                    <ul class="space-y-2 text-sm">
-                        <li><a href="mailto:investors@knirv.com" class="hover:text-knirv-green">Investors: investors@knirv.com</a></li>
-                        <li><a href="mailto:enterprise@knirv.com" class="hover:text-knirv-green">Sales: enterprise@knirv.com</a></li>
-                        <li><a href="mailto:partners@knirv.com" class="hover:text-knirv-green">Partners: partners@knirv.com</a></li>
-                    </ul>
+                <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
+                  <div class="text-xs section-label text-knirv-green">Tier II</div>
+                  <div class="mt-2 font-semibold text-white">Deterministic Validation</div>
                 </div>
-                <div>
-                    <h4 class="text-lg font-semibold text-white mb-4">Quick Links</h4>
-                    <ul class="space-y-2 text-sm">
-                        <li><a href="#problem" class="hover:text-knirv-green">The Problem</a></li>
-                        <li><a href="#solution" class="hover:text-knirv-green">Our Solution</a></li>
-                        <li><a href="#trajectory" class="hover:text-knirv-green">5-Year Plan</a></li>
-                        <li><a href="#competition" class="hover:text-knirv-green">Competition</a></li>
-                    </ul>
+                <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
+                  <div class="text-xs section-label text-knirv-gold">Tier III</div>
+                  <div class="mt-2 font-semibold text-white">Security Exploit Resolution</div>
                 </div>
-                <div>
-                    <h4 class="text-lg font-semibold text-white mb-4">Site</h4>
-                     <a href="https://knirv.com" target="_blank" class="hover:text-knirv-green text-sm">knirv.com</a>
-                </div>
+              </div>
             </div>
-            <div class="border-t border-gray-700 mt-12 pt-8 text-center text-sm">
-                &copy; 2025 KNIRV Corporation. All rights reserved.
+
+            <div class="border-t border-white/10 bg-gradient-to-br from-white/5 to-transparent p-8 lg:border-l lg:border-t-0 lg:p-12">
+              <div class="rounded-3xl border border-white/10 bg-slate-950/70 p-6">
+                <div class="text-xs section-label text-knirv-muted">Knirv Corporation</div>
+                <div class="mt-3 font-display text-3xl font-black text-white">Key Neural Intelligence Reasoning Validation</div>
+                <p class="mt-4 text-sm leading-7 text-knirv-muted">
+                  3 products. 1 network. The trust layer.
+                </p>
+                <div class="mt-8 space-y-3 text-sm">
+                  <div class="flex items-center justify-between rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
+                    <span class="text-knirv-muted">Investor email</span>
+                    <a class="font-semibold text-white hover:text-knirv-green" href="mailto:investors@knirv.com">investors@knirv.com</a>
+                  </div>
+                  <div class="flex items-center justify-between rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
+                    <span class="text-knirv-muted">Enterprise sales</span>
+                    <a class="font-semibold text-white hover:text-knirv-green" href="mailto:enterprise@knirv.com">enterprise@knirv.com</a>
+                  </div>
+                  <div class="flex items-center justify-between rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
+                    <span class="text-knirv-muted">Website</span>
+                    <a class="font-semibold text-white hover:text-knirv-green" href="https://knirv.com" target="_blank" rel="noreferrer">knirv.com</a>
+                  </div>
+                </div>
+              </div>
             </div>
+          </div>
         </div>
-    </footer>
+      </div>
+    </section>
+  </main>
 
-    <!-- Chart.js Script -->
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const ctx = document.getElementById('revenueChart').getContext('2d');
-            
-            // Create a gradient for the chart bars
-            const gradient = ctx.createLinearGradient(0, 0, 0, 400);
-            gradient.addColorStop(0, 'rgba(0, 255, 155, 1)'); // knirv-green
-            gradient.addColorStop(1, 'rgba(0, 201, 255, 0.6)'); // A matching blue
-            
-            Chart.defaults.font.family = 'Inter, sans-serif';
-            Chart.defaults.color = '#a0aec0'; // knirv-gray
+  <footer class="border-t border-white/5 bg-black/20 py-10">
+    <div class="mx-auto flex max-w-7xl flex-col gap-3 px-6 text-sm text-knirv-muted lg:flex-row lg:items-center lg:justify-between lg:px-8">
+      <div>
+        <span class="font-semibold text-white">KNIRV Corporation</span>
+        <span class="mx-2 text-white/25">•</span>
+        <span>Confidential investor materials</span>
+      </div>
+      <div class="font-mono text-xs tracking-wider text-knirv-muted">© 2026 KNIRV Corporation</div>
+    </div>
+  </footer>
 
-            const revenueChart = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: ['Year 1', 'Year 2', 'Year 3', 'Year 4', 'Year 5'],
-                    datasets: [{
-                        label: 'Projected Revenue (in Millions)',
-                        data: [5, 26, 100, 275, 550],
-                        backgroundColor: gradient,
-                        borderColor: '#00FF9B',
-                        borderWidth: 2,
-                        borderRadius: 8,
-                        hoverBackgroundColor: 'rgba(0, 255, 155, 0.9)'
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: true,
-                    plugins: {
-                        legend: {
-                            display: false
-                        },
-                        tooltip: {
-                            backgroundColor: '#0A2A4E',
-                            titleColor: '#00FF9B',
-                            bodyColor: '#FFFFFF',
-                            borderColor: '#00FF9B',
-                            borderWidth: 1,
-                            padding: 12,
-                            callbacks: {
-                                label: function(context) {
-                                    return ` \$${context.parsed.y} Million`;
-                                }
-                            }
-                        }
-                    },
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            grid: {
-                                color: 'rgba(160, 174, 192, 0.15)' // knirv-gray with alpha
-                            },
-                            ticks: {
-                                color: '#a0aec0', // knirv-gray
-                                callback: function(value, index, values) {
-                                    return '$' + value + 'M';
-                                }
-                            }
-                        },
-                        x: {
-                            grid: {
-                                display: false
-                            },
-                            ticks: {
-                                color: '#a0aec0' // knirv-gray
-                            }
-                        }
-                    }
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      const canvas = document.getElementById("revenueChart");
+      if (!canvas) return;
+
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+
+      Chart.defaults.color = "#95a7c7";
+      Chart.defaults.font.family = "Inter, sans-serif";
+
+      const gradient = ctx.createLinearGradient(0, 0, 0, 360);
+      gradient.addColorStop(0, "rgba(56, 160, 255, 0.95)");
+      gradient.addColorStop(0.55, "rgba(52, 211, 153, 0.88)");
+      gradient.addColorStop(1, "rgba(243, 201, 105, 0.75)");
+
+      new Chart(ctx, {
+        type: "bar",
+        data: {
+          labels: ["Y1", "Y2", "Y3", "Y4", "Y5"],
+          datasets: [{
+            label: "Projected Revenue ($M)",
+            data: [5, 35, 100, 280, 550],
+            backgroundColor: gradient,
+            borderColor: "rgba(56, 160, 255, 1)",
+            borderWidth: 1.5,
+            borderRadius: 14,
+            hoverBackgroundColor: "rgba(255, 255, 255, 0.95)",
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              display: false
+            },
+            tooltip: {
+              backgroundColor: "#101c2c",
+              borderColor: "rgba(56, 160, 255, 0.45)",
+              borderWidth: 1,
+              titleColor: "#ffffff",
+              bodyColor: "#d6def0",
+              padding: 12,
+              callbacks: {
+                label(context) {
+                  return ` $${context.parsed.y}M`;
                 }
-            });
-        });
-    </script>
+              }
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              grid: {
+                color: "rgba(148, 163, 184, 0.12)"
+              },
+              ticks: {
+                callback(value) {
+                  return `$${value}M`;
+                }
+              }
+            },
+            x: {
+              grid: {
+                display: false
+              }
+            }
+          }
+        }
+      });
+    });
+  </script>
 </body>
 </html>
-
