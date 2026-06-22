@@ -57,7 +57,7 @@ const cloudTiers = [
 export function CloudPricingModal({ isOpen, onClose, onSelectPlan }: CloudPricingModalProps) {
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-6xl bg-[#0a0a0c] border-white/10 text-slate-200 max-h-[90vh] overflow-y-auto">
+      <DialogContent className="w-[96vw] max-w-7xl max-h-[92vh] overflow-hidden bg-[#0a0a0c] border-white/10 text-slate-200 flex flex-col">
         <DialogHeader>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -80,7 +80,7 @@ export function CloudPricingModal({ isOpen, onClose, onSelectPlan }: CloudPricin
           </div>
         </DialogHeader>
 
-        <div className="py-6">
+        <div className="flex-1 overflow-y-auto py-6 pr-1 custom-scrollbar">
           {/* Pricing Cards */}
           <div className="grid md:grid-cols-3 gap-6">
             {cloudTiers.map((tier) => (

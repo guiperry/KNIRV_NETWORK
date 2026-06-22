@@ -4,15 +4,48 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
 
+const DEFAULT_ARENA_BASE_URL = 'http://localhost:8090';
+
+function resolveArenaBaseUrl() {
+  const explicitBaseUrl = process.env.NEXT_PUBLIC_ARENA_BASE_URL?.trim();
+  if (explicitBaseUrl) {
+    return explicitBaseUrl.replace(/\/+$/, '');
+  }
+
+  if (typeof window !== 'undefined') {
+    const { origin } = window.location;
+
+    // When the app is served from the public gateway or a production host,
+    // keep arena requests on the same origin so the gateway/proxy can route
+    // them to the arena service. Local frontend dev remains pinned to 8090.
+    if (!origin.includes('localhost:3000') && !origin.includes('127.0.0.1:3000')) {
+      return origin;
+    }
+  }
+
+  return DEFAULT_ARENA_BASE_URL;
+}
+
+function joinArenaUrl(baseUrl: string, path: string) {
+  const normalizedBase = baseUrl.replace(/\/+$/, '');
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+  return `${normalizedBase}${normalizedPath}`;
+}
+
 export default function ArenaPage() {
   const router = useRouter();
   const { user, isLoading } = useAuth();
   const [arenaReady, setArenaReady] = useState(false);
   const [loadingError, setLoadingError] = useState<string | null>(null);
+  const [arenaBaseUrl, setArenaBaseUrl] = useState<string>('');
+
+  useEffect(() => {
+    setArenaBaseUrl(resolveArenaBaseUrl());
+  }, []);
 
   // Verify auth and check arena availability
   useEffect(() => {
-    if (isLoading) return;
+    if (isLoading || !arenaBaseUrl) return;
 
     if (!user) {
       // Redirect to login if not authenticated
@@ -23,7 +56,7 @@ export default function ArenaPage() {
     // Check if arena service is available by probing /arena endpoint
     const checkArenaHealth = async () => {
       try {
-        const response = await fetch('http://localhost:8090/arena/health', {
+        const response = await fetch(joinArenaUrl(arenaBaseUrl, '/arena/health'), {
           method: 'GET',
           headers: {
             'Accept': 'application/json',
@@ -45,7 +78,7 @@ export default function ArenaPage() {
     };
 
     checkArenaHealth();
-  }, [user, isLoading, router]);
+  }, [user, isLoading, router, arenaBaseUrl]);
 
   if (isLoading) {
     return (
@@ -100,7 +133,7 @@ export default function ArenaPage() {
     <div className="w-full h-screen bg-[#030a18] overflow-hidden">
       {/* Arena is served via iframe from /arena/* endpoints */}
       <iframe
-        src="http://localhost:8090/arena/"
+        src={joinArenaUrl(arenaBaseUrl, '/arena/')}
         className="w-full h-full border-none"
         title="KNIRVARENA - 3D Game Arena"
         sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-pointer-lock"

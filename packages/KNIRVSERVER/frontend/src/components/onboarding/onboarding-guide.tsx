@@ -25,6 +25,7 @@ import { PolicyCertsModal, type PolicyCert, type CustomRule } from "./modals/Pol
 import { PreferencesModal, type PrivacySettings } from "./modals/PreferencesModal";
 import { DatabaseConfigModal, type DatabaseConfig } from "./modals/DatabaseConfigModal";
 import { KnowledgeIngestModal } from "./modals/KnowledgeIngestModal";
+import { ControllerDownloadModal } from "./modals/ControllerDownloadModal";
 import QRCodeDisplay from "@/components/controller/qr-code-display";
 import { useAuth } from '@/lib/auth-context';
 import { API_BASE_URL, getAuthHeaders } from '@/lib/api';
@@ -79,6 +80,8 @@ type ConfigCard = {
   modalId: string;
 };
 
+type DownloadPlatform = 'android' | 'ios';
+
 const governanceCards: ConfigCard[] = [
   { id: 'policy-certs', icon: Database, label: 'Policy Certs', desc: 'Kernel Guardrails & Custom Rules', modalId: 'policy-certs' },
   { id: 'preferences', icon: SlidersHorizontal, label: 'Preferences', desc: 'Data Management & Privacy Settings', modalId: 'preferences' }
@@ -93,6 +96,15 @@ const dataCards: ConfigCard[] = [
   { id: 'knowledge-ingest', icon: Database, label: 'Knowledge Ingest', desc: 'Import repositories and documents to graph', modalId: 'knowledge-ingest' },
   { id: 'database-config', icon: Database, label: 'Database Config', desc: 'Confirm KNIRVBASE schema and external MCP mapping', modalId: 'database-config' }
 ];
+
+const controllerDownloadUrls: Record<DownloadPlatform, string> = {
+  android:
+    process.env.NEXT_PUBLIC_KNIRVCONTROLLER_ANDROID_DOWNLOAD_URL ||
+    'https://YOUR-CLOUDFLARE-ENDPOINT.example/knirvcontroller-android.apk',
+  ios:
+    process.env.NEXT_PUBLIC_KNIRVCONTROLLER_IOS_DOWNLOAD_URL ||
+    'https://YOUR-CLOUDFLARE-ENDPOINT.example/knirvcontroller-ios.ipa',
+};
 
 const defaultDatabaseConfig: DatabaseConfig = {
   internalSchemaName: 'KNIRVBASE',
@@ -130,6 +142,7 @@ const OnboardingGuide = ({ onComplete, onReset }: OnboardingGuideProps) => {
   const [isIngesting, setIsIngesting] = useState(false);
   const [ingestLog, setIngestLog] = useState<string[]>([]);
   const [isQrModalOpen, setIsQrModalOpen] = useState(false);
+  const [downloadModalPlatform, setDownloadModalPlatform] = useState<DownloadPlatform | null>(null);
   const [formData, setFormData] = useState<FormData>({
     walletName: '',
     selectedInputs: [],
@@ -428,6 +441,10 @@ const OnboardingGuide = ({ onComplete, onReset }: OnboardingGuideProps) => {
     setIsQrModalOpen(true);
   };
 
+  const openDownloadModal = (platform: DownloadPlatform) => {
+    setDownloadModalPlatform(platform);
+  };
+
   const renderConfigCard = (item: ConfigCard) => {
     const Icon = item.icon;
     const isComplete = isConfigured(item.id);
@@ -539,6 +556,41 @@ const OnboardingGuide = ({ onComplete, onReset }: OnboardingGuideProps) => {
               </div>
               <div className="grid md:grid-cols-[1.2fr_0.8fr] gap-6">
                 <div className="space-y-4">
+                  <div className="p-5 bg-white/5 border border-white/10 rounded-xl">
+                    <h3 className="font-bold mb-3 flex items-center text-sm">
+                      <Download className="mr-2 text-blue-500" size={16} />
+                      Download KNIRVCONTROLLER
+                    </h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <button
+                        onClick={() => openDownloadModal('android')}
+                        className="w-full flex items-center justify-between p-3 bg-white/5 border border-white/10 rounded-lg hover:border-blue-500/50 hover:bg-white/5 transition-colors text-left"
+                      >
+                        <div className="flex items-center">
+                          <Smartphone className="mr-3 text-blue-500" size={18} />
+                          <div>
+                            <div className="font-bold text-sm">Android</div>
+                            <div className="text-xs text-slate-500">Scan to download the APK</div>
+                          </div>
+                        </div>
+                        <ChevronRight size={16} className="text-slate-500" />
+                      </button>
+                      <button
+                        onClick={() => openDownloadModal('ios')}
+                        className="w-full flex items-center justify-between p-3 bg-white/5 border border-white/10 rounded-lg hover:border-blue-500/50 hover:bg-white/5 transition-colors text-left"
+                      >
+                        <div className="flex items-center">
+                          <Smartphone className="mr-3 text-blue-500" size={18} />
+                          <div>
+                            <div className="font-bold text-sm">iOS</div>
+                            <div className="text-xs text-slate-500">Scan to download the IPA</div>
+                          </div>
+                        </div>
+                        <ChevronRight size={16} className="text-slate-500" />
+                      </button>
+                    </div>
+                  </div>
+
                   <div className="bg-white/5 border border-white/10 p-8 rounded-2xl space-y-6">
                     <div className="p-4 bg-blue-500/5 border border-blue-500/20 rounded-lg flex items-start space-x-4">
                       <Shield className="text-blue-500 shrink-0 mt-1" size={20} />
@@ -563,28 +615,6 @@ const OnboardingGuide = ({ onComplete, onReset }: OnboardingGuideProps) => {
                       Generate KNIRVCONTROLLER QR Code
                     </Button>
                   </div>
-
-                  <div className="p-5 bg-white/5 border border-white/10 rounded-xl">
-                    <h3 className="font-bold mb-3 flex items-center text-sm">
-                      <Download className="mr-2 text-blue-500" size={16} />
-                      Download Options
-                    </h3>
-                    <div className="space-y-2">
-                      <button
-                        onClick={() => window.open('https://beta-controller.knirv.com/', '_blank')}
-                        className="w-full flex items-center justify-between p-3 bg-white/5 border border-white/10 rounded-lg hover:border-blue-500/50 hover:bg-white/5 transition-colors text-left"
-                      >
-                        <div className="flex items-center">
-                          <Smartphone className="mr-3 text-blue-500" size={18} />
-                          <div>
-                            <div className="font-bold text-sm">Open Live PWA</div>
-                            <div className="text-xs text-slate-500">Install directly on your device</div>
-                          </div>
-                        </div>
-                        <ChevronRight size={16} className="text-slate-500" />
-                      </button>
-                    </div>
-                  </div>
                 </div>
 
                 <div className="space-y-4">
@@ -592,10 +622,10 @@ const OnboardingGuide = ({ onComplete, onReset }: OnboardingGuideProps) => {
                     <h3 className="font-bold mb-3 text-sm">Pairing Steps</h3>
                     <div className="space-y-3">
                       {[
-                        { step: 1, text: 'Open the QR generator modal' },
-                        { step: 2, text: 'Scan the signed code in KNIRVCONTROLLER' },
-                        { step: 3, text: 'Approve the pairing request' },
-                        { step: 4, text: 'Continue to onboarding configuration' }
+                        { step: 1, text: 'Download the KNIRVCONTROLLER app for Android or iOS' },
+                        { step: 2, text: 'Install and open the application on your phone' },
+                        { step: 3, text: 'Scan the pairing QR code from the controller modal' },
+                        { step: 4, text: 'Approve the pairing request and continue onboarding' }
                       ].map((item) => (
                         <div key={item.step} className="flex items-center space-x-3">
                           <div className="w-6 h-6 rounded-full bg-blue-600 flex items-center justify-center text-xs font-bold shrink-0">
@@ -785,6 +815,12 @@ const OnboardingGuide = ({ onComplete, onReset }: OnboardingGuideProps) => {
         userId={user?.user || formData.walletName || 'knirv-controller'}
         deviceType="desktop"
         capabilities={['remote_control', 'file_transfer', 'screen_share']}
+      />
+      <ControllerDownloadModal
+        isOpen={downloadModalPlatform !== null}
+        onClose={() => setDownloadModalPlatform(null)}
+        platform={downloadModalPlatform ?? 'android'}
+        downloadUrl={downloadModalPlatform ? controllerDownloadUrls[downloadModalPlatform] : controllerDownloadUrls.android}
       />
     </div>
   );

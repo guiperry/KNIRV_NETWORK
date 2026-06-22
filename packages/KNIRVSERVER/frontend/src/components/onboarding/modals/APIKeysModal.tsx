@@ -134,7 +134,7 @@ export function APIKeysModal({ isOpen, onClose, onSave, initialEntries = [] }: A
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl bg-[#0a0a0c] border-white/10 text-slate-200 max-h-[90vh] overflow-y-auto">
+      <DialogContent className="w-[96vw] max-w-5xl max-h-[92vh] overflow-hidden bg-[#0a0a0c] border-white/10 text-slate-200 flex flex-col">
         <DialogHeader>
           <div className="flex items-center gap-3">
             <div className="p-2 bg-blue-600/20 rounded-lg">
@@ -149,11 +149,12 @@ export function APIKeysModal({ isOpen, onClose, onSave, initialEntries = [] }: A
           </div>
         </DialogHeader>
 
-        <div className="space-y-6 py-4">
+        <div className="flex-1 overflow-y-auto py-4 pr-1 custom-scrollbar space-y-6">
+          <div className="grid lg:grid-cols-2 gap-4">
           {entries.map((entry, index) => (
             <div 
               key={entry.id} 
-              className="p-4 bg-white/5 border border-white/10 rounded-xl space-y-4"
+              className="p-4 bg-white/5 border border-white/10 rounded-xl space-y-4 h-full"
             >
               <div className="flex items-center justify-between">
                 <span className="text-xs uppercase font-bold text-blue-500 tracking-wider">
@@ -248,11 +249,12 @@ export function APIKeysModal({ isOpen, onClose, onSave, initialEntries = [] }: A
               </div>
             </div>
           ))}
+          </div>
 
           <Button
             variant="outline"
             onClick={addEntry}
-            className="w-full border-dashed border-white/20 text-slate-400 hover:text-white hover:border-blue-500/50 hover:bg-blue-500/10"
+            className="w-full border-dashed border-white/20 text-slate-400 hover:text-white hover:border-blue-500/50 hover:bg-blue-500/10 col-span-full"
           >
             <Plus size={18} className="mr-2" />
             Add Another Provider

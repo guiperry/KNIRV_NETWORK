@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"bytes"
 	"compress/gzip"
 	"context"
@@ -20,6 +21,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -1330,6 +1332,14 @@ func (app *ServerApp) setupRoutes() error {
 				return
 			}
 
+			// System-info endpoint — served locally with real /proc metrics.
+			// Must come before the backend proxy fall-through so the richer
+			// local response supersedes whatever the backend binary returns.
+			if c.Request.URL.Path == "/api/v1/system/info" && c.Request.Method == http.MethodGet {
+				c.JSON(http.StatusOK, collectSysInfo())
+				return
+			}
+
 			// Detect network-monitor paths and proxy to the gateway instead
 			// of the backend, since the gateway has Go handler equivalents.
 			if strings.HasPrefix(c.Request.URL.Path, "/api/network-monitor/") {
@@ -1537,6 +1547,259 @@ func (app *ServerApp) setupRoutes() error {
 	})
 
 	return nil
+}
+
+// ── Real-time system metrics (/api/v1/system/info) ───────────────────────────
+// Handled locally in the /api/*path catch-all so we can read /proc directly
+// and return disk I/O, network I/O, and process counts that the backend binary
+// does not expose.
+
+type sysMemoryInfo struct {
+	TotalMB     float64 `json:"total_mb"`
+	UsedMB      float64 `json:"used_mb"`
+	AvailableMB float64 `json:"available_mb"`
+	Percentage  float64 `json:"percentage"`
+}
+
+type sysInfoPayload struct {
+	CPU              float64       `json:"cpu"`
+	Memory           sysMemoryInfo `json:"memory"`
+	UptimeSeconds    int64         `json:"uptime_seconds"`
+	OS               string        `json:"os"`
+	Arch             string        `json:"arch"`
+	Hostname         string        `json:"hostname"`
+	Processes        int           `json:"processes"`
+	DiskReadBytesPS  uint64        `json:"disk_read_bytes_per_sec"`
+	DiskWriteBytesPS uint64        `json:"disk_write_bytes_per_sec"`
+	NetRxBytesPS     uint64        `json:"net_rx_bytes_per_sec"`
+	NetTxBytesPS     uint64        `json:"net_tx_bytes_per_sec"`
+}
+
+// ioSnapshot holds raw cumulative counters for rate calculation.
+type ioSnapshot struct {
+	ts        time.Time
+	cpuTotal  uint64
+	cpuIdle   uint64
+	diskRead  uint64 // cumulative sectors read across all whole-disk devices
+	diskWrite uint64 // cumulative sectors written
+	netRx     uint64 // cumulative bytes received (all non-loopback interfaces)
+	netTx     uint64 // cumulative bytes sent
+}
+
+var (
+	sysInfoSnapshotMu sync.Mutex
+	sysInfoPrevSnap   *ioSnapshot
+)
+
+func readProcCPUStat() (total, idle uint64) {
+	f, err := os.Open("/proc/stat")
+	if err != nil {
+		return
+	}
+	defer f.Close()
+	s := bufio.NewScanner(f)
+	for s.Scan() {
+		l := s.Text()
+		if !strings.HasPrefix(l, "cpu ") {
+			continue
+		}
+		fields := strings.Fields(l)
+		// fields: cpu user nice system idle iowait irq softirq steal guest guest_nice
+		var vals [10]uint64
+		for i := 1; i < len(fields) && i-1 < len(vals); i++ {
+			vals[i-1], _ = strconv.ParseUint(fields[i], 10, 64)
+		}
+		idle = vals[3] + vals[4] // idle + iowait
+		for _, v := range vals {
+			total += v
+		}
+		return
+	}
+	return
+}
+
+func readProcMeminfo() sysMemoryInfo {
+	f, err := os.Open("/proc/meminfo")
+	if err != nil {
+		return sysMemoryInfo{}
+	}
+	defer f.Close()
+	m := make(map[string]uint64)
+	s := bufio.NewScanner(f)
+	for s.Scan() {
+		fields := strings.Fields(s.Text())
+		if len(fields) < 2 {
+			continue
+		}
+		key := strings.TrimSuffix(fields[0], ":")
+		val, _ := strconv.ParseUint(fields[1], 10, 64)
+		m[key] = val
+	}
+	total := m["MemTotal"]
+	avail := m["MemAvailable"]
+	used := total - avail
+	pct := 0.0
+	if total > 0 {
+		pct = float64(used) / float64(total) * 100
+	}
+	return sysMemoryInfo{
+		TotalMB:     float64(total) / 1024,
+		UsedMB:      float64(used) / 1024,
+		AvailableMB: float64(avail) / 1024,
+		Percentage:  pct,
+	}
+}
+
+func readProcUptime() int64 {
+	data, err := os.ReadFile("/proc/uptime")
+	if err != nil {
+		return 0
+	}
+	fields := strings.Fields(string(data))
+	if len(fields) == 0 {
+		return 0
+	}
+	f, _ := strconv.ParseFloat(fields[0], 64)
+	return int64(f)
+}
+
+// readProcDiskstats returns cumulative sectors read/written across all
+// whole-disk block devices (entries that have a matching /sys/block/<name> dir,
+// which excludes partitions).
+func readProcDiskstats() (readSectors, writeSectors uint64) {
+	f, err := os.Open("/proc/diskstats")
+	if err != nil {
+		return
+	}
+	defer f.Close()
+	s := bufio.NewScanner(f)
+	for s.Scan() {
+		fields := strings.Fields(s.Text())
+		if len(fields) < 10 {
+			continue
+		}
+		name := fields[2]
+		// Only aggregate whole-disk devices — partitions don't appear in /sys/block.
+		if _, serr := os.Stat("/sys/block/" + name); serr != nil {
+			continue
+		}
+		r, _ := strconv.ParseUint(fields[5], 10, 64) // sectors read
+		w, _ := strconv.ParseUint(fields[9], 10, 64) // sectors written
+		readSectors += r
+		writeSectors += w
+	}
+	return
+}
+
+// readProcNetDev returns cumulative bytes received/sent across all non-loopback
+// network interfaces.
+func readProcNetDev() (rx, tx uint64) {
+	f, err := os.Open("/proc/net/dev")
+	if err != nil {
+		return
+	}
+	defer f.Close()
+	s := bufio.NewScanner(f)
+	for s.Scan() {
+		l := strings.TrimSpace(s.Text())
+		if !strings.Contains(l, ":") {
+			continue
+		}
+		parts := strings.SplitN(l, ":", 2)
+		if strings.TrimSpace(parts[0]) == "lo" {
+			continue
+		}
+		fields := strings.Fields(parts[1])
+		if len(fields) < 9 {
+			continue
+		}
+		r, _ := strconv.ParseUint(fields[0], 10, 64) // rx bytes
+		t, _ := strconv.ParseUint(fields[8], 10, 64) // tx bytes
+		rx += r
+		tx += t
+	}
+	return
+}
+
+func readProcProcessCount() int {
+	entries, err := os.ReadDir("/proc")
+	if err != nil {
+		return 0
+	}
+	count := 0
+	for _, e := range entries {
+		if !e.IsDir() {
+			continue
+		}
+		if _, err := strconv.Atoi(e.Name()); err == nil {
+			count++
+		}
+	}
+	return count
+}
+
+func collectSysInfo() sysInfoPayload {
+	cpuTotal, cpuIdle := readProcCPUStat()
+	diskRead, diskWrite := readProcDiskstats()
+	netRx, netTx := readProcNetDev()
+	now := time.Now()
+
+	var cpuPct float64
+	var diskReadPS, diskWritePS, netRxPS, netTxPS uint64
+
+	sysInfoSnapshotMu.Lock()
+	prev := sysInfoPrevSnap
+	sysInfoPrevSnap = &ioSnapshot{
+		ts:        now,
+		cpuTotal:  cpuTotal,
+		cpuIdle:   cpuIdle,
+		diskRead:  diskRead,
+		diskWrite: diskWrite,
+		netRx:     netRx,
+		netTx:     netTx,
+	}
+	sysInfoSnapshotMu.Unlock()
+
+	if prev != nil && cpuTotal > prev.cpuTotal {
+		dt := now.Sub(prev.ts).Seconds()
+		if dt > 0 {
+			totalDelta := float64(cpuTotal - prev.cpuTotal)
+			idleDelta := float64(cpuIdle - prev.cpuIdle)
+			if totalDelta > 0 {
+				cpuPct = (1 - idleDelta/totalDelta) * 100
+				if cpuPct < 0 {
+					cpuPct = 0
+				}
+			}
+			if diskRead >= prev.diskRead {
+				diskReadPS = uint64(float64(diskRead-prev.diskRead) * 512 / dt)
+			}
+			if diskWrite >= prev.diskWrite {
+				diskWritePS = uint64(float64(diskWrite-prev.diskWrite) * 512 / dt)
+			}
+			if netRx >= prev.netRx {
+				netRxPS = uint64(float64(netRx-prev.netRx) / dt)
+			}
+			if netTx >= prev.netTx {
+				netTxPS = uint64(float64(netTx-prev.netTx) / dt)
+			}
+		}
+	}
+
+	hostname, _ := os.Hostname()
+	return sysInfoPayload{
+		CPU:              cpuPct,
+		Memory:           readProcMeminfo(),
+		UptimeSeconds:    readProcUptime(),
+		OS:               runtime.GOOS,
+		Arch:             runtime.GOARCH,
+		Hostname:         hostname,
+		Processes:        readProcProcessCount(),
+		DiskReadBytesPS:  diskReadPS,
+		DiskWriteBytesPS: diskWritePS,
+		NetRxBytesPS:     netRxPS,
+		NetTxBytesPS:     netTxPS,
+	}
 }
 
 // killStaleBackend sends SIGTERM then SIGKILL to any running backend_server processes

@@ -150,7 +150,7 @@ export function MCPServersModal({ isOpen, onClose, onSave, initialServers = [] }
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-3xl bg-[#0a0a0c] border-white/10 text-slate-200 max-h-[90vh] overflow-y-auto">
+      <DialogContent className="w-[96vw] max-w-6xl max-h-[92vh] overflow-hidden bg-[#0a0a0c] border-white/10 text-slate-200 flex flex-col">
         <DialogHeader>
           <div className="flex items-center gap-3">
             <div className="p-2 bg-blue-600/20 rounded-lg">
@@ -165,7 +165,7 @@ export function MCPServersModal({ isOpen, onClose, onSave, initialServers = [] }
           </div>
         </DialogHeader>
 
-        <div className="space-y-6 py-4">
+        <div className="flex-1 overflow-y-auto py-4 pr-1 custom-scrollbar space-y-6">
           {/* Info Banner */}
           <div className="p-4 bg-blue-500/5 border border-blue-500/20 rounded-xl">
             <p className="text-sm text-slate-300 leading-relaxed">
@@ -207,15 +207,15 @@ export function MCPServersModal({ isOpen, onClose, onSave, initialServers = [] }
               </Badge>
             </div>
             
-            <ScrollArea className="h-[200px] border border-white/10 rounded-xl">
-              <div className="p-4 space-y-2">
+            <ScrollArea className="h-[280px] border border-white/10 rounded-xl">
+              <div className="p-4 grid md:grid-cols-2 xl:grid-cols-3 gap-3">
                 {isLoading ? (
-                  <div className="flex items-center justify-center h-32 text-slate-500">
+                  <div className="flex items-center justify-center h-32 text-slate-500 col-span-full">
                     <Server className="animate-pulse mr-2" size={20} />
                     Loading registry...
                   </div>
                 ) : registryServers.length === 0 ? (
-                  <div className="flex items-center justify-center h-32 text-slate-500">
+                  <div className="flex items-center justify-center h-32 text-slate-500 col-span-full">
                     <AlertCircle className="mr-2" size={20} />
                     No servers available
                   </div>
@@ -224,7 +224,7 @@ export function MCPServersModal({ isOpen, onClose, onSave, initialServers = [] }
                     <div
                       key={server.id}
                       onClick={() => toggleRegistryServer(server.id)}
-                      className={`p-3 rounded-lg border cursor-pointer transition-interactive ${
+                      className={`p-3 rounded-lg border cursor-pointer transition-interactive min-h-[140px] ${
                         selectedRegistryServers.has(server.id)
                           ? 'bg-blue-500/10 border-blue-500'
                           : 'bg-white/5 border-white/10 hover:border-white/20'

@@ -4,4 +4,5 @@ export { PolicyCertsModal, type PolicyCert, type CustomRule } from './PolicyCert
 export { PreferencesModal, type PrivacySettings } from './PreferencesModal';
 export { DatabaseConfigModal, type DatabaseConfig } from './DatabaseConfigModal';
 export { KnowledgeIngestModal } from './KnowledgeIngestModal';
+export { ControllerDownloadModal } from './ControllerDownloadModal';
 export { CloudPricingModal } from './CloudPricingModal';

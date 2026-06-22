@@ -36,7 +36,7 @@ export function KnowledgeIngestModal({
 }: KnowledgeIngestModalProps) {
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-3xl bg-[#0a0a0c] border-white/10 text-slate-200 max-h-[90vh] overflow-y-auto">
+      <DialogContent className="w-[96vw] max-w-5xl max-h-[92vh] overflow-hidden bg-[#0a0a0c] border-white/10 text-slate-200 flex flex-col">
         <DialogHeader>
           <div className="flex items-center gap-3">
             <div className="p-2 bg-blue-600/20 rounded-lg">
@@ -51,7 +51,7 @@ export function KnowledgeIngestModal({
           </div>
         </DialogHeader>
 
-        <div className="space-y-4 py-4">
+        <div className="flex-1 overflow-y-auto py-4 pr-1 custom-scrollbar space-y-4">
           <p className="text-xs text-slate-400">
             Enter a repository URL and queue it for ingestion into the knowledge graph.
           </p>

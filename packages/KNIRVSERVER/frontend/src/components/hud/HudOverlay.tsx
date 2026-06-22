@@ -19,6 +19,11 @@ export interface SystemMetrics {
   os: string;
   arch: string;
   hostname: string;
+  processes: number;
+  disk_read_bytes_per_sec: number;
+  disk_write_bytes_per_sec: number;
+  net_rx_bytes_per_sec: number;
+  net_tx_bytes_per_sec: number;
 }
 
 interface HudOverlayProps {
@@ -97,6 +102,11 @@ export function HudOverlay({ className = '', refreshInterval = 2000 }: HudOverla
   };
   const formatMemory = (mb: number) =>
     mb >= 1024 ? `${(mb / 1024).toFixed(1)}GB` : `${mb}MB`;
+  const formatBytesPS = (bps: number) => {
+    if (bps >= 1024 * 1024) return `${(bps / (1024 * 1024)).toFixed(1)} MB/s`;
+    if (bps >= 1024) return `${(bps / 1024).toFixed(1)} KB/s`;
+    return `${bps} B/s`;
+  };
 
   const cpuPct = metrics?.cpu ?? 0;
   const memPct = metrics?.memory?.percentage ?? 0;
@@ -188,8 +198,8 @@ export function HudOverlay({ className = '', refreshInterval = 2000 }: HudOverla
         </div>
         <div className={styles.metricItem}>
           <span className={styles.metricLabel}>PROCESSES</span>
-          <div className={styles.metricBar}><div className={styles.metricFill} style={{ width: '30%' }} /></div>
-          <span className={styles.metricValue}>—</span>
+          <div className={styles.metricBar}><div className={styles.metricFill} style={{ width: `${Math.min(((metrics?.processes ?? 0) / 500) * 100, 100)}%` }} /></div>
+          <span className={styles.metricValue}>{metrics?.processes ?? '—'}</span>
         </div>
         <div className={styles.panelHeader} style={{ marginTop: '20px' }}>QUICK STATS</div>
         <div className={styles.statItem}><span>MEM USED: {metrics ? formatMemory(metrics.memory.used_mb) : '—'}</span></div>
@@ -218,14 +228,26 @@ export function HudOverlay({ className = '', refreshInterval = 2000 }: HudOverla
         <div className={styles.panelHeader} style={{ marginTop: '20px' }}>NOTIFICATIONS</div>
         <div className={styles.notificationItem}>
           <div className={`${styles.notifDot} ${connectionStatus === 'ONLINE' ? styles.notifActive : ''}`} />
-          <span>{connectionStatus === 'ONLINE' ? 'System operational' : 'Connecting...'}</span>
+          <span>{connectionStatus === 'ONLINE' ? 'System nominal' : 'Connecting...'}</span>
         </div>
-        <div className={styles.notificationItem}>
-          <div className={styles.notifDot} /><span>No errors detected</span>
-        </div>
-        <div className={styles.notificationItem}>
-          <div className={styles.notifDot} /><span>All services running</span>
-        </div>
+        {metrics && cpuPct > 80 && (
+          <div className={styles.notificationItem}>
+            <div className={`${styles.notifDot} ${styles.errorVal}`} />
+            <span>High CPU: {cpuPct.toFixed(0)}%</span>
+          </div>
+        )}
+        {metrics && memPct > 85 && (
+          <div className={styles.notificationItem}>
+            <div className={`${styles.notifDot} ${styles.errorVal}`} />
+            <span>High MEM: {memPct.toFixed(0)}%</span>
+          </div>
+        )}
+        {(!metrics || (cpuPct <= 80 && memPct <= 85)) && connectionStatus === 'ONLINE' && (
+          <div className={styles.notificationItem}>
+            <div className={`${styles.notifDot} ${styles.notifActive}`} />
+            <span>No errors detected</span>
+          </div>
+        )}
         <div className={styles.panelHeader} style={{ marginTop: '20px' }}>SYSTEM INFO</div>
         <div className={styles.infoItem}>
           <span className={styles.infoLabel}>OS:</span>
@@ -274,19 +296,19 @@ export function HudOverlay({ className = '', refreshInterval = 2000 }: HudOverla
       <div className={`${styles.panel} ${styles.bottomPanel}`}>
         <div className={styles.panelSection}>
           <span className={styles.label}>NET RX</span>
-          <span className={styles.value}>—</span>
+          <span className={styles.value}>{metrics ? formatBytesPS(metrics.net_rx_bytes_per_sec) : '—'}</span>
         </div>
         <div className={styles.panelSection}>
           <span className={styles.label}>NET TX</span>
-          <span className={styles.value}>—</span>
+          <span className={styles.value}>{metrics ? formatBytesPS(metrics.net_tx_bytes_per_sec) : '—'}</span>
         </div>
         <div className={`${styles.panelSection} ${styles.desktopOnly}`}>
           <span className={styles.label}>DISK READ</span>
-          <span className={styles.value}>—</span>
+          <span className={styles.value}>{metrics ? formatBytesPS(metrics.disk_read_bytes_per_sec) : '—'}</span>
         </div>
         <div className={`${styles.panelSection} ${styles.desktopOnly}`}>
           <span className={styles.label}>DISK WRITE</span>
-          <span className={styles.value}>—</span>
+          <span className={styles.value}>{metrics ? formatBytesPS(metrics.disk_write_bytes_per_sec) : '—'}</span>
         </div>
         <div className={styles.panelSection}>
           <span className={styles.label}>HOST</span>

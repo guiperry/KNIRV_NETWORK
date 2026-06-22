@@ -304,7 +304,7 @@ export function PolicyCertsModal({ isOpen, onClose, onSave, initialCerts = [], i
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl bg-[#0a0a0c] border-white/10 text-slate-200 max-h-[90vh] overflow-y-auto">
+      <DialogContent className="w-[96vw] max-w-6xl max-h-[92vh] overflow-hidden bg-[#0a0a0c] border-white/10 text-slate-200 flex flex-col">
         <DialogHeader>
           <div className="flex items-center gap-3">
             <div className="p-2 bg-blue-600/20 rounded-lg">
@@ -319,7 +319,7 @@ export function PolicyCertsModal({ isOpen, onClose, onSave, initialCerts = [], i
           </div>
         </DialogHeader>
 
-        <div className="space-y-6 py-4">
+        <div className="flex-1 overflow-y-auto py-4 pr-1 custom-scrollbar space-y-6">
           {/* Info Banner */}
           <div className="p-4 bg-blue-500/5 border border-blue-500/20 rounded-xl">
             <div className="flex items-start gap-3">
@@ -345,7 +345,7 @@ export function PolicyCertsModal({ isOpen, onClose, onSave, initialCerts = [], i
           </div>
 
           {/* Policy List */}
-          <div className="space-y-3">
+          <div className="grid lg:grid-cols-2 gap-3">
             {policies.map((policy) => (
               <div
                 key={policy.id}
@@ -425,7 +425,7 @@ export function PolicyCertsModal({ isOpen, onClose, onSave, initialCerts = [], i
               </Badge>
             </div>
 
-            <ScrollArea className="h-[200px] border border-white/10 rounded-xl mb-4">
+            <ScrollArea className="h-[240px] border border-white/10 rounded-xl mb-4">
               <div className="p-4 space-y-3">
                 {rules.length === 0 ? (
                   <div className="flex flex-col items-center justify-center h-32 text-slate-500">
