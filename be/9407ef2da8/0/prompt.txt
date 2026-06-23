@@ -1,0 +1,23 @@
+Getting the following error on vercel deployment of this app: 
+
+Creating an optimized production build ...
+Browserslist: browsers data (caniuse-lite) is 10 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+Browserslist: caniuse-lite is outdated. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+ ✓ Compiled successfully
+   Linting and checking validity of types ...
+Failed to compile.
+src/app/api/register/init/route.ts
+Type error: Route "src/app/api/register/init/route.ts" does not match the required types of a Next.js Route.
+  "sessions" is not a valid Route export field.
+Next.js build worker exited with code: 1 and signal: null
+Error: Command "npm run build" exited with 1
+
+---
+
+I'm getting the following error message in the knirv.com/register/key onboarding screen even though I already selected Enterprise to arrive at this point: 
+
+A enterprise key requires one of these subscription tiers: professional, enterprise, custom. Your current tier: none.

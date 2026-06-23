@@ -1,0 +1,30 @@
+{
+  "cli_version": "0.5.5",
+  "checkpoint_id": "be9407ef2da8",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 2,
+  "files_touched": [
+    "websites/KNIRV.COM/package-lock.json",
+    "websites/KNIRV.COM/src/app/api/register/init/route.ts",
+    "websites/KNIRV.COM/src/app/api/register/sessions.ts",
+    "websites/KNIRV.COM/src/app/api/register/verify/route.ts",
+    "websites/KNIRV.COM/src/app/get-started/page.tsx",
+    "websites/KNIRV.COM/src/app/register/key/page.tsx"
+  ],
+  "sessions": [
+    {
+      "metadata": "/be/9407ef2da8/0/metadata.json",
+      "transcript": "/be/9407ef2da8/0/full.jsonl",
+      "content_hash": "/be/9407ef2da8/0/content_hash.txt",
+      "prompt": "/be/9407ef2da8/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 48223,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 1333376,
+    "output_tokens": 6241,
+    "api_call_count": 32
+  }
+}
