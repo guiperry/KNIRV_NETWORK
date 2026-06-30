@@ -1,0 +1,30 @@
+{
+  "cli_version": "0.5.5",
+  "checkpoint_id": "1253e0545171",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "packages/KNIRVCONTROLLER/.expo/README.md",
+    "packages/KNIRVCONTROLLER/.expo/devices.json",
+    "packages/KNIRVCONTROLLER/package-lock.json",
+    "packages/KNIRVCONTROLLER/package.json",
+    "packages/KNIRVCONTROLLER/tsconfig.json",
+    "packages/KNIRVSERVER/Production_Status_Report.md"
+  ],
+  "sessions": [
+    {
+      "metadata": "/12/53e0545171/0/metadata.json",
+      "transcript": "/12/53e0545171/0/full.jsonl",
+      "content_hash": "/12/53e0545171/0/content_hash.txt",
+      "prompt": ""
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 260,
+    "cache_creation_tokens": 505013,
+    "cache_read_tokens": 14910051,
+    "output_tokens": 77266,
+    "api_call_count": 165
+  }
+}
