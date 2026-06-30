@@ -3,7 +3,7 @@
   "checkpoint_id": "e190cd4a0832",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 3,
+  "checkpoints_count": 4,
   "files_touched": [
     "packages/KNIRVCONTROLLER/.github/workflows/build-android.yml",
     "packages/KNIRVCONTROLLER/.github/workflows/build-ios.yml",
@@ -121,13 +121,19 @@
       "transcript": "/e1/90cd4a0832/1/full.jsonl",
       "content_hash": "/e1/90cd4a0832/1/content_hash.txt",
       "prompt": "/e1/90cd4a0832/1/prompt.txt"
+    },
+    {
+      "metadata": "/e1/90cd4a0832/2/metadata.json",
+      "transcript": "/e1/90cd4a0832/2/full.jsonl",
+      "content_hash": "/e1/90cd4a0832/2/content_hash.txt",
+      "prompt": "/e1/90cd4a0832/2/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 44714,
+    "input_tokens": 75526,
     "cache_creation_tokens": 733145,
-    "cache_read_tokens": 19249715,
-    "output_tokens": 108922,
-    "api_call_count": 210
+    "cache_read_tokens": 19478195,
+    "output_tokens": 116433,
+    "api_call_count": 220
   }
 }
