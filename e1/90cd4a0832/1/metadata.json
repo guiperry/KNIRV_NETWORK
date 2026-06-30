@@ -1,0 +1,77 @@
+{
+  "cli_version": "0.5.5",
+  "checkpoint_id": "e190cd4a0832",
+  "session_id": "ses_0e84fec34ffemGbkl4FC1R6F3p",
+  "strategy": "manual-commit",
+  "created_at": "2026-06-30T16:17:10.229985482Z",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "packages/KNIRVCONTROLLER/.github/workflows/build-android.yml",
+    "packages/KNIRVCONTROLLER/.github/workflows/build-ios.yml",
+    "packages/KNIRVCONTROLLER/.maestro/flows/dve-list.yaml",
+    "packages/KNIRVCONTROLLER/.maestro/flows/onboarding-create.yaml",
+    "packages/KNIRVCONTROLLER/.maestro/flows/onboarding-import.yaml",
+    "packages/KNIRVCONTROLLER/.maestro/flows/qr-scan.yaml",
+    "packages/KNIRVCONTROLLER/.maestro/flows/scanner-send.yaml",
+    "packages/KNIRVCONTROLLER/.maestro/flows/settings-clear.yaml",
+    "packages/KNIRVCONTROLLER/.maestro/flows/vault-view.yaml",
+    "packages/KNIRVCONTROLLER/README.md",
+    "packages/KNIRVCONTROLLER/android/app/src/main/AndroidManifest.xml",
+    "packages/KNIRVCONTROLLER/capacitor.config.ts",
+    "packages/KNIRVCONTROLLER/controller_refactor.md",
+    "packages/KNIRVCONTROLLER/index.html",
+    "packages/KNIRVCONTROLLER/ios/App/App/Info.plist",
+    "packages/KNIRVCONTROLLER/ios/ExportOptions.plist",
+    "packages/KNIRVCONTROLLER/package-lock.json",
+    "packages/KNIRVCONTROLLER/package.json",
+    "packages/KNIRVCONTROLLER/public/manifest.webmanifest",
+    "packages/KNIRVCONTROLLER/scripts/release-native.mjs",
+    "packages/KNIRVCONTROLLER/src/react-app/__tests__/useVault.test.ts",
+    "packages/KNIRVCONTROLLER/src/react-app/components/Layout.tsx",
+    "packages/KNIRVCONTROLLER/src/react-app/hooks/useVault.ts",
+    "packages/KNIRVCONTROLLER/src/react-app/hooks/useVoiceIntegration.ts",
+    "packages/KNIRVCONTROLLER/src/react-app/main.tsx",
+    "packages/KNIRVCONTROLLER/src/react-app/platform/backHandler.ts",
+    "packages/KNIRVCONTROLLER/src/react-app/platform/browserStorage.ts",
+    "packages/KNIRVCONTROLLER/src/react-app/platform/nativeStorage.ts",
+    "packages/KNIRVCONTROLLER/src/react-app/platform/vaultHandoff.ts",
+    "packages/KNIRVCONTROLLER/src/react-app/platform/voiceBridge.ts",
+    "packages/KNIRVCONTROLLER/vite.config.ts",
+    "packages/KNIRVSERVER/bin/backend_server"
+  ],
+  "agent": "OpenCode",
+  "model": "deepseek-v4-flash-free",
+  "turn_id": "86102546e1c0",
+  "token_usage": {
+    "input_tokens": 44377,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 143232,
+    "output_tokens": 4870,
+    "api_call_count": 6
+  },
+  "session_metrics": {
+    "turn_count": 1
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-06-30T16:17:10.200065641Z",
+    "agent_lines": 1183,
+    "agent_removed": 423,
+    "human_added": 300,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 1483,
+    "total_lines_changed": 1976,
+    "agent_percentage": 81.2753036437247,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    }
+  ]
+}
