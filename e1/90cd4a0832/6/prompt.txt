@@ -1,0 +1,1 @@
+I need you to make the public/favicon.ico and brain.png files be the official icons for this application in all places applicable.
