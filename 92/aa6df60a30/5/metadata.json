@@ -1,0 +1,39 @@
+{
+  "cli_version": "0.5.5",
+  "checkpoint_id": "92aa6df60a30",
+  "session_id": "ses_0e86d3c07ffe8JnBVRHYbrJCIm",
+  "strategy": "manual-commit",
+  "created_at": "2026-07-03T02:20:45.947923204Z",
+  "branch": "main",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "packages/KNIRVSERVER/bin/backend_server"
+  ],
+  "agent": "OpenCode",
+  "model": "deepseek-v4-flash-free",
+  "turn_id": "a6d84981f590",
+  "checkpoint_transcript_start": 47,
+  "transcript_lines_at_start": 47,
+  "token_usage": {
+    "input_tokens": 0,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 0,
+    "output_tokens": 0,
+    "api_call_count": 0
+  },
+  "session_metrics": {
+    "turn_count": 1
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-07-03T02:20:45.84668013Z",
+    "agent_lines": 0,
+    "agent_removed": 2,
+    "human_added": 1218,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 1218,
+    "total_lines_changed": 2723,
+    "agent_percentage": 0.07344840249724569,
+    "metric_version": 2
+  }
+}
