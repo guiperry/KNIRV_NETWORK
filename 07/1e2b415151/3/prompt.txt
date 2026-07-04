@@ -1,0 +1,5 @@
+Audit the codebase against the @controller_refactor.md to ensure everything ha been fully implemented.
+
+---
+
+Fully implement all remaining gaps listed...
