@@ -1,0 +1,18 @@
+Explore the KNIRVCONTROLLER package at /home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVCONTROLLER thoroughly. I need to understand:
+
+1. The full directory structure (list all dirs and key files)
+2. Read these files completely:
+   - src/react-app/hooks/useVoiceIntegration.ts (or find the correct path)
+   - src/react-app/hooks/useVault.ts (or find the correct path)
+   - src/react-app/platform/browserStorage.ts (or find the correct path)
+   - src/react-app/platform/vaultHandoff.ts (or find the correct path)
+   - src/react-app/components/Layout.tsx (or find the correct path)
+   - vite.config.ts
+   - index.html
+   - capacitor.config.ts
+   - src/react-app/main.tsx (or find the correct path)
+   - android/app/src/main/AndroidManifest.xml (if exists)
+   - ios/App/App/Info.plist (if exists)
+   - package.json
+
+Return the FULL contents of each file found, plus a summary of the directory structure. Be thorough - read every single file mentioned above.
