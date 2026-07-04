@@ -1,0 +1,14 @@
+I need to wire `@capacitor/haptics` into the KNIRVCONTROLLER codebase at packages/KNIRVCONTROLLER. Find the exact files and line numbers where the following occur:
+
+1. **Vault creation success** — Where is a vault created successfully? Look in files related to onboarding, vault creation, or wallet initialization. Search for patterns like "vault created", "walletCreated", "onboarding complete", "Secure Vault", "mnemonic", "wallet generated".
+
+2. **Transaction confirmed** — Where is a transaction confirmed successfully? Look for patterns like "transaction confirmed", "tx confirmed", "send success", "transfer complete", "TransactionSuccess", "txSuccess".
+
+3. **Error states** — Where are errors displayed/handled in the UI? Look for error toast, error notification, error handler patterns. Also look for any existing use of `@capacitor/haptics` or `Haptics`.
+
+For each, return:
+- The exact file path (relative to the package root)
+- The line numbers and surrounding code context (5-10 lines around the relevant point)
+- What specific haptic feedback should be applied (based on the plan: ImpactStyle.Medium for vault creation, ImpactStyle.Heavy for tx confirmed, NotificationStyle.Error for errors)
+
+This is a research-only task. Do not write any code.
