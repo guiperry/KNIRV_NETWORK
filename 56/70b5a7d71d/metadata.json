@@ -1,0 +1,18 @@
+{
+  "cli_version": "0.5.5",
+  "checkpoint_id": "5670b5a7d71d",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "packages/KNIRVSERVER/bin/backend_server"
+  ],
+  "sessions": [
+    {
+      "metadata": "/56/70b5a7d71d/0/metadata.json",
+      "transcript": "/56/70b5a7d71d/0/full.jsonl",
+      "content_hash": "/56/70b5a7d71d/0/content_hash.txt",
+      "prompt": ""
+    }
+  ]
+}
