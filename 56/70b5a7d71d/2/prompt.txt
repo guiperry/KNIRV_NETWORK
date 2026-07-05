@@ -1,0 +1,55 @@
+I need to audit the KNIRVCONTROLLER package against the controller_refactor.md plan. The workspace root is /home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK and the package is at packages/KNIRVCONTROLLER.
+
+Check the existence and content of every file mentioned in the "File Change Summary" table (rows 428-449), as well as any other files mentioned in the plan tasks. Be very thorough.
+
+Here's what to check for each task:
+
+**Task 1 (Voice bridge):**
+- Does `src/react-app/platform/voiceBridge.ts` exist? Check its content.
+- Does `src/react-app/hooks/useVoiceIntegration.ts` exist? Check if it imports from voiceBridge and uses Capacitor.isNativePlatform().
+
+**Task 2 (Native storage):**
+- Does `@capacitor/preferences` show in package.json?
+- Does `src/react-app/platform/nativeStorage.ts` exist? Check content.
+- Does `src/react-app/hooks/useVault.ts` exist? Check if it uses nativeStorage.
+- Does `src/react-app/platform/browserStorage.ts` exist? Check if it has native path.
+- Does `src/react-app/platform/vaultHandoff.ts` exist? Check if it handles native session scope.
+
+**Task 3 (Vite base path):**
+- Check `vite.config.ts` - does build block have `base: './'`?
+
+**Task 4 (Safe area insets):**
+- Check `index.html` - does viewport meta include `viewport-fit=cover`?
+- Check `src/react-app/components/Layout.tsx` - does header have `paddingTop: env(safe-area-inset-top)` and bottom nav have `paddingBottom: env(safe-area-inset-bottom)`?
+
+**Task 5 (Plugin polish):**
+- Are `@capacitor/app`, `@capacitor/haptics`, `@capacitor/keyboard`, `@capacitor/status-bar`, `@capacitor/splash-screen` in package.json?
+- Check `capacitor.config.ts` - does it have SplashScreen and StatusBar plugin config?
+- Does `src/react-app/platform/backHandler.ts` exist? Check content.
+- Check `src/react-app/main.tsx` - does it import Keyboard and use setResizeMode?
+- Check for haptics usage in relevant files.
+
+**Task 6 (App icons):**
+- Do `assets/icon.png`, `assets/icon-foreground.png`, `assets/icon-background.png`, `assets/splash.png` exist?
+- Is `@capacitor/assets` in devDependencies?
+
+**Task 7 (BLE permissions):**
+- Check `android/app/src/main/AndroidManifest.xml` - are BLUETOOTH, BLUETOOTH_CONNECT, BLUETOOTH_SCAN, ACCESS_FINE_LOCATION permissions present?
+- Check `ios/App/App/Info.plist` - is NSBluetoothAlwaysUsageDescription present?
+
+**Task 8 (Ledger BLE):**
+- Does `src/capacitor-plugins/ledger-ble/` exist? Check for definitions.ts, index.ts.
+- Does `src/react-app/platform/ledgeBleTransport.ts` exist? (Note: typo in plan - "ledgeBleTransport" not "ledgerBleTransport")
+- Do the native Java/Swift plugin files exist?
+- (This is labelled deferrable, just report)
+
+**Task 9 (CI/CD):**
+- Does `.github/workflows/build-android.yml` exist?
+- Does `.github/workflows/build-ios.yml` exist?
+- Does `ios/ExportOptions.plist` exist?
+
+**Task 10 (Maestro E2E):**
+- Does `.maestro/` directory exist?
+- List any files in `.maestro/flows/` if they exist.
+
+Please check ALL of these and return a comprehensive report with the status (✅ Done, ⚠️ Partial, ❌ Missing) for each task and sub-item. Include actual code snippets for any partial implementations.
