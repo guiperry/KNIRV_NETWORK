@@ -1,0 +1,40 @@
+{
+  "cli_version": "0.5.5",
+  "checkpoint_id": "2d7bd94dbfb5",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 0,
+  "files_touched": [
+    ".gitignore",
+    "packages/KNIRVAGENT/Makefile",
+    "packages/KNIRVAGENT/cmd/knirvagent/main.go",
+    "packages/KNIRVAGENT/cmd/knirvagent/main_wasi.go",
+    "packages/KNIRVAGENT/cmd/knirvagent/main_wasm.go",
+    "packages/KNIRVAGENT/pkg/relay/client.go",
+    "packages/KNIRVAGENT/pkg/tools/shell.go",
+    "packages/KNIRVAGENT/pkg/tools/shell_js.go",
+    "packages/KNIRVAGENT/pkg/tools/shell_wasi.go",
+    "packages/KNIRVAGENT/pkg/tools/shell_wasm.go",
+    "packages/KNIRVSERVER/bin/backend_server",
+    "packages/KNIRVSERVER/frontend/src/components/dashboard/cognitive-engine-panel.tsx",
+    "packages/KNIRVSERVER/internal/bootkey/bootkey.go",
+    "packages/KNIRVSERVER/internal/dveevidence/hashcrypto.go",
+    "packages/KNIRVSERVER/internal/dveevidence/ingest.go",
+    "packages/KNIRVSERVER/internal/dveevidence/ingest_test.go",
+    "packages/KNIRVSERVER/internal/dveevidence/keys.go",
+    "packages/KNIRVSERVER/internal/dveevidence/merkle.go",
+    "packages/KNIRVSERVER/internal/dveevidence/policy.go",
+    "packages/KNIRVSERVER/internal/dveevidence/sign.go",
+    "packages/KNIRVSERVER/internal/dveevidence/types.go",
+    "packages/KNIRVSERVER/internal/dveevidence/verify.go",
+    "packages/KNIRVSERVER/main.go"
+  ],
+  "sessions": [
+    {
+      "metadata": "/2d/7bd94dbfb5/0/metadata.json",
+      "transcript": "/2d/7bd94dbfb5/0/full.jsonl",
+      "content_hash": "/2d/7bd94dbfb5/0/content_hash.txt",
+      "prompt": ""
+    }
+  ]
+}
