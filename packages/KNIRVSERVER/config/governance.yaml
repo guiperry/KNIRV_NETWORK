@@ -1,0 +1,49 @@
+# KNIRVSERVER Governance Configuration
+# Controls governance toolkit behaviour across Phases 1-6
+
+identity:
+  revocation_chain: true
+  envelope_ttl: 24h
+  max_attributes_per_envelope: 50
+
+policy:
+  engine: rego
+  max_policy_size_bytes: 1048576
+  default_action: deny
+  cache_enabled: true
+  cache_ttl: 5m
+
+reliability:
+  circuit_breaker:
+    default_threshold: 5
+    default_recovery_timeout: 30s
+    half_open_max_requests: 3
+  slo:
+    default_window: 5m
+    max_budget_consumption: 1.0
+  dve_binding:
+    max_bindings_per_node: 100
+    binding_ttl: 1h
+
+mcp_hardening:
+  schema_validation:
+    enabled: true
+    strict_mode: true
+  injection_detection:
+    enabled: true
+    patterns:
+      - sql_injection
+      - xss
+      - command_injection
+      - template_injection
+  response_sanitization:
+    enabled: true
+    max_response_length: 1048576
+    redact_secrets: true
+
+compliance:
+  frameworks:
+    - knirv-network
+    - soc2
+  event_retention_days: 90
+  chain_verification_required: true

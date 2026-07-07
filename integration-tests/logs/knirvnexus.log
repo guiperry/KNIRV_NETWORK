@@ -1,0 +1,133 @@
+KNIRV-NEXUS va0e9a7c5-dirty (built 2025-08-29T04:24:14Z, commit a0e9a7c5)
+2025/08/29 00:25:33 No config file found, using defaults and environment variables
+2025/08/29 00:25:33 Starting unified backend service on port 8080...
+2025/08/29 00:25:33 Unified backend started (PID: 893846)
+2025/08/29 00:25:33 Registered Cerebras provider constructor with gollm registry
+2025/08/29 00:25:33 Registered Deepseek provider constructor with gollm registry
+2025/08/29 00:25:33 Registering Gemini provider constructor with gollm registry
+KNIRV-NEXUS Complete Backend Server va0e9a7c5-dirty (built 2025-08-29T04:24:14Z, commit a0e9a7c5)
+2025/08/29 00:25:33 [DVE][dve-manager] P2P topics initialized: knirv-nexus-mainnet.dve-validation, knirv-nexus-mainnet.dve-results, knirv-nexus-mainnet.dve-nodes
+2025/08/29 00:25:33 Auth routes configured
+2025/08/29 00:25:33 Inference service routes configured
+2025/08/29 00:25:33 WebSocket routes registered
+2025/08/29 00:25:33 WebSocket service routes configured
+2025/08/29 00:25:33 DVE manager routes configured
+2025/08/29 00:25:33 Validation service routes configured
+2025/08/29 00:25:33 TEE security service routes configured
+2025/08/29 00:25:33 System health service routes configured
+2025/08/29 00:25:33 Agent management service routes configured
+2025/08/29 00:25:33 Controller integration service routes configured
+2025/08/29 00:25:33 DVE rental service routes configured
+2025/08/29 00:25:33 All routes configured successfully
+2025/08/29 00:25:33 Starting KNIRV-NEXUS unified server...
+2025/08/29 00:25:33 [DVE][dve-manager] Starting P2P manager...
+2025/08/29 00:25:33 [DVE][dve-manager] P2P manager started successfully
+2025/08/29 00:25:33 P2P Manager started
+2025/08/29 00:25:33 Starting DVE Manager service...
+2025/08/29 00:25:33 Warning: Failed to load nodes from database: not found
+2025/08/29 00:25:33 DVE Manager service started successfully
+2025/08/29 00:25:33 DVE Manager started
+2025/08/29 00:25:33 Starting Validation Core service...
+2025/08/29 00:25:33 Warning: Failed to load pending tasks: not found
+2025/08/29 00:25:33 Validation Core service started successfully
+2025/08/29 00:25:33 Validation Core started
+2025/08/29 00:25:33 Starting Agent Server service...
+Warning: cgroup manager start failed: failed to create base cgroup directory: mkdir /sys/fs/cgroup/knirv-agents: permission denied
+2025/08/29 00:25:33 Runtime manager started with max 10 agents
+2025/08/29 00:25:33 Agent Server service started successfully
+2025/08/29 00:25:33 Agent Server started
+2025/08/29 00:25:33 CDEService: Started successfully
+2025/08/29 00:25:33 CDE Service started
+2025/08/29 00:25:33 Data Engine started
+2025/08/29 00:25:33 InferenceService: Starting...
+2025/08/29 00:25:33 InferenceService: Configuring LLM attempt: Provider=cerebras, Model=llama-4-scout-17b-16e-instruct, Primary=true
+2025/08/29 00:25:33 [DEBUG] NewCerebrasProvider called! apiKey: true, model: llama-4-scout-17b-16e-instruct
+2025/08/29 00:25:33 NewCerebrasProvider created: model=llama-4-scout-17b-16e-instruct
+2025/08/29 00:25:33 INFO: Default options applied [model llama-4-scout-17b-16e-instruct maxTokens 4000]
+2025/08/29 00:25:33 [DEBUG] NewCerebrasProvider called! apiKey: true, model: llama-4-scout-17b-16e-instruct
+2025/08/29 00:25:33 NewCerebrasProvider created: model=llama-4-scout-17b-16e-instruct
+2025/08/29 00:25:33 InferenceService: Successfully configured LLM instance for model 'llama-4-scout-17b-16e-instruct'
+2025/08/29 00:25:33 InferenceService: Configuring LLM attempt: Provider=gemini, Model=gemini-1.5-flash-latest, Primary=false
+2025/08/29 00:25:33 [DEBUG] NewGeminiProvider called! apiKey: true, model: gemini-1.5-flash-latest
+2025/08/29 00:25:33 GeminiProvider: GEMINI_API_ENDPOINT not set, using default: https://generativelanguage.googleapis.com/v1beta/
+2025/08/29 00:25:33 NewGeminiProvider created: model=gemini-1.5-flash-latest
+2025/08/29 00:25:33 INFO: Applied global default model [model gemini-1.5-flash-latest]
+2025/08/29 00:25:33 INFO: Applied global default max tokens [maxTokens 100000]
+2025/08/29 00:25:33 INFO: Applied global default temperature [temperature 0.7]
+2025/08/29 00:25:33 INFO: Applied global default TopP [topP 0.9]
+2025/08/29 00:25:33 INFO: Default options processing complete for Gemini [final_model gemini-1.5-flash-latest final_maxTokens 100000]
+2025/08/29 00:25:33 [DEBUG] NewGeminiProvider called! apiKey: true, model: gemini-1.5-flash-latest
+2025/08/29 00:25:33 GeminiProvider: GEMINI_API_ENDPOINT not set, using default: https://generativelanguage.googleapis.com/v1beta/
+2025/08/29 00:25:33 NewGeminiProvider created: model=gemini-1.5-flash-latest
+2025/08/29 00:25:33 InferenceService: Successfully configured LLM instance for model 'gemini-1.5-flash-latest'
+2025/08/29 00:25:33 InferenceService: Configuring LLM attempt: Provider=deepseek, Model=deepseek-chat, Primary=false
+2025/08/29 00:25:33 [DEBUG] NewDeepseekProvider called! apiKey present: true, model: deepseek-chat
+2025/08/29 00:25:33 NewDeepseekProvider created: model=deepseek-chat
+2025/08/29 00:25:33 INFO: Deepseek default options applied [model deepseek-chat maxTokens 8000]
+2025/08/29 00:25:33 [DEBUG] NewDeepseekProvider called! apiKey present: true, model: deepseek-chat
+2025/08/29 00:25:33 NewDeepseekProvider created: model=deepseek-chat
+2025/08/29 00:25:33 InferenceService: Successfully configured LLM instance for model 'deepseek-chat'
+2025/08/29 00:25:33 InferenceService: Reconfiguring MOA...
+2025/08/29 00:25:33 [DEBUG] NewCerebrasProvider called! apiKey: true, model: llama-4-scout-17b-16e-instruct
+2025/08/29 00:25:33 NewCerebrasProvider created: model=llama-4-scout-17b-16e-instruct
+2025/08/29 00:25:33 INFO: Default options applied [model llama-4-scout-17b-16e-instruct maxTokens 4000]
+2025/08/29 00:25:33 [DEBUG] NewDeepseekProvider called! apiKey present: true, model: deepseek-chat
+2025/08/29 00:25:33 NewDeepseekProvider created: model=deepseek-chat
+2025/08/29 00:25:33 INFO: Deepseek default options applied [model deepseek-chat maxTokens 8000]
+2025/08/29 00:25:33 [DEBUG] NewDeepseekProvider called! apiKey present: true, model: deepseek-chat
+2025/08/29 00:25:33 NewDeepseekProvider created: model=deepseek-chat
+2025/08/29 00:25:33 INFO: Deepseek default options applied [model deepseek-chat maxTokens 8000]
+2025/08/29 00:25:33 InferenceService: MOA instance created/recreated successfully (Primary: llama-4-scout-17b-16e-instruct, Fallback: deepseek-chat).
+2025/08/29 00:25:33 InferenceService: DelegatorService created.
+2025/08/29 00:25:33 InferenceService: Started successfully.
+2025/08/29 00:25:33 Inference Service started
+2025/08/29 00:25:33 Starting TEE security service...
+2025/08/29 00:25:33 TEE security service started successfully
+2025/08/29 00:25:33 TEE Security Service started
+2025/08/29 00:25:33 Starting system health service...
+2025/08/29 00:25:33 System health service started successfully
+2025/08/29 00:25:33 System Health Service started
+2025/08/29 00:25:33 Starting agent management service...
+2025/08/29 00:25:33 Agent management service started successfully
+2025/08/29 00:25:33 Agent Management Service started
+2025/08/29 00:25:33 Starting controller integration service...
+2025/08/29 00:25:33 Controller integration service started successfully
+2025/08/29 00:25:33 Controller Integration Service started
+2025/08/29 00:25:33 Starting DVE rental service...
+2025/08/29 00:25:33 DVE rental service started successfully
+2025/08/29 00:25:33 DVE Rental Service started
+2025/08/29 00:25:33 WebSocket service starting...
+2025/08/29 00:25:33 WebSocket service started successfully
+2025/08/29 00:25:33 WebSocket Service started
+2025/08/29 00:25:33 KNIRV-NEXUS unified server started successfully
+2025/08/29 00:25:33 Starting HTTP server on 0.0.0.0:8080
+2025/08/29 00:25:36 Starting KNIRV-NEXUS on 0.0.0.0:8090
+[GIN] 2025/08/29 - 00:25:43 | 404 |    1.295488ms |       127.0.0.1 | GET      "/api/v1/health"
+[GIN] 2025/08/29 - 00:25:43 | 404 |     439.806µs |       127.0.0.1 | GET      "/api/v1/health"
+2025/08/29 00:25:44 Shutting down...
+2025/08/29 00:25:44 Stopping unified backend (PID: 893846)
+2025/08/29 00:25:44 Shutting down server...
+2025/08/29 00:25:44 Stopping KNIRV-NEXUS unified server...
+2025/08/29 00:25:44 Stopping WebSocket service...
+2025/08/29 00:25:44 WebSocket service stopped
+2025/08/29 00:25:44 TEE security service stopped
+2025/08/29 00:25:44 System health service stopped
+2025/08/29 00:25:44 Agent management service stopped
+2025/08/29 00:25:44 Controller integration service stopped
+2025/08/29 00:25:44 Stopping DVE rental service...
+2025/08/29 00:25:44 DVE rental service stopped
+2025/08/29 00:25:44 CDEService: Stopped successfully
+2025/08/29 00:25:44 InferenceService stopped.
+2025/08/29 00:25:44 Stopping Agent Server service...
+2025/08/29 00:25:44 Agent Server service stopped
+2025/08/29 00:25:44 Stopping Validation Core service...
+2025/08/29 00:25:44 Validation Core service stopped
+2025/08/29 00:25:44 Stopping DVE Manager service...
+2025/08/29 00:25:44 DVE Manager service stopped
+2025/08/29 00:25:44 [DVE][dve-manager] Stopping P2P manager...
+2025/08/29 00:25:44 [DVE][dve-manager] P2P manager stopped
+2025/08/29 00:25:44 Database backup created: data/backups/nexus_final_20250829_002544.db
+2025/08/29 00:25:44 Removed old backup: data/backups/nexus_auto_20250828_165719.db
+2025/08/29 00:25:44 KNIRV-NEXUS unified server stopped
+2025/08/29 00:25:44 Server stopped gracefully
+2025/08/29 00:25:44 KNIRV-NEXUS stopped

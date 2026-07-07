@@ -1,0 +1,56 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e3]:
+  - generic [ref=e5]:
+    - button "Navigation menu"
+  - main [ref=e6]:
+    - generic [ref=e7]:
+      - generic [ref=e9]:
+        - generic [ref=e10]:
+          - img [ref=e12]
+          - generic [ref=e15]:
+            - heading "KNIRV Cortex" [level=1] [ref=e16]
+            - paragraph [ref=e17]: Train Your Own SLM Agent
+        - generic [ref=e18]:
+          - generic [ref=e19]:
+            - paragraph [ref=e20]: 2,000 NRN
+            - paragraph [ref=e21]: Balance
+          - generic [ref=e22]:
+            - paragraph [ref=e23]: 6:07:47 PM
+            - paragraph [ref=e24]: 4/7/2026
+          - generic [ref=e25]:
+            - button "Skills" [ref=e26] [cursor=pointer]:
+              - img [ref=e27]
+            - button "User Delegation Certificate" [ref=e29] [cursor=pointer]:
+              - img [ref=e30]
+            - button "Wallet" [ref=e32] [cursor=pointer]:
+              - img [ref=e33]
+            - button "🌙" [ref=e36] [cursor=pointer]
+      - generic [ref=e38]:
+        - generic [ref=e46]:
+          - generic [ref=e47]: "UI_ACTIVE: menu"
+          - generic [ref=e48]:
+            - img [ref=e50]
+            - generic [ref=e59]:
+              - generic [ref=e60]:
+                - img [ref=e61]
+                - heading "ERGO_BOOT_v1.0.4" [level=2] [ref=e63]
+              - generic [ref=e64]:
+                - generic [ref=e65]:
+                  - generic [ref=e66]: "[00]"
+                  - text: INITIALIZING COGNITIVE SHELL...
+                - generic [ref=e67]:
+                  - generic [ref=e68]: "[01]"
+                  - text: LOADING NEURAL WEIGHTS (LORA)...
+                - generic [ref=e69]:
+                  - generic [ref=e70]: "[02]"
+                  - text: ESTABLISHING KNIRVGRAPH CONNECTION...
+        - generic [ref=e71]:
+          - img [ref=e73]
+          - button "Capture Screenshot" [ref=e75] [cursor=pointer]:
+            - img [ref=e76]
+      - button [ref=e81] [cursor=pointer]:
+        - img [ref=e84]
+    - generic [ref=e87]: Idle
+```

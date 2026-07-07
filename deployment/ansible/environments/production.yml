@@ -1,0 +1,253 @@
+# KNIRV Network Production Environment Configuration
+
+# =============================================================================
+# PRODUCTION ENVIRONMENT SETTINGS
+# =============================================================================
+
+environment: production
+debug_mode: false
+
+# =============================================================================
+# INFRASTRUCTURE CONFIGURATION
+# =============================================================================
+
+# Production instance sizing
+instance_type: t3.large
+region: us-east-1
+
+# High availability configuration
+enable_ha: true
+min_instances: 2
+max_instances: 5
+
+# =============================================================================
+# DOMAIN CONFIGURATION
+# =============================================================================
+
+domain_name: knirv.com
+subdomain_prefix: ""
+
+# Production subdomains (no prefix)
+knirv_subdomains:
+  - chain      # chain.knirv.com
+  - root       # root.knirv.com
+  - wallet     # wallet.knirv.com
+  - shell      # shell.knirv.com
+  - router     # router.knirv.com
+  - gateway    # gateway.knirv.com (hosts nexus and graph portals)
+  - api        # api.knirv.com
+  - www        # www.knirv.com
+  - controller # controller.knirv.com (PWA distribution)
+
+# CDN DNS redirects - point to KNIRVGATEWAY portals
+cdn_redirects:
+  graph.knirv.com: "gateway.knirv.com/graphchain-explorer"
+  nexus.knirv.com: "gateway.knirv.com/nexus-portal"
+  beta-controller.knirv.network: "controller.knirv.com"
+
+# Production endpoints (for endpoints.yaml generation)
+production_endpoints:
+  KNIRVCHAIN_API: "https://chain.knirv.com"
+  KNIRVGRAPH_API: "https://graph.knirv.com"
+  KNIRVSERVER_API: "https://nexus.knirv.com"
+  KNIRVORACLE_API: "https://oracle.knirv.com"
+  KNIRVROUTER_API: "https://router.knirv.com"
+  KNIRVANA_API: "https://knirvana.knirv.com"
+  KNIRVANA_INTERACTIVE_GRAPH: "https://knirvana.knirv.com"
+  KNIRVWALLET_PWA: "https://wallet.knirv.com"
+  KNIRVWALLET_ANDROID: "https://wallet.knirv.com/android"
+  KNIRVWALLET_IOS: "https://wallet.knirv.com/ios"
+
+# =============================================================================
+# SECURITY CONFIGURATION
+# =============================================================================
+
+# Enhanced security for production
+firewall_enabled: true
+fail2ban_enabled: true
+enable_intrusion_detection: true
+
+# SSL/TLS configuration
+ssl_config:
+  enable_letsencrypt: true
+  cert_email: admin@knirv.com
+  force_https: true
+  hsts_enabled: true
+  ocsp_stapling: true
+
+# SSH hardening
+ssh_hardening:
+  disable_root_login: true
+  disable_password_auth: true
+  max_auth_tries: 3
+  client_alive_interval: 300
+  client_alive_count_max: 2
+  permit_empty_passwords: false
+  challenge_response_auth: false
+
+# =============================================================================
+# RESOURCE CONFIGURATION
+# =============================================================================
+
+# Production resource limits
+resource_limits:
+  cpu_limit: "4000m"
+  memory_limit: "8Gi"
+  cpu_request: "1000m"
+  memory_request: "2Gi"
+
+# Storage configuration
+storage_config:
+  data_volume_size: "100Gi"
+  backup_volume_size: "200Gi"
+  storage_class: "gp3"
+
+# =============================================================================
+# MONITORING AND ALERTING
+# =============================================================================
+
+# Enhanced monitoring for production
+monitoring:
+  enabled: true
+  prometheus_port: 9090
+  grafana_port: 3000
+  alertmanager_port: 9093
+  retention_days: 30
+
+# Alerting configuration
+alerting:
+  enabled: true
+  slack_webhook: "{{ vault_slack_webhook }}"
+  email_alerts: "admin@knirv.com"
+  pagerduty_key: "{{ vault_pagerduty_key }}"
+
+# Health check configuration
+health_check:
+  interval: 15
+  timeout: 5
+  retries: 3
+  critical_threshold: 90
+
+# =============================================================================
+# BACKUP CONFIGURATION
+# =============================================================================
+
+backup_config:
+  enabled: true
+  retention_days: 90
+  schedule: "0 2 * * *"  # Daily at 2 AM
+  s3_bucket: "knirv-production-backups"
+  encryption_enabled: true
+  cross_region_replication: true
+
+# =============================================================================
+# PERFORMANCE OPTIMIZATION
+# =============================================================================
+
+# Production performance settings
+performance:
+  enable_caching: true
+  cache_size: "2Gi"
+  connection_pooling: true
+  max_connections: 1000
+  worker_processes: 4
+
+# Database optimization
+database:
+  type: postgresql
+  host: postgres-primary
+  port: 5432
+  name: knirv_production
+  user: knirv_prod
+  max_connections: 200
+  shared_buffers: "2GB"
+  effective_cache_size: "6GB"
+
+# =============================================================================
+# COMPLIANCE AND AUDITING
+# =============================================================================
+
+# Compliance settings
+compliance:
+  enable_audit_logging: true
+  log_retention_years: 7
+  enable_encryption_at_rest: true
+  enable_encryption_in_transit: true
+
+# Audit configuration
+audit:
+  enabled: true
+  log_all_commands: true
+  log_file_access: true
+  log_network_connections: true
+
+# =============================================================================
+# CLOUDFLARE CONFIGURATION
+# =============================================================================
+
+# Production Cloudflare settings
+cloudflare:
+  proxy_enabled: true
+  ssl_mode: "strict"
+  security_level: "medium"
+  cache_level: "aggressive"
+  minify_enabled: true
+  brotli_enabled: true
+
+# WAF rules for production
+waf_rules:
+  - "Block known bad IPs"
+  - "Rate limit API endpoints"
+  - "Block SQL injection attempts"
+  - "Block XSS attempts"
+
+# =============================================================================
+# INTEGRATION SETTINGS
+# =============================================================================
+
+# Production integrations
+integrations:
+  xion_rpc: "https://rpc.xion.burnt.com:443"
+  enable_blockchain_bridge: true
+  enable_ai_services: true
+  enable_analytics: true
+  enable_error_tracking: true
+
+# External service endpoints
+external_services:
+  sentry_dsn: "{{ vault_sentry_dsn }}"
+  datadog_api_key: "{{ vault_datadog_api_key }}"
+  newrelic_license_key: "{{ vault_newrelic_license_key }}"
+
+# =============================================================================
+# KNIRVWALLET PWA CONFIGURATION
+# =============================================================================
+
+# PWA deployment configuration
+wallet_pwa:
+  enabled: true
+  domain: "wallet.knirv.com"
+  beta_domain: "beta-wallet.knirv.network"
+  build_dir: "dist"
+  packages_dir: "packages"
+
+# CloudFlare Pages configuration for PWA
+cloudflare_pages:
+  project_name: "knirv-wallet-pwa"
+  production_branch: "main"
+  preview_branch: "develop"
+  build_command: "npm run build:pwa"
+  build_output_directory: "dist"
+
+# Mobile app distribution
+mobile_distribution:
+  android_package: "knirvwallet-android.zip"
+  ios_package: "knirvwallet-ios.zip"
+  max_package_size: "50MB"
+
+# PWA authentication configuration
+pwa_auth:
+  enable_biometric: true
+  enable_device_storage: true
+  session_timeout: 3600  # 1 hour
+  enable_offline_mode: true

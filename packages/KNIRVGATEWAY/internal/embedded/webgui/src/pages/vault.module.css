@@ -1,0 +1,290 @@
+.statusCard {
+  margin-bottom: 20px;
+  padding: 20px;
+}
+
+.statusHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.statusTitle {
+  color: #007bff;
+  margin: 0;
+  display: flex;
+  align-items: center;
+}
+
+.connectionStatus {
+  padding: 6px 12px;
+  border-radius: 15px;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.connected {
+  background-color: rgba(40, 167, 69, 0.2);
+  color: #28a745;
+}
+
+.disconnected {
+  background-color: rgba(220, 53, 69, 0.2);
+  color: #dc3545;
+}
+
+.statusDescription {
+  color: #ccc;
+  margin: 0;
+  line-height: 1.4;
+}
+
+.tabsContainer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.tab {
+  background-color: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #ccc;
+  padding: 12px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9rem;
+}
+
+.tab:hover {
+  background-color: rgba(0, 123, 255, 0.2);
+  border-color: rgba(0, 123, 255, 0.5);
+  color: #007bff;
+}
+
+.activeTab {
+  background-color: #007bff;
+  border-color: #007bff;
+  color: white;
+}
+
+.tabIcon {
+  font-size: 1rem;
+}
+
+.tabLabel {
+  font-weight: 500;
+}
+
+.tabCount {
+  background-color: rgba(255, 255, 255, 0.2);
+  padding: 2px 6px;
+  border-radius: 10px;
+  font-size: 0.7rem;
+}
+
+.activeTab .tabCount {
+  background-color: rgba(255, 255, 255, 0.3);
+}
+
+.contentCard {
+  padding: 25px;
+  min-height: 400px;
+}
+
+.connectionPrompt {
+  text-align: center;
+  padding: 60px 20px;
+}
+
+.connectionIcon {
+  font-size: 4rem;
+  margin-bottom: 20px;
+}
+
+.connectionPrompt h3 {
+  color: white;
+  margin-bottom: 15px;
+}
+
+.connectionPrompt p {
+  color: #ccc;
+  margin-bottom: 30px;
+  line-height: 1.5;
+}
+
+.connectionActions {
+  display: flex;
+  gap: 15px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.connectButton {
+  background-color: #007bff;
+  color: white;
+  border: none;
+  padding: 12px 20px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  display: flex;
+  align-items: center;
+}
+
+.connectButton:hover {
+  background-color: #0056b3;
+}
+
+.webAccessButton {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: #ccc;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 12px 20px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+}
+
+.webAccessButton:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+  color: white;
+}
+
+.emptyState {
+  text-align: center;
+  padding: 60px 20px;
+  color: #ccc;
+}
+
+.emptyIcon {
+  font-size: 3rem;
+  margin-bottom: 20px;
+}
+
+.emptyState h3 {
+  color: white;
+  margin-bottom: 10px;
+}
+
+.emptyState p {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.assetGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 20px;
+}
+
+.assetCard {
+  padding: 20px;
+  transition: transform 0.3s ease;
+}
+
+.assetCard:hover {
+  transform: translateY(-3px);
+}
+
+.assetHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.assetName {
+  color: white;
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.assetActions {
+  display: flex;
+  gap: 5px;
+}
+
+.actionButton {
+  background-color: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #ccc;
+  padding: 6px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 0.8rem;
+}
+
+.actionButton:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+  color: white;
+}
+
+.assetDetails {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.assetDetail {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.detailLabel {
+  color: #ccc;
+  font-size: 0.9rem;
+}
+
+.detailValue {
+  color: white;
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+
+.detailValue.active {
+  color: #28a745;
+}
+
+.detailValue.training {
+  color: #ffc107;
+}
+
+.detailValue.idle {
+  color: #6c757d;
+}
+
+@media (max-width: 768px) {
+  .tabsContainer {
+    flex-direction: column;
+  }
+  
+  .tab {
+    justify-content: center;
+  }
+  
+  .connectionActions {
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .connectButton,
+  .webAccessButton {
+    width: 100%;
+    max-width: 250px;
+    justify-content: center;
+  }
+  
+  .assetGrid {
+    grid-template-columns: 1fr;
+  }
+}

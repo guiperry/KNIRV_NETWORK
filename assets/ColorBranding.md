@@ -1,0 +1,1 @@
+--knirv-primary: #00c0fa, --knirv-secondary: #2b56f5)

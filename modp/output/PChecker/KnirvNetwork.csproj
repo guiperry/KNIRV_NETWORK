@@ -1,0 +1,17 @@
+
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ApplicationIcon />
+    <OutputType>Exe</OutputType>
+    <StartupObject />
+    <LangVersion>latest</LangVersion>
+    <OutputPath>./</OutputPath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="PCheckerCore">
+        <HintPath>/home/gperry/.p-lang/Bld/Drops/Release/Binaries/net8.0/PCheckerCore.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+</Project>

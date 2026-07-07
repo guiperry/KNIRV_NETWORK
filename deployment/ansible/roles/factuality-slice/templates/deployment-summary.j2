@@ -1,0 +1,94 @@
+{
+  "deployment": {
+    "timestamp": "{{ deployment_summary.timestamp }}",
+    "host": "{{ deployment_summary.deployment_host }}",
+    "ip_address": "{{ deployment_summary.deployment_ip }}",
+    "environment": "{{ deployment_summary.environment }}",
+    "knirv_version": "{{ deployment_summary.knirv_version }}",
+    "ansible_user": "{{ ansible_user }}",
+    "deployment_duration": "{{ ansible_date_time.epoch | int - (deployment_start_time | default(ansible_date_time.epoch) | int) }}s"
+  },
+  "services": {
+    "total_deployed": {{ deployment_summary.services_deployed }},
+    "core_services": [
+      {
+        "name": "KNIRVWALLET",
+        "port": 3000,
+        "status": "deployed",
+        "health_endpoint": "http://{{ deployment_summary.deployment_ip }}:3000/health"
+      },
+      {
+        "name": "KNIRVROUTER", 
+        "port": 8085,
+        "status": "deployed",
+        "health_endpoint": "http://{{ deployment_summary.deployment_ip }}:8085/health"
+      },
+      {
+        "name": "KNIRVGRAPH",
+        "port": 8081,
+        "status": "deployed", 
+        "health_endpoint": "http://{{ deployment_summary.deployment_ip }}:8081/health"
+      },
+      {
+        "name": "KNIRVCHAIN",
+        "port": 8080,
+        "status": "deployed",
+        "health_endpoint": "http://{{ deployment_summary.deployment_ip }}:8080/health"
+      },
+      {
+        "name": "KNIRVORACLE",
+        "port": 8086,
+        "status": "deployed",
+        "health_endpoint": "http://{{ deployment_summary.deployment_ip }}:8086/health"
+      },
+      {
+        "name": "KNIRVSERVER",
+        "port": 8090,
+        "status": "deployed",
+        "health_endpoint": "http://{{ deployment_summary.deployment_ip }}:8090/health"
+      }
+    ]
+  },
+  "capabilities": {
+    "factuality_slice": {
+      "status": "{{ deployment_summary.factuality_slice_status }}",
+      "capability_id": "factuality-slice-001",
+      "capability_type": "factuality-verification",
+      "version": "1.0.0",
+      "configuration_file": "{{ knirv_home }}/config/factuality-slice-config.json",
+      "log_file": "{{ knirv_home }}/logs/factuality-slice-init.log",
+      "initialized_at": "{{ deployment_summary.timestamp }}"
+    }
+  },
+  "monitoring": {
+    "enabled": {{ deployment_summary.monitoring_enabled | lower }},
+    "prometheus_endpoint": "http://{{ deployment_summary.deployment_ip }}:9090",
+    "grafana_endpoint": "http://{{ deployment_summary.deployment_ip }}:3001"
+  },
+  "configuration": {
+    "knirv_home": "{{ knirv_home }}",
+    "config_directory": "{{ knirv_home }}/config",
+    "log_directory": "{{ knirv_home }}/logs",
+    "status_directory": "{{ knirv_home }}/status",
+    "data_directory": "{{ knirv_home }}/data"
+  },
+  "validation": {
+    "health_checks_performed": true,
+    "network_connectivity_verified": true,
+    "capability_registration_attempted": true,
+    "end_to_end_validation": "{{ 'passed' if deployment_summary.factuality_slice_status == 'active' else 'degraded' }}"
+  },
+  "next_steps": [
+    "Verify all services are running: systemctl status knirv-*",
+    "Check health endpoints for each service",
+    "Review deployment and initialization logs",
+    "Run integration tests to validate functionality",
+    "Configure monitoring alerts and dashboards",
+    "Set up backup and disaster recovery procedures"
+  ],
+  "support": {
+    "documentation": "https://docs.knirv.com/deployment",
+    "troubleshooting": "https://docs.knirv.com/troubleshooting",
+    "support_contact": "support@knirv.com"
+  }
+}

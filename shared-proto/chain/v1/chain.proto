@@ -1,0 +1,87 @@
+syntax = "proto3";
+
+package knirv.chain.v1;
+
+option go_package = "github.com/guiperry/KNIRV_NETWORK/pkg/gen/knirv/chain/v1;chainv1";
+
+// LoRaAdapterSkill represents a LoRA adapter skill stored on KNIRVCHAIN.
+// Weights are stored as packed bytes for efficient serialization.
+message LoRaAdapterSkill {
+  // Metadata
+  string skill_id = 1;
+  string skill_name = 2;
+  string description = 3;
+  string base_model_compatibility = 4;
+  uint32 version = 5;
+
+  // LoRA parameters
+  int32 rank = 6;
+  float alpha = 7;
+
+  // LoRA weight matrices (packed float arrays)
+  bytes weights_a = 8;
+  bytes weights_b = 9;
+
+  map<string, string> additional_metadata = 10;
+}
+
+// Response from a skill invocation on KNIRVCHAIN
+message SkillInvocationResponse {
+  string invocation_id = 1;
+  Status status = 2;
+  string error_message = 3;
+  LoRaAdapterSkill skill = 4;
+}
+
+// Request to invoke a skill by ID
+message SkillInvocationRequest {
+  string invocation_id = 1;
+  string skill_id = 2;
+  map<string, string> parameters = 3;
+  string agent_core_id = 4;
+}
+
+// Request to compile a new skill from solutions and errors
+message SkillCompilationRequest {
+  string compilation_id = 1;
+  SkillMetadata metadata = 2;
+  SkillTrainingData training_data = 3;
+}
+
+message SkillMetadata {
+  string skill_name = 1;
+  string description = 2;
+  string base_model = 3;
+  int32 rank = 4;
+  float alpha = 5;
+  map<string, string> additional_metadata = 6;
+}
+
+message SkillTrainingData {
+  repeated Solution solutions = 1;
+  repeated ErrorNode errors = 2;
+}
+
+message Solution {
+  string error_id = 1;
+  string solution = 2;
+  float confidence = 3;
+  string agent_id = 4;
+  int64 timestamp = 5;
+}
+
+message ErrorNode {
+  string error_id = 1;
+  string description = 2;
+  string context = 3;
+  string cluster_id = 4;
+  int64 timestamp = 5;
+}
+
+enum Status {
+  STATUS_UNSPECIFIED = 0;
+  SUCCESS = 1;
+  FAILURE = 2;
+  NOT_FOUND = 3;
+  COMPILATION_IN_PROGRESS = 4;
+}

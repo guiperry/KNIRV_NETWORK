@@ -1,0 +1,73 @@
+# Test configuration for KNIRV-SERVER backend
+# Optimized for unit testing with minimal dependencies
+
+database:
+  path: "test-data/test.db"
+
+api:
+  bind_address: "127.0.0.1"
+  port: 8080
+
+security:
+  jwt_secret: "test-jwt-secret-for-unit-testing"
+
+chain_id: "test-chain"
+node_role: "validator"
+
+p2p:
+  dht_enabled: false
+
+# CDE Service Configuration - Disabled for testing
+dve_workspace:
+  base_image_path: ""
+  workspace_root: ""
+  max_environments: 0  # Disable CDE environments in tests
+  default_timeout: 30s
+  max_cpu_per_env: 0
+  max_memory_per_env: 0
+  max_disk_per_env: 0
+  enable_sandboxing: false
+  enable_network_isolation: false
+  allowed_ports: []
+  session_timeout: 5m
+  max_sessions_per_user: 0
+  max_projects_per_user: 0
+  project_storage_path: ""
+
+  # OverlayFS workspace isolation
+  enable_overlayfs: true
+  busybox_rootfs_path: "/var/lib/knirvserver/busybox-rootfs"
+  busybox_source: "embedded"
+  busybox_version: "1.36.1"
+  fuse_overlayfs_bin: "fuse-overlayfs"
+
+  # Wazero skill executor
+  skill_exec_timeout: "120s"
+  skill_max_memory_mb: 512
+  max_concurrent_wasm: 10
+
+  # Workspace persistence
+  workspace_retention_hours: 48
+
+# DNS Service Configuration - Disabled for testing
+dns:
+  cloudflare_api_token: ""
+  zone_name: ""
+  update_interval: 0
+  force_update_interval: 0
+  enable_health_check: false
+  max_retries: 0
+  retry_delay: 0
+  backoff_factor: 0
+
+# Test-specific flags
+test_mode: true
+skip_service_initialization:
+  - cde
+  - dns
+
+# Validation Chain Configuration (disabled by default in tests)
+validation_chain:
+  enabled: false
+  binary_path: ""
+  port: 9290

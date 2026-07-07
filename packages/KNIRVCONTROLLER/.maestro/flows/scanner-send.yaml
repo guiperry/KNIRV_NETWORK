@@ -1,0 +1,12 @@
+appId: com.knirv.controller
+---
+- launchApp
+- tapOn: "Scan"
+- assertVisible: "Debug Input"
+- tapOn: "Debug Input"
+- inputText:
+    text: "knirv://send?to=test&amount=100"
+- tapOn: "Confirm"
+- assertVisible: "Confirm Send"
+- tapOn: "Confirm"
+- assertVisible: "Transaction Submitted"

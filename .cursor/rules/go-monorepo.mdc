@@ -1,0 +1,18 @@
+---
+description: Go multi-module monorepo conventions for packages/ layout
+globs: ["packages/**/*.go", "integration-tests/**/*.go", "devtools/**/*.go"]
+alwaysApply: false
+---
+
+# Go Multi-Module Conventions
+
+- Each `packages/KNIRV*` is independent — run `go mod tidy` inside the package dir, not root
+- Build binaries from within the package: `cd packages/KNIRVSERVER && go build ./backend/cmd/backend_server/`
+- Tests: `go test -v ./...` from inside the package dir; root `make tests` orchestrates all
+- No cross-package Go imports — inter-service communication via HTTP or gRPC only
+- `internal/` packages are private to their module — never reference across packages
+- Standard layout per package: `cmd/` (binaries) · `internal/` (private) · `pkg/` (public libs)
+- Oracle code in `packages/KNIRVSERVER/backend/internal/oracle/` — only runs when `packages/KNIRVSERVER/bin/root.key` exists
+- KNIRVGATEWAY: oracle initialization removed — do NOT add it back
+- Integration tests: `integration-tests/go.mod` is its own module; entry at `integration-tests/cmd/validate_network/main.go`
+- DevTools are independent modules: `devtools/KNIRVSYNC/go.mod` · `devtools/network-monitor/go.mod`

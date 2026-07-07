@@ -1,0 +1,6 @@
+appId: com.knirv.controller
+---
+- launchApp
+- tapOn: "Scan"
+- assertVisible: "QR Scanner"
+- assertVisible: "Align QR code within frame"

@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>View Ticket - KNIRV Support Desk</title>
+    <meta name="description" content="View your support ticket status and replies">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="css/hesk.css">
+    <link rel="icon" type="image/x-icon" href="img/favicon.ico">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>KNIRV Support Desk</h1>
+            <nav class="nav">
+                <a href="index.html">Home</a>
+                <a href="submit_ticket.html">Submit Ticket</a>
+                <a href="knowledgebase.html">Knowledge Base</a>
+                <a href="viewticket.html" class="active">View Ticket</a>
+            </nav>
+        </header>
+
+        <main class="main-content">
+            <div class="welcome-section">
+                <h2>View Support Ticket</h2>
+                <p>Enter your ticket ID and email to view your ticket status</p>
+            </div>
+
+            <div class="ticket-lookup-form">
+                <form id="ticketLookupForm" class="glass-card" style="max-width: 600px; margin: 0 auto; padding: 30px;">
+                    <div class="form-group">
+                        <label for="ticketId">Ticket ID:</label>
+                        <input type="text" id="ticketId" name="ticketId" placeholder="Enter your ticket ID (e.g., TKT-001)" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="email">Email Address:</label>
+                        <input type="email" id="email" name="email" placeholder="Enter your email address" required>
+                    </div>
+                    
+                    <div class="form-group text-center">
+                        <button type="submit" class="btn-primary">View Ticket</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Ticket Details Section (hidden by default) -->
+            <div id="ticketDetails" class="ticket-details hidden">
+                <div class="glass-card" style="max-width: 800px; margin: 30px auto; padding: 30px;">
+                    <div class="ticket-header">
+                        <h3>Ticket Details</h3>
+                        <div class="ticket-meta">
+                            <span class="ticket-id">Ticket ID: <strong id="displayTicketId"></strong></span>
+                            <span class="ticket-status" id="displayStatus"></span>
+                            <span class="ticket-priority" id="displayPriority"></span>
+                        </div>
+                    </div>
+                    
+                    <div class="ticket-info">
+                        <div class="info-row">
+                            <label>Subject:</label>
+                            <span id="displaySubject"></span>
+                        </div>
+                        <div class="info-row">
+                            <label>Category:</label>
+                            <span id="displayCategory"></span>
+                        </div>
+                        <div class="info-row">
+                            <label>Created:</label>
+                            <span id="displayCreated"></span>
+                        </div>
+                        <div class="info-row">
+                            <label>Last Updated:</label>
+                            <span id="displayUpdated"></span>
+                        </div>
+                    </div>
+                    
+                    <div class="ticket-messages">
+                        <h4>Messages</h4>
+                        <div id="messagesList" class="messages-list">
+                            <!-- Messages will be loaded here -->
+                        </div>
+                    </div>
+                    
+                    <div class="reply-section">
+                        <h4>Add Reply</h4>
+                        <form id="replyForm">
+                            <div class="form-group">
+                                <label for="replyMessage">Your Message:</label>
+                                <textarea id="replyMessage" name="message" rows="5" placeholder="Type your reply here..." required></textarea>
+                            </div>
+                            <div class="form-group">
+                                <button type="submit" class="btn-primary">Send Reply</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Error Message Section -->
+            <div id="errorMessage" class="error-message hidden">
+                <div class="glass-card" style="max-width: 600px; margin: 30px auto; padding: 20px; background: rgba(220, 53, 69, 0.1); border: 1px solid rgba(220, 53, 69, 0.3);">
+                    <h4 style="color: #dc3545; margin-bottom: 10px;">Ticket Not Found</h4>
+                    <p style="color: #dc3545;">Please check your ticket ID and email address and try again.</p>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // Sample ticket data (in a real app, this would come from the API)
+        const sampleTickets = [
+            {
+                id: 'TKT-001',
+                email: 'customer@example.com',
+                subject: 'Login Issues',
+                category: 'Technical Support',
+                status: 'Open',
+                priority: 'Medium',
+                created: '2025-01-15 10:30:00',
+                updated: '2025-01-16 14:20:00',
+                messages: [
+                    {
+                        author: 'Customer',
+                        message: 'I am unable to log into my account. The password reset is not working.',
+                        timestamp: '2025-01-15 10:30:00'
+                    },
+                    {
+                        author: 'Support Agent',
+                        message: 'Thank you for contacting us. We are looking into this issue and will get back to you shortly.',
+                        timestamp: '2025-01-16 14:20:00'
+                    }
+                ]
+            },
+            {
+                id: 'TKT-002',
+                email: 'admin@knirv.com',
+                subject: 'Feature Request',
+                category: 'General Inquiry',
+                status: 'Closed',
+                priority: 'Low',
+                created: '2025-01-14 09:15:00',
+                updated: '2025-01-15 16:45:00',
+                messages: [
+                    {
+                        author: 'Admin',
+                        message: 'Can we add a dark mode feature to the dashboard?',
+                        timestamp: '2025-01-14 09:15:00'
+                    },
+                    {
+                        author: 'Support Agent',
+                        message: 'Thank you for the suggestion! We have added this to our feature request list.',
+                        timestamp: '2025-01-15 16:45:00'
+                    }
+                ]
+            }
+        ];
+
+        document.getElementById('ticketLookupForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const ticketId = document.getElementById('ticketId').value.trim();
+            const email = document.getElementById('email').value.trim();
+            
+            // Find ticket
+            const ticket = sampleTickets.find(t => 
+                t.id.toLowerCase() === ticketId.toLowerCase() && 
+                t.email.toLowerCase() === email.toLowerCase()
+            );
+            
+            if (ticket) {
+                displayTicket(ticket);
+            } else {
+                showError();
+            }
+        });
+
+        function displayTicket(ticket) {
+            // Hide error and lookup form
+            document.getElementById('errorMessage').classList.add('hidden');
+            document.querySelector('.ticket-lookup-form').style.display = 'none';
+            
+            // Populate ticket details
+            document.getElementById('displayTicketId').textContent = ticket.id;
+            document.getElementById('displayStatus').textContent = ticket.status;
+            document.getElementById('displayStatus').className = `ticket-status status-${ticket.status.toLowerCase()}`;
+            document.getElementById('displayPriority').textContent = ticket.priority;
+            document.getElementById('displayPriority').className = `ticket-priority priority-${ticket.priority.toLowerCase()}`;
+            document.getElementById('displaySubject').textContent = ticket.subject;
+            document.getElementById('displayCategory').textContent = ticket.category;
+            document.getElementById('displayCreated').textContent = ticket.created;
+            document.getElementById('displayUpdated').textContent = ticket.updated;
+            
+            // Populate messages
+            const messagesList = document.getElementById('messagesList');
+            messagesList.innerHTML = '';
+            
+            ticket.messages.forEach(message => {
+                const messageDiv = document.createElement('div');
+                messageDiv.className = 'message';
+                messageDiv.innerHTML = `
+                    <div class="message-header">
+                        <strong>${message.author}</strong>
+                        <span class="message-time">${message.timestamp}</span>
+                    </div>
+                    <div class="message-content">${message.message}</div>
+                `;
+                messagesList.appendChild(messageDiv);
+            });
+            
+            // Show ticket details
+            document.getElementById('ticketDetails').classList.remove('hidden');
+        }
+
+        function showError() {
+            document.getElementById('ticketDetails').classList.add('hidden');
+            document.getElementById('errorMessage').classList.remove('hidden');
+        }
+
+        // Handle reply form
+        document.getElementById('replyForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const message = document.getElementById('replyMessage').value.trim();
+            if (message) {
+                // In a real app, this would send to the API
+                alert('Reply sent successfully! (This is a demo)');
+                document.getElementById('replyMessage').value = '';
+            }
+        });
+    </script>
+
+    <style>
+        .ticket-details {
+            margin-top: 30px;
+        }
+        
+        .ticket-header {
+            border-bottom: 2px solid rgba(102, 126, 234, 0.2);
+            padding-bottom: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .ticket-meta {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            margin-top: 10px;
+        }
+        
+        .ticket-meta span {
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+        
+        .ticket-id {
+            background: rgba(102, 126, 234, 0.1);
+            color: #667eea;
+        }
+        
+        .info-row {
+            display: flex;
+            margin-bottom: 10px;
+        }
+        
+        .info-row label {
+            font-weight: 600;
+            width: 120px;
+            color: #667eea;
+        }
+        
+        .messages-list {
+            max-height: 400px;
+            overflow-y: auto;
+            margin-bottom: 20px;
+        }
+        
+        .message {
+            background: rgba(102, 126, 234, 0.05);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .message-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+        }
+        
+        .message-time {
+            color: #666;
+        }
+        
+        .message-content {
+            line-height: 1.6;
+        }
+        
+        .reply-section {
+            border-top: 2px solid rgba(102, 126, 234, 0.2);
+            padding-top: 20px;
+            margin-top: 20px;
+        }
+        
+        .nav a.active {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+    </style>
+</body>
+</html>

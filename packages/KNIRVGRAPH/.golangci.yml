@@ -1,0 +1,22 @@
+# GolangCI-Lint configuration for KNIRVGRAPH
+version: "2"
+
+run:
+  timeout: 5m
+  tests: true
+
+linters:
+  enable:
+    - errcheck
+    - govet
+    - ineffassign
+    - staticcheck
+    - unused
+    - bodyclose
+    - dupl
+    - goconst
+    - gocritic
+    - gocyclo
+    - gosec
+    - misspell
+    - revive

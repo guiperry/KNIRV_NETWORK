@@ -1,0 +1,261 @@
+/* ── Action bar ───────────────────────────────────────────── */
+.actionBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 20px;
+  padding: 14px 20px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  flex-wrap: wrap;
+}
+
+.actionRight {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.savingMsg {
+  color: #2ecc71;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.resetBtn {
+  padding: 9px 18px;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 6px;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.resetBtn:hover:not(:disabled) {
+  border-color: rgba(255, 255, 255, 0.4);
+  color: #fff;
+}
+.resetBtn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.saveBtn {
+  padding: 9px 24px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 6px;
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: default;
+  transition: all 0.2s;
+}
+.saveBtn.saveBtnDirty {
+  background: linear-gradient(135deg, rgba(0, 192, 250, 0.25), rgba(43, 86, 245, 0.25));
+  border-color: rgba(0, 192, 250, 0.5);
+  color: #00c0fa;
+  cursor: pointer;
+}
+.saveBtn.saveBtnDirty:hover {
+  background: linear-gradient(135deg, rgba(0, 192, 250, 0.4), rgba(43, 86, 245, 0.4));
+  border-color: #00c0fa;
+  box-shadow: 0 0 16px rgba(0, 192, 250, 0.3);
+}
+.saveBtn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* ── Table wrapper ────────────────────────────────────────── */
+.tableWrap {
+  overflow-x: auto;
+  border-radius: 8px;
+  /* Ensure the sticky header/column work */
+  position: relative;
+}
+
+.matrix {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  min-width: 680px;
+}
+
+/* ── Column sizing ───────────────────────────────────────── */
+.pageCol {
+  width: 260px;
+  min-width: 200px;
+  text-align: left;
+  padding: 12px 16px;
+  position: sticky;
+  left: 0;
+  z-index: 3;
+  background: #181828;
+  color: rgba(255, 255, 255, 0.6);
+  font-weight: 600;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.roleCol {
+  width: 120px;
+  text-align: center;
+  padding: 10px 8px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  vertical-align: top;
+}
+
+.roleColName {
+  font-size: 14px;
+  font-weight: 700;
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.roleColCount {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.45);
+  margin-bottom: 8px;
+}
+
+.youBadge {
+  font-size: 10px;
+  font-weight: 500;
+  padding: 1px 6px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.toggleAllBtn {
+  font-size: 10px;
+  padding: 3px 10px;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
+  color: rgba(255, 255, 255, 0.5);
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.toggleAllBtn:hover {
+  border-color: rgba(255, 255, 255, 0.35);
+  color: rgba(255, 255, 255, 0.85);
+}
+
+/* Role column accent colours */
+.role_root    { color: #e74c3c; }
+.role_bootnode { color: #3498db; }
+.role_dev     { color: #60a5fa; }
+.role_general { color: #2ecc71; }
+
+/* ── Section divider rows ─────────────────────────────────── */
+.sectionRow {
+  background: rgba(0, 0, 0, 0.25);
+}
+
+.sectionCell {
+  padding: 6px 16px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: rgba(255, 255, 255, 0.35);
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* ── Page rows ────────────────────────────────────────────── */
+.pageRow {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  transition: background 0.1s;
+}
+.pageRow:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.groupRow {
+  background: rgba(255, 255, 255, 0.02);
+}
+.groupRow .pageName {
+  font-style: italic;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.pageLabel {
+  padding: 9px 16px;
+  position: sticky;
+  left: 0;
+  background: inherit;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  /* inherit background from row */
+  background-color: #181828;
+}
+
+.pageRow:hover .pageLabel {
+  background-color: #1e1e32;
+}
+
+.indented {
+  padding-left: 28px;
+}
+
+.treeLine {
+  color: rgba(255, 255, 255, 0.2);
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+.pageName {
+  color: rgba(255, 255, 255, 0.82);
+  flex: 1;
+}
+
+.pageId {
+  font-size: 10px;
+  font-family: monospace;
+  color: rgba(255, 255, 255, 0.2);
+  padding: 1px 5px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+/* ── Checkbox cells ───────────────────────────────────────── */
+.checkCell {
+  text-align: center;
+  padding: 0;
+  vertical-align: middle;
+  transition: background 0.1s;
+}
+
+.checkedCell {
+  background: rgba(0, 192, 250, 0.04);
+}
+
+.checkbox {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: #00c0fa;
+}
+
+/* ── Role switcher section ────────────────────────────────── */
+.roleSwitcherHint {
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 13px;
+  margin: 0 0 16px;
+}

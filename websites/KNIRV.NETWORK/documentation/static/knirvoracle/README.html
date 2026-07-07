@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>KNIRVORACLE: A Decentralized Model Context Protocol Network - KNIRV Network</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #0a0a0a;
+      color: #e0e0e0;
+      line-height: 1.6;
+    }
+    .container {
+      display: flex;
+      min-height: 100vh;
+    }
+    .sidebar {
+      width: 300px;
+      background-color: #1a1a2e;
+      border-right: 1px solid #333;
+      padding: 20px;
+      padding-bottom: 120px;
+      overflow-y: auto;
+      position: fixed;
+      height: 100vh;
+      box-sizing: border-box;
+    }
+    .content {
+      flex: 1;
+      margin-left: 300px;
+      padding: 40px;
+      max-width: 800px;
+    }
+    .sidebar h1, .sidebar h2, .sidebar h3 {
+      color: #4a9eff;
+      margin-top: 30px;
+      margin-bottom: 10px;
+    }
+    .sidebar a {
+      color: #e0e0e0;
+      text-decoration: none;
+      display: block;
+      padding: 5px 0;
+      border-left: 3px solid transparent;
+      padding-left: 10px;
+    }
+    .sidebar a:hover {
+      color: #4a9eff;
+      border-left-color: #4a9eff;
+    }
+    .nav-section {
+      margin-bottom: 20px;
+    }
+    .sidebar-footer {
+      position: absolute;
+      bottom: 20px;
+      left: 20px;
+      right: 20px;
+    }
+    .sidebar-footer hr {
+      border: 1px solid #333;
+      margin: 20px 0;
+    }
+    .sidebar-footer p {
+      font-size: 0.9em;
+      color: #888;
+      text-align: center;
+      margin: 0;
+    }
+    .sidebar-footer a {
+      color: #4a9eff !important;
+      border: none !important;
+      padding: 0 !important;
+    }
+    .content h1, .content h2, .content h3 {
+      color: #4a9eff;
+    }
+    .content a {
+      color: #4a9eff;
+    }
+    .content a:hover {
+      color: #6fb5ff;
+    }
+    .content code {
+      background-color: #16213e;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-family: 'Monaco', 'Consolas', monospace;
+    }
+    .content pre {
+      background-color: #16213e;
+      padding: 15px;
+      border-radius: 5px;
+      overflow-x: auto;
+    }
+    .content pre code {
+      background: none;
+      padding: 0;
+    }
+    @media (max-width: 768px) {
+      .sidebar {
+        transform: translateX(-300px);
+        transition: transform 0.3s ease;
+      }
+      .content {
+        margin-left: 0;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="sidebar">
+      <h1>KNIRV Network</h1>
+      <div class="nav-section"><h2>KNIRVCHAIN Documentation</h2>
+<a href="../../knirvchain/README.html">KNIRVCHAIN</a>
+<h2>KNIRVGRAPH Documentation</h2>
+<a href="../../knirvgraph/README.html">KNIRVGRAPH - Decentralized Knowledge Graph with Economics</a>
+<h2>KNIRVSERVER Documentation</h2>
+<a href="../../knirvserver/README.html">KNIRV-SERVER: Deterministic Validation Environment</a>
+<h2>KNIRVORACLE Documentation</h2>
+<a href="../../knirvoracle/README.html">KNIRVORACLE: A Decentralized Model Context Protocol Network</a>
+<h2>KNIRVROUTER Documentation</h2>
+<a href="../../knirvrouter/README.html">KNIRVROUTER Verifier Node - Blockchain Implementation in Go</a>
+<h2>KNIRVSDK Documentation</h2>
+<a href="../../knirvsdk/README.html">KNIRV SDK</a>
+<h2>KNIRVCONTROLLER Documentation</h2>
+<a href="../../knirvcontroller/README.html">Consolidated Documentation</a>
+<h2>KNIRVGATEWAY Documentation</h2>
+<a href="../../knirvgateway/README.html">KNIRV GATEWAY</a>
+<h2>KNIRVTESTNET Documentation</h2>
+<a href="../../knirvtestnet/README.html">KNIRV Testnet</a>
+<h2>KNIRVANA Documentation</h2>
+<a href="../../knirvana/README.html">KNIRVANA - The Experiential Gateway</a>
+<h2>📄 Whitepapers</h2>
+<a href="../../whitepapers/index.html">📚 View All Whitepapers</a></div>
+      <div class="sidebar-footer">
+        <hr style="border: 1px solid #333; margin: 20px 0;">
+        <p style="font-size: 0.9em; color: #888; text-align: center;">
+          © 2025 KNIRV Network<br>
+          <a href="https://knirv.network" style="color: #4a9eff;">knirv.network</a>
+        </p>
+      </div>
+    
+    </div>
+    <div class="content">
+      <h1>KNIRVORACLE: A Decentralized Model Context Protocol Network</h1><br><br>KNIRVORACLE is a blockchain-based platform designed to facilitate a transparent, verifiable, and monetizable ecosystem for AI capabilities. It implements the Model Context Protocol (MCP), allowing various AI-related functionalities (Tools, Prompts, Plugins, Memory Services) to be registered, discovered, invoked, and audited on-chain. Each interaction with an MCP capability results in a blockchain transaction, creating an immutable record and potentially involving NRN token fees.<br><br><h2>Core Concepts</h2><br><br>*   <strong>Model Context Protocol (MCP):</strong> A set of standards for defining, discovering, and interacting with AI capabilities. KNIRVORACLE serves as a decentralized backend for MCP.<br>*   <strong>Capabilities:</strong> These are the core building blocks of the MCP ecosystem on KNIRVORACLE. They include:<br>    *   <strong>Resources:</strong> Expose structured or dynamic content. This includes:<br>        *   <strong>Plugins:</strong> Developer-uploaded executables (e.g., Go <code>.so</code>, Wasm) hosted by devs, discovered on-chain, downloaded, and run by clients.<br>        *   <strong>Datasets:</strong> References to datasets with on-chain metadata and hashes.<br>        *   <strong>Model Artifacts:</strong> References to AI model files.<br>        *   <strong>APIs:</strong> Descriptors for external APIs.<br>    *   <strong>Tools:</strong> Executable actions defined with JSON schemas for input and output. Can be backed by plugins or external APIs.<br>    *   <strong>Prompts:</strong> Reusable, parameterized prompt templates for LLMs.<br>    *   <strong>Memory Services:</strong> Capabilities providing persistent, graph-like memory stores.<br>*   <strong>Capability Descriptors:</strong> Metadata structures (e.g., <code>ResourceDescriptor</code>, <code>ToolDescriptor</code>) registered on the blockchain.<br>    *   <code>ResourceDescriptor</code> (for plugins/resources): Defines properties, owner, NRN gas fee. Includes a <code>ContentHash</code> of the capability package. Its nested <code>Schema</code> field contains a <code>Summary</code>, <code>LocationHints</code> for package download, and paths to the <code>ManifestFile</code> and <code>ExecutableFile</code> within the package.<br>    *   Other descriptors like <code>ToolDescriptor</code>, <code>PromptDescriptor</code> define their respective capability types.<br>*   <strong>ContextRecord:</strong> An on-chain record logged for every significant MCP interaction (e.g., capability invocation, registration). It details what happened, when, by whom, and with what references (hashes, fees), forming an immutable audit trail.<br>*   <strong>NRN Tokens:</strong> The native utility token of KNIRVORACLE, used for:<br>    *   Paying gas fees for registering and invoking MCP capabilities.<br>    *   Compensating capability owners (e.g., plugin developers).<br>*   <strong>KNIRVORACLE Node:</strong> The core blockchain dev software that maintains the ledger, processes MCP transactions, and exposes an API.<br>*   <strong>Wallet Server:</strong> A service that helps users create, sign, and submit MCP transactions to the KNIRVORACLE network.<br>*   <strong>agent Client (Inference Engine):</strong> An application that interacts with KNIRVORACLE to discover, download (for plugins), execute, and log the usage of MCP capabilities.<br><br><h2>Architecture Overview</h2><br><br>1.  <strong>Capability Registration:</strong><br>    *   Developers register their capabilities (e.g., a new Plugin) by submitting an <code>MCPRegisterCapabilityTransaction</code> to the KNIRVORACLE.<br>    *   This transaction contains the serialized <code>CapabilityDescriptor</code> (e.g., <code>ResourceDescriptor</code> for a plugin, including its <code>ContentHash</code>, <code>LocationHints</code>, and <code>GasFeeNRN</code>).<br>    *   The <code>ResourceDescriptor</code> is stored on-chain.<br><br>2.  <strong>Capability Discovery:</strong><br>    *   agent Clients query the KNIRVORACLE API (e.g., <code>GET /mcp/capabilities?resourceType=PLUGIN</code>) to find available capabilities.<br><br>3.  <strong>Capability Invocation & Plugin Execution:</strong><br>    *   <strong>For Plugins:</strong><br>        1.  The agent Client downloads the plugin binary from a <code>LocationHint</code> provided in its <code>ResourceDescriptor</code>.<br>        2.  The client verifies the downloaded package's integrity using the on-chain <code>ContentHash</code>.<br>        3.  The client executes the plugin locally (ideally in a sandboxed environment).<br>    *   <strong>For other capabilities (Tools, Prompts):</strong> The client prepares input according to the capability's schema.<br>    *   <strong>Logging Usage:</strong> The client (or wallet server on its behalf) creates an <code>MCPInvokeCapabilityTransaction</code>.<br>        *   This transaction includes a <code>ContextRecord</code> detailing the invocation (e.g., <code>CapabilityID</code>, <code>InteractionType</code>, <code>Initiator</code>, <code>InputHash</code>, <code>OutputHash</code>).<br>        *   It also includes the NRN <code>Fee</code> specified by the capability.<br>        *   This transaction is submitted to the KNIRVORACLE, creating an on-chain audit log.<br><br><h2>🧪 Phase 7 Testing Infrastructure</h2><br><br><h3>Testing Architecture</h3><br>KNIRVORACLE implements comprehensive testing for the core blockchain and MCP functionality:<br><br>#### Unit Testing (Go)<br><pre><code>bash<br><h1>Run all unit tests</h1><br>go test -v ./...<br><br><h1>Run specific test packages</h1><br>go test -v ./agent_manager_test.go<br>go test -v ./agent_integration_test.go<br>go test -v ./economics_integration_test.go<br><br><h1>Run tests with coverage</h1><br>go test -v -cover ./...<br></code></pre><br><br>#### Integration with Network Tests<br><pre><code>bash<br><h1>From project root - run KNIRVORACLE network integration tests</h1><br>cd integration-tests && go test -v -run TestKNIRVORACLE<br><br><h1>Run comprehensive KNIRVORACLE test suite</h1><br>make test-root<br><br><h1>Run KNIRVORACLE specific tests</h1><br>cd KNIRVORACLE && go test -v ./...<br></code></pre><br><br>#### Test Categories<br>- <strong>Agent Management Tests</strong>: Agent registration, capability testing, badge systems<br>- <strong>Economics Integration Tests</strong>: NRN token operations, fee processing, reward distribution<br>- <strong>Blockchain Tests</strong>: Block creation, transaction processing, consensus validation<br>- <strong>MCP Protocol Tests</strong>: Capability registration, discovery, invocation<br>- <strong>Integration Tests</strong>: Cross-component communication and data flow<br><br>#### Test Structure<br><pre><code><br>KNIRVORACLE/<br>├── agent_manager_test.go           # Agent management functionality<br>├── agent_integration_test.go       # Agent integration scenarios<br>├── economics_integration_test.go   # Economic model testing<br>├── blockchain_server_test.go       # Core blockchain functionality<br>├── bootnode_test.go               # Network bootstrap testing<br>└── *_test.go                      # Component-specific tests<br></code></pre><br><br><h2>Key Features</h2><br><br>*   <strong>Decentralized Registry:</strong> Immutable, transparent record of all registered MCP capabilities.<br>*   <strong>Verifiable Audit Trail:</strong> <code>ContextRecord</code>s provide on-chain proof of all capability interactions.<br>*   <strong>Monetization:</strong> Capability owners earn NRN tokens for usage.<br>*   <strong>Plugin Ecosystem:</strong> Allows developers to offer executable functionalities (plugins) that clients can securely download and run.<br>*   <strong>Standardized Interaction:</strong> MCP provides a common way to interact with diverse AI capabilities.<br><br><h2><code>ContextRecord</code> Scenarios: The Audit Trail in Action</h2><br><br>The <code>ContextRecord</code> is central to KNIRVORACLE's value, providing an on-chain, verifiable log. Here are some examples:<br><br>*   <strong>Using a Registered Tool:</strong><br>    *   An AI agent uses a "PriceOracleTool." A <code>ContextRecord</code> is logged with <code>InteractionType: "TOOL_INVOCATION"</code>, <code>CapabilityID</code> of the tool, <code>Initiator</code> (agent's address), <code>InputHash</code>, <code>OutputHash</code>, and the NRN <code>Fee</code> paid.<br>    <em>   *Querying:</em> <code>GET /mcp/capability/{tool_id}/invocations</code> to see all tool uses.<br><br>*   <strong>Utilizing a Registered Prompt:</strong><br>    *   An application uses a "StoryGeneratorPrompt." A <code>ContextRecord</code> logs <code>InteractionType: "PROMPT_USAGE"</code>, <code>CapabilityID</code>, <code>Initiator</code>, and <code>InputHash</code> (of prompt parameters).<br>    <em>   *Querying:</em> <code>GET /mcp/context/{tx_id}</code> to see specific prompt parameters used.<br><br>*   <strong>Executing a Registered Plugin:</strong><br>    *   A agent Client runs a "ModValidatorPlugin." A <code>ContextRecord</code> logs <code>InteractionType: "PLUGIN_EXECUTION"</code>, <code>CapabilityID</code>, <code>Initiator</code>, <code>InputHash</code> (of the mod file), and <code>OutputHash</code> (of the validation report).<br>    <em>   *Querying:</em> <code>GET /mcp/contexts?initiator={client_address}&capabilityId={plugin_id}</code> for a client's usage history of a plugin.<br><br>*   <strong>Interacting with a Memory Service:</strong><br>    *   An AI writes to a "UserPreferencesMemory" service. A <code>ContextRecord</code> logs <code>InteractionType: "MEMORY_WRITE"</code>, <code>CapabilityID</code>, <code>Initiator</code>, and <code>InputHash</code> (of the preference data).<br>    <em>   *Querying:</em> <code>GET /mcp/contexts?capabilityId={memory_id}&interactionType=MEMORY_WRITE</code> to audit memory writes.<br><br>*   <strong>Logging a Sampling Event (Server-Side):</strong><br>    *   An MCP server initiates a client-side LLM task. A <code>ContextRecord</code> logs <code>InteractionType: "SAMPLING_REQUEST_SENT"</code>, <code>Initiator</code> (server's address), and <code>InputHash</code> (of the task).<br><br>*   <strong>Auditing Capability Registrations:</strong><br>    *   (Optional but recommended) When a new capability is registered via <code>MCPRegisterCapabilityTransaction</code>, a <code>ContextRecord</code> with <code>InteractionType: "CAPABILITY_REGISTRATION"</code> can also be logged, providing a unified feed of all MCP events.<br>    <em>   *Querying:</em> <code>GET /mcp/contexts?interactionType=CAPABILITY_REGISTRATION</code> for a list of all new capabilities.<br><br>These records are crucial for billing, provenance, debugging, and analytics within the KNIRVORACLE MCP ecosystem.<br><br><h2>Data Storage</h2><br><br>*   <strong>LevelDB (Primary):</strong><br>    *   Stores the core blockchain data (blocks, transactions).<br>    *   Stores an indexed view of MCP data extracted from the blockchain:<br>        *   Serialized <code>CapabilityDescriptor</code>s (e.g., <code>ResourceDescriptor</code>, <code>ToolDescriptor</code>) via <code>mcp:capability:<id> -> descriptor_json</code>.<br>        *   Serialized <code>ContextRecord</code>s (e.g., <code>mcp:context:<tx_id> -> context_record_json</code>).<br>        *   NRN token account balances.<br>    *   This indexed view powers the API query endpoints for basic lookups.<br><br>*   <strong>Off-Chain Storage:</strong><br>    *   Actual plugin binaries, large datasets, and model artifacts are stored off-chain (e.g., hosted by devs, on IPFS, or other web services).<br>    *   The on-chain <code>ResourceDescriptor</code> contains:<br>        *   A <code>ContentHash</code> for integrity verification of the downloaded package.<br>        *   <code>Schema.LocationHints</code> (URIs) for retrieving the package.<br><br><h2>API Endpoints</h2><br><br>KNIRVORACLE exposes HTTP APIs through its nodes and wallet server.<br><br><h3>Blockchain Server (<code>blockchain_server.go</code>)</h3><br><br>*   <strong>Generic Transaction Submission:</strong><br>    *   <code>POST /transaction</code>: Receives fully signed transactions (can be any type, including MCP).<br>*   <strong>MCP-Specific Transaction Ingestion (for pre-signed/component-provided transactions):</strong><br>    *   <code>POST /mcp/capability/register</code>: Submits an <code>MCPRegisterCapabilityTransaction</code>.<br>    *   <code>POST /mcp/capability/invoke</code>: Submits an <code>MCPInvokeCapabilityTransaction</code>.<br>*   <strong>MCP Data Querying:</strong><br>    *   <code>GET /mcp/capability/{capability_id}</code>: Retrieves a capability descriptor.<br>    *   <code>GET /mcp/capabilities?type=<X>&owner=<Y>&...</code>: Lists capabilities with filters.<br>    *   <code>GET /mcp/context/{context_id}</code>: Retrieves a specific context record.<br>    *   <code>GET /mcp/capability/{capability_id}/invocations</code>: Retrieves all context records for a capability.<br>    *   <code>GET /mcp/contexts?capabilityId=<X>&interactionType=<Y>&...</code>: Advanced querying for context records.<br>*   <strong>Other Endpoints:</strong> For blockchain status, blocks, NRN balances, etc.<br><br><h3>Wallet Server (<code>wallet_server.go</code>)</h3><br><br>Provides a higher-level interface for clients, handling transaction creation and signing.<br><br>*   <code>POST /wallet/mcp/create_register_capability</code>: Creates, signs, and submits an <code>MCPRegisterCapabilityTransaction</code>.<br>*   <code>POST /wallet/mcp/create_invoke_capability</code>: Creates, signs, and submits an <code>MCPInvokeCapabilityTransaction</code>.<br>*   Other endpoints for wallet management, generic transaction sending, etc.<br><br><br><br><h2>Architectural Considerations and Future Work</h2><br><br><h3>Data Size and On-Chain Storage:</h3><br><br>*   Storing full capability descriptors on-chain is generally fine as they are metadata.<br>*   For <code>ResourceDescriptor</code>s, especially <code>ResourceTypePlugin</code>, <code>ResourceTypeDataset</code>, or <code>ResourceTypeModelArtifact</code>, the <code>ContentHash</code> and <code>LocationHints</code> fields are designed to point to off-chain storage (e.g., dev hosting, IPFS) for the actual large data, keeping the blockchain lean. The on-chain hash guarantees integrity.<br>*   <strong>Initial Approach:</strong> Store them fully on-chain as per the blog's emphasis on verifiability.<br><em>    </em>   <strong>Current Model for Plugins:</strong> The <code>ResourceDescriptor</code> stores metadata, including <code>ContentHash</code> of the package and <code>Schema.LocationHints</code> (URIs) pointing to the off-chain package. The on-chain hash guarantees integrity of the downloaded package.<br><br><em>   </em>Enhanced Querying with RealmDB (Supplemental):<br><br>While LevelDB serves as the primary storage for the blockchain and basic MCP data indexing, future enhancements could involve using <strong>RealmDB as a supplemental, rich secondary index</strong> for MCP data.<br><br><strong>How it would work:</strong><br><br>1.  <strong>LevelDB remains the source of truth for the blockchain.</strong><br>2.  As blocks are processed, MCP data (<code>CapabilityDescriptor</code>s, <code>ContextRecord</code>s) would be extracted and also written into a local RealmDB instance on each node.<br>3.  This RealmDB instance would act as a highly queryable, object-oriented cache or materialized view.<br>4.  The API layer would direct complex analytical queries to RealmDB, while simple lookups might still use LevelDB.<br><br><strong>Benefits of Supplemental RealmDB:</strong><br><br>*   <strong>Rich Queries:</strong> Handle complex multi-condition filtering, relationships, aggregations, and potentially full-text search over MCP data (e.g., "Find all Tools owned by 'Alice' with input schema containing 'image_url', invoked >10 times last week, ordered by fee").<br>*   <strong>Object-Oriented Modeling:</strong> More natural mapping of Go MCP structs to database objects.<br><br><strong>Challenges:</strong><br><br>*   <strong>Increased Complexity:</strong> Managing two database systems.<br>*   <strong>Data Synchronization:</strong> Ensuring RealmDB accurately reflects the LevelDB state, especially during chain reorganizations (forks), requires robust rollback and re-indexing logic for the RealmDB portion.<br><br>This supplemental approach would allow KNIRVORACLE to offer significantly more powerful analytical capabilities over its MCP data without replacing the core LevelDB storage for the blockchain itself.<br><br><h3>Immutability vs. Updates:</h3><br><br>*   Capability descriptors may need updates (e.g., new version, schema change, fee update).<br>*   <strong>Approach:</strong> Implement updates by creating new registration transactions (e.g., <code>MCPUpdateCapabilityTransaction</code>) that reference the previous ID and create a new version. The blockchain will preserve the full history. Query APIs should default to the latest version but allow fetching specific versions.<br><br><h3>Query Capabilities:</h3><br><br>*   The proposed LevelDB indexing supports basic ID-based lookups and simple relationship queries.<br>*   <strong>Future Enhancement:</strong> For more complex queries (e.g., "find all tools with input schema X and owned by Y"), an off-chain indexing/query service that syncs with the KNIRVORACLE blockchain might be necessary.<br><br><h3>Smart Contracts:</h3><br><br>*   The README mentions placeholder smart contract functionality. In the future, MCP logic (e.g., rules for updating cards, managing ownership, or more complex context validation) could be implemented as smart contracts for greater automation and decentralized governance.<br><br><h3>Access Control and Permissions:</h3><br><br>*   Who can register capabilities or invoke them? Initially, any valid transaction sender who can pay the fee.<br>*   <strong>Future Enhancement:</strong> Implement on-chain access control mechanisms, possibly tied to ownership fields in the descriptors or through smart contracts (e.g., only owner can update a capability).<br><br><h3>Standardization:</h3><br><br>*   The schemas for all <code>Descriptor</code> types and <code>ContextRecord</code> (especially its <code>Details</code> field per <code>InteractionType</code>) should be well-documented and treated as part of the "protocol." Using JSON Schema for <code>InputSchemaJSON</code>, <code>OutputSchemaJSON</code>, <code>ParametersSchemaJSON</code>, and resource <code>Schema</code> fields is already part of the design.<br><br><h3>Gas/Fees:</h3><br><br>*   This plan now explicitly incorporates NRN token gas fees via the <code>Transaction.Fee</code> field and <code>BaseDescriptor.GasFeeNRN</code>. This necessitates the implementation of an account and balance system within KNIRVORACLE, which is a significant foundational requirement.<br>*   The "Sampling could be free" aspect means that <code>GasFeeNRN</code> for interactions logged related to sampling might be zero, or the transaction fee for such logging could be waived/minimal.<br><br>This plan provides a phased approach to integrating robust MCP functionality into KNIRVORACLE. By building upon its existing features, KNIRVORACLE can become a powerful platform for ensuring transparency and verifiability in AI workflows.<br><br><h2>Getting Started</h2><br><br><em>(This section would typically include instructions on how to build, run a node, interact with the API, etc. Placeholder for now.)</em><br><br><pre><code><br>To build and run a KNIRVORACLE node:<br></code></pre>sh<br>git clone <repository_url><br>cd KNIRVORACLE<br>go build -o KNIRVORACLE_node ./cmd/KNIRVORACLE/main.go<br>./KNIRVORACLE_node --port 8080 --p2p_port 6001<br><pre><code><br><br>To run the Wallet Server:<br></code></pre>sh<br>go build -o wallet_server ./cmd/walletserver/main.go<br>./wallet_server --port 9090 --blockchain_server_ip http://localhost:8080<br><code></code><code><br><br><h2>Contributing</h2><br><br><em>(Details on how to contribute to the project. Placeholder for now.)</em><br><br>We welcome contributions! Please see </code>CONTRIBUTING.md<code> for guidelines.<br><br><h2>License</h2><br><br><em>(Specify the project's license. Placeholder for now.)</em><br><br>This project is licensed under the MIT License.<br></code><code></code><br><br>This README provides:<br>*   An overview of the MCP architecture as implemented.<br>*   Clear explanations of core concepts like Capabilities, Descriptors, ContextRecords, and NRN tokens.<br>*   Details on how Plugins are handled (on-chain registration, off-chain hosting, client-side execution).<br>*   A summary of the data storage strategy (LevelDB primary, off-chain for large content).<br>*   An outline of key API endpoints.<br>*   A dedicated section on <code>ContextRecord</code> scenarios to highlight their importance.<br>*   A "Future Considerations" section discussing the potential supplemental use of RealmDB for enhanced querying.<br>*   Placeholders for "Getting Started," "Contributing," and "License" which you can fill in.<br><br>Let me know if you'd like any section expanded or modified!<br>
+    </div>
+  </div>
+</body>
+</html>

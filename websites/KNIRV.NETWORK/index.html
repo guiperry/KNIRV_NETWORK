@@ -1,0 +1,2542 @@
+<!DOCTYPE html>
+<html lang="en" class="js">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="author" content="KNIRV Network">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="description" content="KNIRV D-TEN: Deterministic AI Agent Runtime & Sovereign AI Execution Network. Sandboxed, monitored, reproducible DVE containers with full behavioral tracing. Earn NRN by connecting your miner.">
+    <meta name="keywords" content="KNIRVSERVER, deterministic AI runtime, sovereign AI execution, DVE containers, AI agent runtime, NRN token, decentralized AI network, trusted execution environment, containerized compute, KNIRVCLI, KNIRVCONTROLLER, AI blockchain">
+
+    <!-- Canonical URL -->
+    <link rel="canonical" href="https://knirv.network/">
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://knirv.network/">
+    <meta property="og:title" content="KNIRVSERVER | Deterministic AI Agent Runtime">
+    <meta property="og:description" content="Sovereign AI execution — sandboxed, monitored, reproducible DVE containers with kernel-level behavioral tracing. Connect your Bitcoin miner or GPU rig to earn NRN tokens for containerized compute.">
+    <meta property="og:image" content="https://knirv.network/images/social/facebook-card.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="KNIRV D-TEN - Decentralized Trusted Execution Network for Self-Improving AI">
+    <meta property="og:site_name" content="KNIRV Network">
+    <meta property="og:locale" content="en_US">
+    <meta property="fb:app_id" content="your-facebook-app-id">
+
+    <!-- Twitter / X -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:url" content="https://knirv.network/">
+    <meta name="twitter:title" content="KNIRVSERVER | Deterministic AI Agent Runtime">
+    <meta name="twitter:description" content="⚡ Deterministic AI Agent Runtime — sandboxed, kernel-level enforcement
+🔗 Sovereign AI Execution Network — run nodes, earn NRN
+🛠️ KNIRVSERVER · KNIRVCLI · KNIRVCONTROLLER
+🌐 Self-host on GitHub or use our cloud DVE at knirv.com
+
+#AI #DeterministicCompute #DVE #NRN #Web3">
+    <meta name="twitter:image" content="https://knirv.network/images/social/twitter-card.png">
+    <meta name="twitter:image:alt" content="KNIRV D-TEN - Decentralized AI Network Architecture">
+    <meta name="twitter:site" content="@KNIRV_Network">
+    <meta name="twitter:creator" content="@KNIRV_Network">
+
+    <!-- LinkedIn -->
+    <meta property="og:image:linkedin" content="https://knirv.network/images/social/linkedin-card.png">
+    <meta name="linkedin:title" content="KNIRVSERVER | Deterministic AI Agent Runtime">
+    <meta name="linkedin:description" content="The Deterministic AI Agent Runtime — KNIRVSERVER provides sandboxed, kernel-level enforced DVE containers for AI agents with full behavioral tracing. Three products: KNIRVSERVER (DVE runtime), KNIRVCLI (management CLI), KNIRVCONTROLLER (orchestration). Self-host on GitHub or access our cloud DVE at knirv.com. Connect your mining rig to earn NRN.">
+    <meta name="linkedin:image" content="https://knirv.network/images/social/linkedin-card.png">
+
+    <!-- YouTube -->
+    <meta name="youtube:title" content="KNIRVSERVER | Deterministic AI Agent Runtime">
+    <meta name="youtube:description" content="🎥 KNIRVSERVER — Deterministic AI Agent Runtime & Sovereign AI Execution
+
+🔥 Features:
+• Sandboxed DVE containers with kernel-level tracing
+• Deterministic, reproducible AI agent execution
+• eBPF syscall telemetry bridge
+• Earn NRN by connecting your miner for containerized compute
+• Self-host or use cloud DVE at knirv.com
+
+Subscribe for updates! 🚀">
+    <meta name="youtube:image" content="https://knirv.network/images/social/youtube-thumbnail.png">
+
+    <!-- GitHub -->
+    <meta name="github:title" content="KNIRVSERVER | Deterministic AI Agent Runtime">
+    <meta name="github:description" content="🚀 Open-source Deterministic AI Agent Runtime & Sovereign AI Execution Network
+
+## Key Features
+- KNIRVSERVER: Sandboxed DVE containers with kernel-level behavioral tracing
+- KNIRVCLI: Full-featured command-line management interface
+- KNIRVCONTROLLER: Agent orchestration and deployment controller
+- eBPF syscall telemetry bridge for real-time enforcement
+- Earn NRN by running a DVE node with your existing hardware
+
+⭐ Star us — self-host on GitHub or use cloud DVE at knirv.com!">
+    <meta name="github:image" content="https://knirv.network/images/social/github-card.png">
+
+    <!-- Medium -->
+    <meta name="medium:title" content="KNIRVSERVER: Deterministic AI Agent Runtime & Sovereign Execution">
+    <meta name="medium:description" content="KNIRVSERVER provides a deterministic AI agent runtime with kernel-level behavioral tracing, eBPF syscall enforcement, and containerized DVE execution. Run your own node, earn NRN tokens, and join the sovereign AI execution network. KNIRVCLI and KNIRVCONTROLLER complete the ecosystem.">
+    <meta name="medium:image" content="https://knirv.network/images/social/medium-card.png">
+
+    <!-- Discord -->
+    <meta name="discord:title" content="KNIRVSERVER Community | Deterministic AI Runtime">
+    <meta name="discord:description" content="🤖 Welcome to the KNIRVSERVER community!
+
+💬 Deterministic AI Agent Runtime & DVE containers
+🔧 Operator support for DVE node runners
+📢 NRN token mining and containerized compute updates
+🖥️ Connect your old miner / GPU rig to earn NRN
+👥 AI researchers, blockchain devs, and miners welcome
+
+Join us: https://discord.gg/knirv">
+    <meta name="discord:image" content="https://knirv.network/images/social/discord-card.png">
+
+    <!-- Additional SEO Meta Tags -->
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
+    <meta name="theme-color" content="#2b56f5">
+    <meta name="msapplication-TileColor" content="#2b56f5">
+
+    <!-- Fav Icon  -->
+    <link rel="shortcut icon" href="assets/favicon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="assets/favicon-16x16.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="assets/apple-touch-icon.png">
+
+    <!-- Site Title  -->
+    <title>KNIRV D-TEN | Revolutionary Decentralized AI Network & Blockchain Platform</title>
+
+    <!-- Structured Data / JSON-LD -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@graph": [
+            {
+                "@type": "Organization",
+                "@id": "https://knirv.network/#organization",
+                "name": "KNIRV Network",
+                "alternateName": "KNIRV D-TEN",
+                "url": "https://knirv.network/",
+                "logo": {
+                    "@type": "ImageObject",
+                    "url": "https://knirv.network/images/knirv-logo.png",
+                    "width": 200,
+                    "height": 60
+                },
+                "description": "KNIRV Network develops the Deterministic AI Agent Runtime — KNIRVSERVER provides sandboxed DVE containers with kernel-level enforcement, behavioral tracing, and containerized compute. Operators earn NRN tokens for running nodes.",
+                "foundingDate": "2024",
+                "sameAs": [
+                    "https://twitter.com/KNIRV_Network",
+                    "https://github.com/knirv/server",
+                    "https://discord.gg/knirv"
+                ],
+                "contactPoint": {
+                    "@type": "ContactPoint",
+                    "contactType": "customer service",
+                    "availableLanguage": "English"
+                }
+            },
+            {
+                "@type": "WebSite",
+                "@id": "https://knirv.network/#website",
+                "url": "https://knirv.network/",
+                "name": "KNIRVSERVER — Deterministic AI Agent Runtime",
+                "description": "The official website for KNIRVSERVER, the Deterministic AI Agent Runtime with sandboxed DVE containers, eBPF behavioral tracing, and sovereign AI execution.",
+                "publisher": {
+                    "@id": "https://knirv.network/#organization"
+                },
+                "inLanguage": "en-US"
+            },
+            {
+                "@type": "SoftwareApplication",
+                "@id": "https://knirv.network/#software",
+                "name": "KNIRVSERVER",
+                "alternateName": "Deterministic AI Agent Runtime",
+                "description": "A deterministic AI agent runtime providing sandboxed DVE containers with kernel-level behavioral tracing, eBPF syscall enforcement, and sovereign AI execution. Operators earn NRN tokens for containerized compute. KNIRVCLI and KNIRVCONTROLLER complete the ecosystem.",
+                "applicationCategory": "Blockchain Platform",
+                "operatingSystem": "Cross-platform",
+                "offers": {
+                    "@type": "Offer",
+                    "price": "0",
+                    "priceCurrency": "USD",
+                    "availability": "https://schema.org/InStock"
+                },
+                "creator": {
+                    "@id": "https://knirv.network/#organization"
+                },
+                "featureList": [
+                    "Deterministic AI Agent Runtime",
+                    "Sandboxed DVE containers with eBPF tracing",
+                    "Sovereign AI execution network",
+                    "NRN token mining with existing hardware",
+                    "Containerized compute marketplace",
+                    "Kernel-level behavioral enforcement",
+                    "KNIRVCLI management interface",
+                    "KNIRVCONTROLLER orchestration"
+                ]
+            }
+        ]
+    }
+    </script>
+
+    <!-- Bootstrap CSS for accordion functionality -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bundle and Base CSS -->
+    <link rel="stylesheet" href="assets/css/vendor.bundle.css?ver=210">
+    <link rel="stylesheet" href="assets/css/style-dark.css?ver=210">
+    <!-- Extra CSS -->
+    <link rel="stylesheet" href="assets/css/theme.css?ver=210">
+    <link rel="stylesheet" href="assets/css/rtl.css?ver=210">
+    <!-- Tailwind CSS for animated logo -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Custom styles for animated logo and FAQ fixes -->
+    <style>
+        /* Fix for Bootstrap accordion functionality */
+        .accordion-faq .collapse {
+            transition: height 0.35s ease !important;
+            overflow: hidden;
+        }
+
+        .accordion-faq .collapse.show {
+            height: auto !important;
+            overflow: visible !important;
+        }
+
+        .accordion-faq .collapsing {
+            height: 0 !important;
+            overflow: hidden !important;
+            transition: height 0.35s ease !important;
+        }
+
+        /* Ensure accordion titles work properly with Bootstrap */
+        .accordion-faq .accordion-title[data-bs-toggle="collapse"] {
+            cursor: pointer !important;
+        }
+
+        /* Prevent custom accordion styles from interfering */
+        .accordion-faq .accordion-item {
+            transition: none !important;
+        }
+
+        /* Ensure proper display */
+        .accordion-faq .accordion-content {
+            display: block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+        }
+
+        /* Fix accordion icon behavior for Bootstrap accordions */
+        .accordion-faq .accordion-title:not(.collapsed) .accordion-icon-s2:after {
+            transform: rotate(0deg) !important;
+        }
+
+        .accordion-faq .accordion-title.collapsed .accordion-icon-s2:after {
+            transform: rotate(-180deg) !important;
+        }
+
+        .animated-logo-container {
+            width: 200px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .animated-logo-container svg {
+            width: 40px;
+            height: 40px;
+        }
+        .animated-logo-container h1 {
+            font-size: 1.5rem;
+            margin-left: 0.5rem;
+        }
+        .animated-logo-container h2 {
+            font-size: 0.75rem;
+            margin-top: 0.25rem;
+        }
+
+        /* Network Selector Styles */
+        .network-selector {
+            margin-right: 10px;
+        }
+
+        .network-status-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 8px;
+            background-color: #dc3545; /* Default red for disconnected */
+        }
+
+        .network-status-dot {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        /* Network Status Colors */
+        .network-status-indicator.demo,
+        .network-status-dot.demo {
+            background-color: #6f42c1; /* Purple for demo network */
+        }
+
+        .network-status-indicator.mainnet,
+        .network-status-dot.mainnet {
+            background-color: #28a745; /* Green for mainnet */
+        }
+
+        .network-status-indicator.public-testnet,
+        .network-status-dot.public-testnet {
+            background-color: #ffc107; /* Yellow for public testnet */
+        }
+
+        .network-status-indicator.local-testnet,
+        .network-status-dot.local-testnet {
+            background-color: #17a2b8; /* Teal for local testnet */
+        }
+
+        .network-status-indicator.private-testnet,
+        .network-status-dot.private-testnet {
+            background-color: #fd7e14; /* Orange for private testnet */
+        }
+
+        .network-status-indicator.disconnected,
+        .network-status-dot.disconnected {
+            background-color: #dc3545; /* Red for disconnected */
+        }
+
+        /* Modal readability fixes (dark theme safe) */
+        .modal-content {
+            background-color: rgba(15, 21, 54, 0.98) !important; /* deep navy */
+            color: #ffffff !important;
+        }
+        .modal-content .modal-title,
+        .modal-content .modal-body,
+        .modal-content .modal-footer,
+        .modal-content .form-label,
+        .modal-content .form-text {
+            color: #ffffff !important;
+        }
+        .modal-content .form-control {
+            background-color: rgba(255, 255, 255, 0.1) !important;
+            border: 1px solid rgba(255, 255, 255, 0.3) !important;
+            color: #ffffff !important;
+        }
+        .modal-content .form-control:focus {
+            background-color: rgba(255, 255, 255, 0.15) !important;
+            border-color: #2b56f5 !important;
+            box-shadow: 0 0 0 0.2rem rgba(43, 86, 245, 0.25) !important;
+            color: #ffffff !important;
+        }
+        .modal-content .form-control::placeholder {
+            color: rgba(255, 255, 255, 0.6) !important;
+        }
+        .modal-content .btn-close {
+            filter: invert(1) grayscale(100%) brightness(200%);
+        }
+
+        /* Specific fixes for login modal */
+        #login-modal .modal-content {
+            background: linear-gradient(135deg, rgba(15, 21, 54, 0.98), rgba(43, 86, 245, 0.1)) !important;
+            border: 1px solid rgba(43, 86, 245, 0.3) !important;
+            color: #000000 !important;
+        }
+        #login-modal .modal-header {
+            background: rgba(43, 86, 245, 0.1) !important;
+            border-bottom: 1px solid rgba(43, 86, 245, 0.2) !important;
+        }
+        #login-modal .modal-title {
+            color: #000000 !important;
+            font-weight: 600 !important;
+        }
+        #login-modal .modal-body {
+            color: #000000 !important;
+        }
+        #login-modal .form-label {
+            color: #000000 !important;
+            font-weight: 500 !important;
+        }
+        #login-modal .form-control {
+            background: rgba(255, 255, 255, 0.9) !important;
+            border: 1px solid #cccccc !important;
+            color: #000000 !important;
+            border-radius: 6px !important;
+        }
+        #login-modal .form-control:focus {
+            background: rgba(255, 255, 255, 1) !important;
+            border-color: #2b56f5 !important;
+            color: #000000 !important;
+            box-shadow: 0 0 0 0.2rem rgba(43, 86, 245, 0.25) !important;
+        }
+        #login-modal .form-control::placeholder {
+            color: #666666 !important;
+        }
+        #login-modal .btn-primary {
+            background: linear-gradient(135deg, #2b56f5, #5c8ff7) !important;
+            border: none !important;
+            border-radius: 6px !important;
+            font-weight: 500 !important;
+            color: #ffffff !important;
+        }
+        #login-modal .btn-primary:hover {
+            background: linear-gradient(135deg, #1e40af, #4a7cfa) !important;
+        }
+        #login-modal .btn-secondary {
+            background: rgba(255, 255, 255, 0.8) !important;
+            border: 1px solid #cccccc !important;
+            color: #000000 !important;
+            border-radius: 6px !important;
+        }
+        #login-modal .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.9) !important;
+            color: #000000 !important;
+        }
+        #login-modal .alert {
+            background: rgba(255, 255, 255, 0.9) !important;
+            border: 1px solid #cccccc !important;
+            color: #000000 !important;
+            border-radius: 6px !important;
+        }
+        #login-modal .dropdown-menu {
+            background: rgba(255, 255, 255, 0.95) !important;
+            border: 1px solid #cccccc !important;
+        }
+        #login-modal .dropdown-item {
+            color: #000000 !important;
+        }
+        #login-modal .dropdown-item:hover {
+            background: rgba(43, 86, 245, 0.1) !important;
+            color: #000000 !important;
+        }
+    </style>
+</head>
+
+<body class="nk-body body-wider theme-dark mode-onepage">
+
+    <div class="nk-wrap">
+        <header class="nk-header page-header is-transparent is-sticky is-shrink" id="header">
+            <!-- Header @s -->
+            <div class="header-main">
+                <div class="header-container container">
+                    <div class="header-wrap">
+                        <!-- Logo @s -->
+                        <div class="header-logo">
+                            <a href="./" class="logo-link">
+                                <div class="animated-logo-container"></div>
+                            </a>
+                        </div>
+                        <!-- Menu Toogle @s -->
+                        <div class="header-nav-toggle">
+                            <a href="#" class="navbar-toggle" data-menu-toggle="example-menu-04">
+                                <div class="toggle-line">
+                                    <span></span>
+                                </div>
+                            </a>
+                        </div>
+                        <!-- Menu @s -->
+                         <div class="header-navbar header-navbar-s1">
+                            <nav class="header-menu" id="example-menu-04">
+                                <ul class="menu menu-s2 animated" data-animate="fadeInDown" data-delay=".75">
+                                   <!-- <li class="menu-item"><a class="menu-link nav-link" href="#d-ten">The D-TEN</a></li> -->
+                                    <li class="menu-item"><a class="menu-link nav-link" href="#ecosystem">Ecosystem</a></li>
+                                    <li class="menu-item"><a class="menu-link nav-link" href="#token">NRN Economics</a></li>
+                                    <li class="menu-item has-sub">
+                                        <a class="menu-link nav-link menu-toggle" href="#">Products</a>
+                                        <ul class="menu-sub menu-drop">
+                                            <li class="menu-item"><a class="menu-link nav-link" href="products.html">All Products</a></li>
+                                            <li class="menu-item"><a class="menu-link nav-link" href="knirvserver.html">KNIRVSERVER</a></li>
+                                            <li class="menu-item"><a class="menu-link nav-link" href="knirvcli.html">KNIRVCLI</a></li>
+                                            <li class="menu-item"><a class="menu-link nav-link" href="knirvcontroller.html">KNIRVCONTROLLER</a></li>
+                                        </ul>
+                                    </li>
+                                    <li class="menu-item"><a class="menu-link nav-link" href="#roadmap">Roadmap</a></li>
+                                    <li class="menu-item has-sub">
+                                        <a class="menu-link nav-link menu-toggle" href="#">Platforms & Tools</a>
+                                        <ul class="menu-sub menu-drop">
+                                            <li class="menu-item"><a class="menu-link nav-link" href="developer-portal/">Developer Portal</a></li>
+                                        </ul>
+                                    </li>
+                                    <li class="menu-item has-sub">
+                                        <a class="menu-link nav-link menu-toggle" href="#">Resources</a>
+                                        <ul class="menu-sub menu-drop">
+                                            <li class="menu-item"><a class="menu-link nav-link" href="documentation/">Documentation</a></li>
+                                            <li class="menu-item"><a class="menu-link nav-link" href="Whitepapers.html">Whitepapers</a></li>
+                                            <!--<li class="menu-item"><a class="menu-link nav-link" href="presenter/">Business Presentations</a></li>-->
+                                            <li class="menu-item"><a class="menu-link nav-link" href="#blog">News & Updates</a></li>
+                                            <li class="menu-item"><a class="menu-link nav-link" href="#faqs">FAQs</a></li>
+                                        </ul>
+                                    </li>
+                                    <li class="menu-item has-sub">
+                                        <a class="menu-link nav-link menu-toggle" href="#">Community</a>
+                                        <ul class="menu-sub menu-drop">
+                                            <li class="menu-item"><a class="menu-link nav-link" href="#team">Team</a></li>
+                                            <li class="menu-item"><a class="menu-link nav-link" href="#partners">Partners</a></li>
+                                            <li class="menu-item"><a class="menu-link nav-link" href="#contact">Contact</a></li>
+                                        </ul>
+                                    </li>
+                                </ul>
+                                <ul class="menu-btns animated" data-animate="fadeInDown" data-delay=".85">
+                                    <!-- Login Button -->
+                                    <li>
+                                        <a href="#" class="btn btn-rg btn-auto btn-outline btn-grad on-dark" data-bs-toggle="modal" data-bs-target="#login-modal">
+                                            <span>Login</span>
+                                        </a>
+                                    </li>
+                                </ul>
+                            </nav>
+                        </div><!-- .header-navbar @e -->
+                    </div>
+                </div>
+            </div><!-- .header-main @e -->
+        </header>
+
+        <!-- Main content would continue here... -->
+         <!-- Banner @s -->
+            <div class="header-banner bg-theme-dark">
+                <div class="nk-banner">
+                    <div class="banner banner-mask-fix banner-fs banner-single tc-light">
+                        <div class="banner-wrap">
+                            <div class="container">
+                                <div class="row align-items-center justify-content-center gutter-vr-30px">
+                                    <div class="col-lg-6 order-lg-last">
+                                        <div class="banner-gfx banner-gfx-re-s3 animated" data-animate="fadeInUp" data-delay="1.25">
+                                            <img src="images/dark/gfx-d-dark.png" alt="KNIRV D-TEN Decentralized AI Network Architecture Visualization">
+                                            <img class="banner-gfx-icon banner-gfx-icon-1" src="images/icons/icon-custom.png" alt="KNIRV Network Custom Technology Icon">
+                                            <img class="banner-gfx-icon banner-gfx-icon-2" src="images/icons/icon-bitcoin.png" alt="Blockchain and Cryptocurrency Integration Icon">
+                                        </div>
+                                    </div>
+                                    <div class="col-lg-6">
+                                        <div class="banner-caption wide-auto text-center text-lg-start">
+                                            <div class="cpn-head mt-0">
+                                                <h1 class="title title-xl-2 title-semibold animated" data-animate="fadeInUp" data-delay="1.35"> KNIRVSERVER:<br/> Deterministic AI Agent Runtime</h1>
+                                            </div>
+                                            <div class="cpn-text cpn-text-s1">
+                                                <p class="lead animated" data-animate="fadeInUp" data-delay="1.45">Sovereign AI execution — sandboxed, monitored, reproducible DVE containers with kernel-level behavioral tracing. Connect your existing hardware to earn NRN tokens for containerized compute time.</p>
+                                            </div>
+                                            <div class="cpn-btns">
+                                                <ul class="btn-grp animated" data-animate="fadeInUp" data-delay="1.55">
+                                                    <li><a href="https://github.com/knirv/server" class="btn btn-md btn-grad btn-round">Self-Host on GitHub</a></li>
+                                                    <li><a href="https://knirv.com" class="btn btn-md btn-grad btn-grad-alternet btn-round">Cloud DVE at knirv.com</a></li>
+                                                    <li><a href="#miner-cta" class="btn btn-md btn-outline btn-grad on-bg-theme btn-round">Run a Node, Earn NRN</a></li>
+                                                </ul>
+                                            </div>
+                                            <div class="cpn-social">
+                                                <ul class="social">
+                                                    <li class="animated" data-animate="fadeInUp" data-delay="1.65"><a href="https://facebook.com/KNIRVNetwork" target="_blank" rel="noopener noreferrer" aria-label="Follow KNIRV Network on Facebook"><em class="social-icon fab fa-facebook-f"></em></a></li>
+                                                    <li class="animated" data-animate="fadeInUp" data-delay="1.7"><a href="https://twitter.com/KNIRV_Network" target="_blank" rel="noopener noreferrer" aria-label="Follow KNIRV Network on Twitter/X"><em class="social-icon fab fa-twitter"></em></a></li>
+                                                    <li class="animated" data-animate="fadeInUp" data-delay="1.75"><a href="https://youtube.com/@KNIRVNetwork" target="_blank" rel="noopener noreferrer" aria-label="Subscribe to KNIRV Network on YouTube"><em class="social-icon fab fa-youtube"></em></a></li>
+                                                    <li class="animated" data-animate="fadeInUp" data-delay="1.8"><a href="https://github.com/knirv/server" target="_blank" rel="noopener noreferrer" aria-label="View KNIRV Network repositories on GitHub"><em class="social-icon fab fa-github"></em></a></li>
+                                                    <li class="animated" data-animate="fadeInUp" data-delay="1.85"><a href="https://discord.gg/knirv" target="_blank" rel="noopener noreferrer" aria-label="Join KNIRV Network community on Discord"><em class="social-icon fab fa-discord"></em></a></li>
+                                                    <li class="animated" data-animate="fadeInUp" data-delay="1.9"><a href="https://medium.com/@KNIRVNetwork" target="_blank" rel="noopener noreferrer" aria-label="Read KNIRV Network articles on Medium"><em class="social-icon fab fa-medium-m"></em></a></li>
+                                                </ul>
+                                            </div>
+                                        </div>
+                                    </div><!-- .col -->
+                                </div><!-- .row -->
+                            </div>
+                        </div>
+                    </div>
+                </div><!-- .nk-banner -->
+                <div class="nk-ovm mask-c-dark shape-v mask-contain-bottom"></div>
+                <!-- Place Particle Js -->
+                <div id="particles-bg" class="particles-container particles-bg" data-pt-base="#00c0fa" data-pt-base-op=".3" data-pt-line="#2b56f5" data-pt-line-op=".5" data-pt-shape="#00c0fa" data-pt-shape-op=".2"></div>
+            </div>
+            <!-- .header-banner @e -->
+        </header>
+        <main class="nk-pages">
+            <!-- Breadcrumb Schema Markup -->
+            <script type="application/ld+json">
+            {
+                "@context": "https://schema.org",
+                "@type": "BreadcrumbList",
+                "itemListElement": [
+                    {
+                        "@type": "ListItem",
+                        "position": 1,
+                        "name": "Home",
+                        "item": "https://knirv.network/"
+                    },
+                    {
+                        "@type": "ListItem",
+                        "position": 2,
+                        "name": "D-TEN Network",
+                        "item": "https://knirv.network/#d-ten"
+                    },
+                    {
+                        "@type": "ListItem",
+                        "position": 3,
+                        "name": "Ecosystem",
+                        "item": "https://knirv.network/#ecosystem"
+                    },
+                    {
+                        "@type": "ListItem",
+                        "position": 4,
+                        "name": "NRN Economics",
+                        "item": "https://knirv.network/#token"
+                    }
+                ],
+                "potentialAction": {
+                    "@type": "SearchAction",
+                    "target": "https://knirv.network/documentation/static/#/?q={search_term_string}",
+                    "query-input": "required name=search_term_string"
+                }
+            },
+            {
+                "@type": "VideoObject",
+                "@id": "https://knirv.network/#video",
+                "name": "KNIRV D-TEN Demo - Self-Improving AI Network",
+                "description": "Watch how KNIRVSERVER DVE provides deterministic AI agent execution with kernel-level eBPF tracing and CLEAN cryptographic proofs.",
+                "thumbnailUrl": "https://knirv.network/images/social/youtube-thumbnail.png",
+                "uploadDate": "2024-12-19",
+                "duration": "PT5M30S",
+                "embedUrl": "https://www.youtube.com/embed/SSo_EIwHSd4",
+                "publisher": {
+                    "@id": "https://knirv.network/#organization"
+                }
+            }
+        ]
+    }
+    </script>
+
+    <!-- Additional Social Media Optimization -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "SocialMediaPosting",
+        "headline": "KNIRV D-TEN: Revolutionary Decentralized AI Network",
+        "image": "https://knirv.network/images/social/facebook-card.png",
+        "author": {
+            "@type": "Organization",
+            "name": "KNIRV Network",
+            "url": "https://knirv.network/"
+        },
+        "publisher": {
+            "@type": "Organization",
+            "name": "KNIRV Network",
+            "logo": {
+                "@type": "ImageObject",
+                "url": "https://knirv.network/images/knirv-logo.png"
+            }
+        },
+        "datePublished": "2024-12-19",
+        "dateModified": "2024-12-19",
+        "description": "KNIRVSERVER — Deterministic AI Agent Runtime. Sandboxed DVE containers with eBPF kernel tracing. Earn NRN tokens by connecting your hardware as a DVE operator node.",
+        "url": "https://knirv.network/",
+        "mainEntityOfPage": "https://knirv.network/",
+        "keywords": ["KNIRV D-TEN", "Decentralized AI", "Blockchain", "Self-improving AI", "NRN Token", "Verifiable Execution"]
+    }
+    </script>
+
+            <section class="section mask-c-blend-dark bg-theme-dark-alt tc-light ov-h" id="d-ten">
+                <div class="container">
+                    <!-- Block @s -->
+                    <div class="nk-block nk-block-text-wrap">
+                        <div class="row align-items-center justify-content-center justify-content-md-between gutter-vr-30px">
+                            <div class="col-mb-9 col-sm-7 col-md-6 col-lg-5 order-md-last">
+                                <div class="nk-block-img animated" data-animate="fadeInUp" data-delay=".1">
+                                    <img src="images/light/gfx-z-a.png" alt="KNIRVSERVER DVE — Deterministic AI Agent Runtime Architecture">
+                                </div>
+                            </div>
+                            <div class="col-sm-10 col-md-6 text-center text-md-start">
+                                <div class="nk-block-text">
+                                    <h2 class="title animated" data-animate="fadeInUp" data-delay=".2">Deterministic AI <br>Agent Runtime</h2>
+                                    <p class="lead animated" data-animate="fadeInUp" data-delay=".3">KNIRVSERVER is a deterministic execution environment for AI agents. Your AI agent is a process — we treat it like one. Kernel-level resource tracking via eBPF, policy enforcement before execution, and full behavioral forensics. Everything that observability tools tell you after the fact, we prevent in real time. Three integrated products: KNIRVSERVER (DVE runtime), KNIRVCLI (management interface), KNIRVCONTROLLER (orchestration).</p>
+                                    <a href="https://www.youtube.com/watch?v=SSo_EIwHSd4" class="video-popup btn-play-wrap animated" data-animate="fadeInUp" data-delay=".4">
+                                        <div class="btn-play btn-play-sm btn-play-s2">
+                                            <em class="btn-play-icon"></em>
+                                        </div>
+                                        <div class="btn-play-text">
+                                            <span class="text-sm">Watch Demo</span>
+                                            <span class="text-xs">See the D-TEN in Action</span>
+                                        </div>
+                                    </a>
+                                </div>
+                            </div>
+                        </div><!-- .row -->
+                    </div><!-- .block @e -->
+                </div>
+            </section>
+            <!-- // -->
+            <section class="section bg-theme-dark-alt tc-light py-0 ov-h">
+                <div class="container">
+                    <!-- Block @s -->
+                    <div class="nk-block nk-block-features-2">
+                        <div class="row align-items-center gutter-vr-30px justify-content-center justify-content-md-between">
+                            <div class="col-mb-9 col-sm-7 col-md-6 col-lg-5">
+                                <div class="gfx py-4 animated" data-animate="fadeInUp" data-delay=".1">
+                                    <img src="images/light/gfx-z-b.png" alt="KNIRV D-TEN Decentralized Trusted Execution Network Framework Illustration">
+                                </div>
+                            </div><!-- .col -->
+                            <div class="col-sm-10 col-md-6 text-center text-md-start">
+                                <!-- Section Head @s -->
+                                <div class="nk-block-text">
+                                    <h4 class="title title-lg animated" data-animate="fadeInUp" data-delay=".2">? What is KNIRVSERVER</h4>
+                                    <p class="lead animated" data-animate="fadeInUp" data-delay=".3">KNIRVSERVER is the operator node in a sovereign AI execution network. It provides Deterministic Validation Environments (DVEs) — sandboxed, monitored, reproducible containers where AI agents execute with kernel-level behavioral tracing and policy enforcement.</p>
+                                    <p class="animated" data-animate="fadeInUp" data-delay=".4">MLOps teams building with LangChain, LlamaIndex, or raw API calls have no deterministic execution environment. They get flaky outputs, untracked side effects, and no forensics when something goes wrong. KNIRVSERVER's DVE + eBPF + guardrails stack offers a runtime where AI agents execute in sandboxed, monitored, reproducible containers with full behavioral tracing.</p>
+                                    <p class="animated" data-animate="fadeInUp" data-delay=".5">The full stack — eBPF syscall telemetry, Cognitive Engine learning loop, WASM plugin runtime, policy-to-blockchain anchoring — is a coherent protocol, not just a product. Operators connect existing hardware (old Bitcoin miners, GPU rigs, x86 servers) to earn NRN tokens for providing containerized compute to the network.</p>
+                                </div>
+                            </div>
+                        </div><!-- .row -->
+                    </div><!-- .block @e -->
+                </div>
+            </section>
+            <!-- // -->
+            <section class="section bg-theme-dark-alt tc-light">
+                <div class="container">
+                    <div class="section-head text-center wide-auto-sm tc-light">
+                        <div class="section-head-line">
+                            <span class="line-1"></span><span class="line-2"></span><span class="line-3"></span><span class="line-4"></span>
+                            <span class="line-5"></span><span class="line-6"></span><span class="line-7"></span><span class="line-8"></span>
+                        </div>
+                        <h2 class="title title-s4 animated" data-animate="fadeInUp" data-delay=".1" title="ECOSYSTEM">KNIRVSERVER Ecosystem</h2>
+                        <p class="animated" data-animate="fadeInUp" data-delay=".2">Three integrated products that form the sovereign AI execution network. KNIRVSERVER bundles all runtime components (DVE, eBPF, cognitive engine, guardrails, WASM plugins, inference) into a single deployable system. KNIRVCLI and KNIRVCONTROLLER provide management and orchestration.</p>
+                    </div>
+                    <!-- Block @s -->
+                    <div class="nk-block nk-block-text-wrap">
+                        <div class="row align-items-center justify-content-center justify-content-md-between gutter-vr-30px">
+                            <div class="col-mb-9 col-sm-7 col-md-6">
+                                <div class="nk-block-img animated" data-animate="fadeInUp" data-delay=".3">
+                                    <img src="images/dark/gfx-z-c.png" alt="KNIRVSERVER Ecosystem Components">
+                                </div>
+                            </div>
+                            <div class="col-sm-10 col-md-6 col-lg-5">
+                                <div class="nk-block-text ms-lg-3 ms-xl-0">
+                                    <p class="animated" data-animate="fadeInUp" data-delay=".4">KNIRVSERVER bundles everything needed for deterministic AI execution: DVE containers with eBPF syscall telemetry, cognitive engine with adaptive policy thresholds, WASM plugin runtime, multi-model inference, guardrail engine, and blockchain-anchored audit trails. All other ecosystem components (KNIRVCHAIN, KNIRVGRAPH, KNIRVGATEWAY, KNIRVARENA, SDKs, TESTNET) are included.</p>
+                                    <ul class="list list-dot pdb-r">
+                                        <li class="animated" data-animate="fadeInUp" data-delay=".5">KNIRVSERVER: Deterministic AI Agent Runtime — DVE containers, eBPF tracing, guardrails, inference, WASM plugins, blockchain anchoring. Everything bundled.</li>
+                                        <li class="animated" data-animate="fadeInUp" data-delay=".6">KNIRVCLI: Full-featured command-line interface for DVE management, agent deployment, node operations, and network administration.</li>
+                                        <li class="animated" data-animate="fadeInUp" data-delay=".7">KNIRVCONTROLLER: Mobile interface for the network — wallet management, personal asset oversight, agent deployment, and real-time monitoring from your phone or tablet.</li>
+                                    </ul>
+                                    <ul class="btn-grp justify-content-center justify-content-md-start">
+                                        <li class="animated" data-animate="fadeInUp" data-delay=".85"><a href="https://github.com/knirv/server" class="btn btn-grad btn-round btn-md">Self-Host on GitHub</a></li>
+                                        <li class="animated" data-animate="fadeInUp" data-delay=".9"><a href="https://knirv.com" class="btn btn-primary btn-round btn-md">Cloud DVE at knirv.com</a></li>
+                                        <li class="animated" data-animate="fadeInUp" data-delay=".95">
+                                            <ul class="btn-grp gutter-15px">
+                                                <li><a href="https://github.com/knirv/server" class="btn btn-icon btn-round btn-md btn-auto btn-primary"><em class="fab fa-github"></em></a></li>
+                                                <li><a href="https://discord.gg/knirv" class="btn btn-icon btn-round btn-md btn-auto btn-primary"><em class="fab fa-discord"></em></a></li>
+                                                <li><a href="https://twitter.com/KNIRV_Network" class="btn btn-icon btn-round btn-md btn-auto btn-primary"><em class="fab fa-twitter"></em></a></li>
+                                            </ul>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div><!-- .row -->
+                    </div><!-- .block @e -->
+                </div>
+            </section>
+            <!-- // -->
+            <section class="section bg-theme-dark-alt tc-light" id="ecosystem">
+                <div class="container">
+                    <div class="section-head text-center wide-auto-sm">
+                        <h2 class="title title-s4 animated" data-animate="fadeInUp" data-delay=".1" title="PRODUCTS">Three Products. One Network.</h2>
+                        <p class="animated" data-animate="fadeInUp" data-delay=".2">KNIRVSERVER bundles all runtime components into a single deployable system. KNIRVCLI and KNIRVCONTROLLER complete the ecosystem. Everything else — KNIRVCHAIN, KNIRVGRAPH, KNIRVGATEWAY, SDKs, TESTNET, KNIRVARENA, and more — is included in KNIRVSERVER.</p>
+                    </div>
+                    <!-- Block @s -->
+                    <div class="nk-block">
+                        <div class="row justify-content-center gutter-vr-40px">
+                            <div class="col-lg-4 col-md-6">
+                                <div class="animated" data-animate="fadeInUp" data-delay=".3">
+                                    <div class="feature-text">
+                                        <h5 class="title title-sm">KNIRVSERVER DVE</h5>
+                                        <p><strong>Deterministic AI Agent Runtime.</strong> Sandboxed DVE containers with eBPF syscall telemetry, cognitive engine with adaptive policy thresholds, WASM plugin runtime, multi-model inference, guardrail engine, policy-to-blockchain anchoring, and cryptographic evidence packs. Everything bundled — KNIRVCHAIN, KNIRVGRAPH, KNIRVGATEWAY, inference, SDKs, TESTNET, KNIRVARENA, and more included.</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-lg-4 col-md-6">
+                                <div class="animated" data-animate="fadeInUp" data-delay=".4">
+                                    <div class="feature-text">
+                                        <h5 class="title title-sm">KNIRVCLI</h5>
+                                        <p><strong>Full-featured command-line interface.</strong> Deploy and manage DVE containers, monitor node health, configure guardrails, invoke inference, manage NRN wallets, and administer the full KNIRVSERVER stack. Scriptable, pipeable, SSH-ready. Built for power users and automated workflows.</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-lg-4 col-md-6">
+                                <div class="animated" data-animate="fadeInUp" data-delay=".5">
+                                    <div class="feature-text">
+                                        <h5 class="title title-sm">KNIRVCONTROLLER</h5>
+                                        <p><strong>Mobile interface for the KNIRV Network.</strong> Manage your personal assets — wallets, NRN balances, agent deployments — and monitor network health from your phone or tablet. Same full functionality as the desktop experience, optimized for mobile.</p>
+                                    </div>
+                                </div>
+                            </div>
+                </div>
+            </section>
+            <!-- // -->
+            <section class="section section-tokensale tc-light bg-theme-dark" id="token">
+                <!-- Block @s -->
+                <div class="container">
+                    <div class="section-head text-center wide-auto-sm">
+                        <h2 class="title title-s4 animated" data-animate="fadeInUp" data-delay=".1" title="TOKEN">NRN Economics</h2>
+                        <p class="animated" data-animate="fadeInUp" data-delay=".2">The NRN (Network Resolution Notice) token powers the KNIRVSERVER DVE economy. Operators earn NRN by providing containerized compute capacity, and developers spend NRN to deploy AI agents in deterministic, verifiable environments.</p>
+                    </div>
+                    <div class="nk-block nk-block-token mgb-m30">
+                        <div class="row align-items-center justify-content-between gutter-vr-50px">
+                            <div class="col-lg-6">
+                                <div class="row gutter-vr-30px">
+                                    <div class="col-sm-6">
+                                        <div class="stage-info animated" data-animate="fadeInUp" data-delay=".3">
+                                            <h6 class="title title-s6 title-xs-s2">Token Generation</h6>
+                                            <p>Proof-of-Connectivity by KNIRV-ROUTERs</p>
+                                        </div>
+                                    </div><!-- .col  -->
+                                    <div class="col-sm-6">
+                                        <div class="stage-info animated" data-animate="fadeInUp" data-delay=".4">
+                                            <h6 class="title title-s6 title-xs-s2">Token Utility</h6>
+                                            <p>Skill Invocation & Network Operations</p>
+                                        </div>
+                                    </div><!-- .col  -->
+                                    <div class="col-sm-6">
+                                        <div class="stage-info animated" data-animate="fadeInUp" data-delay=".5">
+                                            <h6 class="title title-s6 title-xs-s2">Economic Model</h6>
+                                            <p>Self-Sustaining Deflationary Loop</p>
+                                        </div>
+                                    </div><!-- .col  -->
+                                    <div class="col-sm-6">
+                                        <div class="stage-info animated" data-animate="fadeInUp" data-delay=".6">
+                                            <h6 class="title title-s6 title-xs-s2">Miner Rewards</h6>
+                                            <p>Connect old Bitcoin miners, GPU rigs, or x86 servers → earn NRN for DVE compute</p>
+                                        </div>
+                                    </div><!-- .col  -->
+                                    <div class="col-sm-6">
+                                        <div class="stage-info animated" data-animate="fadeInUp" data-delay=".7">
+                                            <h6 class="title title-s6 title-xs-s2">Testnet Access</h6>
+                                            <p>Self-host via GitHub or cloud DVE at knirv.com</p>
+                                        </div>
+                                    </div><!-- .col  -->
+                                </div><!-- .row  -->
+                            </div>
+                            <div class="col-lg-5">
+                                <div class="token-status token-status-s5 bg-theme-alt round no-bd animated" data-animate="fadeInUp" data-delay=".9">
+                                    <div class="token-box token-box-s3">
+                                        <div class="stage-info text-center">
+                                            <h6 class="title title-s6">Earn NRN with Your Hardware</h6>
+                                            <p class="text-xs mt-2">Old miners, GPU rigs, x86 servers → DVE compute nodes</p>
+                                        </div>
+                                    </div>
+                                    <div class="token-action">
+                                        <a class="btn btn-md btn-grad btn-grad-alternet btn-round" href="#miner-cta">Connect Your Miner → Earn NRN</a>
+                                    </div>
+                                    <ul class="icon-list">
+                                        <li><em class="fas fa-microchip"></em></li>
+                                        <li><em class="fas fa-server"></em></li>
+                                        <li><em class="fas fa-cubes"></em></li>
+                                        <li><em class="fas fa-coins"></em></li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div><!-- .block @e -->
+                    <div class="nk-block">
+                        <div class="row justify-content-center gutter-vr-40px">
+                            <div class="col-md-6 col-mb-8">
+                                <div class="single-chart">
+                                    <h3 class="mgb-l text-center title-lg animated" data-animate="fadeInUp" data-delay=".1">Token<br>Distribution</h3>
+                                    <div class="chart animated" data-animate="fadeInUp" data-delay=".2">
+                                        <img src="images/dark/e-dark.png" alt="Token Distribution">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6 col-mb-8">
+                                <div class="single-chart">
+                                    <h3 class="mgb-l text-center title-lg animated" data-animate="fadeInUp" data-delay=".3">Network Fee<br>Allocation</h3>
+                                    <div class="chart animated" data-animate="fadeInUp" data-delay=".4">
+                                        <img src="images/dark/f-dark.png" alt="Network Fee Allocation">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div><!-- .block @e -->
+                </div>
+            </section>
+            <!-- // -->
+            <section class="section bg-theme tc-light section-connect" id="roadmap">
+                <div class="container ov-h">
+                    <div class="section-head text-center wide-auto-sm">
+                        <h2 class="title title-s4 animated" data-animate="fadeInUp" data-delay=".1" title="Roadmap">Our Roadmap</h2>
+                    </div><!-- .section-head @e -->
+                </div>
+                <!-- Block @s -->
+                <div class="nk-block ov-h">
+                    <div class="container">
+                        <div class="roadmap-list animated" data-animate="fadeInUp" data-delay=".2">
+                            <div class="roadmap-item roadmap-item-sm roadmap-done">
+                                <div class="roadmap-innr">
+                                    <h6 class="roadmap-title roadmap-title-s2">Q3 2026</h6>
+                                    <p>Testnet Launch — KNIRVSERVER testnet goes live for early operators</p>
+                                </div>
+                            </div><!-- .roadmap-item -->
+                            <div class="roadmap-item roadmap-done">
+                                <div class="roadmap-innr">
+                                    <h6 class="roadmap-title roadmap-title-s2">Q4 2026</h6>
+                                    <p>Phase 1: KNIRVSERVER DVE Mainnet Launch & Operator Onboarding</p>
+                                </div>
+                            </div>
+                            <div class="roadmap-item roadmap-item-lg">
+                                <div class="roadmap-innr">
+                                    <h6 class="roadmap-title roadmap-title-s2">Q1 2027</h6>
+                                    <p>Launch KNIRVCLI & KNIRVCONTROLLER — Full Ecosystem</p>
+                                </div>
+                            </div>
+                            <div class="roadmap-item">
+                                <div class="roadmap-innr">
+                                    <h6 class="roadmap-title roadmap-title-s2">Q2 2027</h6>
+                                    <p>Phase 2: Enhanced Intelligence & Agent Capabilities</p>
+                                </div>
+                            </div>
+                            <div class="roadmap-item roadmap-item-sm">
+                                <div class="roadmap-innr">
+                                    <h6 class="roadmap-title roadmap-title-s2">Q2 2027</h6>
+                                    <p>Advanced DVE specialization & miner onboarding pipeline</p>
+                                </div>
+                            </div>
+                            <div class="roadmap-item">
+                                <div class="roadmap-innr">
+                                    <h6 class="roadmap-title roadmap-title-s2">Q2 2027</h6>
+                                    <p>Skill licensing & automated royalty payments</p>
+                                </div>
+                            </div>
+                            <div class="roadmap-item roadmap-item-lg">
+                                <div class="roadmap-innr">
+                                    <h6 class="roadmap-title roadmap-title-s2">Q3 2027</h6>
+                                    <p>Phase 3: Experiential Integration & Advanced Learning</p>
+                                </div>
+                            </div>
+                            <div class="roadmap-item">
+                                <div class="roadmap-innr">
+                                    <h6 class="roadmap-title roadmap-title-s2">Q4 2027</h6>
+                                    <p>DVE fleet orchestration via KNIRVCONTROLLER & KNIRVCLI release</p>
+                                </div>
+                            </div>
+                            <div class="roadmap-item roadmap-item-sm">
+                                <div class="roadmap-innr">
+                                    <h6 class="roadmap-title roadmap-title-s2">Q4 2027</h6>
+                                    <p>Formal verification & Zero-Knowledge Proofs</p>
+                                </div>
+                            </div>
+                            <div class="roadmap-item">
+                                <div class="roadmap-innr">
+                                    <h6 class="roadmap-title roadmap-title-s2">2028</h6>
+                                    <p>Phase 4: Mainnet Launch & Cross-Ecosystem Expansion</p>
+                                </div>
+                            </div>
+                            <div class="roadmap-item roadmap-item-lg">
+                                <div class="roadmap-innr">
+                                    <h6 class="roadmap-title roadmap-title-s2">2028</h6>
+                                    <p>Autonomous Governance & Universal AI Layer</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div><!-- .block @e -->
+            </section>
+            <!-- Recruitment -->
+            <section class="section bg-theme-dark tc-light ov-h pdb-0 " id="team">
+                <div class="container">
+                    <div class="section-head text-center wide-auto-sm tc-light">
+                        <h2 class="title title-s4 animated" data-animate="fadeInUp" data-delay=".1" title="join">Join the Revolution</h2>
+                        <p class="animated" data-animate="fadeInUp" data-delay=".2">The KNIRV Network is transitioning from corporate deployment to community ownership. Be part of building the world's first truly democratic AI infrastructure.</p>
+                    </div>
+                    <!-- Block @s -->
+                    <div class="nk-block">
+                        <div class="row justify-content-center">
+                            <div class="col-lg-10">
+                                <!-- Web3 Miner Call to Action -->
+                                <div class="boxed boxed-lg bg-theme-grad-alternet animated" data-animate="fadeInUp" data-delay=".3" style="padding: 10rem;" id="miner-cta">
+                                    <div class="feature-text text-center">
+                                        <h3 class="title title-md">Mine NRN with Your Existing Hardware</h3>
+                                        <p class="lead">Web3 AI community — connect your old Bitcoin miners, GPU rigs, or x86 servers to the KNIRVSERVER network. Your hardware becomes a DVE (Deterministic Validation Environment) node, providing containerized compute time to AI developers and earning NRN tokens in exchange.</p>
+                                        <p class="lead">No ASIC? No problem. GPUs and standard x86 servers are welcome. Any hardware capable of running containers can participate.</p>
+                                    </div>
+                                </div>
+
+                                <!-- Dual Path Section -->
+                                <div class="row pt-5">
+                                    <div class="col-lg-6 col-md-6">
+                                        <div class="boxed animated" data-animate="fadeInUp" data-delay=".4" style="padding: 110px; height: 100%;">
+                                            <div class="feature-text">
+                                                <h4 class="title title-sm">Self-Host on GitHub</h4>
+                                                <p>Deploy KNIRVSERVER independently using our open-source project. Full control, no dependencies. Join the network as an independent operator.</p>
+                                                <ul class="list list-dot">
+                                                    <li>Deploy KNIRVSERVER on your own infrastructure</li>
+                                                    <li>Full operator access and node management</li>
+                                                    <li>Earn NRN by providing DVE compute capacity</li>
+                                                    <li>Join the open-source community</li>
+                                                </ul>
+                                                <p class="small text-light mt-3"><a href="https://github.com/knirv/server" class="btn btn-grad btn-round">Deploy on GitHub</a></p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-lg-6 col-md-6">
+                                        <div class="boxed animated" data-animate="fadeInUp" data-delay=".5" style="padding: 110px; height: 100%;">
+                                            <div class="feature-text">
+                                                <h4 class="title title-sm">Cloud DVE at knirv.com</h4>
+                                                <p>Access the hosted KNIRVSERVER DVE solution for immediate use. No setup required — just deploy your AI agents and start validating.</p>
+                                                <ul class="list list-dot">
+                                                    <li>Instant DVE access — no infrastructure needed</li>
+                                                    <li>Managed by KNIRV Corporation</li>
+                                                    <li>Pay-per-use pricing model</li>
+                                                    <li>Enterprise support available</li>
+                                                </ul>
+                                                <p class="small text-light mt-3"><a href="https://knirv.com" class="btn btn-grad btn-round">Go to knirv.com</a></p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Operator Categories -->
+                                <div class="row pt-5">
+                                    <div class="col-lg-6 col-md-6">
+                                        <div class="boxed animated" data-animate="fadeInUp" data-delay=".6" style="padding: 100px; height: 100%;">
+                                            <div class="feature-text">
+                                                <h4 class="title title-sm">DVE Node Operators</h4>
+                                                <p>Connect your existing hardware (old Bitcoin miners, GPU rigs, x86 servers) to the KNIRVSERVER network and earn NRN tokens for every containerized compute task executed on your node.</p>
+                                                <ul class="list list-dot">
+                                                    <li>Convert old mining rigs into DVE nodes</li>
+                                                    <li>GPU rigs and x86 servers welcome</li>
+                                                    <li>Earn NRN for containerized compute time</li>
+                                                    <li>No specialized hardware required</li>
+                                                </ul>
+                                                <p class="small text-light"><strong>Earn:</strong> NRN tokens per DVE compute cycle</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-lg-6 col-md-6">
+                                        <div class="boxed animated" data-animate="fadeInUp" data-delay=".7" style="padding: 100px; height: 100%;">
+                                            <div class="feature-text">
+                                                <h4 class="title title-sm">Developers & AI Engineers</h4>
+                                                <p>Use KNIRVSERVER DVE to deploy AI agents in sandboxed, deterministic environments. Build with KNIRVCLI and orchestrate with KNIRVCONTROLLER.</p>
+                                                <ul class="list list-dot">
+                                                    <li>Deterministic AI agent execution</li>
+                                                    <li>Kernel-level behavioral tracing (eBPF)</li>
+                                                    <li>Policy enforcement with blockchain audit trails</li>
+                                                    <li>WASM plugin runtime for custom extensions</li>
+                                                </ul>
+                                                <p class="small text-light"><strong>Earn:</strong> Build on the network, get NRN rewards</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Democratic Principles -->
+                                <div class="boxed boxed-lg animated" data-animate="fadeInUp" data-delay=".9" style="padding: 10rem;">
+                                    <div class="feature-text">
+                                        <h3 class="title title-md title-dark">Built on Democratic Principles</h3>
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <ul class="list list-check">
+                                                    <li><strong>Distributed Ownership:</strong> No single entity controls the network</li>
+                                                    <li><strong>Transparent Governance:</strong> Community votes on all major decisions</li>
+                                                    <li><strong>Open Source:</strong> All core components are publicly auditable</li>
+                                                    <li><strong>Economic Democracy:</strong> Value flows to contributors, not just capital holders</li>
+                                                </ul>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <ul class="list list-check">
+                                                    <li><strong>Fair Token Distribution:</strong> 40% reserved for community development</li>
+                                                    <li><strong>Anti-Whale Mechanisms:</strong> Quadratic voting prevents centralization</li>
+                                                    <li><strong>Contribution Weighting:</strong> Active participation increases governance power</li>
+                                                    <li><strong>Revenue Sharing:</strong> Network fees distributed to all participants</li>
+                                                </ul>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Call to Action -->
+                                <div class="text-center pt-5 animated" data-animate="fadeInUp" data-delay="1">
+                                    <h3 class="title title-md tc-light mb-3">Ready to Shape the Future of AI?</h3>
+                                    <p class="lead tc-light-alt mb-4">Join our community and be part of the transition to democratic AI infrastructure.</p>
+                                    <div class="btn-group">
+                                        <a href="https://discord.gg/knirv" class="btn btn-lg btn-grad btn-round">Join Discord Community</a>
+                                        <a href="https://github.com/knirv/server" class="btn btn-lg btn-outline btn-light btn-round">View on GitHub</a>
+                                    </div>
+                                    <p class="text-light mt-4 small">Learn more about our founding team at <a href="https://knirv.com/about" target="_blank" class="link-primary">KNIRV Corporation</a></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- OLD TEAM SECTION REMOVED - NOW SHOWING DAO RECRUITMENT MESSAGE
+                    Team profiles have been migrated to https://knirv.com/about
+                    This section now focuses on community recruitment and DAO transition
+                                                <div class="progress-list">
+                                                    <div class="progress-wrap">
+                                                        <div class="progress-title">Blockchain <span class="progress-amount">85%</span></div>
+                                                        <div class="progress-bar progress-bar-xs bg-black-10">
+                                                            <div class="progress-percent bg-theme-grad-alternet" data-percent="85"></div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="progress-wrap">
+                                                        <div class="progress-title">Decentralization <span class="progress-amount">68%</span></div>
+                                                        <div class="progress-bar progress-bar-xs bg-black-10">
+                                                            <div class="progress-percent bg-theme-grad-alternet" data-percent="68"></div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div><!-- .col  -->
+                                    </div><!-- .row  -->
+                                </div><!-- .team-profile  -->
+                            </div><!-- .col -->
+                           
+                    <!-- ADVISORS SECTION - COMMENTED OUT FOR FUTURE USE
+                    <div class="nk-block nk-block-team-list">
+                        <div class="section-head section-head-sm text-center wide-auto-sm">
+                            <h2 class="title-lg-2 title-semibold animated" data-animate="fadeInUp" data-delay=".7">ADVISORS</h2>
+                        </div>
+                        <div class="row justify-content-center">
+                            <div class="col-lg-3 col-mb-6">
+                                <div class="team team-s3 team-s3-alt animated" data-animate="fadeInUp" data-delay=".8">
+                                    <div class="team-photo round-full team-photo-bg">
+                                        <a href="#team-popup-1" class="team-show content-popup" data-overlay="bg-theme-grad-alternet"></a>
+                                        <img src="images/team/sq-e.jpg" alt="team" class="round-full">
+                                    </div>
+                                    <h5 class="team-name title title-sm">Louis Baker</h5>
+                                    <span class="team-position">CEO &amp; Lead Blockchain</span>
+                                    <ul class="team-social team-social-s2">
+                                        <li><a href="#"><em class="fab fa-linkedin-in"></em></a></li>
+                                        <li><a href="#"><em class="fab fa-facebook-f"></em></a></li>
+                                        <li><a href="#"><em class="fab fa-twitter"></em></a></li>
+                                    </ul>
+                                </div>
+                                <!-- Start .team-profile  
+                                <div id="team-popup-5" class="team-popup mfp-hide">
+                                    <a title="Close" class="mfp-close">×</a>
+                                    <div class="row align-items-start">
+                                        <div class="col-md-6">
+                                            <div class="team-photo">
+                                                <img src="images/team/e-color.jpg" alt="team">
+                                            </div>
+                                        </div><!-- .col  
+                                        <div class="col-md-6">
+                                            <div class="team-popup-info ps-md-3">
+                                                <h3 class="team-name title title-lg pt-4">Louis Baker</h3>
+                                                <p class="team-position mb-1">CEO &amp; Lead Blockchain </p>
+                                                <ul class="team-social team-social-s2 mb-4">
+                                                    <li><a href="#"><em class="fab fa-facebook-f"></em></a></li>
+                                                    <li><a href="#"><em class="fab fa-linkedin-in"></em></a></li>
+                                                </ul>
+                                                <p>Visionary leader and architect of the KNIRV D-TEN ecosystem, bringing over a decade of blockchain innovation and AI research experience.</p>
+                                                <p>Louis spearheads the development of the world's first self-healing AI network, focusing on transforming AI failures into collective knowledge through decentralized trusted execution.</p>
+                                                <div class="progress-list">
+                                                    <div class="progress-wrap">
+                                                        <div class="progress-title">Blockchain <span class="progress-amount">85%</span></div>
+                                                        <div class="progress-bar progress-bar-xs bg-black-10">
+                                                            <div class="progress-percent bg-theme-grad-alternet" data-percent="85"></div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="progress-wrap">
+                                                        <div class="progress-title">Decentralization <span class="progress-amount">68%</span></div>
+                                                        <div class="progress-bar progress-bar-xs bg-black-10">
+                                                            <div class="progress-percent bg-theme-grad-alternet" data-percent="68"></div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div><!-- .col  
+                                    </div><!-- .row 
+                                </div><!-- .team-profile  
+                            </div><!-- .col 
+                            <div class="col-lg-3 col-mb-6">
+                                <div class="team team-s3 team-s3-alt animated" data-animate="fadeInUp" data-delay=".9">
+                                    <div class="team-photo round-full team-photo-bg">
+                                        <a href="#team-popup-2" class="team-show content-popup" data-overlay="bg-theme-grad-alternet"></a>
+                                        <img src="images/team/sq-f.jpg" alt="team" class="round-full">
+                                    </div>
+                                    <h5 class="team-name title title-sm">Jonathan Rios</h5>
+                                    <span class="team-position">CTO &amp; Software Engineer</span>
+                                    <ul class="team-social team-social-s2">
+                                        <li><a href="#"><em class="fab fa-linkedin-in"></em></a></li>
+                                        <li><a href="#"><em class="fab fa-facebook-f"></em></a></li>
+                                        <li><a href="#"><em class="fab fa-twitter"></em></a></li>
+                                    </ul>
+                                </div>
+                                <!-- Start .team-popup  
+                                <div id="team-popup-6" class="team-popup mfp-hide">
+                                    <a title="Close" class="mfp-close">×</a>
+                                    <div class="row align-items-start">
+                                        <div class="col-md-6">
+                                            <div class="team-photo">
+                                                <img src="images/team/f-color.jpg" alt="team">
+                                            </div>
+                                        </div><!-- .col 
+                                        <div class="col-md-6">
+                                            <div class="team-popup-info ps-md-3">
+                                                <h3 class="team-name title title-lg pt-4">Jonathan Rios</h3>
+                                                <p class="team-position mb-1">CTO &amp; Software Engineer</p>
+                                                <ul class="team-social team-social-s2 mb-4">
+                                                    <li><a href="#"><em class="fab fa-facebook-f"></em></a></li>
+                                                    <li><a href="#"><em class="fab fa-linkedin-in"></em></a></li>
+                                                </ul>
+                                                <p>Expert in AI systems engineering and distributed computing, Jonathan leads the technical implementation of KNIRV-INFERENCE autonomous agents.</p>
+                                                <p>His expertise in Rust WASM and machine learning drives the development of self-improving AI agents that contribute to the collective intelligence network.</p>
+                                            </div>
+                                        </div><!-- .col  
+                                    </div><!-- .row  
+                                </div><!-- .team-popup  
+                            </div><!-- .col 
+                            <div class="col-lg-3 col-mb-6">
+                                <div class="team team-s3 team-s3-alt animated" data-animate="fadeInUp" data-delay="1">
+                                    <div class="team-photo round-full team-photo-bg">
+                                        <a href="#team-popup-3" class="team-show content-popup" data-overlay="bg-theme-grad-alternet"></a>
+                                        <img src="images/team/sq-g.jpg" alt="team" class="round-full">
+                                    </div>
+                                    <h5 class="team-name title title-sm">Jason Morales</h5>
+                                    <span class="team-position">Sr.Backend developer</span>
+                                    <ul class="team-social team-social-s2">
+                                        <li><a href="#"><em class="fab fa-linkedin-in"></em></a></li>
+                                        <li><a href="#"><em class="fab fa-facebook-f"></em></a></li>
+                                        <li><a href="#"><em class="fab fa-twitter"></em></a></li>
+                                    </ul>
+                                </div>
+                                <!-- Start .team-profile  
+                                <div id="team-popup-7" class="team-popup mfp-hide">
+                                    <a title="Close" class="mfp-close">×</a>
+                                    <div class="row align-items-start">
+                                        <div class="col-md-6">
+                                            <div class="team-photo">
+                                                <img src="images/team/g-color.jpg" alt="team">
+                                            </div>
+                                        </div><!-- .col  
+                                        <div class="col-md-6">
+                                            <div class="team-popup-info ps-md-3">
+                                                <h3 class="team-name title title-lg pt-4">Jason Morales</h3>
+                                                <p class="team-position mb-1">Sr.Backend developer</p>
+                                                <ul class="team-social team-social-s2 mb-4">
+                                                    <li><a href="#"><em class="fab fa-facebook-f"></em></a></li>
+                                                    <li><a href="#"><em class="fab fa-linkedin-in"></em></a></li>
+                                                </ul>
+                                                <p>Senior blockchain developer specializing in KNIRV-ORACLE and KNIRVCHAIN architecture, with deep expertise in GoLang and Rust development.</p>
+                                                <p>Jason focuses on building the sovereign blockchain layers that power the NRN token economy and ensure network integrity across the D-TEN ecosystem.</p>
+                                            </div>
+                                        </div><!-- .col  
+                                    </div><!-- .row  
+                                </div><!-- .team-profile  
+                            </div><!-- .col 
+                        </div><!-- .row 
+                    </div><!-- .block @e 
+                    END ADVISORS SECTION COMMENT -->
+                </div>
+            </section>
+            <!-- // -->
+            <section class="section bg-theme-dark tc-light" id="partners">
+                <div class="container">
+                    <!-- Section Head @s -->
+                    <div class="section-head text-center wide-auto-sm tc-light">
+                        <h2 class="title title-s4 animated" data-animate="fadeInUp" data-delay=".1" title="Partners">D-TEN Ecosystem Partners</h2>
+                    </div><!-- .section-head @e -->
+                    <!-- Block @s -->
+                    <div class="nk-block block-partners">
+                        <ul class="partner-list flex-wrap">
+                            <li class="partner-logo-lg animated" data-animate="fadeInUp" data-delay=".2"><img src="images/partners/a-md.png" alt="partner"></li>
+                            <li class="partner-logo-lg animated" data-animate="fadeInUp" data-delay=".3"><img src="images/partners/b-md.png" alt="partner"></li>
+                            <li class="partner-logo-lg animated" data-animate="fadeInUp" data-delay=".4"><img src="images/partners/c-md.png" alt="partner"></li>
+                            <li class="partner-logo-lg animated" data-animate="fadeInUp" data-delay=".5"><img src="images/partners/d-md.png" alt="partner"></li>
+                            <li class="partner-logo-lg animated" data-animate="fadeInUp" data-delay=".6"><img src="images/partners/e-md.png" alt="partner"></li>
+                        </ul>
+                    </div>
+                    <!-- Block @e -->
+                </div>
+            </section>
+            <!-- // -->
+            <section class="section bg-theme-alt tc-light section-connect" id="media-partner">
+                <div class="transform-line"></div>
+                <div class="container">
+                    <!-- Section Head @s -->
+                    <div class="section-head wide-auto-sm text-center">
+                        <h2 class="title-xs animated" data-animate="fadeInUp" data-delay=".1">As seen in</h2>
+                    </div><!-- .section-head @e -->
+                    <!-- Block @s -->
+                    <div class="nk-block block-partners">
+                        <ul class="partner-list partner-list-s2 flex-wrap">
+                            <li class="partner-logo-s2 animated" data-animate="fadeInUp" data-delay=".2"><img src="images/partners/a-xs.png" alt="partner"></li>
+                            <li class="partner-logo-s2 animated" data-animate="fadeInUp" data-delay=".25"><img src="images/partners/b-xs.png" alt="partner"></li>
+                            <li class="partner-logo-s2 animated" data-animate="fadeInUp" data-delay=".3"><img src="images/partners/c-xs.png" alt="partner"></li>
+                            <li class="partner-logo-s2 animated" data-animate="fadeInUp" data-delay=".35"><img src="images/partners/d-xs.png" alt="partner"></li>
+                            <li class="partner-logo-s2 animated" data-animate="fadeInUp" data-delay=".4"><img src="images/partners/e-xs.png" alt="partner"></li>
+                            <li class="partner-logo-s2 animated" data-animate="fadeInUp" data-delay=".45"><img src="images/partners/f-xs.png" alt="partner"></li>
+                            <li class="partner-logo-s2 animated" data-animate="fadeInUp" data-delay=".5"><img src="images/partners/a-sm.png" alt="partner"></li>
+                            <li class="partner-logo-s2 animated" data-animate="fadeInUp" data-delay=".55"><img src="images/partners/b-sm.png" alt="partner"></li>
+                            <li class="partner-logo-s2 animated" data-animate="fadeInUp" data-delay=".6"><img src="images/partners/c-sm.png" alt="partner"></li>
+                            <li class="partner-logo-s2 animated" data-animate="fadeInUp" data-delay=".65"><img src="images/partners/d-sm.png" alt="partner"></li>
+                        </ul>
+                    </div>
+                    <!-- Block @e -->
+                </div>
+            </section>
+            <!-- // -->
+            <section class="section section-contact bg-theme-dark tc-light" id="blog">
+                <div class="container">
+                    <div class="section-head text-center wide-auto-sm">
+                        <h2 class="title title-s4 animated" data-animate="fadeInUp" data-delay=".1" title="news">News & Updates</h2>
+                        <p class="animated" data-animate="fadeInUp" data-delay=".15">Latest news, updates, and articles from the KNIRV Network — loaded from our blog at knirv.com.</p>
+                    </div><!-- .section-head @e -->
+                    <!-- Block @s -->
+                    <div class="nk-block nk-block-blog">
+                        <div class="row justify-content-center">
+                            <div class="col-12">
+                                <div class="blog-embed animated" data-animate="fadeInUp" data-delay=".2">
+                                    <iframe src="https://knirv.com/blog" title="KNIRV Blog" style="width:100%;height:600px;border:none;border-radius:12px;background:rgba(255,255,255,0.05);"></iframe>
+                                </div>
+                            </div>
+                        </div><!-- .row -->
+                    </div><!-- .block @e -->
+                    <div class="text-center pdt-r animated" data-animate="fadeInUp" data-delay=".3">
+                        <a href="https://knirv.com/blog" target="_blank" class="link link-primary link-uc link-animate"><span>Visit knirv.com/blog</span> <em class="link-icon ti ti-angle-right"></em></a>
+                    </div>
+                </div>
+            </section>
+            <!-- // -->
+            <section class="section bg-theme tc-light pb-0" id="faqs">
+                <!-- FAQ Schema Markup -->
+                <script type="application/ld+json">
+                {
+                    "@context": "https://schema.org",
+                    "@type": "FAQPage",
+                    "mainEntity": [
+                        {
+                            "@type": "Question",
+                            "name": "What is KNIRVSERVER?",
+                            "acceptedAnswer": {
+                                "@type": "Answer",
+                                "text": "KNIRVSERVER is a Deterministic AI Agent Runtime that provides sandboxed, monitored, reproducible DVE (Deterministic Validation Environment) containers with kernel-level behavioral tracing via eBPF. It is the core product of the KNIRV Network."
+                            }
+                        },
+                        {
+                            "@type": "Question",
+                            "name": "How can I earn NRN tokens?",
+                            "acceptedAnswer": {
+                                "@type": "Answer",
+                                "text": "Earn NRN tokens by connecting your hardware (old Bitcoin miners, GPU rigs, or x86 servers) as a DVE operator node. Each containerized compute task executed on your node earns NRN rewards."
+                            }
+                        },
+                        {
+                            "@type": "Question",
+                            "name": "What is a DVE container?",
+                            "acceptedAnswer": {
+                                "@type": "Answer",
+                                "text": "A DVE (Deterministic Validation Environment) container is a sandboxed, kernel-level traced execution environment for AI agents. Every execution is recorded, verified, and auditable via the CLEAN cryptographic paradigm."
+                            }
+                        },
+                        {
+                            "@type": "Question",
+                            "name": "What is KNIRVCLI?",
+                            "acceptedAnswer": {
+                                "@type": "Answer",
+                                "text": "KNIRVCLI is the command-line interface for deploying and managing KNIRVSERVER DVE containers, writing AI agent configurations, and interacting with the network."
+                            }
+                        },
+                        {
+                            "@type": "Question",
+                            "name": "What is KNIRVCONTROLLER?",
+                            "acceptedAnswer": {
+                                "@type": "Answer",
+                                "text": "KNIRVCONTROLLER is the mobile interface for the KNIRV Network. Manage your personal assets — wallets, NRN balances, agent deployments — and monitor network health from your phone or tablet. Includes the same functionality as the desktop wallet with added mobile-optimized features."
+                            }
+                        },
+                        {
+                            "@type": "Question",
+                            "name": "How do I connect my old mining hardware?",
+                            "acceptedAnswer": {
+                                "@type": "Answer",
+                                "text": "Deploy KNIRVSERVER from GitHub on your existing hardware. Any x86 server, GPU rig, or old Bitcoin miner capable of running containers can participate as a DVE operator node and earn NRN tokens."
+                            }
+                        },
+                        {
+                            "@type": "Question",
+                            "name": "What is the CLEAN paradigm?",
+                            "acceptedAnswer": {
+                                "@type": "Answer",
+                                "text": "CLEAN (Cryptographic Ledger for Execution, Attestation, and Notarization) ensures every DVE execution is cryptographically proven, attested, and recorded on the blockchain for verifiable audit trails."
+                            }
+                        },
+                        {
+                            "@type": "Question",
+                            "name": "How can developers get started?",
+                            "acceptedAnswer": {
+                                "@type": "Answer",
+                                "text": "Developers can use KNIRVCLI to deploy AI agents in DVE containers. Self-host KNIRVSERVER via GitHub or access the managed cloud DVE at knirv.com. Full documentation is available on GitHub."
+                            }
+                        }
+                    ]
+                }
+                </script>
+
+                <div class="container">
+                    <div class="section-head text-center wide-auto-sm">
+                        <h2 class="title title-s4 animated" data-animate="fadeInUp" data-delay=".1" title="FAQS">Frequently Asked Questions</h2>
+                        <p class="animated" data-animate="fadeInUp" data-delay=".2">Below we've provided answers about KNIRVSERVER, the NRN token, DVE containers, and the ecosystem. If you have any other questions, please get in touch using the contact form below.</p>
+                    </div><!-- .section-head @e -->
+                    <!-- Block @s -->
+                    <div class="nk-block overflow-hidden">
+                        <div class="row justify-content-center">
+                            <div class="col-xl-8 col-lg-10">
+                                <ul class="nav tab-nav tab-nav-line mgb-r animated" data-animate="fadeInUp" data-delay=".3">
+                                    <li><a class="active" data-bs-toggle="tab" href="#faq-general">General</a></li>
+                                    <li><a data-bs-toggle="tab" href="#faq-products">Products</a></li>
+                                    <li><a data-bs-toggle="tab" href="#faq-mining">Mining &amp; NRN</a></li>
+                                    <li><a data-bs-toggle="tab" href="#faq-developers">Developers</a></li>
+                                </ul>
+                                <div class="tab-content animated" data-animate="fadeInUp" data-delay=".4">
+                                    <div class="tab-pane fade show active" id="faq-general">
+                                        <div class="accordion accordion-s1 accordion-faq" id="faq-67">
+                                            <div class="accordion-item accordion-item-s4 bg-theme-alt">
+                                                <h5 class="accordion-title" data-bs-toggle="collapse" data-bs-target="#faq-67-1">? What is KNIRVSERVER<span class="accordion-icon accordion-icon-s2"></span>
+                                                </h5>
+                                                <div id="faq-67-1" class="collapse show" data-bs-parent="#faq-67">
+                                                    <div class="accordion-content">
+                                                        <p>KNIRVSERVER is a Deterministic AI Agent Runtime — sandboxed, monitored, reproducible DVE (Deterministic Validation Environment) containers with kernel-level behavioral tracing via eBPF. It ensures every AI agent execution is recorded, verified, and auditable, with policy enforcement backed by blockchain audit trails.</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="accordion-item accordion-item-s4 bg-theme-alt">
+                                                <h5 class="accordion-title collapsed" data-bs-toggle="collapse" data-bs-target="#faq-67-2">? How do I earn NRN tokens<span class="accordion-icon accordion-icon-s2"></span>
+                                                </h5>
+                                                <div id="faq-67-2" class="collapse" data-bs-parent="#faq-67">
+                                                    <div class="accordion-content">
+                                                        <p>Connect your old Bitcoin miners, GPU rigs, or x86 servers as DVE operator nodes. Each containerized compute task executed on your hardware earns NRN tokens. No specialized hardware required — anything that runs containers can participate.</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="accordion-item accordion-item-s4 bg-theme-alt">
+                                                <h5 class="accordion-title collapsed" data-bs-toggle="collapse" data-bs-target="#faq-67-3">? What is the KNIRV Network<span class="accordion-icon accordion-icon-s2"></span>
+                                                </h5>
+                                                <div id="faq-67-3" class="collapse" data-bs-parent="#faq-67">
+                                                    <div class="accordion-content">
+                                                        <p>The KNIRV Network is a Decentralized Trusted Execution Network (D-TEN) where operators provide DVE compute capacity, AI developers deploy deterministic agent runtimes, and the collective validates execution integrity via blockchain-anchored proofs.</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="tab-pane fade" id="faq-products">
+                                        <div class="accordion accordion-s1 accordion-faq" id="faq-68">
+                                            <div class="accordion-item accordion-item-s4 bg-theme-alt">
+                                                <h5 class="accordion-title" data-bs-toggle="collapse" data-bs-target="#faq-68-1">? What are the three products<span class="accordion-icon accordion-icon-s2"></span>
+                                                </h5>
+                                                <div id="faq-68-1" class="collapse show" data-bs-parent="#faq-68">
+                                                    <div class="accordion-content">
+                                                        <p>KNIRVSERVER DVE (core runtime), KNIRVCLI (command-line tool for managing DVE containers and agents), and KNIRVCONTROLLER (orchestration layer for managing node fleets). All supporting components (blockchain, graph database, gateway, testnet, etc.) are bundled within KNIRVSERVER.</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="accordion-item accordion-item-s4 bg-theme-alt">
+                                                <h5 class="accordion-title collapsed" data-bs-toggle="collapse" data-bs-target="#faq-68-2">? What is a DVE container<span class="accordion-icon accordion-icon-s2"></span>
+                                                </h5>
+                                                <div id="faq-68-2" class="collapse" data-bs-parent="#faq-68">
+                                                    <div class="accordion-content">
+                                                        <p>A DVE (Deterministic Validation Environment) is a sandboxed container runtime with kernel-level behavioral tracing via eBPF. Every system call, memory access, and network operation is recorded and verified. Executions produce cryptographic proofs via the CLEAN paradigm.</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="accordion-item accordion-item-s4 bg-theme-alt">
+                                                <h5 class="accordion-title collapsed" data-bs-toggle="collapse" data-bs-target="#faq-68-3">? How does KNIRVCLI work<span class="accordion-icon accordion-icon-s2"></span>
+                                                </h5>
+                                                <div id="faq-68-3" class="collapse" data-bs-parent="#faq-68">
+                                                    <div class="accordion-content">
+                                                        <p>KNIRVCLI is the command-line interface for deploying AI agents into DVE containers, configuring execution policies, writing agent manifests, and managing your operator node. It provides the developer workflow for the KNIRVSERVER ecosystem.</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="accordion-item accordion-item-s4 bg-theme-alt">
+                                                <h5 class="accordion-title collapsed" data-bs-toggle="collapse" data-bs-target="#faq-68-4">? What does KNIRVCONTROLLER do<span class="accordion-icon accordion-icon-s2"></span>
+                                                </h5>
+                                                <div id="faq-68-4" class="collapse" data-bs-parent="#faq-68">
+                                                    <div class="accordion-content">
+                                                        <p>KNIRVCONTROLLER is the mobile interface for the KNIRV Network. Manage your personal assets — wallets, NRN balances, agent deployments — and monitor network health from your phone or tablet. Includes wallet management, personal asset oversight, agent deployment, and real-time monitoring, all optimized for mobile use.</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="tab-pane fade" id="faq-mining">
+                                        <div class="accordion accordion-s1 accordion-faq" id="faq-69">
+                                            <div class="accordion-item accordion-item-s4 bg-theme-alt">
+                                                <h5 class="accordion-title" data-bs-toggle="collapse" data-bs-target="#faq-69-1">? Can I connect my old Bitcoin miner<span class="accordion-icon accordion-icon-s2"></span>
+                                                </h5>
+                                                <div id="faq-69-1" class="collapse show" data-bs-parent="#faq-69">
+                                                    <div class="accordion-content">
+                                                        <p>Yes. Old Bitcoin miners, GPU rigs, and standard x86 servers can all participate as DVE operator nodes. Any hardware capable of running containerized workloads can earn NRN tokens by providing compute time to the network.</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="accordion-item accordion-item-s4 bg-theme-alt">
+                                                <h5 class="accordion-title collapsed" data-bs-toggle="collapse" data-bs-target="#faq-69-2">? How do NRN token economics work<span class="accordion-icon accordion-icon-s2"></span>
+                                                </h5>
+                                                <div id="faq-69-2" class="collapse" data-bs-parent="#faq-69">
+                                                    <div class="accordion-content">
+                                                        <p>NRN tokens are earned by DVE operators for executing containerized AI agent workloads. Developers pay NRN to deploy agents in DVE environments. This creates a balanced economy where compute providers earn tokens and developers pay for verifiable execution.</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="accordion-item accordion-item-s4 bg-theme-alt">
+                                                <h5 class="accordion-title collapsed" data-bs-toggle="collapse" data-bs-target="#faq-69-3">? Do I need specialized hardware<span class="accordion-icon accordion-icon-s2"></span>
+                                                </h5>
+                                                <div id="faq-69-3" class="collapse" data-bs-parent="#faq-69">
+                                                    <div class="accordion-content">
+                                                        <p>No. Any x86 server, GPU rig, or even a repurposed Bitcoin mining rig can participate as long as it can run containers. The KNIRVSERVER runtime is designed to make use of whatever compute capacity you have available.</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="tab-pane fade" id="faq-developers">
+                                        <div class="accordion accordion-s1 accordion-faq" id="faq-70">
+                                            <div class="accordion-item accordion-item-s4 bg-theme-alt">
+                                                <h5 class="accordion-title" data-bs-toggle="collapse" data-bs-target="#faq-70-1">? How do I deploy AI agents on KNIRVSERVER<span class="accordion-icon accordion-icon-s2"></span>
+                                                </h5>
+                                                <div id="faq-70-1" class="collapse show" data-bs-parent="#faq-70">
+                                                    <div class="accordion-content">
+                                                        <p>Use KNIRVCLI to write agent manifests and deploy them into DVE containers. Each deployment creates a sandboxed, kernel-traced execution environment. Agents run deterministically with full audit trails via the CLEAN cryptographic paradigm.</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="accordion-item accordion-item-s4 bg-theme-alt">
+                                                <h5 class="accordion-title collapsed" data-bs-toggle="collapse" data-bs-target="#faq-70-2">? What is eBPF behavioral tracing<span class="accordion-icon accordion-icon-s2"></span>
+                                                </h5>
+                                                <div id="faq-70-2" class="collapse" data-bs-parent="#faq-70">
+                                                    <div class="accordion-content">
+                                                        <p>eBPF (extended Berkeley Packet Filter) allows kernel-level observation of every system call, memory access, and network operation made by an AI agent inside a DVE container. This produces a complete, verifiable record of agent behavior for audit and debugging.</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="accordion-item accordion-item-s4 bg-theme-alt">
+                                                <h5 class="accordion-title collapsed" data-bs-toggle="collapse" data-bs-target="#faq-70-3">? How do I get started developing<span class="accordion-icon accordion-icon-s2"></span>
+                                                </h5>
+                                                <div id="faq-70-3" class="collapse" data-bs-parent="#faq-70">
+                                                    <div class="accordion-content">
+                                                        <p>Self-host KNIRVSERVER via the <a href="https://github.com/knirv/server" target="_blank">GitHub repository</a> or access the managed cloud DVE at <a href="https://knirv.com" target="_blank">knirv.com</a>. Install KNIRVCLI, write your first agent manifest, and deploy into a DVE container. Full documentation is available on GitHub.</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="accordion-item accordion-item-s4 bg-theme-alt">
+                                                <h5 class="accordion-title collapsed" data-bs-toggle="collapse" data-bs-target="#faq-70-4">? What is the CLEAN paradigm<span class="accordion-icon accordion-icon-s2"></span>
+                                                </h5>
+                                                <div id="faq-70-4" class="collapse" data-bs-parent="#faq-70">
+                                                    <div class="accordion-content">
+                                                        <p>CLEAN (Cryptographic Ledger for Execution, Attestation, and Notarization) ensures every DVE execution produces cryptographic proofs that can be verified on-chain. This creates an immutable audit trail for every AI agent action.</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div><!-- .col -->
+                        </div><!-- .row -->
+                    </div><!-- .block @e -->
+                </div>
+            </section>
+            <!-- // -->
+            <section class="section section-contact bg-theme tc-light" id="contact">
+                <div class="container">
+                    <div class="section-head text-center wide-auto-sm">
+                        <h2 class="title title-s4 animated" data-animate="fadeInUp" data-delay=".1" title="Contact">Contact KNIRV D-TEN</h2>
+                        <p class="animated" data-animate="fadeInUp" data-delay=".2">Ready to join the future of AI? Reach out to us and we’ll get back to you shortly.</p>
+                    </div><!-- .section-head @e -->
+                    <!-- Block @s -->
+                    <div class="nk-block block-contact">
+                        <div class="row justify-content-center text-center">
+                            <div class="col-xl-8 col-lg-10">
+                                <ul class="contact-list contact-list-s1 flex-wrap flex-md-nowrap pdb-l">
+                                    <li class="animated" data-animate="fadeInUp" data-delay=".3">
+                                        <em class="contact-icon fas fa-phone"></em>
+                                        <div class="contact-text">
+                                            <span>+44 0123 4567</span>
+                                        </div>
+                                    </li>
+                                    <li class="animated" data-animate="fadeInUp" data-delay=".4">
+                                        <em class="contact-icon fas fa-envelope"></em>
+                                        <div class="contact-text">
+                                            <span>info@knirv.network</span>
+                                        </div>
+                                    </li>
+                                    <li class="animated" data-animate="fadeInUp" data-delay=".5">
+                                        <em class="contact-icon fas fa-paper-plane"></em>
+                                        <div class="contact-text">
+                                            <span>Join us on Telegram</span>
+                                        </div>
+                                    </li>
+                                </ul>
+                            </div><!-- .col -->
+                            <div class="col-xl-8 col-lg-10">
+                                <div class="contact-wrap p-0">
+                                    <form id="contact-form-01" class="contact-form nk-form-submit" action="form/contact.php" method="post">
+                                        <div class="field-item field-item-center animated" data-animate="fadeInUp" data-delay=".6">
+                                            <input name="contact-name" type="text" class="input-line required">
+                                            <label class="field-label field-label-line">Your Name</label>
+                                        </div>
+                                        <div class="field-item field-item-center animated" data-animate="fadeInUp" data-delay=".7">
+                                            <input name="contact-email" type="email" class="input-line input-line-center required email">
+                                            <label class="field-label field-label-line">Your Email</label>
+                                        </div>
+                                        <div class="field-item field-item-center animated" data-animate="fadeInUp" data-delay=".8">
+                                            <textarea name="contact-message" class="input-line input-line-center input-textarea required"></textarea>
+                                            <label class="field-label field-label-line">Your Message</label>
+                                        </div>
+                                        <input type="text" class="d-none" name="form-anti-honeypot" value="">
+                                        <div class="field-wrap animated" data-animate="fadeInUp" data-delay=".9">
+                                            <button type="submit" class="btn btn-round btn-lg btn-grad">Submit</button>
+                                            <div class="form-results"></div>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div><!-- .col -->
+                        </div><!-- .row -->
+                    </div><!-- .block @e -->
+                </div>
+            </section>
+            <!-- // -->
+        </main>
+        <!-- Universal Footer will be inserted here by JavaScript -->
+    </div>
+    <!-- Preloader -->
+    <div class="preloader"><span class="spinner spinner-round"></span></div>
+    <!-- JavaScript -->
+    <script src="assets/js/jquery.bundle.js?ver=210"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="assets/js/scripts.js?ver=210"></script>
+    <script src="assets/js/charts.js?ver=210"></script>
+    <script src="assets/js/social-sharing.js?ver=210"></script>
+    <script src="js/config-loader.js"></script>
+    <script src="js/universal-footer.js"></script>
+    <!-- Optional: Include footer test suite for development/testing -->
+    <!-- <script src="js/test-footer.js"></script> -->
+
+    <!-- Bootstrap accordion fix -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Ensure Bootstrap accordion works properly
+            const accordionElements = document.querySelectorAll('.accordion-faq [data-bs-toggle="collapse"]');
+
+            accordionElements.forEach(function(element) {
+                element.addEventListener('click', function(e) {
+                    // Let Bootstrap handle the accordion
+                    console.log('Accordion clicked:', this.getAttribute('data-bs-target'));
+                });
+            });
+
+            // Listen for Bootstrap collapse events
+            document.querySelectorAll('.accordion-faq .collapse').forEach(function(collapseElement) {
+                collapseElement.addEventListener('show.bs.collapse', function() {
+                    console.log('Accordion showing:', this.id);
+                });
+
+                collapseElement.addEventListener('hide.bs.collapse', function() {
+                    console.log('Accordion hiding:', this.id);
+                });
+            });
+        });
+    </script>
+
+    <!-- React and ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Bundle Scripts -->
+    <script src="assets/js/bundle.js?ver=210"></script>
+    <script src="assets/js/scripts.js?ver=210"></script>
+
+    <!-- Animated Logo Script -->
+    <script>
+      const { useState, useEffect } = React;
+
+      const AnimatedLogo = () => {
+        const [glowIntensity, setGlowIntensity] = useState(0.5);
+
+        useEffect(() => {
+          const interval = setInterval(() => {
+            setGlowIntensity((prev) => 0.3 + Math.sin(Date.now() * 2e-3) * 0.2);
+          }, 50);
+          return () => clearInterval(interval);
+        }, []);
+
+        return React.createElement("div", {
+          className: "flex items-center space-x-3",
+          style: { width: '200px', height: '60px' }
+        },
+          React.createElement("div", { className: "relative" },
+            React.createElement("svg", {
+              width: "40",
+              height: "40",
+              viewBox: "0 0 120 120",
+              className: "drop-shadow-2xl",
+              style: {
+                filter: `drop-shadow(0 0 ${10 * glowIntensity}px #00f5ff) drop-shadow(0 0 ${20 * glowIntensity}px #8b5cf6)`
+              }
+            },
+              // Central soma (cell body)
+              React.createElement("circle", {
+                cx: "60", cy: "60", r: "8",
+                fill: "url(#somaGradient)",
+                stroke: "#00f5ff",
+                strokeWidth: "1.5"
+              }),
+
+              // Glowing ring around soma
+              React.createElement("circle", {
+                cx: "60", cy: "60", r: "12",
+                fill: "none",
+                stroke: "url(#glowRing)",
+                strokeWidth: "1",
+                opacity: glowIntensity * 0.6,
+                className: "animate-pulse"
+              }),
+
+              // Dendrites (branching structures)
+              React.createElement("g", { stroke: "#8b5cf6", strokeWidth: "1.5", fill: "none" },
+                // Main dendrite branches
+                React.createElement("path", {
+                  d: "M60,52 Q45,35 30,25 Q25,22 20,20",
+                  opacity: 0.8
+                }),
+                React.createElement("path", {
+                  d: "M68,52 Q85,35 100,25 Q105,22 110,20",
+                  opacity: 0.8
+                }),
+                React.createElement("path", {
+                  d: "M52,60 Q35,45 25,30 Q22,25 20,20",
+                  opacity: 0.8
+                }),
+                React.createElement("path", {
+                  d: "M68,68 Q85,85 100,95 Q105,98 110,100",
+                  opacity: 0.8
+                }),
+                
+                // Secondary branches
+                React.createElement("path", {
+                  d: "M35,30 Q30,25 25,20",
+                  opacity: 0.6
+                }),
+                React.createElement("path", {
+                  d: "M95,30 Q100,25 105,20",
+                  opacity: 0.6
+                }),
+                React.createElement("path", {
+                  d: "M30,95 Q25,100 20,105",
+                  opacity: 0.6
+                }),
+                React.createElement("path", {
+                  d: "M95,95 Q100,100 105,105",
+                  opacity: 0.6
+                })
+              ),
+
+              // Synaptic terminals (connection points)
+              React.createElement("g", { fill: "#00f5ff", opacity: 0.7 },
+                React.createElement("circle", { cx: "20", cy: "20", r: "2" }),
+                React.createElement("circle", { cx: "110", cy: "20", r: "2" }),
+                React.createElement("circle", { cx: "20", cy: "100", r: "2" }),
+                React.createElement("circle", { cx: "110", cy: "100", r: "2" }),
+                React.createElement("circle", { cx: "25", cy: "30", r: "1.5" }),
+                React.createElement("circle", { cx: "95", cy: "30", r: "1.5" }),
+                React.createElement("circle", { cx: "30", cy: "95", r: "1.5" }),
+                React.createElement("circle", { cx: "95", cy: "95", r: "1.5" })
+              ),
+
+              // Gradient definitions
+              React.createElement("defs", {},
+                React.createElement("radialGradient", { id: "somaGradient", cx: "50%", cy: "50%", r: "50%" },
+                  React.createElement("stop", { offset: "0%", stopColor: "#8b5cf6", stopOpacity: "0.8" }),
+                  React.createElement("stop", { offset: "100%", stopColor: "#00f5ff", stopOpacity: "0.4" })
+                ),
+                React.createElement("linearGradient", { id: "glowRing", x1: "0%", y1: "0%", x2: "100%", y2: "100%" },
+                  React.createElement("stop", { offset: "0%", stopColor: "#00f5ff", stopOpacity: "0.8" }),
+                  React.createElement("stop", { offset: "50%", stopColor: "#8b5cf6", stopOpacity: "0.6" }),
+                  React.createElement("stop", { offset: "100%", stopColor: "#00f5ff", stopOpacity: "0.8" })
+                )
+              )
+            )
+          ),
+          React.createElement("div", { className: "flex flex-col" },
+            React.createElement("h1", {
+              className: "text-xl font-bold text-white tracking-wide",
+              style: { textShadow: "0 0 10px #00f5ff" }
+            }, "KNIRV"),
+            React.createElement("h2", {
+              className: "text-xs text-gray-300 tracking-widest",
+              style: { marginTop: "2px" }
+            }, "NETWORK")
+          )
+        );
+      };
+
+      // Render the animated logo
+      const logoContainer = document.querySelector('.animated-logo-container');
+      if (logoContainer) {
+        const root = ReactDOM.createRoot(logoContainer);
+        root.render(React.createElement(AnimatedLogo));
+      }
+    </script>
+
+    <!-- Network Connection and Login Modal JavaScript -->
+    <script>
+      // Network Connection Manager
+      class NetworkManager {
+        constructor() {
+          this.currentNetwork = null;
+          this.connectionStatus = 'disconnected';
+          this.networks = {
+            demo: { url: 'http://localhost:' + window.location.port, name: 'Demo Network', type: 'demo' },
+            mainnet: { url: 'https://gateway.knirv.network', name: 'Mainnet Gateway', type: 'mainnet' },
+            publicTestnet: { url: 'https://testnet-gateway.knirv.network', name: 'Public Testnet Gateway', type: 'public-testnet' },
+            localTestnet: { url: 'http://localhost:8080', name: 'Local Testnet', type: 'local-testnet' }
+          };
+          this.init();
+        }
+
+        init() {
+           this.updateNetworkStatus();
+           this.setupEventListeners();
+
+           // Detect gateway callback FIRST so autoDetectNetworks can skip the
+           // PNA-blocked loopback fetch when we already know the gateway URL.
+           try {
+             const _gp = new URLSearchParams(window.location.search);
+             const _gw = _gp.get('gateway');
+             if (_gw && this._isValidGatewayUrl(_gw)) {
+               this.pendingGatewayCallback = _gw;
+               this.networks.localTestnet = { url: _gw, name: 'Local Instance', type: 'local-testnet', available: true };
+               this.currentNetwork = this.networks.localTestnet;
+               const _open = () => {
+                 const el = document.getElementById('login-modal');
+                 if (el) new bootstrap.Modal(el).show();
+               };
+               if (document.readyState === 'loading') {
+                 document.addEventListener('DOMContentLoaded', _open);
+               } else {
+                 setTimeout(_open, 400);
+               }
+             }
+           } catch (_) {}
+
+           this.autoDetectNetworks();
+
+           // Check for saved network connection (skip if we have a gateway callback)
+           if (!this.pendingGatewayCallback) {
+             const savedNetwork = localStorage.getItem('knirv_network');
+             if (savedNetwork) {
+               try {
+                 const networkData = JSON.parse(savedNetwork);
+                 this.connectToNetwork(networkData.url, networkData.type, networkData.name);
+               } catch (e) {
+                 console.warn('Failed to restore saved network connection:', e);
+               }
+             }
+           }
+           // Don't auto-connect to demo network - let the login modal handle network selection
+         }
+
+        // Validate the gateway URL is well-formed (local or public — supports future testnet/mainnet gateways).
+        _isValidGatewayUrl(url) {
+          try {
+            const parsed = new URL(url);
+            return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+          } catch { return false; }
+        }
+
+        setupEventListeners() {
+           // Network selector dropdown
+           document.addEventListener('click', (e) => {
+             if (e.target.matches('[data-network-action]')) {
+               const action = e.target.getAttribute('data-network-action');
+               const networkType = e.target.getAttribute('data-network-type');
+
+               if (action === 'connect') {
+                 this.handleNetworkSelection(networkType);
+               }
+             }
+           });
+
+           // Login modal events - use Bootstrap modal events
+           const loginModal = document.getElementById('login-modal');
+           if (loginModal) {
+             loginModal.addEventListener('show.bs.modal', (e) => {
+               // Prepare the modal content when it's about to be shown
+               this.prepareLoginModal();
+             });
+           }
+         }
+
+        async autoDetectNetworks() {
+          // Skip the loopback health check when we're in gateway-callback mode:
+          // the gateway URL is already known and Chrome's Private Network Access
+          // policy would block a fetch from this public origin to localhost anyway.
+          if (!this.pendingGatewayCallback) {
+            try {
+              const response = await fetch('http://localhost:8080/health', {
+                method: 'GET',
+                timeout: 2000
+              });
+              if (response.ok) {
+                this.networks.localTestnet.available = true;
+              }
+            } catch (e) {
+              this.networks.localTestnet.available = false;
+            }
+          }
+
+          // Check public testnet
+          try {
+            const response = await fetch('https://testnet-gateway.knirv.network/health', { 
+              method: 'GET',
+              timeout: 5000 
+            });
+            if (response.ok) {
+              this.networks.publicTestnet.available = true;
+            }
+          } catch (e) {
+            this.networks.publicTestnet.available = false;
+          }
+
+          this.updateNetworkDropdown();
+        }
+
+        handleNetworkSelection(networkType) {
+          if (networkType === 'private') {
+            this.showPrivateNetworkModal();
+          } else if (this.networks[networkType]) {
+            const network = this.networks[networkType];
+            this.connectToNetwork(network.url, network.type, network.name);
+          }
+        }
+
+        async connectToNetwork(url, type, name) {
+          try {
+            // When this is the gateway-callback URL, skip the health check:
+            // Chrome's Private Network Access policy blocks public→loopback
+            // fetches unless the server has had time to return the PNA header.
+            // We trust the URL because the user arrived here via our own redirect.
+            const skipHealthCheck = this.pendingGatewayCallback && url === this.pendingGatewayCallback;
+
+            if (!skipHealthCheck) {
+              // Test connection
+              const response = await fetch(`${url}/health`, {
+                method: 'GET',
+                timeout: 10000
+              });
+              if (!response.ok) {
+                throw new Error('Network health check failed');
+              }
+            }
+
+            this.currentNetwork = { url, type, name };
+            this.connectionStatus = 'connected';
+
+            // Save to localStorage
+            localStorage.setItem('knirv_network', JSON.stringify(this.currentNetwork));
+
+            this.updateNetworkStatus();
+            this.showConnectionSuccess(name);
+          } catch (error) {
+            this.connectionStatus = 'disconnected';
+            this.currentNetwork = null;
+            this.updateNetworkStatus();
+            this.showConnectionError(name, error.message);
+          }
+        }
+
+        updateNetworkStatus() {
+          const indicator = document.querySelector('.network-status-indicator');
+          const networkText = document.querySelector('.network-selector .btn-outline-light');
+          
+          if (indicator && networkText) {
+            // Remove all status classes
+            indicator.className = 'network-status-indicator';
+            
+            if (this.connectionStatus === 'connected' && this.currentNetwork) {
+              indicator.classList.add(this.currentNetwork.type);
+              networkText.innerHTML = `<span class="network-status-dot ${this.currentNetwork.type}"></span>${this.currentNetwork.name}`;
+            } else {
+              indicator.classList.add('disconnected');
+              networkText.innerHTML = '<span class="network-status-dot disconnected"></span>Select Network';
+            }
+          }
+        }
+
+        updateNetworkDropdown() {
+          const dropdown = document.querySelector('.network-selector .dropdown-menu');
+          if (!dropdown) return;
+
+          let dropdownHTML = '';
+          
+          // Add available networks
+          Object.entries(this.networks).forEach(([key, network]) => {
+            const statusClass = network.available !== false ? network.type : 'disconnected';
+            const statusText = network.available !== false ? 'Available' : 'Unavailable';
+            
+            dropdownHTML += `
+              <li>
+                <a class="dropdown-item" href="#" data-network-action="connect" data-network-type="${key}">
+                  <span class="network-status-dot ${statusClass}"></span>
+                  ${network.name}
+                  <small class="text-muted ms-2">(${statusText})</small>
+                </a>
+              </li>
+            `;
+          });
+
+          // Add private network option
+          dropdownHTML += `
+            <li><hr class="dropdown-divider"></li>
+            <li>
+              <a class="dropdown-item" href="#" data-network-action="connect" data-network-type="private">
+                <span class="network-status-dot private-testnet"></span>
+                Private Network
+                <small class="text-muted ms-2">(Custom IP)</small>
+              </a>
+            </li>
+          `;
+
+          dropdown.innerHTML = dropdownHTML;
+        }
+
+        prepareLoginModal() {
+           const modal = document.getElementById('login-modal');
+           if (!modal) {
+             this.createLoginModal();
+             return;
+           }
+
+           const modalBody = modal.querySelector('.modal-body');
+           if (!modalBody) return;
+
+           // Always show login form with network selection
+           this.showLoginForm(modalBody);
+         }
+
+        async authFetch(path, options = {}) {
+          const networkUrl = this.currentNetwork?.url || '';
+          const prefixes = [`${networkUrl}/api/auth`, `${networkUrl}/auth`];
+          let lastResponse = null;
+          let lastError = null;
+
+          for (const prefix of prefixes) {
+            try {
+              const response = await fetch(`${prefix}${path}`, options);
+              lastResponse = response;
+              if (response.ok || (response.status !== 404 && response.status !== 405)) {
+                return response;
+              }
+            } catch (error) {
+              lastError = error;
+            }
+          }
+
+          if (lastResponse) return lastResponse;
+          throw lastError || new Error('Authentication endpoint unavailable');
+        }
+
+        showLoginForm(container) {
+            // Default public website logins to the public testnet gateway.
+            const defaultNetwork = this.currentNetwork || this.networks.publicTestnet;
+            const networkName = defaultNetwork.name;
+
+            container.innerHTML = `
+              <div class="mb-3">
+                <label for="network-select" class="form-label">Select Network</label>
+                <select class="form-control" id="network-select">
+                  <option value="demo" ${defaultNetwork.type === 'demo' ? 'selected' : ''}>
+                    <span class="network-status-dot demo"></span>Demo Network (Local)
+                  </option>
+                  <option value="localTestnet" ${defaultNetwork.type === 'local-testnet' ? 'selected' : ''}>
+                    <span class="network-status-dot local-testnet"></span>Local Testnet (localhost:8080)
+                  </option>
+                  <option value="publicTestnet" ${defaultNetwork.type === 'public-testnet' ? 'selected' : ''}>
+                    <span class="network-status-dot public-testnet"></span>Public Testnet (testnet-gateway.knirv.network)
+                  </option>
+                  <option value="mainnet" ${defaultNetwork.type === 'mainnet' ? 'selected' : ''}>
+                    <span class="network-status-dot mainnet"></span>Mainnet Gateway (gateway.knirv.network)
+                  </option>
+                </select>
+              </div>
+
+              <div class="mb-3">
+                <p class="text-center">
+                  <span class="network-status-dot ${defaultNetwork.type}"></span>
+                  Connected to: <strong>${networkName}</strong>
+                </p>
+              </div>
+
+              <ul class="nav nav-tabs mb-3" id="login-tabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                  <button class="nav-link active" id="password-tab" data-bs-toggle="tab" data-bs-target="#password-login" type="button" role="tab">Password</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                  <button class="nav-link" id="qr-tab" data-bs-toggle="tab" data-bs-target="#qr-login" type="button" role="tab">QR Code</button>
+                </li>
+              </ul>
+              <div class="tab-content">
+                <div class="tab-pane fade show active" id="password-login" role="tabpanel">
+                  <form id="login-form">
+                    <div class="mb-3">
+                      <label for="username" class="form-label">Username</label>
+                      <input type="text" class="form-control" id="username" name="username" required>
+                    </div>
+                    <div class="mb-3">
+                      <label for="password" class="form-label">Password</label>
+                      <input type="password" class="form-control" id="password" name="password" required>
+                    </div>
+                    <div class="mb-3 form-check">
+                      <input type="checkbox" class="form-check-input" id="remember-me" name="remember-me">
+                      <label class="form-check-label" for="remember-me">Remember me</label>
+                    </div>
+                    <div class="d-grid gap-2">
+                      <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-sign-in-alt me-2"></i>Login to WebGUI
+                      </button>
+                      <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    </div>
+                  </form>
+                </div>
+                <div class="tab-pane fade" id="qr-login" role="tabpanel">
+                  <div id="qr-init-area" class="text-center">
+                    <p class="text-muted mb-3">Scan with KNIRVCONTROLLER to log in</p>
+                    <button id="show-qr-btn" class="btn btn-primary mb-3">
+                      <i class="fas fa-qrcode me-2"></i>Show QR Code
+                    </button>
+                  </div>
+                  <div id="qr-display-area" class="text-center" style="display:none">
+                    <div id="qr-code-container" class="mb-3 d-inline-block p-3 bg-white rounded"></div>
+                    <p class="text-muted small">Scan this code with your KNIRVCONTROLLER mobile app</p>
+                    <div id="qr-status" class="mt-2">
+                      <span class="badge bg-warning">Waiting for scan...</span>
+                    </div>
+                    <button id="cancel-qr-btn" class="btn btn-sm btn-outline-secondary mt-2">Cancel</button>
+                  </div>
+                </div>
+              </div>
+           `;
+
+           // Setup network selection
+           const networkSelect = container.querySelector('#network-select');
+           networkSelect.addEventListener('change', (e) => {
+             const selectedNetwork = e.target.value;
+             if (selectedNetwork && this.networks[selectedNetwork]) {
+               const network = this.networks[selectedNetwork];
+               this.connectToNetwork(network.url, network.type, network.name);
+             } else {
+               this.connectionStatus = 'disconnected';
+               this.currentNetwork = null;
+               this.updateNetworkStatus();
+             }
+           });
+
+            // Auto-connect to the default network if not already connected
+            if (!this.currentNetwork) {
+              this.connectToNetwork(defaultNetwork.url, defaultNetwork.type, defaultNetwork.name);
+            }
+
+            // Setup form submission
+            const form = container.querySelector('#login-form');
+            if (form) {
+              form.addEventListener('submit', (e) => {
+                e.preventDefault();
+                this.handleLogin(form);
+              });
+            }
+
+            // Setup QR login
+            this.setupQRLogin(container);
+          }
+
+         setupQRLogin(container) {
+            const showBtn = container.querySelector('#show-qr-btn');
+            const cancelBtn = container.querySelector('#cancel-qr-btn');
+            if (!showBtn) return;
+
+            showBtn.addEventListener('click', async () => {
+              document.getElementById('qr-init-area').style.display = 'none';
+              document.getElementById('qr-display-area').style.display = 'block';
+              document.getElementById('qr-status').innerHTML = '<span class="badge bg-warning">Generating QR code...</span>';
+
+              try {
+                const resp = await this.authFetch('/qr/initiate', { method: 'POST' });
+                if (!resp.ok) throw new Error('Failed to initiate QR login');
+                const data = await resp.json();
+
+                // Generate QR code using a simple canvas approach
+                const qrContainer = document.getElementById('qr-code-container');
+                qrContainer.innerHTML = '';
+                const canvas = document.createElement('canvas');
+                canvas.width = 200;
+                canvas.height = 200;
+                qrContainer.appendChild(canvas);
+
+                // Simple QR rendering via QRServer API
+                const qrImg = document.createElement('img');
+                qrImg.src = 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=' + encodeURIComponent(data.qr_url);
+                qrImg.alt = 'QR Login Code';
+                qrImg.className = 'img-fluid';
+                qrImg.style.maxWidth = '200px';
+                qrContainer.innerHTML = '';
+                qrContainer.appendChild(qrImg);
+
+                document.getElementById('qr-status').innerHTML = '<span class="badge bg-warning">Waiting for scan...</span>';
+
+                // Poll for approval
+                this._qrPollToken = data.token;
+                this._pollQRStatus(data.token);
+              } catch (err) {
+                document.getElementById('qr-status').innerHTML = '<span class="badge bg-danger">Error: ' + err.message + '</span>';
+              }
+            });
+
+            if (cancelBtn) {
+              cancelBtn.addEventListener('click', () => {
+                this._qrPollToken = null;
+                document.getElementById('qr-init-area').style.display = 'block';
+                document.getElementById('qr-display-area').style.display = 'none';
+              });
+            }
+          }
+
+         async _pollQRStatus(token) {
+            const maxAttempts = 60;
+            let attempts = 0;
+
+            const poll = async () => {
+              if (!token || token !== this._qrPollToken) return;
+              if (attempts >= maxAttempts) {
+                document.getElementById('qr-status').innerHTML = '<span class="badge bg-danger">Expired — please try again</span>';
+                return;
+              }
+              attempts++;
+
+              try {
+                const resp = await this.authFetch('/qr/status?token=' + encodeURIComponent(token));
+                if (!resp.ok) throw new Error('status check failed');
+                const data = await resp.json();
+
+                if (data.status === 'approved' && data.jwt) {
+                  localStorage.setItem('knirv_auth_token', data.jwt);
+                  document.getElementById('qr-status').innerHTML = '<span class="badge bg-success">Approved! Redirecting...</span>';
+                  this.redirectToWebGUI({ token: data.jwt });
+                  return;
+                }
+
+                if (data.status === 'expired') {
+                  document.getElementById('qr-status').innerHTML = '<span class="badge bg-danger">Expired — please try again</span>';
+                  return;
+                }
+
+                setTimeout(poll, 2000);
+              } catch {
+                setTimeout(poll, 2000);
+              }
+            };
+
+            setTimeout(poll, 2000);
+          }
+
+        async handleLogin(form) {
+          const formData = new FormData(form);
+          const username = formData.get('username');
+          const password = formData.get('password');
+          const rememberMe = formData.get('remember-me') === 'on';
+
+          const submitBtn = form.querySelector('button[type="submit"]');
+          const originalText = submitBtn.innerHTML;
+          
+          submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Logging in...';
+          submitBtn.disabled = true;
+
+          try {
+            if (!this.currentNetwork) {
+              this.currentNetwork = this.networks.publicTestnet;
+            }
+
+            const response = await this.authFetch('/login', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ username, password, rememberMe })
+            });
+
+            if (response.ok) {
+              const data = await response.json();
+              
+              // Store auth token if provided
+              if (data.token) {
+                localStorage.setItem('knirv_auth_token', data.token);
+              }
+
+              // Redirect to WebGUI (developer-portal)
+              this.redirectToWebGUI(data);
+            } else {
+              throw new Error('Invalid credentials');
+            }
+          } catch (error) {
+            this.showLoginError(error.message);
+          } finally {
+            submitBtn.innerHTML = originalText;
+            submitBtn.disabled = false;
+          }
+        }
+
+        redirectToWebGUI(authData) {
+          // Close modal first
+          const modal = bootstrap.Modal.getInstance(document.getElementById('login-modal'));
+          if (modal) {
+            modal.hide();
+          }
+
+          // Show success message
+          this.showNotification('Login successful! Redirecting to WebGUI...', 'success');
+
+          setTimeout(() => {
+            if (this.pendingGatewayCallback) {
+              // Return to the local gateway with auth params so RoleContext can authenticate
+              const role = authData?.user?.role || 'General';
+              const token = authData?.token || '';
+              const network = this.currentNetwork?.type || 'local-testnet';
+              const dest = new URL(this.pendingGatewayCallback);
+              dest.searchParams.set('role', role);
+              dest.searchParams.set('network', network);
+              dest.searchParams.set('token', token);
+              window.location.href = dest.toString();
+            } else {
+              window.location.href = '/dashboard';
+            }
+          }, 1500);
+        }
+
+        showPrivateNetworkModal() {
+          // Create or update private network modal
+          let modal = document.getElementById('private-network-modal');
+          if (!modal) {
+            modal = this.createPrivateNetworkModal();
+          }
+
+          const bootstrapModal = new bootstrap.Modal(modal);
+          bootstrapModal.show();
+        }
+
+        createPrivateNetworkModal() {
+          const modalHTML = `
+            <div class="modal fade" id="private-network-modal" tabindex="-1">
+              <div class="modal-dialog">
+                <div class="modal-content">
+                  <div class="modal-header">
+                    <h5 class="modal-title">Connect to Private Network</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                  </div>
+                  <div class="modal-body">
+                    <form id="private-network-form">
+                      <div class="mb-3">
+                        <label for="private-ip" class="form-label">Network IP Address</label>
+                        <input type="text" class="form-control" id="private-ip" 
+                               placeholder="192.168.1.100:8080" required>
+                        <div class="form-text">Enter the IP address and port of your private KNIRV network</div>
+                      </div>
+                      
+                      <div class="mb-3">
+                        <label for="network-name" class="form-label">Network Name (Optional)</label>
+                        <input type="text" class="form-control" id="network-name" 
+                               placeholder="My Private Network">
+                      </div>
+                      
+                      <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary">
+                          <i class="fas fa-plug me-2"></i>Connect
+                        </button>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              </div>
+            </div>
+          `;
+
+          document.body.insertAdjacentHTML('beforeend', modalHTML);
+          const modal = document.getElementById('private-network-modal');
+
+          // Setup form submission
+          const form = modal.querySelector('#private-network-form');
+          form.addEventListener('submit', (e) => {
+            e.preventDefault();
+            this.handlePrivateNetworkConnection(form);
+          });
+
+          return modal;
+        }
+
+        async handlePrivateNetworkConnection(form) {
+          const formData = new FormData(form);
+          let ip = formData.get('private-ip').trim();
+          const name = formData.get('network-name').trim() || 'Private Network';
+
+          // Add protocol if missing
+          if (!ip.startsWith('http://') && !ip.startsWith('https://')) {
+            ip = 'http://' + ip;
+          }
+
+          // Validate IP format
+          if (!this.isValidNetworkAddress(ip)) {
+            this.showNotification('Please enter a valid IP address and port (e.g., 192.168.1.100:8080)', 'error');
+            return;
+          }
+
+          const submitBtn = form.querySelector('button[type="submit"]');
+          const originalText = submitBtn.innerHTML;
+          
+          submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Connecting...';
+          submitBtn.disabled = true;
+
+          try {
+            await this.connectToNetwork(ip, 'private-testnet', name);
+            
+            // Close modal on success
+            const modal = bootstrap.Modal.getInstance(document.getElementById('private-network-modal'));
+            if (modal) {
+              modal.hide();
+            }
+          } catch (error) {
+            // Error handling is done in connectToNetwork
+          } finally {
+            submitBtn.innerHTML = originalText;
+            submitBtn.disabled = false;
+          }
+        }
+
+        isValidNetworkAddress(address) {
+          try {
+            const url = new URL(address);
+            return url.protocol === 'http:' || url.protocol === 'https:';
+          } catch {
+            return false;
+          }
+        }
+
+        createLoginModal() {
+          const modalHTML = `
+            <div class="modal fade" id="login-modal" tabindex="-1">
+              <div class="modal-dialog">
+                <div class="modal-content" style="background-color: rgba(15, 21, 54, 0.98); color: #ffffff; border: 1px solid rgba(43, 86, 245, 0.3);">
+                  <div class="modal-header" style="background: rgba(43, 86, 245, 0.1); border-bottom: 1px solid rgba(43, 86, 245, 0.2);">
+                    <h5 class="modal-title" style="color: #ffffff; font-weight: 600;">Login to KNIRV WebGUI</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                  </div>
+                  <div class="modal-body">
+                    <!-- Content will be dynamically populated -->
+                  </div>
+                </div>
+              </div>
+            </div>
+          `;
+
+          document.body.insertAdjacentHTML('beforeend', modalHTML);
+        }
+
+        showConnectionSuccess(networkName) {
+          this.showNotification(`Successfully connected to ${networkName}`, 'success');
+        }
+
+        showConnectionError(networkName, error) {
+          this.showNotification(`Failed to connect to ${networkName}: ${error}`, 'error');
+        }
+
+        showLoginError(error) {
+          const modal = document.getElementById('login-modal');
+          const modalBody = modal.querySelector('.modal-body');
+          
+          // Add error alert to the top of the modal
+          const existingAlert = modalBody.querySelector('.alert-danger');
+          if (existingAlert) {
+            existingAlert.remove();
+          }
+
+          const errorAlert = `
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+              <i class="fas fa-exclamation-circle me-2"></i>
+              ${error}
+              <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+          `;
+
+          modalBody.insertAdjacentHTML('afterbegin', errorAlert);
+        }
+
+        showNotification(message, type = 'info') {
+          // Create notification container if it doesn't exist
+          let container = document.getElementById('notification-container');
+          if (!container) {
+            container = document.createElement('div');
+            container.id = 'notification-container';
+            container.style.cssText = `
+              position: fixed;
+              top: 20px;
+              right: 20px;
+              z-index: 9999;
+              max-width: 400px;
+            `;
+            document.body.appendChild(container);
+          }
+
+          const alertClass = {
+            success: 'alert-success',
+            error: 'alert-danger',
+            warning: 'alert-warning',
+            info: 'alert-info'
+          }[type] || 'alert-info';
+
+          const icon = {
+            success: 'fas fa-check-circle',
+            error: 'fas fa-exclamation-circle',
+            warning: 'fas fa-exclamation-triangle',
+            info: 'fas fa-info-circle'
+          }[type] || 'fas fa-info-circle';
+
+          const notification = document.createElement('div');
+          notification.className = `alert ${alertClass} alert-dismissible fade show`;
+          notification.innerHTML = `
+            <i class="${icon} me-2"></i>
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+          `;
+
+          container.appendChild(notification);
+
+          // Auto-remove after 5 seconds
+          setTimeout(() => {
+            if (notification.parentNode) {
+              notification.remove();
+            }
+          }, 5000);
+        }
+      }
+
+      // Initialize Network Manager when DOM is loaded
+      document.addEventListener('DOMContentLoaded', () => {
+        window.networkManager = new NetworkManager();
+      });
+    </script>
+
+    <!-- Login Modal HTML -->
+    <div class="modal fade" id="login-modal" tabindex="-1" aria-labelledby="loginModalLabel" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="loginModalLabel">
+              <i class="fas fa-sign-in-alt me-2"></i>Login to KNIRV WebGUI
+            </h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <div class="text-center">
+              <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+              </div>
+              <p class="mt-2">Preparing login form...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+</body>
+
+</html>

@@ -1,0 +1,133 @@
+# KNIRV Network Terraform Configuration Example
+# Copy this file to terraform.tfvars and customize for your deployment
+
+# Core Configuration
+project_name = "knirv-network"
+environment  = "dev"  # Options: dev, staging, production
+aws_region   = "us-east-1"
+
+# Network Configuration
+vpc_cidr = "10.0.0.0/16"
+public_subnet_cidrs = [
+  "10.0.1.0/24",
+  "10.0.2.0/24"
+]
+private_subnet_cidrs = [
+  "10.0.10.0/24",
+  "10.0.20.0/24"
+]
+
+# EC2 Configuration
+instance_type = "t3.medium"  # Options: t3.small, t3.medium, t3.large, etc.
+key_pair_name = "knirv-network-key"
+ssh_public_key_path = "~/.ssh/id_rsa.pub"
+
+# Security Configuration
+# WARNING: Restrict SSH access in production
+allowed_ssh_cidrs = ["0.0.0.0/0"]  # Replace with your IP: ["YOUR.IP.ADDRESS/32"]
+allowed_http_cidrs = ["0.0.0.0/0"]
+
+# KNIRV Service Ports (default values shown)
+knirv_service_ports = {
+  oracle_port     = 1317
+  chain_port      = 8090
+  graph_port      = 8082
+  nexus_port      = 8084
+  router_port     = 8086
+  controller_port = 3000
+  gateway_port    = 8888
+  cortex_port     = 8080
+  engine_port     = 8081
+}
+
+# Cloudflare Configuration (required for DNS management)
+# Get these from your Cloudflare dashboard
+cloudflare_api_token = ""  # Your Cloudflare API token
+cloudflare_zone_id   = ""  # Your domain's zone ID
+domain_name          = "knirv.com"
+
+# AWS Deployment Credentials (optional - uses AWS CLI credentials if not provided)
+aws_access_key_id     = ""  # AWS access key for deployment
+aws_secret_access_key = ""  # AWS secret key for deployment
+
+# GitHub Deployment Credentials (required for CI/CD)
+github_token      = ""  # GitHub personal access token
+github_deploy_key = ""  # SSH deploy key for repository access
+
+# Container Registry Credentials (required for container deployment)
+container_registry_username = ""  # Container registry username
+container_registry_password = ""  # Container registry password
+
+# Security Keys (required - generate secure random values)
+database_encryption_key = ""  # Base64-encoded 32-byte encryption key
+jwt_secret             = ""  # Secure random JWT signing secret
+deployment_external_id = ""  # Unique external ID for role assumption
+
+# SSL/TLS Configuration (optional - can use Let's Encrypt)
+ssl_certificate = ""  # SSL certificate content
+ssl_private_key = ""  # SSL private key content
+
+# Container Configuration
+container_registry   = "ghcr.io"
+container_image_tag  = "latest"
+
+# Monitoring and Logging
+enable_monitoring    = true
+log_retention_days   = 30
+
+# Auto Scaling Configuration
+min_instances     = 1
+max_instances     = 3
+desired_instances = 1
+
+# Database Configuration (optional)
+enable_rds         = false
+db_instance_class  = "db.t3.micro"
+
+# Backup Configuration
+enable_backups        = true
+backup_retention_days = 7
+
+# API Keys for External Services (optional - only include if using these services)
+openai_api_key    = ""  # OpenAI API key for AI services
+anthropic_api_key = ""  # Anthropic API key for Claude AI
+cerebras_api_key  = ""  # Cerebras API key for inference
+deepseek_api_key  = ""  # DeepSeek API key for AI services
+google_api_key    = ""  # Google API key for services
+
+# Monitoring and Alerting (optional)
+sentry_dsn         = ""  # Sentry DSN for error monitoring
+slack_webhook_url  = ""  # Slack webhook URL for notifications
+
+# Wallet Integration (optional)
+wallet_connect_project_id = ""  # WalletConnect project ID
+infura_id                = ""  # Infura project ID for Ethereum
+
+# Analytics (optional)
+analytics_id = ""  # Analytics tracking ID
+gtm_id      = ""  # Google Tag Manager ID
+
+# Example Production Configuration:
+# Uncomment and modify for production deployment
+#
+# environment = "production"
+# instance_type = "t3.large"
+# allowed_ssh_cidrs = ["YOUR.OFFICE.IP/32"]
+# min_instances = 2
+# max_instances = 5
+# desired_instances = 2
+# enable_rds = true
+# db_instance_class = "db.t3.small"
+# log_retention_days = 90
+# backup_retention_days = 30
+
+# Example Staging Configuration:
+# Uncomment and modify for staging deployment
+#
+# environment = "staging"
+# instance_type = "t3.small"
+# min_instances = 1
+# max_instances = 2
+# desired_instances = 1
+# log_retention_days = 14
+# backup_retention_days = 14

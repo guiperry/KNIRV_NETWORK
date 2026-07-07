@@ -1,0 +1,169 @@
+{
+  "artifacts": [
+    {
+      "name": "shared-protobuf-schemas",
+      "path": "./shared-proto",
+      "description": "Canonical shared Protobuf/gRPC schemas for cross-service contracts: cortex, lora, memory, and model message types used across KNIRV packages."
+    },
+    {
+      "name": "knirvchain-proto",
+      "path": "./packages/KNIRVCHAIN/internal/protocol/proto",
+      "description": "KNIRVCHAIN gRPC protocol definitions: bootnode_key, hashing, mcp_context, mcp_descriptors, root_key — core blockchain wire formats."
+    },
+    {
+      "name": "knirvhasher-proto",
+      "path": "./packages/KNIRVHASHER/internal/proto",
+      "description": "KNIRVHASHER gRPC service definition (hasher v1) — data-connector and hashing pipeline wire format."
+    },
+    {
+      "name": "knirvhasher-training-proto",
+      "path": "./packages/KNIRVHASHER/proto",
+      "description": "KNIRVHASHER training pipeline Protobuf (training v1) — training job requests and responses."
+    },
+    {
+      "name": "knirvserver-proto",
+      "path": "./packages/KNIRVSERVER/backend/internal/proto",
+      "description": "KNIRVSERVER internal gRPC definitions: blockchain, bootnode_key, hasher, root_key — server-side wire formats."
+    },
+    {
+      "name": "knirvarena-proto",
+      "path": "./packages/KNIRVARENA/src/core/protobuf/schemas",
+      "description": "KNIRVARENA Protobuf schemas: agent, cortex, error_context, lora, lora_adapter, memory — Dataset Forge message types."
+    },
+    {
+      "name": "knirvsdk-openapi",
+      "path": "./devtools/KNIRVSDK/openapi.yaml",
+      "description": "Full OpenAPI spec for the KNIRV SDK public REST API — all endpoints, request/response schemas, and authentication."
+    },
+    {
+      "name": "knirvsdk-public-api",
+      "path": "./devtools/KNIRVSDK/public-api.yaml",
+      "description": "Public-facing KNIRV SDK API spec — subset of endpoints exposed to external integrators."
+    },
+    {
+      "name": "knirvserver-prisma-schema",
+      "path": "./packages/KNIRVSERVER/config/schema.prisma",
+      "description": "Prisma ORM schema for KNIRVSERVER — all database models, relations, and field types."
+    },
+    {
+      "name": "knirv-com-supabase-schema",
+      "path": "./websites/KNIRV.COM/supabase/supabase-schema.sql",
+      "description": "Supabase PostgreSQL schema for KNIRV.COM website — all tables, indexes, RLS policies."
+    },
+    {
+      "name": "knirv-com-migrations",
+      "path": "./websites/KNIRV.COM/supabase/migrations",
+      "description": "Supabase migration history for KNIRV.COM — ordered SQL migration files."
+    },
+    {
+      "name": "knirv-landing-schema",
+      "path": "./websites/KNIRV.LANDING/schema.sql",
+      "description": "SQL schema for KNIRV landing site database."
+    },
+    {
+      "name": "knirvserver-production-config",
+      "path": "./packages/KNIRVSERVER/config/production.yaml",
+      "description": "KNIRVSERVER production configuration — feature flags, service URLs, resource limits, oracle settings."
+    },
+    {
+      "name": "knirvserver-testnet-config",
+      "path": "./packages/KNIRVSERVER/config/testnet.yaml",
+      "description": "KNIRVSERVER testnet configuration — mirrors production shape but with testnet endpoints."
+    },
+    {
+      "name": "knirvserver-validation-methods",
+      "path": "./packages/KNIRVSERVER/config/validation_methods.json",
+      "description": "KNIRVSERVER validation method registry — JSON config defining available guardrail and validation strategies."
+    },
+    {
+      "name": "testnet-config",
+      "path": "./devtools/KNIRVTESTNET/config/testnet-config.yaml",
+      "description": "Master testnet orchestration config — service startup order, health checks, inter-service dependencies."
+    },
+    {
+      "name": "testnet-ports",
+      "path": "./devtools/KNIRVTESTNET/config/ports-config.yaml",
+      "description": "Canonical port assignments for all KNIRV services in testnet (KNIRVCHAIN :8090, KNIRVSERVER :8084, KNIRVGATEWAY :8888, etc.)."
+    },
+    {
+      "name": "testnet-endpoints",
+      "path": "./devtools/KNIRVTESTNET/config/endpoints.yaml",
+      "description": "Testnet service endpoint URLs — used by load-endpoints.js and integration tests."
+    },
+    {
+      "name": "testnet-agent-config",
+      "path": "./devtools/KNIRVTESTNET/config/agent-config.yaml",
+      "description": "Agent configuration for KNIRVTESTNET — agent capabilities, routing rules, resource quotas."
+    },
+    {
+      "name": "knirvserver-testnet-config",
+      "path": "./devtools/KNIRVTESTNET/config/knirvserver-testnet-config.yaml",
+      "description": "KNIRVSERVER-specific testnet overrides — used by the testnet Makefile."
+    },
+    {
+      "name": "api-documentation",
+      "path": "./docs/API_DOCUMENTATION_PHASE7.md",
+      "description": "Phase 7 REST API documentation — all HTTP routes, request/response formats, authentication flows."
+    },
+    {
+      "name": "architecture-overview",
+      "path": "./docs/KNIRV_REVOLUTIONARY_ARCHITECTURE.md",
+      "description": "High-level D-TEN architecture overview — node types, IBC communication, skill/capability/inference NFT flows."
+    },
+    {
+      "name": "architecture-diagram",
+      "path": "./docs/diagrams/KNIRV-D-TEN_Overview_Diagram.md",
+      "description": "ASCII/Mermaid overview diagram of the D-TEN system topology."
+    },
+    {
+      "name": "production-deployment-architecture",
+      "path": "./packages/KNIRVSERVER/docs/Production_Deployment_Architecture.md",
+      "description": "KNIRVSERVER production deployment architecture — systemd setup, eBPF integration, oracle key management."
+    },
+    {
+      "name": "nrv-token-spec",
+      "path": "./packages/KNIRVBASE/NRV_Master_Specification.md",
+      "description": "NRV token master specification — tokenomics, reward distribution, staking mechanics."
+    },
+    {
+      "name": "knirvcontroller-sdd",
+      "path": "./packages/KNIRVCONTROLLER/SDD.md",
+      "description": "KNIRVCONTROLLER Software Design Document — controller architecture, wallet integration, DVE management."
+    },
+    {
+      "name": "whitepapers",
+      "path": "./docs/whitepapers",
+      "description": "All KNIRV component whitepapers: KNIRVANA, KNIRVCHAIN, KNIRVGATEWAY, KNIRVGRAPH, KNIRV-D-TEN, KNIRVORACLE, KNIRVSDK, KNIRVWALLET, and more."
+    },
+    {
+      "name": "monitoring-config",
+      "path": "./deployment/monitoring",
+      "description": "Prometheus, Alertmanager, and alert rule configs for production monitoring — scrape targets, alert thresholds, oncall routes."
+    },
+    {
+      "name": "developer-onboarding",
+      "path": "./docs/DEVELOPER_ONBOARDING_GUIDE.md",
+      "description": "Developer onboarding guide — environment setup, local testnet, package conventions, first contribution flow."
+    },
+    {
+      "name": "caliber-learnings",
+      "path": "./CALIBER_LEARNINGS.md",
+      "description": "Project-specific AI session learnings — patterns, anti-patterns, and conventions extracted from real development sessions."
+    },
+    {
+      "name": "pending-implementations",
+      "path": "./docs/pendingImplementations",
+      "description": "In-progress implementation plans: CDE-DVE interface, cross-chain adapter, factuality slice, LLM reasoning validation, registration path."
+    },
+    {
+      "name": "protocol-guide",
+      "path": "./docs/manual/Protocol_Guide.md",
+      "description": "KNIRV protocol manual — IBC message formats, consensus rules, node communication protocols."
+    },
+    {
+      "name": "deployment-docker-compose",
+      "path": "./deployment/docker-compose.knirv-production.yml",
+      "description": "Production Docker Compose definition — all services, volumes, networks, and environment wiring."
+    }
+  ]
+}

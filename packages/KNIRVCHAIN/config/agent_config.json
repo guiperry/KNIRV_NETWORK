@@ -1,0 +1,37 @@
+{
+  "httpPort": 5050,
+  "p2pPort": 6050,
+  "chainID": "agent-node-5050",
+  "consensus": {
+    "p2p_enabled": false,
+    "chain_id": "agent-node-5050"
+  },
+  "sharedDatabasePath": "agent_data/agent_node.db",
+  "installComplete": true,
+  "agent_mode": {
+    "enabled": true
+  },
+  "data_engine": {
+    "enabled": true,
+    "kafka_brokers": ["localhost:9092"],
+    "kafka_client_id": "KNIRVCHAIN-agent",
+    "chromadb_url": "http://localhost:8000",
+    "chroma_collection": "KNIRVCHAIN-events",
+    "enable_kafka": false,
+    "enable_chromadb": false,
+    "enable_websocket": true,
+    "enable_restapi": true,
+    "websocket_port": 8080,
+    "restapi_port": 7080,
+    "window_size": "5m",
+    "metrics_interval": "10s"
+  },
+  "inference_engine": {
+    "enabled": true,
+    "plugins_dir": "plugins",
+    "default_agent_id": "default",
+    "default_version": "latest",
+    "share_dht_metrics": true,
+    "api_port": 9080
+  }
+}

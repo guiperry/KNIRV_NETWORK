@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Step 3: Configure Policies - KNIRV Developer Portal</title>
+    <meta name="description" content="Define governance rules for your DVE using the KNIRV Policy Editor">
+    <link rel="shortcut icon" href="favicon.png">
+
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Custom CSS with original design system -->
+    <link rel="stylesheet" href="css/portal.css">
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Sidebar Navigation -->
+        <nav class="sidebar">
+            <div class="dashboard-title">
+                <h1>KNIRV Developer Portal</h1>
+                <p style="color: var(--transparent-white-7); font-size: 0.9rem;">DVE Platform</p>
+            </div>
+
+            <!-- Navigation Items -->
+            <a href="index.html" class="nav-item">
+                <i class="fas fa-home"></i>
+                <span>Home Dashboard</span>
+            </a>
+            <a href="core-concepts.html" class="nav-item">
+                <i class="fas fa-brain"></i>
+                <span>Core Concepts</span>
+            </a>
+            <a href="getting-started.html" class="nav-item active">
+                <i class="fas fa-rocket"></i>
+                <span>Getting Started</span>
+            </a>
+            <a href="#" class="nav-item" onclick="return false;">
+                <i class="fas fa-book"></i>
+                <span>Documentation</span>
+            </a>
+            <a href="api-sdk.html" class="nav-item">
+                <i class="fas fa-code"></i>
+                <span>API &amp; SDK</span>
+            </a>
+            <a href="community-support.html" class="nav-item">
+                <i class="fas fa-users"></i>
+                <span>Community &amp; Support</span>
+            </a>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Top Navigation -->
+            <div class="top-nav">
+                <div>
+                    <h1 class="page-title">Configure Policies</h1>
+                </div>
+                <div class="user-controls">
+                    <i class="control-icon fas fa-bell" title="Notifications"></i>
+                    <i class="control-icon fas fa-cog" title="Settings"></i>
+                    <i class="control-icon fas fa-user-circle" title="Profile"></i>
+                </div>
+            </div>
+
+            <!-- Progress Tracker -->
+            <div class="glass-card">
+                <h2 style="color: var(--bright-blue); margin-bottom: 20px; font-size: 1.3rem;">Your Progress</h2>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 20px;">
+                    <div style="text-align: center; flex: 1;">
+                        <div style="width: 40px; height: 40px; border-radius: 50%; background-color: var(--bright-blue); display: flex; align-items: center; justify-content: center; margin: 0 auto 10px; color: white; font-weight: bold;">&#10003;</div>
+                        <div style="font-size: 0.9em; color: var(--white);">Environment</div>
+                    </div>
+                    <div style="text-align: center; flex: 1;">
+                        <div style="width: 40px; height: 40px; border-radius: 50%; background-color: var(--bright-blue); display: flex; align-items: center; justify-content: center; margin: 0 auto 10px; color: white; font-weight: bold;">&#10003;</div>
+                        <div style="font-size: 0.9em; color: var(--white);">Launch DVE</div>
+                    </div>
+                    <div style="text-align: center; flex: 1;">
+                        <div style="width: 40px; height: 40px; border-radius: 50%; background-color: var(--bright-blue); display: flex; align-items: center; justify-content: center; margin: 0 auto 10px; color: white; font-weight: bold;">3</div>
+                        <div style="font-size: 0.9em; color: var(--white);">Policies</div>
+                    </div>
+                    <div style="text-align: center; flex: 1;">
+                        <div style="width: 40px; height: 40px; border-radius: 50%; background-color: var(--transparent-white-2); display: flex; align-items: center; justify-content: center; margin: 0 auto 10px; color: var(--transparent-white-7); font-weight: bold;">4</div>
+                        <div style="font-size: 0.9em; color: var(--transparent-white-7);">Go Live</div>
+                    </div>
+                </div>
+                <div style="background-color: var(--transparent-white-1); height: 4px; border-radius: 2px; margin-bottom: 10px;">
+                    <div style="background-color: var(--bright-blue); height: 100%; width: 75%; border-radius: 2px;"></div>
+                </div>
+                <p style="color: var(--transparent-white-7); font-size: 0.9em; text-align: center;">Step 3 of 4 — Define governance rules for your DVE</p>
+            </div>
+
+            <!-- Step 3: Policy Configuration -->
+            <div class="glass-card" id="policies">
+                <h2 style="color: var(--bright-blue); margin-bottom: 20px; font-size: 1.3rem;">
+                    <i class="fas fa-sliders-h" style="margin-right: 10px;"></i>Step 3: Configure Policy Rules
+                </h2>
+                <p style="color: var(--transparent-white-7); margin-bottom: 25px;">
+                    Policies define how your DVE governs workloads — what it accepts, how it validates execution, and what triggers a blockchain commit. Every policy change is versioned and committed to KNIRVCHAIN automatically.
+                </p>
+
+                <!-- Policy types -->
+                <h3 style="color: var(--white); margin-bottom: 15px;">Core Policy Types</h3>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 15px; margin-bottom: 30px;">
+                    <div style="padding: 18px; background-color: var(--transparent-white-05); border-radius: 10px; border-left: 4px solid var(--bright-blue);">
+                        <h4 style="color: var(--bright-blue); margin-bottom: 8px;">
+                            <i class="fas fa-filter" style="margin-right: 8px;"></i>Admission Policy
+                        </h4>
+                        <p style="color: var(--transparent-white-7); font-size: 0.9em;">Controls which workloads your DVE accepts. Define allowlists, rate limits, and authentication requirements.</p>
+                        <div style="margin-top: 12px;">
+                            <div class="code-block" style="font-size: 0.8em; padding: 10px;">
+                                <code>admission:<br>&nbsp;&nbsp;max_payload_kb: 512<br>&nbsp;&nbsp;require_auth: true<br>&nbsp;&nbsp;allowlist: ["*"]</code>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="padding: 18px; background-color: var(--transparent-white-05); border-radius: 10px; border-left: 4px solid var(--knirv-purple);">
+                        <h4 style="color: var(--knirv-purple); margin-bottom: 8px;">
+                            <i class="fas fa-shield-alt" style="margin-right: 8px;"></i>Execution Policy
+                        </h4>
+                        <p style="color: var(--transparent-white-7); font-size: 0.9em;">Defines resource limits and execution constraints for workloads running inside the DVE.</p>
+                        <div style="margin-top: 12px;">
+                            <div class="code-block" style="font-size: 0.8em; padding: 10px;">
+                                <code>execution:<br>&nbsp;&nbsp;max_memory_mb: 512<br>&nbsp;&nbsp;timeout_seconds: 30<br>&nbsp;&nbsp;sandbox: strict</code>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="padding: 18px; background-color: var(--transparent-white-05); border-radius: 10px; border-left: 4px solid #22c55e;">
+                        <h4 style="color: #22c55e; margin-bottom: 8px;">
+                            <i class="fas fa-link" style="margin-right: 8px;"></i>Commit Policy
+                        </h4>
+                        <p style="color: var(--transparent-white-7); font-size: 0.9em;">Specifies which events trigger a blockchain commit — creating an immutable entry in the KNIRVCHAIN audit trail.</p>
+                        <div style="margin-top: 12px;">
+                            <div class="code-block" style="font-size: 0.8em; padding: 10px;">
+                                <code>commit:<br>&nbsp;&nbsp;on: [execution_complete, policy_change]<br>&nbsp;&nbsp;include_hash: true</code>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Full policy example -->
+                <h3 style="color: var(--white); margin-bottom: 15px;">Example: Minimal DVE Policy</h3>
+                <div class="code-block" style="margin-bottom: 20px;">
+                    <code>knirv dve policy apply --dve-id YOUR_DVE_ID --file policy.yaml</code>
+                </div>
+                <div class="code-block" style="margin-bottom: 20px;">
+                    <code># policy.yaml<br>version: "1.0"<br>dve_id: "YOUR_DVE_ID"<br><br>admission:<br>&nbsp;&nbsp;require_auth: true<br>&nbsp;&nbsp;max_payload_kb: 512<br><br>execution:<br>&nbsp;&nbsp;max_memory_mb: 512<br>&nbsp;&nbsp;timeout_seconds: 30<br>&nbsp;&nbsp;sandbox: strict<br><br>commit:<br>&nbsp;&nbsp;on: [execution_complete, policy_change, error]<br>&nbsp;&nbsp;include_hash: true<br>&nbsp;&nbsp;chain: knirvchain</code>
+                </div>
+
+                <!-- Cognitive Engine callout -->
+                <div style="padding: 18px; background: rgba(245,158,11,0.08); border-radius: 10px; border: 1px solid rgba(245,158,11,0.2); margin-bottom: 25px;">
+                    <h4 style="color: #f59e0b; margin-bottom: 8px;">
+                        <i class="fas fa-brain" style="margin-right: 8px;"></i>Cognitive Engine — Automated Policy Tuning (Pro)
+                    </h4>
+                    <p style="color: var(--transparent-white-7); font-size: 0.9em;">
+                        Upgrade to Professional to enable the Cognitive Engine — it automatically tunes your admission and execution policies based on observed workload patterns and flags anomalies before they hit your commit log.
+                    </p>
+                </div>
+
+                <div style="text-align: center;">
+                    <button class="btn-primary" onclick="completeStep(3)">
+                        <i class="fas fa-check" style="margin-right: 8px;"></i>Policies Configured &mdash; Continue to Go Live
+                    </button>
+                </div>
+            </div>
+
+            <!-- Navigation -->
+            <div class="glass-card">
+                <div style="display: flex; gap: 15px; justify-content: space-between; flex-wrap: wrap;">
+                    <a href="getting-started-step2.html" class="btn-outline" style="text-decoration: none;">
+                        <i class="fas fa-arrow-left" style="margin-right: 8px;"></i>Back: Launch DVE
+                    </a>
+                    <a href="getting-started-step4.html" class="btn-primary" style="text-decoration: none;">
+                        Next: Go Live<i class="fas fa-arrow-right" style="margin-left: 8px;"></i>
+                    </a>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- JavaScript -->
+    <script src="js/config-loader.js"></script>
+    <script src="js/portal.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="../js/universal-footer.js"></script>
+    <script>
+        function completeStep(step) {
+            localStorage.setItem('knirv_getting_started_step', step);
+            showSuccessMessage('Policies set! Moving to go live...', () => {
+                window.location.href = 'getting-started-step4.html';
+            });
+        }
+
+        function showSuccessMessage(message, callback) {
+            const messageDiv = document.createElement('div');
+            messageDiv.style.cssText = `
+                position: fixed; top: 20px; right: 20px;
+                background: linear-gradient(135deg, var(--bright-blue) 0%, var(--knirv-purple) 100%);
+                color: white; padding: 15px 20px; border-radius: 8px;
+                box-shadow: 0 4px 20px rgba(0, 192, 250, 0.3);
+                z-index: 1000; font-weight: 600; max-width: 300px;
+            `;
+            messageDiv.textContent = message;
+            document.body.appendChild(messageDiv);
+            setTimeout(() => { messageDiv.remove(); if (callback) callback(); }, 2000);
+        }
+    </script>
+</body>
+</html>

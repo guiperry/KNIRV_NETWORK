@@ -1,0 +1,289 @@
+# KNIRV-CORTEX Integration Test Configuration
+# Comprehensive testing configuration for the AI cognitive core
+
+# Test Environment Settings
+environment:
+  name: "knirv-cortex-integration-test"
+  timeout: "600s"  # 10 minutes for AI operations
+  cleanup_after_test: true
+  parallel_execution: false
+  ai_model_loading_timeout: "120s"
+
+# KNIRV-CORTEX Specific Endpoints
+cortex_endpoints:
+  cognitive_engine:
+    url: "http://localhost:3001"
+    health_endpoint: "/api/health"
+    timeout: "60s"
+    
+  hrm_bridge:
+    wasm_module: "./rust-wasm/pkg/knirv_cortex_bg.wasm"
+    timeout: "30s"
+    
+  neural_networks:
+    tensorflow_backend: true
+    model_loading_timeout: "60s"
+    
+  ecosystem_communication:
+    url: "http://localhost:3001/api/ecosystem"
+    timeout: "30s"
+
+# AI Core Test Configuration
+ai_core:
+  hrm_cognitive:
+    l_module_count: 8
+    h_module_count: 4
+    processing_timeout: "30s"
+    confidence_threshold: 0.5
+    test_inputs:
+      - type: "text"
+        data: "Test cognitive processing with HRM"
+      - type: "sensory"
+        data: [0.1, 0.2, 0.3, 0.4, 0.5]
+      - type: "complex"
+        data: "Multi-modal cognitive task with reasoning"
+  
+  neural_networks:
+    tensorflow_tests:
+      model_creation: true
+      tensor_operations: true
+      gradient_computation: true
+      memory_management: true
+    
+    lora_adapter:
+      rank: 16
+      alpha: 32
+      dropout: 0.1
+      target_modules: ["attention", "feedforward"]
+      training_steps: 10
+      test_data_size: 100
+    
+    enhanced_lora:
+      input_dim: 512
+      hidden_dim: 256
+      output_dim: 512
+      learning_rate: 0.001
+      batch_size: 16
+      epochs: 5
+      hrm_guidance: true
+  
+  adaptive_learning:
+    min_interactions: 3
+    adaptation_threshold: 0.6
+    max_patterns: 100  # Reduced for testing
+    learning_rate_decay: 0.95
+    feedback_weight: 0.7
+    hrm_influence_weight: 0.3
+    real_time_adaptation: true
+
+# Ecosystem Integration Test Configuration
+ecosystem_integration:
+  wallet_integration:
+    test_accounts:
+      - id: "test_account_1"
+        address: "knirv1test1234567890abcdef"
+        balance: "1000.0"
+        nrn_balance: "500.0"
+      - id: "test_account_2"
+        address: "knirv1test0987654321fedcba"
+        balance: "500.0"
+        nrn_balance: "250.0"
+    
+    transaction_tests:
+      - type: "balance_check"
+        expected_response_time: "2s"
+      - type: "create_transaction"
+        amount: "10.0"
+        expected_response_time: "5s"
+      - type: "skill_invocation"
+        nrn_amount: "5.0"
+        expected_response_time: "10s"
+  
+  chain_integration:
+    test_contracts:
+      nrn_token: "0x1234567890123456789012345678901234567890"
+      skill_registry: "0x2345678901234567890123456789012345678901"
+      llm_registry: "0x3456789012345678901234567890123456789012"
+    
+    blockchain_tests:
+      - type: "contract_call"
+        contract: "nrn_token"
+        method: "balance_of"
+        expected_response_time: "3s"
+      - type: "skill_verification"
+        skill_id: "test_skill_001"
+        expected_response_time: "5s"
+      - type: "network_consensus"
+        expected_response_time: "2s"
+  
+  visual_processing:
+    test_images:
+      - type: "object_detection"
+        image_size: [640, 480]
+        expected_objects: ["person", "car", "tree"]
+      - type: "face_recognition"
+        image_size: [224, 224]
+        expected_faces: 1
+      - type: "scene_analysis"
+        image_size: [512, 512]
+        expected_scene: "outdoor"
+    
+    ai_models:
+      object_detection: true
+      face_recognition: true
+      scene_analysis: true
+      gesture_recognition: true
+      text_recognition: true
+    
+    performance_thresholds:
+      max_processing_time: "5s"
+      min_confidence: 0.5
+      max_memory_usage: "500MB"
+
+# Performance Test Configuration
+performance:
+  cognitive_processing:
+    concurrent_requests: 5
+    test_duration: "60s"
+    requests_per_second: 2
+    max_response_time: "10s"
+    
+  neural_network_operations:
+    tensor_operations_per_second: 100
+    model_inference_time: "1s"
+    memory_efficiency_threshold: 0.8
+    
+  ecosystem_communication:
+    message_throughput: 50  # messages per second
+    max_latency: "500ms"
+    heartbeat_interval: "30s"
+    connection_timeout: "10s"
+
+# Cross-Component Integration Tests
+cross_component:
+  hrm_lora_integration:
+    synchronization_tests: true
+    weight_adaptation_tests: true
+    bidirectional_communication: true
+    performance_impact_threshold: 0.1  # 10% max impact
+  
+  ecosystem_coordination:
+    multi_service_operations: true
+    unified_skill_execution: true
+    cross_platform_transactions: true
+    real_time_monitoring: true
+  
+  adaptive_learning_integration:
+    pattern_extraction_tests: true
+    feedback_processing_tests: true
+    real_time_adaptation_tests: true
+    hrm_enhancement_tests: true
+
+# Test Data Configuration
+test_data:
+  cognitive_inputs:
+    text_samples:
+      - "Analyze this complex problem and provide a solution"
+      - "Process this multi-modal input with visual and textual components"
+      - "Perform reasoning about temporal sequences and causal relationships"
+    
+    sensory_data:
+      - dimensions: [512]
+        type: "normalized_float"
+        range: [0.0, 1.0]
+      - dimensions: [256, 256, 3]
+        type: "image_tensor"
+        format: "rgb"
+    
+    visual_test_data:
+      synthetic_images: true
+      real_world_samples: false  # Set to true for real image testing
+      image_formats: ["png", "jpg"]
+      resolution_tests: [[224, 224], [512, 512], [1024, 1024]]
+  
+  blockchain_test_data:
+    test_transactions:
+      - from: "knirv1test1234567890abcdef"
+        to: "knirv1test0987654321fedcba"
+        amount: "10.0"
+        nrn_amount: "5.0"
+    
+    test_skills:
+      - id: "test_skill_001"
+        name: "Test Cognitive Skill"
+        type: "cognitive_processing"
+        nrn_cost: "2.5"
+        capabilities: ["reasoning", "analysis"]
+
+# Security Test Configuration
+security:
+  wasm_security:
+    memory_isolation: true
+    execution_sandboxing: true
+    resource_limits: true
+  
+  ecosystem_security:
+    authentication_tests: true
+    authorization_tests: true
+    secure_communication: true
+    data_encryption: true
+  
+  ai_security:
+    model_integrity: true
+    input_validation: true
+    output_sanitization: true
+    adversarial_robustness: false  # Advanced security testing
+
+# Monitoring and Metrics
+monitoring:
+  ai_metrics:
+    cognitive_processing_time: true
+    neural_network_performance: true
+    memory_usage: true
+    model_accuracy: true
+    adaptation_effectiveness: true
+  
+  ecosystem_metrics:
+    component_health: true
+    communication_latency: true
+    message_throughput: true
+    error_rates: true
+    uptime_tracking: true
+  
+  performance_metrics:
+    cpu_usage: true
+    memory_consumption: true
+    gpu_utilization: false  # Set to true if GPU available
+    network_bandwidth: true
+    disk_io: true
+
+# Error Handling and Recovery
+error_handling:
+  graceful_degradation: true
+  automatic_recovery: true
+  error_propagation_tests: true
+  failover_scenarios: true
+  
+  recovery_tests:
+    hrm_bridge_failure: true
+    neural_network_errors: true
+    ecosystem_disconnection: true
+    memory_exhaustion: true
+
+# Cleanup Configuration
+cleanup:
+  auto_cleanup: true
+  cleanup_timeout: "120s"
+  preserve_logs: true
+  preserve_test_data: false
+  dispose_ai_models: true
+  clear_memory_cache: true
+
+# Reporting Configuration
+reporting:
+  generate_html_report: true
+  generate_json_report: true
+  include_performance_graphs: true
+  include_ai_metrics: true
+  include_ecosystem_status: true
+  output_directory: "./test-reports/knirv-cortex"

@@ -1,0 +1,9 @@
+    Finished `release` profile [optimized] target(s) in 0.50s
+     Running `target/release/knirvchain`
+[2m2025-08-29T04:25:33.707345Z[0m [32m INFO[0m [2mknirvchain[0m[2m:[0m [INFO] Starting the application
+[INFO] No existing blockchain found. Creating Genesis block.
+Warning: Could not load config file, using defaults
+[INFO] Starting server at http://127.0.0.1:8080
+[INFO] KNIRVCHAIN Chain ID: 1
+[INFO] Auto-mining enabled
+Error: Os { code: 98, kind: AddrInUse, message: "Address already in use" }

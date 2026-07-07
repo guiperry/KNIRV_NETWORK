@@ -1,0 +1,13 @@
+appId: com.knirv.controller
+---
+- launchApp
+- tapOn: "Settings"
+- assertVisible: "Settings"
+- scrollUntilVisible:
+    element:
+      text: "Clear Vault"
+    direction: DOWN
+- tapOn: "Clear Vault"
+- assertVisible: "Are you sure?"
+- tapOn: "Yes, Clear"
+- assertVisible: "Initialize your Identity"

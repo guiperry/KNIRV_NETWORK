@@ -1,0 +1,391 @@
+# KNIRV Network Phase 7 Enhanced Monitoring and Alerting Configuration
+# Comprehensive production-grade alerts for all KNIRV components
+
+groups:
+  # Core Service Health Alerts
+  - name: knirv.service.health
+    rules:
+      - alert: ServiceDown
+        expr: up == 0
+        for: 1m
+        labels:
+          severity: critical
+          component: "{{ $labels.job }}"
+        annotations:
+          summary: "KNIRV service {{ $labels.job }} is down"
+          description: "Service {{ $labels.job }} on {{ $labels.instance }} has been down for more than 1 minute."
+          runbook_url: "https://docs.knirv.com/runbooks/service-down"
+
+      - alert: ServiceHighErrorRate
+        expr: rate(http_requests_total{status=~"5.."}[5m]) / rate(http_requests_total[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          component: "{{ $labels.job }}"
+        annotations:
+          summary: "High error rate on {{ $labels.job }}"
+          description: "Error rate is {{ $value | humanizePercentage }} on {{ $labels.job }}"
+
+      - alert: ServiceHighLatency
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) > 5
+        for: 10m
+        labels:
+          severity: warning
+          component: "{{ $labels.job }}"
+        annotations:
+          summary: "High latency on {{ $labels.job }}"
+          description: "95th percentile latency is {{ $value }}s on {{ $labels.job }}"
+
+  # KNIRV-specific Business Logic Alerts
+  - name: knirv.business.logic
+    rules:
+      - alert: NRNTransactionVolumeHigh
+        expr: rate(nrn_transactions_total[5m]) > 100
+        for: 2m
+        labels:
+          severity: warning
+          component: "knirv-oracle"
+        annotations:
+          summary: "High NRN transaction volume"
+          description: "NRN transaction rate is {{ $value }} transactions/second"
+
+      - alert: SkillExecutionFailureRate
+        expr: rate(skill_executions_failed_total[5m]) / rate(skill_executions_total[5m]) > 0.2
+        for: 5m
+        labels:
+          severity: critical
+          component: "knirvchain"
+        annotations:
+          summary: "High skill execution failure rate"
+          description: "Skill execution failure rate is {{ $value | humanizePercentage }}"
+
+      - alert: ErrorNodeCreationSpike
+        expr: rate(error_nodes_created_total[5m]) > 10
+        for: 3m
+        labels:
+          severity: warning
+          component: "knirvgraph"
+        annotations:
+          summary: "Spike in error node creation"
+          description: "Error nodes being created at {{ $value }} nodes/second"
+
+      - alert: DVEValidationBacklog
+        expr: dve_validation_queue_size > 50
+        for: 5m
+        labels:
+          severity: warning
+          component: "knirv-nexus"
+        annotations:
+          summary: "DVE validation backlog"
+          description: "{{ $value }} validations pending in DVE queue"
+
+      - alert: P2PConnectivityLow
+        expr: p2p_connected_peers < 3
+        for: 2m
+        labels:
+          severity: critical
+          component: "knirvrouter"
+        annotations:
+          summary: "Low P2P connectivity"
+          description: "Only {{ $value }} peers connected (minimum 3 required)"
+
+  # Infrastructure Alerts
+  - name: knirv.infrastructure
+    rules:
+      - alert: HighCPUUsage
+        expr: 100 - (avg by(instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High CPU usage on {{ $labels.instance }}"
+          description: "CPU usage is {{ $value }}% on {{ $labels.instance }}"
+
+      - alert: HighMemoryUsage
+        expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High memory usage on {{ $labels.instance }}"
+          description: "Memory usage is {{ $value }}% on {{ $labels.instance }}"
+
+      - alert: DiskSpaceLow
+        expr: (1 - (node_filesystem_avail_bytes / node_filesystem_size_bytes)) * 100 > 90
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Low disk space on {{ $labels.instance }}"
+          description: "Disk usage is {{ $value }}% on {{ $labels.instance }}"
+
+      - alert: DatabaseConnectionsHigh
+        expr: pg_stat_activity_count > 80
+        for: 5m
+        labels:
+          severity: warning
+          component: "postgres"
+        annotations:
+          summary: "High database connections"
+          description: "{{ $value }} active database connections"
+
+      - alert: RedisMemoryHigh
+        expr: redis_memory_used_bytes / redis_memory_max_bytes > 0.9
+        for: 5m
+        labels:
+          severity: warning
+          component: "redis"
+        annotations:
+          summary: "High Redis memory usage"
+          description: "Redis memory usage is {{ $value | humanizePercentage }}"
+
+  # Security Alerts
+  - name: knirv.security
+    rules:
+      - alert: AuthenticationFailureSpike
+        expr: rate(auth_failures_total[5m]) > 5
+        for: 2m
+        labels:
+          severity: warning
+          component: "auth"
+        annotations:
+          summary: "Authentication failure spike"
+          description: "{{ $value }} authentication failures per second"
+
+      - alert: UnauthorizedAPIAccess
+        expr: rate(http_requests_total{status="401"}[5m]) > 10
+        for: 3m
+        labels:
+          severity: warning
+          component: "api-gateway"
+        annotations:
+          summary: "High rate of unauthorized API access"
+          description: "{{ $value }} unauthorized requests per second"
+
+      - alert: SuspiciousNetworkActivity
+        expr: rate(network_connections_total{state="suspicious"}[5m]) > 1
+        for: 1m
+        labels:
+          severity: critical
+          component: "network"
+        annotations:
+          summary: "Suspicious network activity detected"
+          description: "{{ $value }} suspicious connections per second"
+
+  # Blockchain-specific Alerts
+  - name: knirv.blockchain
+    rules:
+      - alert: BlockProductionSlow
+        expr: time() - blockchain_last_block_time > 300
+        for: 1m
+        labels:
+          severity: critical
+          component: "blockchain"
+        annotations:
+          summary: "Slow block production"
+          description: "Last block was produced {{ $value }} seconds ago"
+
+      - alert: ConsensusFailure
+        expr: consensus_failed_rounds_total > 0
+        for: 1m
+        labels:
+          severity: critical
+          component: "consensus"
+        annotations:
+          summary: "Consensus failure detected"
+          description: "{{ $value }} consensus rounds have failed"
+
+      - alert: MempoolSizeHigh
+        expr: mempool_transaction_count > 1000
+        for: 5m
+        labels:
+          severity: warning
+          component: "mempool"
+        annotations:
+          summary: "High mempool size"
+          description: "{{ $value }} transactions in mempool"
+
+  # Application Performance Alerts
+  - name: knirv.performance
+    rules:
+      - alert: APIResponseTimeSlow
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) > 2
+        for: 5m
+        labels:
+          severity: warning
+          component: "api"
+        annotations:
+          summary: "Slow API response times"
+          description: "95th percentile response time is {{ $value }}s"
+
+      - alert: DatabaseQuerySlow
+        expr: histogram_quantile(0.95, rate(pg_stat_statements_mean_time_bucket[5m])) > 1000
+        for: 5m
+        labels:
+          severity: warning
+          component: "database"
+        annotations:
+          summary: "Slow database queries"
+          description: "95th percentile query time is {{ $value }}ms"
+
+      - alert: HighGoroutineCount
+        expr: go_goroutines > 1000
+        for: 5m
+        labels:
+          severity: warning
+          component: "{{ $labels.job }}"
+        annotations:
+          summary: "High goroutine count"
+          description: "{{ $value }} goroutines running in {{ $labels.job }}"
+
+  # Data Integrity Alerts
+  - name: knirv.data.integrity
+    rules:
+      - alert: DatabaseReplicationLag
+        expr: pg_stat_replication_lag_bytes > 1048576
+        for: 2m
+        labels:
+          severity: warning
+          component: "postgres-replication"
+        annotations:
+          summary: "Database replication lag"
+          description: "Replication lag is {{ $value | humanizeBytes }}"
+
+      - alert: DataCorruption
+        expr: data_integrity_check_failed_total > 0
+        for: 1m
+        labels:
+          severity: critical
+          component: "data-integrity"
+        annotations:
+          summary: "Data corruption detected"
+          description: "{{ $value }} data integrity checks have failed"
+
+      - alert: BackupFailure
+        expr: time() - backup_last_success_time > 86400
+        for: 1m
+        labels:
+          severity: critical
+          component: "backup"
+        annotations:
+          summary: "Backup failure"
+          description: "Last successful backup was {{ $value | humanizeDuration }} ago"
+
+  # Network and Connectivity Alerts
+  - name: knirv.network
+    rules:
+      - alert: NetworkPartition
+        expr: network_partition_detected == 1
+        for: 1m
+        labels:
+          severity: critical
+          component: "network"
+        annotations:
+          summary: "Network partition detected"
+          description: "Network partition has been detected in the KNIRV network"
+
+      - alert: HighNetworkLatency
+        expr: network_latency_seconds > 0.5
+        for: 5m
+        labels:
+          severity: warning
+          component: "network"
+        annotations:
+          summary: "High network latency"
+          description: "Network latency is {{ $value }}s"
+
+      - alert: PacketLoss
+        expr: network_packet_loss_ratio > 0.05
+        for: 3m
+        labels:
+          severity: warning
+          component: "network"
+        annotations:
+          summary: "Network packet loss"
+          description: "Packet loss rate is {{ $value | humanizePercentage }}"
+
+  # Custom KNIRV Metrics
+  - name: knirv.custom
+    rules:
+      - alert: LoRAAdapterLoadFailure
+        expr: lora_adapter_load_failures_total > 0
+        for: 1m
+        labels:
+          severity: warning
+          component: "lora-adapter"
+        annotations:
+          summary: "LoRA adapter load failure"
+          description: "{{ $value }} LoRA adapters failed to load"
+
+      - alert: SkillRegistrationFailure
+        expr: skill_registration_failures_total > 0
+        for: 1m
+        labels:
+          severity: warning
+          component: "skill-registry"
+        annotations:
+          summary: "Skill registration failure"
+          description: "{{ $value }} skills failed to register"
+
+      - alert: EconomicsImbalance
+        expr: abs(nrn_total_supply - nrn_circulating_supply) > 1000
+        for: 5m
+        labels:
+          severity: critical
+          component: "economics"
+        annotations:
+          summary: "Economics imbalance detected"
+          description: "Supply imbalance of {{ $value }} NRN tokens"
+
+      - alert: TunnelRegistryOverload
+        expr: tunnel_registry_active_tunnels > 1000
+        for: 5m
+        labels:
+          severity: warning
+          component: "tunnel-registry"
+        annotations:
+          summary: "Tunnel registry overload"
+          description: "{{ $value }} active tunnels in registry"
+
+      - alert: ProofGenerationBacklog
+        expr: proof_generation_queue_size > 100
+        for: 5m
+        labels:
+          severity: warning
+          component: "proof-generation"
+        annotations:
+          summary: "Proof generation backlog"
+          description: "{{ $value }} proofs pending generation"
+
+  # Deployment and Rollback Alerts
+  - name: knirv.deployment
+    rules:
+      - alert: DeploymentFailure
+        expr: deployment_status{status="failed"} == 1
+        for: 1m
+        labels:
+          severity: critical
+          component: "deployment"
+        annotations:
+          summary: "Deployment failure detected"
+          description: "Deployment {{ $labels.deployment_id }} has failed"
+
+      - alert: RollbackTriggered
+        expr: rollback_triggered_total > 0
+        for: 1m
+        labels:
+          severity: warning
+          component: "rollback"
+        annotations:
+          summary: "Rollback has been triggered"
+          description: "{{ $value }} rollbacks have been triggered"
+
+      - alert: HealthCheckFailure
+        expr: health_check_failures_total > 3
+        for: 2m
+        labels:
+          severity: warning
+          component: "health-check"
+        annotations:
+          summary: "Multiple health check failures"
+          description: "{{ $value }} health checks have failed"

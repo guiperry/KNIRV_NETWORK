@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>**KNIRV-GATEWAY: The Unified Portal & API Gateway** - KNIRV Network</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #0a0a0a;
+      color: #e0e0e0;
+      line-height: 1.6;
+    }
+    .container {
+      display: flex;
+      min-height: 100vh;
+    }
+    .sidebar {
+      width: 300px;
+      background-color: #1a1a2e;
+      border-right: 1px solid #333;
+      padding: 20px;
+      padding-bottom: 120px;
+      overflow-y: auto;
+      position: fixed;
+      height: 100vh;
+      box-sizing: border-box;
+    }
+    .content {
+      flex: 1;
+      margin-left: 300px;
+      padding: 40px;
+      max-width: 800px;
+    }
+    .sidebar h1, .sidebar h2, .sidebar h3 {
+      color: #4a9eff;
+      margin-top: 30px;
+      margin-bottom: 10px;
+    }
+    .sidebar a {
+      color: #e0e0e0;
+      text-decoration: none;
+      display: block;
+      padding: 5px 0;
+      border-left: 3px solid transparent;
+      padding-left: 10px;
+    }
+    .sidebar a:hover {
+      color: #4a9eff;
+      border-left-color: #4a9eff;
+    }
+    .nav-section {
+      margin-bottom: 20px;
+    }
+    .sidebar-footer {
+      position: absolute;
+      bottom: 20px;
+      left: 20px;
+      right: 20px;
+    }
+    .sidebar-footer hr {
+      border: 1px solid #333;
+      margin: 20px 0;
+    }
+    .sidebar-footer p {
+      font-size: 0.9em;
+      color: #888;
+      text-align: center;
+      margin: 0;
+    }
+    .sidebar-footer a {
+      color: #4a9eff !important;
+      border: none !important;
+      padding: 0 !important;
+    }
+    .content h1, .content h2, .content h3 {
+      color: #4a9eff;
+    }
+    .content a {
+      color: #4a9eff;
+    }
+    .content a:hover {
+      color: #6fb5ff;
+    }
+    .content code {
+      background-color: #16213e;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-family: 'Monaco', 'Consolas', monospace;
+    }
+    .content pre {
+      background-color: #16213e;
+      padding: 15px;
+      border-radius: 5px;
+      overflow-x: auto;
+    }
+    .content pre code {
+      background: none;
+      padding: 0;
+    }
+    @media (max-width: 768px) {
+      .sidebar {
+        transform: translateX(-300px);
+        transition: transform 0.3s ease;
+      }
+      .content {
+        margin-left: 0;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="sidebar">
+      <h1>KNIRV Network</h1>
+      <div class="nav-section"><h2>KNIRVCHAIN Documentation</h2>
+<a href="../../knirvchain/README.html">KNIRVCHAIN</a>
+<h2>KNIRVGRAPH Documentation</h2>
+<a href="../../knirvgraph/README.html">KNIRVGRAPH - Decentralized Knowledge Graph with Economics</a>
+<h2>KNIRVSERVER Documentation</h2>
+<a href="../../knirvserver/README.html">KNIRV-SERVER: Deterministic Validation Environment</a>
+<h2>KNIRVORACLE Documentation</h2>
+<a href="../../knirvoracle/README.html">KNIRVORACLE: A Decentralized Model Context Protocol Network</a>
+<h2>KNIRVROUTER Documentation</h2>
+<a href="../../knirvrouter/README.html">KNIRVROUTER Verifier Node - Blockchain Implementation in Go</a>
+<h2>KNIRVSDK Documentation</h2>
+<a href="../../knirvsdk/README.html">KNIRV SDK</a>
+<h2>KNIRVCONTROLLER Documentation</h2>
+<a href="../../knirvcontroller/README.html">Consolidated Documentation</a>
+<h2>KNIRVGATEWAY Documentation</h2>
+<a href="../../knirvgateway/README.html">KNIRV GATEWAY</a>
+<h2>KNIRVTESTNET Documentation</h2>
+<a href="../../knirvtestnet/README.html">KNIRV Testnet</a>
+<h2>KNIRVANA Documentation</h2>
+<a href="../../knirvana/README.html">KNIRVANA - The Experiential Gateway</a>
+<h2>📄 Whitepapers</h2>
+<a href="../../whitepapers/index.html">📚 View All Whitepapers</a></div>
+      <div class="sidebar-footer">
+        <hr style="border: 1px solid #333; margin: 20px 0;">
+        <p style="font-size: 0.9em; color: #888; text-align: center;">
+          © 2025 KNIRV Network<br>
+          <a href="https://knirv.network" style="color: #4a9eff;">knirv.network</a>
+        </p>
+      </div>
+    
+    </div>
+    <div class="content">
+      <h1><strong>KNIRV-GATEWAY: The Unified Portal & API Gateway</strong></h1><br><br><h3><strong>Abstract</strong></h3><br><br>The KNIRV-GATEWAY serves as the primary and unified web portal and API gateway for the KNIRV Decentralized Trusted Execution Network (D-TEN). Following the major refactor, KNIRV-GATEWAY has been enhanced with the integration of the GraphChain Explorer frontend, migrated from KNIRVGRAPH to enable Netlify deployment with Server-Sent Events (SSE) functionality. It is designed to be the single entry point for all users, developers, and services within the KNIRV ecosystem. By combining a modern, responsive website with serverless API gateway functionality and the integrated GraphChain Explorer, the KNIRV-GATEWAY provides a seamless and secure interface for interacting with the various layers of the network while offering direct access to the distributed vector graph intelligence.<br><br><h3><strong>1. Introduction</strong></h3><br><br>The KNIRV-GATEWAY is a critical architectural component that abstracts the complexity of the underlying decentralized network. Following the major refactor, it has been enhanced with the GraphChain Explorer frontend migration, providing users with direct access to the distributed vector graph intelligence through a hybrid integration approach. The gateway provides a modern web portal showcasing the D-TEN's capabilities, a robust serverless API gateway that supports real-time data streaming, and the integrated GraphChain Explorer with static site structure in the graphchain-explorer subdirectory. The gateway is built on a modular architecture, leveraging Netlify Functions for its serverless backend and a responsive front end for an optimal user experience, while enabling the GraphChain Explorer to query any GraphChain instance via the KNIRVGATEWAY API proxy.<br><br><h3><strong>2. Architecture</strong></h3><br><br>The KNIRV-GATEWAY's architecture is divided into two primary components: the Web Portal and the API Gateway.<br><br><strong>2.1. Web Portal Components</strong> <br><br>The web portal provides the user-facing interface, organized into a clear directory structure. It includes the main entry point (<code>index.html</code>), static assets for styling and functionality, and dedicated sections for a developer portal and documentation. The documentation is powered by Docsify, ensuring an integrated and easily navigable knowledge hub.<br><br><strong>2.2. API Gateway Components</strong> <br><br>The API gateway is implemented using Netlify Functions, enabling a serverless architecture. It is responsible for handling all API requests and features a main gateway with Server-Sent Events (SSE) support (<code>gateway-sse.js</code>) and a dedicated function for service health monitoring (<code>health-monitor.js</code>).<br><br><pre><code>mermaid<br>graph TD<br>    subgraph KNIRV-GATEWAY<br>        A[Web Portal]<br>        B[API Gateway]<br>    end<br><br>    subgraph "Web Portal Components"<br>        A1(index.html)<br>        A2(Static Assets)<br>        A3(Developer Portal)<br>        A4(Docsify Documentation)<br>    end<br><br>    subgraph "API Gateway Components (Netlify Functions)"<br>        B1(gateway-sse.js)<br>        B2(health-monitor.js)<br>    end<br><br>    A -- "User-facing Interface" --> A1<br>    A -- "Styling & Functionality" --> A2<br>    A -- "Developer Resources" --> A3<br>    A -- "Integrated Knowledge Hub" --> A4<br><br>    B -- "Main Gateway (SSE)" --> B1<br>    B -- "Service Health Monitoring" --> B2<br><br>    C(Users) --> A<br>    D(Developers) --> A<br>    E(External Services) --> B<br><br>    B -- "Proxies Requests To" --> F{KNIRV Ecosystem}<br><br>    subgraph "KNIRV Ecosystem"<br>        G[KNIRVROOT]<br>        H[KNIRVCHAIN]<br>        I[KNIRVGRAPH]<br>        J[KNIRVSERVER]<br>    end<br><br>    F --> G<br>    F --> H<br>    F --> I<br>    F --> J<br></code></pre><br><br><h3><strong>3. Core Features</strong></h3><br><br>The KNIRV-GATEWAY's design incorporates several key features to provide a superior user and developer experience:<br>*   <strong>Modern Web Portal</strong>: A responsive website that explains the KNIRV D-TEN's value proposition and features.<br>*   <strong>Serverless API Gateway</strong>: A gateway built with Netlify Functions that includes support for Server-Sent Events (SSE) for live data streaming.<br>*   <strong>Developer Portal & Documentation Hub</strong>: An integrated portal that offers comprehensive documentation, tools, and tutorials for developers.<br>*   <strong>Real-time Updates</strong>: The use of SSE allows for live data streaming of gateway events and health updates.<br>*   <strong>Authentication</strong>: Secure API access and user management are handled through dedicated authentication endpoints.<br>*   <strong>Health Monitoring</strong>: Real-time service health and performance metrics are available for the gateway and connected services.<br>*   <strong>User Interface</strong>: The portal features a modern "Glass Morphism" UI design with a balanced blue/purple color scheme.<br><br><h3><strong>4. API Gateway Endpoints</strong></h3><br><br>The API gateway exposes a series of endpoints to manage the gateway itself, monitor health, handle authentication, and proxy requests to other KNIRV services.<br>*   <strong>Gateway Management</strong>: Endpoints like <code>GET /gateway/health</code> and <code>GET /gateway/services</code> provide status and metrics for the gateway.<br>*   <strong>Health Monitoring</strong>: <code>GET /health-monitor/status</code> and <code>GET /health-monitor/events</code> provide real-time service health updates via SSE.<br>*   <strong>Authentication</strong>: <code>POST /auth/login</code> and <code>POST /auth/logout</code> manage user sessions and token verification.<br><em>   <strong>Service Proxy</strong>: The gateway acts as a proxy for key KNIRV services, including endpoints for <code>KNIRVROOT</code> (<code>/api/*</code>), economics (<code>/economics/*</code>), and the tunnel registry (<code>/tunnel/</em></code>).<br><br><h3><strong>5. Integration with the KNIRV Ecosystem</strong></h3><br><br>The KNIRV-GATEWAY is designed to be the central point of contact for the entire D-TEN. It is configured to interact with other sovereign layers through environment variables. Specifically, it establishes connections to <code>KNIRVROOT</code>, <code>KNIRVCHAIN</code>, <code>KNIRVGRAPH</code>, and <code>KNIRVSERVER</code>, acting as a front-facing proxy that streamlines communication and provides a single, secure entry point to the entire network.<br><br><h3><strong>6. Conclusion</strong></h3><br><br>The KNIRV-GATEWAY is an essential layer of the KNIRV ecosystem, serving as the "Unified Web Portal and API Gateway". Its serverless, modular, and secure design provides developers with a powerful platform to build on and users with a clear window into the capabilities of the D-TEN. It is the crucial bridge that connects our decentralized architecture to the broader digital world, solidifying KNIRV's position as a leader in decentralized AI and trusted execution networks.<br><br><div class="footer-links"><br><a href="documentation/static/legal/CODE_OF_CONDUCT.html" class="footer-link">Contributor Covenant Code of Conduct</a> | <a href="documentation/static/legal/PRIVACY_POLICY.html" class="footer-link">PRIVACY_POLICY.md</a> | <a href="documentation/static/legal/TERMS_AND_CONDITIONS.html" class="footer-link">TERMS AND CONDITIONS</a><br><br>© 2025 KNIRV Network<br></div><br>
+    </div>
+  </div>
+</body>
+</html>

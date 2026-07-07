@@ -1,0 +1,12 @@
+// Example FlatBuffers schema for an Agent
+include "player.fbs";
+
+namespace KNIRV.Schema;
+
+table Agent {
+  id:string;
+  type:string;
+  position:Vec3;
+  status:string;
+  target:string;
+}

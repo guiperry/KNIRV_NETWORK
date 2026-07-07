@@ -1,0 +1,13 @@
+{
+  "extends": "./tsconfig.json",
+  "exclude": [
+    "node_modules",
+    "dist",
+    "build",
+    "coverage",
+    "backups",
+    "src/core/agent-core-compiler/build/**/*",
+    "assembly/**/*",
+    "tests/**/*"
+  ]
+}

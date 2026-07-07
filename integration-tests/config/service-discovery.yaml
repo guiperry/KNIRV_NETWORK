@@ -1,0 +1,168 @@
+# KNIRV Service Discovery Configuration for Integration Tests
+
+services:
+  ipfs:
+    name: "IPFS"
+    url: "http://localhost:5001"
+    health_endpoint: "/api/v0/version"
+    api_endpoints:
+      - "/api/v0/add"
+      - "/api/v0/cat"
+      - "/api/v0/pin/add"
+      - "/api/v0/pin/ls"
+      - "/api/v0/swarm/peers"
+      - "/api/v0/id"
+      - "/api/v0/repo/stat"
+    gateway_url: "http://localhost:8080"
+    swarm_port: 4001
+    timeout: 30s
+    retry_count: 3
+
+  knirvoracle:
+    name: "KNIRV-ORACLE"
+    url: "http://localhost:1317"
+    health_endpoint: "/health"
+    api_endpoints:
+      - "/cosmos/bank/v1beta1/balances"
+      - "/cosmos/auth/v1beta1/accounts"
+      - "/nrn/mint"
+      - "/nrn/burn"
+      - "/validators"
+    timeout: 30s
+    retry_count: 3
+    
+  knirvchain:
+    name: "KNIRVCHAIN"
+    url: "http://localhost:8090"
+    health_endpoint: "/health"
+    api_endpoints:
+      - "/skills"
+      - "/skills/register"
+      - "/skills/invoke"
+      - "/llm/inference"
+      - "/status"
+    timeout: 30s
+    retry_count: 3
+    
+  knirvgraph:
+    name: "KNIRVGRAPH"
+    url: "http://localhost:8082"
+    health_endpoint: "/height"
+    api_endpoints:
+      - "/graphql"
+      - "/nodes"
+      - "/edges"
+      - "/errors"
+      - "/skills"
+      - "/dht/peers"
+    timeout: 30s
+    retry_count: 3
+    
+  knirvserver:
+    name: "KNIRV-SERVER"
+    url: "http://localhost:8083"
+    health_endpoint: "/health"
+    api_endpoints:
+      - "/validate"
+      - "/nodes"
+      - "/tasks"
+      - "/results"
+      - "/tee/attestation"
+    timeout: 30s
+    retry_count: 3
+    auth_required: true
+    
+  knirvrouter:
+    name: "KNIRV-ROUTER"
+    url: "http://localhost:5001"
+    health_endpoint: "/status"
+    api_endpoints:
+      - "/connectivity/proof"
+      - "/nrn/mint"
+      - "/peers"
+      - "/turn/credentials"
+    timeout: 30s
+    retry_count: 3
+    
+  knirvgateway:
+    name: "KNIRV-GATEWAY"
+    url: "http://localhost:8888"
+    health_endpoint: "/gateway/health"
+    api_endpoints:
+      - "/gateway/services"
+      - "/gateway/testnet/status"
+      - "/auth/testnet-tokens"
+      - "/auth/validate"
+      - "/api/proxy"
+    timeout: 30s
+    retry_count: 3
+
+# Authentication Configuration
+auth:
+  jwt_secret: "knirv_testnet_jwt_secret_2025_secure_token_for_development_only"
+  token_endpoint: "http://localhost:8888/auth/testnet-tokens"
+  validate_endpoint: "http://localhost:8888/auth/validate"
+  token_expiry: "24h"
+
+# Test Configuration
+test_config:
+  max_concurrent_requests: 10
+  default_timeout: "30s"
+  health_check_interval: "5s"
+  service_startup_wait: "10s"
+  cross_component_test_enabled: true
+  
+# Service Dependencies
+dependencies:
+  knirvoracle:
+    depends_on:
+      - ipfs
+  knirvchain:
+    depends_on:
+      - ipfs
+      - knirvoracle
+      - knirvgraph
+  knirvgraph:
+    depends_on:
+      - ipfs
+      - knirvoracle
+  knirvserver:
+    depends_on:
+      - ipfs
+      - knirvoracle
+      - knirvchain
+      - knirvgraph
+  knirvrouter:
+    depends_on:
+      - ipfs
+      - knirvoracle
+  knirvgateway:
+    depends_on:
+      - ipfs
+      - knirvoracle
+      - knirvchain
+      - knirvgraph
+      - knirvserver
+      - knirvrouter
+
+# Expected Response Formats
+response_formats:
+  health_check:
+    knirvoracle:
+      expected_fields: ["port", "status"]
+      expected_status: "ok"
+    knirvchain:
+      expected_fields: ["mode", "status"]
+      expected_status: "healthy"
+    knirvgraph:
+      expected_fields: ["height"]
+      expected_type: "number"
+    knirvserver:
+      expected_fields: ["status", "timestamp"]
+      expected_status: "healthy"
+    knirvrouter:
+      expected_fields: ["status", "peers"]
+      expected_status: "running"
+    knirvgateway:
+      expected_fields: ["status", "services"]
+      expected_status: "healthy"

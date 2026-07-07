@@ -1,0 +1,1045 @@
+/* ===== Graph Explorer — Tabbed View ===== */
+
+/* Tab Navigation */
+.tabNav {
+  display: flex;
+  gap: 2px;
+  margin-bottom: 0;
+  background: rgba(15, 23, 42, 0.6);
+  border-radius: 12px 12px 0 0;
+  padding: 4px 4px 0 4px;
+  overflow-x: auto;
+}
+
+.tabButton {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  border: none;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  border-radius: 8px 8px 0 0;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  position: relative;
+}
+
+.tabButton:hover {
+  color: rgba(255, 255, 255, 0.8);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.tabButtonActive {
+  color: #60a5fa;
+  background: rgba(30, 41, 59, 0.8);
+  box-shadow: 0 -2px 0 #60a5fa inset;
+}
+
+.tabButtonActive i {
+  color: #60a5fa;
+}
+
+.tabButton i {
+  font-size: 1rem;
+  width: 18px;
+  text-align: center;
+}
+
+/* Tab Content Area */
+.tabContent {
+  background: rgba(15, 23, 42, 0.4);
+  border-radius: 0 0 12px 12px;
+  padding: 0;
+}
+
+/* ===== Tab Content Padding ===== */
+.tabInner {
+  padding: 1.5rem;
+}
+
+/* ===== Overview Tab ===== */
+
+/* Stats Cards Grid */
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+/* Quick Actions */
+.quickActions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.actionCard {
+  padding: 1.5rem;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.actionCard:hover {
+  transform: translateY(-3px);
+  border-color: rgba(96, 165, 250, 0.3);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+}
+
+.actionIcon {
+  font-size: 2.2rem;
+  margin-bottom: 0.75rem;
+  display: flex;
+  justify-content: center;
+}
+
+.actionCard h4 {
+  color: #60a5fa;
+  margin: 0 0 0.5rem 0;
+  font-size: 1rem;
+}
+
+.actionCard p {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.85rem;
+  margin: 0 0 1rem 0;
+  line-height: 1.4;
+}
+
+.actionButton {
+  background: linear-gradient(135deg, rgba(96, 165, 250, 0.2), rgba(37, 99, 235, 0.2));
+  color: #60a5fa;
+  border: 1px solid rgba(96, 165, 250, 0.3);
+  padding: 8px 20px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 0.85rem;
+}
+
+.actionButton:hover {
+  background: linear-gradient(135deg, rgba(96, 165, 250, 0.3), rgba(37, 99, 235, 0.3));
+  border-color: rgba(96, 165, 250, 0.5);
+  color: #93c5fd;
+}
+
+/* Network Status */
+.statusCard {
+  padding: 1.5rem;
+}
+
+.statusHeader {
+  margin-bottom: 1.25rem;
+}
+
+.statusTitle {
+  color: #4ade80;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1.1rem;
+}
+
+.statusGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1.25rem;
+}
+
+.statusItem {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.statusLabel {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.statusValue {
+  color: #ffffff;
+  font-size: 1rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.statusIndicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* ===== ErrorNodes Tab ===== */
+.errorsContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* Stats Card */
+.statsCard {
+  padding: 1.5rem;
+}
+
+.statsGridCompact {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1.5rem;
+}
+
+.statItem {
+  text-align: center;
+}
+
+.statValue {
+  font-size: 1.875rem;
+  font-weight: 700;
+}
+
+.statLabel {
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.6);
+  margin-top: 0.25rem;
+}
+
+.statOrange { color: #fb923c; }
+.statRed { color: #f87171; }
+.statGreen { color: #4ade80; }
+.statBlue { color: #60a5fa; }
+.statPurple { color: #a78bfa; }
+
+/* Loading */
+.loadingContainer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem;
+}
+
+/* Empty Card */
+.emptyCard {
+  padding: 3rem;
+  text-align: center;
+}
+
+.emptyCard i {
+  font-size: 4rem;
+  color: rgba(255, 255, 255, 0.3);
+  margin-bottom: 1rem;
+}
+
+.emptyCard h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.6);
+  margin-bottom: 0.5rem;
+}
+
+.emptyCard p {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+/* Errors List */
+.errorsList {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* Error Card */
+.errorCard {
+  padding: 1.5rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.errorCard:hover {
+  border-color: rgba(251, 146, 60, 0.3);
+  transform: scale(1.01);
+}
+
+.errorCardSelected {
+  border-color: rgba(251, 146, 60, 0.5);
+  box-shadow: 0 0 0 2px rgba(251, 146, 60, 0.2);
+}
+
+/* Error Header */
+.errorHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.errorHeaderLeft {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.errorIcon {
+  width: 2.5rem;
+  height: 2.5rem;
+  background: rgba(251, 146, 60, 0.2);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fb923c;
+  font-size: 1.25rem;
+}
+
+.errorType {
+  color: #ffffff;
+  font-weight: 500;
+  font-size: 1rem;
+}
+
+.errorTimestamp {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.errorTimestamp i {
+  font-size: 0.75rem;
+}
+
+.errorHeaderRight {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+/* Severity Badge */
+.severityBadge {
+  padding: 0.25rem 0.75rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.severityCritical {
+  background: rgba(239, 68, 68, 0.2);
+  color: #f87171;
+}
+
+.severityHigh {
+  background: rgba(251, 146, 60, 0.2);
+  color: #fb923c;
+}
+
+.severityMedium {
+  background: rgba(251, 191, 36, 0.2);
+  color: #fbbf24;
+}
+
+.severityLow {
+  background: rgba(59, 130, 246, 0.2);
+  color: #60a5fa;
+}
+
+/* Status Badge */
+.statusBadge {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.875rem;
+  text-transform: capitalize;
+}
+
+.statusResolved {
+  color: #4ade80;
+}
+
+.statusFailed {
+  color: #f87171;
+}
+
+.statusPending {
+  color: #fbbf24;
+}
+
+/* Section Title */
+.sectionTitle {
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.6);
+  margin-bottom: 0.5rem;
+}
+
+/* Description */
+.errorDescription {
+  margin-bottom: 1rem;
+}
+
+.descriptionContent {
+  color: #d1d5db;
+  font-size: 0.875rem;
+  background: rgba(55, 65, 81, 0.3);
+  border-radius: 4px;
+  padding: 0.75rem;
+}
+
+/* Details */
+.errorDetails {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.detailItem {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.detailLabel {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.detailLabel i {
+  font-size: 0.75rem;
+}
+
+.detailValue {
+  color: #ffffff;
+  font-family: monospace;
+  font-size: 0.875rem;
+  background: rgba(55, 65, 81, 0.3);
+  border-radius: 4px;
+  padding: 0.5rem;
+  word-break: break-all;
+}
+
+/* Context */
+.errorContext {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(75, 85, 99, 0.5);
+}
+
+.contextContent {
+  color: #d1d5db;
+  font-family: monospace;
+  font-size: 0.75rem;
+  background: rgba(55, 65, 81, 0.3);
+  border-radius: 4px;
+  padding: 0.5rem;
+  max-height: 5rem;
+  overflow-y: auto;
+  margin: 0;
+}
+
+/* Related Skills */
+.relatedSkills {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(75, 85, 99, 0.5);
+}
+
+.skillsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.skillCard {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(37, 99, 235, 0.1));
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  border-radius: 4px;
+  padding: 0.75rem;
+}
+
+.skillHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.skillHeader i {
+  color: #60a5fa;
+  font-size: 1rem;
+}
+
+.skillType {
+  color: #93c5fd;
+  font-weight: 500;
+  font-size: 0.875rem;
+}
+
+.skillCapabilities {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.6);
+  margin-bottom: 0.25rem;
+}
+
+.skillPerformance {
+  font-size: 0.75rem;
+  color: #4ade80;
+}
+
+.moreSkills {
+  text-align: center;
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+/* Footer */
+.errorFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(75, 85, 99, 0.5);
+}
+
+.footerText {
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.footerLink {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  color: #fb923c;
+  transition: color 0.2s ease;
+}
+
+.footerLink:hover {
+  color: #fdba74;
+}
+
+.footerLink i {
+  font-size: 0.75rem;
+}
+
+/* ===== Vectors Tab ===== */
+.vectorsContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.vectorsList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.vectorCard {
+  padding: 1.25rem;
+  transition: all 0.2s ease;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.vectorCard:hover {
+  border-color: rgba(139, 92, 246, 0.3);
+}
+
+.vectorHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+}
+
+.vectorHeaderLeft {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.vectorIcon {
+  width: 2.5rem;
+  height: 2.5rem;
+  background: rgba(139, 92, 246, 0.2);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #a78bfa;
+  font-size: 1.25rem;
+}
+
+.vectorId {
+  color: #ffffff;
+  font-weight: 500;
+  font-size: 0.9rem;
+  font-family: monospace;
+}
+
+.vectorTimestamp {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.vectorTimestamp i {
+  font-size: 0.7rem;
+}
+
+.vectorHeaderRight {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.confidenceBadge {
+  padding: 0.25rem 0.75rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.confidenceHigh {
+  background: rgba(74, 222, 128, 0.2);
+  color: #4ade80;
+}
+
+.confidenceMedium {
+  background: rgba(251, 191, 36, 0.2);
+  color: #fbbf24;
+}
+
+.confidenceLow {
+  background: rgba(239, 68, 68, 0.2);
+  color: #f87171;
+}
+
+.vectorDetails {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.vectorDetailItem {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.vectorDetailLabel {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.vectorDetailLabel i {
+  font-size: 0.7rem;
+}
+
+.vectorDetailValue {
+  color: #d1d5db;
+  font-family: monospace;
+  font-size: 0.85rem;
+  background: rgba(55, 65, 81, 0.3);
+  border-radius: 4px;
+  padding: 0.5rem;
+  word-break: break-all;
+}
+
+.coordinatesContainer {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid rgba(75, 85, 99, 0.3);
+}
+
+.coordinatesHeader {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.5);
+  margin-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.coordinatesBar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.coordinateDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #a78bfa;
+  opacity: 0.6;
+}
+
+.coordinateDotHigh {
+  opacity: 1;
+  background: #8b5cf6;
+}
+
+.coordinateValue {
+  font-family: monospace;
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.7);
+  margin-right: 4px;
+}
+
+/* ===== Graph Visualization Tab ===== */
+.graphContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.graphControls {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.graphFilterLabel {
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.filterButton {
+  padding: 6px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.6);
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: all 0.2s ease;
+}
+
+.filterButton:hover {
+  border-color: rgba(96, 165, 250, 0.3);
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.filterButtonActive {
+  background: linear-gradient(135deg, rgba(96, 165, 250, 0.2), rgba(37, 99, 235, 0.2));
+  border-color: rgba(96, 165, 250, 0.4);
+  color: #60a5fa;
+}
+
+.graphStatsRow {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 1rem;
+}
+
+.graphStatCard {
+  padding: 1rem;
+  text-align: center;
+}
+
+.graphStatValue {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #60a5fa;
+}
+
+.graphStatLabel {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.5);
+  margin-top: 0.25rem;
+}
+
+/* Graph Visual Area */
+.graphVisualArea {
+  min-height: 400px;
+  background: rgba(15, 23, 42, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 1.5rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.graphVisualArea p {
+  color: rgba(255, 255, 255, 0.4);
+  text-align: center;
+  margin-top: 5rem;
+  font-size: 0.95rem;
+}
+
+/* Node Relationship Grid */
+.nodeRelationships {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.nodeGroup {
+  margin-bottom: 0.5rem;
+}
+
+.nodeGroupTitle {
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.7);
+  margin-bottom: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.nodeGroupTitle i {
+  font-size: 0.85rem;
+}
+
+.skillsGroupTitle i {
+  color: #60a5fa;
+}
+
+.errorsGroupTitle i {
+  color: #fb923c;
+}
+
+.nodeChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.nodeChip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.nodeChip:hover {
+  transform: translateY(-1px);
+}
+
+.skillNodeChip {
+  background: rgba(59, 130, 246, 0.12);
+  color: #93c5fd;
+  border-color: rgba(59, 130, 246, 0.2);
+}
+
+.skillNodeChip:hover {
+  background: rgba(59, 130, 246, 0.2);
+  border-color: rgba(59, 130, 246, 0.4);
+}
+
+.errorNodeChip {
+  background: rgba(251, 146, 60, 0.12);
+  color: #fdba74;
+  border-color: rgba(251, 146, 60, 0.2);
+}
+
+.errorNodeChip:hover {
+  background: rgba(251, 146, 60, 0.2);
+  border-color: rgba(251, 146, 60, 0.4);
+}
+
+.nodeChipIcon {
+  font-size: 0.75rem;
+}
+
+.nodeChipLabel {
+  font-weight: 500;
+}
+
+/* Connection Info Panel */
+.connectionPanel {
+  margin-top: 1rem;
+  background: rgba(15, 23, 42, 0.3);
+  border: 1px solid rgba(96, 165, 250, 0.2);
+  border-radius: 8px;
+  padding: 1rem;
+}
+
+.connectionPanelTitle {
+  font-size: 0.9rem;
+  color: #60a5fa;
+  margin-bottom: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.connectionPanelRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.connectionPanelRow:last-child {
+  border-bottom: none;
+}
+
+.connectionLabel {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.85rem;
+}
+
+.connectionValue {
+  color: #ffffff;
+  font-family: monospace;
+  font-size: 0.85rem;
+}
+
+/* ===== Loading / Error States ===== */
+.errorDisplay {
+  padding: 2rem;
+  text-align: center;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-radius: 8px;
+}
+
+.errorDisplay i {
+  font-size: 2rem;
+  color: #f87171;
+  margin-bottom: 0.75rem;
+}
+
+.errorDisplay h4 {
+  color: #f87171;
+  margin: 0 0 0.5rem 0;
+}
+
+.errorDisplay p {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 768px) {
+  .tabNav {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .tabButton {
+    padding: 10px 14px;
+    font-size: 0.8rem;
+  }
+
+  .tabButton span {
+    display: none;
+  }
+
+  .tabInner {
+    padding: 1rem;
+  }
+
+  .statsGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .quickActions {
+    grid-template-columns: 1fr;
+  }
+
+  .statsGridCompact {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .vectorDetails {
+    grid-template-columns: 1fr;
+  }
+
+  .errorDetails {
+    grid-template-columns: 1fr;
+  }
+
+  .skillsGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .errorHeaderRight {
+    flex-direction: column;
+    align-items: flex-end;
+  }
+
+  .graphStatsRow {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .graphControls {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+@media (max-width: 480px) {
+  .statsGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .statsGridCompact {
+    grid-template-columns: 1fr;
+  }
+
+  .statusGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .graphStatsRow {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Section heading used in Overview */
+.sectionHeading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+}
+
+.sectionHeading i {
+  font-size: 1rem;
+}

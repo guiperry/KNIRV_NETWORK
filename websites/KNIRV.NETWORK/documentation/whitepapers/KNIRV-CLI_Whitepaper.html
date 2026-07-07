@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KNIRV-CLI Whitepaper - KNIRV Network Whitepaper</title>
+    <link rel="stylesheet" href="../styles.css">
+    <script src="../config/portal-links.yaml" type="text/yaml" id="portal-config"></script>
+    <script src="../js/config-loader.js"></script>
+    <script src="../js/universal-footer.js"></script>
+    <script>
+        // Override footer links for documentation site
+        document.addEventListener('DOMContentLoaded', function() {
+            if (window.knirvConfig && window.knirvConfig.config) {
+                // Update legal links to use documentation-specific paths
+                if (window.knirvConfig.config.footer && window.knirvConfig.config.footer.legal) {
+                    window.knirvConfig.config.footer.legal.terms = "../legal/TERMS_AND_CONDITIONS.html";
+                    window.knirvConfig.config.footer.legal.privacy = "../legal/PRIVACY_POLICY.html";
+                    window.knirvConfig.config.footer.legal.contribution = "../legal/CODE_OF_CONDUCT.html";
+                }
+            }
+        });
+    </script>
+</head>
+<body>
+    <header class="doc-header">
+        <div class="container">
+            <nav class="doc-nav">
+                <a href="index.html">← Back to Whitepapers</a>
+                <a href="../index.html">← Back to Documentation</a>
+            </nav>
+            <h1>KNIRV-CLI Whitepaper</h1>
+            <p class="doc-description">Technical whitepaper for the KNIRV Network</p>
+        </div>
+    </header>
+
+    <main class="doc-main">
+        <div class="container">
+            <article class="doc-content whitepaper-content">
+                <p><h3><strong>Whitepaper: KNIRV-CLI: The Command-Line Interface for the KNIRV Network</strong></h3>
+<h4><em>The Unified Gateway for Decentralized Trusted Execution Network Operations</em></h4></p><p><strong>Version:</strong> 1.0
+<strong>Date:</strong> October 26, 2025</p><p>---</p><p><h3><strong>Abstract</strong></h3></p><p>The KNIRV Network is a decentralized trusted execution network (D-TEN) composed of multiple, interconnected technological layers, each serving a distinct purpose. Managing and interacting with such a complex, distributed ecosystem requires a robust, unified, and intuitive interface. This whitepaper introduces the <strong>KNIRV-CLI</strong>, a comprehensive, command-line interface designed to provide a single, powerful point of control for the entire KNIRV Network.</p><p>The KNIRV-CLI abstracts the complexity of inter-service communication, acting as a sophisticated client for all core KNIRV services, including KNIRV-ORACLE, KNIRV-SERVER, KNIRV-GRAPH, and KNIRV-GATEWAY. Its architecture, implemented in GoLang, is built on dynamic service discovery, real-time communication, and secure wallet integration. By providing a consistent, scriptable, and interactive interface, the KNIRV-CLI empowers developers and users to manage agents, execute network-level operations, and participate in the NRN token economy with unprecedented efficiency and ease.</p><p>---</p><p><h3><strong>1. Introduction</strong></h3></p><p>The proliferation of decentralized services often results in a fragmented and difficult-to-manage environment, requiring users to juggle multiple tools and API endpoints. The KNIRV-CLI is a direct response to this challenge, consolidating the functionality of the entire KNIRV D-TEN into a single, cohesive application. It serves as the official client for developers, system administrators, and network participants, enabling them to:
+* <strong>Discover and monitor</strong> all network services.
+* <strong>Perform blockchain operations</strong> on the KNIRV-ORACLE.
+* <strong>Interact with AI agents and DVEs</strong> on the KNIRV-SERVER.
+* <strong>Contribute to and query the knowledge graph</strong> on the KNIRV-GRAPH.
+* <strong>Manage their wallets and NRN tokens.</strong></p><p><h3><strong>2. Architectural Overview</strong></h3></p><p>The KNIRV-CLI is architected as a modular, GoLang application designed for reliability and performance. Its core components work in concert to provide a seamless user experience.</p><p>* <strong>Service Registry:</strong> A dynamic registry that automatically discovers, registers, and maintains a list of all active KNIRV Network services, including their endpoints and health status.
+* <strong>Health Monitor:</strong> A proactive system that continuously monitors the health of all registered services. It incorporates a <strong>Circuit Breaker Pattern</strong> for robust error handling and to prevent cascading failures.
+* <strong>KNIRV Service Clients:</strong> The heart of the CLI, these are dedicated clients for each major KNIRV Network layer. They handle the low-level communication and API calls, abstracting them into simple commands.
+* <strong>Real-time Communication Layer:</strong> The CLI integrates a <strong>WebSocket Manager</strong> and <strong>Server-Sent Events (SSE)</strong> client to enable real-time, bidirectional communication and event streaming, ensuring users receive live updates from the network.
+* <strong>Configuration Manager:</strong> A flexible system that supports environment-specific overrides and service-specific settings, allowing for a tailored user experience without the need for recompilation.</p><p><h3><strong>3. Full-Stack Network Integration</strong></h3></p><p>The KNIRV-CLI provides a high-fidelity interface to each layer of the KNIRV Network, bridging the gap between the user and the decentralized backend.</p><p>* <strong>KNIRV-ORACLE Client:</strong> Manages all blockchain operations, including agent registration, credentialing, and secure delegated execution. It facilitates the core operations of the KNIRV-CHAIN.
+* <strong>KNIRV-SERVER Client:</strong> Provides a direct interface to the Deterministic Validation Environment (DVE) and the KNIRV-ENGINE, enabling users to rent DVEs for computational tasks and interact with inference APIs.
+* <strong>KNIRV-GRAPH Client:</strong> The primary tool for interacting with the KNIRV-GRAPH. It enables users to submit <code>ErrorNodes</code> and <code>SkillNodes</code> to the graph's <code>NRV</code> system, query the knowledge base, and participate in the "Proof-of-Solution" economy.
+* <strong>KNIRV-GATEWAY Client:</strong> Integrates with the unified API gateway, providing a secure, authenticated entry point for all network interactions.</p><p><h3><strong>4. Wallet and Economics Integration</strong></h3></p><p>A core feature of the KNIRV-CLI is its built-in support for the network's economic layer.
+* <strong>XION Meta Account Support:</strong> The CLI leverages XION's meta account support to simplify blockchain interactions, enabling gasless transactions and streamlined account management.
+* <strong>NRN Token Manager:</strong> Provides a complete suite of commands for NRN token operations, including checking balances, transferring tokens, and interacting with a development faucet.
+* <strong>Economics Module Integration:</strong> Integrates with the network's economics module for complex tasks such as skill registration, automated fee calculations, and the management of economic incentives.</p><p><h3><strong>5. Advanced Features and User Experience</strong></h3></p><p>The KNIRV-CLI goes beyond basic command execution to provide a rich, interactive user experience.
+* <strong>Interactive Terminal UI (TUI):</strong> The CLI can be launched in a powerful interactive shell (REPL) mode, complete with command history, tab completion, and an ergonomic user interface.
+* <strong>AI-Powered Plugin Generation:</strong> By directly accessing KNIRV's inference capabilities, the CLI can automatically generate plugins and code snippets, accelerating development and reducing manual effort.
+* <strong>MCP Capability Management:</strong> The tool supports the management of AI integration with multiple providers and the registration of operational procedures, enabling complex, automated workflows.</p><p><h3><strong>6. Conclusion</strong></h3></p><p>The KNIRV-CLI is more than just a command-line tool; it is a strategic architectural layer that makes the entire KNIRV Network accessible and manageable. By abstracting the complexity of a decentralized, multi-layered system into a single, cohesive interface, it dramatically lowers the barrier to entry for developers and users. Its robust design, full-stack integration, and commitment to a seamless user experience position the KNIRV-CLI as an indispensable component for the growth and adoption of the KNIRV D-TEN.</p>
+            </article>
+        </div>
+    </main>
+
+    <script src="../scripts.js"></script>
+
+    <!-- Footer will be automatically generated by universal-footer.js -->
+</body>
+</html>

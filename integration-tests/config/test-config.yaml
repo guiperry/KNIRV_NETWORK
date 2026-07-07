@@ -1,0 +1,292 @@
+# KNIRV Integration Test Configuration
+# This file contains configuration for all integration tests
+
+# Test Environment Settings
+environment:
+  name: "integration-test"
+  timeout: "300s"
+  cleanup_after_test: true
+  parallel_execution: false
+
+# Component Endpoints
+endpoints:
+  knirvchain:
+    url: "http://localhost:8080"
+    health_endpoint: "/health"
+    timeout: "30s"
+  
+  knirvgraph:
+    url: "http://localhost:8081"
+    health_endpoint: "/health"
+    timeout: "30s"
+  
+  knirvserver:
+    # Phase 6 Unified Binary Architecture - Single service on port 8084
+    unified_binary:
+      url: "http://localhost:8084"
+      health_endpoint: "/health"
+      api_base: "/api"
+      timeout: "30s"
+      architecture: "unified"
+      services: ["frontend", "backend", "api", "websocket"]
+    # Legacy endpoints (deprecated in Phase 6)
+    legacy:
+      frontend:
+        url: "http://localhost:3000"
+        health_endpoint: "/api/health"
+        timeout: "30s"
+        deprecated: true
+      backend:
+        api_gateway:
+          url: "http://localhost:8080"
+          health_endpoint: "/health"
+          timeout: "30s"
+          deprecated: true
+        dve_manager:
+          url: "http://localhost:8081"
+          health_endpoint: "/health"
+          timeout: "30s"
+          deprecated: true
+        validation_core:
+          url: "http://localhost:8082"
+          health_endpoint: "/health"
+          timeout: "30s"
+          deprecated: true
+  
+  knirvwallet:
+    url: "http://localhost:8083"
+    health_endpoint: "/health"
+    timeout: "30s"
+  
+  knirvshell:
+    url: "http://localhost:8084"
+    health_endpoint: "/health"
+    timeout: "30s"
+  
+  knirvrouter:
+    url: "http://localhost:8085"
+    health_endpoint: "/status"
+    timeout: "30s"
+  
+  knirvoracle:
+    url: "http://localhost:8086"
+    health_endpoint: "/health"
+    timeout: "30s"
+
+  knirvcontroller:
+    url: "http://localhost:3000"
+    health_endpoint: "/health"
+    api_base: "/api"
+    timeout: "30s"
+    architecture: "unified"
+    services: ["frontend", "backend", "wasm-compiler", "lora-engine", "protobuf-handler"]
+
+# External Services
+external_services:
+  xion:
+    rpc_endpoint: "https://rpc.xion-testnet-1.burnt.com:443"
+    rest_endpoint: "https://api.xion-testnet-1.burnt.com"
+    chain_id: "xion-testnet-1"
+    timeout: "60s"
+
+# Test Data Configuration
+test_data:
+  wallet:
+    initial_balance: "10000000"  # 10 NRN
+    test_mnemonic: "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about"
+  
+  llm:
+    registration_fee: "1000000"
+    usage_fee: "100000"
+    test_model_data: "dGVzdCBtb2RlbCBkYXRh"  # base64 encoded "test model data"
+  
+  agent:
+    default_timeout: "60s"
+    default_memory: "512MB"
+    test_capabilities: ["text_processing", "data_analysis"]
+  
+  skill:
+    default_confidence: 0.8
+    default_latency: "5s"
+    test_capabilities: ["javascript", "syntax_repair"]
+
+  knirvcontroller:
+    test_agent_id: "integration-test-agent"
+    test_skill_id: "integration-test-skill"
+    lora_adapter:
+      name: "test-integration-adapter"
+      rank: 16
+      alpha: 0.5
+      base_model: "hrm-v1"
+    wasm_compilation:
+      timeout: "60s"
+      optimization_level: "O2"
+    error_context:
+      test_error_type: "skill_invocation_request"
+      severity: "medium"
+
+# Performance Test Configuration
+performance:
+  load_test:
+    concurrent_users: 10
+    test_duration: "30s"
+    requests_per_user: 50
+    ramp_up_time: "5s"
+  
+  stress_test:
+    concurrent_users: 50
+    test_duration: "60s"
+    requests_per_user: 100
+    ramp_up_time: "10s"
+  
+  thresholds:
+    max_error_rate: 5.0  # percentage
+    min_requests_per_second: 1.0
+    max_average_latency: "5s"
+
+# Cross-Component Test Configuration
+cross_component:
+  propagation_timeout: "10s"
+  validation_timeout: "30s"
+  retry_attempts: 3
+  retry_delay: "2s"
+
+# E2E Workflow Configuration
+e2e_workflows:
+  developer_workflow:
+    skill_invocation_amount: "750000"
+    error_resolution_timeout: "30s"
+  
+  agent_development:
+    deployment_timeout: "60s"
+    execution_timeout: "120s"
+    registration_fee: "2000000"
+  
+  bridge_transfer:
+    transfer_amount: "2000000"
+    bridge_fee: "50000"
+    confirmation_timeout: "60s"
+  
+  p2p_network:
+    stake_amount: "5000000"
+    proof_validation_timeout: "20s"
+    peer_discovery_timeout: "15s"
+
+# Database Configuration for Tests
+database:
+  cleanup_between_tests: true
+  backup_before_test: false
+  test_data_isolation: true
+
+# Logging Configuration
+logging:
+  level: "info"
+  format: "json"
+  output: "stdout"
+  test_logs_directory: "./logs"
+  component_logs: true
+
+# Security Configuration
+security:
+  test_keys_directory: "./keys"
+  generate_test_keys: true
+  key_rotation_interval: "24h"
+
+# Monitoring Configuration
+monitoring:
+  metrics_collection: true
+  metrics_interval: "5s"
+  health_check_interval: "10s"
+  alert_thresholds:
+    cpu_usage: 80.0
+    memory_usage: 85.0
+    disk_usage: 90.0
+
+# Cleanup Configuration
+cleanup:
+  auto_cleanup: true
+  cleanup_timeout: "60s"
+  preserve_logs: true
+  preserve_test_data: false
+
+# Production Deployment Integration Configuration
+production_deployment:
+  enabled: true
+  deployment_modes:
+    local:
+      enabled: true
+      gateway_url: "http://localhost:8000"
+      monitoring_url: "http://localhost:3000"
+      services:
+        knirvchain: "http://localhost:8080"
+        knirvgraph: "http://localhost:8081"
+        knirvserver: "http://localhost:8084"  # Phase 6 Unified Binary
+        knirvoracle: "http://localhost:8083"
+        knirvrouter: "http://localhost:8085"
+        knirvrouter_api: "http://localhost:9090"
+        knirvcontroller: "http://localhost:3000"  # Unified Frontend + Backend
+        # Legacy KNIRVSERVER endpoints (deprecated in Phase 6)
+        knirvnexus_frontend_legacy: "http://localhost:3000"
+        knirvnexus_api_gateway_legacy: "http://localhost:8080"
+        knirvnexus_dve_manager_legacy: "http://localhost:8081"
+        knirvnexus_validation_core_legacy: "http://localhost:8082"
+
+    kubernetes:
+      enabled: false
+      namespace: "knirv-production"
+      gateway_url: "https://api.knirv.com"
+      monitoring_url: "https://monitoring.knirv.com"
+      ingress_host: "api.knirv.com"
+
+    docker_compose:
+      enabled: false
+      compose_file: "../deployment/docker-compose.monitoring.yml"
+      network: "knirv-monitoring"
+      gateway_url: "http://localhost:8000"
+
+  # Integration with deployment scripts
+  deployment_scripts:
+    deploy_script: "../scripts/deploy-and-test.sh"
+    manage_script: "../scripts/manage-knirv.sh"
+    production_test_suite: "../deployment/testing/final-test-suite.sh"
+
+  # Production-specific test configuration
+  production_tests:
+    enabled: true
+    timeout: "1800s"  # 30 minutes
+    load_test_duration: "300s"  # 5 minutes
+    concurrent_users: 100
+    connectivity_tests: true
+    bridge_tests: true
+    monitoring_tests: true
+    real_network_tests: false  # Enable for real network testing
+
+  # Real network configuration
+  real_network:
+    xion:
+      mainnet_rpc: "https://rpc.xion.burnt.com:443"
+      testnet_rpc: "https://rpc.xion-testnet-1.burnt.com:443"
+      chain_id: "xion-testnet-1"
+      use_testnet: true
+
+    ethereum:
+      mainnet_rpc: "https://mainnet.infura.io/v3/YOUR_PROJECT_ID"
+      testnet_rpc: "https://goerli.infura.io/v3/YOUR_PROJECT_ID"
+      chain_id: 5  # Goerli testnet
+      use_testnet: true
+
+  # Monitoring integration
+  monitoring:
+    prometheus_url: "http://localhost:9090"
+    grafana_url: "http://localhost:3000"
+    alertmanager_url: "http://localhost:9093"
+    collect_metrics: true
+    create_snapshots: false
+
+  # Test orchestration
+  orchestration:
+    pre_test_deployment: false  # Set to true to deploy before testing
+    post_test_cleanup: false    # Set to true to cleanup after testing
+    wait_for_services: true
+    service_ready_timeout: "300s"
+    health_check_interval: "10s"

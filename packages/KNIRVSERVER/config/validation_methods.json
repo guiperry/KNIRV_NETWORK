@@ -1,0 +1,731 @@
+{
+  "metadata": {
+    "source": "KNIRVSERVER/deep_gap_analysis.md",
+    "generated": "2025-01-15",
+    "description": "Refactored validation methods organized into ModelValidator and ModelTester categories with consolidated duplicate methods",
+    "categories": {
+      "ModelValidator": "Validates LLM models across multiple dimensions (performance, safety, factuality, reasoning)",
+      "ModelTester": "Executes test cases and generates comprehensive validation metrics and scores"
+    }
+  },
+  "validation_methods": [
+    {
+      "category": "ModelValidator",
+      "methods": [
+        {
+          "id": 1,
+          "name": "validatePerformance",
+          "receiver": "ModelValidator",
+          "description": "Validates LLM performance metrics (latency, throughput, response time)",
+          "parameters": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "Context for request handling"
+            },
+            {
+              "name": "task",
+              "type": "*models.ValidationTask",
+              "description": "Validation task with performance test cases"
+            }
+          ],
+          "returns": {
+            "type": "(float64, error)",
+            "description": "Performance score (0.0-1.0)"
+          }
+        },
+        {
+          "id": 2,
+          "name": "validateSafety",
+          "receiver": "ModelValidator",
+          "description": "Validates LLM safety and refusal to harmful requests",
+          "parameters": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "Context for request handling"
+            },
+            {
+              "name": "task",
+              "type": "*models.ValidationTask",
+              "description": "Validation task with safety test cases"
+            }
+          ],
+          "returns": {
+            "type": "(float64, error)",
+            "description": "Safety score (0.0-1.0)"
+          }
+        },
+        {
+          "id": 3,
+          "name": "validateFactuality",
+          "receiver": "ModelValidator",
+          "description": "Implements Factuality Slice methodology with evidence-grounded responses",
+          "parameters": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "Context for request handling"
+            },
+            {
+              "name": "task",
+              "type": "*models.ValidationTask",
+              "description": "Validation task with evidence chunks in Parameters['evidence']"
+            }
+          ],
+          "returns": {
+            "type": "(float64, error)",
+            "description": "Factuality score averaging across all test cases"
+          }
+        },
+        {
+          "id": 4,
+          "name": "validateReasoning",
+          "receiver": "ModelValidator",
+          "description": "Validates LLM reasoning quality and logical consistency",
+          "parameters": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "Context for request handling"
+            },
+            {
+              "name": "task",
+              "type": "*models.ValidationTask",
+              "description": "Validation task with reasoning test cases"
+            }
+          ],
+          "returns": {
+            "type": "(float64, error)",
+            "description": "Reasoning quality score (0.0-1.0)"
+          }
+        },
+        {
+          "id": 5,
+          "name": "Validate",
+          "receiver": "ModelValidator",
+          "description": "Performs comprehensive multi-dimensional validation across all dimensions (performance 25%, safety 25%, factuality 30%, reasoning 20%)",
+          "parameters": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "Context for request handling"
+            },
+            {
+              "name": "task",
+              "type": "*models.ValidationTask",
+              "description": "Validation task with test cases"
+            }
+          ],
+          "returns": {
+            "type": "(*models.ValidationResult, error)",
+            "description": "Validation result with weighted scores for all dimensions"
+          }
+        }
+      ]
+    },
+    {
+      "category": "ModelTester",
+      "methods": [
+        {
+          "id": 1,
+          "name": "ExecuteTestCase",
+          "receiver": "ModelTester",
+          "description": "Runs a single test case against a model or skill code",
+          "parameters": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "Context for request cancellation and timeouts"
+            },
+            {
+              "name": "testCase",
+              "type": "models.TestCase",
+              "description": "Test case with Input, Expected, and ID fields"
+            },
+            {
+              "name": "target",
+              "type": "interface{}",
+              "description": "Target to execute against (model ID, skill code, or executor function)"
+            }
+          ],
+          "returns": {
+            "type": "models.TestResult",
+            "description": "Test execution result including status, score, and execution time"
+          }
+        },
+        {
+          "id": 2,
+          "name": "calculateStringSimilarity",
+          "receiver": "ModelTester",
+          "description": "Computes string similarity between two strings using normalized edit distance (0.0 to 1.0)",
+          "parameters": [
+            {
+              "name": "s1",
+              "type": "string",
+              "description": "First string to compare"
+            },
+            {
+              "name": "s2",
+              "type": "string",
+              "description": "Second string to compare"
+            }
+          ],
+          "returns": {
+            "type": "float64",
+            "description": "Similarity score from 0.0 to 1.0"
+          }
+        },
+        {
+          "id": 3,
+          "name": "calculateScore",
+          "receiver": "ModelTester",
+          "description": "Unified score calculation combining validation report and output matching (validation 60%, output match 40%)",
+          "parameters": [
+            {
+              "name": "actual",
+              "type": "string",
+              "description": "Actual output from test execution"
+            },
+            {
+              "name": "expected",
+              "type": "string",
+              "description": "Expected output from test case"
+            },
+            {
+              "name": "validationReport",
+              "type": "ValidationReport",
+              "description": "Validation report with confidence scores"
+            }
+          ],
+          "returns": {
+            "type": "float64",
+            "description": "Final score combining validation (60%) and output match (40%)"
+          }
+        },
+        {
+          "id": 4,
+          "name": "CalculateMetrics",
+          "receiver": "ModelTester",
+          "description": "Computes comprehensive metrics from test results (latency, throughput, success rate, hallucination rate, etc.)",
+          "parameters": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "Context for request handling"
+            },
+            {
+              "name": "results",
+              "type": "[]models.TestResult",
+              "description": "Array of test results to analyze"
+            }
+          ],
+          "returns": {
+            "type": "ValidationMetrics",
+            "description": "Metrics including AverageLatency, ThroughputPerSecond, SuccessRate, HallucinationRate, etc."
+          }
+        },
+        {
+          "id": 5,
+          "name": "Test",
+          "receiver": "ModelTester",
+          "description": "Comprehensive test execution: runs all test cases, calculates scores and metrics",
+          "parameters": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "Context for cancellation with configurable timeout per test case"
+            },
+            {
+              "name": "task",
+              "type": "*models.ValidationTask",
+              "description": "Validation task containing TestCases and target identifier"
+            },
+            {
+              "name": "result",
+              "type": "*models.ValidationResult",
+              "description": "Result object to be populated with test results"
+            }
+          ],
+          "returns": {
+            "type": "(*models.ValidationResult, error)",
+            "description": "Populated validation result with individual test results, overall score, and metrics"
+          }
+        }
+      ]
+    },
+    {
+      "category": "Core Infrastructure",
+      "description": "Cross-cutting validation infrastructure, proof generation, and orchestration",
+      "methods": [
+        {
+          "id": 1,
+          "name": "GenerateProof",
+          "receiver": "ProofGenerator",
+          "description": "Creates cryptographic proof for validation results using SHA-256 hash",
+          "parameters": [
+            {
+              "name": "task",
+              "type": "*models.ValidationTask",
+              "description": "The validation task being proven"
+            },
+            {
+              "name": "result",
+              "type": "*models.ValidationResult",
+              "description": "The validation result to generate proof for"
+            }
+          ],
+          "returns": {
+            "type": "string",
+            "description": "Proof string in format 'PROOF_V1:nodeID:sha256Hash'"
+          }
+        },
+        {
+          "id": 2,
+          "name": "VerifyProof",
+          "receiver": "ProofGenerator",
+          "description": "Verifies a validation proof by checking format and hash",
+          "parameters": [
+            {
+              "name": "proof",
+              "type": "string",
+              "description": "Proof string to verify"
+            },
+            {
+              "name": "task",
+              "type": "*models.ValidationTask",
+              "description": "Original validation task"
+            },
+            {
+              "name": "result",
+              "type": "*models.ValidationResult",
+              "description": "Original validation result"
+            }
+          ],
+          "returns": {
+            "type": "bool",
+            "description": "True if proof is valid, false otherwise"
+          }
+        },
+        {
+          "id": 3,
+          "name": "executeTask",
+          "receiver": "ValidationCore",
+          "description": "Router method that coordinates appropriate validator and tester based on task type",
+          "parameters": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "Context for cancellation"
+            },
+            {
+              "name": "task",
+              "type": "*models.ValidationTask",
+              "description": "Validation task with Type field (model, skill, or custom)"
+            }
+          ],
+          "returns": {
+            "type": "(*models.ValidationResult, error)",
+            "description": "Validation result from appropriate validator/tester combination"
+          }
+        },
+        {
+          "id": 4,
+          "name": "RunValidation",
+          "receiver": "ValidationOrchestrator",
+          "description": "Orchestrates deterministic and LLM-based validators to produce comprehensive validation report",
+          "parameters": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "Context for validation"
+            },
+            {
+              "name": "llmResponse",
+              "type": "LLMResponse",
+              "description": "LLM response with Prompt, Output, Context, and Timestamp for validation"
+            }
+          ],
+          "returns": {
+            "type": "ValidationReport",
+            "description": "Report with results from all validators and confidence scores"
+          }
+        },
+        {
+          "id": 5,
+          "name": "RunContainer",
+          "receiver": "ContainerRuntimeManager",
+          "description": "Selects and executes code in appropriate container runtime (native Go or Podman fallback)",
+          "parameters": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "Context for execution with timeout"
+            },
+            {
+              "name": "opts",
+              "type": "ContainerOptions",
+              "description": "Container execution options"
+            }
+          ],
+          "returns": {
+            "type": "(*ContainerResult, error)",
+            "description": "Execution result with output and security analysis"
+          }
+        }
+      ]
+    },
+    {
+      "category": "Security Validation",
+      "description": "Kali Linux security tool validation, multi-layer security analysis, and sandboxed execution",
+      "methods": [
+        {
+          "id": 1,
+          "name": "ValidateSecurityCapabilities",
+          "receiver": "KaliSecurityValidator",
+          "description": "Performs comprehensive validation of all Kali Linux security tools, frameworks, and system resources",
+          "parameters": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "Context for request handling"
+            }
+          ],
+          "returns": {
+            "type": "(*KaliSecurityValidationReport, error)",
+            "description": "Report with validation results for all security tools, frameworks, and system capabilities"
+          }
+        },
+        {
+          "id": 2,
+          "name": "validateStaticAnalysisTools",
+          "receiver": "KaliSecurityValidator",
+          "description": "Validates static analysis tools availability (Ghidra, Radare2, Semgrep, Bandit)",
+          "parameters": [
+            {
+              "name": "report",
+              "type": "*KaliSecurityValidationReport",
+              "description": "Report object to populate with static analysis tool status"
+            }
+          ],
+          "returns": {
+            "type": "void",
+            "description": "Modifies report in place with tool availability status"
+          }
+        },
+        {
+          "id": 3,
+          "name": "validateDynamicAnalysisTools",
+          "receiver": "KaliSecurityValidator",
+          "description": "Validates dynamic analysis tools availability (strace, ltrace, perf, gdb)",
+          "parameters": [
+            {
+              "name": "report",
+              "type": "*KaliSecurityValidationReport",
+              "description": "Report object to populate with dynamic analysis tool status"
+            }
+          ],
+          "returns": {
+            "type": "void",
+            "description": "Modifies report in place with tool availability status"
+          }
+        },
+        {
+          "id": 4,
+          "name": "validateNetworkAnalysisTools",
+          "receiver": "KaliSecurityValidator",
+          "description": "Validates network analysis tools availability (tcpdump, tshark, mitmproxy, iptables)",
+          "parameters": [
+            {
+              "name": "report",
+              "type": "*KaliSecurityValidationReport",
+              "description": "Report object to populate with network analysis tool status"
+            }
+          ],
+          "returns": {
+            "type": "void",
+            "description": "Modifies report in place with tool availability status"
+          }
+        },
+        {
+          "id": 5,
+          "name": "validateForensicsTools",
+          "receiver": "KaliSecurityValidator",
+          "description": "Validates forensics tools availability (Volatility, SleuthKit, Autopsy)",
+          "parameters": [
+            {
+              "name": "report",
+              "type": "*KaliSecurityValidationReport",
+              "description": "Report object to populate with forensics tool status"
+            }
+          ],
+          "returns": {
+            "type": "void",
+            "description": "Modifies report in place with tool availability status"
+          }
+        },
+        {
+          "id": 6,
+          "name": "validateSecurityFrameworks",
+          "receiver": "KaliSecurityValidator",
+          "description": "Validates security framework support (AppArmor, SELinux, Seccomp)",
+          "parameters": [
+            {
+              "name": "report",
+              "type": "*KaliSecurityValidationReport",
+              "description": "Report object to populate with security framework status"
+            }
+          ],
+          "returns": {
+            "type": "void",
+            "description": "Modifies report in place with framework availability status"
+          }
+        },
+        {
+          "id": 7,
+          "name": "validateContainerRuntime",
+          "receiver": "KaliSecurityValidator",
+          "description": "Validates container runtime availability (Podman, Docker, native Go runtime)",
+          "parameters": [
+            {
+              "name": "report",
+              "type": "*KaliSecurityValidationReport",
+              "description": "Report object to populate with container runtime status"
+            }
+          ],
+          "returns": {
+            "type": "void",
+            "description": "Modifies report in place with runtime availability status"
+          }
+        },
+        {
+          "id": 8,
+          "name": "validateSystemResources",
+          "receiver": "KaliSecurityValidator",
+          "description": "Validates minimum system requirements (memory, CPU, disk, file descriptors)",
+          "parameters": [
+            {
+              "name": "report",
+              "type": "*KaliSecurityValidationReport",
+              "description": "Report object to populate with system resource status"
+            }
+          ],
+          "returns": {
+            "type": "void",
+            "description": "Modifies report in place with resource availability status"
+          }
+        }
+      ]
+    },
+    {
+      "category": "Sandboxed Execution",
+      "description": "Multi-layer security analysis and sandboxed code execution using Kali Linux tools",
+      "methods": [
+        {
+          "id": 1,
+          "name": "RunContainer",
+          "receiver": "NativeContainerRuntime",
+          "description": "Executes code within a sandboxed environment using Kali's native Go runtime with cgroups and namespaces",
+          "parameters": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "Context for execution with timeout"
+            },
+            {
+              "name": "opts",
+              "type": "ContainerOptions",
+              "description": "Container options including Name, Args, SkillCode, TestCases, TimeoutSeconds"
+            }
+          ],
+          "returns": {
+            "type": "(*ContainerResult, error)",
+            "description": "Result with execution output, security analysis, and forensic data"
+          }
+        },
+        {
+          "id": 2,
+          "name": "executeWithSecurityAnalysis",
+          "receiver": "NativeContainerRuntime",
+          "description": "Runs code with 5-layer security analysis: static analysis, dynamic analysis with strace, output capture, network inspection, forensic analysis",
+          "parameters": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "Context for execution"
+            },
+            {
+              "name": "opts",
+              "type": "ContainerOptions",
+              "description": "Container execution options"
+            },
+            {
+              "name": "sandboxPath",
+              "type": "string",
+              "description": "Path to isolated sandbox directory"
+            },
+            {
+              "name": "containerID",
+              "type": "string",
+              "description": "Unique container identifier"
+            }
+          ],
+          "returns": {
+            "type": "(*ContainerResult, error)",
+            "description": "Container execution result with security analysis output"
+          }
+        },
+        {
+          "id": 3,
+          "name": "performStaticAnalysis",
+          "receiver": "NativeContainerRuntime",
+          "description": "Pre-execution static analysis using Radare2, Ghidra, Semgrep, and Bandit to detect malicious code patterns",
+          "parameters": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "Context for analysis"
+            },
+            {
+              "name": "opts",
+              "type": "ContainerOptions",
+              "description": "Container options with code to analyze"
+            }
+          ],
+          "returns": {
+            "type": "error",
+            "description": "Non-blocking error; analysis continues on failure"
+          }
+        },
+        {
+          "id": 4,
+          "name": "buildSecureCommand",
+          "receiver": "NativeContainerRuntime",
+          "description": "Constructs execution command with strace system call tracing and AppArmor/SELinux security restrictions",
+          "parameters": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "Context for command construction"
+            },
+            {
+              "name": "skillPath",
+              "type": "string",
+              "description": "Path to code file to execute"
+            },
+            {
+              "name": "sandboxPath",
+              "type": "string",
+              "description": "Path to isolated sandbox directory"
+            },
+            {
+              "name": "opts",
+              "type": "ContainerOptions",
+              "description": "Container execution options"
+            }
+          ],
+          "returns": {
+            "type": "(*exec.Cmd, error)",
+            "description": "Prepared command with security restrictions and monitoring"
+          }
+        },
+        {
+          "id": 5,
+          "name": "analyzeNetworkTraffic",
+          "receiver": "NativeContainerRuntime",
+          "description": "Uses tcpdump and tshark for network traffic inspection during and after execution",
+          "parameters": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "Context for analysis"
+            },
+            {
+              "name": "containerID",
+              "type": "string",
+              "description": "Container identifier for traffic analysis"
+            }
+          ],
+          "returns": {
+            "type": "void",
+            "description": "Analysis results logged to output"
+          }
+        },
+        {
+          "id": 6,
+          "name": "performForensicAnalysis",
+          "receiver": "NativeContainerRuntime",
+          "description": "Post-execution forensic analysis using Volatility, SleuthKit, and Autopsy to detect compromise or suspicious activity",
+          "parameters": [
+            {
+              "name": "ctx",
+              "type": "context.Context",
+              "description": "Context for forensic analysis"
+            },
+            {
+              "name": "sandboxPath",
+              "type": "string",
+              "description": "Path to sandbox directory for analysis"
+            },
+            {
+              "name": "containerID",
+              "type": "string",
+              "description": "Container identifier for forensic analysis"
+            }
+          ],
+          "returns": {
+            "type": "void",
+            "description": "Forensic analysis results logged to output"
+          }
+        }
+      ]
+    }
+  ],
+  "mapping_notes": {
+    "consolidations": [
+      "ExecuteTestCase (ID 1) + ExecuteModelTestCase (ID 13) → ModelTester.ExecuteTestCase",
+      "calculateScore (ID 2) + calculateModelScore (ID 14) → ModelTester.calculateScore",
+      "calculateStringSimilarity (ID 3) → ModelTester.calculateStringSimilarity",
+      "ValidateBaseLLM (ID 5) + dimension validators (IDs 6-9) → ModelValidator.Validate + individual dimension methods",
+      "CalculateModelMetrics (ID 15) → ModelTester.CalculateMetrics",
+      "validateLLMModel (ID 17) + validateBaseLLM (ID 18) → ValidationCore.executeTask"
+    ],
+    "removed_duplicates": [
+      "validateSkillNode (ID 4) - duplicate of test execution flow, handled by ModelTester.Test",
+      "validateCustom (ID 19) - moved to ValidationCore as default routing behavior",
+      "generateValidationProof (ID 12) - redundant wrapper, use ProofGenerator directly"
+    ],
+    "core_infrastructure_aggregations": [
+      "RunContainer moved from Security Validation to Core Infrastructure (RunContainer by ContainerRuntimeManager manages both native and Podman)",
+      "ValidationOrchestrator.RunValidation aggregates all deterministic and LLM validators",
+      "ProofGenerator provides cryptographic proof services for all validators"
+    ],
+    "security_validation_aggregations": [
+      "KaliSecurityValidator.ValidateSecurityCapabilities orchestrates all sub-validators",
+      "validateStaticAnalysisTools - validates Ghidra, Radare2, Semgrep, Bandit",
+      "validateDynamicAnalysisTools - validates strace, ltrace, perf, gdb",
+      "validateNetworkAnalysisTools - validates tcpdump, tshark, mitmproxy, iptables",
+      "validateForensicsTools - validates Volatility, SleuthKit, Autopsy",
+      "validateSecurityFrameworks - validates AppArmor, SELinux, Seccomp",
+      "validateContainerRuntime - validates available container runtimes"
+    ],
+    "sandboxed_execution_layers": [
+      "Layer 1: performStaticAnalysis - Pre-execution code audit using Radare2, Ghidra, Semgrep, Bandit",
+      "Layer 2: buildSecureCommand + executeWithSecurityAnalysis - System call tracing with strace and AppArmor/SELinux",
+      "Layer 3: Output capture and buffering - Execution stdout/stderr collection",
+      "Layer 4: analyzeNetworkTraffic - Post-execution network inspection using tcpdump/tshark",
+      "Layer 5: performForensicAnalysis - Post-execution forensic analysis using Volatility, SleuthKit"
+    ],
+    "preserved_separate_concerns": [
+      "ProofGenerator - cryptographic proof generation for validation results",
+      "KaliSecurityValidator - security capability detection and validation",
+      "NativeContainerRuntime - sandboxed execution with Kali tools (primary)",
+      "PodmanRuntime - fallback container execution when native runtime unavailable"
+    ],
+    "runtime_strategy": [
+      "Kali Linux with IsKaliLinux=true → NativeContainerRuntime (native Go with cgroups/namespaces)",
+      "Other distributions or native unavailable → PodmanRuntime (containerized fallback)",
+      "ContainerRuntimeManager implements selection and fallback logic"
+    ]
+  }
+}

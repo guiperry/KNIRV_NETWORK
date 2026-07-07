@@ -1,0 +1,12 @@
+appId: com.knirv.controller
+---
+- launchApp
+- tapOn: "Vault"
+- assertVisible: "Unlock Vault"
+- inputText:
+    text: "TestPassword123!"
+- tapOn: "Unlock"
+- assertVisible: "Vault"
+- assertVisible: "Balance"
+- assertVisible: "Send"
+- assertVisible: "Receive"

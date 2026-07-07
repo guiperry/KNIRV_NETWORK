@@ -1,0 +1,38 @@
+[
+  {
+    "chainId": "test-chain-1",
+    "chainName": "Test Chain 1",
+    "rpc": "http://localhost:26657",
+    "rest": "http://localhost:1317",
+    "bip44": {
+      "coinType": 118
+    },
+    "bech32Config": {
+      "bech32PrefixAccAddr": "test",
+      "bech32PrefixAccPub": "testpub",
+      "bech32PrefixValAddr": "testvaloper",
+      "bech32PrefixValPub": "testvaloperpub",
+      "bech32PrefixConsAddr": "testvalcons",
+      "bech32PrefixConsPub": "testvalconspub"
+    },
+    "currencies": [
+      {
+        "coinDenom": "TEST",
+        "coinMinimalDenom": "utest",
+        "coinDecimals": 6
+      }
+    ],
+    "feeCurrencies": [
+      {
+        "coinDenom": "TEST",
+        "coinMinimalDenom": "utest",
+        "coinDecimals": 6
+      }
+    ],
+    "stakeCurrency": {
+      "coinDenom": "TEST",
+      "coinMinimalDenom": "utest",
+      "coinDecimals": 6
+    }
+  }
+]

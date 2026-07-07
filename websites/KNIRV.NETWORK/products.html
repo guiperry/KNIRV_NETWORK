@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en" class="js">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="author" content="KNIRV Network">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="description" content="KNIRVSERVER DVE — Deterministic AI Agent Runtime with eBPF tracing. KNIRVCLI and KNIRVCONTROLLER for deployment and orchestration. All other components bundled.">
+    <meta name="keywords" content="KNIRVSERVER, KNIRVCLI, KNIRVCONTROLLER, DVE, deterministic validation environment, AI agent runtime, eBPF, decentralized AI">
+
+    <!-- Canonical URL -->
+    <link rel="canonical" href="https://knirv.network/products.html">
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://knirv.network/products.html">
+    <meta property="og:title" content="KNIRV Products | KNIRVSERVER, KNIRVCLI, KNIRVCONTROLLER">
+    <meta property="og:description" content="KNIRVSERVER DVE — Deterministic AI Agent Runtime. Sandboxed, monitored, reproducible containers with kernel-level eBPF tracing.">
+    <meta property="og:image" content="https://knirv.network/images/social/knirv-products-card.png">
+
+    <!-- Twitter / X -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:url" content="https://knirv.network/products.html">
+    <meta name="twitter:title" content="KNIRV Products — 3 Products. Full Ecosystem.">
+    <meta name="twitter:description" content="KNIRVSERVER DVE — Deterministic AI Agent Runtime
+KNIRVCLI — Command-line deployment tool
+KNIRVCONTROLLER — Fleet orchestration layer
+
+All supporting components bundled in KNIRVSERVER.">
+    <meta name="twitter:image" content="https://knirv.network/images/social/knirv-products-card.png">
+
+    <!-- Fav Icon  -->
+    <link rel="shortcut icon" href="assets/favicon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="assets/favicon-16x16.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="assets/apple-touch-icon.png">
+
+    <!-- Site Title  -->
+    <title>KNIRV Products | KNIRVSERVER, KNIRVCLI, KNIRVCONTROLLER</title>
+
+    <!-- Bootstrap CSS for accordion functionality -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bundle and Base CSS -->
+    <link rel="stylesheet" href="assets/css/vendor.bundle.css?ver=210">
+    <link rel="stylesheet" href="assets/css/style-dark.css?ver=210">
+    <!-- Extra CSS -->
+    <link rel="stylesheet" href="assets/css/theme.css?ver=210">
+    <link rel="stylesheet" href="assets/css/rtl.css?ver=210">
+    <!-- Tailwind CSS for animated logo -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Custom styles -->
+    <style>
+        .animated-logo-container {
+            width: 200px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .animated-logo-container svg {
+            width: 40px;
+            height: 40px;
+        }
+        .animated-logo-container h1 {
+            font-size: 1.5rem;
+            margin-left: 0.5rem;
+        }
+        .animated-logo-container h2 {
+            font-size: 0.75rem;
+            margin-top: 0.25rem;
+        }
+        .product-card {
+            background: rgba(43, 86, 245, 0.1);
+            border: 1px solid rgba(43, 86, 245, 0.3);
+            border-radius: 12px;
+            padding: 2rem;
+            text-align: center;
+            margin: 1rem 0;
+            transition: all 0.3s ease;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+        .product-card:hover {
+            transform: translateY(-5px);
+            border-color: rgba(43, 86, 245, 0.6);
+            background: rgba(43, 86, 245, 0.15);
+        }
+        .product-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            color: #2b56f5;
+        }
+        .product-title {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-bottom: 1rem;
+            color: #2b56f5;
+        }
+        .product-description {
+            flex-grow: 1;
+            margin-bottom: 1.5rem;
+        }
+        .product-features {
+            text-align: left;
+            margin: 1rem 0;
+        }
+        .product-cta {
+            margin-top: auto;
+        }
+        .ecosystem-overview {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 2rem;
+            margin: 2rem 0;
+        }
+    </style>
+</head>
+
+<body class="nk-body body-wider theme-dark mode-onepage has-rtl" dir="rtl">
+    <div class="nk-wrap">
+        <header class="nk-header page-header is-transparent is-sticky is-shrink is-dark" id="header">
+            <!-- Header @s -->
+            <div class="header-main">
+                <div class="header-container container">
+                    <div class="header-wrap">
+                        <!-- Logo @s -->
+                        <div class="header-logo logo animated" data-animate="fadeInDown" data-delay=".65">
+                            <a href="./" class="logo-link">
+                                <div id="animated-logo" class="animated-logo-container"></div>
+                            </a>
+                        </div>
+                        <!-- Menu Toogle @s -->
+                        <div class="header-nav-toggle">
+                            <a href="#" class="navbar-toggle" data-menu-toggle="example-menu-04">
+                                <div class="toggle-line">
+                                    <span></span>
+                                </div>
+                            </a>
+                        </div>
+                        <!-- Menu @s -->
+                        <div class="header-navbar header-navbar-s1">
+                            <nav class="header-menu" id="example-menu-04">
+                                <ul class="menu menu-s2 animated" data-animate="fadeInDown" data-delay=".75">
+                                    <li class="menu-item"><a class="menu-link nav-link" href="index.html">Home</a></li>
+                                    <li class="menu-item"><a class="menu-link nav-link" href="index.html#d-ten">The D-TEN</a></li>
+                                    <li class="menu-item"><a class="menu-link nav-link" href="index.html#ecosystem">Ecosystem</a></li>
+                                    <li class="menu-item"><a class="menu-link nav-link" href="index.html#token">NRN Economics</a></li>
+                                    <li class="menu-item has-sub">
+                                        <a class="menu-link nav-link menu-toggle" href="#">Products</a>
+                                        <ul class="menu-sub menu-drop">
+                                            <li class="menu-item"><a class="menu-link nav-link" href="products.html">All Products</a></li>
+                                            <li class="menu-item"><a class="menu-link nav-link" href="knirvserver.html">KNIRVSERVER DVE</a></li>
+                                            <li class="menu-item"><a class="menu-link nav-link" href="knirvcli.html">KNIRVCLI</a></li>
+                                            <li class="menu-item"><a class="menu-link nav-link" href="knirvcontroller.html">KNIRVCONTROLLER</a></li>
+                                        </ul>
+                                    </li>
+                                </ul>
+                                <ul class="menu-btns animated" data-animate="fadeInDown" data-delay=".85">
+                                    <li><a href="https://github.com/knirv/server" class="btn btn-rg btn-auto btn-outline btn-grad on-bg-theme btn-round"><span>GitHub</span></a></li>
+                                    <li><a href="https://knirv.com" class="btn btn-rg btn-auto btn-outline btn-grad on-bg-theme btn-round"><span>Cloud DVE</span></a></li>
+                                </ul>
+                            </nav>
+                        </div><!-- .header-navbar @e -->
+                    </div>
+                </div>
+            </div><!-- .header-main @e -->
+            <!-- Banner @s -->
+            <div class="header-banner bg-theme-dark">
+                <div class="nk-banner">
+                    <div class="banner banner-mask-fix banner-fs banner-single tc-light">
+                        <div class="banner-wrap">
+                            <div class="container">
+                                <div class="row align-items-center justify-content-center gutter-vr-30px">
+                                    <div class="col-lg-6 order-lg-last">
+                                        <div class="banner-gfx banner-gfx-re-s3 animated" data-animate="fadeInUp" data-delay="1.25">
+                                            <img src="images/dark/gfx-d-dark.png" alt="KNIRVSERVER DVE">
+                                            <img class="banner-gfx-icon banner-gfx-icon-1" src="images/icons/icon-custom.png" alt="DVE Container Icon">
+                                            <img class="banner-gfx-icon banner-gfx-icon-2" src="images/icons/icon-bitcoin.png" alt="Miner Integration Icon">
+                                        </div>
+                                    </div>
+                                    <div class="col-lg-6">
+                                        <div class="banner-caption wide-auto text-center text-lg-start">
+                                            <div class="cpn-head mt-0">
+                                                <h1 class="title title-xl-2 title-semibold animated" data-animate="fadeInUp" data-delay="1.35">KNIRV Products <br/> Three Products. Full Ecosystem.</h1>
+                                            </div>
+                                            <div class="cpn-text cpn-text-s1">
+                                                <p class="lead animated" data-animate="fadeInUp" data-delay="1.45">KNIRVSERVER DVE, KNIRVCLI, and KNIRVCONTROLLER form the complete KNIRV stack. All supporting components — blockchain, graph database, gateway, testnet — are bundled inside KNIRVSERVER.</p>
+                                            </div>
+                                            <div class="cpn-btns">
+                                                <ul class="btn-grp animated" data-animate="fadeInUp" data-delay="1.55">
+                                                    <li><a href="#products" class="btn btn-md btn-grad btn-round">Explore Products</a></li>
+                                                    <li><a href="https://github.com/knirv/server" class="btn btn-md btn-grad btn-grad-alternet btn-round">Self-Host on GitHub</a></li>
+                                                    <li><a href="https://knirv.com" class="btn btn-md btn-outline btn-grad on-bg-theme btn-round">Cloud DVE</a></li>
+                                                </ul>
+                                            </div>
+                                        </div>
+                                    </div><!-- .col -->
+                                </div><!-- .row -->
+                            </div>
+                        </div>
+                    </div>
+                </div><!-- .nk-banner -->
+                <div class="nk-ovm mask-c-dark shape-v mask-contain-bottom"></div>
+                <!-- Place Particle Js -->
+                <div id="particles-bg" class="particles-container particles-bg" data-pt-base="#00c0fa" data-pt-base-op=".3" data-pt-line="#2b56f5" data-pt-line-op=".5" data-pt-shape="#00c0fa" data-pt-shape-op=".2"></div>
+            </div>
+            <!-- .header-banner @e -->
+        </header>
+        <main class="nk-pages">
+            <!-- Ecosystem Overview Section -->
+            <section class="section mask-c-blend-dark bg-theme-dark-alt tc-light ov-h" id="ecosystem">
+                <div class="container">
+                    <div class="section-head text-center wide-auto-sm">
+                        <h2 class="title title-s4 animated" data-animate="fadeInUp" data-delay=".1">KNIRVSERVER Ecosystem</h2>
+                        <p class="animated" data-animate="fadeInUp" data-delay=".2">Three products that cover the full lifecycle of deterministic AI agent execution — from runtime to CLI to orchestration. Everything else is bundled in KNIRVSERVER.</p>
+                    </div>
+                    <div class="row justify-content-center">
+                        <div class="col-lg-10">
+                            <div class="ecosystem-overview animated" data-animate="fadeInUp" data-delay=".3">
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <h4>Core Runtime</h4>
+                                        <ul class="list list-dot">
+                                            <li><strong>KNIRVSERVER DVE</strong> — Sandboxed DVE containers with eBPF kernel tracing</li>
+                                            <li><strong>Blockchain (bundled)</strong> — NRN ledger & skill registry</li>
+                                            <li><strong>Graph Database (bundled)</strong> — Knowledge fabric for agent learnings</li>
+                                            <li><strong>Gateway (bundled)</strong> — Unified API portal</li>
+                                            <li><strong>Testnet (bundled)</strong> — Development & validation environment</li>
+                                        </ul>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <h4>Developer Tools</h4>
+                                        <ul class="list list-dot">
+                                            <li><strong>KNIRVCLI</strong> — Deploy & manage DVE containers from the command line</li>
+                                            <li><strong>Agent manifests</strong> — YAML-based agent configuration</li>
+                                            <li><strong>Policy engine</strong> — eBPF-based behavioral policies</li>
+                                            <li><strong>WASM plugin runtime</strong> — Custom extensions</li>
+                                        </ul>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <h4>Operations</h4>
+                                        <ul class="list list-dot">
+                                            <li><strong>KNIRVCONTROLLER</strong> — Fleet orchestration & scheduling</li>
+                                            <li><strong>Health monitoring</strong> — Node & container health</li>
+                                            <li><strong>Reward distribution</strong> — NRN payout engine</li>
+                                            <li><strong>Multi-node management</strong> — Single-pane-of-glass</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Products Section -->
+            <section class="section bg-theme-dark tc-light" id="products">
+                <div class="container">
+                    <div class="section-head text-center wide-auto-sm">
+                        <h2 class="title title-s4 animated" data-animate="fadeInUp" data-delay=".1">KNIRV Product Suite</h2>
+                        <p class="animated" data-animate="fadeInUp" data-delay=".2">Three focused products that deliver the full power of deterministic AI execution. All supporting infrastructure is bundled within KNIRVSERVER.</p>
+                    </div>
+                    <!-- Block @s -->
+                    <div class="nk-block">
+                        <div class="row justify-content-center gutter-vr-40px">
+                            <!-- KNIRVSERVER DVE -->
+                            <div class="col-lg-4 col-md-6">
+                                <div class="product-card animated" data-animate="fadeInUp" data-delay=".3">
+                                    <div class="product-icon">☁️</div>
+                                    <div class="product-title">KNIRVSERVER DVE</div>
+                                    <div class="product-description">
+                                        <p>The core runtime — Deterministic AI Agent Execution. Sandboxed DVE containers with kernel-level eBPF tracing, CLEAN cryptographic audit trails, and built-in blockchain, graph database, gateway, and testnet.</p>
+                                        <div class="product-features">
+                                            <ul class="list list-dot text-sm">
+                                                <li>eBPF kernel-level behavioral tracing</li>
+                                                <li>CLEAN cryptographic proofs per execution</li>
+                                                <li>Bundled blockchain + graph DB + gateway</li>
+                                                <li>Sandboxed, reproducible DVE containers</li>
+                                                <li>Policy enforcement with on-chain audit</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                    <div class="product-cta">
+                                        <a href="knirvserver.html" class="btn btn-grad btn-round">Learn More</a>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- KNIRVCLI -->
+                            <div class="col-lg-4 col-md-6">
+                                <div class="product-card animated" data-animate="fadeInUp" data-delay=".4">
+                                    <div class="product-icon">⌨️</div>
+                                    <div class="product-title">KNIRVCLI</div>
+                                    <div class="product-description">
+                                        <p>The command-line interface for the KNIRVSERVER ecosystem. Write agent manifests, deploy to DVE containers, configure execution policies, and manage your operator node — all from the terminal.</p>
+                                        <div class="product-features">
+                                            <ul class="list list-dot text-sm">
+                                                <li>Agent manifest authoring & deployment</li>
+                                                <li>DVE container lifecycle management</li>
+                                                <li>Execution policy configuration</li>
+                                                <li>Operator node administration</li>
+                                                <li>CI/CD pipeline integration</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                    <div class="product-cta">
+                                        <a href="knirvcli.html" class="btn btn-grad btn-round">Learn More</a>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- KNIRVCONTROLLER -->
+                            <div class="col-lg-4 col-md-6">
+                                <div class="product-card animated" data-animate="fadeInUp" data-delay=".5">
+                                    <div class="product-icon">🎛️</div>
+                                    <div class="product-title">KNIRVCONTROLLER</div>
+                                    <div class="product-description">
+                                        <p>Mobile interface for the KNIRV Network. Manage your personal assets — wallets, NRN balances, agent deployments — and monitor network health from your phone or tablet. Same full functionality as the desktop experience, optimized for mobile.</p>
+                                        <div class="product-features">
+                                            <ul class="list list-dot text-sm">
+                                                <li>Wallet management & personal asset oversight</li>
+                                                <li>NRN balance tracking & transactions</li>
+                                                <li>Agent deployment from mobile</li>
+                                                <li>Real-time network health monitoring</li>
+                                                <li>Mobile-optimized interface (phone & tablet)</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                    <div class="product-cta">
+                                        <a href="knirvcontroller.html" class="btn btn-grad btn-round">Learn More</a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div><!-- .block @e -->
+                </div>
+            </section>
+
+            <!-- Getting Started Section -->
+            <section class="section bg-theme-dark-alt tc-light">
+                <div class="container">
+                    <div class="section-head text-center wide-auto-sm">
+                        <h2 class="title title-s4 animated" data-animate="fadeInUp" data-delay=".1">Get Started with KNIRVSERVER</h2>
+                        <p class="animated" data-animate="fadeInUp" data-delay=".2">Choose your path based on your role and goals.</p>
+                    </div>
+                    <!-- Block @s -->
+                    <div class="nk-block">
+                        <div class="row justify-content-center gutter-vr-40px">
+                            <div class="col-lg-4 col-md-6">
+                                <div class="text-center animated" data-animate="fadeInUp" data-delay=".3">
+                                    <div class="product-icon">⛏️</div>
+                                    <h4>For Miners & Operators</h4>
+                                    <p>Connect your existing hardware (old Bitcoin miners, GPU rigs, x86 servers) as DVE operator nodes. Earn NRN tokens for every containerized compute task executed on your hardware.</p>
+                                    <a href="https://github.com/knirv/server" class="btn btn-grad btn-round">Self-Host on GitHub</a>
+                                </div>
+                            </div>
+                            <div class="col-lg-4 col-md-6">
+                                <div class="text-center animated" data-animate="fadeInUp" data-delay=".4">
+                                    <div class="product-icon">🛠️</div>
+                                    <h4>For Developers</h4>
+                                    <p>Use KNIRVCLI to deploy AI agents into DVE containers. Write agent manifests, configure eBPF policies, and deploy deterministic runtimes with full audit trails.</p>
+                                    <a href="knirvcli.html" class="btn btn-grad btn-round">Get KNIRVCLI</a>
+                                </div>
+                            </div>
+                            <div class="col-lg-4 col-md-6">
+                                <div class="text-center animated" data-animate="fadeInUp" data-delay=".5">
+                                    <div class="product-icon">🏢</div>
+                                    <h4>For Enterprises</h4>
+                                    <p>Access the managed KNIRVSERVER DVE cloud at knirv.com. No infrastructure setup needed — deploy AI agents in deterministic environments immediately with enterprise support.</p>
+                                    <a href="https://knirv.com" class="btn btn-grad btn-round">Cloud DVE at knirv.com</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div><!-- .block @e -->
+                </div>
+            </section>
+        </main>
+
+        <!-- Universal Footer will be inserted here by JavaScript -->
+    </div>
+
+    <!-- JavaScript -->
+    <script src="assets/js/jquery.bundle.js?ver=210"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="assets/js/scripts.js?ver=210"></script>
+    <script src="js/config-loader.js"></script>
+    <script src="js/universal-footer.js"></script>
+    <script>
+        // Initialize animated logo
+        document.addEventListener('DOMContentLoaded', function() {
+            const logoContainer = document.getElementById('animated-logo');
+            if (logoContainer) {
+                logoContainer.innerHTML = `
+                    <svg viewBox="0 0 100 100" class="animate-pulse">
+                        <rect x="15" y="15" width="70" height="70" fill="none" stroke="#2b56f5" stroke-width="2" rx="10"/>
+                        <rect x="25" y="25" width="50" height="50" fill="none" stroke="#2b56f5" stroke-width="1" rx="5"/>
+                        <rect x="35" y="35" width="30" height="30" fill="none" stroke="#2b56f5" stroke-width="1" rx="3"/>
+                        <circle cx="50" cy="50" r="8" fill="#2b56f5"/>
+                        <text x="50" y="90" text-anchor="middle" fill="#2b56f5" font-size="8" font-weight="bold">PRODUCTS</text>
+                    </svg>
+                    <div>
+                        <h1>KNIRV Products</h1>
+                        <h2>Complete Suite</h2>
+                    </div>
+                `;
+            }
+        });
+
+        // Add hover effects to product cards
+        document.addEventListener('DOMContentLoaded', function() {
+            const productCards = document.querySelectorAll('.product-card');
+            productCards.forEach(function(card) {
+                card.addEventListener('mouseenter', function() {
+                    this.style.transform = 'translateY(-10px) scale(1.02)';
+                });
+                card.addEventListener('mouseleave', function() {
+                    this.style.transform = 'translateY(0) scale(1)';
+                });
+            });
+        });
+    </script>
+</body>
+</html>

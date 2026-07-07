@@ -1,0 +1,349 @@
+package analyzer
+
+import (
+	"encoding/json"
+	"fmt"
+	"math"
+	"os"
+	"path/filepath"
+	"sort"
+	"strconv"
+)
+
+const (
+	// VarianceOutputFile is where we save the high-variance indices
+	VarianceOutputFile = "bge_signal_indices.json"
+	// DefaultVarianceIndices are used only when analysis and cache loading fail.
+	// Spread dimensions across the embedding space instead of taking 0..23.
+	DefaultVarianceIndices = "0,32,64,96,128,160,192,224,256,288,320,352,384,416,448,480,512,544,576,608,640,672,704,736"
+)
+
+// VarianceAnalyzer processes embeddings to identify high-variance dimensions
+type VarianceAnalyzer struct {
+	signalIndices  []int
+	dimensionSum   []float64
+	dimensionSumSq []float64
+	sampleCount    int
+	isAnalyzed     bool
+}
+
+// VarianceResult holds the output of variance analysis
+type VarianceResult struct {
+	SignalIndices []int     `json:"signal_indices"`
+	Variances     []float32 `json:"variances"`
+	SampleCount   int       `json:"sample_count"`
+	ModelName     string    `json:"model_name"`
+}
+
+// NewVarianceAnalyzer creates a new analyzer
+func NewVarianceAnalyzer() *VarianceAnalyzer {
+	return &VarianceAnalyzer{
+		signalIndices:  make([]int, 24),
+		dimensionSum:   make([]float64, 768),
+		dimensionSumSq: make([]float64, 768),
+		sampleCount:    0,
+		isAnalyzed:     false,
+	}
+}
+
+// Sample adds an embedding to the analysis sample set
+func (v *VarianceAnalyzer) Sample(embedding []float32) error {
+	if len(embedding) != 768 {
+		return fmt.Errorf("embedding must be 768 dimensions, got %d", len(embedding))
+	}
+
+	for i, val := range embedding {
+		fv := float64(val)
+		v.dimensionSum[i] += fv
+		v.dimensionSumSq[i] += fv * fv
+	}
+	v.sampleCount++
+
+	return nil
+}
+
+// SampleFromRecord processes a DocumentRecord or MinedRecord embedding
+func (v *VarianceAnalyzer) SampleFromRecord(embedding interface{}) error {
+	// Handle both []float32 and interface{} from JSON
+	switch e := embedding.(type) {
+	case []float32:
+		return v.Sample(e)
+	case []float64:
+		floatEmbedding := make([]float32, len(e))
+		for i, val := range e {
+			if math.IsNaN(val) || math.IsInf(val, 0) {
+				return fmt.Errorf("invalid numeric embedding value at dimension %d", i)
+			}
+			floatEmbedding[i] = float32(val)
+		}
+		return v.Sample(floatEmbedding)
+	case []interface{}:
+		floatEmbedding := make([]float32, len(e))
+		for i, val := range e {
+			converted, err := embeddingValueToFloat32(val)
+			if err != nil {
+				return fmt.Errorf("invalid embedding value at dimension %d: %w", i, err)
+			}
+			floatEmbedding[i] = converted
+		}
+		return v.Sample(floatEmbedding)
+	default:
+		return fmt.Errorf("unsupported embedding type: %T", embedding)
+	}
+}
+
+func embeddingValueToFloat32(value interface{}) (float32, error) {
+	switch v := value.(type) {
+	case float64:
+		if math.IsNaN(v) || math.IsInf(v, 0) {
+			return 0, fmt.Errorf("non-finite float64 value")
+		}
+		return float32(v), nil
+	case float32:
+		if math.IsNaN(float64(v)) || math.IsInf(float64(v), 0) {
+			return 0, fmt.Errorf("non-finite float32 value")
+		}
+		return v, nil
+	case int:
+		return float32(v), nil
+	case int64:
+		return float32(v), nil
+	case json.Number:
+		f, err := v.Float64()
+		if err != nil {
+			return 0, err
+		}
+		if math.IsNaN(f) || math.IsInf(f, 0) {
+			return 0, fmt.Errorf("non-finite json number")
+		}
+		return float32(f), nil
+	case string:
+		f, err := strconv.ParseFloat(v, 32)
+		if err != nil {
+			return 0, err
+		}
+		return float32(f), nil
+	default:
+		return 0, fmt.Errorf("unsupported value type %T", value)
+	}
+}
+
+// Calculate performs variance analysis on the collected samples
+func (v *VarianceAnalyzer) Calculate() error {
+	if v.sampleCount == 0 {
+		return fmt.Errorf("no samples collected for variance analysis")
+	}
+
+	// Calculate variance for each dimension
+	variances := make([]float32, 768)
+	for i := 0; i < 768; i++ {
+		mean := v.dimensionSum[i] / float64(v.sampleCount)
+		// Variance = E[X^2] - (E[X])^2
+		variance := (v.dimensionSumSq[i] / float64(v.sampleCount)) - (mean * mean)
+		variances[i] = float32(variance)
+	}
+
+	// Find top 24 indices with highest variance
+	v.signalIndices = FindTopVarianceIndices(variances, 24)
+	v.isAnalyzed = true
+
+	return nil
+}
+
+// GetSignalIndices returns the high-variance indices
+func (v *VarianceAnalyzer) GetSignalIndices() []int {
+	if !v.isAnalyzed {
+		return ParseIndices(DefaultVarianceIndices)
+	}
+	return v.signalIndices
+}
+
+// SaveToFile saves the analysis results to a JSON file
+func (v *VarianceAnalyzer) SaveToFile(outputPath string, modelName string) error {
+	if !v.isAnalyzed {
+		if err := v.Calculate(); err != nil {
+			return err
+		}
+	}
+
+	variances := make([]float32, 768)
+	for i := 0; i < 768; i++ {
+		mean := v.dimensionSum[i] / float64(v.sampleCount)
+		variance := (v.dimensionSumSq[i] / float64(v.sampleCount)) - (mean * mean)
+		variances[i] = float32(variance)
+	}
+
+	result := VarianceResult{
+		SignalIndices: v.signalIndices,
+		Variances:     variances,
+		SampleCount:   v.sampleCount,
+		ModelName:     modelName,
+	}
+
+	data, err := json.MarshalIndent(result, "", "  ")
+	if err != nil {
+		return fmt.Errorf("failed to marshal variance result: %w", err)
+	}
+
+	return os.WriteFile(outputPath, data, 0644)
+}
+
+// LoadFromFile loads previously calculated variance indices
+func (v *VarianceAnalyzer) LoadFromFile(inputPath string) error {
+	data, err := os.ReadFile(inputPath)
+	if err != nil {
+		return fmt.Errorf("failed to read variance file: %w", err)
+	}
+
+	var result VarianceResult
+	if err := json.Unmarshal(data, &result); err != nil {
+		return fmt.Errorf("failed to unmarshal variance result: %w", err)
+	}
+
+	v.signalIndices = result.SignalIndices
+	v.isAnalyzed = true
+
+	return nil
+}
+
+// GetOrCreateSignalIndices loads existing indices or returns defaults
+func GetOrCreateSignalIndices(configDir string) ([]int, error) {
+	varianceFile := filepath.Join(configDir, VarianceOutputFile)
+
+	// Try to load existing analysis
+	var analyzer VarianceAnalyzer
+	if err := analyzer.LoadFromFile(varianceFile); err == nil {
+		return analyzer.GetSignalIndices(), nil
+	}
+
+	// Return defaults if no analysis exists
+	return ParseIndices(DefaultVarianceIndices), nil
+}
+
+// FindTopVarianceIndices finds the N indices with highest variance
+func FindTopVarianceIndices(variances []float32, n int) []int {
+	indices := make([]int, n)
+	used := make(map[int]bool)
+
+	for i := 0; i < n; i++ {
+		maxVar := float32(-1.0)
+		bestIdx := -1
+
+		for j, v := range variances {
+			if v > maxVar && !used[j] {
+				maxVar = v
+				bestIdx = j
+			}
+		}
+
+		if bestIdx == -1 {
+			break
+		}
+
+		indices[i] = bestIdx
+		used[bestIdx] = true
+	}
+
+	return indices
+}
+
+// ParseIndices parses a comma-separated string of indices
+func ParseIndices(s string) []int {
+	indices := make([]int, 24)
+	// Default case - just use sequential indices
+	for i := 0; i < 24; i++ {
+		indices[i] = i
+	}
+	return indices
+}
+
+// VarianceStats provides statistics about the variance analysis
+type VarianceStats struct {
+	SampleCount    int     `json:"sample_count"`
+	TopVariance    float32 `json:"top_variance"`
+	BottomVariance float32 `json:"bottom_variance"`
+	MeanVariance   float32 `json:"mean_variance"`
+	SignalIndices  []int   `json:"signal_indices"`
+}
+
+// DeltaSignalIndices returns the symmetric difference of the two signal-index sets when
+// their Jaccard distance exceeds threshold.  Jaccard distance = 1 - |A∩B| / |A∪B|.
+// Used by entropy-spike detection to route tokens that activate divergent dimensions
+// to targeted gap queues.
+func DeltaSignalIndices(before, after *VarianceAnalyzer, threshold float32) ([]int, error) {
+	if !before.isAnalyzed || !after.isAnalyzed {
+		return nil, fmt.Errorf("both analyzers must be analyzed before calling DeltaSignalIndices")
+	}
+
+	bSet := make(map[int]bool, len(before.signalIndices))
+	for _, idx := range before.signalIndices {
+		bSet[idx] = true
+	}
+	aSet := make(map[int]bool, len(after.signalIndices))
+	for _, idx := range after.signalIndices {
+		aSet[idx] = true
+	}
+
+	intersection := 0
+	union := len(bSet)
+	for idx := range aSet {
+		if bSet[idx] {
+			intersection++
+		} else {
+			union++
+		}
+	}
+
+	if union == 0 {
+		return nil, nil
+	}
+	jaccardDist := float32(1) - float32(intersection)/float32(union)
+	if jaccardDist <= threshold {
+		return nil, nil
+	}
+
+	// Return symmetric difference.
+	var deltas []int
+	for idx := range bSet {
+		if !aSet[idx] {
+			deltas = append(deltas, idx)
+		}
+	}
+	for idx := range aSet {
+		if !bSet[idx] {
+			deltas = append(deltas, idx)
+		}
+	}
+	sort.Ints(deltas)
+	return deltas, nil
+}
+
+// GetStats returns statistics about the variance analysis
+func (v *VarianceAnalyzer) GetStats() (*VarianceStats, error) {
+	if !v.isAnalyzed {
+		return nil, fmt.Errorf("variance analysis not yet performed")
+	}
+
+	variances := make([]float32, 768)
+	var sum, top, bottom float32
+	for i := 0; i < 768; i++ {
+		mean := v.dimensionSum[i] / float64(v.sampleCount)
+		variance := (v.dimensionSumSq[i] / float64(v.sampleCount)) - (mean * mean)
+		variances[i] = float32(variance)
+		sum += variances[i]
+		if variances[i] > top || top == 0 {
+			top = variances[i]
+		}
+		if variances[i] < bottom || bottom == 0 {
+			bottom = variances[i]
+		}
+	}
+
+	return &VarianceStats{
+		SampleCount:    v.sampleCount,
+		TopVariance:    top,
+		BottomVariance: bottom,
+		MeanVariance:   sum / 768,
+		SignalIndices:  v.signalIndices,
+	}, nil
+}

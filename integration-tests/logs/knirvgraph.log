@@ -1,0 +1,9 @@
+2025/08/29 00:25:33 Starting KNIRVGRAPH in headless mode (no frontend)
+{"level":"info","ts":1756441533.4961286,"caller":"app/app.go:291","msg":"Starting GraphChain application with NRV system and economics"}
+2025/08/29 00:25:33 Starting NRV System...
+2025/08/29 00:25:33 Starting NRN Integration for KNIRVGRAPH...
+2025/08/29 00:25:33 Warning: Could not connect to KNIRVORACLE at http://localhost:1317: Get "http://localhost:1317/ping": dial tcp 127.0.0.1:1317: connect: connection refused
+{"level":"info","ts":1756441533.4974964,"caller":"network/rpc.go:174","msg":"Starting RPC server","addr":":8081"}
+{"level":"info","ts":1756441543.2400925,"caller":"app/app.go:316","msg":"Received interrupt signal, shutting down..."}
+{"level":"info","ts":1756441543.240216,"caller":"app/app.go:324","msg":"Stopping GraphChain application"}
+2025/08/29 00:25:43 Stopping NRV System...

@@ -1,0 +1,476 @@
+/* Blue #4888ff HUD frame — matches desktop/styles.css exactly */
+
+.panel {
+  background: rgba(0, 8, 24, 0.88);
+  border: 1px solid rgba(72, 136, 255, 0.3);
+  box-shadow:
+    0 0 20px rgba(72, 136, 255, 0.2),
+    inset 0 0 20px rgba(20, 60, 150, 0.1);
+  padding: 15px;
+  backdrop-filter: blur(10px);
+  position: fixed;
+  z-index: 1000;
+  font-family: 'Courier New', monospace;
+  color: #4888ff;
+  overflow: hidden;
+}
+
+/* Animated scan line across the top edge of each panel */
+.panel::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(72, 136, 255, 0.5), transparent);
+  animation: scan 3s linear infinite;
+  pointer-events: none;
+}
+
+@keyframes scan {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+/* ── Panel positions ────────────────────────────────────────────────── */
+
+.topPanel {
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 60px;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  border-bottom: 2px solid rgba(72, 136, 255, 0.5);
+  padding: 0 15px;
+  gap: 0;
+}
+
+.leftPanel {
+  left: 0;
+  top: 60px;
+  bottom: 60px;
+  width: 250px;
+  border-right: 2px solid rgba(72, 136, 255, 0.5);
+  overflow-y: auto;
+}
+
+.rightPanel {
+  right: 0;
+  top: 60px;
+  bottom: 60px;
+  width: 250px;
+  border-left: 2px solid rgba(72, 136, 255, 0.5);
+  overflow-y: auto;
+}
+
+.bottomPanel {
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 60px;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  border-top: 2px solid rgba(72, 136, 255, 0.5);
+  padding: 0 15px;
+}
+
+/* ── Panel sections ─────────────────────────────────────────────────── */
+
+.panelSection {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+}
+
+.brandSection {
+  border-right: 1px solid rgba(72, 136, 255, 0.3);
+  padding-right: 20px;
+}
+
+.windowControls {
+  flex-direction: row !important;
+  gap: 6px;
+  margin-left: auto;
+  padding-left: 20px;
+  border-left: 1px solid rgba(72, 136, 255, 0.3);
+}
+
+/* ── Typography ─────────────────────────────────────────────────────── */
+
+.label {
+  font-size: 10px;
+  color: rgba(72, 136, 255, 0.6);
+  letter-spacing: 2px;
+}
+
+.value {
+  font-size: 14px;
+  font-weight: bold;
+  color: #4888ff;
+  text-shadow: 0 0 10px rgba(72, 136, 255, 0.8);
+}
+
+.active {
+  color: #00ff00 !important;
+  text-shadow: 0 0 10px rgba(0, 255, 0, 0.8) !important;
+}
+
+.errorVal {
+  color: #ff4444 !important;
+  text-shadow: 0 0 10px rgba(255, 68, 68, 0.8) !important;
+}
+
+.connecting {
+  color: #ffaa00 !important;
+  text-shadow: 0 0 10px rgba(255, 170, 0, 0.8) !important;
+  animation: pulse 1s infinite;
+}
+
+.panelHeader {
+  font-size: 12px;
+  color: #4888ff;
+  border-bottom: 1px solid rgba(72, 136, 255, 0.3);
+  padding-bottom: 5px;
+  margin-bottom: 15px;
+  letter-spacing: 3px;
+}
+
+/* ── Left panel metrics ─────────────────────────────────────────────── */
+
+.metricItem {
+  margin-bottom: 20px;
+}
+
+.metricLabel {
+  display: block;
+  font-size: 10px;
+  color: rgba(72, 136, 255, 0.7);
+  margin-bottom: 5px;
+}
+
+.metricBar {
+  width: 100%;
+  height: 8px;
+  background: rgba(10, 30, 100, 0.5);
+  border: 1px solid rgba(72, 136, 255, 0.3);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 5px;
+}
+
+.metricFill {
+  height: 100%;
+  background: linear-gradient(90deg, #4888ff, #1a5cf0);
+  box-shadow: 0 0 10px rgba(72, 136, 255, 0.6);
+  transition: width 0.5s ease;
+}
+
+.metricValue {
+  font-size: 11px;
+  color: #4888ff;
+}
+
+.statItem {
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(72, 136, 255, 0.1);
+  font-size: 11px;
+  color: rgba(72, 136, 255, 0.8);
+}
+
+/* ── Right panel ────────────────────────────────────────────────────── */
+
+.chart {
+  width: 100%;
+  height: 80px;
+  margin: 10px 0;
+  border: 1px solid rgba(72, 136, 255, 0.2);
+  display: block;
+}
+
+.notificationItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  font-size: 11px;
+  color: rgba(72, 136, 255, 0.7);
+  border-bottom: 1px solid rgba(72, 136, 255, 0.1);
+}
+
+.notifDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(72, 136, 255, 0.3);
+  border: 1px solid rgba(72, 136, 255, 0.5);
+  flex-shrink: 0;
+}
+
+.notifActive {
+  background: #00ff00;
+  box-shadow: 0 0 10px rgba(0, 255, 0, 0.8);
+  animation: pulse 2s infinite;
+}
+
+.infoItem {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  font-size: 11px;
+  border-bottom: 1px solid rgba(72, 136, 255, 0.1);
+}
+
+.infoLabel {
+  color: rgba(72, 136, 255, 0.6);
+}
+
+.infoValue {
+  color: #4888ff;
+}
+
+/* ── Window controls ────────────────────────────────────────────────── */
+
+.controlBtn {
+  background: rgba(20, 60, 180, 0.5);
+  border: 1px solid rgba(72, 136, 255, 0.5);
+  color: #4888ff;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-family: 'Courier New', monospace;
+  font-size: 16px;
+  font-weight: bold;
+  line-height: 1;
+  transition: all 0.3s ease;
+}
+
+.controlBtn:hover {
+  background: rgba(40, 100, 220, 0.7);
+  box-shadow: 0 0 15px rgba(72, 136, 255, 0.6);
+}
+
+.menuBackBtn {
+  font-size: 9px !important;
+  letter-spacing: 2px !important;
+  width: auto !important;
+  padding: 2px 10px !important;
+}
+
+.updateBtn {
+  background: rgba(30, 100, 255, 0.9) !important;
+  border-color: #6aabff !important;
+  color: #ffffff !important;
+  font-size: 9px !important;
+  font-weight: bold !important;
+  letter-spacing: 2px !important;
+  width: auto !important;
+  padding: 2px 10px !important;
+  text-shadow: 0 0 8px rgba(255, 255, 255, 0.8) !important;
+  animation: pulseUpdate 1.8s ease-in-out infinite;
+}
+
+.updateBtn:hover:not(:disabled) {
+  background: rgba(72, 136, 255, 1) !important;
+  box-shadow: 0 0 24px rgba(72, 136, 255, 1) !important;
+}
+
+.updateBtn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  animation: none;
+}
+
+@keyframes pulseUpdate {
+  0%, 100% { box-shadow: 0 0 8px rgba(72, 136, 255, 0.6); }
+  50%       { box-shadow: 0 0 22px rgba(72, 136, 255, 1), 0 0 40px rgba(72, 136, 255, 0.4); }
+}
+
+/* ── Corner decorations ─────────────────────────────────────────────── */
+
+.corner {
+  position: fixed;
+  width: 40px;
+  height: 40px;
+  border: 2px solid rgba(72, 136, 255, 0.5);
+  z-index: 1001;
+  pointer-events: none;
+}
+
+.cornerTL {
+  top: 10px;
+  left: 10px;
+  border-right: none;
+  border-bottom: none;
+  box-shadow: -5px -5px 15px rgba(72, 136, 255, 0.3);
+}
+
+.cornerTR {
+  top: 10px;
+  right: 10px;
+  border-left: none;
+  border-bottom: none;
+  box-shadow: 5px -5px 15px rgba(72, 136, 255, 0.3);
+}
+
+.cornerBL {
+  bottom: 10px;
+  left: 10px;
+  border-right: none;
+  border-top: none;
+  box-shadow: -5px 5px 15px rgba(72, 136, 255, 0.3);
+}
+
+.cornerBR {
+  bottom: 10px;
+  right: 10px;
+  border-left: none;
+  border-top: none;
+  box-shadow: 5px 5px 15px rgba(72, 136, 255, 0.3);
+}
+
+/* ── Minimized restore button ───────────────────────────────────────── */
+
+.minimizedBtn {
+  position: fixed;
+  bottom: 70px;
+  right: 16px;
+  z-index: 1002;
+  background: rgba(20, 60, 180, 0.5);
+  border: 1px solid rgba(72, 136, 255, 0.5);
+  color: #4888ff;
+  font-family: 'Courier New', monospace;
+  font-size: 10px;
+  letter-spacing: 2px;
+  padding: 6px 12px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.minimizedBtn:hover {
+  background: rgba(40, 100, 220, 0.7);
+  box-shadow: 0 0 15px rgba(72, 136, 255, 0.6);
+}
+
+/* ── Scrollbar ──────────────────────────────────────────────────────── */
+
+.leftPanel::-webkit-scrollbar,
+.rightPanel::-webkit-scrollbar {
+  width: 4px;
+}
+
+.leftPanel::-webkit-scrollbar-track,
+.rightPanel::-webkit-scrollbar-track {
+  background: rgba(0, 20, 40, 0.5);
+}
+
+.leftPanel::-webkit-scrollbar-thumb,
+.rightPanel::-webkit-scrollbar-thumb {
+  background: rgba(72, 136, 255, 0.3);
+  border-radius: 2px;
+}
+
+/* ── Mobile collapsed metrics strip (hidden on desktop) ─────────────── */
+
+.mobileMetrics {
+  display: none; /* hidden by default; shown via media query below */
+  position: fixed;
+  bottom: 60px; /* sits directly above the bottom panel */
+  left: 0;
+  right: 0;
+  height: 40px;
+  flex-direction: row;
+  align-items: center;
+  gap: 0;
+  padding: 0 12px;
+  border-top: 1px solid rgba(72, 136, 255, 0.4);
+  border-bottom: 1px solid rgba(72, 136, 255, 0.2);
+  overflow-x: auto;
+  overflow-y: hidden;
+  white-space: nowrap;
+  z-index: 1000;
+}
+
+.mobileMetrics::-webkit-scrollbar { display: none; }
+
+.mobileMetricItem {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 0 12px;
+  border-right: 1px solid rgba(72, 136, 255, 0.2);
+  min-width: 100px;
+}
+
+.mobileMetricVal {
+  font-size: 11px;
+  font-weight: bold;
+  color: #4888ff;
+  text-shadow: 0 0 6px rgba(72, 136, 255, 0.6);
+}
+
+.mobileStat {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 0 12px;
+  border-right: 1px solid rgba(72, 136, 255, 0.2);
+  min-width: 90px;
+}
+
+/* desktop-only helper — hides elements from top panel on mobile */
+.desktopOnly {
+  display: flex;
+}
+
+/* mobile-only brand in top panel */
+.mobileBrand {
+  display: none;
+}
+
+/* ── Responsive breakpoint ──────────────────────────────────────────── */
+
+@media (max-width: 768px) {
+  /* Hide side panels */
+  .leftPanel,
+  .rightPanel {
+    display: none !important;
+  }
+
+  /* Show the collapsed metrics strip */
+  .mobileMetrics {
+    display: flex;
+  }
+
+  /* Hide desktop-only top-panel sections */
+  .desktopOnly {
+    display: none !important;
+  }
+
+  /* Show mobile brand */
+  .mobileBrand {
+    display: flex;
+  }
+
+  /* Hide corner decorations on mobile — they overlap content */
+  .corner {
+    display: none;
+  }
+}
+
+/* ── Animations ─────────────────────────────────────────────────────── */
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.5; }
+}

@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Step 4: Go Live - KNIRV Developer Portal</title>
+    <meta name="description" content="Connect your DVE to KNIRVCHAIN and go live on the KNIRV network">
+    <link rel="shortcut icon" href="favicon.png">
+
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Custom CSS with original design system -->
+    <link rel="stylesheet" href="css/portal.css">
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Sidebar Navigation -->
+        <nav class="sidebar">
+            <div class="dashboard-title">
+                <h1>KNIRV Developer Portal</h1>
+                <p style="color: var(--transparent-white-7); font-size: 0.9rem;">DVE Platform</p>
+            </div>
+
+            <!-- Navigation Items -->
+            <a href="index.html" class="nav-item">
+                <i class="fas fa-home"></i>
+                <span>Home Dashboard</span>
+            </a>
+            <a href="core-concepts.html" class="nav-item">
+                <i class="fas fa-brain"></i>
+                <span>Core Concepts</span>
+            </a>
+            <a href="getting-started.html" class="nav-item active">
+                <i class="fas fa-rocket"></i>
+                <span>Getting Started</span>
+            </a>
+            <a href="#" class="nav-item" onclick="return false;">
+                <i class="fas fa-book"></i>
+                <span>Documentation</span>
+            </a>
+            <a href="api-sdk.html" class="nav-item">
+                <i class="fas fa-code"></i>
+                <span>API &amp; SDK</span>
+            </a>
+            <a href="community-support.html" class="nav-item">
+                <i class="fas fa-users"></i>
+                <span>Community &amp; Support</span>
+            </a>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Top Navigation -->
+            <div class="top-nav">
+                <div>
+                    <h1 class="page-title">Go Live</h1>
+                </div>
+                <div class="user-controls">
+                    <i class="control-icon fas fa-bell" title="Notifications"></i>
+                    <i class="control-icon fas fa-cog" title="Settings"></i>
+                    <i class="control-icon fas fa-user-circle" title="Profile"></i>
+                </div>
+            </div>
+
+            <!-- Progress Tracker -->
+            <div class="glass-card">
+                <h2 style="color: var(--bright-blue); margin-bottom: 20px; font-size: 1.3rem;">Your Progress</h2>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 20px;">
+                    <div style="text-align: center; flex: 1;">
+                        <div style="width: 40px; height: 40px; border-radius: 50%; background-color: var(--bright-blue); display: flex; align-items: center; justify-content: center; margin: 0 auto 10px; color: white; font-weight: bold;">&#10003;</div>
+                        <div style="font-size: 0.9em; color: var(--white);">Environment</div>
+                    </div>
+                    <div style="text-align: center; flex: 1;">
+                        <div style="width: 40px; height: 40px; border-radius: 50%; background-color: var(--bright-blue); display: flex; align-items: center; justify-content: center; margin: 0 auto 10px; color: white; font-weight: bold;">&#10003;</div>
+                        <div style="font-size: 0.9em; color: var(--white);">Launch DVE</div>
+                    </div>
+                    <div style="text-align: center; flex: 1;">
+                        <div style="width: 40px; height: 40px; border-radius: 50%; background-color: var(--bright-blue); display: flex; align-items: center; justify-content: center; margin: 0 auto 10px; color: white; font-weight: bold;">&#10003;</div>
+                        <div style="font-size: 0.9em; color: var(--white);">Policies</div>
+                    </div>
+                    <div style="text-align: center; flex: 1;">
+                        <div style="width: 40px; height: 40px; border-radius: 50%; background-color: var(--bright-blue); display: flex; align-items: center; justify-content: center; margin: 0 auto 10px; color: white; font-weight: bold;">4</div>
+                        <div style="font-size: 0.9em; color: var(--white);">Go Live</div>
+                    </div>
+                </div>
+                <div style="background-color: var(--transparent-white-1); height: 4px; border-radius: 2px; margin-bottom: 10px;">
+                    <div style="background-color: var(--bright-blue); height: 100%; width: 100%; border-radius: 2px;"></div>
+                </div>
+                <p style="color: var(--transparent-white-7); font-size: 0.9em; text-align: center;">Step 4 of 4 — Activate your DVE on KNIRVCHAIN</p>
+            </div>
+
+            <!-- Step 4: Go Live -->
+            <div class="glass-card">
+                <h2 style="color: var(--bright-blue); margin-bottom: 20px; font-size: 1.3rem;">
+                    <i class="fas fa-globe" style="margin-right: 10px;"></i>Step 4: Connect to KNIRVCHAIN &amp; Go Live
+                </h2>
+                <p style="color: var(--transparent-white-7); margin-bottom: 25px;">
+                    Activating your DVE makes it live on the KNIRV network — it begins accepting workloads under your configured policies and all execution results are committed to KNIRVCHAIN for immutable audit.
+                </p>
+
+                <!-- Activate -->
+                <div style="margin-bottom: 30px;">
+                    <h3 style="color: var(--white); margin-bottom: 15px;">Activate Your DVE</h3>
+                    <div class="code-block" style="margin-bottom: 15px;">
+                        <code>knirv dve activate --dve-id YOUR_DVE_ID<br>knirv dve health --dve-id YOUR_DVE_ID</code>
+                    </div>
+                    <p style="color: var(--transparent-white-7); font-size: 0.9em;">
+                        Activation triggers the first on-chain attestation commit and opens the DVE's endpoint for incoming workloads.
+                    </p>
+                </div>
+
+                <!-- Verify blockchain commit -->
+                <div style="margin-bottom: 30px;">
+                    <h3 style="color: var(--white); margin-bottom: 15px;">Verify Your Blockchain Commits</h3>
+                    <p style="color: var(--transparent-white-7); font-size: 0.9em; margin-bottom: 15px;">
+                        Once live, every policy application and execution result writes to KNIRVCHAIN. Inspect your audit trail:
+                    </p>
+                    <div class="code-block" style="margin-bottom: 15px;">
+                        <code>knirv chain audit --dve-id YOUR_DVE_ID --limit 10</code>
+                    </div>
+                    <div class="code-block">
+                        <code>const client = new KnirvClient({ apiKey: 'YOUR_API_KEY' });<br><br>const audit = await client.chain.getAuditLog({<br>&nbsp;&nbsp;dveId: 'YOUR_DVE_ID',<br>&nbsp;&nbsp;limit: 10,<br>});<br><br>audit.entries.forEach(e => console.log(e.txHash, e.event, e.timestamp));</code>
+                    </div>
+                </div>
+
+                <!-- DVE health panel -->
+                <div style="margin-bottom: 25px;">
+                    <h3 style="color: var(--white); margin-bottom: 15px;">Health &amp; Attestation Status</h3>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                        <div style="padding: 18px; background-color: rgba(34, 197, 94, 0.08); border-radius: 10px; border: 1px solid rgba(34, 197, 94, 0.2); text-align: center;">
+                            <i class="fas fa-heartbeat" style="color: #22c55e; font-size: 1.5em; margin-bottom: 8px;"></i>
+                            <div style="color: #22c55e; font-weight: 600;">DVE Health</div>
+                            <div style="color: var(--transparent-white-7); font-size: 0.85em; margin-top: 4px;">Live attestation heartbeat</div>
+                        </div>
+                        <div style="padding: 18px; background-color: rgba(0,192,250,0.08); border-radius: 10px; border: 1px solid rgba(0,192,250,0.2); text-align: center;">
+                            <i class="fas fa-link" style="color: var(--bright-blue); font-size: 1.5em; margin-bottom: 8px;"></i>
+                            <div style="color: var(--bright-blue); font-weight: 600;">Chain Sync</div>
+                            <div style="color: var(--transparent-white-7); font-size: 0.85em; margin-top: 4px;">KNIRVCHAIN commit status</div>
+                        </div>
+                        <div style="padding: 18px; background-color: rgba(139,92,246,0.08); border-radius: 10px; border: 1px solid rgba(139,92,246,0.2); text-align: center;">
+                            <i class="fas fa-sliders-h" style="color: var(--knirv-purple); font-size: 1.5em; margin-bottom: 8px;"></i>
+                            <div style="color: var(--knirv-purple); font-weight: 600;">Policy Version</div>
+                            <div style="color: var(--transparent-white-7); font-size: 0.85em; margin-top: 4px;">Active policy revision on chain</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Upgrade path -->
+                <div style="padding: 18px; background: rgba(245,158,11,0.08); border-radius: 10px; border: 1px solid rgba(245,158,11,0.2); margin-bottom: 25px;">
+                    <h4 style="color: #f59e0b; margin-bottom: 8px;">
+                        <i class="fas fa-arrow-up" style="margin-right: 8px;"></i>Ready to Scale?
+                    </h4>
+                    <p style="color: var(--transparent-white-7); font-size: 0.9em; margin-bottom: 10px;">
+                        Your free DVE is live. When you need more:
+                    </p>
+                    <ul style="color: var(--transparent-white-7); font-size: 0.9em; margin-left: 20px; line-height: 1.9;">
+                        <li><strong style="color: var(--white);">Professional ($199/mo)</strong> — Unlimited DVEs, Cognitive Engine adaptive policies, KNIRVARENA access</li>
+                        <li><strong style="color: var(--white);">Enterprise (Custom)</strong> — eBPF kernel bridge, Badge Lab attestation, Guardrails enforcement</li>
+                        <li><strong style="color: var(--white);">Custom (Self-Hosted)</strong> — Full KNIRVSERVER, ICME memory, root oracle, source license</li>
+                    </ul>
+                </div>
+
+                <!-- Completion -->
+                <div style="text-align: center; padding: 20px; background: rgba(34, 197, 94, 0.08); border-radius: 10px; border: 1px solid rgba(34, 197, 94, 0.2);">
+                    <i class="fas fa-check-circle" style="color: #22c55e; font-size: 3em; margin-bottom: 15px;"></i>
+                    <h3 style="color: #22c55e; margin-bottom: 10px;">Your DVE is Live</h3>
+                    <p style="color: var(--transparent-white-7); margin-bottom: 20px;">
+                        Congratulations — your Distributed Validation Environment is deployed, policy-governed, and committing its audit trail to KNIRVCHAIN.
+                    </p>
+                    <div style="display: flex; gap: 15px; justify-content: center; flex-wrap: wrap;">
+                        <a href="api-sdk.html" class="btn-primary" style="text-decoration: none;">
+                            <i class="fas fa-code" style="margin-right: 8px;"></i>Explore the SDK
+                        </a>
+                        <a href="community-support.html" class="btn-outline" style="text-decoration: none;">
+                            <i class="fas fa-users" style="margin-right: 8px;"></i>Join the Community
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Navigation -->
+            <div class="glass-card">
+                <div style="display: flex; gap: 15px; justify-content: space-between; flex-wrap: wrap;">
+                    <a href="getting-started-step3.html" class="btn-outline" style="text-decoration: none;">
+                        <i class="fas fa-arrow-left" style="margin-right: 8px;"></i>Back: Configure Policies
+                    </a>
+                    <a href="index.html" class="btn-secondary" style="text-decoration: none;">
+                        <i class="fas fa-home" style="margin-right: 8px;"></i>Return to Dashboard
+                    </a>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- JavaScript -->
+    <script src="js/config-loader.js"></script>
+    <script src="js/portal.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="../js/universal-footer.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            localStorage.setItem('knirv_getting_started_step', 4);
+        });
+    </script>
+</body>
+</html>

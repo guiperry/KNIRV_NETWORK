@@ -1,0 +1,48 @@
+{
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "outDir": "./dist/",
+    "types": [
+      "node",
+      "jest",
+      "@types/react",
+      "@types/react-dom",
+      "@types/styled-components",
+      "@types/chrome"
+    ],
+    "noImplicitAny": true,
+    "module": "esnext",
+    "target": "es5",
+    "moduleResolution": "node",
+    "resolveJsonModule": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "sourceMap": false,
+    "skipLibCheck": true,
+    "strict": true,
+    "allowJs": true,
+    "downlevelIteration": true,
+    "lib": ["dom", "es5", "es6"],
+    "baseUrl": "./",
+    "paths": {
+      "@types": ["src/types"],
+      "@states": ["src/states"],
+      "@hooks/*": ["src/hooks/*"],
+      "@ui/*": ["src/ui/*"],
+      "@pages/*": ["src/pages/*"],
+      "@router/*": ["src/router/*"],
+      "@services/*": ["src/services/*"],
+      "@repositories/*": ["src/repositories/*"],
+      "@resources/*": ["src/resources/*"],
+      "@styles/*": ["src/styles/*"],
+      "@components/*": ["src/components/*"],
+      "@common/*": ["src/common/*"],
+      "@inject/*": ["src/inject/*"],
+      "@assets/*": ["src/assets/*"],
+      "@migrates/*": ["src/migrates/*"],
+      "@models/*": ["src/models/*"],
+      "@public/*": ["public/*"]
+    }
+  },
+  "include": ["./src/**/*"]
+}

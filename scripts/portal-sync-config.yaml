@@ -1,0 +1,380 @@
+# KNIRV Portal Version Synchronization Configuration
+
+# =============================================================================
+# PORTAL LOCATIONS AND MAPPINGS
+# =============================================================================
+
+nexus_portals:
+  knirvgateway:
+    path: "KNIRVGATEWAY/nexus-portal"
+    type: "vite-react"
+    package_manager: "npm"
+    build_command: "npm run build"
+    main_files:
+      - "src/App.tsx"
+      - "src/main.tsx"
+      - "package.json"
+      - "vite.config.ts"
+    
+  knirvtestnet:
+    path: "KNIRVTESTNET/data/knirvgateway/nexus-portal"
+    type: "vite-react"
+    package_manager: "npm"
+    build_command: "npm run build"
+    main_files:
+      - "src/App.tsx"
+      - "src/main.tsx"
+      - "package.json"
+      - "vite.config.ts"
+    
+  knirvserver:
+    path: "KNIRVSERVER"
+    type: "nextjs"
+    package_manager: "npm"
+    build_command: "npm run build"
+    main_files:
+      - "src/app/page.tsx"
+      - "src/app/layout.tsx"
+      - "package.json"
+      - "next.config.js"
+
+graphchain_explorers:
+  knirvgateway:
+    path: "KNIRVGATEWAY/graphchain-explorer"
+    type: "vanilla-js"
+    main_files:
+      - "index.html"
+      - "js/graphchain-core.js"
+      - "css/graphchain.css"
+      - "README.md"
+    
+  knirvtestnet:
+    path: "KNIRVTESTNET/data/knirvgateway/graphchain-explorer"
+    type: "vanilla-js"
+    main_files:
+      - "index.html"
+      - "js/graphchain-core.js"
+      - "css/graphchain.css"
+      - "README.md"
+
+# =============================================================================
+# SYNCHRONIZATION RULES
+# =============================================================================
+
+sync_rules:
+  nexus_portal:
+    # Files to always sync
+    always_sync:
+      - "src/components/auth/*"
+      - "src/components/dashboard/*"
+      - "src/components/ui/*"
+      - "src/hooks/use-realtime.ts"
+      - "src/hooks/use-toast.ts"
+      - "src/lib/utils.ts"
+      - "src/index.css"
+      - "tailwind.config.js"
+    
+    # Files to sync conditionally (only if newer)
+    conditional_sync:
+      - "src/App.tsx"
+      - "src/main.tsx"
+      - "package.json"
+      - "vite.config.ts"
+      - "tsconfig.json"
+    
+    # Files to never sync (environment-specific)
+    never_sync:
+      - ".env*"
+      - "dist/*"
+      - "node_modules/*"
+      - "*.log"
+      - ".next/*"
+      - "build/*"
+    
+    # Special handling for different portal types
+    type_specific:
+      nextjs:
+        map_files:
+          "src/App.tsx": "src/app/page.tsx"
+          "src/main.tsx": "src/app/layout.tsx"
+          "index.html": "src/app/layout.tsx"
+        merge_dependencies: true
+        preserve_nextjs_config: true
+      
+      vite_react:
+        preserve_vite_config: true
+        maintain_build_scripts: true
+
+  graphchain_explorer:
+    # Files to always sync
+    always_sync:
+      - "js/*"
+      - "css/*"
+      - "assets/*"
+      - "*.html"
+      - "README.md"
+    
+    # Files to sync conditionally
+    conditional_sync:
+      - "test-data.js"
+      - "config.js"
+    
+    # Files to never sync
+    never_sync:
+      - "node_modules/*"
+      - "dist/*"
+      - "build/*"
+      - "*.log"
+
+# =============================================================================
+# VERSION DETECTION STRATEGIES
+# =============================================================================
+
+version_detection:
+  nexus_portal:
+    primary_method: "package_json_version"
+    fallback_methods:
+      - "file_timestamps"
+      - "git_commit_dates"
+    
+    version_indicators:
+      - file: "package.json"
+        field: "version"
+        weight: 10
+      - file: "src/App.tsx"
+        method: "timestamp"
+        weight: 5
+      - file: "src/components/dashboard/DashboardWrapper.tsx"
+        method: "timestamp"
+        weight: 3
+  
+  graphchain_explorer:
+    primary_method: "file_timestamps"
+    fallback_methods:
+      - "content_analysis"
+      - "feature_detection"
+    
+    version_indicators:
+      - file: "js/graphchain-core.js"
+        method: "timestamp"
+        weight: 10
+      - file: "index.html"
+        method: "timestamp"
+        weight: 5
+      - file: "css/graphchain.css"
+        method: "timestamp"
+        weight: 3
+
+# =============================================================================
+# DEPENDENCY MANAGEMENT
+# =============================================================================
+
+dependency_sync:
+  react_components:
+    # Core React dependencies to sync
+    core_deps:
+      - "react"
+      - "react-dom"
+      - "@types/react"
+      - "@types/react-dom"
+    
+    # UI library dependencies
+    ui_deps:
+      - "@radix-ui/react-*"
+      - "lucide-react"
+      - "class-variance-authority"
+      - "clsx"
+      - "tailwind-merge"
+    
+    # Build tool dependencies
+    build_deps:
+      - "vite"
+      - "@vitejs/plugin-react"
+      - "typescript"
+      - "tailwindcss"
+      - "autoprefixer"
+      - "postcss"
+  
+  version_resolution:
+    strategy: "latest_compatible"
+    conflict_resolution: "manual_review"
+    preserve_major_versions: true
+
+# =============================================================================
+# TRANSFORMATION RULES
+# =============================================================================
+
+transformations:
+  nextjs_adaptation:
+    # Transform Vite React components for Next.js
+    file_mappings:
+      "src/App.tsx": 
+        target: "src/app/page.tsx"
+        transform: "wrap_in_page_component"
+      "src/main.tsx":
+        target: "src/app/layout.tsx"
+        transform: "extract_providers"
+      "index.html":
+        target: "src/app/layout.tsx"
+        transform: "extract_head_content"
+    
+    # Code transformations
+    code_transforms:
+      - pattern: "import.*from 'react'"
+        replacement: "import.*from 'react'"
+        condition: "preserve"
+      - pattern: "ReactDOM.render"
+        replacement: "export default function"
+        condition: "nextjs_page"
+      - pattern: "document.getElementById"
+        replacement: "// Removed for Next.js"
+        condition: "nextjs_ssr"
+  
+  vite_adaptation:
+    # Transform Next.js components for Vite
+    file_mappings:
+      "src/app/page.tsx":
+        target: "src/App.tsx"
+        transform: "extract_page_component"
+      "src/app/layout.tsx":
+        target: "src/main.tsx"
+        transform: "create_vite_entry"
+    
+    # Code transformations
+    code_transforms:
+      - pattern: "export default function Page"
+        replacement: "export default function App"
+        condition: "vite_app"
+      - pattern: "use client"
+        replacement: "// Client component"
+        condition: "remove_nextjs_directives"
+
+# =============================================================================
+# VALIDATION RULES
+# =============================================================================
+
+validation:
+  pre_sync:
+    checks:
+      - "verify_source_exists"
+      - "check_target_permissions"
+      - "validate_package_json"
+      - "check_git_status"
+    
+    requirements:
+      - name: "node_version"
+        command: "node --version"
+        pattern: "v1[6-9]|v[2-9][0-9]"
+      - name: "npm_available"
+        command: "npm --version"
+        pattern: "[0-9]+\\.[0-9]+\\.[0-9]+"
+  
+  post_sync:
+    checks:
+      - "validate_syntax"
+      - "check_dependencies"
+      - "test_build"
+      - "verify_functionality"
+    
+    build_tests:
+      vite_react:
+        - "npm install"
+        - "npm run build"
+      nextjs:
+        - "npm install"
+        - "npm run build"
+      vanilla_js:
+        - "validate_html"
+        - "check_js_syntax"
+
+# =============================================================================
+# CONFLICT RESOLUTION
+# =============================================================================
+
+conflict_resolution:
+  strategies:
+    file_conflicts:
+      - strategy: "timestamp_based"
+        description: "Use newer file unless force is specified"
+      - strategy: "version_based"
+        description: "Use higher version number"
+      - strategy: "manual_merge"
+        description: "Require manual intervention"
+    
+    dependency_conflicts:
+      - strategy: "latest_compatible"
+        description: "Use latest version that satisfies all requirements"
+      - strategy: "preserve_major"
+        description: "Keep major version, update minor/patch"
+    
+    configuration_conflicts:
+      - strategy: "environment_specific"
+        description: "Preserve environment-specific configurations"
+      - strategy: "merge_non_conflicting"
+        description: "Merge non-conflicting changes"
+
+# =============================================================================
+# BACKUP AND ROLLBACK
+# =============================================================================
+
+backup:
+  enabled: true
+  retention_days: 30
+  compression: true
+  
+  backup_triggers:
+    - "before_sync"
+    - "before_major_changes"
+    - "on_conflict"
+  
+  backup_contents:
+    - "source_code"
+    - "configuration_files"
+    - "package_files"
+    - "build_artifacts"
+
+rollback:
+  enabled: true
+  automatic_triggers:
+    - "build_failure"
+    - "syntax_errors"
+    - "dependency_conflicts"
+  
+  rollback_steps:
+    - "restore_files"
+    - "restore_dependencies"
+    - "verify_functionality"
+    - "log_rollback_reason"
+
+# =============================================================================
+# LOGGING AND MONITORING
+# =============================================================================
+
+logging:
+  level: "info"
+  file: ".portal-sync-state/portal-sync.log"
+  rotation: "daily"
+  retention: "30_days"
+  
+  log_events:
+    - "sync_start"
+    - "version_detection"
+    - "file_changes"
+    - "conflicts"
+    - "errors"
+    - "sync_complete"
+
+monitoring:
+  metrics:
+    - "sync_duration"
+    - "files_changed"
+    - "conflicts_resolved"
+    - "build_success_rate"
+  
+  alerts:
+    - condition: "sync_failure"
+      action: "log_error"
+    - condition: "multiple_conflicts"
+      action: "require_manual_review"
+    - condition: "build_failure"
+      action: "auto_rollback"

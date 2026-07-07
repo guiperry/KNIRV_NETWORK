@@ -1,0 +1,4 @@
+auxiliary:
+    goal_judge:
+      provider: openrouter
+      model: google/gemini-3-flash-preview

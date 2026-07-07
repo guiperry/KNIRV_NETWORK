@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Getting Started - KNIRV Developer Portal</title>
+    <meta name="description" content="Launch your first DVE on the KNIRV network — step-by-step guide">
+    <link rel="shortcut icon" href="favicon.png">
+
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Custom CSS with original design system -->
+    <link rel="stylesheet" href="css/portal.css">
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Sidebar Navigation -->
+        <nav class="sidebar">
+            <div class="dashboard-title">
+                <h1>KNIRV Developer Portal</h1>
+                <p style="color: var(--transparent-white-7); font-size: 0.9rem;">DVE Platform</p>
+            </div>
+
+            <!-- Navigation Items -->
+            <a href="index.html" class="nav-item">
+                <i class="fas fa-home"></i>
+                <span>Home Dashboard</span>
+            </a>
+            <a href="core-concepts.html" class="nav-item">
+                <i class="fas fa-brain"></i>
+                <span>Core Concepts</span>
+            </a>
+            <a href="getting-started.html" class="nav-item active">
+                <i class="fas fa-rocket"></i>
+                <span>Getting Started</span>
+            </a>
+            <a href="#" class="nav-item" onclick="return false;">
+                <i class="fas fa-book"></i>
+                <span>Documentation</span>
+            </a>
+            <a href="api-sdk.html" class="nav-item">
+                <i class="fas fa-code"></i>
+                <span>API &amp; SDK</span>
+            </a>
+            <a href="community-support.html" class="nav-item">
+                <i class="fas fa-users"></i>
+                <span>Community &amp; Support</span>
+            </a>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Top Navigation -->
+            <div class="top-nav">
+                <div>
+                    <h1 class="page-title">Getting Started</h1>
+                </div>
+                <div class="user-controls">
+                    <i class="control-icon fas fa-bell" title="Notifications"></i>
+                    <i class="control-icon fas fa-cog" title="Settings"></i>
+                    <i class="control-icon fas fa-user-circle" title="Profile"></i>
+                </div>
+            </div>
+
+            <!-- Page Content -->
+            <div class="glass-card">
+                <div style="text-align: center; margin-bottom: 30px;">
+                    <div style="width: 80px; height: 80px; border-radius: 50%; background: linear-gradient(135deg, rgba(0, 192, 250, 0.3), rgba(43, 86, 245, 0.3)); display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; font-size: 2.5em;">
+                        <i class="fas fa-shield-alt" style="color: var(--bright-blue);"></i>
+                    </div>
+                    <h1 style="color: var(--bright-blue); margin-bottom: 10px; font-size: 2rem;">Launch Your First DVE</h1>
+                    <p style="color: var(--transparent-white-7); max-width: 600px; margin: 0 auto;">
+                        Follow this four-step guide to deploy a sovereign Distributed Validation Environment — with cryptographic attestation, policy governance, and blockchain-committed audit trails.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Progress Tracker -->
+            <div class="glass-card">
+                <h2 style="color: var(--bright-blue); margin-bottom: 20px; font-size: 1.3rem;">Your Progress</h2>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 20px;">
+                    <div style="text-align: center; flex: 1;">
+                        <div style="width: 40px; height: 40px; border-radius: 50%; background-color: var(--bright-blue); display: flex; align-items: center; justify-content: center; margin: 0 auto 10px; color: white; font-weight: bold;">1</div>
+                        <div style="font-size: 0.9em; color: var(--white);">Environment</div>
+                    </div>
+                    <div style="text-align: center; flex: 1;">
+                        <div style="width: 40px; height: 40px; border-radius: 50%; background-color: var(--transparent-white-2); display: flex; align-items: center; justify-content: center; margin: 0 auto 10px; color: var(--transparent-white-7); font-weight: bold;">2</div>
+                        <div style="font-size: 0.9em; color: var(--transparent-white-7);">Launch DVE</div>
+                    </div>
+                    <div style="text-align: center; flex: 1;">
+                        <div style="width: 40px; height: 40px; border-radius: 50%; background-color: var(--transparent-white-2); display: flex; align-items: center; justify-content: center; margin: 0 auto 10px; color: var(--transparent-white-7); font-weight: bold;">3</div>
+                        <div style="font-size: 0.9em; color: var(--transparent-white-7);">Policies</div>
+                    </div>
+                    <div style="text-align: center; flex: 1;">
+                        <div style="width: 40px; height: 40px; border-radius: 50%; background-color: var(--transparent-white-2); display: flex; align-items: center; justify-content: center; margin: 0 auto 10px; color: var(--transparent-white-7); font-weight: bold;">4</div>
+                        <div style="font-size: 0.9em; color: var(--transparent-white-7);">Go Live</div>
+                    </div>
+                </div>
+                <div style="background-color: var(--transparent-white-1); height: 4px; border-radius: 2px; margin-bottom: 10px;">
+                    <div style="background-color: var(--bright-blue); height: 100%; width: 25%; border-radius: 2px;"></div>
+                </div>
+                <p style="color: var(--transparent-white-7); font-size: 0.9em; text-align: center;">Step 1 of 4 — Set up your development environment</p>
+            </div>
+
+            <!-- Step 1: Development Environment -->
+            <div class="glass-card" id="environment">
+                <h2 style="color: var(--bright-blue); margin-bottom: 20px; font-size: 1.3rem;">
+                    <i class="fas fa-laptop-code" style="margin-right: 10px;"></i>Step 1: Development Environment
+                </h2>
+
+                <div style="margin-bottom: 20px;">
+                    <h3 style="color: var(--white); margin-bottom: 10px;">Prerequisites</h3>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                        <div style="padding: 15px; background-color: var(--transparent-white-05); border-radius: 8px;">
+                            <i class="fab fa-node-js" style="color: #68a063; font-size: 1.5em; margin-bottom: 10px;"></i>
+                            <h4>Node.js 18+</h4>
+                            <p style="color: var(--transparent-white-7); font-size: 0.9em;">Required for the KNIRVBASE SDK</p>
+                        </div>
+                        <div style="padding: 15px; background-color: var(--transparent-white-05); border-radius: 8px;">
+                            <i class="fab fa-git-alt" style="color: #f05032; font-size: 1.5em; margin-bottom: 10px;"></i>
+                            <h4>Git</h4>
+                            <p style="color: var(--transparent-white-7); font-size: 0.9em;">Version control for your DVE configs</p>
+                        </div>
+                        <div style="padding: 15px; background-color: var(--transparent-white-05); border-radius: 8px;">
+                            <i class="fas fa-terminal" style="color: var(--bright-blue); font-size: 1.5em; margin-bottom: 10px;"></i>
+                            <h4>Terminal</h4>
+                            <p style="color: var(--transparent-white-7); font-size: 0.9em;">Command line interface</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 20px;">
+                    <h3 style="color: var(--white); margin-bottom: 10px;">Install KNIRV CLI</h3>
+                    <div class="code-block">
+                        <code>npm install -g @knirv/cli</code>
+                    </div>
+                    <p style="color: var(--transparent-white-7); font-size: 0.9em; margin-top: 10px;">
+                        The KNIRV CLI provides tools for DVE deployment, policy management, and blockchain audit inspection.
+                    </p>
+                </div>
+
+                <div style="margin-bottom: 20px;">
+                    <h3 style="color: var(--white); margin-bottom: 10px;">Verify Installation</h3>
+                    <div class="code-block">
+                        <code>knirv --version<br>knirv network status</code>
+                    </div>
+                </div>
+
+                <div style="text-align: center;">
+                    <button class="btn-primary" onclick="completeStep(1)">
+                        <i class="fas fa-check" style="margin-right: 8px;"></i>Mark as Complete
+                    </button>
+                </div>
+            </div>
+
+            <!-- DVE Options -->
+            <div class="glass-card">
+                <h2 style="color: var(--bright-blue); margin-bottom: 20px; font-size: 1.3rem;">
+                    <i class="fas fa-server" style="margin-right: 10px;"></i>DVE Deployment Options
+                </h2>
+                <p style="color: var(--transparent-white-7); margin-bottom: 20px;">
+                    Choose how to run your DVE — hosted on the KNIRV network (recommended) or self-hosted via KNIRVSERVER for full control.
+                </p>
+
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-bottom: 20px;">
+                    <div style="padding: 20px; background-color: var(--transparent-white-05); border-radius: 10px; border-left: 4px solid var(--bright-blue);">
+                        <h4 style="color: var(--white); margin-bottom: 10px;">
+                            <i class="fas fa-cloud" style="color: var(--bright-blue); margin-right: 8px;"></i>Hosted DVE (Free Tier)
+                        </h4>
+                        <p style="color: var(--transparent-white-7); font-size: 0.9em; margin-bottom: 15px;">
+                            One free DVE on the KNIRV network with full Policy Editor, Blockchain Commit, and KNIRVCONTROLLER wallet. No infrastructure to manage.
+                        </p>
+                        <ul style="color: var(--transparent-white-7); font-size: 0.9em; margin-left: 20px;">
+                            <li>1 sovereign DVE included</li>
+                            <li>Policy Editor + Blockchain Commit</li>
+                            <li>Managed attestation infrastructure</li>
+                            <li>KNIRVCONTROLLER NRN wallet</li>
+                        </ul>
+                    </div>
+                    <div style="padding: 20px; background-color: var(--transparent-white-05); border-radius: 10px; border-left: 4px solid var(--knirv-purple);">
+                        <h4 style="color: var(--white); margin-bottom: 10px;">
+                            <i class="fas fa-server" style="color: var(--knirv-purple); margin-right: 8px;"></i>Self-Hosted KNIRVSERVER
+                        </h4>
+                        <p style="color: var(--transparent-white-7); font-size: 0.9em; margin-bottom: 15px;">
+                            Run KNIRVSERVER on your own infrastructure for full control, ICME memory integration, and root oracle access. Custom tier.
+                        </p>
+                        <ul style="color: var(--transparent-white-7); font-size: 0.9em; margin-left: 20px;">
+                            <li>Unlimited DVEs on your hardware</li>
+                            <li>ICME persistent memory engine</li>
+                            <li>Root oracle access</li>
+                            <li>Private KNIRVCHAIN subnet</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Next Steps -->
+            <div class="glass-card">
+                <h2 style="color: var(--bright-blue); margin-bottom: 20px; font-size: 1.3rem;">Next Step</h2>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px;">
+                    <a href="getting-started-step2.html" class="hover-lift" style="display: block; padding: 20px; background-color: var(--transparent-white-05); border-radius: 10px; text-decoration: none; color: var(--white); text-align: center;">
+                        <i class="fas fa-server" style="font-size: 2em; color: var(--bright-blue); margin-bottom: 10px;"></i>
+                        <h4 style="margin-bottom: 5px;">Step 2: Launch Your DVE</h4>
+                        <p style="color: var(--transparent-white-7); font-size: 0.9em;">Create and configure your first DVE</p>
+                    </a>
+                    <a href="core-concepts.html" class="hover-lift" style="display: block; padding: 20px; background-color: var(--transparent-white-05); border-radius: 10px; text-decoration: none; color: var(--white); text-align: center;">
+                        <i class="fas fa-brain" style="font-size: 2em; color: var(--knirv-purple); margin-bottom: 10px;"></i>
+                        <h4 style="margin-bottom: 5px;">Architecture Overview</h4>
+                        <p style="color: var(--transparent-white-7); font-size: 0.9em;">Understand the DVE and D-TEN layers</p>
+                    </a>
+                    <a href="api-sdk.html" class="hover-lift" style="display: block; padding: 20px; background-color: var(--transparent-white-05); border-radius: 10px; text-decoration: none; color: var(--white); text-align: center;">
+                        <i class="fas fa-code" style="font-size: 2em; color: var(--bright-blue); margin-bottom: 10px;"></i>
+                        <h4 style="margin-bottom: 5px;">API Reference</h4>
+                        <p style="color: var(--transparent-white-7); font-size: 0.9em;">KNIRVBASE SDK and DVE management APIs</p>
+                    </a>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- JavaScript -->
+    <script src="js/config-loader.js"></script>
+    <script src="js/portal.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="../js/universal-footer.js"></script>
+    <script>
+        function completeStep(step) {
+            localStorage.setItem('knirv_getting_started_step', step);
+            showSuccessMessage('Step 1 complete! Launching DVE setup...', () => {
+                window.location.href = 'getting-started-step2.html';
+            });
+        }
+
+        function showSuccessMessage(message, callback) {
+            const messageDiv = document.createElement('div');
+            messageDiv.style.cssText = `
+                position: fixed; top: 20px; right: 20px;
+                background: linear-gradient(135deg, var(--bright-blue) 0%, var(--knirv-purple) 100%);
+                color: white; padding: 15px 20px; border-radius: 8px;
+                box-shadow: 0 4px 20px rgba(0, 192, 250, 0.3);
+                z-index: 1000; font-weight: 600; max-width: 300px;
+            `;
+            messageDiv.textContent = message;
+            document.body.appendChild(messageDiv);
+            setTimeout(() => { messageDiv.remove(); if (callback) callback(); }, 2000);
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,45 @@
+syntax = "proto3";
+
+package KNIRVSERVER;
+
+option go_package = "./;proto";
+
+message BootnodeKeyFileContentProto {
+  string master_wallet_key = 1;
+
+  // Onboarding-assigned registration ID — used to build the gateway tunnel
+  // subdomain: gateway{registration_id}.knirv.network
+  // Embedded in boot.key by boot_key_encryptor during onboarding.
+  string registration_id = 2;
+
+  // JWT secret for this bootnode's internal services
+  string jwt_secret = 10;
+
+  // LLM provider API keys
+  string gemini_api_key    = 11;
+  string deepseek_api_key  = 12;
+  string cerebras_api_key  = 13;
+
+  // Cloudflare credentials (shared account credentials, not root-node specific)
+  string cloudflare_api_token     = 18;
+  string cloudflare_zone_id       = 19;
+  string cloudflare_account_id    = 20;
+  // Pre-provisioned gateway tunnel token (optional; empty = provision via API)
+  string cloudflare_tunnel_token  = 21;
+
+  // Hasher device credentials
+  string device_ip       = 22;
+  string device_password = 23;
+  string device_username = 24;
+
+  // Infrastructure credentials (compiled in by boot_key_encryptor)
+  string stripe_secret_key    = 25;
+  string default_github_token = 26;
+  string smtp_password        = 27;
+}
+
+message EncryptedBootnodeKeyFile {
+  bytes encrypted_content = 1;
+  bytes salt = 2;
+  bytes nonce = 3;
+}

@@ -1,0 +1,10 @@
+# Terminal interface (recommended)
+./KNIRVCHAIN --terminal --dev
+./KNIRVCHAIN --terminal --root
+./KNIRVCHAIN --terminal --bootnode
+
+# GUI interface (existing)
+./KNIRVCHAIN --gui
+
+# Headless mode (existing)
+./KNIRVCHAIN

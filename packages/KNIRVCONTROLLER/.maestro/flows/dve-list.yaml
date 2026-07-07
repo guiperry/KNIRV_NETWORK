@@ -1,0 +1,7 @@
+appId: com.knirv.controller
+---
+- launchApp
+- tapOn: "DVEs"
+- assertVisible: "DVEs"
+- assertVisible: "Active Nodes"
+- assertVisible: "Create DVE"

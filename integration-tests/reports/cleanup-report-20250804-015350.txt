@@ -1,0 +1,26 @@
+KNIRV Integration Test Cleanup Report
+Generated: Mon Aug  4 01:53:50 AM EDT 2025
+========================================
+
+Services stopped:
+- KNIRVCHAIN (port 8080)
+- KNIRVGRAPH (port 8081)
+- KNIRVNEXUS (port 8082)
+- KNIRVROOT (port 8086)
+- KNIRVROUTER (port 8085)
+
+Cleanup actions:
+- Logs preserved: true
+- Data preserved: false
+- Force kill used: false
+
+Remaining processes on test ports:
+- Port 8080: clean
+- Port 8081: clean
+- Port 8082: clean
+- Port 8083: clean
+- Port 8084: clean
+- Port 8085: clean
+- Port 8086: clean
+
+Cleanup completed at: Mon Aug  4 01:53:54 AM EDT 2025

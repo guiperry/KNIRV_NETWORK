@@ -1,0 +1,89 @@
+name: Build iOS
+
+on:
+  push:
+    branches: [main]
+    paths: ['packages/KNIRVCONTROLLER/**']
+  pull_request:
+    branches: [main]
+    paths: ['packages/KNIRVCONTROLLER/**']
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build iOS IPA
+    runs-on: macos-14
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: packages/KNIRVCONTROLLER/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+        working-directory: packages/KNIRVCONTROLLER
+
+      - name: Build web assets
+        run: npm run build
+        working-directory: packages/KNIRVCONTROLLER
+        env:
+          VITE_API_URL: ${{ secrets.VITE_API_URL }}
+          VITE_XION_RPC_URL: ${{ secrets.VITE_XION_RPC_URL }}
+          VITE_KNIRV_CHAIN_ID: ${{ secrets.VITE_KNIRV_CHAIN_ID }}
+
+      - name: Sync Capacitor iOS
+        run: npx cap sync ios
+        working-directory: packages/KNIRVCONTROLLER
+
+      - name: Import signing certificate
+        uses: apple-actions/import-codesign-certs@v2
+        with:
+          p12-file-base64: ${{ secrets.IOS_CERTIFICATE_BASE64 }}
+          p12-password: ${{ secrets.IOS_CERTIFICATE_PASSWORD }}
+
+      - name: Download provisioning profiles
+        uses: apple-actions/download-provisioning-profiles@v1
+        with:
+          bundle-id: com.knirv.controller
+          issuer-id: ${{ secrets.APPLE_ISSUER_ID }}
+          api-key-id: ${{ secrets.APPLE_API_KEY_ID }}
+          api-private-key: ${{ secrets.APPLE_API_PRIVATE_KEY }}
+
+      - name: Archive app
+        run: |
+          xcodebuild -workspace ios/App/App.xcworkspace \
+            -scheme App \
+            -archivePath build/KnirvController.xcarchive \
+            -configuration Release \
+            archive
+        working-directory: packages/KNIRVCONTROLLER
+
+      - name: Export IPA
+        run: |
+          xcodebuild -exportArchive \
+            -archivePath build/KnirvController.xcarchive \
+            -exportPath build/ \
+            -exportOptionsPlist ios/ExportOptions.plist
+        working-directory: packages/KNIRVCONTROLLER
+
+      - name: Upload IPA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: knirv-controller-ios
+          path: packages/KNIRVCONTROLLER/build/KnirvController.ipa
+
+      - name: Upload to TestFlight
+        if: github.ref == 'refs/heads/main'
+        uses: apple-actions/upload-testflight-build@v1
+        with:
+          ipa-path: packages/KNIRVCONTROLLER/build/KnirvController.ipa
+          issuer-id: ${{ secrets.APPLE_ISSUER_ID }}
+          api-key-id: ${{ secrets.APPLE_API_KEY_ID }}
+          api-private-key: ${{ secrets.APPLE_API_PRIVATE_KEY }}

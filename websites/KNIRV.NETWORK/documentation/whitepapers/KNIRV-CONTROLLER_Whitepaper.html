@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>**KNIRV-CONTROLLER: The Unified Agent Management Platform** - KNIRV Network Whitepaper</title>
+    <link rel="stylesheet" href="../styles.css">
+    <script src="../config/portal-links.yaml" type="text/yaml" id="portal-config"></script>
+    <script src="../js/config-loader.js"></script>
+    <script src="../js/universal-footer.js"></script>
+    <script>
+        // Override footer links for documentation site
+        document.addEventListener('DOMContentLoaded', function() {
+            if (window.knirvConfig && window.knirvConfig.config) {
+                // Update legal links to use documentation-specific paths
+                if (window.knirvConfig.config.footer && window.knirvConfig.config.footer.legal) {
+                    window.knirvConfig.config.footer.legal.terms = "../legal/TERMS_AND_CONDITIONS.html";
+                    window.knirvConfig.config.footer.legal.privacy = "../legal/PRIVACY_POLICY.html";
+                    window.knirvConfig.config.footer.legal.contribution = "../legal/CODE_OF_CONDUCT.html";
+                }
+            }
+        });
+    </script>
+</head>
+<body>
+    <header class="doc-header">
+        <div class="container">
+            <nav class="doc-nav">
+                <a href="index.html">← Back to Whitepapers</a>
+                <a href="../index.html">← Back to Documentation</a>
+            </nav>
+            <h1>**KNIRV-CONTROLLER: The Unified Agent Management Platform**</h1>
+            <p class="doc-description">Technical whitepaper for the KNIRV Network</p>
+        </div>
+    </header>
+
+    <main class="doc-main">
+        <div class="container">
+            <article class="doc-content whitepaper-content">
+                <p><h1><strong>KNIRV-CONTROLLER: The Unified Agent Management Platform</strong></h1></p><p><h3><strong>Abstract</strong></h3></p><p>The <strong>KNIRV-CONTROLLER</strong> serves as the comprehensive agent management platform within the KNIRV D-TEN ecosystem, representing a major architectural evolution that unifies agent management, skill development, wallet functionality, and network interaction capabilities. This unified platform allows users to manage agents, skills, UDCs, and wallets for network interaction while providing an integrated shell for minting agents on the oracle with trained capabilities. The CONTROLLER's primary agent-cortex serves as the foundation for user interactions across KNIRVENGINE and KNIRVSERVER interfaces when linked through QR code scanning functionality.</p><p><h3><strong>1. Introduction</strong></h3></p><p>The <strong>KNIRV-CONTROLLER</strong> represents a fundamental shift in agent management architecture, unifying previously separate components into a cohesive platform that serves as the primary interface for agent interaction within the KNIRV D-TEN. Following the major refactor, the CONTROLLER has evolved from a simple mobile adapter to a comprehensive platform that integrates:</p><p>- <strong>Manager</strong>: The evolved mobile-controller providing core agent management capabilities
+- <strong>CLI</strong>: The integrated KNIRVSHELL providing command-line interface and terminal functionality
+- <strong>Receiver</strong>: The agent-core frontend providing primary user interface and cognitive shell integration
+- <strong>Wallet</strong>: Comprehensive wallet functionality with QR code connectivity and agentic wallet capabilities</p><p>This unified architecture enables users to manage agents, skills, UDCs, and wallets seamlessly while providing direct access to network services through an integrated shell interface. The CONTROLLER serves as the foundation for agent registration, training, and deployment across the entire KNIRV ecosystem.</p><p><h3><strong>2. Architectural Framework</strong></h3></p><p>The <strong>KNIRV-CONTROLLER</strong> features a unified architecture that integrates four core components into a seamless agent management platform.</p><p><h4><strong>2.1. Unified Component Architecture</strong></h4></p><p>*   <strong>Receiver as Primary Interface</strong>: The receiver frontend, migrated from the agent-core, serves as the primary user interface. This component provides the main interaction layer and houses the cognitive shell that orchestrates agent operations.
+*   <strong>Cognitive Shell Integration</strong>: The cognitive shell operates as the outer layer that manages interaction with imported agent-core WASM files. This separation of concerns distinguishes between the cognitive shell's orchestration responsibilities and the agent-core's specialized operations.
+*   <strong>Manager Integration</strong>: The evolved mobile-controller (now manager) provides core agent management capabilities, handling agent lifecycle, configuration, and coordination with network services.
+*   <strong>CLI Integration</strong>: The integrated KNIRVSHELL provides slide-out interactive terminal functionality, enabling users to mint agents on the oracle and execute advanced network operations directly from the interface.
+*   <strong>Wallet Integration</strong>: Comprehensive wallet functionality enables QR code connectivity, agentic wallet operations, and seamless integration with the receiver view and other cloned functionality.</p><p><h4><strong>2.2. WASM Agent Core System</strong></h4></p><p>*   <strong>Agent Core Upload and LoRA Integration</strong>: The receiver enables users to upload and compile agent WASM files with embedded LoRA adapter capabilities, creating a cognitive shell that includes the uploaded agent.wasm file with its associated LoRA adapter chain as the primary agent within the CONTROLLER.
+*   <strong>TypeScript LoRA Compilation Pipeline</strong>: The compilation functionality from KNIRVINFERENCE/agent-builder has been translated from GoLang to TypeScript and enhanced with LoRA adapter compilation, enabling seamless agent and LoRA adapter compilation within the CONTROLLER interface.
+*   <strong>LoRA-Enhanced Agent Export</strong>: When users request agent export, the CONTROLLER exports the agent.wasm file with its embedded LoRA adapter capabilities, providing a complete neural network modification package.
+*   <strong>Primary Agent with LoRA Chain Management</strong>: The resulting shell serves as the primary agent with its LoRA adapter chain within the CONTROLLER, enabling dynamic skill loading and cluster competition participation until users designate another saved agent configuration as primary.</p><p><h3><strong>3. Key Capabilities & Interaction Model</strong></h3></p><p>The CONTROLLER's unified architecture provides comprehensive agent management capabilities through its integrated component system.</p><p><h4><strong>3.1. Revolutionary Agent Management & LoRA Adapter Development</strong></h4></p><p>*   <strong>Comprehensive Agent Lifecycle</strong>: The CONTROLLER manages the complete agent lifecycle from creation and LoRA adapter training through deployment and ongoing cluster competition management. Users can develop, test, and deploy agents within a single integrated environment optimized for competitive error resolution.
+*   <strong>LoRA Adapter Skill System</strong>: Revolutionary skill development where skills ARE LoRA adapters containing weights and biases. Users can participate in KNIRVGRAPH error cluster competitions to create superior LoRA adapters through collective intelligence and competitive collaboration.
+*   <strong>Cluster Competition Management</strong>: Integrated tools for managing agent participation in error clusters, tracking solution submissions, monitoring cluster ownership status, and optimizing competitive strategies for maximum solution output.
+*   <strong>UDC Management</strong>: Sophisticated User Delegation Certificate management enables precise control over agent permissions and capabilities, including cluster assignment rights and solution submission authorities.
+*   <strong>Agent Registration & Minting</strong>: The integrated CLI provides direct access to oracle functionality for minting agents with trained LoRA adapter capabilities. Only registered agents can participate in the graph's competitive error cluster resolution activities.</p><p><h4><strong>3.2. Network Integration & Connectivity</strong></h4></p><p>*   <strong>Universal Service Connectivity</strong>: The CONTROLLER can connect with all services in the network as needed, providing a unified interface for network interaction and service discovery.
+*   <strong>QR Code Connectivity</strong>: Seamless QR code scanning functionality enables the CONTROLLER to link with KNIRVENGINE and KNIRVSERVER interfaces, creating a unified agent ecosystem.
+*   <strong>Primary Agent-Cortex Cloning</strong>: The CONTROLLER's primary agent-cortex is cloned within linked KNIRVENGINE and KNIRVSERVER interfaces, ensuring consistent agent behavior across platforms.
+*   <strong>Cross-Platform Synchronization</strong>: Agent configurations and capabilities are synchronized across connected platforms, maintaining consistency and enabling seamless transitions between interfaces.</p><p>
+<h3><strong>3.3. KNIRV-WALLET: The Agent's Treasury</strong></h3></p><p><h4><strong>1. Abstract</strong></h4>
+*   The <strong>KNIRV-WALLET</strong> is a foundational component of the KNIRV D-TEN ecosystem, serving as a secure, non-custodial wallet exclusively for autonomous agents.
+*   It is not a direct user interface, but rather an "Agent's Treasury" that allows the <strong>KNIRV-AGENTIFIER</strong> to autonomously manage user assets, perform transactions, and issue User Delegation Certificates (UDCs) on the user's behalf.
+*   Leveraging XION Meta Accounts, the <strong>KNIRV-WALLET</strong> provides seamless, gasless transactions and a familiar Web2-like authentication experience for the agent, abstracting away the complexities of blockchain interaction from the end-user.</p><p><h4><strong>2. Introduction</strong></h4>
+*   The <strong>KNIRV-WALLET</strong> is a multi-platform, secure wallet designed to empower autonomous agents to act as trusted fiduciaries for their users within the Decentralized Trusted Execution Network (D-TEN).
+*   The wallet's core purpose is to provide a seamless and intuitive mechanism for agents to interact with the network's economic and governance layers.
+*   It is a critical piece of the security model, as all on-chain actions, including NRN token management, skill invocation fees, and data access, are routed through the wallet's autonomous features.
+*   This design ensures that users delegate authority to their agents via the <strong>KNIRV-AGENTIFIER</strong>, and the agent then utilizes the <strong>KNIRV-WALLET</strong> to execute those delegated tasks securely and transparently.</p><p><h4><strong>3. Architectural Framework</strong></h4>
+The <strong>KNIRV-WALLET</strong> is built on a robust architecture that prioritizes security, accessibility, and agent autonomy.</p><p>*   <strong>Multi-Platform Support</strong>: The wallet is designed as a core library or SDK, enabling it to be integrated across various operating systems and environments, including web, mobile, and desktop. This ensures that the <strong>KNIRV-AGENTIFIER</strong> can operate consistently regardless of the user's device.
+*   <strong>XION Meta Accounts</strong>: By utilizing XION's Meta Accounts, the <strong>KNIRV-WALLET</strong> abstracts away the traditional complexities of private keys and seed phrases from the end-user. It provides a more familiar experience for the agent, which can be linked to the user's identity through Web2-like authentication methods.
+*   <strong>Non-Custodial Design</strong>: The wallet is strictly non-custodial. User funds and private keys are never held by a third party. The agent, with the user's explicit UDC-based permission, holds and manages these keys in a secure, sandboxed environment.</p><p><code></code>`mermaid
+graph TD
+    subgraph "User Layer"
+        User[End-User]
+    end</p><p>    subgraph "Agent Layer"
+        Agent[KNIRV-AGENTIFIER]
+    end</p><p>    subgraph "Treasury Layer"
+        Wallet["KNIRV-WALLET <br/>(Agent's Treasury)"]
+    end
+    
+    subgraph "Blockchain Abstraction Layer"
+        XION[XION Meta Accounts]
+    end</p><p>    subgraph "KNIRV D-TEN Services"
+        Graph[KNIRV-GRAPH]
+        Nexus[KNIRV-SERVER]
+        Other[...]
+    end</p><p>    User -- "Delegates Tasks & Authority <br/> (issues UDC via Agentifier)" --> Agent
+    Agent -- "Exclusive & Autonomous Control" --> Wallet
+    Wallet -- "Validates UDC Permissions" --> Agent
+    
+    Wallet -- "Manages Keys & Issues UDCs" --> Wallet
+    Wallet -- "Manages NRN Tokens" --> Wallet
+    
+    Wallet -- "Leverages for <br/> 1. Web2 Auth <br/> 2. Gasless Transactions" --> XION</p><p>    XION -- "Executes On-Chain Transactions" --> D-TEN
+    subgraph D-TEN
+        direction LR
+        Wallet -- "Pays for Skills (NRN)" --> Graph
+        Wallet -- "Pays for Compute (NRN)" --> Nexus
+        Wallet -- "Interacts with..." --> Other
+    end</p><p>    style User fill:#cde4ff
+    style Agent fill:#bdd4ff
+    style Wallet fill:#a2b2ff
+    style XION fill:#7f97ff
+<code></code>`</p><p><h4><strong>4. Key Features</strong></h4>
+The <strong>KNIRV-WALLET</strong> is equipped with a suite of features that enable powerful, autonomous agentic behavior.</p><p>*   <strong>Web2-like Authentication</strong>: For the agent's initial setup and account recovery, the wallet supports authentication via email, social logins (e.g., Google, Apple ID), and biometrics. This allows the user to securely authorize the agent's access without dealing with complex crypto-native processes.
+*   <strong>Gasless Transactions</strong>: A core feature of the <strong>KNIRV-WALLET</strong> is its ability to perform gasless transactions via XION. This is crucial for the autonomous model, as it allows the agent to execute thousands of micro-transactions (e.g., paying for skill invocation on the <strong>KNIRV-GRAPH</strong>) without requiring the user to constantly manage or top-up a native token balance.
+*   <strong>NRN Management</strong>: The wallet provides the agent with a secure interface to manage the user's NRN token balance. This includes the ability to hold, send, and receive NRNs, as well as to pay for services within the KNIRV D-TEN.
+*   <strong>Agent Control and Governance</strong>: The wallet is the mechanism through which the agent's permissions are enforced. It validates the UDC issued by the user through the <strong>KNIRV-AGENTIFIER</strong>, ensuring that all actions are within the scope of the user's explicit delegation.
+*   <strong>UDC Issuance</strong>: The wallet plays a pivotal role in the issuance of User Delegation Certificates (UDCs). It is responsible for generating the cryptographic keys and signing the UDCs, which are then used by the agent to prove its authority to interact with other KNIRV layers on the user's behalf.</p><p><h4><strong>5. Interaction Model: The Agent as Intermediary</strong></h4>
+*   The most significant architectural shift is the interaction model: the end-user <strong>does not</strong> interact directly with the <strong>KNIRV-WALLET</strong>.
+*   The user's interaction point is the <strong>KNIRV-AGENTIFIER</strong>, which acts as a secure intermediary and a gateway to the wallet's functionality.
+*   When a user delegates a task to their AI assistant (enhanced by the <strong>KNIRV-AGENTIFIER</strong>), the agent is the entity that accesses the <strong>KNIRV-WALLET</strong> to perform the necessary transactions.
+*   This model simplifies the user experience, removes the cognitive load of managing cryptographic assets, and ensures that all on-chain activity is a direct result of a user-approved agentic action.</p><p><h4><strong>6. Conclusion</strong></h4>
+*   The <strong>KNIRV-WALLET</strong> is an essential layer that underpins the autonomy and economic functionality of the <strong>KNIRV-AGENTIFIER</strong>.
+*   By reframing its purpose from a user-facing tool to an "Agent's Treasury," we have created a secure, gasless, and transparent system for managing decentralized assets and permissions.
+*   The wallet's seamless integration with XION's Meta Accounts and its exclusive interface with the <strong>KNIRV-AGENTIFIER</strong> ensures a user-centric but agent-driven experience, solidifying its role as the financial engine for the autonomous future of the KNIRV D-TEN.</p><p>---</p><p><h3><strong>4. Economic Model & Tokenomics</strong></h3></p><p>The <strong>KNIRV-CONTROLLER</strong> is the primary driver of economic activity for the user within the D-TEN, featuring intelligent resource optimization and adaptive spending strategies powered by HRM's reasoning capabilities.</p><p>*   <strong>Intelligent NRN Token Optimization</strong>: The Cortex leverages HRM's ACT mechanism to optimize NRN consumption dynamically. For simple tasks, it conserves tokens by using minimal reasoning cycles on-device. For complex scenarios requiring deep analysis, it strategically allocates additional NRNs for extended computation, ensuring cost-effective task execution.
+*   <strong>Inference-Time Scaling Economics</strong>: Users can adjust the reasoning depth (Mmax) through a slider in the wallet UI, paying extra NRNs for deeper reasoning when needed. This creates a flexible economic model where computational intensity directly correlates with token consumption, allowing users to balance cost and performance.
+*   <strong>Gasless Transactions with Smart Resource Management</strong>: The Cortex performs all transactions on behalf of the user in a gasless manner through XION Meta Accounts integration. The HRM core intelligently batches operations and optimizes transaction timing to minimize overall network costs while maintaining responsiveness.
+*   <strong>Adaptive TEE Resource Allocation</strong>: When tasks exceed mobile device capabilities, the Cortex's HRM core determines the optimal TEE allocation on <strong>KNIRV-SERVER</strong>. The hierarchical reasoning enables precise estimation of computational requirements, ensuring efficient resource utilization and cost-effective verifiable compute provisioning.
+*   <strong>Personalized Economic Learning</strong>: The LoRA adapters learn user spending patterns and preferences, enabling the Cortex to make increasingly intelligent economic decisions over time, such as predicting when to pre-allocate resources or when to optimize for speed versus cost.</p><p><h3><strong>5. Security and Governance</strong></h3></p><p>Security and user trust are paramount. The <strong>KNIRV-CONTROLLER</strong>'s design prioritizes a secure and transparent model of autonomous governance with enhanced resource controls and privacy protection.</p><p>*   <strong>Enhanced UDC Resource Governance</strong>: The UDC system now encodes precise resource limits including maximum N (reasoning steps), maximum T (time horizon), and maximum NRNs per task, all enforced by HRM's ACT Q-head. This provides granular control over computational resources and economic spending while maintaining cryptographically secure audit trails for all agentic behavior.
+*   <strong>Multi-Layer WASM + TEE Security</strong>: The Rust WASM sandbox isolates the HRM core from the host device, while the TEE architecture ensures that HRM weights and LoRA deltas remain private even if the device is compromised. This dual-layer security model protects both the reasoning process and the learned personalization data.
+*   <strong>Memory-Efficient Privacy Protection</strong>: HRM's O(1) memory footprint thanks to one-step gradients ensures that sensitive reasoning traces don't accumulate in device memory. The hierarchical structure naturally compartmentalizes different types of information, enhancing privacy through architectural design.
+*   <strong>Verifiable Off-Device Computation</strong>: For tasks requiring additional computational resources, the Cortex seamlessly delegates to <strong>KNIRV-SERVER</strong> TEEs while maintaining end-to-end verifiability. The HRM core determines when off-device computation is necessary and ensures cryptographic proof of execution integrity.</p><p><h3><strong>6. Real-World Use Case: Complex Multi-Modal Task Execution</strong></h3></p><p>The HRM-powered <strong>KNIRV-CONTROLLER</strong> excels at handling sophisticated, multi-step user requests that require deep reasoning and coordination across multiple services.</p><p><strong>Example Scenario:</strong>
+A user requests: <em>"Find me a last-minute eco-hotel in Lisbon under 150 €, offset my flight carbon, and stream the Champions League final to my AR glasses."</em></p><p><strong>HRM-Powered Execution Flow:</strong>
+1. <strong>Initial Decomposition (N=4, T=16 cycles on-device)</strong>: The HRM core analyzes the complex request and decomposes it into three distinct sub-tasks: hotel booking, carbon offset calculation, and media streaming setup.</p><p>2. <strong>Adaptive Reasoning Depth</strong>: The ACT Q-head determines that carbon offset calculations require additional complexity analysis and allocates 2 extra reasoning cycles, triggering TEE computation on <strong>KNIRV-SERVER</strong> for verifiable environmental impact calculations.</p><p>3. <strong>Skill Invocation Pipeline</strong>: The Cortex invokes specialized skills from <strong>KNIRV-CHAIN</strong> for each sub-task:
+   - Hotel search and booking skill (with eco-certification filtering)
+   - Carbon footprint calculation and offset purchasing skill
+   - AR streaming coordination skill</p><p>4. <strong>Personalized Learning</strong>: The LoRA adapters capture user preferences discovered during execution ("user prefers late checkout & vegan breakfast") for future trip planning optimization.</p><p>5. <strong>Economic Optimization</strong>: Total execution completes in under 3 seconds with optimized NRN consumption, no gas fees, and full verifiability through on-chain UDC logs.</p><p>This demonstrates the Cortex's ability to handle complex, real-world scenarios with intelligent resource allocation, seamless economic integration, and continuous personalization learning.</p><p><h3><strong>7. Technical Specifications & Performance Metrics</strong></h3></p><p><strong>HRM Core Specifications:</strong>
+- <strong>Model Size</strong>: 27 million parameters in WASM format
+- <strong>Memory Footprint</strong>: O(1) thanks to one-step gradient computation
+- <strong>Reasoning Architecture</strong>: Hierarchical L-modules (sensory-motor) + H-modules (long-horizon planning)
+- <strong>Adaptive Computation</strong>: ACT Q-head for dynamic reasoning depth control
+- <strong>Personalization</strong>: LoRA adapters on H-module for battery-friendly on-device learning</p><p><strong>Performance Characteristics:</strong>
+- <strong>Latency</strong>: Sub-3-second complex task decomposition and execution
+- <strong>Battery Efficiency</strong>: One-step gradient learning eliminates full BPTT overhead
+- <strong>Economic Efficiency</strong>: Adaptive NRN consumption based on task complexity
+- <strong>Privacy</strong>: WASM sandbox + TEE isolation with private weight storage
+- <strong>Scalability</strong>: Seamless TEE off-loading for computationally intensive tasks</p><p><strong>Integration Details:</strong>
+- <strong>Repository</strong>: <a href="https://github.com/sapientinc/HRM">HRM Open Source</a> (Released July 21, 2025 by Sapient Intelligence)
+- <strong>Runtime</strong>: Rust + wasmtime for cross-platform compatibility
+- <strong>Security</strong>: Multi-layer WASM + TEE architecture with UDC resource governance
+- <strong>Personalization</strong>: Hierarchical LoRA structure separating user patterns from goal priors</p><p><h3><strong>8. Conclusion</strong></h3></p><p>The <strong>KNIRV-CONTROLLER</strong> represents a breakthrough in mobile-native AI agent architecture, combining the power of hierarchical reasoning with the efficiency of on-device computation. By integrating the HRM cognitive core, it transforms everyday AI assistants into sophisticated autonomous agents capable of complex multi-step reasoning, adaptive resource management, and continuous personalization learning. The Cortex serves as the crucial bridge between user intent and the decentralized power of the KNIRV D-TEN, driving economic activity through intelligent NRN optimization while ensuring robust security through its enhanced UDC governance model. This represents our commitment to making decentralized AI technology both accessible and genuinely intelligent, creating a true extension of the user's cognitive capabilities.</p><p></p><p></p>
+            </article>
+        </div>
+    </main>
+
+    <script src="../scripts.js"></script>
+
+    <!-- Footer will be automatically generated by universal-footer.js -->
+</body>
+</html>

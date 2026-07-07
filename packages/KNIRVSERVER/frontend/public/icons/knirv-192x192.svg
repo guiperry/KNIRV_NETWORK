@@ -1,0 +1,7 @@
+<svg width="192" height="192" viewBox="0 0 192 192" xmlns="http://www.w3.org/2000/svg">
+  <rect width="192" height="192" fill="#000818"/>
+  <circle cx="96" cy="96" r="76" fill="none" stroke="#4888ff" stroke-width="3" opacity="0.8"/>
+  <circle cx="96" cy="96" r="58" fill="none" stroke="rgba(72,136,255,0.5)" stroke-width="1.5"/>
+  <circle cx="96" cy="96" r="40" fill="none" stroke="rgba(72,136,255,0.3)" stroke-width="1"/>
+  <text x="96" y="104" text-anchor="middle" font-family="'Courier New',monospace" font-size="20" font-weight="bold" letter-spacing="4" fill="#4888ff">KNIRV</text>
+</svg>

@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KNIRVARENA</title>
+    <style>
+        body { margin: 0; overflow: hidden; background: #000510; font-family: 'Courier New', monospace; color: #00ffff; }
+        #ui { position: absolute; top: 20px; left: 20px; pointer-events: none; }
+        #cluster-name-panel { left: 40px; right: auto; top: 40px; }
+        .panel {
+            background: rgba(0, 20, 40, 0.9); border: 1px solid #00ffff; padding: 20px; width: 320px;
+            position: absolute; right: 40px; top: 40px; opacity: 0; transition: 0.8s; pointer-events: all;
+            box-shadow: 0 0 50px rgba(0, 255, 255, 0.15);
+        }
+        .panel.visible { opacity: 1; }
+        #node-panel { pointer-events: all; }
+        button {
+            background: transparent; border: 1px solid #00ffff; color: #00ffff; padding: 12px;
+            cursor: pointer; font-family: inherit; margin-top: 10px; width: 100%; text-transform: uppercase;
+        }
+        button:hover { background: #00ffff; color: #000510; }
+        .data-header { font-size: 10px; color: #ff3366; letter-spacing: 2px; }
+        #speedometer { font-size: 24px; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js"
+        }
+    }
+    </script>
+
+    <div id="ui">
+        <div class="data-header">NODE_VELOCITY</div>
+        <div id="speedometer">0.00 u/s</div>
+        <div id="mode" style="margin-top: 10px; opacity: 0.7;">SCANNING_FOR_ERRORS...</div>
+    </div>
+
+    <div id="cluster-panel" class="panel">
+        <div class="data-header">>> PACKET_LOSS_STABILIZED</div>
+        <h2 id="node-id" style="margin: 10px 0;">NODE_0x0000</h2>
+        <p style="font-size: 12px; line-height: 1.6; color: #aaccff;">Sub-cluster identified. Converging on global minimum. Adjusting weights for local rewards.</p>
+        <button onclick="enterNode()">ENTER ARENA</button>
+        <button onclick="nextCluster()">Bypass Cluster</button>
+    </div>
+
+    <div id="cluster-name-panel" class="panel" style="left: 40px; right: auto; top: 40px;">
+        <div class="data-header">>> CLUSTER_ID</div>
+        <h2 id="cluster-name" style="margin: 10px 0; color: #00ffff;">CLUSTER_0000</h2>
+        <p style="font-size: 11px; line-height: 1.4; color: #aaccff;">Click any node to inspect metadata</p>
+    </div>
+
+    <div id="node-panel" class="panel" style="left: 50%; top: 50%; transform: translate(-50%, -50%);">
+        <div class="data-header">>> NODE_METADATA</div>
+        <h2 id="node-meta-id" style="margin: 10px 0;">NODE_0x0000</h2>
+        <div id="node-meta-content" style="font-size: 11px; line-height: 1.6; color: #aaccff;"></div>
+        <button onclick="closeNodePanel()">Close</button>
+    </div>
+
+    <script type="module">
+      import * as THREE from 'three';
+
+      // --- Config ---
+      const VOID_COLOR     = 0x00081a;
+      const GRID_PRIMARY   = 0x00ffff;
+      const GRID_SECONDARY = 0x004466;
+
+      // Shared geometry/material (created once)
+      const nodeGeometry = new THREE.SphereGeometry(0.6, 16, 16);
+      const nodeMaterial = new THREE.MeshBasicMaterial({ color: 0xff3366, wireframe: true });
+      const baseRotation = new THREE.Euler(-0.15, 0, 0);
+
+      // --- Scene setup ---
+      const scene = new THREE.Scene();
+      scene.background = new THREE.Color(VOID_COLOR);
+      scene.fog = new THREE.FogExp2(VOID_COLOR, 0.02);
+
+      const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+      const renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      document.body.appendChild(renderer.domElement);
+
+      // --- Grid ---
+      const grid = new THREE.GridHelper(1000, 80, GRID_PRIMARY, GRID_SECONDARY);
+      grid.position.y = -8;
+      grid.material.transparent = true;
+      grid.material.opacity = 0.6;
+      grid.material.depthWrite = false;
+      scene.add(grid);
+
+      // --- Ambient particles ---
+      const partGeo = new THREE.BufferGeometry();
+      const partArray = new Float32Array(2000 * 3);
+      for (let i = 0; i < 6000; i++) partArray[i] = (Math.random() - 0.5) * 600;
+      partGeo.setAttribute('position', new THREE.BufferAttribute(partArray, 3));
+      scene.add(new THREE.Points(partGeo, new THREE.PointsMaterial({ size: 0.5, color: 0x4488ff })));
+
+      // --- State ---
+      let state            = 'TRAVERSING';
+      let currentCluster   = null;
+      let speed            = 0.5;
+      let orbitAngle       = 0; // accumulated from 0 each time ORBITING starts
+      let orbitLaps        = 0; // completed full laps
+      const orbitRadius    = 22;
+      const maxLaps        = 2; // 2 full circuits then move on
+      let bypassAnimation  = 0;
+      let lastTime         = performance.now();
+
+      // Reusable vectors
+      const lookTarget         = new THREE.Vector3();
+      const targetCameraLook   = new THREE.Vector3();
+      const currentCameraLook  = new THREE.Vector3(0, 0, -100);
+
+      // Cache DOM refs
+      const speedometerEl = document.getElementById('speedometer');
+      const modeEl        = document.getElementById('mode');
+
+      // --- Cluster factory ---
+      function createCluster(zPos) {
+        const group = new THREE.Group();
+        const clusterId = 'CLUSTER_' + Math.random().toString(16).slice(2, 6).toUpperCase();
+        for (let i = 0; i < 20; i++) {
+          const orb = new THREE.Mesh(nodeGeometry, nodeMaterial);
+          orb.position.set(
+            (Math.random() - 0.5) * 12,
+            (Math.random() - 0.5) * 10,
+            (Math.random() - 0.5) * 12
+          );
+          orb.userData = {
+            id:     `NODE_0x${Math.random().toString(16).slice(2, 6).toUpperCase()}`,
+            ip:     `10.${Math.floor(Math.random()*256)}.${Math.floor(Math.random()*256)}.${Math.floor(Math.random()*256)}`,
+            load:   Math.floor(Math.random() * 100) + '%',
+            uptime: Math.floor(Math.random() * 8760) + ' hrs',
+            status: Math.random() > 0.2 ? 'ACTIVE' : 'DEGRADED',
+          };
+          group.add(orb);
+        }
+        group.position.set((Math.random() - 0.5) * 20, 2, zPos);
+        group.userData = { id: clusterId };
+        scene.add(group);
+        return group;
+      }
+
+      currentCluster = createCluster(-300);
+
+      // --- UI callbacks (exposed to onclick= attributes) ---
+      window.nextCluster = () => {
+        document.getElementById('cluster-panel').classList.remove('visible');
+        document.getElementById('cluster-name-panel').classList.remove('visible');
+        document.getElementById('node-panel').classList.remove('visible');
+        state = 'TRAVERSING';
+        speed = 0.5;
+        orbitAngle = 0;
+        orbitLaps = 0;
+        bypassAnimation = 0;
+        scene.remove(currentCluster);
+        currentCluster = createCluster(camera.position.z - 350);
+      };
+
+      window.enterNode = () => {
+        if (window.top !== window.self) {
+          window.parent.postMessage({ type: 'CLOSE_TRAVERSE_CLUSTERS' }, '*');
+        } else {
+          window.location.href = './?arena=1';
+        }
+      };
+
+      window.closeNodePanel = () => {
+        document.getElementById('node-panel').classList.remove('visible');
+      };
+
+      window.returnToArena = () => {
+        window.parent.postMessage({ type: 'CLOSE_TRAVERSE_CLUSTERS' }, '*');
+      };
+
+      // Listen for messages from parent (for cleanup if needed)
+      window.addEventListener('message', (event) => {
+        if (event.data && event.data.type === 'CLOSE_TRAVERSE_CLUSTERS') {
+          // placeholder for future cleanup
+        }
+      });
+
+      // --- Click to inspect nodes while orbiting ---
+      const raycaster = new THREE.Raycaster();
+      const mouse     = new THREE.Vector2();
+
+      window.addEventListener('click', (event) => {
+        if (state !== 'ORBITING') return;
+        mouse.x = (event.clientX / window.innerWidth)  *  2 - 1;
+        mouse.y = (event.clientY / window.innerHeight) * -2 + 1;
+        raycaster.setFromCamera(mouse, camera);
+        const hits = raycaster.intersectObjects(currentCluster.children);
+        if (hits.length > 0) {
+          const { id, ip, load, uptime, status } = hits[0].object.userData;
+          document.getElementById('node-meta-id').innerText = id;
+          document.getElementById('node-meta-content').innerHTML =
+            `IP: ${ip}<br>Load: ${load}<br>Uptime: ${uptime}<br>Status: ${status}`;
+          document.getElementById('node-panel').classList.add('visible');
+        }
+      });
+
+      // --- Animation loop ---
+      let lastGridZ = 0;
+
+      function animate() {
+        requestAnimationFrame(animate);
+
+        const now   = performance.now();
+        const delta = Math.min((now - lastTime) / 1000, 0.1);
+        lastTime = now;
+
+        const dist = camera.position.distanceTo(currentCluster.position);
+        speedometerEl.innerText = `${speed.toFixed(2)} u/s`;
+
+        // Infinite grid snap
+        const newGridZ = Math.round(camera.position.z / 16.66) * 16.66;
+        if (Math.abs(newGridZ - lastGridZ) > 0.1) {
+          grid.position.z = newGridZ;
+          lastGridZ = newGridZ;
+        }
+
+        if (state === 'TRAVERSING') {
+          speed = Math.min(speed + 0.008, 2.5);
+          camera.position.z -= speed;
+          camera.rotation.copy(baseRotation);
+          modeEl.innerText = 'MODE: ACCELERATING_STREAM';
+
+          if (dist < 75) {
+            currentCameraLook.copy(currentCluster.position);
+            state = 'APPROACHING';
+          }
+
+        } else if (state === 'APPROACHING') {
+          speed = Math.max(0.5, speed - 0.02);
+          camera.position.z -= speed;
+
+          targetCameraLook.copy(currentCluster.position);
+          currentCameraLook.lerp(targetCameraLook, 5 * delta);
+          camera.lookAt(currentCameraLook);
+          modeEl.innerText = 'MODE: DEPLOYING_DRAG_CHUTES';
+
+          if (dist < orbitRadius) {
+            state = 'ORBITING';
+            // Reset angle to 0 so lap counting is consistent regardless of
+            // the approach angle (Math.atan2 returns [-π,π] which would make
+            // the first lap complete in anywhere from 0.5 to 1.5 circuits).
+            orbitAngle = 0;
+            orbitLaps  = 0;
+            document.getElementById('node-id').innerText = currentCluster.userData.id;
+            document.getElementById('cluster-name').innerText = currentCluster.userData.id;
+            document.getElementById('cluster-panel').classList.add('visible');
+            document.getElementById('cluster-name-panel').classList.add('visible');
+          }
+
+        } else if (state === 'ORBITING') {
+          orbitAngle += 0.007 * (delta * 60);
+
+          // Use the initial approach direction as the orbit origin so the
+          // camera smoothly continues forward into the orbit.
+          const orbitOriginAngle = Math.atan2(
+            camera.position.z - currentCluster.position.z,
+            camera.position.x - currentCluster.position.x
+          );
+          // After resetting orbitAngle to 0 we drive position purely from the
+          // accumulated angle offset, anchored to where the camera entered.
+          const angle = orbitOriginAngle + orbitAngle; // no: keep it simple below
+          camera.position.x = currentCluster.position.x + Math.cos(orbitAngle) * orbitRadius;
+          camera.position.z = currentCluster.position.z + Math.sin(orbitAngle) * orbitRadius;
+
+          targetCameraLook.copy(currentCluster.position);
+          currentCameraLook.lerp(targetCameraLook, 8 * delta);
+          camera.lookAt(currentCameraLook);
+
+          currentCluster.rotation.y += 0.015 * (delta * 60);
+          modeEl.innerText = 'MODE: CLUSTER_STABLE';
+
+          // Count completed full laps (each 2π radians)
+          const completedLaps = Math.floor(orbitAngle / (Math.PI * 2));
+          if (completedLaps > orbitLaps) {
+            orbitLaps = completedLaps;
+            if (orbitLaps >= maxLaps) {
+              state = 'PASSED';
+            }
+          }
+
+        } else if (state === 'PASSED') {
+          bypassAnimation += delta;
+
+          currentCluster.position.y += delta * 15;
+          currentCluster.rotation.y += delta * 2;
+
+          const camTargetZ = currentCluster.position.z - 25;
+          camera.position.z = THREE.MathUtils.lerp(camera.position.z, camTargetZ, 3 * delta);
+          camera.position.x = THREE.MathUtils.lerp(camera.position.x, 0, 3 * delta);
+
+          lookTarget.set(0, 0, camera.position.z - 50);
+          currentCameraLook.lerp(lookTarget, 3 * delta);
+          camera.lookAt(currentCameraLook);
+
+          modeEl.innerText = 'MODE: BYPASSING';
+
+          if (bypassAnimation > 1.5) {
+            bypassAnimation = 0;
+            window.nextCluster();
+          }
+        }
+
+        renderer.render(scene, camera);
+      }
+
+      animate();
+
+      window.addEventListener('resize', () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+      });
+    </script>
+</body>
+</html>

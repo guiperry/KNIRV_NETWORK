@@ -1,0 +1,2636 @@
+openapi: 3.1.0
+info:
+  title: KNIRVCHAIN MCP API
+  description: |
+    Public API for interacting with KNIRVCHAIN blockchain nodes. Wallet operations are primarily handled client-side via the SDK Tool.
+  version: "1.1.0"
+  contact:
+    name: KNIRVCHAIN Support
+    email: support@agent.com
+    url: https://github.com/cloud-equities/KNIRVCHAIN/tree/main/docs
+
+servers:
+  - url: http://localhost:5000
+    description: Local development server
+
+tags:
+  - name: blockchain
+    description: Blockchain operations
+  - name: node
+    description: Node information and management
+  - name: uri
+    description: URI generation and management
+  - name: mcp
+    description: Distributed Model Context Protocol operations
+  - name: knirvchain
+    description: KNIRVCHAIN intelligence mining operations
+  - name: mining
+    description: Skill mining and capability minting operations
+  - name: property
+    description: Intellectual property and NFT operations
+  - name: graph
+    description: Knowledge graph operations
+  - name: discovery
+    description: Server discovery and health monitoring
+  - name: royalty
+    description: Royalty distribution and tracking
+
+paths:
+  # Blockchain Server Endpoints
+  /chain:
+    get:
+      tags:
+        - blockchain
+      summary: Get blockchain state
+      description: Retrieves the current state of the blockchain including blocks, transaction pool, and reflections
+      operationId: getChain
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SerializableBlockchain'
+        '500':
+          description: Internal server error
+
+  /block:
+    post:
+      tags:
+        - blockchain
+      summary: Submit a new block
+      description: Submits a new block to the blockchain
+      operationId: writeBlock
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Block'
+      responses:
+        '200':
+          description: Block successfully added
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+        '400':
+          description: Invalid block data
+        '500':
+          description: Internal server error
+
+  /transaction:
+    post:
+      tags:
+        - blockchain
+        - mcp
+      summary: Submit a Signed Transaction
+      description: |
+        Submits a pre-signed transaction to the blockchain network.
+        This endpoint is used for various transaction types, including
+        standard transfers and MCP operations like capability registration
+        (after preparation), invocation, or updates. The `Transaction.type` field and `Transaction.data`
+        structure will determine how it's processed.
+      operationId: writeTransaction
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Transaction'
+      responses:
+        '202':
+          description: Transaction accepted by the node and broadcasted. Does not guarantee inclusion in a block.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  transactionHash:
+                    type: string
+                  message:
+                    type: string
+                    example: "Transaction submitted to mempool"
+        '400':
+          description: Invalid transaction data
+        '500':
+          description: Internal server error
+
+  /txn_pool:
+    get:
+      tags:
+        - blockchain
+      summary: Get transaction pool
+      description: Retrieves the current transaction pool
+      operationId: getTransactionPool
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Transaction'
+        '500':
+          description: Internal server error
+
+  /info:
+    get:
+      tags:
+        - node
+      summary: Get server information
+      description: Retrieves information about the blockchain node
+      operationId: getServerInfo
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NodeInfo'
+        '500':
+          description: Internal server error
+
+  /health:
+    get:
+      tags:
+        - node
+      summary: Check node health
+      description: Checks the health status of the blockchain node
+      operationId: healthCheck
+      responses:
+        '200':
+          description: Node is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthStatus'
+        '500':
+          description: Node is unhealthy
+
+  /ping:
+    get:
+      tags:
+        - node
+      summary: Ping node
+      description: Simple ping endpoint to check if the node is responsive
+      operationId: ping
+      responses:
+        '200':
+          description: Pong response
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: pong
+
+  /devs:
+    get:
+      tags:
+        - node
+      summary: Get connected devs
+      description: Retrieves the list of connected devs
+      operationId: getPeers
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PeerList'
+        '500':
+          description: Internal server error
+
+  /uriGenerator:
+    post:
+      tags:
+        - uri
+      summary: Generate and announce URI
+      description: Generates a new URI and announces it to the network
+      operationId: generateAndAnnounceURI
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/URIGenerationRequest'
+      responses:
+        '200':
+          description: URI successfully generated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/URIGenerationResponse'
+        '400':
+          description: Invalid request data
+        '500':
+          description: Internal server error
+
+  # MCP Operations
+  /mcp/capability/prepare_registration:
+    post:
+      tags:
+        - mcp
+      summary: Prepare data for capability registration transaction
+      description: |
+        Allows a client to get the necessary data (e.g., a hash or structured unsigned transaction)
+        that needs to be signed to register a new MCP capability.
+        The client signs this data locally and then submits the complete, signed transaction
+        via the general /transaction endpoint.
+      operationId: mcpPrepareCapabilityRegistration
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MCPPrepareCapabilityRegistrationRequest'
+      responses:
+        '200':
+          description: Data for signing successfully prepared.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MCPPrepareCapabilityRegistrationResponse'
+        '400':
+          description: Invalid request data (e.g., invalid descriptor, insufficient fee proposed).
+        '409':
+          description: A capability with a similar signature/ID might already exist or be pending (if server does pre-checks).
+        '500':
+          description: Internal server error.
+
+  /mcp/capability/invoke:
+    post:
+      tags:
+        - mcp
+      summary: Invoke a Capability (One-Step)
+      description: |
+        Submits a pre-signed transaction to invoke an existing capability.
+        The `Transaction.data` within the signed transaction should contain `MCPInvokeCapabilityData`.
+      operationId: mcpInvokeCapability
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MCPInvokeCapabilityRequestWrapper'
+      responses:
+        '202':
+          description: Capability invocation transaction accepted.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  transactionHash:
+                    type: string
+                  contextID:
+                    type: string
+                  message:
+                    type: string
+                    example: "Capability invocation submitted"
+        '400':
+          description: Invalid request data
+        '404':
+          description: Capability not found
+        '500':
+          description: Internal server error
+
+  /mcp/capability/update:
+    post:
+      tags:
+        - mcp
+      summary: Update a Capability (One-Step)
+      description: |
+        Submits a pre-signed transaction to update an existing capability.
+        The sender must be the owner of the capability.
+        The `Transaction.data` within the signed transaction should contain `MCPUpdateCapabilityData`.
+      operationId: mcpUpdateCapability
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MCPUpdateCapabilityRequestWrapper'
+      responses:
+        '202':
+          description: Capability update transaction accepted.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  transactionHash:
+                    type: string
+                  message:
+                    type: string
+                    example: "Capability update submitted"
+        '400':
+          description: Invalid update request or transaction.
+        '403':
+          description: Forbidden. Sender is not the owner of the capability.
+        '404':
+          description: Capability not found.
+        '500':
+          description: Internal server error
+
+  /mcp/capability/{capability_id}:
+    get:
+      tags:
+        - mcp
+      summary: Get capability
+      description: Retrieves a specific capability by ID
+      operationId: mcpGetCapability
+      parameters:
+        - name: capability_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID of the capability to retrieve
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CapabilityDescriptor'
+        '404':
+          description: Capability not found
+        '500':
+          description: Internal server error
+
+  /mcp/capabilities:
+    get:
+      tags:
+        - mcp
+      summary: List capabilities
+      description: Lists all registered capabilities
+      operationId: mcpListCapabilities
+      parameters:
+        - name: type
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [RESOURCE, TOOL, PROMPT, MEMORY_SERVICE]
+          description: Filter by capability type
+        - name: owner
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Filter by owner address
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CapabilityDescriptor'
+        '500':
+          description: Internal server error
+
+  /mcp/capability/{capability_id}/invocations:
+    get:
+      tags:
+        - mcp
+      summary: List capability invocations
+      description: Lists all invocations of a specific capability
+      operationId: mcpListCapabilityInvocations
+      parameters:
+        - name: capability_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID of the capability
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ContextRecord'
+        '404':
+          description: Capability not found
+        '500':
+          description: Internal server error
+
+  /mcp/context/{context_id}:
+    get:
+      tags:
+        - mcp
+      summary: Get context record
+      description: Retrieves a specific context record by ID
+      operationId: mcpGetContextRecord
+      parameters:
+        - name: context_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID of the context record to retrieve
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContextRecord'
+        '404':
+          description: Context record not found
+        '500':
+          description: Internal server error
+
+  /mcp/contexts:
+    get:
+      tags:
+        - mcp
+      summary: List context records
+      description: Lists all context records
+      operationId: mcpListContextRecords
+      parameters:
+        - name: capabilityId
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Filter by capability ID
+        - name: interactionType
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [TOOL_INVOCATION, PROMPT_USAGE, RESOURCE_ACCESS, PLUGIN_EXECUTION, SAMPLING_REQUEST_SENT, SAMPLING_RESPONSE_RECEIVED, MEMORY_WRITE, CAPABILITY_REGISTRATION]
+          description: Filter by interaction type
+        - name: initiator
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Filter by initiator address
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ContextRecord'
+        '500':
+          description: Internal server error
+
+  # KNIRVCHAIN ErrorNode → SkillNode Mining Flow
+  /knirvchain/error/submit:
+    post:
+      tags:
+        - knirvchain
+        - mining
+      summary: Submit error node
+      description: Submits a new error node to the intelligence mining network
+      operationId: submitErrorNode
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorNode'
+      responses:
+        '202':
+          description: Error node submitted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error_node_id:
+                    type: string
+                  transaction_hash:
+                    type: string
+                  message:
+                    type: string
+        '400':
+          description: Invalid error node data
+        '500':
+          description: Internal server error
+
+  /knirvchain/skill/propose:
+    post:
+      tags:
+        - knirvchain
+        - mining
+      summary: Submit skill mining proposal
+      description: Submits a proposal to mine a skill from an error node
+      operationId: submitSkillProposal
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SkillMiningProposal'
+      responses:
+        '202':
+          description: Skill mining proposal submitted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  proposal_id:
+                    type: string
+                  transaction_hash:
+                    type: string
+                  message:
+                    type: string
+        '400':
+          description: Invalid proposal data
+        '404':
+          description: Error node not found
+        '500':
+          description: Internal server error
+
+  /knirvchain/skill/validate:
+    post:
+      tags:
+        - knirvchain
+        - mining
+      summary: Validate skill mining proposal
+      description: Validates a skill mining proposal using KNIRVSERVER DVE
+      operationId: validateSkillProposal
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+            type: object
+            required:
+              - proposal_id
+            properties:
+              proposal_id:
+                type: string
+                description: ID of the skill mining proposal
+      responses:
+        '200':
+          description: Skill validation completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SkillValidationResult'
+        '400':
+          description: Invalid request
+        '404':
+          description: Proposal not found
+        '500':
+          description: Internal server error
+
+  /knirvchain/skill/confirm:
+    post:
+      tags:
+        - knirvchain
+        - mining
+      summary: Confirm skill mining
+      description: Confirms and finalizes a validated skill in the registry
+      operationId: confirmSkillMining
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - proposal_id
+              properties:
+                proposal_id:
+                  type: string
+                  description: ID of the validated skill proposal
+      responses:
+        '200':
+          description: Skill confirmed and registered
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SkillNode'
+        '400':
+          description: Invalid request
+        '404':
+          description: Proposal not found
+        '500':
+          description: Internal server error
+
+  # KNIRVCHAIN ContextNode → CapabilityNode Minting Flow
+  /knirvchain/context/create:
+    post:
+      tags:
+        - knirvchain
+        - mining
+      summary: Create context node
+      description: Creates a new context node from execution patterns
+      operationId: createContextNode
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ContextNode'
+      responses:
+        '201':
+          description: Context node created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContextNode'
+        '400':
+          description: Invalid context node data
+        '500':
+          description: Internal server error
+
+  /knirvchain/capability/mint/propose:
+    post:
+      tags:
+        - knirvchain
+        - mining
+      summary: Propose capability minting
+      description: Submits a proposal to mint a capability from a context node
+      operationId: proposeCapabilityMint
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CapabilityMintProposal'
+      responses:
+        '202':
+          description: Capability minting proposal submitted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  proposal_id:
+                    type: string
+                  transaction_hash:
+                    type: string
+                  message:
+                    type: string
+        '400':
+          description: Invalid proposal data
+        '404':
+          description: Context node not found
+        '500':
+          description: Internal server error
+
+  /knirvchain/capability/validate:
+    post:
+      tags:
+        - knirvchain
+        - mining
+      summary: Validate capability minting
+      description: Validates MCP protocol compliance for capability minting
+      operationId: validateCapabilityMint
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - proposal_id
+              properties:
+                proposal_id:
+                  type: string
+                  description: ID of the capability minting proposal
+      responses:
+        '200':
+          description: Capability validation completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MCPValidationResult'
+        '400':
+          description: Invalid request
+        '404':
+          description: Proposal not found
+        '500':
+          description: Internal server error
+
+  /knirvchain/capability/mint:
+    post:
+      tags:
+        - knirvchain
+        - mining
+      summary: Mint capability
+      description: Mints and registers a validated capability in the network
+      operationId: mintCapability
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - proposal_id
+              properties:
+                proposal_id:
+                  type: string
+                  description: ID of the validated capability proposal
+      responses:
+        '201':
+          description: Capability minted and registered
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CapabilityNode'
+        '400':
+          description: Invalid request
+        '404':
+          description: Proposal not found
+        '500':
+          description: Internal server error
+
+  # KNIRVCHAIN IdeaNode → PropertyNode Making Flow
+  /knirvchain/idea/submit:
+    post:
+      tags:
+        - knirvchain
+        - property
+      summary: Submit idea node
+      description: Submits a novel idea or inference to the network
+      operationId: submitIdeaNode
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IdeaNode'
+      responses:
+        '202':
+          description: Idea node submitted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  idea_node_id:
+                    type: string
+                  transaction_hash:
+                    type: string
+                  message:
+                    type: string
+        '400':
+          description: Invalid idea node data
+        '500':
+          description: Internal server error
+
+  /knirvchain/property/mint/propose:
+    post:
+      tags:
+        - knirvchain
+        - property
+      summary: Propose property minting
+      description: Submits a proposal to mint intellectual property from an idea
+      operationId: proposePropertyMint
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PropertyMintProposal'
+      responses:
+        '202':
+          description: Property minting proposal submitted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  proposal_id:
+                    type: string
+                  transaction_hash:
+                    type: string
+                  message:
+                    type: string
+        '400':
+          description: Invalid proposal data
+        '404':
+          description: Idea node not found
+        '500':
+          description: Internal server error
+
+  /knirvchain/novelty/assess:
+    post:
+      tags:
+        - knirvchain
+        - property
+      summary: Assess idea novelty
+      description: Performs novelty assessment on an idea using semantic search
+      operationId: assessIdeaNovelty
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - idea_node_id
+              properties:
+                idea_node_id:
+                  type: string
+                  description: ID of the idea node to assess
+      responses:
+        '200':
+          description: Novelty assessment completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NoveltyResult'
+        '400':
+          description: Invalid request
+        '404':
+          description: Idea node not found
+        '500':
+          description: Internal server error
+
+  /knirvchain/property/mint:
+    post:
+      tags:
+        - knirvchain
+        - property
+      summary: Mint property NFT
+      description: Mints an NFT representing intellectual property
+      operationId: mintProperty
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - proposal_id
+              properties:
+                proposal_id:
+                  type: string
+                  description: ID of the validated property proposal
+      responses:
+        '201':
+          description: Property NFT minted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PropertyNode'
+        '400':
+          description: Invalid request
+        '404':
+          description: Proposal not found
+        '500':
+          description: Internal server error
+
+  /knirvchain/property/transfer:
+    post:
+      tags:
+        - knirvchain
+        - property
+      summary: Transfer property ownership
+      description: Transfers ownership of intellectual property
+      operationId: transferProperty
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PropertyTransferRequest'
+      responses:
+        '200':
+          description: Property ownership transferred
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  transaction_hash:
+                    type: string
+                  message:
+                    type: string
+        '400':
+          description: Invalid transfer request
+        '403':
+          description: Unauthorized transfer
+        '404':
+          description: Property not found
+        '500':
+          description: Internal server error
+
+  /knirvchain/royalty/distribute:
+    post:
+      tags:
+        - royalty
+      summary: Distribute royalties
+      description: Distributes royalties for property usage
+      operationId: distributeRoyalties
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - property_node_id
+                - usage_amount
+              properties:
+                property_node_id:
+                  type: string
+                  description: ID of the property node
+                usage_amount:
+                  type: integer
+                  format: uint64
+                  description: Amount of usage to distribute royalties for
+      responses:
+        '200':
+          description: Royalties distributed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RoyaltyDistribution'
+        '400':
+          description: Invalid request
+        '404':
+          description: Property not found
+        '500':
+          description: Internal server error
+
+  # Graph Operations
+  /graph/node/{node_id}:
+    get:
+      tags:
+        - graph
+      summary: Get node by ID
+      description: Retrieves a node from the knowledge graph by its ID
+      operationId: getGraphNode
+      parameters:
+        - name: node_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID of the node to retrieve
+      responses:
+        '200':
+          description: Node retrieved successfully
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/ErrorNode'
+                  - $ref: '#/components/schemas/SkillNode'
+                  - $ref: '#/components/schemas/ContextNode'
+                  - $ref: '#/components/schemas/CapabilityNode'
+                  - $ref: '#/components/schemas/IdeaNode'
+                  - $ref: '#/components/schemas/PropertyNode'
+        '404':
+          description: Node not found
+        '500':
+          description: Internal server error
+
+  /graph/nodes:
+    get:
+      tags:
+        - graph
+      summary: Query nodes
+      description: Queries nodes from the knowledge graph with filters
+      operationId: queryGraphNodes
+      parameters:
+        - name: node_type
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [error_node, skill_node, context_node, capability_node, idea_node, property_node]
+          description: Filter by node type
+        - name: owner
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Filter by owner address
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+          description: Maximum number of results
+      responses:
+        '200':
+          description: Nodes retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  oneOf:
+                    - $ref: '#/components/schemas/ErrorNode'
+                    - $ref: '#/components/schemas/SkillNode'
+                    - $ref: '#/components/schemas/ContextNode'
+                    - $ref: '#/components/schemas/CapabilityNode'
+                    - $ref: '#/components/schemas/IdeaNode'
+                    - $ref: '#/components/schemas/PropertyNode'
+        '500':
+          description: Internal server error
+
+  /graph/relationships:
+    get:
+      tags:
+        - graph
+      summary: Query relationships
+      description: Queries relationships between nodes in the knowledge graph
+      operationId: queryGraphRelationships
+      parameters:
+        - name: from_node
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Source node ID
+        - name: to_node
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Target node ID
+        - name: relationship_type
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Type of relationship
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+          description: Maximum number of results
+      responses:
+        '200':
+          description: Relationships retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/GraphRelationship'
+        '500':
+          description: Internal server error
+
+  # Server Discovery
+  /discovery/server/register:
+    post:
+      tags:
+        - discovery
+      summary: Register MCP server
+      description: Registers an MCP server for discovery
+      operationId: registerServer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - capability_node_id
+              properties:
+                capability_node_id:
+                  type: string
+                  description: ID of the capability node representing the server
+      responses:
+        '200':
+          description: Server registered successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+        '400':
+          description: Invalid request
+        '404':
+          description: Capability node not found
+        '500':
+          description: Internal server error
+
+  /discovery/servers:
+    get:
+      tags:
+        - discovery
+      summary: Discover servers
+      description: Discovers available MCP servers by capability type
+      operationId: discoverServers
+      parameters:
+        - name: capability_type
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [TOOL, RESOURCE, PROMPT, MEMORY_SERVICE]
+          description: Filter by capability type
+        - name: min_health_score
+          in: query
+          required: false
+          schema:
+            type: number
+            minimum: 0.0
+            maximum: 1.0
+            default: 0.5
+          description: Minimum health score
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+            default: 10
+          description: Maximum number of results
+      responses:
+        '200':
+          description: Servers discovered successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DiscoveryResult'
+        '500':
+          description: Internal server error
+
+  /discovery/server/{capability_node_id}/health:
+    put:
+      tags:
+        - discovery
+      summary: Update server health
+      description: Updates the health status of a registered server
+      operationId: updateServerHealth
+      parameters:
+        - name: capability_node_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID of the capability node
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - health_score
+              properties:
+                health_score:
+                  type: number
+                  minimum: 0.0
+                  maximum: 1.0
+                  description: Health score (0.0 to 1.0)
+      responses:
+        '200':
+          description: Server health updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+        '400':
+          description: Invalid request
+        '404':
+          description: Server not found
+        '500':
+          description: Internal server error
+
+  # Royalty Operations
+  /royalty/track:
+    post:
+      tags:
+        - royalty
+      summary: Track property usage
+      description: Tracks usage of intellectual property for royalty calculation
+      operationId: trackUsage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UsageEvent'
+      responses:
+        '200':
+          description: Usage tracked successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+        '400':
+          description: Invalid usage data
+        '404':
+          description: Property not found
+        '500':
+          description: Internal server error
+
+  /royalty/claim:
+    post:
+      tags:
+        - royalty
+      summary: Claim royalties
+      description: Claims pending royalties for an address
+      operationId: claimRoyalties
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - address
+                - property_node_ids
+              properties:
+                address:
+                  type: string
+                  description: Address claiming royalties
+                property_node_ids:
+                  type: array
+                  items:
+                    type: string
+                  description: IDs of properties to claim royalties for
+      responses:
+        '200':
+          description: Royalties claimed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RoyaltyClaimResult'
+        '400':
+          description: Invalid request
+        '404':
+          description: No valid claims found
+        '500':
+          description: Internal server error
+
+  /royalty/history/{address}:
+    get:
+      tags:
+        - royalty
+      summary: Get royalty history
+      description: Retrieves royalty distribution history for an address
+      operationId: getRoyaltyHistory
+      parameters:
+        - name: address
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Address to get royalty history for
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+          description: Maximum number of results
+      responses:
+        '200':
+          description: Royalty history retrieved
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/RoyaltyDistribution'
+        '500':
+          description: Internal server error
+
+components:
+  schemas:
+    Error:
+      type: object
+      properties:
+        code:
+          type: integer
+          format: int32
+        message:
+          type: string
+        details:
+          type: string
+
+    SerializableBlockchain:
+      type: object
+      properties:
+        blocks:
+          type: array
+          items:
+            $ref: '#/components/schemas/Block'
+        transaction_pool:
+          type: array
+          items:
+            $ref: '#/components/schemas/Transaction'
+        chain_address:
+          type: string
+          description: The blockchain's address
+        reflections:
+          type: object
+          additionalProperties:
+            type: boolean
+          description: Map of reflection URLs
+        chain_id:
+          type: string
+          description: Unique identifier for the blockchain
+
+    Block:
+      type: object
+      properties:
+        block_number:
+          type: integer
+          format: uint64
+          description: Block number in the chain
+        prevHash:
+          type: string
+          format: byte
+          description: Hash of the previous block
+        timestamp:
+          type: integer
+          format: int64
+          description: Unix timestamp when the block was created
+        nonce:
+          type: integer
+          description: Nonce used for mining
+        transactions:
+          type: array
+          items:
+            $ref: '#/components/schemas/Transaction'
+          description: Transactions included in this block
+        hash:
+          type: string
+          format: byte
+          description: Hash of the block
+        proposer_address:
+          type: string
+          description: Address of the block proposer (miner/validator)
+
+    Transaction:
+      type: object
+      required:
+        - version
+        - id
+        - timestamp
+        - from
+        - fee
+        - type
+        - signature
+        - public_key
+      properties:
+        version:
+          type: integer
+          example: 1
+        id:
+          type: string
+          description: Transaction hash/ID.
+          example: "0xabcdef123456..."
+        timestamp:
+          type: integer
+          format: int64
+          description: Unix timestamp (nanoseconds) when the transaction was created
+        from:
+          type: string
+          description: Sender address
+        to:
+          type: string
+          nullable: true
+          description: Recipient address
+        value:
+          type: string
+          description: Amount of NRN transferred.
+          example: "1000000000000000000"
+        data:
+          type: object
+          additionalProperties: true
+          description: Transaction payload, structure depends on transaction type. For MCP ops, this will be JSON of MCPRegisterCapabilityData, MCPInvokeCapabilityData, etc.
+        status:
+          type: string
+          description: Transaction status (PENDING, SUCCESS, FAILED)
+        transaction_hash:
+          type: string
+          description: Hash of the transaction
+        public_key:
+          type: string
+          description: Public key of the sender
+        signature:
+          type: string
+          format: byte
+          description: Cryptographic signature
+        fee:
+          type: string
+          description: NRN token gas fee paid for this transaction
+        type:
+          type: string
+          description: Transaction type for MCP transactions
+
+    TransactionReceipt:
+      type: object
+      required:
+        - transactionHash
+        - status
+      properties:
+        transactionHash:
+          type: string
+        blockHash:
+          type: string
+        blockNumber:
+          type: integer
+          format: uint64
+        status:
+          type: string
+          enum: [success, failure]
+        gasUsed:
+          type: integer
+          format: uint64
+        logs:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+
+    NodeInfo:
+      type: object
+      properties:
+        node_id:
+          type: string
+          description: Unique identifier for the node
+        version:
+          type: string
+          description: Software version
+        chain_height:
+          type: integer
+          description: Current blockchain height
+        dev_count:
+          type: integer
+          description: Number of connected devs
+        is_mining:
+          type: boolean
+          description: Whether the node is currently mining
+        wallet_address:
+          type: string
+          description: Node's wallet address
+        uptime:
+          type: integer
+          format: int64
+          description: Node uptime in seconds
+
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [healthy, unhealthy]
+          description: Overall health status
+        blockchain:
+          type: boolean
+          description: Blockchain subsystem status
+        network:
+          type: boolean
+          description: Network subsystem status
+        database:
+          type: boolean
+          description: Database subsystem status
+        message:
+          type: string
+          description: Additional status information
+
+    PeerInfo:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Peer ID
+        address:
+          type: string
+          description: Peer address
+        connected_since:
+          type: integer
+          format: int64
+          description: Unix timestamp when the dev connected
+
+    PeerList:
+      type: array
+      items:
+        $ref: '#/components/schemas/PeerInfo'
+
+    URIGenerationRequest:
+      type: object
+      properties:
+        resource_type:
+          type: string
+          description: Type of resource
+        content_hash:
+          type: string
+          description: Hash of the content
+        owner:
+          type: string
+          description: Owner address
+        metadata:
+          type: object
+          additionalProperties: true
+          description: Additional metadata
+
+    URIGenerationResponse:
+      type: object
+      properties:
+        uri:
+          type: string
+          description: Generated URI
+        resource_id:
+          type: string
+          description: Resource ID
+        success:
+          type: boolean
+          description: Whether the operation was successful
+        message:
+          type: string
+          description: Additional information
+
+    BaseDescriptor:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique identifier
+        capabilityType:
+          type: string
+          enum: [RESOURCE, TOOL, PROMPT, MEMORY_SERVICE]
+          description: Type of capability
+        name:
+          type: string
+          description: Human-readable name
+        owner:
+          type: string
+          description: Public key or address of the owner/root
+        version:
+          type: string
+          description: Version string
+        description:
+          type: string
+          description: Description of the capability
+        gasFeeNRN:
+          type: integer
+          format: uint64
+          description: NRN token gas fee for invoking/using this capability
+        timestamp:
+          type: integer
+          format: int64
+          description: Creation/registration timestamp
+        customMetadata:
+          type: object
+          additionalProperties: true
+          description: Custom metadata
+
+    ResourceDescriptor:
+      allOf:
+        - $ref: '#/components/schemas/BaseDescriptor'
+        - type: object
+          required:
+            - resourceType
+            - contentHash
+          properties:
+            resourceType:
+              type: string
+              enum: [FILE, API, PLUGIN, GENERATED_DOCUMENT, DATASET, MODEL_ARTIFACT, SERVICE]
+              description: Specific kind of resource
+            contentHash:
+              type: string
+              description: SHA256 hash of the Capability package
+            schema:
+              $ref: '#/components/schemas/PluginSchemaDetail'
+
+    PluginSchemaDetail:
+      type: object
+      properties:
+        summary:
+          type: string
+          description: Brief, human-readable summary of the plugin's purpose
+        accessInfo:
+          type: object
+          additionalProperties: true
+          description: For APIs - endpoint, auth details, etc.
+        locationHints:
+          type: array
+          items:
+            type: string
+          description: Array of URIs where the Capability package can be downloaded
+        manifestFile:
+          type: string
+          description: Relative path to the manifest file within the downloaded package
+        executableFile:
+          type: string
+          description: Relative path to the main executable file within the downloaded package
+        outputDirectoryHint:
+          type: string
+          description: Optional hint for plugin's output/config directory
+
+    ToolDescriptor:
+      allOf:
+        - $ref: '#/components/schemas/BaseDescriptor'
+        - type: object
+          required:
+            - inputSchemaJSON
+            - executionPointer
+          properties:
+            inputSchemaJSON:
+              type: string
+              description: JSON Schema for tool input
+            outputSchemaJSON:
+              type: string
+              description: JSON Schema for tool output
+            executionPointer:
+              type: string
+              description: Reference to a Plugin, API endpoint, or embedded logic
+
+    PromptDescriptor:
+      allOf:
+        - $ref: '#/components/schemas/BaseDescriptor'
+        - type: object
+          required:
+            - template
+            - parametersSchemaJSON
+          properties:
+            template:
+              type: string
+              description: The prompt template string
+            parametersSchemaJSON:
+              type: string
+              description: JSON Schema for template parameters
+
+    MemoryServiceDescriptor:
+      allOf:
+        - $ref: '#/components/schemas/BaseDescriptor'
+        - type: object
+          required:
+            - graphSchema
+          properties:
+            graphSchema:
+              type: string
+              description: Describes the structure/ontology of the memory graph if applicable
+
+    CapabilityDescriptor:
+      oneOf:
+        - $ref: '#/components/schemas/ResourceDescriptor'
+        - $ref: '#/components/schemas/ToolDescriptor'
+        - $ref: '#/components/schemas/PromptDescriptor'
+        - $ref: '#/components/schemas/MemoryServiceDescriptor'
+      discriminator:
+        propertyName: capabilityType
+        mapping:
+          RESOURCE: '#/components/schemas/ResourceDescriptor'
+          TOOL: '#/components/schemas/ToolDescriptor'
+          PROMPT: '#/components/schemas/PromptDescriptor'
+          MEMORY_SERVICE: '#/components/schemas/MemoryServiceDescriptor'
+      x-gjson-discriminator:
+        RESOURCE:
+          - resourceType
+          - contentHash
+          - schema
+        TOOL:
+          - inputSchemaJSON
+          - executionPointer
+          - outputSchemaJSON
+        PROMPT:
+          - template
+          - parametersSchemaJSON
+        MEMORY_SERVICE:
+          - graphSchema
+
+    ContextRecord:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique identifier for the context record
+        capabilityID:
+          type: string
+          description: Identifier of the MCP capability involved
+        interactionType:
+          type: string
+          enum: [CAPABILITY_REGISTRATION, CAPABILITY_INVOCATION, CAPABILITY_UPDATE, GENERAL_MESSAGE, TOOL_INVOCATION, PROMPT_USAGE, RESOURCE_ACCESS, PLUGIN_EXECUTION, SAMPLING_REQUEST_SENT, SAMPLING_RESPONSE_RECEIVED, MEMORY_WRITE]
+          description: Type of interaction
+        initiator:
+          type: string
+          description: Public key or address of the entity initiating the context
+        timestamp:
+          type: integer
+          format: int64
+          description: Timestamp of the event
+        inputHash:
+          type: string
+          description: Optional hash of the input data to the interaction
+        outputHash:
+          type: string
+          description: Optional hash of the output data from the interaction
+        details:
+          type: object
+          additionalProperties: true
+          description: Primitive-specific information
+        signature:
+          type: string
+          format: byte
+          description: Cryptographic signature of the ContextRecord content by the initiator
+        status:
+          type: string
+          enum: [pending, success, failed, processing]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    MCPPrepareCapabilityRegistrationRequest:
+      type: object
+      required:
+        - ownerAddress
+        - capabilityDescriptor
+        - fee
+      properties:
+        ownerAddress:
+          type: string
+          description: Address of the account that will own the capability.
+        capabilityDescriptor:
+          $ref: '#/components/schemas/CapabilityDescriptor'
+        message:
+          type: string
+          description: Additional information
+        fee:
+          type: integer
+          format: uint64
+          description: Network fee for the registration transaction.
+
+    MCPPrepareCapabilityRegistrationResponse:
+      type: object
+      required:
+        - pendingTransactionHash
+        - unsignedTransaction
+      properties:
+        pendingTransactionHash:
+          type: string
+          description: A server-side hash identifying this pending registration preparation.
+        unsignedTransaction:
+          $ref: '#/components/schemas/UnsignedTransactionDetails'
+
+    MCPInvokeCapabilityRequestWrapper:
+      type: object
+      required:
+        - signedTransaction
+      properties:
+        signedTransaction:
+          $ref: '#/components/schemas/Transaction'
+
+    MCPInvokeCapabilityData:
+      type: object
+      required:
+        - contextRecord
+      properties:
+        contextRecord:
+          $ref: '#/components/schemas/ContextRecord'
+
+    MCPUpdateCapabilityRequestWrapper:
+      type: object
+      required:
+        - signedTransaction
+      properties:
+        signedTransaction:
+          $ref: '#/components/schemas/Transaction'
+
+    MCPUpdateCapabilityData:
+      type: object
+      required:
+        - capabilityID
+        - updatedDescriptor
+      properties:
+        capability_id:
+          type: string
+          description: The ID of the capability to update.
+        updatedDescriptor:
+          $ref: '#/components/schemas/CapabilityDescriptor'
+
+    MCPRegisterCapabilityData:
+      type: object
+      required:
+        - capabilityDescriptor
+      properties:
+        capabilityDescriptor:
+          $ref: '#/components/schemas/CapabilityDescriptor'
+
+    UnsignedTransactionDetails:
+      type: object
+      description: A structured representation of the unsigned transaction the client is expected to form and sign.
+      properties:
+        from:
+          type: string
+        to:
+          type: string
+          nullable: true
+        value:
+          type: string
+        data:
+          type: string
+          format: base64
+          description: Base64 encoded JSON bytes of MCPRegisterCapabilityData.
+        timestamp:
+          type: integer
+          format: int64
+        fee:
+          type: string
+        type:
+          type: string
+          example: "MCP_REGISTER_CAPABILITY"
+        unsignedTransactionPayloadHash:
+          type: string
+          description: Hash of the payload that needs to be signed.
+
+    # KNIRVCHAIN Node Types
+    ErrorNode:
+      type: object
+      required:
+        - id
+        - error_type
+        - error_signature
+        - model_origin
+        - failure_count
+        - created_at
+        - status
+      properties:
+        id:
+          type: string
+          description: Unique identifier for the error node
+        error_type:
+          type: string
+          description: Classification of the error (classification, generation, reasoning, etc.)
+        error_signature:
+          type: string
+          description: Hash of the error pattern
+        model_origin:
+          type: string
+          description: Which LLM produced the error
+        context:
+          type: object
+          additionalProperties: true
+          description: Execution context where the error occurred
+        failure_count:
+          type: integer
+          format: uint64
+          description: Number of times this error has occurred
+        created_at:
+          type: integer
+          format: int64
+          description: Unix timestamp when the error node was created
+        status:
+          type: string
+          enum: [Open, InProgress, Resolved]
+          description: Current status of the error node
+
+    SkillNode:
+      type: object
+      required:
+        - id
+        - name
+        - error_node_id
+        - lora_pointer
+        - validation_proof
+        - performance
+        - miner_address
+        - nrn_reward
+        - created_at
+      properties:
+        id:
+          type: string
+          description: Unique identifier for the skill node
+        name:
+          type: string
+          description: Human-readable name of the skill
+        error_node_id:
+          type: string
+          description: ID of the error node this skill resolves
+        lora_pointer:
+          $ref: '#/components/schemas/LoRAAdapterPointer'
+        validation_proof:
+          type: string
+          description: Proof from KNIRVSERVER DVE validation
+        performance:
+          $ref: '#/components/schemas/SkillPerformance'
+        miner_address:
+          type: string
+          description: Address of the miner who created this skill
+        nrn_reward:
+          type: integer
+          format: uint64
+          description: NRN reward earned by the miner
+        created_at:
+          type: integer
+          format: int64
+          description: Unix timestamp when the skill was created
+
+    ContextNode:
+      type: object
+      required:
+        - id
+        - context_type
+        - pattern_signature
+        - usage_frequency
+        - created_at
+      properties:
+        id:
+          type: string
+          description: Unique identifier for the context node
+        context_type:
+          type: string
+          description: Type of execution context (tool_use, resource_access, workflow)
+        pattern_signature:
+          type: string
+          description: Hash of the usage pattern
+        usage_frequency:
+          type: integer
+          format: uint64
+          description: How often this pattern has been observed
+        required_resources:
+          type: array
+          items:
+            type: string
+          description: Resources required for this context
+        metadata:
+          type: object
+          additionalProperties: true
+          description: Additional metadata about the context
+        created_at:
+          type: integer
+          format: int64
+          description: Unix timestamp when the context was created
+
+    CapabilityNode:
+      type: object
+      required:
+        - id
+        - context_node_id
+        - mcp_pointer
+        - capability_type
+        - access_control
+        - minter_address
+        - nrn_cost
+        - created_at
+      properties:
+        id:
+          type: string
+          description: Unique identifier for the capability node
+        context_node_id:
+          type: string
+          description: ID of the context node this capability was minted from
+        mcp_pointer:
+          $ref: '#/components/schemas/MCPServerPointer'
+        capability_type:
+          type: string
+          enum: [TOOL, RESOURCE, PROMPT, MEMORY_SERVICE]
+          description: Type of MCP capability
+        access_control:
+          $ref: '#/components/schemas/AccessControlPolicy'
+        minter_address:
+          type: string
+          description: Address of the entity that minted this capability
+        nrn_cost:
+          type: integer
+          format: uint64
+          description: NRN cost per invocation
+        created_at:
+          type: integer
+          format: int64
+          description: Unix timestamp when the capability was minted
+
+    IdeaNode:
+      type: object
+      required:
+        - id
+        - idea_type
+        - content_hash
+        - origin_nim
+        - novelty
+        - dependencies
+        - created_at
+      properties:
+        id:
+          type: string
+          description: Unique identifier for the idea node
+        idea_type:
+          type: string
+          description: Type of idea (insight, hypothesis, synthesis)
+        content_hash:
+          type: string
+          description: Hash of the idea content
+        origin_nim:
+          type: string
+          description: NIM that generated this idea
+        novelty:
+          $ref: '#/components/schemas/NoveltyScore'
+        dependencies:
+          type: array
+          items:
+            type: string
+          description: IDs of knowledge this idea depends on
+        created_at:
+          type: integer
+          format: int64
+          description: Unix timestamp when the idea was created
+
+    PropertyNode:
+      type: object
+      required:
+        - id
+        - idea_node_id
+        - nft_pointer
+        - ip_type
+        - ownership
+        - royalties
+        - maker_address
+        - created_at
+      properties:
+        id:
+          type: string
+          description: Unique identifier for the property node
+        idea_node_id:
+          type: string
+          description: ID of the idea node this property was made from
+        nft_pointer:
+          $ref: '#/components/schemas/InferenceNFTPointer'
+        ip_type:
+          type: string
+          enum: [Patent, Copyright, TradeSecret]
+          description: Type of intellectual property
+        ownership:
+          $ref: '#/components/schemas/OwnershipRecord'
+        royalties:
+          $ref: '#/components/schemas/RoyaltyStructure'
+        maker_address:
+          type: string
+          description: Address of the entity that made this property
+        created_at:
+          type: integer
+          format: int64
+          description: Unix timestamp when the property was created
+
+    # Pointer Types
+    LoRAAdapterPointer:
+      type: object
+      required:
+        - adapter_id
+        - ipfs_cid
+        - cmu
+        - base_model_ref
+        - rank
+        - alpha
+        - target_modules
+        - created_at
+      properties:
+        adapter_id:
+          type: string
+          description: Unique identifier for the LoRA adapter
+        ipfs_cid:
+          type: string
+          description: IPFS content address of the LoRA weights
+        cmu:
+          type: string
+          description: Chain Minted URL (knirv://network/adapter_hash)
+        base_model_ref:
+          type: string
+          description: Reference to the base LLM model
+        rank:
+          type: integer
+          description: LoRA rank parameter
+        alpha:
+          type: number
+          format: float
+          description: LoRA alpha scaling factor
+        target_modules:
+          type: array
+          items:
+            type: string
+          description: Target modules for LoRA adaptation
+        created_at:
+          type: integer
+          format: int64
+          description: Unix timestamp when the adapter was created
+
+    MCPServerPointer:
+      type: object
+      required:
+        - server_id
+        - endpoint_uri
+        - cmu
+        - protocol_version
+        - capabilities
+        - auth_method
+        - metadata_cid
+        - created_at
+      properties:
+        server_id:
+          type: string
+          description: Unique identifier for the MCP server
+        endpoint_uri:
+          type: string
+          description: WebSocket endpoint URI (wss://server/mcp)
+        cmu:
+          type: string
+          description: Chain Minted URL (knirv://network/mcp_hash)
+        protocol_version:
+          type: string
+          description: MCP protocol version
+        capabilities:
+          type: array
+          items:
+            type: string
+          description: List of capabilities provided by the server
+        auth_method:
+          type: string
+          description: Authentication method (none, api_key, oauth, udc)
+        metadata_cid:
+          type: string
+          description: IPFS pointer to full server metadata
+        created_at:
+          type: integer
+          format: int64
+          description: Unix timestamp when the server was registered
+
+    InferenceNFTPointer:
+      type: object
+      required:
+        - token_id
+        - contract_address
+        - cmu
+        - metadata_uri
+        - license_terms
+        - created_at
+      properties:
+        token_id:
+          type: string
+          description: NFT token ID
+        contract_address:
+          type: string
+          description: Smart contract address
+        cmu:
+          type: string
+          description: Chain Minted URL (knirv://network/nft_hash)
+        metadata_uri:
+          type: string
+          description: IPFS/Arweave pointer to NFT metadata
+        provenance_chain:
+          type: array
+          items:
+            type: string
+          description: History of ownership transfers
+        license_terms:
+          type: string
+          description: Usage rights and license terms
+        created_at:
+          type: integer
+          format: int64
+          description: Unix timestamp when the NFT was minted
+
+    # Supporting Types
+    SkillPerformance:
+      type: object
+      required:
+        - accuracy
+        - precision
+        - recall
+        - f1_score
+        - test_cases_run
+        - test_cases_pass
+      properties:
+        accuracy:
+          type: number
+          format: float
+          minimum: 0.0
+          maximum: 1.0
+          description: Model accuracy (0.0 to 1.0)
+        precision:
+          type: number
+          format: float
+          minimum: 0.0
+          maximum: 1.0
+          description: Model precision (0.0 to 1.0)
+        recall:
+          type: number
+          format: float
+          minimum: 0.0
+          maximum: 1.0
+          description: Model recall (0.0 to 1.0)
+        f1_score:
+          type: number
+          format: float
+          minimum: 0.0
+          maximum: 1.0
+          description: F1 score (0.0 to 1.0)
+        test_cases_run:
+          type: integer
+          format: uint64
+          minimum: 1
+          description: Number of test cases executed
+        test_cases_pass:
+          type: integer
+          format: uint64
+          description: Number of test cases that passed
+        avg_response_time:
+          type: integer
+          format: int64
+          description: Average response time in milliseconds
+
+    AccessControlPolicy:
+      type: object
+      properties:
+        allowed_addresses:
+          type: array
+          items:
+            type: string
+          description: List of allowed addresses (empty means public access)
+        required_nrn:
+          type: integer
+          format: uint64
+          description: Minimum NRN balance required
+        rate_limit:
+          type: integer
+          format: uint64
+          description: Requests per hour limit
+
+    NoveltyScore:
+      type: object
+      required:
+        - score
+        - uniqueness
+        - assessment_by
+        - assessed_at
+      properties:
+        score:
+          type: number
+          format: float
+          minimum: 0.0
+          maximum: 1.0
+          description: Novelty score (0.0 to 1.0, higher means more novel)
+        similar_ideas:
+          type: integer
+          format: uint64
+          description: Number of similar ideas found
+        uniqueness:
+          type: number
+          format: float
+          minimum: 0.0
+          maximum: 1.0
+          description: Uniqueness factor
+        assessment_by:
+          type: string
+          description: Address of the assessor
+        assessed_at:
+          type: integer
+          format: int64
+          description: Unix timestamp of assessment
+
+    OwnershipRecord:
+      type: object
+      required:
+        - current_owner
+        - history
+      properties:
+        current_owner:
+          type: string
+          description: Current owner's address
+        history:
+          type: array
+          items:
+            $ref: '#/components/schemas/OwnershipEntry'
+          description: Ownership transfer history
+
+    OwnershipEntry:
+      type: object
+      required:
+        - owner
+        - acquired
+      properties:
+        owner:
+          type: string
+          description: Owner's address
+        acquired:
+          type: integer
+          format: int64
+          description: Unix timestamp when acquired
+        price_nrn:
+          type: integer
+          format: uint64
+          description: Price paid in NRN (0 for initial minting)
+
+    RoyaltyStructure:
+      type: object
+      required:
+        - origin_nim_share
+        - network_share
+      properties:
+        origin_nim_share:
+          type: integer
+          format: uint8
+          description: Percentage to original NIM creator
+        network_share:
+          type: integer
+          format: uint8
+          description: Percentage to network
+        dependency_shares:
+          type: object
+          additionalProperties:
+            type: integer
+            format: uint8
+          description: Shares for referenced ideas
+
+    # Request/Response Types
+    SkillMiningProposal:
+      type: object
+      required:
+        - error_node_id
+        - lora_adapter_data
+        - miner_address
+      properties:
+        error_node_id:
+          type: string
+          description: ID of the error node to resolve
+        lora_adapter_data:
+          type: object
+          description: LoRA adapter configuration and weights
+        miner_address:
+          type: string
+          description: Address of the miner proposing the solution
+
+    SkillValidationResult:
+      type: object
+      required:
+        - proposal_id
+        - is_valid
+        - performance
+        - validation_proof
+      properties:
+        proposal_id:
+          type: string
+          description: ID of the validated proposal
+        is_valid:
+          type: boolean
+          description: Whether the skill passed validation
+        performance:
+          $ref: '#/components/schemas/SkillPerformance'
+        validation_proof:
+          type: string
+          description: Cryptographic proof of validation
+
+    CapabilityMintProposal:
+      type: object
+      required:
+        - context_node_id
+        - mcp_server_config
+        - minter_address
+      properties:
+        context_node_id:
+          type: string
+          description: ID of the context node to mint from
+        mcp_server_config:
+          type: object
+          description: MCP server configuration
+        minter_address:
+          type: string
+          description: Address of the minter
+
+    MCPValidationResult:
+      type: object
+      required:
+        - proposal_id
+        - is_valid
+        - compliance_score
+        - validation_report
+      properties:
+        proposal_id:
+          type: string
+          description: ID of the validated proposal
+        is_valid:
+          type: boolean
+          description: Whether the MCP server is compliant
+        compliance_score:
+          type: number
+          format: float
+          minimum: 0.0
+          maximum: 1.0
+          description: Compliance score (0.0 to 1.0)
+        validation_report:
+          type: string
+          description: Detailed validation report
+
+    PropertyMintProposal:
+      type: object
+      required:
+        - idea_node_id
+        - ip_type
+        - royalty_structure
+        - maker_address
+      properties:
+        idea_node_id:
+          type: string
+          description: ID of the idea node to mint from
+        ip_type:
+          type: string
+          enum: [Patent, Copyright, TradeSecret]
+          description: Type of intellectual property
+        royalty_structure:
+          $ref: '#/components/schemas/RoyaltyStructure'
+        maker_address:
+          type: string
+          description: Address of the property maker
+
+    PropertyTransferRequest:
+      type: object
+      required:
+        - property_node_id
+        - new_owner
+        - price_nrn
+      properties:
+        property_node_id:
+          type: string
+          description: ID of the property to transfer
+        new_owner:
+          type: string
+          description: Address of the new owner
+        price_nrn:
+          type: integer
+          format: uint64
+          description: Price in NRN tokens
+
+    NoveltyResult:
+      type: object
+      required:
+        - idea_node_id
+        - novelty_score
+        - similar_ideas
+        - assessment_report
+      properties:
+        idea_node_id:
+          type: string
+          description: ID of the assessed idea
+        novelty_score:
+          $ref: '#/components/schemas/NoveltyScore'
+        similar_ideas:
+          type: array
+          items:
+            type: string
+          description: IDs of similar ideas found
+        assessment_report:
+          type: string
+          description: Detailed assessment report
+
+    GraphRelationship:
+      type: object
+      required:
+        - from_node
+        - to_node
+        - relationship_type
+        - created_at
+      properties:
+        from_node:
+          type: string
+          description: Source node ID
+        to_node:
+          type: string
+          description: Target node ID
+        relationship_type:
+          type: string
+          description: Type of relationship
+        properties:
+          type: object
+          additionalProperties: true
+          description: Additional relationship properties
+        created_at:
+          type: integer
+          format: int64
+          description: Unix timestamp when relationship was created
+
+    DiscoveryResult:
+      type: object
+      required:
+        - capability_node_id
+        - server_info
+        - health_score
+        - last_updated
+      properties:
+        capability_node_id:
+          type: string
+          description: ID of the capability node
+        server_info:
+          $ref: '#/components/schemas/MCPServerPointer'
+        health_score:
+          type: number
+          format: float
+          minimum: 0.0
+          maximum: 1.0
+          description: Current health score
+        last_updated:
+          type: integer
+          format: int64
+          description: Unix timestamp of last health update
+
+    UsageEvent:
+      type: object
+      required:
+        - property_node_id
+        - user_address
+        - usage_type
+        - usage_amount
+        - timestamp
+      properties:
+        property_node_id:
+          type: string
+          description: ID of the property being used
+        user_address:
+          type: string
+          description: Address of the user
+        usage_type:
+          type: string
+          description: Type of usage (invocation, derivative, etc.)
+        usage_amount:
+          type: integer
+          format: uint64
+          description: Amount of usage
+        timestamp:
+          type: integer
+          format: int64
+          description: Unix timestamp of usage
+
+    RoyaltyDistribution:
+      type: object
+      required:
+        - property_node_id
+        - recipient_address
+        - amount_nrn
+        - distribution_type
+        - timestamp
+      properties:
+        property_node_id:
+          type: string
+          description: ID of the property
+        recipient_address:
+          type: string
+          description: Address receiving royalties
+        amount_nrn:
+          type: integer
+          format: uint64
+          description: Amount of NRN distributed
+        distribution_type:
+          type: string
+          enum: [origin_nim, network, dependency]
+          description: Type of royalty distribution
+        timestamp:
+          type: integer
+          format: int64
+          description: Unix timestamp of distribution
+
+    RoyaltyClaimResult:
+      type: object
+      required:
+        - address
+        - total_claimed
+        - distributions
+      properties:
+        address:
+          type: string
+          description: Address that claimed royalties
+        total_claimed:
+          type: integer
+          format: uint64
+          description: Total NRN claimed
+        distributions:
+          type: array
+          items:
+            $ref: '#/components/schemas/RoyaltyDistribution'
+          description: Individual royalty distributions
+       

@@ -1,0 +1,288 @@
+package cloudflare
+
+import (
+	"bufio"
+	"context"
+	"fmt"
+	"log"
+	"os"
+	"os/exec"
+	"strings"
+	"sync"
+)
+
+// TunnelRunner manages a cloudflared process that connects a named
+// Cloudflare Tunnel to a local upstream service.  It follows the same
+// lifecycle conventions demonstrated in proxy-penguin: provision the tunnel
+// via the Cloudflare API, then spawn cloudflared to maintain the connection.
+// If a TunnelToken is provided, the API-based provisioning steps are skipped
+// and cloudflared is spawned directly with the given token.
+type TunnelRunner struct {
+	api         *API
+	tunnelName  string
+	tunnelID    string
+	hostname    string
+	servicePort int
+	tunnelToken string
+	protocol    string
+
+	cmd    *exec.Cmd
+	cancel context.CancelFunc
+	mu     sync.Mutex
+	done   chan struct{}
+}
+
+// TunnelRunnerConfig holds the parameters for a TunnelRunner.
+type TunnelRunnerConfig struct {
+	APIToken    string // Cloudflare API token
+	ZoneID      string // Cloudflare zone ID for DNS
+	AccountID   string // Cloudflare account ID (empty = auto-discover from token)
+	TunnelName  string // tunnel name (e.g. "knirv-gateway")
+	Hostname    string // public subdomain (e.g. "gateway.knirv.network")
+	ServicePort int    // local port the gateway listens on
+	TunnelToken string // pre-provisioned tunnel token (skips API provisioning)
+	Protocol    string // cloudflared transport protocol; defaults to http2
+}
+
+// NewTunnelRunner creates a TunnelRunner.  Call Run() to provision
+// and start the tunnel. If cfg.TunnelToken is set, API-based provisioning
+// is skipped and cloudflared is spawned directly with the given token.
+func NewTunnelRunner(cfg TunnelRunnerConfig) *TunnelRunner {
+	protocol := normalizeCloudflaredProtocol(cfg.Protocol)
+	return &TunnelRunner{
+		api:         NewAPI(cfg.APIToken, cfg.ZoneID, cfg.AccountID),
+		tunnelName:  cfg.TunnelName,
+		tunnelID:    "", // populated by provision()
+		hostname:    cfg.Hostname,
+		servicePort: cfg.ServicePort,
+		tunnelToken: cfg.TunnelToken,
+		protocol:    protocol,
+		done:        make(chan struct{}),
+	}
+}
+
+func normalizeCloudflaredProtocol(protocol string) string {
+	if protocol == "" {
+		protocol = os.Getenv("CLOUDFLARED_PROTOCOL")
+	}
+	switch strings.ToLower(strings.TrimSpace(protocol)) {
+	case "quic", "http2":
+		return strings.ToLower(strings.TrimSpace(protocol))
+	default:
+		return "http2"
+	}
+}
+
+// Run starts the connection to the Cloudflare Tunnel.  When a tunnel token
+// was provided via TunnelRunnerConfig, it spawns cloudflared directly
+// (skipping API-based provisioning).  Otherwise it provisions the tunnel
+// via the Cloudflare API, then spawns cloudflared.  Blocks until the
+// context is cancelled.
+func (tr *TunnelRunner) Run(ctx context.Context) error {
+	tr.mu.Lock()
+	defer tr.mu.Unlock()
+
+	if tr.tunnelToken != "" {
+		return tr.runWithToken(ctx)
+	}
+
+	// Full provisioning path: validate → provision → spawn
+	if err := tr.api.ValidateToken(); err != nil {
+		return fmt.Errorf("cloudflare token validation failed: %w", err)
+	}
+	log.Println("[cloudflare] API token validated")
+
+	if err := tr.provision(); err != nil {
+		return fmt.Errorf("tunnel provisioning failed: %w", err)
+	}
+
+	token, err := tr.api.GetTunnelToken(tr.tunnelID)
+	if err != nil {
+		return fmt.Errorf("failed to get tunnel token: %w", err)
+	}
+
+	return tr.spawnCloudflared(ctx, token, tr.tunnelID)
+}
+
+// runWithToken spawns cloudflared with a pre-provisioned tunnel token,
+// bypassing all API calls. Used for development or when the tunnel was
+// created manually through the Cloudflare dashboard.
+func (tr *TunnelRunner) runWithToken(ctx context.Context) error {
+	return tr.spawnCloudflared(ctx, tr.tunnelToken, "")
+}
+
+// spawnCloudflared starts the cloudflared subprocess with the given token.
+// tunnelID is optional (not needed when using --token).
+func (tr *TunnelRunner) spawnCloudflared(ctx context.Context, token, tunnelID string) error {
+	cfPath, err := EnsureCloudflared()
+	if err != nil {
+		return fmt.Errorf("cloudflared unavailable: %w", err)
+	}
+
+	ctx, cancel := context.WithCancel(ctx)
+	tr.cancel = cancel
+
+	args := []string{"tunnel", "--protocol", tr.protocol, "run", "--token", token}
+	if tunnelID != "" {
+		args = append(args, tunnelID)
+	}
+
+	cmd := exec.CommandContext(ctx, cfPath, args...)
+	cmd.Stdout = &logWriter{prefix: "cloudflared"}
+	cmd.Stderr = &logWriter{prefix: "cloudflared-err"}
+
+	log.Printf("[cloudflare] starting cloudflared (token-based, protocol=%s)", tr.protocol)
+	if err := cmd.Start(); err != nil {
+		cancel()
+		return fmt.Errorf("failed to start cloudflared: %w", err)
+	}
+	tr.cmd = cmd
+	log.Printf("[cloudflare] cloudflared running (pid %d)", cmd.Process.Pid)
+
+	go func() {
+		defer close(tr.done)
+		if err := cmd.Wait(); err != nil {
+			log.Printf("[cloudflare] cloudflared exited: %v", err)
+		} else {
+			log.Println("[cloudflare] cloudflared stopped")
+		}
+	}()
+
+	return nil
+}
+
+// Wait blocks until the cloudflared process exits.
+func (tr *TunnelRunner) Wait() {
+	<-tr.done
+}
+
+// Stop gracefully stops the cloudflared process.
+func (tr *TunnelRunner) Stop() {
+	tr.mu.Lock()
+	defer tr.mu.Unlock()
+
+	if tr.cancel != nil {
+		tr.cancel()
+	}
+	if tr.cmd != nil && tr.cmd.Process != nil {
+		log.Printf("[cloudflare] stopping cloudflared (pid %d)", tr.cmd.Process.Pid)
+		tr.cmd.Process.Signal(os.Interrupt)
+		// Let Wait() collect the exit.
+	}
+}
+
+// TunnelID returns the provisioned tunnel ID (empty until Run succeeds).
+func (tr *TunnelRunner) TunnelID() string {
+	tr.mu.Lock()
+	defer tr.mu.Unlock()
+	return tr.tunnelID
+}
+
+// provision creates (or reuses) the Cloudflare Tunnel and its DNS record.
+func (tr *TunnelRunner) provision() error {
+	// Look for an existing tunnel with our name.
+	existing, err := tr.api.FindTunnelByName(tr.tunnelName)
+	if err != nil {
+		return fmt.Errorf("list tunnels: %w", err)
+	}
+
+	var tunnel *Tunnel
+	if existing != nil {
+		log.Printf("[cloudflare] reusing existing tunnel %s (%s)", tr.tunnelName, existing.ID)
+		tunnel = existing
+	} else {
+		log.Printf("[cloudflare] creating tunnel: %s", tr.tunnelName)
+		t, err := tr.api.CreateTunnel(tr.tunnelName)
+		if err != nil {
+			return fmt.Errorf("create tunnel: %w", err)
+		}
+		tunnel = t
+		log.Printf("[cloudflare] created tunnel %s (%s)", tr.tunnelName, tunnel.ID)
+	}
+
+	tr.tunnelID = tunnel.ID
+
+	// Configure ingress: hostname → local service
+	serviceURL := fmt.Sprintf("http://localhost:%d", tr.servicePort)
+	ingress := []IngressRule{
+		{Hostname: tr.hostname, Service: serviceURL},
+	}
+	if err := tr.api.ConfigureTunnel(tr.tunnelID, ingress); err != nil {
+		return fmt.Errorf("configure tunnel: %w", err)
+	}
+	log.Printf("[cloudflare] configured ingress: %s → %s", tr.hostname, serviceURL)
+
+	// Create DNS CNAME record (idempotent — Cloudflare returns an error
+	// if the record already exists, which we treat as a success).
+	if err := tr.api.CreateDNSRecord(tr.hostname, tr.tunnelID); err != nil {
+		// Cloudflare returns error 81053 for duplicate records — that's OK.
+		log.Printf("[cloudflare] DNS record note: %v", err)
+	} else {
+		log.Printf("[cloudflare] DNS record created: %s → %s.cfargotunnel.com",
+			tr.hostname, tr.tunnelID)
+	}
+
+	return nil
+}
+
+// findCloudflared locates the cloudflared binary on the system.
+func findCloudflared() (string, error) {
+	// Respect explicit path from environment.
+	if env := os.Getenv("CLOUDFLARED_PATH"); env != "" {
+		if _, err := os.Stat(env); err == nil {
+			return env, nil
+		}
+	}
+
+	// Common install locations.
+	candidates := []string{
+		"/usr/local/bin/cloudflared",
+		"/usr/bin/cloudflared",
+		"/opt/cloudflared/cloudflared",
+	}
+
+	// Also check PATH.
+	if p, err := exec.LookPath("cloudflared"); err == nil {
+		candidates = append([]string{p}, candidates...)
+	}
+
+	for _, p := range candidates {
+		if _, err := os.Stat(p); err == nil {
+			return p, nil
+		}
+	}
+	return "", fmt.Errorf("cloudflared not found — install from https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/")
+}
+
+// logWriter adapts a log prefix to an io.Writer for subprocess stdout/stderr.
+type logWriter struct {
+	prefix string
+}
+
+func (w *logWriter) Write(p []byte) (int, error) {
+	scanner := bufio.NewScanner(
+		&bytesReader{buf: p},
+	)
+	for scanner.Scan() {
+		line := scanner.Text()
+		if line != "" {
+			log.Printf("[%s] %s", w.prefix, line)
+		}
+	}
+	return len(p), nil
+}
+
+// bytesReader is a minimal io.Reader over a byte slice for bufio.Scanner.
+type bytesReader struct {
+	buf []byte
+	pos int
+}
+
+func (r *bytesReader) Read(p []byte) (int, error) {
+	if r.pos >= len(r.buf) {
+		return 0, fmt.Errorf("EOF")
+	}
+	n := copy(p, r.buf[r.pos:])
+	r.pos += n
+	return n, nil
+}

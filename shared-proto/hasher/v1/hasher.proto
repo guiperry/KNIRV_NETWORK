@@ -1,0 +1,223 @@
+syntax = "proto3";
+
+package hasher.v1;
+
+option go_package = "knirvhasher/proto/hasher/v1;hasherv1";
+
+// HasherService provides ASIC computation services (KNIRVHASHER hardware interface).
+service HasherService {
+  rpc ComputeHash(ComputeHashRequest) returns (ComputeHashResponse);
+  rpc ComputeBatch(ComputeBatchRequest) returns (ComputeBatchResponse);
+  rpc StreamCompute(stream StreamComputeRequest) returns (stream StreamComputeResponse);
+  rpc GetMetrics(GetMetricsRequest) returns (GetMetricsResponse);
+  rpc GetDeviceInfo(GetDeviceInfoRequest) returns (GetDeviceInfoResponse);
+  rpc MineWork(MineWorkRequest) returns (MineWorkResponse);
+  rpc VerifyMath(VerifyMathRequest) returns (VerifyMathResponse);
+}
+
+// HasherTrainingService provides dataset collection and training pipeline services.
+// Used by KNIRVSERVER to push DVE data to KNIRVHASHER for model training.
+service HasherTrainingService {
+  rpc ExportSecurityData(ExportRequest) returns (stream EncryptedChunk);
+  rpc TriggerTraining(TrainingRequest) returns (TrainingResponse);
+  rpc GetTrainingStatus(TrainingStatusRequest) returns (TrainingStatusResponse);
+  rpc GetUserRules(RulesRequest) returns (RulesResponse);
+  rpc ValidateAction(ActionRequest) returns (ActionResponse);
+  rpc StreamActivity(StreamActivityRequest) returns (stream ActivityEvent);
+}
+
+message ComputeHashRequest {
+  bytes data = 1;
+}
+
+message ComputeHashResponse {
+  bytes hash = 1;
+  uint64 latency_us = 2;
+}
+
+message ComputeBatchRequest {
+  repeated bytes data = 1;
+  uint32 max_batch_size = 2;
+}
+
+message ComputeBatchResponse {
+  repeated bytes hashes = 1;
+  uint64 total_latency_us = 2;
+  uint32 processed_count = 3;
+}
+
+message StreamComputeRequest {
+  bytes data = 1;
+  uint64 request_id = 2;
+}
+
+message StreamComputeResponse {
+  bytes hash = 1;
+  uint64 request_id = 2;
+  uint64 latency_us = 3;
+}
+
+message GetMetricsRequest {}
+
+message GetMetricsResponse {
+  uint64 total_requests = 1;
+  uint64 total_bytes_processed = 2;
+  uint64 average_latency_us = 3;
+  uint64 peak_latency_us = 4;
+  uint64 total_errors = 5;
+  uint64 cache_hits = 6;
+  uint64 cache_misses = 7;
+  map<string, uint64> device_stats = 8;
+}
+
+message GetDeviceInfoRequest {}
+
+message GetDeviceInfoResponse {
+  string device_path = 1;
+  uint32 chip_count = 2;
+  string firmware_version = 3;
+  bool is_operational = 4;
+  uint64 uptime_seconds = 5;
+}
+
+message MineWorkRequest {
+  bytes header = 1;
+  uint32 nonce_start = 2;
+  uint32 nonce_end = 3;
+}
+
+message MineWorkResponse {
+  uint32 nonce = 1;
+  uint64 latency_us = 2;
+}
+
+message VerifyMathRequest {
+  string context = 1;
+  string proposition = 2;
+  uint32 subdomain = 3;
+  float confidence_threshold = 4;
+}
+
+message VerifyMathResponse {
+  string status = 1;
+  string nonce = 2;
+  string result_hash = 3;
+  string detokenized_output = 4;
+  float logic_integrity = 5;
+  float latency_ms = 6;
+}
+
+message ExportRequest {
+  string org_id = 1;
+  string user_id = 2;
+  DataType data_type = 3;
+  bool encrypted = 4;
+  int64 since_timestamp = 5;
+}
+
+enum DataType {
+  ALL = 0;
+  ONTOLOGY = 1;
+  GUARDRAILS = 2;
+  ACTIVITY = 3;
+  MARKDOWN = 4;
+  USERS = 5;
+}
+
+message EncryptedChunk {
+  bytes data = 1;
+  string chunk_id = 2;
+  bool is_last = 3;
+  int32 chunk_index = 4;
+  int32 total_chunks = 5;
+}
+
+message TrainingRequest {
+  string org_id = 1;
+  string user_id = 2;
+  TrainingTrigger trigger = 3;
+  map<string, string> options = 4;
+  string training_id = 5;
+}
+
+enum TrainingTrigger {
+  ON_DEMAND = 0;
+  SCHEDULED = 1;
+  GUARDRAIL_VIOLATION = 2;
+}
+
+message TrainingResponse {
+  string training_id = 1;
+  string status = 2;
+}
+
+message TrainingStatusRequest {
+  string training_id = 1;
+}
+
+message TrainingStatusResponse {
+  string training_id = 1;
+  string status = 2;
+  uint32 progress = 3;
+  string error = 4;
+  int32 epochs_completed = 5;
+  int32 total_epochs = 6;
+  float best_fitness = 7;
+}
+
+message RulesRequest {
+  string user_id = 1;
+  string org_id = 2;
+  RuleType rule_type = 3;
+}
+
+enum RuleType {
+  RULE_ALL = 0;
+  RULE_GUARDRAIL = 1;
+  RULE_ONTOLOGY = 2;
+  RULE_ACTION = 3;
+}
+
+message SecurityRule {
+  string id = 1;
+  string name = 2;
+  string pattern = 3;
+  RuleType rule_type = 4;
+  string action = 5;
+}
+
+message RulesResponse {
+  repeated SecurityRule rules = 1;
+}
+
+message ActionRequest {
+  string user_id = 1;
+  string action = 2;
+  map<string, string> context = 3;
+}
+
+message ActionResponse {
+  bool allowed = 1;
+  float confidence = 2;
+  repeated string violations = 3;
+  repeated string applied_rules = 4;
+  string seed_id = 5;
+  string decision_id = 6;
+}
+
+message StreamActivityRequest {
+  string user_id = 1;
+  string org_id = 2;
+  int64 since_timestamp = 3;
+  repeated string event_types = 4;
+}
+
+message ActivityEvent {
+  string event_id = 1;
+  string event_type = 2;
+  string user_id = 3;
+  string org_id = 4;
+  string payload = 5;
+  int64 timestamp = 6;
+  map<string, string> data = 7;
+}

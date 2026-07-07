@@ -1,0 +1,16 @@
+appId: com.knirv.controller
+---
+- launchApp
+- assertVisible: "Initialize your Identity"
+- tapOn: "Create New Controller"
+- assertVisible: "Set Device Password"
+- inputText:
+    text: "TestPassword123!"
+- tapOn:
+    id: "confirmPassword"
+- inputText:
+    text: "TestPassword123!"
+- tapOn: "Secure Vault"
+- assertVisible: "Secret Recovery Phrase"
+- tapOn: "I have saved my phrase"
+- assertVisible: "Sign To Enter KNIRV"

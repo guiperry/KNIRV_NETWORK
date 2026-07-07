@@ -1,0 +1,2457 @@
+openapi: 3.1.0
+info:
+  title: KNIRVSERVER API
+  description: |
+    KNIRVSERVER - Comprehensive platform layer for the KNIRV Network ecosystem.
+    Powered by Agentic Memory Fabric stack.
+
+    This API provides:
+    - Authentication and user management
+    - DVE (Distributed Virtual Environment) management
+    - Agentic Memory Fabric validation and testing
+    - TEE (Trusted Execution Environment) security
+    - System health monitoring and analytics
+    - Plugin management and deployment
+    - Cognitive engine for advanced AI features
+    - Payment processing (Stripe, PayPal, NRN)
+    - Workflow execution and orchestration
+    - Secret and session management
+    - Evidence anchoring to blockchain
+    - Knowledge base with GraphRAG integration
+    - IC-ME (Intentional Context Memory Engine)
+    - WebSocket real-time communication
+  version: "1.1.0"
+  contact:
+    name: KNIRV Network Support
+    email: support@knirv.com
+
+servers:
+  - url: http://localhost:8084
+    description: KNIRVSERVER main server
+  - url: http://localhost:7080
+    description: Data Engine REST API
+
+tags:
+  - name: health
+    description: Health check and system info
+  - name: auth
+    description: Authentication and user management
+  - name: dve
+    description: Distributed Virtual Environment management
+  - name: dve-creation
+    description: DVE creation and templates
+  - name: plugin
+    description: Plugin management
+  - name: agent
+    description: Agent management and execution
+  - name: payments
+    description: Payment processing (Stripe, PayPal)
+  - name: nrn-payments
+    description: NRN token payments
+  - name: knirvshell
+    description: KNIRVSHELL CLI operations
+  - name: onboarding
+    description: Organization onboarding and configuration
+  - name: cognitive
+    description: Cognitive engine and AI features
+  - name: guardrail
+    description: Guardrails and policy management
+  - name: health-detailed
+    description: System health monitoring
+  - name: secrets
+    description: Secret and session management
+  - name: workflow
+    description: Workflow execution
+  - name: anchoring
+    description: Evidence anchoring to blockchain
+  - name: tee
+    description: Trusted Execution Environment
+  - name: memory
+    description: Active Memory Layer (Markdown Fabric)
+  - name: knowledge-base
+    description: Knowledge base with GraphRAG
+  - name: knirvgraph
+    description: KNIRVGRAPH error nodes
+  - name: nexus
+    description: Nexus Memory Fabric
+  - name: ontology
+    description: Ontology management
+  - name: analytics
+    description: Predictive analytics
+  - name: rollups
+    description: Transaction rollups
+  - name: websocket
+    description: WebSocket endpoints
+  - name: data-engine
+    description: Data Engine REST API
+  - name: icme
+    description: Intentional Context Memory Engine
+  - name: system
+    description: System settings
+
+paths:
+  # ============================================================================
+  # Health & System
+  # ============================================================================
+  /health:
+    get:
+      tags: [health]
+      summary: Health check (top-level)
+      description: Basic health check endpoint
+      responses:
+        '200':
+          description: Server is healthy
+
+  /version:
+    get:
+      tags: [health]
+      summary: Version info
+      description: Get server version, build time, and git commit
+      responses:
+        '200':
+          description: Version information
+
+  /api/health:
+    get:
+      tags: [health]
+      summary: API health check
+      description: API-specific health check
+      responses:
+        '200':
+          description: API is healthy
+
+  /api/system/info:
+    get:
+      tags: [system]
+      summary: System info
+      description: Get system information for HUD/PWA
+      responses:
+        '200':
+          description: System information
+
+  /api/system/detail:
+    get:
+      tags: [system]
+      summary: Detailed system info
+      responses:
+        '200':
+          description: Detailed system information
+
+  /api/system/dht:
+    get:
+      tags: [system]
+      summary: Get DHT settings
+      responses:
+        '200':
+          description: DHT settings
+    post:
+      tags: [system]
+      summary: Update DHT settings
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                enabled:
+                  type: boolean
+      responses:
+        '200':
+          description: DHT settings updated
+
+  # ============================================================================
+  # Authentication
+  # ============================================================================
+  /api/auth/register:
+    post:
+      tags: [auth]
+      summary: Register new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [username, password]
+              properties:
+                username:
+                  type: string
+                password:
+                  type: string
+                email:
+                  type: string
+      responses:
+        '201':
+          description: User registered
+        '400':
+          description: Invalid input
+
+  /api/auth/login:
+    post:
+      tags: [auth]
+      summary: User login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [username, password]
+              properties:
+                username:
+                  type: string
+                password:
+                  type: string
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+        '401':
+          description: Invalid credentials
+
+  /api/auth/refresh:
+    post:
+      tags: [auth]
+      summary: Refresh JWT token
+      responses:
+        '200':
+          description: Token refreshed
+
+  /api/auth/revoke:
+    post:
+      tags: [auth]
+      summary: Revoke token
+      responses:
+        '200':
+          description: Token revoked
+
+  /api/auth/verify-email:
+    post:
+      tags: [auth]
+      summary: Verify email
+      responses:
+        '200':
+          description: Email verified
+
+  /api/auth/request-password-reset:
+    post:
+      tags: [auth]
+      summary: Request password reset
+      responses:
+        '200':
+          description: Reset email sent
+
+  /api/auth/reset-password:
+    post:
+      tags: [auth]
+      summary: Reset password
+      responses:
+        '200':
+          description: Password reset successful
+
+  /api/auth/me:
+    get:
+      tags: [auth]
+      summary: Get current user
+      description: Requires authentication
+      responses:
+        '200':
+          description: User details
+
+  /api/auth/change-password:
+    post:
+      tags: [auth]
+      summary: Change password
+      description: Requires authentication
+      responses:
+        '200':
+          description: Password changed
+
+  /api/auth/update-profile:
+    put:
+      tags: [auth]
+      summary: Update profile
+      description: Requires authentication
+      responses:
+        '200':
+          description: Profile updated
+
+  /api/auth/preferences:
+    get:
+      tags: [auth]
+      summary: Get preferences
+      description: Requires authentication
+      responses:
+        '200':
+          description: User preferences
+    put:
+      tags: [auth]
+      summary: Update preferences
+      description: Requires authentication
+      responses:
+        '200':
+          description: Preferences updated
+
+  # ============================================================================
+  # DVE Management (v1 API)
+  # ============================================================================
+  /api/v1/dve/nodes:
+    get:
+      tags: [dve]
+      summary: List DVE nodes
+      responses:
+        '200':
+          description: List of DVE nodes
+    post:
+      tags: [dve]
+      summary: Create DVE node
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                type:
+                  type: string
+      responses:
+        '201':
+          description: DVE node created
+
+  /api/v1/dve/nodes/{id}:
+    get:
+      tags: [dve]
+      summary: Get DVE node
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: DVE node details
+    put:
+      tags: [dve]
+      summary: Update DVE node
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: DVE node updated
+    delete:
+      tags: [dve]
+      summary: Delete DVE node
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: DVE node deleted
+
+  /api/v1/dve/nodes/{id}/endpoints:
+    get:
+      tags: [dve]
+      summary: Get DVE node endpoints
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Node endpoints
+
+  /api/v1/dve/nodes/{id}/ssh-endpoint:
+    get:
+      tags: [dve]
+      summary: Get DVE SSH endpoint
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: SSH endpoint
+
+  /api/v1/dve/nodes/{id}/validation-endpoint:
+    get:
+      tags: [dve]
+      summary: Get DVE validation endpoint
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Validation endpoint
+
+  /api/v1/dve/nodes/{id}/error-resolution-endpoint:
+    get:
+      tags: [dve]
+      summary: Get DVE error resolution endpoint
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Error resolution endpoint
+
+  /api/v1/dve/workers:
+    get:
+      tags: [dve]
+      summary: List DVE workers
+      responses:
+        '200':
+          description: List of workers
+
+  /api/v1/dve/{nodeId}/tasks:
+    get:
+      tags: [dve]
+      summary: Get DVE node tasks
+      parameters:
+        - name: nodeId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Node tasks
+
+  /api/v1/dve/{nodeId}/metrics:
+    get:
+      tags: [dve]
+      summary: Get DVE node metrics
+      parameters:
+        - name: nodeId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Node metrics
+
+  /api/v1/dve/{nodeId}/ssh-session:
+    post:
+      tags: [dve]
+      summary: Create SSH session
+      parameters:
+        - name: nodeId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: SSH session created
+
+  /api/v1/dve/peers:
+    get:
+      tags: [dve]
+      summary: Get P2P peers
+      responses:
+        '200':
+          description: List of P2P peers
+
+  # DVE Legacy/Proxy Endpoints
+  /api/dve/{dveId}:
+    get:
+      tags: [dve]
+      summary: Get DVE public page
+      parameters:
+        - name: dveId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: DVE public page
+
+  /api/dve/{dveId}/validation:
+    get:
+      tags: [dve]
+      summary: Get DVE validation records
+      parameters:
+        - name: dveId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Validation records
+
+  /api/dve/{dveId}/metrics:
+    get:
+      tags: [dve]
+      summary: Get DVE metrics
+      parameters:
+        - name: dveId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: DVE metrics
+
+  /api/dve/{dveId}/search:
+    get:
+      tags: [dve]
+      summary: Search DVE
+      parameters:
+        - name: dveId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Search results
+
+  /api/dve/resolve:
+    get:
+      tags: [dve]
+      summary: Resolve DVE URI
+      responses:
+        '200':
+          description: Resolved DVE
+
+  /api/dve/register:
+    post:
+      tags: [dve]
+      summary: Register DVE
+      responses:
+        '201':
+          description: DVE registered
+
+  # ============================================================================
+  # DVE Creation
+  # ============================================================================
+  /api/dve-creation/create:
+    post:
+      tags: [dve-creation]
+      summary: Create DVE
+      responses:
+        '201':
+          description: DVE created
+
+  /api/dve-creation/templates:
+    get:
+      tags: [dve-creation]
+      summary: List DVE templates
+      responses:
+        '200':
+          description: List of templates
+    post:
+      tags: [dve-creation]
+      summary: Create DVE template
+      responses:
+        '201':
+          description: Template created
+
+  /api/dve-creation/templates/{id}:
+    get:
+      tags: [dve-creation]
+      summary: Get DVE template
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Template details
+    put:
+      tags: [dve-creation]
+      summary: Update DVE template
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Template updated
+    delete:
+      tags: [dve-creation]
+      summary: Delete DVE template
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Template deleted
+
+  # ============================================================================
+  # Plugin Management (v1 API)
+  # ============================================================================
+  /api/v1/plugin/objects:
+    get:
+      tags: [plugin]
+      summary: List plugins
+      responses:
+        '200':
+          description: List of plugins
+    post:
+      tags: [plugin]
+      summary: Create plugin
+      responses:
+        '201':
+          description: Plugin created
+
+  /api/v1/plugin/objects/{id}:
+    get:
+      tags: [plugin]
+      summary: Get plugin
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Plugin details
+    put:
+      tags: [plugin]
+      summary: Update plugin
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Plugin updated
+    delete:
+      tags: [plugin]
+      summary: Delete plugin
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Plugin deleted
+
+  /api/v1/plugin/objects/{id}/actions:
+    post:
+      tags: [plugin]
+      summary: Execute plugin action
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Action executed
+
+  /api/v1/plugin/objects/{id}/metrics:
+    get:
+      tags: [plugin]
+      summary: Get plugin metrics
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Plugin metrics
+
+  /api/v1/plugin/objects/{id}/logs:
+    get:
+      tags: [plugin]
+      summary: Get plugin logs
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Plugin logs
+
+  /api/v1/plugin/objects/{id}/events:
+    get:
+      tags: [plugin]
+      summary: Get plugin events
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Plugin events
+
+  /api/v1/plugin/templates:
+    get:
+      tags: [plugin]
+      summary: List plugin templates
+      responses:
+        '200':
+          description: List of templates
+    post:
+      tags: [plugin]
+      summary: Create plugin template
+      responses:
+        '201':
+          description: Template created
+
+  /api/v1/plugin/summary:
+    get:
+      tags: [plugin]
+      summary: Plugin summary
+      responses:
+        '200':
+          description: Plugin summary statistics
+
+  # Legacy Plugin Management
+  /api/fabric-management/objects:
+    get:
+      tags: [plugin]
+      summary: List fabric items (legacy)
+      responses:
+        '200':
+          description: List of fabric items
+    post:
+      tags: [plugin]
+      summary: Create fabric item (legacy)
+      responses:
+        '201':
+          description: Fabric item created
+
+  /api/fabric-management/objects/{id}:
+    get:
+      tags: [plugin]
+      summary: Get fabric item (legacy)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Fabric item details
+    put:
+      tags: [plugin]
+      summary: Update fabric item (legacy)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Fabric item updated
+    delete:
+      tags: [plugin]
+      summary: Delete fabric item (legacy)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Fabric item deleted
+
+  /api/fabric-management/summary:
+    get:
+      tags: [plugin]
+      summary: Fabric summary (legacy)
+      responses:
+        '200':
+          description: Statistical summary
+
+  # ============================================================================
+  # Agent Management
+  # ============================================================================
+  /api/v1/dve/{id}/agent/status:
+    get:
+      tags: [agent]
+      summary: Get agent status
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Agent status
+
+  /api/v1/dve/{id}/agent/launch:
+    post:
+      tags: [agent]
+      summary: Launch agent
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Agent launched
+
+  /api/v1/dve/{id}/agent:
+    delete:
+      tags: [agent]
+      summary: Stop agent
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Agent stopped
+
+  /api/v1/dve/{id}/agent/tasks:
+    get:
+      tags: [agent]
+      summary: Get agent tasks
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Agent tasks
+    post:
+      tags: [agent]
+      summary: Submit agent task
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '201':
+          description: Task submitted
+
+  /api/v1/dve/{id}/agent/tasks/{taskID}:
+    get:
+      tags: [agent]
+      summary: Get agent task
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: taskID
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Task details
+
+  # ============================================================================
+  # Payments (Stripe & PayPal)
+  # ============================================================================
+  /api/v1/payments/stripe/create-session:
+    post:
+      tags: [payments]
+      summary: Create Stripe checkout session
+      responses:
+        '200':
+          description: Checkout session created
+
+  /api/v1/payments/stripe/charge-status:
+    get:
+      tags: [payments]
+      summary: Get Stripe charge status
+      responses:
+        '200':
+          description: Charge status
+
+  /api/v1/payments/stripe/refund:
+    post:
+      tags: [payments]
+      summary: Refund Stripe charge
+      responses:
+        '200':
+          description: Charge refunded
+
+  /api/v1/payments/paypal/create-order:
+    post:
+      tags: [payments]
+      summary: Create PayPal order
+      responses:
+        '200':
+          description: Order created
+
+  /api/v1/payments/paypal/order-status:
+    get:
+      tags: [payments]
+      summary: Get PayPal order status
+      responses:
+        '200':
+          description: Order status
+
+  /api/v1/payments/paypal/capture:
+    post:
+      tags: [payments]
+      summary: Capture PayPal order
+      responses:
+        '200':
+          description: Order captured
+
+  /api/v1/payments/paypal/refund:
+    post:
+      tags: [payments]
+      summary: Refund PayPal capture
+      responses:
+        '200':
+          description: Capture refunded
+
+  # ============================================================================
+  # NRN Payments
+  # ============================================================================
+  /api/nrn/balance:
+    get:
+      tags: [nrn-payments]
+      summary: Get NRN account balance
+      parameters:
+        - name: address
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Account balance
+
+  /api/nrn/verify:
+    post:
+      tags: [nrn-payments]
+      summary: Verify NRN payment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [tx_hash, expected_amount, expected_recipient]
+              properties:
+                tx_hash:
+                  type: string
+                expected_amount:
+                  type: integer
+                expected_recipient:
+                  type: string
+      responses:
+        '200':
+          description: Payment verified
+
+  /api/nrn/block-height:
+    get:
+      tags: [nrn-payments]
+      summary: Get blockchain height
+      responses:
+        '200':
+          description: Block height
+
+  # ============================================================================
+  # KNIRVSHELL
+  # ============================================================================
+  /api/v1/shell/execute:
+    post:
+      tags: [knirvshell]
+      summary: Execute KNIRVSHELL command
+      responses:
+        '200':
+          description: Command executed
+
+  /api/v1/shell/wallet/info:
+    get:
+      tags: [knirvshell]
+      summary: Get wallet info
+      responses:
+        '200':
+          description: Wallet information
+
+  /api/v1/shell/wallet/send:
+    post:
+      tags: [knirvshell]
+      summary: Send token
+      responses:
+        '200':
+          description: Token sent
+
+  /api/v1/shell/validation/execute:
+    post:
+      tags: [knirvshell]
+      summary: Execute validation command
+      responses:
+        '200':
+          description: Validation executed
+
+  /api/v1/shell/tee/execute:
+    post:
+      tags: [knirvshell]
+      summary: Execute TEE command
+      responses:
+        '200':
+          description: TEE command executed
+
+  /api/v1/shell/p2p/execute:
+    post:
+      tags: [knirvshell]
+      summary: Execute P2P command
+      responses:
+        '200':
+          description: P2P command executed
+
+  /api/v1/shell/chain/execute:
+    post:
+      tags: [knirvshell]
+      summary: Execute chain command
+      responses:
+        '200':
+          description: Chain command executed
+
+  /api/v1/shell/sessions:
+    get:
+      tags: [knirvshell]
+      summary: List KNIRVSHELL sessions
+      responses:
+        '200':
+          description: List of sessions
+
+  /api/v1/shell/sessions/{id}:
+    get:
+      tags: [knirvshell]
+      summary: Get KNIRVSHELL session
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Session details
+
+  /api/v1/shell/sessions/{id}/stop:
+    post:
+      tags: [knirvshell]
+      summary: Stop KNIRVSHELL session
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Session stopped
+
+  /api/v1/shell/sessions/{id}/input:
+    post:
+      tags: [knirvshell]
+      summary: Send input to session
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Input sent
+
+  # Legacy KNIRVSHELL endpoints
+  /api/knirvshell/execute:
+    post:
+      tags: [knirvshell]
+      summary: Execute command (legacy)
+      responses:
+        '200':
+          description: Command executed
+
+  # ============================================================================
+  # Onboarding
+  # ============================================================================
+  /api/v1/onboarding/organizations:
+    post:
+      tags: [onboarding]
+      summary: Onboard organization
+      responses:
+        '201':
+          description: Organization onboarded
+    get:
+      tags: [onboarding]
+      summary: List configurations
+      responses:
+        '200':
+          description: List of configurations
+
+  /api/v1/onboarding/organizations/{id}:
+    get:
+      tags: [onboarding]
+      summary: Get configuration
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Configuration details
+    put:
+      tags: [onboarding]
+      summary: Update configuration
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Configuration updated
+    delete:
+      tags: [onboarding]
+      summary: Delete configuration
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Configuration deleted
+
+  /api/v1/onboarding/organizations/{id}/validate:
+    post:
+      tags: [onboarding]
+      summary: Validate action
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Action validated
+
+  # ============================================================================
+  # Cognitive Engine
+  # ============================================================================
+  /api/v1/cognitive/metrics/{nodeId}:
+    get:
+      tags: [cognitive]
+      summary: Get cognitive metrics
+      parameters:
+        - name: nodeId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Cognitive metrics
+
+  /api/v1/cognitive/learning-state:
+    get:
+      tags: [cognitive]
+      summary: Get learning state
+      responses:
+        '200':
+          description: Learning state
+
+  /api/v1/cognitive/adaptations:
+    get:
+      tags: [cognitive]
+      summary: Get adaptation history
+      responses:
+        '200':
+          description: Adaptation history
+
+  /api/v1/cognitive/patterns:
+    get:
+      tags: [cognitive]
+      summary: Get failure patterns
+      responses:
+        '200':
+          description: Failure patterns
+
+  /api/v1/cognitive/performance/tasks:
+    get:
+      tags: [cognitive]
+      summary: Get task performance
+      responses:
+        '200':
+          description: Task performance metrics
+
+  /api/v1/cognitive/performance/nodes:
+    get:
+      tags: [cognitive]
+      summary: Get node performance
+      responses:
+        '200':
+          description: Node performance metrics
+
+  /api/v1/cognitive/learning/trigger:
+    post:
+      tags: [cognitive]
+      summary: Trigger learning cycle
+      responses:
+        '200':
+          description: Learning cycle triggered
+
+  /api/v1/cognitive/status:
+    get:
+      tags: [cognitive]
+      summary: Get cognitive status
+      responses:
+        '200':
+          description: Cognitive engine status
+
+  # Legacy Cognitive Endpoints
+  /api/cognitive/telemetry:
+    get:
+      tags: [cognitive]
+      summary: Get telemetry data
+      responses:
+        '200':
+          description: Telemetry data
+
+  /api/cognitive/status:
+    get:
+      tags: [cognitive]
+      summary: Get cognitive status (legacy)
+      responses:
+        '200':
+          description: Cognitive status
+
+  # ============================================================================
+  # Guardrails & Policy
+  # ============================================================================
+  /api/guardrail/configure:
+    post:
+      tags: [guardrail]
+      summary: Configure guardrail
+      responses:
+        '200':
+          description: Guardrail configured
+
+  /api/guardrail/config/{nodeID}/{guardrailType}:
+    get:
+      tags: [guardrail]
+      summary: Get guardrail config
+      parameters:
+        - name: nodeID
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: guardrailType
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Guardrail configuration
+
+  /api/guardrail/validate:
+    post:
+      tags: [guardrail]
+      summary: Validate resource usage
+      responses:
+        '200':
+          description: Validation result
+
+  /api/guardrail/validate/ontology:
+    post:
+      tags: [guardrail]
+      summary: Validate ontology
+      responses:
+        '200':
+          description: Validation result
+
+  /api/guardrail/violations:
+    get:
+      tags: [guardrail]
+      summary: List violations
+      responses:
+        '200':
+          description: List of violations
+
+  /api/guardrail/violations/{id}/resolve:
+    post:
+      tags: [guardrail]
+      summary: Resolve violation
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Violation resolved
+
+  /api/guardrail/statistics:
+    get:
+      tags: [guardrail]
+      summary: Get guardrail statistics
+      responses:
+        '200':
+          description: Statistics
+
+  /api/guardrail/ontology/configure:
+    post:
+      tags: [guardrail]
+      summary: Configure ontology
+      responses:
+        '200':
+          description: Ontology configured
+
+  /api/guardrail/policies:
+    get:
+      tags: [guardrail]
+      summary: List policies
+      responses:
+        '200':
+          description: List of policies
+    post:
+      tags: [guardrail]
+      summary: Create policy
+      responses:
+        '201':
+          description: Policy created
+
+  /api/guardrail/policies/{id}:
+    get:
+      tags: [guardrail]
+      summary: Get policy
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Policy details
+    put:
+      tags: [guardrail]
+      summary: Update policy
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Policy updated
+    delete:
+      tags: [guardrail]
+      summary: Delete policy
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Policy deleted
+
+  /api/guardrail/policies/{id}/commit:
+    post:
+      tags: [guardrail]
+      summary: Commit policy
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Policy committed
+
+  /api/guardrail/policies/{id}/evaluate:
+    post:
+      tags: [guardrail]
+      summary: Evaluate policy
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Policy evaluation result
+
+  # ============================================================================
+  # System Health
+  # ============================================================================
+  /api/system-health:
+    get:
+      tags: [health-detailed]
+      summary: Get system health
+      parameters:
+        - name: detailed
+          in: query
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: System health status
+
+  /api/system-health/details:
+    get:
+      tags: [health-detailed]
+      summary: Get detailed health
+      responses:
+        '200':
+          description: Detailed health information
+
+  /api/system-health/services:
+    get:
+      tags: [health-detailed]
+      summary: Get services health
+      responses:
+        '200':
+          description: Services health status
+
+  /api/system-health/metrics:
+    get:
+      tags: [health-detailed]
+      summary: Get health metrics
+      responses:
+        '200':
+          description: Health metrics
+
+  # ============================================================================
+  # Secrets Management
+  # ============================================================================
+  /api/secrets/create:
+    post:
+      tags: [secrets]
+      summary: Create secret
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, value]
+              properties:
+                name:
+                  type: string
+                type:
+                  type: string
+                value:
+                  type: string
+                session_only:
+                  type: boolean
+      responses:
+        '201':
+          description: Secret created
+
+  /api/secrets/list:
+    get:
+      tags: [secrets]
+      summary: List secrets
+      responses:
+        '200':
+          description: List of secrets
+
+  /api/secrets/{id}:
+    get:
+      tags: [secrets]
+      summary: Get secret
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Secret details
+    delete:
+      tags: [secrets]
+      summary: Delete secret
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Secret deleted
+
+  /api/secrets/sessions/create:
+    post:
+      tags: [secrets]
+      summary: Create secret session
+      responses:
+        '201':
+          description: Session created
+
+  /api/secrets/sessions/list:
+    get:
+      tags: [secrets]
+      summary: List sessions
+      responses:
+        '200':
+          description: List of sessions
+
+  /api/secrets/sessions/{id}:
+    get:
+      tags: [secrets]
+      summary: Get session
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Session details
+
+  /api/secrets/sessions/{id}/rotate:
+    post:
+      tags: [secrets]
+      summary: Rotate session
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Session rotated
+
+  /api/secrets/sessions/{id}/revoke:
+    post:
+      tags: [secrets]
+      summary: Revoke session
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Session revoked
+
+  /api/secrets/sessions/{id}/add-secret:
+    post:
+      tags: [secrets]
+      summary: Add secret to session
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Secret added
+
+  /api/secrets/sessions/{id}/retrieve:
+    post:
+      tags: [secrets]
+      summary: Retrieve secrets
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Secrets retrieved
+
+  # ============================================================================
+  # Workflow Execution
+  # ============================================================================
+  /api/workflow/execute:
+    post:
+      tags: [workflow]
+      summary: Execute workflow
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [steps]
+              properties:
+                workflow_id:
+                  type: string
+                steps:
+                  type: array
+                  items:
+                    type: object
+      responses:
+        '200':
+          description: Workflow execution started
+
+  /api/workflow/executions:
+    get:
+      tags: [workflow]
+      summary: List workflow executions
+      responses:
+        '200':
+          description: List of executions
+
+  /api/workflow/executions/{id}:
+    get:
+      tags: [workflow]
+      summary: Get workflow execution
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Execution details
+
+  # ============================================================================
+  # Anchoring Service
+  # ============================================================================
+  /api/anchoring/evidence/create:
+    post:
+      tags: [anchoring]
+      summary: Create evidence pack
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [type, node_id]
+              properties:
+                type:
+                  type: string
+                node_id:
+                  type: string
+                evidence:
+                  type: object
+      responses:
+        '201':
+          description: Evidence pack created
+
+  /api/anchoring/evidence/list:
+    get:
+      tags: [anchoring]
+      summary: List evidence packs
+      responses:
+        '200':
+          description: List of evidence packs
+
+  /api/anchoring/evidence/{id}:
+    get:
+      tags: [anchoring]
+      summary: Get evidence pack
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Evidence pack details
+
+  /api/anchoring/evidence/{id}/sign:
+    post:
+      tags: [anchoring]
+      summary: Sign evidence pack
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Evidence pack signed
+
+  /api/anchoring/evidence/{id}/anchor:
+    post:
+      tags: [anchoring]
+      summary: Anchor to chain
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Evidence anchored
+
+  /api/anchoring/evidence/{id}/verify:
+    post:
+      tags: [anchoring]
+      summary: Verify evidence pack
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Evidence verified
+
+  /api/anchoring/statistics:
+    get:
+      tags: [anchoring]
+      summary: Get anchoring statistics
+      responses:
+        '200':
+          description: Statistics
+
+  # ============================================================================
+  # TEE Security
+  # ============================================================================
+  /api/tee/status:
+    get:
+      tags: [tee]
+      summary: Get TEE status
+      responses:
+        '200':
+          description: TEE status
+
+  /api/tee/attest:
+    post:
+      tags: [tee]
+      summary: Attest TEE
+      responses:
+        '200':
+          description: Attestation result
+
+  /api/tee/measurements:
+    get:
+      tags: [tee]
+      summary: Get TEE measurements
+      responses:
+        '200':
+          description: Measurements
+
+  /api/tee/deploy:
+    post:
+      tags: [tee]
+      summary: Deploy to TEE
+      responses:
+        '200':
+          description: Deployment result
+
+  # ============================================================================
+  # Active Memory (Markdown Fabric)
+  # ============================================================================
+  /api/memory/mcp/store:
+    post:
+      tags: [memory]
+      summary: Store interaction (MCP)
+      responses:
+        '200':
+          description: Interaction stored
+
+  /api/memory/mcp/execute/{id}:
+    post:
+      tags: [memory]
+      summary: Execute solution (MCP)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Solution executed
+
+  # ============================================================================
+  # Knowledge Base (GraphRAG)
+  # ============================================================================
+  /api/v1/knowledge-base/objects:
+    get:
+      tags: [knowledge-base]
+      summary: List knowledge bases
+      responses:
+        '200':
+          description: List of knowledge bases
+    post:
+      tags: [knowledge-base]
+      summary: Create knowledge base
+      responses:
+        '201':
+          description: Knowledge base created
+
+  /api/v1/knowledge-base/objects/{id}:
+    get:
+      tags: [knowledge-base]
+      summary: Get knowledge base
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Knowledge base details
+    put:
+      tags: [knowledge-base]
+      summary: Update knowledge base
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Knowledge base updated
+    delete:
+      tags: [knowledge-base]
+      summary: Delete knowledge base
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Knowledge base deleted
+
+  /api/v1/knowledge-base/objects/{id}/query:
+    post:
+      tags: [knowledge-base]
+      summary: Query knowledge base
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Query results
+
+  /api/v1/knowledge-base/objects/{id}/index:
+    post:
+      tags: [knowledge-base]
+      summary: Index knowledge base
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Indexing started
+
+  /api/v1/knowledge-base/objects/{id}/index-status:
+    get:
+      tags: [knowledge-base]
+      summary: Get index status
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Index status
+
+  /api/v1/knowledge-base/objects/{id}/deploy:
+    post:
+      tags: [knowledge-base]
+      summary: Deploy knowledge base
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Deployment result
+
+  /api/v1/knowledge-base/summary:
+    get:
+      tags: [knowledge-base]
+      summary: Knowledge base summary
+      responses:
+        '200':
+          description: Summary statistics
+
+  # ============================================================================
+  # KNIRVGRAPH
+  # ============================================================================
+  /api/knirvgraph/error-node:
+    post:
+      tags: [knirvgraph]
+      summary: Create error node
+      responses:
+        '201':
+          description: Error node created
+
+  /api/knirvgraph/error-nodes:
+    get:
+      tags: [knirvgraph]
+      summary: List error nodes
+      responses:
+        '200':
+          description: List of error nodes
+
+  /api/knirvgraph/error-queue:
+    get:
+      tags: [knirvgraph]
+      summary: Get error queue
+      responses:
+        '200':
+          description: Error queue
+
+  # ============================================================================
+  # Nexus Memory Fabric
+  # ============================================================================
+  /api/nexus/events:
+    get:
+      tags: [nexus]
+      summary: Get Nexus events
+      responses:
+        '200':
+          description: List of events
+
+  /api/nexus/store:
+    post:
+      tags: [nexus]
+      summary: Store in Nexus
+      responses:
+        '200':
+          description: Data stored
+
+  /api/nexus/query:
+    get:
+      tags: [nexus]
+      summary: Query Nexus
+      responses:
+        '200':
+          description: Query results
+
+  # ============================================================================
+  # Ontology
+  # ============================================================================
+  /api/ontology/stats:
+    get:
+      tags: [ontology]
+      summary: Get ontology stats
+      responses:
+        '200':
+          description: Ontology statistics
+
+  /api/ontology/entities:
+    get:
+      tags: [ontology]
+      summary: List entities
+      parameters:
+        - name: type
+          in: query
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: List of entities
+
+  /api/ontology/entities/{id}:
+    get:
+      tags: [ontology]
+      summary: Get entity
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Entity details
+
+  /api/ontology/relations:
+    get:
+      tags: [ontology]
+      summary: List relations
+      responses:
+        '200':
+          description: List of relations
+
+  /api/ontology/search:
+    get:
+      tags: [ontology]
+      summary: Search entities
+      parameters:
+        - name: q
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Search results
+
+  # ============================================================================
+  # Analytics
+  # ============================================================================
+  /api/analytics/predict:
+    get:
+      tags: [analytics]
+      summary: Predict load
+      parameters:
+        - name: metric
+          in: query
+          schema:
+            type: string
+        - name: horizon
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Prediction result
+
+  /api/analytics/recommendations:
+    get:
+      tags: [analytics]
+      summary: Get recommendations
+      responses:
+        '200':
+          description: Recommended actions
+
+  /api/analytics/trend:
+    get:
+      tags: [analytics]
+      summary: Get trend direction
+      parameters:
+        - name: metric
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Trend direction
+
+  /api/analytics/forecast:
+    get:
+      tags: [analytics]
+      summary: Get capacity forecast
+      parameters:
+        - name: horizon
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Capacity forecast
+
+  /api/analytics/metrics:
+    get:
+      tags: [analytics]
+      summary: Get analytics metrics
+      responses:
+        '200':
+          description: Metrics data
+
+  /api/analytics/record:
+    post:
+      tags: [analytics]
+      summary: Record metric
+      responses:
+        '200':
+          description: Metric recorded
+
+  # ============================================================================
+  # Rollups
+  # ============================================================================
+  /api/rollups/status:
+    get:
+      tags: [rollups]
+      summary: Get rollup status
+      responses:
+        '200':
+          description: Rollup service status
+
+  /api/rollups:
+    get:
+      tags: [rollups]
+      summary: List rollup batches
+      responses:
+        '200':
+          description: List of batches
+
+  /api/rollups/{id}:
+    get:
+      tags: [rollups]
+      summary: Get rollup batch
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Batch details
+
+  # ============================================================================
+  # WebSocket Endpoints
+  # ============================================================================
+  /ws:
+    get:
+      tags: [websocket]
+      summary: Main WebSocket connection
+      description: WebSocket proxy to backend
+      responses:
+        '101':
+          description: Switching Protocols
+
+  /ws/ssh/{sessionId}:
+    get:
+      tags: [websocket]
+      summary: SSH WebSocket
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '101':
+          description: Switching Protocols
+
+  /api/events:
+    get:
+      tags: [websocket]
+      summary: SSE log stream
+      responses:
+        '200':
+          description: Event stream
+
+  # ============================================================================
+  # Data Engine REST API (port 7080)
+  # ============================================================================
+  /api/v1/data_engine/metrics:
+    get:
+      tags: [data-engine]
+      summary: Get data engine metrics
+      responses:
+        '200':
+          description: Metrics data
+
+  /api/v1/data_engine/alerts:
+    get:
+      tags: [data-engine]
+      summary: Get data engine alerts
+      responses:
+        '200':
+          description: Alerts data
+
+  /api/v1/data_engine/events:
+    get:
+      tags: [data-engine]
+      summary: Get data engine events
+      responses:
+        '200':
+          description: Events data
+
+  # ============================================================================
+  # IC-ME (Intentional Context Memory Engine)
+  # ============================================================================
+  /api/icme/intent:
+    post:
+      tags: [icme]
+      summary: Register intent
+      responses:
+        '201':
+          description: Intent registered
+
+  /api/icme/intent/{id}:
+    get:
+      tags: [icme]
+      summary: Get intent
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Intent details
+
+  /api/icme/search:
+    post:
+      tags: [icme]
+      summary: Hybrid search
+      responses:
+        '200':
+          description: Search results
+
+  /api/icme/graph:
+    get:
+      tags: [icme]
+      summary: Get temporal hypergraph
+      responses:
+        '200':
+          description: Hypergraph data
+
+  /api/icme/delegate:
+    post:
+      tags: [icme]
+      summary: Delegation action
+      responses:
+        '200':
+          description: Delegation result
+
+  /api/icme/alignment:
+    get:
+      tags: [icme]
+      summary: Get alignment status
+      responses:
+        '200':
+          description: Alignment status
+
+  # ============================================================================
+  # Gateway Proxy Endpoints (top-level)
+  # ============================================================================
+  /network/*:
+    get:
+      tags: [system]
+      summary: Proxy to KNIRVGATEWAY network
+      description: All requests proxied to KNIRVGATEWAY
+    post:
+      tags: [system]
+      summary: Proxy to KNIRVGATEWAY network
+
+  /explorer/*:
+    get:
+      tags: [system]
+      summary: Proxy to KNIRVGATEWAY explorer
+    post:
+      tags: [system]
+      summary: Proxy to KNIRVGATEWAY explorer
+
+  /gateway/*:
+    get:
+      tags: [system]
+      summary: Proxy to KNIRVGATEWAY
+    post:
+      tags: [system]
+      summary: Proxy to KNIRVGATEWAY
+
+  /turn/*:
+    get:
+      tags: [system]
+      summary: Proxy to KNIRVGATEWAY TURN service
+    post:
+      tags: [system]
+      summary: Proxy to KNIRVGATEWAY TURN service
+
+  /tunnel/*:
+    get:
+      tags: [system]
+      summary: Tunnel proxy to gateway
+    post:
+      tags: [system]
+      summary: Tunnel proxy to gateway
+
+  # ============================================================================
+  # Shutdown
+  # ============================================================================
+  /shutdown:
+    post:
+      tags: [system]
+      summary: Shutdown server
+      description: Requires X-Shutdown-Token header
+      parameters:
+        - name: X-Shutdown-Token
+          in: header
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Server shutting down
+
+components:
+  schemas:
+    NexusEvent:
+      type: object
+      properties:
+        timestamp:
+          type: integer
+          format: int64
+        agent_id:
+          type: string
+        intent:
+          type: string
+        observed_action:
+          type: string
+        verified:
+          type: boolean
+
+    DVE:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        status:
+          type: string
+          enum: [active, inactive, error]
+        resources:
+          type: object
+
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [healthy, degraded, unhealthy]
+        services:
+          type: object
+        timestamp:
+          type: string
+          format: date-time
+
+    Plugin:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        status:
+          type: string
+        version:
+          type: string
+
+    Workflow:
+      type: object
+      properties:
+        workflow_id:
+          type: string
+        node_id:
+          type: string
+        status:
+          type: string
+        steps:
+          type: array
+          items:
+            type: object
+        created_at:
+          type: string
+          format: date-time
+
+    EvidencePack:
+      type: object
+      properties:
+        id:
+          type: string
+        type:
+          type: string
+        node_id:
+          type: string
+        status:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+
+    Policy:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        type:
+          type: string
+        status:
+          type: string
+        rules:
+          type: object

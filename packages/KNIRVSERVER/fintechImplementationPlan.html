@@ -1,0 +1,1373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FinTech Validation Plugin &amp; Core Platform Services — Implementation Plan</title>
+  <style>
+    :root {
+      --bg: #0d0f14;
+      --surface: #151821;
+      --surface2: #1c2030;
+      --border: #2a2f3e;
+      --accent: #4f8ef7;
+      --accent2: #7c5cbf;
+      --success: #3ecf8e;
+      --warn: #f5a623;
+      --danger: #e55353;
+      --text: #e2e8f0;
+      --muted: #8892a4;
+      --code-bg: #0a0c10;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      font-size: 14px;
+    }
+    header {
+      background: linear-gradient(135deg, #0d1526 0%, #1a0d2e 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 32px 48px;
+    }
+    header h1 { font-size: 28px; font-weight: 700; letter-spacing: -0.5px; }
+    header h1 span { color: var(--accent); }
+    header p { color: var(--muted); margin-top: 6px; font-size: 13px; }
+    .badge {
+      display: inline-block;
+      padding: 2px 10px;
+      border-radius: 99px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+    .badge-blue { background: rgba(79,142,247,0.15); color: var(--accent); border: 1px solid rgba(79,142,247,0.3); }
+    .badge-purple { background: rgba(124,92,191,0.15); color: #a57ef5; border: 1px solid rgba(124,92,191,0.3); }
+    .badge-green { background: rgba(62,207,142,0.15); color: var(--success); border: 1px solid rgba(62,207,142,0.3); }
+    .badge-warn { background: rgba(245,166,35,0.15); color: var(--warn); border: 1px solid rgba(245,166,35,0.3); }
+    .badge-red { background: rgba(229,83,83,0.15); color: var(--danger); border: 1px solid rgba(229,83,83,0.3); }
+    .container { max-width: 1100px; margin: 0 auto; padding: 40px 48px; }
+    section { margin-bottom: 52px; }
+    h2 {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 20px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    h2 .num {
+      background: var(--accent);
+      color: #fff;
+      width: 26px;
+      height: 26px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 800;
+      flex-shrink: 0;
+    }
+    h3 { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 12px; margin-top: 20px; }
+    p { color: var(--muted); margin-bottom: 12px; }
+    p strong { color: var(--text); }
+    ul, ol { padding-left: 20px; color: var(--muted); margin-bottom: 12px; }
+    li { margin-bottom: 6px; }
+    li strong { color: var(--text); }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 20px 24px;
+      margin-bottom: 16px;
+    }
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+    .card-title { font-size: 14px; font-weight: 600; color: var(--text); }
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+    @media (max-width: 800px) { .grid2, .grid3 { grid-template-columns: 1fr; } }
+    code, pre {
+      font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+      font-size: 12px;
+    }
+    pre {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px;
+      overflow-x: auto;
+      margin: 12px 0;
+      line-height: 1.7;
+      color: #c9d1d9;
+    }
+    .kw { color: #ff7b72; }
+    .ty { color: #79c0ff; }
+    .st { color: #a5d6ff; }
+    .cm { color: #8b949e; }
+    .fn { color: #d2a8ff; }
+    .nu { color: #f0883e; }
+    code.inline {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      padding: 1px 6px;
+      border-radius: 4px;
+      color: #a5d6ff;
+    }
+    .step-row {
+      display: flex;
+      gap: 16px;
+      align-items: flex-start;
+      margin-bottom: 20px;
+    }
+    .step-num {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      width: 36px;
+      height: 36px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--accent);
+    }
+    .step-body { flex: 1; }
+    .step-body h4 { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 6px; }
+    .alert {
+      border-radius: 8px;
+      padding: 14px 18px;
+      margin-bottom: 16px;
+      border-left: 3px solid;
+    }
+    .alert-warn { background: rgba(245,166,35,0.08); border-color: var(--warn); }
+    .alert-blue { background: rgba(79,142,247,0.08); border-color: var(--accent); }
+    .alert-green { background: rgba(62,207,142,0.08); border-color: var(--success); }
+    .alert-red { background: rgba(229,83,83,0.08); border-color: var(--danger); }
+    .alert p { margin: 0; font-size: 13px; }
+    .alert .alert-title { font-weight: 600; color: var(--text); margin-bottom: 4px; font-size: 13px; }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 16px; }
+    th { text-align: left; padding: 10px 14px; background: var(--surface2); color: var(--muted); font-size: 11px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; border-bottom: 1px solid var(--border); }
+    td { padding: 10px 14px; border-bottom: 1px solid rgba(42,47,62,0.6); color: var(--muted); font-size: 13px; vertical-align: top; }
+    td strong { color: var(--text); }
+    tr:last-child td { border-bottom: none; }
+    .phase-header {
+      background: linear-gradient(90deg, rgba(79,142,247,0.1) 0%, transparent 100%);
+      border: 1px solid rgba(79,142,247,0.2);
+      border-radius: 10px;
+      padding: 16px 20px;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .phase-header .phase-icon {
+      font-size: 22px;
+      width: 44px;
+      height: 44px;
+      background: rgba(79,142,247,0.15);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .phase-header h3 { margin: 0; font-size: 16px; }
+    .phase-header p { margin: 2px 0 0 0; font-size: 12px; }
+    .file-path {
+      font-family: monospace;
+      font-size: 11px;
+      color: var(--accent);
+      background: rgba(79,142,247,0.08);
+      padding: 2px 8px;
+      border-radius: 4px;
+      white-space: nowrap;
+    }
+    .toc a {
+      color: var(--muted);
+      text-decoration: none;
+      display: block;
+      padding: 4px 0;
+      font-size: 13px;
+      transition: color 0.15s;
+    }
+    .toc a:hover { color: var(--accent); }
+    .toc-section { font-weight: 600; color: var(--text); font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 14px; margin-bottom: 4px; }
+    .divider { border: none; border-top: 1px solid var(--border); margin: 32px 0; }
+    .callout-box {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 20px;
+      margin-bottom: 16px;
+    }
+    .callout-box .label { font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+    .callout-box .value { font-size: 13px; color: var(--text); }
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 6px; }
+    .dot-green { background: var(--success); }
+    .dot-warn { background: var(--warn); }
+    .dot-red { background: var(--danger); }
+    .dot-blue { background: var(--accent); }
+    .flow-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 16px 0; }
+    .flow-box {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 8px 14px;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text);
+    }
+    .flow-arrow { color: var(--muted); font-size: 16px; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>KNIRVSERVER — <span>FinTech Validation</span> Plugin Implementation Plan</h1>
+  <p>Elevating core validation services to the platform layer · Scoping the FinTech plugin to compliance ontologies only · Migrating payment processing to KNIRVORACLE</p>
+</header>
+
+<div class="container">
+
+  <!-- ── TOC ── -->
+  <section>
+    <div class="card">
+      <div class="toc-section">Contents</div>
+      <div class="toc">
+        <a href="#s1">1 — Current State &amp; Diagnosis</a>
+        <a href="#s2">2 — Architecture Decision: Plugin vs Service</a>
+        <a href="#s3">3 — What is Fintech vs Basic Validation</a>
+        <a href="#s4">4 — Phase 1 — Plugin Registration &amp; Lifecycle</a>
+        <a href="#s5">5 — Phase 2 — Config Expansion &amp; Runtime Toggle</a>
+        <a href="#s6">6 — Phase 3 — Backend API: Enable/Disable Endpoint</a>
+        <a href="#s7">7 — Phase 4 — Frontend Plugin Panel Integration</a>
+        <a href="#s8">8 — Phase 5 — Compliance Dashboard Gating</a>
+        <a href="#s9">9 — Phase 6 — Elevating Core Services &amp; Migrating Payments</a>
+        <a href="#s10">10 — Testing Checklist</a>
+        <a href="#s11">11 — File Manifest</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 1: Current State ── -->
+  <section id="s1">
+    <h2><span class="num">1</span>Current State &amp; Diagnosis</h2>
+
+    <div class="alert alert-warn">
+      <div class="alert-title">⚠ The fintech plugin exists but is not properly wired as a plugin</div>
+      <p>The code lives under <code>services/plugins/fintech/</code> but is not registered with <code>PluginManagementService</code>. Routes conditionally register when <code>Config.Enabled</code> is true, but there is no runtime activate/deactivate path — only a compile-time config flag. The frontend dashboard renders unconditionally regardless of service state.</p>
+    </div>
+
+    <h3>What Already Exists</h3>
+    <table>
+      <thead>
+        <tr><th>Component</th><th>Location</th><th>Status</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>FinTechValidatorService</strong></td>
+          <td><span class="file-path">backend_server/internal/services/plugins/fintech/fintech_validator/service.go</span></td>
+          <td><span class="badge badge-warn">Exists, not wired</span></td>
+        </tr>
+        <tr>
+          <td><strong>HTTP Handlers</strong></td>
+          <td><span class="file-path">backend_server/internal/services/plugins/fintech/fintech_validator/handlers.go</span></td>
+          <td><span class="badge badge-warn">Exists, not registered in server</span></td>
+        </tr>
+        <tr>
+          <td><strong>Ontology Layer (KYC/AML/SEC/Basel)</strong></td>
+          <td><span class="file-path">backend_server/internal/services/plugins/fintech/ontology/</span></td>
+          <td><span class="badge badge-green">Complete</span></td>
+        </tr>
+        <tr>
+          <td><strong>Evidence Packs, Certificates, NRV Tracer, Fidelity Scorer, Trajectory, Tick Streaming</strong></td>
+          <td><span class="file-path">backend_server/internal/services/plugins/fintech/</span></td>
+          <td><span class="badge badge-warn">Complete but wrong location — must move to core platform</span></td>
+        </tr>
+        <tr>
+          <td><strong>Stripe / PayPal Services</strong></td>
+          <td><span class="file-path">backend_server/internal/services/plugins/fintech/stripe_service.go</span></td>
+          <td><span class="badge badge-red">Wrong package — migrate to KNIRVORACLE (see §3)</span></td>
+        </tr>
+        <tr>
+          <td><strong>Thin FintechConfig in AppConfig</strong></td>
+          <td><span class="file-path">backend_server/internal/config/config.go:51</span></td>
+          <td><span class="badge badge-warn">Only Enabled + IntentThreshold</span></td>
+        </tr>
+        <tr>
+          <td><strong>PluginManagementService</strong></td>
+          <td><span class="file-path">backend_server/internal/services/pluginmanagement/plugin_management_service.go</span></td>
+          <td><span class="badge badge-blue">Working, fintech not registered</span></td>
+        </tr>
+        <tr>
+          <td><strong>Financial Compliance Dashboard</strong></td>
+          <td><span class="file-path">frontend/src/components/dashboard/financial-compliance-dashboard.tsx</span></td>
+          <td><span class="badge badge-warn">Renders unconditionally</span></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>The Core Problem</h3>
+    <p>The fintech plugin was implemented as an internal service, not as a first-class plugin in the existing plugin framework. As a result:</p>
+    <ul>
+      <li>There is no way to activate or deactivate it at runtime through the admin UI</li>
+      <li>The config toggle (<code>fintech.enabled</code>) only takes effect at server startup</li>
+      <li>The frontend dashboard is always visible even when the service is off</li>
+      <li>The <code>FinTechValidatorService</code> is never constructed or injected into the server — the handlers file exists but routes are never registered</li>
+      <li>Payment-processing code (Stripe, PayPal) was placed in a validation plugin rather than in KNIRVORACLE where NRN Faucet transactions belong</li>
+      <li>Core platform services (EvidencePack signing, Certificates, NRV Tracing, Fidelity Scoring, Trajectory Capture, Tick Streaming) are locked inside the fintech package and unavailable to other validation consumers</li>
+    </ul>
+  </section>
+
+  <!-- ── 2: Architecture ── -->
+  <section id="s2">
+    <h2><span class="num">2</span>Architecture Decision: Plugin vs Service</h2>
+
+    <p>The existing <code>PluginManagementService</code> manages WASM/LoRA/external binary plugins with lifecycle states: <code>uploaded → deployed → running → stopped</code>. The FinTech validator is a <strong>built-in Go service</strong>, not a WASM module.</p>
+
+    <div class="alert alert-blue">
+      <div class="alert-title">Decision: Register FinTech as a "Built-in System Plugin"</div>
+      <p>Introduce a <code>BuiltinPlugin</code> interface alongside the WASM plugin framework. FinTech registers as a builtin with a fixed ID (<code>fintech-validator</code>). It appears in the plugin list, can be toggled on/off at runtime via the same plugin API, and persists its enabled state in the database — without needing a WASM binary upload.</p>
+    </div>
+
+    <div class="flow-row">
+      <div class="flow-box">Plugin Admin UI</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-box">POST /api/plugins/fintech-validator/toggle</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-box">PluginManagementService.SetEnabled()</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-box">FinTechValidatorService.Start/Stop()</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-box">Routes mount / unmount</div>
+    </div>
+
+    <p>This avoids coupling to WASM infrastructure while still using the existing plugin management UX and API surface. The frontend plugin panel needs one new card; no new pages.</p>
+  </section>
+
+  <!-- ── 3: What is Fintech ── -->
+  <section id="s3">
+    <h2><span class="num">3</span>What is FinTech vs Basic Validation</h2>
+
+    <div class="alert alert-warn">
+      <div class="alert-title">Some code in the fintech package belongs in core validation</div>
+      <p>Before wiring fintech as a plugin, the boundary between fintech-specific and general validation must be clarified so core features are not accidentally gated behind the fintech toggle.</p>
+    </div>
+
+    <p>After reclassification, the FinTech plugin shrinks to its correct scope: <strong>regulatory compliance ontologies and the engine that evaluates financial actions against them</strong>. Everything else either belongs to the core validation platform or to KNIRVORACLE.</p>
+
+    <table>
+      <thead>
+        <tr><th>Feature / Code</th><th>Correct Home</th><th>Action</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>ValidationCore.CreateValidationTask / ExecuteValidation</strong></td>
+          <td><span class="badge badge-green">Core — services/validation/</span></td>
+          <td>Already correct. FinTech calls it as a consumer.</td>
+        </tr>
+        <tr>
+          <td><strong>EvidencePack signing (PQC)</strong></td>
+          <td><span class="badge badge-green">Core — services/validation/evidence/</span></td>
+          <td>Move out of <code>fintech/</code>. Any validation type (not just financial) may produce a PQC-signed evidence pack. FinTech plugin becomes a consumer.</td>
+        </tr>
+        <tr>
+          <td><strong>Certificates of Correctness</strong></td>
+          <td><span class="badge badge-green">Core — services/validation/certificate/</span></td>
+          <td>Move out of <code>fintech/</code>. Certificates apply to any validated agent, not exclusively financial ones.</td>
+        </tr>
+        <tr>
+          <td><strong>NRV Tracer</strong></td>
+          <td><span class="badge badge-green">Core — services/validation/tracer/</span></td>
+          <td>Move out of <code>fintech/</code>. Reasoning-step tracing is a general agent auditability feature. FinTech plugin adds financial-context annotations on top.</td>
+        </tr>
+        <tr>
+          <td><strong>Fidelity Scorer</strong></td>
+          <td><span class="badge badge-green">Core — services/validation/fidelity/</span></td>
+          <td>Move out of <code>fintech/</code>. Semantic fidelity scoring is not specific to financial use cases.</td>
+        </tr>
+        <tr>
+          <td><strong>Trajectory Capture (eBPF) &amp; Replay Engine</strong></td>
+          <td><span class="badge badge-green">Core — services/validation/trajectory/</span></td>
+          <td>Move out of <code>fintech/</code>. eBPF-based determinism capture is a general-purpose execution auditing primitive.</td>
+        </tr>
+        <tr>
+          <td><strong>Tick Data Streaming (Arrow Flight)</strong></td>
+          <td><span class="badge badge-green">Core — services/validation/streaming/</span></td>
+          <td>Move out of <code>fintech/</code>. Arrow Flight tick streaming is a data-ingestion utility applicable to any real-time validation workload.</td>
+        </tr>
+        <tr>
+          <td><strong>KYC / AML / SEC / Basel ontologies</strong></td>
+          <td><span class="badge badge-blue">FinTech Plugin only</span></td>
+          <td>Stays inside plugin. These are financial-regulatory frameworks with no general applicability.</td>
+        </tr>
+        <tr>
+          <td><strong>ComplianceEngine (financial action validation)</strong></td>
+          <td><span class="badge badge-blue">FinTech Plugin only</span></td>
+          <td>Stays inside plugin. Evaluates <code>FinancialAction</code> objects against ontology rules.</td>
+        </tr>
+        <tr>
+          <td><strong>Regulatory Scenario Vault</strong></td>
+          <td><span class="badge badge-blue">FinTech Plugin only</span></td>
+          <td>Stays inside plugin. Regulatory injection scenarios are inherently financial-domain.</td>
+        </tr>
+        <tr>
+          <td><strong>SemanticDistanceCalculator (fintech context)</strong></td>
+          <td><span class="badge badge-blue">FinTech Plugin only</span></td>
+          <td>The <em>generic</em> distance algorithm moves to core; the <em>financial-ontology-aware</em> wrapper stays in the plugin.</td>
+        </tr>
+        <tr>
+          <td><strong>Stripe / PayPal payment processing</strong></td>
+          <td><span class="badge badge-warn">KNIRVORACLE</span></td>
+          <td>Migrate to <code>packages/KNIRVSERVER/backend_server/internal/oracle/payments/</code>. These process NRN Faucet transactions and belong inside the oracle's privileged execution boundary, not inside a compliance validation plugin.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="alert alert-blue">
+      <div class="alert-title">After reclassification: what the FinTech plugin actually owns</div>
+      <p>KYC / AML / SEC / Basel ontologies · ComplianceEngine (financial action validation) · Regulatory Scenario Vault · Financial-context NRV annotations. Everything else it previously held is promoted to the core validation platform and re-imported as dependencies.</p>
+    </div>
+
+    <div class="alert alert-warn">
+      <div class="alert-title">Stripe / PayPal → KNIRVORACLE, not a generic payments service</div>
+      <p><code>stripe_service.go</code> and <code>paypal_service.go</code> process value transfers tied to NRN Faucet mechanics. This is oracle-privileged work — it requires access to <code>root.key</code> and should live inside the oracle execution boundary at <code>backend_server/internal/oracle/payments/</code>. It must never be callable without an authenticated oracle session.</p>
+    </div>
+  </section>
+
+  <!-- ── 4: Phase 1 ── -->
+  <section id="s4">
+    <h2><span class="num">4</span>Phase 1 — Plugin Registration &amp; Lifecycle</h2>
+
+    <div class="phase-header">
+      <div class="phase-icon">🔌</div>
+      <div>
+        <h3>Register FinTech as a Built-in Plugin</h3>
+        <p>Goal: FinTech validator appears in the plugin list and its lifecycle (start/stop) is managed by <code>PluginManagementService</code></p>
+      </div>
+    </div>
+
+    <div class="step-row">
+      <div class="step-num">1</div>
+      <div class="step-body">
+        <h4>Define the <code>BuiltinPlugin</code> interface</h4>
+        <p>Create a new file <span class="file-path">backend_server/internal/services/pluginmanagement/builtin_plugin.go</span>:</p>
+        <pre><span class="kw">package</span> pluginmanagement
+
+<span class="cm">// BuiltinPlugin is implemented by first-party Go services that want</span>
+<span class="cm">// to appear in the plugin registry and be toggled at runtime.</span>
+<span class="kw">type</span> <span class="ty">BuiltinPlugin</span> <span class="kw">interface</span> {
+    PluginID()    <span class="ty">string</span>
+    PluginName()  <span class="ty">string</span>
+    Category()    <span class="ty">string</span>
+    Description() <span class="ty">string</span>
+    Version()     <span class="ty">string</span>
+
+    IsEnabled()   <span class="ty">bool</span>
+    IsRunning()   <span class="ty">bool</span>
+
+    <span class="fn">Start</span>(ctx <span class="ty">context.Context</span>) <span class="ty">error</span>
+    <span class="fn">Stop</span>(ctx <span class="ty">context.Context</span>) <span class="ty">error</span>
+}</pre>
+      </div>
+    </div>
+
+    <div class="step-row">
+      <div class="step-num">2</div>
+      <div class="step-body">
+        <h4>Add builtin registry to <code>PluginManagementService</code></h4>
+        <p>In <span class="file-path">plugin_management_service.go</span>, add a <code>builtins</code> map and a registration method:</p>
+        <pre><span class="cm">// In PluginManagementService struct</span>
+builtins <span class="ty">map</span>[<span class="ty">string</span>]<span class="ty">BuiltinPlugin</span>
+
+<span class="kw">func</span> (s *<span class="ty">PluginManagementService</span>) <span class="fn">RegisterBuiltin</span>(p <span class="ty">BuiltinPlugin</span>) {
+    s.mu.Lock()
+    <span class="kw">defer</span> s.mu.Unlock()
+    s.builtins[p.<span class="fn">PluginID</span>()] = p
+}
+
+<span class="kw">func</span> (s *<span class="ty">PluginManagementService</span>) <span class="fn">ToggleBuiltin</span>(id <span class="ty">string</span>, enable <span class="ty">bool</span>) <span class="ty">error</span> {
+    p, ok := s.builtins[id]
+    <span class="kw">if</span> !ok {
+        <span class="kw">return</span> fmt.<span class="fn">Errorf</span>(<span class="st">"builtin plugin not found: %s"</span>, id)
+    }
+    <span class="kw">if</span> enable {
+        <span class="kw">return</span> p.<span class="fn">Start</span>(context.<span class="fn">Background</span>())
+    }
+    <span class="kw">return</span> p.<span class="fn">Stop</span>(context.<span class="fn">Background</span>())
+}</pre>
+      </div>
+    </div>
+
+    <div class="step-row">
+      <div class="step-num">3</div>
+      <div class="step-body">
+        <h4>Implement <code>BuiltinPlugin</code> on <code>FinTechValidatorService</code></h4>
+        <p>Add a thin adapter file <span class="file-path">backend_server/internal/services/plugins/fintech/fintech_validator/plugin_adapter.go</span>:</p>
+        <pre><span class="kw">func</span> (s *<span class="ty">FinTechValidatorService</span>) <span class="fn">PluginID</span>()    <span class="ty">string</span> { <span class="kw">return</span> <span class="st">"fintech-validator"</span> }
+<span class="kw">func</span> (s *<span class="ty">FinTechValidatorService</span>) <span class="fn">PluginName</span>()  <span class="ty">string</span> { <span class="kw">return</span> <span class="st">"FinTech Compliance Validator"</span> }
+<span class="kw">func</span> (s *<span class="ty">FinTechValidatorService</span>) <span class="fn">Category</span>()    <span class="ty">string</span> { <span class="kw">return</span> <span class="st">"compliance"</span> }
+<span class="kw">func</span> (s *<span class="ty">FinTechValidatorService</span>) <span class="fn">Description</span>() <span class="ty">string</span> {
+    <span class="kw">return</span> <span class="st">"KYC/AML/SEC/Basel AI agent compliance with NRV tracing and PQC-signed evidence packs"</span>
+}
+<span class="kw">func</span> (s *<span class="ty">FinTechValidatorService</span>) <span class="fn">Version</span>() <span class="ty">string</span> { <span class="kw">return</span> <span class="st">"1.0.0"</span> }
+
+<span class="kw">func</span> (s *<span class="ty">FinTechValidatorService</span>) <span class="fn">Start</span>(_ <span class="ty">context.Context</span>) <span class="ty">error</span> {
+    s.mu.Lock()
+    <span class="kw">defer</span> s.mu.Unlock()
+    s.Config.Enabled = <span class="kw">true</span>
+    s.running = <span class="kw">true</span>
+    <span class="kw">return</span> <span class="kw">nil</span>
+}
+
+<span class="kw">func</span> (s *<span class="ty">FinTechValidatorService</span>) <span class="fn">Stop</span>(_ <span class="ty">context.Context</span>) <span class="ty">error</span> {
+    s.mu.Lock()
+    <span class="kw">defer</span> s.mu.Unlock()
+    s.Config.Enabled = <span class="kw">false</span>
+    s.running = <span class="kw">false</span>
+    <span class="kw">return</span> <span class="kw">nil</span>
+}</pre>
+        <p>Add a <code>mu sync.RWMutex</code> and <code>running bool</code> field to <code>FinTechValidatorService</code>. Update <code>IsRunning()</code> to read <code>s.running</code> under the lock.</p>
+      </div>
+    </div>
+
+    <div class="step-row">
+      <div class="step-num">4</div>
+      <div class="step-body">
+        <h4>Construct the service and register it in <code>main.go</code></h4>
+        <p>In <span class="file-path">backend_server/cmd/backend_server/main.go</span>, after the validation core and PQC manager are built:</p>
+        <pre><span class="cm">// Construct core platform validation services (shared, not fintech-specific)</span>
+evidenceStore  := evidence.<span class="fn">NewMarkdownStore</span>(mdStorage, pqcManager)
+certManager    := certificate.<span class="fn">NewManager</span>(pqcManager, cfg.Validation.MasterKeyID)
+nrvTracer      := tracer.<span class="fn">NewNRVTracer</span>()
+fidelityScorer := fidelity.<span class="fn">NewScorer</span>(cfg.Validation.EnableFidelityScoring)
+replayEngine   := trajectory.<span class="fn">NewReplayEngine</span>()
+tickStreamMgr  := streaming.<span class="fn">NewTickStreamManager</span>()
+
+<span class="cm">// Construct FinTech plugin from compliance-only config</span>
+fintechCfg := &amp;fintech_validator.<span class="ty">Config</span>{
+    Enabled:               cfg.Fintech.Enabled,
+    EnableAMLChecks:       cfg.Fintech.EnableAML,
+    EnableKYCCheks:        cfg.Fintech.EnableKYC,
+    EnableSECCheks:        cfg.Fintech.EnableSEC,
+    EnableBaselCheks:      cfg.Fintech.EnableBasel,
+    EnableScenarioTesting: cfg.Fintech.EnableScenarioTesting,
+}
+fintechSvc, err := fintech_validator.<span class="fn">NewFinTechValidatorService</span>(
+    validationCore, pqcManager, mdStorage, fintechCfg,
+)
+<span class="kw">if</span> err != <span class="kw">nil</span> {
+    log.<span class="fn">Fatalf</span>(<span class="st">"fintech validator init: %v"</span>, err)
+}
+
+<span class="cm">// Register as builtin plugin — always registered, enabled state from config</span>
+pluginMgmt.<span class="fn">RegisterBuiltin</span>(fintechSvc)
+
+<span class="cm">// Register HTTP routes (handlers check Config.Enabled per request)</span>
+fintechHandlers := fintech_validator.<span class="fn">NewHandlers</span>(fintechSvc)
+fintechHandlers.<span class="fn">RegisterRoutes</span>(apiRouter, authMiddleware)</pre>
+        <p>Routes are always mounted — the handler checks <code>s.IsRunning()</code> and returns <code>503 Service Unavailable</code> when the plugin is disabled, rather than unmounting routes dynamically (which requires a router restart).</p>
+      </div>
+    </div>
+
+    <div class="step-row">
+      <div class="step-num">5</div>
+      <div class="step-body">
+        <h4>Update <code>RegisterRoutes</code> to return 503 when disabled</h4>
+        <p>In <span class="file-path">handlers.go</span>, replace the early-return route registration skip with a middleware that checks runtime state:</p>
+        <pre><span class="kw">func</span> (h *<span class="ty">Handlers</span>) <span class="fn">requireEnabled</span>(next <span class="ty">http.HandlerFunc</span>) <span class="ty">http.HandlerFunc</span> {
+    <span class="kw">return func</span>(w <span class="ty">http.ResponseWriter</span>, r *<span class="ty">http.Request</span>) {
+        <span class="kw">if</span> !h.service.<span class="fn">IsRunning</span>() {
+            w.<span class="fn">Header</span>().<span class="fn">Set</span>(<span class="st">"Content-Type"</span>, <span class="st">"application/json"</span>)
+            w.<span class="fn">WriteHeader</span>(http.StatusServiceUnavailable)
+            json.<span class="fn">NewEncoder</span>(w).<span class="fn">Encode</span>(<span class="kw">map</span>[<span class="ty">string</span>]<span class="ty">interface</span>{}{
+                <span class="st">"error"</span>: <span class="st">"fintech-validator plugin is not enabled"</span>,
+                <span class="st">"plugin_id"</span>: <span class="st">"fintech-validator"</span>,
+            })
+            <span class="kw">return</span>
+        }
+        next(w, r)
+    }
+}</pre>
+        <p>Wrap all protected routes with this middleware. The status endpoint (<code>GET /api/fintech/status</code>) remains open and returns the current enabled state.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 5: Phase 2 ── -->
+  <section id="s5">
+    <h2><span class="num">5</span>Phase 2 — Config Expansion &amp; Runtime Toggle</h2>
+
+    <div class="phase-header">
+      <div class="phase-icon">⚙️</div>
+      <div>
+        <h3>Expand FintechConfig to cover all feature flags</h3>
+        <p>Goal: All fields in <code>fintech_validator.Config</code> are controllable from the config file and the runtime API</p>
+      </div>
+    </div>
+
+    <div class="step-row">
+      <div class="step-num">1</div>
+      <div class="step-body">
+        <h4>Expand <code>FintechConfig</code> in <span class="file-path">config.go</span></h4>
+        <pre><span class="cm">// FintechConfig — compliance-specific flags only.</span>
+<span class="cm">// NRV Tracing, Fidelity Scoring, Trajectory Capture, Tick Streaming,</span>
+<span class="cm">// Evidence Signing, and Certificates are controlled by ValidationConfig.</span>
+<span class="kw">type</span> <span class="ty">FintechConfig</span> <span class="kw">struct</span> {
+    Enabled               <span class="ty">bool</span>    <span class="st">`mapstructure:"enabled"`</span>
+    IntentThreshold       <span class="ty">float64</span> <span class="st">`mapstructure:"intent_threshold"`</span>
+
+    <span class="cm">// Compliance ontology modules</span>
+    EnableAML             <span class="ty">bool</span>    <span class="st">`mapstructure:"enable_aml"`</span>
+    EnableKYC             <span class="ty">bool</span>    <span class="st">`mapstructure:"enable_kyc"`</span>
+    EnableSEC             <span class="ty">bool</span>    <span class="st">`mapstructure:"enable_sec"`</span>
+    EnableBasel           <span class="ty">bool</span>    <span class="st">`mapstructure:"enable_basel"`</span>
+
+    <span class="cm">// Regulatory scenario vault</span>
+    EnableScenarioTesting <span class="ty">bool</span>    <span class="st">`mapstructure:"enable_scenarios"`</span>
+}
+
+<span class="cm">// ValidationConfig — platform-level validation service flags.</span>
+<span class="kw">type</span> <span class="ty">ValidationConfig</span> <span class="kw">struct</span> {
+    <span class="cm">// Evidence &amp; Certificates</span>
+    EnableEvidenceSigning <span class="ty">bool</span>    <span class="st">`mapstructure:"enable_evidence_signing"`</span>
+    AutoSignEvidencePacks <span class="ty">bool</span>    <span class="st">`mapstructure:"auto_sign_evidence"`</span>
+    EnableCertification   <span class="ty">bool</span>    <span class="st">`mapstructure:"enable_certification"`</span>
+    MasterKeyID           <span class="ty">string</span>  <span class="st">`mapstructure:"master_key_id"`</span>
+
+    <span class="cm">// NRV Tracing &amp; Fidelity</span>
+    EnableNRVTracing      <span class="ty">bool</span>    <span class="st">`mapstructure:"enable_nrv_tracing"`</span>
+    EnableFidelityScoring <span class="ty">bool</span>    <span class="st">`mapstructure:"enable_fidelity_scoring"`</span>
+
+    <span class="cm">// Trajectory Capture (eBPF)</span>
+    EnableTrajectoryCapture <span class="ty">bool</span>  <span class="st">`mapstructure:"enable_trajectory_capture"`</span>
+    EnableReplayEngine     <span class="ty">bool</span>    <span class="st">`mapstructure:"enable_replay_engine"`</span>
+
+    <span class="cm">// Tick Data Streaming (Arrow Flight)</span>
+    EnableTickStreaming    <span class="ty">bool</span>    <span class="st">`mapstructure:"enable_tick_streaming"`</span>
+    TickServerPort        <span class="ty">string</span>  <span class="st">`mapstructure:"tick_server_port"`</span>
+}</pre>
+      </div>
+    </div>
+
+    <div class="step-row">
+      <div class="step-num">2</div>
+      <div class="step-body">
+        <h4>Add a <code>RuntimeConfig()</code> method to the service</h4>
+        <p>Expose the current live configuration as JSON so the admin API and frontend can read it:</p>
+        <pre><span class="kw">func</span> (s *<span class="ty">FinTechValidatorService</span>) <span class="fn">RuntimeConfig</span>() *<span class="ty">Config</span> {
+    s.mu.RLock()
+    <span class="kw">defer</span> s.mu.RUnlock()
+    cp := *s.Config
+    <span class="kw">return</span> &amp;cp
+}
+
+<span class="kw">func</span> (s *<span class="ty">FinTechValidatorService</span>) <span class="fn">UpdateConfig</span>(patch *<span class="ty">ConfigPatch</span>) <span class="ty">error</span> {
+    s.mu.Lock()
+    <span class="kw">defer</span> s.mu.Unlock()
+    <span class="cm">// Apply only non-nil fields from patch</span>
+    <span class="kw">if</span> patch.EnableAMLChecks != <span class="kw">nil</span> { s.Config.EnableAMLChecks = *patch.EnableAMLChecks }
+    <span class="kw">if</span> patch.EnableKYCCheks != <span class="kw">nil</span>  { s.Config.EnableKYCCheks  = *patch.EnableKYCCheks  }
+    <span class="cm">// ... rest of flags</span>
+    <span class="kw">return</span> <span class="kw">nil</span>
+}</pre>
+        <p><code>ConfigPatch</code> uses pointer booleans so callers can update individual flags without resetting others.</p>
+      </div>
+    </div>
+
+    <div class="step-row">
+      <div class="step-num">3</div>
+      <div class="step-body">
+        <h4>Persist enabled state across restarts</h4>
+        <p>When <code>ToggleBuiltin</code> is called in <code>PluginManagementService</code>, persist the new state to the BuntDB database under a <code>builtin:fintech-validator:enabled</code> key. On startup, read this key to override the config file default.</p>
+        <pre><span class="cm">// In PluginManagementService.Start():</span>
+<span class="kw">for</span> id, p := <span class="kw">range</span> s.builtins {
+    enabled, _ := s.<span class="fn">loadBuiltinState</span>(id)
+    <span class="kw">if</span> enabled &amp;&amp; !p.<span class="fn">IsRunning</span>() {
+        p.<span class="fn">Start</span>(ctx)
+    }
+}</pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 6: Phase 3 ── -->
+  <section id="s6">
+    <h2><span class="num">6</span>Phase 3 — Backend API: Enable/Disable Endpoint</h2>
+
+    <div class="phase-header">
+      <div class="phase-icon">🔁</div>
+      <div>
+        <h3>Expose runtime toggle via the Plugin Management API</h3>
+        <p>Goal: One API endpoint to enable/disable, one to read current config — consumed by the frontend</p>
+      </div>
+    </div>
+
+    <div class="step-row">
+      <div class="step-num">1</div>
+      <div class="step-body">
+        <h4>Add toggle endpoint in <span class="file-path">backend_server/internal/web/plugin_management_handlers.go</span></h4>
+        <pre><span class="cm">// POST /api/plugins/builtin/{id}/toggle</span>
+<span class="kw">func</span> (h *<span class="ty">PluginManagementHandlers</span>) <span class="fn">HandleToggleBuiltin</span>(w <span class="ty">http.ResponseWriter</span>, r *<span class="ty">http.Request</span>) {
+    id := mux.<span class="fn">Vars</span>(r)[<span class="st">"id"</span>]
+    <span class="kw">var</span> body <span class="kw">struct</span>{ Enable <span class="ty">bool</span> <span class="st">`json:"enable"`</span> }
+    json.<span class="fn">NewDecoder</span>(r.Body).<span class="fn">Decode</span>(&amp;body)
+
+    <span class="kw">if</span> err := h.pluginMgmt.<span class="fn">ToggleBuiltin</span>(id, body.Enable); err != <span class="kw">nil</span> {
+        http.<span class="fn">Error</span>(w, err.<span class="fn">Error</span>(), http.StatusBadRequest)
+        <span class="kw">return</span>
+    }
+    json.<span class="fn">NewEncoder</span>(w).<span class="fn">Encode</span>(<span class="kw">map</span>[<span class="ty">string</span>]<span class="ty">interface</span>{}{
+        <span class="st">"plugin_id"</span>: id,
+        <span class="st">"enabled"</span>:   body.Enable,
+    })
+}</pre>
+      </div>
+    </div>
+
+    <div class="step-row">
+      <div class="step-num">2</div>
+      <div class="step-body">
+        <h4>Add GET endpoint to list all builtin plugins</h4>
+        <pre><span class="cm">// GET /api/plugins/builtins</span>
+<span class="kw">func</span> (h *<span class="ty">PluginManagementHandlers</span>) <span class="fn">HandleListBuiltins</span>(w <span class="ty">http.ResponseWriter</span>, r *<span class="ty">http.Request</span>) {
+    items := h.pluginMgmt.<span class="fn">ListBuiltins</span>()
+    json.<span class="fn">NewEncoder</span>(w).<span class="fn">Encode</span>(<span class="kw">map</span>[<span class="ty">string</span>]<span class="ty">interface</span>{}{
+        <span class="st">"builtins"</span>: items,
+    })
+}</pre>
+        <p>Each item in the list includes: <code>id</code>, <code>name</code>, <code>category</code>, <code>description</code>, <code>version</code>, <code>enabled</code>, <code>running</code>.</p>
+      </div>
+    </div>
+
+    <div class="step-row">
+      <div class="step-num">3</div>
+      <div class="step-body">
+        <h4>Add PATCH endpoint to update runtime config flags</h4>
+        <pre><span class="cm">// PATCH /api/plugins/builtin/fintech-validator/config</span>
+<span class="cm">// Body: { "enable_kyc": true, "enable_aml": false, ... }</span></pre>
+        <p>This lets the admin panel toggle individual compliance modules (KYC, AML, SEC, Basel) without restarting the whole plugin. The handler calls <code>fintechSvc.UpdateConfig(patch)</code>.</p>
+      </div>
+    </div>
+
+    <h3>Route Map</h3>
+    <table>
+      <thead>
+        <tr><th>Method</th><th>Path</th><th>Purpose</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>GET</code></td><td><code>/api/plugins/builtins</code></td><td>List all built-in plugins with status</td></tr>
+        <tr><td><code>POST</code></td><td><code>/api/plugins/builtin/{id}/toggle</code></td><td>Enable or disable a built-in plugin</td></tr>
+        <tr><td><code>PATCH</code></td><td><code>/api/plugins/builtin/{id}/config</code></td><td>Update runtime config flags</td></tr>
+        <tr><td><code>GET</code></td><td><code>/api/fintech/status</code></td><td>FinTech plugin status (always available, no auth)</td></tr>
+        <tr><td><code>POST</code></td><td><code>/api/fintech/validate</code></td><td>Run compliance validation (requires plugin enabled)</td></tr>
+        <tr><td><code>GET</code></td><td><code>/api/fintech/evidence</code></td><td>List evidence packs</td></tr>
+        <tr><td colspan="3" style="color:var(--muted); font-style: italic;">... all existing /api/fintech/* routes, now 503 when disabled</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ── 7: Phase 4 ── -->
+  <section id="s7">
+    <h2><span class="num">7</span>Phase 4 — Frontend Plugin Panel Integration</h2>
+
+    <div class="phase-header">
+      <div class="phase-icon">🖥️</div>
+      <div>
+        <h3>Add FinTech plugin card to the plugin management panel</h3>
+        <p>Goal: Operators can toggle the plugin on/off from the existing admin UI without a page reload</p>
+      </div>
+    </div>
+
+    <div class="step-row">
+      <div class="step-num">1</div>
+      <div class="step-body">
+        <h4>Create <code>useBuiltinPlugins</code> hook</h4>
+        <p>New file: <span class="file-path">frontend/src/hooks/use-builtin-plugins.ts</span></p>
+        <pre><span class="kw">export function</span> <span class="fn">useBuiltinPlugins</span>() {
+  <span class="kw">const</span> [builtins, setBuiltins] = <span class="fn">useState</span>&lt;<span class="ty">BuiltinPluginInfo</span>[]&gt;([]);
+
+  <span class="kw">const</span> fetch = <span class="kw">async</span> () =&gt; {
+    <span class="kw">const</span> res = <span class="kw">await</span> <span class="fn">apiFetch</span>(<span class="st">'/api/plugins/builtins'</span>);
+    setBuiltins(res.builtins);
+  };
+
+  <span class="kw">const</span> toggle = <span class="kw">async</span> (id: <span class="ty">string</span>, enable: <span class="ty">boolean</span>) =&gt; {
+    <span class="kw">await</span> <span class="fn">apiFetch</span>(<span class="st">`/api/plugins/builtin/${id}/toggle`</span>, {
+      method: <span class="st">'POST'</span>,
+      body: JSON.<span class="fn">stringify</span>({ enable }),
+    });
+    <span class="kw">await</span> <span class="fn">fetch</span>();
+  };
+
+  <span class="fn">useEffect</span>(() =&gt; { <span class="fn">fetch</span>(); }, []);
+  <span class="kw">return</span> { builtins, toggle, refetch: fetch };
+}</pre>
+      </div>
+    </div>
+
+    <div class="step-row">
+      <div class="step-num">2</div>
+      <div class="step-body">
+        <h4>Create <code>BuiltinPluginCard</code> component</h4>
+        <p>New file: <span class="file-path">frontend/src/components/dashboard/builtin-plugin-card.tsx</span></p>
+        <p>This renders a card that shows the plugin's name, description, version, category badge, and a toggle switch. It calls <code>toggle(id, !enabled)</code> on switch change. For the fintech plugin specifically, it also shows a "Configure" link that expands a panel with checkboxes for each compliance module (KYC, AML, SEC, Basel).</p>
+        <p>The card's toggle switch is a standard <code>&lt;Switch /&gt;</code> from the existing UI library. Disabled state shows a dimmed card. A loading spinner appears during the toggle API call.</p>
+      </div>
+    </div>
+
+    <div class="step-row">
+      <div class="step-num">3</div>
+      <div class="step-body">
+        <h4>Integrate into the existing plugin management page</h4>
+        <p>In whatever page renders the plugin list (e.g., the plugin panel or settings page), add a "Built-in Plugins" section above the WASM plugin list. Use <code>useBuiltinPlugins()</code> to populate it with <code>&lt;BuiltinPluginCard /&gt;</code> instances.</p>
+      </div>
+    </div>
+
+    <div class="step-row">
+      <div class="step-num">4</div>
+      <div class="step-body">
+        <h4>FinTech-specific config panel</h4>
+        <p>When the user expands the FinTech plugin card, show toggles for compliance-specific sub-features only. Core platform features (Evidence Packs, Certificates, NRV Tracing, Fidelity Scoring, Trajectory Capture, Tick Streaming) are controlled through the main validation platform settings, not here.</p>
+        <table>
+          <thead><tr><th>Toggle Label</th><th>Backend Flag</th><th>Scope</th></tr></thead>
+          <tbody>
+            <tr><td>KYC Checks</td><td><code>enable_kyc</code></td><td>FinTech plugin</td></tr>
+            <tr><td>AML Checks</td><td><code>enable_aml</code></td><td>FinTech plugin</td></tr>
+            <tr><td>SEC Compliance</td><td><code>enable_sec</code></td><td>FinTech plugin</td></tr>
+            <tr><td>Basel III Rules</td><td><code>enable_basel</code></td><td>FinTech plugin</td></tr>
+            <tr><td>Regulatory Scenarios</td><td><code>enable_scenarios</code></td><td>FinTech plugin</td></tr>
+          </tbody>
+        </table>
+        <p>Each toggle calls <code>PATCH /api/plugins/builtin/fintech-validator/config</code> with the updated field.</p>
+        <div class="alert alert-blue" style="margin-top:12px">
+          <div class="alert-title">Core platform feature flags are configured separately</div>
+          <p>Evidence signing, Certificates, NRV Tracing, Fidelity Scoring, Trajectory Capture, and Tick Streaming are controlled via the main validation platform config panel — they appear as platform-level toggles, not inside the fintech plugin card.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 8: Phase 5 ── -->
+  <section id="s8">
+    <h2><span class="num">8</span>Phase 5 — Compliance Dashboard Gating</h2>
+
+    <div class="phase-header">
+      <div class="phase-icon">📊</div>
+      <div>
+        <h3>Gate the Financial Compliance Dashboard on plugin state</h3>
+        <p>Goal: The dashboard only renders (and nav item only appears) when the plugin is enabled</p>
+      </div>
+    </div>
+
+    <div class="step-row">
+      <div class="step-num">1</div>
+      <div class="step-body">
+        <h4>Poll plugin status in the <code>useFinTechValidator</code> hook</h4>
+        <p>In <span class="file-path">frontend/src/hooks/use-fintech-validator.ts</span>, add a <code>isPluginEnabled</code> field derived from <code>GET /api/fintech/status</code> (which always returns, even when disabled). When <code>isPluginEnabled === false</code>, all other hook methods return early without making API calls.</p>
+      </div>
+    </div>
+
+    <div class="step-row">
+      <div class="step-num">2</div>
+      <div class="step-body">
+        <h4>Update <code>FinancialComplianceDashboard</code> to handle disabled state</h4>
+        <p>In <span class="file-path">financial-compliance-dashboard.tsx</span>, add a guard at the top of the component:</p>
+        <pre><span class="kw">const</span> { isPluginEnabled, isLoading } = <span class="fn">useFinTechValidator</span>();
+
+<span class="kw">if</span> (isLoading) <span class="kw">return</span> &lt;<span class="ty">DashboardSkeleton</span> /&gt;;
+
+<span class="kw">if</span> (!isPluginEnabled) <span class="kw">return</span> (
+  &lt;<span class="ty">PluginDisabledBanner</span>
+    pluginId=<span class="st">"fintech-validator"</span>
+    pluginName=<span class="st">"FinTech Compliance Validator"</span>
+    message=<span class="st">"Enable this plugin from the Plugin Manager to use compliance validation."</span>
+  /&gt;
+);</pre>
+        <p><code>PluginDisabledBanner</code> is a simple component showing an icon, message, and a link to the plugin settings page. It does not try to fetch any data.</p>
+      </div>
+    </div>
+
+    <div class="step-row">
+      <div class="step-num">3</div>
+      <div class="step-body">
+        <h4>Hide the nav item when plugin is disabled</h4>
+        <p>Wherever the sidebar navigation is configured, conditionally render the "Compliance" or "FinTech" nav item based on <code>isPluginEnabled</code>. This can come from a shared <code>usePluginFeatureFlags()</code> context that wraps the builtin plugins list.</p>
+      </div>
+    </div>
+
+    <div class="step-row">
+      <div class="step-num">4</div>
+      <div class="step-body">
+        <h4>Update status endpoint response</h4>
+        <p>Expand <code>HandleGetStatus</code> in handlers.go to return full plugin state:</p>
+        <pre>{
+  <span class="st">"enabled"</span>:    <span class="kw">true</span>,
+  <span class="st">"running"</span>:    <span class="kw">true</span>,
+  <span class="st">"version"</span>:    <span class="st">"1.0.0"</span>,
+  <span class="st">"ontologies"</span>: <span class="nu">4</span>,
+  <span class="st">"compliance_features"</span>: {
+    <span class="st">"kyc"</span>:       <span class="kw">true</span>,
+    <span class="st">"aml"</span>:       <span class="kw">true</span>,
+    <span class="st">"sec"</span>:       <span class="kw">false</span>,
+    <span class="st">"basel"</span>:     <span class="kw">false</span>,
+    <span class="st">"scenarios"</span>: <span class="kw">true</span>
+  }
+}</pre>
+        <p>NRV Tracing, Fidelity Scoring, Trajectory Capture, and Tick Streaming are <strong>not</strong> reported here — they are core platform features with their own status endpoints. The frontend uses <code>compliance_features</code> only to toggle compliance-specific tabs (KYC violations panel, AML alerts, SEC rule browser, Basel risk indicators).</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 9: Phase 6 ── -->
+  <section id="s9">
+    <h2><span class="num">9</span>Phase 6 — Elevating Core Services &amp; Migrating Payments</h2>
+
+    <div class="phase-header">
+      <div class="phase-icon">🏗️</div>
+      <div>
+        <h3>Promote shared services to the core validation platform; migrate payments to KNIRVORACLE</h3>
+        <p>Goal: No core validation capability is gated behind the FinTech plugin toggle. Each promoted service has its own package, is independently usable, and the FinTech plugin consumes them as dependencies.</p>
+      </div>
+    </div>
+
+    <div class="alert alert-warn">
+      <div class="alert-title">Do this phase last — it requires careful refactoring with import graph changes</div>
+      <p>All promoted packages must not import from <code>services/plugins/fintech/</code> — the dependency arrow must point the other way. Plan the import graph before moving files.</p>
+    </div>
+
+    <h3>A — Evidence Pack Signing (PQC) → <code>services/validation/evidence/</code></h3>
+
+    <div class="step-row">
+      <div class="step-num">A1</div>
+      <div class="step-body">
+        <h4>Move core evidence types and store interface</h4>
+        <p>Move <span class="file-path">fintech/evidence_pack.go</span>, <span class="file-path">fintech/evidence_builder.go</span>, and <span class="file-path">fintech/evidence_pack.go</span> (the <code>EvidenceStore</code> interface and <code>EvidencePack</code>, <code>EvidenceFilter</code>, <code>PQCSignature</code> types) to <span class="file-path">backend_server/internal/services/validation/evidence/</span>. Update the package name to <code>evidence</code>.</p>
+      </div>
+    </div>
+
+    <div class="step-row">
+      <div class="step-num">A2</div>
+      <div class="step-body">
+        <h4>Move the MarkdownEvidenceStore implementation</h4>
+        <p>The <code>MarkdownEvidenceStore</code> currently inside <code>fintech_validator/service.go</code> moves to <span class="file-path">services/validation/evidence/markdown_store.go</span> in the new package. The FinTech plugin imports this store rather than defining it inline.</p>
+      </div>
+    </div>
+
+    <div class="step-row">
+      <div class="step-num">A3</div>
+      <div class="step-body">
+        <h4>Expose evidence store via ValidationCore</h4>
+        <p>Add an <code>EvidenceStore</code> field to <code>ValidationCore</code> so any validation type (not just fintech) can produce and sign evidence packs. The FinTech plugin passes its compliance findings into the shared evidence pack produced by the core — it does not create a second, parallel pack.</p>
+      </div>
+    </div>
+
+    <h3>B — Certificates of Correctness → <code>services/validation/certificate/</code></h3>
+
+    <div class="step-row">
+      <div class="step-num">B1</div>
+      <div class="step-body">
+        <h4>Move certificate types, builder, and manager</h4>
+        <p>Move <span class="file-path">fintech/certificate.go</span> (contains <code>CertificateOfCorrectness</code>, <code>CertificateBuilder</code>, <code>CertificateManager</code>, <code>DefaultTemplates</code>, <code>SubjectInfo</code>, <code>ValidationResult</code>) to <span class="file-path">backend_server/internal/services/validation/certificate/</span>.</p>
+        <p>The FinTech plugin's <code>IssueCertificate</code> method becomes a thin wrapper that calls the core <code>certificate.Manager.Issue()</code>, injecting fintech-specific metadata (regulatory framework, compliance level).</p>
+      </div>
+    </div>
+
+    <h3>C — NRV Tracer → <code>services/validation/tracer/</code></h3>
+
+    <div class="step-row">
+      <div class="step-num">C1</div>
+      <div class="step-body">
+        <h4>Move NRV tracer core</h4>
+        <p>Move <span class="file-path">fintech/nrv_tracer.go</span> (<code>NRVTracer</code>, <code>NRVTrace</code>, <code>NRVStep</code>, <code>RiskIndicator</code>) to <span class="file-path">backend_server/internal/services/validation/tracer/</span>. The general <code>RecordInference</code>, <code>RecordDecision</code>, <code>FinalizeTrace</code> methods are purely platform-level. Move the corresponding test file too.</p>
+      </div>
+    </div>
+
+    <div class="step-row">
+      <div class="step-num">C2</div>
+      <div class="step-body">
+        <h4>Keep financial-context annotations in the fintech plugin</h4>
+        <p>The <code>FinancialContext</code> struct and the <code>DetectKYCBypass</code> / <code>DetectPositionLimitViolation</code> methods remain in the fintech package — they use financial ontology concepts. The plugin embeds a <code>*tracer.NRVTracer</code> and extends it with financial-domain helpers.</p>
+      </div>
+    </div>
+
+    <h3>D — Fidelity Scorer → <code>services/validation/fidelity/</code></h3>
+
+    <div class="step-row">
+      <div class="step-num">D1</div>
+      <div class="step-body">
+        <h4>Move fidelity scorer and semantic distance calculator</h4>
+        <p>Move <span class="file-path">fintech/fidelity_scorer.go</span> and <span class="file-path">fintech/semantic_distance.go</span> to <span class="file-path">backend_server/internal/services/validation/fidelity/</span>. The generic scoring algorithm and cosine-distance / edit-distance primitives have no financial-domain dependency. Move corresponding test files.</p>
+        <p>The fintech plugin's <code>CalculateSemanticDistance</code> retains the financial ontology-aware wrapper that enriches the generic scorer with domain vocabulary from the ontology registry.</p>
+      </div>
+    </div>
+
+    <h3>E — Trajectory Capture &amp; Replay → <code>services/validation/trajectory/</code></h3>
+
+    <div class="step-row">
+      <div class="step-num">E1</div>
+      <div class="step-body">
+        <h4>Move trajectory types, replay engine, and comparator</h4>
+        <p>Move <span class="file-path">fintech/trajectory.go</span> and <span class="file-path">fintech/replay_engine.go</span> (<code>ExecutionTrajectory</code>, <code>ExecutionPoint</code>, <code>ReplayEngine</code>, <code>ReplaySession</code>, <code>TrajectoryComparator</code>, all config types) to <span class="file-path">backend_server/internal/services/validation/trajectory/</span>. These depend only on <code>ebpf</code> infrastructure, not on financial concepts. Move test files.</p>
+      </div>
+    </div>
+
+    <div class="step-row">
+      <div class="step-num">E2</div>
+      <div class="step-body">
+        <h4>Move MarkdownTrajectoryStore to the new package</h4>
+        <p>The <code>MarkdownTrajectoryStore</code> currently inlined in <code>fintech_validator/service.go</code> moves to <span class="file-path">services/validation/trajectory/markdown_store.go</span>. The fintech plugin imports it rather than re-implementing it.</p>
+      </div>
+    </div>
+
+    <h3>F — Tick Data Streaming (Arrow Flight) → <code>services/validation/streaming/</code></h3>
+
+    <div class="step-row">
+      <div class="step-num">F1</div>
+      <div class="step-body">
+        <h4>Move tick data types and stream manager</h4>
+        <p>Move <span class="file-path">fintech/tick_data.go</span> (<code>TickData</code>, <code>TickDataStream</code>, <code>TickStreamManager</code>, <code>TickDataWriter</code>, <code>TickDataFilter</code>) to <span class="file-path">backend_server/internal/services/validation/streaming/</span>. Arrow Flight record building is a data-ingestion utility with no financial-domain semantics. HTTP handlers for tick endpoints move to a platform-level handler file rather than living inside the fintech handlers.</p>
+      </div>
+    </div>
+
+    <h3>G — Stripe / PayPal → KNIRVORACLE (<code>oracle/payments/</code>)</h3>
+
+    <div class="step-row">
+      <div class="step-num">G1</div>
+      <div class="step-body">
+        <h4>Move payment files into the oracle package</h4>
+        <p>Move <span class="file-path">fintech/stripe_service.go</span> and <span class="file-path">fintech/paypal_service.go</span> to <span class="file-path">backend_server/internal/oracle/payments/</span>. This keeps payment processing inside the oracle's privilege boundary — it requires a loaded <code>root.key</code> and is only reachable through oracle-authenticated routes at <code>/oracle/payments/</code>.</p>
+      </div>
+    </div>
+
+    <div class="step-row">
+      <div class="step-num">G2</div>
+      <div class="step-body">
+        <h4>Wire NRN Faucet transactions through oracle payments</h4>
+        <p>Payment handlers mount only when the oracle key is present (same guard used by all <code>/oracle/</code> routes). The entry point is a new <code>OraclePaymentHandler</code> that validates the caller's oracle session before delegating to Stripe or PayPal for NRN Faucet disbursements. No public-facing fintech routes should call payment logic.</p>
+      </div>
+    </div>
+
+    <h3>H — Update FinTechValidatorService to import from core packages</h3>
+
+    <div class="step-row">
+      <div class="step-num">H1</div>
+      <div class="step-body">
+        <h4>Replace owned fields with injected core service dependencies</h4>
+        <p>After the moves above, <code>FinTechValidatorService</code> fields change from owning these objects to receiving them as constructor arguments:</p>
+        <pre><span class="cm">// Before (owned by fintech):</span>
+nrvTracer      *fintech.NRVTracer
+fidelityScorer *fintech.FidelityScorer
+replayEngine   *fintech.ReplayEngine
+tickStreamMgr  *fintech.TickStreamManager
+certManager    *fintech.CertificateManager
+evidenceStore  fintech.EvidenceStore
+
+<span class="cm">// After (injected from core platform):</span>
+nrvTracer      *tracer.NRVTracer
+fidelityScorer *fidelity.Scorer
+replayEngine   *trajectory.ReplayEngine
+tickStreamMgr  *streaming.TickStreamManager
+certManager    *certificate.Manager
+evidenceStore  evidence.Store</pre>
+        <p>Constructor <code>NewFinTechValidatorService</code> accepts these from <code>main.go</code>, where they are constructed once and shared with the broader validation platform.</p>
+      </div>
+    </div>
+
+    <div class="step-row">
+      <div class="step-num">H2</div>
+      <div class="step-body">
+        <h4>Fix the vaultComplianceEngine ontology bridge TODO</h4>
+        <p>At <code>service.go:136</code> there is a <code>// TODO: implement proper conversion if needed</code> where the ontology registry is bridged to the vault compliance engine. Implement this — leaving it as a no-op silently disables ontology-aware scenario matching, meaning KYC/AML rules are not applied during scenario validation runs.</p>
+      </div>
+    </div>
+
+    <div class="step-row">
+      <div class="step-num">H3</div>
+      <div class="step-body">
+        <h4>Align ValidationRequest test case types</h4>
+        <p>The <code>convertTestCases()</code> helper in <code>service.go</code> exists only because <code>ValidationRequest</code> uses <code>fintech.TestCaseResult</code> where <code>objects.TestCase</code> already exists. Replace <code>fintech.TestCaseResult</code> with <code>objects.TestCase</code> throughout and delete the converter.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 10: Testing ── -->
+  <section id="s10">
+    <h2><span class="num">10</span>Testing Checklist</h2>
+
+    <div class="grid2">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Backend Unit Tests</div>
+          <span class="badge badge-blue">Go</span>
+        </div>
+        <ul>
+          <li>PluginManagementService registers and toggles a mock builtin plugin</li>
+          <li>FinTechValidatorService: <code>Start()</code> sets <code>IsRunning() = true</code></li>
+          <li>FinTechValidatorService: <code>Stop()</code> sets <code>IsRunning() = false</code></li>
+          <li><code>requireEnabled</code> middleware returns 503 when plugin is stopped</li>
+          <li><code>UpdateConfig</code> applies partial patches without overwriting other fields</li>
+          <li>Builtin state persists across service restart (DB round-trip)</li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Backend Integration Tests</div>
+          <span class="badge badge-purple">Go</span>
+        </div>
+        <ul>
+          <li><code>GET /api/plugins/builtins</code> returns fintech-validator entry</li>
+          <li><code>POST /api/plugins/builtin/fintech-validator/toggle</code> with <code>enable: false</code> → subsequent <code>POST /api/fintech/validate</code> returns 503</li>
+          <li>Re-enable → <code>POST /api/fintech/validate</code> succeeds</li>
+          <li><code>GET /api/fintech/status</code> always returns 200 regardless of enabled state</li>
+          <li><code>PATCH /api/plugins/builtin/fintech-validator/config</code> with <code>enable_aml: false</code> → AML checks not run on next validation</li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Frontend Tests</div>
+          <span class="badge badge-green">TypeScript</span>
+        </div>
+        <ul>
+          <li><code>useBuiltinPlugins</code> hook: fetches on mount, updates after toggle</li>
+          <li><code>BuiltinPluginCard</code>: toggle switch calls <code>toggle(id, !enabled)</code></li>
+          <li><code>FinancialComplianceDashboard</code>: renders <code>PluginDisabledBanner</code> when <code>isPluginEnabled === false</code></li>
+          <li>Nav item hidden when plugin disabled</li>
+          <li>Tab visibility in dashboard matches feature flags from status endpoint</li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Manual QA</div>
+          <span class="badge badge-warn">UI</span>
+        </div>
+        <ul>
+          <li>Open Plugin Manager → see "FinTech Compliance Validator" card</li>
+          <li>Toggle off → Compliance nav item disappears, dashboard shows banner</li>
+          <li>Toggle on → Dashboard loads normally, all tabs visible</li>
+          <li>Disable KYC only → run validation → KYC section absent from result</li>
+          <li>Restart server → plugin enabled/disabled state persists</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 11: File Manifest ── -->
+  <section id="s11">
+    <h2><span class="num">11</span>File Manifest</h2>
+
+    <table>
+      <thead>
+        <tr><th>File</th><th>Action</th><th>Phase</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="file-path">backend_server/internal/services/pluginmanagement/builtin_plugin.go</span></td>
+          <td><span class="badge badge-green">Create</span></td>
+          <td>1</td>
+        </tr>
+        <tr>
+          <td><span class="file-path">backend_server/internal/services/pluginmanagement/plugin_management_service.go</span></td>
+          <td><span class="badge badge-warn">Modify</span> — add builtins map, RegisterBuiltin, ToggleBuiltin, ListBuiltins</td>
+          <td>1</td>
+        </tr>
+        <tr>
+          <td><span class="file-path">backend_server/internal/services/plugins/fintech/fintech_validator/plugin_adapter.go</span></td>
+          <td><span class="badge badge-green">Create</span> — implements BuiltinPlugin interface</td>
+          <td>1</td>
+        </tr>
+        <tr>
+          <td><span class="file-path">backend_server/internal/services/plugins/fintech/fintech_validator/service.go</span></td>
+          <td><span class="badge badge-warn">Modify</span> — add mu, running, RuntimeConfig(), UpdateConfig()</td>
+          <td>1, 2</td>
+        </tr>
+        <tr>
+          <td><span class="file-path">backend_server/internal/services/plugins/fintech/fintech_validator/handlers.go</span></td>
+          <td><span class="badge badge-warn">Modify</span> — add requireEnabled middleware, expand status response</td>
+          <td>1, 5</td>
+        </tr>
+        <tr>
+          <td><span class="file-path">backend_server/internal/config/config.go</span></td>
+          <td><span class="badge badge-warn">Modify</span> — expand FintechConfig struct</td>
+          <td>2</td>
+        </tr>
+        <tr>
+          <td><span class="file-path">backend_server/cmd/backend_server/main.go</span></td>
+          <td><span class="badge badge-warn">Modify</span> — construct FinTechValidatorService, RegisterBuiltin, RegisterRoutes</td>
+          <td>1</td>
+        </tr>
+        <tr>
+          <td><span class="file-path">backend_server/internal/web/plugin_management_handlers.go</span></td>
+          <td><span class="badge badge-warn">Modify</span> — add HandleToggleBuiltin, HandleListBuiltins, HandleUpdateBuiltinConfig</td>
+          <td>3</td>
+        </tr>
+        <tr>
+          <td><span class="file-path">frontend/src/hooks/use-builtin-plugins.ts</span></td>
+          <td><span class="badge badge-green">Create</span></td>
+          <td>4</td>
+        </tr>
+        <tr>
+          <td><span class="file-path">frontend/src/components/dashboard/builtin-plugin-card.tsx</span></td>
+          <td><span class="badge badge-green">Create</span></td>
+          <td>4</td>
+        </tr>
+        <tr>
+          <td><span class="file-path">frontend/src/hooks/use-fintech-validator.ts</span></td>
+          <td><span class="badge badge-warn">Modify</span> — add isPluginEnabled, guard all fetches</td>
+          <td>5</td>
+        </tr>
+        <tr>
+          <td><span class="file-path">frontend/src/components/dashboard/financial-compliance-dashboard.tsx</span></td>
+          <td><span class="badge badge-warn">Modify</span> — add plugin-disabled guard, feature-flag tab visibility</td>
+          <td>5</td>
+        </tr>
+        <tr>
+          <td colspan="3" style="color:var(--accent); font-weight:600; padding-top:14px; font-size:12px; letter-spacing:0.5px; text-transform:uppercase;">Phase 6A — Evidence Platform</td>
+        </tr>
+        <tr>
+          <td><span class="file-path">backend_server/internal/services/validation/evidence/</span> (new package)</td>
+          <td><span class="badge badge-green">Create</span> — EvidencePack, EvidenceBuilder, EvidenceStore interface, PQCSignature, MarkdownEvidenceStore</td>
+          <td>6A</td>
+        </tr>
+        <tr>
+          <td><span class="file-path">backend_server/internal/services/plugins/fintech/evidence_pack.go</span></td>
+          <td><span class="badge badge-red">Move</span> → <code>services/validation/evidence/</code></td>
+          <td>6A</td>
+        </tr>
+        <tr>
+          <td><span class="file-path">backend_server/internal/services/plugins/fintech/evidence_builder.go</span></td>
+          <td><span class="badge badge-red">Move</span> → <code>services/validation/evidence/</code></td>
+          <td>6A</td>
+        </tr>
+        <tr>
+          <td colspan="3" style="color:var(--accent); font-weight:600; padding-top:14px; font-size:12px; letter-spacing:0.5px; text-transform:uppercase;">Phase 6B — Certificate Platform</td>
+        </tr>
+        <tr>
+          <td><span class="file-path">backend_server/internal/services/validation/certificate/</span> (new package)</td>
+          <td><span class="badge badge-green">Create</span> — CertificateOfCorrectness, CertificateBuilder, CertificateManager, DefaultTemplates, SubjectInfo</td>
+          <td>6B</td>
+        </tr>
+        <tr>
+          <td><span class="file-path">backend_server/internal/services/plugins/fintech/certificate.go</span></td>
+          <td><span class="badge badge-red">Move</span> → <code>services/validation/certificate/</code></td>
+          <td>6B</td>
+        </tr>
+        <tr>
+          <td colspan="3" style="color:var(--accent); font-weight:600; padding-top:14px; font-size:12px; letter-spacing:0.5px; text-transform:uppercase;">Phase 6C — NRV Tracer Platform</td>
+        </tr>
+        <tr>
+          <td><span class="file-path">backend_server/internal/services/validation/tracer/</span> (new package)</td>
+          <td><span class="badge badge-green">Create</span> — NRVTracer, NRVTrace, NRVStep, NRVTraceStatus, RiskIndicator (generic)</td>
+          <td>6C</td>
+        </tr>
+        <tr>
+          <td><span class="file-path">backend_server/internal/services/plugins/fintech/nrv_tracer.go</span></td>
+          <td><span class="badge badge-red">Split</span> — generic types → <code>tracer/</code>; financial annotations stay in <code>fintech/</code></td>
+          <td>6C</td>
+        </tr>
+        <tr>
+          <td colspan="3" style="color:var(--accent); font-weight:600; padding-top:14px; font-size:12px; letter-spacing:0.5px; text-transform:uppercase;">Phase 6D — Fidelity Scorer Platform</td>
+        </tr>
+        <tr>
+          <td><span class="file-path">backend_server/internal/services/validation/fidelity/</span> (new package)</td>
+          <td><span class="badge badge-green">Create</span> — FidelityScorer, FidelityScoreResult, SemanticDistanceCalculator (generic)</td>
+          <td>6D</td>
+        </tr>
+        <tr>
+          <td><span class="file-path">backend_server/internal/services/plugins/fintech/fidelity_scorer.go</span></td>
+          <td><span class="badge badge-red">Move</span> → <code>services/validation/fidelity/</code></td>
+          <td>6D</td>
+        </tr>
+        <tr>
+          <td><span class="file-path">backend_server/internal/services/plugins/fintech/semantic_distance.go</span></td>
+          <td><span class="badge badge-red">Split</span> — generic calculator → <code>fidelity/</code>; ontology-aware wrapper stays in <code>fintech/</code></td>
+          <td>6D</td>
+        </tr>
+        <tr>
+          <td colspan="3" style="color:var(--accent); font-weight:600; padding-top:14px; font-size:12px; letter-spacing:0.5px; text-transform:uppercase;">Phase 6E — Trajectory Platform</td>
+        </tr>
+        <tr>
+          <td><span class="file-path">backend_server/internal/services/validation/trajectory/</span> (new package)</td>
+          <td><span class="badge badge-green">Create</span> — ExecutionTrajectory, ReplayEngine, ReplaySession, TrajectoryComparator, MarkdownTrajectoryStore</td>
+          <td>6E</td>
+        </tr>
+        <tr>
+          <td><span class="file-path">backend_server/internal/services/plugins/fintech/trajectory.go</span></td>
+          <td><span class="badge badge-red">Move</span> → <code>services/validation/trajectory/</code></td>
+          <td>6E</td>
+        </tr>
+        <tr>
+          <td><span class="file-path">backend_server/internal/services/plugins/fintech/replay_engine.go</span></td>
+          <td><span class="badge badge-red">Move</span> → <code>services/validation/trajectory/</code></td>
+          <td>6E</td>
+        </tr>
+        <tr>
+          <td colspan="3" style="color:var(--accent); font-weight:600; padding-top:14px; font-size:12px; letter-spacing:0.5px; text-transform:uppercase;">Phase 6F — Tick Streaming Platform</td>
+        </tr>
+        <tr>
+          <td><span class="file-path">backend_server/internal/services/validation/streaming/</span> (new package)</td>
+          <td><span class="badge badge-green">Create</span> — TickData, TickDataStream, TickStreamManager, TickDataWriter, TickDataFilter</td>
+          <td>6F</td>
+        </tr>
+        <tr>
+          <td><span class="file-path">backend_server/internal/services/plugins/fintech/tick_data.go</span></td>
+          <td><span class="badge badge-red">Move</span> → <code>services/validation/streaming/</code></td>
+          <td>6F</td>
+        </tr>
+        <tr>
+          <td colspan="3" style="color:var(--accent); font-weight:600; padding-top:14px; font-size:12px; letter-spacing:0.5px; text-transform:uppercase;">Phase 6G — Payments → KNIRVORACLE</td>
+        </tr>
+        <tr>
+          <td><span class="file-path">backend_server/internal/oracle/payments/</span> (new package)</td>
+          <td><span class="badge badge-green">Create</span> — OraclePaymentHandler, NRN Faucet disbursement logic; guarded by oracle key presence</td>
+          <td>6G</td>
+        </tr>
+        <tr>
+          <td><span class="file-path">backend_server/internal/services/plugins/fintech/stripe_service.go</span></td>
+          <td><span class="badge badge-red">Move</span> → <code>oracle/payments/</code></td>
+          <td>6G</td>
+        </tr>
+        <tr>
+          <td><span class="file-path">backend_server/internal/services/plugins/fintech/paypal_service.go</span></td>
+          <td><span class="badge badge-red">Move</span> → <code>oracle/payments/</code></td>
+          <td>6G</td>
+        </tr>
+        <tr>
+          <td colspan="3" style="color:var(--accent); font-weight:600; padding-top:14px; font-size:12px; letter-spacing:0.5px; text-transform:uppercase;">Phase 6H — FinTech Plugin Cleanup</td>
+        </tr>
+        <tr>
+          <td><span class="file-path">backend_server/internal/services/plugins/fintech/fintech_validator/service.go</span></td>
+          <td><span class="badge badge-warn">Modify</span> — replace owned types with injected core platform dependencies; fix ontology bridge TODO; delete convertTestCases()</td>
+          <td>6H</td>
+        </tr>
+        <tr>
+          <td><span class="file-path">backend_server/internal/services/plugins/fintech/fintech_validator/handlers.go</span></td>
+          <td><span class="badge badge-warn">Modify</span> — remove tick data, trajectory, fidelity, certificate handlers (move to platform-level handler files)</td>
+          <td>6H</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="alert alert-green">
+      <div class="alert-title">Implementation order</div>
+      <p>Follow phases 1 → 2 → 3 → 4 → 5 → 6. Phases 1–5 are independently shippable without phase 6. Within phase 6, sub-phases A–F can be done in any order — each is a self-contained package extraction. Do 6G (payments) and 6H (plugin cleanup) last, after all core packages exist and compile.</p>
+    </div>
+  </section>
+
+</div>
+</body>
+</html>

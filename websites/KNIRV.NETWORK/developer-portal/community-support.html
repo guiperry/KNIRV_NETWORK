@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Community & Support - KNIRV Developer Portal</title>
+    <meta name="description" content="Connect with the KNIRV community, get support, and access resources">
+    <link rel="shortcut icon" href="favicon.png">
+
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Custom CSS with original design system -->
+    <link rel="stylesheet" href="css/portal.css">
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Sidebar Navigation -->
+        <nav class="sidebar">
+            <div class="dashboard-title">
+                <h1>KNIRV Developer Portal</h1>
+                <p style="color: var(--transparent-white-7); font-size: 0.9rem;">DVE Platform</p>
+            </div>
+
+            <!-- Navigation Items -->
+            <a href="index.html" class="nav-item">
+                <i class="fas fa-home"></i>
+                <span>Home Dashboard</span>
+            </a>
+            <a href="core-concepts.html" class="nav-item">
+                <i class="fas fa-brain"></i>
+                <span>Core Concepts</span>
+            </a>
+            <a href="getting-started.html" class="nav-item">
+                <i class="fas fa-rocket"></i>
+                <span>Getting Started</span>
+            </a>
+            <a href="api-sdk.html" class="nav-item">
+                <i class="fas fa-code"></i>
+                <span>API &amp; SDK</span>
+            </a>
+            <a href="community-support.html" class="nav-item active">
+                <i class="fas fa-users"></i>
+                <span>Community &amp; Support</span>
+            </a>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Top Navigation -->
+            <div class="top-nav">
+                <div>
+                    <h1 class="page-title">Community & Support</h1>
+                </div>
+                <div class="user-controls">
+                    <i class="control-icon fas fa-bell" title="Notifications"></i>
+                    <i class="control-icon fas fa-cog" title="Settings"></i>
+                    <i class="control-icon fas fa-user-circle" title="Profile"></i>
+                </div>
+            </div>
+
+            <!-- Page Header -->
+            <div class="glass-card">
+                <div style="text-align: center; margin-bottom: 30px;">
+                    <div style="width: 80px; height: 80px; border-radius: 50%; background: linear-gradient(135deg, var(--bright-blue) 0%, var(--knirv-purple) 100%); display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; font-size: 2.5em;">
+                        <i class="fas fa-users" style="color: var(--white);"></i>
+                    </div>
+                    <h1 style="color: var(--bright-blue); margin-bottom: 10px; font-size: 2rem;">Community & Support</h1>
+                    <p style="color: var(--transparent-white-7); max-width: 600px; margin: 0 auto;">
+                        Connect with fellow developers, get help, and contribute to the growing KNIRV D-TEN ecosystem.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Community Channels -->
+            <div class="glass-card">
+                <h2 style="color: var(--knirv-purple); margin-bottom: 20px; font-size: 1.3rem;">
+                    <i class="fas fa-comments" style="margin-right: 10px;"></i>Community Channels
+                </h2>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
+                    <!-- Discord -->
+                    <div class="glass-card hover-lift" style="background: linear-gradient(135deg, rgba(114, 137, 218, 0.1) 0%, rgba(43, 86, 245, 0.1) 100%);">
+                        <div style="display: flex; align-items: center; margin-bottom: 15px;">
+                            <i class="fab fa-discord" style="color: #7289da; font-size: 2em; margin-right: 15px;"></i>
+                            <div>
+                                <h3 style="color: #7289da; margin: 0;">Discord Community</h3>
+                                <p style="color: var(--transparent-white-7); margin: 0; font-size: 0.9rem;">Real-time chat & support</p>
+                            </div>
+                        </div>
+                        <p style="color: var(--white); margin-bottom: 15px; font-size: 0.9rem;">
+                            Join our active Discord server for real-time discussions, Q&A, and community events.
+                        </p>
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span style="color: var(--transparent-white-7); font-size: 0.9rem;">5,247 members</span>
+                            <button class="btn-outline" style="padding: 8px 16px; font-size: 0.9rem;">Join Discord</button>
+                        </div>
+                    </div>
+
+                    <!-- GitHub -->
+                    <div class="glass-card hover-lift" style="background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%);">
+                        <div style="display: flex; align-items: center; margin-bottom: 15px;">
+                            <i class="fab fa-github" style="color: #ffffff; font-size: 2em; margin-right: 15px;"></i>
+                            <div>
+                                <h3 style="color: var(--white); margin: 0;">GitHub Repository</h3>
+                                <p style="color: var(--transparent-white-7); margin: 0; font-size: 0.9rem;">Open source development</p>
+                            </div>
+                        </div>
+                        <p style="color: var(--white); margin-bottom: 15px; font-size: 0.9rem;">
+                            Contribute to KNIRV development, report issues, and access example code and documentation.
+                        </p>
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span style="color: var(--transparent-white-7); font-size: 0.9rem;">1,892 stars</span>
+                            <button class="btn-outline" style="padding: 8px 16px; font-size: 0.9rem;">View GitHub</button>
+                        </div>
+                    </div>
+
+                    <!-- Forum -->
+                    <div class="glass-card hover-lift" style="background: linear-gradient(135deg, rgba(0, 192, 250, 0.1) 0%, rgba(43, 86, 245, 0.1) 100%);">
+                        <div style="display: flex; align-items: center; margin-bottom: 15px;">
+                            <i class="fas fa-comments" style="color: var(--bright-blue); font-size: 2em; margin-right: 15px;"></i>
+                            <div>
+                                <h3 style="color: var(--bright-blue); margin: 0;">Developer Forum</h3>
+                                <p style="color: var(--transparent-white-7); margin: 0; font-size: 0.9rem;">In-depth discussions</p>
+                            </div>
+                        </div>
+                        <p style="color: var(--white); margin-bottom: 15px; font-size: 0.9rem;">
+                            Participate in technical discussions, share knowledge, and get help with complex problems.
+                        </p>
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span style="color: var(--transparent-white-7); font-size: 0.9rem;">3,156 topics</span>
+                            <button class="btn-outline" style="padding: 8px 16px; font-size: 0.9rem;" onclick="visitForum()">Visit Forum</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Support Options -->
+            <div class="glass-card">
+                <h2 style="color: var(--bright-blue); margin-bottom: 20px; font-size: 1.3rem;">
+                    <i class="fas fa-life-ring" style="margin-right: 10px;"></i>Get Support
+                </h2>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px;">
+                    <div style="padding: 20px; background-color: var(--transparent-white-05); border-radius: 10px; border-left: 4px solid var(--bright-blue);">
+                        <h3 style="color: var(--bright-blue); margin-bottom: 10px;">
+                            <i class="fas fa-book" style="margin-right: 8px;"></i>Documentation
+                        </h3>
+                        <p style="color: var(--transparent-white-7); font-size: 0.9rem; margin-bottom: 15px;">
+                            Comprehensive guides, API references, and tutorials to help you build on KNIRV.
+                        </p>
+                        <button class="btn-outline" style="padding: 8px 16px; font-size: 0.9rem;" onclick="openDocumentation()">Browse Docs</button>
+                    </div>
+
+                    <div style="padding: 20px; background-color: var(--transparent-white-05); border-radius: 10px; border-left: 4px solid var(--knirv-purple);">
+                        <h3 style="color: var(--knirv-purple); margin-bottom: 10px;">
+                            <i class="fas fa-ticket-alt" style="margin-right: 8px;"></i>Support Desk
+                        </h3>
+                        <p style="color: var(--transparent-white-7); font-size: 0.9rem; margin-bottom: 15px;">
+                            Access the KNIRV Support Desk for technical issues, account questions, and comprehensive help resources.
+                        </p>
+                        <div style="display: flex; gap: 10px;">
+                            <button class="btn-outline" style="padding: 8px 16px; font-size: 0.9rem;" onclick="openSupportDesk()">Open Support Desk</button>
+                            <button class="btn-secondary" style="padding: 8px 16px; font-size: 0.9rem;" onclick="createTicket()">Create Ticket</button>
+                        </div>
+                    </div>
+
+                    <div style="padding: 20px; background-color: var(--transparent-white-05); border-radius: 10px; border-left: 4px solid var(--knirv-purple-light);">
+                        <h3 style="color: var(--knirv-purple-light); margin-bottom: 10px;">
+                            <i class="fas fa-video" style="margin-right: 8px;"></i>Office Hours
+                        </h3>
+                        <p style="color: var(--transparent-white-7); font-size: 0.9rem; margin-bottom: 15px;">
+                            Join weekly office hours for live Q&A with the KNIRV development team.
+                        </p>
+                        <button class="btn-outline" style="padding: 8px 16px; font-size: 0.9rem;">Join Session</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Resources -->
+            <div class="glass-card">
+                <h2 style="color: var(--knirv-purple); margin-bottom: 20px; font-size: 1.3rem;">
+                    <i class="fas fa-graduation-cap" style="margin-right: 10px;"></i>Learning Resources
+                </h2>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                    <div class="hover-lift" style="padding: 20px; background-color: var(--transparent-white-05); border-radius: 10px; text-align: center; cursor: pointer;">
+                        <i class="fas fa-play-circle" style="font-size: 2em; color: var(--bright-blue); margin-bottom: 10px;"></i>
+                        <h4 style="margin-bottom: 5px;">Video Tutorials</h4>
+                        <p style="color: var(--transparent-white-7); font-size: 0.9em;">Step-by-step guides</p>
+                    </div>
+                    <div class="hover-lift" style="padding: 20px; background-color: var(--transparent-white-05); border-radius: 10px; text-align: center; cursor: pointer;">
+                        <i class="fas fa-code" style="font-size: 2em; color: var(--knirv-purple); margin-bottom: 10px;"></i>
+                        <h4 style="margin-bottom: 5px;">Code Examples</h4>
+                        <p style="color: var(--transparent-white-7); font-size: 0.9em;">Ready-to-use samples</p>
+                    </div>
+                    <div class="hover-lift" style="padding: 20px; background-color: var(--transparent-white-05); border-radius: 10px; text-align: center; cursor: pointer;">
+                        <i class="fas fa-chalkboard-teacher" style="font-size: 2em; color: var(--knirv-purple-light); margin-bottom: 10px;"></i>
+                        <h4 style="margin-bottom: 5px;">Workshops</h4>
+                        <p style="color: var(--transparent-white-7); font-size: 0.9em;">Live training sessions</p>
+                    </div>
+                    <div class="hover-lift" style="padding: 20px; background-color: var(--transparent-white-05); border-radius: 10px; text-align: center; cursor: pointer;">
+                        <i class="fas fa-newspaper" style="font-size: 2em; color: var(--bright-blue); margin-bottom: 10px;"></i>
+                        <h4 style="margin-bottom: 5px;">Blog & News</h4>
+                        <p style="color: var(--transparent-white-7); font-size: 0.9em;">Latest updates</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Community Stats -->
+            <div style="display: flex; flex-wrap: wrap; gap: 20px; margin-bottom: 20px;">
+                <div class="glass-card" style="flex: 1; min-width: 200px; text-align: center; background: linear-gradient(135deg, rgba(0, 192, 250, 0.1) 0%, rgba(43, 86, 245, 0.1) 100%);">
+                    <div style="color: var(--bright-blue); font-size: 2em; margin-bottom: 10px;">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <div style="color: var(--bright-blue); font-weight: 600;">Community Members</div>
+                    <div style="font-size: 1.5em; font-weight: 700; margin: 10px 0;">12,847</div>
+                    <div style="color: var(--transparent-white-7); font-size: 0.9em;">Across all platforms</div>
+                </div>
+                <div class="glass-card" style="flex: 1; min-width: 200px; text-align: center; background: linear-gradient(135deg, rgba(43, 86, 245, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%);">
+                    <div style="color: var(--knirv-purple); font-size: 2em; margin-bottom: 10px;">
+                        <i class="fas fa-question-circle"></i>
+                    </div>
+                    <div style="color: var(--knirv-purple); font-weight: 600;">Questions Answered</div>
+                    <div style="font-size: 1.5em; font-weight: 700; margin: 10px 0;">8,924</div>
+                    <div style="color: var(--transparent-white-7); font-size: 0.9em;">This month</div>
+                </div>
+                <div class="glass-card" style="flex: 1; min-width: 200px; text-align: center; background: linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, rgba(0, 192, 250, 0.1) 100%);">
+                    <div style="color: var(--knirv-purple-light); font-size: 2em; margin-bottom: 10px;">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                    <div style="color: var(--knirv-purple-light); font-weight: 600;">Avg Response Time</div>
+                    <div style="font-size: 1.5em; font-weight: 700; margin: 10px 0;">2.4h</div>
+                    <div style="color: var(--transparent-white-7); font-size: 0.9em;">Community support</div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Support/Documentation iFrame Modal -->
+    <div id="supportModal" class="modal" style="display: none;">
+        <div class="modal-content" style="max-width: 95vw; max-height: 95vh; padding: 0;">
+            <div class="modal-header" style="padding: 20px; border-bottom: 1px solid var(--transparent-white-2); display: flex; justify-content: space-between; align-items: center;">
+                <h2 id="supportModalTitle" style="color: var(--bright-blue); margin: 0;"></h2>
+                <span class="close" onclick="closeSupportModal()">&times;</span>
+            </div>
+            <div style="height: 80vh; overflow: hidden;">
+                <iframe
+                    id="supportFrame"
+                    style="width: 100%; height: 100%; border: none;"
+                    title="Support Frame">
+                </iframe>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript -->
+    <script src="js/config-loader.js"></script>
+    <script src="js/portal.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="../js/universal-footer.js"></script>
+    <script>
+        function openSupportDesk() {
+            openSupportModal('KNIRV Support Desk', '/support-desk/src/');
+        }
+
+        function openDocumentation() {
+            openSupportModal('KNIRV Documentation', '/documentation/static/');
+        }
+
+        function createTicket() {
+            openSupportModal('Create Support Ticket', '/support-desk/src/submit_ticket.html');
+        }
+
+        function openSupportModal(title, url) {
+            document.getElementById('supportModalTitle').textContent = title;
+            document.getElementById('supportFrame').src = url;
+            document.getElementById('supportModal').style.display = 'block';
+        }
+
+        function closeSupportModal() {
+            document.getElementById('supportModal').style.display = 'none';
+            document.getElementById('supportFrame').src = '';
+        }
+
+        function joinDiscord() {
+            window.open('https://discord.gg/knirv', '_blank');
+        }
+
+        function joinTelegram() {
+            window.open('https://t.me/knirvnetwork', '_blank');
+        }
+
+        function visitForum() {
+            openSupportModal('KNIRV Community Forum', '/forum/src/');
+        }
+
+        function scheduleOfficeHours() {
+            window.knirvPortal.showNotification('Office hours scheduling coming soon', 'info');
+        }
+
+        // Close modal when clicking outside of it
+        window.onclick = function(event) {
+            const modal = document.getElementById('supportModal');
+            if (event.target == modal) {
+                closeSupportModal();
+            }
+        }
+    </script>
+</body>
+</html>
