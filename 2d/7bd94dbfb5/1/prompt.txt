@@ -1,0 +1,9 @@
+...
+
+---
+
+...
+
+---
+
+How can we make this KNIRVSERVER application allow different users to install Claud, Codex, Hermes, and/or Opencode into their DVE containers while allowing each one to be authentication unique and not over weight the server?

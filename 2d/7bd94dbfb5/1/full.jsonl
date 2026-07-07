@@ -1,0 +1,169 @@
+{
+  "info": {
+    "id": "ses_0c3a0f499ffeQ1xS0yylkNTVj1",
+    "slug": "proud-orchid",
+    "projectID": "028d705092e6670c33ccdddc9b02bc447bd1a7d8",
+    "directory": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER",
+    "path": "packages/KNIRVSERVER",
+    "title": "New session - 2026-07-07T11:38:09.639Z",
+    "agent": "plan",
+    "model": {
+      "id": "deepseek-v4-flash-free",
+      "providerID": "opencode",
+      "variant": "high"
+    },
+    "version": "1.17.14",
+    "cost": 0,
+    "tokens": {
+      "input": 0,
+      "output": 0,
+      "reasoning": 0,
+      "cache": {
+        "read": 0,
+        "write": 0
+      }
+    },
+    "time": {
+      "created": 1783424289639,
+      "updated": 1783424484401
+    }
+  },
+  "messages": [
+    {
+      "info": {
+        "role": "user",
+        "time": {
+          "created": 1783424291143
+        },
+        "agent": "plan",
+        "model": {
+          "providerID": "opencode",
+          "modelID": "big-pickle"
+        },
+        "id": "msg_f3c5f1147001tCxnW9g0B2d6aR",
+        "sessionID": "ses_0c3a0f499ffeQ1xS0yylkNTVj1"
+      },
+      "parts": [
+        {
+          "type": "text",
+          "text": "How can we make this KNIRVSERVER application allow different users to install Claud, Codex, Hermes, and/or Opencode into their DVE containers while allowing each one to be authentication unique and not over weight the server?",
+          "id": "prt_f3c5f114e001D0AtQYqikY5MGG",
+          "sessionID": "ses_0c3a0f499ffeQ1xS0yylkNTVj1",
+          "messageID": "msg_f3c5f1147001tCxnW9g0B2d6aR"
+        }
+      ]
+    },
+    {
+      "info": {
+        "parentID": "msg_f3c5f1147001tCxnW9g0B2d6aR",
+        "role": "assistant",
+        "mode": "plan",
+        "agent": "plan",
+        "path": {
+          "cwd": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER",
+          "root": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK"
+        },
+        "cost": 0,
+        "tokens": {
+          "input": 0,
+          "output": 0,
+          "reasoning": 0,
+          "cache": {
+            "read": 0,
+            "write": 0
+          }
+        },
+        "modelID": "big-pickle",
+        "providerID": "opencode",
+        "time": {
+          "created": 1783424293379,
+          "completed": 1783424424350
+        },
+        "error": {
+          "name": "MessageAbortedError",
+          "data": {
+            "message": "Aborted"
+          }
+        },
+        "id": "msg_f3c5f1a03002900mPAHtVlCQ7P",
+        "sessionID": "ses_0c3a0f499ffeQ1xS0yylkNTVj1"
+      },
+      "parts": []
+    },
+    {
+      "info": {
+        "role": "user",
+        "time": {
+          "created": 1783424481879
+        },
+        "agent": "plan",
+        "model": {
+          "providerID": "opencode",
+          "modelID": "hy3-free",
+          "variant": "high"
+        },
+        "id": "msg_f3c61fa570012j15efyhurYL7T",
+        "sessionID": "ses_0c3a0f499ffeQ1xS0yylkNTVj1"
+      },
+      "parts": [
+        {
+          "type": "text",
+          "text": "...",
+          "id": "prt_f3c61fbe6001TZmwVGpwTTwIB9",
+          "sessionID": "ses_0c3a0f499ffeQ1xS0yylkNTVj1",
+          "messageID": "msg_f3c61fa570012j15efyhurYL7T"
+        }
+      ]
+    },
+    {
+      "info": {
+        "role": "user",
+        "time": {
+          "created": 1783424483532
+        },
+        "agent": "plan",
+        "model": {
+          "providerID": "opencode",
+          "modelID": "hy3-free",
+          "variant": "high"
+        },
+        "id": "msg_f3c6200cc0014YNFfr7eBWHx4T",
+        "sessionID": "ses_0c3a0f499ffeQ1xS0yylkNTVj1"
+      },
+      "parts": [
+        {
+          "type": "text",
+          "text": "How can we make this KNIRVSERVER application allow different users to install Claud, Codex, Hermes, and/or Opencode into their DVE containers while allowing each one to be authentication unique and not over weight the server?",
+          "id": "prt_f3c6200cd001lTS6kd3kehi1H7",
+          "sessionID": "ses_0c3a0f499ffeQ1xS0yylkNTVj1",
+          "messageID": "msg_f3c6200cc0014YNFfr7eBWHx4T"
+        }
+      ]
+    },
+    {
+      "info": {
+        "role": "user",
+        "time": {
+          "created": 1783424483556
+        },
+        "agent": "plan",
+        "model": {
+          "providerID": "opencode",
+          "modelID": "deepseek-v4-flash-free",
+          "variant": "high"
+        },
+        "id": "msg_f3c6200e4001QEKMpAebtPUWoV",
+        "sessionID": "ses_0c3a0f499ffeQ1xS0yylkNTVj1"
+      },
+      "parts": [
+        {
+          "type": "text",
+          "text": "...",
+          "id": "prt_f3c620275001uTCHvQe0jNO77a",
+          "sessionID": "ses_0c3a0f499ffeQ1xS0yylkNTVj1",
+          "messageID": "msg_f3c6200e4001QEKMpAebtPUWoV"
+        }
+      ]
+    }
+  ]
+}
