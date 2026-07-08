@@ -1,6 +1,6 @@
 'use client';
 
-import React, { Suspense, useState, useEffect } from 'react';
+import React, { Suspense, useState, useEffect, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useTEESecurity } from "@/hooks/use-tee-security";
 import { useAuth, ROLES } from '@/lib/auth-context';
@@ -33,6 +33,7 @@ import { ModuleLogViewer } from '@/components/dashboard/module-log-viewer';
 import { KernelSecurityCard } from '@/components/dashboard/kernel-security-card';
 import { SystemTelemetryCard } from '@/components/dashboard/system-telemetry-card';
 import { NetworkMonitorCard } from '@/components/dashboard/network-monitor-card';
+import type { ProcessingActivity } from '@/components/dashboard/cognitive-engine-log-routing';
 import { useSecuritySubsystem } from '@/hooks/use-security-subsystem';
 import { useNetworkMonitor } from '@/hooks/use-network-monitor';
 import { useOnboarding } from "@/contexts/onboarding-context";
@@ -139,11 +140,31 @@ function DashboardWrapperInner({ children, onRentDVE }: DashboardWrapperProps) {
   const [showAdminAccess, setShowAdminAccess] = useState(false);
   const [webguiIframeOpen, setWebguiIframeOpen] = useState(false);
   const [webguiIframePage, setWebguiIframePage] = useState<string>('');
+  const [processingActivities, setProcessingActivities] = useState<ProcessingActivity[]>([]);
 
   const goToWebgui = (pageId: string) => {
     setWebguiIframePage(pageId);
     setWebguiIframeOpen(true);
   };
+
+  const handleProcessingActivities = useCallback((incoming: ProcessingActivity[]) => {
+    if (incoming.length === 0) {
+      return;
+    }
+
+    setProcessingActivities(prev => {
+      const merged = [...incoming, ...prev];
+      const seen = new Set<string>();
+      const deduped = merged.filter(activity => {
+        if (seen.has(activity.id)) {
+          return false;
+        }
+        seen.add(activity.id);
+        return true;
+      });
+      return deduped.slice(0, 80);
+    });
+  }, []);
 
   // Persist active DVE nodes across navigation using Zustand store (survives tab switches)
   const { activeNodeIds, setActiveNodeId } = useDashboardStore();
@@ -977,12 +998,12 @@ function DashboardWrapperInner({ children, onRentDVE }: DashboardWrapperProps) {
                       {/* ── Cognitive Engine Tab ── */}
                       <TabsContent value="cognitive" className="space-y-4">
                         {/* Engine Controls - Full Width */}
-                        <CognitiveEnginePanel />
+                        <CognitiveEnginePanel onProcessingActivities={handleProcessingActivities} />
 
                         {/* Neural Desktop + Cognitive Engine Status - same row */}
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                           <div className="space-y-4">
-                            <NeuralDesktopPanel />
+                            <NeuralDesktopPanel processingActivities={processingActivities} />
                           </div>
                           <div className="space-y-4">
                             <CognitiveEngineStatusCard />

@@ -105,6 +105,11 @@ describe('HasherTrainingControls', () => {
                 level: 'info',
                 message: 'pipeline still running',
               },
+              {
+                timestamp: '2026-07-05T00:00:01Z',
+                level: 'info',
+                message: 'Contacting KNIRV Cognitive Engine Chat API...',
+              },
             ],
           }),
         });
@@ -159,5 +164,31 @@ describe('HasherTrainingControls', () => {
     fireEvent.mouseUp(document);
 
     expect(logWindow).toHaveStyle({ height: '264px' });
+  });
+
+  it('routes cognitive engine logs into the processing feed and keeps them out of training logs', async () => {
+    const onProcessingActivities = jest.fn();
+
+    render(<HasherTrainingControls onProcessingActivities={onProcessingActivities} />);
+
+    await waitFor(() => {
+      expect(screen.getByText('pipeline still running')).toBeInTheDocument();
+    });
+
+    expect(screen.queryByText('Contacting KNIRV Cognitive Engine Chat API...')).not.toBeInTheDocument();
+
+    await waitFor(() => {
+      expect(onProcessingActivities).toHaveBeenCalled();
+    });
+
+    const forwardedActivities = onProcessingActivities.mock.calls.flatMap(([activities]) => activities);
+    expect(forwardedActivities).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: 'cognitive_engine_log',
+          description: 'Contacting KNIRV Cognitive Engine Chat API...',
+        }),
+      ])
+    );
   });
 });

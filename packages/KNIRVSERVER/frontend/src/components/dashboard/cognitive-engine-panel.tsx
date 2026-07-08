@@ -8,8 +8,14 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useCognitiveEngine, useQualityMode, BackgroundTask } from '@/hooks/use-cognitive-engine';
-import { apiRequest, API_BASE_URL } from '@/lib/api';
-import NeuralDesktopPanel from './neural-desktop-panel';
+import { API_BASE_URL } from '@/lib/api';
+import {
+  createLogKey,
+  createProcessingActivity,
+  formatLogTimestamp,
+  isCognitiveEngineLog,
+} from './cognitive-engine-log-routing';
+import type { ProcessingActivity, RoutedLogEntry } from './cognitive-engine-log-routing';
 
 // ── Background task ticker config ──────────────────────────────────────
 
@@ -119,13 +125,15 @@ function normalizeHasherStatus(raw: HasherStatusResponse) {
   return { available, running, training };
 }
 
-function formatTrainingLogTimestamp(timestamp?: string) {
-  return timestamp
-    ? new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
-    : new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+interface HasherTrainingControlsProps {
+  onProcessingActivities?: (activities: ProcessingActivity[]) => void;
 }
 
-export function HasherTrainingControls() {
+export function HasherTrainingControls(props: HasherTrainingControlsProps = {}) {
+  return <HasherTrainingControlsInner {...props} />;
+}
+
+function HasherTrainingControlsInner({ onProcessingActivities }: HasherTrainingControlsProps) {
   const [hasherStatus, setHasherStatus] = useState<'loading' | 'available' | 'unavailable'>('loading');
   const [trainingActive, setTrainingActiveState] = useState(hasherTrainingViewState.active);
   const [trainingLogs, setTrainingLogsState] = useState<TrainingLog[]>(hasherTrainingViewState.logs);
@@ -134,6 +142,7 @@ export function HasherTrainingControls() {
   const sseRef = useRef<EventSource | null>(null);
   const consoleRef = useRef<HTMLDivElement>(null);
   const logIdRef = useRef(hasherTrainingViewState.nextLogId);
+  const seenProcessingLogKeysRef = useRef(new Set<string>());
   const lastStartTimeRef = useRef<number>(0);
 
   const setTrainingActive = (active: boolean) => {
@@ -162,16 +171,41 @@ export function HasherTrainingControls() {
     });
   };
 
-  const mergeTrainingLogEntries = (entries: { timestamp?: string; level?: string; message?: string }[]) => {
+  const routeLogEntries = (entries: RoutedLogEntry[]) => {
     if (entries.length === 0) {
+      return;
+    }
+
+    const trainingEntries: RoutedLogEntry[] = [];
+    const processingActivities: ProcessingActivity[] = [];
+
+    for (const entry of entries) {
+      if (isCognitiveEngineLog(entry)) {
+        const key = createLogKey(entry);
+        if (seenProcessingLogKeysRef.current.has(key)) {
+          continue;
+        }
+        seenProcessingLogKeysRef.current.add(key);
+        processingActivities.push(createProcessingActivity(entry));
+        continue;
+      }
+
+      trainingEntries.push(entry);
+    }
+
+    if (processingActivities.length > 0) {
+      onProcessingActivities?.(processingActivities);
+    }
+
+    if (trainingEntries.length === 0) {
       return;
     }
 
     setTrainingLogs(previous => {
       const seen = new Set(previous.map(log => `${log.timestamp}|${log.level}|${log.message}`));
       const merged = [...previous];
-      for (const entry of entries) {
-        const timestamp = formatTrainingLogTimestamp(entry.timestamp);
+      for (const entry of trainingEntries) {
+        const timestamp = formatLogTimestamp(entry.timestamp);
         const level = entry.level || 'info';
         const message = entry.message || '';
         const key = `${timestamp}|${level}|${message}`;
@@ -196,8 +230,8 @@ export function HasherTrainingControls() {
         return;
       }
       const data = await resp.json();
-      const logs: { timestamp?: string; level?: string; message?: string }[] = (data.logs || []).slice().reverse();
-      mergeTrainingLogEntries(logs);
+      const logs: RoutedLogEntry[] = (data.logs || []).slice().reverse();
+      routeLogEntries(logs);
     } catch {
       // history polling is best-effort; live SSE or the next poll may recover
     }
@@ -262,7 +296,7 @@ export function HasherTrainingControls() {
     es.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
-        mergeTrainingLogEntries([data]);
+        routeLogEntries([data]);
       } catch {
         // ignore malformed events
       }
@@ -277,7 +311,7 @@ export function HasherTrainingControls() {
       es.close();
       sseRef.current = null;
     };
-  }, [logStreamingEnabled]);
+  }, [logStreamingEnabled, onProcessingActivities]);
 
   // Auto-scroll console to bottom when new logs arrive
   useEffect(() => {
@@ -752,9 +786,10 @@ export function CognitiveEngineStatusCard({ className }: { className?: string })
 
 interface CognitiveEnginePanelProps {
   className?: string;
+  onProcessingActivities?: (activities: ProcessingActivity[]) => void;
 }
 
-export const CognitiveEnginePanel = React.memo<CognitiveEnginePanelProps>(({ className }) => {
+export const CognitiveEnginePanel = React.memo<CognitiveEnginePanelProps>(({ className, onProcessingActivities }) => {
   const {
     cognitiveEngine,
     isLoading,
@@ -918,7 +953,7 @@ export const CognitiveEnginePanel = React.memo<CognitiveEnginePanelProps>(({ cla
           {validationResult && <div className="mt-4 text-xs text-blue-500 font-medium">Self-Validate Result: {validationResult}</div>}
 
           {/* KNIRVHASHER Training Controls */}
-          <HasherTrainingControls />
+          <HasherTrainingControlsInner onProcessingActivities={onProcessingActivities} />
         </CardContent>
       </Card>
     </div>

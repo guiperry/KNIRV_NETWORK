@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { webSocketService } from '@/lib/websocket-service';
 import { API_BASE_URL, getAuthHeaders } from '@/lib/api';
+import type { ProcessingActivity } from './cognitive-engine-log-routing';
 
 interface Thought {
   id: string;
@@ -54,9 +55,10 @@ const loadThoughts = (): Thought[] => {
 
 interface NeuralDesktopPanelProps {
   className?: string;
+  processingActivities?: ProcessingActivity[];
 }
 
-export const NeuralDesktopPanel: React.FC<NeuralDesktopPanelProps> = ({ className }) => {
+export const NeuralDesktopPanel: React.FC<NeuralDesktopPanelProps> = ({ className, processingActivities = [] }) => {
   const [status, setStatus] = useState<AgentStatus>(AgentStatus.IDLE);
   const [thoughts, setThoughts] = useState<Thought[]>([]);
   const [input, setInput] = useState('');
@@ -508,7 +510,7 @@ export const NeuralDesktopPanel: React.FC<NeuralDesktopPanelProps> = ({ classNam
                   </Badge>
                 </div>
                 <div className="h-[200px] overflow-y-auto p-3 space-y-2">
-                  <CurrentProcessingBox />
+                  <CurrentProcessingBox externalActivities={processingActivities} />
                 </div>
               </div>
 
@@ -539,7 +541,7 @@ export const NeuralDesktopPanel: React.FC<NeuralDesktopPanelProps> = ({ classNam
   );
 };
 
-interface ProcessingActivity {
+interface ProcessingActivityCard {
   id: string;
   timestamp: string;
   type: string;
@@ -557,12 +559,17 @@ const activityIcon = (type: string): React.ReactNode => {
     case 'increase_priority': return <Activity className="w-3 h-3" />;
     case 'optimize_resources': return <Server className="w-3 h-3" />;
     case 'redistribute_load': return <Users className="w-3 h-3" />;
+    case 'cognitive_engine_log': return <Terminal className="w-3 h-3" />;
     default:                 return <RefreshCw className="w-3 h-3" />;
   }
 };
 
-const CurrentProcessingBox: React.FC = () => {
-  const [activities, setActivities] = useState<ProcessingActivity[]>([]);
+interface CurrentProcessingBoxProps {
+  externalActivities?: ProcessingActivity[];
+}
+
+const CurrentProcessingBox: React.FC<CurrentProcessingBoxProps> = ({ externalActivities = [] }) => {
+  const [activities, setActivities] = useState<ProcessingActivityCard[]>([]);
   const [isConnected, setIsConnected] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -579,12 +586,14 @@ const CurrentProcessingBox: React.FC = () => {
 
     webSocketService.on('connection', handleConnection);
     webSocketService.on('cognitive-engine-activity', handleActivity);
-    setIsConnected(webSocketService.getConnectionStatus());
+    const connected = webSocketService.getConnectionStatus();
+    setIsConnected(connected);
     webSocketService.subscribe(['connection', 'cognitive-engine-activity']);
 
     // Fallback: show demo activities if no real data arrives after 3 seconds
-    const fallbackTimeout = setTimeout(() => {
-      if (activities.length === 0 && isConnected) {
+    let fallbackTimeout: ReturnType<typeof setTimeout> | null = null;
+    if (activities.length === 0 && externalActivities.length === 0 && connected) {
+      fallbackTimeout = setTimeout(() => {
         setActivities([
           {
             id: 'demo-learning',
@@ -603,20 +612,33 @@ const CurrentProcessingBox: React.FC = () => {
             status: 'active'
           }
         ]);
-      }
-    }, 3000);
+      }, 3000);
+    }
 
     return () => {
       webSocketService.off('connection', handleConnection);
       webSocketService.off('cognitive-engine-activity', handleActivity);
-      clearTimeout(fallbackTimeout);
+      if (fallbackTimeout !== null) {
+        clearTimeout(fallbackTimeout);
+      }
     };
-  }, [isConnected]);
+  }, [isConnected, activities.length, externalActivities.length]);
 
-  const active = activities.filter(a => a.status === 'active');
-  const completed = activities.filter(a => a.status === 'completed');
+  const websocketActivities = externalActivities.length > 0
+    ? activities.filter(activity => !activity.id.startsWith('demo-'))
+    : activities;
 
-  if (activities.length === 0) {
+  const combinedActivities = [...externalActivities, ...websocketActivities].reduce<ProcessingActivityCard[]>((acc, activity) => {
+    if (acc.some(existing => existing.id === activity.id)) {
+      return acc;
+    }
+    return [...acc, activity];
+  }, []).sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
+  const active = combinedActivities.filter(a => a.status === 'active');
+  const completed = combinedActivities.filter(a => a.status === 'completed');
+
+  if (combinedActivities.length === 0) {
     return (
       <div className="h-full flex flex-col items-center justify-center text-gray-700 space-y-2">
         <Loader2 className="animate-spin text-blue-500/40" size={20} />
@@ -627,7 +649,7 @@ const CurrentProcessingBox: React.FC = () => {
 
   return (
     <div ref={scrollRef} className="space-y-2">
-      {activities.map((activity) => (
+      {combinedActivities.map((activity) => (
         <div
           key={activity.id}
           className={`flex items-start gap-2 p-2 rounded-lg transition-interactive ${
