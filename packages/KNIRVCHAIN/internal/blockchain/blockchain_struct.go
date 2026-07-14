@@ -1401,6 +1401,10 @@ func (bc *BlockchainStruct) applyBlockTransactions(b *Block, tempBlockAccounts m
 // addBlockInternal is the real AddBlock implementation
 func (bc *BlockchainStruct) addBlockInternal(b *Block) error {
 	bc.Lock() // Lock for the entire duration of critical state modification
+	if err := bc.validateValidationProofMintsInBlock(b); err != nil {
+		bc.Unlock()
+		return err
+	}
 
 	if err := bc.verifyBlockContext(b); err != nil {
 		agentlog.LogError(fmt.Sprintf("Block %d context verification failed: %v", b.BlockNumber, err), err)

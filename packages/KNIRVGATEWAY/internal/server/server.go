@@ -287,6 +287,18 @@ func (s *Server) setupRoutes() error {
 
 	// Backend reverse proxy — proxy all /api/v1/* to the backend Unix socket
 	// (including /api/v1/info, which was previously handled locally by the gateway).
+	// The native encrypted CAS/proof protocol is owned by the KNIRVSERVER
+	// wrapper, so register its more-specific prefix before the generic backend
+	// route. This keeps every public proof request on KNIRVGATEWAY while avoiding
+	// a second implementation in the backend subprocess.
+	if s.config.ServerBaseURL != "" {
+		serverProxy, err := newHTTPProxy(s.config.ServerBaseURL)
+		if err != nil {
+			return fmt.Errorf("configure KNIRVSERVER native API proxy: %w", err)
+		}
+		r.PathPrefix("/api/v1/knirv/").Handler(serverProxy)
+		s.logger.Info("KNIRVSERVER native proof proxy registered", zap.String("target", s.config.ServerBaseURL))
+	}
 	if s.config.BackendSocketPath != "" {
 		backendProxy := newSocketProxy(s.config.BackendSocketPath, "http://knirvserver")
 		r.PathPrefix("/api/v1/").Handler(backendProxy)
@@ -962,6 +974,26 @@ func newSocketProxy(socketPath, targetBase string) *httputil.ReverseProxy {
 		return nil
 	}
 	return proxy
+}
+
+func newHTTPProxy(targetBase string) (*httputil.ReverseProxy, error) {
+	target, err := url.Parse(targetBase)
+	if err != nil {
+		return nil, err
+	}
+	proxy := httputil.NewSingleHostReverseProxy(target)
+	proxy.FlushInterval = -1
+	proxy.ModifyResponse = func(response *http.Response) error {
+		for _, header := range []string{
+			"Access-Control-Allow-Origin", "Access-Control-Allow-Headers",
+			"Access-Control-Allow-Methods", "Access-Control-Allow-Credentials",
+			"X-Frame-Options", "Content-Security-Policy",
+		} {
+			response.Header.Del(header)
+		}
+		return nil
+	}
+	return proxy, nil
 }
 
 func (s *Server) handleBackendWebSocketProxy(w http.ResponseWriter, r *http.Request) {

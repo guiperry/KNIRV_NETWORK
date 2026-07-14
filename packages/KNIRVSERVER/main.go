@@ -5,8 +5,12 @@ import (
 	"bytes"
 	"compress/gzip"
 	"context"
+	"crypto/rand"
 	"embed"
+	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -31,9 +35,11 @@ import (
 	knirvagent "github.com/KNIRV/KNIRV_NETWORK/KNIRVAGENT"
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/viper"
+	"github.com/subosito/gotenv"
 	"go.uber.org/zap"
 	"knirv-server/internal/bootkey"
 	dveevidence "knirv-server/internal/dveevidence"
+	"knirv-server/internal/knirvproof"
 	"knirv-server/internal/tlsprovider"
 	"knirv-server/internal/updater"
 )
@@ -67,14 +73,20 @@ const (
 
 // Config represents the application configuration
 type Config struct {
-	Host          string `mapstructure:"host"`
-	Port          int    `mapstructure:"port"`
-	BackendPort   int    `mapstructure:"backend_port"`
-	BackendSocket string `mapstructure:"backend_socket"`
-	GatewayPort   int    `mapstructure:"gateway_port"`
-	GatewaySocket string `mapstructure:"gateway_socket"`
-	LogLevel      string `mapstructure:"log_level"`
-	Testnet       bool   `mapstructure:"testnet"`
+	Host                  string   `mapstructure:"host"`
+	Port                  int      `mapstructure:"port"`
+	BackendPort           int      `mapstructure:"backend_port"`
+	BackendSocket         string   `mapstructure:"backend_socket"`
+	GatewayPort           int      `mapstructure:"gateway_port"`
+	GatewaySocket         string   `mapstructure:"gateway_socket"`
+	LogLevel              string   `mapstructure:"log_level"`
+	Testnet               bool     `mapstructure:"testnet"`
+	ProofStoreDir         string   `mapstructure:"proof_store_dir"`
+	ProofMaxObjectBytes   int64    `mapstructure:"proof_max_object_bytes"`
+	ProofRequiredReplicas int      `mapstructure:"proof_required_replicas"`
+	ProofReplicaDirs      []string `mapstructure:"proof_replica_dirs"`
+	ProofValidatorID      string   `mapstructure:"proof_validator_id"`
+	ProofChainSocket      string   `mapstructure:"proof_chain_socket"`
 	// NetworkMode is "testnet" (default), "production", or "development" —
 	// set from the -prod / -dev flags (or KNIRV_ENV / KNIRV_NETWORK_MODE),
 	// not sourced from the config YAML itself.
@@ -196,16 +208,20 @@ func (efs *EmbeddedFS) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 // ServerApp represents the main application
 type ServerApp struct {
-	config       *Config
-	router       *gin.Engine
-	server       *http.Server
-	agentControl *AgentControlServer
-	dveIngest    *dveevidence.IngestService
-	dveRoutes    *gin.Engine
-	backendCmd   *exec.Cmd
-	backendPath  string
-	tempDir      string
-	upd          *updater.Updater
+	config                   *Config
+	router                   *gin.Engine
+	server                   *http.Server
+	agentControl             *AgentControlServer
+	dveIngest                *dveevidence.IngestService
+	dveRoutes                *gin.Engine
+	proofService             *knirvproof.Service
+	proofRoutes              *gin.Engine
+	internalAuthToken        string
+	proofValidatorPrivateKey string
+	backendCmd               *exec.Cmd
+	backendPath              string
+	tempDir                  string
+	upd                      *updater.Updater
 }
 
 const defaultAgentControlSocketName = "knirvagent-control.sock"
@@ -907,9 +923,14 @@ func NewServerApp(config *Config) (*ServerApp, error) {
 		gin.SetMode(gin.ReleaseMode)
 	}
 
+	internalAuthToken, err := randomInternalToken()
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize internal authorization: %w", err)
+	}
 	app := &ServerApp{
-		config: config,
-		router: gin.New(),
+		config:            config,
+		router:            gin.New(),
+		internalAuthToken: internalAuthToken,
 	}
 
 	// Extract backend binary
@@ -1222,6 +1243,9 @@ func (app *ServerApp) setupRoutes() error {
 	if err := app.setupDVEIngestRoutes(); err != nil {
 		return fmt.Errorf("failed to configure DVE ingest routes: %w", err)
 	}
+	if err := app.setupProofRoutes(); err != nil {
+		return fmt.Errorf("failed to configure native proof routes: %w", err)
+	}
 
 	// Health check endpoint
 	app.router.GET("/health", func(c *gin.Context) {
@@ -1320,6 +1344,12 @@ func (app *ServerApp) setupRoutes() error {
 	api := app.router.Group("/api")
 	{
 		api.Any("/*path", func(c *gin.Context) {
+			// KNIRV-native encrypted CAS and proof protocol. This is kept on a
+			// dedicated engine because the /api catch-all owns the Gin prefix.
+			if strings.HasPrefix(c.Request.URL.Path, "/api/v1/knirv/") && app.proofRoutes != nil {
+				app.proofRoutes.ServeHTTP(c.Writer, c.Request)
+				return
+			}
 			// Update-status endpoint — handled locally; avoids proxying GitHub
 			// calls through the backend subprocess.
 			if c.Request.URL.Path == "/api/v1/system/update" {
@@ -1619,6 +1649,151 @@ func (app *ServerApp) setupDVEIngestRoutes() error {
 	app.dveRoutes = gin.New()
 	dveevidence.RegisterDVEIngestRoutes(app.dveRoutes, app.dveIngest)
 	return nil
+}
+
+func (app *ServerApp) setupProofRoutes() error {
+	storeDir := app.config.ProofStoreDir
+	if storeDir == "" {
+		appDataDir, err := getAppDataDir()
+		if err != nil {
+			return err
+		}
+		storeDir = filepath.Join(appDataDir, "proof-protocol")
+	}
+	maxObjectBytes := app.config.ProofMaxObjectBytes
+	if maxObjectBytes <= 0 {
+		maxObjectBytes = 64 << 20
+	}
+	requiredReplicas := app.config.ProofRequiredReplicas
+	if requiredReplicas <= 0 {
+		if app.config.NetworkMode == "production" {
+			requiredReplicas = 3
+		} else {
+			requiredReplicas = 1
+		}
+	}
+	store, err := knirvproof.NewFileStore(storeDir, maxObjectBytes)
+	if err != nil {
+		return err
+	}
+	validatorPrivateKey, err := loadOrCreateProofValidatorKey(storeDir)
+	if err != nil {
+		return err
+	}
+	app.proofValidatorPrivateKey = validatorPrivateKey
+	replicaStores := make([]*knirvproof.FileStore, 0, len(app.config.ProofReplicaDirs))
+	for _, replicaDir := range app.config.ProofReplicaDirs {
+		replicaDir = strings.TrimSpace(replicaDir)
+		if replicaDir == "" || filepath.Clean(replicaDir) == filepath.Clean(storeDir) {
+			continue
+		}
+		replicaStore, replicaErr := knirvproof.NewFileStore(replicaDir, maxObjectBytes)
+		if replicaErr != nil {
+			return fmt.Errorf("open proof replica %s: %w", replicaDir, replicaErr)
+		}
+		replicaStores = append(replicaStores, replicaStore)
+	}
+	replicator := knirvproof.Replicator(knirvproof.FilesystemReplicator{
+		PrimaryLocation: "knirvserver-local-cas", Replicas: replicaStores,
+	})
+	trustClient, err := knirvproof.NewBackendTrustClient(app.config.BackendSocket, app.internalAuthToken)
+	if err != nil {
+		return err
+	}
+	validatorID := strings.TrimSpace(app.config.ProofValidatorID)
+	if validatorID == "" {
+		hostname, _ := os.Hostname()
+		validatorID = "knirvserver:" + hostname
+	}
+	verifier := &knirvproof.NativeVerifier{
+		DEKs: trustClient, SigningKeys: trustClient.ResolveSigningKey, ValidatorID: validatorID,
+	}
+	chainSocket := app.config.ProofChainSocket
+	if chainSocket == "" {
+		appDataDir, dataErr := getAppDataDir()
+		if dataErr != nil {
+			return dataErr
+		}
+		chainSocket = filepath.Join(appDataDir, "sockets", "chain.sock")
+	}
+	minter, err := knirvproof.NewChainMinter(chainSocket, app.internalAuthToken)
+	if err != nil {
+		return err
+	}
+	service, err := knirvproof.NewService(store, verifier, replicator, minter, requiredReplicas)
+	if err != nil {
+		return err
+	}
+	authorizer, err := knirvproof.NewBackendAuthorizer(app.config.BackendSocket, app.internalAuthToken)
+	if err != nil {
+		return err
+	}
+	app.proofService = service
+	app.proofRoutes = gin.New()
+	app.proofRoutes.Use(gin.Recovery())
+	knirvproof.RegisterRoutes(app.proofRoutes, service, authorizer)
+	knirvproof.RegisterValidatorKeyRoute(app.proofRoutes, trustClient)
+	if err := service.Resume(context.Background()); err != nil {
+		return fmt.Errorf("resume proof operations: %w", err)
+	}
+	return nil
+}
+
+func randomInternalToken() (string, error) {
+	value := make([]byte, 32)
+	if _, err := rand.Read(value); err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(value), nil
+}
+
+func loadOrCreateProofValidatorKey(storeDir string) (string, error) {
+	if configured := strings.TrimSpace(os.Getenv("KNIRV_PROOF_VALIDATOR_X25519_PRIVATE_KEY")); configured != "" {
+		raw, err := base64.StdEncoding.DecodeString(configured)
+		if err != nil || len(raw) != 32 {
+			return "", fmt.Errorf("KNIRV_PROOF_VALIDATOR_X25519_PRIVATE_KEY must encode 32 bytes")
+		}
+		return configured, nil
+	}
+	trustDir := filepath.Join(storeDir, "trust")
+	if err := os.MkdirAll(trustDir, 0o700); err != nil {
+		return "", err
+	}
+	keyPath := filepath.Join(trustDir, "validator-x25519.key")
+	if existing, err := os.ReadFile(keyPath); err == nil {
+		encoded := strings.TrimSpace(string(existing))
+		raw, decodeErr := base64.StdEncoding.DecodeString(encoded)
+		if decodeErr != nil || len(raw) != 32 {
+			return "", fmt.Errorf("persisted proof validator key is invalid")
+		}
+		return encoded, nil
+	} else if !errors.Is(err, os.ErrNotExist) {
+		return "", err
+	}
+	raw := make([]byte, 32)
+	if _, err := rand.Read(raw); err != nil {
+		return "", err
+	}
+	encoded := base64.StdEncoding.EncodeToString(raw)
+	file, err := os.OpenFile(keyPath, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0o600)
+	if errors.Is(err, os.ErrExist) {
+		return loadOrCreateProofValidatorKey(storeDir)
+	}
+	if err != nil {
+		return "", err
+	}
+	if _, err := file.WriteString(encoded + "\n"); err != nil {
+		_ = file.Close()
+		return "", err
+	}
+	if err := file.Sync(); err != nil {
+		_ = file.Close()
+		return "", err
+	}
+	if err := file.Close(); err != nil {
+		return "", err
+	}
+	return encoded, nil
 }
 
 // ── Real-time system metrics (/api/v1/system/info) ───────────────────────────
@@ -2114,6 +2289,10 @@ func (app *ServerApp) startBackend() error {
 		fmt.Sprintf("KNIRV_API_PORT=%d", app.config.BackendPort),
 		fmt.Sprintf("KNIRV_API_SOCKET=%s", app.config.BackendSocket),
 		fmt.Sprintf("KNIRV_API_SOCKET_PATH=%s", app.config.BackendSocket),
+		fmt.Sprintf("KNIRV_INTERNAL_AUTH_TOKEN=%s", app.internalAuthToken),
+		fmt.Sprintf("KNIRV_PROOF_VALIDATOR_X25519_PRIVATE_KEY=%s", app.proofValidatorPrivateKey),
+		fmt.Sprintf("KNIRV_SERVER_BASE_URL=http://127.0.0.1:%d", app.config.Port),
+		fmt.Sprintf("KNIRV_PROOF_REQUIRED_REPLICAS=%d", app.config.ProofRequiredReplicas),
 		fmt.Sprintf("KNIRV_CONFIG_FILE=%s", configFile),
 		"KNIRV_API_HOST=127.0.0.1",
 	)
@@ -2524,6 +2703,12 @@ func (app *ServerApp) Stop() error {
 
 // loadConfig loads configuration from file and environment
 func loadConfig() (*Config, error) {
+	// Load the shared environment before resolving the network mode or reading
+	// encrypted node keys. Existing process environment values always win.
+	// In particular, this makes ORACLE_KEY_PASSWORD / BOOT_KEY_PASSWORD
+	// available in clean testnet launches just as they are in production.
+	_ = gotenv.Load()
+
 	// Parse command line flags
 	var (
 		configFile = flag.String("config", "", "Path to configuration file")
@@ -2584,6 +2769,17 @@ func loadConfig() (*Config, error) {
 	viper.SetDefault("gateway_port", 8080)
 	viper.SetDefault("log_level", "info")
 	viper.SetDefault("testnet", networkMode == "testnet")
+	viper.SetDefault("proof_max_object_bytes", int64(64<<20))
+	viper.SetDefault("proof_validator_id", "")
+	viper.SetDefault("proof_replica_dirs", []string{})
+	if appDataDir, err := getAppDataDir(); err == nil {
+		viper.SetDefault("proof_chain_socket", filepath.Join(appDataDir, "sockets", "chain.sock"))
+	}
+	if networkMode == "production" {
+		viper.SetDefault("proof_required_replicas", 3)
+	} else {
+		viper.SetDefault("proof_required_replicas", 1)
+	}
 
 	// Enable environment variable support
 	viper.AutomaticEnv()
@@ -2600,6 +2796,9 @@ func loadConfig() (*Config, error) {
 	var config Config
 	if err := viper.Unmarshal(&config); err != nil {
 		return nil, fmt.Errorf("error unmarshaling config: %w", err)
+	}
+	if replicaDirs := strings.TrimSpace(os.Getenv("KNIRV_PROOF_REPLICA_DIRS")); replicaDirs != "" {
+		config.ProofReplicaDirs = strings.Split(replicaDirs, string(os.PathListSeparator))
 	}
 
 	// Initialize BackendSocket if empty

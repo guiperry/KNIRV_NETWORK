@@ -18,6 +18,10 @@ import (
 	"go.uber.org/zap"
 )
 
+func canStartCloudflareTunnel(apiToken, zoneID, tunnelToken string) bool {
+	return tunnelToken != "" || (apiToken != "" && zoneID != "")
+}
+
 func main() {
 	// Initialize logger
 	logger, err := zap.NewProduction()
@@ -164,9 +168,11 @@ func main() {
 	var tunnelRunners []*cloudflare.TunnelRunner
 	tunnelCtx, tunnelCancel := context.WithCancel(context.Background())
 
-	if cfAPIToken := os.Getenv("CLOUDFLARE_API_TOKEN"); cfAPIToken != "" {
+	cfGatewayToken := os.Getenv("CLOUDFLARE_GATEWAY_TUNNEL_TOKEN")
+	cfOracleToken := os.Getenv("CLOUDFLARE_ORACLE_TUNNEL_TOKEN")
+	if cfAPIToken := os.Getenv("CLOUDFLARE_API_TOKEN"); cfAPIToken != "" || cfGatewayToken != "" || cfOracleToken != "" {
 		cfZone := os.Getenv("CLOUDFLARE_ZONE_ID")
-		if cfZone == "" {
+		if cfZone == "" && cfGatewayToken == "" && cfOracleToken == "" {
 			logger.Warn("CLOUDFLARE_API_TOKEN set but CLOUDFLARE_ZONE_ID missing — skipping Cloudflare Tunnels")
 		} else {
 			servicePort := cfg.Port
@@ -175,6 +181,11 @@ func main() {
 			}
 
 			startTunnel := func(name, hostname string, port int, token string) {
+				if !canStartCloudflareTunnel(cfAPIToken, cfZone, token) {
+					logger.Warn("Cloudflare Tunnel skipped — tunnel token or API credentials required",
+						zap.String("hostname", hostname), zap.String("tunnel", name))
+					return
+				}
 				runner := cloudflare.NewTunnelRunner(cloudflare.TunnelRunnerConfig{
 					APIToken:    cfAPIToken,
 					ZoneID:      cfZone,
@@ -200,9 +211,9 @@ func main() {
 			switch {
 			case isProduction && isRoot:
 				startTunnel("knirv-gateway", "gateway.knirv.network", servicePort,
-					os.Getenv("CLOUDFLARE_GATEWAY_TUNNEL_TOKEN"))
+					cfGatewayToken)
 				startTunnel("knirv-gateway-oracle", "gateway-oracle.knirv.network", servicePort,
-					os.Getenv("CLOUDFLARE_ORACLE_TUNNEL_TOKEN"))
+					cfOracleToken)
 
 			case isProduction && isBootnode:
 				if nodeRegID == "" {
@@ -212,15 +223,15 @@ func main() {
 						fmt.Sprintf("knirv-gateway-%s", nodeRegID),
 						fmt.Sprintf("gateway-%s.knirv.network", nodeRegID),
 						servicePort,
-						os.Getenv("CLOUDFLARE_GATEWAY_TUNNEL_TOKEN"),
+						cfGatewayToken,
 					)
 				}
 
 			case !isProduction && isRoot:
 				startTunnel("knirv-testnet-gateway", "testnet-gateway.knirv.network", servicePort,
-					os.Getenv("CLOUDFLARE_GATEWAY_TUNNEL_TOKEN"))
+					cfGatewayToken)
 				startTunnel("knirv-testnet-gateway-oracle", "testnet-gateway-oracle.knirv.network", servicePort,
-					os.Getenv("CLOUDFLARE_ORACLE_TUNNEL_TOKEN"))
+					cfOracleToken)
 
 			case !isProduction && isBootnode:
 				if nodeRegID == "" {
@@ -230,7 +241,7 @@ func main() {
 						fmt.Sprintf("knirv-testnet-gateway-%s", nodeRegID),
 						fmt.Sprintf("testnet-gateway-%s.knirv.network", nodeRegID),
 						servicePort,
-						os.Getenv("CLOUDFLARE_GATEWAY_TUNNEL_TOKEN"),
+						cfGatewayToken,
 					)
 				}
 

@@ -43,6 +43,7 @@ type BlockchainServer struct {
 	xionPaymentGateway *XIONPaymentGateway  // XION payment gateway integration
 	consensusManager   *P2PConsensusManager // Reference to consensus manager for network pause checking
 	fm                 *FailoverManager     // Reference to failover manager
+	validationProofMu  sync.Mutex
 }
 
 // SetListenAddr overrides the HTTP server address after Prepare.
@@ -357,6 +358,7 @@ func (bcs *BlockchainServer) Prepare() (uint64, error) {
 	mux.HandleFunc("/add_reflection", bcs.handleAddReflection)
 	mux.HandleFunc("/block", bcs.handleReceiveBlock)
 	mux.HandleFunc("/transaction", bcs.HandleReceiveTransaction)
+	mux.HandleFunc("/api/v1/validation-proofs/mint", bcs.handleValidationProofMint)
 	mux.HandleFunc("/txn_pool", bcs.handleGetTransactionPool)
 	mux.HandleFunc("/ping", bcs.handlePing)
 	mux.HandleFunc("/health", bcs.handleHealth)
