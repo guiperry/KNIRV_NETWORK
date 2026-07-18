@@ -99,11 +99,21 @@ The server serves static assets and also supports the interactive routes needed 
 
 ## Operational Details
 
-- The root key is embedded only on root-node builds.
-- Oracle-related behavior depends on `packages/KNIRVSERVER/bin/root.key` and `ORACLE_KEY_PASSWORD`.
+- Root-node behavior is enabled by `root.key` at the designated
+  `<user-config>/knirv-server/.key/root.key` location (or `ORACLE_KEY_PATH`)
+  and `ORACLE_KEY_PASSWORD`.
 - The server exposes local update status and update apply routes.
 - Streaming requests are detected and proxied without a normal timeout.
 - WebSocket traffic is proxied to the backend subprocess.
+- `KNIRV_PUBLIC_URL` identifies cloudflared's public gateway origin.
+  `KNIRV_AUTH_PUBLIC_URL` separately identifies the KNIRVSERVER browser-login
+  origin used by CLI device authorization; local wrapper runs default it to
+  `http://127.0.0.1:<server-port>`.
+- Tunnel ownership follows the key-derived node role. `root.key` owns
+  `gateway.knirv.network` in production and `testnet-gateway.knirv.network` in
+  testnet. `boot.key` owns `testnet-{UserIDTag}-gateway.knirv.network` in testnet
+  and `devnet-{UserIDTag}-gateway.knirv.network` in devnet. Client roles and
+  unsupported role/network combinations cannot start Cloudflare tunnels.
 
 The main file to inspect when changing behavior is `main.go`.
 

@@ -2,8 +2,10 @@ package server
 
 import (
 	"encoding/json"
+	"net"
 	"net/http"
 	"net/http/httptest"
+	"path/filepath"
 	"testing"
 
 	"github.com/KNIRV/KNIRV_NETWORK/KNIRVGATEWAY/internal/config"
@@ -357,6 +359,65 @@ func TestAPIInfoFallback(t *testing.T) {
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
 		t.Errorf("expected 200 (fallback local handler), got %d", resp.StatusCode)
+	}
+}
+
+func TestCLIDeviceAuthorizationProxyRoute(t *testing.T) {
+	cfg := &config.Config{
+		Port:              8888,
+		BackendSocketPath: "/tmp/nonexistent-knirv-auth-test.sock",
+	}
+	s := testServer(cfg)
+	ts := httptest.NewServer(s.router)
+	defer ts.Close()
+
+	resp, err := http.Get(ts.URL + "/api/auth/device/status?token=device-code")
+	if err != nil {
+		t.Fatalf("GET /api/auth/device/status: %v", err)
+	}
+	resp.Body.Close()
+	if resp.StatusCode == http.StatusNotFound || resp.StatusCode == http.StatusOK {
+		t.Fatalf("expected registered backend auth proxy to fail on the test socket, got %d", resp.StatusCode)
+	}
+}
+
+func TestCompleteKNIRVServerAPIProxyFallback(t *testing.T) {
+	socketPath := filepath.Join(t.TempDir(), "backend.sock")
+	listener, err := net.Listen("unix", socketPath)
+	if err != nil {
+		t.Fatalf("listen on backend socket: %v", err)
+	}
+	backend := &http.Server{Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("X-KNIRV-Backend-Path", r.URL.Path)
+		w.WriteHeader(http.StatusNoContent)
+	})}
+	go func() { _ = backend.Serve(listener) }()
+	t.Cleanup(func() { _ = backend.Close() })
+
+	s := testServer(&config.Config{Port: 8888, BackendSocketPath: socketPath})
+	ts := httptest.NewServer(s.router)
+	defer ts.Close()
+
+	for _, path := range []string{
+		"/api/auth/device/status",
+		"/api/cognitive/active-memory/traces",
+		"/api/dve-nodes",
+		"/api/system-health",
+		"/api/v1/projects/example",
+	} {
+		t.Run(path, func(t *testing.T) {
+			resp, err := http.Get(ts.URL + path)
+			if err != nil {
+				t.Fatalf("GET %s: %v", path, err)
+			}
+			defer resp.Body.Close()
+			if resp.StatusCode != http.StatusNoContent {
+				t.Fatalf("GET %s status = %d, want %d", path, resp.StatusCode, http.StatusNoContent)
+			}
+			if got := resp.Header.Get("X-KNIRV-Backend-Path"); got != path {
+				t.Fatalf("proxied path = %q, want %q", got, path)
+			}
+		})
 	}
 }
 

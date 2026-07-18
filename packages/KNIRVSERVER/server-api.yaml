@@ -216,6 +216,49 @@ paths:
         '401':
           description: Invalid credentials
 
+  /api/auth/device/initiate:
+    post:
+      tags: [auth]
+      summary: Start CLI device authorization
+      description: Creates a short-lived device code and browser verification URL.
+      responses:
+        '200':
+          description: Device authorization created
+
+  /api/auth/device/status:
+    get:
+      tags: [auth]
+      summary: Poll CLI device authorization
+      parameters:
+        - in: query
+          name: token
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Pending, approved, denied, or expired authorization state
+
+  /api/auth/device/approve:
+    post:
+      tags: [auth]
+      summary: Approve CLI device authorization
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token]
+              properties:
+                token:
+                  type: string
+      responses:
+        '200':
+          description: Device authorization approved
+
   /api/auth/refresh:
     post:
       tags: [auth]
@@ -2357,6 +2400,11 @@ paths:
           description: Server shutting down
 
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
   schemas:
     NexusEvent:
       type: object

@@ -100,11 +100,17 @@ type Config struct {
 	BaseNetworkID      string `envconfig:"BASE_NETWORK_ID"`
 
 	// Cloudflare tunnel node identity
-	// NetworkMode is "production" or "testnet" — determines tunnel hostnames.
+	// NetworkMode is one of production, testnet, development, or enterprise.
 	// Derived from KNIRV_NETWORK_MODE env var; falls back to KNIRV_TESTNET detection.
 	NetworkMode string // KNIRV_NETWORK_MODE / KNIRV_TESTNET
+	// PublicURL is the authoritative external HTTPS origin selected by the
+	// KNIRVSERVER wrapper and shared with cloudflared.
+	PublicURL string // KNIRV_PUBLIC_URL
+	// EnterpriseMode and UserIDTag select the Enterprise subscription hostname.
+	EnterpriseMode bool   // KNIRV_ENTERPRISE
+	UserIDTag      string // KNIRV_USER_ID_TAG
 	// NodeRegistrationID is this bootnode's registration ID (from D1 or env).
-	// Used to build gateway-{N}.knirv.network / testnet-gateway-{N}.knirv.network.
+	// It remains part of node/DHT identity; public DNS now uses deployment class.
 	NodeRegistrationID string // KNIRV_NODE_REGISTRATION_ID
 	// CloudflareD1DatabaseID enables auto-lookup of NodeRegistrationID from D1
 	// when KNIRV_NODE_REGISTRATION_ID is not set explicitly.
@@ -168,6 +174,9 @@ func Load() (*Config, error) {
 		BaseCallbackSocket:        getEnv("BASE_CALLBACK_SOCKET", ""),
 		BaseNetworkID:             getEnv("BASE_NETWORK_ID", ""),
 		NetworkMode:               resolveNetworkMode(),
+		PublicURL:                 getEnv("KNIRV_PUBLIC_URL", ""),
+		EnterpriseMode:            getEnvBool("KNIRV_ENTERPRISE", false),
+		UserIDTag:                 getEnv("KNIRV_USER_ID_TAG", ""),
 		NodeRegistrationID:        getEnv("KNIRV_NODE_REGISTRATION_ID", ""),
 		CloudflareD1DatabaseID:    getEnv("CLOUDFLARE_D1_DATABASE_ID", ""),
 	}
@@ -198,7 +207,8 @@ func getEnvBool(key string, defaultValue bool) bool {
 	return defaultValue
 }
 
-// resolveNetworkMode returns "production" or "testnet".
+// resolveNetworkMode returns the explicit deployment class, or a legacy
+// production/testnet fallback when KNIRV_NETWORK_MODE is absent.
 // Explicit KNIRV_NETWORK_MODE takes priority; otherwise KNIRV_TESTNET=true
 // (propagated from KNIRVSERVER's --testnet flag) maps to "testnet".
 // Default is "production" so misconfigured nodes do not accidentally create

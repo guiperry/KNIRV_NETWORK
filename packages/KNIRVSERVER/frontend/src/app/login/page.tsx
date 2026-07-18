@@ -4,6 +4,21 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
 
+async function approveCLIDevice(deviceCode: string, authToken: string): Promise<void> {
+  const response = await fetch('/api/auth/device/approve', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${authToken}`,
+    },
+    body: JSON.stringify({ token: deviceCode }),
+  });
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({}));
+    throw new Error(body.error || body.message || `CLI authorization failed (${response.status})`);
+  }
+}
+
 export default function LoginPage() {
   const router = useRouter();
   const { login: authLogin } = useAuth();
@@ -11,6 +26,8 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [showRegister, setShowRegister] = useState(false);
+  const [cliDeviceCode, setCLIDeviceCode] = useState('');
+  const [cliApproved, setCLIApproved] = useState(false);
 
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -29,6 +46,31 @@ export default function LoginPage() {
     'TESTNET_VALIDATOR_TOKEN': { role: 'validator', user: 'testnet-validator' },
     'TESTNET_OBSERVER_TOKEN': { role: 'observer', user: 'testnet-observer' },
   };
+
+  // OAuth-style device authorization: a CLI opens this page with a
+  // high-entropy device code. If this browser already has a valid server
+  // login, approve it immediately; otherwise the normal login form remains
+  // and approves the CLI after authentication succeeds.
+  useEffect(() => {
+    const deviceCode = new URLSearchParams(window.location.search).get('cli_token')?.trim() || '';
+    if (!deviceCode) return;
+    setCLIDeviceCode(deviceCode);
+
+    const existingToken = localStorage.getItem('knirv_nexus_token') || localStorage.getItem('knirv_auth_token');
+    if (!existingToken) return;
+
+    setLoading(true);
+    fetch('/api/auth/me', {
+      headers: { 'Authorization': `Bearer ${existingToken}` },
+    })
+      .then(async response => {
+        if (!response.ok) throw new Error('Your saved login has expired. Please sign in again.');
+        await approveCLIDevice(deviceCode, existingToken);
+        setCLIApproved(true);
+      })
+      .catch(err => setError(err instanceof Error ? err.message : 'CLI authorization failed.'))
+      .finally(() => setLoading(false));
+  }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -114,6 +156,13 @@ export default function LoginPage() {
         // causing DashboardWrapper's auth guard to fire prematurely.
         await authLogin(authToken);
 
+        if (cliDeviceCode) {
+          await approveCLIDevice(cliDeviceCode, authToken);
+          setCLIApproved(true);
+          setLoading(false);
+          return;
+        }
+
         router.push('/menu');
       }
     } catch {
@@ -183,7 +232,8 @@ export default function LoginPage() {
 
   useEffect(() => {
     const existingToken = localStorage.getItem('knirv_nexus_token') || localStorage.getItem('knirv_auth_token');
-    if (existingToken) {
+    const isCLIAuthorization = Boolean(new URLSearchParams(window.location.search).get('cli_token'));
+    if (existingToken && !isCLIAuthorization) {
       router.push('/menu');
     }
   }, [router]);
@@ -287,9 +337,11 @@ export default function LoginPage() {
                 </div>
               )}
 
+              {cliDeviceCode && !cliApproved && <div className="text-blue-400 text-sm py-2">Sign in to authorize KNIRV CLI.</div>}
+              {cliApproved && <div className="text-green-400 text-sm py-2">KNIRV CLI authorized. You may close this window.</div>}
               {error && <div id="login-error" className="login-error text-red-400 text-sm py-2">{error}</div>}
               
-              <button type="submit" className="login-btn w-full bg-blue-600 hover:bg-blue-700 py-2 rounded text-sm font-medium transition-colors disabled:opacity-50" disabled={loading}>
+              <button type="submit" className="login-btn w-full bg-blue-600 hover:bg-blue-700 py-2 rounded text-sm font-medium transition-colors disabled:opacity-50" disabled={loading || cliApproved}>
                 <span id="login-btn-text">{loading ? 'AUTHENTICATING...' : 'AUTHENTICATE'}</span>
               </button>
             </form>

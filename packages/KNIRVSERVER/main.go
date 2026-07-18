@@ -91,10 +91,68 @@ type Config struct {
 	// forwards the flag to the embedded backend so it starts the training
 	// pipeline during initialization.
 	AutoStartHasher bool
-	// NetworkMode is "testnet" (default), "production", or "development" —
-	// set from the -prod / -dev flags (or KNIRV_ENV / KNIRV_NETWORK_MODE),
+	// NetworkMode is "testnet" (default), "production", "development", or
+	// "enterprise" — set from the -prod / -dev / -ent flags (or environment),
 	// not sourced from the config YAML itself.
 	NetworkMode string
+	// Enterprise identifies the Enterprise subscription deployment class. It is
+	// intentionally distinct from the KNIRV main-network production class.
+	Enterprise bool
+	// UserIDTag is the DNS-safe user identity suffix used by devnet and enterprise.
+	UserIDTag string
+}
+
+func normalizeUserIDTag(value string) string {
+	value = strings.ToLower(strings.TrimSpace(value))
+	var tag strings.Builder
+	lastWasHyphen := false
+	for _, r := range value {
+		valid := r >= 'a' && r <= 'z' || r >= '0' && r <= '9'
+		if valid {
+			tag.WriteRune(r)
+			lastWasHyphen = false
+			continue
+		}
+		if tag.Len() > 0 && !lastWasHyphen {
+			tag.WriteByte('-')
+			lastWasHyphen = true
+		}
+	}
+	normalized := strings.Trim(tag.String(), "-")
+	// enterprise- is the longest hostname prefix (11 bytes), leaving 52 bytes
+	// for the tag within the DNS label's 63-byte limit.
+	if len(normalized) > 52 {
+		normalized = strings.TrimRight(normalized[:52], "-")
+	}
+	return normalized
+}
+
+// resolvePublicURL returns the single public origin shared by backend_server,
+// KNIRVGATEWAY, and cloudflared. An explicit deployment value always wins.
+func resolvePublicURL(cfg *Config) (string, error) {
+	if configured := strings.TrimRight(strings.TrimSpace(os.Getenv("KNIRV_PUBLIC_URL")), "/"); configured != "" {
+		return configured, nil
+	}
+
+	tag := normalizeUserIDTag(cfg.UserIDTag)
+	if cfg.Enterprise {
+		if tag == "" {
+			return "", fmt.Errorf("enterprise mode requires -user-id-tag or KNIRV_USER_ID_TAG")
+		}
+		return fmt.Sprintf("https://enterprise-%s.knirv.network", tag), nil
+	}
+
+	switch strings.ToLower(strings.TrimSpace(cfg.NetworkMode)) {
+	case "production", "prod", "mainnet":
+		return "https://gateway.knirv.network", nil
+	case "development", "dev", "devnet":
+		if tag == "" {
+			return "", fmt.Errorf("development mode requires -user-id-tag or KNIRV_USER_ID_TAG")
+		}
+		return fmt.Sprintf("https://devnet-%s.knirv.network", tag), nil
+	default:
+		return "https://testnet-gateway.knirv.network", nil
+	}
 }
 
 // EmbeddedFS wraps the embedded filesystem for serving static files
@@ -2243,6 +2301,18 @@ func uniqueIntsMain(values []int) []int {
 	return out
 }
 
+func setChildEnv(env []string, key, value string) []string {
+	prefix := key + "="
+	filtered := env[:0]
+	for _, entry := range env {
+		if strings.HasPrefix(entry, prefix) {
+			continue
+		}
+		filtered = append(filtered, entry)
+	}
+	return append(filtered, prefix+value)
+}
+
 // ensureMainHTTPPortFree kills any existing listeners on the main HTTP port before startup.
 func ensureMainHTTPPortFree(port int) error {
 	if waitForPortFreeMain(port, 250*time.Millisecond) {
@@ -2290,7 +2360,24 @@ func (app *ServerApp) startBackend() error {
 	}
 	app.backendCmd = exec.Command(app.backendPath, backendArgs...)
 
-	// Set environment variables for backend
+	// Resolve the browser-facing origin before spawning backend_server. The
+	// backend passes this same value to KNIRVGATEWAY, whose cloudflared tunnel
+	// uses it as the authoritative public hostname during initialization.
+	publicURL, err := resolvePublicURL(app.config)
+	if err != nil {
+		return err
+	}
+	publicOrigin, err := url.Parse(publicURL)
+	if err != nil || publicOrigin.Hostname() == "" {
+		return fmt.Errorf("invalid KNIRV public URL %q", publicURL)
+	}
+	userIDTag := normalizeUserIDTag(app.config.UserIDTag)
+	authPublicURL := strings.TrimRight(strings.TrimSpace(os.Getenv("KNIRV_AUTH_PUBLIC_URL")), "/")
+	if authPublicURL == "" {
+		// Browser authentication is served by the KNIRVSERVER wrapper, not by
+		// KNIRVGATEWAY's SPA. Remote installations can override this origin.
+		authPublicURL = fmt.Sprintf("http://127.0.0.1:%d", app.config.Port)
+	}
 	env := append(os.Environ(),
 		fmt.Sprintf("KNIRV_API_PORT=%d", app.config.BackendPort),
 		fmt.Sprintf("KNIRV_API_SOCKET=%s", app.config.BackendSocket),
@@ -2298,6 +2385,11 @@ func (app *ServerApp) startBackend() error {
 		fmt.Sprintf("KNIRV_INTERNAL_AUTH_TOKEN=%s", app.internalAuthToken),
 		fmt.Sprintf("KNIRV_PROOF_VALIDATOR_X25519_PRIVATE_KEY=%s", app.proofValidatorPrivateKey),
 		fmt.Sprintf("KNIRV_SERVER_BASE_URL=http://127.0.0.1:%d", app.config.Port),
+		fmt.Sprintf("KNIRV_PUBLIC_URL=%s", publicURL),
+		fmt.Sprintf("KNIRV_AUTH_PUBLIC_URL=%s", authPublicURL),
+		fmt.Sprintf("PUBLIC_HOST=%s", publicOrigin.Hostname()),
+		fmt.Sprintf("KNIRV_USER_ID_TAG=%s", userIDTag),
+		fmt.Sprintf("KNIRV_ENTERPRISE=%t", app.config.Enterprise),
 		fmt.Sprintf("KNIRV_PROOF_REQUIRED_REPLICAS=%d", app.config.ProofRequiredReplicas),
 		fmt.Sprintf("KNIRV_CONFIG_FILE=%s", configFile),
 		"KNIRV_API_HOST=127.0.0.1",
@@ -2350,11 +2442,9 @@ func (app *ServerApp) startBackend() error {
 	}
 
 	// Propagate network mode and node role to sub-processes (backend_server, KNIRVGATEWAY).
-	// KNIRVGATEWAY inherits these via os.Environ() and uses them to choose tunnel hostnames:
-	//   production + Root     → gateway.knirv.network + gateway-oracle.knirv.network
-	//   testnet    + Root     → testnet-gateway.knirv.network + testnet-gateway-oracle.knirv.network
-	//   production + Bootnode → gateway{N}.knirv.network
-	//   testnet    + Bootnode → testnet-gateway{N}.knirv.network
+	// KNIRVGATEWAY inherits these via os.Environ() and provisions its tunnel
+	// from KNIRV_PUBLIC_URL, keeping device authorization and public ingress on
+	// one origin for testnet, production, devnet, and enterprise deployments.
 	networkMode := app.config.NetworkMode
 	if networkMode == "" {
 		networkMode = "testnet"
@@ -2363,7 +2453,7 @@ func (app *ServerApp) startBackend() error {
 	// Node role: root.key present → Root; boot.key present → Bootnode; neither → Client.
 	// Both keys are discovered at runtime from standard filesystem locations.
 	if rootKeyPath := bootkey.FindRootKey(); rootKeyPath != "" {
-		env = append(env, "CHAIN_NODE_ROLE=Root")
+		env = setChildEnv(env, "CHAIN_NODE_ROLE", "Root")
 		// Pass the resolved path so backend_server can find and decrypt root.key
 		// without embedding or hard-coding paths.
 		env = append(env, "ORACLE_KEY_PATH="+rootKeyPath)
@@ -2396,7 +2486,7 @@ func (app *ServerApp) startBackend() error {
 	} else {
 		bootContent, bootErr := bootkey.Load()
 		if bootContent != nil {
-			env = append(env, "CHAIN_NODE_ROLE=Bootnode")
+			env = setChildEnv(env, "CHAIN_NODE_ROLE", "Bootnode")
 			if bootContent.RegistrationID != "" {
 				env = append(env, "KNIRV_NODE_REGISTRATION_ID="+bootContent.RegistrationID)
 			}
@@ -2415,9 +2505,12 @@ func (app *ServerApp) startBackend() error {
 			log.Printf("Boot node detected: registration_id=%s", bootContent.RegistrationID)
 		} else if bootkey.Exists() {
 			// boot.key present but couldn't decrypt — still mark as bootnode role
-			env = append(env, "CHAIN_NODE_ROLE=Bootnode")
+			env = setChildEnv(env, "CHAIN_NODE_ROLE", "Bootnode")
 			log.Printf("Boot node detected (boot.key found) but decryption failed: %v", bootErr)
 			log.Printf("Set BOOT_KEY_PASSWORD to unlock boot.key credentials at startup")
+		} else {
+			// Never inherit a privileged role without its corresponding key file.
+			env = setChildEnv(env, "CHAIN_NODE_ROLE", "Client")
 		}
 	}
 
@@ -2731,19 +2824,28 @@ func loadConfig() (*Config, error) {
 		configFile = flag.String("config", "", "Path to configuration file")
 		prodFlag   = flag.Bool("prod", false, "Run in production mode")
 		devFlag    = flag.Bool("dev", false, "Run in development mode")
+		entFlag    = flag.Bool("ent", false, "Run as an enterprise node (uses enterprise-{UserIDTag}.knirv.network)")
+		userIDTag  = flag.String("user-id-tag", "", "User identity tag for devnet or enterprise public hostname")
 		hasherFlag = flag.Bool("hasher", false, "Start the KNIRVHASHER training pipeline during server initialization")
 		port       = flag.Int("port", 0, "Server port (overrides config)")
 		host       = flag.String("host", "", "Server host (overrides config)")
 	)
 	flag.Parse()
 
-	if *prodFlag && *devFlag {
-		log.Fatal("Cannot specify both -prod and -dev")
+	selectedClasses := 0
+	for _, selected := range []bool{*prodFlag, *devFlag, *entFlag} {
+		if selected {
+			selectedClasses++
+		}
 	}
+	if selectedClasses > 1 {
+		log.Fatal("Choose exactly one deployment class: -prod, -dev, or -ent")
+	}
+	enterpriseEnv := strings.EqualFold(strings.TrimSpace(os.Getenv("KNIRV_ENTERPRISE")), "true") || os.Getenv("KNIRV_ENTERPRISE") == "1"
 
-	// Network mode defaults to testnet. -prod / -dev override it; when
+	// Deployment class defaults to testnet. -prod / -dev / -ent override it; when
 	// neither is passed, KNIRV_ENV or KNIRV_NETWORK_MODE may still select
-	// production or development. This mode is propagated to sub-processes
+	// production, development, or enterprise. This mode is propagated to sub-processes
 	// via KNIRV_NETWORK_MODE (see startBackend) so they follow the same
 	// convention instead of resolving their own network mode independently.
 	networkMode := "testnet"
@@ -2752,6 +2854,8 @@ func loadConfig() (*Config, error) {
 		networkMode = "production"
 	case *devFlag:
 		networkMode = "development"
+	case *entFlag || enterpriseEnv:
+		networkMode = "enterprise"
 	case os.Getenv("KNIRV_ENV") != "":
 		networkMode = os.Getenv("KNIRV_ENV")
 		log.Printf("Using environment from KNIRV_ENV: %s", networkMode)
@@ -2763,8 +2867,14 @@ func loadConfig() (*Config, error) {
 	if *configFile != "" {
 		viper.SetConfigFile(*configFile)
 	} else {
-		// Set config file name based on network mode (production.yaml / testnet.yaml / development.yaml)
-		viper.SetConfigName(networkMode)
+		// Enterprise is a distinct deployment class, but currently shares the
+		// hardened production configuration baseline. Its identity remains
+		// "enterprise" in Config and all child-process environment variables.
+		configName := networkMode
+		if networkMode == "enterprise" {
+			configName = "production"
+		}
+		viper.SetConfigName(configName)
 		viper.SetConfigType("yaml")
 
 		// Add canonical config directory first (highest priority)
@@ -2793,7 +2903,7 @@ func loadConfig() (*Config, error) {
 	if appDataDir, err := getAppDataDir(); err == nil {
 		viper.SetDefault("proof_chain_socket", filepath.Join(appDataDir, "sockets", "chain.sock"))
 	}
-	if networkMode == "production" {
+	if networkMode == "production" || networkMode == "enterprise" {
 		viper.SetDefault("proof_required_replicas", 3)
 	} else {
 		viper.SetDefault("proof_required_replicas", 1)
@@ -2838,11 +2948,16 @@ func loadConfig() (*Config, error) {
 		}
 	}
 
-	// Network mode and Testnet are derived from -prod/-dev (or their env
+	// Network mode and Testnet are derived from -prod/-dev/-ent (or their env
 	// fallbacks) above, not from the config YAML, so they always win here.
 	config.NetworkMode = networkMode
 	config.Testnet = networkMode == "testnet"
 	config.AutoStartHasher = *hasherFlag
+	config.Enterprise = networkMode == "enterprise"
+	config.UserIDTag = strings.TrimSpace(*userIDTag)
+	if config.UserIDTag == "" {
+		config.UserIDTag = strings.TrimSpace(os.Getenv("KNIRV_USER_ID_TAG"))
+	}
 
 	// Override with command line flags
 	if *port != 0 {

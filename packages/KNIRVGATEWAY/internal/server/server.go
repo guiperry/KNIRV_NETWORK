@@ -297,11 +297,19 @@ func (s *Server) setupRoutes() error {
 			return fmt.Errorf("configure KNIRVSERVER native API proxy: %w", err)
 		}
 		r.PathPrefix("/api/v1/knirv/").Handler(serverProxy)
+		r.PathPrefix("/api/v1/system/update").Handler(serverProxy)
+		r.PathPrefix("/api/v1/system/info").Handler(serverProxy)
+		r.PathPrefix("/api/dve/").Handler(serverProxy)
 		s.logger.Info("KNIRVSERVER native proof proxy registered", zap.String("target", s.config.ServerBaseURL))
 	}
+	var backendProxy *httputil.ReverseProxy
 	if s.config.BackendSocketPath != "" {
-		backendProxy := newSocketProxy(s.config.BackendSocketPath, "http://knirvserver")
+		backendProxy = newSocketProxy(s.config.BackendSocketPath, "http://knirvserver")
 		r.PathPrefix("/api/v1/").Handler(backendProxy)
+		// Browser/device authorization is initiated by KNIRVCLI through the
+		// selected gateway. Keep auth on that same public origin while the
+		// backend remains the authority that issues and approves the token.
+		r.PathPrefix("/api/auth/").Handler(backendProxy)
 		// Also proxy /api/badge/* to the backend socket (badge templates, guardrail injectors)
 		r.PathPrefix("/api/badge/").Handler(backendProxy)
 		// Also proxy /api/dve-nodes* to the backend socket (DVE node listing)
@@ -520,6 +528,17 @@ func (s *Server) setupRoutes() error {
 			w.Header().Set("Content-Type", "application/json")
 			w.Write([]byte(`{"status":"ok","mode":"gateway","role":"General","network":"local"}` + "\n"))
 		}).Methods("GET", "OPTIONS")
+	}
+
+	// Final API fallback: every API route not owned by KNIRVGATEWAY or another
+	// explicitly proxied subsystem belongs to KNIRVSERVER's backend. Register it
+	// only after all more-specific API handlers because gorilla/mux uses the
+	// first matching route. This keeps the static-site catch-all from masking
+	// newly added backend APIs and avoids maintaining an incomplete prefix list.
+	if backendProxy != nil {
+		r.PathPrefix("/api/").Handler(backendProxy)
+		s.logger.Info("Complete KNIRVSERVER API fallback proxy registered",
+			zap.String("socket", s.config.BackendSocketPath))
 	}
 
 	// IMPORTANT: Next.js static export uses absolute paths like /_next/..., /favicon.ico, etc.

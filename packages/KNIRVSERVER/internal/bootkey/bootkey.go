@@ -105,7 +105,39 @@ func candidates(configuredPath string) []string {
 
 // rootKeyCandidates returns search paths for root.key.
 func rootKeyCandidates() []string {
-	return searchPaths("root.key", "ORACLE_KEY_PATH")
+	paths := searchPaths("root.key", "ORACLE_KEY_PATH")
+	list := make([]string, 0, len(paths)+3)
+	seen := make(map[string]struct{}, len(paths)+3)
+	add := func(path string) {
+		path = strings.TrimSpace(path)
+		if path == "" {
+			return
+		}
+		if _, ok := seen[path]; ok {
+			return
+		}
+		seen[path] = struct{}{}
+		list = append(list, path)
+	}
+
+	// Keep the explicit operator override first.
+	add(os.Getenv("ORACLE_KEY_PATH"))
+
+	// root.key's designated location includes the hidden .key directory. The
+	// generic searchPaths helper intentionally remains unchanged for boot.key.
+	if configDir := strings.TrimSpace(os.Getenv("KNIRV_CONFIG_DIR")); configDir != "" {
+		add(filepath.Join(configDir, ".key", "root.key"))
+	}
+	if configDir, err := os.UserConfigDir(); err == nil {
+		add(filepath.Join(configDir, "knirv-server", ".key", "root.key"))
+	}
+	add(filepath.Join("/etc", "knirv-server", ".key", "root.key"))
+
+	// Retain legacy locations so existing installations continue to start.
+	for _, path := range paths {
+		add(path)
+	}
+	return list
 }
 
 // CandidatePaths exposes boot.key search paths for diagnostic error messages.
@@ -204,7 +236,6 @@ func Load() (*Content, error) {
 
 	return decrypt(found, []byte(password))
 }
-
 
 func decryptFields(path string, password []byte) (map[int]string, error) {
 	data, err := os.ReadFile(path)

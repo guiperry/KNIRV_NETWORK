@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"net/url"
 	"os"
 	"os/signal"
 	"strings"
@@ -20,6 +21,111 @@ import (
 
 func canStartCloudflareTunnel(apiToken, zoneID, tunnelToken string) bool {
 	return tunnelToken != "" || (apiToken != "" && zoneID != "")
+}
+
+func canOwnCloudflareTunnel(cfg *config.Config) bool {
+	mode := strings.ToLower(strings.TrimSpace(cfg.NetworkMode))
+	isRoot := strings.EqualFold(cfg.ChainNodeRole, "root")
+	isBootnode := cfg.ChainIsBootnode || strings.EqualFold(cfg.ChainNodeRole, "bootnode")
+
+	switch {
+	case isRoot:
+		return mode == "" || mode == "testnet" || mode == "production" || mode == "prod" || mode == "mainnet"
+	case isBootnode:
+		return mode == "" || mode == "testnet" || mode == "development" || mode == "dev" || mode == "devnet"
+	default:
+		return false
+	}
+}
+
+type publicEndpoint struct {
+	URL        string
+	Hostname   string
+	TunnelName string
+}
+
+func normalizeUserIDTag(value string) string {
+	value = strings.ToLower(strings.TrimSpace(value))
+	var tag strings.Builder
+	lastWasHyphen := false
+	for _, r := range value {
+		valid := r >= 'a' && r <= 'z' || r >= '0' && r <= '9'
+		if valid {
+			tag.WriteRune(r)
+			lastWasHyphen = false
+			continue
+		}
+		if tag.Len() > 0 && !lastWasHyphen {
+			tag.WriteByte('-')
+			lastWasHyphen = true
+		}
+	}
+	normalized := strings.Trim(tag.String(), "-")
+	// enterprise- is the longest hostname prefix (11 bytes), leaving 52 bytes
+	// for the tag within the DNS label's 63-byte limit.
+	if len(normalized) > 52 {
+		normalized = strings.TrimRight(normalized[:52], "-")
+	}
+	return normalized
+}
+
+func resolvePublicEndpoint(cfg *config.Config) (publicEndpoint, error) {
+	tag := normalizeUserIDTag(cfg.UserIDTag)
+	mode := strings.ToLower(strings.TrimSpace(cfg.NetworkMode))
+	isRoot := strings.EqualFold(cfg.ChainNodeRole, "root")
+	isBootnode := cfg.ChainIsBootnode || strings.EqualFold(cfg.ChainNodeRole, "bootnode")
+
+	// Key-derived node roles own fixed hostname classes. KNIRVSERVER is the
+	// sole key reader: root.key produces Root and boot.key produces Bootnode.
+	switch {
+	case isRoot && (mode == "production" || mode == "prod" || mode == "mainnet"):
+		return publicEndpoint{"https://gateway.knirv.network", "gateway.knirv.network", "knirv-gateway"}, nil
+	case isRoot && (mode == "" || mode == "testnet"):
+		return publicEndpoint{"https://testnet-gateway.knirv.network", "testnet-gateway.knirv.network", "knirv-testnet-gateway"}, nil
+	case isBootnode && (mode == "" || mode == "testnet"):
+		if tag == "" {
+			return publicEndpoint{}, fmt.Errorf("testnet bootnode requires KNIRV_USER_ID_TAG")
+		}
+		host := fmt.Sprintf("testnet-%s-gateway.knirv.network", tag)
+		return publicEndpoint{"https://" + host, host, "knirv-testnet-" + tag + "-gateway"}, nil
+	case isBootnode && (mode == "development" || mode == "dev" || mode == "devnet"):
+		if tag == "" {
+			return publicEndpoint{}, fmt.Errorf("devnet bootnode requires KNIRV_USER_ID_TAG")
+		}
+		host := fmt.Sprintf("devnet-%s-gateway.knirv.network", tag)
+		return publicEndpoint{"https://" + host, host, "knirv-devnet-" + tag + "-gateway"}, nil
+	}
+
+	if configured := strings.TrimRight(strings.TrimSpace(cfg.PublicURL), "/"); configured != "" {
+		parsed, err := url.Parse(configured)
+		if err != nil || parsed.Scheme == "" || parsed.Hostname() == "" {
+			return publicEndpoint{}, fmt.Errorf("invalid KNIRV_PUBLIC_URL %q", configured)
+		}
+		return publicEndpoint{
+			URL:        configured,
+			Hostname:   parsed.Hostname(),
+			TunnelName: "knirv-" + strings.ReplaceAll(parsed.Hostname(), ".", "-"),
+		}, nil
+	}
+
+	switch {
+	case cfg.EnterpriseMode || mode == "enterprise":
+		if tag == "" {
+			return publicEndpoint{}, fmt.Errorf("enterprise mode requires KNIRV_USER_ID_TAG")
+		}
+		host := fmt.Sprintf("enterprise-%s.knirv.network", tag)
+		return publicEndpoint{"https://" + host, host, "knirv-enterprise-" + tag}, nil
+	case mode == "development" || mode == "dev" || mode == "devnet":
+		if tag == "" {
+			return publicEndpoint{}, fmt.Errorf("development mode requires KNIRV_USER_ID_TAG")
+		}
+		host := fmt.Sprintf("devnet-%s.knirv.network", tag)
+		return publicEndpoint{"https://" + host, host, "knirv-devnet-" + tag}, nil
+	case mode == "production" || mode == "prod" || mode == "mainnet":
+		return publicEndpoint{"https://gateway.knirv.network", "gateway.knirv.network", "knirv-gateway"}, nil
+	default:
+		return publicEndpoint{"https://testnet-gateway.knirv.network", "testnet-gateway.knirv.network", "knirv-testnet-gateway"}, nil
+	}
 }
 
 func main() {
@@ -66,13 +172,11 @@ func main() {
 	// Oracle has moved to KNIRVSERVER — no oracle initialisation in the gateway.
 	logger.Info("Oracle is managed by KNIRVSERVER (root node only)")
 
-	isProduction := strings.EqualFold(cfg.NetworkMode, "production")
-	isRoot := strings.EqualFold(cfg.ChainNodeRole, "root")
 	isBootnode := cfg.ChainIsBootnode || strings.EqualFold(cfg.ChainNodeRole, "bootnode")
 
-	// Resolve the public hostname early so server subsystems can reuse it.
-	// Bootnodes advertise a hyphenated Cloudflare tunnel hostname, but the
-	// registry still receives the resolved public IP address.
+	// Resolve bootnode registration metadata before the public endpoint. The
+	// registration ID remains useful for DHT identity, but public hostnames are
+	// selected exclusively by deployment class and UserIDTag.
 	nodeRegID := cfg.NodeRegistrationID
 	if nodeRegID == "" && isBootnode && cfg.CloudflareD1DatabaseID != "" {
 		hostname, _ := os.Hostname()
@@ -88,18 +192,16 @@ func main() {
 		cfg.NodeRegistrationID = nodeRegID
 	}
 
-	if currentHost := strings.TrimSpace(cfg.PublicHost); currentHost == "" || strings.EqualFold(currentHost, "localhost") {
-		switch {
-		case isProduction && isRoot:
-			cfg.PublicHost = "gateway.knirv.network"
-		case isProduction && isBootnode && nodeRegID != "":
-			cfg.PublicHost = fmt.Sprintf("gateway-%s.knirv.network", nodeRegID)
-		case !isProduction && isRoot:
-			cfg.PublicHost = "testnet-gateway.knirv.network"
-		case !isProduction && isBootnode && nodeRegID != "":
-			cfg.PublicHost = fmt.Sprintf("testnet-gateway-%s.knirv.network", nodeRegID)
-		}
+	publicEndpoint, err := resolvePublicEndpoint(cfg)
+	if err != nil {
+		logger.Fatal("Failed to resolve public KNIRV endpoint", zap.Error(err))
 	}
+	cfg.PublicURL = publicEndpoint.URL
+	cfg.PublicHost = publicEndpoint.Hostname
+	_ = os.Setenv("KNIRV_PUBLIC_URL", publicEndpoint.URL)
+	logger.Info("Public KNIRV endpoint resolved",
+		zap.String("url", publicEndpoint.URL),
+		zap.String("deploymentClass", cfg.NetworkMode))
 
 	// Initialize HTTP server with webgui static directory
 	srv, err := server.New(cfg, rt.GetWebGUIStaticPath(), logger)
@@ -107,19 +209,11 @@ func main() {
 		logger.Fatal("Failed to initialize server", zap.Error(err))
 	}
 
-	// Start server in a goroutine
-	go func() {
-		logger.Info("Starting HTTP server on port", zap.Int("port", cfg.Port))
-		if err := srv.Start(); err != nil {
-			logger.Fatal("Server failed", zap.Error(err))
-		}
-	}()
-
 	// ---- nginx TLS reverse-proxy provisioning ----
 	//
 	// Only runs in production mode. nginx is installed if absent, configured to
-	// terminate TLS for knirv.network (root) or gateway-{N}.knirv.network (bootnode)
-	// and proxy all traffic to this KNIRVGATEWAY instance.
+	// terminate TLS for the resolved production public host, and proxies all
+	// traffic to this KNIRVGATEWAY instance.
 	// Oracle traffic is NOT separately exposed — it flows through KNIRVGATEWAY's
 	// /api/oracle/* proxy internally.
 	//
@@ -150,15 +244,9 @@ func main() {
 	//
 	// cloudflared is auto-installed if not present on the system.
 	//
-	// Tunnel hostname convention (N = KNIRV_NODE_REGISTRATION_ID from D1):
-	//   Production + root:     gateway.knirv.network  + gateway-oracle.knirv.network
-	//   Production + bootnode: gateway-{N}.knirv.network
-	//   Testnet    + root:     testnet-gateway.knirv.network + testnet-gateway-oracle.knirv.network
-	//   Testnet    + bootnode: testnet-gateway-{N}.knirv.network
-	//
-	// The oracle tunnel points to the SAME local port as the gateway tunnel (KNIRVGATEWAY),
-	// NOT to port 1317. Oracle has no independent TCP listener; all oracle traffic flows
-	// through KNIRVGATEWAY's /api/oracle/* socket proxy.
+	// The public hostname is resolved above from the key-derived role and
+	// deployment class.
+	// Every server, oracle, and subsystem API shares this one gateway tunnel.
 	//
 	// Tunnels are only started when CLOUDFLARE_API_TOKEN and CLOUDFLARE_ZONE_ID
 	// are present. CLOUDFLARE_GATEWAY_TUNNEL_TOKEN / CLOUDFLARE_ORACLE_TUNNEL_TOKEN
@@ -170,33 +258,41 @@ func main() {
 
 	cfGatewayToken := os.Getenv("CLOUDFLARE_GATEWAY_TUNNEL_TOKEN")
 	cfOracleToken := os.Getenv("CLOUDFLARE_ORACLE_TUNNEL_TOKEN")
+	if cfGatewayToken == "" && cfOracleToken != "" {
+		// Migration compatibility for root keys created before the unified public
+		// gateway: use the former oracle token when no gateway token is present.
+		cfGatewayToken = cfOracleToken
+	}
 	if cfAPIToken := os.Getenv("CLOUDFLARE_API_TOKEN"); cfAPIToken != "" || cfGatewayToken != "" || cfOracleToken != "" {
-		cfZone := os.Getenv("CLOUDFLARE_ZONE_ID")
-		if cfZone == "" && cfGatewayToken == "" && cfOracleToken == "" {
-			logger.Warn("CLOUDFLARE_API_TOKEN set but CLOUDFLARE_ZONE_ID missing — skipping Cloudflare Tunnels")
+		if !canOwnCloudflareTunnel(cfg) {
+			logger.Info("Cloudflare Tunnel ownership denied for node role and network",
+				zap.String("role", cfg.ChainNodeRole),
+				zap.String("network", cfg.NetworkMode))
 		} else {
-			servicePort := cfg.Port
-			if servicePort == 0 {
-				servicePort = 8081
-			}
-
-			startTunnel := func(name, hostname string, port int, token string) {
-				if !canStartCloudflareTunnel(cfAPIToken, cfZone, token) {
-					logger.Warn("Cloudflare Tunnel skipped — tunnel token or API credentials required",
-						zap.String("hostname", hostname), zap.String("tunnel", name))
-					return
+			cfZone := os.Getenv("CLOUDFLARE_ZONE_ID")
+			if cfZone == "" && cfGatewayToken == "" && cfOracleToken == "" {
+				logger.Warn("CLOUDFLARE_API_TOKEN set but CLOUDFLARE_ZONE_ID missing — skipping Cloudflare Tunnels")
+			} else {
+				servicePort := cfg.Port
+				if servicePort == 0 {
+					servicePort = 8081
 				}
-				runner := cloudflare.NewTunnelRunner(cloudflare.TunnelRunnerConfig{
-					APIToken:    cfAPIToken,
-					ZoneID:      cfZone,
-					AccountID:   os.Getenv("CLOUDFLARE_ACCOUNT_ID"),
-					TunnelToken: token,
-					TunnelName:  name,
-					Hostname:    hostname,
-					ServicePort: port,
-				})
-				tunnelRunners = append(tunnelRunners, runner)
-				go func() {
+
+				startTunnel := func(name, hostname string, port int, token string) {
+					if !canStartCloudflareTunnel(cfAPIToken, cfZone, token) {
+						logger.Warn("Cloudflare Tunnel skipped — tunnel token or API credentials required",
+							zap.String("hostname", hostname), zap.String("tunnel", name))
+						return
+					}
+					runner := cloudflare.NewTunnelRunner(cloudflare.TunnelRunnerConfig{
+						APIToken:    cfAPIToken,
+						ZoneID:      cfZone,
+						AccountID:   os.Getenv("CLOUDFLARE_ACCOUNT_ID"),
+						TunnelToken: token,
+						TunnelName:  name,
+						Hostname:    hostname,
+						ServicePort: port,
+					})
 					logger.Info("Starting Cloudflare Tunnel",
 						zap.String("hostname", hostname),
 						zap.String("tunnel", name),
@@ -204,54 +300,28 @@ func main() {
 					if err := runner.Run(tunnelCtx); err != nil {
 						logger.Warn("Cloudflare Tunnel failed",
 							zap.String("hostname", hostname), zap.Error(err))
+						return
 					}
-				}()
-			}
-
-			switch {
-			case isProduction && isRoot:
-				startTunnel("knirv-gateway", "gateway.knirv.network", servicePort,
-					cfGatewayToken)
-				startTunnel("knirv-gateway-oracle", "gateway-oracle.knirv.network", servicePort,
-					cfOracleToken)
-
-			case isProduction && isBootnode:
-				if nodeRegID == "" {
-					logger.Warn("Production bootnode tunnel skipped — set KNIRV_NODE_REGISTRATION_ID or CLOUDFLARE_D1_DATABASE_ID")
-				} else {
-					startTunnel(
-						fmt.Sprintf("knirv-gateway-%s", nodeRegID),
-						fmt.Sprintf("gateway-%s.knirv.network", nodeRegID),
-						servicePort,
-						cfGatewayToken,
-					)
+					tunnelRunners = append(tunnelRunners, runner)
+					logger.Info("Cloudflare Tunnel initialized",
+						zap.String("publicUrl", publicEndpoint.URL))
 				}
 
-			case !isProduction && isRoot:
-				startTunnel("knirv-testnet-gateway", "testnet-gateway.knirv.network", servicePort,
-					cfGatewayToken)
-				startTunnel("knirv-testnet-gateway-oracle", "testnet-gateway-oracle.knirv.network", servicePort,
-					cfOracleToken)
-
-			case !isProduction && isBootnode:
-				if nodeRegID == "" {
-					logger.Warn("Testnet bootnode tunnel skipped — set KNIRV_NODE_REGISTRATION_ID or CLOUDFLARE_D1_DATABASE_ID")
-				} else {
-					startTunnel(
-						fmt.Sprintf("knirv-testnet-gateway-%s", nodeRegID),
-						fmt.Sprintf("testnet-gateway-%s.knirv.network", nodeRegID),
-						servicePort,
-						cfGatewayToken,
-					)
-				}
-
-			default:
-				logger.Info("No Cloudflare Tunnel for this node role — skipping",
-					zap.String("role", cfg.ChainNodeRole),
-					zap.String("network", cfg.NetworkMode))
+				startTunnel(publicEndpoint.TunnelName, publicEndpoint.Hostname, servicePort, cfGatewayToken)
 			}
 		}
 	}
+
+	// Publish the HTTP API only after cloudflared has been initialized (or
+	// explicitly skipped because this is a credential-less local run). This
+	// prevents device authorization from advertising a stale local origin while
+	// tunnel creation is still in progress.
+	go func() {
+		logger.Info("Starting HTTP server on port", zap.Int("port", cfg.Port))
+		if err := srv.Start(); err != nil {
+			logger.Fatal("Server failed", zap.Error(err))
+		}
+	}()
 
 	// Wait for interrupt signal
 	quit := make(chan os.Signal, 1)
@@ -291,10 +361,8 @@ func resolveNginxDomain(cfg *config.Config) string {
 	isBootnode := cfg.ChainIsBootnode || strings.EqualFold(cfg.ChainNodeRole, "bootnode")
 
 	switch {
-	case isRoot:
-		return "knirv.network"
-	case isBootnode && cfg.NodeRegistrationID != "":
-		return fmt.Sprintf("gateway-%s.knirv.network", cfg.NodeRegistrationID)
+	case isRoot || isBootnode:
+		return strings.TrimSpace(cfg.PublicHost)
 	default:
 		return ""
 	}
