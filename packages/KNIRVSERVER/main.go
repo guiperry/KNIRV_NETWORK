@@ -87,6 +87,10 @@ type Config struct {
 	ProofReplicaDirs      []string `mapstructure:"proof_replica_dirs"`
 	ProofValidatorID      string   `mapstructure:"proof_validator_id"`
 	ProofChainSocket      string   `mapstructure:"proof_chain_socket"`
+	// AutoStartHasher is command-line only. When -hasher is set, the wrapper
+	// forwards the flag to the embedded backend so it starts the training
+	// pipeline during initialization.
+	AutoStartHasher bool
 	// NetworkMode is "testnet" (default), "production", or "development" —
 	// set from the -prod / -dev flags (or KNIRV_ENV / KNIRV_NETWORK_MODE),
 	// not sourced from the config YAML itself.
@@ -2277,12 +2281,14 @@ func (app *ServerApp) startBackend() error {
 	// Pass the config file path used by the wrapper to the backend.
 	// This ensures the backend uses the same configuration.
 	configFile := viper.ConfigFileUsed()
+	backendArgs := backendCommandArgs(configFile, app.config.AutoStartHasher)
 	if configFile != "" {
 		log.Printf("Passing config file to backend: %s", configFile)
-		app.backendCmd = exec.Command(app.backendPath, "--config", configFile)
-	} else {
-		app.backendCmd = exec.Command(app.backendPath)
 	}
+	if app.config.AutoStartHasher {
+		log.Println("Hasher auto-start requested; forwarding -hasher to backend")
+	}
+	app.backendCmd = exec.Command(app.backendPath, backendArgs...)
 
 	// Set environment variables for backend
 	env := append(os.Environ(),
@@ -2471,6 +2477,17 @@ func (app *ServerApp) startBackend() error {
 	log.Printf("Warning: backend did not become healthy within 30s — proceeding anyway")
 
 	return nil
+}
+
+func backendCommandArgs(configFile string, autoStartHasher bool) []string {
+	args := make([]string, 0, 3)
+	if configFile != "" {
+		args = append(args, "--config", configFile)
+	}
+	if autoStartHasher {
+		args = append(args, "-hasher")
+	}
+	return args
 }
 
 func mustAppDataDir() string {
@@ -2714,6 +2731,7 @@ func loadConfig() (*Config, error) {
 		configFile = flag.String("config", "", "Path to configuration file")
 		prodFlag   = flag.Bool("prod", false, "Run in production mode")
 		devFlag    = flag.Bool("dev", false, "Run in development mode")
+		hasherFlag = flag.Bool("hasher", false, "Start the KNIRVHASHER training pipeline during server initialization")
 		port       = flag.Int("port", 0, "Server port (overrides config)")
 		host       = flag.String("host", "", "Server host (overrides config)")
 	)
@@ -2824,6 +2842,7 @@ func loadConfig() (*Config, error) {
 	// fallbacks) above, not from the config YAML, so they always win here.
 	config.NetworkMode = networkMode
 	config.Testnet = networkMode == "testnet"
+	config.AutoStartHasher = *hasherFlag
 
 	// Override with command line flags
 	if *port != 0 {
