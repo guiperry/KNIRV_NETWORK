@@ -1,7 +1,11 @@
 package oracle
 
 import (
+	"bytes"
 	"crypto/ecdsa"
+	"encoding/json"
+	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -161,5 +165,84 @@ func TestRollupProjectsToProvisionalCheckpoint(t *testing.T) {
 	}
 	if !mmr.VerifyProof(rootAfter, r.LeafHash, proof, proof.TreeSize) {
 		t.Fatal("rollup-projected leaf inclusion proof failed")
+	}
+}
+
+// TestPhase3AdmissionCommitsAuditMMRAndRecovers proves the runtime wiring that
+// was previously missing: the Oracle runs in non-validator mode, so the
+// consensus loop never commits. SubmitCheckpoint (the HTTP admission path) must
+// itself commit the audit leaf into the AppHash and persist it, and a reload
+// from the same DataDir must reconstruct the identical AppHash.
+func TestPhase3AdmissionCommitsAuditMMRAndRecovers(t *testing.T) {
+	dir := t.TempDir()
+	o := &Oracle{
+		checkpoint:      newCheckpointState(dir),
+		rollups:         make(map[string]*types.RollupRecord),
+		consensusEngine: consensus.NewConsensusEngine("knirvchain-test", 0, false, dir, zap.NewNop()),
+		logger:          zap.NewNop(),
+	}
+	reg, key := newTestChain(t, "knirvchain-1")
+	if err := o.RegisterChain(&reg); err != nil {
+		t.Fatalf("register: %v", err)
+	}
+	cp := &types.Checkpoint{
+		SchemaVersion: "knirv.checkpoint.v1",
+		ChainID:       reg.ChainID,
+		StartHeight:   1,
+		EndHeight:     64,
+		Proposer:      reg.Authors[0].Address,
+	}
+	if err := types.SignCheckpoint(cp, key); err != nil {
+		t.Fatalf("sign: %v", err)
+	}
+	if _, err := o.SubmitCheckpoint(cp); err != nil {
+		t.Fatalf("admit: %v", err)
+	}
+
+	// The audit leaf log must now be persisted to disk.
+	data, err := os.ReadFile(filepath.Join(dir, "audit_mmr_leaf_log.json"))
+	if err != nil {
+		t.Fatalf("audit mmr leaf log not persisted by admission: %v", err)
+	}
+	var leaves []mmr.Hash
+	if err := json.Unmarshal(data, &leaves); err != nil {
+		t.Fatalf("decode audit leaves: %v", err)
+	}
+	if len(leaves) != 1 {
+		t.Fatalf("expected 1 persisted audit leaf, got %d", len(leaves))
+	}
+
+	// The AppHash must equal the checkpoint MMR root (same leaves, both MMRs).
+	appHash := o.consensusEngine.GetApp().GetState().AppHash
+	root := o.MMRRoot()
+	if len(appHash) != 32 || bytes.Equal(appHash, make([]byte, 32)) {
+		t.Fatalf("AppHash not set by admission: %x", appHash)
+	}
+	if !bytes.Equal(appHash, root[:]) {
+		t.Fatalf("AppHash %x != checkpoint MMR root %x", appHash, root)
+	}
+
+	// Reload from the same DataDir (mirroring production NewOracle, which loads
+	// the persisted state). The audit MMR and index MMR must both recover to
+	// the same root.
+	cs2, err := LoadCheckpointState(dir)
+	if err != nil {
+		t.Fatalf("reload checkpoint state: %v", err)
+	}
+	o2 := &Oracle{
+		checkpoint:      cs2,
+		rollups:         make(map[string]*types.RollupRecord),
+		consensusEngine: consensus.NewConsensusEngine("knirvchain-test", 0, false, dir, zap.NewNop()),
+		logger:          zap.NewNop(),
+	}
+	recommit, err := o2.consensusEngine.GetApp().Commit()
+	if err != nil {
+		t.Fatalf("recommit after reload: %v", err)
+	}
+	if !bytes.Equal(recommit, root[:]) {
+		t.Fatalf("recovered AppHash %x != original root %x", recommit, root)
+	}
+	if got := o2.MMRRoot(); got != root {
+		t.Fatalf("recovered checkpoint MMR %x != original %x", got, root)
 	}
 }

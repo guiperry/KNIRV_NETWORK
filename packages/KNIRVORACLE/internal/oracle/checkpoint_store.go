@@ -160,6 +160,10 @@ func (o *Oracle) SubmitCheckpoint(cp *types.Checkpoint) (*types.CheckpointRecord
 	if err := o.persistCheckpointLocked(); err != nil {
 		return nil, err
 	}
+	// Phase 3: commit the audit leaf into the Oracle AppHash and persist it so
+	// the AppHash recovers across restarts. The Oracle runs non-validator, so
+	// this must be done at admission time (the consensus loop does not commit).
+	o.commitAuditMMR()
 	o.logger.Info("checkpoint admitted",
 		zap.String("chain_id", cp.ChainID),
 		zap.Uint64("start", cp.StartHeight),
@@ -226,6 +230,8 @@ func (o *Oracle) ProjectRollup(rec *types.RollupRecord) (*types.CheckpointRecord
 	if err := o.persistCheckpointLocked(); err != nil {
 		return nil, err
 	}
+	// Phase 3: commit the projected rollup leaf into the AppHash and persist it.
+	o.commitAuditMMR()
 	o.logger.Info("rollup projected to checkpoint leaf",
 		zap.String("rollup_id", rec.ID),
 		zap.Uint64("mmr_position", pos),

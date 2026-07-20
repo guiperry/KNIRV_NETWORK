@@ -319,6 +319,21 @@ func (o *Oracle) SubmitRollup(record *types.RollupRecord) error {
 	return nil
 }
 
+// commitAuditMMR bags the consensus audit MMR into the Oracle AppHash and
+// persists the leaf log so the AppHash survives an Oracle restart
+// (merkle-math.md Phase 3). The Oracle runs in non-validator mode, so the
+// consensus loop never produces blocks; admission must commit the audit leaf
+// directly after appending it, otherwise the AppHash is never updated or
+// persisted in production.
+func (o *Oracle) commitAuditMMR() {
+	if o.consensusEngine == nil {
+		return
+	}
+	if _, err := o.consensusEngine.GetApp().Commit(); err != nil {
+		o.logger.Warn("failed to commit audit MMR to AppHash", zap.Error(err))
+	}
+}
+
 func (o *Oracle) GetRollup(id string) (*types.RollupRecord, bool) {
 	o.rollupsMu.RLock()
 	defer o.rollupsMu.RUnlock()
