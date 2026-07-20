@@ -3,6 +3,8 @@ package consensus
 import (
 	"encoding/json"
 	"fmt"
+	"os"
+	"path/filepath"
 	"sync"
 
 	"github.com/knirvcorp/knirvoracle/internal/oracle/mmr"
@@ -16,13 +18,20 @@ type ABCIApplication struct {
 	validators      *ValidatorSet
 	consensusParams *ConsensusParams
 	auditMMR        *mmr.MMR
-	logger          *zap.Logger
-	mu              sync.RWMutex
+	auditMMRPath    string
+	// onCheckpointTx routes a consensus-delivered checkpoint/finality transaction
+	// to the Oracle's admission path (merkle-math.md §3.3 — same path as HTTP).
+	onCheckpointTx func(txType string, payload []byte) error
+	logger         *zap.Logger
+	mu             sync.RWMutex
 }
 
-// NewABCIApplication creates a new ABCI application
-func NewABCIApplication(chainID string, logger *zap.Logger) *ABCIApplication {
-	return &ABCIApplication{
+// NewABCIApplication creates a new ABCI application. If dataDir is non-empty the
+// audit MMR (the source of the block AppHash) is recovered from disk and
+// re-persisted on every Commit, so the AppHash survives an Oracle restart
+// (merkle-math.md Phase 3).
+func NewABCIApplication(chainID, dataDir string, logger *zap.Logger) *ABCIApplication {
+	app := &ABCIApplication{
 		state: &State{
 			Version: ConsensusVersion{
 				Block: 11,
@@ -40,6 +49,24 @@ func NewABCIApplication(chainID string, logger *zap.Logger) *ABCIApplication {
 		auditMMR:        mmr.New(),
 		logger:          logger,
 	}
+	if dataDir != "" {
+		app.auditMMRPath = filepath.Join(dataDir, "audit_mmr_leaf_log.json")
+		if data, err := os.ReadFile(app.auditMMRPath); err == nil {
+			var leaves []mmr.Hash
+			if jerr := json.Unmarshal(data, &leaves); jerr != nil {
+				logger.Error("failed to decode audit MMR leaf log", zap.Error(jerr))
+			} else {
+				app.auditMMR = mmr.FromLeaves(leaves)
+			}
+		}
+	}
+	return app
+}
+
+// SetCheckpointTxHandler registers the consensus-path admission hook used by
+// DeliverTx for checkpoint/finality transactions.
+func (app *ABCIApplication) SetCheckpointTxHandler(fn func(txType string, payload []byte) error) {
+	app.onCheckpointTx = fn
 }
 
 // Info returns information about the application state
@@ -98,6 +125,16 @@ func (app *ABCIApplication) DeliverTx(tx []byte) error {
 		return fmt.Errorf("invalid transaction format: %w", err)
 	}
 
+	// Route checkpoint/finality transactions arriving through consensus to the
+	// same Oracle admission path used by the HTTP endpoints (merkle-math.md §3.3).
+	txType, _ := txData["type"].(string)
+	if txType == "checkpoint" || txType == "finality" {
+		if app.onCheckpointTx != nil {
+			payload, _ := json.Marshal(txData["payload"])
+			return app.onCheckpointTx(txType, payload)
+		}
+	}
+
 	app.logger.Debug("Transaction delivered",
 		zap.Int("size", len(tx)),
 	)
@@ -131,6 +168,22 @@ func (app *ABCIApplication) Commit() ([]byte, error) {
 	root := app.auditMMR.BagRoot()
 	appHash := append([]byte(nil), root[:]...)
 	app.state.AppHash = appHash
+
+	// Persist the audit MMR so the AppHash recovers exactly after a restart.
+	if app.auditMMRPath != "" {
+		leaves := app.auditMMR.Leaves()
+		payload, err := json.MarshalIndent(leaves, "", "  ")
+		if err != nil {
+			return nil, fmt.Errorf("encode audit mmr: %w", err)
+		}
+		tmp := app.auditMMRPath + ".tmp"
+		if werr := os.WriteFile(tmp, payload, 0644); werr != nil {
+			return nil, fmt.Errorf("write audit mmr: %w", werr)
+		}
+		if rerr := os.Rename(tmp, app.auditMMRPath); rerr != nil {
+			return nil, fmt.Errorf("rename audit mmr: %w", rerr)
+		}
+	}
 
 	app.logger.Info("Block committed",
 		zap.Uint64("height", uint64(app.state.LastBlockHeight)),

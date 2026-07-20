@@ -430,6 +430,21 @@ func (m *MMR) Nodes() []Hash {
 	return out
 }
 
+// Leaves returns the leaf digests in append order. Each peak of height h is a
+// complete binary tree whose deepest level holds 2^h leaves, which occupy the
+// trailing 2^h entries of its node array (layout: [root, left-subtree…,
+// right-subtree…]). Concatenating those trailing slices across peaks yields the
+// leaf log, which is what must be persisted for append-only recovery.
+func (m *MMR) Leaves() []Hash {
+	out := make([]Hash, 0, m.nextLeaf)
+	for _, p := range m.peaks {
+		leafCount := uint64(1) << p.height
+		start := uint64(len(p.nodes)) - leafCount
+		out = append(out, p.nodes[start:start+leafCount]...)
+	}
+	return out
+}
+
 // FromNodes reconstructs an MMR from a Nodes() dump. Peak boundaries are
 // implicit in the complete-tree sizes 1, 3, 7, 15, ...; greedily taking the
 // largest complete tree produces the unique descending-height peak sequence.

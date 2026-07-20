@@ -24,10 +24,10 @@ type ConsensusEngine struct {
 }
 
 // NewConsensusEngine creates a new consensus engine
-func NewConsensusEngine(chainID string, blockTime time.Duration, validatorMode bool, logger *zap.Logger) *ConsensusEngine {
+func NewConsensusEngine(chainID string, blockTime time.Duration, validatorMode bool, dataDir string, logger *zap.Logger) *ConsensusEngine {
 	ctx, cancel := context.WithCancel(context.Background())
 
-	app := NewABCIApplication(chainID, logger)
+	app := NewABCIApplication(chainID, dataDir, logger)
 
 	ce := &ConsensusEngine{
 		app:           app,
@@ -96,6 +96,13 @@ func (ce *ConsensusEngine) InitChain(validators []*ConsensusValidator) error {
 	)
 
 	return nil
+}
+
+// GetApp returns the underlying ABCI application.
+func (ce *ConsensusEngine) GetApp() *ABCIApplication {
+	ce.mu.RLock()
+	defer ce.mu.RUnlock()
+	return ce.app
 }
 
 // GetState returns the current consensus state

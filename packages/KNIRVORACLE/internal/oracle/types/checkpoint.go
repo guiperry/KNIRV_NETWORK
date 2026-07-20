@@ -69,6 +69,10 @@ type CheckpointRecord struct {
 	ReceivedAt    time.Time        `json:"received_at"`
 	FinalByHeight uint64           `json:"final_by_height"`
 	FinalityLeaf  *uint64          `json:"finality_leaf,omitempty"`
+	// Source records how this leaf entered the MMR. Empty = direct KNIRVCHAIN
+	// submission. "rollup:<id>" = projected from a legacy RollupRecord (Phase 3
+	// bridge). It is informational only; it never changes admission semantics.
+	Source string `json:"source,omitempty"`
 }
 
 // FinalityRecord is the phase-2 leaf — appended independently, never mutating

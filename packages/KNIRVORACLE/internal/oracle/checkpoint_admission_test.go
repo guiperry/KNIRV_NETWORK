@@ -3,6 +3,7 @@ package oracle
 import (
 	"crypto/ecdsa"
 	"testing"
+	"time"
 
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/knirvcorp/knirvoracle/internal/oracle/consensus"
@@ -34,7 +35,8 @@ func newTestOracle(t *testing.T) *Oracle {
 	t.Helper()
 	o := &Oracle{
 		checkpoint: newCheckpointState(""),
-		consensusEngine: consensus.NewConsensusEngine("knirvchain-test", 0, false, zap.NewNop()),
+		rollups:    make(map[string]*types.RollupRecord),
+		consensusEngine: consensus.NewConsensusEngine("knirvchain-test", 0, false, "", zap.NewNop()),
 		logger:    zap.NewNop(),
 	}
 	return o
@@ -110,5 +112,54 @@ func TestCheckpointAdmissionAppendsMMR(t *testing.T) {
 	}
 	if _, err := oracleInst.SubmitCheckpoint(cpBad); err == nil {
 		t.Fatal("expected non-contiguous checkpoint to be rejected")
+	}
+}
+
+// TestRollupProjectsToProvisionalCheckpoint verifies the Phase-3 legacy bridge:
+// a legacy RollupRecord submitted via SubmitRollup is projected into the
+// checkpoint MMR as a provisional, rollup-tagged leaf without requiring a
+// signature quorum.
+func TestRollupProjectsToProvisionalCheckpoint(t *testing.T) {
+	oracleInst := newTestOracle(t)
+
+	rootBefore := oracleInst.MMRRoot()
+	rec := &types.RollupRecord{
+		ID:          "legacy-1",
+		BatchRoot:   "aabbccddeeff00112233445566778899aabbccddeeff00112233445566778899",
+		ChainID:     "knirvchain-legacy",
+		StartHeight: 1,
+		EndHeight:   100,
+		Status:      types.RollupStatusSubmitted,
+		SubmittedAt: time.Now().UTC(),
+	}
+	if err := oracleInst.SubmitRollup(rec); err != nil {
+		t.Fatalf("submit rollup: %v", err)
+	}
+	rootAfter := oracleInst.MMRRoot()
+	if rootAfter == rootBefore {
+		t.Fatal("MMR root should change after rollup projection")
+	}
+
+	records := oracleInst.GetCheckpointRecords("knirvchain-legacy")
+	if len(records) != 1 {
+		t.Fatalf("expected 1 projected checkpoint record, got %d", len(records))
+	}
+	r := records[0]
+	if r.Status != types.CheckpointProvisional {
+		t.Fatalf("projected record status = %q, want provisional", r.Status)
+	}
+	if r.Source != "rollup:legacy-1" {
+		t.Fatalf("projected record source = %q, want rollup:legacy-1", r.Source)
+	}
+	if r.Checkpoint.ChainID != "knirvchain-legacy" {
+		t.Fatalf("projected record chain = %q", r.Checkpoint.ChainID)
+	}
+
+	proof, err := oracleInst.MMRProof(r.MMRPosition)
+	if err != nil {
+		t.Fatalf("proof: %v", err)
+	}
+	if !mmr.VerifyProof(rootAfter, r.LeafHash, proof, proof.TreeSize) {
+		t.Fatal("rollup-projected leaf inclusion proof failed")
 	}
 }

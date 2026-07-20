@@ -170,6 +170,7 @@ func NewOracle(config *OracleConfig, logger *zap.Logger) (*Oracle, error) {
 		config.ChainID,
 		config.BlockTime,
 		config.ValidatorMode,
+		config.DataDir,
 		logger,
 	)
 
@@ -271,6 +272,26 @@ func NewOracle(config *OracleConfig, logger *zap.Logger) (*Oracle, error) {
 	}
 	oracle.checkpoint = cs
 
+	// Wire consensus-delivered checkpoint/finality transactions to the same
+	// admission path as the HTTP endpoints (merkle-math.md §3.3). The ABCI app
+	// routes the tx and the Oracle decodes + admits it.
+	oracle.consensusEngine.GetApp().SetCheckpointTxHandler(func(txType string, payload []byte) error {
+		switch txType {
+		case "checkpoint":
+			var cp types.Checkpoint
+			if err := json.Unmarshal(payload, &cp); err != nil {
+				return fmt.Errorf("decode checkpoint tx: %w", err)
+			}
+			_, err := oracle.SubmitCheckpoint(&cp)
+			return err
+		case "finality":
+			// Phase 4 will admit finality leaves; for now reject through consensus.
+			return fmt.Errorf("finality admission not yet enabled")
+		default:
+			return fmt.Errorf("unknown checkpoint tx type: %s", txType)
+		}
+	})
+
 	logger.Info("Oracle initialized",
 		zap.String("chain_id", config.ChainID),
 		zap.String("network_id", config.NetworkID),
@@ -286,7 +307,16 @@ func (o *Oracle) SubmitRollup(record *types.RollupRecord) error {
 	o.rollupsMu.Lock()
 	defer o.rollupsMu.Unlock()
 	o.rollups[record.ID] = record
-	return o.persistRollupsLocked()
+	if err := o.persistRollupsLocked(); err != nil {
+		return err
+	}
+	// Phase 3 bridge: project the legacy rollup into the checkpoint MMR so it is
+	// covered by the same AppHash that anchors signed checkpoints.
+	if _, err := o.ProjectRollup(record); err != nil {
+		o.logger.Warn("failed to project rollup into checkpoint MMR",
+			zap.String("rollup_id", record.ID), zap.Error(err))
+	}
+	return nil
 }
 
 func (o *Oracle) GetRollup(id string) (*types.RollupRecord, bool) {

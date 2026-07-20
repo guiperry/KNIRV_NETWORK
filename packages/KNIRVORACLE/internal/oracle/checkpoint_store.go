@@ -1,6 +1,7 @@
 package oracle
 
 import (
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -173,6 +174,70 @@ func proofWindowFor(o *Oracle, chainID string) uint64 {
 		return reg.ProofWindow
 	}
 	return registry.DefaultProofWindow
+}
+
+// ProjectRollup bridges a legacy, unsigned RollupRecord into the new checkpoint
+// MMR (merkle-math.md Phase 3): it appends a provisional checkpoint leaf WITHOUT
+// requiring the author quorum (legacy rollups carry no signatures), so the same
+// MMR/AppHash that anchors signed checkpoints also covers rollup history. The
+// record's Source is tagged "rollup:<id>" and it is never promoted to final.
+func (o *Oracle) ProjectRollup(rec *types.RollupRecord) (*types.CheckpointRecord, error) {
+	o.checkpoint.mu.Lock()
+	defer o.checkpoint.mu.Unlock()
+
+	var root [32]byte
+	if b, err := hex.DecodeString(strip0x(rec.BatchRoot)); err == nil && len(b) == 32 {
+		copy(root[:], b)
+	}
+
+	cp := &types.Checkpoint{
+		SchemaVersion: "knirv.checkpoint.v1.rollup",
+		ChainID:       rec.ChainID,
+		StartHeight:   rec.StartHeight,
+		EndHeight:     rec.EndHeight,
+		Root:          root,
+		Proposer:      "rollup:" + rec.ID,
+	}
+
+	leafData, err := json.Marshal(cp.CanonicalBytes())
+	if err != nil {
+		return nil, fmt.Errorf("marshal rollup leaf: %w", err)
+	}
+	leaf := mmr.LeafHash(leafData)
+
+	pos, _ := o.checkpoint.mmr.AddRaw(leaf)
+	_, _ = o.consensusEngine.AddAuditLeaf(leafData)
+
+	record := &types.CheckpointRecord{
+		Checkpoint:  *cp,
+		MMRPosition: pos,
+		LeafHash:    [32]byte(leaf),
+		Status:      types.CheckpointProvisional,
+		ReceivedAt:  time.Now().UTC(),
+		Source:      "rollup:" + rec.ID,
+	}
+	if o.consensusEngine != nil {
+		record.FinalByHeight = uint64(o.consensusEngine.GetHeight()) + registry.DefaultProofWindow
+	}
+
+	o.checkpoint.records[recordKey(cp.ChainID, cp.StartHeight)] = record
+	o.checkpoint.leafLog = append(o.checkpoint.leafLog, leaf)
+
+	if err := o.persistCheckpointLocked(); err != nil {
+		return nil, err
+	}
+	o.logger.Info("rollup projected to checkpoint leaf",
+		zap.String("rollup_id", rec.ID),
+		zap.Uint64("mmr_position", pos),
+	)
+	return record, nil
+}
+
+func strip0x(s string) string {
+	if len(s) >= 2 && s[0] == '0' && (s[1] == 'x' || s[1] == 'X') {
+		return s[2:]
+	}
+	return s
 }
 
 // GetCheckpointRecords returns all admitted checkpoint records for a chain.
