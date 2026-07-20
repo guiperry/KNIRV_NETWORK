@@ -16,9 +16,11 @@ import (
 )
 
 type BlockHeader struct {
-	Height    uint64 `json:"height"`
-	Timestamp int64  `json:"timestamp"`
-	Version   int    `json:"version"`
+	Height    uint64            `json:"height"`
+	Timestamp int64             `json:"timestamp"`
+	Version   int               `json:"version"`
+	TxRoot    [sha256.Size]byte `json:"tx_root"`
+	AccumRoot [sha256.Size]byte `json:"accum_root"`
 }
 
 type Block struct {

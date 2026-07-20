@@ -1,0 +1,84 @@
+{
+  "version": 1,
+  "algorithm": "sha256",
+  "leaf_hash": "SHA256(0x00 || data)",
+  "parent_hash": "SHA256(0x01 || left || right)",
+  "bagging": "left-fold",
+  "empty_root": "80a94d25eb103c8a86239b170a43d17603b298d6f7a9d66d591420ed485787a9",
+  "tree_size": 7,
+  "root": "91e49d93eb68d6e486401d1d4fa7b1dd46760d768e082c788b55d3f8a6ce45f7",
+  "leaves": [
+    {
+      "index": 0,
+      "data_utf8": "checkpoint:knirvchain-1:0-63",
+      "leaf_hash": "e8f83dff128648199f650fd79f69694f02eb695b9f6a78c400af5e081eefe5de",
+      "path": [
+        {"hash": "50005e1194b4c0823f5ae0b400bb4d8b24cde9ed45b985880817775b25139953", "side": "right"},
+        {"hash": "0c0db6c27d095568b0a8968b34ffb7465339bd08bbabf475c7493a5cb88c880f", "side": "right"},
+        {"hash": "891566396c62b0902ada3da380a47a72599f14574ca66a1847b98cbdda83fb58", "side": "right"},
+        {"hash": "145ac2bec11135feefbd94a5f97a86370d1873e8f110ed9322f5af0f934ee340", "side": "right"}
+      ]
+    },
+    {
+      "index": 1,
+      "data_utf8": "checkpoint:knirvchain-1:64-127",
+      "leaf_hash": "50005e1194b4c0823f5ae0b400bb4d8b24cde9ed45b985880817775b25139953",
+      "path": [
+        {"hash": "e8f83dff128648199f650fd79f69694f02eb695b9f6a78c400af5e081eefe5de", "side": "left"},
+        {"hash": "0c0db6c27d095568b0a8968b34ffb7465339bd08bbabf475c7493a5cb88c880f", "side": "right"},
+        {"hash": "891566396c62b0902ada3da380a47a72599f14574ca66a1847b98cbdda83fb58", "side": "right"},
+        {"hash": "145ac2bec11135feefbd94a5f97a86370d1873e8f110ed9322f5af0f934ee340", "side": "right"}
+      ]
+    },
+    {
+      "index": 2,
+      "data_utf8": "finality:knirvchain-1:leaf-0",
+      "leaf_hash": "069cd558e260299542f467cda273c5a52f8d15f0061491fab35937c22dbbcbf6",
+      "path": [
+        {"hash": "ef29833e329b0d479c9d3f096a75fc0073b6a37d197b33e223eb95e2541fd014", "side": "right"},
+        {"hash": "424be98d3b8693ec1fc613820d8393f719ad2c91452a75c2704f98e99e82db41", "side": "left"},
+        {"hash": "891566396c62b0902ada3da380a47a72599f14574ca66a1847b98cbdda83fb58", "side": "right"},
+        {"hash": "145ac2bec11135feefbd94a5f97a86370d1873e8f110ed9322f5af0f934ee340", "side": "right"}
+      ]
+    },
+    {
+      "index": 3,
+      "data_utf8": "rejection:knirvchain-1:leaf-1",
+      "leaf_hash": "ef29833e329b0d479c9d3f096a75fc0073b6a37d197b33e223eb95e2541fd014",
+      "path": [
+        {"hash": "069cd558e260299542f467cda273c5a52f8d15f0061491fab35937c22dbbcbf6", "side": "left"},
+        {"hash": "424be98d3b8693ec1fc613820d8393f719ad2c91452a75c2704f98e99e82db41", "side": "left"},
+        {"hash": "891566396c62b0902ada3da380a47a72599f14574ca66a1847b98cbdda83fb58", "side": "right"},
+        {"hash": "145ac2bec11135feefbd94a5f97a86370d1873e8f110ed9322f5af0f934ee340", "side": "right"}
+      ]
+    },
+    {
+      "index": 4,
+      "data_utf8": "checkpoint:knirvchain-2:0-63",
+      "leaf_hash": "763982548f8ebc4bd4d25b538380fbdc8a1eb289ac5f758d51702fa8ecdda735",
+      "path": [
+        {"hash": "3e29900937170695cb2fd0d43219eb17192c48660ae58e05449672a0a19709c6", "side": "right"},
+        {"hash": "cde094db03d1641c2a71019c13e1810be8dfaef46102043d71d97b18aa1dff67", "side": "left"},
+        {"hash": "145ac2bec11135feefbd94a5f97a86370d1873e8f110ed9322f5af0f934ee340", "side": "right"}
+      ]
+    },
+    {
+      "index": 5,
+      "data_utf8": "checkpoint:knirvchain-2:64-127",
+      "leaf_hash": "3e29900937170695cb2fd0d43219eb17192c48660ae58e05449672a0a19709c6",
+      "path": [
+        {"hash": "763982548f8ebc4bd4d25b538380fbdc8a1eb289ac5f758d51702fa8ecdda735", "side": "left"},
+        {"hash": "cde094db03d1641c2a71019c13e1810be8dfaef46102043d71d97b18aa1dff67", "side": "left"},
+        {"hash": "145ac2bec11135feefbd94a5f97a86370d1873e8f110ed9322f5af0f934ee340", "side": "right"}
+      ]
+    },
+    {
+      "index": 6,
+      "data_utf8": "finality:knirvchain-2:leaf-0",
+      "leaf_hash": "145ac2bec11135feefbd94a5f97a86370d1873e8f110ed9322f5af0f934ee340",
+      "path": [
+        {"hash": "6e9b7c21e24f7b29f08e2c2007f043b951b3799e8b2f8660324dd3f125f66eb1", "side": "left"}
+      ]
+    }
+  ]
+}

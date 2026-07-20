@@ -81,6 +81,7 @@ type BlockInterface struct {
 	Nonce        uint64                 `json:"nonce"`
 	Difficulty   uint64                 `json:"difficulty"`
 	MerkleRoot   string                 `json:"merkle_root"`
+	AccumRoot    string                 `json:"accum_root"`
 }
 
 // TransactionInterface represents a blockchain transaction interface

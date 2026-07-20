@@ -1420,6 +1420,18 @@ func (bc *BlockchainStruct) addBlockInternal(b *Block) error {
 		return err
 	}
 
+	// Commit this block's transactions and the full preceding chain before the
+	// block is copied into memory or persisted. Pre-upgrade blocks have zero root
+	// fields, so independently replay them once when extending such a chain.
+	var prevAccum [32]byte
+	if len(bc.Blocks) > 0 {
+		prevAccum = bc.Blocks[len(bc.Blocks)-1].Header.AccumRoot
+		if prevAccum == ([32]byte{}) {
+			prevAccum = RecomputeAccumRoot(bc.Blocks)
+		}
+	}
+	PopulateBlockMerkleRoots(b, prevAccum)
+
 	// Persist updated account balances from tempBlockAccounts to LevelDB
 	// This must happen BEFORE the block is added to bc.Blocks and bc is saved.
 	for addr, balance := range tempBlockAccounts {

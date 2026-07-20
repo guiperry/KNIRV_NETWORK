@@ -339,6 +339,13 @@ func (s *Server) setupRoutes() error {
 	if oracleProxy != nil {
 		r.PathPrefix("/api/oracle/").Handler(http.StripPrefix("/api", oracleProxy))
 
+		// Native oracle routes — KNIRVORACLE serves its own API under /oracle/v3/*
+		// (registry, checkpoints, MMR proofs, etc.).  Proxy these verbatim to the
+		// oracle backend with NO path stripping so /oracle/v3/checkpoints reaches
+		// the oracle's /oracle/v3/checkpoints handler unchanged.  KNIRVCHAIN's
+		// submission poster targets this exact prefix when posting checkpoints.
+		r.PathPrefix("/oracle/").Handler(oracleProxy)
+
 		// Root-level wallet-server compatible routes — proxied directly to the oracle
 		// without path stripping, matching the oracle's root-level route registrations
 		// (/generate_wallet, /balance/{addr}, /send_signed_txn, etc.).

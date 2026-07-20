@@ -43,6 +43,10 @@ type Oracle struct {
 	rollups          map[string]*types.RollupRecord
 	rollupsPath      string
 
+	// Checkpoint pipeline (Phase 2): per-foreign-chain registry, audit MMR,
+	// and indexed checkpoint records.
+	checkpoint *checkpointState
+
 	// DID resolver
 	didResolver *did.Resolver
 
@@ -259,6 +263,13 @@ func NewOracle(config *OracleConfig, logger *zap.Logger) (*Oracle, error) {
 		cancel()
 		return nil, fmt.Errorf("failed to load persisted oracle rollups: %w", err)
 	}
+
+	cs, err := LoadCheckpointState(config.DataDir)
+	if err != nil {
+		cancel()
+		return nil, fmt.Errorf("failed to load checkpoint state: %w", err)
+	}
+	oracle.checkpoint = cs
 
 	logger.Info("Oracle initialized",
 		zap.String("chain_id", config.ChainID),

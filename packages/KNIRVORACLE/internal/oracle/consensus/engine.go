@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/knirvcorp/knirvoracle/internal/oracle/mmr"
 	"go.uber.org/zap"
 )
 
@@ -116,6 +117,15 @@ func (ce *ConsensusEngine) GetHeight() BlockHeight {
 // GetValidators returns the current validator set
 func (ce *ConsensusEngine) GetValidators() *ValidatorSet {
 	return ce.app.GetValidators()
+}
+
+// AddAuditLeaf appends a leaf to the consensus audit MMR so that the next
+// Commit() bags it into the Oracle AppHash. Used by the checkpoint pipeline to
+// commit foreign-chain checkpoints into the block header.
+func (ce *ConsensusEngine) AddAuditLeaf(data []byte) (uint64, mmr.Hash) {
+	ce.mu.Lock()
+	defer ce.mu.Unlock()
+	return ce.app.auditMMR.AddRaw(mmr.LeafHash(data))
 }
 
 // UpdateValidators updates the validator set

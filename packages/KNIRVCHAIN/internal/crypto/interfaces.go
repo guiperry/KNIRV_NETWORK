@@ -162,6 +162,7 @@ type ProofMetadata struct {
 type ChainProof struct {
 	PreviousHash []byte     `json:"previous_hash"`
 	MerkleRoot   []byte     `json:"merkle_root"`
+	AccumRoot    []byte     `json:"accum_root"`
 	BlockHeight  uint64     `json:"block_height"`
 	Witnesses    []*Witness `json:"witnesses"`
 }

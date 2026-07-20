@@ -13,6 +13,7 @@ import (
 	"github.com/knirvcorp/knirvoracle/internal/oracle"
 	"github.com/knirvcorp/knirvoracle/internal/oracle/crosschain"
 	"github.com/knirvcorp/knirvoracle/internal/oracle/governance"
+	"github.com/knirvcorp/knirvoracle/internal/oracle/mmr"
 	"github.com/knirvcorp/knirvoracle/internal/oracle/types"
 	"go.uber.org/zap"
 )
@@ -86,6 +87,14 @@ func (r *OracleRoutes) RegisterRoutes(mux *http.ServeMux) {
 	// Rollup settlement endpoints
 	mux.HandleFunc("/oracle/v3/rollups/submit", r.handleSubmitRollup)
 	mux.HandleFunc("/oracle/v3/rollups/", r.handleRollup)
+
+	// Checkpoint pipeline (Phase 2): registry + admission + MMR proofs.
+	mux.HandleFunc("/oracle/v3/registry/register", r.handleRegistryRegister)
+	mux.HandleFunc("/oracle/v3/registry/rotate", r.handleRegistryRotate)
+	mux.HandleFunc("/oracle/v3/checkpoints", r.handleSubmitCheckpoint)
+	mux.HandleFunc("/oracle/v3/checkpoints/", r.handleCheckpointsByChain)
+	mux.HandleFunc("/oracle/v3/mmr/root", r.handleMMRRoot)
+	mux.HandleFunc("/oracle/v3/mmr/proof/", r.handleMMRProof)
 
 	// Installation endpoints
 	mux.HandleFunc("/oracle/v3/install/wallet", r.handleInstallWallet)
@@ -841,6 +850,112 @@ func respondJSON(w http.ResponseWriter, status int, data interface{}) {
 	w.WriteHeader(status)
 	json.NewEncoder(w).Encode(data)
 }
+
+// ========== Checkpoint pipeline (Phase 2) ==========
+
+func (r *OracleRoutes) handleRegistryRegister(w http.ResponseWriter, req *http.Request) {
+	if req.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var reg types.ChainRegistration
+	if err := json.NewDecoder(req.Body).Decode(&reg); err != nil {
+		respondJSON(w, http.StatusBadRequest, map[string]interface{}{"error": "invalid registration"})
+		return
+	}
+	if err := r.oracle.RegisterChain(&reg); err != nil {
+		respondJSON(w, http.StatusBadRequest, map[string]interface{}{"error": err.Error()})
+		return
+	}
+	respondJSON(w, http.StatusOK, map[string]interface{}{"status": "registered", "chain_id": reg.ChainID})
+}
+
+func (r *OracleRoutes) handleRegistryRotate(w http.ResponseWriter, req *http.Request) {
+	if req.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var reg types.ChainRegistration
+	if err := json.NewDecoder(req.Body).Decode(&reg); err != nil {
+		respondJSON(w, http.StatusBadRequest, map[string]interface{}{"error": "invalid rotation"})
+		return
+	}
+	if err := r.oracle.RotateChain(&reg); err != nil {
+		respondJSON(w, http.StatusBadRequest, map[string]interface{}{"error": err.Error()})
+		return
+	}
+	respondJSON(w, http.StatusOK, map[string]interface{}{"status": "rotated", "chain_id": reg.ChainID})
+}
+
+func (r *OracleRoutes) handleSubmitCheckpoint(w http.ResponseWriter, req *http.Request) {
+	if req.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var cp types.Checkpoint
+	if err := json.NewDecoder(req.Body).Decode(&cp); err != nil {
+		respondJSON(w, http.StatusBadRequest, map[string]interface{}{"error": "invalid checkpoint"})
+		return
+	}
+	rec, err := r.oracle.SubmitCheckpoint(&cp)
+	if err != nil {
+		respondJSON(w, http.StatusBadRequest, map[string]interface{}{"error": err.Error()})
+		return
+	}
+	respondJSON(w, http.StatusOK, map[string]interface{}{
+		"status":       "admitted",
+		"mmr_position": rec.MMRPosition,
+		"leaf_hash":    mmr.Hash(rec.LeafHash).Hex(),
+		"final_by_height": rec.FinalByHeight,
+	})
+}
+
+func (r *OracleRoutes) handleCheckpointsByChain(w http.ResponseWriter, req *http.Request) {
+	if req.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	chainID := strings.TrimPrefix(req.URL.Path, "/oracle/v3/checkpoints/")
+	if chainID == "" {
+		respondJSON(w, http.StatusBadRequest, map[string]interface{}{"error": "missing chain id"})
+		return
+	}
+	recs := r.oracle.GetCheckpointRecords(chainID)
+	respondJSON(w, http.StatusOK, map[string]interface{}{"chain_id": chainID, "checkpoints": recs})
+}
+
+func (r *OracleRoutes) handleMMRRoot(w http.ResponseWriter, req *http.Request) {
+	if req.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	root := r.oracle.MMRRoot()
+	respondJSON(w, http.StatusOK, map[string]interface{}{
+		"root": root.Hex(),
+		"size": r.oracle.CheckpointCount(),
+	})
+}
+
+func (r *OracleRoutes) handleMMRProof(w http.ResponseWriter, req *http.Request) {
+	if req.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	rest := strings.TrimPrefix(req.URL.Path, "/oracle/v3/mmr/proof/")
+	idx, err := strconv.ParseUint(rest, 10, 64)
+	if err != nil {
+		respondJSON(w, http.StatusBadRequest, map[string]interface{}{"error": "invalid leaf index"})
+		return
+	}
+	proof, err := r.oracle.MMRProof(idx)
+	if err != nil {
+		respondJSON(w, http.StatusNotFound, map[string]interface{}{"error": err.Error()})
+		return
+	}
+	respondJSON(w, http.StatusOK, proof)
+}
+
+
 
 // ExtractPathParam extracts a parameter from the URL path
 func ExtractPathParam(path, prefix string) string {

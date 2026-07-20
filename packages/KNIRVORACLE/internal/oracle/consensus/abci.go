@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/knirvcorp/knirvoracle/internal/oracle/mmr"
 	"go.uber.org/zap"
 )
 
@@ -14,6 +15,7 @@ type ABCIApplication struct {
 	state           *State
 	validators      *ValidatorSet
 	consensusParams *ConsensusParams
+	auditMMR        *mmr.MMR
 	logger          *zap.Logger
 	mu              sync.RWMutex
 }
@@ -35,6 +37,7 @@ func NewABCIApplication(chainID string, logger *zap.Logger) *ABCIApplication {
 			ConsensusParams: *DefaultConsensusParams(),
 		},
 		consensusParams: DefaultConsensusParams(),
+		auditMMR:        mmr.New(),
 		logger:          logger,
 	}
 }
@@ -123,8 +126,10 @@ func (app *ABCIApplication) Commit() ([]byte, error) {
 	// Update state
 	app.state.LastBlockHeight++
 
-	// Calculate app hash (simplified - would use Merkle tree in production)
-	appHash := []byte(fmt.Sprintf("apphash-%d", app.state.LastBlockHeight))
+	// Every Oracle block commits to the append-only audit log. Before the first
+	// audit leaf, this is the canonical SHA256("knirv-mmr-empty") root.
+	root := app.auditMMR.BagRoot()
+	appHash := append([]byte(nil), root[:]...)
 	app.state.AppHash = appHash
 
 	app.logger.Info("Block committed",
