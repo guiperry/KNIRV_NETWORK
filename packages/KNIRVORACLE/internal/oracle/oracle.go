@@ -43,6 +43,12 @@ type Oracle struct {
 	rollups          map[string]*types.RollupRecord
 	rollupsPath      string
 
+	// Verifier registry (Phase 4): validation-chain nodes that attest
+	// checkpoints into finality. Quorum = ≥2/3 of registered verifiers.
+	verifiersMu   sync.RWMutex
+	verifiers     map[string]bool
+	verifiersPath string
+
 	// Checkpoint pipeline (Phase 2): per-foreign-chain registry, audit MMR,
 	// and indexed checkpoint records.
 	checkpoint *checkpointState
@@ -239,6 +245,8 @@ func NewOracle(config *OracleConfig, logger *zap.Logger) (*Oracle, error) {
 		bridgeManager:    bridgeManager,
 		rollups:          make(map[string]*types.RollupRecord),
 		rollupsPath:      filepath.Join(config.DataDir, "rollups.json"),
+		verifiers:        make(map[string]bool),
+		verifiersPath:    filepath.Join(config.DataDir, "verifiers.json"),
 		config:           config,
 		logger:           logger,
 		ctx:              ctx,
@@ -272,6 +280,11 @@ func NewOracle(config *OracleConfig, logger *zap.Logger) (*Oracle, error) {
 	}
 	oracle.checkpoint = cs
 
+	if err := oracle.loadVerifiers(); err != nil {
+		cancel()
+		return nil, fmt.Errorf("failed to load verifier registry: %w", err)
+	}
+
 	// Wire consensus-delivered checkpoint/finality transactions to the same
 	// admission path as the HTTP endpoints (merkle-math.md §3.3). The ABCI app
 	// routes the tx and the Oracle decodes + admits it.
@@ -285,12 +298,21 @@ func NewOracle(config *OracleConfig, logger *zap.Logger) (*Oracle, error) {
 			_, err := oracle.SubmitCheckpoint(&cp)
 			return err
 		case "finality":
-			// Phase 4 will admit finality leaves; for now reject through consensus.
-			return fmt.Errorf("finality admission not yet enabled")
+			// Phase 4: admit the finality leaf through the same path as HTTP.
+			var fin types.FinalityRecord
+			if err := json.Unmarshal(payload, &fin); err != nil {
+				return fmt.Errorf("decode finality tx: %w", err)
+			}
+			_, err := oracle.SubmitFinality(&fin)
+			return err
 		default:
 			return fmt.Errorf("unknown checkpoint tx type: %s", txType)
 		}
 	})
+
+	// Drive the finality window-miss sweeper (the Oracle runs non-validator, so
+	// there is no block loop to trigger it).
+	go oracle.sweepLoop()
 
 	logger.Info("Oracle initialized",
 		zap.String("chain_id", config.ChainID),

@@ -69,6 +69,10 @@ type CheckpointRecord struct {
 	ReceivedAt    time.Time        `json:"received_at"`
 	FinalByHeight uint64           `json:"final_by_height"`
 	FinalityLeaf  *uint64          `json:"finality_leaf,omitempty"`
+	RejectionLeaf *uint64          `json:"rejection_leaf,omitempty"`
+	// PendingAttestations accumulates validation-chain sign-offs (Phase 4)
+	// until quorum is reached, at which point the record is finalized.
+	PendingAttestations []VerifierAttestation `json:"pending_attestations,omitempty"`
 	// Source records how this leaf entered the MMR. Empty = direct KNIRVCHAIN
 	// submission. "rollup:<id>" = projected from a legacy RollupRecord (Phase 3
 	// bridge). It is informational only; it never changes admission semantics.
@@ -78,11 +82,11 @@ type CheckpointRecord struct {
 // FinalityRecord is the phase-2 leaf — appended independently, never mutating
 // the phase-1 leaf.
 type FinalityRecord struct {
-	SchemaVersion   string              `json:"schema_version"` // "knirv.finality.v1"
-	CheckpointLeaf  uint64              `json:"checkpoint_leaf"`
-	CheckpointHash  [32]byte            `json:"checkpoint_hash"`
-	TransitionProof []byte              `json:"transition_proof"`
-	ProofSystem     string              `json:"proof_system"`
+	SchemaVersion   string               `json:"schema_version"` // "knirv.finality.v1"
+	CheckpointLeaf  uint64               `json:"checkpoint_leaf"`
+	CheckpointHash  [32]byte             `json:"checkpoint_hash"`
+	TransitionProof []byte               `json:"transition_proof"`
+	ProofSystem     string               `json:"proof_system"`
 	Attestations    []VerifierAttestation `json:"attestations"`
 }
 
@@ -92,6 +96,37 @@ type VerifierAttestation struct {
 	LeafIndex  uint64 `json:"leaf_index"`
 	Approved   bool   `json:"approved"`
 	Signature  []byte `json:"signature"` // ed25519 over (LeafIndex|CheckpointHash|Approved)
+}
+
+// LeafKind tags every MMR leaf so the append-only log is self-describing
+// (merkle-math.md §3.1).
+type LeafKind byte
+
+const (
+	LeafCheckpoint LeafKind = 0x01 // phase-1 provisional checkpoint / rollup projection
+	LeafFinality   LeafKind = 0x02 // phase-2 finality record
+	LeafRejection  LeafKind = 0x03 // window-miss / proof-fail tombstone
+)
+
+// FinalityLeaf is the canonical MMR payload for a LeafFinality leaf. The full
+// transition proof is kept in the indexed FinalityRecord; the leaf carries only
+// the binding references + attestation quorum so the log stays compact and
+// self-describing.
+type FinalityLeaf struct {
+	Kind           byte                  `json:"kind"`
+	CheckpointLeaf uint64                `json:"checkpoint_leaf"`
+	CheckpointHash string                `json:"checkpoint_hash"`
+	ProofSystem    string                `json:"proof_system"`
+	Attestations   []VerifierAttestation `json:"attestations"`
+}
+
+// RejectionLeaf is the canonical MMR payload for a LeafRejection tombstone.
+// Appended when a provisional record misses its proof window or fails
+// verification; never mutates the original checkpoint leaf.
+type RejectionLeaf struct {
+	Kind          byte   `json:"kind"`
+	CheckpointLeaf uint64 `json:"checkpoint_leaf"`
+	Reason        string `json:"reason"`
 }
 
 // RotationSigs carries the author-set signatures authorizing a registry rotation.

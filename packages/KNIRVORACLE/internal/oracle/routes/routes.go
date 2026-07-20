@@ -96,6 +96,11 @@ func (r *OracleRoutes) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/oracle/v3/mmr/root", r.handleMMRRoot)
 	mux.HandleFunc("/oracle/v3/mmr/proof/", r.handleMMRProof)
 
+	// Phase 4: finality pipeline (verifier attestation → LeafFinality).
+	mux.HandleFunc("/oracle/v3/finality", r.handleSubmitFinality)
+	mux.HandleFunc("/oracle/v3/finality/attest", r.handleSubmitAttestation)
+	mux.HandleFunc("/oracle/v3/verifiers/register", r.handleRegisterVerifier)
+
 	// Installation endpoints
 	mux.HandleFunc("/oracle/v3/install/wallet", r.handleInstallWallet)
 	mux.HandleFunc("/oracle/v3/install/dve_uri", r.handleInstallDVEURI)
@@ -922,6 +927,71 @@ func (r *OracleRoutes) handleCheckpointsByChain(w http.ResponseWriter, req *http
 	}
 	recs := r.oracle.GetCheckpointRecords(chainID)
 	respondJSON(w, http.StatusOK, map[string]interface{}{"chain_id": chainID, "checkpoints": recs})
+}
+
+// ========== Phase 4: finality pipeline ==========
+
+func (r *OracleRoutes) handleSubmitFinality(w http.ResponseWriter, req *http.Request) {
+	if req.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var rec types.FinalityRecord
+	if err := json.NewDecoder(req.Body).Decode(&rec); err != nil {
+		http.Error(w, fmt.Sprintf("Invalid request: %v", err), http.StatusBadRequest)
+		return
+	}
+	out, err := r.oracle.SubmitFinality(&rec)
+	if err != nil {
+		respondJSON(w, http.StatusBadRequest, map[string]interface{}{"error": err.Error()})
+		return
+	}
+	respondJSON(w, http.StatusOK, out)
+}
+
+func (r *OracleRoutes) handleSubmitAttestation(w http.ResponseWriter, req *http.Request) {
+	if req.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var body struct {
+		ChainID     string                  `json:"chain_id"`
+		StartHeight uint64                  `json:"start_height"`
+		Attestation types.VerifierAttestation `json:"attestation"`
+	}
+	if err := json.NewDecoder(req.Body).Decode(&body); err != nil {
+		http.Error(w, fmt.Sprintf("Invalid request: %v", err), http.StatusBadRequest)
+		return
+	}
+	if body.ChainID == "" {
+		http.Error(w, "chain_id is required", http.StatusBadRequest)
+		return
+	}
+	out, err := r.oracle.SubmitAttestation(body.ChainID, body.StartHeight, body.Attestation)
+	if err != nil {
+		respondJSON(w, http.StatusBadRequest, map[string]interface{}{"error": err.Error()})
+		return
+	}
+	respondJSON(w, http.StatusOK, out)
+}
+
+func (r *OracleRoutes) handleRegisterVerifier(w http.ResponseWriter, req *http.Request) {
+	if req.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var body struct {
+		VerifierID string `json:"verifier_id"`
+	}
+	if err := json.NewDecoder(req.Body).Decode(&body); err != nil {
+		http.Error(w, fmt.Sprintf("Invalid request: %v", err), http.StatusBadRequest)
+		return
+	}
+	if err := r.oracle.RegisterVerifier(body.VerifierID); err != nil {
+		respondJSON(w, http.StatusBadRequest, map[string]interface{}{"error": err.Error()})
+		return
+	}
+	respondJSON(w, http.StatusOK, map[string]interface{}{"verifier_id": body.VerifierID, "registered": true})
 }
 
 func (r *OracleRoutes) handleMMRRoot(w http.ResponseWriter, req *http.Request) {
