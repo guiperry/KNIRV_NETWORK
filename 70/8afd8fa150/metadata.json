@@ -1,0 +1,36 @@
+{
+  "cli_version": "0.5.5",
+  "checkpoint_id": "708afd8fa150",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "packages/KNIRVCHAIN/go.mod",
+    "packages/KNIRVCHAIN/internal/blockchain/block.go",
+    "packages/KNIRVCHAIN/internal/blockchain/blockchain_struct.go",
+    "packages/KNIRVCHAIN/internal/blockchain/interfaces.go",
+    "packages/KNIRVCHAIN/internal/crypto/interfaces.go",
+    "packages/KNIRVGATEWAY/internal/server/server.go",
+    "packages/KNIRVORACLE/go.mod",
+    "packages/KNIRVORACLE/internal/oracle/consensus/abci.go",
+    "packages/KNIRVORACLE/internal/oracle/consensus/engine.go",
+    "packages/KNIRVORACLE/internal/oracle/oracle.go",
+    "packages/KNIRVORACLE/internal/oracle/routes/routes.go",
+    "packages/KNIRVSERVER/bin/backend_server"
+  ],
+  "sessions": [
+    {
+      "metadata": "/70/8afd8fa150/0/metadata.json",
+      "transcript": "/70/8afd8fa150/0/full.jsonl",
+      "content_hash": "/70/8afd8fa150/0/content_hash.txt",
+      "prompt": "/70/8afd8fa150/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 110924,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 7937856,
+    "output_tokens": 31223,
+    "api_call_count": 83
+  }
+}

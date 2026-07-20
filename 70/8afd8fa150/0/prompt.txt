@@ -1,0 +1,57 @@
+# Implement
+
+Fully implement the code details from an attached file reference.
+
+## Instructions
+
+1. **Identify the target file**: Parse the attached `@` file reference (e.g., `@packages/knirvserver/main.go`)
+2. **Read the file**: Load the full contents to understand what needs to be implemented
+3. **Full Implementation**: Write complete, production-ready code with:
+   - No mocks
+   - No TODOs
+   - No placeholders
+   - No simulations
+   - All functionality fully implemented
+4. **Write Tests**: Create meaningful tests that verify the implementation:
+   - Unit tests for core logic
+   - Integration tests if applicable
+   - Tests must pass (no skipped tests)
+5. **Run Tests**: Execute the test suite and fix any failures
+6. **Update README**: If the implementation adds new features or changes API:
+
+- Update the project's README.md with relevant changes
+- Document new endpoints, parameters, or functionality
+- Include usage examples if appropriate
+
+## Implementation Standards
+
+- Follow the project's existing code style and conventions
+- Use proper error handling
+- Add logging where appropriate
+- Ensure type safety (TypeScript: use `unknown` instead of `any`)
+- Write idiomatic code for the language
+
+## When NOT to trigger
+
+- File is a configuration or data file (not .md file)
+- User is asking for a conceptual explanation only
+- Implementation requires external dependencies not available in the project
+
+## Verification
+
+After implementation, verify:
+- [ ] All tests pass (`go test ./...` or appropriate test command)
+- [ ] Code compiles without errors
+- [ ] No lint warnings (run `go vet` or `golangci-lint`)
+- [ ] README.md updated if needed
+
+the following plan in the go version of the KNIRVBASE:
+
+Plan
+
+Phase 1 — Finish wiring the gateway-proxy path (fastest path to a working feature)
+- Pass a real EventHandler into p2pconsensus.NewP2PConsensusManager from distributed_database.go, backed by the DistributedCollection's handleRemoteOperation/sync-request logic (mirror what the legacy OnMessage wiring already does).
+- Give the EventHandler.OnPeerDiscovered callback something to do (currently unused).
+- Confirm/harden the SocketServer lifecycle (socket file cleanup on crash, permissions — it currently does chmod 0777 on the socket, which is overly permissive for a local IPC channel).
+- Add a shared network secret/PSK to ConsensusConfig so an arbitrary process can't join a networkID just by knowing its name — right now NetworkID is a bare string used to derive the DHT service ID and pubsub topic, with no authentication. Gate SetupCRDTPubSub/pubsub message acceptance on this.
+- Delete or gate off the legacy internal/network TCP path once the gateway path is proven, so therert instead of two
