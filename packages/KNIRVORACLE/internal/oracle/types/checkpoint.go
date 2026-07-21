@@ -32,6 +32,12 @@ type ChainRegistration struct {
 	LastCheckHash [32]byte          `json:"last_check_hash"`
 	Bond          uint64            `json:"bond"`
 	ProofWindow   uint64            `json:"proof_window"`
+	// VerificationKey carries the registered SNARK verification key for this
+	// chain (merkle-math.md Phase 5). Empty until a verifier chain enrolls one.
+	VerificationKey []byte `json:"verification_key,omitempty"`
+	// PreferredProofSystem is the proof system the Oracle expects for this
+	// chain's finality records ("hashchain-v0" | "groth16" | "plonk").
+	PreferredProofSystem string `json:"preferred_proof_system,omitempty"`
 	// RotationSigs authorizes a registry update; carried by POST /registry/rotate.
 	RotationSigs []AuthorSig `json:"rotation_sigs,omitempty"`
 }
@@ -96,6 +102,24 @@ type VerifierAttestation struct {
 	LeafIndex  uint64 `json:"leaf_index"`
 	Approved   bool   `json:"approved"`
 	Signature  []byte `json:"signature"` // ed25519 over (LeafIndex|CheckpointHash|Approved)
+}
+
+// TransitionProof is the phase-2 validity proof accompanying a FinalityRecord
+// (merkle-math.md §3.2c / Phase 5). For hashchain-v0 the verifier re-executes the
+// deterministic replay (pre-root + batch → post-root); the SNARK systems carry a
+// groth16/plonk proof plus public inputs. The Oracle runs a cheap binding check
+// itself (PostRoot == checkpoint.Root, PreRoot == checkpoint.PrevCheckHash) and
+// delegates full re-execution / SNARK verification to the verifier chains.
+type TransitionProof struct {
+	SchemaVersion string   `json:"schema_version"` // "knirv.transition-proof.v1"
+	ChainID       string   `json:"chain_id"`
+	StartHeight   uint64   `json:"start_height"`
+	EndHeight     uint64   `json:"end_height"`
+	PreRoot       [32]byte `json:"pre_root"`      // AccumRoot at StartHeight-1
+	PostRoot      [32]byte `json:"post_root"`     // == Checkpoint.Root
+	ProofSystem   string   `json:"proof_system"`  // "hashchain-v0" | "groth16" | "plonk"
+	Proof         []byte   `json:"proof"`
+	PublicInputs  []byte   `json:"public_inputs"` // canonical (PreRoot, PostRoot, txBatchHash)
 }
 
 // LeafKind tags every MMR leaf so the append-only log is self-describing

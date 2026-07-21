@@ -91,6 +91,7 @@ func (r *OracleRoutes) RegisterRoutes(mux *http.ServeMux) {
 	// Checkpoint pipeline (Phase 2): registry + admission + MMR proofs.
 	mux.HandleFunc("/oracle/v3/registry/register", r.handleRegistryRegister)
 	mux.HandleFunc("/oracle/v3/registry/rotate", r.handleRegistryRotate)
+	mux.HandleFunc("/oracle/v3/registry/verify-key", r.handleSetVerificationKey)
 	mux.HandleFunc("/oracle/v3/checkpoints", r.handleSubmitCheckpoint)
 	mux.HandleFunc("/oracle/v3/checkpoints/", r.handleCheckpointsByChain)
 	mux.HandleFunc("/oracle/v3/mmr/root", r.handleMMRRoot)
@@ -890,6 +891,44 @@ func (r *OracleRoutes) handleRegistryRotate(w http.ResponseWriter, req *http.Req
 		return
 	}
 	respondJSON(w, http.StatusOK, map[string]interface{}{"status": "rotated", "chain_id": reg.ChainID})
+}
+
+// handleSetVerificationKey enrolls a SNARK verification key + preferred proof
+// system for a registered chain (merkle-math.md Phase 5). Accepts the key as a
+// hex string; empty key with proof_system "hashchain-v0" clears back to optimistic.
+func (r *OracleRoutes) handleSetVerificationKey(w http.ResponseWriter, req *http.Request) {
+	if req.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var body struct {
+		ChainID      string `json:"chain_id"`
+		ProofSystem  string `json:"proof_system"`
+		VerificationKey string `json:"verification_key"`
+	}
+	if err := json.NewDecoder(req.Body).Decode(&body); err != nil {
+		respondJSON(w, http.StatusBadRequest, map[string]interface{}{"error": "invalid request"})
+		return
+	}
+	if body.ChainID == "" {
+		respondJSON(w, http.StatusBadRequest, map[string]interface{}{"error": "chain_id is required"})
+		return
+	}
+	vk, err := decodeHexBytes(body.VerificationKey)
+	if err != nil {
+		respondJSON(w, http.StatusBadRequest, map[string]interface{}{"error": "invalid verification_key (hex)"})
+		return
+	}
+	if err := r.oracle.SetChainVerificationKey(body.ChainID, body.ProofSystem, vk); err != nil {
+		respondJSON(w, http.StatusBadRequest, map[string]interface{}{"error": err.Error()})
+		return
+	}
+	respondJSON(w, http.StatusOK, map[string]interface{}{
+		"status":            "verification_key_set",
+		"chain_id":          body.ChainID,
+		"proof_system":      body.ProofSystem,
+		"verification_key_len": len(vk),
+	})
 }
 
 func (r *OracleRoutes) handleSubmitCheckpoint(w http.ResponseWriter, req *http.Request) {

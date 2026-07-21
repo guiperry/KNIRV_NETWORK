@@ -1,6 +1,7 @@
 package oracle
 
 import (
+	"encoding/json"
 	"testing"
 	"time"
 
@@ -161,5 +162,146 @@ func TestFinalityWindowMissSweeper(t *testing.T) {
 	}
 	if got.RejectionLeaf == nil {
 		t.Fatal("RejectionLeaf index not recorded")
+	}
+}
+
+// --- Phase 5: Oracle-side transition-proof verification (§3.3f step 4) ---
+
+func marshalTransitionProof(t *testing.T, tp types.TransitionProof) []byte {
+	t.Helper()
+	b, err := json.Marshal(tp)
+	if err != nil {
+		t.Fatalf("marshal transition proof: %v", err)
+	}
+	return b
+}
+
+func registerTestChain(t *testing.T, o *Oracle, chainID, proofSystem string, vk []byte) {
+	t.Helper()
+	reg := &types.ChainRegistration{
+		ChainID:     chainID,
+		Authors:     []types.RegisteredAuthor{{Address: "0xauthor", Weight: 1}},
+		QuorumNumer: 2,
+		QuorumDenom: 3,
+	}
+	if err := o.RegisterChain(reg); err != nil {
+		t.Fatalf("RegisterChain: %v", err)
+	}
+	if err := o.SetChainVerificationKey(chainID, proofSystem, vk); err != nil {
+		t.Fatalf("SetChainVerificationKey: %v", err)
+	}
+}
+
+func TestFinalityHashchainV0Verify(t *testing.T) {
+	o := newPhase4Oracle(t)
+	rec := projectTestRollup(t, o, "knirvchain-v5")
+	// Valid hashchain-v0 proof binds PostRoot to the anchored checkpoint root.
+	tp := types.TransitionProof{
+		SchemaVersion: "knirv.transition-proof.v1",
+		ChainID:       rec.Checkpoint.ChainID,
+		StartHeight:   rec.Checkpoint.StartHeight,
+		EndHeight:     rec.Checkpoint.EndHeight,
+		PreRoot:       rec.Checkpoint.PrevCheckHash, // zero for rollup projections
+		PostRoot:      rec.Checkpoint.Root,
+		ProofSystem:   "hashchain-v0",
+		Proof:         []byte("re-execution-trace-hash"),
+	}
+	fin := &types.FinalityRecord{
+		SchemaVersion:  "knirv.finality.v1",
+		CheckpointLeaf: rec.MMRPosition,
+		ProofSystem:   "hashchain-v0",
+		TransitionProof: marshalTransitionProof(t, tp),
+		Attestations: []types.VerifierAttestation{
+			{VerifierID: "v1", LeafIndex: rec.MMRPosition, Approved: true},
+		},
+	}
+	out, err := o.SubmitFinality(fin)
+	if err != nil {
+		t.Fatalf("SubmitFinality with valid hashchain-v0 proof: %v", err)
+	}
+	if out.Status != types.CheckpointFinal {
+		t.Fatalf("status = %s, want final", out.Status)
+	}
+}
+
+func TestFinalityTamperedProofRejected(t *testing.T) {
+	o := newPhase4Oracle(t)
+	rec := projectTestRollup(t, o, "knirvchain-tamper")
+	// Tampered proof: PostRoot does not match the anchored checkpoint root.
+	tp := types.TransitionProof{
+		SchemaVersion: "knirv.transition-proof.v1",
+		ChainID:       rec.Checkpoint.ChainID,
+		StartHeight:   rec.Checkpoint.StartHeight,
+		EndHeight:     rec.Checkpoint.EndHeight,
+		PostRoot:      [32]byte{0xde, 0xad}, // wrong
+		ProofSystem:   "hashchain-v0",
+	}
+	fin := &types.FinalityRecord{
+		CheckpointLeaf:  rec.MMRPosition,
+		ProofSystem:    "hashchain-v0",
+		TransitionProof: marshalTransitionProof(t, tp),
+		Attestations: []types.VerifierAttestation{
+			{VerifierID: "v1", LeafIndex: rec.MMRPosition, Approved: true},
+		},
+	}
+	if _, err := o.SubmitFinality(fin); err == nil {
+		t.Fatal("expected rejection of tampered transition proof")
+	}
+	if got := o.GetCheckpointRecords("knirvchain-tamper")[0].Status; got != types.CheckpointProvisional {
+		t.Fatalf("status = %s, want provisional (untampered record must not finalize)", got)
+	}
+}
+
+func TestFinalitySNARKRequiresEnrolledKey(t *testing.T) {
+	o := newPhase4Oracle(t)
+
+	// (a) No verification key enrolled for the chain -> SNARK proof rejected.
+	rec := projectTestRollup(t, o, "knirvchain-snark")
+	tp := types.TransitionProof{
+		SchemaVersion: "knirv.transition-proof.v1",
+		ChainID:       rec.Checkpoint.ChainID,
+		StartHeight:   rec.Checkpoint.StartHeight,
+		EndHeight:     rec.Checkpoint.EndHeight,
+		PostRoot:      rec.Checkpoint.Root,
+		ProofSystem:   "plonk",
+		Proof:         []byte("snark-bytes"),
+	}
+	_, err := o.SubmitFinality(&types.FinalityRecord{
+		CheckpointLeaf:  rec.MMRPosition,
+		ProofSystem:    "plonk",
+		TransitionProof: marshalTransitionProof(t, tp),
+		Attestations: []types.VerifierAttestation{
+			{VerifierID: "v1", LeafIndex: rec.MMRPosition, Approved: true},
+		},
+	})
+	if err == nil {
+		t.Fatal("expected rejection of plonk proof without enrolled verification key")
+	}
+
+	// (b) Enroll a verification key -> plonk proof accepted (delegated verify).
+	registerTestChain(t, o, "knirvchain-snark2", "plonk", []byte("fakevk-bytes"))
+	rec2 := projectTestRollup(t, o, "knirvchain-snark2")
+	tp2 := types.TransitionProof{
+		SchemaVersion: "knirv.transition-proof.v1",
+		ChainID:       rec2.Checkpoint.ChainID,
+		StartHeight:   rec2.Checkpoint.StartHeight,
+		EndHeight:     rec2.Checkpoint.EndHeight,
+		PostRoot:      rec2.Checkpoint.Root,
+		ProofSystem:   "plonk",
+		Proof:         []byte("snark-bytes"),
+	}
+	out, err := o.SubmitFinality(&types.FinalityRecord{
+		CheckpointLeaf:  rec2.MMRPosition,
+		ProofSystem:    "plonk",
+		TransitionProof: marshalTransitionProof(t, tp2),
+		Attestations: []types.VerifierAttestation{
+			{VerifierID: "v1", LeafIndex: rec2.MMRPosition, Approved: true},
+		},
+	})
+	if err != nil {
+		t.Fatalf("SubmitFinality with enrolled plonk key: %v", err)
+	}
+	if out.Status != types.CheckpointFinal {
+		t.Fatalf("status = %s, want final", out.Status)
 	}
 }

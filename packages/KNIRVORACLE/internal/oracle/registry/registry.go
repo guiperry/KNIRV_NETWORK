@@ -195,3 +195,24 @@ func (r *Registry) Advance(chainID string, lastHeight uint64, lastCheckHash [32]
 	c.LastCheckHash = lastCheckHash
 	return nil
 }
+
+// SetVerificationKey enrolls a SNARK verification key + preferred proof system
+// for a registered chain (merkle-math.md Phase 5). The key lets the Oracle
+// accept groth16/plonk finality records; hashchain-v0 needs no key.
+func (r *Registry) SetVerificationKey(chainID, proofSystem string, vk []byte) error {
+	if proofSystem == "" {
+		proofSystem = "hashchain-v0"
+	}
+	if proofSystem != "hashchain-v0" && proofSystem != "groth16" && proofSystem != "plonk" {
+		return fmt.Errorf("unsupported proof system %q", proofSystem)
+	}
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	c, ok := r.chains[chainID]
+	if !ok {
+		return fmt.Errorf("chain %s not registered", chainID)
+	}
+	c.VerificationKey = vk
+	c.PreferredProofSystem = proofSystem
+	return nil
+}

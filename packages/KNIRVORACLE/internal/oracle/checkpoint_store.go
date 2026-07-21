@@ -96,6 +96,16 @@ func (o *Oracle) RegisterChain(c *types.ChainRegistration) error {
 	return o.persistRegistry()
 }
 
+// SetChainVerificationKey enrolls a SNARK verification key + preferred proof
+// system for a registered chain (merkle-math.md Phase 5). After this, the Oracle
+// accepts groth16/plonk finality records for the chain; hashchain-v0 needs no key.
+func (o *Oracle) SetChainVerificationKey(chainID, proofSystem string, vk []byte) error {
+	if err := o.checkpoint.registry.SetVerificationKey(chainID, proofSystem, vk); err != nil {
+		return err
+	}
+	return o.persistRegistry()
+}
+
 // RotateChain applies a quorum-signed author-set rotation (POST /oracle/v3/registry/rotate).
 func (o *Oracle) RotateChain(c *types.ChainRegistration) error {
 	// Continuity: the rotating party must hold the current registration and prove

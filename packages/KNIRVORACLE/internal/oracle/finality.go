@@ -103,6 +103,67 @@ func (o *Oracle) recordByPosition(pos uint64) *types.CheckpointRecord {
 	return nil
 }
 
+// verifyTransitionProof is the Oracle-side cheap verifier (merkle-math.md Phase 5,
+// §3.3f step 4). The full SNARK pairing check and hashchain-v0 re-execution are
+// delegated to the verifier chains; the Oracle enforces (a) the proof's public
+// inputs bind to the anchored checkpoint (PostRoot == checkpoint.Root, PreRoot ==
+// checkpoint.PrevCheckHash when present) and (b) SNARK systems require an enrolled
+// verification key for the chain. A tampered or unbound proof is rejected here, so
+// SubmitFinality never appends a LeafFinality for it.
+func (o *Oracle) verifyTransitionProof(rec *types.FinalityRecord, cp *types.CheckpointRecord) error {
+	sys := rec.ProofSystem
+	if sys == "" {
+		sys = "hashchain-v0"
+	}
+
+	bind := func(tp types.TransitionProof) error {
+		if tp.PostRoot != cp.Checkpoint.Root {
+			return fmt.Errorf("post_root %x != checkpoint root %x", tp.PostRoot, cp.Checkpoint.Root)
+		}
+		if cp.Checkpoint.PrevCheckHash != ([32]byte{}) && tp.PreRoot != cp.Checkpoint.PrevCheckHash {
+			return fmt.Errorf("pre_root %x != checkpoint prev_check_hash %x", tp.PreRoot, cp.Checkpoint.PrevCheckHash)
+		}
+		return nil
+	}
+
+	switch sys {
+	case "hashchain-v0":
+		if len(rec.TransitionProof) == 0 {
+			// No proof supplied: rely on the attestation quorum (optimistic).
+			o.logger.Warn("finality submitted without transition proof (hashchain-v0 optimistic)")
+			return nil
+		}
+		var tp types.TransitionProof
+		if err := json.Unmarshal(rec.TransitionProof, &tp); err != nil {
+			return fmt.Errorf("decode transition proof: %w", err)
+		}
+		return bind(tp)
+
+	case "groth16", "plonk":
+		// SNARK verification is delegated to the verifier chains. The Oracle
+		// enforces key enrollment + public-input binding so a proof cannot be
+		// accepted without a registered verifier key for the chain.
+		reg, ok := o.checkpoint.registry.Get(cp.Checkpoint.ChainID)
+		if !ok || len(reg.VerificationKey) == 0 {
+			return fmt.Errorf("no verification key registered for chain %s; cannot accept %s proof", cp.Checkpoint.ChainID, sys)
+		}
+		if reg.PreferredProofSystem != "" && reg.PreferredProofSystem != sys {
+			return fmt.Errorf("proof system %q does not match registered %q", sys, reg.PreferredProofSystem)
+		}
+		if len(rec.TransitionProof) == 0 {
+			return fmt.Errorf("snark proof required but transition_proof is empty")
+		}
+		var tp types.TransitionProof
+		if err := json.Unmarshal(rec.TransitionProof, &tp); err != nil {
+			return fmt.Errorf("decode transition proof: %w", err)
+		}
+		return bind(tp)
+
+	default:
+		return fmt.Errorf("unsupported proof system %q", sys)
+	}
+}
+
 // SubmitFinality admits a finality record: the checkpoint leaf must exist and be
 // provisional, be within its proof window, and carry an attestation quorum
 // (merkle-math.md §3.3f). On success it appends a LeafFinality MMR leaf and
@@ -142,6 +203,14 @@ func (o *Oracle) SubmitFinality(rec *types.FinalityRecord) (*types.CheckpointRec
 	}
 	if !o.attestationQuorum(approved) {
 		return nil, fmt.Errorf("attestation quorum not met: %d approved", approved)
+	}
+
+	// Phase 5: the Oracle runs the cheap verifier itself (merkle-math.md §3.3f
+	// step 4). hashchain-v0 → bind proof roots to the anchored checkpoint; SNARK
+	// systems → require an enrolled verification key + binding, with the actual
+	// pairing check delegated to the verifier chains.
+	if err := o.verifyTransitionProof(rec, cp); err != nil {
+		return nil, fmt.Errorf("transition proof rejected: %w", err)
 	}
 
 	// Build + append the LeafFinality payload.
