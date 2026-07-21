@@ -82,6 +82,13 @@ type Config struct {
 	ChainSocketPath   string // /var/lib/knirvserver/sockets/chain.sock
 	GraphSocketPath   string // /var/lib/knirvserver/sockets/graph.sock
 
+	// InternalAuthToken is the shared service-to-service token KNIRVCHAIN
+	// expects on X-KNIRV-Internal-Token for its internal-only mint endpoints
+	// (chain_refactor.md §3.2/§4 Phase 2). The gateway attaches it on the
+	// caller's behalf for the event-bundle mint proxy so CLI clients never
+	// need to hold this secret themselves.
+	InternalAuthToken string
+
 	// Shell daemon socket path
 	ShellSocketPath string // /var/lib/knirvserver/sockets/shell.sock
 
@@ -165,6 +172,7 @@ func Load() (*Config, error) {
 		BackendSocketPath:         getEnv("BACKEND_SOCKET_PATH", ""),
 		ServerBaseURL:             getEnv("KNIRV_SERVER_BASE_URL", "http://127.0.0.1:8090"),
 		ChainSocketPath:           getEnv("CHAIN_SOCKET_PATH", ""),
+		InternalAuthToken:         getEnv("KNIRV_INTERNAL_AUTH_TOKEN", ""),
 		GraphSocketPath:           getEnv("GRAPH_SOCKET_PATH", ""),
 		ShellSocketPath:           getEnv("SHELL_SOCKET_PATH", ""),
 		AgentSocketDir:            getEnv("AGENT_SOCKET_DIR", ""),

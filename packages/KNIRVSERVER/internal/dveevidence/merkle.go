@@ -6,15 +6,9 @@ func MerkleRoot(hashes []string) string {
 	if len(hashes) == 0 {
 		return sha256Hex(nil)
 	}
-	level := make([]string, 0, len(hashes))
-	for _, hash := range hashes {
-		hash = normalizeArtifactHash(hash)
-		if hash != "" {
-			level = append(level, hash)
-		}
-	}
-	if len(level) == 0 {
-		return sha256Hex(nil)
+	level := make([]string, len(hashes))
+	for i, hash := range hashes {
+		level[i] = normalizeArtifactHash(hash)
 	}
 	for len(level) > 1 {
 		next := make([]string, 0, (len(level)+1)/2)

@@ -41,7 +41,15 @@ type ErrorNode struct {
 	Timestamp   time.Time              `json:"timestamp"`
 }
 
-// SkillNode represents a skill that can resolve errors
+// SkillNode represents a skill that can resolve errors.
+//
+// Deprecated: KNIRVGRAPH's SkillNode is superseded by KNIRVCHAIN's own
+// types.SkillNode (packages/KNIRVCHAIN/internal/types/node_types.go), which
+// is the canonical on-chain skill-mining record (chain_refactor.md Open
+// Decision #3 — "keep the ErrorNode on KNIRVGRAPH but deprecate the
+// SkillNode"). ErrorNode remains KNIRVGRAPH's record; new skill
+// registrations should go through KNIRVCHAIN's mining pipeline instead of
+// creating a second, disconnected SkillNode here.
 type SkillNode struct {
 	ID           string                 `json:"id"`
 	SkillType    string                 `json:"skill_type"`

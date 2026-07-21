@@ -66,7 +66,33 @@ func NewABCIApplication(chainID, dataDir string, logger *zap.Logger) *ABCIApplic
 // SetCheckpointTxHandler registers the consensus-path admission hook used by
 // DeliverTx for checkpoint/finality transactions.
 func (app *ABCIApplication) SetCheckpointTxHandler(fn func(txType string, payload []byte) error) {
+	app.mu.Lock()
+	defer app.mu.Unlock()
 	app.onCheckpointTx = fn
+}
+
+// SetAuditMMR installs the Oracle checkpoint log as the single MMR instance
+// used for both inclusion proofs and AppHash commits.
+func (app *ABCIApplication) SetAuditMMR(shared *mmr.MMR) {
+	app.mu.Lock()
+	defer app.mu.Unlock()
+	if shared == nil {
+		shared = mmr.New()
+	}
+	app.auditMMR = shared
+}
+
+// AddAuditLeaf appends through the application lock to the canonical MMR.
+func (app *ABCIApplication) AddAuditLeaf(data []byte) (uint64, mmr.Hash) {
+	app.mu.Lock()
+	defer app.mu.Unlock()
+	return app.auditMMR.AddRaw(mmr.LeafHash(data))
+}
+
+func (app *ABCIApplication) AuditSnapshot() (mmr.Hash, uint64) {
+	app.mu.RLock()
+	defer app.mu.RUnlock()
+	return app.auditMMR.BagRoot(), app.auditMMR.Size()
 }
 
 // Info returns information about the application state
@@ -116,9 +142,6 @@ func (app *ABCIApplication) BeginBlock(header *BlockHeader) error {
 
 // DeliverTx delivers a transaction to the application
 func (app *ABCIApplication) DeliverTx(tx []byte) error {
-	app.mu.Lock()
-	defer app.mu.Unlock()
-
 	// Parse and validate transaction
 	var txData map[string]interface{}
 	if err := json.Unmarshal(tx, &txData); err != nil {
@@ -129,9 +152,12 @@ func (app *ABCIApplication) DeliverTx(tx []byte) error {
 	// same Oracle admission path used by the HTTP endpoints (merkle-math.md §3.3).
 	txType, _ := txData["type"].(string)
 	if txType == "checkpoint" || txType == "finality" {
-		if app.onCheckpointTx != nil {
+		app.mu.RLock()
+		handler := app.onCheckpointTx
+		app.mu.RUnlock()
+		if handler != nil {
 			payload, _ := json.Marshal(txData["payload"])
-			return app.onCheckpointTx(txType, payload)
+			return handler(txType, payload)
 		}
 	}
 

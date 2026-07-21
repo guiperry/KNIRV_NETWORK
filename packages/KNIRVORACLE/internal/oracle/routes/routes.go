@@ -92,6 +92,7 @@ func (r *OracleRoutes) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/oracle/v3/registry/register", r.handleRegistryRegister)
 	mux.HandleFunc("/oracle/v3/registry/rotate", r.handleRegistryRotate)
 	mux.HandleFunc("/oracle/v3/registry/verify-key", r.handleSetVerificationKey)
+	mux.HandleFunc("/oracle/v3/registry/", r.handleGetRegistration)
 	mux.HandleFunc("/oracle/v3/checkpoints", r.handleSubmitCheckpoint)
 	mux.HandleFunc("/oracle/v3/checkpoints/", r.handleCheckpointsByChain)
 	mux.HandleFunc("/oracle/v3/mmr/root", r.handleMMRRoot)
@@ -893,6 +894,20 @@ func (r *OracleRoutes) handleRegistryRotate(w http.ResponseWriter, req *http.Req
 	respondJSON(w, http.StatusOK, map[string]interface{}{"status": "rotated", "chain_id": reg.ChainID})
 }
 
+func (r *OracleRoutes) handleGetRegistration(w http.ResponseWriter, req *http.Request) {
+	if req.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	chainID := strings.TrimPrefix(req.URL.Path, "/oracle/v3/registry/")
+	reg, ok := r.oracle.GetChainRegistration(chainID)
+	if !ok {
+		respondJSON(w, http.StatusNotFound, map[string]interface{}{"error": "chain not registered"})
+		return
+	}
+	respondJSON(w, http.StatusOK, reg)
+}
+
 // handleSetVerificationKey enrolls a SNARK verification key + preferred proof
 // system for a registered chain (merkle-math.md Phase 5). Accepts the key as a
 // hex string; empty key with proof_system "hashchain-v0" clears back to optimistic.
@@ -902,8 +917,8 @@ func (r *OracleRoutes) handleSetVerificationKey(w http.ResponseWriter, req *http
 		return
 	}
 	var body struct {
-		ChainID      string `json:"chain_id"`
-		ProofSystem  string `json:"proof_system"`
+		ChainID         string `json:"chain_id"`
+		ProofSystem     string `json:"proof_system"`
 		VerificationKey string `json:"verification_key"`
 	}
 	if err := json.NewDecoder(req.Body).Decode(&body); err != nil {
@@ -924,9 +939,9 @@ func (r *OracleRoutes) handleSetVerificationKey(w http.ResponseWriter, req *http
 		return
 	}
 	respondJSON(w, http.StatusOK, map[string]interface{}{
-		"status":            "verification_key_set",
-		"chain_id":          body.ChainID,
-		"proof_system":      body.ProofSystem,
+		"status":               "verification_key_set",
+		"chain_id":             body.ChainID,
+		"proof_system":         body.ProofSystem,
 		"verification_key_len": len(vk),
 	})
 }
@@ -947,9 +962,9 @@ func (r *OracleRoutes) handleSubmitCheckpoint(w http.ResponseWriter, req *http.R
 		return
 	}
 	respondJSON(w, http.StatusOK, map[string]interface{}{
-		"status":       "admitted",
-		"mmr_position": rec.MMRPosition,
-		"leaf_hash":    mmr.Hash(rec.LeafHash).Hex(),
+		"status":          "admitted",
+		"mmr_position":    rec.MMRPosition,
+		"leaf_hash":       mmr.Hash(rec.LeafHash).Hex(),
 		"final_by_height": rec.FinalByHeight,
 	})
 }
@@ -994,9 +1009,11 @@ func (r *OracleRoutes) handleSubmitAttestation(w http.ResponseWriter, req *http.
 		return
 	}
 	var body struct {
-		ChainID     string                  `json:"chain_id"`
-		StartHeight uint64                  `json:"start_height"`
-		Attestation types.VerifierAttestation `json:"attestation"`
+		ChainID         string                    `json:"chain_id"`
+		StartHeight     uint64                    `json:"start_height"`
+		TransitionProof []byte                    `json:"transition_proof"`
+		ProofSystem     string                    `json:"proof_system"`
+		Attestation     types.VerifierAttestation `json:"attestation"`
 	}
 	if err := json.NewDecoder(req.Body).Decode(&body); err != nil {
 		http.Error(w, fmt.Sprintf("Invalid request: %v", err), http.StatusBadRequest)
@@ -1006,7 +1023,7 @@ func (r *OracleRoutes) handleSubmitAttestation(w http.ResponseWriter, req *http.
 		http.Error(w, "chain_id is required", http.StatusBadRequest)
 		return
 	}
-	out, err := r.oracle.SubmitAttestation(body.ChainID, body.StartHeight, body.Attestation)
+	out, err := r.oracle.SubmitProofAttestation(body.ChainID, body.StartHeight, body.TransitionProof, body.ProofSystem, body.Attestation)
 	if err != nil {
 		respondJSON(w, http.StatusBadRequest, map[string]interface{}{"error": err.Error()})
 		return
@@ -1021,12 +1038,13 @@ func (r *OracleRoutes) handleRegisterVerifier(w http.ResponseWriter, req *http.R
 	}
 	var body struct {
 		VerifierID string `json:"verifier_id"`
+		PublicKey  []byte `json:"public_key"`
 	}
 	if err := json.NewDecoder(req.Body).Decode(&body); err != nil {
 		http.Error(w, fmt.Sprintf("Invalid request: %v", err), http.StatusBadRequest)
 		return
 	}
-	if err := r.oracle.RegisterVerifier(body.VerifierID); err != nil {
+	if err := r.oracle.RegisterVerifier(body.VerifierID, body.PublicKey); err != nil {
 		respondJSON(w, http.StatusBadRequest, map[string]interface{}{"error": err.Error()})
 		return
 	}
@@ -1063,8 +1081,6 @@ func (r *OracleRoutes) handleMMRProof(w http.ResponseWriter, req *http.Request) 
 	}
 	respondJSON(w, http.StatusOK, proof)
 }
-
-
 
 // ExtractPathParam extracts a parameter from the URL path
 func ExtractPathParam(path, prefix string) string {

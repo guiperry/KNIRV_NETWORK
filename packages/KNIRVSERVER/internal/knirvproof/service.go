@@ -191,6 +191,11 @@ func (s *Service) validateSubmission(submission ProofSubmission) (ProofSubmissio
 	if submission.PolicyHash, err = NormalizeSHA256(submission.PolicyHash); err != nil {
 		return submission, fmt.Errorf("policy hash: %w", err)
 	}
+	if submission.EventBundleRoot != "" {
+		if submission.EventBundleRoot, err = NormalizeSHA256(submission.EventBundleRoot); err != nil {
+			return submission, fmt.Errorf("event bundle root: %w", err)
+		}
+	}
 	for label, hash := range map[string]*string{
 		"workspace base hash":  &submission.Workspace.BaseHash,
 		"workspace final hash": &submission.Workspace.FinalHash,
@@ -435,6 +440,9 @@ func validateCertificate(certificate *ValidationCertificate, submission ProofSub
 	if certificate.ProofRoot != submission.ProofRoot || certificate.CommitSHA256 != submission.Git.RawSHA256 || certificate.PolicyHash != submission.PolicyHash {
 		return fmt.Errorf("validation certificate does not bind the submitted proof")
 	}
+	if certificate.EventBundleRoot != submission.EventBundleRoot {
+		return fmt.Errorf("validation certificate does not bind the submitted event bundle root")
+	}
 	return nil
 }
 
@@ -489,6 +497,7 @@ func (s *Service) PublicProof(projectID, commitDigest string) (*PublicProof, err
 		ProofRoot: record.Submission.ProofRoot, StorageRoot: record.Submission.StorageRoot,
 		PolicyHash: record.Submission.PolicyHash, Status: record.Status,
 		Certificate: record.ValidationCertificate, Receipt: record.ChainReceipt,
+		EventBundleRoot: record.Submission.EventBundleRoot,
 	}, nil
 }
 

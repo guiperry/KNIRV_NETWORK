@@ -31,7 +31,66 @@ The pipeline transforms user ontology data into `.nrv` datasets for future globa
 
 ## Key Features
 
-### 1. Hash-Based Neural Network
+### 1. Unified Hasher Engine
+
+The **UnifiedHasherEngine** merges `HasherTransformer`, `HashNetwork`, and `RecursiveEngine` into a single seed-based neural system with hardware-accelerated inference and safe software fallbacks.
+
+- **Three Inference Modes**: Transformer (MHA + FFN), Recursive (21-pass temporal ensemble), and Feedforward (simple 3-layer)
+- **Hardware-First, Software-Fallback**: Every projection attempts `hashMethod.ComputeBatch` first; falls back to `seedToFloat` if hardware is unavailable or errors
+- **Mode Polymorphism**: The same seed network can run in any mode without retraining
+- **Train-Once, Run-Anywhere**: Seeds trained by the evolutionary harness are valid for all modes
+
+```go
+engine := transformer.NewUnifiedHasherEngineWithConfig(cfg, seeds, hashMethod, transformer.ModeTransformer)
+out := engine.Forward(tokenIDs)
+
+engine.SetMode(transformer.ModeRecursive)
+result, _ := engine.Infer(inputBytes)
+
+engine.SetMode(transformer.ModeFeedforward)
+pred, conf, _ := engine.Predict(inputBytes)
+```
+
+### 2. Hardware Router
+
+The **HardwareRouter** routes projections through hardware (`hashMethod.ComputeBatch`) when available, falling back to software (`seedToFloat`) when needed.
+
+- **Fallback Strategies**: `FallbackSoftware`, `FallbackError`, `FallbackMixed`
+- **Projection Caching**: Stores recent `(inputHash, seedHash)` → `float32[]` mappings to compensate for lower software throughput
+- **Per-Projection Fallback**: If `ComputeBatch` fails mid-forward-pass, falls back to `seedToFloat` for that projection only
+
+```go
+router := transformer.NewHardwareRouter(hashMethod, transformer.FallbackMixed)
+out, err := router.Project(input, seeds)
+scores := router.HashToVocab(hidden, outputSeed, vocabSize)
+```
+
+### 3. SeedStore
+
+The **SeedStore** holds all seed parameters in one place, replacing scattered seed maps across `HasherTransformer`, `HashNetwork`, and `RecursiveEngine`.
+
+```go
+store := &transformer.SeedStore{
+    Embeddings: embeddings,
+    Positional: positional,
+    Layers:     layers,
+    OutputSeed: outputSeed,
+    Seeds1:     seeds1,
+    Seeds2:     seeds2,
+    SeedsOut:   seedsOut,
+}
+```
+
+### 4. Hardware Acceleration Tiers
+
+| Tier | Method | Expected Throughput |
+|------|--------|-------------------|
+| 1 | ASIC (`ASICMethod`) | 10^9+ hashes/sec |
+| 2 | CUDA (`CudaMethod`) | 10^6-10^7 hashes/sec |
+| 3 | eBPF/uBPF | 10^5-10^6 hashes/sec |
+| 4 | Software fallback | 10^3-10^4 hashes/sec |
+
+### 5. Hash-Based Neural Network
 - **Hash Neurons**: Individual neurons using SHA-256 as activation function with cryptographic seed "weights"
 - **Multi-Layer Architecture**: Input layer → Hidden Layer 1 (128 neurons) → Hidden Layer 2 (64 neurons) → Output Layer (variable)
 - **Efficient Serialization**: Network configurations can be serialized to/from JSON
@@ -196,9 +255,39 @@ make build-host-darwin-arm64
 
 The system architecture consists of three main components:
 
-1. **Hash Network**: The neural network composed of hash neurons
-2. **Recursive Engine**: Manages the temporal ensemble process
-3. **Logical Validator**: Checks results against logical rules
+1. **UnifiedHasherEngine**: Single seed-based engine supporting transformer, recursive, and feedforward inference modes
+2. **HardwareRouter**: Hardware-first projection layer with software fallback
+3. **RecursiveEngine**: Legacy temporal ensemble (now delegates to UnifiedHasherEngine in recursive mode)
+
+### Unified Inference Architecture
+
+```
+                     ┌──────────────────────────┐
+                     │   UnifiedHasherEngine    │
+                     │  (replaces legacy systems)│
+                     └──────────┬───────────────┘
+                                │
+                ┌───────────────┼───────────────┐
+                │               │               │
+       ┌────────▼──────┐ ┌─────▼──────┐ ┌──────▼────────────┐
+       │ Transformer   │ │ Recursive  │ │  FeedForward      │
+       │ Mode          │ │ Mode       │ │  Mode             │
+       │ (MHA + FFN)   │ │ (21-pass)  │ │  (simple 3-layer) │
+       │ with HW accel │ │ temporal   │ │  with HW accel    │
+       └───────┬──────┘ └─────┬──────┘ └──────┬────────────┘
+               │               │               │
+               └───────────────┼───────────────┘
+                               │
+                     ┌─────────▼─────────┐
+                     │  HardwareRouter  │
+                     │  ┌─────────────┐ │
+                     │  │ ComputeBatch│ │ ← ASIC/CUDA/eBPF
+                     │  └─────────────┘ │
+                     │  ┌─────────────┐ │
+                     │  │ seedToFloat │ │ ← CPU fallback
+                     │  └─────────────┘ │
+                     └──────────────────┘
+```
 
 ### ASIC Protocol Implementation
 
@@ -402,55 +491,69 @@ Environment file (`.env`) is automatically copied to the bin directory if found 
 
 ## Programmatic Usage
 
-### Creating and Using a Hash Network
+### Creating and Using the Unified Hasher Engine
 
 ```go
 package main
 
 import (
     "fmt"
-    "hasher/internal/hasher"
+    "knirvhasher/pkg/hashing/transformer"
 )
 
 func main() {
-    // Create a new hash network (MNIST dimensions)
-    net, err := hasher.NewHashNetwork(784, 128, 64, 10)
-    if err != nil {
-        fmt.Printf("Error creating network: %v\n", err)
-        return
+    cfg := &transformer.UnifiedConfig{
+        VocabSize:    100,
+        EmbedDim:     32,
+        NumHeads:     4,
+        NumLayers:    2,
+        ContextLen:   64,
+        Hidden1:      16,
+        Hidden2:      8,
+        OutputSize:   4,
+        FFNHiddenDim: 64,
+        Activation:   "hash",
+        Passes:       21,
+        Jitter:       0.01,
     }
 
-    // Create recursive engine with optimal parameters
-    engine, err := hasher.NewRecursiveEngine(net, 21, 0.01, true)
-    if err != nil {
-        fmt.Printf("Error creating engine: %v\n", err)
-        return
-    }
+    seeds := transformer.BuildDefaultSeedStore(cfg)
+    engine := transformer.NewUnifiedHasherEngineWithConfig(cfg, seeds, nil, transformer.ModeTransformer)
 
-    // Example input (would be normalized image data in real scenario)
-    input := make([]byte, 784)
-    for i := range input {
-        input[i] = byte(i % 256)
-    }
+    // Transformer mode: token IDs → pooled hidden vector
+    hidden := engine.Forward([]int{1, 2, 3})
 
-    // Perform inference
-    result, err := engine.Infer(input)
-    if err != nil {
-        fmt.Printf("Error during inference: %v\n", err)
-        return
-    }
+    // Switch to recursive mode without retraining
+    engine.SetMode(transformer.ModeRecursive)
+    result, err := engine.Infer([]byte("input data"))
+    fmt.Printf("Consensus: %d (confidence: %.2f)\n", result.Consensus.Prediction, result.Consensus.Confidence)
 
-    // Print results
-    fmt.Printf("Inference completed in %v\n", result.Latency)
-    fmt.Printf("Valid passes: %d/%d\n", result.ValidPasses, result.TotalPasses)
-    fmt.Printf("Consensus prediction: %d (confidence: %.2f)\n", 
-        result.Consensus.Prediction, result.Consensus.Confidence)
-    
-    // Get statistical summary
-    summary := result.StatisticalSummary()
-    fmt.Printf("Mean confidence: %.3f, Std Dev: %.3f\n", 
-        summary.MeanConfidence, summary.ConfidenceStdDev)
+    // Switch to feedforward mode
+    engine.SetMode(transformer.ModeFeedforward)
+    pred, conf, err := engine.Predict([]byte("input data"))
+    fmt.Printf("Prediction: %d (confidence: %.2f)\n", pred, conf)
 }
+```
+
+### Using the Hardware Router
+
+```go
+router := transformer.NewHardwareRouter(hashMethod, transformer.FallbackMixed)
+out, err := router.Project(inputVector, seedMatrix)
+scores := router.HashToVocab(hiddenState, outputSeed, vocabSize)
+```
+
+### Backward Compatibility with Legacy APIs
+
+```go
+// Legacy HasherTransformer automatically delegates to UnifiedHasherEngine
+ht := transformer.NewHasherTransformer(config, hashMethod)
+output := ht.ForwardWrapper(tokenIDs)
+
+// Legacy RecursiveEngine supports mode dispatch
+engine, _ := inference.NewRecursiveEngineWithHashMethod(network, hashMethod, 21, 0.01, false)
+engine.SetMode(transformer.ModeTransformer)
+result, _ := engine.Infer(input)
 ```
 
 ### Adding Custom Logical Rules

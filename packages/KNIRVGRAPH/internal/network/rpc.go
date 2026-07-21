@@ -5,6 +5,8 @@ import (
 	"KNIRVGRAPH/internal/nrv"
 	"KNIRVGRAPH/internal/types"
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"math/big"
@@ -97,6 +99,7 @@ func NewRPCServerWithNRV(gc GraphChainInterface, nrvSys *nrv.NRVSystem, logger *
 	router.HandleFunc("/nrv/vectors/resolve/{targetHash}", rpc.resolveTarget).Methods("GET", "OPTIONS")
 	router.HandleFunc("/nrv/errors", rpc.getAllErrors).Methods("GET", "OPTIONS")
 	router.HandleFunc("/nrv/errors", rpc.createError).Methods("POST", "OPTIONS")
+	router.HandleFunc("/nrv/errors/commit", rpc.createErrorCommit).Methods("POST", "OPTIONS")
 	router.HandleFunc("/nrv/skills", rpc.getAllSkills).Methods("GET", "OPTIONS")
 	router.HandleFunc("/nrv/skills", rpc.createSkill).Methods("POST", "OPTIONS")
 	router.HandleFunc("/nrv/skills/for-error/{errorType}", rpc.getSkillsForError).Methods("GET", "OPTIONS")
@@ -170,6 +173,7 @@ func NewRPCServerWithEconomics(gc GraphChainInterface, nrvSys *nrv.NRVSystem, nr
 	router.HandleFunc("/nrv/vectors/resolve/{targetHash}", rpc.resolveTarget).Methods("GET", "OPTIONS")
 	router.HandleFunc("/nrv/errors", rpc.getAllErrors).Methods("GET", "OPTIONS")
 	router.HandleFunc("/nrv/errors", rpc.createError).Methods("POST", "OPTIONS")
+	router.HandleFunc("/nrv/errors/commit", rpc.createErrorCommit).Methods("POST", "OPTIONS")
 	router.HandleFunc("/nrv/skills", rpc.getAllSkills).Methods("GET", "OPTIONS")
 	router.HandleFunc("/nrv/skills", rpc.createSkill).Methods("POST", "OPTIONS")
 	router.HandleFunc("/nrv/skills/for-error/{errorType}", rpc.getSkillsForError).Methods("GET", "OPTIONS")
@@ -548,6 +552,114 @@ func (rpc *RPCServer) createError(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(errorNode)
 }
 
+// ErrorNodeCommitSchema identifies the commit envelope chain_refactor.md
+// Open Decision #3 introduces: CLI-reported error events land on KNIRVGRAPH
+// through the same structural pattern as a KNIRVSERVER validation-proof
+// commit (schema_version + a canonical-content root hash + signer identity),
+// rather than createError's bare, unauthenticated ErrorNode POST.
+const ErrorNodeCommitSchema = "knirv.error-node-commit.v1"
+
+// ErrorNodeCommit mirrors knirvproof.ProofSubmission's shape: a schema tag,
+// a root hash binding the payload, and signer identity fields. ErrorRoot is
+// the sha256 of the canonical JSON of {error_type, description, context,
+// severity} — the same fields createError already accepts — so a caller
+// can't submit content that doesn't match what it claims to have committed.
+//
+// Signature verification against a registered signer key is not implemented
+// here (KNIRVGRAPH has no key-resolver/trust-store infrastructure today,
+// unlike KNIRVSERVER's dveevidence.KeyResolver) — SignerID/SigningKeyID/
+// Signature are recorded as provided, matching this endpoint's current
+// trust boundary (same as every other unauthenticated /nrv/* route). Adding
+// real signature verification is a natural follow-up once KNIRVGRAPH has a
+// signer-key registry to check against.
+type ErrorNodeCommit struct {
+	SchemaVersion string                 `json:"schema_version"`
+	ProjectID     string                 `json:"project_id,omitempty"`
+	SessionID     string                 `json:"session_id,omitempty"`
+	ErrorType     string                 `json:"error_type"`
+	Description   string                 `json:"description"`
+	Context       map[string]interface{} `json:"context"`
+	Severity      int                    `json:"severity"`
+	ErrorRoot     string                 `json:"error_root"`
+	SignerID      string                 `json:"signer_id"`
+	SigningKeyID  string                 `json:"signing_key_id"`
+	Signature     string                 `json:"signature"`
+}
+
+type errorNodeCommitClaim struct {
+	ErrorType   string                 `json:"error_type"`
+	Description string                 `json:"description"`
+	Context     map[string]interface{} `json:"context"`
+	Severity    int                    `json:"severity"`
+}
+
+func errorNodeCommitRoot(claim errorNodeCommitClaim) (string, error) {
+	canonical, err := json.Marshal(claim)
+	if err != nil {
+		return "", err
+	}
+	sum := sha256.Sum256(canonical)
+	return "sha256:" + hex.EncodeToString(sum[:]), nil
+}
+
+// createErrorCommit is the Open-Decision-#3 entry point for CLI-reported
+// error events: unlike createError, the caller must present a commit
+// envelope whose ErrorRoot is independently recomputed and checked, and
+// whose signer identity is recorded on the stored ErrorNode.
+func (rpc *RPCServer) createErrorCommit(w http.ResponseWriter, r *http.Request) {
+	if rpc.app != nil && rpc.app.IsNetworkPaused() {
+		http.Error(w, "network is paused, error creation not allowed", http.StatusServiceUnavailable)
+		return
+	}
+	var commit ErrorNodeCommit
+	if err := json.NewDecoder(r.Body).Decode(&commit); err != nil {
+		http.Error(w, "invalid error commit format", http.StatusBadRequest)
+		return
+	}
+	if commit.SchemaVersion != ErrorNodeCommitSchema {
+		http.Error(w, "unsupported error commit schema", http.StatusBadRequest)
+		return
+	}
+	if commit.SignerID == "" || commit.SigningKeyID == "" || commit.Signature == "" {
+		http.Error(w, "signer identity is required", http.StatusBadRequest)
+		return
+	}
+	expectedRoot, err := errorNodeCommitRoot(errorNodeCommitClaim{
+		ErrorType: commit.ErrorType, Description: commit.Description,
+		Context: commit.Context, Severity: commit.Severity,
+	})
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if expectedRoot != commit.ErrorRoot {
+		http.Error(w, "error root does not match committed content", http.StatusBadRequest)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if rpc.nrvSystem == nil {
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"status": "created", "error_id": "error_demo_" + commit.ErrorType,
+			"error_root": commit.ErrorRoot, "message": "demo error committed",
+		})
+		return
+	}
+	errorNode, err := rpc.nrvSystem.CreateErrorNode(commit.ErrorType, commit.Description, commit.Context, commit.Severity)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	rpc.logger.Info("ErrorNode committed via validation-proof-style envelope",
+		zap.String("error_id", errorNode.ID), zap.String("error_root", commit.ErrorRoot),
+		zap.String("signer_id", commit.SignerID), zap.String("project_id", commit.ProjectID),
+		zap.String("session_id", commit.SessionID),
+	)
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"error_node": errorNode, "error_root": commit.ErrorRoot, "schema_version": ErrorNodeCommitSchema,
+	})
+}
+
 func (rpc *RPCServer) getAllSkills(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	if rpc.nrvSystem == nil {
@@ -558,12 +670,20 @@ func (rpc *RPCServer) getAllSkills(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(skills)
 }
 
+// createSkill creates a KNIRVGRAPH nrv.SkillNode.
+//
+// Deprecated: this endpoint is retained for backward compatibility only.
+// New skill registrations should go through KNIRVCHAIN's own SkillNode
+// mining pipeline (chain_refactor.md Open Decision #3); KNIRVGRAPH keeps
+// ErrorNode as its canonical record but is no longer the place new skills
+// should be minted.
 func (rpc *RPCServer) createSkill(w http.ResponseWriter, r *http.Request) {
 	// Check if network is paused
 	if rpc.app != nil && rpc.app.IsNetworkPaused() {
 		http.Error(w, "network is paused, skill creation not allowed", http.StatusServiceUnavailable)
 		return
 	}
+	w.Header().Set("X-KNIRV-Deprecated", "KNIRVGRAPH SkillNode is deprecated; register skills on KNIRVCHAIN instead")
 
 	var req struct {
 		SkillType    string                 `json:"skill_type"`

@@ -1288,7 +1288,62 @@ func sampleTemp32(scores []float32, temp float32) int {
 	return len(probs) - 1
 }
 
-// HasherTrainingConfig defines training hyperparameters for HasherTransformer.
+// ---- HasherTransformer backward-compatibility wrappers ----
+
+// ForwardWrapper runs Forward() via the unified engine for backward compatibility.
+// When hashMethod is non-nil, the unified engine attempts hardware acceleration.
+func (ht *HasherTransformer) ForwardWrapper(tokenIDs []int) []float32 {
+	engine, err := NewUnifiedHasherEngineFromHasherTransformer(ht)
+	if err != nil {
+		return ht.Forward(tokenIDs)
+	}
+	return engine.Forward(tokenIDs)
+}
+
+// GenerateTokenWrapper produces the next token via the unified engine.
+func (ht *HasherTransformer) GenerateTokenWrapper(ctx []int, temperature float32) (int, []float32) {
+	engine, err := NewUnifiedHasherEngineFromHasherTransformer(ht)
+	if err != nil {
+		return ht.GenerateToken(ctx, temperature)
+	}
+	return engine.GenerateToken(ctx, temperature)
+}
+
+// NewUnifiedHasherEngineFromHasherTransformer converts a legacy HasherTransformer
+// into a UnifiedHasherEngine in transformer mode.
+func NewUnifiedHasherEngineFromHasherTransformer(ht *HasherTransformer) (*UnifiedHasherEngine, error) {
+	if ht == nil || ht.Config == nil {
+		return nil, fmt.Errorf("nil HasherTransformer")
+	}
+	cfg := &UnifiedConfig{
+		VocabSize:    ht.Config.VocabSize,
+		EmbedDim:     ht.Config.EmbedDim,
+		NumHeads:     ht.Config.NumHeads,
+		NumLayers:    ht.Config.NumLayers,
+		ContextLen:   ht.Config.ContextLen,
+		FFNHiddenDim: ht.Config.FFNHiddenDim,
+		Activation:   ht.Config.Activation,
+		Passes:       21,
+		Jitter:       0.01,
+		SeedRotation: false,
+	}
+	seeds := &SeedStore{
+		Embeddings: ht.Embeddings,
+		Positional: ht.Positional,
+		Layers:     make([]TransformerLayerSeeds, len(ht.Layers)),
+		OutputSeed: ht.OutputSeed,
+	}
+	for i, l := range ht.Layers {
+		seeds.Layers[i] = TransformerLayerSeeds{
+			QuerySeeds:  l.QuerySeeds,
+			KeySeeds:    l.KeySeeds,
+			ValueSeeds:  l.ValueSeeds,
+			OutputSeeds: l.OutputSeeds,
+			FFNSeeds:    l.FFNSeeds,
+		}
+	}
+	return NewUnifiedHasherEngineWithConfig(cfg, seeds, ht.hashMethod, ModeTransformer), nil
+}
 type HasherTrainingConfig struct {
 	Epochs         int
 	BatchSize      int

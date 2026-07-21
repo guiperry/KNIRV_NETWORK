@@ -2,6 +2,7 @@ package types
 
 import (
 	"crypto/sha256"
+	"encoding/json"
 	"fmt"
 	"time"
 )
@@ -24,14 +25,17 @@ type RegisteredAuthor struct {
 
 // ChainRegistration is the Oracle's trust record for a single foreign chain.
 type ChainRegistration struct {
-	ChainID       string            `json:"chain_id"`
+	ChainID       string             `json:"chain_id"`
 	Authors       []RegisteredAuthor `json:"authors"`
-	QuorumNumer   uint64            `json:"quorum_numer"`
-	QuorumDenom   uint64            `json:"quorum_denom"`
-	LastHeight    uint64            `json:"last_height"`
-	LastCheckHash [32]byte          `json:"last_check_hash"`
-	Bond          uint64            `json:"bond"`
-	ProofWindow   uint64            `json:"proof_window"`
+	QuorumNumer   uint64             `json:"quorum_numer"`
+	QuorumDenom   uint64             `json:"quorum_denom"`
+	LastHeight    uint64             `json:"last_height"`
+	LastCheckHash [32]byte           `json:"last_check_hash"`
+	Bond          uint64             `json:"bond"`
+	BondOwner     string             `json:"bond_owner,omitempty"`
+	BondRemaining uint64             `json:"bond_remaining,omitempty"`
+	BondSlashed   uint64             `json:"bond_slashed,omitempty"`
+	ProofWindow   uint64             `json:"proof_window"`
 	// VerificationKey carries the registered SNARK verification key for this
 	// chain (merkle-math.md Phase 5). Empty until a verifier chain enrolls one.
 	VerificationKey []byte `json:"verification_key,omitempty"`
@@ -78,21 +82,23 @@ type CheckpointRecord struct {
 	RejectionLeaf *uint64          `json:"rejection_leaf,omitempty"`
 	// PendingAttestations accumulates validation-chain sign-offs (Phase 4)
 	// until quorum is reached, at which point the record is finalized.
-	PendingAttestations []VerifierAttestation `json:"pending_attestations,omitempty"`
+	PendingAttestations    []VerifierAttestation `json:"pending_attestations,omitempty"`
+	PendingTransitionProof []byte                `json:"pending_transition_proof,omitempty"`
+	PendingProofSystem     string                `json:"pending_proof_system,omitempty"`
 	// Source records how this leaf entered the MMR. Empty = direct KNIRVCHAIN
 	// submission. "rollup:<id>" = projected from a legacy RollupRecord (Phase 3
-	// bridge). It is informational only; it never changes admission semantics.
+	// bridge). Non-empty sources are audit-only and cannot enter finality.
 	Source string `json:"source,omitempty"`
 }
 
 // FinalityRecord is the phase-2 leaf — appended independently, never mutating
 // the phase-1 leaf.
 type FinalityRecord struct {
-	SchemaVersion   string               `json:"schema_version"` // "knirv.finality.v1"
-	CheckpointLeaf  uint64               `json:"checkpoint_leaf"`
-	CheckpointHash  [32]byte             `json:"checkpoint_hash"`
-	TransitionProof []byte               `json:"transition_proof"`
-	ProofSystem     string               `json:"proof_system"`
+	SchemaVersion   string                `json:"schema_version"` // "knirv.finality.v1"
+	CheckpointLeaf  uint64                `json:"checkpoint_leaf"`
+	CheckpointHash  [32]byte              `json:"checkpoint_hash"`
+	TransitionProof []byte                `json:"transition_proof"`
+	ProofSystem     string                `json:"proof_system"`
 	Attestations    []VerifierAttestation `json:"attestations"`
 }
 
@@ -102,6 +108,20 @@ type VerifierAttestation struct {
 	LeafIndex  uint64 `json:"leaf_index"`
 	Approved   bool   `json:"approved"`
 	Signature  []byte `json:"signature"` // ed25519 over (LeafIndex|CheckpointHash|Approved)
+}
+
+// AttestationMessage is the canonical ed25519 message shared by Oracle and
+// verifier chains: big-endian leaf index || checkpoint hash || approved byte.
+func AttestationMessage(leafIndex uint64, checkpointHash [32]byte, approved bool) []byte {
+	message := make([]byte, 8+32+1)
+	for i := 0; i < 8; i++ {
+		message[i] = byte(leafIndex >> (56 - i*8))
+	}
+	copy(message[8:40], checkpointHash[:])
+	if approved {
+		message[40] = 1
+	}
+	return message
 }
 
 // TransitionProof is the phase-2 validity proof accompanying a FinalityRecord
@@ -115,22 +135,26 @@ type TransitionProof struct {
 	ChainID       string   `json:"chain_id"`
 	StartHeight   uint64   `json:"start_height"`
 	EndHeight     uint64   `json:"end_height"`
-	PreRoot       [32]byte `json:"pre_root"`      // AccumRoot at StartHeight-1
-	PostRoot      [32]byte `json:"post_root"`     // == Checkpoint.Root
-	ProofSystem   string   `json:"proof_system"`  // "hashchain-v0" | "groth16" | "plonk"
+	PreRoot       [32]byte `json:"pre_root"`     // AccumRoot at StartHeight-1
+	PostRoot      [32]byte `json:"post_root"`    // == Checkpoint.Root
+	ProofSystem   string   `json:"proof_system"` // "hashchain-v0" | "groth16" | "plonk"
 	Proof         []byte   `json:"proof"`
 	PublicInputs  []byte   `json:"public_inputs"` // canonical (PreRoot, PostRoot, txBatchHash)
 }
 
-// LeafKind tags every MMR leaf so the append-only log is self-describing
-// (merkle-math.md §3.1).
-type LeafKind byte
-
-const (
-	LeafCheckpoint LeafKind = 0x01 // phase-1 provisional checkpoint / rollup projection
-	LeafFinality   LeafKind = 0x02 // phase-2 finality record
-	LeafRejection  LeafKind = 0x03 // window-miss / proof-fail tombstone
-)
+// CheckpointLeaf is the canonical phase-1 MMR payload. Kind is deliberately
+// part of the serialized body so all three MMR record classes are
+// self-describing. Leaf-kind constants live in the mmr package only.
+type CheckpointLeaf struct {
+	Kind          byte     `json:"kind"`
+	SchemaVersion string   `json:"schema_version"`
+	ChainID       string   `json:"chain_id"`
+	StartHeight   uint64   `json:"start_height"`
+	EndHeight     uint64   `json:"end_height"`
+	Root          [32]byte `json:"root"`
+	PrevCheckHash [32]byte `json:"prev_check_hash"`
+	Proposer      string   `json:"proposer"`
+}
 
 // FinalityLeaf is the canonical MMR payload for a LeafFinality leaf. The full
 // transition proof is kept in the indexed FinalityRecord; the leaf carries only
@@ -148,9 +172,24 @@ type FinalityLeaf struct {
 // Appended when a provisional record misses its proof window or fails
 // verification; never mutates the original checkpoint leaf.
 type RejectionLeaf struct {
-	Kind          byte   `json:"kind"`
-	CheckpointLeaf uint64 `json:"checkpoint_leaf"`
-	Reason        string `json:"reason"`
+	Kind             byte              `json:"kind"`
+	CheckpointLeaf   uint64            `json:"checkpoint_leaf"`
+	Reason           string            `json:"reason"`
+	SlashingEvidence *SlashingEvidence `json:"slashing_evidence,omitempty"`
+}
+
+// SlashingEvidence is persisted in the rejection leaf and queued into the
+// Oracle consensus block's EvidenceData. Amount is denominated in the token's
+// smallest NRN unit.
+type SlashingEvidence struct {
+	SchemaVersion  string    `json:"schema_version"`
+	ChainID        string    `json:"chain_id"`
+	BondOwner      string    `json:"bond_owner"`
+	CheckpointLeaf uint64    `json:"checkpoint_leaf"`
+	Reason         string    `json:"reason"`
+	Amount         uint64    `json:"amount"`
+	OracleHeight   uint64    `json:"oracle_height"`
+	OccurredAt     time.Time `json:"occurred_at"`
 }
 
 // RotationSigs carries the author-set signatures authorizing a registry rotation.
@@ -160,16 +199,51 @@ type RotationSigs []AuthorSig
 // CanonicalBytes returns the stable serialization of a checkpoint's body used as
 // the MMR leaf payload. It omits signatures and JSON field ordering variance by
 // constructing an explicit, ordered structure.
-func (c *Checkpoint) CanonicalBytes() map[string]interface{} {
-	return map[string]interface{}{
-		"schema_version": c.SchemaVersion,
-		"chain_id":       c.ChainID,
-		"start_height":   c.StartHeight,
-		"end_height":     c.EndHeight,
-		"root":           fmt.Sprintf("%x", c.Root),
-		"prev_check_hash": fmt.Sprintf("%x", c.PrevCheckHash),
-		"proposer":       c.Proposer,
+func (c *Checkpoint) CanonicalBytes() CheckpointLeaf {
+	return CheckpointLeaf{
+		Kind: 0x01, SchemaVersion: c.SchemaVersion, ChainID: c.ChainID,
+		StartHeight: c.StartHeight, EndHeight: c.EndHeight, Root: c.Root,
+		PrevCheckHash: c.PrevCheckHash, Proposer: c.Proposer,
 	}
+}
+
+// RegistrationBody returns the signature-free, deterministic registration
+// payload used for both initial enrollment and author-set rotations.
+func RegistrationBody(c *ChainRegistration) ([]byte, error) {
+	if c == nil {
+		return nil, fmt.Errorf("registration required")
+	}
+	type body struct {
+		ChainID              string             `json:"chain_id"`
+		Authors              []RegisteredAuthor `json:"authors"`
+		QuorumNumer          uint64             `json:"quorum_numer"`
+		QuorumDenom          uint64             `json:"quorum_denom"`
+		LastHeight           uint64             `json:"last_height"`
+		LastCheckHash        [32]byte           `json:"last_check_hash"`
+		Bond                 uint64             `json:"bond"`
+		BondOwner            string             `json:"bond_owner,omitempty"`
+		BondRemaining        uint64             `json:"bond_remaining,omitempty"`
+		BondSlashed          uint64             `json:"bond_slashed,omitempty"`
+		ProofWindow          uint64             `json:"proof_window"`
+		VerificationKey      []byte             `json:"verification_key,omitempty"`
+		PreferredProofSystem string             `json:"preferred_proof_system,omitempty"`
+	}
+	return json.Marshal(body{
+		ChainID: c.ChainID, Authors: c.Authors, QuorumNumer: c.QuorumNumer,
+		QuorumDenom: c.QuorumDenom, LastHeight: c.LastHeight,
+		LastCheckHash: c.LastCheckHash, Bond: c.Bond, BondOwner: c.BondOwner,
+		BondRemaining: c.BondRemaining, BondSlashed: c.BondSlashed,
+		ProofWindow: c.ProofWindow, VerificationKey: c.VerificationKey,
+		PreferredProofSystem: c.PreferredProofSystem,
+	})
+}
+
+func ChainRegistrationDigest(c *ChainRegistration) ([32]byte, error) {
+	body, err := RegistrationBody(c)
+	if err != nil {
+		return [32]byte{}, err
+	}
+	return RegistrationDigest(body), nil
 }
 
 // RegistrationDigest is the canonical 32-byte hash over a registration body that

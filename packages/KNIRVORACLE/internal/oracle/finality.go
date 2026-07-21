@@ -1,11 +1,15 @@
 package oracle
 
 import (
+	"bytes"
+	"crypto/ed25519"
 	"encoding/json"
 	"fmt"
+	"math/big"
 	"os"
 	"time"
 
+	"github.com/knirvcorp/knirvoracle/internal/oracle/consensus"
 	"github.com/knirvcorp/knirvoracle/internal/oracle/mmr"
 	"github.com/knirvcorp/knirvoracle/internal/oracle/types"
 	"go.uber.org/zap"
@@ -14,8 +18,10 @@ import (
 // VerifierQuorumNumer/Denom define the attestation threshold: ≥ Numer/Denom of
 // registered verifier nodes must approve. Defaults to 2/3 (merkle-math.md §3.3f).
 const (
-	DefaultVerifierQuorumNumer = 2
-	DefaultVerifierQuorumDenom = 3
+	DefaultVerifierQuorumNumer  = 2
+	DefaultVerifierQuorumDenom  = 3
+	DefaultCheckpointSlashNumer = 1
+	DefaultCheckpointSlashDenom = 10
 )
 
 // loadVerifiers reads the persisted verifier registry from disk.
@@ -30,12 +36,19 @@ func (o *Oracle) loadVerifiers() error {
 		}
 		return err
 	}
-	var ids []string
-	if err := json.Unmarshal(data, &ids); err != nil {
-		return fmt.Errorf("decode verifiers: %w", err)
+	var keys map[string][]byte
+	if err := json.Unmarshal(data, &keys); err != nil {
+		var ids []string
+		if legacyErr := json.Unmarshal(data, &ids); legacyErr != nil {
+			return fmt.Errorf("decode verifiers: %w", err)
+		}
+		keys = make(map[string][]byte, len(ids))
+		for _, id := range ids {
+			keys[id] = nil
+		}
 	}
-	for _, id := range ids {
-		o.verifiers[id] = true
+	for id, key := range keys {
+		o.verifiers[id] = append([]byte(nil), key...)
 	}
 	return nil
 }
@@ -45,11 +58,7 @@ func (o *Oracle) persistVerifiersLocked() error {
 	if o.verifiersPath == "" {
 		return nil
 	}
-	ids := make([]string, 0, len(o.verifiers))
-	for id := range o.verifiers {
-		ids = append(ids, id)
-	}
-	payload, err := json.MarshalIndent(ids, "", "  ")
+	payload, err := json.MarshalIndent(o.verifiers, "", "  ")
 	if err != nil {
 		return err
 	}
@@ -61,14 +70,52 @@ func (o *Oracle) persistVerifiersLocked() error {
 }
 
 // RegisterVerifier adds a validation-chain node to the attestation quorum set.
-func (o *Oracle) RegisterVerifier(id string) error {
+func (o *Oracle) RegisterVerifier(id string, publicKey ...[]byte) error {
 	if id == "" {
 		return fmt.Errorf("verifier id required")
 	}
+	var key []byte
+	if len(publicKey) > 0 {
+		key = publicKey[0]
+	}
+	if len(key) != ed25519.PublicKeySize {
+		return fmt.Errorf("verifier ed25519 public key must be %d bytes", ed25519.PublicKeySize)
+	}
 	o.verifiersMu.Lock()
 	defer o.verifiersMu.Unlock()
-	o.verifiers[id] = true
+	o.verifiers[id] = append([]byte(nil), key...)
 	return o.persistVerifiersLocked()
+}
+
+func (o *Oracle) verifyAttestations(cp *types.CheckpointRecord, attestations []types.VerifierAttestation) (int, error) {
+	o.verifiersMu.RLock()
+	defer o.verifiersMu.RUnlock()
+	if len(o.verifiers) == 0 {
+		return 0, fmt.Errorf("no verifier nodes registered")
+	}
+	seen := make(map[string]bool)
+	approved := 0
+	for _, att := range attestations {
+		if seen[att.VerifierID] {
+			continue
+		}
+		key, ok := o.verifiers[att.VerifierID]
+		if !ok {
+			return 0, fmt.Errorf("unregistered verifier %q", att.VerifierID)
+		}
+		if att.LeafIndex != cp.MMRPosition {
+			return 0, fmt.Errorf("attestation leaf mismatch")
+		}
+		message := types.AttestationMessage(att.LeafIndex, cp.LeafHash, att.Approved)
+		if !ed25519.Verify(ed25519.PublicKey(key), message, att.Signature) {
+			return 0, fmt.Errorf("invalid attestation signature from %q", att.VerifierID)
+		}
+		seen[att.VerifierID] = true
+		if att.Approved {
+			approved++
+		}
+	}
+	return approved, nil
 }
 
 // VerifierCount returns the number of registered verifier nodes.
@@ -117,11 +164,26 @@ func (o *Oracle) verifyTransitionProof(rec *types.FinalityRecord, cp *types.Chec
 	}
 
 	bind := func(tp types.TransitionProof) error {
+		if tp.SchemaVersion != "knirv.transition-proof.v1" || tp.ChainID != cp.Checkpoint.ChainID {
+			return fmt.Errorf("transition proof schema/chain mismatch")
+		}
+		if tp.StartHeight != cp.Checkpoint.StartHeight || tp.EndHeight != cp.Checkpoint.EndHeight {
+			return fmt.Errorf("transition proof height range does not match checkpoint")
+		}
 		if tp.PostRoot != cp.Checkpoint.Root {
 			return fmt.Errorf("post_root %x != checkpoint root %x", tp.PostRoot, cp.Checkpoint.Root)
 		}
-		if cp.Checkpoint.PrevCheckHash != ([32]byte{}) && tp.PreRoot != cp.Checkpoint.PrevCheckHash {
-			return fmt.Errorf("pre_root %x != checkpoint prev_check_hash %x", tp.PreRoot, cp.Checkpoint.PrevCheckHash)
+		expectedPreRoot := [32]byte{}
+		if cp.Checkpoint.StartHeight > 1 {
+			for _, candidate := range o.checkpoint.records {
+				if candidate != nil && candidate.Checkpoint.ChainID == cp.Checkpoint.ChainID && candidate.Checkpoint.EndHeight+1 == cp.Checkpoint.StartHeight {
+					expectedPreRoot = candidate.Checkpoint.Root
+					break
+				}
+			}
+		}
+		if tp.PreRoot != expectedPreRoot {
+			return fmt.Errorf("pre_root %x != preceding accumulator %x", tp.PreRoot, expectedPreRoot)
 		}
 		return nil
 	}
@@ -129,6 +191,9 @@ func (o *Oracle) verifyTransitionProof(rec *types.FinalityRecord, cp *types.Chec
 	switch sys {
 	case "hashchain-v0":
 		if len(rec.TransitionProof) == 0 {
+			if reg, ok := o.checkpoint.registry.Get(cp.Checkpoint.ChainID); ok && reg.PreferredProofSystem == "plonk" {
+				return fmt.Errorf("plonk-enabled chain requires an attested hashchain-v0 fallback proof")
+			}
 			// No proof supplied: rely on the attestation quorum (optimistic).
 			o.logger.Warn("finality submitted without transition proof (hashchain-v0 optimistic)")
 			return nil
@@ -157,6 +222,9 @@ func (o *Oracle) verifyTransitionProof(rec *types.FinalityRecord, cp *types.Chec
 		if err := json.Unmarshal(rec.TransitionProof, &tp); err != nil {
 			return fmt.Errorf("decode transition proof: %w", err)
 		}
+		if tp.ProofSystem != sys || len(tp.Proof) == 0 || len(tp.PublicInputs) == 0 {
+			return fmt.Errorf("incomplete %s proof artifacts", sys)
+		}
 		return bind(tp)
 
 	default:
@@ -181,6 +249,9 @@ func (o *Oracle) SubmitFinality(rec *types.FinalityRecord) (*types.CheckpointRec
 	if cp == nil {
 		return nil, fmt.Errorf("no checkpoint at MMR position %d", rec.CheckpointLeaf)
 	}
+	if cp.Source != "" {
+		return nil, fmt.Errorf("projected checkpoint %d from %q cannot be finalized", rec.CheckpointLeaf, cp.Source)
+	}
 	// Tolerate a client omitting the hash: default it from the anchored record.
 	if rec.CheckpointHash == ([32]byte{}) {
 		rec.CheckpointHash = cp.LeafHash
@@ -195,11 +266,9 @@ func (o *Oracle) SubmitFinality(rec *types.FinalityRecord) (*types.CheckpointRec
 		}
 	}
 
-	approved := 0
-	for _, a := range rec.Attestations {
-		if a.Approved {
-			approved++
-		}
+	approved, err := o.verifyAttestations(cp, rec.Attestations)
+	if err != nil {
+		return nil, err
 	}
 	if !o.attestationQuorum(approved) {
 		return nil, fmt.Errorf("attestation quorum not met: %d approved", approved)
@@ -210,12 +279,18 @@ func (o *Oracle) SubmitFinality(rec *types.FinalityRecord) (*types.CheckpointRec
 	// systems → require an enrolled verification key + binding, with the actual
 	// pairing check delegated to the verifier chains.
 	if err := o.verifyTransitionProof(rec, cp); err != nil {
+		if rejectErr := o.rejectCheckpointLocked(cp, "proof-fail: "+err.Error()); rejectErr != nil {
+			return nil, fmt.Errorf("transition proof rejected: %v (record rejection failed: %v)", err, rejectErr)
+		}
+		if commitErr := o.commitAuditMMR(); commitErr != nil {
+			return nil, commitErr
+		}
 		return nil, fmt.Errorf("transition proof rejected: %w", err)
 	}
 
 	// Build + append the LeafFinality payload.
 	leafData, err := json.Marshal(types.FinalityLeaf{
-		Kind:           byte(types.LeafFinality),
+		Kind:           byte(mmr.LeafFinality),
 		CheckpointLeaf: rec.CheckpointLeaf,
 		CheckpointHash: fmt.Sprintf("%x", rec.CheckpointHash),
 		ProofSystem:    rec.ProofSystem,
@@ -224,20 +299,19 @@ func (o *Oracle) SubmitFinality(rec *types.FinalityRecord) (*types.CheckpointRec
 	if err != nil {
 		return nil, fmt.Errorf("marshal finality leaf: %w", err)
 	}
-	leaf := mmr.LeafHash(leafData)
-	pos, _ := o.checkpoint.mmr.AddRaw(leaf)
-	_, _ = o.consensusEngine.AddAuditLeaf(leafData)
+	pos, _ := o.appendAuditLeafLocked(leafData)
 
 	cp.Status = types.CheckpointFinal
 	fpos := pos
 	cp.FinalityLeaf = &fpos
 	cp.PendingAttestations = rec.Attestations
-	o.checkpoint.leafLog = append(o.checkpoint.leafLog, leaf)
 
 	if err := o.persistCheckpointLocked(); err != nil {
 		return nil, err
 	}
-	o.commitAuditMMR()
+	if err := o.commitAuditMMR(); err != nil {
+		return nil, err
+	}
 	o.logger.Info("checkpoint finalized",
 		zap.Uint64("checkpoint_leaf", rec.CheckpointLeaf),
 		zap.Uint64("finality_leaf", pos),
@@ -250,6 +324,13 @@ func (o *Oracle) SubmitFinality(rec *types.FinalityRecord) (*types.CheckpointRec
 // provisional checkpoint. Once the attestation quorum is reached the record is
 // finalized automatically (merkle-math.md §3.3f step 3).
 func (o *Oracle) SubmitAttestation(chainID string, startHeight uint64, att types.VerifierAttestation) (*types.CheckpointRecord, error) {
+	return o.SubmitProofAttestation(chainID, startHeight, nil, "", att)
+}
+
+// SubmitProofAttestation accumulates independently signed verifier approvals
+// for one exact transition proof. A different proof cannot reuse earlier
+// attestations; quorum promotes the checkpoint through SubmitFinality.
+func (o *Oracle) SubmitProofAttestation(chainID string, startHeight uint64, transitionProof []byte, proofSystem string, att types.VerifierAttestation) (*types.CheckpointRecord, error) {
 	o.checkpoint.mu.Lock()
 	defer o.checkpoint.mu.Unlock()
 
@@ -257,8 +338,24 @@ func (o *Oracle) SubmitAttestation(chainID string, startHeight uint64, att types
 	if !ok {
 		return nil, fmt.Errorf("no checkpoint for %s/%d", chainID, startHeight)
 	}
+	if rec.Source != "" {
+		return nil, fmt.Errorf("projected checkpoint %s/%d from %q cannot be finalized", chainID, startHeight, rec.Source)
+	}
 	if rec.Status != types.CheckpointProvisional {
 		return nil, fmt.Errorf("checkpoint %s/%d is %s", chainID, startHeight, rec.Status)
+	}
+	if _, err := o.verifyAttestations(rec, []types.VerifierAttestation{att}); err != nil {
+		return nil, err
+	}
+	if len(transitionProof) > 0 {
+		if len(rec.PendingTransitionProof) > 0 && !bytes.Equal(rec.PendingTransitionProof, transitionProof) {
+			return nil, fmt.Errorf("attestation targets a different transition proof")
+		}
+		if rec.PendingProofSystem != "" && rec.PendingProofSystem != proofSystem {
+			return nil, fmt.Errorf("attestation proof system mismatch")
+		}
+		rec.PendingTransitionProof = append([]byte(nil), transitionProof...)
+		rec.PendingProofSystem = proofSystem
 	}
 	// De-duplicate by verifier id.
 	for _, a := range rec.PendingAttestations {
@@ -268,11 +365,9 @@ func (o *Oracle) SubmitAttestation(chainID string, startHeight uint64, att types
 	}
 	rec.PendingAttestations = append(rec.PendingAttestations, att)
 
-	approved := 0
-	for _, a := range rec.PendingAttestations {
-		if a.Approved {
-			approved++
-		}
+	approved, err := o.verifyAttestations(rec, rec.PendingAttestations)
+	if err != nil {
+		return nil, err
 	}
 	if !o.attestationQuorum(approved) {
 		if err := o.persistCheckpointLocked(); err != nil {
@@ -286,8 +381,12 @@ func (o *Oracle) SubmitAttestation(chainID string, startHeight uint64, att types
 		SchemaVersion:   "knirv.finality.v1",
 		CheckpointLeaf:  rec.MMRPosition,
 		CheckpointHash:  rec.LeafHash,
-		ProofSystem:     "hashchain-v0",
+		TransitionProof: rec.PendingTransitionProof,
+		ProofSystem:     rec.PendingProofSystem,
 		Attestations:    rec.PendingAttestations,
+	}
+	if fin.ProofSystem == "" {
+		fin.ProofSystem = "hashchain-v0"
 	}
 	// Relock: SubmitFinality takes the write lock itself.
 	o.checkpoint.mu.Unlock()
@@ -310,21 +409,9 @@ func (o *Oracle) sweepExpired() (int, error) {
 			continue
 		}
 		if height > rec.FinalByHeight {
-			leafData, err := json.Marshal(types.RejectionLeaf{
-				Kind:           byte(types.LeafRejection),
-				CheckpointLeaf: rec.MMRPosition,
-				Reason:         "window-miss",
-			})
-			if err != nil {
+			if err := o.rejectCheckpointLocked(rec, "window-miss"); err != nil {
 				return rejected, err
 			}
-			leaf := mmr.LeafHash(leafData)
-			pos, _ := o.checkpoint.mmr.AddRaw(leaf)
-			_, _ = o.consensusEngine.AddAuditLeaf(leafData)
-			rec.Status = types.CheckpointRejected
-			leafIndex := uint64(pos)
-			rec.RejectionLeaf = &leafIndex
-			o.checkpoint.leafLog = append(o.checkpoint.leafLog, leaf)
 			rejected++
 			o.logger.Warn("checkpoint rejected (window miss)",
 				zap.Uint64("checkpoint_leaf", rec.MMRPosition),
@@ -341,6 +428,62 @@ func (o *Oracle) sweepExpired() (int, error) {
 	return rejected, nil
 }
 
+// rejectCheckpointLocked applies the economics policy, appends the resulting
+// evidence-bearing tombstone, and queues consensus evidence. Caller holds
+// checkpoint.mu.
+func (o *Oracle) rejectCheckpointLocked(rec *types.CheckpointRecord, reason string) error {
+	if rec == nil || rec.Status != types.CheckpointProvisional {
+		return fmt.Errorf("checkpoint is not provisional")
+	}
+	height := uint64(0)
+	if o.consensusEngine != nil {
+		height = uint64(o.consensusEngine.GetHeight())
+	}
+	var slashEvidence *types.SlashingEvidence
+	if reg, ok := o.checkpoint.registry.Get(rec.Checkpoint.ChainID); ok && reg.BondRemaining > 0 && o.economicsEngine != nil {
+		requested := (reg.BondRemaining*DefaultCheckpointSlashNumer + DefaultCheckpointSlashDenom - 1) / DefaultCheckpointSlashDenom
+		bond, actual, err := o.economicsEngine.SlashChainBond(rec.Checkpoint.ChainID, reason, new(big.Int).SetUint64(requested))
+		if err != nil {
+			return fmt.Errorf("slash chain bond: %w", err)
+		}
+		amount := actual.Uint64()
+		if err := o.checkpoint.registry.ApplySlash(rec.Checkpoint.ChainID, amount); err != nil {
+			return err
+		}
+		slashEvidence = &types.SlashingEvidence{
+			SchemaVersion: "knirv.slashing-evidence.v1", ChainID: rec.Checkpoint.ChainID,
+			BondOwner: bond.Owner.String(), CheckpointLeaf: rec.MMRPosition,
+			Reason: reason, Amount: amount, OracleHeight: height, OccurredAt: time.Now().UTC(),
+		}
+	}
+
+	leafData, err := json.Marshal(types.RejectionLeaf{
+		Kind: byte(mmr.LeafRejection), CheckpointLeaf: rec.MMRPosition,
+		Reason: reason, SlashingEvidence: slashEvidence,
+	})
+	if err != nil {
+		return err
+	}
+	pos, _ := o.appendAuditLeafLocked(leafData)
+	if o.consensusEngine != nil {
+		if slashEvidence != nil {
+			_ = o.consensusEngine.AddEvidence(consensus.CheckpointSlashingEvidence{
+				SchemaVersion: slashEvidence.SchemaVersion, ChainID: slashEvidence.ChainID,
+				BondOwner: slashEvidence.BondOwner, CheckpointLeaf: slashEvidence.CheckpointLeaf,
+				Reason: slashEvidence.Reason, Amount: slashEvidence.Amount,
+				OracleHeight: slashEvidence.OracleHeight, OccurredAt: slashEvidence.OccurredAt,
+			})
+		}
+	}
+	rec.Status = types.CheckpointRejected
+	leafIndex := uint64(pos)
+	rec.RejectionLeaf = &leafIndex
+	if err := o.persistRegistry(); err != nil {
+		return err
+	}
+	return o.persistCheckpointLocked()
+}
+
 // sweepOnce runs the window-miss sweeper and anchors any rejection leaves. It
 // is safe to call from a background goroutine (it takes checkpoint.mu only for
 // the sweep duration); it must NOT be called while holding checkpoint.mu.
@@ -354,7 +497,10 @@ func (o *Oracle) sweepOnce() {
 	}
 	if n > 0 {
 		// Anchor the rejection leaves into the AppHash.
-		o.commitAuditMMR()
+		if err := o.commitAuditMMR(); err != nil {
+			o.logger.Warn("failed to anchor rejection leaves", zap.Error(err))
+			return
+		}
 		o.logger.Info("sweeper rejected expired checkpoints", zap.Int("count", n))
 	}
 }

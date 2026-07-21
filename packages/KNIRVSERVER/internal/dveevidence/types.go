@@ -24,6 +24,14 @@ type ToolRun struct {
 	EventLogRef string   `json:"event_log_ref,omitempty"`
 }
 
+// ResourceRef mirrors the CLI's dve.ResourceRef wire shape (chain_refactor.md
+// §3.1). Kind is one of "skill" | "capability_mcp" | "asset" | "credential".
+type ResourceRef struct {
+	Kind string `json:"kind"`
+	ID   string `json:"id"`
+	Ref  string `json:"ref,omitempty"`
+}
+
 type PermissionDecision struct {
 	ID           string `json:"id"`
 	Timestamp    string `json:"timestamp"`
@@ -36,6 +44,13 @@ type PermissionDecision struct {
 	DecisionHash string `json:"decision_hash"`
 	ApproverID   string `json:"approver_id,omitempty"`
 	Denied       bool   `json:"denied"`
+
+	// Kind/ResourcesUsed/EventBundleHash mirror the CLI's dve.PermissionDecision
+	// additions (chain_refactor.md §3.1/§3.3): the KNIRVCHAIN event-bundle NFT
+	// minted for this decision, and what it was minted from.
+	Kind            string        `json:"kind,omitempty"`
+	ResourcesUsed   []ResourceRef `json:"resources_used,omitempty"`
+	EventBundleHash string        `json:"event_bundle_hash,omitempty"`
 }
 
 type ArtifactRef struct {
@@ -69,6 +84,7 @@ type Bundle struct {
 	MemvidRefs          []MemvidRef          `json:"memvid_refs"`
 	EventLogRoot        string               `json:"eventlog_root"`
 	ArtifactMerkleRoot  string               `json:"artifact_merkle_root"`
+	EventBundleRoot     string               `json:"event_bundle_root,omitempty"`
 	Signature           *Signature           `json:"signature,omitempty"`
 }
 

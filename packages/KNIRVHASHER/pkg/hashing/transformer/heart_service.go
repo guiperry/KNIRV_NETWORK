@@ -32,6 +32,7 @@ type HEARTService struct {
 	stats             *HEARTServiceStats
 	baseline          *VarianceAnalyzerSnapshot
 	generatorSwitcher *GeneratorSwitcher
+	unifiedEngine     *UnifiedHasherEngine
 	mu                sync.RWMutex
 }
 
@@ -141,7 +142,6 @@ func NewHEARTServiceWithConfig(cfg *HEARTConfig) (*HEARTService, error) {
 		tokIface = tok
 	}
 
-	// Phase 1: Initialize deterministic embedder for cosine similarity searches
 	embedder := embeddings.NewDeterministicService()
 
 	var hashNet *HashNetworkWrapper
@@ -150,16 +150,27 @@ func NewHEARTServiceWithConfig(cfg *HEARTConfig) (*HEARTService, error) {
 		hashNet.SetAvailable(true)
 	}
 
+	var unifiedEngine *UnifiedHasherEngine
+	if cfg.InferenceMode == "" || cfg.InferenceMode == "unified" {
+		engine, err := NewUnifiedHasherEngineFromConfig(nil)
+		if err != nil {
+			log.Printf("unified engine init failed: %v (proceeding without unified engine)", err)
+		} else {
+			unifiedEngine = engine
+		}
+	}
+
 	svc := &HEARTService{
-		gpt:       gpt,
-		bridge:    cfg.getBridge(),
-		tokenizer: tokIface,
-		embedder:  embedder,
-		compiler:  NewWASMCompiler(cfg.TinyGoPath, cfg.WASMOutDir),
-		verifier:  NewBidirectionalVerifier(),
-		auditor:   NewAuditor(cfg.AuditLogDir),
-		hashNet:   hashNet,
-		config:    cfg,
+		gpt:           gpt,
+		bridge:        cfg.getBridge(),
+		tokenizer:     tokIface,
+		embedder:      embedder,
+		compiler:      NewWASMCompiler(cfg.TinyGoPath, cfg.WASMOutDir),
+		verifier:      NewBidirectionalVerifier(),
+		auditor:       NewAuditor(cfg.AuditLogDir),
+		hashNet:       hashNet,
+		config:        cfg,
+		unifiedEngine: unifiedEngine,
 		stats: &HEARTServiceStats{
 			ErrorTypeCounts:   make(map[string]uint64),
 			HeuristicUsage:    make(map[string]uint64),
@@ -167,8 +178,6 @@ func NewHEARTServiceWithConfig(cfg *HEARTConfig) (*HEARTService, error) {
 		},
 	}
 
-	// Set up the generator switcher: internal Gorgonite pipeline + optional
-	// external LLM bootstrap generator.
 	internalGen := NewInternalGPTGenerator(svc)
 	var externalGen WASMSourceGenerator
 	if cfg.ExternalGeneratorURL != "" {
@@ -177,9 +186,6 @@ func NewHEARTServiceWithConfig(cfg *HEARTConfig) (*HEARTService, error) {
 		externalGen = NewExternalLLMGenerator(cfg.ExternalGenerateFn)
 	}
 
-	// Use the GPT itself as the training-state provider: IsReady() returns
-	// true once SetTrained(true) has been called (e.g. after pre-training
-	// completes).  Until then, the external generator is used.
 	var trainingProvider TrainingStateProvider
 	if gpt != nil {
 		trainingProvider = gpt
@@ -226,6 +232,7 @@ func (hs *HEARTService) ListenAndServe(addr string) error {
 	mux.HandleFunc("/heart/generate", hs.handleGenerate)
 	mux.HandleFunc("/heart/health", hs.handleHealth)
 	mux.HandleFunc("/heart/stats", hs.handleStats)
+	mux.HandleFunc("/heart/reload-seeds", hs.handleReloadSeeds)
 
 	log.Printf("Starting HEART service on %s", addr)
 	return http.ListenAndServe(addr, mux)
@@ -1151,11 +1158,56 @@ func (hs *HEARTService) handleStats(w http.ResponseWriter, r *http.Request) {
 		"total_inquiries":       hs.stats.TotalInquiries,
 		"successful_responses":  hs.stats.SuccessfulResponses,
 		"failed_responses":      hs.stats.FailedResponses,
-		"avg_response_time_ms":  hs.getAvgLatency(),
-		"min_response_time_ms":  hs.stats.MinResponseTimeMs,
-		"max_response_time_ms":  hs.stats.MaxResponseTimeMs,
+		"avg_response_time_ms": hs.getAvgLatency(),
+		"min_response_time_ms": hs.stats.MinResponseTimeMs,
+		"max_response_time_ms": hs.stats.MaxResponseTimeMs,
 		"error_type_counts":     hs.stats.ErrorTypeCounts,
 		"heuristic_usage":       hs.stats.HeuristicUsage,
+	})
+}
+
+// handleReloadSeeds reloads the SeedStore for the unified engine.
+// Accepts a JSON body with a SeedStore or reloads from default if empty.
+func (hs *HEARTService) handleReloadSeeds(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Content-Type", "application/json")
+
+	hs.mu.Lock()
+	defer hs.mu.Unlock()
+
+	if hs.unifiedEngine == nil {
+		http.Error(w, `{"error":"unified engine not initialized"}`, http.StatusServiceUnavailable)
+		return
+	}
+
+	var req struct {
+		Seeds *SeedStore `json:"seeds"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, fmt.Sprintf("bad request: %v", err), http.StatusBadRequest)
+		return
+	}
+
+	if req.Seeds != nil {
+		hs.unifiedEngine.SetSeeds(req.Seeds)
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"status":  "reloaded",
+			"mode":    hs.unifiedEngine.Mode(),
+			"seeds":   "custom",
+		})
+		return
+	}
+
+	newStore := BuildDefaultSeedStore(DefaultUnifiedConfig())
+	hs.unifiedEngine.SetSeeds(newStore)
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"status": "reloaded",
+		"mode":   hs.unifiedEngine.Mode(),
+		"seeds":  "default",
 	})
 }
 

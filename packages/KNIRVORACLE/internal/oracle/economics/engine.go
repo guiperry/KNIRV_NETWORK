@@ -80,6 +80,25 @@ func (ee *EconomicsEngine) GetStakingManager() *StakingManager {
 	return ee.stakingManager
 }
 
+func (ee *EconomicsEngine) LockChainBond(chainID string, owner types.Address, amount *big.Int) (*ChainBond, error) {
+	return ee.stakingManager.LockChainBond(chainID, owner, amount)
+}
+
+func (ee *EconomicsEngine) SlashChainBond(chainID, details string, amount *big.Int) (*ChainBond, *big.Int, error) {
+	bond, actual, err := ee.stakingManager.SlashChainBond(chainID, amount)
+	if err != nil {
+		return nil, nil, err
+	}
+	if actual.Sign() > 0 {
+		ee.burnTracker.RecordBurnWithReason(bond.Owner, actual, BurnReasonSlashing, details)
+	}
+	return bond, actual, nil
+}
+
+func (ee *EconomicsEngine) ReleaseChainBond(chainID string) error {
+	return ee.stakingManager.ReleaseChainBond(chainID)
+}
+
 // GetBurnTracker returns the burn tracker
 func (ee *EconomicsEngine) GetBurnTracker() *BurnTracker {
 	return ee.burnTracker

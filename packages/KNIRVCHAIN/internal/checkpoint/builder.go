@@ -33,17 +33,17 @@ type CheckpointSource interface {
 type Builder struct {
 	mu sync.Mutex
 
-	src    CheckpointSource
-	db     *database.LevelDB
+	src      CheckpointSource
+	db       *database.LevelDB
 	interval uint64
 	finality uint64
 	proposer string
 
 	// lastEnd tracks the height covered by the most recent checkpoint so the
 	// next one begins at lastEnd+1 (contiguity / PrevCheckHash chaining).
-	lastEnd   uint64
-	prevHash  [32]byte
-	sealed    bool
+	lastEnd  uint64
+	prevHash [32]byte
+	sealed   bool
 }
 
 // NewBuilder constructs a checkpoint Builder. interval is the block span per
@@ -101,7 +101,10 @@ func (b *Builder) OnNewBlock(newTip uint64) (*Checkpoint, error) {
 
 	// EndHeight must be >= finality below the tip. If the candidate would cover
 	// a block shallower than that, hold off until deeper blocks land.
-	if candidateEnd > newTip-b.finality {
+	// Guard the subtraction explicitly: uint64 underflow on a young chain would
+	// otherwise turn the right-hand side into a huge number and admit a shallow
+	// checkpoint.
+	if newTip < b.finality || candidateEnd > newTip-b.finality {
 		return nil, nil
 	}
 

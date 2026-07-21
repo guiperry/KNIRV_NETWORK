@@ -1767,9 +1767,6 @@ func (app *ServerApp) setupProofRoutes() error {
 		hostname, _ := os.Hostname()
 		validatorID = "knirvserver:" + hostname
 	}
-	verifier := &knirvproof.NativeVerifier{
-		DEKs: trustClient, SigningKeys: trustClient.ResolveSigningKey, ValidatorID: validatorID,
-	}
 	chainSocket := app.config.ProofChainSocket
 	if chainSocket == "" {
 		appDataDir, dataErr := getAppDataDir()
@@ -1777,6 +1774,14 @@ func (app *ServerApp) setupProofRoutes() error {
 			return dataErr
 		}
 		chainSocket = filepath.Join(appDataDir, "sockets", "chain.sock")
+	}
+	eventBundles, err := knirvproof.NewChainEventBundleFetcher(chainSocket)
+	if err != nil {
+		return err
+	}
+	verifier := &knirvproof.NativeVerifier{
+		DEKs: trustClient, SigningKeys: trustClient.ResolveSigningKey, ValidatorID: validatorID,
+		EventBundles: eventBundles,
 	}
 	minter, err := knirvproof.NewChainMinter(chainSocket, app.internalAuthToken)
 	if err != nil {

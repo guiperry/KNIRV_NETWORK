@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"math/big"
 	"os"
 	"path/filepath"
 	"sync"
@@ -19,11 +20,11 @@ import (
 // chain registry, the single audit MMR, and an indexed view of admitted
 // checkpoint leaves. It is the Phase-2 admission authority (merkle-math.md §3.3c).
 type checkpointState struct {
-	mu         sync.RWMutex
-	registry   *registry.Registry
-	mmr        *mmr.MMR
-	records    map[string]*types.CheckpointRecord // key: chainID/startHeight
-	leafLog    []mmr.Hash                          // append-only leaf digest log for replay
+	mu           sync.RWMutex
+	registry     *registry.Registry
+	mmr          *mmr.MMR
+	records      map[string]*types.CheckpointRecord // key: chainID/startHeight
+	leafLog      []mmr.Hash                         // append-only leaf digest log for replay
 	registryPath string
 	recordsPath  string
 	leafLogPath  string
@@ -90,7 +91,37 @@ func recordKey(chainID string, startHeight uint64) string {
 
 // RegisterChain adds or replaces a chain registration (POST /oracle/v3/registry/register).
 func (o *Oracle) RegisterChain(c *types.ChainRegistration) error {
+	if c == nil {
+		return fmt.Errorf("chain registration required")
+	}
+	if _, exists := o.checkpoint.registry.Get(c.ChainID); exists {
+		return fmt.Errorf("chain %s is already registered; use the rotation endpoint", c.ChainID)
+	}
+	digest, err := types.ChainRegistrationDigest(c)
+	if err != nil {
+		return fmt.Errorf("registration digest: %w", err)
+	}
+	if err := registry.VerifySignatureQuorum(c, digest, c.RotationSigs); err != nil {
+		return fmt.Errorf("unauthorized initial registration: %w", err)
+	}
+	if c.Bond > 0 && c.BondOwner == "" && len(c.Authors) > 0 {
+		c.BondOwner = c.Authors[0].Address
+	}
+	locked := false
+	if c.Bond > 0 && o.economicsEngine != nil {
+		owner, err := types.AddressFromString(c.BondOwner)
+		if err != nil {
+			return fmt.Errorf("invalid bond owner: %w", err)
+		}
+		if _, err := o.economicsEngine.LockChainBond(c.ChainID, owner, new(big.Int).SetUint64(c.Bond)); err != nil {
+			return fmt.Errorf("lock chain bond: %w", err)
+		}
+		locked = true
+	}
 	if err := o.checkpoint.registry.Register(c); err != nil {
+		if locked {
+			_ = o.economicsEngine.ReleaseChainBond(c.ChainID)
+		}
 		return err
 	}
 	return o.persistRegistry()
@@ -106,6 +137,17 @@ func (o *Oracle) SetChainVerificationKey(chainID, proofSystem string, vk []byte)
 	return o.persistRegistry()
 }
 
+func (o *Oracle) GetChainRegistration(chainID string) (*types.ChainRegistration, bool) {
+	reg, ok := o.checkpoint.registry.Get(chainID)
+	if !ok {
+		return nil, false
+	}
+	copyReg := *reg
+	copyReg.Authors = append([]types.RegisteredAuthor(nil), reg.Authors...)
+	copyReg.VerificationKey = append([]byte(nil), reg.VerificationKey...)
+	return &copyReg, true
+}
+
 // RotateChain applies a quorum-signed author-set rotation (POST /oracle/v3/registry/rotate).
 func (o *Oracle) RotateChain(c *types.ChainRegistration) error {
 	// Continuity: the rotating party must hold the current registration and prove
@@ -118,6 +160,12 @@ func (o *Oracle) RotateChain(c *types.ChainRegistration) error {
 	if err := verifyRegistryRotation(cur, c); err != nil {
 		return err
 	}
+	// Author rotation cannot silently replace, release, or replenish the
+	// economics-backed bond; that requires a separate governance operation.
+	c.Bond = cur.Bond
+	c.BondOwner = cur.BondOwner
+	c.BondRemaining = cur.BondRemaining
+	c.BondSlashed = cur.BondSlashed
 	if err := o.checkpoint.registry.Register(c); err != nil {
 		return err
 	}
@@ -140,14 +188,7 @@ func (o *Oracle) SubmitCheckpoint(cp *types.Checkpoint) (*types.CheckpointRecord
 	if err != nil {
 		return nil, fmt.Errorf("marshal checkpoint leaf: %w", err)
 	}
-	leaf := mmr.LeafHash(leafData)
-
-	// Append to BOTH the index-side MMR (for proofs) and the consensus audit MMR
-	// (so the next Commit() bags the leaf into the Oracle AppHash). They carry the
-	// same leaf data, so both roots stay consistent.
-	pos, _ := o.checkpoint.mmr.AddRaw(leaf)
-	auditPos, _ := o.consensusEngine.AddAuditLeaf(leafData)
-	_ = auditPos
+	pos, leaf := o.appendAuditLeafLocked(leafData)
 
 	rec := &types.CheckpointRecord{
 		Checkpoint:  *cp,
@@ -162,7 +203,6 @@ func (o *Oracle) SubmitCheckpoint(cp *types.Checkpoint) (*types.CheckpointRecord
 	}
 
 	o.checkpoint.records[recordKey(cp.ChainID, cp.StartHeight)] = rec
-	o.checkpoint.leafLog = append(o.checkpoint.leafLog, leaf)
 
 	// Advance the registry continuity cursor.
 	_ = o.checkpoint.registry.Advance(cp.ChainID, cp.EndHeight, cp.Digest())
@@ -173,7 +213,9 @@ func (o *Oracle) SubmitCheckpoint(cp *types.Checkpoint) (*types.CheckpointRecord
 	// Phase 3: commit the audit leaf into the Oracle AppHash and persist it so
 	// the AppHash recovers across restarts. The Oracle runs non-validator, so
 	// this must be done at admission time (the consensus loop does not commit).
-	o.commitAuditMMR()
+	if err := o.commitAuditMMR(); err != nil {
+		return nil, err
+	}
 	o.logger.Info("checkpoint admitted",
 		zap.String("chain_id", cp.ChainID),
 		zap.Uint64("start", cp.StartHeight),
@@ -217,10 +259,7 @@ func (o *Oracle) ProjectRollup(rec *types.RollupRecord) (*types.CheckpointRecord
 	if err != nil {
 		return nil, fmt.Errorf("marshal rollup leaf: %w", err)
 	}
-	leaf := mmr.LeafHash(leafData)
-
-	pos, _ := o.checkpoint.mmr.AddRaw(leaf)
-	_, _ = o.consensusEngine.AddAuditLeaf(leafData)
+	pos, leaf := o.appendAuditLeafLocked(leafData)
 
 	record := &types.CheckpointRecord{
 		Checkpoint:  *cp,
@@ -235,18 +274,35 @@ func (o *Oracle) ProjectRollup(rec *types.RollupRecord) (*types.CheckpointRecord
 	}
 
 	o.checkpoint.records[recordKey(cp.ChainID, cp.StartHeight)] = record
-	o.checkpoint.leafLog = append(o.checkpoint.leafLog, leaf)
 
 	if err := o.persistCheckpointLocked(); err != nil {
 		return nil, err
 	}
 	// Phase 3: commit the projected rollup leaf into the AppHash and persist it.
-	o.commitAuditMMR()
+	if err := o.commitAuditMMR(); err != nil {
+		return nil, err
+	}
 	o.logger.Info("rollup projected to checkpoint leaf",
 		zap.String("rollup_id", rec.ID),
 		zap.Uint64("mmr_position", pos),
 	)
 	return record, nil
+}
+
+// appendAuditLeafLocked is the only checkpoint-pipeline append path. The
+// consensus application and proof index share checkpoint.mmr, so this performs
+// one mutation and records the corresponding leaf for recovery.
+func (o *Oracle) appendAuditLeafLocked(leafData []byte) (uint64, mmr.Hash) {
+	if o.consensusEngine != nil {
+		o.consensusEngine.SetAuditMMR(o.checkpoint.mmr)
+		pos, leaf := o.consensusEngine.AddAuditLeaf(leafData)
+		o.checkpoint.leafLog = append(o.checkpoint.leafLog, leaf)
+		return pos, leaf
+	}
+	leaf := mmr.LeafHash(leafData)
+	pos, _ := o.checkpoint.mmr.AddRaw(leaf)
+	o.checkpoint.leafLog = append(o.checkpoint.leafLog, leaf)
+	return pos, leaf
 }
 
 func strip0x(s string) string {
@@ -332,53 +388,9 @@ func writeAtomic(path string, payload []byte) error {
 // over the new registration body with quorum against the current set. The
 // rotation body carries AuthorSigs in the same shape as checkpoints.
 func verifyRegistryRotation(cur *types.ChainRegistration, next *types.ChainRegistration) error {
-	// Reuse the checkpoint quorum machinery by treating the registration as a
-	// pseudo-checkpoint over its marshaled body.
-	body, err := json.Marshal(next)
+	digest, err := types.ChainRegistrationDigest(next)
 	if err != nil {
 		return err
 	}
-	digest := types.RegistrationDigest(body)
-	// Build a transient checkpoint-shaped signature set.
-	sigs := next.RotationSigs
-	seen := make(map[string]bool)
-	validWeight := uint64(0)
-	totalWeight := uint64(0)
-	for _, a := range cur.Authors {
-		totalWeight += weightOf(a.Weight)
-	}
-	for _, sig := range sigs {
-		if seen[sig.Address] {
-			continue
-		}
-		w, ok := registryWeight(cur, sig.Address)
-		if !ok {
-			continue
-		}
-		if !types.VerifyRegistrationSig(digest, sig) {
-			continue
-		}
-		seen[sig.Address] = true
-		validWeight += w
-	}
-	if validWeight*2 < totalWeight {
-		return fmt.Errorf("rotation quorum not met: %d/%d", validWeight, totalWeight)
-	}
-	return nil
-}
-
-func registryWeight(c *types.ChainRegistration, addr string) (uint64, bool) {
-	for _, a := range c.Authors {
-		if a.Address == addr {
-			return weightOf(a.Weight), true
-		}
-	}
-	return 0, false
-}
-
-func weightOf(w uint64) uint64 {
-	if w == 0 {
-		return 1
-	}
-	return w
+	return registry.VerifySignatureQuorum(cur, digest, next.RotationSigs)
 }

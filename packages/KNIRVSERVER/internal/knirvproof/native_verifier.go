@@ -51,12 +51,25 @@ func (fn DEKResolverFunc) ResolveDEK(ctx context.Context, submission ProofSubmis
 	return fn(ctx, submission)
 }
 
+// EventBundleFetcher independently confirms a KNIRVCHAIN event-bundle NFT
+// referenced by a PermissionDecision.EventBundleHash actually exists on
+// chain (chain_refactor.md Open Decision #2), rather than trusting the
+// CLI-supplied hash under the submission's signature alone.
+type EventBundleFetcher interface {
+	FetchBundleHash(ctx context.Context, eventID string) (hash string, ok bool, err error)
+}
+
 type NativeVerifier struct {
 	DEKs             DEKResolver
 	SigningKeys      dveevidence.KeyResolver
 	ValidatorID      string
 	MaxManifestBytes int64
 	Now              func() time.Time
+	// EventBundles is optional: when nil, event-bundle existence is not
+	// independently re-verified (the manifest-internal hash/root checks in
+	// validateManifest still apply). Production deployments should always
+	// set this once KNIRVCHAIN's event-bundle mint endpoint is reachable.
+	EventBundles EventBundleFetcher
 }
 
 func (v *NativeVerifier) Verify(ctx context.Context, submission ProofSubmission, store *FileStore) (*ValidationCertificate, error) {
@@ -125,6 +138,11 @@ func (v *NativeVerifier) Verify(ctx context.Context, submission ProofSubmission,
 	if err := validateManifest(manifest, submission, v.SigningKeys); err != nil {
 		return nil, err
 	}
+	if v.EventBundles != nil {
+		if err := verifyEventBundles(ctx, v.EventBundles, manifest.Bundle.PermissionDecisions); err != nil {
+			return nil, err
+		}
+	}
 
 	now := time.Now().UTC()
 	if v.Now != nil {
@@ -133,7 +151,7 @@ func (v *NativeVerifier) Verify(ctx context.Context, submission ProofSubmission,
 	certificate := &ValidationCertificate{
 		SchemaVersion: SchemaValidationCert, ValidatorID: v.ValidatorID, ValidatedAt: now,
 		ProofRoot: submission.ProofRoot, CommitSHA256: submission.Git.RawSHA256,
-		PolicyHash: submission.PolicyHash,
+		PolicyHash: submission.PolicyHash, EventBundleRoot: submission.EventBundleRoot,
 	}
 	certificateBytes, err := json.Marshal(certificate)
 	if err != nil {
@@ -239,6 +257,78 @@ func validateManifest(manifest ProofManifest, submission ProofSubmission, resolv
 	if violations := dveevidence.ReplayPolicy(bundle, &manifest.Policy); len(violations) > 0 {
 		return fmt.Errorf("policy replay found %d violation(s)", len(violations))
 	}
+	if bundle.EventBundleRoot != submission.EventBundleRoot {
+		return fmt.Errorf("event bundle root does not match submission")
+	}
+	if expectedRoot := expectedEventBundleRoot(bundle.PermissionDecisions); expectedRoot != bundle.EventBundleRoot {
+		return fmt.Errorf("event bundle root does not match recorded decisions")
+	}
+	return nil
+}
+
+// expectedEventBundleRoot mirrors the CLI's dve.Bundle.EventBundleRoot
+// construction exactly: empty when no decision minted an event bundle
+// (chain_refactor.md Design Invariant #3 — "0 for sessions with no
+// MCP/skill/capability/asset/credential involvement"), otherwise the Merkle
+// root over the per-decision hashes in order. dveevidence.MerkleRoot's own
+// empty-input behavior (a hash of nothing) is deliberately NOT used here —
+// that would wrongly require every pre-existing, bundle-less session to
+// carry a non-empty root.
+func expectedEventBundleRoot(decisions []dveevidence.PermissionDecision) string {
+	hashes := eventBundleHashes(decisions)
+	if len(hashes) == 0 {
+		return ""
+	}
+	return dveevidence.MerkleRoot(hashes)
+}
+
+// eventBundleHashes extracts the per-decision KNIRVCHAIN event-bundle hashes
+// in decision order, matching the CLI's dve.Bundle.EventBundleRoot
+// construction (chain_refactor.md §3.3) so both sides compute the identical
+// Merkle root over the identical leaf set.
+func eventBundleHashes(decisions []dveevidence.PermissionDecision) []string {
+	out := make([]string, 0, len(decisions))
+	for _, decision := range decisions {
+		if decision.EventBundleHash != "" {
+			out = append(out, decision.EventBundleHash)
+		}
+	}
+	return out
+}
+
+// verifyEventBundles independently re-fetches every KNIRVCHAIN event-bundle
+// NFT a submission's decisions reference and confirms the bundle actually
+// exists with the claimed hash (chain_refactor.md Open Decision #2: "the
+// verifier re-fetches the bundle from KNIRVCHAIN by ID to confirm. If the
+// mint doesn't exist the commit is rejected until fixed"). A missing bundle
+// is reported as ErrDependencyUnavailable (retryable — minting is
+// asynchronous relative to the commit that references it); a hash mismatch
+// is a hard validation failure.
+// safeEventBundleID mirrors the CLI's proofwire.SafeEventBundleID exactly —
+// both sides must derive the identical KNIRVCHAIN lookup key from a
+// PermissionDecision.ID (see that function's doc for why the raw ID isn't
+// used directly).
+func safeEventBundleID(decisionID string) string {
+	sum := sha256.Sum256([]byte(decisionID))
+	return hex.EncodeToString(sum[:])
+}
+
+func verifyEventBundles(ctx context.Context, fetcher EventBundleFetcher, decisions []dveevidence.PermissionDecision) error {
+	for _, decision := range decisions {
+		if decision.EventBundleHash == "" {
+			continue
+		}
+		hash, ok, err := fetcher.FetchBundleHash(ctx, safeEventBundleID(decision.ID))
+		if err != nil {
+			return fmt.Errorf("%w: fetch event bundle for decision %s: %v", ErrDependencyUnavailable, decision.ID, err)
+		}
+		if !ok {
+			return fmt.Errorf("%w: event bundle for decision %s is not minted yet", ErrDependencyUnavailable, decision.ID)
+		}
+		if hash != decision.EventBundleHash {
+			return fmt.Errorf("event bundle hash mismatch for decision %s", decision.ID)
+		}
+	}
 	return nil
 }
 
@@ -259,6 +349,7 @@ type submissionSigningClaim struct {
 	SignerID              string           `json:"signer_id"`
 	SigningKeyID          string           `json:"signing_key_id"`
 	RelatedProofs         []string         `json:"related_proofs,omitempty"`
+	EventBundleRoot       string           `json:"event_bundle_root,omitempty"`
 }
 
 func SubmissionSigningMessage(submission ProofSubmission) ([]byte, error) {
@@ -270,6 +361,7 @@ func SubmissionSigningMessage(submission ProofSubmission) ([]byte, error) {
 		KeyEnvelopes: submission.KeyEnvelopes, RepositoryFingerprint: submission.RepositoryFingerprint,
 		Git: submission.Git, Workspace: submission.Workspace, PolicyHash: submission.PolicyHash,
 		SignerID: submission.SignerID, SigningKeyID: submission.SigningKeyID, RelatedProofs: submission.RelatedProofs,
+		EventBundleRoot: submission.EventBundleRoot,
 	})
 }
 

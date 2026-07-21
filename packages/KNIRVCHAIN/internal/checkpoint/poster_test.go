@@ -1,36 +1,38 @@
 package checkpoint
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
+	"io"
 	"net/http"
-	"net/http/httptest"
 	"testing"
 
 	"github.com/ethereum/go-ethereum/crypto"
 )
 
+type roundTripFunc func(*http.Request) (*http.Response, error)
+
+func (fn roundTripFunc) RoundTrip(req *http.Request) (*http.Response, error) { return fn(req) }
+
 func TestPosterSubmitsCheckpoint(t *testing.T) {
 	var got Checkpoint
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	p := NewPoster(nil, "http://oracle", "")
+	p.oracleUnixClient = nil
+	p.httpClient = &http.Client{Transport: roundTripFunc(func(r *http.Request) (*http.Response, error) {
 		if r.URL.Path != "/oracle/v3/checkpoints" {
-			http.Error(w, "not found", http.StatusNotFound)
-			return
+			return &http.Response{StatusCode: http.StatusNotFound, Body: io.NopCloser(bytes.NewBufferString(`{"error":"not found"}`))}, nil
 		}
 		if err := json.NewDecoder(r.Body).Decode(&got); err != nil {
-			http.Error(w, "bad", http.StatusBadRequest)
-			return
+			return nil, err
 		}
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]interface{}{
+		body, _ := json.Marshal(map[string]interface{}{
 			"status":       "admitted",
 			"mmr_position": 0,
 			"leaf_hash":    "abc",
 		})
-	}))
-	defer srv.Close()
-
-	p := NewPoster(nil, srv.URL, "")
+		return &http.Response{StatusCode: http.StatusOK, Header: make(http.Header), Body: io.NopCloser(bytes.NewReader(body))}, nil
+	})}
 	key, err := crypto.GenerateKey()
 	if err != nil {
 		t.Fatalf("key: %v", err)

@@ -38,10 +38,10 @@ func newTestChain(t *testing.T, chainID string) (types.ChainRegistration, *ecdsa
 func newTestOracle(t *testing.T) *Oracle {
 	t.Helper()
 	o := &Oracle{
-		checkpoint: newCheckpointState(""),
-		rollups:    make(map[string]*types.RollupRecord),
+		checkpoint:      newCheckpointState(""),
+		rollups:         make(map[string]*types.RollupRecord),
 		consensusEngine: consensus.NewConsensusEngine("knirvchain-test", 0, false, "", zap.NewNop()),
-		logger:    zap.NewNop(),
+		logger:          zap.NewNop(),
 	}
 	return o
 }
@@ -63,6 +63,9 @@ func TestCheckpointAdmissionAppendsMMR(t *testing.T) {
 
 	if _, err := oracleInst.SubmitCheckpoint(cp); err == nil {
 		t.Fatal("expected admission to fail on unregistered chain")
+	}
+	if err := types.SignRegistration(&reg, key); err != nil {
+		t.Fatalf("sign registration: %v", err)
 	}
 
 	if err := oracleInst.RegisterChain(&reg); err != nil {
@@ -168,6 +171,45 @@ func TestRollupProjectsToProvisionalCheckpoint(t *testing.T) {
 	}
 }
 
+func TestProjectedRollupCannotReachFinality(t *testing.T) {
+	o := newPhase4Oracle(t)
+	rec := projectTestRollup(t, o, "legacy-finality-bypass")
+	registerPhase4Verifier(t, o, "v1")
+	att := phase4Attestation(t, o, "v1", rec)
+	if _, err := o.SubmitFinality(&types.FinalityRecord{CheckpointLeaf: rec.MMRPosition, ProofSystem: "hashchain-v0", Attestations: []types.VerifierAttestation{att}}); err == nil {
+		t.Fatal("legacy projected checkpoint reached finality")
+	}
+	if _, err := o.SubmitAttestation(rec.Checkpoint.ChainID, rec.Checkpoint.StartHeight, att); err == nil {
+		t.Fatal("legacy projected checkpoint accepted an incremental attestation")
+	}
+}
+
+func TestInitialRegistrationRequiresQuorumAndExhaustedBondStopsAdmission(t *testing.T) {
+	o := newTestOracle(t)
+	reg, key := newTestChain(t, "bond-exhaustion")
+	reg.Bond = 10
+	reg.BondRemaining = 10
+	if err := o.RegisterChain(&reg); err == nil {
+		t.Fatal("unsigned initial registration was accepted")
+	}
+	if err := types.SignRegistration(&reg, key); err != nil {
+		t.Fatal(err)
+	}
+	if err := o.RegisterChain(&reg); err != nil {
+		t.Fatal(err)
+	}
+	if err := o.checkpoint.registry.ApplySlash(reg.ChainID, 10); err != nil {
+		t.Fatal(err)
+	}
+	cp := &types.Checkpoint{SchemaVersion: "knirv.checkpoint.v1", ChainID: reg.ChainID, StartHeight: 1, EndHeight: 1, Proposer: reg.Authors[0].Address}
+	if err := types.SignCheckpoint(cp, key); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := o.SubmitCheckpoint(cp); err == nil {
+		t.Fatal("fully slashed chain admitted a checkpoint")
+	}
+}
+
 // TestPhase3AdmissionCommitsAuditMMRAndRecovers proves the runtime wiring that
 // was previously missing: the Oracle runs in non-validator mode, so the
 // consensus loop never commits. SubmitCheckpoint (the HTTP admission path) must
@@ -182,6 +224,9 @@ func TestPhase3AdmissionCommitsAuditMMRAndRecovers(t *testing.T) {
 		logger:          zap.NewNop(),
 	}
 	reg, key := newTestChain(t, "knirvchain-1")
+	if err := types.SignRegistration(&reg, key); err != nil {
+		t.Fatal(err)
+	}
 	if err := o.RegisterChain(&reg); err != nil {
 		t.Fatalf("register: %v", err)
 	}

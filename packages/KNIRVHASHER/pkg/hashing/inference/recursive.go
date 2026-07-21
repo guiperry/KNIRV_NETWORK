@@ -6,8 +6,10 @@ import (
 	"math/rand"
 	"time"
 
+	"knirvhasher/pkg/hashing"
 	"knirvhasher/pkg/hashing/core"
 	"knirvhasher/pkg/hashing/neural"
+	"knirvhasher/pkg/hashing/transformer"
 )
 
 var (
@@ -16,13 +18,15 @@ var (
 )
 
 // RecursiveEngine implements the recursive single-ASIC inference engine
-// as specified in HASHER_SDD.md sections 1.2 and 2.3
+// as specified in HASHER_SDD.md sections 1.2 and 2.3.
 type RecursiveEngine struct {
-	Network      *neural.HashNetwork // The hash network to use
-	hashMethod   core.HashMethod     // HashMethod interface for hardware acceleration
-	Passes       int                 // Number of temporal passes (default: 21)
-	Jitter       float64             // Input jitter factor [0, 1] (default: 0.01)
-	SeedRotation bool                // Whether to rotate neuron seeds per pass
+	Network      *neural.HashNetwork
+	hashMethod   core.HashMethod
+	Passes       int
+	Jitter       float64
+	SeedRotation bool
+	Mode         hashing.InferenceMode
+	Tokenizer    transformer.Tokenizer
 }
 
 // NewRecursiveEngine creates a new recursive inference engine with software-only hashing
@@ -31,16 +35,15 @@ func NewRecursiveEngine(network *neural.HashNetwork, passes int, jitter float64,
 }
 
 // NewRecursiveEngineWithHashMethod creates a new recursive inference engine with optional HashMethod
-// If hashMethod is nil, falls back to software SHA-256
 func NewRecursiveEngineWithHashMethod(network *neural.HashNetwork, hashMethod core.HashMethod, passes int, jitter float64, seedRotation bool) (*RecursiveEngine, error) {
 	if network == nil {
 		return nil, ErrInvalidNetwork
 	}
 	if passes <= 0 {
-		passes = 21 // Default from HASHER_SDD.md section 4.1.2
+		passes = 21
 	}
 	if jitter < 0 || jitter > 1 {
-		jitter = 0.01 // Default small jitter
+		jitter = 0.01
 	}
 
 	return &RecursiveEngine{
@@ -49,6 +52,7 @@ func NewRecursiveEngineWithHashMethod(network *neural.HashNetwork, hashMethod co
 		Passes:       passes,
 		Jitter:       jitter,
 		SeedRotation: seedRotation,
+		Mode:         hashing.ModeRecursive,
 	}, nil
 }
 
@@ -57,17 +61,19 @@ func (e *RecursiveEngine) SetHashMethod(method core.HashMethod) {
 	e.hashMethod = method
 }
 
+// SetMode sets the inference mode.
+func (e *RecursiveEngine) SetMode(mode hashing.InferenceMode) {
+	e.Mode = mode
+}
+
 // IsUsingHardware returns true if the engine is using hardware acceleration
 func (e *RecursiveEngine) IsUsingHardware() bool {
 	if e == nil {
 		return false
 	}
-	// Check if hashMethod is nil (interface is nil)
 	if e.hashMethod == nil {
 		return false
 	}
-	// Use a deferred recover to catch any unexpected panics from IsAvailable
-	// This handles edge cases where the interface might be in an invalid state
 	safeCall := func() (result bool) {
 		defer func() {
 			if r := recover(); r != nil {
@@ -79,11 +85,72 @@ func (e *RecursiveEngine) IsUsingHardware() bool {
 	return safeCall()
 }
 
-// Infer performs recursive inference on the given input using temporal ensemble
-func (e *RecursiveEngine) Infer(input []byte) (*RecursiveResult, error) {
+// Infer performs inference on the given input, dispatching to the active mode.
+func (e *RecursiveEngine) Infer(input []byte) (*hashing.RecursiveResult, error) {
+	switch e.Mode {
+	case hashing.ModeTransformer:
+		return e.inferTransformer(input)
+	case hashing.ModeRecursive:
+		return e.inferRecursive(input)
+	case hashing.ModeFeedforward:
+		return e.inferFeedforward(input)
+	default:
+		return e.inferRecursive(input)
+	}
+}
+
+func (e *RecursiveEngine) inferTransformer(input []byte) (*hashing.RecursiveResult, error) {
+	if e.Tokenizer == nil {
+		return nil, errors.New("tokenizer required for transformer mode")
+	}
+	tokenIDs := e.Tokenizer.Encode(string(input))
+	cfg := &transformer.UnifiedConfig{
+		VocabSize:    100,
+		EmbedDim:     32,
+		NumHeads:     4,
+		NumLayers:    2,
+		ContextLen:   64,
+		FFNHiddenDim: 64,
+		Activation:   "hash",
+		Passes:       e.Passes,
+		Jitter:       e.Jitter,
+		SeedRotation: e.SeedRotation,
+	}
+	seeds := transformer.BuildDefaultSeedStore(cfg)
+	engine := transformer.NewUnifiedHasherEngineWithConfig(cfg, seeds, e.hashMethod, transformer.ModeTransformer)
+	hidden := engine.Forward(tokenIDs)
+	logits := transformer.HashToVocab(hidden, seeds.OutputSeed, cfg.VocabSize)
+	pred := transformer.Argmax32(logits)
+	conf := float64(logits[pred])
 	start := time.Now()
 
-	results := make([]*InferencePass, 0, e.Passes)
+	return &hashing.RecursiveResult{
+		Passes: []*hashing.InferencePass{
+			{
+				PassNumber:  0,
+				Prediction:  pred,
+				Confidence:  conf,
+				Latency:     time.Since(start),
+				PassLatency: time.Since(start),
+			},
+		},
+		Consensus: &hashing.ConsensusResult{
+			Prediction:        pred,
+			Confidence:        conf,
+			AverageConfidence: conf,
+			VoteCount:         1,
+			Mode:              pred,
+		},
+		Latency:     time.Since(start),
+		ValidPasses: 1,
+		TotalPasses: 1,
+	}, nil
+}
+
+func (e *RecursiveEngine) inferRecursive(input []byte) (*hashing.RecursiveResult, error) {
+	start := time.Now()
+
+	results := make([]*hashing.InferencePass, 0, e.Passes)
 	for i := 0; i < e.Passes; i++ {
 		passResult, err := e.runPass(input, i)
 		if err != nil {
@@ -96,10 +163,9 @@ func (e *RecursiveEngine) Infer(input []byte) (*RecursiveResult, error) {
 		return nil, ErrNoValidPasses
 	}
 
-	// Aggregate results
-	aggregated := e.aggregateResults(results)
+	aggregated := aggregateResults(results)
 
-	return &RecursiveResult{
+	return &hashing.RecursiveResult{
 		Passes:      results,
 		Consensus:   aggregated,
 		Latency:     time.Since(start),
@@ -108,12 +174,41 @@ func (e *RecursiveEngine) Infer(input []byte) (*RecursiveResult, error) {
 	}, nil
 }
 
+func (e *RecursiveEngine) inferFeedforward(input []byte) (*hashing.RecursiveResult, error) {
+	start := time.Now()
+	pred, conf, err := e.Network.Predict(input)
+	if err != nil {
+		return nil, err
+	}
+
+	return &hashing.RecursiveResult{
+		Passes: []*hashing.InferencePass{
+			{
+				PassNumber:  0,
+				Prediction:  pred,
+				Confidence:  conf,
+				Latency:     time.Since(start),
+				PassLatency: time.Since(start),
+			},
+		},
+		Consensus: &hashing.ConsensusResult{
+			Prediction:        pred,
+			Confidence:        conf,
+			AverageConfidence: conf,
+			VoteCount:         1,
+			Mode:              pred,
+		},
+		Latency:     time.Since(start),
+		ValidPasses: 1,
+		TotalPasses: 1,
+	}, nil
+}
+
 // runPass executes a single pass of the temporal ensemble
-func (e *RecursiveEngine) runPass(input []byte, passNum int) (*InferencePass, error) {
+func (e *RecursiveEngine) runPass(input []byte, passNum int) (*hashing.InferencePass, error) {
 	start := time.Now()
 	passStart := time.Now()
 
-	// Apply input jitter
 	jitteredInput, err := applyJitter(input, e.Jitter, passNum)
 	if err != nil {
 		return nil, err
@@ -122,9 +217,7 @@ func (e *RecursiveEngine) runPass(input []byte, passNum int) (*InferencePass, er
 	var prediction int
 	var confidence float64
 
-	// Check if we should use hardware acceleration
 	if e.hashMethod != nil && e.hashMethod.IsAvailable() {
-		// Use hardware-backed inference
 		pred, conf, err := e.runHardwareInference(jitteredInput, passNum)
 		if err != nil {
 			return nil, err
@@ -132,9 +225,7 @@ func (e *RecursiveEngine) runPass(input []byte, passNum int) (*InferencePass, er
 		prediction = pred
 		confidence = conf
 	} else {
-		// Run software inference with optional seed rotation
 		if e.SeedRotation {
-			// Create a temporary network with rotated seeds
 			tempNet := e.rotateNetworkSeeds(passNum)
 			pred, conf, err := tempNet.Predict(jitteredInput)
 			if err != nil {
@@ -143,7 +234,6 @@ func (e *RecursiveEngine) runPass(input []byte, passNum int) (*InferencePass, er
 			prediction = pred
 			confidence = conf
 		} else {
-			// Run with original network
 			pred, conf, err := e.Network.Predict(jitteredInput)
 			if err != nil {
 				return nil, err
@@ -153,7 +243,7 @@ func (e *RecursiveEngine) runPass(input []byte, passNum int) (*InferencePass, er
 		}
 	}
 
-	return &InferencePass{
+	return &hashing.InferencePass{
 		PassNumber:  passNum,
 		Prediction:  prediction,
 		Confidence:  confidence,
@@ -169,33 +259,29 @@ func (e *RecursiveEngine) runHardwareInference(input []byte, passNum int) (int, 
 		network = e.rotateNetworkSeeds(passNum)
 	}
 
-	// Layer 1: Hidden layer 1
-	layer1Inputs := e.prepareLayerInputs(input, network.Seeds1)
+	layer1Inputs := prepareLayerInputs(input, network.Seeds1)
 	layer1Hashes, err := e.hashMethod.ComputeBatch(layer1Inputs)
 	if err != nil {
 		return -1, 0, err
 	}
-	layer1Output := e.hashesToFloats(layer1Hashes)
+	layer1Output := hashesToFloats(layer1Hashes)
 	layer1Bytes := floatSliceToBytes(layer1Output)
 
-	// Layer 2: Hidden layer 2
-	layer2Inputs := e.prepareLayerInputs(layer1Bytes, network.Seeds2)
+	layer2Inputs := prepareLayerInputs(layer1Bytes, network.Seeds2)
 	layer2Hashes, err := e.hashMethod.ComputeBatch(layer2Inputs)
 	if err != nil {
 		return -1, 0, err
 	}
-	layer2Output := e.hashesToFloats(layer2Hashes)
+	layer2Output := hashesToFloats(layer2Hashes)
 	layer2Bytes := floatSliceToBytes(layer2Output)
 
-	// Layer 3: Output layer
-	outputInputs := e.prepareLayerInputs(layer2Bytes, network.SeedsOut)
+	outputInputs := prepareLayerInputs(layer2Bytes, network.SeedsOut)
 	outputHashes, err := e.hashMethod.ComputeBatch(outputInputs)
 	if err != nil {
 		return -1, 0, err
 	}
-	output := e.hashesToFloats(outputHashes)
+	output := hashesToFloats(outputHashes)
 
-	// Find prediction (argmax) and confidence
 	maxVal := output[0]
 	maxIndex := 0
 	for i, val := range output[1:] {
@@ -209,8 +295,7 @@ func (e *RecursiveEngine) runHardwareInference(input []byte, passNum int) (int, 
 }
 
 // prepareLayerInputs prepares inputs for a neural network layer
-// Each neuron receives: input || seed
-func (e *RecursiveEngine) prepareLayerInputs(input []byte, seeds [][32]byte) [][]byte {
+func prepareLayerInputs(input []byte, seeds [][32]byte) [][]byte {
 	inputs := make([][]byte, len(seeds))
 	for i, seed := range seeds {
 		combined := make([]byte, len(input)+32)
@@ -222,10 +307,9 @@ func (e *RecursiveEngine) prepareLayerInputs(input []byte, seeds [][32]byte) [][
 }
 
 // hashesToFloats converts hash outputs to float64 values [0, 1]
-func (e *RecursiveEngine) hashesToFloats(hashes [][32]byte) []float64 {
+func hashesToFloats(hashes [][32]byte) []float64 {
 	floats := make([]float64, len(hashes))
 	for i, hash := range hashes {
-		// Take first 8 bytes as uint64 and normalize to [0, 1]
 		val := uint64(hash[0])<<56 | uint64(hash[1])<<48 | uint64(hash[2])<<40 | uint64(hash[3])<<32 |
 			uint64(hash[4])<<24 | uint64(hash[5])<<16 | uint64(hash[6])<<8 | uint64(hash[7])
 		floats[i] = float64(val) / float64(1<<64-1)
@@ -246,7 +330,6 @@ func floatSliceToBytes(floats []float64) []byte {
 
 // float64ToUint64 converts float64 to uint64 for hashing purposes
 func float64ToUint64(f float64) uint64 {
-	// Normalize to [0, 1] range first
 	if f < 0 {
 		f = 0
 	}
@@ -267,7 +350,6 @@ func applyJitter(input []byte, jitter float64, seed int) ([]byte, error) {
 	copy(jittered, input)
 
 	for i := range jittered {
-		// Apply small random jitter to each byte
 		a := int(rng.Float64() * jitter * 255)
 		b := int(rng.Float64() * jitter * 255)
 		delta := a - b
@@ -286,7 +368,6 @@ func applyJitter(input []byte, jitter float64, seed int) ([]byte, error) {
 
 // rotateNetworkSeeds creates a temporary network with rotated seeds for passNum
 func (e *RecursiveEngine) rotateNetworkSeeds(passNum int) *neural.HashNetwork {
-	// Create a deep copy of the network with rotated seeds
 	tempNet, _ := neural.NewHashNetwork(
 		e.Network.InputSize,
 		e.Network.Hidden1,
@@ -294,7 +375,6 @@ func (e *RecursiveEngine) rotateNetworkSeeds(passNum int) *neural.HashNetwork {
 		e.Network.OutputSize,
 	)
 
-	// Rotate each layer's seeds
 	for i := range tempNet.Seeds1 {
 		rotateSeed(tempNet.Seeds1[i][:], passNum)
 	}
@@ -316,107 +396,30 @@ func rotateSeed(seed []byte, offset int) {
 }
 
 // aggregateResults performs temporal consensus on pass results
-func (e *RecursiveEngine) aggregateResults(passes []*InferencePass) *ConsensusResult {
-	// Collect all predictions
-	predictions := make([]int, 0, len(passes))
-	for _, pass := range passes {
-		predictions = append(predictions, pass.Prediction)
+func aggregateResults(passes []*hashing.InferencePass) *hashing.ConsensusResult {
+	if len(passes) == 0 {
+		return &hashing.ConsensusResult{}
 	}
-
-	// Compute vote count for each class
 	voteCount := make(map[int]int)
 	maxVotes := 0
 	mode := -1
-
-	for _, pred := range predictions {
-		voteCount[pred]++
-		if voteCount[pred] > maxVotes {
-			maxVotes = voteCount[pred]
-			mode = pred
-		}
-	}
-
-	// Calculate confidence as percentage of max votes
-	confidence := float64(maxVotes) / float64(len(passes))
-
-	// Calculate average confidence across passes
 	totalConfidence := 0.0
 	for _, pass := range passes {
+		voteCount[pass.Prediction]++
+		if voteCount[pass.Prediction] > maxVotes {
+			maxVotes = voteCount[pass.Prediction]
+			mode = pass.Prediction
+		}
 		totalConfidence += pass.Confidence
 	}
-	averageConfidence := totalConfidence / float64(len(passes))
-
-	return &ConsensusResult{
+	confidence := float64(maxVotes) / float64(len(passes))
+	avgConfidence := totalConfidence / float64(len(passes))
+	return &hashing.ConsensusResult{
 		Prediction:        mode,
 		Confidence:        confidence,
-		AverageConfidence: averageConfidence,
+		AverageConfidence: avgConfidence,
 		VoteCount:         len(passes),
 		Mode:              mode,
 	}
 }
 
-// RecursiveResult contains the complete results from recursive inference
-type RecursiveResult struct {
-	Passes      []*InferencePass // Results from each individual pass
-	Consensus   *ConsensusResult // Aggregated consensus
-	Latency     time.Duration    // Total inference latency
-	ValidPasses int              // Number of valid passes completed
-	TotalPasses int              // Total passes attempted
-}
-
-// InferencePass contains the result of a single pass
-type InferencePass struct {
-	PassNumber  int           // Pass sequence number
-	Prediction  int           // Predicted class label
-	Confidence  float64       // Neuron confidence [0, 1]
-	Latency     time.Duration // Total time since start
-	PassLatency time.Duration // Time for this specific pass
-}
-
-// ConsensusResult contains aggregated results from temporal consensus
-type ConsensusResult struct {
-	Prediction        int     // Aggregated prediction
-	Confidence        float64 // Consensus confidence [0, 1]
-	AverageConfidence float64 // Average per-pass confidence
-	VoteCount         int     // Total number of valid votes
-	Mode              int     // Most frequent prediction
-}
-
-// StatisticalSummary returns statistical information about the passes
-func (r *RecursiveResult) StatisticalSummary() *StatisticalSummary {
-	allConfidences := make([]float64, 0, r.ValidPasses)
-	classDistribution := make(map[int]int)
-
-	for _, pass := range r.Passes {
-		allConfidences = append(allConfidences, pass.Confidence)
-		classDistribution[pass.Prediction]++
-	}
-
-	// Calculate mean and std deviation
-	mean := 0.0
-	for _, conf := range allConfidences {
-		mean += conf
-	}
-	mean /= float64(r.ValidPasses)
-
-	stdDev := 0.0
-	for _, conf := range allConfidences {
-		diff := conf - mean
-		stdDev += diff * diff
-	}
-	stdDev /= float64(r.ValidPasses)
-	// Note: For simplicity, we're not taking square root here
-
-	return &StatisticalSummary{
-		MeanConfidence:    mean,
-		ConfidenceStdDev:  stdDev,
-		ClassDistribution: classDistribution,
-	}
-}
-
-// StatisticalSummary contains statistics about confidence values
-type StatisticalSummary struct {
-	MeanConfidence    float64     // Mean per-pass confidence
-	ConfidenceStdDev  float64     // Standard deviation of confidence
-	ClassDistribution map[int]int // Distribution of predicted classes
-}

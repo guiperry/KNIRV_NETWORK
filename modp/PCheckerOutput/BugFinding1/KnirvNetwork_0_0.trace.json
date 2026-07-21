@@ -1,0 +1,511 @@
+[
+  {
+    "type": "CreateMonitor",
+    "details": {
+      "log": "CheckpointLifecycleMonitor was created.",
+      "payload": "null",
+      "monitor": "CheckpointLifecycleMonitor",
+      "clock": {
+        "CheckpointLifecycleMonitor": 1
+      }
+    }
+  },
+  {
+    "type": "MonitorStateTransition",
+    "details": {
+      "log": "CheckpointLifecycleMonitor enters state \u0027Monitoring\u0027.",
+      "state": "Monitoring",
+      "payload": "null",
+      "isEntry": true,
+      "monitor": "CheckpointLifecycleMonitor",
+      "clock": {
+        "CheckpointLifecycleMonitor": 2
+      }
+    }
+  },
+  {
+    "type": "CreateStateMachine",
+    "details": {
+      "log": "CheckpointProtocolDriver(1) was created by task \u00272\u0027.",
+      "id": "CheckpointProtocolDriver(1)",
+      "payload": "null",
+      "clock": {
+        "CheckpointProtocolDriver(1)": 1
+      }
+    }
+  },
+  {
+    "type": "StateTransition",
+    "details": {
+      "log": "CheckpointProtocolDriver(1) enters state \u0027Init\u0027.",
+      "id": "CheckpointProtocolDriver(1)",
+      "state": "Init",
+      "payload": "null",
+      "isEntry": true,
+      "clock": {
+        "CheckpointProtocolDriver(1)": 2
+      }
+    }
+  },
+  {
+    "type": "CreateStateMachine",
+    "details": {
+      "log": "CheckpointMachine(2) was created by CheckpointProtocolDriver(1).",
+      "id": "CheckpointMachine(2)",
+      "creatorName": "CheckpointProtocolDriver(1)",
+      "creatorType": "CheckpointProtocolDriver",
+      "payload": "null",
+      "clock": {
+        "CheckpointMachine(2)": 1
+      }
+    }
+  },
+  {
+    "type": "SendEvent",
+    "details": {
+      "log": "\u0027CheckpointProtocolDriver(1)\u0027 in state \u0027Init\u0027 sent event \u0027eComponentStart with payload (\u003CcomponentName:\u0022checkpointMachine\u0022, \u003E)\u0027 to \u0027CheckpointMachine(2)\u0027.",
+      "event": "eComponentStart",
+      "state": "Init",
+      "payload": {
+        "componentName": "checkpointMachine"
+      },
+      "sender": "CheckpointProtocolDriver(1)",
+      "target": "CheckpointMachine(2)",
+      "isTargetHalted": false,
+      "clock": {
+        "CheckpointProtocolDriver(1)": 3
+      }
+    }
+  },
+  {
+    "type": "SendEvent",
+    "details": {
+      "log": "\u0027CheckpointProtocolDriver(1)\u0027 in state \u0027Init\u0027 sent event \u0027eCheckpointSubmit with payload (\u003CcheckpointID:1, finalByHeight:2, quorumValid:True, caller:CheckpointProtocolDriver(1), \u003E)\u0027 to \u0027CheckpointMachine(2)\u0027.",
+      "event": "eCheckpointSubmit",
+      "state": "Init",
+      "payload": {
+        "checkpointID": 1,
+        "finalByHeight": 2,
+        "quorumValid": true,
+        "caller": "CheckpointProtocolDriver(1)"
+      },
+      "sender": "CheckpointProtocolDriver(1)",
+      "target": "CheckpointMachine(2)",
+      "isTargetHalted": false,
+      "clock": {
+        "CheckpointProtocolDriver(1)": 4
+      }
+    }
+  },
+  {
+    "type": "GotoState",
+    "details": {
+      "log": "CheckpointProtocolDriver(1) is transitioning from state \u0027Init\u0027 to state \u0027AwaitFirstProvisional\u0027.",
+      "id": "CheckpointProtocolDriver(1)",
+      "startState": "Init",
+      "endState": "AwaitFirstProvisional",
+      "payload": "null",
+      "clock": {
+        "CheckpointProtocolDriver(1)": 5
+      }
+    }
+  },
+  {
+    "type": "StateTransition",
+    "details": {
+      "log": "CheckpointProtocolDriver(1) exits state \u0027Init\u0027.",
+      "id": "CheckpointProtocolDriver(1)",
+      "state": "Init",
+      "payload": "null",
+      "isEntry": false,
+      "clock": {
+        "CheckpointProtocolDriver(1)": 6
+      }
+    }
+  },
+  {
+    "type": "StateTransition",
+    "details": {
+      "log": "CheckpointProtocolDriver(1) enters state \u0027AwaitFirstProvisional\u0027.",
+      "id": "CheckpointProtocolDriver(1)",
+      "state": "AwaitFirstProvisional",
+      "payload": "null",
+      "isEntry": true,
+      "clock": {
+        "CheckpointProtocolDriver(1)": 7
+      }
+    }
+  },
+  {
+    "type": "StateTransition",
+    "details": {
+      "log": "CheckpointMachine(2) enters state \u0027Init\u0027.",
+      "id": "CheckpointMachine(2)",
+      "state": "Init",
+      "payload": "null",
+      "isEntry": true,
+      "clock": {
+        "CheckpointMachine(2)": 2
+      }
+    }
+  },
+  {
+    "type": "DequeueEvent",
+    "details": {
+      "log": "\u0027CheckpointMachine(2)\u0027 dequeued event \u0027eComponentStart with payload (\u003CcomponentName:\u0022checkpointMachine\u0022, \u003E)\u0027 in state \u0027Init\u0027.",
+      "id": "CheckpointMachine(2)",
+      "event": "eComponentStart",
+      "state": "Init",
+      "payload": {
+        "componentName": "checkpointMachine"
+      },
+      "clock": {
+        "CheckpointMachine(2)": 3,
+        "CheckpointProtocolDriver(1)": 3
+      }
+    }
+  },
+  {
+    "type": "GotoState",
+    "details": {
+      "log": "CheckpointMachine(2) is transitioning from state \u0027Init\u0027 to state \u0027Active\u0027.",
+      "id": "CheckpointMachine(2)",
+      "startState": "Init",
+      "endState": "Active",
+      "payload": "null",
+      "clock": {
+        "CheckpointMachine(2)": 4,
+        "CheckpointProtocolDriver(1)": 3
+      }
+    }
+  },
+  {
+    "type": "StateTransition",
+    "details": {
+      "log": "CheckpointMachine(2) exits state \u0027Init\u0027.",
+      "id": "CheckpointMachine(2)",
+      "state": "Init",
+      "payload": "null",
+      "isEntry": false,
+      "clock": {
+        "CheckpointMachine(2)": 5,
+        "CheckpointProtocolDriver(1)": 3
+      }
+    }
+  },
+  {
+    "type": "StateTransition",
+    "details": {
+      "log": "CheckpointMachine(2) enters state \u0027Active\u0027.",
+      "id": "CheckpointMachine(2)",
+      "state": "Active",
+      "payload": "null",
+      "isEntry": true,
+      "clock": {
+        "CheckpointMachine(2)": 6,
+        "CheckpointProtocolDriver(1)": 3
+      }
+    }
+  },
+  {
+    "type": "DequeueEvent",
+    "details": {
+      "log": "\u0027CheckpointMachine(2)\u0027 dequeued event \u0027eCheckpointSubmit with payload (\u003CcheckpointID:1, finalByHeight:2, quorumValid:True, caller:CheckpointProtocolDriver(1), \u003E)\u0027 in state \u0027Active\u0027.",
+      "id": "CheckpointMachine(2)",
+      "event": "eCheckpointSubmit",
+      "state": "Active",
+      "payload": {
+        "checkpointID": 1,
+        "finalByHeight": 2,
+        "quorumValid": true,
+        "caller": "CheckpointProtocolDriver(1)"
+      },
+      "clock": {
+        "CheckpointMachine(2)": 7,
+        "CheckpointProtocolDriver(1)": 4
+      }
+    }
+  },
+  {
+    "type": "Announce",
+    "details": {
+      "log": "CheckpointMachine(2) announced event eCheckpointLeafAppended with payload \u003CleafIndex:0, checkpointID:1, leafKind:1, \u003E.",
+      "id": "CheckpointMachine(2)",
+      "event": "eCheckpointLeafAppended",
+      "payload": {
+        "leafIndex": 0,
+        "checkpointID": 1,
+        "leafKind": 1
+      },
+      "clock": {
+        "CheckpointMachine(2)": 8,
+        "CheckpointProtocolDriver(1)": 4
+      }
+    }
+  },
+  {
+    "type": "MonitorProcessEvent",
+    "details": {
+      "log": "CheckpointLifecycleMonitor is processing event \u0027eCheckpointLeafAppended with payload (\u003CleafIndex:0, checkpointID:1, leafKind:1, \u003E)\u0027 in state \u0027Monitoring\u0027.",
+      "event": "eCheckpointLeafAppended",
+      "state": "Monitoring",
+      "payload": {
+        "leafIndex": 0,
+        "checkpointID": 1,
+        "leafKind": 1
+      },
+      "sender": "CheckpointMachine(2)",
+      "monitor": "CheckpointLifecycleMonitor",
+      "clock": {
+        "CheckpointLifecycleMonitor": 3,
+        "CheckpointMachine(2)": 8,
+        "CheckpointProtocolDriver(1)": 4
+      }
+    }
+  },
+  {
+    "type": "MonitorProcessEvent",
+    "details": {
+      "log": "CheckpointLifecycleMonitor is processing event \u0027eCheckpointProvisional with payload (\u003CcheckpointID:1, leafIndex:0, \u003E)\u0027 in state \u0027Monitoring\u0027.",
+      "event": "eCheckpointProvisional",
+      "state": "Monitoring",
+      "payload": {
+        "checkpointID": 1,
+        "leafIndex": 0
+      },
+      "sender": "CheckpointMachine(2)",
+      "monitor": "CheckpointLifecycleMonitor",
+      "clock": {
+        "CheckpointLifecycleMonitor": 4,
+        "CheckpointMachine(2)": 8,
+        "CheckpointProtocolDriver(1)": 4
+      }
+    }
+  },
+  {
+    "type": "SendEvent",
+    "details": {
+      "log": "\u0027CheckpointMachine(2)\u0027 in state \u0027Active\u0027 sent event \u0027eCheckpointProvisional with payload (\u003CcheckpointID:1, leafIndex:0, \u003E)\u0027 to \u0027CheckpointProtocolDriver(1)\u0027.",
+      "event": "eCheckpointProvisional",
+      "state": "Active",
+      "payload": {
+        "checkpointID": 1,
+        "leafIndex": 0
+      },
+      "sender": "CheckpointMachine(2)",
+      "target": "CheckpointProtocolDriver(1)",
+      "isTargetHalted": false,
+      "clock": {
+        "CheckpointMachine(2)": 9,
+        "CheckpointProtocolDriver(1)": 4
+      }
+    }
+  },
+  {
+    "type": "DequeueEvent",
+    "details": {
+      "log": "\u0027CheckpointProtocolDriver(1)\u0027 dequeued event \u0027eCheckpointProvisional with payload (\u003CcheckpointID:1, leafIndex:0, \u003E)\u0027 in state \u0027AwaitFirstProvisional\u0027.",
+      "id": "CheckpointProtocolDriver(1)",
+      "event": "eCheckpointProvisional",
+      "state": "AwaitFirstProvisional",
+      "payload": {
+        "checkpointID": 1,
+        "leafIndex": 0
+      },
+      "clock": {
+        "CheckpointProtocolDriver(1)": 8,
+        "CheckpointMachine(2)": 9
+      }
+    }
+  },
+  {
+    "type": "SendEvent",
+    "details": {
+      "log": "\u0027CheckpointProtocolDriver(1)\u0027 in state \u0027AwaitFirstProvisional\u0027 sent event \u0027eCheckpointFinalitySubmit with payload (\u003CcheckpointID:1, proofValid:True, attestationQuorum:True, caller:CheckpointProtocolDriver(1), \u003E)\u0027 to \u0027CheckpointMachine(2)\u0027.",
+      "event": "eCheckpointFinalitySubmit",
+      "state": "AwaitFirstProvisional",
+      "payload": {
+        "checkpointID": 1,
+        "proofValid": true,
+        "attestationQuorum": true,
+        "caller": "CheckpointProtocolDriver(1)"
+      },
+      "sender": "CheckpointProtocolDriver(1)",
+      "target": "CheckpointMachine(2)",
+      "isTargetHalted": false,
+      "clock": {
+        "CheckpointProtocolDriver(1)": 9,
+        "CheckpointMachine(2)": 9
+      }
+    }
+  },
+  {
+    "type": "GotoState",
+    "details": {
+      "log": "CheckpointProtocolDriver(1) is transitioning from state \u0027AwaitFirstProvisional\u0027 to state \u0027AwaitFinal\u0027.",
+      "id": "CheckpointProtocolDriver(1)",
+      "startState": "AwaitFirstProvisional",
+      "endState": "AwaitFinal",
+      "payload": "null",
+      "clock": {
+        "CheckpointProtocolDriver(1)": 10,
+        "CheckpointMachine(2)": 9
+      }
+    }
+  },
+  {
+    "type": "StateTransition",
+    "details": {
+      "log": "CheckpointProtocolDriver(1) exits state \u0027AwaitFirstProvisional\u0027.",
+      "id": "CheckpointProtocolDriver(1)",
+      "state": "AwaitFirstProvisional",
+      "payload": "null",
+      "isEntry": false,
+      "clock": {
+        "CheckpointProtocolDriver(1)": 11,
+        "CheckpointMachine(2)": 9
+      }
+    }
+  },
+  {
+    "type": "StateTransition",
+    "details": {
+      "log": "CheckpointProtocolDriver(1) enters state \u0027AwaitFinal\u0027.",
+      "id": "CheckpointProtocolDriver(1)",
+      "state": "AwaitFinal",
+      "payload": "null",
+      "isEntry": true,
+      "clock": {
+        "CheckpointProtocolDriver(1)": 12,
+        "CheckpointMachine(2)": 9
+      }
+    }
+  },
+  {
+    "type": "DequeueEvent",
+    "details": {
+      "log": "\u0027CheckpointMachine(2)\u0027 dequeued event \u0027eCheckpointFinalitySubmit with payload (\u003CcheckpointID:1, proofValid:True, attestationQuorum:True, caller:CheckpointProtocolDriver(1), \u003E)\u0027 in state \u0027Active\u0027.",
+      "id": "CheckpointMachine(2)",
+      "event": "eCheckpointFinalitySubmit",
+      "state": "Active",
+      "payload": {
+        "checkpointID": 1,
+        "proofValid": true,
+        "attestationQuorum": true,
+        "caller": "CheckpointProtocolDriver(1)"
+      },
+      "clock": {
+        "CheckpointMachine(2)": 10,
+        "CheckpointProtocolDriver(1)": 9
+      }
+    }
+  },
+  {
+    "type": "Announce",
+    "details": {
+      "log": "CheckpointMachine(2) announced event eCheckpointLeafAppended with payload \u003CleafIndex:1, checkpointID:1, leafKind:2, \u003E.",
+      "id": "CheckpointMachine(2)",
+      "event": "eCheckpointLeafAppended",
+      "payload": {
+        "leafIndex": 1,
+        "checkpointID": 1,
+        "leafKind": 2
+      },
+      "clock": {
+        "CheckpointMachine(2)": 11,
+        "CheckpointProtocolDriver(1)": 9
+      }
+    }
+  },
+  {
+    "type": "MonitorProcessEvent",
+    "details": {
+      "log": "CheckpointLifecycleMonitor is processing event \u0027eCheckpointLeafAppended with payload (\u003CleafIndex:1, checkpointID:1, leafKind:2, \u003E)\u0027 in state \u0027Monitoring\u0027.",
+      "event": "eCheckpointLeafAppended",
+      "state": "Monitoring",
+      "payload": {
+        "leafIndex": 1,
+        "checkpointID": 1,
+        "leafKind": 2
+      },
+      "sender": "CheckpointMachine(2)",
+      "monitor": "CheckpointLifecycleMonitor",
+      "clock": {
+        "CheckpointLifecycleMonitor": 5,
+        "CheckpointMachine(2)": 11,
+        "CheckpointProtocolDriver(1)": 9
+      }
+    }
+  },
+  {
+    "type": "Announce",
+    "details": {
+      "log": "CheckpointMachine(2) announced event eCheckpointFinalized with payload \u003CcheckpointID:1, leafIndex:1, \u003E.",
+      "id": "CheckpointMachine(2)",
+      "event": "eCheckpointFinalized",
+      "payload": {
+        "checkpointID": 1,
+        "leafIndex": 1
+      },
+      "clock": {
+        "CheckpointMachine(2)": 12,
+        "CheckpointProtocolDriver(1)": 9
+      }
+    }
+  },
+  {
+    "type": "MonitorProcessEvent",
+    "details": {
+      "log": "CheckpointLifecycleMonitor is processing event \u0027eCheckpointFinalized with payload (\u003CcheckpointID:1, leafIndex:1, \u003E)\u0027 in state \u0027Monitoring\u0027.",
+      "event": "eCheckpointFinalized",
+      "state": "Monitoring",
+      "payload": {
+        "checkpointID": 1,
+        "leafIndex": 1
+      },
+      "sender": "CheckpointMachine(2)",
+      "monitor": "CheckpointLifecycleMonitor",
+      "clock": {
+        "CheckpointLifecycleMonitor": 6,
+        "CheckpointMachine(2)": 12,
+        "CheckpointProtocolDriver(1)": 9
+      }
+    }
+  },
+  {
+    "type": "MonitorProcessEvent",
+    "details": {
+      "log": "CheckpointLifecycleMonitor is processing event \u0027eCheckpointFinalized with payload (\u003CcheckpointID:1, leafIndex:1, \u003E)\u0027 in state \u0027Monitoring\u0027.",
+      "event": "eCheckpointFinalized",
+      "state": "Monitoring",
+      "payload": {
+        "checkpointID": 1,
+        "leafIndex": 1
+      },
+      "sender": "CheckpointMachine(2)",
+      "monitor": "CheckpointLifecycleMonitor",
+      "clock": {
+        "CheckpointLifecycleMonitor": 7,
+        "CheckpointMachine(2)": 12,
+        "CheckpointProtocolDriver(1)": 9
+      }
+    }
+  },
+  {
+    "type": "AssertionFailure",
+    "details": {
+      "log": "Assertion Failed: components/oracle/checkpoint_machine.p:140:13 finality is terminal",
+      "error": "Assertion Failed: components/oracle/checkpoint_machine.p:140:13 finality is terminal",
+      "payload": "null"
+    }
+  },
+  {
+    "type": "StrategyDescription",
+    "details": {
+      "log": "Found bug using \u0027random\u0027 strategy.",
+      "payload": "null",
+      "strategy": "random",
+      "strategyDescription": "random[seed \u0027457379948\u0027]"
+    }
+  }
+]

@@ -38,6 +38,7 @@ COMPONENT_TESTS=(
     "P2PConnectivity"
     "ValidationExecution"
     "BaseLayerStorage"
+	"CheckpointFinalityProtocol"
 )
 
 # P compiler configuration

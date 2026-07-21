@@ -1,0 +1,41 @@
+<TestLog> Running test 'CheckpointFinalityProtocol'.
+<CreateLog> PImplementation.CheckpointLifecycleMonitor was created.
+<MonitorLog> PImplementation.CheckpointLifecycleMonitor enters state 'Monitoring'.
+<CreateLog> CheckpointProtocolDriver(1) was created by task '2'.
+<StateLog> CheckpointProtocolDriver(1) enters state 'Init'.
+<CreateLog> CheckpointMachine(2) was created by CheckpointProtocolDriver(1).
+<SendLog> 'CheckpointProtocolDriver(1)' in state 'Init' sent event 'eComponentStart with payload (<componentName:"checkpointMachine", >)' to 'CheckpointMachine(2)'.
+<SendLog> 'CheckpointProtocolDriver(1)' in state 'Init' sent event 'eCheckpointSubmit with payload (<checkpointID:1, finalByHeight:2, quorumValid:True, caller:CheckpointProtocolDriver(1), >)' to 'CheckpointMachine(2)'.
+<GotoLog> CheckpointProtocolDriver(1) is transitioning from state 'Init' to state 'PImplementation.CheckpointProtocolDriver.AwaitFirstProvisional'.
+<StateLog> CheckpointProtocolDriver(1) exits state 'Init'.
+<StateLog> CheckpointProtocolDriver(1) enters state 'AwaitFirstProvisional'.
+<StateLog> CheckpointMachine(2) enters state 'Init'.
+<DequeueLog> 'CheckpointMachine(2)' dequeued event 'eComponentStart with payload (<componentName:"checkpointMachine", >)' in state 'Init'.
+<GotoLog> CheckpointMachine(2) is transitioning from state 'Init' to state 'PImplementation.CheckpointMachine.Active'.
+<StateLog> CheckpointMachine(2) exits state 'Init'.
+<StateLog> CheckpointMachine(2) enters state 'Active'.
+<DequeueLog> 'CheckpointMachine(2)' dequeued event 'eCheckpointSubmit with payload (<checkpointID:1, finalByHeight:2, quorumValid:True, caller:CheckpointProtocolDriver(1), >)' in state 'Active'.
+<AnnounceLog> 'CheckpointMachine(2)' announced event 'eCheckpointLeafAppended' with payload <leafIndex:0, checkpointID:1, leafKind:1, >.
+<MonitorLog> CheckpointLifecycleMonitor is processing event 'eCheckpointLeafAppended with payload (<leafIndex:0, checkpointID:1, leafKind:1, >)' in state 'Monitoring'.
+<MonitorLog> CheckpointLifecycleMonitor is processing event 'eCheckpointProvisional with payload (<checkpointID:1, leafIndex:0, >)' in state 'Monitoring'.
+<SendLog> 'CheckpointMachine(2)' in state 'Active' sent event 'eCheckpointProvisional with payload (<checkpointID:1, leafIndex:0, >)' to 'CheckpointProtocolDriver(1)'.
+<DequeueLog> 'CheckpointProtocolDriver(1)' dequeued event 'eCheckpointProvisional with payload (<checkpointID:1, leafIndex:0, >)' in state 'AwaitFirstProvisional'.
+<SendLog> 'CheckpointProtocolDriver(1)' in state 'AwaitFirstProvisional' sent event 'eCheckpointFinalitySubmit with payload (<checkpointID:1, proofValid:True, attestationQuorum:True, caller:CheckpointProtocolDriver(1), >)' to 'CheckpointMachine(2)'.
+<GotoLog> CheckpointProtocolDriver(1) is transitioning from state 'AwaitFirstProvisional' to state 'PImplementation.CheckpointProtocolDriver.AwaitFinal'.
+<StateLog> CheckpointProtocolDriver(1) exits state 'AwaitFirstProvisional'.
+<StateLog> CheckpointProtocolDriver(1) enters state 'AwaitFinal'.
+<DequeueLog> 'CheckpointMachine(2)' dequeued event 'eCheckpointFinalitySubmit with payload (<checkpointID:1, proofValid:True, attestationQuorum:True, caller:CheckpointProtocolDriver(1), >)' in state 'Active'.
+<AnnounceLog> 'CheckpointMachine(2)' announced event 'eCheckpointLeafAppended' with payload <leafIndex:1, checkpointID:1, leafKind:2, >.
+<MonitorLog> CheckpointLifecycleMonitor is processing event 'eCheckpointLeafAppended with payload (<leafIndex:1, checkpointID:1, leafKind:2, >)' in state 'Monitoring'.
+<AnnounceLog> 'CheckpointMachine(2)' announced event 'eCheckpointFinalized' with payload <checkpointID:1, leafIndex:1, >.
+<MonitorLog> CheckpointLifecycleMonitor is processing event 'eCheckpointFinalized with payload (<checkpointID:1, leafIndex:1, >)' in state 'Monitoring'.
+<MonitorLog> CheckpointLifecycleMonitor is processing event 'eCheckpointFinalized with payload (<checkpointID:1, leafIndex:1, >)' in state 'Monitoring'.
+<ErrorLog> Assertion Failed: components/oracle/checkpoint_machine.p:140:13 finality is terminal
+<StrategyLog> Found bug using 'random' strategy.
+<StrategyLog> Checking statistics:
+<StrategyLog> Found 1 bug.
+<StrategyLog> Scheduling statistics:
+<StrategyLog> Explored 1 schedule
+<StrategyLog> Explored 1 timeline
+<StrategyLog> Found 100.00% buggy schedules.
+<StrategyLog> Number of scheduling points in terminating schedules: 12 (min), 12 (avg), 12 (max).

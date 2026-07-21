@@ -396,6 +396,16 @@ func (s *Server) setupRoutes() error {
 		// /api/assets → chain proxy (Phase 4 — replaces mock handler)
 		r.HandleFunc("/api/assets", chainProxy.ServeHTTP).Methods("GET", "OPTIONS")
 
+		// Event-bundle mint (chain_refactor.md §3.2/§4 Phase 2) — the CLI's
+		// single, public entry point for minting a KNIRVCHAIN event-bundle
+		// NFT before its validation-chain commit. Unlike the raw chain
+		// passthrough above, this wraps chainProxy with the internal-token
+		// attachment described in eventbundle_proxy.go, so the CLI never
+		// needs KNIRV_INTERNAL_AUTH_TOKEN itself.
+		eventBundleProxy := newEventBundleMintProxy(chainProxy, s.config.InternalAuthToken)
+		r.Handle("/api/v1/event-bundles/mint", eventBundleProxy).Methods("POST", "OPTIONS")
+		r.Handle("/api/v1/event-bundles/{event_id}", eventBundleProxy).Methods("GET", "OPTIONS")
+
 		// WebGUI flat paths — proxy directly to chain.sock (these are the
 		// actual endpoints KNIRVCHAIN serves at root level).
 		r.HandleFunc("/txn_pool", chainProxy.ServeHTTP).Methods("GET", "OPTIONS")

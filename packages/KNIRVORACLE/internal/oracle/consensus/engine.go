@@ -2,7 +2,10 @@ package consensus
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"os"
+	"path/filepath"
 	"sync"
 	"time"
 
@@ -12,15 +15,17 @@ import (
 
 // ConsensusEngine manages the consensus process
 type ConsensusEngine struct {
-	app           *ABCIApplication
-	chainID       string
-	blockTime     time.Duration
-	currentState  *RoundState
-	validatorMode bool
-	logger        *zap.Logger
-	ctx           context.Context
-	cancel        context.CancelFunc
-	mu            sync.RWMutex
+	app             *ABCIApplication
+	chainID         string
+	blockTime       time.Duration
+	currentState    *RoundState
+	validatorMode   bool
+	logger          *zap.Logger
+	ctx             context.Context
+	cancel          context.CancelFunc
+	mu              sync.RWMutex
+	pendingEvidence []Evidence
+	heightPath      string
 }
 
 // NewConsensusEngine creates a new consensus engine
@@ -43,6 +48,15 @@ func NewConsensusEngine(chainID string, blockTime time.Duration, validatorMode b
 		logger: logger,
 		ctx:    ctx,
 		cancel: cancel,
+	}
+	if dataDir != "" {
+		ce.heightPath = filepath.Join(dataDir, "oracle_height.json")
+		var persisted struct {
+			Height BlockHeight `json:"height"`
+		}
+		if data, err := os.ReadFile(ce.heightPath); err == nil && json.Unmarshal(data, &persisted) == nil && persisted.Height > 0 {
+			ce.currentState.Height = persisted.Height
+		}
 	}
 
 	return ce
@@ -130,9 +144,33 @@ func (ce *ConsensusEngine) GetValidators() *ValidatorSet {
 // Commit() bags it into the Oracle AppHash. Used by the checkpoint pipeline to
 // commit foreign-chain checkpoints into the block header.
 func (ce *ConsensusEngine) AddAuditLeaf(data []byte) (uint64, mmr.Hash) {
+	return ce.app.AddAuditLeaf(data)
+}
+
+// SetAuditMMR makes the checkpoint index MMR the AppHash MMR as well. Keeping
+// one pointer removes the possibility of a partial two-write divergence.
+func (ce *ConsensusEngine) SetAuditMMR(shared *mmr.MMR) {
+	ce.app.SetAuditMMR(shared)
+}
+
+// AddEvidence queues validated evidence for the next proposed Oracle block.
+func (ce *ConsensusEngine) AddEvidence(evidence Evidence) error {
+	if evidence == nil {
+		return fmt.Errorf("evidence required")
+	}
+	if err := evidence.ValidateBasic(); err != nil {
+		return err
+	}
 	ce.mu.Lock()
 	defer ce.mu.Unlock()
-	return ce.app.auditMMR.AddRaw(mmr.LeafHash(data))
+	ce.pendingEvidence = append(ce.pendingEvidence, evidence)
+	return nil
+}
+
+func (ce *ConsensusEngine) PendingEvidence() []Evidence {
+	ce.mu.RLock()
+	defer ce.mu.RUnlock()
+	return append([]Evidence(nil), ce.pendingEvidence...)
 }
 
 // UpdateValidators updates the validator set
@@ -184,7 +222,7 @@ func (ce *ConsensusEngine) ProposeBlock(txs [][]byte) (*Block, error) {
 			Txs: txs,
 		},
 		Evidence: EvidenceData{
-			Evidence: []Evidence{},
+			Evidence: append([]Evidence(nil), ce.pendingEvidence...),
 		},
 	}
 
@@ -232,6 +270,9 @@ func (ce *ConsensusEngine) CommitBlock(block *Block) error {
 	ce.currentState.Round = 0
 	ce.currentState.Step = RoundStepNewHeight
 	ce.currentState.CommitTime = time.Now()
+	if err := ce.persistHeightLocked(); err != nil {
+		return err
+	}
 
 	// Update validators if needed
 	if validatorUpdates != nil && validatorUpdates.Size() > 0 {
@@ -240,6 +281,13 @@ func (ce *ConsensusEngine) CommitBlock(block *Block) error {
 
 	// Increment proposer priority
 	ce.currentState.Validators.IncrementProposerPriority(1)
+	if consumed := len(block.Evidence.Evidence); consumed > 0 {
+		if consumed >= len(ce.pendingEvidence) {
+			ce.pendingEvidence = nil
+		} else {
+			ce.pendingEvidence = ce.pendingEvidence[consumed:]
+		}
+	}
 
 	ce.logger.Info("Block committed",
 		zap.Uint64("height", uint64(block.Header.Height)),
@@ -263,9 +311,47 @@ func (ce *ConsensusEngine) consensusLoop() {
 				if err := ce.produceBlock(); err != nil {
 					ce.logger.Error("Failed to produce block", zap.Error(err))
 				}
+			} else if err := ce.advanceClock(); err != nil {
+				ce.logger.Error("Failed to advance Oracle clock", zap.Error(err))
 			}
 		}
 	}
+}
+
+// advanceClock produces a persisted Oracle height even when this process is a
+// non-validator. Proof windows are defined in Oracle blocks, so their clock
+// cannot depend on validator-mode block proposal being enabled.
+func (ce *ConsensusEngine) advanceClock() error {
+	ce.mu.Lock()
+	defer ce.mu.Unlock()
+	if _, err := ce.app.Commit(); err != nil {
+		return fmt.Errorf("commit clock block: %w", err)
+	}
+	ce.currentState.Height++
+	ce.currentState.Round = 0
+	ce.currentState.Step = RoundStepNewHeight
+	ce.currentState.CommitTime = time.Now()
+	return ce.persistHeightLocked()
+}
+
+func (ce *ConsensusEngine) persistHeightLocked() error {
+	if ce.heightPath == "" {
+		return nil
+	}
+	payload, err := json.Marshal(struct {
+		Height BlockHeight `json:"height"`
+	}{ce.currentState.Height})
+	if err != nil {
+		return err
+	}
+	tmp := ce.heightPath + ".tmp"
+	if err := os.WriteFile(tmp, payload, 0644); err != nil {
+		return fmt.Errorf("write Oracle height: %w", err)
+	}
+	if err := os.Rename(tmp, ce.heightPath); err != nil {
+		return fmt.Errorf("persist Oracle height: %w", err)
+	}
+	return nil
 }
 
 // produceBlock produces and commits a new block

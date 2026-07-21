@@ -48,6 +48,8 @@ type Stake struct {
 type StakingManager struct {
 	nrnToken        *token.NRN
 	stakes          map[types.Address]*Stake
+	chainBonds      map[string]*ChainBond
+	bondedByStaker  map[types.Address]*big.Int
 	totalStaked     *big.Int
 	minStake        *big.Int
 	unbondingPeriod uint64 // in blocks
@@ -55,16 +57,129 @@ type StakingManager struct {
 	mu              sync.RWMutex
 }
 
+// ChainBond reserves part of an active staking position for checkpoint
+// obligations. Remaining can only decrease through slashing or explicit
+// release; the original amount is retained for auditability.
+type ChainBond struct {
+	ChainID   string        `json:"chain_id"`
+	Owner     types.Address `json:"owner"`
+	Original  *big.Int      `json:"original"`
+	Remaining *big.Int      `json:"remaining"`
+	Slashed   *big.Int      `json:"slashed"`
+	LockedAt  time.Time     `json:"locked_at"`
+}
+
 // NewStakingManager creates a new staking manager
 func NewStakingManager(nrnToken *token.NRN, logger *zap.Logger) *StakingManager {
 	return &StakingManager{
 		nrnToken:        nrnToken,
 		stakes:          make(map[types.Address]*Stake),
+		chainBonds:      make(map[string]*ChainBond),
+		bondedByStaker:  make(map[types.Address]*big.Int),
 		totalStaked:     big.NewInt(0),
 		minStake:        big.NewInt(1000000000), // 1000 NRN minimum
 		unbondingPeriod: 201600,                 // ~28 days at 5s/block
 		logger:          logger,
 	}
+}
+
+// LockChainBond reserves amount from an active stake. Tokens remain part of
+// totalStaked until slashed, but cannot be reused for another chain bond.
+func (sm *StakingManager) LockChainBond(chainID string, owner types.Address, amount *big.Int) (*ChainBond, error) {
+	sm.mu.Lock()
+	defer sm.mu.Unlock()
+	if chainID == "" || amount == nil || amount.Sign() <= 0 {
+		return nil, fmt.Errorf("positive chain bond and chain id required")
+	}
+	if _, exists := sm.chainBonds[chainID]; exists {
+		return nil, fmt.Errorf("chain %s already has a bond", chainID)
+	}
+	stake, ok := sm.stakes[owner]
+	if !ok || stake.Status != StakeStatusActive {
+		return nil, fmt.Errorf("bond owner %s has no active stake", owner.String())
+	}
+	reserved := sm.bondedByStaker[owner]
+	if reserved == nil {
+		reserved = big.NewInt(0)
+	}
+	available := new(big.Int).Sub(stake.Amount, reserved)
+	if available.Cmp(amount) < 0 {
+		return nil, fmt.Errorf("insufficient unbonded stake: have %s need %s", available, amount)
+	}
+	bond := &ChainBond{
+		ChainID: chainID, Owner: owner,
+		Original: new(big.Int).Set(amount), Remaining: new(big.Int).Set(amount),
+		Slashed: big.NewInt(0), LockedAt: time.Now().UTC(),
+	}
+	sm.chainBonds[chainID] = bond
+	sm.bondedByStaker[owner] = new(big.Int).Add(reserved, amount)
+	return cloneChainBond(bond), nil
+}
+
+// SlashChainBond burns up to amount from a locked bond and its underlying
+// stake, returning the amount actually slashed.
+func (sm *StakingManager) SlashChainBond(chainID string, amount *big.Int) (*ChainBond, *big.Int, error) {
+	sm.mu.Lock()
+	defer sm.mu.Unlock()
+	bond, ok := sm.chainBonds[chainID]
+	if !ok {
+		return nil, nil, fmt.Errorf("no chain bond for %s", chainID)
+	}
+	if amount == nil || amount.Sign() <= 0 {
+		return nil, nil, fmt.Errorf("slash amount must be positive")
+	}
+	actual := new(big.Int).Set(amount)
+	if actual.Cmp(bond.Remaining) > 0 {
+		actual.Set(bond.Remaining)
+	}
+	if actual.Sign() == 0 {
+		return cloneChainBond(bond), actual, nil
+	}
+	bond.Remaining.Sub(bond.Remaining, actual)
+	bond.Slashed.Add(bond.Slashed, actual)
+	sm.bondedByStaker[bond.Owner].Sub(sm.bondedByStaker[bond.Owner], actual)
+	if stake := sm.stakes[bond.Owner]; stake != nil {
+		stake.Amount.Sub(stake.Amount, actual)
+	}
+	sm.totalStaked.Sub(sm.totalStaked, actual)
+	return cloneChainBond(bond), new(big.Int).Set(actual), nil
+}
+
+func (sm *StakingManager) GetChainBond(chainID string) (*ChainBond, error) {
+	sm.mu.RLock()
+	defer sm.mu.RUnlock()
+	bond, ok := sm.chainBonds[chainID]
+	if !ok {
+		return nil, fmt.Errorf("no chain bond for %s", chainID)
+	}
+	return cloneChainBond(bond), nil
+}
+
+// ReleaseChainBond unlocks an unslashed bond. It is used to roll back a failed
+// registration and for future governance-authorized chain retirement.
+func (sm *StakingManager) ReleaseChainBond(chainID string) error {
+	sm.mu.Lock()
+	defer sm.mu.Unlock()
+	bond, ok := sm.chainBonds[chainID]
+	if !ok {
+		return fmt.Errorf("no chain bond for %s", chainID)
+	}
+	if reserved := sm.bondedByStaker[bond.Owner]; reserved != nil {
+		reserved.Sub(reserved, bond.Remaining)
+	}
+	delete(sm.chainBonds, chainID)
+	return nil
+}
+
+func cloneChainBond(bond *ChainBond) *ChainBond {
+	if bond == nil {
+		return nil
+	}
+	out := *bond
+	out.Original = new(big.Int).Set(bond.Original)
+	out.Remaining = new(big.Int).Set(bond.Remaining)
+	out.Slashed = new(big.Int).Set(bond.Slashed)
+	return &out
 }
 
 // Stake stakes tokens
@@ -125,6 +240,9 @@ func (sm *StakingManager) Stake(staker types.Address, amount *big.Int) (*Stake, 
 func (sm *StakingManager) Unstake(staker types.Address, amount *big.Int) error {
 	sm.mu.Lock()
 	defer sm.mu.Unlock()
+	if amount == nil || amount.Sign() <= 0 {
+		return fmt.Errorf("unstake amount must be positive")
+	}
 
 	stake, exists := sm.stakes[staker]
 	if !exists {
@@ -135,8 +253,13 @@ func (sm *StakingManager) Unstake(staker types.Address, amount *big.Int) error {
 		return fmt.Errorf("stake not active")
 	}
 
-	if amount.Cmp(stake.Amount) > 0 {
-		return fmt.Errorf("unstake amount exceeds staked amount")
+	reserved := sm.bondedByStaker[staker]
+	if reserved == nil {
+		reserved = big.NewInt(0)
+	}
+	available := new(big.Int).Sub(stake.Amount, reserved)
+	if amount.Cmp(available) > 0 {
+		return fmt.Errorf("unstake amount exceeds unbonded stake: available %s, bonded %s", available, reserved)
 	}
 
 	// If unstaking full amount, start unbonding
@@ -177,6 +300,9 @@ func (sm *StakingManager) CompleteUnbonding(staker types.Address, currentHeight 
 
 	if stake.Status != StakeStatusUnbonding {
 		return fmt.Errorf("stake not unbonding")
+	}
+	if reserved := sm.bondedByStaker[staker]; reserved != nil && reserved.Sign() > 0 {
+		return fmt.Errorf("stake has %s locked in chain bonds", reserved)
 	}
 
 	// Check if unbonding period elapsed (simplified - uses time instead of blocks)

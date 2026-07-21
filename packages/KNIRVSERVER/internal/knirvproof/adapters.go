@@ -75,6 +75,57 @@ func (m *ChainMinter) Mint(ctx context.Context, mint MintRequest) (*ChainReceipt
 	return &receipt, nil
 }
 
+// ChainEventBundleFetcher re-fetches a KNIRVCHAIN event-bundle NFT by event
+// ID over the same trusted unix-socket path ChainMinter uses, so
+// NativeVerifier can independently confirm a bundle a submission references
+// was actually minted (chain_refactor.md Open Decision #2) rather than
+// trusting the CLI-supplied hash alone.
+type ChainEventBundleFetcher struct {
+	client *http.Client
+}
+
+func NewChainEventBundleFetcher(socketPath string) (*ChainEventBundleFetcher, error) {
+	if strings.TrimSpace(socketPath) == "" {
+		return nil, fmt.Errorf("KNIRVCHAIN socket is required")
+	}
+	transport := &http.Transport{DialContext: func(ctx context.Context, _, _ string) (net.Conn, error) {
+		return (&net.Dialer{}).DialContext(ctx, "unix", socketPath)
+	}}
+	return &ChainEventBundleFetcher{client: &http.Client{Transport: transport, Timeout: 10 * time.Second}}, nil
+}
+
+// FetchBundleHash returns the bundle_hash KNIRVCHAIN has on record for
+// eventID. ok is false when no bundle has been minted for that event yet
+// (a 404) — the caller treats that as a retryable, not permanent, failure
+// since minting is asynchronous relative to the commit that references it.
+func (f *ChainEventBundleFetcher) FetchBundleHash(ctx context.Context, eventID string) (hash string, ok bool, err error) {
+	request, err := http.NewRequestWithContext(ctx, http.MethodGet, "http://knirvchain/api/v1/event-bundles/"+eventID, nil)
+	if err != nil {
+		return "", false, err
+	}
+	response, err := f.client.Do(request)
+	if err != nil {
+		return "", false, fmt.Errorf("fetch event bundle from KNIRVCHAIN: %w", err)
+	}
+	defer response.Body.Close()
+	if response.StatusCode == http.StatusNotFound {
+		return "", false, nil
+	}
+	if response.StatusCode != http.StatusOK && response.StatusCode != http.StatusAccepted {
+		return "", false, fmt.Errorf("KNIRVCHAIN returned %d fetching event bundle", response.StatusCode)
+	}
+	var receipt struct {
+		BundleHash string `json:"bundle_hash"`
+	}
+	if err := json.NewDecoder(response.Body).Decode(&receipt); err != nil {
+		return "", false, err
+	}
+	if receipt.BundleHash == "" {
+		return "", false, nil
+	}
+	return receipt.BundleHash, true, nil
+}
+
 func (r LocalReplicator) Replicate(_ context.Context, submission ProofSubmission, store *FileStore) ([]StorageConfirmation, error) {
 	for _, object := range submission.Objects {
 		exists, size, err := store.HasObject(object.CID)

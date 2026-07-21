@@ -87,10 +87,22 @@ func (b *Block) ToProto() (*BlockProto, error) {
 	}, nil
 }
 
-// GetCanonicalBytesForHashing returns canonical bytes for hashing (placeholder implementation)
+// GetCanonicalBytesForHashing returns a deterministic, length-delimited
+// encoding for legacy callers. Block.Hash uses the stronger content commitment
+// in ContentBlockHash because BlockProto predates real transaction fields.
 func GetCanonicalBytesForHashing(proto *BlockProto) ([]byte, error) {
-	// Placeholder implementation - use JSON marshaling for now
-	return []byte("block-hash-placeholder"), nil
+	if proto == nil || proto.Timestamp == nil {
+		return nil, fmt.Errorf("block proto and timestamp are required")
+	}
+	buf := appendBytes(nil, []byte("knirv-block-proto-v1"))
+	buf = appendUint64(buf, proto.BlockNumber)
+	buf = appendBytes(buf, proto.PrevHash)
+	buf = appendUint64(buf, uint64(int64(proto.Nonce)))
+	buf = appendUint64(buf, uint64(proto.Timestamp.Seconds))
+	buf = appendUint64(buf, uint64(int64(proto.Timestamp.Nanos)))
+	buf = appendUint64(buf, uint64(len(proto.Transactions)))
+	buf = appendString(buf, proto.ProposerAddress)
+	return buf, nil
 }
 
 func (b *Block) IsValid() bool {
@@ -164,56 +176,8 @@ func (b Block) ToJson() string {
 }
 
 func (b *Block) Hash() []byte {
-	blockProto, err := b.ToProto()
-	if err != nil {
-		log.LogError(fmt.Sprintf("Failed to convert block %d to proto for hashing: %v", b.BlockNumber, err), nil)
-		// Return a dummy hash or panic, as this indicates a programming error
-		dummyHash := sha256.Sum256([]byte(fmt.Sprintf("error-hash-block-%d", b.BlockNumber)))
-		return dummyHash[:]
-	}
-
-	// ---- TEMPORARY DEBUGGING ----
-	log.LogInfo(fmt.Sprintf("Block.Hash: Block #%d being converted to proto. Timestamp: %d, Nonce: %d, NumTx: %d", b.BlockNumber, b.Timestamp, b.Nonce, len(b.Transactions)))
-	if blockProto == nil {
-		log.LogError("Block.Hash: blockProto is NIL before marshalling!", nil)
-	}
-	if blockProto == nil {
-		log.LogError("Block.Hash: blockProto is nil, returning error hash", nil)
-		dummyHash := sha256.Sum256([]byte(fmt.Sprintf("nil-proto-block-%d", b.BlockNumber)))
-		return dummyHash[:]
-	}
-
-	// Debug log the blockProto fields
-	log.LogInfo(fmt.Sprintf("ProtoBlock fields for block #%d:", b.BlockNumber))
-	log.LogInfo(fmt.Sprintf("- BlockNumber: %d", blockProto.BlockNumber))
-	log.LogInfo(fmt.Sprintf("- PrevHash: %x", blockProto.PrevHash))
-	log.LogInfo(fmt.Sprintf("- Nonce: %d", blockProto.Nonce))
-	if blockProto.Timestamp != nil {
-		log.LogInfo(fmt.Sprintf("- Timestamp: %v", blockProto.Timestamp.AsTime()))
-	} else {
-		log.LogError("ProtoBlock.Timestamp is nil!", nil)
-	}
-	log.LogInfo(fmt.Sprintf("- Transactions count: %d", len(blockProto.Transactions)))
-	log.LogInfo(fmt.Sprintf("- ProposerAddress: %s", blockProto.ProposerAddress))
-
-	// Only attempt prototext.Format if all required fields are present
-	if blockProto.Timestamp == nil {
-		log.LogError("Cannot format ProtoBlock - Timestamp is nil", nil)
-		dummyHash := sha256.Sum256([]byte(fmt.Sprintf("invalid-proto-block-%d", b.BlockNumber)))
-		return dummyHash[:]
-	}
-	// ---- END TEMPORARY DEBUGGING ----
-
-	// Use the GetCanonicalBytesForHashing function (defined in proto_converters.go)
-	canonicalBytes, err := GetCanonicalBytesForHashing(blockProto)
-	if err != nil {
-		log.LogError(fmt.Sprintf("Failed to marshal block %d to proto for hashing: %v", b.BlockNumber, err), nil)
-		dummyHash := sha256.Sum256([]byte(fmt.Sprintf("error-marshal-block-%d", b.BlockNumber)))
-		return dummyHash[:]
-	}
-
-	hashed := sha256.Sum256(canonicalBytes)
-	return hashed[:]
+	hashed := ContentBlockHash(b)
+	return append([]byte(nil), hashed[:]...)
 }
 
 // HashString returns the block hash as a hex string

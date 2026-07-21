@@ -44,6 +44,27 @@ type BlockchainServer struct {
 	consensusManager   *P2PConsensusManager // Reference to consensus manager for network pause checking
 	fm                 *FailoverManager     // Reference to failover manager
 	validationProofMu  sync.Mutex
+	checkpointStatusMu sync.RWMutex
+	checkpointStatus   func() interface{}
+}
+
+func (bcs *BlockchainServer) SetCheckpointStatusProvider(provider func() interface{}) {
+	bcs.checkpointStatusMu.Lock()
+	defer bcs.checkpointStatusMu.Unlock()
+	bcs.checkpointStatus = provider
+}
+
+func (bcs *BlockchainServer) handleCheckpointStatus(w http.ResponseWriter, _ *http.Request) {
+	bcs.checkpointStatusMu.RLock()
+	provider := bcs.checkpointStatus
+	bcs.checkpointStatusMu.RUnlock()
+	w.Header().Set("Content-Type", "application/json")
+	if provider == nil {
+		w.WriteHeader(http.StatusServiceUnavailable)
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{"enabled": false, "error": "checkpoint runtime not configured"})
+		return
+	}
+	_ = json.NewEncoder(w).Encode(provider())
 }
 
 // SetListenAddr overrides the HTTP server address after Prepare.
@@ -359,7 +380,11 @@ func (bcs *BlockchainServer) Prepare() (uint64, error) {
 	mux.HandleFunc("/block", bcs.handleReceiveBlock)
 	mux.HandleFunc("/transaction", bcs.HandleReceiveTransaction)
 	mux.HandleFunc("/api/v1/validation-proofs/mint", bcs.handleValidationProofMint)
+	mux.HandleFunc("/api/v1/event-bundles/mint", bcs.handleEventBundleMint)
+	mux.HandleFunc("/api/v1/event-bundles/{event_id}", bcs.handleEventBundleGet).Methods(http.MethodGet)
 	mux.HandleFunc("/txn_pool", bcs.handleGetTransactionPool)
+	mux.HandleFunc("/proof/tx/", bcs.handleTxAccumProof)
+	mux.HandleFunc("/checkpoint/status", bcs.handleCheckpointStatus).Methods(http.MethodGet)
 	mux.HandleFunc("/ping", bcs.handlePing)
 	mux.HandleFunc("/health", bcs.handleHealth)
 	mux.HandleFunc("/uriGenerator", bcs.handleURIGenerator)
@@ -3631,6 +3656,52 @@ func (bcs *BlockchainServer) GetNetworkAuthors(w http.ResponseWriter, req *http.
 		"network_authors": authorsList,
 		"count":           len(authorsList),
 	})
+}
+
+// handleTxAccumProof serves the first hop of a two-hop light-client proof. A
+// caller may pass ?target_height=H to bind the proof to a known checkpoint;
+// without it, the proof targets the current chain tip.
+func (bcs *BlockchainServer) handleTxAccumProof(w http.ResponseWriter, req *http.Request) {
+	if req.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	txHash := strings.TrimPrefix(req.URL.Path, "/proof/tx/")
+	if txHash == "" {
+		http.Error(w, "transaction hash required", http.StatusBadRequest)
+		return
+	}
+	var targetHeight uint64
+	if raw := req.URL.Query().Get("target_height"); raw != "" {
+		parsed, err := strconv.ParseUint(raw, 10, 64)
+		if err != nil {
+			http.Error(w, "invalid target_height", http.StatusBadRequest)
+			return
+		}
+		targetHeight = parsed
+	}
+
+	bcs.BlockchainPtr.Lock()
+	chainID := bcs.BlockchainPtr.ChainID
+	blocks := make([]*Block, len(bcs.BlockchainPtr.Blocks))
+	for i, block := range bcs.BlockchainPtr.Blocks {
+		if block != nil {
+			blocks[i] = block.DeepCopy()
+		}
+	}
+	bcs.BlockchainPtr.Unlock()
+
+	proof, err := GenerateTxAccumProof(chainID, txHash, targetHeight, blocks)
+	if err != nil {
+		status := http.StatusBadRequest
+		if strings.Contains(err.Error(), "not found") {
+			status = http.StatusNotFound
+		}
+		http.Error(w, err.Error(), status)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(proof)
 }
 
 // handleP2PReceivedBlock processes a gossiped block forwarded by KNIRVGATEWAY.

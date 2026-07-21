@@ -49,24 +49,12 @@ func BuildEventLog(events []Event) ([]Event, string, error) {
 }
 
 func VerifyEventLog(events []Event, expectedRoot string) error {
-	if len(events) == 0 {
-		if expectedRoot == "" {
-			return nil
-		}
-		if expectedRoot == sha256Hex(nil) {
-			return nil
-		}
-		return fmt.Errorf("event log root mismatch: got empty log, want %s", expectedRoot)
-	}
 	prev := ""
 	for i, ev := range events {
 		if ev.Index != i {
 			return fmt.Errorf("event %d has unexpected index %d", i, ev.Index)
 		}
-		if strings.TrimSpace(ev.Timestamp) == "" {
-			return fmt.Errorf("event %d missing timestamp", i)
-		}
-		if ev.PrevHash != "" && ev.PrevHash != prev {
+		if ev.PrevHash != prev {
 			return fmt.Errorf("event %d has prev_hash %q, want %q", i, ev.PrevHash, prev)
 		}
 		computed := hashEvent(Event{
@@ -76,7 +64,7 @@ func VerifyEventLog(events []Event, expectedRoot string) error {
 			Payload:   ev.Payload,
 			PrevHash:  prev,
 		})
-		if ev.Hash != "" && ev.Hash != computed {
+		if ev.Hash != computed {
 			return fmt.Errorf("event %d hash mismatch", i)
 		}
 		prev = computed
@@ -89,10 +77,10 @@ func VerifyEventLog(events []Event, expectedRoot string) error {
 
 func normalizeArtifactHash(hash string) string {
 	hash = strings.TrimSpace(hash)
-	if hash == "" {
+	if strings.HasPrefix(hash, "sha256:") {
 		return hash
 	}
-	return hash
+	return "sha256:" + hash
 }
 
 func hashPair(left, right string) string {

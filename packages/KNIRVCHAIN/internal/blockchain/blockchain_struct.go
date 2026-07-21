@@ -642,6 +642,8 @@ type BlockchainStruct struct {
 	miningCtx            context.Context          `json:"-"` // Context for mining operations
 	miningCancel         context.CancelFunc       `json:"-"` // Cancel function for mining context
 	mu                   sync.Mutex               `json:"-"` // Exclude from JSON serialization
+	checkpointHookMu     sync.RWMutex             `json:"-"`
+	checkpointHook       func(uint64)             `json:"-"`
 	db                   *database.LevelDB        `json:"-"` // Database connection
 	mcpProcessor         *MCPProcessor            `json:"-"` // MCP-specific processor
 	ChromemSync          *ChromemManager          `json:"-"` // Legacy field - kept for backward compatibility
@@ -680,6 +682,53 @@ func (bc *BlockchainStruct) GetDB() *database.LevelDB {
 // Implement methods required by p2p.Blockchain interface
 func (bc *BlockchainStruct) GetChainID() string {
 	return bc.ChainID
+}
+
+// SetCheckpointHook wires the post-commit checkpoint pipeline without making
+// the blockchain package import checkpoint (which would create an import
+// cycle). The callback runs only after the main chain record is durable.
+func (bc *BlockchainStruct) SetCheckpointHook(hook func(uint64)) {
+	bc.checkpointHookMu.Lock()
+	defer bc.checkpointHookMu.Unlock()
+	bc.checkpointHook = hook
+}
+
+func (bc *BlockchainStruct) CheckpointTipHeight() uint64 {
+	bc.mu.Lock()
+	defer bc.mu.Unlock()
+	if len(bc.Blocks) == 0 {
+		return 0
+	}
+	return bc.Blocks[len(bc.Blocks)-1].BlockNumber
+}
+
+func (bc *BlockchainStruct) CheckpointAccumRootAt(height uint64) ([32]byte, error) {
+	bc.mu.Lock()
+	defer bc.mu.Unlock()
+	for i, block := range bc.Blocks {
+		if block != nil && block.BlockNumber == height {
+			if block.Header.AccumRoot != ([32]byte{}) {
+				return block.Header.AccumRoot, nil
+			}
+			return RecomputeAccumRoot(bc.Blocks[:i+1]), nil
+		}
+	}
+	return [32]byte{}, fmt.Errorf("block height %d not found", height)
+}
+
+func (bc *BlockchainStruct) CheckpointBlocks(start, end uint64) ([]*Block, error) {
+	bc.mu.Lock()
+	defer bc.mu.Unlock()
+	blocks := make([]*Block, 0, end-start+1)
+	for _, block := range bc.Blocks {
+		if block != nil && block.BlockNumber >= start && block.BlockNumber <= end {
+			blocks = append(blocks, block.DeepCopy())
+		}
+	}
+	if uint64(len(blocks)) != end-start+1 {
+		return nil, fmt.Errorf("incomplete block range %d-%d", start, end)
+	}
+	return blocks, nil
 }
 
 func (bc *BlockchainStruct) GetChainAddress() string {
@@ -1405,6 +1454,10 @@ func (bc *BlockchainStruct) addBlockInternal(b *Block) error {
 		bc.Unlock()
 		return err
 	}
+	if err := bc.validateEventBundleMintsInBlock(b); err != nil {
+		bc.Unlock()
+		return err
+	}
 
 	if err := bc.verifyBlockContext(b); err != nil {
 		agentlog.LogError(fmt.Sprintf("Block %d context verification failed: %v", b.BlockNumber, err), err)
@@ -1488,6 +1541,12 @@ func (bc *BlockchainStruct) addBlockInternal(b *Block) error {
 		// Block was added in memory, balances updated in DB, but main struct save failed.
 		// This is a tricky recovery scenario.
 		return fmt.Errorf("failed to save main blockchain structure to DB: %w", err)
+	}
+	bc.checkpointHookMu.RLock()
+	checkpointHook := bc.checkpointHook
+	bc.checkpointHookMu.RUnlock()
+	if checkpointHook != nil {
+		checkpointHook(blockNum)
 	}
 
 	agentlog.LogInfo(fmt.Sprintf("Successfully added block number %d to the blockchain and DB. New total blocks: %d", blockNum, len(bc.Blocks)))

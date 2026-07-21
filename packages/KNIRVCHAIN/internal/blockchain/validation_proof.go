@@ -52,6 +52,11 @@ type validationProofSubmission struct {
 	SigningKeyID          string                  `json:"signing_key_id"`
 	Signature             string                  `json:"signature"`
 	RelatedProofs         []string                `json:"related_proofs,omitempty"`
+	// EventBundleRoot is the Merkle root over every KNIRVCHAIN event-bundle
+	// NFT hash minted for this session's decisions (chain_refactor.md §3.2/
+	// §3.3) — the Validation chain's commit schema binding to the minted
+	// bundle(s). Empty for sessions with no resolvable resource usage.
+	EventBundleRoot string `json:"event_bundle_root,omitempty"`
 }
 
 type validationObjectRef struct {
@@ -88,6 +93,7 @@ type validationProofCertificate struct {
 	ProofRoot       string    `json:"proof_root"`
 	CommitSHA256    string    `json:"commit_sha256"`
 	PolicyHash      string    `json:"policy_hash"`
+	EventBundleRoot string    `json:"event_bundle_root,omitempty"`
 }
 
 type validationStorageConfirm struct {
@@ -273,6 +279,9 @@ func validateValidationProofMint(request validationProofMintRequest) error {
 	}
 	if certificate.ProofRoot != submission.ProofRoot || certificate.CommitSHA256 != submission.Git.RawSHA256 || certificate.PolicyHash != submission.PolicyHash {
 		return fmt.Errorf("validation certificate binding mismatch")
+	}
+	if certificate.EventBundleRoot != submission.EventBundleRoot {
+		return fmt.Errorf("validation certificate event bundle root mismatch")
 	}
 	certificateClaim := certificate
 	certificateClaim.CertificateHash = ""

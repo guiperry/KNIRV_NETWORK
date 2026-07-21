@@ -133,3 +133,21 @@ func SignCheckpoint(cp *Checkpoint, key *ecdsa.PrivateKey) error {
 	})
 	return nil
 }
+
+// SignRegistration authorizes initial enrollment or rotation. The signature is
+// kept in RotationSigs for wire compatibility with the existing rotate route.
+func SignRegistration(reg *ChainRegistration, key *ecdsa.PrivateKey) error {
+	digest, err := ChainRegistrationDigest(reg)
+	if err != nil {
+		return err
+	}
+	sig, err := SignMessage(key, fmt.Sprintf("%x", digest))
+	if err != nil {
+		return err
+	}
+	pub := key.Public().(*ecdsa.PublicKey)
+	reg.RotationSigs = append(reg.RotationSigs, AuthorSig{
+		Address: OracleAddress(pub), PubKeyHex: hex.EncodeToString(crypto.CompressPubkey(pub)), Signature: sig,
+	})
+	return nil
+}

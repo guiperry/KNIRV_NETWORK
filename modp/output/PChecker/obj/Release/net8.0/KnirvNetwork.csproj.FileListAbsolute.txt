@@ -17,3 +17,4 @@
 /home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/modp/output/PChecker/obj/Release/net8.0/KnirvNetwork.pdb
 /home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/modp/output/PChecker/obj/Release/net8.0/KnirvNetwork.genruntimeconfig.cache
 /home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/modp/output/PChecker/obj/Release/net8.0/ref/KnirvNetwork.dll
+/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/modp/output/PChecker/net8.0/PCheckerCore.dll

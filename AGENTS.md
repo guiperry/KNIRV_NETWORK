@@ -19,6 +19,7 @@ KNIRV Network — Decentralized Trusted Execution Network (D-TEN). Transforms AI
 | `devtools/network-monitor` | Go | `devtools/network-monitor/go.mod` |
 | `integration-tests` | Go | `integration-tests/go.mod` |
 | `modp` | P language | `modp/KnirvNetwork.pproj` |
+| Merkle checkpoint protocol | Go + P | `packages/KNIRVCHAIN/internal/checkpoint/`, `packages/KNIRVORACLE/internal/oracle/{mmr,registry}`, `modp/components/oracle/checkpoint_machine.p` |
 
 ## Memory System
 
@@ -93,7 +94,7 @@ cd devtools/KNIRVTESTNET && make test-modp
 bash modp/scripts/run-tests.sh
 ```
 
-**P models:** `modp/events/network_events.p` · `modp/components/base/base_layer.p` · `modp/components/nexus/` · `modp/components/chain/skill_registry.p` · `modp/components/oracle/governance_machine.p` · `modp/monitors/network_invariants.p` · `modp/tests/network_composition_tests.p`
+**P models:** `modp/events/network_events.p` · `modp/components/base/base_layer.p` · `modp/components/nexus/` · `modp/components/chain/skill_registry.p` · `modp/components/oracle/governance_machine.p` · `modp/components/oracle/checkpoint_machine.p` · `modp/monitors/network_invariants.p` · `modp/tests/network_composition_tests.p`
 
 ModP integration: `integration-tests/modp_formal_verification_test.go`
 

@@ -132,6 +132,18 @@ func TestBuilderNeverCheckpointsAboveTipMinus32(t *testing.T) {
 	}
 }
 
+func TestBuilderYoungChainDoesNotUnderflowFinality(t *testing.T) {
+	f := buildFixture(2)
+	b, _, _ := newTestBuilder(t, f, 1, 32)
+	cp, err := b.OnNewBlock(1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cp != nil {
+		t.Fatalf("young chain produced checkpoint at end %d", cp.EndHeight)
+	}
+}
+
 func TestBuilderIntervalAndContiguity(t *testing.T) {
 	f := buildFixture(200)
 	b, _, keys := newTestBuilder(t, f, 32, 32)

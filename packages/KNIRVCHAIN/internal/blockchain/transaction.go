@@ -780,6 +780,11 @@ const (
 	TransactionTypePropertyMint         = "property_mint"
 	TransactionTypePropertyTransfer     = "property_transfer"
 	TransactionTypeRoyaltyDistribution  = "royalty_distribution"
+
+	// TransactionTypeEventBundleMint mints one KNIRVCHAIN EventBundleNFT per
+	// CLI decision/error event, bundling the Skills/Capabilities(MCPs)/
+	// Assets/Context/Credentials used to produce it (chain_refactor.md §3.2).
+	TransactionTypeEventBundleMint = "event_bundle_mint"
 )
 
 // NFTCapabilityAttachmentData represents the data for an NFT capability attachment transaction

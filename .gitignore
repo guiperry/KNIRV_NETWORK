@@ -1,4 +1,5 @@
-/docs
+/docs/*
+!/docs/merkle-checkpoint-protocol.md
 .log
 *.log
 *~
@@ -152,3 +153,4 @@ packages/KNIRVSERVER/backend/cmd/container_deployer/container_deployer
 */dev.key
 */enterprise.key
 packages/KNIRVBRIDGE/bin/knirvagent.wasm
+tools/dve-verifier-wasm/target/

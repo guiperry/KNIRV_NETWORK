@@ -1,0 +1,61 @@
+Total event coverage: 53.8%
+===========================
+Monitor: CheckpointLifecycleMonitor
+===================================
+Event coverage: 75.0%
+
+	State: Monitoring
+		State event coverage: 75.0%
+		Events received: eCheckpointFinalized, eCheckpointLeafAppended, eCheckpointProvisional
+		Events not covered: eCheckpointRejected
+		Previous states: Monitoring
+		Next states: Monitoring
+
+StateMachine: CheckpointMachine
+===============================
+Event coverage: 75.0%
+
+	State: Init
+		State event coverage: 100.0%
+		Events received: eComponentStart
+		Next states: Active
+
+	State: Active
+		State event coverage: 66.7%
+		Events received: eCheckpointFinalitySubmit, eCheckpointSubmit
+		Events sent: eCheckpointProvisional
+		Events not covered: eCheckpointOracleTick
+		Previous states: Init
+
+StateMachine: CheckpointProtocolDriver
+======================================
+Event coverage: 20.0%
+
+	State: Init
+		State has no expected events, so coverage is 100%
+		Events sent: eCheckpointSubmit, eComponentStart
+		Next states: AwaitFirstProvisional
+
+	State: AwaitFirstProvisional
+		State event coverage: 100.0%
+		Events received: eCheckpointProvisional
+		Events sent: eCheckpointFinalitySubmit
+		Previous states: Init
+		Next states: AwaitFinal
+
+	State: AwaitFinal is uncovered
+		Events not covered: eCheckpointFinalized
+		Previous states: AwaitFirstProvisional
+
+	State: AwaitExpiringProvisional is uncovered
+		Events not covered: eCheckpointProvisional
+
+	State: AwaitRejection is uncovered
+		Events not covered: eCheckpointRejected
+
+	State: AwaitTerminalGuard is uncovered
+		Events not covered: eCheckpointFinalityRejected
+
+	State: Done
+		State has no expected events, so coverage is 100%
+

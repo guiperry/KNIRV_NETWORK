@@ -3,6 +3,7 @@ package blockchain
 import (
 	"crypto/sha256"
 	"encoding/binary"
+	"strings"
 )
 
 const (
@@ -11,6 +12,44 @@ const (
 )
 
 var emptyTxMerkleRoot = sha256.Sum256([]byte("knirv-tx-merkle-empty"))
+var blockHashDomain = []byte("knirv-block-hash-v1")
+
+// BlockCoreDigest commits the non-transaction, non-author block metadata. The
+// final block hash separately incorporates TxMerkleRoot and the normalized
+// proposer digest so the validity circuit can prove both bindings.
+func BlockCoreDigest(b *Block) [sha256.Size]byte {
+	buf := appendBytes(nil, []byte("knirv-block-core-v1"))
+	if b == nil {
+		return sha256.Sum256(append(buf, 0))
+	}
+	buf = append(buf, 1)
+	buf = appendUint64(buf, b.BlockNumber)
+	buf = appendBytes(buf, b.PrevHash)
+	buf = appendUint64(buf, uint64(b.Timestamp))
+	buf = appendUint64(buf, uint64(int64(b.Nonce)))
+	buf = appendUint64(buf, b.Header.Height)
+	buf = appendUint64(buf, uint64(b.Header.Version))
+	return sha256.Sum256(buf)
+}
+
+func BlockAuthorDigest(author string) [sha256.Size]byte {
+	return sha256.Sum256([]byte(strings.ToLower(strings.TrimSpace(author))))
+}
+
+// BlockHashFromParts is shared conceptually with the PLONK circuit:
+// SHA256(domain || coreDigest || txRoot || authorDigest).
+func BlockHashFromParts(core, txRoot, author [sha256.Size]byte) [sha256.Size]byte {
+	preimage := make([]byte, 0, len(blockHashDomain)+3*sha256.Size)
+	preimage = append(preimage, blockHashDomain...)
+	preimage = append(preimage, core[:]...)
+	preimage = append(preimage, txRoot[:]...)
+	preimage = append(preimage, author[:]...)
+	return sha256.Sum256(preimage)
+}
+
+func ContentBlockHash(b *Block) [sha256.Size]byte {
+	return BlockHashFromParts(BlockCoreDigest(b), TxMerkleRoot(b.Transactions), BlockAuthorDigest(b.ProposerAddress))
+}
 
 // TxMerkleRoot commits to the canonical contents and ordering of every
 // transaction in a block. Odd-width levels duplicate their final node, matching
@@ -36,6 +75,18 @@ func TxMerkleRoot(txs []*Transaction) [sha256.Size]byte {
 		level = next
 	}
 	return level[0]
+}
+
+// TxMerkleLeafHashes returns the domain-separated transaction leaf hashes used
+// by TxMerkleRoot. It is exported for the checkpoint validity prover: the
+// PLONK circuit recomputes the tree from these private leaves instead of
+// accepting a caller-supplied transaction root.
+func TxMerkleLeafHashes(txs []*Transaction) [][sha256.Size]byte {
+	leaves := make([][sha256.Size]byte, len(txs))
+	for i, tx := range txs {
+		leaves[i] = txMerkleLeafHash(canonicalTransactionBytes(tx))
+	}
+	return leaves
 }
 
 // BlockStateRoot extends the cross-block accumulator with the previous

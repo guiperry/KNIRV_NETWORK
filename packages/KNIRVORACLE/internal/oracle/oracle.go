@@ -46,7 +46,7 @@ type Oracle struct {
 	// Verifier registry (Phase 4): validation-chain nodes that attest
 	// checkpoints into finality. Quorum = ≥2/3 of registered verifiers.
 	verifiersMu   sync.RWMutex
-	verifiers     map[string]bool
+	verifiers     map[string][]byte
 	verifiersPath string
 
 	// Checkpoint pipeline (Phase 2): per-foreign-chain registry, audit MMR,
@@ -245,7 +245,7 @@ func NewOracle(config *OracleConfig, logger *zap.Logger) (*Oracle, error) {
 		bridgeManager:    bridgeManager,
 		rollups:          make(map[string]*types.RollupRecord),
 		rollupsPath:      filepath.Join(config.DataDir, "rollups.json"),
-		verifiers:        make(map[string]bool),
+		verifiers:        make(map[string][]byte),
 		verifiersPath:    filepath.Join(config.DataDir, "verifiers.json"),
 		config:           config,
 		logger:           logger,
@@ -279,6 +279,13 @@ func NewOracle(config *OracleConfig, logger *zap.Logger) (*Oracle, error) {
 		return nil, fmt.Errorf("failed to load checkpoint state: %w", err)
 	}
 	oracle.checkpoint = cs
+	// Inclusion proofs and consensus AppHash must be views over the exact same
+	// append-only object, not independently maintained replicas.
+	if appRoot, appSize := oracle.consensusEngine.GetApp().AuditSnapshot(); appSize > 0 && (appSize != cs.mmr.Size() || appRoot != cs.mmr.BagRoot()) {
+		cancel()
+		return nil, fmt.Errorf("checkpoint MMR and persisted AppHash MMR diverged; refusing unsafe recovery")
+	}
+	oracle.consensusEngine.SetAuditMMR(cs.mmr)
 
 	if err := oracle.loadVerifiers(); err != nil {
 		cancel()
@@ -347,13 +354,14 @@ func (o *Oracle) SubmitRollup(record *types.RollupRecord) error {
 // consensus loop never produces blocks; admission must commit the audit leaf
 // directly after appending it, otherwise the AppHash is never updated or
 // persisted in production.
-func (o *Oracle) commitAuditMMR() {
+func (o *Oracle) commitAuditMMR() error {
 	if o.consensusEngine == nil {
-		return
+		return nil
 	}
 	if _, err := o.consensusEngine.GetApp().Commit(); err != nil {
-		o.logger.Warn("failed to commit audit MMR to AppHash", zap.Error(err))
+		return fmt.Errorf("commit audit MMR to AppHash: %w", err)
 	}
+	return nil
 }
 
 func (o *Oracle) GetRollup(id string) (*types.RollupRecord, bool) {

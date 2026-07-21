@@ -94,6 +94,12 @@ type ProofSubmission struct {
 	SigningKeyID          string           `json:"signing_key_id"`
 	Signature             string           `json:"signature"`
 	RelatedProofs         []string         `json:"related_proofs,omitempty"`
+	// EventBundleRoot is the Merkle root over every KNIRVCHAIN event-bundle
+	// NFT hash minted for this session's decisions (chain_refactor.md §3.3),
+	// pulled from the manifest's Bundle.EventBundleRoot the same way
+	// PolicyHash is pulled from Bundle.PolicyHash. Empty for sessions with no
+	// resolvable resource usage.
+	EventBundleRoot string `json:"event_bundle_root,omitempty"`
 }
 
 type ValidationCertificate struct {
@@ -104,6 +110,12 @@ type ValidationCertificate struct {
 	ProofRoot       string    `json:"proof_root"`
 	CommitSHA256    string    `json:"commit_sha256"`
 	PolicyHash      string    `json:"policy_hash"`
+	// EventBundleRoot is bound here too so it's part of what
+	// /api/v1/validation-proofs/mint actually delivers to KNIRVCHAIN via
+	// MintRequest — the Validation chain's commit schema including the
+	// event-bundle NFT hash (chain_refactor.md's core requirement) means it
+	// must reach this struct, not just live inside the encrypted manifest.
+	EventBundleRoot string `json:"event_bundle_root,omitempty"`
 }
 
 type StorageConfirmation struct {
@@ -165,6 +177,7 @@ type PublicProof struct {
 	Status                OperationStatus        `json:"status"`
 	Certificate           *ValidationCertificate `json:"validation_certificate,omitempty"`
 	Receipt               *ChainReceipt          `json:"chain_receipt,omitempty"`
+	EventBundleRoot       string                 `json:"event_bundle_root,omitempty"`
 }
 
 type MintRequest struct {

@@ -12,6 +12,7 @@
     <PFile>components/oracle/economics_machine.p</PFile>
     <PFile>components/oracle/consensus_machine.p</PFile>
     <PFile>components/oracle/ibc_machine.p</PFile>
+	<PFile>components/oracle/checkpoint_machine.p</PFile>
 
     <!-- KNIRVCHAIN Components -->
     <PFile>components/chain/skill_registry.p</PFile>

@@ -77,6 +77,7 @@ func TestKNIRVModPFormalVerification(t *testing.T) {
 		{"P2PConnectivity", "P2PConnectivity", false},
 		{"ValidationExecution", "ValidationExecution", false},
 		{"BaseLayerStorage", "BaseLayerStorage", false},
+		{"CheckpointFinalityProtocol", "CheckpointFinalityProtocol", false},
 		{"FullNetworkComposition", "FullNetworkComposition", true},
 		{"ErrorToSkillToCrossChain", "ErrorToSkillToCrossChain", true},
 		{"ValidationPipeline", "ValidationPipeline", true},
