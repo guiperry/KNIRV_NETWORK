@@ -1,8 +1,15 @@
 package server
 
 import (
+	"context"
+	"errors"
+	"fmt"
+	"io"
+	"net"
 	"net/http"
 	"net/http/httputil"
+	"strings"
+	"time"
 )
 
 // newEventBundleMintProxy wraps chainProxy so CLI clients can mint a
@@ -20,17 +27,72 @@ import (
 // KNIRV session Authorization header (proving they authenticated normally),
 // then attaches the internal token on their behalf before forwarding.
 //
-// Full verification of the caller's session token against KNIRVSERVER's auth
-// store is a follow-up — today this only enforces "a token was presented",
-// consistent with the gateway's existing proxies not independently
-// re-validating tokens the backend will check anyway. Unlike mint, the
-// bundle-lookup GET is unauthenticated read access to already-minted,
-// non-sensitive data, so no header requirement applies there.
-func newEventBundleMintProxy(chainProxy *httputil.ReverseProxy, internalAuthToken string) http.Handler {
+// The caller's bearer token is validated against backend_server's protected
+// /api/auth/me endpoint before the gateway adds the internal service token.
+// This preserves the zero-trust boundary: possession of an arbitrary string
+// in Authorization never grants access to the internal KNIRVCHAIN mint API.
+// Bundle lookup remains public read access to already-minted, non-sensitive
+// data.
+type sessionAuthorizer interface {
+	Authorize(context.Context, string) error
+}
+
+type backendSessionAuthorizer struct {
+	client *http.Client
+}
+
+func newBackendSessionAuthorizer(socketPath string) sessionAuthorizer {
+	if strings.TrimSpace(socketPath) == "" {
+		return nil
+	}
+	transport := &http.Transport{DialContext: func(ctx context.Context, _, _ string) (net.Conn, error) {
+		return (&net.Dialer{}).DialContext(ctx, "unix", socketPath)
+	}}
+	return &backendSessionAuthorizer{client: &http.Client{Transport: transport, Timeout: 5 * time.Second}}
+}
+
+func (a *backendSessionAuthorizer) Authorize(ctx context.Context, authorization string) error {
+	request, err := http.NewRequestWithContext(ctx, http.MethodGet, "http://backend/api/auth/me", nil)
+	if err != nil {
+		return err
+	}
+	request.Header.Set("Authorization", authorization)
+	response, err := a.client.Do(request)
+	if err != nil {
+		return fmt.Errorf("authorization service unavailable: %w", err)
+	}
+	defer response.Body.Close()
+	_, _ = io.Copy(io.Discard, io.LimitReader(response.Body, 64<<10))
+	if response.StatusCode != http.StatusOK {
+		if response.StatusCode == http.StatusUnauthorized || response.StatusCode == http.StatusForbidden {
+			return errInvalidSession
+		}
+		return fmt.Errorf("authorization service returned %d", response.StatusCode)
+	}
+	return nil
+}
+
+var errInvalidSession = fmt.Errorf("invalid or expired session token")
+
+func newEventBundleMintProxy(chainProxy *httputil.ReverseProxy, internalAuthToken string, authorizer sessionAuthorizer) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodPost {
-			if r.Header.Get("Authorization") == "" {
+			authorization := strings.TrimSpace(r.Header.Get("Authorization"))
+			parts := strings.Fields(authorization)
+			if len(parts) != 2 || !strings.EqualFold(parts[0], "Bearer") || parts[1] == "" {
 				http.Error(w, "authentication required", http.StatusUnauthorized)
+				return
+			}
+			if authorizer == nil {
+				http.Error(w, "authorization service is not configured", http.StatusServiceUnavailable)
+				return
+			}
+			if err := authorizer.Authorize(r.Context(), authorization); err != nil {
+				if errors.Is(err, errInvalidSession) {
+					http.Error(w, err.Error(), http.StatusUnauthorized)
+				} else {
+					http.Error(w, err.Error(), http.StatusServiceUnavailable)
+				}
 				return
 			}
 			if internalAuthToken == "" {

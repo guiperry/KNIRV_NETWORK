@@ -24,6 +24,7 @@ import (
 	"github.com/KNIRV/KNIRV_NETWORK/KNIRVGATEWAY/internal/auth"
 	"github.com/KNIRV/KNIRV_NETWORK/KNIRVGATEWAY/internal/config"
 	"github.com/KNIRV/KNIRV_NETWORK/KNIRVGATEWAY/internal/dht"
+	"github.com/KNIRV/KNIRV_NETWORK/KNIRVGATEWAY/internal/dveviewer"
 	"github.com/KNIRV/KNIRV_NETWORK/KNIRVGATEWAY/internal/operator"
 	"github.com/KNIRV/KNIRV_NETWORK/KNIRVGATEWAY/internal/payment"
 	"github.com/KNIRV/KNIRV_NETWORK/KNIRVGATEWAY/internal/proxy"
@@ -402,7 +403,7 @@ func (s *Server) setupRoutes() error {
 		// passthrough above, this wraps chainProxy with the internal-token
 		// attachment described in eventbundle_proxy.go, so the CLI never
 		// needs KNIRV_INTERNAL_AUTH_TOKEN itself.
-		eventBundleProxy := newEventBundleMintProxy(chainProxy, s.config.InternalAuthToken)
+		eventBundleProxy := newEventBundleMintProxy(chainProxy, s.config.InternalAuthToken, newBackendSessionAuthorizer(s.config.BackendSocketPath))
 		r.Handle("/api/v1/event-bundles/mint", eventBundleProxy).Methods("POST", "OPTIONS")
 		r.Handle("/api/v1/event-bundles/{event_id}", eventBundleProxy).Methods("GET", "OPTIONS")
 
@@ -692,9 +693,15 @@ func (s *Server) setupRoutes() error {
 		})
 	}
 
-	// DVE public verification pages — proxy /dve/{dveId}* to the backend Unix socket
-	// so DVE pages are served server-side (Go templates) but exposed to the public via
-	// the gateway.  The frontend iframes these pages back into the workspace UI.
+	// The immutable evidence viewer and its wasm verifier are served directly by
+	// KNIRVGATEWAY on the public origin. More specialized legacy DVE workspace
+	// pages continue to proxy to backend_server below.
+	viewer := dveviewer.New()
+	r.HandleFunc("/dve/_assets/{asset}", viewer.Asset).Methods(http.MethodGet, http.MethodHead)
+	r.HandleFunc("/dve/{dve}", viewer.Page).Methods(http.MethodGet, http.MethodHead)
+	r.HandleFunc("/dve/{dve}/", viewer.Page).Methods(http.MethodGet, http.MethodHead)
+
+	// Legacy DVE workspace pages and metrics remain backend-owned.
 	if s.config.BackendSocketPath != "" {
 		dvePageProxy := newSocketProxy(s.config.BackendSocketPath, "http://knirvserver")
 		r.PathPrefix("/dve/").Handler(dvePageProxy)

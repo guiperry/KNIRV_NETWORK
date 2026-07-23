@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>KNIRV DVE Verifier</title>
+  <style>
+    :root { color-scheme: dark; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; background:#070b12; color:#dce7f7 }
+    body { margin:0; min-height:100vh; background:radial-gradient(circle at top,#14243c 0,#070b12 48%); }
+    main { max-width:980px; margin:auto; padding:40px 22px 80px }
+    header { display:flex; gap:18px; align-items:center; justify-content:space-between; border-bottom:1px solid #26364c; padding-bottom:22px }
+    h1 { font:600 clamp(22px,4vw,36px)/1.1 system-ui,sans-serif; margin:0 }
+    .eyebrow { color:#7e9fc8; text-transform:uppercase; letter-spacing:.16em; font-size:11px }
+    #badge { border:1px solid #47566a; border-radius:999px; padding:8px 12px; white-space:nowrap }
+    #badge.pass { color:#77efb3; border-color:#237753; background:#0c2b20 }
+    #badge.fail { color:#ff9ca8; border-color:#8b3040; background:#32131a }
+    #badge.warn { color:#ffd17a; border-color:#806022; background:#2f250f }
+    .panel { margin-top:22px; padding:18px; border:1px solid #26364c; border-radius:14px; background:#0c131fdd }
+    dl { display:grid; grid-template-columns:max-content 1fr; gap:9px 18px; margin:0; overflow-wrap:anywhere }
+    dt { color:#7e9fc8 } dd { margin:0 }
+    form { display:flex; gap:10px; flex-wrap:wrap } input,button { font:inherit; padding:10px 12px; border-radius:8px; border:1px solid #41516a; background:#0b111b; color:inherit }
+    input { flex:1; min-width:240px } button { cursor:pointer; background:#235fd1; border-color:#3b74df }
+    pre { white-space:pre-wrap; word-break:break-word; margin:0; line-height:1.5; max-height:55vh; overflow:auto }
+    .hidden { display:none } .error { color:#ff9ca8 }
+  </style>
+</head>
+<body>
+<main>
+  <header><div><div class="eyebrow">Independent browser verification</div><h1>DVE evidence replay</h1></div><div id="badge" class="warn">Awaiting evidence</div></header>
+  <section id="session-picker" class="panel hidden"><form id="session-form"><input id="session-input" name="session" required autocomplete="off" placeholder="Session ID"><button>Verify session</button></form></section>
+  <section class="panel"><dl><dt>DVE</dt><dd id="dve-id">—</dd><dt>Session</dt><dd id="session-id">—</dd><dt>Trust</dt><dd id="trust-level">—</dd><dt>Event tip</dt><dd id="event-tip">—</dd><dt>Artifact root</dt><dd id="artifact-root">—</dd><dt>Anchor</dt><dd id="anchor-status">not supplied</dd></dl></section>
+  <section class="panel"><pre id="output">Supply ?session=&lt;session-id&gt; to load evidence.</pre></section>
+</main>
+<script type="module" src="/dve/_assets/viewer-app.js"></script>
+</body>
+</html>

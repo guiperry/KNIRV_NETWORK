@@ -21,6 +21,7 @@ type SigningClaim struct {
 	ArtifactMerkleRoot string `json:"artifact_merkle_root"`
 	WorkspaceBaseHash  string `json:"workspace_base_hash"`
 	WorkspaceFinalHash string `json:"workspace_final_hash"`
+	EventBundleRoot    string `json:"event_bundle_root,omitempty"`
 }
 
 func ClaimFromBundle(b *Bundle) SigningClaim {
@@ -35,6 +36,7 @@ func ClaimFromBundle(b *Bundle) SigningClaim {
 		ArtifactMerkleRoot: b.ArtifactMerkleRoot,
 		WorkspaceBaseHash:  b.WorkspaceBaseHash,
 		WorkspaceFinalHash: b.WorkspaceFinalHash,
+		EventBundleRoot:    b.EventBundleRoot,
 	}
 }
 

@@ -8,6 +8,22 @@ const (
 	AlgorithmEd25519 = "ed25519"
 )
 
+type EventKind string
+
+const (
+	EventKindDecision EventKind = "decision"
+	EventKindError    EventKind = "error"
+)
+
+type ResourceKind string
+
+const (
+	ResourceKindSkill         ResourceKind = "skill"
+	ResourceKindCapabilityMCP ResourceKind = "capability_mcp"
+	ResourceKindAsset         ResourceKind = "asset"
+	ResourceKindCredential    ResourceKind = "credential"
+)
+
 type Signature struct {
 	KeyID     string `json:"key_id"`
 	Algorithm string `json:"algorithm"`
@@ -27,9 +43,9 @@ type ToolRun struct {
 // ResourceRef mirrors the CLI's dve.ResourceRef wire shape (chain_refactor.md
 // §3.1). Kind is one of "skill" | "capability_mcp" | "asset" | "credential".
 type ResourceRef struct {
-	Kind string `json:"kind"`
-	ID   string `json:"id"`
-	Ref  string `json:"ref,omitempty"`
+	Kind ResourceKind `json:"kind"`
+	ID   string       `json:"id"`
+	Ref  string       `json:"ref,omitempty"`
 }
 
 type PermissionDecision struct {
@@ -48,17 +64,19 @@ type PermissionDecision struct {
 	// Kind/ResourcesUsed/EventBundleHash mirror the CLI's dve.PermissionDecision
 	// additions (chain_refactor.md §3.1/§3.3): the KNIRVCHAIN event-bundle NFT
 	// minted for this decision, and what it was minted from.
-	Kind            string        `json:"kind,omitempty"`
+	Kind            EventKind     `json:"kind,omitempty"`
 	ResourcesUsed   []ResourceRef `json:"resources_used,omitempty"`
 	EventBundleHash string        `json:"event_bundle_hash,omitempty"`
 }
 
 type ArtifactRef struct {
-	Name  string `json:"name"`
-	Path  string `json:"path,omitempty"`
-	Class string `json:"class"`
-	Hash  string `json:"hash"`
-	Size  int64  `json:"size,omitempty"`
+	Name              string   `json:"name"`
+	Path              string   `json:"path,omitempty"`
+	Class             string   `json:"class"`
+	Hash              string   `json:"hash"`
+	Size              int64    `json:"size,omitempty"`
+	ProvesArtifactIDs []string `json:"proves_artifact_ids,omitempty"`
+	ProvesDecisionIDs []string `json:"proves_decision_ids,omitempty"`
 }
 
 type MemvidRef struct {

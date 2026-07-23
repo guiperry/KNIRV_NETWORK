@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -134,6 +135,73 @@ func TestIngestRoutes(t *testing.T) {
 	router.ServeHTTP(getResp, getReq)
 	if getResp.Code != http.StatusOK {
 		t.Fatalf("unexpected report code %d: %s", getResp.Code, getResp.Body.String())
+	}
+}
+
+func TestFileStoreSessionIndexSurvivesServiceRestart(t *testing.T) {
+	dir := t.TempDir()
+	signer, _ := SignerFromSeed("key-1", make([]byte, ed25519.SeedSize))
+	bundle, evidence := testBundle(t, signer)
+	resolver := ResolverFromPublicKeys(map[string]ed25519.PublicKey{"key-1": signer.Public()})
+	first := NewIngestService(NewFileStore(dir), resolver, nil)
+	if _, err := first.Ingest(bundle, evidence); err != nil {
+		t.Fatal(err)
+	}
+
+	restarted := NewIngestService(NewFileStore(dir), resolver, nil)
+	loaded, ok := restarted.BundleFor(bundle.DVEID, bundle.SessionID)
+	if !ok || loaded.EventLogRoot != bundle.EventLogRoot {
+		t.Fatalf("bundle did not survive restart: ok=%t loaded=%+v", ok, loaded)
+	}
+	if persisted, ok := restarted.EvidenceFor(bundle.DVEID, bundle.SessionID); !ok || len(persisted.Events) != len(evidence.Events) {
+		t.Fatalf("evidence did not survive restart")
+	}
+	if report, ok := restarted.ReportFor(bundle.DVEID, bundle.SessionID); !ok || report.Status == "" {
+		t.Fatalf("report did not survive restart")
+	}
+}
+
+func TestIngestRejectsPathBundleDVEMismatch(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	signer, _ := SignerFromSeed("key-1", make([]byte, ed25519.SeedSize))
+	bundle, evidence := testBundle(t, signer)
+	router := gin.New()
+	RegisterDVEIngestRoutes(router, NewIngestService(NewMemStore(), nil, nil))
+	body := fmt.Sprintf(`{"bundle":%s,"evidence":%s}`, mustJSON(t, bundle), mustJSON(t, evidence))
+	request := httptest.NewRequest(http.MethodPost, "/api/dve/other-dve/sessions/ingest", strings.NewReader(body))
+	request.Header.Set("Content-Type", "application/json")
+	response := httptest.NewRecorder()
+	router.ServeHTTP(response, request)
+	if response.Code != http.StatusBadRequest {
+		t.Fatalf("status = %d, want 400", response.Code)
+	}
+}
+
+func TestIngestSessionIsImmutableAndIdempotent(t *testing.T) {
+	signer, _ := SignerFromSeed("key-1", make([]byte, ed25519.SeedSize))
+	bundle, evidence := testBundle(t, signer)
+	svc := NewIngestService(
+		NewMemStore(),
+		ResolverFromPublicKeys(map[string]ed25519.PublicKey{"key-1": signer.Public()}),
+		nil,
+	)
+
+	first, err := svc.Ingest(bundle, evidence)
+	if err != nil {
+		t.Fatal(err)
+	}
+	second, err := svc.Ingest(bundle, evidence)
+	if err != nil {
+		t.Fatalf("idempotent ingest failed: %v", err)
+	}
+	if !reflect.DeepEqual(first, second) {
+		t.Fatalf("idempotent report changed: first=%+v second=%+v", first, second)
+	}
+
+	conflict := *bundle
+	conflict.WorkspaceFinalHash = "sha256:different"
+	if _, err := svc.Ingest(&conflict, evidence); err == nil || !strings.Contains(err.Error(), "session_conflict") {
+		t.Fatalf("conflicting ingest error = %v", err)
 	}
 }
 

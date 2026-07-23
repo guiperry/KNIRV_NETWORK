@@ -1,6 +1,10 @@
 package dveevidence
 
-import "testing"
+import (
+	"encoding/json"
+	"os"
+	"testing"
+)
 
 func TestCanonicalMerkleNormalizationAndStrictEventFields(t *testing.T) {
 	if MerkleRoot([]string{"aaa", "bbb"}) != MerkleRoot([]string{"sha256:aaa", "sha256:bbb"}) {
@@ -19,5 +23,26 @@ func TestCanonicalMerkleNormalizationAndStrictEventFields(t *testing.T) {
 	}
 	if err := VerifyEventLog(missingPrev, root); err == nil {
 		t.Fatal("missing prev_hash was accepted")
+	}
+}
+
+func TestSharedEventLogGoldenVector(t *testing.T) {
+	raw, err := os.ReadFile("testdata/eventlog_golden.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var vector struct {
+		Version int     `json:"version"`
+		Events  []Event `json:"events"`
+		Root    string  `json:"root"`
+	}
+	if err := json.Unmarshal(raw, &vector); err != nil {
+		t.Fatal(err)
+	}
+	if vector.Version != 1 {
+		t.Fatalf("unsupported vector version %d", vector.Version)
+	}
+	if err := VerifyEventLog(vector.Events, vector.Root); err != nil {
+		t.Fatalf("Go verifier rejected the shared browser vector: %v", err)
 	}
 }

@@ -17,6 +17,8 @@ DESKTOP_DIR := $(ROOT_DIR)/desktop
 GATEWAY_DIR := $(ROOT_DIR)/pkg/knirvgateway
 GATEWAY_SRC_DIR := $(ROOT_DIR)/../KNIRVGATEWAY
 GATEWAY_PKG_BIN := $(GATEWAY_DIR)/bin/knirvgateway
+DVE_VERIFIER_DIR := $(ROOT_DIR)/tools/dve-verifier-wasm
+DVE_VERIFIER_ASSETS := $(GATEWAY_SRC_DIR)/internal/dveviewer/assets
 GRAPH_DIR := $(ROOT_DIR)/pkg/knirvgraph
 GRAPH_SRC_DIR := $(ROOT_DIR)/../KNIRVGRAPH
 GRAPH_PKG_BIN := $(GRAPH_DIR)/bin/knirvgraph
@@ -108,7 +110,7 @@ YELLOW := \033[1;33m
 BLUE := \033[0;34m
 NC := \033[0m # No Color
 
-.PHONY: help all clean build test deploy install deps frontend backend binary relink docker os deployer key-encryptor deploy-dev-local ebpf-generate proto kali-docker-image gateway-build gateway-deps gateway-clean graph-build graph-deps graph-clean chain-build chain-deps chain-clean oracle-build oracle-deps oracle-clean hasher-build hasher-deps hasher-clean agent-build agent-deps agent-clean arena-build arena-deps arena-clean build-full
+.PHONY: help all clean build test deploy install deps frontend backend binary relink docker os deployer key-encryptor deploy-dev-local ebpf-generate proto kali-docker-image gateway-build gateway-deps gateway-clean dve-verifier-build graph-build graph-deps graph-clean chain-build chain-deps chain-clean oracle-build oracle-deps oracle-clean hasher-build hasher-deps hasher-clean agent-build agent-deps agent-clean arena-build arena-deps arena-clean build-full
 
 # Default target
 all: proto frontend backend binary
@@ -471,7 +473,12 @@ gateway-deps: ## Install KNIRVGATEWAY dependencies (Go only)
 	@echo "$(BLUE)Installing KNIRVGATEWAY Go dependencies...$(NC)"
 	cd $(GATEWAY_SRC_DIR) && go mod download && go mod tidy
 
-gateway-build: webgui-build gateway-deps ## Build KNIRVGATEWAY binary into pkg/knirvgateway/bin/ (builds WebGUI first)
+dve-verifier-build: ## Build the browser-side DVE wasm verifier into KNIRVGATEWAY
+	@echo "$(BLUE)Building DVE browser verifier...$(NC)"
+	cd $(DVE_VERIFIER_DIR) && wasm-pack build --target web --release --no-pack --no-typescript --out-name verifier --out-dir $(DVE_VERIFIER_ASSETS)
+	@echo "$(GREEN)DVE browser verifier built$(NC)"
+
+gateway-build: webgui-build gateway-deps dve-verifier-build ## Build KNIRVGATEWAY binary into pkg/knirvgateway/bin/ (builds WebGUI and DVE verifier first)
 	@echo "$(BLUE)Building KNIRVGATEWAY binary...$(NC)"
 	@mkdir -p $(GATEWAY_DIR)/bin
 	@rm -f $(GATEWAY_PKG_BIN)

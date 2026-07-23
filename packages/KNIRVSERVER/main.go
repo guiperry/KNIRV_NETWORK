@@ -1712,8 +1712,69 @@ func (app *ServerApp) setupDVEIngestRoutes() error {
 	// catch-all owns the /api prefix and Gin panics if named routes share it.
 	// The catch-all dispatches /api/dve/ requests here.
 	app.dveRoutes = gin.New()
+	authorizer, err := knirvproof.NewBackendAuthorizer(app.config.BackendSocket, app.internalAuthToken)
+	if err != nil {
+		return fmt.Errorf("configure DVE ingest authorization: %w", err)
+	}
+	app.dveRoutes.Use(dveIngestAuthMiddleware(authorizer))
 	dveevidence.RegisterDVEIngestRoutes(app.dveRoutes, app.dveIngest)
 	return nil
+}
+
+func dveIngestAuthMiddleware(authorizer knirvproof.Authorizer) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		if c.Request.Method != http.MethodPost || !strings.HasSuffix(c.Request.URL.Path, "/sessions/ingest") {
+			c.Next()
+			return
+		}
+		parts := strings.Fields(c.GetHeader("Authorization"))
+		if len(parts) != 2 || !strings.EqualFold(parts[0], "Bearer") || parts[1] == "" {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "authentication required"})
+			return
+		}
+		if authorizer == nil {
+			c.AbortWithStatusJSON(http.StatusServiceUnavailable, gin.H{"error": "authorization service unavailable"})
+			return
+		}
+		body, err := io.ReadAll(http.MaxBytesReader(c.Writer, c.Request.Body, 64<<20))
+		if err != nil {
+			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "invalid ingest request"})
+			return
+		}
+		c.Request.Body = io.NopCloser(bytes.NewReader(body))
+		var request struct {
+			Bundle *struct {
+				ProjectID string `json:"project_id"`
+				UserID    string `json:"user_id"`
+			} `json:"bundle"`
+		}
+		if err := json.Unmarshal(body, &request); err != nil || request.Bundle == nil || strings.TrimSpace(request.Bundle.ProjectID) == "" {
+			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "bundle project_id is required"})
+			return
+		}
+		principal, err := authorizer.Authorize(c.Request.Context(), parts[1], request.Bundle.ProjectID, knirvproof.ActionProofSubmit)
+		if err != nil {
+			status := http.StatusForbidden
+			switch {
+			case errors.Is(err, knirvproof.ErrUnauthorized):
+				status = http.StatusUnauthorized
+			case errors.Is(err, knirvproof.ErrAuthUnavailable):
+				status = http.StatusServiceUnavailable
+			}
+			c.AbortWithStatusJSON(status, gin.H{"error": err.Error()})
+			return
+		}
+		if principal == nil || principal.ID == "" {
+			c.AbortWithStatusJSON(http.StatusServiceUnavailable, gin.H{"error": "authorization service omitted principal"})
+			return
+		}
+		if request.Bundle.UserID != principal.ID {
+			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "bundle user_id does not match authenticated principal"})
+			return
+		}
+		c.Set("knirv_principal_id", principal.ID)
+		c.Next()
+	}
 }
 
 func (app *ServerApp) setupProofRoutes() error {

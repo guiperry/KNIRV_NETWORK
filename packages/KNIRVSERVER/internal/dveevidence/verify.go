@@ -100,6 +100,8 @@ func VerifyBundle(b *Bundle, opts VerifyOptions) (*ValidationReport, error) {
 			addCheck("signature", true, "ed25519 signature valid")
 		} else {
 			addCheck("signature", false, "signature not verifiable with configured keys")
+			report.Errors = append(report.Errors, "signature not verifiable with configured keys")
+			sigInvalid = true
 		}
 	}
 
