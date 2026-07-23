@@ -986,10 +986,10 @@ func (r *OracleRoutes) handleSubmitCheckpoint(w http.ResponseWriter, req *http.R
 		return
 	}
 	respondJSON(w, http.StatusOK, map[string]interface{}{
-		"status":          "admitted",
-		"mmr_position":    rec.MMRPosition,
-		"leaf_hash":       mmr.Hash(rec.LeafHash).Hex(),
-		"final_by_height": rec.FinalByHeight,
+		"status":       "admitted",
+		"mmr_position": rec.MMRPosition,
+		"leaf_hash":    mmr.Hash(rec.LeafHash).Hex(),
+		"final_by":     rec.FinalBy,
 	})
 }
 

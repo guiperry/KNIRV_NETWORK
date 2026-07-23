@@ -10,11 +10,15 @@ import (
 	"github.com/knirvcorp/knirvoracle/internal/oracle/types"
 )
 
-// DefaultProofWindow is the oracle-block window allowed for phase-2 proof
-// submission when a chain does not specify its own. At the five-second target
-// interval it is about 21 minutes, over seven times the measured 175-second
-// cold development setup/prove/verify cycle for the minimal PLONK circuit.
-const DefaultProofWindow uint64 = 256
+// DefaultProofWindow is the wall-clock window, in seconds, allowed for
+// phase-2 proof submission when a chain does not specify its own — about 30
+// minutes, over ten times the measured 175-second cold development
+// setup/prove/verify cycle for the minimal PLONK circuit. This is real time,
+// not an Oracle block-height count: the Oracle's own commit cadence is just a
+// heartbeat (see consensus/engine.go's consensusLoop), not a security clock,
+// so a chain's dispute window must not depend on how often — or whether —
+// the Oracle happens to be ticking.
+const DefaultProofWindow uint64 = 1800
 
 // Registry is the Oracle's per-foreign-chain trust anchor: which chains may
 // post checkpoints, who their authors are, and continuity state. It is the

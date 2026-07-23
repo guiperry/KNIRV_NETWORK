@@ -36,7 +36,8 @@ func newTestChain(t *testing.T, chainID string) (types.ChainRegistration, *ecdsa
 }
 
 // newTestOracle builds a minimal Oracle with a live checkpoint pipeline and a
-// consensus engine so admission can compute FinalByHeight.
+// consensus engine so admission can commit the audit MMR (FinalBy is wall
+// clock and needs no consensus engine at all — see checkpoint_store.go).
 func newTestOracle(t *testing.T) *Oracle {
 	t.Helper()
 	o := &Oracle{

@@ -219,8 +219,8 @@ func TestFinalityAttestationAccumulation(t *testing.T) {
 func TestFinalityWindowMissSweeper(t *testing.T) {
 	o := newPhase4Oracle(t)
 	rec := projectTestRollup(t, o, "knirvchain-sweep")
-	// Force a window miss: oracle height (1) now exceeds the finality deadline.
-	rec.FinalByHeight = 0
+	// Force a window miss: the wall-clock deadline is already in the past.
+	rec.FinalBy = time.Now().Add(-time.Second)
 	rootBefore := o.MMRRoot()
 	o.sweepOnce()
 	rootAfter := o.MMRRoot()
@@ -236,25 +236,37 @@ func TestFinalityWindowMissSweeper(t *testing.T) {
 	}
 }
 
-func TestNonValidatorClockExpiresRealProofWindow(t *testing.T) {
-	engine := consensus.NewConsensusEngine("clocked-oracle", 10*time.Millisecond, false, t.TempDir(), zap.NewNop())
+// TestFinalityWindowExpiresByWallClockEvenWithHeartbeatDisabled proves the
+// decoupling this refactor is for: blockTime=0 disables the Oracle's
+// periodic height-ticker entirely (the mainnet policy — see
+// consensus/engine.go's consensusLoop), yet a checkpoint's dispute window
+// still expires correctly, because it is now measured in wall-clock time
+// (CheckpointRecord.FinalBy), not Oracle block height. Previously the
+// window-miss sweep depended on the height-clock ticking at all, which
+// forced every deployment — even ones with no reason to ever mine an empty
+// block — to keep an unconditional 5s (or whatever blockTime) ticker alive
+// purely so existing checkpoints could ever finalize or expire.
+func TestFinalityWindowExpiresByWallClockEvenWithHeartbeatDisabled(t *testing.T) {
+	engine := consensus.NewConsensusEngine("clocked-oracle", 0, false, t.TempDir(), zap.NewNop())
 	o := &Oracle{checkpoint: newCheckpointState(t.TempDir()), rollups: make(map[string]*types.RollupRecord), consensusEngine: engine, verifiers: make(map[string][]byte), logger: zap.NewNop()}
 	if err := engine.Start(); err != nil {
 		t.Fatal(err)
 	}
 	defer engine.Stop()
+	heightAtStart := engine.GetHeight()
+
 	rec := projectTestRollup(t, o, "clock-window")
-	rec.FinalByHeight = uint64(engine.GetHeight()) + 1
-	deadline := time.Now().Add(time.Second)
-	for uint64(engine.GetHeight()) <= rec.FinalByHeight && time.Now().Before(deadline) {
-		time.Sleep(5 * time.Millisecond)
-	}
-	if uint64(engine.GetHeight()) <= rec.FinalByHeight {
-		t.Fatal("non-validator Oracle height did not advance")
-	}
+	// Force an already-expired deadline instead of waiting on a real window.
+	rec.FinalBy = time.Now().Add(-time.Millisecond)
+
 	o.sweepOnce()
 	if rec.Status != types.CheckpointRejected {
-		t.Fatalf("expired checkpoint status = %s", rec.Status)
+		t.Fatalf("expired checkpoint status = %s, want rejected", rec.Status)
+	}
+	// The disabled heartbeat must genuinely never tick on its own.
+	time.Sleep(50 * time.Millisecond)
+	if engine.GetHeight() != heightAtStart {
+		t.Fatalf("height advanced from %d to %d even though blockTime=0 disables the periodic ticker", heightAtStart, engine.GetHeight())
 	}
 }
 

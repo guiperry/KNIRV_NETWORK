@@ -124,9 +124,19 @@ func DefaultOracleConfig() *OracleConfig {
 	maxSupply, _ := new(big.Int).SetString("10000000000", 10)
 
 	return &OracleConfig{
-		ChainID:             "knirvoracle-1",
-		NetworkID:           "knirv-testnet",
-		BlockTime:           5 * time.Second,
+		ChainID:   "knirvoracle-1",
+		NetworkID: "knirv-testnet",
+		// BlockTime is a heartbeat, not a security clock — the checkpoint
+		// dispute window is wall-clock based (registry.DefaultProofWindow),
+		// not tied to this cadence at all (see consensus/engine.go's
+		// consensusLoop). 0 disables the periodic ticker entirely, relying
+		// solely on real checkpoint/finality/rollup submissions to advance
+		// the AppHash (see Oracle.commitAuditMMR). LoadConfigFromEnv derives
+		// this from network mode when ORACLE_BLOCK_TIME is not set explicitly
+		// (30 minutes on testnet, disabled on production); this default of 30
+		// minutes only applies when OracleConfig is constructed directly
+		// (e.g. in tests), bypassing that env-driven resolution.
+		BlockTime:           30 * time.Minute,
 		TokenName:           "KNIRV Network Token",
 		TokenSymbol:         "NRN",
 		InitialSupply:       initialSupply,

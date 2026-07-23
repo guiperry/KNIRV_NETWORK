@@ -190,16 +190,14 @@ func (o *Oracle) SubmitCheckpoint(cp *types.Checkpoint) (*types.CheckpointRecord
 	}
 	pos, leaf := o.appendAuditLeafLocked(leafData)
 
+	receivedAt := time.Now().UTC()
 	rec := &types.CheckpointRecord{
 		Checkpoint:  *cp,
 		MMRPosition: pos,
 		LeafHash:    [32]byte(leaf),
 		Status:      types.CheckpointProvisional,
-		ReceivedAt:  time.Now().UTC(),
-	}
-	// FinalByHeight uses the live Oracle height (best-effort; 0 if unknown).
-	if o.consensusEngine != nil {
-		rec.FinalByHeight = uint64(o.consensusEngine.GetHeight()) + proofWindowFor(o, cp.ChainID)
+		ReceivedAt:  receivedAt,
+		FinalBy:     receivedAt.Add(proofWindowFor(o, cp.ChainID)),
 	}
 
 	o.checkpoint.records[recordKey(cp.ChainID, cp.StartHeight)] = rec
@@ -225,11 +223,16 @@ func (o *Oracle) SubmitCheckpoint(cp *types.Checkpoint) (*types.CheckpointRecord
 	return rec, nil
 }
 
-func proofWindowFor(o *Oracle, chainID string) uint64 {
+// proofWindowFor returns the wall-clock dispute/finality window for chainID
+// (registry.ChainRegistration.ProofWindow is in seconds — see its doc
+// comment), falling back to registry.DefaultProofWindow when the chain did
+// not specify its own.
+func proofWindowFor(o *Oracle, chainID string) time.Duration {
+	seconds := registry.DefaultProofWindow
 	if reg, ok := o.checkpoint.registry.Get(chainID); ok && reg.ProofWindow > 0 {
-		return reg.ProofWindow
+		seconds = reg.ProofWindow
 	}
-	return registry.DefaultProofWindow
+	return time.Duration(seconds) * time.Second
 }
 
 // ProjectRollup bridges a legacy, unsigned RollupRecord into the new checkpoint
@@ -261,16 +264,15 @@ func (o *Oracle) ProjectRollup(rec *types.RollupRecord) (*types.CheckpointRecord
 	}
 	pos, leaf := o.appendAuditLeafLocked(leafData)
 
+	receivedAt := time.Now().UTC()
 	record := &types.CheckpointRecord{
 		Checkpoint:  *cp,
 		MMRPosition: pos,
 		LeafHash:    [32]byte(leaf),
 		Status:      types.CheckpointProvisional,
-		ReceivedAt:  time.Now().UTC(),
+		ReceivedAt:  receivedAt,
+		FinalBy:     receivedAt.Add(time.Duration(registry.DefaultProofWindow) * time.Second),
 		Source:      "rollup:" + rec.ID,
-	}
-	if o.consensusEngine != nil {
-		record.FinalByHeight = uint64(o.consensusEngine.GetHeight()) + registry.DefaultProofWindow
 	}
 
 	o.checkpoint.records[recordKey(cp.ChainID, cp.StartHeight)] = record

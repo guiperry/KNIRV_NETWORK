@@ -35,7 +35,12 @@ type ChainRegistration struct {
 	BondOwner     string             `json:"bond_owner,omitempty"`
 	BondRemaining uint64             `json:"bond_remaining,omitempty"`
 	BondSlashed   uint64             `json:"bond_slashed,omitempty"`
-	ProofWindow   uint64             `json:"proof_window"`
+	// ProofWindow is the dispute/finality window in seconds (wall-clock time),
+	// not a block-height count: the Oracle's own block-commit cadence is a
+	// heartbeat, not a security-relevant clock (see registry.DefaultProofWindow
+	// and CheckpointRecord.FinalBy), so a chain's proof window must not depend
+	// on how often the Oracle happens to be ticking.
+	ProofWindow uint64 `json:"proof_window"`
 	// VerificationKey carries the registered SNARK verification key for this
 	// chain (merkle-math.md Phase 5). Empty until a verifier chain enrolls one.
 	VerificationKey []byte `json:"verification_key,omitempty"`
@@ -75,14 +80,20 @@ type Checkpoint struct {
 // role for the new pipeline). Status transitions live only here, never in the
 // MMR log (Design Invariant #1).
 type CheckpointRecord struct {
-	Checkpoint    Checkpoint       `json:"checkpoint"`
-	MMRPosition   uint64           `json:"mmr_position"`
-	LeafHash      [32]byte         `json:"leaf_hash"`
-	Status        CheckpointStatus `json:"status"`
-	ReceivedAt    time.Time        `json:"received_at"`
-	FinalByHeight uint64           `json:"final_by_height"`
-	FinalityLeaf  *uint64          `json:"finality_leaf,omitempty"`
-	RejectionLeaf *uint64          `json:"rejection_leaf,omitempty"`
+	Checkpoint  Checkpoint       `json:"checkpoint"`
+	MMRPosition uint64           `json:"mmr_position"`
+	LeafHash    [32]byte         `json:"leaf_hash"`
+	Status      CheckpointStatus `json:"status"`
+	ReceivedAt  time.Time        `json:"received_at"`
+	// FinalBy is the wall-clock deadline (ReceivedAt + the chain's ProofWindow)
+	// by which a finality record must land or the checkpoint is swept and
+	// rejected as a window miss (see Oracle.sweepExpired). This used to be an
+	// Oracle block-height deadline, which tied dispute-window correctness to
+	// how often the Oracle happened to tick — including during idle periods
+	// where nothing should need to depend on that at all.
+	FinalBy       time.Time `json:"final_by"`
+	FinalityLeaf  *uint64   `json:"finality_leaf,omitempty"`
+	RejectionLeaf *uint64   `json:"rejection_leaf,omitempty"`
 	// PendingAttestations accumulates validation-chain sign-offs (Phase 4)
 	// until quorum is reached, at which point the record is finalized.
 	PendingAttestations    []VerifierAttestation `json:"pending_attestations,omitempty"`

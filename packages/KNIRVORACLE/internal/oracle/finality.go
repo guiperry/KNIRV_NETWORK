@@ -259,11 +259,11 @@ func (o *Oracle) SubmitFinality(rec *types.FinalityRecord) (*types.CheckpointRec
 	if cp.Status != types.CheckpointProvisional {
 		return nil, fmt.Errorf("checkpoint %d is %s, not provisional", rec.CheckpointLeaf, cp.Status)
 	}
-	// Window check: the Oracle must still be within the proof window.
-	if o.consensusEngine != nil {
-		if h := uint64(o.consensusEngine.GetHeight()); h > cp.FinalByHeight {
-			return nil, fmt.Errorf("checkpoint %d missed its proof window (height %d > %d)", rec.CheckpointLeaf, h, cp.FinalByHeight)
-		}
+	// Window check: the wall clock must still be within the proof window —
+	// this no longer depends on the Oracle's own (heartbeat-only) block
+	// height, so it is correct even while that ticker is disabled.
+	if now := time.Now(); now.After(cp.FinalBy) {
+		return nil, fmt.Errorf("checkpoint %d missed its proof window (now %s > %s)", rec.CheckpointLeaf, now.Format(time.RFC3339), cp.FinalBy.Format(time.RFC3339))
 	}
 
 	approved, err := o.verifyAttestations(cp, rec.Attestations)
@@ -395,28 +395,28 @@ func (o *Oracle) SubmitProofAttestation(chainID string, startHeight uint64, tran
 }
 
 // sweepExpired finalizes the window-miss policy: any provisional record whose
-// proof window has elapsed without a finality leaf is tombstoned with a
-// LeafRejection (merkle-math.md §3.3e). Caller holds o.checkpoint.mu.
+// proof window has elapsed (wall-clock, see CheckpointRecord.FinalBy) without
+// a finality leaf is tombstoned with a LeafRejection (merkle-math.md §3.3e).
+// This runs on its own wall-clock ticker (see sweepLoop) and no longer
+// depends on the Oracle's consensus height at all, so it works correctly
+// whether or not that heartbeat is enabled. Caller holds o.checkpoint.mu.
 // Returns the number of records rejected.
 func (o *Oracle) sweepExpired() (int, error) {
-	if o.consensusEngine == nil {
-		return 0, nil
-	}
-	height := uint64(o.consensusEngine.GetHeight())
+	now := time.Now()
 	rejected := 0
 	for _, rec := range o.checkpoint.records {
 		if rec == nil || rec.Status != types.CheckpointProvisional {
 			continue
 		}
-		if height > rec.FinalByHeight {
+		if now.After(rec.FinalBy) {
 			if err := o.rejectCheckpointLocked(rec, "window-miss"); err != nil {
 				return rejected, err
 			}
 			rejected++
 			o.logger.Warn("checkpoint rejected (window miss)",
 				zap.Uint64("checkpoint_leaf", rec.MMRPosition),
-				zap.Uint64("height", height),
-				zap.Uint64("final_by_height", rec.FinalByHeight),
+				zap.Time("now", now),
+				zap.Time("final_by", rec.FinalBy),
 			)
 		}
 	}

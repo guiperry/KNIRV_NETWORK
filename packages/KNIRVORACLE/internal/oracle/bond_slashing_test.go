@@ -4,6 +4,7 @@ import (
 	"math/big"
 	"strings"
 	"testing"
+	"time"
 
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"github.com/knirvcorp/knirvoracle/internal/oracle/economics"
@@ -38,7 +39,7 @@ func TestWindowMissSlashesBondAndQueuesConsensusEvidence(t *testing.T) {
 		t.Fatalf("register bonded chain: %v", err)
 	}
 	rec := projectTestRollupAs(t, o, "bonded-chain", reg.Authors[0].Address, reg.Authors[0].PubKey, key)
-	rec.FinalByHeight = 0
+	rec.FinalBy = time.Now().Add(-time.Second) // force an already-expired window
 	o.sweepOnce()
 
 	reg, ok := o.GetChainRegistration("bonded-chain")

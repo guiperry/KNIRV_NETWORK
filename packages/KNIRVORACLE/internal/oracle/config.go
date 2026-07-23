@@ -9,6 +9,19 @@ import (
 	"time"
 )
 
+// isProductionNetworkMode mirrors KNIRVGATEWAY/KNIRVSERVER's own network-mode
+// resolution (KNIRV_NETWORK_MODE, falling back to the legacy KNIRV_TESTNET
+// flag): explicit "production"/"prod"/"mainnet" is production; everything
+// else — including unset, which is the common case for a bare testnet run —
+// is treated as non-production so the default heartbeat stays on.
+func isProductionNetworkMode() bool {
+	mode := strings.ToLower(strings.TrimSpace(os.Getenv("KNIRV_NETWORK_MODE")))
+	if mode != "" {
+		return mode == "production" || mode == "prod" || mode == "mainnet"
+	}
+	return false
+}
+
 // LoadConfigFromEnv loads Oracle configuration from environment variables
 // Falls back to defaults if variables are not set
 func LoadConfigFromEnv() (*OracleConfig, error) {
@@ -29,6 +42,20 @@ func LoadConfigFromEnv() (*OracleConfig, error) {
 			return nil, fmt.Errorf("invalid ORACLE_BLOCK_TIME: %w", err)
 		}
 		config.BlockTime = time.Duration(blockTime) * time.Second
+	} else {
+		// No explicit override: derive the heartbeat cadence from network
+		// mode. This ticker is not needed for correctness (the checkpoint
+		// dispute window is wall-clock based — see registry.DefaultProofWindow
+		// and CheckpointRecord.FinalBy), only for keeping the AppHash/height
+		// visibly moving during idle periods. Mainnet has no reason to mine
+		// empty blocks at all, so it is fully event-driven: real checkpoint,
+		// finality, and rollup submissions already commit immediately (see
+		// Oracle.commitAuditMMR).
+		if isProductionNetworkMode() {
+			config.BlockTime = 0
+		} else {
+			config.BlockTime = 30 * time.Minute
+		}
 	}
 
 	// Token Configuration
@@ -192,8 +219,12 @@ func ValidateConfig(config *OracleConfig) error {
 		return fmt.Errorf("network_id is required")
 	}
 
-	if config.BlockTime <= 0 {
-		return fmt.Errorf("block_time must be positive")
+	// 0 is a valid, deliberate value: it disables the periodic heartbeat
+	// ticker entirely (see consensus/engine.go's consensusLoop), which is the
+	// production/mainnet default — checkpoint/finality/rollup submissions
+	// already commit immediately regardless. Only negative values are invalid.
+	if config.BlockTime < 0 {
+		return fmt.Errorf("block_time cannot be negative")
 	}
 
 	if config.InitialSupply == nil || config.InitialSupply.Cmp(big.NewInt(0)) <= 0 {

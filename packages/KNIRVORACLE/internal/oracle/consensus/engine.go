@@ -297,8 +297,21 @@ func (ce *ConsensusEngine) CommitBlock(block *Block) error {
 	return nil
 }
 
-// consensusLoop runs the main consensus loop
+// consensusLoop runs the main consensus loop. blockTime <= 0 disables the
+// periodic heartbeat entirely — there is nothing left that depends on it for
+// correctness (the checkpoint dispute window is wall-clock based; see
+// registry.DefaultProofWindow and CheckpointRecord.FinalBy), so a fully
+// event-driven deployment (the mainnet default) simply never ticks: real
+// checkpoint/finality/rollup submissions already commit immediately via
+// Oracle.commitAuditMMR.
 func (ce *ConsensusEngine) consensusLoop() {
+	if ce.blockTime <= 0 {
+		ce.logger.Info("Consensus heartbeat disabled — fully event-driven",
+			zap.Bool("validator_mode", ce.validatorMode),
+		)
+		return
+	}
+
 	ticker := time.NewTicker(ce.blockTime)
 	defer ticker.Stop()
 
@@ -318,9 +331,11 @@ func (ce *ConsensusEngine) consensusLoop() {
 	}
 }
 
-// advanceClock produces a persisted Oracle height even when this process is a
-// non-validator. Proof windows are defined in Oracle blocks, so their clock
-// cannot depend on validator-mode block proposal being enabled.
+// advanceClock is the periodic heartbeat commit for a non-validator Oracle —
+// purely a liveness/visibility signal (so height/AppHash are seen moving even
+// when idle) now that proof windows no longer depend on it. Real activity
+// (checkpoint/finality/rollup admission) already commits directly and does
+// not wait for this.
 func (ce *ConsensusEngine) advanceClock() error {
 	ce.mu.Lock()
 	defer ce.mu.Unlock()
