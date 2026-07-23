@@ -5,49 +5,68 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"net"
+	"io"
 	"net/http"
 	"os"
-	"path/filepath"
 	"strings"
 	"time"
 )
 
-// DefaultOracleSocketPath resolves KNIRVORACLE's Unix domain socket, the
-// same one pkg/knirvoracle/client.go dials — no TCP port is exposed for it.
-func DefaultOracleSocketPath() string {
-	if envPath := strings.TrimSpace(os.Getenv("ORACLE_SOCKET_PATH")); envPath != "" {
-		return envPath
-	}
-	if appDataDir := strings.TrimSpace(os.Getenv("KNIRV_APP_DATA_DIR")); appDataDir != "" {
-		return filepath.Join(appDataDir, "sockets", "oracle.sock")
-	}
-	return filepath.Join("/var/lib/knirvserver", "sockets", "oracle.sock")
-}
+// DefaultOracleGatewayURL is the public testnet KNIRVGATEWAY entry, mirroring
+// KNIRVCHAIN's internal/checkpoint/poster.go (DefaultOracleBaseURL there).
+// KNIRVORACLE only runs on the root node — never assume it's reachable on a
+// local socket; every non-root instance (the common case) must reach it
+// through the public gateway, same as KNIRVCHAIN's own checkpoint poster
+// does. Callers should prefer passing KNIRVSERVER's own resolvePublicURL()
+// result (network-mode-aware: testnet/production/devnet/enterprise) instead
+// of relying on this default where possible.
+const DefaultOracleGatewayURL = "https://testnet-gateway.knirv.network"
+
+// DefaultOracleFailoverURL is tried if the primary gateway URL fails. There is
+// no built-in default: KNIRVORACLE has no standalone public domain of its
+// own (it is only ever reached through KNIRVGATEWAY — see
+// DefaultOracleGatewayURL), so a fabricated "oracle" subdomain here would
+// just be a permanent, unresolvable DNS lookup masking the real failure from
+// the primary gateway attempt. Set KNIRV_ORACLE_FAILOVER_URL explicitly if a
+// deployment genuinely has a secondary gateway to fail over to.
+const DefaultOracleFailoverURL = ""
 
 // Poster delivers signed checkpoints and chain registration to KNIRVORACLE
-// over its Unix domain socket.
+// via the public KNIRVGATEWAY (gateway.knirv.network / testnet-gateway.knirv.network
+// / devnet-<tag>.knirv.network, depending on network mode) — never a local
+// socket. The registry/checkpoint endpoints are themselves authenticated by
+// the registered-author signature quorum carried in the request body, so
+// posting over the public gateway is the intended, safe transport (same
+// model KNIRVCHAIN's own checkpoint poster already uses).
 type Poster struct {
-	token      string
-	httpClient *http.Client
+	baseURL     string
+	gatewayURL  string
+	failoverURL string
+	token       string
+	httpClient  *http.Client
 }
 
-// NewPoster builds a Poster dialing socketPath. socketPath defaults to
-// DefaultOracleSocketPath() when empty.
-func NewPoster(socketPath string) *Poster {
-	if strings.TrimSpace(socketPath) == "" {
-		socketPath = DefaultOracleSocketPath()
+// NewPoster builds a Poster targeting gatewayURL (the network-mode-aware
+// public KNIRVGATEWAY) and baseURL (the actual KNIRVORACLE endpoint, which
+// may be the same as gatewayURL or an explicit override like KNIRV_ORACLE_URL).
+// Both are attempted in order: gateway first, then baseURL, then failoverURL.
+func NewPoster(gatewayURL, baseURL string) *Poster {
+	if strings.TrimSpace(baseURL) == "" {
+		baseURL = DefaultOracleGatewayURL
+	}
+	if strings.TrimSpace(gatewayURL) == "" {
+		gatewayURL = DefaultOracleGatewayURL
+	}
+	failoverURL := strings.TrimRight(strings.TrimSpace(os.Getenv("KNIRV_ORACLE_FAILOVER_URL")), "/")
+	if failoverURL == "" {
+		failoverURL = DefaultOracleFailoverURL
 	}
 	return &Poster{
-		token: os.Getenv("KNIRV_GATEWAY_TOKEN"),
-		httpClient: &http.Client{
-			Timeout: 30 * time.Second,
-			Transport: &http.Transport{
-				DialContext: func(ctx context.Context, _, _ string) (net.Conn, error) {
-					return (&net.Dialer{}).DialContext(ctx, "unix", socketPath)
-				},
-			},
-		},
+		baseURL:     strings.TrimRight(baseURL, "/"),
+		gatewayURL:  strings.TrimRight(gatewayURL, "/"),
+		failoverURL: failoverURL,
+		token:       os.Getenv("KNIRV_GATEWAY_TOKEN"),
+		httpClient:  &http.Client{Timeout: 30 * time.Second},
 	}
 }
 
@@ -56,9 +75,36 @@ func (p *Poster) postJSON(ctx context.Context, path string, body any) (map[strin
 	if err != nil {
 		return nil, err
 	}
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, "http://unix"+path, bytes.NewReader(payload))
+
+	targets := make([]string, 0, 3)
+	if p.gatewayURL != "" && p.gatewayURL != p.baseURL {
+		targets = append(targets, p.gatewayURL)
+	}
+	if p.baseURL != "" {
+		targets = append(targets, p.baseURL)
+	}
+	if p.failoverURL != "" && p.failoverURL != p.baseURL && p.failoverURL != p.gatewayURL {
+		targets = append(targets, p.failoverURL)
+	}
+
+	var lastErr error
+	for _, base := range targets {
+		out, retry, err := p.doPost(ctx, base+path, payload)
+		if err == nil {
+			return out, nil
+		}
+		lastErr = err
+		if !retry {
+			return nil, err
+		}
+	}
+	return nil, fmt.Errorf("all oracle gateway targets failed: %w", lastErr)
+}
+
+func (p *Poster) doPost(ctx context.Context, url string, payload []byte) (map[string]any, bool, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(payload))
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 	req.Header.Set("Content-Type", "application/json")
 	if p.token != "" {
@@ -66,18 +112,26 @@ func (p *Poster) postJSON(ctx context.Context, path string, body any) (map[strin
 	}
 	resp, err := p.httpClient.Do(req)
 	if err != nil {
-		return nil, err
+		return nil, true, err
 	}
 	defer resp.Body.Close()
+	body, err := io.ReadAll(io.LimitReader(resp.Body, 4096))
+	if err != nil {
+		return nil, resp.StatusCode >= 500, fmt.Errorf("POST %s: status %d, read body: %w", url, resp.StatusCode, err)
+	}
 	var out map[string]any
-	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
-		return nil, fmt.Errorf("POST %s: status %d, decode: %w", path, resp.StatusCode, err)
+	if err := json.Unmarshal(body, &out); err != nil {
+		// Surface the raw (truncated) body — a non-object response here almost
+		// always means the request never reached KNIRVORACLE's own handler at
+		// all (e.g. an unrelated service or an older deployment answering the
+		// hostname), which "decode: %w" alone doesn't make obvious.
+		return nil, resp.StatusCode >= 500, fmt.Errorf("POST %s: status %d, non-JSON-object response: %q", url, resp.StatusCode, bytes.TrimSpace(body))
 	}
 	if resp.StatusCode/100 != 2 {
 		message, _ := out["error"].(string)
-		return nil, fmt.Errorf("POST %s rejected (%d): %s", path, resp.StatusCode, message)
+		return nil, resp.StatusCode == 429 || resp.StatusCode >= 500, fmt.Errorf("POST %s rejected (%d): %s", url, resp.StatusCode, message)
 	}
-	return out, nil
+	return out, false, nil
 }
 
 // RegisterChain submits a chain registration to KNIRVORACLE. Tolerates
@@ -92,9 +146,9 @@ func (p *Poster) PostCheckpoint(ctx context.Context, cp *Checkpoint) (map[string
 	return p.postJSON(ctx, "/oracle/v3/checkpoints", cp)
 }
 
-// Health checks KNIRVORACLE's health endpoint.
+// Health checks KNIRVORACLE's health endpoint through the gateway.
 func (p *Poster) Health(ctx context.Context) error {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, "http://unix/oracle/v3/health", nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, p.baseURL+"/oracle/v3/health", nil)
 	if err != nil {
 		return err
 	}

@@ -52,7 +52,26 @@ func resolveNodeBinary() (string, error) {
 	return resolveNodeTool("node", "KNIRV_NODE_BINARY_PATH")
 }
 
-func resolveNpmBinary() (string, error) {
+// resolveNpmBinary locates npm to pair with the already-resolved nodeBin.
+// It deliberately checks nodeBin's own directory before falling back to
+// resolveNodeTool's generic PATH/system search: a bare PATH lookup can
+// resolve node and npm from two different installs (e.g. an nvm-installed
+// node alongside Debian's system-packaged npm), and a mismatched system npm
+// can be missing dependencies (like semver) that only ship with its own
+// paired node version. bin/npm sitting next to bin/node holds for nvm,
+// nodejs.org tarballs, and most system packages alike.
+func resolveNpmBinary(nodeBin string) (string, error) {
+	if override := strings.TrimSpace(os.Getenv("KNIRV_NPM_BINARY_PATH")); override != "" {
+		if info, err := os.Stat(override); err == nil && !info.IsDir() {
+			return override, nil
+		}
+	}
+	if nodeBin != "" {
+		colocated := filepath.Join(filepath.Dir(nodeBin), "npm")
+		if info, err := os.Stat(colocated); err == nil && !info.IsDir() {
+			return colocated, nil
+		}
+	}
 	return resolveNodeTool("npm", "KNIRV_NPM_BINARY_PATH")
 }
 
@@ -136,6 +155,31 @@ func compareNvmVersions(a, b string) int {
 	return len(pa) - len(pb)
 }
 
+// nodeToolEnv builds the environment for spawning node/npm, prepending
+// nodeBin's own directory to PATH. Resolving npm's absolute path is not
+// enough on its own: npm is itself a Node script invoked via a
+// "#!/usr/bin/env node" shebang, so without node's directory on PATH, npm
+// fails immediately with exit 127 ("node: No such file or directory") even
+// though we execed npm by its full path. Any child process npm or main.js
+// spawns (npm install's own node invocations, native module builds, etc.)
+// needs this too.
+func nodeToolEnv(nodeBin string) []string {
+	nodeDir := filepath.Dir(nodeBin)
+	env := os.Environ()
+	pathSet := false
+	for i, kv := range env {
+		if rest, ok := strings.CutPrefix(kv, "PATH="); ok {
+			env[i] = "PATH=" + nodeDir + string(os.PathListSeparator) + rest
+			pathSet = true
+			break
+		}
+	}
+	if !pathSet {
+		env = append(env, "PATH="+nodeDir)
+	}
+	return env
+}
+
 // Start launches the transaction chain service bound to socketPath,
 // extracting the embedded bundle first if needed and running `npm install`
 // before the initial start.
@@ -159,13 +203,14 @@ func (tc *TransactionChain) Start(ctx context.Context, socketPath string) error 
 	if err != nil {
 		return err
 	}
-	npmBin, err := resolveNpmBinary()
+	npmBin, err := resolveNpmBinary(nodeBin)
 	if err != nil {
 		return err
 	}
 
 	installCmd := exec.CommandContext(tc.ctx, npmBin, "install", "--production")
 	installCmd.Dir = destDir
+	installCmd.Env = nodeToolEnv(nodeBin)
 	installCmd.Stdout = os.Stdout
 	installCmd.Stderr = os.Stderr
 	if err := installCmd.Run(); err != nil {
@@ -179,7 +224,7 @@ func (tc *TransactionChain) Start(ctx context.Context, socketPath string) error 
 
 	tc.cmd = exec.CommandContext(tc.ctx, nodeBin, "main.js")
 	tc.cmd.Dir = destDir
-	tc.cmd.Env = append(os.Environ(), fmt.Sprintf("SOCKET_PATH=%s", socketPath))
+	tc.cmd.Env = append(nodeToolEnv(nodeBin), fmt.Sprintf("SOCKET_PATH=%s", socketPath))
 	tc.cmd.Stdout = os.Stdout
 	tc.cmd.Stderr = os.Stderr
 	tc.cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
@@ -218,7 +263,7 @@ func (tc *TransactionChain) monitorProcess(destDir, nodeBin string) {
 		_ = os.Remove(tc.socketPath)
 		tc.cmd = exec.CommandContext(tc.ctx, nodeBin, "main.js")
 		tc.cmd.Dir = destDir
-		tc.cmd.Env = append(os.Environ(), fmt.Sprintf("SOCKET_PATH=%s", tc.socketPath))
+		tc.cmd.Env = append(nodeToolEnv(nodeBin), fmt.Sprintf("SOCKET_PATH=%s", tc.socketPath))
 		tc.cmd.Stdout = os.Stdout
 		tc.cmd.Stderr = os.Stderr
 		tc.cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}

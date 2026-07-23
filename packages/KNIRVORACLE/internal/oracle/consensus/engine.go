@@ -32,7 +32,7 @@ type ConsensusEngine struct {
 func NewConsensusEngine(chainID string, blockTime time.Duration, validatorMode bool, dataDir string, logger *zap.Logger) *ConsensusEngine {
 	ctx, cancel := context.WithCancel(context.Background())
 
-	app := NewABCIApplication(chainID, dataDir, logger)
+	app := NewABCIApplication(chainID, logger)
 
 	ce := &ConsensusEngine{
 		app:           app,

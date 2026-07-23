@@ -322,15 +322,48 @@ func (s *Server) setupRoutes() error {
 
 	// === PHASES 1-4: Unified Proxy Architecture ===
 	//
-	// Oracle proxy — KNIRVORACLE communicates exclusively via Unix socket
-	// through the gateway.  The independent TCP port (historically 1317) is
-	// removed; all oracle traffic flows through the gateway's reverse-proxy layer.
+	// Oracle proxy — KNIRVORACLE runs as its own subprocess with a Unix
+	// socket, but only on the root node (root.key present, see KNIRVSERVER's
+	// initOracleManager). Every other node — which is the common case — must
+	// never dial that local socket path; it never exists there. Instead it
+	// proxies oracle traffic upstream to the canonical public KNIRVGATEWAY for
+	// the current network mode (testnet-gateway.knirv.network / production ->
+	// gateway.knirv.network), which is the instance actually fronting the
+	// root node's local oracle.sock. Without this fallback, every non-root
+	// gateway permanently 502s on oracle routes with "no such file or
+	// directory" since nothing ever listens on that socket there.
+	isRootNode := strings.EqualFold(s.config.ChainNodeRole, "Root")
 	var oracleProxy *httputil.ReverseProxy
 	if s.config.OracleSocketPath != "" {
-		oracleProxy = newSocketProxy(s.config.OracleSocketPath, "http://knirvoracle")
-		s.logger.Info("Oracle proxy registered (socket)", zap.String("socket", s.config.OracleSocketPath))
-	} else {
-		s.logger.Warn("Oracle socket path not configured — oracle endpoints will not be proxied")
+		if _, statErr := os.Stat(s.config.OracleSocketPath); statErr == nil {
+			oracleProxy = newSocketProxy(s.config.OracleSocketPath, "http://knirvoracle")
+			s.logger.Info("Oracle proxy registered (local socket)", zap.String("socket", s.config.OracleSocketPath))
+		} else if isRootNode {
+			s.logger.Warn("Oracle socket configured but not listening yet — oracle endpoints will 502 until it starts",
+				zap.String("socket", s.config.OracleSocketPath), zap.Error(statErr))
+		}
+	}
+	// Fall back to the upstream gateway for any real deployment that isn't
+	// the root node — including one that never had OracleSocketPath wired up
+	// at all (e.g. the standalone cmd/gateway binary, which has no default
+	// for it the way KNIRVSERVER's embedded launcher does). Either signal —
+	// an OracleSocketPath was configured (even if not present on this box),
+	// or NetworkMode was resolved (only true once config.Load() has run,
+	// never for the bare struct literals the unit tests below construct) —
+	// is enough to tell this apart from a genuinely unconfigured test
+	// double, which should keep the old mock/empty fallback instead of
+	// making a real outbound call.
+	if oracleProxy == nil && !isRootNode && (s.config.OracleSocketPath != "" || s.config.NetworkMode != "") {
+		upstream := defaultOracleGatewayURL(s.config.NetworkMode)
+		if p, err := newHTTPProxy(upstream); err == nil {
+			oracleProxy = p
+			s.logger.Info("Oracle proxy registered (upstream KNIRVGATEWAY)", zap.String("upstream", upstream))
+		} else {
+			s.logger.Warn("Failed to configure upstream oracle proxy", zap.String("upstream", upstream), zap.Error(err))
+		}
+	}
+	if oracleProxy == nil {
+		s.logger.Warn("Oracle proxy not configured — oracle endpoints will not be proxied")
 	}
 
 	// /api/oracle/* — Standardized oracle prefix for all Cosmos blockchain queries
@@ -1017,6 +1050,20 @@ func newSocketProxy(socketPath, targetBase string) *httputil.ReverseProxy {
 		return nil
 	}
 	return proxy
+}
+
+// defaultOracleGatewayURL returns the canonical public KNIRVGATEWAY origin
+// that fronts the root node's KNIRVORACLE socket, keyed off network mode —
+// the same production/testnet split KNIRVSERVER's own resolvePublicURL uses.
+// Only the root node ever has oracle.sock locally; every other node reaches
+// KNIRVORACLE by proxying here instead.
+func defaultOracleGatewayURL(networkMode string) string {
+	switch strings.ToLower(strings.TrimSpace(networkMode)) {
+	case "production", "prod", "mainnet":
+		return "https://gateway.knirv.network"
+	default:
+		return "https://testnet-gateway.knirv.network"
+	}
 }
 
 func newHTTPProxy(targetBase string) (*httputil.ReverseProxy, error) {

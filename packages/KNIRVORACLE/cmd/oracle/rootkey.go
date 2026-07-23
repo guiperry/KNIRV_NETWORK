@@ -140,6 +140,22 @@ func getRootKeyPath() (string, error) {
 		add(filepath.Join(homeDir, ".knirv", "root.key"))
 	}
 
+	// os.UserConfigDir() above resolves against the *effective* user — this
+	// binary is normally spawned by KNIRVSERVER running under sudo, so that's
+	// root's ~/.config, not the operator's. sudo sets SUDO_USER even with
+	// env_reset, so check that user's config dir too; if SUDO_USER isn't set
+	// (e.g. a systemd unit running as root directly), fall back to scanning
+	// every home directory.
+	if sudoUser := strings.TrimSpace(os.Getenv("SUDO_USER")); sudoUser != "" {
+		add(filepath.Join("/home", sudoUser, ".config", "knirv-server", "root.key"))
+	} else if entries, err := os.ReadDir("/home"); err == nil {
+		for _, entry := range entries {
+			if entry.IsDir() {
+				add(filepath.Join("/home", entry.Name(), ".config", "knirv-server", "root.key"))
+			}
+		}
+	}
+
 	if exePath, err := os.Executable(); err == nil {
 		exeDir := filepath.Dir(exePath)
 		add(filepath.Join(exeDir, "root.key"))

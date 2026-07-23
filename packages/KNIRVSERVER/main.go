@@ -2463,31 +2463,44 @@ func (app *ServerApp) startValidationChain(ctx context.Context) {
 		log.Printf("Warning: failed to load/create Validation Chain checkpoint signer: %v", err)
 		return
 	}
-	oracleSocketPath := oracleSocketPathResolved()
-	runtime := checkpoint.NewRuntime(socketPath, oracleSocketPath, signer)
+	gatewayURL, gwErr := resolvePublicURL(app.config)
+	if gwErr != nil {
+		gatewayURL = checkpoint.DefaultOracleGatewayURL
+	}
+	gatewayURL = strings.TrimRight(gatewayURL, "/")
+	oracleURL := strings.TrimRight(strings.TrimSpace(os.Getenv("KNIRV_ORACLE_URL")), "/")
+	if oracleURL == "" {
+		oracleURL = gatewayURL
+	}
+	runtime := checkpoint.NewRuntime(socketPath, gatewayURL, oracleURL, signer)
 	go runtime.Run(ctx, 30*time.Second)
-	log.Printf("Validation Chain checkpoint runtime started (posting to KNIRVORACLE socket %s)", oracleSocketPath)
+	log.Printf("Validation Chain checkpoint runtime started (posting to KNIRVORACLE via gateway %s, oracle %s)", gatewayURL, oracleURL)
 }
 
-// oracleSocketPathResolved mirrors pkg/knirvoracle/client.go's default
-// resolution so every consumer in this process agrees on KNIRVORACLE's
-// socket without duplicating the fallback chain inconsistently.
-func oracleSocketPathResolved() string {
-	if override := strings.TrimSpace(os.Getenv("ORACLE_SOCKET_PATH")); override != "" {
-		return override
+// oracleGatewayURL resolves KNIRVORACLE's public address. KNIRVORACLE only
+// runs on the root node — every instance (root or not) must reach it
+// through the public KNIRVGATEWAY, never a local socket, so this always
+// reuses resolvePublicURL()'s network-mode-aware resolution (testnet →
+// testnet-gateway.knirv.network, production → gateway.knirv.network, devnet
+// → devnet-<tag>.knirv.network, enterprise → enterprise-<tag>.knirv.network)
+// instead of assuming co-location. KNIRV_ORACLE_URL overrides everything,
+// for whatever exceptional deployment needs it.
+func oracleGatewayURL(cfg *Config) string {
+	if override := strings.TrimSpace(os.Getenv("KNIRV_ORACLE_URL")); override != "" {
+		return strings.TrimRight(override, "/")
 	}
-	if appDataDir, err := getAppDataDir(); err == nil {
-		return filepath.Join(appDataDir, "sockets", "oracle.sock")
+	if url, err := resolvePublicURL(cfg); err == nil {
+		return url
 	}
-	return filepath.Join("/var/lib/knirvserver", "sockets", "oracle.sock")
+	return checkpoint.DefaultOracleGatewayURL
 }
 
-// waitForOracleHealth polls KNIRVORACLE's health endpoint (over its Unix
-// domain socket) with a bounded retry. Non-fatal: Transaction Chain still
+// waitForOracleHealth polls KNIRVORACLE's health endpoint through the
+// public gateway with a bounded retry. Non-fatal: Transaction Chain still
 // starts if Oracle never comes up, it just skips the funding step (which
 // requires Oracle's Faucet).
-func waitForOracleHealth(ctx context.Context, timeout time.Duration) bool {
-	client := unixHTTPClient(oracleSocketPathResolved(), 3*time.Second)
+func waitForOracleHealth(ctx context.Context, timeout time.Duration, oracleURL string) bool {
+	client := &http.Client{Timeout: 3 * time.Second}
 	deadline := time.Now().Add(timeout)
 	for time.Now().Before(deadline) {
 		select {
@@ -2495,7 +2508,7 @@ func waitForOracleHealth(ctx context.Context, timeout time.Duration) bool {
 			return false
 		default:
 		}
-		req, err := http.NewRequestWithContext(ctx, http.MethodGet, "http://unix/oracle/v3/health", nil)
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, oracleURL+"/oracle/v3/health", nil)
 		if err == nil {
 			if resp, err := client.Do(req); err == nil {
 				resp.Body.Close()
@@ -2510,10 +2523,11 @@ func waitForOracleHealth(ctx context.Context, timeout time.Duration) bool {
 }
 
 // startTransactionChain starts the Transaction Chain subprocess bound to a
-// Unix domain socket. Must be called after backend_server (and therefore
-// KNIRVORACLE) has started, per the requirement that KNIRVORACLE funds every
-// Transaction Chain wallet's provisional balance pool — see
-// fundRootKeyHolderWallet.
+// Unix domain socket. Must be called after backend_server has started, per
+// the requirement that KNIRVORACLE funds every Transaction Chain wallet's
+// provisional balance pool — see fundRootKeyHolderWallet. KNIRVORACLE itself
+// is reached through the public gateway (it only runs on the root node),
+// not assumed local even when this happens to be the root node.
 func (app *ServerApp) startTransactionChain(ctx context.Context) {
 	socketPath := transactionChainSocketPath()
 	if err := embedded.GetManager().StartTransactionChain(ctx, socketPath); err != nil {
@@ -2522,11 +2536,12 @@ func (app *ServerApp) startTransactionChain(ctx context.Context) {
 	}
 	log.Printf("Transaction Chain started on socket %s", socketPath)
 
-	if !waitForOracleHealth(ctx, 60*time.Second) {
+	oracleURL := oracleGatewayURL(app.config)
+	if !waitForOracleHealth(ctx, 60*time.Second, oracleURL) {
 		log.Printf("Warning: KNIRVORACLE did not become healthy in time; skipping Transaction Chain wallet funding")
 		return
 	}
-	app.fundRootKeyHolderWallet(ctx)
+	app.fundRootKeyHolderWallet(ctx, oracleURL)
 }
 
 // testFundingAmountNRN is the flat provisional balance credited to the
@@ -2540,10 +2555,11 @@ const testFundingAmountNRN = 100_000_000
 // fundRootKeyHolderWallet derives the root.key holder's address from the
 // same checkpoint signer identity (LoadOrCreateCheckpointSigner) and credits
 // its Transaction Chain wallet with a flat provisional NRN balance, sourced
-// from KNIRVORACLE's Faucet. One-time per process start; safe to call
-// repeatedly since both the Faucet mint and the wallet credit are additive
-// (a restart adds another testFundingAmountNRN, which is fine for testing).
-func (app *ServerApp) fundRootKeyHolderWallet(ctx context.Context) {
+// from KNIRVORACLE's Faucet via the public gateway. One-time per process
+// start; safe to call repeatedly since both the Faucet mint and the wallet
+// credit are additive (a restart adds another testFundingAmountNRN, which
+// is fine for testing).
+func (app *ServerApp) fundRootKeyHolderWallet(ctx context.Context, oracleURL string) {
 	appDataDir, err := getAppDataDir()
 	if err != nil {
 		log.Printf("Warning: failed to resolve app data dir for wallet funding: %v", err)
@@ -2556,7 +2572,7 @@ func (app *ServerApp) fundRootKeyHolderWallet(ctx context.Context) {
 	}
 	address := validationchain.CheckpointAddress(&signer.PublicKey)
 
-	if err := requestOracleFaucet(ctx, oracleSocketPathResolved(), address, testFundingAmountNRN); err != nil {
+	if err := requestOracleFaucet(ctx, oracleURL, address, testFundingAmountNRN); err != nil {
 		log.Printf("Warning: failed to fund %s from KNIRVORACLE faucet: %v", address, err)
 		return
 	}
@@ -2567,17 +2583,17 @@ func (app *ServerApp) fundRootKeyHolderWallet(ctx context.Context) {
 	log.Printf("Funded root.key holder wallet %s with %d NRN on Transaction Chain", address, testFundingAmountNRN)
 }
 
-func requestOracleFaucet(ctx context.Context, oracleSocketPath, address string, amount int64) error {
+func requestOracleFaucet(ctx context.Context, oracleURL, address string, amount int64) error {
 	body, err := json.Marshal(map[string]any{"address": address, "amount": amount})
 	if err != nil {
 		return err
 	}
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, "http://unix/test/faucet", bytes.NewReader(body))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, oracleURL+"/test/faucet", bytes.NewReader(body))
 	if err != nil {
 		return err
 	}
 	req.Header.Set("Content-Type", "application/json")
-	resp, err := unixHTTPClient(oracleSocketPath, 15*time.Second).Do(req)
+	resp, err := (&http.Client{Timeout: 15 * time.Second}).Do(req)
 	if err != nil {
 		return err
 	}

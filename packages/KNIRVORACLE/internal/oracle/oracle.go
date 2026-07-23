@@ -280,12 +280,23 @@ func NewOracle(config *OracleConfig, logger *zap.Logger) (*Oracle, error) {
 		return nil, fmt.Errorf("failed to load checkpoint state: %w", err)
 	}
 	oracle.checkpoint = cs
-	// Inclusion proofs and consensus AppHash must be views over the exact same
-	// append-only object, not independently maintained replicas.
-	if appRoot, appSize := oracle.consensusEngine.GetApp().AuditSnapshot(); appSize > 0 && (appSize != cs.mmr.Size() || appRoot != cs.mmr.BagRoot()) {
-		cancel()
-		return nil, fmt.Errorf("checkpoint MMR and persisted AppHash MMR diverged; refusing unsafe recovery")
-	}
+	// checkpoint_store.go's mmr_leaf_log.json (loaded into cs.mmr above) is the
+	// single persisted copy of the audit MMR — the consensus app's AppHash is
+	// just a view over this same object from here on (see SetAuditMMR and
+	// appendAuditLeafLocked, the only place new leaves are ever added). There
+	// used to be a second, independently-persisted copy inside ABCIApplication
+	// (audit_mmr_leaf_log.json) that this constructor cross-checked cs.mmr
+	// against, refusing to start on any mismatch. That "safety" check was
+	// itself the bug: the two files were written by different call sites
+	// (Commit vs. the checkpoint admission path) and routinely fell out of
+	// sync on an unclean shutdown, permanently bricking startup with
+	// "checkpoint MMR and persisted AppHash MMR diverged; refusing unsafe
+	// recovery" even when cs.mmr itself was perfectly intact. With only one
+	// persisted copy left, there is nothing left for it to diverge from.
+	logger.Info("Installing persisted checkpoint MMR as the audit MMR",
+		zap.Uint64("leaves", cs.mmr.Size()),
+		zap.String("root", fmt.Sprintf("%x", cs.mmr.BagRoot())),
+	)
 	oracle.consensusEngine.SetAuditMMR(cs.mmr)
 
 	if err := oracle.loadVerifiers(); err != nil {

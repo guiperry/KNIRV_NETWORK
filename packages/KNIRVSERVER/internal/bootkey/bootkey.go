@@ -107,8 +107,8 @@ func candidates(configuredPath string) []string {
 // rootKeyCandidates returns search paths for root.key.
 func rootKeyCandidates() []string {
 	paths := searchPaths("root.key", "ORACLE_KEY_PATH")
-	list := make([]string, 0, len(paths)+3)
-	seen := make(map[string]struct{}, len(paths)+3)
+	list := make([]string, 0, len(paths)+8)
+	seen := make(map[string]struct{}, len(paths)+8)
 	add := func(path string) {
 		path = strings.TrimSpace(path)
 		if path == "" {
@@ -131,8 +131,34 @@ func rootKeyCandidates() []string {
 	}
 	if configDir, err := os.UserConfigDir(); err == nil {
 		add(filepath.Join(configDir, "knirv-server", ".key", "root.key"))
+		// Also check without the .key subdirectory — an operator may have
+		// placed root.key directly under ~/.config/knirv-server/.
+		add(filepath.Join(configDir, "knirv-server", "root.key"))
 	}
 	add(filepath.Join("/etc", "knirv-server", ".key", "root.key"))
+
+	// os.UserConfigDir() resolves against the *effective* user — when this
+	// process runs under sudo (the common case; see main.go's launch
+	// instructions), that's root's ~/.config, not the operator's. sudo sets
+	// SUDO_USER even with env_reset, so check that user's config dir too,
+	// both with and without the .key subdirectory.
+	if sudoUser := strings.TrimSpace(os.Getenv("SUDO_USER")); sudoUser != "" {
+		add(filepath.Join("/home", sudoUser, ".config", "knirv-server", ".key", "root.key"))
+		add(filepath.Join("/home", sudoUser, ".config", "knirv-server", "root.key"))
+	}
+
+	// Last resort: scan every home directory's ~/.config/knirv-server/ for
+	// root.key, with and without .key — covers root-run deployments where
+	// SUDO_USER isn't set (e.g. a systemd unit running as root directly).
+	if entries, err := os.ReadDir("/home"); err == nil {
+		for _, entry := range entries {
+			if !entry.IsDir() {
+				continue
+			}
+			add(filepath.Join("/home", entry.Name(), ".config", "knirv-server", ".key", "root.key"))
+			add(filepath.Join("/home", entry.Name(), ".config", "knirv-server", "root.key"))
+		}
+	}
 
 	// Retain legacy locations so existing installations continue to start.
 	for _, path := range paths {

@@ -9,7 +9,7 @@ import (
 )
 
 func TestCommitUsesMMRBagRootAsAppHash(t *testing.T) {
-	app := NewABCIApplication("mmr-test", "", zap.NewNop())
+	app := NewABCIApplication("mmr-test", zap.NewNop())
 	assertCommitRoot := func(height int, want mmr.Hash) {
 		t.Helper()
 		got, err := app.Commit()

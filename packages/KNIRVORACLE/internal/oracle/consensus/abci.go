@@ -3,8 +3,6 @@ package consensus
 import (
 	"encoding/json"
 	"fmt"
-	"os"
-	"path/filepath"
 	"sync"
 
 	"github.com/knirvcorp/knirvoracle/internal/oracle/mmr"
@@ -18,7 +16,6 @@ type ABCIApplication struct {
 	validators      *ValidatorSet
 	consensusParams *ConsensusParams
 	auditMMR        *mmr.MMR
-	auditMMRPath    string
 	// onCheckpointTx routes a consensus-delivered checkpoint/finality transaction
 	// to the Oracle's admission path (merkle-math.md §3.3 — same path as HTTP).
 	onCheckpointTx func(txType string, payload []byte) error
@@ -26,12 +23,20 @@ type ABCIApplication struct {
 	mu             sync.RWMutex
 }
 
-// NewABCIApplication creates a new ABCI application. If dataDir is non-empty the
-// audit MMR (the source of the block AppHash) is recovered from disk and
-// re-persisted on every Commit, so the AppHash survives an Oracle restart
-// (merkle-math.md Phase 3).
-func NewABCIApplication(chainID, dataDir string, logger *zap.Logger) *ABCIApplication {
-	app := &ABCIApplication{
+// NewABCIApplication creates a new ABCI application. The audit MMR starts
+// empty here and is never independently loaded from or persisted to disk by
+// this type — the Oracle (see oracle.go's NewOracle) wires in the checkpoint
+// pipeline's own MMR via SetAuditMMR before any commit can be observed, so
+// checkpoint_store.go's mmr_leaf_log.json is the single durable copy of this
+// data. This type used to keep a second, independently-persisted copy
+// (audit_mmr_leaf_log.json, written from Commit), which was the actual cause
+// of the "checkpoint MMR and persisted AppHash MMR diverged; refusing unsafe
+// recovery" startup failures: the two on-disk logs were written by different
+// call sites (Commit vs. the checkpoint admission path) and could fall out
+// of sync whenever the process was killed between the two writes — trivially
+// reproducible with an unclean shutdown, not actual data corruption.
+func NewABCIApplication(chainID string, logger *zap.Logger) *ABCIApplication {
+	return &ABCIApplication{
 		state: &State{
 			Version: ConsensusVersion{
 				Block: 11,
@@ -49,18 +54,6 @@ func NewABCIApplication(chainID, dataDir string, logger *zap.Logger) *ABCIApplic
 		auditMMR:        mmr.New(),
 		logger:          logger,
 	}
-	if dataDir != "" {
-		app.auditMMRPath = filepath.Join(dataDir, "audit_mmr_leaf_log.json")
-		if data, err := os.ReadFile(app.auditMMRPath); err == nil {
-			var leaves []mmr.Hash
-			if jerr := json.Unmarshal(data, &leaves); jerr != nil {
-				logger.Error("failed to decode audit MMR leaf log", zap.Error(jerr))
-			} else {
-				app.auditMMR = mmr.FromLeaves(leaves)
-			}
-		}
-	}
-	return app
 }
 
 // SetCheckpointTxHandler registers the consensus-path admission hook used by
@@ -72,13 +65,21 @@ func (app *ABCIApplication) SetCheckpointTxHandler(fn func(txType string, payloa
 }
 
 // SetAuditMMR installs the Oracle checkpoint log as the single MMR instance
-// used for both inclusion proofs and AppHash commits.
+// used for both inclusion proofs and AppHash commits. This is the only audit
+// MMR any part of the consensus app ever observes past startup — see the
+// NewABCIApplication doc comment for why a second, independently-persisted
+// copy is deliberately not kept here.
 func (app *ABCIApplication) SetAuditMMR(shared *mmr.MMR) {
 	app.mu.Lock()
 	defer app.mu.Unlock()
 	if shared == nil {
 		shared = mmr.New()
 	}
+	root := shared.BagRoot()
+	app.logger.Info("Audit MMR installed",
+		zap.Uint64("size", shared.Size()),
+		zap.String("root", fmt.Sprintf("%x", root)),
+	)
 	app.auditMMR = shared
 }
 
@@ -87,12 +88,6 @@ func (app *ABCIApplication) AddAuditLeaf(data []byte) (uint64, mmr.Hash) {
 	app.mu.Lock()
 	defer app.mu.Unlock()
 	return app.auditMMR.AddRaw(mmr.LeafHash(data))
-}
-
-func (app *ABCIApplication) AuditSnapshot() (mmr.Hash, uint64) {
-	app.mu.RLock()
-	defer app.mu.RUnlock()
-	return app.auditMMR.BagRoot(), app.auditMMR.Size()
 }
 
 // Info returns information about the application state
@@ -190,26 +185,16 @@ func (app *ABCIApplication) Commit() ([]byte, error) {
 	app.state.LastBlockHeight++
 
 	// Every Oracle block commits to the append-only audit log. Before the first
-	// audit leaf, this is the canonical SHA256("knirv-mmr-empty") root.
+	// audit leaf, this is the canonical SHA256("knirv-mmr-empty") root. The
+	// audit MMR itself is durably persisted exactly once, by the checkpoint
+	// pipeline that owns it (checkpoint_store.go's mmr_leaf_log.json, written
+	// via persistCheckpointLocked before this Commit is ever called) — nothing
+	// further to write here. See NewABCIApplication's doc comment for why a
+	// second, independently-persisted copy used to live here and why that was
+	// the cause of the checkpoint/AppHash MMR "diverged" startup failures.
 	root := app.auditMMR.BagRoot()
 	appHash := append([]byte(nil), root[:]...)
 	app.state.AppHash = appHash
-
-	// Persist the audit MMR so the AppHash recovers exactly after a restart.
-	if app.auditMMRPath != "" {
-		leaves := app.auditMMR.Leaves()
-		payload, err := json.MarshalIndent(leaves, "", "  ")
-		if err != nil {
-			return nil, fmt.Errorf("encode audit mmr: %w", err)
-		}
-		tmp := app.auditMMRPath + ".tmp"
-		if werr := os.WriteFile(tmp, payload, 0644); werr != nil {
-			return nil, fmt.Errorf("write audit mmr: %w", werr)
-		}
-		if rerr := os.Rename(tmp, app.auditMMRPath); rerr != nil {
-			return nil, fmt.Errorf("rename audit mmr: %w", rerr)
-		}
-	}
 
 	app.logger.Info("Block committed",
 		zap.Uint64("height", uint64(app.state.LastBlockHeight)),

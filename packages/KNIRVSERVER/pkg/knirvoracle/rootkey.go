@@ -24,12 +24,18 @@ func CanonicalRootKeyPath() (string, error) {
 }
 
 // rootKeyCandidates returns, in priority order, the paths that may hold
-// root.key: an explicit operator-configured override (if provided), then
-// the single canonical location. There is deliberately no broader fallback
-// search (env vars, /etc, exe-relative, cwd-relative) — root.key lives in
-// exactly one place unless an operator explicitly configures otherwise.
+// root.key: an explicit operator-configured override (if provided), then the
+// canonical location, both with and without the ".key" subdirectory (an
+// operator may have placed root.key directly under
+// ~/.config/knirv-server/ rather than the dotfile subdirectory), and — since
+// this process normally runs under sudo (root's os.UserConfigDir() is
+// /root/.config, not the operator's) — the same two variants under the
+// sudo-invoking user's home. There is deliberately no broader fallback
+// search beyond that (env vars, /etc, exe-relative, cwd-relative) —
+// root.key lives in exactly one place per operator unless explicitly
+// configured otherwise.
 func rootKeyCandidates(configuredPath string) []string {
-	candidates := make([]string, 0, 2)
+	candidates := make([]string, 0, 6)
 	seen := make(map[string]struct{})
 
 	add := func(path string) {
@@ -46,8 +52,14 @@ func rootKeyCandidates(configuredPath string) []string {
 
 	add(configuredPath)
 
-	if canonicalPath, err := CanonicalRootKeyPath(); err == nil {
-		add(canonicalPath)
+	if configDir, err := os.UserConfigDir(); err == nil {
+		add(filepath.Join(configDir, "knirv-server", ".key", "root.key"))
+		add(filepath.Join(configDir, "knirv-server", "root.key"))
+	}
+
+	if sudoUser := strings.TrimSpace(os.Getenv("SUDO_USER")); sudoUser != "" {
+		add(filepath.Join("/home", sudoUser, ".config", "knirv-server", ".key", "root.key"))
+		add(filepath.Join("/home", sudoUser, ".config", "knirv-server", "root.key"))
 	}
 
 	return candidates

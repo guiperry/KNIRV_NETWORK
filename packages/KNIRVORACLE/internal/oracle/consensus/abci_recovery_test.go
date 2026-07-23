@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"os"
-	"path/filepath"
 	"testing"
 
 	"github.com/knirvcorp/knirvoracle/internal/oracle/mmr"
@@ -15,62 +14,80 @@ func jsonMarshal(v interface{}) ([]byte, error) {
 	return json.Marshal(v)
 }
 
-// TestCommitPersistsMMRAndRecoversAfterRestart verifies the Phase-3 invariant
-// that the Oracle AppHash survives a restart: the audit MMR is persisted to disk
-// on Commit and reconstructed identically on the next NewABCIApplication, so a
-// freshly-loaded AppHash equals the independently-bagged pre-shutdown root.
-func TestCommitPersistsMMRAndRecoversAfterRestart(t *testing.T) {
+// TestNewABCIApplicationDoesNotTouchDisk verifies ABCIApplication no longer
+// keeps its own independently-persisted audit MMR copy. That second copy
+// (audit_mmr_leaf_log.json, written from Commit and reloaded in
+// NewABCIApplication) used to be compared against the checkpoint pipeline's
+// own persisted MMR (oracle.go's mmr_leaf_log.json) on every Oracle startup;
+// the two were written by different call sites and could fall out of sync on
+// an unclean shutdown, permanently refusing to start ("checkpoint MMR and
+// persisted AppHash MMR diverged; refusing unsafe recovery") even though
+// nothing was actually corrupt. There is now exactly one persisted copy —
+// the checkpoint pipeline's — so this failure mode is structurally
+// impossible: ABCIApplication has nothing of its own to diverge from it.
+func TestNewABCIApplicationDoesNotTouchDisk(t *testing.T) {
 	dir, err := os.MkdirTemp("", "oracle-mmr-recovery")
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer os.RemoveAll(dir)
 
-	// First lifecycle: append leaves and commit (persisting the audit MMR).
-	app1 := NewABCIApplication("recover-test", dir, zap.NewNop())
+	app := NewABCIApplication("recover-test", zap.NewNop())
 	for _, leaf := range [][]byte{[]byte("checkpoint-1"), []byte("finality-1"), []byte("checkpoint-2")} {
-		if _, _, err := app1.auditMMR.Add(leaf); err != nil {
+		if _, _, err := app.auditMMR.Add(leaf); err != nil {
 			t.Fatal(err)
 		}
 	}
-	want, err := app1.Commit()
+	if _, err := app.Commit(); err != nil {
+		t.Fatal(err)
+	}
+
+	// Commit must not write anything to dir — ABCIApplication owns no file of
+	// its own to keep in sync with the checkpoint pipeline's persisted log.
+	entries, err := os.ReadDir(dir)
 	if err != nil {
 		t.Fatal(err)
 	}
-	// Sanity: AppHash equals the bagged root of the audit MMR.
-	if got := app1.auditMMR.BagRoot(); !bytes.Equal(want, got[:]) {
-		t.Fatalf("app hash %x != bagged root %x", want, got)
+	if len(entries) != 0 {
+		t.Fatalf("expected no files written by ABCIApplication, found %v", entries)
+	}
+}
+
+// TestSetAuditMMRIsTheOnlyRecoveryPath verifies the replacement invariant:
+// the Oracle (oracle.go's NewOracle) is the sole owner of the persisted audit
+// MMR (loaded from checkpoint_store.go's mmr_leaf_log.json) and installs it
+// via SetAuditMMR; once installed, Commit's AppHash reflects exactly that
+// MMR's bagged root, with no separate recovery/comparison step needed.
+func TestSetAuditMMRIsTheOnlyRecoveryPath(t *testing.T) {
+	// Simulate the checkpoint pipeline's persisted MMR recovered from
+	// mmr_leaf_log.json after a restart (built independently of the app).
+	persisted := mmr.New()
+	var want mmr.Hash
+	for _, leaf := range [][]byte{[]byte("checkpoint-1"), []byte("finality-1")} {
+		var wantErr error
+		_, want, wantErr = persisted.Add(leaf)
+		if wantErr != nil {
+			t.Fatal(wantErr)
+		}
 	}
 
-	// Capture the independent bagged root from the leaf log.
-	leaves := app1.auditMMR.Leaves()
-	indep := mmr.FromLeaves(leaves).BagRoot()
-	if !bytes.Equal(want, indep[:]) {
-		t.Fatalf("pre-shutdown app hash %x != independently bagged root %x", want, indep)
+	app := NewABCIApplication("recover-test", zap.NewNop())
+	// Before installation the app starts from a fresh, empty MMR.
+	if size := app.auditMMR.Size(); size != 0 {
+		t.Fatalf("expected fresh ABCIApplication to start empty, got size %d", size)
 	}
 
-	// Second lifecycle: simulate a restart by reloading from the same DataDir.
-	app2 := NewABCIApplication("recover-test", dir, zap.NewNop())
-	recovered := app2.auditMMR.BagRoot()
-	if !bytes.Equal(recovered[:], want) {
-		t.Fatalf("recovered root %x != pre-shutdown root %x", recovered, want)
-	}
-	// A post-reload Commit must recompute the exact same AppHash as the
-	// pre-shutdown commit — the persisted MMR reconstructs identically.
-	recommit, err := app2.Commit()
+	app.SetAuditMMR(persisted)
+
+	got, err := app.Commit()
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !bytes.Equal(recommit, want) {
-		t.Fatalf("recovered AppHash %x != pre-shutdown root %x", recommit, want)
+	if !bytes.Equal(got, want[:]) {
+		t.Fatalf("post-install AppHash %x != installed MMR's bagged root %x", got, want)
 	}
-	if !bytes.Equal(app2.GetState().AppHash, want) {
-		t.Fatalf("recovered state app hash %x != pre-shutdown root %x", app2.GetState().AppHash, want)
-	}
-
-	// The audit MMR leaf log file must exist and be non-empty.
-	if fi, err := os.Stat(filepath.Join(dir, "audit_mmr_leaf_log.json")); err != nil || fi.Size() == 0 {
-		t.Fatalf("audit MMR leaf log not persisted: err=%v size=%v", err, fi.Size())
+	if !bytes.Equal(app.GetState().AppHash, want[:]) {
+		t.Fatalf("state app hash %x != installed MMR's bagged root %x", app.GetState().AppHash, want)
 	}
 }
 
@@ -78,7 +95,7 @@ func TestCommitPersistsMMRAndRecoversAfterRestart(t *testing.T) {
 // checkpoint/finality transactions delivered through consensus take the same
 // admission path as the HTTP endpoints.
 func TestDeliverTxRoutesCheckpointTxToAdmission(t *testing.T) {
-	app := NewABCIApplication("route-test", "", zap.NewNop())
+	app := NewABCIApplication("route-test", zap.NewNop())
 	routed := 0
 	app.SetCheckpointTxHandler(func(txType string, payload []byte) error {
 		routed++

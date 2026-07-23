@@ -236,6 +236,12 @@ func TestInitialRegistrationRequiresQuorumAndExhaustedBondStopsAdmission(t *test
 // consensus loop never commits. SubmitCheckpoint (the HTTP admission path) must
 // itself commit the audit leaf into the AppHash and persist it, and a reload
 // from the same DataDir must reconstruct the identical AppHash.
+//
+// checkpoint_store.go's mmr_leaf_log.json is the single persisted copy of
+// this data (see NewOracle's doc comment on SetAuditMMR) — ABCIApplication no
+// longer keeps a second, independent copy of its own, so there is nothing
+// for a reload to recover except by re-installing this same MMR via
+// SetAuditMMR, exactly as NewOracle does.
 func TestPhase3AdmissionCommitsAuditMMRAndRecovers(t *testing.T) {
 	dir := t.TempDir()
 	o := &Oracle{
@@ -265,20 +271,25 @@ func TestPhase3AdmissionCommitsAuditMMRAndRecovers(t *testing.T) {
 		t.Fatalf("admit: %v", err)
 	}
 
-	// The audit leaf log must now be persisted to disk.
-	data, err := os.ReadFile(filepath.Join(dir, "audit_mmr_leaf_log.json"))
+	// The checkpoint pipeline's leaf log — the single source of truth — must
+	// now be persisted to disk. There is no separate audit_mmr_leaf_log.json
+	// anymore: ABCIApplication has nothing of its own to write.
+	data, err := os.ReadFile(filepath.Join(dir, "mmr_leaf_log.json"))
 	if err != nil {
-		t.Fatalf("audit mmr leaf log not persisted by admission: %v", err)
+		t.Fatalf("checkpoint mmr leaf log not persisted by admission: %v", err)
 	}
 	var leaves []mmr.Hash
 	if err := json.Unmarshal(data, &leaves); err != nil {
-		t.Fatalf("decode audit leaves: %v", err)
+		t.Fatalf("decode leaves: %v", err)
 	}
 	if len(leaves) != 1 {
-		t.Fatalf("expected 1 persisted audit leaf, got %d", len(leaves))
+		t.Fatalf("expected 1 persisted leaf, got %d", len(leaves))
+	}
+	if _, err := os.Stat(filepath.Join(dir, "audit_mmr_leaf_log.json")); err == nil {
+		t.Fatalf("audit_mmr_leaf_log.json should no longer be written — a second persisted copy is exactly what caused the divergence bug")
 	}
 
-	// The AppHash must equal the checkpoint MMR root (same leaves, both MMRs).
+	// The AppHash must equal the checkpoint MMR root (same underlying object).
 	appHash := o.consensusEngine.GetApp().GetState().AppHash
 	root := o.MMRRoot()
 	if len(appHash) != 32 || bytes.Equal(appHash, make([]byte, 32)) {
@@ -288,9 +299,10 @@ func TestPhase3AdmissionCommitsAuditMMRAndRecovers(t *testing.T) {
 		t.Fatalf("AppHash %x != checkpoint MMR root %x", appHash, root)
 	}
 
-	// Reload from the same DataDir (mirroring production NewOracle, which loads
-	// the persisted state). The audit MMR and index MMR must both recover to
-	// the same root.
+	// Reload from the same DataDir (mirroring production NewOracle: load the
+	// persisted checkpoint state, then explicitly install it as the audit MMR
+	// via SetAuditMMR — no on-disk recovery happens inside the consensus
+	// engine itself anymore).
 	cs2, err := LoadCheckpointState(dir)
 	if err != nil {
 		t.Fatalf("reload checkpoint state: %v", err)
@@ -301,6 +313,7 @@ func TestPhase3AdmissionCommitsAuditMMRAndRecovers(t *testing.T) {
 		consensusEngine: consensus.NewConsensusEngine("knirvchain-test", 0, false, dir, zap.NewNop()),
 		logger:          zap.NewNop(),
 	}
+	o2.consensusEngine.SetAuditMMR(cs2.mmr)
 	recommit, err := o2.consensusEngine.GetApp().Commit()
 	if err != nil {
 		t.Fatalf("recommit after reload: %v", err)

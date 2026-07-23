@@ -17,14 +17,16 @@ import (
 
 const chainID = "validation-chain"
 
-// Runtime polls the embedded Validation Chain's local HTTP API (over its
-// Unix domain socket) for new blocks and posts signed checkpoints to
-// KNIRVORACLE (also over a Unix domain socket — see Poster). It
-// intentionally does not implement the transition-proof / local-verifier
-// handoff KNIRVCHAIN's equivalent runtime does (merkle-math.md Phase 4/5) —
-// that is a separate, more advanced finality-attestation layer; this
-// runtime only covers checkpoint submission, which is enough for Validation
-// Chain to become the registered merkle source.
+// Runtime polls the embedded Validation Chain's local HTTP API (over its own
+// Unix domain socket — it's genuinely co-located with this process) for new
+// blocks, and posts signed checkpoints to KNIRVORACLE over the public
+// KNIRVGATEWAY (see Poster) — never a local socket, since KNIRVORACLE only
+// runs on the root node and this code runs on every node. It intentionally
+// does not implement the transition-proof / local-verifier handoff
+// KNIRVCHAIN's equivalent runtime does (merkle-math.md Phase 4/5) — that is
+// a separate, more advanced finality-attestation layer; this runtime only
+// covers checkpoint submission, which is enough for Validation Chain to
+// become the registered merkle source.
 type Runtime struct {
 	poster     *Poster
 	signer     *ecdsa.PrivateKey
@@ -34,11 +36,15 @@ type Runtime struct {
 	prevHash [32]byte
 }
 
-// NewRuntime builds a Runtime. chainSocketPath is the Validation Chain's
-// local Unix domain socket; oracleSocketPath is passed to NewPoster.
-func NewRuntime(chainSocketPath, oracleSocketPath string, signer *ecdsa.PrivateKey) *Runtime {
+// NewRuntime builds a Runtime. chainSocketPath is the Validation Chain's own
+// local Unix domain socket (genuinely co-located with this process);
+// gatewayURL is the public KNIRVGATEWAY base URL (e.g. KNIRVSERVER's
+// own resolvePublicURL() result), and oracleURL is the actual KNIRVORACLE
+// endpoint (KNIRV_ORACLE_URL override if set, otherwise the same as gatewayURL).
+// KNIRVORACLE is never assumed local.
+func NewRuntime(chainSocketPath, gatewayURL, oracleURL string, signer *ecdsa.PrivateKey) *Runtime {
 	return &Runtime{
-		poster: NewPoster(oracleSocketPath),
+		poster: NewPoster(gatewayURL, oracleURL),
 		signer: signer,
 		httpClient: &http.Client{
 			Timeout: 10 * time.Second,
