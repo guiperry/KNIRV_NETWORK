@@ -1,10 +1,12 @@
 package oracle
 
 import (
+	"crypto/ecdsa"
 	"crypto/ed25519"
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"sync"
 	"testing"
 	"time"
@@ -54,7 +56,24 @@ func phase4Attestation(t *testing.T, o *Oracle, id string, rec *types.Checkpoint
 	return att
 }
 
+// projectTestRollup registers a fresh chain and submits a signed rollup for
+// it. Use projectTestRollupAs when the caller already registered chainID
+// with its own key (e.g. to set Bond/BondOwner) — registering twice fails.
 func projectTestRollup(t *testing.T, o *Oracle, chainID string) *types.CheckpointRecord {
+	t.Helper()
+	reg, key := newTestChain(t, chainID)
+	if err := types.SignRegistration(&reg, key); err != nil {
+		t.Fatalf("sign registration: %v", err)
+	}
+	if err := o.RegisterChain(&reg); err != nil {
+		t.Fatalf("register: %v", err)
+	}
+	return projectTestRollupAs(t, o, chainID, reg.Authors[0].Address, reg.Authors[0].PubKey, key)
+}
+
+// projectTestRollupAs submits a signed rollup for a chain/author the caller
+// already registered.
+func projectTestRollupAs(t *testing.T, o *Oracle, chainID, proposer string, proposerPubKey []byte, key *ecdsa.PrivateKey) *types.CheckpointRecord {
 	t.Helper()
 	rr := &types.RollupRecord{
 		ID:          "r-" + chainID,
@@ -62,9 +81,19 @@ func projectTestRollup(t *testing.T, o *Oracle, chainID string) *types.Checkpoin
 		ChainID:     chainID,
 		StartHeight: 1,
 		EndHeight:   10,
+		Proposer:    proposer,
 		Status:      types.RollupStatusSubmitted,
 		SubmittedAt: time.Now().UTC(),
 	}
+	sigBytes, err := types.SignMessage(key, fmt.Sprintf("%x", rr.Digest()))
+	if err != nil {
+		t.Fatalf("sign rollup: %v", err)
+	}
+	rr.Signatures = []types.AuthorSig{{
+		Address:   proposer,
+		PubKeyHex: hex.EncodeToString(proposerPubKey),
+		Signature: sigBytes,
+	}}
 	if err := o.SubmitRollup(rr); err != nil {
 		t.Fatalf("SubmitRollup: %v", err)
 	}

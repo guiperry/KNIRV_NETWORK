@@ -55,8 +55,11 @@ const (
 	CheckpointRejected    CheckpointStatus = "rejected"
 )
 
-// Checkpoint is the wire type KNIRVCHAIN posts; it mirrors KNIRVCHAIN's type and
-// adds oracle-side fields downstream in CheckpointRecord.
+// Checkpoint is the wire type KNIRVSERVER's embedded Validation Chain posts
+// (pkg/embedded/validationchain/checkpoint in the KNIRV_NETWORK repo) — the
+// merkle source of record. KNIRVCHAIN no longer submits checkpoints; it
+// stays sovereign, minting NFT bundles only. This type mirrors the poster's
+// wire type and adds oracle-side fields downstream in CheckpointRecord.
 type Checkpoint struct {
 	SchemaVersion string      `json:"schema_version"`
 	ChainID       string      `json:"chain_id"`
@@ -85,9 +88,10 @@ type CheckpointRecord struct {
 	PendingAttestations    []VerifierAttestation `json:"pending_attestations,omitempty"`
 	PendingTransitionProof []byte                `json:"pending_transition_proof,omitempty"`
 	PendingProofSystem     string                `json:"pending_proof_system,omitempty"`
-	// Source records how this leaf entered the MMR. Empty = direct KNIRVCHAIN
-	// submission. "rollup:<id>" = projected from a legacy RollupRecord (Phase 3
-	// bridge). Non-empty sources are audit-only and cannot enter finality.
+	// Source records how this leaf entered the MMR. Empty = direct submission
+	// by a registered checkpoint chain (Validation Chain). "rollup:<id>" =
+	// projected from a RollupRecord (Phase 3 bridge, e.g. Transaction Chain).
+	// Non-empty sources are audit-only and cannot enter finality.
 	Source string `json:"source,omitempty"`
 }
 

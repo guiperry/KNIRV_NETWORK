@@ -988,6 +988,18 @@ func (bcs *BlockchainServer) HandleReceiveTransaction(w http.ResponseWriter, r *
 		return
 	}
 
+	// KNIRVCHAIN is sovereign: it burns NRN to mint NFT bundles (see
+	// handleEventBundleMint) but is no longer the general-purpose NRN wallet
+	// for plain transfers — that temporary pool now lives on KNIRVSERVER's
+	// embedded Transaction Chain (pkg/embedded/transactionchain, POST
+	// /transfer). Plain transfers use the empty Type (see Transaction.VerifyTxn);
+	// every other type (event-bundle mint, MCP capability, LLM rooting, etc.)
+	// is unaffected.
+	if tx.Type == "" {
+		http.Error(w, "plain NRN transfers are no longer accepted on KNIRVCHAIN; submit them to the Transaction Chain's /transfer endpoint instead", http.StatusGone)
+		return
+	}
+
 	// Verify signature
 	if tx.Signature == nil || tx.PublicKey == "" {
 		http.Error(w, "Transaction is missing signature or public key", http.StatusBadRequest)

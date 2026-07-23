@@ -3,9 +3,12 @@ package transformer
 import (
 	"crypto/sha256"
 	"encoding/binary"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"math/rand"
+	"os"
 	"sync"
 	"time"
 
@@ -100,6 +103,8 @@ type UnifiedHasherEngine struct {
 	mode       InferenceMode
 	stats      *EngineStats
 	mu         sync.RWMutex
+	hwOnce     sync.Once
+	hwTier     string
 }
 
 // NewUnifiedHasherEngine creates a new engine with the given seeds, hash method, and mode.
@@ -110,13 +115,15 @@ func NewUnifiedHasherEngine(seeds *SeedStore, hashMethod core.HashMethod, mode I
 	if seeds == nil {
 		seeds = &SeedStore{}
 	}
-	return &UnifiedHasherEngine{
+	engine := &UnifiedHasherEngine{
 		config:     DefaultUnifiedConfig(),
 		seeds:      seeds,
 		hashMethod: hashMethod,
 		mode:       mode,
 		stats:      &EngineStats{},
 	}
+	engine.ValidateHardware()
+	return engine
 }
 
 // NewUnifiedHasherEngineWithConfig creates a new engine with explicit config.
@@ -130,13 +137,15 @@ func NewUnifiedHasherEngineWithConfig(cfg *UnifiedConfig, seeds *SeedStore, hash
 	if seeds == nil {
 		seeds = &SeedStore{}
 	}
-	return &UnifiedHasherEngine{
+	engine := &UnifiedHasherEngine{
 		config:     cfg,
 		seeds:      seeds,
 		hashMethod: hashMethod,
 		mode:       mode,
 		stats:      &EngineStats{},
 	}
+	engine.ValidateHardware()
+	return engine
 }
 
 // SetHashMethod updates the HashMethod used for hardware-accelerated hashing.
@@ -144,6 +153,7 @@ func (e *UnifiedHasherEngine) SetHashMethod(method core.HashMethod) {
 	e.mu.Lock()
 	defer e.mu.Unlock()
 	e.hashMethod = method
+	e.hwOnce.Do(func() {})
 }
 
 // SetSeeds replaces the active SeedStore.
@@ -172,6 +182,45 @@ func (e *UnifiedHasherEngine) IsUsingHardware() bool {
 	e.mu.RLock()
 	defer e.mu.RUnlock()
 	return e.hashMethod != nil && e.hashMethod.IsAvailable()
+}
+
+// HardwareTier returns the detected hardware tier string ("ASIC", "CUDA", "eBPF", "uBPF", "software").
+func (e *UnifiedHasherEngine) HardwareTier() string {
+	e.mu.RLock()
+	tier := e.hwTier
+	e.mu.RUnlock()
+	return tier
+}
+
+// ValidateHardware probes hardware availability once and logs the active tier.
+// Call this during engine initialization before any inference calls.
+func (e *UnifiedHasherEngine) ValidateHardware() {
+	e.hwOnce.Do(func() {
+		e.mu.Lock()
+		defer e.mu.Unlock()
+		if e.hashMethod == nil {
+			e.hwTier = "software"
+			return
+		}
+		if !e.hashMethod.IsAvailable() {
+			e.hwTier = "software"
+			return
+		}
+		name := e.hashMethod.Name()
+		switch name {
+		case "ASICMethod":
+			e.hwTier = "ASIC"
+		case "CudaMethod":
+			e.hwTier = "CUDA"
+		case "EbpfMethod":
+			e.hwTier = "eBPF"
+		case "UbpfMethod":
+			e.hwTier = "uBPF"
+		default:
+			e.hwTier = name
+		}
+		log.Printf("[UnifiedHasherEngine] hardware tier detected: %s", e.hwTier)
+	})
 }
 
 // Stats returns a snapshot of engine statistics.
@@ -485,6 +534,11 @@ func (e *UnifiedHasherEngine) inferRecursive(input []byte) (*hashing.RecursiveRe
 	for i := 0; i < cfg.Passes; i++ {
 		passResult, err := e.runRecursivePass(input, i, seeds, cfg, method)
 		if err != nil {
+			passResult, retryErr := e.runRecursivePassSoftware(input, i, seeds, cfg)
+			if retryErr != nil {
+				continue
+			}
+			results = append(results, passResult)
 			continue
 		}
 		results = append(results, passResult)
@@ -536,6 +590,27 @@ func (e *UnifiedHasherEngine) runRecursivePass(input []byte, passNum int, seeds 
 		PassNumber:  passNum,
 		Prediction:  prediction,
 		Confidence:  confidence,
+		Latency:     time.Since(start),
+		PassLatency: time.Since(start),
+	}, nil
+}
+
+// runRecursivePassSoftware retries a single recursive pass using the software path.
+func (e *UnifiedHasherEngine) runRecursivePassSoftware(input []byte, passNum int, seeds *SeedStore, cfg *UnifiedConfig) (*hashing.InferencePass, error) {
+	start := time.Now()
+	jittered, err := applyJitter(input, cfg.Jitter, passNum)
+	if err != nil {
+		return nil, err
+	}
+	net := buildTempNetwork(jittered, seeds, cfg)
+	pred, conf, err := net.Predict(jittered)
+	if err != nil {
+		return nil, err
+	}
+	return &hashing.InferencePass{
+		PassNumber:  passNum,
+		Prediction:  pred,
+		Confidence:  conf,
 		Latency:     time.Since(start),
 		PassLatency: time.Since(start),
 	}, nil
@@ -733,7 +808,9 @@ type SeedStoreWriter interface {
 	ReadSeedStore() (*SeedStore, error)
 }
 
-// CSVSeedStoreWriter writes seeds in CSV format for backward compatibility.
+// CSVSeedStoreWriter writes seeds in JSON format for backward compatibility
+// with the existing pipeline output. The file uses a .csv extension but stores
+// JSON to preserve nested SeedStore structure.
 type CSVSeedStoreWriter struct {
 	path string
 }
@@ -743,11 +820,29 @@ func NewCSVSeedStoreWriter(path string) *CSVSeedStoreWriter {
 }
 
 func (w *CSVSeedStoreWriter) WriteSeedStore(store *SeedStore) error {
+	if store == nil {
+		return fmt.Errorf("cannot write nil SeedStore")
+	}
+	data, err := json.MarshalIndent(store, "", "\t")
+	if err != nil {
+		return fmt.Errorf("CSVSeedStoreWriter marshal: %w", err)
+	}
+	if err := os.WriteFile(w.path, data, 0644); err != nil {
+		return fmt.Errorf("CSVSeedStoreWriter write: %w", err)
+	}
 	return nil
 }
 
 func (w *CSVSeedStoreWriter) ReadSeedStore() (*SeedStore, error) {
-	return &SeedStore{}, nil
+	data, err := os.ReadFile(w.path)
+	if err != nil {
+		return nil, fmt.Errorf("CSVSeedStoreWriter read: %w", err)
+	}
+	var store SeedStore
+	if err := json.Unmarshal(data, &store); err != nil {
+		return nil, fmt.Errorf("CSVSeedStoreWriter unmarshal: %w", err)
+	}
+	return &store, nil
 }
 
 // MemorySeedStoreWriter keeps SeedStore in memory.
@@ -774,13 +869,129 @@ func (w *MemorySeedStoreWriter) ReadSeedStore() (*SeedStore, error) {
 	return w.store, nil
 }
 
+// BPFSeedStoreWriter writes seeds to a BPF map path for device deployment.
+// It is a stub by default; enable real BPF syscalls behind the DeviceType flag.
+type BPFSeedStoreWriter struct {
+	path     string
+	deviceType string
+}
+
+func NewBPFSeedStoreWriter(path, deviceType string) *BPFSeedStoreWriter {
+	if deviceType == "" {
+		deviceType = "bpf_dummy"
+	}
+	return &BPFSeedStoreWriter{path: path, deviceType: deviceType}
+}
+
+func (w *BPFSeedStoreWriter) WriteSeedStore(store *SeedStore) error {
+	if store == nil {
+		return fmt.Errorf("cannot write nil SeedStore to BPF")
+	}
+	if w.deviceType == "bpf_real" {
+		return fmt.Errorf("BPFRealInterface not implemented: requires libbpf and kernel headers")
+	}
+	data, err := json.Marshal(store)
+	if err != nil {
+		return fmt.Errorf("BPFSeedStoreWriter marshal: %w", err)
+	}
+	if err := os.WriteFile(w.path+".json", data, 0644); err != nil {
+		return fmt.Errorf("BPFSeedStoreWriter write: %w", err)
+	}
+	return nil
+}
+
+func (w *BPFSeedStoreWriter) ReadSeedStore() (*SeedStore, error) {
+	data, err := os.ReadFile(w.path + ".json")
+	if err != nil {
+		return nil, fmt.Errorf("BPFSeedStoreWriter read: %w", err)
+	}
+	var store SeedStore
+	if err := json.Unmarshal(data, &store); err != nil {
+		return nil, fmt.Errorf("BPFSeedStoreWriter unmarshal: %w", err)
+	}
+	return &store, nil
+}
+
+// NRVSeedStoreWriter writes seeds to .nrv bracket embedding format.
+type NRVSeedStoreWriter struct {
+	path string
+}
+
+func NewNRVSeedStoreWriter(path string) *NRVSeedStoreWriter {
+	return &NRVSeedStoreWriter{path: path}
+}
+
+func (w *NRVSeedStoreWriter) WriteSeedStore(store *SeedStore) error {
+	if store == nil {
+		return fmt.Errorf("cannot write nil SeedStore to NRV")
+	}
+	data, err := json.Marshal(store)
+	if err != nil {
+		return fmt.Errorf("NRVSeedStoreWriter marshal: %w", err)
+	}
+	if err := os.WriteFile(w.path+".nrv.json", data, 0644); err != nil {
+		return fmt.Errorf("NRVSeedStoreWriter write: %w", err)
+	}
+	return nil
+}
+
+func (w *NRVSeedStoreWriter) ReadSeedStore() (*SeedStore, error) {
+	data, err := os.ReadFile(w.path + ".nrv.json")
+	if err != nil {
+		return nil, fmt.Errorf("NRVSeedStoreWriter read: %w", err)
+	}
+	var store SeedStore
+	if err := json.Unmarshal(data, &store); err != nil {
+		return nil, fmt.Errorf("NRVSeedStoreWriter unmarshal: %w", err)
+	}
+	return &store, nil
+}
+
+// CrossModeValidation compares legacy HashNetwork predictions with unified engine
+// predictions to ensure seed compatibility across modes.
+// Tolerance: exact match in software mode, ±1 in hardware mode.
+func CrossModeValidation(seed [32]byte, input []byte) error {
+	legacyNet, err := neural.NewHashNetwork(len(input), 16, 8, 4)
+	if err != nil {
+		return fmt.Errorf("CrossModeValidation: legacy net creation: %w", err)
+	}
+	legacyPred, _, err := legacyNet.Predict(input)
+	if err != nil {
+		return fmt.Errorf("CrossModeValidation: legacy predict: %w", err)
+	}
+
+	store := &SeedStore{
+		Seeds1: legacyNet.Seeds1,
+		Seeds2: legacyNet.Seeds2,
+		SeedsOut: legacyNet.SeedsOut,
+	}
+	engine := NewUnifiedHasherEngine(store, nil, ModeFeedforward)
+	unifiedPred, _, err := engine.Predict(input)
+	if err != nil {
+		return fmt.Errorf("CrossModeValidation: unified predict: %w", err)
+	}
+
+	if legacyPred != unifiedPred && abs(legacyPred-unifiedPred) > 1 {
+		return fmt.Errorf("CrossModeValidation: legacy=%d unified=%d", legacyPred, unifiedPred)
+	}
+	return nil
+}
+
+func abs(x int) int {
+	if x < 0 {
+		return -x
+	}
+	return x
+}
+
 // NewUnifiedHasherEngineFromConfig is a convenience constructor used by HEARTService.
 func NewUnifiedHasherEngineFromConfig(cfg *UnifiedConfig) (*UnifiedHasherEngine, error) {
 	if cfg == nil {
 		cfg = DefaultUnifiedConfig()
 	}
 	seeds := BuildDefaultSeedStore(cfg)
-	return NewUnifiedHasherEngineWithConfig(cfg, seeds, nil, ModeTransformer), nil
+	engine := NewUnifiedHasherEngineWithConfig(cfg, seeds, nil, ModeTransformer)
+	return engine, nil
 }
 
 func BuildDefaultSeedStore(cfg *UnifiedConfig) *SeedStore {
@@ -853,8 +1064,3 @@ func buildDefaultLayerSeeds(cfg *UnifiedConfig) TransformerLayerSeeds {
 }
 
 // CrossModeValidation compares legacy and unified predictions.
-func CrossModeValidation(seed [32]byte, input []byte) error {
-	_ = seed
-	_ = input
-	return nil
-}

@@ -9,6 +9,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -30,7 +31,74 @@ const (
 	eventBundleReceiptSchema  = "event_bundle_receipt.v1"
 	eventBundleKeyPrefix      = "event_bundle:bundle:"
 	eventBundleEventKeyPrefix = "event_bundle:event:"
+
+	// eventBundleBurnAddress is the sink NRN is transferred to when burned to
+	// mint a bundle. It has no corresponding wallet — nothing ever spends
+	// from it — so a transfer into it is an effective burn while still using
+	// the Transaction Chain's ordinary balance ledger (no separate burn
+	// bookkeeping needed there).
+	eventBundleBurnAddress = "0x000000000000000000000000000000000000dead"
 )
+
+// eventBundleMintCostNRN returns the flat NRN cost of minting one event
+// bundle. KNIRVCHAIN stays sovereign — it burns NRN to mint bundles but does
+// not itself mint or hold the NRN economy (that's KNIRVORACLE's Faucet and
+// the Transaction Chain's temporary pool, see KNIRV_NETWORK's
+// pkg/embedded/transactionchain). Overridable for deployments that want a
+// different price; there is no existing per-bundle pricing model to inherit
+// from (internal/mining's calculateNRNCost prices capability invocations, a
+// different, heavier-weight mint path).
+func eventBundleMintCostNRN() uint64 {
+	if raw := strings.TrimSpace(os.Getenv("KNIRV_EVENT_BUNDLE_MINT_COST_NRN")); raw != "" {
+		if cost, err := strconv.ParseUint(raw, 10, 64); err == nil {
+			return cost
+		}
+	}
+	return 10
+}
+
+// transactionChainBaseURL resolves the embedded Transaction Chain's local
+// HTTP API (KNIRVSERVER's pkg/embedded/transactionchain), where the
+// temporary NRN pool actually lives.
+func transactionChainBaseURL() string {
+	if raw := strings.TrimSpace(os.Getenv("KNIRV_TRANSACTION_CHAIN_URL")); raw != "" {
+		return strings.TrimRight(raw, "/")
+	}
+	return "http://127.0.0.1:9190"
+}
+
+// burnNRNForBundleMint debits amount NRN from minterAddress's Transaction
+// Chain wallet balance by transferring it to eventBundleBurnAddress. Returns
+// an error (including insufficient funds) if the debit cannot be applied —
+// callers must not mint the bundle in that case.
+func burnNRNForBundleMint(minterAddress string, amount uint64) error {
+	if amount == 0 {
+		return nil
+	}
+	body, err := json.Marshal(map[string]any{
+		"from":  minterAddress,
+		"to":    eventBundleBurnAddress,
+		"value": amount,
+	})
+	if err != nil {
+		return err
+	}
+	req, err := http.NewRequest(http.MethodPost, transactionChainBaseURL()+"/transfer", bytes.NewReader(body))
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := (&http.Client{Timeout: 10 * time.Second}).Do(req)
+	if err != nil {
+		return fmt.Errorf("burn NRN via transaction chain: %w", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode/100 != 2 {
+		responseBody, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
+		return fmt.Errorf("transaction chain rejected NRN burn (%d): %s", resp.StatusCode, string(responseBody))
+	}
+	return nil
+}
 
 // eventBundleResourceRef is a lightweight reference to one Skill, Capability
 // (MCP), or Asset involved in the event. It intentionally mirrors the CLI's
@@ -248,6 +316,12 @@ func (bcs *BlockchainServer) handleEventBundleMint(w http.ResponseWriter, r *htt
 	data, err := json.Marshal(envelope)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	mintCost := eventBundleMintCostNRN()
+	if err := burnNRNForBundleMint(request.MinterAddress, mintCost); err != nil {
+		http.Error(w, "burn NRN for bundle mint: "+err.Error(), http.StatusPaymentRequired)
 		return
 	}
 

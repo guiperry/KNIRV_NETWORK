@@ -42,6 +42,9 @@ import (
 	"knirv-server/internal/knirvproof"
 	"knirv-server/internal/tlsprovider"
 	"knirv-server/internal/updater"
+	"knirv-server/pkg/embedded"
+	"knirv-server/pkg/embedded/validationchain"
+	"knirv-server/pkg/embedded/validationchain/checkpoint"
 )
 
 // Embed the Next.js build output
@@ -1783,7 +1786,7 @@ func (app *ServerApp) setupProofRoutes() error {
 		DEKs: trustClient, SigningKeys: trustClient.ResolveSigningKey, ValidatorID: validatorID,
 		EventBundles: eventBundles,
 	}
-	minter, err := knirvproof.NewChainMinter(chainSocket, app.internalAuthToken)
+	minter, err := knirvproof.NewValidationChainMinter(validationChainSocketPath(), app.internalAuthToken)
 	if err != nil {
 		return err
 	}
@@ -2336,6 +2339,215 @@ func ensureMainHTTPPortFree(port int) error {
 	return fmt.Errorf("port %d is still in use after automatic cleanup", port)
 }
 
+// validationChainSocketPath and transactionChainSocketPath resolve the Unix
+// domain sockets KNIRVSERVER binds these embedded subprocesses to.
+// backend_server/KNIRVGATEWAY proxy requests to them over these same
+// sockets; neither process exposes a TCP port.
+func validationChainSocketPath() string {
+	return embeddedChainSocketPath("KNIRV_VALIDATION_CHAIN_SOCKET_PATH", "validationchain.sock")
+}
+
+func transactionChainSocketPath() string {
+	return embeddedChainSocketPath("KNIRV_TRANSACTION_CHAIN_SOCKET_PATH", "transactionchain.sock")
+}
+
+func embeddedChainSocketPath(overrideEnv, filename string) string {
+	if override := strings.TrimSpace(os.Getenv(overrideEnv)); override != "" {
+		return override
+	}
+	if appDataDir, err := getAppDataDir(); err == nil {
+		return filepath.Join(appDataDir, "sockets", filename)
+	}
+	return filepath.Join("/var/lib/knirvserver", "sockets", filename)
+}
+
+// unixHTTPClient builds an http.Client that dials a Unix domain socket
+// regardless of the URL host given to it — callers use the "http://unix"
+// base URL by convention (matching pkg/knirvoracle/client.go's pattern).
+func unixHTTPClient(socketPath string, timeout time.Duration) *http.Client {
+	return &http.Client{
+		Timeout: timeout,
+		Transport: &http.Transport{
+			DialContext: func(ctx context.Context, _, _ string) (net.Conn, error) {
+				return (&net.Dialer{}).DialContext(ctx, "unix", socketPath)
+			},
+		},
+	}
+}
+
+// startValidationChain starts the Validation Chain subprocess that
+// KNIRVSERVER owns directly (pkg/embedded/validationchain — mirroring the
+// same Init/Start/Stop convention pkg/embedded/graphrag already uses), bound
+// to a Unix domain socket. backend_server (KNIRV_CORP) only holds an HTTP
+// client dialing that same socket; it does not spawn its own copy and
+// nothing exposes a TCP port for it. On success, also starts the
+// checkpoint-posting runtime that registers Validation Chain with
+// KNIRVORACLE and periodically submits signed checkpoints — making it the
+// merkle source in place of KNIRVCHAIN. Failure is logged and non-fatal.
+func (app *ServerApp) startValidationChain(ctx context.Context) {
+	socketPath := validationChainSocketPath()
+	if err := embedded.GetManager().StartValidationChain(ctx, socketPath); err != nil {
+		log.Printf("Warning: failed to start Validation Chain: %v", err)
+		return
+	}
+	log.Printf("Validation Chain started on socket %s", socketPath)
+
+	appDataDir, err := getAppDataDir()
+	if err != nil {
+		log.Printf("Warning: failed to resolve app data dir for checkpoint signer: %v", err)
+		return
+	}
+	signer, err := validationchain.LoadOrCreateCheckpointSigner(appDataDir)
+	if err != nil {
+		log.Printf("Warning: failed to load/create Validation Chain checkpoint signer: %v", err)
+		return
+	}
+	oracleSocketPath := oracleSocketPathResolved()
+	runtime := checkpoint.NewRuntime(socketPath, oracleSocketPath, signer)
+	go runtime.Run(ctx, 30*time.Second)
+	log.Printf("Validation Chain checkpoint runtime started (posting to KNIRVORACLE socket %s)", oracleSocketPath)
+}
+
+// oracleSocketPathResolved mirrors pkg/knirvoracle/client.go's default
+// resolution so every consumer in this process agrees on KNIRVORACLE's
+// socket without duplicating the fallback chain inconsistently.
+func oracleSocketPathResolved() string {
+	if override := strings.TrimSpace(os.Getenv("ORACLE_SOCKET_PATH")); override != "" {
+		return override
+	}
+	if appDataDir, err := getAppDataDir(); err == nil {
+		return filepath.Join(appDataDir, "sockets", "oracle.sock")
+	}
+	return filepath.Join("/var/lib/knirvserver", "sockets", "oracle.sock")
+}
+
+// waitForOracleHealth polls KNIRVORACLE's health endpoint (over its Unix
+// domain socket) with a bounded retry. Non-fatal: Transaction Chain still
+// starts if Oracle never comes up, it just skips the funding step (which
+// requires Oracle's Faucet).
+func waitForOracleHealth(ctx context.Context, timeout time.Duration) bool {
+	client := unixHTTPClient(oracleSocketPathResolved(), 3*time.Second)
+	deadline := time.Now().Add(timeout)
+	for time.Now().Before(deadline) {
+		select {
+		case <-ctx.Done():
+			return false
+		default:
+		}
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, "http://unix/oracle/v3/health", nil)
+		if err == nil {
+			if resp, err := client.Do(req); err == nil {
+				resp.Body.Close()
+				if resp.StatusCode == http.StatusOK {
+					return true
+				}
+			}
+		}
+		time.Sleep(2 * time.Second)
+	}
+	return false
+}
+
+// startTransactionChain starts the Transaction Chain subprocess bound to a
+// Unix domain socket. Must be called after backend_server (and therefore
+// KNIRVORACLE) has started, per the requirement that KNIRVORACLE funds every
+// Transaction Chain wallet's provisional balance pool — see
+// fundRootKeyHolderWallet.
+func (app *ServerApp) startTransactionChain(ctx context.Context) {
+	socketPath := transactionChainSocketPath()
+	if err := embedded.GetManager().StartTransactionChain(ctx, socketPath); err != nil {
+		log.Printf("Warning: failed to start Transaction Chain: %v", err)
+		return
+	}
+	log.Printf("Transaction Chain started on socket %s", socketPath)
+
+	if !waitForOracleHealth(ctx, 60*time.Second) {
+		log.Printf("Warning: KNIRVORACLE did not become healthy in time; skipping Transaction Chain wallet funding")
+		return
+	}
+	app.fundRootKeyHolderWallet(ctx)
+}
+
+// testFundingAmountNRN is the flat provisional balance credited to the
+// root.key holder's Transaction Chain wallet on startup, for testing.
+// There is no per-address staking lookup or root.key-to-wallet linkage
+// anywhere in this codebase today (see pkg/embedded/validationchain.
+// LoadOrCreateCheckpointSigner's doc comment) — sizing this off "current
+// stake" is future work once that infrastructure exists.
+const testFundingAmountNRN = 100_000_000
+
+// fundRootKeyHolderWallet derives the root.key holder's address from the
+// same checkpoint signer identity (LoadOrCreateCheckpointSigner) and credits
+// its Transaction Chain wallet with a flat provisional NRN balance, sourced
+// from KNIRVORACLE's Faucet. One-time per process start; safe to call
+// repeatedly since both the Faucet mint and the wallet credit are additive
+// (a restart adds another testFundingAmountNRN, which is fine for testing).
+func (app *ServerApp) fundRootKeyHolderWallet(ctx context.Context) {
+	appDataDir, err := getAppDataDir()
+	if err != nil {
+		log.Printf("Warning: failed to resolve app data dir for wallet funding: %v", err)
+		return
+	}
+	signer, err := validationchain.LoadOrCreateCheckpointSigner(appDataDir)
+	if err != nil {
+		log.Printf("Warning: failed to load checkpoint signer for wallet funding: %v", err)
+		return
+	}
+	address := validationchain.CheckpointAddress(&signer.PublicKey)
+
+	if err := requestOracleFaucet(ctx, oracleSocketPathResolved(), address, testFundingAmountNRN); err != nil {
+		log.Printf("Warning: failed to fund %s from KNIRVORACLE faucet: %v", address, err)
+		return
+	}
+	if err := creditTransactionChainWallet(ctx, transactionChainSocketPath(), address, testFundingAmountNRN); err != nil {
+		log.Printf("Warning: failed to credit Transaction Chain wallet for %s: %v", address, err)
+		return
+	}
+	log.Printf("Funded root.key holder wallet %s with %d NRN on Transaction Chain", address, testFundingAmountNRN)
+}
+
+func requestOracleFaucet(ctx context.Context, oracleSocketPath, address string, amount int64) error {
+	body, err := json.Marshal(map[string]any{"address": address, "amount": amount})
+	if err != nil {
+		return err
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, "http://unix/test/faucet", bytes.NewReader(body))
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := unixHTTPClient(oracleSocketPath, 15*time.Second).Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode/100 != 2 {
+		return fmt.Errorf("oracle faucet returned %d", resp.StatusCode)
+	}
+	return nil
+}
+
+func creditTransactionChainWallet(ctx context.Context, txChainSocketPath, address string, amount int64) error {
+	body, err := json.Marshal(map[string]any{"address": address, "amount": amount, "reason": "root-key-holder-provisional-funding"})
+	if err != nil {
+		return err
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, "http://unix/wallet/credit", bytes.NewReader(body))
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := unixHTTPClient(txChainSocketPath, 15*time.Second).Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode/100 != 2 {
+		return fmt.Errorf("transaction chain /wallet/credit returned %d", resp.StatusCode)
+	}
+	return nil
+}
+
 // startBackend starts the embedded unified backend service
 func (app *ServerApp) startBackend() error {
 	if app.config.BackendSocket != "" {
@@ -2761,10 +2973,20 @@ func (app *ServerApp) Start() error {
 		}
 	}
 
-	// Start backend first
+	// Start the embedded Validation Chain before the backend, so
+	// backend_server's HTTP client for it is already reachable by the time
+	// it starts.
+	app.startValidationChain(context.Background())
+
+	// Start backend (spawns KNIRVORACLE among other services)
 	if err := app.startBackend(); err != nil {
 		return err
 	}
+
+	// Transaction Chain starts only after KNIRVORACLE is confirmed healthy,
+	// since Oracle must fund every Transaction Chain wallet's provisional
+	// balance pool (see startTransactionChain / fundRootKeyHolderWallet).
+	app.startTransactionChain(context.Background())
 
 	// Create HTTP server
 	// WriteTimeout is 0 (disabled) so SSE and long-lived streaming responses are
@@ -2804,6 +3026,11 @@ func (app *ServerApp) Stop() error {
 
 	// Stop backend
 	app.stopBackend()
+
+	// Stop the embedded Validation Chain / Transaction Chain subprocesses.
+	if err := embedded.GetManager().Shutdown(); err != nil {
+		log.Printf("Warning: embedded chain shutdown error: %v", err)
+	}
 
 	// Stop agent control plane and all running agents.
 	app.stopAgentControl()

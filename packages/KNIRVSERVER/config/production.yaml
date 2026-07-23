@@ -364,12 +364,24 @@ hasher:
   frames_dir: /var/lib/knirvserver/knirvhasher/data/frames
 
 # Validation Chain Configuration
+# binary_path is staged at startup by KNIRVSERVER (main.go stageEmbeddedChainArtifacts).
+# work_dir is intentionally omitted — the release binary is self-contained.
 validation_chain:
   enabled: true
   binary_path: /var/lib/knirvserver/bin/validationchain
-  work_dir: /var/lib/knirvserver/validationchain
   port: 9290
   data_path: /var/lib/knirvserver/validationchain/data
   chain_id: "validation-mainnet"
+  start_timeout: 30
+  stop_timeout: 10
+
+# Transaction Chain Configuration
+# script_path/work_dir are staged at startup by KNIRVSERVER and passed via env
+# vars (see main.go stageEmbeddedChainArtifacts).
+transaction_chain:
+  enabled: true
+  port: 9190
+  data_path: /var/lib/knirvserver/transactionchain/data
+  chain_id: "transaction-mainnet"
   start_timeout: 30
   stop_timeout: 10

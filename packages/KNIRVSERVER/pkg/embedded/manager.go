@@ -66,46 +66,51 @@ func (s *GraphRagService) Stop() error { return graphrag.Shutdown() }
 // Health checks graphrag health status
 func (s *GraphRagService) Health() error { return graphrag.HealthCheck() }
 
-// ValidationChainService wraps validation_chain CGo library
+// ValidationChainService wraps the embedded Validation Chain binary,
+// spawned and monitored entirely within pkg/embedded/validationchain, bound
+// to a Unix domain socket. KNIRVSERVER is the sole owner of this process's
+// lifecycle; backend_server (KNIRV_CORP) only holds an HTTP client dialing
+// the same socket — nothing exposes a TCP port for it.
 type ValidationChainService struct {
-	config []byte
+	socketPath string
 }
 
 // Name returns service identifier
 func (s *ValidationChainService) Name() string { return "validation_chain" }
 
-// Init initializes validation chain engine
-func (s *ValidationChainService) Init(config []byte) error {
-	s.config = config
-	return validationchain.Init(config)
+// Init stores configuration; the socket path is applied on Start.
+func (s *ValidationChainService) Init(config []byte) error { return nil }
+
+// Start extracts and launches the validation chain subprocess.
+func (s *ValidationChainService) Start(ctx context.Context) error {
+	return validationchain.Get().Start(ctx, s.socketPath)
 }
 
-// Start is no-op for static libraries
-func (s *ValidationChainService) Start(ctx context.Context) error { return nil }
+// Stop stops the validation chain subprocess.
+func (s *ValidationChainService) Stop() error { return validationchain.Get().Stop() }
 
-// Stop shuts down validation chain
-func (s *ValidationChainService) Stop() error { return validationchain.Shutdown() }
+// Health checks validation chain health status.
+func (s *ValidationChainService) Health() error { return validationchain.Get().HealthCheck() }
 
-// Health checks validation chain health status
-func (s *ValidationChainService) Health() error { return validationchain.HealthCheck() }
-
-// TransactionChainService wraps transaction_chain Node.js process
+// TransactionChainService wraps the embedded Transaction Chain Node.js
+// process, spawned and monitored entirely within
+// pkg/embedded/transactionchain, bound to a Unix domain socket. KNIRVSERVER
+// is the sole owner of this process's lifecycle; backend_server (KNIRV_CORP)
+// only holds an HTTP client dialing the same socket — nothing exposes a TCP
+// port for it.
 type TransactionChainService struct {
-	port int
+	socketPath string
 }
 
 // Name returns service identifier
 func (s *TransactionChainService) Name() string { return "transaction_chain" }
 
-// Init stores configuration
-func (s *TransactionChainService) Init(config []byte) error {
-	// For transaction chain port is passed via Start
-	return nil
-}
+// Init stores configuration; the socket path is applied on Start.
+func (s *TransactionChainService) Init(config []byte) error { return nil }
 
 // Start launches transaction chain process
 func (s *TransactionChainService) Start(ctx context.Context) error {
-	return transactionchain.Get().Start(ctx, s.port)
+	return transactionchain.Get().Start(ctx, s.socketPath)
 }
 
 // Stop stops transaction chain process
@@ -118,8 +123,11 @@ func (s *TransactionChainService) Health() error {
 	return transactionchain.Get().HealthCheck()
 }
 
-// Initialize sets up all embedded services
-func (m *Manager) Initialize(ctx context.Context, graphRagConfig, validationChainConfig []byte, txPort int) error {
+// Initialize sets up the always-on embedded services (currently GraphRag).
+// Call StartValidationChain / StartTransactionChain separately — each is
+// independently best-effort (a failure in one must not prevent the other,
+// or graphrag, from running), so they are not folded into this call.
+func (m *Manager) Initialize(ctx context.Context, graphRagConfig []byte) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -129,44 +137,55 @@ func (m *Manager) Initialize(ctx context.Context, graphRagConfig, validationChai
 
 	m.ctx, m.cancelFunc = context.WithCancel(ctx)
 
-	// 1. Initialize GraphRag
 	graphSvc := &GraphRagService{}
 	if err := graphSvc.Init(graphRagConfig); err != nil {
 		return fmt.Errorf("failed to initialize graphrag: %w", err)
 	}
 	m.services = append(m.services, graphSvc)
 
-	// 2. Initialize Validation Chain
-	validationSvc := &ValidationChainService{}
-	if err := validationSvc.Init(validationChainConfig); err != nil {
-		return fmt.Errorf("failed to initialize validation chain: %w", err)
-	}
-	m.services = append(m.services, validationSvc)
-
-	// 3. Initialize Transaction Chain
-	txSvc := &TransactionChainService{port: txPort}
-	if err := txSvc.Init(nil); err != nil {
-		return fmt.Errorf("failed to initialize transaction chain: %w", err)
-	}
-	if err := txSvc.Start(m.ctx); err != nil {
-		return fmt.Errorf("failed to start transaction chain: %w", err)
-	}
-	m.services = append(m.services, txSvc)
-
 	m.initialized = true
 	return nil
 }
 
-// Shutdown stops all embedded services in reverse order
+// StartValidationChain starts the embedded Validation Chain subprocess
+// bound to socketPath and registers it for Health()/Shutdown() tracking.
+// Must be called after Initialize.
+func (m *Manager) StartValidationChain(ctx context.Context, socketPath string) error {
+	svc := &ValidationChainService{socketPath: socketPath}
+	if err := svc.Start(ctx); err != nil {
+		return err
+	}
+	m.mu.Lock()
+	m.services = append(m.services, svc)
+	m.mu.Unlock()
+	return nil
+}
+
+// StartTransactionChain starts the embedded Transaction Chain subprocess
+// bound to socketPath and registers it for Health()/Shutdown() tracking.
+// Must be called after Initialize.
+func (m *Manager) StartTransactionChain(ctx context.Context, socketPath string) error {
+	svc := &TransactionChainService{socketPath: socketPath}
+	if err := svc.Start(ctx); err != nil {
+		return err
+	}
+	m.mu.Lock()
+	m.services = append(m.services, svc)
+	m.mu.Unlock()
+	return nil
+}
+
+// Shutdown stops all registered services in reverse order, regardless of
+// whether Initialize (graphrag) was ever called — StartValidationChain and
+// StartTransactionChain register services independently of Initialize, so
+// Shutdown must not skip them just because graphrag was never started.
 func (m *Manager) Shutdown() error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	if !m.initialized {
-		return nil
+	if m.cancelFunc != nil {
+		m.cancelFunc()
 	}
-
-	m.cancelFunc()
 
 	var firstErr error
 	for i := len(m.services) - 1; i >= 0; i-- {

@@ -71,6 +71,32 @@ func (r *HardwareRouter) ProjectBatch(inputs [][]float32, seedSets [][][32]byte)
 	return results, nil
 }
 
+// ProjectBatch2D projects one input vector through multiple 2D seed rows.
+// Each row produces one output float32. Uses ComputeBatch when available.
+func (r *HardwareRouter) ProjectBatch2D(input []float32, seeds [][][32]byte) ([]float32, error) {
+	if len(seeds) == 0 {
+		return []float32{}, nil
+	}
+	if r.hashMethod != nil && r.hashMethod.IsAvailable() {
+		allInputs := make([][]byte, 0, len(seeds))
+		inputBytes := float32SliceToBytes(input)
+		for _, row := range seeds {
+			combined := make([]byte, len(inputBytes)+32)
+			copy(combined, inputBytes)
+			copy(combined[len(inputBytes):], row[0][:])
+			allInputs = append(allInputs, combined)
+		}
+		hashes, err := r.hashMethod.ComputeBatch(allInputs)
+		if err == nil {
+			return hashesToFloats(hashes), nil
+		}
+		if r.fallback == FallbackError {
+			return nil, fmt.Errorf("hardware ProjectBatch2D failed: %w", err)
+		}
+	}
+	return ProjectSeeds2D(input, seeds, "hash"), nil
+}
+
 // HashToVocab projects hidden state to vocabulary logits.
 // Uses hardware ComputeBatch when available, otherwise software path.
 func (r *HardwareRouter) HashToVocab(hidden []float32, outputSeed [32]byte, vocabSize int) []float32 {

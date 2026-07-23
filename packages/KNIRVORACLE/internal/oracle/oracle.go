@@ -19,6 +19,7 @@ import (
 	"github.com/knirvcorp/knirvoracle/internal/oracle/ibc"
 	"github.com/knirvcorp/knirvoracle/internal/oracle/p2p"
 	"github.com/knirvcorp/knirvoracle/internal/oracle/payment"
+	"github.com/knirvcorp/knirvoracle/internal/oracle/registry"
 	"github.com/knirvcorp/knirvoracle/internal/oracle/token"
 	"github.com/knirvcorp/knirvoracle/internal/oracle/types"
 
@@ -329,9 +330,17 @@ func NewOracle(config *OracleConfig, logger *zap.Logger) (*Oracle, error) {
 	return oracle, nil
 }
 
+// SubmitRollup admits a rollup batch. The submitting chain must be
+// registered (POST /oracle/v3/registry/register, same registry checkpoints
+// use) and record.Proposer must be one of its registered authors with a
+// valid signature quorum over record.Digest() — otherwise this endpoint
+// would accept economic data (NRN transaction batches) from anyone.
 func (o *Oracle) SubmitRollup(record *types.RollupRecord) error {
 	if record == nil {
 		return fmt.Errorf("rollup record is required")
+	}
+	if err := o.verifyRollupSubmission(record); err != nil {
+		return fmt.Errorf("unauthorized rollup submission: %w", err)
 	}
 	o.rollupsMu.Lock()
 	defer o.rollupsMu.Unlock()
@@ -364,6 +373,38 @@ func (o *Oracle) commitAuditMMR() error {
 	return nil
 }
 
+// verifyRollupSubmission requires the submitting chain to be registered and
+// record.Proposer's signature quorum to be valid over record.Digest() — the
+// same registry.VerifySignatureQuorum checkpoint admission already uses.
+func (o *Oracle) verifyRollupSubmission(record *types.RollupRecord) error {
+	if record.ChainID == "" {
+		return fmt.Errorf("chain_id is required")
+	}
+	reg, ok := o.checkpoint.registry.Get(record.ChainID)
+	if !ok {
+		return fmt.Errorf("chain %s not registered", record.ChainID)
+	}
+	if _, ok := o.checkpoint.registry.AuthorWeight(record.ChainID, record.Proposer); !ok {
+		return fmt.Errorf("proposer %s is not a registered author", record.Proposer)
+	}
+	return registry.VerifySignatureQuorum(reg, record.Digest(), record.Signatures)
+}
+
+// verifyRollupAction requires a single valid signature from a registered
+// author of the rollup's chain, authorizing a finalize/dispute transition.
+// Lighter than full submission quorum since this only transitions the
+// status of an already-admitted record, not re-authorizing its contents.
+func (o *Oracle) verifyRollupAction(record *types.RollupRecord, action string, sig types.AuthorSig) error {
+	if _, ok := o.checkpoint.registry.AuthorWeight(record.ChainID, sig.Address); !ok {
+		return fmt.Errorf("%s is not a registered author for chain %s", sig.Address, record.ChainID)
+	}
+	digest := types.RollupActionDigest(record.ID, record.ChainID, action)
+	if !types.VerifyAuthorSigDigest(digest, sig) {
+		return fmt.Errorf("invalid signature for %s action on rollup %s", action, record.ID)
+	}
+	return nil
+}
+
 func (o *Oracle) GetRollup(id string) (*types.RollupRecord, bool) {
 	o.rollupsMu.RLock()
 	defer o.rollupsMu.RUnlock()
@@ -371,13 +412,16 @@ func (o *Oracle) GetRollup(id string) (*types.RollupRecord, bool) {
 	return record, ok
 }
 
-func (o *Oracle) FinalizeRollup(id string, finalizedAt time.Time) (*types.RollupRecord, error) {
+func (o *Oracle) FinalizeRollup(id string, finalizedAt time.Time, sig types.AuthorSig) (*types.RollupRecord, error) {
 	o.rollupsMu.Lock()
 	defer o.rollupsMu.Unlock()
 
 	record, ok := o.rollups[id]
 	if !ok {
 		return nil, fmt.Errorf("rollup not found: %s", id)
+	}
+	if err := o.verifyRollupAction(record, "finalize", sig); err != nil {
+		return nil, fmt.Errorf("unauthorized finalize: %w", err)
 	}
 
 	record.Status = types.RollupStatusFinalized
@@ -389,13 +433,16 @@ func (o *Oracle) FinalizeRollup(id string, finalizedAt time.Time) (*types.Rollup
 	return record, nil
 }
 
-func (o *Oracle) DisputeRollup(id string, reason string, disputedAt time.Time) (*types.RollupRecord, error) {
+func (o *Oracle) DisputeRollup(id string, reason string, disputedAt time.Time, sig types.AuthorSig) (*types.RollupRecord, error) {
 	o.rollupsMu.Lock()
 	defer o.rollupsMu.Unlock()
 
 	record, ok := o.rollups[id]
 	if !ok {
 		return nil, fmt.Errorf("rollup not found: %s", id)
+	}
+	if err := o.verifyRollupAction(record, "dispute", sig); err != nil {
+		return nil, fmt.Errorf("unauthorized dispute: %w", err)
 	}
 
 	record.Status = types.RollupStatusDisputed

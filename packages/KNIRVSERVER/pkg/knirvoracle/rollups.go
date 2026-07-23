@@ -18,13 +18,19 @@ const (
 )
 
 type RollupRecord struct {
-	ID          string                 `json:"id"`
-	BatchRoot   string                 `json:"batch_root"`
-	ChainID     string                 `json:"chain_id"`
-	StartHeight uint64                 `json:"start_height"`
-	EndHeight   uint64                 `json:"end_height"`
-	BlockCount  int                    `json:"block_count"`
-	TxCount     int                    `json:"tx_count"`
+	ID          string `json:"id"`
+	BatchRoot   string `json:"batch_root"`
+	ChainID     string `json:"chain_id"`
+	StartHeight uint64 `json:"start_height"`
+	EndHeight   uint64 `json:"end_height"`
+	BlockCount  int    `json:"block_count"`
+	TxCount     int    `json:"tx_count"`
+	// Proposer/Signatures authorize the submission — KNIRVORACLE requires the
+	// submitting chain to be registered and Proposer to be one of its
+	// registered authors with a valid signature over Digest(). Populated by
+	// signRollup, not set by callers directly.
+	Proposer    string                 `json:"proposer,omitempty"`
+	Signatures  []AuthorSig            `json:"signatures,omitempty"`
 	Status      RollupStatus           `json:"status"`
 	SubmittedAt time.Time              `json:"submitted_at"`
 	FinalizedAt *time.Time             `json:"finalized_at,omitempty"`

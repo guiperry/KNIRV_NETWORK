@@ -258,6 +258,22 @@ func (hs *HEARTService) runGorgoniteInference(tokens []int) ([]float32, error) {
 	if hs.gpt == nil {
 		return nil, fmt.Errorf("gpt not initialized")
 	}
+
+	if hs.config != nil && hs.config.InferenceMode != "legacy" && hs.unifiedEngine != nil {
+		logits := hs.unifiedEngine.Forward(tokens)
+		if len(logits) > 0 {
+			entropy := computeEntropy(logits)
+			threshold := 3.0
+			if hs.config.EntropySpikethreshold > 0 {
+				threshold = hs.config.EntropySpikethreshold
+			}
+			if entropy > threshold {
+				hs.handleEntropySpike(entropy, threshold)
+			}
+			return logits, nil
+		}
+	}
+
 	logitsNode, err := hs.gpt.Forward(false)
 	if err != nil {
 		return nil, fmt.Errorf("gpt forward: %w", err)
@@ -275,7 +291,6 @@ func (hs *HEARTService) runGorgoniteInference(tokens []int) ([]float32, error) {
 		return nil, fmt.Errorf("unexpected logits type")
 	}
 
-	// Per-token entropy instrumentation (Phase 13).
 	entropy := computeEntropy(data)
 	threshold := 3.0
 	if hs.config != nil && hs.config.EntropySpikethreshold > 0 {

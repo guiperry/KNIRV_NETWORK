@@ -26,6 +26,7 @@ type Content struct {
 	DeviceIP              string // field 22
 	DevicePassword        string // field 23
 	DeviceUsername        string // field 24
+	MasterWalletKeyHex    string // field 1 — reserved for a signing key; usually empty (see pkg/embedded/validationchain.LoadOrCreateCheckpointSigner)
 }
 
 // searchPaths builds a deduplicated, prioritized list of filesystem paths for
@@ -183,6 +184,7 @@ type RootKeyCloudflareCreds struct {
 	CloudflareAccountID       string // field 26
 	CloudflareTunnelToken     string // field 27
 	CloudflareOracleTunnelTok string // field 28
+	RootPrivateKeyHex         string // field 5 — reserved for a signing key; usually empty (see pkg/embedded/validationchain.LoadOrCreateCheckpointSigner)
 }
 
 // LoadRootKeyCloudflareCreds finds root.key, decrypts it using the
@@ -210,6 +212,7 @@ func LoadRootKeyCloudflareCreds() (*RootKeyCloudflareCreds, error) {
 		CloudflareAccountID:       fields[26],
 		CloudflareTunnelToken:     fields[27],
 		CloudflareOracleTunnelTok: fields[28],
+		RootPrivateKeyHex:         fields[5],
 	}, nil
 }
 
@@ -298,6 +301,7 @@ func decrypt(path string, password []byte) (*Content, error) {
 		DeviceIP:              fields[22],
 		DevicePassword:        fields[23],
 		DeviceUsername:        fields[24],
+		MasterWalletKeyHex:    fields[1],
 	}, nil
 }
 

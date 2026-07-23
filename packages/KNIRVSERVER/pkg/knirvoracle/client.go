@@ -110,9 +110,19 @@ func (c *Client) post(path string, payload interface{}, out interface{}) error {
 	return nil
 }
 
+// SubmitRollup registers this instance's rollup signer as an author of
+// record.ChainID (once per chain, tolerating "already registered"), signs
+// the record, and submits it. KNIRVORACLE rejects unsigned/unregistered
+// rollup submissions.
 func (c *Client) SubmitRollup(record *RollupRecord) (string, error) {
 	if record == nil {
 		return "", fmt.Errorf("rollup record is required")
+	}
+	if err := c.ensureRollupChainRegistered(record.ChainID); err != nil {
+		return "", fmt.Errorf("register rollup chain %s: %w", record.ChainID, err)
+	}
+	if err := signRollup(record); err != nil {
+		return "", fmt.Errorf("sign rollup: %w", err)
 	}
 
 	var result struct {

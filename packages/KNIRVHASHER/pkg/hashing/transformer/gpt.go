@@ -1061,47 +1061,57 @@ func newHasherLayer(cfg *HasherTransformerConfig) hasherTransformerLayer {
 func (ht *HasherTransformer) SetHashMethod(method core.HashMethod) { ht.hashMethod = method }
 
 // Forward runs token IDs through all layers and returns a pooled float32 vector.
+// Uses HardwareRouter for hardware-accelerated projections when a HashMethod is available.
 func (ht *HasherTransformer) Forward(tokenIDs []int) []float32 {
 	if len(tokenIDs) == 0 {
 		return make([]float32, ht.Config.EmbedDim)
 	}
+	router := NewHardwareRouter(ht.hashMethod, FallbackMixed)
 	hidden := make([][]float32, len(tokenIDs))
 	for i, id := range tokenIDs {
-		hidden[i] = ht.embedToken(id, i)
+		hidden[i] = ht.embedToken(id, i, router)
 	}
 	for l := 0; l < ht.Config.NumLayers; l++ {
-		hidden = ht.forwardHasherLayer(hidden, l)
+		hidden = ht.forwardHasherLayer(hidden, l, router)
 	}
 	return ht.averagePool(hidden)
 }
 
-func (ht *HasherTransformer) embedToken(tokenID, position int) []float32 {
+func (ht *HasherTransformer) embedToken(tokenID, position int, router *HardwareRouter) []float32 {
 	dim := ht.Config.EmbedDim
 	out := make([]float32, dim)
 	tokenID = tokenID % ht.Config.VocabSize
-	for j := 0; j < dim; j++ {
-		out[j] = ht.seedToFloat(ht.Embeddings[tokenID][j])
+	if tokenID < len(ht.Embeddings) {
+		seeds := ht.Embeddings[tokenID]
+		proj, err := router.Project(make([]float32, dim), seeds)
+		if err == nil {
+			copy(out, proj)
+		}
 	}
-	if position < ht.Config.ContextLen {
-		for j := 0; j < dim; j++ {
-			out[j] += ht.seedToFloat(ht.Positional[position][j])
+	if position < ht.Config.ContextLen && position < len(ht.Positional) {
+		seeds := ht.Positional[position]
+		add, err := router.Project(make([]float32, dim), seeds)
+		if err == nil {
+			for j := 0; j < dim; j++ {
+				out[j] += add[j]
+			}
 		}
 	}
 	return out
 }
 
-func (ht *HasherTransformer) forwardHasherLayer(hidden [][]float32, layerIdx int) [][]float32 {
+func (ht *HasherTransformer) forwardHasherLayer(hidden [][]float32, layerIdx int, router *HardwareRouter) [][]float32 {
 	seqLen := len(hidden)
 	dim := ht.Config.EmbedDim
 	layer := ht.Layers[layerIdx]
 
-	attn := ht.hasherMultiHeadAttention(hidden, layer)
+	attn := ht.hasherMultiHeadAttention(hidden, layer, router)
 	for i := 0; i < seqLen; i++ {
 		for j := 0; j < dim; j++ {
 			hidden[i][j] = ht.hasherLayerNorm(hidden[i][j] + attn[i][j])
 		}
 	}
-	ffn := ht.hasherFFN(hidden, layer)
+	ffn := ht.hasherFFN(hidden, layer, router)
 	for i := 0; i < seqLen; i++ {
 		for j := 0; j < dim; j++ {
 			hidden[i][j] = ht.hasherLayerNorm(hidden[i][j] + ffn[i][j])
@@ -1110,7 +1120,7 @@ func (ht *HasherTransformer) forwardHasherLayer(hidden [][]float32, layerIdx int
 	return hidden
 }
 
-func (ht *HasherTransformer) hasherMultiHeadAttention(hidden [][]float32, layer hasherTransformerLayer) [][]float32 {
+func (ht *HasherTransformer) hasherMultiHeadAttention(hidden [][]float32, layer hasherTransformerLayer, router *HardwareRouter) [][]float32 {
 	seqLen := len(hidden)
 	dim := ht.Config.EmbedDim
 	out := make([][]float32, seqLen)
@@ -1119,28 +1129,37 @@ func (ht *HasherTransformer) hasherMultiHeadAttention(hidden [][]float32, layer 
 	}
 	for i := 0; i < seqLen; i++ {
 		for h := 0; h < ht.Config.NumHeads; h++ {
-			q := ht.projectSeeds(hidden[i], layer.QuerySeeds[h])
-			k := ht.projectSeeds(hidden[i], layer.KeySeeds[h])
-			v := ht.projectSeeds(hidden[i], layer.ValueSeeds[h])
+			q := ht.projectSeeds(hidden[i], layer.QuerySeeds[h], router)
+			k := ht.projectSeeds(hidden[i], layer.KeySeeds[h], router)
+			v := ht.projectSeeds(hidden[i], layer.ValueSeeds[h], router)
 			for j := 0; j < dim && j < len(q) && j < len(k) && j < len(v); j++ {
 				out[i][j] += (q[j] * k[j] * v[j]) / float32(ht.Config.NumHeads)
 			}
 		}
-		out[i] = ht.projectSeeds2D(out[i], layer.OutputSeeds)
+		out[i] = ht.projectSeeds2D(out[i], layer.OutputSeeds, router)
 	}
 	return out
 }
 
-func (ht *HasherTransformer) hasherFFN(hidden [][]float32, layer hasherTransformerLayer) [][]float32 {
+func (ht *HasherTransformer) hasherFFN(hidden [][]float32, layer hasherTransformerLayer, router *HardwareRouter) [][]float32 {
 	out := make([][]float32, len(hidden))
 	for i, h := range hidden {
-		expanded := ht.projectSeeds2D(h, layer.FFNSeeds)
-		out[i] = ht.projectBack(expanded, len(h))
+		expanded := ht.projectSeeds2D(h, layer.FFNSeeds, router)
+		out[i] = ht.projectBack(expanded, len(h), router)
 	}
 	return out
 }
 
-func (ht *HasherTransformer) projectSeeds(input []float32, seeds [][32]byte) []float32 {
+func (ht *HasherTransformer) projectSeeds(input []float32, seeds [][32]byte, router *HardwareRouter) []float32 {
+	if router != nil {
+		if out, err := router.Project(input, seeds); err == nil && len(out) > 0 {
+			return out
+		}
+	}
+	return ht.projectSeedsFallback(input, seeds)
+}
+
+func (ht *HasherTransformer) projectSeedsFallback(input []float32, seeds [][32]byte) []float32 {
 	out := make([]float32, len(seeds))
 	for i, seed := range seeds {
 		sum := float32(0)
@@ -1153,7 +1172,16 @@ func (ht *HasherTransformer) projectSeeds(input []float32, seeds [][32]byte) []f
 	return out
 }
 
-func (ht *HasherTransformer) projectSeeds2D(input []float32, seeds [][][32]byte) []float32 {
+func (ht *HasherTransformer) projectSeeds2D(input []float32, seeds [][][32]byte, router *HardwareRouter) []float32 {
+	if router != nil {
+		if out, err := router.ProjectBatch2D(input, seeds); err == nil && len(out) > 0 {
+			return out
+		}
+	}
+	return ht.projectSeeds2DFallback(input, seeds)
+}
+
+func (ht *HasherTransformer) projectSeeds2DFallback(input []float32, seeds [][][32]byte) []float32 {
 	out := make([]float32, len(seeds))
 	for i, row := range seeds {
 		sum := float32(0)
@@ -1165,14 +1193,30 @@ func (ht *HasherTransformer) projectSeeds2D(input []float32, seeds [][][32]byte)
 	return out
 }
 
-func (ht *HasherTransformer) projectBack(input []float32, targetDim int) []float32 {
-	out := make([]float32, targetDim)
-	for i := range out {
-		sum := float32(0)
-		for _, v := range input {
-			sum += v
+func (ht *HasherTransformer) projectBack(input []float32, targetDim int, router *HardwareRouter) []float32 {
+	if router != nil {
+		seeds := make([][32]byte, len(input))
+		for i := range seeds {
+			var buf [4]byte
+			binary.BigEndian.PutUint32(buf[:], math.Float32bits(input[i]))
+			copy(seeds[i][:], buf[:])
 		}
-		out[i] = ht.activate(sum / float32(max(1, len(input))))
+		if out, err := router.Project(make([]float32, targetDim), seeds); err == nil && len(out) > 0 {
+			return out
+		}
+	}
+	return ht.projectBackFallback(input, targetDim)
+}
+
+func (ht *HasherTransformer) projectBackFallback(input []float32, targetDim int) []float32 {
+	out := make([]float32, targetDim)
+	sum := float32(0)
+	for _, v := range input {
+		sum += v
+	}
+	avg := sum / float32(max(1, len(input)))
+	for i := range out {
+		out[i] = ht.activate(avg)
 	}
 	return out
 }
@@ -1229,7 +1273,8 @@ func (ht *HasherTransformer) hasherLayerNorm(x float32) float32 {
 // GenerateToken produces the next token given a context and temperature.
 func (ht *HasherTransformer) GenerateToken(ctx []int, temperature float32) (int, []float32) {
 	hidden := ht.Forward(ctx)
-	scores := ht.projectToVocab(hidden)
+	router := NewHardwareRouter(ht.hashMethod, FallbackMixed)
+	scores := router.HashToVocab(hidden, ht.OutputSeed, ht.Config.VocabSize)
 	if temperature <= 0 {
 		return argmax32(scores), scores
 	}

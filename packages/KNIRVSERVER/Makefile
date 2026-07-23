@@ -588,13 +588,11 @@ validation-chain-deps: ## Install validation_chain dependencies
 	@echo "$(BLUE)Installing validation_chain dependencies...$(NC)"
 	cd $(VALIDATION_CHAIN_DIR) && cargo fetch
 
-validation-chain-build: validation-chain-deps ## Build validation_chain static library for CGo FFI and standalone HTTP binary
-	@echo "$(BLUE)Building validation_chain static library and standalone binary...$(NC)"
+validation-chain-build: validation-chain-deps ## Build validation_chain standalone HTTP binary (the only supported embedding target — no CGo static lib)
+	@echo "$(BLUE)Building validation_chain standalone binary...$(NC)"
 	@mkdir -p $(EMBEDDED_BUILD_DIR)/validation_chain
 	cd $(VALIDATION_CHAIN_DIR) && cargo build --release
-	cp $(VALIDATION_CHAIN_DIR)/target/release/libvalidationchain.a $(EMBEDDED_BUILD_DIR)/validation_chain/
 	cp $(VALIDATION_CHAIN_DIR)/target/release/validationchain $(EMBEDDED_BUILD_DIR)/validation_chain/validationchain
-	@echo "$(GREEN)validation_chain library built: $(EMBEDDED_BUILD_DIR)/validation_chain/libvalidationchain.a$(NC)"
 	@echo "$(GREEN)validation_chain binary built: $(EMBEDDED_BUILD_DIR)/validation_chain/validationchain$(NC)"
 	@mkdir -p $(ROOT_DIR)/pkg/embedded/validationchain/bin
 	@gzip -cf $(VALIDATION_CHAIN_DIR)/target/release/validationchain > $(ROOT_DIR)/pkg/embedded/validationchain/bin/validationchain

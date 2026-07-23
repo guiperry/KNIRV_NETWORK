@@ -3,7 +3,9 @@ package oracle
 import (
 	"bytes"
 	"crypto/ecdsa"
+	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -123,11 +125,20 @@ func TestCheckpointAdmissionAppendsMMR(t *testing.T) {
 }
 
 // TestRollupProjectsToProvisionalCheckpoint verifies the Phase-3 legacy bridge:
-// a legacy RollupRecord submitted via SubmitRollup is projected into the
-// checkpoint MMR as a provisional, rollup-tagged leaf without requiring a
-// signature quorum.
+// a RollupRecord submitted via SubmitRollup (by a registered chain, signed by
+// one of its authors) is projected into the checkpoint MMR as a provisional,
+// rollup-tagged leaf — admission requires an author signature quorum just
+// like checkpoints do, but the projected checkpoint itself stays audit-only
+// and cannot reach finality (see checkpoint.go's Source doc comment).
 func TestRollupProjectsToProvisionalCheckpoint(t *testing.T) {
 	oracleInst := newTestOracle(t)
+	reg, key := newTestChain(t, "knirvchain-legacy")
+	if err := types.SignRegistration(&reg, key); err != nil {
+		t.Fatalf("sign registration: %v", err)
+	}
+	if err := oracleInst.RegisterChain(&reg); err != nil {
+		t.Fatalf("register: %v", err)
+	}
 
 	rootBefore := oracleInst.MMRRoot()
 	rec := &types.RollupRecord{
@@ -136,9 +147,19 @@ func TestRollupProjectsToProvisionalCheckpoint(t *testing.T) {
 		ChainID:     "knirvchain-legacy",
 		StartHeight: 1,
 		EndHeight:   100,
+		Proposer:    reg.Authors[0].Address,
 		Status:      types.RollupStatusSubmitted,
 		SubmittedAt: time.Now().UTC(),
 	}
+	sigBytes, err := types.SignMessage(key, fmt.Sprintf("%x", rec.Digest()))
+	if err != nil {
+		t.Fatalf("sign rollup: %v", err)
+	}
+	rec.Signatures = []types.AuthorSig{{
+		Address:   reg.Authors[0].Address,
+		PubKeyHex: hex.EncodeToString(reg.Authors[0].PubKey),
+		Signature: sigBytes,
+	}}
 	if err := oracleInst.SubmitRollup(rec); err != nil {
 		t.Fatalf("submit rollup: %v", err)
 	}

@@ -734,6 +734,8 @@ func (r *OracleRoutes) handleSubmitRollup(w http.ResponseWriter, req *http.Reque
 		EndHeight   uint64                 `json:"end_height"`
 		BlockCount  int                    `json:"block_count"`
 		TxCount     int                    `json:"tx_count"`
+		Proposer    string                 `json:"proposer"`
+		Signatures  []types.AuthorSig      `json:"signatures"`
 		Metadata    map[string]interface{} `json:"metadata"`
 	}
 	if err := json.NewDecoder(req.Body).Decode(&rollupReq); err != nil {
@@ -754,12 +756,18 @@ func (r *OracleRoutes) handleSubmitRollup(w http.ResponseWriter, req *http.Reque
 		EndHeight:   rollupReq.EndHeight,
 		BlockCount:  rollupReq.BlockCount,
 		TxCount:     rollupReq.TxCount,
+		Proposer:    rollupReq.Proposer,
+		Signatures:  rollupReq.Signatures,
 		Status:      types.RollupStatusSubmitted,
 		SubmittedAt: time.Now().UTC(),
 		Metadata:    rollupReq.Metadata,
 	}
 
 	if err := r.oracle.SubmitRollup(record); err != nil {
+		if strings.Contains(err.Error(), "unauthorized") {
+			http.Error(w, err.Error(), http.StatusUnauthorized)
+			return
+		}
 		http.Error(w, fmt.Sprintf("failed to submit rollup: %v", err), http.StatusInternalServerError)
 		return
 	}
@@ -797,8 +805,19 @@ func (r *OracleRoutes) handleRollup(w http.ResponseWriter, req *http.Request) {
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 			return
 		}
-		record, err := r.oracle.FinalizeRollup(id, time.Now().UTC())
+		var finalizeReq struct {
+			Signature types.AuthorSig `json:"signature"`
+		}
+		if err := json.NewDecoder(req.Body).Decode(&finalizeReq); err != nil {
+			http.Error(w, fmt.Sprintf("Invalid request: %v", err), http.StatusBadRequest)
+			return
+		}
+		record, err := r.oracle.FinalizeRollup(id, time.Now().UTC(), finalizeReq.Signature)
 		if err != nil {
+			if strings.Contains(err.Error(), "unauthorized") {
+				http.Error(w, err.Error(), http.StatusUnauthorized)
+				return
+			}
 			http.Error(w, fmt.Sprintf("failed to finalize rollup: %v", err), http.StatusNotFound)
 			return
 		}
@@ -809,14 +828,19 @@ func (r *OracleRoutes) handleRollup(w http.ResponseWriter, req *http.Request) {
 			return
 		}
 		var disputeReq struct {
-			Reason string `json:"reason"`
+			Reason    string          `json:"reason"`
+			Signature types.AuthorSig `json:"signature"`
 		}
 		if err := json.NewDecoder(req.Body).Decode(&disputeReq); err != nil {
 			http.Error(w, fmt.Sprintf("Invalid request: %v", err), http.StatusBadRequest)
 			return
 		}
-		record, err := r.oracle.DisputeRollup(id, disputeReq.Reason, time.Now().UTC())
+		record, err := r.oracle.DisputeRollup(id, disputeReq.Reason, time.Now().UTC(), disputeReq.Signature)
 		if err != nil {
+			if strings.Contains(err.Error(), "unauthorized") {
+				http.Error(w, err.Error(), http.StatusUnauthorized)
+				return
+			}
 			http.Error(w, fmt.Sprintf("failed to dispute rollup: %v", err), http.StatusNotFound)
 			return
 		}

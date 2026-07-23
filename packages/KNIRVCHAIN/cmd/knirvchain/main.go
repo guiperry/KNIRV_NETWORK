@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"crypto/ecdsa"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -20,7 +19,6 @@ import (
 	"time"
 
 	"KNIRVCHAIN/internal/blockchain"
-	"KNIRVCHAIN/internal/checkpoint"
 	"KNIRVCHAIN/internal/dataengine"
 	"KNIRVCHAIN/internal/inference"
 	"KNIRVCHAIN/internal/inference/agentify"
@@ -34,7 +32,6 @@ import (
 	"KNIRVCHAIN/internal/database"
 	"KNIRVCHAIN/internal/utils"
 	"KNIRVCHAIN/internal/wallet"
-	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 )
 
 // nodeRole is set by build tags in role-specific files (main_root.go, main_bootnode.go, etc.)
@@ -43,7 +40,6 @@ var nodeRole config.Role = config.RoleClient // Default to Client if no build ta
 
 // Use sync.Map for thread-safe access to global variables
 var mainChromemManager sync.Map
-var checkpointSignerKey *ecdsa.PrivateKey
 
 // Global variables for agent mode components
 var globalAgentInferencer *agentify.AgentInferencer
@@ -57,60 +53,16 @@ type LevelDB = database.LevelDB
 
 type P2PConsensusManager = p2p.P2PConsensusManager
 
-type checkpointSourceAdapter struct {
-	bc      *blockchain.BlockchainStruct
-	authors map[string]bool
-}
-
-func (a checkpointSourceAdapter) GetChainID() string { return a.bc.GetChainID() }
-func (a checkpointSourceAdapter) TipHeight() uint64  { return a.bc.CheckpointTipHeight() }
-func (a checkpointSourceAdapter) AccumRootAt(height uint64) ([32]byte, error) {
-	return a.bc.CheckpointAccumRootAt(height)
-}
-func (a checkpointSourceAdapter) NetworkAuthors() map[string]bool { return a.authors }
-func (a checkpointSourceAdapter) BlocksRange(start, end uint64) ([]*blockchain.Block, error) {
-	return a.bc.CheckpointBlocks(start, end)
-}
-
-func checkpointUintEnv(name string, fallback uint64) uint64 {
-	value := strings.TrimSpace(os.Getenv(name))
-	if value == "" {
-		return fallback
-	}
-	parsed, err := strconv.ParseUint(value, 10, 64)
-	if err != nil || parsed == 0 {
-		log.Printf("invalid %s=%q; using %d", name, value, fallback)
-		return fallback
-	}
-	return parsed
-}
-
+// configureCheckpointRuntime is intentionally a no-op: KNIRVCHAIN is
+// sovereign and no longer submits checkpoints to KNIRVORACLE. The merkle
+// source is now the embedded Validation Chain (KNIRVSERVER's
+// pkg/embedded/validationchain/checkpoint), which registers with and posts
+// checkpoints to the Oracle independently. KNIRVCHAIN's own checkpoint
+// posting machinery (internal/checkpoint/) is left in place but unused —
+// deleting it would touch consensus-adjacent code beyond this change's
+// scope, and it remains available if a future design needs it again.
 func configureCheckpointRuntime(bc *blockchain.BlockchainStruct, db *database.LevelDB, server *blockchain.BlockchainServer, networkAuthorAddress string) {
-	if bc == nil || db == nil || server == nil || checkpointSignerKey == nil {
-		log.Printf("checkpoint runtime disabled: a local signing key is not available")
-		return
-	}
-	proposer := checkpoint.OracleAddress(&checkpointSignerKey.PublicKey)
-	authors := bc.GetNetworkAuthors()
-	if len(authors) > 0 && !authors[proposer] && !authors[networkAuthorAddress] && !authors[bc.WalletAddress] {
-		log.Printf("checkpoint runtime disabled: signer %s is not a PoAu-D network author", proposer)
-		return
-	}
-	// The Oracle uses the secp256k1/keccak address representation while older
-	// chain author records use the wallet's SHA-256 address. They identify the
-	// same key; expose the canonical Oracle identity to checkpoint quorum code.
-	source := checkpointSourceAdapter{bc: bc, authors: map[string]bool{proposer: true}}
-	builder := checkpoint.NewBuilder(source, db, checkpointUintEnv("KNIRV_CHECKPOINT_INTERVAL", 64), checkpointUintEnv("KNIRV_CHECKPOINT_FINALITY_DEPTH", checkpoint.CheckpointFinalityDepth), proposer)
-	poster := checkpoint.NewPoster(db, strings.TrimSpace(os.Getenv("KNIRV_ORACLE_URL")), strings.TrimSpace(os.Getenv("KNIRV_ORACLE_SOCKET_PATH")))
-	runtime, err := checkpoint.NewRuntime(source, builder, poster, map[string]*ecdsa.PrivateKey{proposer: checkpointSignerKey})
-	if err != nil {
-		log.Printf("checkpoint runtime disabled: %v", err)
-		return
-	}
-	bc.SetCheckpointHook(runtime.OnBlockCommitted)
-	server.SetCheckpointStatusProvider(func() interface{} { return runtime.Status() })
-	runtime.OnBlockCommitted(source.TipHeight())
-	log.Printf("checkpoint runtime enabled for %s (interval=%d)", bc.GetChainID(), checkpointUintEnv("KNIRV_CHECKPOINT_INTERVAL", 64))
+	log.Printf("checkpoint runtime disabled: KNIRVCHAIN is sovereign — checkpoints are posted by KNIRVSERVER's Validation Chain instead")
 }
 
 // NewBlockchain provides a proper implementation from internal/blockchain; do not redefine Shutdown here.
@@ -1347,19 +1299,6 @@ func main() {
 
 	// Custom update mechanism will be triggered by update signals from root chain
 	log.Println("Custom update mechanism initialized - updates will be triggered by root chain signals")
-	if mainWallet != nil && mainWallet.PrivateKey != nil {
-		// Legacy chain wallets use P-256, while Oracle checkpoint signatures use
-		// recoverable secp256k1 signatures. Reuse the wallet's secret scalar so
-		// checkpoint identity remains stable without passing an unsupported curve
-		// into go-ethereum's signing implementation.
-		keyBytes := make([]byte, 32)
-		mainWallet.PrivateKey.D.FillBytes(keyBytes)
-		var err error
-		checkpointSignerKey, err = ethcrypto.ToECDSA(keyBytes)
-		if err != nil {
-			log.Printf("Checkpoint signer unavailable: %v", err)
-		}
-	}
 
 	// --- Start Nodes Based on Mode ---
 	if cfg.IsPeer {
