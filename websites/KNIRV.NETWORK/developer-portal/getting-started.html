@@ -154,6 +154,43 @@
                 </div>
             </div>
 
+            <!-- Developer Key -->
+            <div class="glass-card" id="developer-key">
+                <h2 style="color: var(--bright-blue); margin-bottom: 20px; font-size: 1.3rem;">
+                    <i class="fas fa-key" style="margin-right: 10px;"></i>Generate Your Developer Key
+                </h2>
+                <p style="color: var(--transparent-white-7); margin-bottom: 20px;">
+                    Pro and Enterprise accounts can bind a wallet-signed key that authorizes KNIRVBASE SDK and KNIRVSERVER API access beyond the free Hosted DVE tier. Choose a key type, connect the wallet tied to your account, and sign to generate the file. This is optional &mdash; the Hosted DVE (Free Tier) above needs no key.
+                </p>
+
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 15px; margin-bottom: 20px;">
+                    <button class="dev-key-option active" data-key-type="developer" type="button" style="text-align:left; cursor:pointer; padding: 15px; background-color: rgba(0, 192, 250, 0.08); border-radius: 10px; border: 1px solid var(--bright-blue); color: inherit;">
+                        <div style="font-size:0.72rem; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color: var(--bright-blue); margin-bottom: 6px;">Pro+</div>
+                        <h4 style="margin-bottom: 6px;">Developer Key</h4>
+                        <p style="color: var(--transparent-white-7); font-size: 0.85em; margin:0;">Authorized for Professional and Enterprise tiers. Default key type.</p>
+                    </button>
+                    <button class="dev-key-option" data-key-type="verifyer" type="button" style="text-align:left; cursor:pointer; padding: 15px; background-color: var(--transparent-white-05); border-radius: 10px; border: 1px solid var(--transparent-white-2); color: inherit;">
+                        <div style="font-size:0.72rem; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color: var(--knirv-purple); margin-bottom: 6px;">Enterprise</div>
+                        <h4 style="margin-bottom: 6px;">Verifyer Key</h4>
+                        <p style="color: var(--transparent-white-7); font-size: 0.85em; margin:0;">Network verification authorization for Enterprise customers and custom deployments.</p>
+                    </button>
+                </div>
+
+                <p id="dev-key-status" style="color: var(--transparent-white-7); font-size: 0.9em; margin-bottom: 15px;">Developer Key requires a Pro or Enterprise account.</p>
+
+                <div style="display:flex; gap:12px; flex-wrap:wrap;">
+                    <button class="btn-primary" id="dev-key-connect-btn" type="button">
+                        <i class="fas fa-wallet" style="margin-right: 8px;"></i>Connect wallet
+                    </button>
+                    <button class="btn-primary" id="dev-key-sign-btn" type="button" style="display:none">
+                        <i class="fas fa-signature" style="margin-right: 8px;"></i>Sign &amp; generate
+                    </button>
+                    <button class="btn-outline" id="dev-key-download-btn" type="button" style="display:none">
+                        <i class="fas fa-download" style="margin-right: 8px;"></i>Download key
+                    </button>
+                </div>
+            </div>
+
             <!-- DVE Options -->
             <div class="glass-card">
                 <h2 style="color: var(--bright-blue); margin-bottom: 20px; font-size: 1.3rem;">
@@ -224,6 +261,7 @@
     <script src="js/config-loader.js"></script>
     <script src="js/portal.js"></script>
     <script src="js/auth.js"></script>
+    <script src="js/developer-key.js"></script>
     <script src="../js/universal-footer.js"></script>
     <script>
         function completeStep(step) {

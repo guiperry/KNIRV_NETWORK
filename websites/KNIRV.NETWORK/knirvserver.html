@@ -53,6 +53,17 @@
             border-color: rgba(43, 86, 245, 0.6);
             background: rgba(43, 86, 245, 0.15);
         }
+        .stat-tile { text-align: center; }
+        .stat-tile .stat-num { font-size: 2.4rem; font-weight: 900; background: linear-gradient(135deg, #00c0fa 0%, #2b56f5 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+        .stat-tile .stat-label { font-size: .72rem; letter-spacing: .08em; text-transform: uppercase; color: rgba(255,255,255,.45); margin-top: 6px; }
+        .usecase-card { padding: 1.75rem; border-radius: 16px; border: 1px solid rgba(255,255,255,.08); background: rgba(255,255,255,.02); height: 100%; }
+        .usecase-tag { display: inline-block; font-size: .62rem; font-weight: 900; letter-spacing: .1em; text-transform: uppercase; color: #6fb8ff; background: rgba(43,86,245,.12); border: 1px solid rgba(43,86,245,.25); border-radius: 999px; padding: 4px 10px; margin-bottom: .9rem; }
+        .phase-tile { text-align: center; }
+        .phase-tile .phase-n { width: 56px; height: 56px; margin: 0 auto 10px; border-radius: 14px; background: linear-gradient(135deg, rgba(43,86,245,.28), rgba(0,192,250,.18)); border: 1px solid rgba(43,86,245,.32); display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: .72rem; color: #6fb8ff; }
+        .security-log { border-radius: 16px; border: 1px solid rgba(239,68,68,.22); background: rgba(0,0,0,.35); padding: 1.4rem; font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace; font-size: .74rem; line-height: 1.9; }
+        .security-log .row-time { color: rgba(255,255,255,.25); }
+        .deploy-card { padding: 1.75rem; border-radius: 18px; border: 1px solid rgba(255,255,255,.1); background: rgba(255,255,255,.03); height: 100%; }
+        .deploy-card.cloud { border-color: rgba(0,192,250,.3); background: rgba(0,192,250,.05); }
     </style>
 </head>
 
@@ -87,7 +98,7 @@
                                 </ul>
                                 <ul class="menu-btns animated" data-animate="fadeInDown" data-delay=".85">
                                     <li><a href="https://github.com/knirv/server" class="btn btn-rg btn-auto btn-outline btn-grad on-bg-theme btn-round"><span>GitHub</span></a></li>
-                                    <li><a href="https://knirv.com" class="btn btn-rg btn-auto btn-outline btn-grad on-bg-theme btn-round"><span>Cloud DVE</span></a></li>
+                                    <li><a href="https://knirv.com" class="btn btn-rg btn-auto btn-outline btn-grad on-bg-theme btn-round"><span>Get KNIRVCLI</span></a></li>
                                 </ul>
                             </nav>
                         </div>
@@ -113,13 +124,19 @@
                                                 <h1 class="title title-xl-2 title-semibold animated" data-animate="fadeInUp" data-delay="1.35">KNIRVSERVER<br/>Deterministic AI Agent Runtime</h1>
                                             </div>
                                             <div class="cpn-text cpn-text-s1">
-                                                <p class="lead animated" data-animate="fadeInUp" data-delay="1.45">Sandboxed DVE containers with kernel-level eBPF tracing, CLEAN cryptographic proofs, and built-in blockchain, graph database, gateway, and testnet. Everything bundled in a single deployable system.</p>
+                                                <p class="lead animated" data-animate="fadeInUp" data-delay="1.45">Your organization's AI sovereignty layer &mdash; orchestrating multi-provider LLMs, enforcing ontology-driven guardrails, anchoring compliance evidence on-chain, and turning AI failures into collective, monetizable knowledge. Sandboxed DVE containers, kernel-level eBPF tracing, CLEAN cryptographic proofs, and built-in blockchain, graph database, gateway, and testnet &mdash; bundled in one deployable system.</p>
                                             </div>
                                             <div class="cpn-btns">
                                                 <ul class="btn-grp animated" data-animate="fadeInUp" data-delay="1.55">
                                                     <li><a href="https://github.com/knirv/server" class="btn btn-md btn-grad btn-round">Self-Host on GitHub</a></li>
-                                                    <li><a href="https://knirv.com" class="btn btn-md btn-grad btn-grad-alternet btn-round">Cloud Access at knirv.com</a></li>
+                                                    <li><a href="https://knirv.com" class="btn btn-md btn-grad btn-grad-alternet btn-round">Get KNIRVCLI at knirv.com</a></li>
                                                 </ul>
+                                            </div>
+                                            <div class="mt-4" style="display:flex;flex-wrap:wrap;gap:8px 20px;">
+                                                <span class="text-white-50" style="font-size:.72rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;">&#10003; Post-Quantum Cryptography</span>
+                                                <span class="text-white-50" style="font-size:.72rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;">&#10003; On-Chain Audit Anchoring</span>
+                                                <span class="text-white-50" style="font-size:.72rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;">&#10003; eBPF Kernel Security</span>
+                                                <span class="text-white-50" style="font-size:.72rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;">&#10003; Multi-Provider Failover</span>
                                             </div>
                                         </div>
                                     </div>
@@ -163,13 +180,130 @@
                     </div>
                 </div>
             </section>
+            <section class="section bg-theme-dark-alt tc-light border-b border-top">
+                <div class="container">
+                    <div class="row justify-content-center gutter-vr-30px">
+                        <div class="col-6 col-md-3 stat-tile"><div class="stat-num">50+</div><div class="stat-label">Auto-Generated Guardrail Rules</div></div>
+                        <div class="col-6 col-md-3 stat-tile"><div class="stat-num">3</div><div class="stat-label">LLM Providers in Failover Chain</div></div>
+                        <div class="col-6 col-md-3 stat-tile"><div class="stat-num">100%</div><div class="stat-label">PQC-Signed Evidence On-Chain</div></div>
+                        <div class="col-6 col-md-3 stat-tile"><div class="stat-num">4</div><div class="stat-label">Node Types: DVE, Skill, Error, Capability</div></div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="section mask-c-blend-dark bg-theme-dark tc-light ov-h">
+                <div class="container">
+                    <div class="section-head text-center wide-auto-sm">
+                        <h2 class="title title-s4 animated" data-animate="fadeInUp" data-delay=".1">Everything Your Enterprise AI Stack Needs</h2>
+                        <p class="animated" data-animate="fadeInUp" data-delay=".2">Eight integrated services compose into a complete AI governance, compute, and compliance platform &mdash; sovereign from day one.</p>
+                    </div>
+                    <div class="nk-block">
+                        <div class="row gutter-vr-30px">
+                            <div class="col-lg-3 col-md-6"><div class="product-card"><h4>Multi-Provider AI Orchestration</h4><p>Route inference across Anthropic, Cerebras, Gemini, and DeepSeek with automatic failover, Mixture-of-Agents ensemble reasoning, and per-task provider routing.</p></div></div>
+                            <div class="col-lg-3 col-md-6"><div class="product-card"><h4>Enterprise AI Governance</h4><p>Auto-generate 50+ guardrail rules from your organizational ontology. Every LLM request checked against corporate policy before execution.</p></div></div>
+                            <div class="col-lg-3 col-md-6"><div class="product-card"><h4>DVE Compute Marketplace</h4><p>One-click provisioning of Distributed Virtual Execution nodes. P2P discovery via libp2p DHT. NAT traversal via KNIRVGATEWAY TURN/STUN.</p></div></div>
+                            <div class="col-lg-3 col-md-6"><div class="product-card"><h4>Sovereign Knowledge Base</h4><p>GraphRAG-rs (Rust FFI) builds entity-relation graphs from your document corpus. FAISS + BM25 hybrid search with graph context.</p></div></div>
+                            <div class="col-lg-3 col-md-6"><div class="product-card"><h4>Cryptographic Compliance</h4><p>Post-quantum cryptographic signatures on every policy, validation result, and evidence pack. Immutable audit trail anchored on-chain.</p></div></div>
+                            <div class="col-lg-3 col-md-6"><div class="product-card"><h4>Error Mining &amp; NRN Rewards</h4><p>AI failures become monetizable knowledge. ErrorNode &rarr; SkillNode transitions mine skill.md files. Contributors earn NRN token rewards.</p></div></div>
+                            <div class="col-lg-3 col-md-6"><div class="product-card"><h4>eBPF Kernel Security</h4><p>Real-time kernel-level monitoring of every DVE workload. LSM policy events, syscall counts, and XDP packet filtering at the OS level.</p></div></div>
+                            <div class="col-lg-3 col-md-6"><div class="product-card"><h4>Badge Governance Lab</h4><p>Mint capability tokens encoding ontology tags, value signals, and scoped auth credentials to KNIRVCHAIN. Attach badges to DVE nodes for inherited governance.</p></div></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="section bg-theme-dark-alt tc-light">
+                <div class="container">
+                    <div class="section-head text-center wide-auto-sm">
+                        <h2 class="title title-s4 animated" data-animate="fadeInUp" data-delay=".1">Seven Phases. One Coherent Platform.</h2>
+                        <p class="animated" data-animate="fadeInUp" data-delay=".2">From initial onboarding to continuous knowledge mining, every stage is governed, auditable, and composable.</p>
+                    </div>
+                    <div class="row gutter-vr-30px justify-content-center">
+                        <div class="col-6 col-md-3 col-lg-auto phase-tile" style="min-width:150px"><div class="phase-n">01</div><div><strong>Onboard Organization</strong><p class="small text-white-50">ValueSystem + Ontology &rarr; auto-generated guardrail rules</p></div></div>
+                        <div class="col-6 col-md-3 col-lg-auto phase-tile" style="min-width:150px"><div class="phase-n">02</div><div><strong>Provision DVE Nodes</strong><p class="small text-white-50">One-click container deployment, P2P registration</p></div></div>
+                        <div class="col-6 col-md-3 col-lg-auto phase-tile" style="min-width:150px"><div class="phase-n">03</div><div><strong>Ingest Knowledge</strong><p class="small text-white-50">GraphRAG-rs indexes documents; plugins registered</p></div></div>
+                        <div class="col-6 col-md-3 col-lg-auto phase-tile" style="min-width:150px"><div class="phase-n">04</div><div><strong>Delegate Credentials</strong><p class="small text-white-50">Provider chain configured; MOA roles assigned</p></div></div>
+                        <div class="col-6 col-md-3 col-lg-auto phase-tile" style="min-width:150px"><div class="phase-n">05</div><div><strong>Run Inference</strong><p class="small text-white-50">Tasks routed, context chunked, MOA ensemble fires</p></div></div>
+                        <div class="col-6 col-md-3 col-lg-auto phase-tile" style="min-width:150px"><div class="phase-n">06</div><div><strong>Enforce Guardrails</strong><p class="small text-white-50">Every request checked; violations logged and anchored</p></div></div>
+                        <div class="col-6 col-md-3 col-lg-auto phase-tile" style="min-width:150px"><div class="phase-n">07</div><div><strong>Mine &amp; Anchor</strong><p class="small text-white-50">Errors become skills; evidence packs anchored on-chain</p></div></div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="section bg-theme-dark tc-light">
+                <div class="container">
+                    <div class="section-head text-center wide-auto-sm">
+                        <h2 class="title title-s4 animated" data-animate="fadeInUp" data-delay=".1">Built for Organizations That Take AI Seriously</h2>
+                    </div>
+                    <div class="row gutter-vr-30px">
+                        <div class="col-lg-3 col-md-6"><div class="usecase-card"><div class="usecase-tag">Zero-Trust AI</div><h4>Enterprise AI Governance</h4><p class="text-white-50 small">Deploy KNIRVSERVER as your internal AI governance layer. All LLM requests routed through policy-checked guardrails with cryptographic audit trails.</p></div></div>
+                        <div class="col-lg-3 col-md-6"><div class="usecase-card"><div class="usecase-tag">Fintech / Compliance</div><h4>Regulated Financial Services</h4><p class="text-white-50 small">Fintech plugin loads KYC, AML, Basel, and SEC ontologies. FintechValidator runs compliance checks; ReplayEngine produces transaction audit trails.</p></div></div>
+                        <div class="col-lg-3 col-md-6"><div class="usecase-card"><div class="usecase-tag">Research / Knowledge</div><h4>Sovereign Research Knowledge</h4><p class="text-white-50 small">Upload proprietary documents, build GraphRAG knowledge bases, and query with semantic graph retrieval &mdash; all encrypted at rest with PQC.</p></div></div>
+                        <div class="col-lg-3 col-md-6"><div class="usecase-card"><div class="usecase-tag">Node Operator</div><h4>Decentralized Error Mining</h4><p class="text-white-50 small">Operate a KNIRVGRAPH node that mines AI error knowledge, accumulates skill.md files, and earns NRN rewards for successful resolutions.</p></div></div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="section bg-theme-dark-alt tc-light">
+                <div class="container">
+                    <div class="row align-items-center gutter-vr-30px">
+                        <div class="col-lg-6">
+                            <h2 class="title title-s4">Kernel-level oversight.<br/>Not just a firewall.</h2>
+                            <p class="text-white-50">GuardrailEngine runs below your application stack. eBPF probes inspect every DVE workload at the OS level &mdash; capturing LLM prompts before encryption, correlating intended tool calls with actual syscalls, and triggering session revocation the instant agent behavior drifts from its declared intent.</p>
+                            <ul class="list-unstyled text-white-50">
+                                <li class="mb-2">&bull; Intercepts plain-text prompts before they reach the LLM provider</li>
+                                <li class="mb-2">&bull; Maps predicted tool calls vs. actual kernel syscalls in real time</li>
+                                <li class="mb-2">&bull; Revokes sessions and blocks calls on intent-action drift detection</li>
+                                <li class="mb-2">&bull; Predictive anomaly surface via DistributedScaler + ProactiveDetector</li>
+                            </ul>
+                        </div>
+                        <div class="col-lg-6">
+                            <div class="security-log">
+                                <div class="mb-2" style="color:#ff5b5b;font-weight:800;text-transform:uppercase;font-size:.68rem;letter-spacing:.08em;">&#9679; eBPF Monitor &mdash; Live</div>
+                                <div><span class="row-time">14:02:31.004</span> <span class="text-white-50">[SYSCALL_INTERCEPT] pid=4821 comm=knirvdve syscall=openat</span></div>
+                                <div><span class="row-time">14:02:31.021</span> <span style="color:#3ad0ff">[LLM_PROMPT_CAPTURE]</span> <span class="text-white-50">tokens=312 provider=anthropic intent=search</span></div>
+                                <div><span class="row-time">14:02:31.044</span> <span style="color:#3ad06b">[TOOL_CALL_CHECK]</span> <span class="text-white-50">predicted=search actual=socket &mdash; MATCH</span></div>
+                                <div><span class="row-time">14:02:31.109</span> <span class="text-white-50">[SYSCALL_INTERCEPT] pid=4821 syscall=connect dst=10.0.0.1:443</span></div>
+                                <div><span class="row-time">14:02:31.115</span> <span style="color:#ff5b5b;font-weight:700">[INTENT_DRIFT_ALERT] predicted=search actual=shell &mdash; MISMATCH</span></div>
+                                <div><span class="row-time">14:02:31.116</span> <span style="color:#ff9d4d;font-weight:700">[SESSION_REVOKED] agent=dve-a1b2 reason=action_drift</span></div>
+                                <div><span class="row-time">14:02:31.118</span> <span style="color:#ff5b5b;font-weight:800">[GUARDRAIL_VIOLATION] severity=CRITICAL node=dve-a1b2</span></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
             <section class="section bg-theme-dark tc-light">
                 <div class="container text-center">
-                    <h2 class="title title-s4 animated" data-animate="fadeInUp" data-delay=".1">Get Started</h2>
-                    <p class="animated" data-animate="fadeInUp" data-delay=".2">Self-host KNIRVSERVER on your infrastructure or access the managed cloud version.</p>
-                    <div class="btn-group mt-4 animated" data-animate="fadeInUp" data-delay=".3">
-                        <a href="https://github.com/knirv/server" class="btn btn-lg btn-grad btn-round">Self-Host on GitHub</a>
-                        <a href="https://knirv.com" class="btn btn-lg btn-outline btn-light btn-round">Cloud Access at knirv.com</a>
+                    <h2 class="title title-s4 animated" data-animate="fadeInUp" data-delay=".1">Your Organization's AI. Governed. Auditable. Sovereign.</h2>
+                    <p class="animated" data-animate="fadeInUp" data-delay=".2">Deploy KNIRVSERVER on your infrastructure, or drive it entirely through KNIRVCLI &mdash; the command-line supervisor for agent sessions, evidence, and proof.</p>
+                    <div class="row justify-content-center gutter-vr-30px mt-4">
+                        <div class="col-lg-5 col-md-6">
+                            <div class="deploy-card text-start">
+                                <h4>Sovereign Edition</h4>
+                                <p class="text-white-50 small">Self-hosted on your infrastructure</p>
+                                <ul class="list-unstyled text-white-50 small">
+                                    <li class="mb-1">&#10003; Full data sovereignty</li>
+                                    <li class="mb-1">&#10003; No vendor data access</li>
+                                    <li class="mb-1">&#10003; systemd / Docker deployment</li>
+                                    <li class="mb-1">&#10003; Community support</li>
+                                </ul>
+                                <a href="https://github.com/knirv/server" class="btn btn-md btn-grad btn-round w-100">Self-Host on GitHub</a>
+                            </div>
+                        </div>
+                        <div class="col-lg-5 col-md-6">
+                            <div class="deploy-card cloud text-start">
+                                <h4>KNIRVCLI</h4>
+                                <p class="text-white-50 small">Supervise agents, submit proof, from your terminal</p>
+                                <ul class="list-unstyled text-white-50 small">
+                                    <li class="mb-1">&#10003; Signed evidence bundles per session</li>
+                                    <li class="mb-1">&#10003; Native proof commits to KNIRVSERVER</li>
+                                    <li class="mb-1">&#10003; Works with Claude, Codex, Hermes, OpenCode</li>
+                                    <li class="mb-1">&#10003; Managed cloud or self-hosted backend</li>
+                                </ul>
+                                <a href="https://knirv.com" class="btn btn-md btn-grad btn-grad-alternet btn-round w-100">Get KNIRVCLI at knirv.com</a>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </section>

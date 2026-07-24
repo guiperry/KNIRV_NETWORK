@@ -7,52 +7,15 @@ const sqlite3 = require('sqlite3').verbose();
 const fs = require('node:fs');
 const path = require('node:path');
 
-// Logging: every line is prefixed so it's unambiguous which embedded service
-// a given log line came from when interleaved with KNIRVORACLE/KNIRVCHAIN/etc.
-const LOG_PREFIX = '[Transaction Chain]';
-function logInfo(...args) { console.log(LOG_PREFIX, ...args); }
-function logError(...args) { console.error(LOG_PREFIX, ...args); }
-
 // Config
 const DEFAULT_DIFFICULTY = 0;
 const DIFFICULTY = process.env.BLOCK_DIFFICULTY ? parseInt(process.env.BLOCK_DIFFICULTY, 10) : DEFAULT_DIFFICULTY;
+const BLOCK_TIME = parseInt(process.env.BLOCK_TIME || '5000');
 const PORT = parseInt(process.env.PORT || '3000');
-// SOCKET_PATH is how KNIRVSERVER's Go supervisor (pkg/embedded/transactionchain/process.go)
-// actually reaches this service — over a Unix domain socket, never a TCP port
-// (see that file's own doc comment: "nothing exposes a TCP port for it").
-// When set, it takes priority over PORT.
-const SOCKET_PATH = process.env.SOCKET_PATH || '';
+const MAX_BLOCKS = 500; // Max blocks to mine
 const SALT = process.env.SALT || 'your-secret-salt'; // Ensure that you set this environment variable to make the mining process more secure
 const DATA_PATH = process.env.DATA_PATH || __dirname;
 const CHAIN_ID = process.env.CHAIN_ID || 'transaction-chain-1';
-
-// resolveNetworkMode mirrors the Go services' own KNIRV_NETWORK_MODE /
-// KNIRV_TESTNET resolution (see e.g. KNIRVGATEWAY's config.go).
-function resolveNetworkMode() {
-    const mode = (process.env.KNIRV_NETWORK_MODE || '').trim().toLowerCase();
-    if (mode) return mode;
-    if (['true', '1', 'yes'].includes((process.env.KNIRV_TESTNET || '').trim().toLowerCase())) return 'testnet';
-    return 'production';
-}
-
-// resolveHeartbeatIntervalMs decides how often to mine a block even with an
-// empty transaction pool. This used to be unconditional (mining MAX_BLOCKS=500
-// empty blocks 5s apart on every single startup, regardless of network mode
-// or pool contents) — pure noise, since nothing rewards empty blocks. Now:
-// an explicit BLOCK_TIME always wins; otherwise testnet gets a slow 30-minute
-// keep-alive heartbeat and production is fully event-driven (0 = disabled —
-// mining only ever happens when a transaction actually arrives).
-function resolveHeartbeatIntervalMs() {
-    if (process.env.BLOCK_TIME) {
-        return parseInt(process.env.BLOCK_TIME, 10);
-    }
-    const mode = resolveNetworkMode();
-    if (mode === 'production' || mode === 'prod' || mode === 'mainnet') {
-        return 0;
-    }
-    return 30 * 60 * 1000;
-}
-const HEARTBEAT_INTERVAL_MS = resolveHeartbeatIntervalMs();
 
 // SQLite setup
 fs.mkdirSync(DATA_PATH, { recursive: true });
@@ -98,10 +61,10 @@ async function ensureTableExists() {
             )
         `, (err) => {
             if (err) {
-                logError("Error creating table:", err);
+                console.error("Error creating table:", err);
                 reject(err);
             } else {
-               logInfo("Blocks table is ready");
+               console.log("Blocks table is ready");
                 resolve();
             }
         });
@@ -154,7 +117,7 @@ class Block {
             this.hash = this.calculateHash();
         }
 
-         logInfo(`${new Date().toISOString()} Block Mined: ${this.hash}`);
+         console.log(`[INFO] ${new Date().toISOString()} Block Mined: ${this.hash}`);
     }
 
 
@@ -180,12 +143,12 @@ class Blockchain {
         return new Promise((resolve, reject) => {
           db.all('SELECT * FROM blocks ORDER BY block_index ASC', (err, rows) => {
              if(err) {
-                logError("Error loading chain from SQLite:", err);
+                console.error("Error loading chain from SQLite:", err);
                  this.chain = [this.createGenesisBlock()];
                  this.saveBlock(this.chain[0])
                  .then(() => {resolve()})
                  .catch((e) => {
-                    logError("Error saving genesis block to the database, exiting...", e);
+                    console.error("Error saving genesis block to the database, exiting...", e);
                    reject(e)
                    process.exit(1)
                    return
@@ -205,7 +168,7 @@ class Blockchain {
                   }
                    resolve();
              } catch (e) {
-                 logError("Error parsing data from database", e)
+                 console.error("Error parsing data from database", e)
                  this.chain = [this.createGenesisBlock()];
                  this.saveBlock(this.chain[0]).then(resolve).catch(reject);
                  return; // Important, exit after the catch block finishes execution
@@ -239,7 +202,7 @@ class Blockchain {
             await this.saveBlock(newBlock);
              newBlock.mineBlock(DIFFICULTY);
              this.chain.push(newBlock);
-            logInfo(`Successfully added block ${newBlock.index}`);
+            console.log(`[INFO] Successfully added block ${newBlock.index}`);
         });
     }
 
@@ -258,7 +221,7 @@ class Blockchain {
             ],
             (err) => {
                if(err) {
-                logError("Error saving block", err);
+                console.error("Error saving block", err);
                 reject(err)
                } else {
                  resolve()
@@ -382,22 +345,9 @@ let index = blockchain.chain.length;
 
 let mining = false; // Flag to control the mining loop
 
-// mineBlock mines a single block. With force=false (the default — used by
-// the /transactions and /transaction endpoints right after queuing a real
-// transaction) it skips mining entirely when the pool is empty, matching the
-// Rust Validation Chain's own "no transactions in the pool, skipping block
-// creation" behavior — there is no reason to mine an empty block, since
-// nothing rewards one. force=true is only used by the heartbeat interval
-// below, which deliberately still wants a block on its slow keep-alive
-// cadence even when idle.
-async function mineBlock(force = false) {
+async function mineBlock() { // Function to mine a single block
 
     if(mining) return; //If mining is already in progress, prevent additional executions
-
-    if (!force && transactionPool.length === 0) {
-        logInfo("No transactions in the pool, skipping block creation.");
-        return;
-    }
 
     mining = true; //Set mining flag
     try {
@@ -416,7 +366,7 @@ async function mineBlock(force = false) {
         await blockchain.addBlock(newBlock);
         index++;
     } catch (error) {
-        logError("Error mining a new block:", error);
+        console.error("Error mining a new block:", error);
     } finally{
         mining = false; // Reset the flag *always* in the finally block
     }
@@ -451,39 +401,6 @@ app.post('/transaction', async (req, res) => {
 
     mineBlock();
     res.status(201).json({ transactionHash, tx_hash: transactionHash });
-});
-
-// /wallet/credit is how KNIRVSERVER's launcher provisions a wallet's initial
-// balance (see main.go's creditTransactionChainWallet) — e.g. the root.key
-// holder's one-time provisional funding on startup. There is no separate
-// ledger entry type for a credit: it is recorded as an ordinary transaction
-// from a synthetic treasury address, same as any other transfer, so
-// calculateBalance and block explorers see it consistently. This always
-// mines immediately (force=true) regardless of the heartbeat policy — a
-// wallet credit is real activity, not an empty block.
-app.post('/wallet/credit', async (req, res) => {
-    const { address, amount, reason } = req.body || {};
-    if (typeof address !== 'string' || !address) {
-        res.status(400).json({ error: 'address is required' });
-        return;
-    }
-    const numericAmount = Number(amount);
-    if (!Number.isFinite(numericAmount) || numericAmount <= 0) {
-        res.status(400).json({ error: 'amount must be a positive number' });
-        return;
-    }
-    const transaction = {
-        from: 'TREASURY',
-        to: address,
-        amount: numericAmount,
-        type: 'credit',
-        data: { reason: reason || 'wallet credit' },
-    };
-    const transactionHash = hashTransaction(transaction);
-    transactionPool.push(transaction);
-
-    await mineBlock(true);
-    res.status(200).json({ transactionHash, tx_hash: transactionHash, address, amount: numericAmount });
 });
 
 app.get('/blocks', async (req, res) => {  // Your blocks endpoint
@@ -547,7 +464,7 @@ async function start() {
     try {
         await ensureTableExists();
     } catch (e) {
-        logError("Failed to create table, exiting...", e);
+        console.error("Failed to create table, exiting...", e);
         process.exit(1);
         return;
     }
@@ -557,37 +474,14 @@ async function start() {
     await blockchain.loadChainFromDB(); //Load blockchain before server starts listening
     index = blockchain.chain.length; // Initialize after loading
 
-    // Bind the Unix socket KNIRVSERVER's Go supervisor expects when it set
-    // SOCKET_PATH (the normal embedded-service path — see process.go). Only
-    // fall back to a bare TCP PORT for standalone/manual runs where
-    // SOCKET_PATH was never set.
-    let listenTarget = PORT;
-    let listenDescription = `http://localhost:${PORT}`;
-    if (SOCKET_PATH) {
-        try {
-            fs.unlinkSync(SOCKET_PATH); // clear a stale socket file from a previous run
-        } catch (e) {
-            if (e.code !== 'ENOENT') throw e;
-        }
-        listenTarget = SOCKET_PATH;
-        listenDescription = `unix:${SOCKET_PATH}`;
-    }
+    app.listen(PORT, async () => {  // Start the server *before* mining. This is correct.
 
-    app.listen(listenTarget, () => {  // Start the server *before* mining. This is correct.
+         console.log(`[INFO] Server running on http://localhost:${PORT}`);
 
-         logInfo(`Server running on ${listenDescription}`);
-
-         // Mining otherwise only happens when a transaction actually arrives
-         // (see the /transactions and /transaction handlers below). This
-         // heartbeat is purely a liveness/keep-alive signal for idle
-         // periods — disabled entirely (HEARTBEAT_INTERVAL_MS === 0) in
-         // production, where there is no reason to mine empty blocks at all.
-         if (HEARTBEAT_INTERVAL_MS > 0) {
-             logInfo(`Heartbeat mining enabled: a block is forced every ${HEARTBEAT_INTERVAL_MS}ms even with an empty pool.`);
-             setInterval(() => { mineBlock(true); }, HEARTBEAT_INTERVAL_MS);
-         } else {
-             logInfo("Heartbeat mining disabled — mining only when a transaction is submitted.");
-         }
+           for (let blockCount = 0; blockCount < MAX_BLOCKS; blockCount++) {
+             await mineBlock(); //Mine MAX_BLOCKS before setting up interval.  This will resolve the reentrant mutex errors since it is called sequentially and synchronously at startup.
+               await new Promise(resolve => setTimeout(resolve, BLOCK_TIME)); //Wait
+            }
     });
 }
 start();
