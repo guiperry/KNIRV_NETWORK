@@ -10,9 +10,11 @@ const path = require('node:path');
 // Config
 const DEFAULT_DIFFICULTY = 0;
 const DIFFICULTY = process.env.BLOCK_DIFFICULTY ? parseInt(process.env.BLOCK_DIFFICULTY, 10) : DEFAULT_DIFFICULTY;
-const BLOCK_TIME = parseInt(process.env.BLOCK_TIME || '5000');
+// SOCKET_PATH is how KNIRVSERVER always runs this in-process (proxied
+// through KNIRVGATEWAY, never a directly exposed TCP port). PORT is a
+// standalone-dev-only fallback for running this file outside KNIRVSERVER.
+const SOCKET_PATH = process.env.SOCKET_PATH || '';
 const PORT = parseInt(process.env.PORT || '3000');
-const MAX_BLOCKS = 500; // Max blocks to mine
 const SALT = process.env.SALT || 'your-secret-salt'; // Ensure that you set this environment variable to make the mining process more secure
 const DATA_PATH = process.env.DATA_PATH || __dirname;
 const CHAIN_ID = process.env.CHAIN_ID || 'transaction-chain-1';
@@ -403,6 +405,33 @@ app.post('/transaction', async (req, res) => {
     res.status(201).json({ transactionHash, tx_hash: transactionHash });
 });
 
+// Internal-only: credits a balance without a signed transaction (used by
+// KNIRVSERVER to seed a wallet from KNIRVORACLE's faucet). Goes through the
+// same transaction+mine pipeline as everything else, so it stays consistent
+// with mining only happening when there's something to mine.
+app.post('/wallet/credit', async (req, res) => {
+    const { address, amount, reason } = req.body || {};
+    if (!address || !Number.isFinite(amount)) {
+        res.status(400).json({ message: 'address and numeric amount are required' });
+        return;
+    }
+
+    const transaction = {
+        from: '',
+        to: address,
+        amount,
+        value: amount,
+        type: 'credit',
+        data: { reason: reason || 'wallet-credit' },
+        timestamp: Date.now(),
+    };
+    const transactionHash = hashTransaction(transaction);
+    transactionPool.push(transaction);
+
+    mineBlock();
+    res.status(201).json({ transactionHash, tx_hash: transactionHash, address, amount });
+});
+
 app.get('/blocks', async (req, res) => {  // Your blocks endpoint
     res.json(blockchain.getBlockchain());
 });
@@ -474,15 +503,24 @@ async function start() {
     await blockchain.loadChainFromDB(); //Load blockchain before server starts listening
     index = blockchain.chain.length; // Initialize after loading
 
-    app.listen(PORT, async () => {  // Start the server *before* mining. This is correct.
-
-         console.log(`[INFO] Server running on http://localhost:${PORT}`);
-
-           for (let blockCount = 0; blockCount < MAX_BLOCKS; blockCount++) {
-             await mineBlock(); //Mine MAX_BLOCKS before setting up interval.  This will resolve the reentrant mutex errors since it is called sequentially and synchronously at startup.
-               await new Promise(resolve => setTimeout(resolve, BLOCK_TIME)); //Wait
-            }
-    });
+    // No idle/scheduled mining: blocks are only mined when a transaction (or
+    // an internal wallet credit) actually arrives — see mineBlock() calls in
+    // the /transactions, /transaction, and /wallet/credit handlers above.
+    if (SOCKET_PATH) {
+        fs.mkdirSync(path.dirname(SOCKET_PATH), { recursive: true });
+        try {
+            fs.unlinkSync(SOCKET_PATH); // clear a stale socket file from a previous run
+        } catch (e) {
+            if (e.code !== 'ENOENT') throw e;
+        }
+        app.listen(SOCKET_PATH, () => {
+            console.log(`[INFO] Server running on unix socket ${SOCKET_PATH}`);
+        });
+    } else {
+        app.listen(PORT, () => {
+            console.log(`[INFO] Server running on http://localhost:${PORT}`);
+        });
+    }
 }
 start();
 

@@ -2541,7 +2541,40 @@ func (app *ServerApp) startTransactionChain(ctx context.Context) {
 		log.Printf("Warning: KNIRVORACLE did not become healthy in time; skipping Transaction Chain wallet funding")
 		return
 	}
+	// StartTransactionChain only guarantees the process was spawned, not that
+	// its HTTP server has finished booting (sqlite table creation + chain
+	// load happen asynchronously before app.listen()) — wait for its own
+	// /health before crediting, or the very first request loses this race.
+	if !waitForTransactionChainHealth(ctx, socketPath, 30*time.Second) {
+		log.Printf("Warning: Transaction Chain did not become healthy in time; skipping wallet funding")
+		return
+	}
 	app.fundRootKeyHolderWallet(ctx, oracleURL)
+}
+
+// waitForTransactionChainHealth polls the Transaction Chain's own /health
+// endpoint over its Unix domain socket with a bounded retry.
+func waitForTransactionChainHealth(ctx context.Context, socketPath string, timeout time.Duration) bool {
+	client := unixHTTPClient(socketPath, 3*time.Second)
+	deadline := time.Now().Add(timeout)
+	for time.Now().Before(deadline) {
+		select {
+		case <-ctx.Done():
+			return false
+		default:
+		}
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, "http://unix/health", nil)
+		if err == nil {
+			if resp, err := client.Do(req); err == nil {
+				resp.Body.Close()
+				if resp.StatusCode == http.StatusOK {
+					return true
+				}
+			}
+		}
+		time.Sleep(1 * time.Second)
+	}
+	return false
 }
 
 // testFundingAmountNRN is the flat provisional balance credited to the

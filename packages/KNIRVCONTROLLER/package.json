@@ -70,6 +70,7 @@
     "release:mobile:upload:ios": "node scripts/release-native.mjs --upload-only --ios-only",
     "release:android": "node scripts/release-native.mjs --android-only",
     "release:ios": "node scripts/release-native.mjs --ios-only",
+    "release:ios:unsigned": "node scripts/release-native.mjs --ios-only --no-upload --skip-sync",
     "cap:add:android": "npx cap add android",
     "cap:add:ios": "npx cap add ios",
     "cap:sync": "npm run build && npx cap sync && node scripts/fix-android-java-target.mjs",
