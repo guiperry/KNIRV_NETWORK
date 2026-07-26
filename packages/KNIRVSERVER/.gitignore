@@ -58,6 +58,7 @@ docs/*
 
 backend_server/bin/root.key
 dist/
+.local/
 
 KNIRVSERVER/backend_server/cmd/container_deployer/golang-app-source/knirv-server
 
