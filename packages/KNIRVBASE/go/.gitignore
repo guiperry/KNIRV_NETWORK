@@ -1,0 +1,8 @@
+
+/bin/knirvbase
+/ts/dist
+/ts/node_modules
+/rust/target/debug
+/rust/target/debug
+
+
