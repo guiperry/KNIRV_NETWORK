@@ -1,6 +1,6 @@
 # KNIRV Network
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![License: GPL-3.0](https://img.shields.io/badge/License-GPL--3.0-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![Go Version](https://img.shields.io/badge/Go-1.24%2B-blue.svg)](https://golang.org/)
 [![Node.js Version](https://img.shields.io/badge/Node.js-18%2B-green.svg)](https://nodejs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-Strict-blueviolet.svg)](https://www.typescriptlang.org/)
@@ -287,4 +287,4 @@ See [Conventions](#conventions) above, and keep this README in sync when entry p
 
 ## License
 
-MIT
+GPL-3.0
