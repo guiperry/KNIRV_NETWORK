@@ -1,0 +1,42 @@
+{
+  "cli_version": "0.5.5",
+  "checkpoint_id": "447df4a06746",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "packages/KNIRVBASE/go/README.md",
+    "packages/KNIRVBASE/go/internal/collection/consensus_handler.go",
+    "packages/KNIRVBASE/go/internal/collection/consensus_handler_test.go",
+    "packages/KNIRVBASE/go/internal/collection/distributed_collection.go",
+    "packages/KNIRVBASE/go/internal/database/distributed_database.go",
+    "packages/KNIRVBASE/go/internal/database/distributed_database_test.go",
+    "packages/KNIRVBASE/go/internal/indexing/hnsw.go",
+    "packages/KNIRVBASE/go/internal/network/network_manager.go",
+    "packages/KNIRVBASE/go/internal/network/network_manager_notcp.go",
+    "packages/KNIRVBASE/go/internal/network/network_manager_tcp.go",
+    "packages/KNIRVBASE/go/internal/p2pconsensus/config.go",
+    "packages/KNIRVBASE/go/internal/p2pconsensus/gateway_proxy.go",
+    "packages/KNIRVBASE/go/internal/p2pconsensus/gateway_proxy_test.go",
+    "packages/KNIRVBASE/go/internal/p2pconsensus/manager.go",
+    "packages/KNIRVBASE/go/internal/p2pconsensus/secret.go",
+    "packages/KNIRVBASE/go/internal/p2pconsensus/secret_test.go",
+    "packages/KNIRVBASE/go/internal/p2pconsensus/socket_server.go",
+    "packages/KNIRVBASE/go/internal/p2pconsensus/socket_server_test.go"
+  ],
+  "sessions": [
+    {
+      "metadata": "/44/7df4a06746/0/metadata.json",
+      "transcript": "/44/7df4a06746/0/full.jsonl",
+      "content_hash": "/44/7df4a06746/0/content_hash.txt",
+      "prompt": "/44/7df4a06746/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 229499,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 9534544,
+    "output_tokens": 44023,
+    "api_call_count": 109
+  }
+}
