@@ -62,9 +62,11 @@ const renderAgentChat = (dveId: string = 'dve-alpha') => {
 describe('AgentChat', () => {
   beforeEach(() => {
     vi.useFakeTimers();
+    vi.stubGlobal('fetch', vi.fn(() => new Promise<Response>(() => undefined)));
   });
 
   afterEach(() => {
+    vi.unstubAllGlobals();
     vi.useRealTimers();
   });
 

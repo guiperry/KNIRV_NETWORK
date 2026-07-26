@@ -1,24 +1,91 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router';
 import { QrCode, Shield, CheckCircle, XCircle, RefreshCw, ArrowRight } from 'lucide-react';
 import Layout from '@/react-app/components/Layout';
 import { QrScannerFrame } from '@/react-app/components/QrScannerFrame';
 import { useBackend } from '@/react-app/hooks/useBackend';
 import { useVault } from '@/react-app/hooks/useVault';
 import { impactHeavy, notificationError } from '@/react-app/platform/haptics';
+import {
+  bytesToBase64,
+  controllerPairingClaim,
+  getControllerDeviceID,
+  parseDVESessionPairing,
+  saveJoinedControllerSession,
+} from '@/react-app/platform/controllerSession';
 
 const ONBOARDING_API_BASE = 'https://onboarding.knirv.com';
 
 const Scanner: React.FC = () => {
+  const navigate = useNavigate();
   const [scanResult, setScanResult] = useState<string | null>(null);
   const [isVerifying, setIsVerifying] = useState(false);
   const [verificationStatus, setVerificationStatus] = useState<'idle' | 'success' | 'error' | 'confirm_send'>('idle');
   const [sendDetails, setSendDetails] = useState<{ address: string, amount: number } | null>(null);
+  const [joinedSessionID, setJoinedSessionID] = useState<string | null>(null);
+  const [verificationError, setVerificationError] = useState<string | null>(null);
   
-  const { currentAccount } = useVault();
+  const { currentAccount, status: vaultStatus, signMessage } = useVault();
   const { sendNRN } = useBackend(currentAccount ? currentAccount.getAddress('knirv') : null);
 
   const handleScanResult = async (data: string) => {
     setIsVerifying(true);
+    setVerificationError(null);
+
+    try {
+      const pairing = parseDVESessionPairing(data);
+      if (vaultStatus !== 'unlocked' || !currentAccount) {
+        throw new Error('Unlock the controller vault before joining a DVE session.');
+      }
+      const deviceID = await getControllerDeviceID();
+      const claim = controllerPairingClaim(pairing.session_id, pairing.pairing_token, deviceID);
+      const signature = await signMessage(claim);
+      const response = await fetch(
+        `/worker/dve/sessions/${encodeURIComponent(pairing.session_id)}/pair/confirm`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            pairing_token: pairing.pairing_token,
+            device_id: deviceID,
+            public_key: bytesToBase64(currentAccount.publicKey),
+            signature,
+          }),
+        },
+      );
+      const result = await response.json() as {
+        access_token?: string;
+        expires_at?: string;
+        trust_level?: string;
+        error?: string;
+      };
+      if (!response.ok || !result.access_token || !result.expires_at) {
+        throw new Error(result.error || 'The server rejected the DVE session pairing.');
+      }
+      await saveJoinedControllerSession({
+        session_id: pairing.session_id,
+        environment_id: pairing.environment_id,
+        device_id: deviceID,
+        access_token: result.access_token,
+        expires_at: result.expires_at,
+        trust_level: result.trust_level || 'signed_supervised',
+      });
+      setJoinedSessionID(pairing.session_id);
+      setIsVerifying(false);
+      impactHeavy();
+      setVerificationStatus('success');
+      return;
+    } catch (error) {
+      // A non-pairing QR may still be one of the scanner's other supported
+      // payloads. Pairing-shaped JSON fails closed instead of falling through.
+      if (data.trim().startsWith('{')) {
+        setIsVerifying(false);
+        notificationError();
+        setVerificationError(error instanceof Error ? error.message : 'Failed to join DVE session.');
+        setVerificationStatus('error');
+        return;
+      }
+    }
     
     if (data.startsWith('send:')) {
       const parts = data.split(':');
@@ -64,6 +131,7 @@ const Scanner: React.FC = () => {
       } catch {
         setIsVerifying(false);
         notificationError();
+        setVerificationError('Unable to reach the onboarding service.');
         setVerificationStatus('error');
       }
       return;
@@ -100,6 +168,8 @@ const Scanner: React.FC = () => {
     setScanResult(null);
     setVerificationStatus('idle');
     setSendDetails(null);
+    setJoinedSessionID(null);
+    setVerificationError(null);
   };
 
   const handleScan = (decodedText: string) => {
@@ -205,6 +275,15 @@ const Scanner: React.FC = () => {
                   <p className="text-[10px] font-mono text-green-400 break-all">{scanResult}</p>
                 </div>
               </div>
+              {joinedSessionID && (
+                <button
+                  onClick={() => navigate(`/dves/${encodeURIComponent(joinedSessionID)}/agent`)}
+                  className="flex items-center space-x-2 px-6 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-bold uppercase tracking-widest transition-all"
+                >
+                  <ArrowRight className="w-4 h-4" />
+                  <span>Open Session Chat</span>
+                </button>
+              )}
               <button 
                 onClick={resetScanner}
                 className="flex items-center space-x-2 px-6 py-2 bg-green-600 hover:bg-green-500 text-white rounded-lg text-xs font-bold uppercase tracking-widest transition-all"
@@ -222,7 +301,9 @@ const Scanner: React.FC = () => {
               </div>
               <div>
                 <h3 className="text-xl font-black text-white uppercase tracking-tighter">Failed</h3>
-                <p className="text-slate-400 text-sm font-mono mt-2">Invalid or Expired Token</p>
+                <p className="text-slate-400 text-sm font-mono mt-2">
+                  {verificationError || 'Invalid or Expired Token'}
+                </p>
               </div>
               <button 
                 onClick={resetScanner}

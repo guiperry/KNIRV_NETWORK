@@ -1,103 +1,67 @@
-import { useState, useCallback } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
-import { ArrowLeft, Shield, Wifi, WifiOff, BadgeCheck } from 'lucide-react';
+import { ArrowLeft, BadgeCheck, Shield, Wifi, WifiOff } from 'lucide-react';
 import Layout from '@/react-app/components/Layout';
 import ChatThread from '@/react-app/components/ChatThread';
 import VoiceChatBar from '@/react-app/components/VoiceChatBar';
+import {
+  getJoinedControllerSession,
+  workerWebSocketURL,
+  type JoinedControllerSession,
+} from '@/react-app/platform/controllerSession';
 import type { AgentMessage } from '@/shared/types';
-
-// ─── Mock DVE Data ──────────────────────────────────────────────────────────
 
 type DVEStatus = 'online' | 'degraded' | 'offline';
 type TEEType = 'sgx' | 'browser-ext' | 'tdx';
 
-interface MockDVE {
+interface DVEView {
   id: string;
   name: string;
   status: DVEStatus;
   tee_type: TEEType;
   reputation: number;
-  location: string;
   capabilities: string[];
   badges: { label: string; color: string }[];
-  cpu: number;
-  memory: number;
   pendingTasks: number;
   completedTasks: number;
 }
 
-const mockDVEs: Record<string, MockDVE> = {
+const knownDVEs: Record<string, DVEView> = {
   'dve-alpha': {
-    id: 'DVE-ALPHA-7X',
-    name: 'DVE-Alpha',
-    status: 'online',
-    tee_type: 'sgx',
-    reputation: 847,
-    location: 'us-east-1',
+    id: 'DVE-ALPHA-7X', name: 'DVE-Alpha', status: 'online', tee_type: 'sgx', reputation: 847,
     capabilities: ['ATTESTED_EXECUTION', 'SGX_2.0', 'LOW_LATENCY', 'SECURE_ENCLAVE'],
     badges: [
       { label: 'ATTESTED', color: 'green' },
       { label: 'SGX 2.0', color: 'blue' },
       { label: 'LOW LATENCY', color: 'cyan' },
     ],
-    cpu: 34,
-    memory: 52,
-    pendingTasks: 3,
-    completedTasks: 147,
+    pendingTasks: 3, completedTasks: 147,
   },
   'dve-beta': {
-    id: 'DVE-BETA-3Y',
-    name: 'DVE-Beta',
-    status: 'degraded',
-    tee_type: 'browser-ext',
-    reputation: 203,
-    location: 'local',
+    id: 'DVE-BETA-3Y', name: 'DVE-Beta', status: 'degraded', tee_type: 'browser-ext', reputation: 203,
     capabilities: ['BROWSER_EXTENSION', 'DEV_MODE', 'LOCAL_COMPUTE'],
     badges: [
       { label: 'BROWSER', color: 'purple' },
       { label: 'DEV MODE', color: 'amber' },
     ],
-    cpu: 12,
-    memory: 78,
-    pendingTasks: 1,
-    completedTasks: 42,
+    pendingTasks: 1, completedTasks: 42,
   },
   'dve-gamma': {
-    id: 'DVE-GAMMA-1Z',
-    name: 'DVE-Gamma',
-    status: 'online',
-    tee_type: 'tdx',
-    reputation: 512,
-    location: 'eu-central',
+    id: 'DVE-GAMMA-1Z', name: 'DVE-Gamma', status: 'online', tee_type: 'tdx', reputation: 512,
     capabilities: ['TDX', 'CONFIDENTIAL_COMPUTE', 'VERIFIED_BOOT', 'MEMORY_ENCRYPTION'],
     badges: [
       { label: 'TDX', color: 'blue' },
       { label: 'CONFIDENTIAL', color: 'purple' },
       { label: 'VERIFIED', color: 'green' },
     ],
-    cpu: 56,
-    memory: 44,
-    pendingTasks: 5,
-    completedTasks: 89,
+    pendingTasks: 5, completedTasks: 89,
   },
 };
 
-const defaultDVEData: MockDVE = {
-  id: 'DVE-UNKNOWN',
-  name: 'DVE-Unknown',
-  status: 'offline',
-  tee_type: 'sgx',
-  reputation: 0,
-  location: 'unknown',
-  capabilities: ['UNKNOWN'],
-  badges: [],
-  cpu: 0,
-  memory: 0,
-  pendingTasks: 0,
-  completedTasks: 0,
+const unknownDVE: DVEView = {
+  id: 'DVE-UNKNOWN', name: 'DVE-Unknown', status: 'offline', tee_type: 'sgx', reputation: 0,
+  capabilities: ['UNKNOWN'], badges: [], pendingTasks: 0, completedTasks: 0,
 };
-
-// ─── Helpers ─────────────────────────────────────────────────────────────────
 
 const statusDotColor: Record<DVEStatus, string> = {
   online: 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]',
@@ -106,9 +70,7 @@ const statusDotColor: Record<DVEStatus, string> = {
 };
 
 const statusLabel: Record<DVEStatus, string> = {
-  online: 'ONLINE',
-  degraded: 'DEGRADED',
-  offline: 'OFFLINE',
+  online: 'ONLINE', degraded: 'DEGRADED', offline: 'OFFLINE',
 };
 
 const statusBadgeClass: Record<DVEStatus, string> = {
@@ -116,8 +78,6 @@ const statusBadgeClass: Record<DVEStatus, string> = {
   degraded: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
   offline: 'bg-red-500/20 text-red-400 border-red-500/30',
 };
-
-
 
 const badgeColorMap: Record<string, string> = {
   blue: 'bg-blue-500/15 text-blue-400 border-blue-500/25',
@@ -127,234 +87,244 @@ const badgeColorMap: Record<string, string> = {
   cyan: 'bg-cyan-500/15 text-cyan-400 border-cyan-500/25',
 };
 
-let taskCounter = 0;
+let messageCounter = 0;
 
-function generateTaskId(): string {
-  taskCounter += 1;
-  const hex = Math.random().toString(16).slice(2, 8).toUpperCase();
-  return `TASK-${String(taskCounter).padStart(4, '0')}-${hex}`;
-}
-
-function generateTimestamp(): string {
-  return new Date().toISOString();
-}
-
-function buildAgentMessage(content: string, taskID?: string): AgentMessage {
+function createMessage(role: AgentMessage['role'], content: string, id?: string): AgentMessage {
+  messageCounter += 1;
   return {
-    id: `msg-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-    role: 'agent',
+    id: id || `msg-${Date.now()}-${messageCounter}`,
+    role,
     content,
-    timestamp: generateTimestamp(),
-    taskID,
+    timestamp: new Date().toISOString(),
   };
 }
 
-function buildUserMessage(content: string): AgentMessage {
-  return {
-    id: `msg-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-    role: 'user',
-    content,
-    timestamp: generateTimestamp(),
-  };
-}
-
-function buildSystemMessage(content: string): AgentMessage {
-  return {
-    id: `msg-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-    role: 'system',
-    content,
-    timestamp: generateTimestamp(),
-  };
-}
-
-// ─── Mock Response Generator ────────────────────────────────────────────────
-
-function generateMockResponse(input: string, dve: MockDVE): AgentMessage[] {
-  const lower = input.toLowerCase().trim();
-  const agentName = `KNIRVAGENT-${dve.name}`;
-
-  // "run badge" → queue task
-  if (lower.includes('run badge') || lower.includes('run') && lower.includes('badge')) {
-    const badgeName = input.replace(/run badge/i, '').trim() || 'generic-badge';
-    const taskId = generateTaskId();
-    const eta = Math.floor(Math.random() * 30) + 5;
-    return [
-      buildSystemMessage(`Task queued — supervisor ${agentName} dispatched`),
-      buildAgentMessage(
-        `Task queued successfully.\n\n` +
-        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-        `Task ID:  ${taskId}\n` +
-        `Badge:    ${badgeName}\n` +
-        `DVE:      ${dve.name}\n` +
-        `ETA:      ~${eta}s\n` +
-        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
-        `The badge "${badgeName}" has been dispatched to ${dve.name} (${dve.tee_type.toUpperCase()}). ` +
-        `Estimated completion in ${eta} seconds. You can check task status with "pending tasks".`,
-        taskId
-      ),
-    ];
+function agentResponseContent(value: unknown): string {
+  if (!value || typeof value !== 'object') {
+    return '';
   }
-
-  // "pending tasks" → list pending
-  if (lower.includes('pending') || lower.includes('pending tasks')) {
-    if (dve.pendingTasks === 0) {
-      return [
-        buildAgentMessage(
-          `No pending tasks on ${dve.name}. All clear.\n\n` +
-          `Completed tasks today: ${dve.completedTasks}`
-        ),
-      ];
+  const response = value as Record<string, unknown>;
+  for (const key of ['output', 'response', 'message', 'content']) {
+    if (typeof response[key] === 'string' && response[key]) {
+      return response[key];
     }
-    const pendingList = [
-      { id: generateTaskId(), badge: 'data-verify', status: 'running', ago: '2m' },
-      { id: generateTaskId(), badge: 'model-inference', status: 'queued', ago: '30s' },
-      { id: generateTaskId(), badge: 'attestation-check', status: 'queued', ago: '15s' },
-    ].slice(0, dve.pendingTasks);
-    return [
-      buildAgentMessage(
-        `Pending tasks on ${dve.name} (${dve.pendingTasks} total):\n\n` +
-        pendingList.map((t, i) =>
-          `  ${i + 1}. ${t.id}\n` +
-          `     Badge:  ${t.badge}\n` +
-          `     Status: ${t.status === 'running' ? '● RUNNING' : '○ QUEUED'}\n` +
-          `     Age:    ${t.ago}`
-        ).join('\n\n') +
-        `\n\nCompleted tasks today: ${dve.completedTasks}`
-      ),
-    ];
   }
-
-  // "badges" → list DVE badges
-  if (lower.includes('badge') || lower === 'badges') {
-    const badgeLines = dve.badges.length > 0
-      ? dve.badges.map((b) => `  ✓ ${b.label}`).join('\n')
-      : '  (no badges earned)';
-    return [
-      buildAgentMessage(
-        `${dve.name} — Badges & Attestations:\n\n` +
-        badgeLines +
-        `\n\nTEE Type: ${dve.tee_type.toUpperCase()}\n` +
-        `Reputation: ${dve.reputation}/1000`
-      ),
-    ];
+  if (response.data && typeof response.data === 'object') {
+    return agentResponseContent(response.data);
   }
-
-  // "status" → show CPU, memory, pending tasks
-  if (lower.includes('status') || lower === 'status') {
-    const cpuBar = '█'.repeat(Math.round(dve.cpu / 10)) + '░'.repeat(10 - Math.round(dve.cpu / 10));
-    const memBar = '█'.repeat(Math.round(dve.memory / 10)) + '░'.repeat(10 - Math.round(dve.memory / 10));
-    return [
-      buildAgentMessage(
-        `${dve.name} — Real-Time Status\n` +
-        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-        `Status:     ${statusLabel[dve.status]}\n` +
-        `TEE:        ${dve.tee_type.toUpperCase()}\n` +
-        `Location:   ${dve.location}\n` +
-        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-        `CPU:        ${dve.cpu}%  ${cpuBar}\n` +
-        `Memory:     ${dve.memory}% ${memBar}\n` +
-        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-        `Pending:    ${dve.pendingTasks} tasks\n` +
-        `Completed:  ${dve.completedTasks} tasks\n` +
-        `Reputation: ${dve.reputation}/1000\n` +
-        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━`
-      ),
-    ];
-  }
-
-  // "submit error" → error node created
-  if (lower.includes('submit error') || lower.includes('submit') && lower.includes('error')) {
-    const errorId = `ERR-${Math.random().toString(16).slice(2, 10).toUpperCase()}`;
-    return [
-      buildSystemMessage(`Error node created — ${agentName} registered anomaly`),
-      buildAgentMessage(
-        `Error node created successfully.\n\n` +
-        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-        `Error ID:  ${errorId}\n` +
-        `DVE:       ${dve.name}\n` +
-        `Status:    OPEN / PRIORITY: MEDIUM\n` +
-        `Logged to: D-TEN Oracle\n` +
-        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
-        `The error has been recorded on-chain. A ${agentName} supervisor will review and ` +
-        `either auto-remediate or escalate based on severity.`,
-        errorId
-      ),
-    ];
-  }
-
-  // default → helpful response
-  return [
-    buildAgentMessage(
-      `I'm ${agentName}, supervising ${dve.name} over ${dve.tee_type.toUpperCase()}.\n\n` +
-      `Here's what I can help with:\n\n` +
-      `  • "run badge <name>"    — Queue a new badge execution\n` +
-      `  • "pending tasks"       — View queued and running tasks\n` +
-      `  • "badges"              — Show DVE attestation badges\n` +
-      `  • "status"              — Display system resource metrics\n` +
-      `  • "submit error <desc>" — Create an error node for debugging\n\n` +
-      `Current resource load: CPU ${dve.cpu}% | MEM ${dve.memory}% | ${dve.pendingTasks} pending tasks`
-    ),
-  ];
+  return '';
 }
 
-// ─── AgentChat Page ──────────────────────────────────────────────────────────
+interface ChatFrame {
+  id: string;
+  type: string;
+  sender: string;
+  content: string;
+  timestamp: string;
+}
 
 export default function AgentChat() {
   const { dveId } = useParams<{ dveId: string }>();
   const navigate = useNavigate();
-
   const dveKey = dveId?.toLowerCase() || '';
-  const dve = mockDVEs[dveKey] || defaultDVEData;
-
-  const agentName = `KNIRVAGENT-${dve.name}`;
-
-  // Build initial greeting based on DVE data
-  const initialGreeting = buildAgentMessage(
-    `I'm ${agentName}, supervising ${dve.name}.\n\n` +
-    `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-    `Current tasks: ${dve.pendingTasks} pending, ${dve.completedTasks} completed\n` +
-    `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
-    `Capabilities:\n` +
-    dve.capabilities.map((c) => `  • ${c.replace(/_/g, ' ')}`).join('\n') +
-    `\n\nHow can I assist you today?`
-  );
+  const baseDVE = knownDVEs[dveKey] || unknownDVE;
+  const agentName = `KNIRVAGENT-${baseDVE.name}`;
+  const initialGreeting = useMemo(() => createMessage(
+    'agent',
+    `I'm ${agentName}, supervising ${baseDVE.name}.\n\n` +
+      `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+      `Current tasks: ${baseDVE.pendingTasks} pending, ${baseDVE.completedTasks} completed\n` +
+      `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
+      `Capabilities:\n${baseDVE.capabilities.map((capability) => `  • ${capability.replace(/_/g, ' ')}`).join('\n')}` +
+      '\n\nHow can I assist you today?',
+  ), [agentName, baseDVE]);
 
   const [messages, setMessages] = useState<AgentMessage[]>([initialGreeting]);
   const [isStreaming, setIsStreaming] = useState(false);
+  const [connectionStatus, setConnectionStatus] = useState<DVEStatus>(baseDVE.status);
+  const [joinedSession, setJoinedSession] = useState<JoinedControllerSession | null>(null);
+  const socketRef = useRef<WebSocket | null>(null);
+  const pendingEchoesRef = useRef<string[]>([]);
+
+  useEffect(() => {
+    let disposed = false;
+    let socket: WebSocket | null = null;
+
+    const connect = async () => {
+      const joined = await getJoinedControllerSession();
+      if (disposed || !joined || joined.session_id !== dveId) {
+        return;
+      }
+      setJoinedSession(joined);
+      setConnectionStatus('degraded');
+      setMessages([createMessage(
+        'system',
+        `Joining supervised DVE session ${joined.session_id}. Mobile input is ${joined.trust_level.replace(/_/g, ' ')}.`,
+      )]);
+
+      try {
+        const response = await fetch(
+          `/worker/dve/sessions/${encodeURIComponent(joined.session_id)}/chat-socket`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              access_token: joined.access_token,
+              device_id: joined.device_id,
+              role: 'mobile',
+            }),
+          },
+        );
+        const result = await response.json() as { ws_url?: string; error?: string };
+        if (!response.ok || !result.ws_url) {
+          throw new Error(result.error || 'Unable to create the DVE session socket.');
+        }
+        socket = new WebSocket(workerWebSocketURL(joined.session_id, result.ws_url));
+        socketRef.current = socket;
+        socket.onopen = () => {
+          if (!disposed) {
+            setConnectionStatus('online');
+            setMessages((previous) => [
+              ...previous,
+              createMessage('system', 'Connected to the shared KNIRVAGENT session thread.'),
+            ]);
+          }
+        };
+        socket.onmessage = (event) => {
+          let frame: ChatFrame;
+          try {
+            frame = JSON.parse(String(event.data)) as ChatFrame;
+          } catch {
+            return;
+          }
+          if (frame.type !== 'message' || !frame.content) {
+            return;
+          }
+          const isOwnEcho = frame.sender === `mobile:${joined.device_id}`;
+          if (isOwnEcho) {
+            const echoIndex = pendingEchoesRef.current.indexOf(frame.content);
+            if (echoIndex >= 0) {
+              pendingEchoesRef.current.splice(echoIndex, 1);
+              return;
+            }
+          }
+          const role: AgentMessage['role'] =
+            frame.sender === 'agent' ? 'agent' : frame.sender.startsWith('mobile:') || frame.sender === 'user' ? 'user' : 'system';
+          setMessages((previous) => [
+            ...previous,
+            {
+              ...createMessage(role, frame.content, frame.id),
+              timestamp: frame.timestamp || new Date().toISOString(),
+            },
+          ]);
+          if (frame.sender === 'agent') {
+            setIsStreaming(false);
+          }
+        };
+        socket.onclose = () => {
+          socketRef.current = null;
+          if (!disposed) {
+            setConnectionStatus('offline');
+            setIsStreaming(false);
+            setMessages((previous) => [
+              ...previous,
+              createMessage('system', 'The shared DVE session connection closed. Reopen the chat to reconnect.'),
+            ]);
+          }
+        };
+        socket.onerror = () => {
+          if (!disposed) {
+            setConnectionStatus('offline');
+          }
+        };
+      } catch (error) {
+        if (!disposed) {
+          setConnectionStatus('offline');
+          setMessages((previous) => [
+            ...previous,
+            createMessage('system', error instanceof Error ? error.message : 'Unable to join the DVE session.'),
+          ]);
+        }
+      }
+    };
+    void connect();
+    return () => {
+      disposed = true;
+      socket?.close();
+      if (socketRef.current === socket) {
+        socketRef.current = null;
+      }
+    };
+  }, [dveId]);
 
   const handleSendMessage = useCallback((text: string) => {
-    if (!text.trim() || isStreaming) return;
-
-    const userMsg = buildUserMessage(text);
-    setMessages((prev) => [...prev, userMsg]);
-
-    // Simulate streaming delay
+    const content = text.trim();
+    if (!content || isStreaming) {
+      return;
+    }
+    setMessages((previous) => [...previous, createMessage('user', content)]);
     setIsStreaming(true);
-    setTimeout(() => {
-      const responses = generateMockResponse(text, dve);
-      setMessages((prev) => [...prev, ...responses]);
-      setIsStreaming(false);
-    }, 600 + Math.random() * 400);
-  }, [dve, isStreaming]);
+
+    const socket = socketRef.current;
+    if (joinedSession && socket?.readyState === WebSocket.OPEN) {
+      pendingEchoesRef.current.push(content);
+      socket.send(JSON.stringify({ type: 'message', content, metadata: { origin: 'knirvcontroller' } }));
+      return;
+    }
+
+    const sendSingleAgentCall = async () => {
+      try {
+        const authToken = localStorage.getItem('knirv_auth_token');
+        const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+        if (authToken) {
+          headers.Authorization = `Bearer ${authToken}`;
+        }
+        const response = await fetch(`/worker/dve/${encodeURIComponent(dveId || baseDVE.id)}/agent`, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({ command: content, message: content }),
+        });
+        const result = await response.json() as unknown;
+        if (!response.ok) {
+          const errorMessage = agentResponseContent(result);
+          throw new Error(errorMessage || `KNIRVAGENT request failed with HTTP ${response.status}.`);
+        }
+        const reply = agentResponseContent(result);
+        if (!reply) {
+          throw new Error('KNIRVAGENT returned an empty response.');
+        }
+        setMessages((previous) => [...previous, createMessage('agent', reply)]);
+      } catch (error) {
+        setMessages((previous) => [
+          ...previous,
+          createMessage('system', error instanceof Error ? error.message : 'Unable to reach KNIRVAGENT.'),
+        ]);
+      } finally {
+        setIsStreaming(false);
+      }
+    };
+    void sendSingleAgentCall();
+  }, [baseDVE.id, dveId, isStreaming, joinedSession]);
 
   const handleCopyMessage = useCallback((_id: string, content: string) => {
-    navigator.clipboard.writeText(content).catch(() => {
-      // Clipboard not available in all contexts
-    });
+    navigator.clipboard.writeText(content).catch(() => undefined);
   }, []);
 
-  const handleBack = () => {
-    navigate('/dves');
-  };
+  const displayDVE: DVEView = joinedSession ? {
+    ...baseDVE,
+    id: joinedSession.environment_id,
+    name: `Session ${joinedSession.session_id.slice(0, 12)}`,
+    status: connectionStatus,
+    capabilities: ['SHARED_SESSION_CHAT', 'VAULT_SIGNED_PAIRING', 'HASH_CHAINED_EVIDENCE'],
+  } : { ...baseDVE, status: connectionStatus };
+  const displayAgentName = `KNIRVAGENT-${displayDVE.name}`;
 
   return (
     <Layout>
       <div className="flex flex-col h-[calc(100vh-8rem)] max-w-3xl mx-auto">
-        {/* ── Header ────────────────────────────────────────────────── */}
         <div className="glass-panel mx-4 mt-4 mb-2 p-3 glow-hover relative">
-          {/* Back Button */}
           <button
-            onClick={handleBack}
+            onClick={() => navigate('/dves')}
             className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center justify-center w-8 h-8 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-all"
             title="Back to DVEs"
           >
@@ -362,54 +332,48 @@ export default function AgentChat() {
           </button>
 
           <div className="flex items-center justify-center space-x-3">
-            {/* DVE Icon */}
             <div className={`flex-shrink-0 w-9 h-9 rounded-xl flex items-center justify-center border ${
-              dve.status === 'online' ? 'bg-green-500/10 border-green-500/20' :
-              dve.status === 'degraded' ? 'bg-yellow-500/10 border-yellow-500/20' :
-              'bg-red-500/10 border-red-500/20'
+              displayDVE.status === 'online' ? 'bg-green-500/10 border-green-500/20' :
+                displayDVE.status === 'degraded' ? 'bg-yellow-500/10 border-yellow-500/20' :
+                  'bg-red-500/10 border-red-500/20'
             }`}>
-              {dve.status === 'online' ? (
-                <Wifi className="w-4 h-4 text-green-400" />
-              ) : dve.status === 'degraded' ? (
-                <Wifi className="w-4 h-4 text-yellow-400" />
-              ) : (
+              {displayDVE.status === 'offline' ? (
                 <WifiOff className="w-4 h-4 text-red-400" />
+              ) : (
+                <Wifi className={`w-4 h-4 ${displayDVE.status === 'online' ? 'text-green-400' : 'text-yellow-400'}`} />
               )}
             </div>
 
-            {/* DVE Name + Status */}
             <div className="text-center">
               <div className="flex items-center justify-center space-x-2">
-                <h2 className="text-base font-bold text-white">{dve.name}</h2>
-                <span className={`inline-block w-2 h-2 rounded-full ${statusDotColor[dve.status]} animate-pulse`} />
+                <h2 className="text-base font-bold text-white">{displayDVE.name}</h2>
+                <span className={`inline-block w-2 h-2 rounded-full ${statusDotColor[displayDVE.status]} animate-pulse`} />
               </div>
               <div className="flex items-center justify-center space-x-2 mt-0.5">
-                <span className={`inline-flex items-center rounded-full border px-1.5 py-0.5 text-[8px] font-black uppercase tracking-wider ${statusBadgeClass[dve.status]}`}>
-                  {statusLabel[dve.status]}
+                <span className={`inline-flex items-center rounded-full border px-1.5 py-0.5 text-[8px] font-black uppercase tracking-wider ${statusBadgeClass[displayDVE.status]}`}>
+                  {statusLabel[displayDVE.status]}
                 </span>
-                <span className="text-[9px] font-mono text-slate-500">{dve.tee_type.toUpperCase()}</span>
+                <span className="text-[9px] font-mono text-slate-500">{displayDVE.tee_type.toUpperCase()}</span>
                 <span className="text-slate-600">•</span>
-                <span className="text-[9px] font-mono text-blue-400">Rep: {dve.reputation}</span>
+                <span className="text-[9px] font-mono text-blue-400">Rep: {displayDVE.reputation}</span>
               </div>
             </div>
           </div>
 
-          {/* Agent Badge */}
           <div className="absolute right-3 top-1/2 -translate-y-1/2">
             <div className="flex items-center space-x-1.5 px-2 py-1 rounded-lg bg-purple-500/15 border border-purple-500/25">
               <Shield className="w-3 h-3 text-purple-400" />
               <span className="text-[8px] font-black uppercase tracking-widest text-purple-400">
-                {agentName}
+                {displayAgentName}
               </span>
             </div>
           </div>
         </div>
 
-        {/* ── Badges Row ─────────────────────────────────────────────── */}
         <div className="flex flex-wrap items-center justify-center gap-1.5 px-4 mb-2">
-          {dve.badges.map((badge, i) => (
+          {displayDVE.badges.map((badge) => (
             <span
-              key={i}
+              key={badge.label}
               className={`inline-flex items-center rounded-md border px-1.5 py-0.5 text-[8px] font-black uppercase tracking-wider ${badgeColorMap[badge.color] || 'bg-slate-500/15 text-slate-400 border-slate-500/25'}`}
             >
               <BadgeCheck className="w-2.5 h-2.5 mr-0.5" />
@@ -418,21 +382,15 @@ export default function AgentChat() {
           ))}
         </div>
 
-        {/* ── Chat Area ─────────────────────────────────────────────── */}
         <div className="flex-1 overflow-y-auto scroll-smooth">
-          <ChatThread
-            messages={messages}
-            isStreaming={isStreaming}
-            onCopyMessage={handleCopyMessage}
-          />
+          <ChatThread messages={messages} isStreaming={isStreaming} onCopyMessage={handleCopyMessage} />
         </div>
 
-        {/* ── Voice Chat Bar ─────────────────────────────────────────── */}
         <div className="px-4 pb-4">
           <VoiceChatBar
             onSendMessage={handleSendMessage}
-            disabled={isStreaming}
-            placeholder={`Ask ${agentName} something...`}
+            disabled={isStreaming || (joinedSession !== null && connectionStatus !== 'online')}
+            placeholder={`Ask ${displayAgentName} something...`}
           />
         </div>
       </div>

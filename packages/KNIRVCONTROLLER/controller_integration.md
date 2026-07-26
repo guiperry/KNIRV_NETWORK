@@ -238,3 +238,5 @@ surfaced on mobile — each is a "wire it up" job more than a "build it" job.
    server-executed deterministic) has no slot for "typed on a paired phone." Recommend
    landing it at "locally supervised" by default, promotable to "signed supervised" once
    1.3e's vault-signature requirement (open question 2) is in place.
+
+   Answer to all above questions: Follow recommended strategies listed.

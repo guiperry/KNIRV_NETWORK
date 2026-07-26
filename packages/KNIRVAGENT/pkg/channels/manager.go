@@ -138,6 +138,19 @@ func (m *Manager) initChannels() error {
 			logger.InfoC("channels", "DVE channel enabled successfully")
 		}
 
+		if firstControllerEnv("KNIRVAGENT_AUTH_TOKEN", "KNIRV_AUTH_TOKEN", "AUTH_TOKEN", "KNIRVAGENT_INTERNAL_TOKEN") != "" {
+			logger.DebugC("channels", "Attempting to initialize Controller channel")
+			controller, err := NewControllerChannel(m.bus)
+			if err != nil {
+				logger.ErrorCF("channels", "Failed to initialize Controller channel", map[string]interface{}{
+					"error": err.Error(),
+				})
+			} else {
+				m.channels["controller"] = controller
+				logger.InfoC("channels", "Controller channel enabled successfully")
+			}
+		}
+
 		// Also register terminal channel for local piping
 		m.channels["terminal"] = NewTerminalChannel(m.bus)
 		logger.InfoC("channels", "Terminal channel enabled for local piping")

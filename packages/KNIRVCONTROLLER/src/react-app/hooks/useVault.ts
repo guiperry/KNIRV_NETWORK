@@ -174,9 +174,16 @@ export const useVault = () => {
     return vault.signTransaction(tx);
   }, [vault, status]);
 
+  const signMessage = useCallback(async (message: string): Promise<string> => {
+    if (!vault || status !== 'unlocked') {
+      throw new Error('Vault is locked or not initialized');
+    }
+    return vault.signOracleMessage(message);
+  }, [vault, status]);
+
   return {
     vault, status, accounts, currentAccount, dveVaults, error,
     createVault, importVault, unlockVault, lockVault, clearVault,
-    deriveDVEVault, updateDVEVaultStatus, removeDVEVault, signTransaction,
+    deriveDVEVault, updateDVEVaultStatus, removeDVEVault, signTransaction, signMessage,
   };
 };

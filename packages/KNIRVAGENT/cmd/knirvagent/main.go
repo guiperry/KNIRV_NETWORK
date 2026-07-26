@@ -763,9 +763,30 @@ func serverCmd() {
 	agentLoop := agent.NewAgentLoop(cfg, msgBus, provider)
 	agentLoop.SetFallbackProviders(runtimeFallbacks)
 
-	// Start the agent loop in the background
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
+
+	// Managed server processes participate in the same channel bus as the
+	// gateway command. The DVE identity flag is normalized into the environment
+	// consumed by DVE/controller channel registration.
+	if dveID != "" {
+		if err := os.Setenv("DVE_ID", dveID); err != nil {
+			fmt.Fprintf(os.Stderr, "Error setting DVE identity: %v\n", err)
+			os.Exit(1)
+		}
+	}
+	channelManager, err := channels.NewManager(cfg, msgBus)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error creating channel manager: %v\n", err)
+		os.Exit(1)
+	}
+	if err := channelManager.StartAll(ctx); err != nil {
+		fmt.Fprintf(os.Stderr, "Error starting channels: %v\n", err)
+		os.Exit(1)
+	}
+	defer channelManager.StopAll(context.Background())
+
+	// Start the agent loop in the background.
 	go agentLoop.Run(ctx)
 
 	// Print startup info
