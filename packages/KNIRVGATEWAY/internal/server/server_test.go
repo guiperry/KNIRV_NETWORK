@@ -92,6 +92,35 @@ func TestOracleProxyRoutes(t *testing.T) {
 	})
 }
 
+func TestOracleGatewayOverride(t *testing.T) {
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/api/blocks" {
+			t.Fatalf("expected forwarded path /api/blocks, got %q", r.URL.Path)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`[{"height":42}]`))
+	}))
+	defer upstream.Close()
+
+	// A configured override must enable the non-root upstream proxy even when
+	// this Server was built directly rather than through config.Load().
+	s := testServer(&config.Config{OracleGatewayURL: "  " + upstream.URL + "  "})
+	ts := httptest.NewServer(s.router)
+	defer ts.Close()
+
+	resp, err := http.Get(ts.URL + "/api/blocks")
+	if err != nil {
+		t.Fatalf("GET /api/blocks: %v", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("expected upstream response, got %d", resp.StatusCode)
+	}
+	if got := defaultOracleGatewayURL("mainnet", "  https://override.example  "); got != "https://override.example" {
+		t.Fatalf("override was not trimmed: %q", got)
+	}
+}
+
 // TestChainProxyRoutes verifies /api/chain/* proxy and redirects
 func TestChainProxyRoutes(t *testing.T) {
 	cfg := &config.Config{
@@ -158,6 +187,49 @@ func TestChainProxyRoutes(t *testing.T) {
 			t.Errorf("expected Location: /api/chain/bootnodes, got %q", loc)
 		}
 	})
+}
+
+func TestObjectAndAssetProxyPaths(t *testing.T) {
+	listener, err := net.Listen("unix", filepath.Join(t.TempDir(), "chain.sock"))
+	if err != nil {
+		t.Fatalf("listen on chain socket: %v", err)
+	}
+	defer listener.Close()
+
+	go func() {
+		_ = http.Serve(listener, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if r.URL.Path != "/objects" && r.URL.Path != "/assets" {
+				http.NotFound(w, r)
+				return
+			}
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{"nfts":[]}`))
+		}))
+	}()
+
+	s := testServer(&config.Config{ChainSocketPath: listener.Addr().String()})
+	ts := httptest.NewServer(s.router)
+	defer ts.Close()
+
+	for _, path := range []string{"/api/objects", "/api/assets"} {
+		resp, err := http.Get(ts.URL + path)
+		if err != nil {
+			t.Fatalf("GET %s: %v", path, err)
+		}
+		resp.Body.Close()
+		if resp.StatusCode != http.StatusOK {
+			t.Errorf("GET %s returned %d, want 200", path, resp.StatusCode)
+		}
+	}
+
+	resp, err := http.Get(ts.URL + "/api/objectssuffix")
+	if err != nil {
+		t.Fatalf("GET /api/objectssuffix: %v", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusNotFound {
+		t.Errorf("unexpected prefix route match: got %d, want 404", resp.StatusCode)
+	}
 }
 
 // TestGraphProxyRoutes verifies /api/graph/* proxy and redirects

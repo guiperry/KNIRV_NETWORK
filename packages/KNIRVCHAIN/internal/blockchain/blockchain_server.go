@@ -415,6 +415,12 @@ func (bcs *BlockchainServer) Prepare() (uint64, error) {
 	mux.HandleFunc("/nft/list", bcs.handleNFTList)
 	mux.HandleFunc("/nft/upload", bcs.handleNFTUpload)
 	mux.HandleFunc("/nft/attach-capability", bcs.handleNFTCapabilityAttachment)
+
+	// /objects and /assets serve NFT data — /nft/list is the canonical
+	// source; these aliases exist so the gateway proxy paths
+	// /api/objects and /api/assets resolve correctly.
+	mux.HandleFunc("/objects", bcs.handleNFTList)
+	mux.HandleFunc("/assets", bcs.handleNFTList)
 	mux.HandleFunc("/nft/capability-history/{badgeId}", bcs.handleNFTCapabilityHistory)
 
 	// Add Resource Capability Management API endpoints (Phase 3)

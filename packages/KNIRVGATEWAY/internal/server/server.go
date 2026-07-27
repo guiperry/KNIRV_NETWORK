@@ -353,8 +353,8 @@ func (s *Server) setupRoutes() error {
 	// is enough to tell this apart from a genuinely unconfigured test
 	// double, which should keep the old mock/empty fallback instead of
 	// making a real outbound call.
-	if oracleProxy == nil && !isRootNode && (s.config.OracleSocketPath != "" || s.config.NetworkMode != "") {
-		upstream := defaultOracleGatewayURL(s.config.NetworkMode)
+	if oracleProxy == nil && !isRootNode && (s.config.OracleSocketPath != "" || s.config.NetworkMode != "" || s.config.OracleGatewayURL != "") {
+		upstream := defaultOracleGatewayURL(s.config.NetworkMode, s.config.OracleGatewayURL)
 		if p, err := newHTTPProxy(upstream); err == nil {
 			oracleProxy = p
 			s.logger.Info("Oracle proxy registered (upstream KNIRVGATEWAY)", zap.String("upstream", upstream))
@@ -425,10 +425,12 @@ func (s *Server) setupRoutes() error {
 		}).Methods("GET", "OPTIONS")
 
 		// /api/objects → chain proxy (Phase 4 — replaces mock handler)
-		r.HandleFunc("/api/objects", chainProxy.ServeHTTP).Methods("GET", "OPTIONS")
+		// Strip /api prefix so /api/objects becomes /objects on chain.sock
+		r.Handle("/api/objects", http.StripPrefix("/api", chainProxy)).Methods("GET", "OPTIONS")
 
 		// /api/assets → chain proxy (Phase 4 — replaces mock handler)
-		r.HandleFunc("/api/assets", chainProxy.ServeHTTP).Methods("GET", "OPTIONS")
+		// Strip /api prefix so /api/assets becomes /assets on chain.sock
+		r.Handle("/api/assets", http.StripPrefix("/api", chainProxy)).Methods("GET", "OPTIONS")
 
 		// Event-bundle mint (chain_refactor.md §3.2/§4 Phase 2) — the CLI's
 		// single, public entry point for minting a KNIRVCHAIN event-bundle
@@ -1055,9 +1057,13 @@ func newSocketProxy(socketPath, targetBase string) *httputil.ReverseProxy {
 // defaultOracleGatewayURL returns the canonical public KNIRVGATEWAY origin
 // that fronts the root node's KNIRVORACLE socket, keyed off network mode —
 // the same production/testnet split KNIRVSERVER's own resolvePublicURL uses.
-// Only the root node ever has oracle.sock locally; every other node reaches
-// KNIRVORACLE by proxying here instead.
-func defaultOracleGatewayURL(networkMode string) string {
+// oracleGatewayURL takes precedence over the network-mode-derived default so
+// operators can point at a staging mainnet gateway before gateway.knirv.network
+// DNS exists.
+func defaultOracleGatewayURL(networkMode, oracleGatewayURL string) string {
+	if override := strings.TrimSpace(oracleGatewayURL); override != "" {
+		return override
+	}
 	switch strings.ToLower(strings.TrimSpace(networkMode)) {
 	case "production", "prod", "mainnet":
 		return "https://gateway.knirv.network"

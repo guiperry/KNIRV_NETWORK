@@ -59,6 +59,13 @@ type Config struct {
 	// the oracle is only reachable through the gateway's reverse-proxy layer.
 	OracleSocketPath string // Unix socket path for KNIRVORACLE (required)
 
+	// OracleGatewayURL overrides the default oracle gateway URL derived
+	// from NetworkMode. When set (e.g. ORACLE_GATEWAY_URL), it takes
+	// precedence over the production/testnet hardcoded defaults so
+	// operators can point at a staging mainnet gateway before
+	// gateway.knirv.network DNS exists.
+	OracleGatewayURL string
+
 	// TURN Server configuration
 	TurnServerEnabled      bool
 	TurnServerUDPPort      int
@@ -156,6 +163,7 @@ func Load() (*Config, error) {
 		SessionSecret:             getEnv("SESSION_SECRET", generateSessionSecret()),
 		AutoOpenBrowser:           getEnvBool("AUTO_OPEN_BROWSER", true),
 		OracleSocketPath:          getEnv("ORACLE_SOCKET_PATH", ""),
+		OracleGatewayURL:          getEnv("ORACLE_GATEWAY_URL", ""),
 		TurnServerEnabled:         getEnvBool("TURN_SERVER_ENABLED", true),
 		TurnServerUDPPort:         getEnvInt("TURN_SERVER_UDP_PORT", 3478),
 		TurnServerTCPPort:         getEnvInt("TURN_SERVER_TCP_PORT", 3479),

@@ -2444,7 +2444,15 @@ func unixHTTPClient(socketPath string, timeout time.Duration) *http.Client {
 // nothing exposes a TCP port for it. On success, also starts the
 // checkpoint-posting runtime that registers Validation Chain with
 // KNIRVORACLE and periodically submits signed checkpoints — making it the
-// merkle source in place of KNIRVCHAIN. Failure is logged and non-fatal.
+// merkle source in place of KNIRVCHAIN.
+//
+// Must be called last, after backend_server (and the KNIRVORACLE it spawns)
+// and Transaction Chain have started, so KNIRVORACLE has already established
+// its public tunnel endpoint through KNIRVGATEWAY by the time the checkpoint
+// runtime attempts its first registration — registering against a gateway
+// whose tunnel isn't up yet just wastes the first attempt. Failure here is
+// logged and non-fatal either way, since ensureRegistered retries on every
+// subsequent poll.
 func (app *ServerApp) startValidationChain(ctx context.Context) {
 	socketPath := validationChainSocketPath()
 	if err := embedded.GetManager().StartValidationChain(ctx, socketPath); err != nil {
@@ -2472,6 +2480,11 @@ func (app *ServerApp) startValidationChain(ctx context.Context) {
 	if oracleURL == "" {
 		oracleURL = gatewayURL
 	}
+
+	if !waitForOracleHealth(ctx, 60*time.Second, oracleURL) {
+		log.Printf("Warning: KNIRVORACLE did not become healthy in time; Validation Chain checkpoint registration will retry in the background")
+	}
+
 	runtime := checkpoint.NewRuntime(socketPath, gatewayURL, oracleURL, signer)
 	go runtime.Run(ctx, 30*time.Second)
 	log.Printf("Validation Chain checkpoint runtime started (posting to KNIRVORACLE via gateway %s, oracle %s)", gatewayURL, oracleURL)
@@ -3083,11 +3096,6 @@ func (app *ServerApp) Start() error {
 		}
 	}
 
-	// Start the embedded Validation Chain before the backend, so
-	// backend_server's HTTP client for it is already reachable by the time
-	// it starts.
-	app.startValidationChain(context.Background())
-
 	// Start backend (spawns KNIRVORACLE among other services)
 	if err := app.startBackend(); err != nil {
 		return err
@@ -3097,6 +3105,13 @@ func (app *ServerApp) Start() error {
 	// since Oracle must fund every Transaction Chain wallet's provisional
 	// balance pool (see startTransactionChain / fundRootKeyHolderWallet).
 	app.startTransactionChain(context.Background())
+
+	// Validation Chain is initialized last, after KNIRVORACLE has had a
+	// chance to start and establish its tunnel endpoint through
+	// KNIRVGATEWAY — its checkpoint runtime registers with KNIRVORACLE on
+	// first run, and doing that before Oracle's tunnel is reachable just
+	// wastes the first attempt (see startValidationChain).
+	app.startValidationChain(context.Background())
 
 	// Create HTTP server
 	// WriteTimeout is 0 (disabled) so SSE and long-lived streaming responses are

@@ -4,52 +4,49 @@ import PageLayout from '../components/PageLayout';
 import PageHeader from '../components/PageHeader';
 import GlassyCard from '../components/GlassyCard';
 import styles from './oracle-explorer.module.css';
+import { oracleApi } from '../services/api-client';
+
+function formatTimestamp(value) {
+  if (!value) return 'N/A';
+  const date = typeof value === 'number' ? new Date(value < 1e12 ? value * 1000 : value) : new Date(value);
+  return Number.isNaN(date.getTime()) ? 'N/A' : date.toLocaleString();
+}
 
 export default function OracleExplorer() {
   const { activePage } = useNavigation('oracle-explorer');
-  const [isBlockchainEnabled, setIsBlockchainEnabled] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [activeNetwork, setActiveNetwork] = useState('Bitcoin');
-  const [isRunning, setIsRunning] = useState(false);
+  const isBlockchainEnabled = true;
   const [isLoading, setIsLoading] = useState(false);
+  const [isRunning, setIsRunning] = useState(false);
   const [serverInfo, setServerInfo] = useState(null);
   const [blocks, setBlocks] = useState([]);
+  const [transactions, setTransactions] = useState([]);
   const [selectedBlock, setSelectedBlock] = useState(null);
-
-  const networks = ['Bitcoin', 'Ethereum', 'Solana', 'Cardano'];
+  const [error, setError] = useState(null);
+  const [activeTab, setActiveTab] = useState('blocks');
+  const [searchQuery, setSearchQuery] = useState('');
 
   const refreshData = useCallback(async () => {
     try {
       setIsLoading(true);
-      // TODO: Replace with actual API calls
-      const mockServerInfo = {
-        chain_id: 'KNIRVORACLE-Mainnet',
-        http_port: 8080,
-        p2p_port: 30303,
-        version: '1.0.0',
-        connections: 5
-      };
-      setServerInfo(mockServerInfo);
+      setError(null);
 
-      const mockBlocks = Array(5).fill().map((_, i) => ({
-        index: i + 1,
-        hash: `0000000000000000000${i}abcdef1234567890`,
-        previous_hash: i > 0 ? `0000000000000000000${i-1}abcdef1234567890` : '0',
-        timestamp: Math.floor(Date.now() / 1000) - (i * 600),
-        nonce: 12345 + i,
-        data: i % 2 === 0 ? [] : [
-          {
-            id: `tx${i}${Date.now()}`,
-            from: `addr${i}`,
-            to: `addr${i+1}`,
-            amount: (i * 10) + 5
-          }
-        ]
-      }));
-      setBlocks(mockBlocks);
-      setIsRunning(true);
-    } catch (error) {
-      console.error('Error fetching data:', error);
+      const [healthResult, blocksResult, transactionsResult] = await Promise.allSettled([
+        oracleApi.getHealth(),
+        oracleApi.getBlocks(),
+        oracleApi.getTransactions(),
+      ]);
+      const failures = [healthResult, blocksResult, transactionsResult]
+        .filter((result) => result.status === 'rejected')
+        .map((result) => result.reason.message);
+
+      if (healthResult.status === 'fulfilled') setServerInfo(healthResult.value);
+      if (blocksResult.status === 'fulfilled') setBlocks(blocksResult.value);
+      if (transactionsResult.status === 'fulfilled') setTransactions(transactionsResult.value);
+      setError(failures.length ? failures.join(' • ') : null);
+      setIsRunning(healthResult.status === 'fulfilled');
+    } catch (err) {
+      console.error('Error fetching oracle data:', err);
+      setError(err.message);
       setIsRunning(false);
     } finally {
       setIsLoading(false);
@@ -68,70 +65,61 @@ export default function OracleExplorer() {
 
   return (
     <PageLayout activePage={activePage} pageTitle="Oracle Explorer" onSearch={handleSearch}>
-
-      {/* Status Overlays */}
-      {!isRunning && isBlockchainEnabled && (
+      {!isRunning && isBlockchainEnabled && !isLoading && (
         <GlassyCard darker className={styles.errorCard}>
           Backend is not running. Please start the KNIRVORACLE node.
         </GlassyCard>
       )}
 
-      {isLoading && isBlockchainEnabled && isRunning && (
+      {isLoading && isBlockchainEnabled && (
         <GlassyCard darker className={styles.loading}>
-          Loading chain data...
+          Loading oracle chain data...
         </GlassyCard>
       )}
 
-      <PageHeader 
-        title={`${activeNetwork} Explorer`}
-        subtitle="Search and analyze blockchain data"
+      {error && (
+        <GlassyCard darker className={styles.errorCard}>
+          Failed to load oracle data: {error}
+        </GlassyCard>
+      )}
+
+      <PageHeader
+        title="Oracle Explorer"
+        subtitle="Monitor oracle chain node status, blocks, and transactions"
       />
 
-      {/* Network Selection */}
-      <GlassyCard darker className={styles.networkSelection}>
-        <div className={styles.networkButtons}>
-          {networks.map(network => (
-            <button 
-              key={network}
-              className={`${styles.button} ${activeNetwork === network ? styles.primary : styles.secondary}`}
-              onClick={() => setActiveNetwork(network)}
-            >
-              {network}
-            </button>
-          ))}
-        </div>
-      </GlassyCard>
+      <button className={`${styles.button} ${styles.secondary}`} onClick={refreshData} disabled={isLoading}>
+        {isLoading ? 'Refreshing…' : 'Refresh'}
+      </button>
 
-      {/* Server Info */}
       {serverInfo && isBlockchainEnabled && isRunning && !isLoading && (
         <GlassyCard darker className={styles.serverInfo}>
           <h3>Node Information</h3>
           <div className={styles.infoGrid}>
             <div className={styles.infoRow}>
               <span>Chain ID:</span>
-              <span>{serverInfo.chain_id}</span>
+              <span>{serverInfo.chain_id || serverInfo.network || 'N/A'}</span>
             </div>
             <div className={styles.infoRow}>
-              <span>HTTP Port:</span>
-              <span>{serverInfo.http_port}</span>
-            </div>
-            <div className={styles.infoRow}>
-              <span>P2P Port:</span>
-              <span>{serverInfo.p2p_port}</span>
+              <span>Status:</span>
+              <span>{serverInfo.status || 'healthy'}</span>
             </div>
             <div className={styles.infoRow}>
               <span>Version:</span>
-              <span>{serverInfo.version}</span>
+              <span>{serverInfo.version || 'N/A'}</span>
             </div>
             <div className={styles.infoRow}>
-              <span>Connected Peers:</span>
-              <span>{serverInfo.connections}</span>
+              <span>Height:</span>
+              <span>{serverInfo.height || serverInfo.block_height || 'N/A'}</span>
+            </div>
+            <div className={styles.infoRow}>
+              <span>Peers:</span>
+              <span>{serverInfo.peers || serverInfo.connections || 'N/A'}</span>
             </div>
           </div>
         </GlassyCard>
       )}
 
-      {/* Search Results */}
       {searchQuery && isBlockchainEnabled && isRunning && !isLoading && (
         <GlassyCard darker className={styles.searchResults}>
           <h3>Search Results</h3>
@@ -139,51 +127,94 @@ export default function OracleExplorer() {
         </GlassyCard>
       )}
 
-      {/* Block Explorer */}
       {isBlockchainEnabled && isRunning && !isLoading && (
         <div className={styles.blockchainInfo}>
-          {/* Blocks List */}
-          <GlassyCard darker className={styles.blocksContainer}>
-            <div className={styles.sectionHeader}>
-              <h3>Latest Blocks</h3>
-              <button className={`${styles.button} ${styles.secondary}`}>
-                View All
+          <div style={{ display: 'flex', gap: '10px', marginBottom: '16px' }}>
+            {['blocks', 'transactions'].map(tab => (
+              <button key={tab} onClick={() => setActiveTab(tab)}
+                style={{
+                  padding: '8px 16px', borderRadius: '6px', border: '1px solid rgba(100,200,130,0.3)',
+                  background: activeTab === tab ? 'rgba(40,120,70,0.7)' : 'rgba(30,40,70,0.5)',
+                  color: activeTab === tab ? '#fff' : '#b0ffb0', cursor: 'pointer', fontSize: '14px'
+                }}>
+                {tab.charAt(0).toUpperCase() + tab.slice(1)}
               </button>
-            </div>
+            ))}
+          </div>
 
-            {blocks.length === 0 ? (
-              <div className={styles.emptyState}>No blocks found</div>
-            ) : (
-              <div className={styles.tableWrapper}>
-                <table className={styles.blockTable}>
-                  <thead>
-                    <tr className={styles.tableHeader}>
-                      <th>Height</th>
-                      <th>Hash</th>
-                      <th>Timestamp</th>
-                      <th>Transactions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {blocks.map((block) => (
-                      <tr
-                        key={block.hash}
-                        className={styles.tableRow}
-                        onClick={() => setSelectedBlock(block)}
-                      >
-                        <td>{block.index || block.height}</td>
-                        <td>{block.hash.substring(0, 10)}...</td>
-                        <td>{new Date(block.timestamp * 1000).toLocaleString()}</td>
-                        <td>{block.data?.length || 0}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+          {activeTab === 'blocks' && (
+            <GlassyCard darker className={styles.blocksContainer}>
+              <div className={styles.sectionHeader}>
+                <h3>Latest Blocks</h3>
+                <button className={`${styles.button} ${styles.secondary}`}>
+                  View All
+                </button>
               </div>
-            )}
-          </GlassyCard>
 
-          {/* Block Details */}
+              {blocks.length === 0 ? (
+                <div className={styles.emptyState}>No blocks found</div>
+              ) : (
+                <div className={styles.tableWrapper}>
+                  <table className={styles.blockTable}>
+                    <thead>
+                      <tr className={styles.tableHeader}>
+                        <th>Height</th>
+                        <th>Hash</th>
+                        <th>Timestamp</th>
+                        <th>Transactions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {blocks.map((block) => (
+                        <tr
+                          key={block.hash || block.id}
+                          className={styles.tableRow}
+                          onClick={() => setSelectedBlock(block)}
+                        >
+                          <td>{block.height || block.index || block.block_height}</td>
+                          <td>{(block.hash || block.block_hash || '').substring(0, 10)}...</td>
+                          <td>{formatTimestamp(block.timestamp || block.time)}</td>
+                          <td>{block.tx_count || block.transactions?.length || 0}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </GlassyCard>
+          )}
+
+          {activeTab === 'transactions' && (
+            <GlassyCard darker className={styles.blocksContainer}>
+              <div className={styles.sectionHeader}>
+                <h3>Recent Transactions</h3>
+              </div>
+
+              {transactions.length === 0 ? (
+                <div className={styles.emptyState}>No transactions found</div>
+              ) : (
+                <div className={styles.transactionsList}>
+                  {transactions.map((tx) => (
+                    <GlassyCard key={tx.hash || tx.id} className={styles.transaction}>
+                      <div className={styles.infoRow}>
+                        <span>Hash:</span>
+                        <span>{(tx.hash || tx.id || '').substring(0, 16)}...</span>
+                      </div>
+                      <div className={styles.infoRow}>
+                        <span>Type:</span>
+                        <span>{tx.type || tx.operation || 'Transfer'}</span>
+                      </div>
+                      <div className={styles.infoRow}>
+                        <span>Time:</span>
+                        <span>{formatTimestamp(tx.timestamp || tx.time)}</span>
+                      </div>
+                    </GlassyCard>
+                  ))}
+                </div>
+              )}
+            </GlassyCard>
+          )}
+
           {selectedBlock && (
             <GlassyCard darker className={styles.blockDetails}>
               <div className={styles.sectionHeader}>
@@ -199,44 +230,36 @@ export default function OracleExplorer() {
               <div className={styles.infoGrid}>
                 <div className={styles.infoRow}>
                   <span>Hash:</span>
-                  <span>{selectedBlock.hash}</span>
+                  <span>{selectedBlock.hash || selectedBlock.block_hash || 'N/A'}</span>
                 </div>
                 <div className={styles.infoRow}>
-                  <span>Previous Hash:</span>
-                  <span>{selectedBlock.previous_hash || selectedBlock.prevHash}</span>
+                  <span>Height:</span>
+                  <span>{selectedBlock.height || selectedBlock.index || selectedBlock.block_height || 'N/A'}</span>
                 </div>
                 <div className={styles.infoRow}>
                   <span>Timestamp:</span>
-                  <span>{new Date(selectedBlock.timestamp * 1000).toLocaleString()}</span>
+                  <span>{formatTimestamp(selectedBlock.timestamp || selectedBlock.time)}</span>
                 </div>
                 <div className={styles.infoRow}>
-                  <span>Nonce:</span>
-                  <span>{selectedBlock.nonce}</span>
+                  <span>Transactions:</span>
+                  <span>{selectedBlock.tx_count || selectedBlock.transactions?.length || 0}</span>
                 </div>
               </div>
 
               <h4>Transactions</h4>
-              {selectedBlock.data && selectedBlock.data.length === 0 ? (
+              {(selectedBlock.transactions || []).length === 0 ? (
                 <div className={styles.emptyState}>No transactions in this block</div>
               ) : (
                 <div className={styles.transactionsList}>
-                  {(selectedBlock.data || []).map((tx, index) => (
+                  {(selectedBlock.transactions || []).map((tx, index) => (
                     <GlassyCard key={index} className={styles.transaction}>
                       <div className={styles.infoRow}>
-                        <span>ID:</span>
-                        <span>{tx.id}</span>
+                        <span>Hash:</span>
+                        <span>{(tx.hash || tx.id || '').substring(0, 16)}...</span>
                       </div>
                       <div className={styles.infoRow}>
-                        <span>From:</span>
-                        <span>{tx.from}</span>
-                      </div>
-                      <div className={styles.infoRow}>
-                        <span>To:</span>
-                        <span>{tx.to}</span>
-                      </div>
-                      <div className={styles.infoRow}>
-                        <span>Amount:</span>
-                        <span>{tx.amount}</span>
+                        <span>Type:</span>
+                        <span>{tx.type || tx.operation || 'Transfer'}</span>
                       </div>
                     </GlassyCard>
                   ))}
@@ -246,33 +269,6 @@ export default function OracleExplorer() {
           )}
         </div>
       )}
-      
-      {/* Network Stats */}
-      <div className={styles.statsContainer}>
-        <GlassyCard darker className={styles.statCard}>
-          <h3>Current Price</h3>
-          <h2>$45,632</h2>
-          <span className={styles.positiveChange}>+2.3%</span>
-        </GlassyCard>
-
-        <GlassyCard darker className={styles.statCard}>
-          <h3>Hash Rate</h3>
-          <h2>215 EH/s</h2>
-          <span className={styles.positiveChange}>+5.7%</span>
-        </GlassyCard>
-
-        <GlassyCard darker className={styles.statCard}>
-          <h3>Difficulty</h3>
-          <h2>37.59 T</h2>
-          <span className={styles.positiveChange}>+0.8%</span>
-        </GlassyCard>
-
-        <GlassyCard darker className={styles.statCard}>
-          <h3>Block Height</h3>
-          <h2>789,245</h2>
-          <span>Latest</span>
-        </GlassyCard>
-      </div>
     </PageLayout>
   );
 }

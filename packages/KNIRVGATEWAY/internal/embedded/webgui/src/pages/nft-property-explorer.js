@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import Viewport from '../components/Viewport';
 import SideNavigation from '../components/SideNavigation';
+import { chainApi, oracleApi } from '../services/api-client';
 
 const ObjectType = {
   id: '',
@@ -64,28 +65,28 @@ export default function NFTPropertyExplorer() {
       logToConsole('Initializing connection to KNIRVCHAIN...');
 
       try {
-        // Fetch objects
-        const objectsResponse = await fetch('/api/objects');
-        if (objectsResponse.ok) {
-          const objectsData = await objectsResponse.json();
-          setObjects(objectsData);
-          logToConsole(`Loaded ${objectsData.length} NFT properties from the chain`);
+        const [objectsResult, transactionsResult, blocksResult] = await Promise.allSettled([
+          chainApi.getNFTs(),
+          oracleApi.getTransactions(),
+          oracleApi.getBlocks(),
+        ]);
+        if (objectsResult.status === 'fulfilled') {
+          setObjects(objectsResult.value);
+          logToConsole(`Loaded ${objectsResult.value.length} NFT properties from KNIRVCHAIN`);
+        } else {
+          logToConsole(`NFT property fetch failed: ${objectsResult.reason.message}`);
         }
-
-        // Fetch transactions
-        const transactionsResponse = await fetch('/api/transactions');
-        if (transactionsResponse.ok) {
-          const transactionsData = await transactionsResponse.json();
-          setTransactions(transactionsData);
-          logToConsole(`Loaded ${transactionsData.length} transactions from the chain`);
+        if (transactionsResult.status === 'fulfilled') {
+          setTransactions(transactionsResult.value);
+          logToConsole(`Loaded ${transactionsResult.value.length} Oracle transactions`);
+        } else {
+          logToConsole(`Transaction fetch failed: ${transactionsResult.reason.message}`);
         }
-
-        // Fetch blocks
-        const blocksResponse = await fetch('/api/blocks');
-        if (blocksResponse.ok) {
-          const blocksData = await blocksResponse.json();
-          setBlocks(blocksData);
-          logToConsole(`Loaded ${blocksData.length} blocks from the chain`);
+        if (blocksResult.status === 'fulfilled') {
+          setBlocks(blocksResult.value);
+          logToConsole(`Loaded ${blocksResult.value.length} Oracle blocks`);
+        } else {
+          logToConsole(`Block fetch failed: ${blocksResult.reason.message}`);
         }
       } catch (error) {
         console.error('Failed to fetch data:', error);

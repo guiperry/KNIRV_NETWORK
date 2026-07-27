@@ -120,6 +120,25 @@
   color: #2c3e50;
 }
 
+.button {
+  padding: 8px 15px;
+  border-radius: 6px;
+  border: 1px solid #d5dce3;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.secondary {
+  background-color: #ecf0f1;
+  color: #2c3e50;
+}
+
+.errorCard {
+  padding: 15px;
+  margin-bottom: 20px;
+  color: #a12c2c;
+}
+
 .searchBox {
   display: flex;
   align-items: center;

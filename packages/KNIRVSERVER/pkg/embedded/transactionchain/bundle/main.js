@@ -10,9 +10,10 @@ const path = require('node:path');
 // Config
 const DEFAULT_DIFFICULTY = 0;
 const DIFFICULTY = process.env.BLOCK_DIFFICULTY ? parseInt(process.env.BLOCK_DIFFICULTY, 10) : DEFAULT_DIFFICULTY;
-// SOCKET_PATH is how KNIRVSERVER always runs this in-process (proxied
-// through KNIRVGATEWAY, never a directly exposed TCP port). PORT is a
-// standalone-dev-only fallback for running this file outside KNIRVSERVER.
+// SOCKET_PATH takes precedence: KNIRVSERVER spawns this process bound to a
+// Unix domain socket, proxied by KNIRVSERVER/KNIRVGATEWAY, rather than
+// exposing its own TCP port. PORT is kept as a fallback for standalone/dev
+// use outside that supervision.
 const SOCKET_PATH = process.env.SOCKET_PATH || '';
 const PORT = parseInt(process.env.PORT || '3000');
 const SALT = process.env.SALT || 'your-secret-salt'; // Ensure that you set this environment variable to make the mining process more secure
@@ -405,31 +406,37 @@ app.post('/transaction', async (req, res) => {
     res.status(201).json({ transactionHash, tx_hash: transactionHash });
 });
 
-// Internal-only: credits a balance without a signed transaction (used by
-// KNIRVSERVER to seed a wallet from KNIRVORACLE's faucet). Goes through the
-// same transaction+mine pipeline as everything else, so it stays consistent
-// with mining only happening when there's something to mine.
+// /wallet/credit is how KNIRVSERVER's launcher provisions a wallet's initial
+// balance (see main.go's creditTransactionChainWallet) — e.g. the root.key
+// holder's one-time provisional funding on startup. There is no separate
+// ledger entry type for a credit: it is recorded as an ordinary transaction
+// from a synthetic treasury address, same as any other transfer, so
+// calculateBalance and block explorers see it consistently. Mined and
+// awaited immediately so the caller's 2xx response means the credit is
+// already on-chain.
 app.post('/wallet/credit', async (req, res) => {
     const { address, amount, reason } = req.body || {};
-    if (!address || !Number.isFinite(amount)) {
-        res.status(400).json({ message: 'address and numeric amount are required' });
+    if (typeof address !== 'string' || !address) {
+        res.status(400).json({ error: 'address is required' });
         return;
     }
-
+    const numericAmount = Number(amount);
+    if (!Number.isFinite(numericAmount) || numericAmount <= 0) {
+        res.status(400).json({ error: 'amount must be a positive number' });
+        return;
+    }
     const transaction = {
-        from: '',
+        from: 'TREASURY',
         to: address,
-        amount,
-        value: amount,
+        amount: numericAmount,
         type: 'credit',
-        data: { reason: reason || 'wallet-credit' },
-        timestamp: Date.now(),
+        data: { reason: reason || 'wallet credit' },
     };
     const transactionHash = hashTransaction(transaction);
     transactionPool.push(transaction);
 
-    mineBlock();
-    res.status(201).json({ transactionHash, tx_hash: transactionHash, address, amount });
+    await mineBlock();
+    res.status(200).json({ transactionHash, tx_hash: transactionHash, address, amount: numericAmount });
 });
 
 app.get('/blocks', async (req, res) => {  // Your blocks endpoint
@@ -503,11 +510,10 @@ async function start() {
     await blockchain.loadChainFromDB(); //Load blockchain before server starts listening
     index = blockchain.chain.length; // Initialize after loading
 
-    // No idle/scheduled mining: blocks are only mined when a transaction (or
-    // an internal wallet credit) actually arrives — see mineBlock() calls in
-    // the /transactions, /transaction, and /wallet/credit handlers above.
+    // Blocks are only mined on demand (see the /transactions and /transaction
+    // handlers calling mineBlock()) — there is no background timer mining
+    // empty blocks here.
     if (SOCKET_PATH) {
-        fs.mkdirSync(path.dirname(SOCKET_PATH), { recursive: true });
         try {
             fs.unlinkSync(SOCKET_PATH); // clear a stale socket file from a previous run
         } catch (e) {
