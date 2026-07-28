@@ -1,22 +1,23 @@
 package writer
 
 import (
-	"context"
 	"fmt"
-
-	"github.com/knirvcorp/knirvbase/pkg/knirvbase"
 	hasherpb "knirvhasher/proto/hasher/training/v1"
+	"os"
+	"path/filepath"
+	"sync"
 )
 
 // MDWriter saves each decrypted chunk as a raw .md file in the connector_raw
 // KNIRVBASE collection. No normalisation or encoding happens here.
 type MDWriter struct {
-	collection knirvbase.Collection
+	path string
+	mu   sync.Mutex
 }
 
 // NewMDWriter creates a new MDWriter for the given collection.
-func NewMDWriter(collection knirvbase.Collection) *MDWriter {
-	return &MDWriter{collection: collection}
+func NewMDWriter(path string) *MDWriter {
+	return &MDWriter{path: path}
 }
 
 // WriteChunk decrypts the chunk (placeholder for now) and writes the raw
@@ -26,13 +27,13 @@ func (w *MDWriter) WriteChunk(chunk *hasherpb.EncryptedChunk) error {
 	// For now, assume chunk.Data is already decrypted
 	decryptedData := chunk.Data
 
-	// Write as .md file in the collection
-	if _, err := w.collection.Insert(context.Background(), map[string]interface{}{
-		"id":       chunk.ChunkId,
-		"payload":  map[string]interface{}{"chunk_id": chunk.ChunkId},
-		"raw_data": string(decryptedData),
-	}); err != nil {
-		return fmt.Errorf("insert chunk %s: %w", chunk.ChunkId, err)
+	if err := os.MkdirAll(filepath.Dir(w.path), 0755); err != nil {
+		return err
+	}
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	if err := os.WriteFile(filepath.Join(filepath.Dir(w.path), fmt.Sprintf("%s.md", chunk.ChunkId)), decryptedData, 0644); err != nil {
+		return fmt.Errorf("write chunk %s: %w", chunk.ChunkId, err)
 	}
 
 	return nil

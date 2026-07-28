@@ -17,27 +17,29 @@ import (
 	"time"
 
 	"knirvhasher/internal/analyzer"
-	"knirvhasher/internal/client"
 	"knirvhasher/internal/cli/embedded"
+	"knirvhasher/internal/client"
 	"knirvhasher/internal/config"
 	"knirvhasher/pkg/hashing/validation"
 )
 
 type Controller struct {
-	model          *uiModel
-	deployer       *analyzer.Deployer
-	apiClient      *client.APIClient
+	model     *uiModel
+	deployer  *analyzer.Deployer
+	apiClient *client.APIClient
 
-	activeOps     map[string]OperationStatus
-	opsMu         sync.RWMutex
+	activeOps map[string]OperationStatus
+	opsMu     sync.RWMutex
 
 	pipelineLogChan chan PipelineLogMsg
-	logChan        chan string
+	logChan         chan string
 
-	serverCmd   *exec.Cmd
-	serverReady bool
-	serverStarting bool
-	goatMode    bool
+	serverCmd       *exec.Cmd
+	knirvbaseCmd    *exec.Cmd
+	knirvbaseCancel context.CancelFunc
+	serverReady     bool
+	serverStarting  bool
+	goatMode        bool
 
 	pipelineState struct {
 		Cmd           *exec.Cmd
@@ -307,7 +309,7 @@ func (c *Controller) StopDriver(ctx context.Context) error {
 
 func (c *Controller) GetDriverStatus() map[string]interface{} {
 	status := map[string]interface{}{
-		"running": c.model.ServerReady,
+		"running":  c.model.ServerReady,
 		"starting": c.model.ServerStarting,
 	}
 
@@ -344,11 +346,11 @@ func (c *Controller) DiscoverASIC(ctx context.Context) (*DiscoveryResult, error)
 	}
 
 	return &DiscoveryResult{
-		Devices:     devices,
+		Devices:      devices,
 		SelectedIP:   selectedIP,
 		SelectedType: selectedType,
-		Output:      result.Output,
-		Duration:    result.Duration,
+		Output:       result.Output,
+		Duration:     result.Duration,
 	}, nil
 }
 
@@ -515,13 +517,16 @@ func (c *Controller) TestASIC(ctx context.Context) error {
 }
 
 func (c *Controller) RunPipeline(ctx context.Context, pipelineType string) error {
+	if err := c.startKNIRVBase(ctx); err != nil {
+		return err
+	}
 	binDir, err := embedded.GetBinDir()
 	if err != nil {
 		return fmt.Errorf("failed to get binary directory: %w", err)
 	}
 
 	// When the CLI was started with -goat, enforce goat mode regardless of
-	// the pipeline type sent over HTTP, so the flag always reaches data-miner.
+	// the pipeline type sent over HTTP, so the flag always reaches data-mapper.
 	if c.goatMode && pipelineType != "arxiv" && pipelineType != "demo" {
 		pipelineType = "goat"
 	}
@@ -575,7 +580,7 @@ batchLoop:
 			}
 			cmd.Dir = binDir
 
-			if stage.BinName == "data-miner" || stage.BinName == "data-trainer" {
+			if stage.BinName == "data-mapper" || stage.BinName == "data-trainer" {
 				// Ensure spaCy shared lib and Python packages are findable.
 				// Filter out any inherited PYTHONPATH/LD_LIBRARY_PATH first so our
 				// values are not shadowed by duplicates when glibc does the lookup.
@@ -828,6 +833,7 @@ func (c *Controller) GetStatus() map[string]interface{} {
 }
 
 func (c *Controller) Cleanup() {
+	c.stopKNIRVBase()
 	if c.model.ServerCmd != nil {
 		c.StopDriver(context.Background())
 	}
@@ -847,6 +853,85 @@ func (c *Controller) Cleanup() {
 	fmt.Println("Controller cleanup complete")
 }
 
+func (c *Controller) startKNIRVBase(ctx context.Context) error {
+	addr := os.Getenv("KNIRVBASE_ADDR")
+	if addr == "" {
+		addr = "127.0.0.1:50052"
+		os.Setenv("KNIRVBASE_ADDR", addr)
+	}
+	if c.knirvbaseCmd != nil {
+		return nil
+	}
+	if health, err := http.Get("http://" + addr + "/health"); err == nil {
+		health.Body.Close()
+		if health.StatusCode < 500 {
+			return nil
+		}
+	}
+	path, err := embedded.GetBinaryPath("knirvbase")
+	if err != nil {
+		if os.Getenv("KNIRVBASE_REQUIRED") == "1" {
+			return fmt.Errorf("knirvbase binary unavailable: %w", err)
+		}
+		select {
+		case c.logChan <- "WARN: KNIRVBASE binary unavailable; pipeline submission disabled\n":
+		default:
+		}
+		return nil
+	}
+	args := []string{"--addr=" + addr, "--network-id=" + envOrDefault("KNIRVBASE_NETWORK_ID", "knirvbase-default")}
+	// KNIRVBASE is a controller-owned service, not a child of the HTTP request
+	// that started the pipeline. In particular, net/http cancels r.Context()
+	// after the asynchronous start response is written. Tie this process to an
+	// explicit controller lifecycle instead and stop it from Cleanup.
+	serviceCtx, cancel := context.WithCancel(context.Background())
+	cmd := exec.CommandContext(serviceCtx, path, args...)
+	cmd.Env = os.Environ()
+	if err := cmd.Start(); err != nil {
+		cancel()
+		return fmt.Errorf("start knirvbase: %w", err)
+	}
+	c.knirvbaseCmd = cmd
+	c.knirvbaseCancel = cancel
+	startupCtx, startupCancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer startupCancel()
+	for i := 0; i < 100; i++ {
+		select {
+		case <-startupCtx.Done():
+			c.stopKNIRVBase()
+			return fmt.Errorf("knirvbase startup: %w", startupCtx.Err())
+		case <-time.After(100 * time.Millisecond):
+		}
+		resp, err := http.Get("http://" + addr + "/health")
+		if err == nil {
+			resp.Body.Close()
+			if resp.StatusCode < 500 {
+				return nil
+			}
+		}
+	}
+	c.stopKNIRVBase()
+	return fmt.Errorf("knirvbase did not become healthy")
+}
+
+func (c *Controller) stopKNIRVBase() {
+	if c.knirvbaseCancel != nil {
+		c.knirvbaseCancel()
+		c.knirvbaseCancel = nil
+	}
+	if c.knirvbaseCmd != nil && c.knirvbaseCmd.Process != nil {
+		_ = c.knirvbaseCmd.Process.Kill()
+		_ = c.knirvbaseCmd.Wait()
+		c.knirvbaseCmd = nil
+	}
+}
+func envOrDefault(key, fallback string) string {
+	if v := os.Getenv(key); v != "" {
+		return v
+	}
+	return fallback
+}
+
 func buildPipelineStages(pipelineType string) []PipelineStage {
 	trainerStage := PipelineStage{
 		Name:    "data-trainer",
@@ -854,22 +939,19 @@ func buildPipelineStages(pipelineType string) []PipelineStage {
 		Args:    []string{"-verbose", "-epochs", "5", "-sequential", "-hash-method", "auto"},
 		Desc:    "Data Trainer - Neural network training",
 	}
-	// dataConnectorStage is only used by pipelines that pull from KNIRVSERVER
-	// (i.e. CONNECTION source).  Goat/MAPPER mode fetches from Hugging Face
-	// API directly via data-miner and must NOT run the data-connector first.
 	dataConnectorStage := PipelineStage{
 		Name:    "data-connector",
 		BinName: "data-connector",
 		Args:    []string{},
-		Desc:    "Data Connector - Receives gRPC streams from KNIRVSERVER, decrypts chunks, writes raw .md files",
+		Desc:    "Data Connector - Priority source ingest and canonical RawRecord staging",
 	}
 
 	switch pipelineType {
 	case "arxiv":
 		return []PipelineStage{
 			dataConnectorStage,
-			{Name: "data-miner", BinName: "data-miner",
-				Args: []string{"-arxiv-enable", "-single-batch"}, Desc: "Data Miner - ArXiv paper mining"},
+			{Name: "data-mapper", BinName: "data-mapper",
+				Args: []string{"-single-batch"}, Desc: "Data Mapper - staged source records"},
 			{Name: "data-encoder", BinName: "data-encoder",
 				Args: []string{"-workers", "2"}, Desc: "Data Encoder - Tokenization and embeddings"},
 			trainerStage,
@@ -877,19 +959,20 @@ func buildPipelineStages(pipelineType string) []PipelineStage {
 	case "demo":
 		return []PipelineStage{
 			dataConnectorStage,
-			{Name: "data-miner", BinName: "data-miner",
-				Args: []string{"-demo"}, Desc: "Data Miner - Generating hello world demo frames"},
+			{Name: "data-mapper", BinName: "data-mapper",
+				Args: []string{"-demo"}, Desc: "Data Mapper - staged source records"},
 			trainerStage,
 		}
-	default: // "goat" — MAPPER mode: data-miner with -goat reads Hugging Face API directly
+	default: // all profiles begin with the source connector
 		return []PipelineStage{
-			{Name: "data-miner", BinName: "data-miner",
-				// -single-batch makes data-miner process one batch (~100 records)
+			dataConnectorStage,
+			{Name: "data-mapper", BinName: "data-mapper",
+				// -single-batch makes data-mapper process one batch (~100 records)
 				// and exit, instead of looping forever inside its own process.
 				// This lets the pipeline hand off to data-encoder / data-trainer
 				// after every batch, and lets RunPipeline restart the whole
 				// pipeline for the next batch (see RunPipeline below).
-				Args: []string{"-goat", "-single-batch"}, Desc: "Data Miner (MAPPER) - GOAT dataset via Hugging Face API"},
+				Args: []string{"-single-batch"}, Desc: "Data Mapper - staged source records"},
 			{Name: "data-encoder", BinName: "data-encoder",
 				Args: []string{"-workers", "2"}, Desc: "Data Encoder - Tokenization and embeddings"},
 			trainerStage,

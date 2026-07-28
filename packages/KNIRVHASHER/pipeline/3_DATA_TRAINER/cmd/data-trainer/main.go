@@ -15,6 +15,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/lab/hasher/data-trainer/pkg/knirvbaseclient"
 	"knirvhasher/pkg/hashing/jitter"
 
 	"github.com/lab/hasher/data-trainer/internal/config"
@@ -238,6 +239,14 @@ func main() {
 	}
 
 	_ = orchestrator.writeRunStatus("completed", "Training completed successfully")
+	if addr := os.Getenv("KNIRVBASE_ADDR"); addr != "" {
+		path := knirvbaseclient.ResolveNRV(effectiveDataPath)
+		if count, submitErr := knirvbaseclient.New(addr).SubmitNRV(path); submitErr != nil {
+			logger.Warn("KNIRVBASE submission failed: %v", submitErr)
+		} else {
+			logger.Info("Submitted %d brackets to KNIRVBASE", count)
+		}
+	}
 	logger.Info("Training completed successfully")
 }
 

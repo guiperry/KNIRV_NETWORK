@@ -27,18 +27,18 @@ const (
 )
 
 type Server struct {
-	controller  *controller.Controller
-	mux         *http.ServeMux
-	server      *http.Server
-	socketPath  string
-	socketPerm  os.FileMode
-	ln          net.Listener
-	shutdownCh  chan struct{}
-	mu          sync.RWMutex
-	goatMode    bool
+	controller *controller.Controller
+	mux        *http.ServeMux
+	server     *http.Server
+	socketPath string
+	socketPerm os.FileMode
+	ln         net.Listener
+	shutdownCh chan struct{}
+	mu         sync.RWMutex
+	goatMode   bool
 }
 
-func NewServer(socketPath string, socketPerm os.FileMode, goatMode bool) *Server {
+func NewServer(socketPath string, socketPerm os.FileMode, goatModes ...bool) *Server {
 	if socketPath == "" {
 		socketPath = DefaultSocketPath
 	}
@@ -46,6 +46,10 @@ func NewServer(socketPath string, socketPerm os.FileMode, goatMode bool) *Server
 		socketPerm = DefaultSocketPerm
 	}
 
+	goatMode := false
+	if len(goatModes) > 0 {
+		goatMode = goatModes[0]
+	}
 	s := &Server{
 		controller: controller.NewController(goatMode),
 		mux:        http.NewServeMux(),
@@ -240,9 +244,11 @@ func (s *Server) handleRunPipeline(w http.ResponseWriter, r *http.Request) {
 		req.Type = "goat"
 	}
 
-	ctx := r.Context()
 	go func() {
-		if err := s.controller.RunPipeline(ctx, req.Type); err != nil {
+		// This work outlives the HTTP request. r.Context() is canceled once the
+		// start response is returned, which must not terminate the pipeline or
+		// its long-lived KNIRVBASE service.
+		if err := s.controller.RunPipeline(context.Background(), req.Type); err != nil {
 			log.Printf("Pipeline error: %v", err)
 		}
 	}()
@@ -282,7 +288,6 @@ func (s *Server) handleVerify(w http.ResponseWriter, r *http.Request) {
 	if mode == "" {
 		mode = "semantic"
 	}
-
 	ctx := r.Context()
 
 	switch mode {
@@ -296,7 +301,7 @@ func (s *Server) handleVerify(w http.ResponseWriter, r *http.Request) {
 
 	case "semantic":
 		go func() {
-			if err := s.controller.RunPipeline(ctx, "goat"); err != nil {
+			if err := s.controller.RunPipeline(context.Background(), "goat"); err != nil {
 				log.Printf("Semantic verification error: %v", err)
 			}
 		}()

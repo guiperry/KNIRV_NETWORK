@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"context"
+	"encoding/binary"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -22,6 +23,7 @@ import (
 	"data-encoder/pkg/checkpoint"
 	"data-encoder/pkg/embeddings"
 	"data-encoder/pkg/mapper"
+	"data-encoder/pkg/nrvio"
 	"data-encoder/pkg/schema"
 	"data-encoder/pkg/sliding"
 	"data-encoder/pkg/tokenizer"
@@ -117,7 +119,7 @@ func getAppDataDir() string {
 func parseFlags() *Config {
 	config := &Config{}
 
-	// Use the same app data dir as data-miner so paths are consistent
+	// Use the same app data dir as data-mapper so paths are consistent
 	appDataDir := getAppDataDir()
 	defaultJSONInput := filepath.Join(appDataDir, "json", "ai_knowledge_base.json")
 	defaultOutput := filepath.Join(appDataDir, "frames", "training_frames.json")
@@ -217,9 +219,11 @@ func isDefaultInput(path string) bool {
 // 3. Generic Knowledge Base
 //
 // It checks both the app data directory (from getAppDataDir) and ~/.local/share/hasher
-// to handle the case where the data-miner writes to the server's data dir.
+// to handle the case where the data-mapper writes to the server's data dir.
 func AutoDetectInputFile() string {
 	priorityFiles := []string{
+		"mapper/mined_records.json",
+		"connector/records.jsonl",
 		"ai_knowledge_base_goat_alpaca.json",
 		"ai_knowledge_base_alpaca.json",
 		"ai_knowledge_base.json",
@@ -228,13 +232,16 @@ func AutoDetectInputFile() string {
 		"ai_knowledge_base.arrow",
 	}
 
-	// Search paths: app data directory first (where data-miner writes), then home dir
+	// Search paths: app data directory first (where data-mapper writes), then home dir
 	searchDirs := []string{
+		getAppDataDir(),
 		filepath.Join(getAppDataDir(), "json"),
 		filepath.Join(getAppDataDir(), "..", "data", "json"),
 	}
 	if homeDir, err := os.UserHomeDir(); err == nil {
 		searchDirs = append(searchDirs,
+			filepath.Join(homeDir, ".local", "share", "knirvhasher", "connector"),
+			filepath.Join(homeDir, ".local", "share", "knirvhasher", "mapper"),
 			filepath.Join(homeDir, ".local", "share", "knirvhasher", "data", "json"),
 		)
 	}
@@ -611,6 +618,11 @@ func runEncoder(config *Config) error {
 		return fmt.Errorf("failed to write Arrow IPC stream output: %w", err)
 	}
 	log.Printf("💾 Arrow IPC stream output written successfully: %s", arrowPath)
+	nrvPath := replaceFileExtension(config.OutputFile, ".nrv")
+	if err := writeNRV(nrvPath, frames); err != nil {
+		return fmt.Errorf("failed to write NRV output: %w", err)
+	}
+	log.Printf("💾 NRV output written successfully: %s", nrvPath)
 
 	// Check for processing errors
 	mu.Lock()
@@ -629,6 +641,30 @@ func runEncoder(config *Config) error {
 
 	log.Printf("📈 Total: %d training frames generated", frameCount)
 	return nil
+}
+
+func writeNRV(path string, frames []schema.TrainingFrame) error {
+	w, err := nrvio.NewWriter(path)
+	if err != nil {
+		return err
+	}
+	for _, frame := range frames {
+		slots := frame.GetAsicSlots()
+		var b nrvio.Bracket
+		copy(b.Projections[:], internal.SlotsToProjections(slots[:4]))
+		b.POSTag = uint8(slots[4])
+		b.DepHead = uint8(slots[5])
+		b.IntentFlags = uint8(slots[9])
+		b.DomainSig = uint16(slots[10])
+		b.GoldenSeed = uint32(frame.TargetTokenID)
+		b.LSHSalt = uint32(slots[11])
+		for i := 0; i < 3; i++ {
+			binary.LittleEndian.PutUint32(b.Memory[i*4:], slots[6+i])
+		}
+		b.SubSecondUS = uint32(frame.WindowStart)
+		w.Append(b)
+	}
+	return w.Close()
 }
 
 func varianceFallbackIndices(inputFile string) []int {

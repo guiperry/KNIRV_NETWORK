@@ -3,7 +3,7 @@ set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PIPELINE_DIR="$(dirname "$SCRIPT_DIR")"
-DATA_MINER_DIR="$PIPELINE_DIR/1_DATA_MINER"
+DATA_MAPPER_DIR="$PIPELINE_DIR/1_DATA_MAPPER"
 DATA_ENCODER_DIR="$PIPELINE_DIR/2_DATA_ENCODER"
 DATA_TRAINER_DIR="$PIPELINE_DIR/3_DATA_TRAINER"
 ALPACA_DIR="$PIPELINE_DIR/AlpacaDataCleaned-main"
@@ -23,10 +23,10 @@ if [ ! -f "$ALPACA_JSON" ]; then
 fi
 
 echo "[1/5] Building Data Miner..."
-cd "$DATA_MINER_DIR"
+cd "$DATA_MAPPER_DIR"
 go mod tidy 2>/dev/null || true
-go build -o data-miner . 2>/dev/null || {
-    echo "ERROR: Failed to build data-miner"
+go build -o data-mapper ./cmd/data-mapper 2>/dev/null || {
+    echo "ERROR: Failed to build data-mapper"
     exit 1
 }
 
@@ -113,4 +113,4 @@ echo "     cd $DATA_TRAINER_DIR"
 echo "     ./data-trainer -epochs 10 -population 64 -data $OUTPUT_NRV"
 echo ""
 echo "  2. Or run incrementally:"
-echo "     cd $DATA_MINER_DIR && ./data-miner -arxiv-enable -arxiv-max-papers 50"
+echo "     cd $DATA_MAPPER_DIR && ./data-mapper -single-batch"

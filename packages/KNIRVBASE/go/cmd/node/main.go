@@ -2,124 +2,126 @@ package main
 
 import (
 	"context"
-	"fmt"
+	"encoding/base64"
+	"encoding/json"
+	"flag"
 	"log"
+	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 
-	qry "github.com/knirvcorp/knirvbase/internal/query"
-	typ "github.com/knirvcorp/knirvbase/internal/types"
+	"github.com/apache/arrow/go/v15/arrow/flight"
 	"github.com/knirvcorp/knirvbase/pkg/knirvbase"
+	"github.com/knirvcorp/knirvbase/pkg/nrv"
+	"google.golang.org/grpc"
+	"net"
 )
 
+type appendRequest struct {
+	Domain  string `json:"domain"`
+	Bracket string `json:"bracket"`
+}
+type bracketResponse struct {
+	Bracket string `json:"bracket"`
+}
+
 func main() {
-	ctx := context.Background()
-
-	// Get app data directory
-	appDataDir := os.Getenv("XDG_DATA_HOME")
-	if appDataDir == "" {
-		home, _ := os.UserHomeDir()
-		appDataDir = filepath.Join(home, ".local", "share", "knirvbase")
+	addr := flag.String("addr", envOr("KNIRVBASE_ADDR", ":50052"), "HTTP client API address")
+	dataDir := flag.String("data-dir", defaultDataDir(), "database data directory")
+	networkID := flag.String("network-id", envOr("KNIRVBASE_NETWORK_ID", "knirvbase-default"), "distributed network ID")
+	bootstrap := flag.String("bootstrap-peers", envOr("KNIRVBASE_BOOTSTRAP_PEERS", ""), "comma-separated bootstrap peers")
+	flightAddr := flag.String("flight-addr", envOr("KNIRVBASE_FLIGHT_ADDR", ":8815"), "Arrow Flight address (reserved for Flight adapter)")
+	flag.Parse()
+	if err := os.MkdirAll(*dataDir, 0755); err != nil {
+		log.Fatal(err)
 	}
-	os.MkdirAll(appDataDir, 0755)
-
-	// Create database
-	opts := knirvbase.Options{
-		DataDir:            appDataDir,
-		DistributedEnabled: true,
+	peers := []string{}
+	if strings.TrimSpace(*bootstrap) != "" {
+		peers = strings.Split(*bootstrap, ",")
 	}
-	db, err := knirvbase.New(ctx, opts)
+	db, err := knirvbase.NewNRV(context.Background(), knirvbase.Options{DataDir: *dataDir, DistributedEnabled: true, DistributedNetworkID: *networkID, DistributedBootstrapPeers: peers}, nil)
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer db.Shutdown()
-
-	// Create network
-	networkID, err := db.CreateNetwork(typ.NetworkConfig{
-		NetworkID: "consortium-1",
-		Name:      "Consortium 1",
+	flightListener, err := net.Listen("tcp", *flightAddr)
+	if err != nil {
+		log.Fatal(err)
+	}
+	flightGRPC := grpc.NewServer()
+	flight.RegisterFlightServiceServer(flightGRPC, newFlightAdapter(db))
+	go func() {
+		if err := flightGRPC.Serve(flightListener); err != nil {
+			log.Printf("Arrow Flight stopped: %v", err)
+		}
+	}()
+	mux := http.NewServeMux()
+	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+		writeJSON(w, map[string]any{"status": "ok", "network_id": *networkID, "flight_addr": *flightAddr})
 	})
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	// Create collections
-	authColl := db.Collection("auth")
-	memoryColl := db.Collection("memory")
-
-	// Attach to network
-	if err := authColl.AttachToNetwork(networkID); err != nil {
-		log.Fatal(err)
-	}
-	if err := memoryColl.AttachToNetwork(networkID); err != nil {
-		log.Fatal(err)
-	}
-
-	// Example usage
-	fmt.Println("KNIRVBASE Distributed Database Started")
-
-	// Example KNIRVQL
-	parser := &qry.KNIRVQLParser{}
-
-	// Set auth key
-	query, err := parser.Parse(`SET google_maps_api_key = "AIzaSy..."`)
-	if err != nil {
-		log.Fatal(err)
-	}
-	if query.Type != qry.QuerySet {
-		log.Fatal("unexpected query type for auth seed")
-	}
-	_, err = authColl.Insert(ctx, map[string]interface{}{
-		"id":        query.Key,
-		"entryType": typ.EntryTypeAuth,
-		"payload": map[string]interface{}{
-			"key":   query.Key,
-			"value": query.Value,
-		},
+	mux.HandleFunc("/append", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "POST" {
+			http.Error(w, "method not allowed", 405)
+			return
+		}
+		var req appendRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.Domain == "" || req.Bracket == "" {
+			http.Error(w, "domain and bracket are required", 400)
+			return
+		}
+		raw, err := base64.StdEncoding.DecodeString(req.Bracket)
+		if err != nil || len(raw) != nrv.BracketSize {
+			http.Error(w, "bracket must be 80-byte base64", 400)
+			return
+		}
+		var encoded [nrv.BracketSize]byte
+		copy(encoded[:], raw)
+		b := nrv.DecodeBracket(encoded)
+		if err := db.Dataset(req.Domain).AppendBracket(r.Context(), &b, nrv.ThermoAtmosphere{}); err != nil {
+			http.Error(w, err.Error(), 500)
+			return
+		}
+		writeJSON(w, map[string]any{"ok": true})
 	})
-	if err != nil {
+	mux.HandleFunc("/stream", func(w http.ResponseWriter, r *http.Request) {
+		domain := r.URL.Query().Get("domain")
+		if domain == "" {
+			http.Error(w, "domain is required", 400)
+			return
+		}
+		ch, err := db.Dataset(domain).StreamBrackets(r.Context(), false)
+		if err != nil {
+			http.Error(w, err.Error(), 500)
+			return
+		}
+		out := []bracketResponse{}
+		for b := range ch {
+			raw := nrv.EncodeBracket(b)
+			out = append(out, bracketResponse{Bracket: base64.StdEncoding.EncodeToString(raw[:])})
+		}
+		writeJSON(w, out)
+	})
+	log.Printf("KNIRVBASE listening on %s (network=%s, flight=%s)", *addr, *networkID, *flightAddr)
+	if err := http.ListenAndServe(*addr, mux); err != nil {
 		log.Fatal(err)
 	}
+}
 
-	// Get auth key
-	query, err = parser.Parse(`GET AUTH WHERE key = "google_maps_api_key"`)
-	if err != nil {
-		log.Fatal(err)
+func writeJSON(w http.ResponseWriter, v any) {
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(v)
+}
+func envOr(key, fallback string) string {
+	if v := os.Getenv(key); v != "" {
+		return v
 	}
-	authDocs, err := authColl.FindAll(ctx)
-	if err != nil {
-		log.Fatal(err)
+	return fallback
+}
+func defaultDataDir() string {
+	if v := os.Getenv("KNIRVBASE_DATA_DIR"); v != "" {
+		return v
 	}
-	fmt.Printf("Auth key query parsed as %v, auth docs: %v\n", query.Type, authDocs)
-
-	// Insert memory entry
-	doc := map[string]interface{}{
-		"id":        "mem1",
-		"entryType": typ.EntryTypeMemory,
-		"payload": map[string]interface{}{
-			"source": "web-scrape",
-			"data":   "some data",
-			"vector": []float64{0.45, 0.12},
-		},
-	}
-	_, err = memoryColl.Insert(ctx, doc)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	fmt.Println("Inserted memory entry")
-
-	// Query memory
-	query, err = parser.Parse(`GET MEMORY WHERE source = "web-scrape" SIMILAR TO [0.45, 0.12] LIMIT 10`)
-	if err != nil {
-		log.Fatal(err)
-	}
-	results, err := memoryColl.FindAll(ctx)
-	if err != nil {
-		log.Fatal(err)
-	}
-	fmt.Printf("Memory query parsed as %v, memory docs: %v\n", query.Type, results)
-
-	fmt.Println("KNIRVBASE running. Press Ctrl+C to exit.")
-	select {}
+	home, _ := os.UserHomeDir()
+	return filepath.Join(home, ".local", "share", "knirvbase")
 }

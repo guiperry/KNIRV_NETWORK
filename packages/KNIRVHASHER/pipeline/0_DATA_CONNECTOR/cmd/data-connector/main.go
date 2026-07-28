@@ -2,13 +2,15 @@ package main
 
 import (
 	"context"
+	"flag"
 	"log"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
+	"data-connector/internal/connector"
 	writer "data-connector/internal/writer"
-	"github.com/knirvcorp/knirvbase/pkg/knirvbase"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"gopkg.in/yaml.v3"
@@ -16,27 +18,40 @@ import (
 )
 
 type Config struct {
-	KNIRVSERVERAddr string      `yaml:"knirvserver_addr"`
-	KNIRVBASE       KNIRVConfig `yaml:"knirvbase"`
-	PollInterval    string      `yaml:"poll_interval"`
+	KNIRVSERVERAddr string         `yaml:"knirvserver_addr"`
+	OutputDir       string         `yaml:"output_dir"`
+	PollInterval    string         `yaml:"poll_interval"`
+	Ontology        OntologyConfig `yaml:"ontology"`
+	HuggingFace     HFConfig       `yaml:"huggingface"`
+	Arxiv           ArxivConfig    `yaml:"arxiv"`
 }
 
-type KNIRVConfig struct {
-	DataDir string `yaml:"data_dir"`
+type OntologyConfig struct {
+	MinEntityCount int64 `yaml:"min_entity_count"`
+}
+type HFConfig struct {
+	Datasets     []string `yaml:"datasets"`
+	Splits       []string `yaml:"splits"`
+	MaxRows      int      `yaml:"max_rows_per_dataset"`
+	Token        string   `yaml:"token"`
+	RequestDelay string   `yaml:"request_delay"`
+}
+type ArxivConfig struct {
+	Categories []string `yaml:"categories"`
+	MaxPapers  int      `yaml:"max_papers"`
 }
 
 func main() {
 	config := LoadConfig()
-
-	// Open the single shared KNIRVBASE instance for the whole pipeline.
-	db, err := knirvbase.New(context.Background(), knirvbase.Options{DataDir: config.KNIRVBASE.DataDir})
-	if err != nil {
-		log.Fatalf("open knirvbase: %v", err)
+	force := flag.String("source", "", "force ontology, huggingface, or arxiv")
+	flag.Parse()
+	if err := runPriority(config, connector.Tier(*force)); err != nil {
+		log.Fatalf("source-priority ingest: %v", err)
 	}
-	defer db.Shutdown()
-
-	collection := db.Collection("connector_raw")
-	w := writer.NewMDWriter(collection)
+	if os.Getenv("KNIRV_SECURITY_EXPORT") != "1" {
+		return
+	}
+	w := writer.NewMDWriter(filepath.Join(config.OutputDir, "security"))
 
 	// Connect to KNIRVSERVER gRPC server
 	conn, err := grpc.NewClient(config.KNIRVSERVERAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
@@ -54,13 +69,83 @@ func main() {
 
 	log.Printf("0_DATA_CONNECTOR: Connected to KNIRVSERVER at %s, polling every %s", config.KNIRVSERVERAddr, pollInterval)
 
-	ticker := time.NewTicker(pollInterval)
-	defer ticker.Stop()
+	exportData(client, w)
+}
 
-	for {
-		exportData(client, w)
-		<-ticker.C
+func runPriority(config *Config, override connector.Tier) error {
+	base := "http://" + config.KNIRVSERVERAddr
+	if strings.HasPrefix(config.KNIRVSERVERAddr, "http://") || strings.HasPrefix(config.KNIRVSERVERAddr, "https://") {
+		base = config.KNIRVSERVERAddr
 	}
+	state := filepath.Join(config.OutputDir, "source_state.json")
+	runner := &connector.PriorityRunner{StatePath: state, Override: override,
+		Ontology: func() ([]connector.RawRecord, bool, error) {
+			available, err := connector.OntologyAvailable(nil, base, config.Ontology.MinEntityCount)
+			if err != nil || !available {
+				return nil, true, err
+			}
+			rows, err := (&connector.OntologyConnector{BaseURL: base}).FetchEntities()
+			return rows, true, err
+		},
+		HuggingFace: func() ([]connector.RawRecord, bool, error) {
+			datasets := config.HuggingFace.Datasets
+			if len(datasets) == 0 {
+				datasets = []string{"tatsu-lab/alpaca"}
+			}
+			splits := config.HuggingFace.Splits
+			if len(splits) == 0 {
+				splits = []string{"train"}
+			}
+			var all []connector.RawRecord
+			requestDelay, err := time.ParseDuration(config.HuggingFace.RequestDelay)
+			if err != nil || requestDelay < 0 {
+				requestDelay = 250 * time.Millisecond
+			}
+			for _, ds := range datasets {
+				client := &connector.HuggingFaceConnector{Config: connector.HuggingFaceConfig{
+					MaxRowsPerDS: config.HuggingFace.MaxRows,
+					Token:        config.HuggingFace.Token,
+				}}
+				if client.Config.Token == "" {
+					client.Config.Token = os.Getenv("HF_TOKEN")
+				}
+				limit := config.HuggingFace.MaxRows
+				if limit <= 0 {
+					limit = 50000
+				}
+				for offset := 0; offset < limit; offset += 100 {
+					length := 100
+					if remaining := limit - offset; remaining < length {
+						length = remaining
+					}
+					rows, exhausted, err := client.Page(ds, splits[0], offset, length)
+					if err != nil {
+						return nil, false, err
+					}
+					all = append(all, rows...)
+					if exhausted || len(rows) < length {
+						break
+					}
+					if requestDelay > 0 {
+						time.Sleep(requestDelay)
+					}
+				}
+			}
+			return all, len(all) == 0, nil
+		},
+		Arxiv: func() ([]connector.RawRecord, bool, error) {
+			return connector.FetchArxiv(nil, config.Arxiv.Categories, config.Arxiv.MaxPapers)
+		},
+	}
+	records, tier, err := runner.Run()
+	if err != nil {
+		return err
+	}
+	log.Printf("0_DATA_CONNECTOR: selected %s, records=%d", tier, len(records))
+	if len(records) == 0 {
+		return nil
+	}
+	return connector.WriteRecords(filepath.Join(config.OutputDir, "records.jsonl"), records)
 }
 
 func exportData(client hasherpb.HasherTrainingServiceClient, w *writer.MDWriter) {
@@ -68,9 +153,9 @@ func exportData(client hasherpb.HasherTrainingServiceClient, w *writer.MDWriter)
 	defer cancel()
 
 	stream, err := client.ExportSecurityData(ctx, &hasherpb.ExportRequest{
-		OrgId:    "default",
+		OrgId:     "default",
 		UserId:    "",
-		DataType: hasherpb.DataType_ALL,
+		DataType:  hasherpb.DataType_ALL,
 		Encrypted: true,
 	})
 	if err != nil {
@@ -98,8 +183,11 @@ func exportData(client hasherpb.HasherTrainingServiceClient, w *writer.MDWriter)
 func LoadConfig() *Config {
 	cfg := &Config{
 		KNIRVSERVERAddr: "localhost:50051",
-		KNIRVBASE:       KNIRVConfig{DataDir: "./data"},
+		OutputDir:       "./data/connector",
 		PollInterval:    "1h",
+		Ontology:        OntologyConfig{MinEntityCount: 1},
+		HuggingFace:     HFConfig{Datasets: []string{"tatsu-lab/alpaca"}, Splits: []string{"train"}, MaxRows: 50000, RequestDelay: "250ms"},
+		Arxiv:           ArxivConfig{Categories: []string{"cs.LG", "cs.CL"}, MaxPapers: 50},
 	}
 
 	data, err := os.ReadFile("config/connector.yaml")
@@ -121,10 +209,15 @@ func LoadConfig() *Config {
 		cfg.KNIRVSERVERAddr = addr
 	}
 
-	if dataDir := os.Getenv("KNIRVBASE_DATA_DIR"); dataDir != "" {
-		cfg.KNIRVBASE.DataDir = dataDir
+	if outputDir := os.Getenv("KNIRV_CONNECTOR_DIR"); outputDir != "" {
+		cfg.OutputDir = outputDir
 	} else if appDataDir := os.Getenv("KNIRV_APP_DATA_DIR"); appDataDir != "" {
-		cfg.KNIRVBASE.DataDir = appDataDir + "/knirvbase"
+		cfg.OutputDir = filepath.Join(appDataDir, "knirvhasher", "data", "connector")
+	}
+	if strings.HasPrefix(cfg.OutputDir, "~/") {
+		if home, err := os.UserHomeDir(); err == nil {
+			cfg.OutputDir = filepath.Join(home, cfg.OutputDir[2:])
+		}
 	}
 
 	return cfg

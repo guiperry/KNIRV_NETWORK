@@ -24,7 +24,7 @@ CLANG=clang
 LLVM_STRIP=llvm-strip
 
 
-.PHONY: all build clean test proto ebpf deps help build-asic-test build-probe build-probe build-probe-v2 build-protocol-discover build-monitor build-diagnostics deploy deploy-probe deploy-probe-v2 deploy-protocol-discover deploy-monitor deploy-diagnostics cli test-cli build-all build-server-mips build-host build-host-all embed-binaries build-crypto-transformer train-crypto-transformer run-crypto-transformer build-simple-hash run-simple-hash build-pipeline-all build-data-connector build-data-miner build-data-encoder build-data-trainer
+.PHONY: all build clean test proto ebpf deps help build-asic-test build-probe build-probe build-probe-v2 build-protocol-discover build-monitor build-diagnostics deploy deploy-probe deploy-probe-v2 deploy-protocol-discover deploy-monitor build-pipeline-all build-data-connector build-data-mapper build-data-encoder build-data-trainer build-knirvbase
 
 ANTMINER_IP ?= $(shell [ -f .env ] && source .env && echo $$DEVICE_IP || echo 192.168.12.151)
 ANTMINER_USER ?= root
@@ -336,12 +336,13 @@ build-data-connector:
 	cd $(PIPELINE_DIR)/0_DATA_CONNECTOR && go build -ldflags "-s -w" -o ../../$(EMBED_DIR)/data-connector ./cmd/data-connector
 	@echo "✅ Built: $(EMBED_DIR)/data-connector"
 
-## build-data-miner: Build data miner pipeline binary
-build-data-miner:
-	@echo "🔨 Building data-miner from 1_DATA_MINER..."
+## build-data-mapper: Build data mapper pipeline binary
+build-data-mapper:
+	@echo "🔨 Building data-mapper from 1_DATA_MAPPER..."
 	@mkdir -p $(EMBED_DIR)
-	cd $(PIPELINE_DIR)/1_DATA_MINER && $(MAKE) build BIN_DIR=../../$(EMBED_DIR)
-	@echo "✅ Built: $(EMBED_DIR)/data-miner"
+	cd $(PIPELINE_DIR)/1_DATA_MAPPER && $(MAKE) build BIN_DIR=../../$(EMBED_DIR)
+	@cp $(PIPELINE_DIR)/1_DATA_MAPPER/spacy/lib/libspacy_wrapper.so $(EMBED_DIR)/libspacy_wrapper.so
+	@echo "✅ Built: $(EMBED_DIR)/data-mapper"
 
 ## build-data-encoder: Build data encoder pipeline binary
 build-data-encoder:
@@ -360,8 +361,15 @@ build-data-trainer:
 	@cp pkg/hashing/methods/cuda/libcuda_hash.so $(EMBED_DIR)/libcuda_hash.so
 	@echo "✅ Built: $(EMBED_DIR)/data-trainer (+ libcuda_hash.so)"
 
+## build-knirvbase: Build the standalone embedded KNIRVBASE service
+build-knirvbase:
+	@echo "🔨 Building standalone knirvbase service..."
+	@mkdir -p $(EMBED_DIR)
+	cd $(PIPELINE_DIR)/../../KNIRVBASE/go && go build -ldflags "-s -w" -o ../../KNIRVHASHER/internal/cli/embedded/bin/knirvbase ./cmd/node
+	@echo "✅ Built: $(EMBED_DIR)/knirvbase"
+
 ## build-pipeline-all: Build all pipeline binaries
-build-pipeline-all: build-data-connector build-data-miner build-data-encoder build-data-trainer
+build-pipeline-all: build-data-connector build-data-mapper build-data-encoder build-data-trainer build-knirvbase
 	@echo "✅ All pipeline binaries built"
 	@echo "📦 Pipeline binaries in: $(EMBED_DIR)"
 	@ls -lh $(EMBED_DIR)/

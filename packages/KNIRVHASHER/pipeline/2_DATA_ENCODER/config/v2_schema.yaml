@@ -1,0 +1,16 @@
+version: "2.0"
+name: "KNIRVHASHER Phase 2 Bracket Schema"
+bracket_fields:
+  projections: {source: slots_0_3, encoding: lsh_16dim, matrix_seed: 1337, normalize: true}
+  lsh_salt: {source: slot_11, encoding: fnv1a_32}
+  sub_second_us: {source: timestamp, encoding: uint32_le}
+  golden_seed: {source: training, default: 0}
+slot_mapping:
+  identity_zone: {slots: [0, 1, 2, 3], bracket_field: projections}
+  syntactic_registers: {slots: [4, 5], bracket_field: meta.syntactic, required: true}
+  memory_zone: {slots: [6, 7, 8], bracket_field: meta.history_xor, required: true}
+  intent_flags: {slot: 9, bracket_field: meta.intent}
+  domain_signature: {slot: 10, bracket_field: meta.domain}
+  temporal_lock: {slot: 11, bracket_field: lsh_salt}
+lsh_config: {input_dim: 768, output_dim: 16, normalize: true, seed: 1337}
+linguistic_bridge: {enabled: true, pos_tag_bits: 8, tense_bits: 4, dependency_bits: 16}

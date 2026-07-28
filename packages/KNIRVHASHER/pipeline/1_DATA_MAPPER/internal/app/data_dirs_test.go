@@ -1,0 +1,171 @@
+package app
+
+import (
+	"os"
+	"path/filepath"
+	"runtime"
+	"testing"
+)
+
+func TestGetAppDataDir(t *testing.T) {
+	appDir, err := GetAppDataDir()
+	if err != nil {
+		t.Fatalf("Failed to get app data directory: %v", err)
+	}
+
+	// Check that directory was created
+	if _, err := os.Stat(appDir); os.IsNotExist(err) {
+		t.Errorf("App data directory should exist: %s", appDir)
+	}
+
+	// Check that path contains 'hasher'
+	if !containsSubstring(appDir, "knirvhasher") {
+		t.Errorf("App data directory should contain 'knirvhasher': %s", appDir)
+	}
+
+	t.Logf("App data directory: %s", appDir)
+}
+
+func TestSetupDataDirectories(t *testing.T) {
+	// Create a temporary directory for testing
+	tempDir := t.TempDir()
+	appDir := filepath.Join(tempDir, "data-mapper")
+
+	dirs, err := SetupDataDirectories(appDir)
+	if err != nil {
+		t.Fatalf("Failed to setup data directories: %v", err)
+	}
+
+	// Check that all expected directories are created
+	expectedDirs := []string{"checkpoints", "papers", "json", "documents", "temp"}
+	for _, dirName := range expectedDirs {
+		dirPath, exists := dirs[dirName]
+		if !exists {
+			t.Errorf("Directory '%s' should be in the returned map", dirName)
+			continue
+		}
+
+		// Check that directory exists
+		if _, err := os.Stat(dirPath); os.IsNotExist(err) {
+			t.Errorf("Directory should exist: %s", dirPath)
+		}
+
+		// Special check: json should be directly under data directory
+		if dirName == "json" && !containsSubstring(dirPath, "json") {
+			t.Errorf("JSON directory should be directly under data directory: %s", dirPath)
+		}
+	}
+
+	// Verify json is directly in data subdirectory
+	jsonPath := dirs["json"]
+	expectedJSONPath := filepath.Join(appDir, "json")
+	if jsonPath != expectedJSONPath {
+		t.Errorf("JSON path mismatch: expected %s, got %s", expectedJSONPath, jsonPath)
+	}
+}
+
+func TestSetupDataDirectoriesJSONLocation(t *testing.T) {
+	tempDir := t.TempDir()
+	appDir := filepath.Join(tempDir, "testapp")
+
+	dirs, err := SetupDataDirectories(appDir)
+	if err != nil {
+		t.Fatalf("Failed to setup data directories: %v", err)
+	}
+
+	// Verify json directory is directly in data/json
+	jsonDir := dirs["json"]
+	expectedJSONDir := filepath.Join(appDir, "json")
+
+	if jsonDir != expectedJSONDir {
+		t.Errorf("JSON directory should be at %s, got %s", expectedJSONDir, jsonDir)
+	}
+
+	// Verify it exists
+	if info, err := os.Stat(jsonDir); err != nil {
+		t.Errorf("JSON directory should exist: %v", err)
+	} else if !info.IsDir() {
+		t.Errorf("JSON path should be a directory")
+	}
+}
+
+func containsSubstring(s, substr string) bool {
+	return len(s) >= len(substr) && (s == substr || len(s) > 0 && containsSubstringHelper(s, substr))
+}
+
+func containsSubstringHelper(s, substr string) bool {
+	for i := 0; i <= len(s)-len(substr); i++ {
+		if s[i:i+len(substr)] == substr {
+			return true
+		}
+	}
+	return false
+}
+
+func TestOSSpecificPaths(t *testing.T) {
+	tempDir := t.TempDir()
+
+	// Test based on OS
+	switch runtime.GOOS {
+	case "windows":
+		// On Windows, should use APPDATA or USERPROFILE
+		os.Setenv("APPDATA", tempDir)
+		appDir, err := GetAppDataDir()
+		if err != nil {
+			t.Fatalf("Failed to get app data dir on Windows: %v", err)
+		}
+		if !containsSubstring(appDir, tempDir) {
+			t.Errorf("Windows app dir should use APPDATA: %s", appDir)
+		}
+
+	case "darwin":
+		// On macOS, should use ~/Library/Application Support
+		os.Setenv("HOME", tempDir)
+		appDir, err := GetAppDataDir()
+		if err != nil {
+			t.Fatalf("Failed to get app data dir on macOS: %v", err)
+		}
+		expectedPath := filepath.Join(tempDir, "Library", "Application Support", "knirvhasher", "data")
+		if appDir != expectedPath {
+			t.Errorf("macOS app dir mismatch: expected %s, got %s", expectedPath, appDir)
+		}
+
+	default: // linux
+		// KNIRV_APP_DATA_DIR takes highest precedence on Linux (used for
+		// privileged launches, see GetAppDataDir) — set it explicitly so this
+		// test doesn't depend on whether /var/lib/knirvserver exists on the host.
+		os.Setenv("KNIRV_APP_DATA_DIR", tempDir)
+		defer os.Unsetenv("KNIRV_APP_DATA_DIR")
+		appDir, err := GetAppDataDir()
+		if err != nil {
+			t.Fatalf("Failed to get app data dir on Linux: %v", err)
+		}
+		expectedPath := filepath.Join(tempDir, "knirvhasher", "data")
+		if appDir != expectedPath {
+			t.Errorf("Linux app dir mismatch: expected %s, got %s", expectedPath, appDir)
+		}
+	}
+}
+
+func TestSetupDataDirectoriesCreatesAllDirs(t *testing.T) {
+	tempDir := t.TempDir()
+	appDir := filepath.Join(tempDir, "freshapp")
+
+	// Ensure directory doesn't exist yet
+	os.RemoveAll(appDir)
+
+	dirs, err := SetupDataDirectories(appDir)
+	if err != nil {
+		t.Fatalf("Failed to setup directories: %v", err)
+	}
+
+	// Verify all directories were created
+	for name, path := range dirs {
+		info, err := os.Stat(path)
+		if err != nil {
+			t.Errorf("Directory %s (%s) should exist: %v", name, path, err)
+		} else if !info.IsDir() {
+			t.Errorf("Path %s (%s) should be a directory", name, path)
+		}
+	}
+}

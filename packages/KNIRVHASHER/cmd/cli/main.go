@@ -38,7 +38,7 @@ var (
 	headlessMode = flag.Bool("headless", false, "run in headless mode with HTTP API server over Unix socket")
 	socketPath   = flag.String("socket-path", "/var/run/knirvhasher.sock", "Unix socket path for headless API server")
 	socketPerm   = flag.String("socket-perm", "0660", "Unix socket permissions (octal)")
-	goatMode     = flag.Bool("goat", false, "MAPPER mode: use Hugging Face API as data source; passes -goat to data-miner and skips the data-connector stage")
+	goatMode     = flag.Bool("goat", false, "Compatibility profile selector; source selection is handled by data-connector")
 )
 
 func main() {
@@ -194,7 +194,7 @@ func shutdownPipelineProcess(cmd *exec.Cmd) {
 		}
 	}
 
-	pipelineBinaries := []string{"data-miner", "data-encoder", "data-trainer"}
+	pipelineBinaries := []string{"data-mapper", "data-encoder", "data-trainer"}
 	for _, bin := range pipelineBinaries {
 		exec.Command("pkill", "-TERM", "-f", bin).Run()
 		time.Sleep(100 * time.Millisecond)

@@ -47,8 +47,8 @@ var AvailableBinaries = []BinaryInfo{
 		TargetArch:  "amd64",
 	},
 	{
-		Name:        "data-miner",
-		Description: "Data Miner - Document structuring and PDF processing pipeline",
+		Name:        "data-mapper",
+		Description: "Data Mapper - staged record embedding and NLP pipeline",
 		TargetOS:    "linux",
 		TargetArch:  "amd64",
 	},
@@ -61,6 +61,12 @@ var AvailableBinaries = []BinaryInfo{
 	{
 		Name:        "data-trainer",
 		Description: "Data Trainer - Model training and neural network optimization pipeline",
+		TargetOS:    "linux",
+		TargetArch:  "amd64",
+	},
+	{
+		Name:        "knirvbase",
+		Description: "Standalone KNIRVBASE NRV store and network service",
 		TargetOS:    "linux",
 		TargetArch:  "amd64",
 	},

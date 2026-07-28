@@ -377,10 +377,10 @@ type Model struct {
 	ProgressText    string
 	ProgressStatus  string
 	Deployer        *analyzer.Deployer
-	DeviceIP        string            // Connected ASIC device IP (empty if none)
-	DeviceType      string            // Type of connected device
-	CryptoEnabled   bool              // Whether crypto-transformer is enabled
-	APIClient       *client.APIClient // API client for hasher-host
+	DeviceIP        string                 // Connected ASIC device IP (empty if none)
+	DeviceType      string                 // Type of connected device
+	CryptoEnabled   bool                   // Whether crypto-transformer is enabled
+	APIClient       *client.APIClient      // API client for hasher-host
 	Controller      *controller.Controller // Controller for shared logic
 
 	// Text selection fields
@@ -542,8 +542,8 @@ func NewModel() Model {
 		}(),
 		PipelineStages: []PipelineStage{
 			{
-				Name:    "data-miner",
-				BinName: "data-miner",
+				Name:    "data-mapper",
+				BinName: "data-mapper",
 				Args:    []string{"-goat"},
 				Desc:    "Data Miner - Processing documents and PDFs",
 			},
@@ -1500,8 +1500,8 @@ func buildPipelineStages(pipelineType string) []PipelineStage {
 	case "arxiv":
 		return []PipelineStage{
 			dataConnectorStage,
-			{Name: "data-miner", BinName: "data-miner",
-				Args: []string{"-arxiv-enable"}, Desc: "Data Miner - ArXiv paper mining"},
+			{Name: "data-mapper", BinName: "data-mapper",
+				Args: []string{}, Desc: "Data Mapper - staged source records"},
 			{Name: "data-encoder", BinName: "data-encoder",
 				Args: []string{"-workers", "2"}, Desc: "Data Encoder - Tokenization and embeddings"},
 			trainerStage,
@@ -1510,15 +1510,15 @@ func buildPipelineStages(pipelineType string) []PipelineStage {
 		// Demo generates trainer-compatible JSON directly; skip the encoder.
 		return []PipelineStage{
 			dataConnectorStage,
-			{Name: "data-miner", BinName: "data-miner",
-				Args: []string{"-demo"}, Desc: "Data Miner - Generating hello world demo frames"},
+			{Name: "data-mapper", BinName: "data-mapper",
+				Args: []string{"-demo"}, Desc: "Data Mapper - staged source records"},
 			trainerStage,
 		}
 	default: // "goat"
 		return []PipelineStage{
 			dataConnectorStage,
-			{Name: "data-miner", BinName: "data-miner",
-				Args: []string{"-goat"}, Desc: "Data Miner - GOAT dataset mining"},
+			{Name: "data-mapper", BinName: "data-mapper",
+				Args: []string{}, Desc: "Data Mapper - staged source records"},
 			{Name: "data-encoder", BinName: "data-encoder",
 				Args: []string{"-workers", "2"}, Desc: "Data Encoder - Tokenization and embeddings"},
 			trainerStage,
@@ -1632,7 +1632,7 @@ func (m Model) renderPipelineView() string {
 		desc   string
 		symbol string
 	}{
-		{"data-miner", "Document structuring and PDF processing", "⛏️"},
+		{"data-mapper", "Document structuring and PDF processing", "⛏️"},
 		{"data-encoder", "Tokenization and embedding generation", "🔐"},
 		{"data-trainer", "Neural network training and optimization", "🧠"},
 	}
@@ -2635,8 +2635,8 @@ func (m Model) runPipelineStage(binDir string, stageIndex int) tea.Cmd {
 			}
 		}
 
-		// For data-miner, ensure spacy library is available
-		if stage.BinName == "data-miner" {
+		// For data-mapper, ensure spacy library is available
+		if stage.BinName == "data-mapper" {
 			m.ensureSpacyLib(binDir)
 		}
 
@@ -2655,7 +2655,7 @@ func (m Model) runPipelineStage(binDir string, stageIndex int) tea.Cmd {
 		cmd.Dir = binDir
 
 		// Set LD_LIBRARY_PATH for required libraries
-		if stage.BinName == "data-miner" || stage.BinName == "data-trainer" {
+		if stage.BinName == "data-mapper" || stage.BinName == "data-trainer" {
 			cmd.Env = append(os.Environ(), "LD_LIBRARY_PATH="+binDir+":"+os.Getenv("LD_LIBRARY_PATH"))
 		}
 
@@ -2714,8 +2714,8 @@ func (m Model) ensureSpacyLib(binDir string) {
 
 	// Try to find the library in common locations
 	searchPaths := []string{
-		filepath.Join(os.Getenv("HOME"), "Documents", "GitHub", "LAB", "HASHER", "pipeline", "1_DATA_MINER", "spacy", "lib", "libspacy_wrapper.so"),
-		filepath.Join(os.Getenv("HOME"), "hasher", "pipeline", "1_DATA_MINER", "spacy", "lib", "libspacy_wrapper.so"),
+		filepath.Join(os.Getenv("HOME"), "Documents", "GitHub", "LAB", "HASHER", "pipeline", "1_DATA_MAPPER", "spacy", "lib", "libspacy_wrapper.so"),
+		filepath.Join(os.Getenv("HOME"), "hasher", "pipeline", "1_DATA_MAPPER", "spacy", "lib", "libspacy_wrapper.so"),
 		"/usr/local/lib/libspacy_wrapper.so",
 	}
 

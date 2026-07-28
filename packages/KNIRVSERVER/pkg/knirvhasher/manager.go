@@ -190,7 +190,7 @@ func (m *Manager) Start(ctx context.Context) error {
 	}
 
 	// When running as root (e.g. via sudo), propagate the original user's Python
-	// site-packages so the data-miner's embedded Python can find en_core_web_sm.
+	// site-packages so the data-mapper's embedded Python can find en_core_web_sm.
 	if pyPath := sudoUserPythonPath(); pyPath != "" {
 		env = append(env, "PYTHONPATH="+pyPath)
 	}
@@ -584,7 +584,7 @@ func isSocketReady(socketPath string) bool {
 }
 
 // sudoUserPythonPath returns the Python user site-packages directory for the
-// original non-root user when knirvserver is launched via sudo. The data-miner
+// original non-root user when knirvserver is launched via sudo. The data-mapper
 // binary runs as root but needs to reach user-installed spaCy models (e.g.
 // en_core_web_sm) that live under the invoking user's ~/.local, not /root/.local.
 func sudoUserPythonPath() string {
