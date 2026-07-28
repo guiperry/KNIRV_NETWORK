@@ -4,17 +4,17 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/knirvcorp/knirvbase/pkg/knirvbase"
 	evo_grpo "github.com/lab/hasher/data-trainer/internal/evo_grpo"
+	"github.com/lab/hasher/data-trainer/internal/store"
 )
 
 // NRVKnowledgeBase manages the NRV knowledge base re-indexing
 type NRVKnowledgeBase struct {
-	kvbase knirvbase.Collection
+	kvbase store.Collection
 }
 
 // NewNRVKnowledgeBase creates a new NRV knowledge base manager
-func NewNRVKnowledgeBase(kvbase knirvbase.Collection) *NRVKnowledgeBase {
+func NewNRVKnowledgeBase(kvbase store.Collection) *NRVKnowledgeBase {
 	return &NRVKnowledgeBase{kvbase: kvbase}
 }
 

@@ -244,14 +244,7 @@ func (s *Server) handleRunPipeline(w http.ResponseWriter, r *http.Request) {
 		req.Type = "goat"
 	}
 
-	go func() {
-		// This work outlives the HTTP request. r.Context() is canceled once the
-		// start response is returned, which must not terminate the pipeline or
-		// its long-lived KNIRVBASE service.
-		if err := s.controller.RunPipeline(context.Background(), req.Type); err != nil {
-			log.Printf("Pipeline error: %v", err)
-		}
-	}()
+	s.runPipelineAsync(req.Type, "Pipeline")
 
 	s.sendSuccess(w, "Pipeline started", map[string]string{"type": req.Type})
 }
@@ -300,16 +293,28 @@ func (s *Server) handleVerify(w http.ResponseWriter, r *http.Request) {
 		s.sendSuccess(w, "Mathematical verification started", map[string]string{"mode": mode})
 
 	case "semantic":
-		go func() {
-			if err := s.controller.RunPipeline(context.Background(), "goat"); err != nil {
-				log.Printf("Semantic verification error: %v", err)
-			}
-		}()
+		s.runPipelineAsync("goat", "Semantic verification")
 		s.sendSuccess(w, "Semantic verification (pipeline) started", map[string]string{"mode": mode})
 
 	default:
 		s.sendError(w, "Invalid verification mode", fmt.Errorf("mode must be 'semantic' or 'mathematical'"), http.StatusBadRequest)
 	}
+}
+
+func (s *Server) runPipelineAsync(pipelineType, label string) {
+	go func() {
+		// This work outlives the HTTP request. It also has a panic boundary:
+		// pipeline defects must fail the run, never the long-lived headless
+		// process (and therefore never KNIRVSERVER).
+		defer func() {
+			if recovered := recover(); recovered != nil {
+				log.Printf("%s pipeline panic recovered: %v", label, recovered)
+			}
+		}()
+		if err := s.controller.RunPipeline(context.Background(), pipelineType); err != nil {
+			log.Printf("%s error: %v", label, err)
+		}
+	}()
 }
 
 func (s *Server) handleDiscoverASIC(w http.ResponseWriter, r *http.Request) {

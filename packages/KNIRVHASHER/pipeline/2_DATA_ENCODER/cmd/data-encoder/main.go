@@ -223,7 +223,6 @@ func isDefaultInput(path string) bool {
 func AutoDetectInputFile() string {
 	priorityFiles := []string{
 		"mapper/mined_records.json",
-		"connector/records.jsonl",
 		"ai_knowledge_base_goat_alpaca.json",
 		"ai_knowledge_base_alpaca.json",
 		"ai_knowledge_base.json",
@@ -648,6 +647,7 @@ func writeNRV(path string, frames []schema.TrainingFrame) error {
 	if err != nil {
 		return err
 	}
+	ticker := nrvio.NewFrameTicker(w, time.Second)
 	for _, frame := range frames {
 		slots := frame.GetAsicSlots()
 		var b nrvio.Bracket
@@ -662,7 +662,12 @@ func writeNRV(path string, frames []schema.TrainingFrame) error {
 			binary.LittleEndian.PutUint32(b.Memory[i*4:], slots[6+i])
 		}
 		b.SubSecondUS = uint32(frame.WindowStart)
-		w.Append(b)
+		if err := ticker.Append(b); err != nil {
+			return err
+		}
+	}
+	if err := ticker.Close(); err != nil {
+		return err
 	}
 	return w.Close()
 }
@@ -788,6 +793,7 @@ func processDocumentRecords(records []schema.DocumentRecord, tp *mapper.TensorPa
 		minedRecord := schema.MinedRecord{
 			FileName:     record.FileName,
 			ChunkID:      int(record.ChunkID),
+			Heading:      record.Heading,
 			Content:      record.Content,
 			Instruction:  record.Instruction,
 			Input:        record.Input,
@@ -1004,8 +1010,9 @@ func processSingleRecordWithSlidingWindow(record *schema.MinedRecord, frameCount
 	}
 
 	// 2. Generate sliding windows
-	log.Printf("[PROCESS] Step 2/6: Generating sliding windows (size=%d, stride=%d)...", config.WindowSize, config.WindowStride)
-	sg := sliding.NewGenerator(config.WindowSize, config.WindowStride)
+	windowStride := effectiveWindowStride(record, config)
+	log.Printf("[PROCESS] Step 2/6: Generating sliding windows (size=%d, stride=%d)...", config.WindowSize, windowStride)
+	sg := sliding.NewGenerator(config.WindowSize, windowStride)
 	windows := sg.GenerateWindows(allTokens)
 	log.Printf("[PROCESS] Generated %d sliding windows", len(windows))
 
@@ -1103,6 +1110,13 @@ func processSingleRecordWithSlidingWindow(record *schema.MinedRecord, frameCount
 			}
 
 			// Pack the frame into the 12-slot specification
+			domainHeading := strings.TrimSpace(record.Heading)
+			if strings.HasPrefix(record.FileName, "arxiv:") {
+				domainHeading = "arXiv heading: " + domainHeading
+			}
+			if domainHeading == "" {
+				domainHeading = record.Instruction
+			}
 			asicSlots := tp.PackFrame(
 				batchEmbeddings[i],
 				pos,
@@ -1110,7 +1124,7 @@ func processSingleRecordWithSlidingWindow(record *schema.MinedRecord, frameCount
 				depHash,
 				memoryState[:],
 				uint16(targetTokenIdx),
-				record.Instruction,
+				domainHeading,
 				record.Input,
 			)
 
@@ -1138,6 +1152,17 @@ func processSingleRecordWithSlidingWindow(record *schema.MinedRecord, frameCount
 
 	log.Printf("[PROCESS] ✅ Completed record %d: %d windows -> %d frames", record.ChunkID, len(windows), *frameCount)
 	return nil
+}
+
+func effectiveWindowStride(record *schema.MinedRecord, config *Config) int {
+	stride := config.WindowStride
+	if stride <= 0 {
+		stride = 1
+	}
+	if strings.HasPrefix(record.FileName, "arxiv:") && stride < config.WindowSize {
+		return config.WindowSize
+	}
+	return stride
 }
 
 func processStreamingJSON(jsonFile *os.File, tp *mapper.TensorPacker, tk *tokenizer.Service, ew *embeddings.Service, frames *[]schema.TrainingFrame, config *Config, cpManager *checkpoint.Manager) error {

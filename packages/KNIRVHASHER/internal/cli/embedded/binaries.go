@@ -70,6 +70,12 @@ var AvailableBinaries = []BinaryInfo{
 		TargetOS:    "linux",
 		TargetArch:  "amd64",
 	},
+	{
+		Name:        "libspacy_wrapper.so",
+		Description: "Embedded spaCy native runtime used by the data mapper",
+		TargetOS:    "linux",
+		TargetArch:  "amd64",
+	},
 }
 
 // GetAppDataDir returns the OS-specific application data directory.

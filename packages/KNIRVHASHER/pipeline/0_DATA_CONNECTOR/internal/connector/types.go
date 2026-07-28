@@ -17,6 +17,7 @@ type RawRecord struct {
 	DatasetID string   `json:"dataset_id" parquet:"dataset_id"`
 	Split     string   `json:"split" parquet:"split"`
 	Index     int64    `json:"index" parquet:"index"`
+	Heading   string   `json:"heading,omitempty" parquet:"heading"`
 	Text      string   `json:"text" parquet:"text"`
 	Tags      []string `json:"tags" parquet:"tags"`
 }

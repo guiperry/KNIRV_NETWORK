@@ -4,9 +4,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/knirvcorp/knirvbase/pkg/nrv"
-
 	"data-encoder/internal/writer"
+	"data-encoder/pkg/nrvio"
 )
 
 // DomainMath is the Slot 10 domain signature for Math Mode.
@@ -102,10 +101,10 @@ func (tp *TensorPacker) SaveTrainingFrames(frames []*NeuralFrame, w *writer.NRVW
 		var mem [14]byte
 		copy(mem[:], memBytes)
 
-		bracket := &nrv.Bracket{
+		bracket := &nrvio.Bracket{
 			Projections: proj,
-			Syntactic:   uint8(frame.Slots[4] & 0xFF),
-			DepHead:     int8(frame.Slots[5]),
+			POSTag:      uint8(frame.Slots[4] & 0xFF),
+			DepHead:     uint8(frame.Slots[5]),
 			IntentFlags: uint8(frame.Slots[9]),
 			DomainSig:   uint16(frame.Slots[10]),
 			Memory:      mem,

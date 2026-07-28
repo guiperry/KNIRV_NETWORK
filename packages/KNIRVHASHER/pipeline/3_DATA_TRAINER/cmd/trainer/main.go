@@ -1,17 +1,16 @@
 package main
 
 import (
-	"context"
 	"flag"
 	"fmt"
 	"log"
 	"os"
 	"path/filepath"
 
-	"github.com/knirvcorp/knirvbase/pkg/knirvbase"
 	evo_grpo "github.com/lab/hasher/data-trainer/internal/evo_grpo"
 	gates "github.com/lab/hasher/data-trainer/internal/gates"
 	knowledge_base "github.com/lab/hasher/data-trainer/internal/knowledge_base"
+	"github.com/lab/hasher/data-trainer/pkg/knirvbaseclient"
 )
 
 func main() {
@@ -20,13 +19,11 @@ func main() {
 	flag.StringVar(&outputDir, "output", "./data/output", "Output directory for trained models")
 	flag.Parse()
 
-	// Initialize knirvbase connection
-	db, err := knirvbase.New(context.Background(), knirvbase.Options{DataDir: "./data/knirvbase"})
-	if err != nil {
-		log.Fatalf("Failed to connect to knirvbase: %v", err)
+	addr := os.Getenv("KNIRVBASE_ADDR")
+	if addr == "" {
+		addr = "localhost:50052"
 	}
-	defer db.Shutdown()
-	kvbase := db.Collection("knirvhasher_trainer")
+	kvbase := knirvbaseclient.New(addr).Collection("knirvhasher_trainer")
 
 	// Initialize components
 	gateTrainer := gates.NewUserSecurityGates(kvbase)
@@ -34,7 +31,7 @@ func main() {
 	kbIndexer := knowledge_base.NewNRVKnowledgeBase(kvbase)
 
 	// Process all .nrv files in input directory
-	err = filepath.Walk(inputDir, func(path string, info os.FileInfo, err error) error {
+	err := filepath.Walk(inputDir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}

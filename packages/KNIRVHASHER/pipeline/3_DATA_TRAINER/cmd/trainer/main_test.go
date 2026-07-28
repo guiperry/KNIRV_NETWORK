@@ -7,7 +7,7 @@ import (
 	evo_grpo "github.com/lab/hasher/data-trainer/internal/evo_grpo"
 	"github.com/lab/hasher/data-trainer/internal/gates"
 	knowledge_base "github.com/lab/hasher/data-trainer/internal/knowledge_base"
-	"github.com/knirvcorp/knirvbase/pkg/knirvbase"
+	"github.com/lab/hasher/data-trainer/internal/store"
 )
 
 // fakeCollection is a minimal in-memory knirvbase.Collection for tests that
@@ -60,7 +60,7 @@ func (f *fakeCollection) AttachToNetwork(networkID string) error { return nil }
 func (f *fakeCollection) DetachFromNetwork() error               { return nil }
 func (f *fakeCollection) ForceSync() error                       { return nil }
 
-var _ knirvbase.Collection = (*fakeCollection)(nil)
+var _ store.Collection = (*fakeCollection)(nil)
 
 func TestUserSecurityGates_Train(t *testing.T) {
 	gateTrainer := gates.NewUserSecurityGates(newFakeCollection())

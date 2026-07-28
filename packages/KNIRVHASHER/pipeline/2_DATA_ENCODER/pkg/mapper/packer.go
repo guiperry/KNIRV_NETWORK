@@ -110,17 +110,37 @@ func detectDomain(instr, input string) uint32 {
 	instr = strings.ToLower(instr)
 	input = strings.ToLower(input)
 
-	for _, ind := range []string{"calculate", "math", "equation", "solve", "sum", "multiply", "divide", "+", "-", "*", "/"} {
+	for _, ind := range []string{
+		"calculate", "math", "equation", "solve", "sum", "multiply", "divide",
+		"algebra", "geometry", "theorem", "calculus", "topology", "number theory",
+		"+", "-", "*", "/",
+	} {
 		if strings.Contains(instr, ind) || strings.Contains(input, ind) {
 			return 0x2000 // DOMAIN_MATH
 		}
 	}
 
-	if isCode(input) || strings.Contains(instr, "code") || strings.Contains(instr, "program") || strings.Contains(instr, "function") {
+	if isCode(input) || containsAny(instr, "code", "program", "function", "compiler", "software", "source code") {
 		return 0x3000 // DOMAIN_CODE
 	}
 
+	if containsAny(instr,
+		"arxiv", "paper", "research", "neural", "learning", "model",
+		"quantum", "physics", "biology", "chemistry", "language",
+	) {
+		return 0x4000 // DOMAIN_ACADEMIC
+	}
+
 	return 0x1000 // DOMAIN_PROSE
+}
+
+func containsAny(text string, values ...string) bool {
+	for _, value := range values {
+		if strings.Contains(text, value) {
+			return true
+		}
+	}
+	return false
 }
 
 func quantizeFloatToUint16(val float32) uint16 {

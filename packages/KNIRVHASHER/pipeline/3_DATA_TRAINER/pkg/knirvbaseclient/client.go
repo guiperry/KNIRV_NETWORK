@@ -2,6 +2,7 @@ package knirvbaseclient
 
 import (
 	"bytes"
+	"context"
 	"encoding/base64"
 	"encoding/binary"
 	"encoding/json"
@@ -16,7 +17,31 @@ type Client struct {
 	HTTP *http.Client
 }
 
+type CollectionClient struct {
+	client *Client
+	name   string
+}
+
 func New(addr string) *Client { return &Client{Addr: addr, HTTP: &http.Client{}} }
+func (c *Client) Collection(name string) *CollectionClient {
+	return &CollectionClient{client: c, name: name}
+}
+
+func (c *CollectionClient) Insert(_ context.Context, doc map[string]interface{}) (map[string]interface{}, error) {
+	body, err := json.Marshal(map[string]interface{}{"collection": c.name, "document": doc})
+	if err != nil {
+		return nil, err
+	}
+	resp, err := c.client.HTTP.Post("http://"+c.client.Addr+"/document", "application/json", bytes.NewReader(body))
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode/100 != 2 {
+		return nil, fmt.Errorf("knirvbase document insert: HTTP %s", resp.Status)
+	}
+	return doc, nil
+}
 func (c *Client) Append(domain string, raw [80]byte) error {
 	body, _ := json.Marshal(map[string]string{"domain": domain, "bracket": base64.StdEncoding.EncodeToString(raw[:])})
 	resp, err := c.HTTP.Post("http://"+c.Addr+"/append", "application/json", bytes.NewReader(body))

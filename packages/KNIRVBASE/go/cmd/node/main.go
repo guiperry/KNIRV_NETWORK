@@ -84,6 +84,26 @@ func main() {
 		}
 		writeJSON(w, map[string]any{"ok": true})
 	})
+	mux.HandleFunc("/document", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+		var req struct {
+			Collection string         `json:"collection"`
+			Document   map[string]any `json:"document"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.Collection == "" || req.Document == nil {
+			http.Error(w, "collection and document are required", http.StatusBadRequest)
+			return
+		}
+		stored, err := db.Collection(req.Collection).Insert(r.Context(), req.Document)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		writeJSON(w, stored)
+	})
 	mux.HandleFunc("/stream", func(w http.ResponseWriter, r *http.Request) {
 		domain := r.URL.Query().Get("domain")
 		if domain == "" {

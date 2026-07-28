@@ -1,4 +1,5 @@
-knirvserver_addr: "localhost:8084"
+knirvserver_addr: "http://localhost:8084"
+knirvserver_grpc_addr: "localhost:50051"
 listen_addr: ":50051"  # gRPC listen address
 
 output_dir: "~/.local/share/knirvhasher/connector"
@@ -11,11 +12,13 @@ huggingface:
   splits: ["train"]
   max_rows_per_dataset: 50000
   shard_workers: 4
-  request_delay: "250ms"
+  request_delay: "1s"
+  cache_dir: "~/.cache/knirvhasher/hf"
 
 arxiv:
   categories: ["cs.LG", "cs.CL"]
   max_papers: 50
+  download_delay_seconds: 2
 
 knirvbase:
   addr: "localhost:50052"

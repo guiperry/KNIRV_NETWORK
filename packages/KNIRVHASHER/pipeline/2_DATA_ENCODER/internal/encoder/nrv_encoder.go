@@ -7,17 +7,16 @@ import (
 	"os"
 	"time"
 
-	"github.com/apache/arrow/go/v14/arrow/array"
-	"github.com/apache/arrow/go/v14/arrow/ipc"
-	"github.com/knirvcorp/knirvbase/pkg/knirvbase"
-	"github.com/knirvcorp/knirvbase/pkg/nrv"
-
 	"data-encoder/internal"
 	"data-encoder/internal/writer"
+	"data-encoder/pkg/nrvio"
+	"data-encoder/pkg/store"
+	"github.com/apache/arrow/go/v14/arrow/array"
+	"github.com/apache/arrow/go/v14/arrow/ipc"
 )
 
 type DB interface {
-	Collection(name string) knirvbase.Collection
+	Collection(name string) store.Collection
 }
 
 const VectorDims = 16
@@ -106,10 +105,10 @@ func (e *NRVEncoder) Run(ctx context.Context) error {
 			var mem [14]byte
 			copy(mem[:], memBytes)
 
-			bracket := &nrv.Bracket{
+			bracket := &nrvio.Bracket{
 				Projections: proj,
-				Syntactic:   uint8(slots[4] & 0xFF),
-				DepHead:     int8(slots[5]),
+				POSTag:      uint8(slots[4] & 0xFF),
+				DepHead:     uint8(slots[5]),
 				IntentFlags: uint8(slots[9]),
 				DomainSig:   uint16(slots[10]),
 				Memory:      mem,
@@ -186,7 +185,7 @@ func loadArrowBatch(path string) ([]*internal.SecurityRecord, error) {
 	return records, nil
 }
 
-func WaitForCollectionReady(ctx context.Context, coll knirvbase.Collection) (int, error) {
+func WaitForCollectionReady(ctx context.Context, coll store.Collection) (int, error) {
 	deadline, cancel := context.WithTimeout(ctx, defaultWaitTimeout)
 	defer cancel()
 

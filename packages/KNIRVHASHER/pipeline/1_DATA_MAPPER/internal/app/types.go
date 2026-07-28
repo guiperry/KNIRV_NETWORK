@@ -2,17 +2,18 @@ package app
 
 // DocumentRecord defines our ML-ready schema
 type DocumentRecord struct {
-	FileName  string    `parquet:"name=file_name, type=BYTE_ARRAY, convertedtype=UTF8"`
-	ChunkID   int32     `parquet:"name=chunk_id, type=INT32"`
-	Content   string    `parquet:"name=content, type=BYTE_ARRAY, convertedtype=UTF8"`
-	Embedding []float32 `parquet:"name=embedding, type=LIST, valuetype=FLOAT"`
+	FileName  string    `json:"file_name" parquet:"name=file_name, type=BYTE_ARRAY, convertedtype=UTF8"`
+	ChunkID   int32     `json:"chunk_id" parquet:"name=chunk_id, type=INT32"`
+	Heading   string    `json:"heading,omitempty" parquet:"name=heading, type=BYTE_ARRAY, convertedtype=UTF8"`
+	Content   string    `json:"content" parquet:"name=content, type=BYTE_ARRAY, convertedtype=UTF8"`
+	Embedding []float32 `json:"embedding" parquet:"name=embedding, type=LIST, valuetype=FLOAT"`
 
 	// NLP Metadata (from NLP Bridge)
-	Tokens       []string `parquet:"name=tokens, type=LIST, valuetype=BYTE_ARRAY, valueconvertedtype=UTF8"`
-	TokenOffsets []int32  `parquet:"name=token_offsets, type=LIST, valuetype=INT32"`
-	POSTags      []int    `parquet:"name=pos_tags, type=LIST, valuetype=INT32"`
-	Tenses       []int    `parquet:"name=tenses, type=LIST, valuetype=INT32"`
-	DepHashes    []uint32 `parquet:"name=dep_hashes, type=LIST, valuetype=INT32"`
+	Tokens       []string `json:"tokens" parquet:"name=tokens, type=LIST, valuetype=BYTE_ARRAY, valueconvertedtype=UTF8"`
+	TokenOffsets []int32  `json:"token_offsets" parquet:"name=token_offsets, type=LIST, valuetype=INT32"`
+	POSTags      []int    `json:"pos_tags" parquet:"name=pos_tags, type=LIST, valuetype=INT32"`
+	Tenses       []int    `json:"tenses" parquet:"name=tenses, type=LIST, valuetype=INT32"`
+	DepHashes    []uint32 `json:"dep_hashes" parquet:"name=dep_hashes, type=LIST, valuetype=INT32"`
 	DatasetID    string   `json:"dataset_id,omitempty" parquet:"name=dataset_id, type=BYTE_ARRAY, convertedtype=UTF8"`
 	Split        string   `json:"split,omitempty" parquet:"name=split, type=BYTE_ARRAY, convertedtype=UTF8"`
 	SourceIndex  int64    `json:"source_index,omitempty" parquet:"name=source_index, type=INT64"`

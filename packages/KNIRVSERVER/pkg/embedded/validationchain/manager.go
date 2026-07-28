@@ -58,6 +58,8 @@ func unixHTTPClient(socketPath string, timeout time.Duration) *http.Client {
 // Start extracts the embedded binary (if not already staged) and launches it
 // as a subprocess bound to socketPath, waiting for its /health endpoint
 // before returning.
+const validationChainDataDir = "/var/lib/knirvserver/validationchain/data"
+
 func (vc *ValidationChain) Start(ctx context.Context, socketPath string) error {
 	vc.restartMu.Lock()
 	defer vc.restartMu.Unlock()
@@ -78,12 +80,16 @@ func (vc *ValidationChain) Start(ctx context.Context, socketPath string) error {
 	if err := os.MkdirAll(dirOf(socketPath), 0o700); err != nil {
 		return fmt.Errorf("create socket directory: %w", err)
 	}
+	if err := os.MkdirAll(validationChainDataDir, 0o755); err != nil {
+		return fmt.Errorf("create validation chain data directory: %w", err)
+	}
 	_ = os.Remove(socketPath) // clear a stale socket file from a previous run
 
 	vc.cmd = exec.CommandContext(vc.ctx, binPath)
 	vc.cmd.Env = append(os.Environ(),
 		fmt.Sprintf("VALIDATION_CHAIN_SOCKET_PATH=%s", socketPath),
 		"CHAIN_ID=validation-testnet",
+		fmt.Sprintf("DATA_PATH=%s", validationChainDataDir),
 	)
 	vc.cmd.Stdout = os.Stdout
 	vc.cmd.Stderr = os.Stderr
@@ -161,6 +167,7 @@ func (vc *ValidationChain) monitorProcess(binPath string) {
 		vc.cmd.Env = append(os.Environ(),
 			fmt.Sprintf("VALIDATION_CHAIN_SOCKET_PATH=%s", vc.socketPath),
 			"CHAIN_ID=validation-testnet",
+			fmt.Sprintf("DATA_PATH=%s", validationChainDataDir),
 		)
 		vc.cmd.Stdout = os.Stdout
 		vc.cmd.Stderr = os.Stderr

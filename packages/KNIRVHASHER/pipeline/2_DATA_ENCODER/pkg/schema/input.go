@@ -8,6 +8,7 @@ import (
 type DocumentRecord struct {
 	FileName  string    `parquet:"name=file_name, type=BYTE_ARRAY, convertedtype=UTF8"`
 	ChunkID   int32     `parquet:"name=chunk_id, type=INT32"`
+	Heading   string    `parquet:"name=heading, type=BYTE_ARRAY, convertedtype=UTF8"`
 	Content   string    `parquet:"name=content, type=BYTE_ARRAY, convertedtype=UTF8"`
 	Embedding []float32 `parquet:"name=embedding, type=LIST, valuetype=FLOAT"`
 
@@ -28,6 +29,7 @@ type DocumentRecord struct {
 type MinedRecord struct {
 	FileName string `json:"file_name"`
 	ChunkID  int    `json:"chunk_id"`
+	Heading  string `json:"heading,omitempty"`
 	Content  string `json:"content"`
 
 	// Alpaca fields (if present)

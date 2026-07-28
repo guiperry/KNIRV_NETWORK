@@ -630,6 +630,17 @@ batchLoop:
 
 			if err != nil {
 				c.model.PipelineRunning = false
+				c.model.PipelineStage = "failed: " + stage.Name
+				select {
+				case c.pipelineLogChan <- PipelineLogMsg{
+					Log:        fmt.Sprintf("%s failed: %v", stage.Name, err),
+					StageIndex: i,
+					Stage:      stage.Name,
+					Error:      true,
+					Complete:   true,
+				}:
+				default:
+				}
 				return fmt.Errorf("%s failed: %w", stage.Name, err)
 			}
 

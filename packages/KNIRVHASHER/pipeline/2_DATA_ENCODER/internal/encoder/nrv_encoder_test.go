@@ -8,13 +8,12 @@ import (
 	"testing"
 	"time"
 
+	"data-encoder/internal"
+	"data-encoder/pkg/store"
 	"github.com/apache/arrow/go/v14/arrow"
 	"github.com/apache/arrow/go/v14/arrow/array"
 	"github.com/apache/arrow/go/v14/arrow/ipc"
 	"github.com/apache/arrow/go/v14/arrow/memory"
-	"github.com/knirvcorp/knirvbase/pkg/knirvbase"
-
-	"data-encoder/internal"
 )
 
 func writeTestArrowFile(t *testing.T, path string, records []*internal.SecurityRecord) {
@@ -246,8 +245,8 @@ func (m *mockCollectionEmpty) FindAll(ctx context.Context) ([]map[string]interfa
 	return []map[string]interface{}{}, nil
 }
 func (m *mockCollectionEmpty) AttachToNetwork(networkID string) error { return nil }
-func (m *mockCollectionEmpty) DetachFromNetwork() error              { return nil }
-func (m *mockCollectionEmpty) ForceSync() error                      { return nil }
+func (m *mockCollectionEmpty) DetachFromNetwork() error               { return nil }
+func (m *mockCollectionEmpty) ForceSync() error                       { return nil }
 
 type mockCollectionDelayed struct {
 	delay time.Duration
@@ -274,8 +273,8 @@ func (m *mockCollectionDelayed) FindAll(ctx context.Context) ([]map[string]inter
 	return []map[string]interface{}{{"id": "doc1", "ready": true}}, nil
 }
 func (m *mockCollectionDelayed) AttachToNetwork(networkID string) error { return nil }
-func (m *mockCollectionDelayed) DetachFromNetwork() error              { return nil }
-func (m *mockCollectionDelayed) ForceSync() error                      { return nil }
+func (m *mockCollectionDelayed) DetachFromNetwork() error               { return nil }
+func (m *mockCollectionDelayed) ForceSync() error                       { return nil }
 
 type mockCollectionWithEntries struct {
 	entries []map[string]interface{}
@@ -297,14 +296,14 @@ func (m *mockCollectionWithEntries) FindAll(ctx context.Context) ([]map[string]i
 	return m.entries, nil
 }
 func (m *mockCollectionWithEntries) AttachToNetwork(networkID string) error { return nil }
-func (m *mockCollectionWithEntries) DetachFromNetwork() error              { return nil }
-func (m *mockCollectionWithEntries) ForceSync() error                      { return nil }
+func (m *mockCollectionWithEntries) DetachFromNetwork() error               { return nil }
+func (m *mockCollectionWithEntries) ForceSync() error                       { return nil }
 
 type mockDB struct {
-	collections map[string]knirvbase.Collection
+	collections map[string]store.Collection
 }
 
-func (m *mockDB) Collection(name string) knirvbase.Collection {
+func (m *mockDB) Collection(name string) store.Collection {
 	return m.collections[name]
 }
 
@@ -345,7 +344,7 @@ func TestNRVEncoder_RunCollectsAllEntries(t *testing.T) {
 
 	minerColl := &mockCollectionWithEntries{entries: entries}
 	outputColl := &mockCollectionWithEntries{entries: []map[string]interface{}{}}
-	db := &mockDB{collections: map[string]knirvbase.Collection{
+	db := &mockDB{collections: map[string]store.Collection{
 		"miner_processed": minerColl,
 		"encoder_output":  outputColl,
 	}}
@@ -363,7 +362,7 @@ func TestNRVEncoder_RunEmptyCollection(t *testing.T) {
 
 	minerColl := &mockCollectionEmpty{}
 	outputColl := &mockCollectionWithEntries{}
-	db := &mockDB{collections: map[string]knirvbase.Collection{
+	db := &mockDB{collections: map[string]store.Collection{
 		"miner_processed": minerColl,
 		"encoder_output":  outputColl,
 	}}
@@ -394,7 +393,7 @@ func TestNRVEncoder_SkipsUnreadyEntries(t *testing.T) {
 
 	minerColl := &mockCollectionWithEntries{entries: entries}
 	outputColl := &mockCollectionWithEntries{entries: []map[string]interface{}{}}
-	db := &mockDB{collections: map[string]knirvbase.Collection{
+	db := &mockDB{collections: map[string]store.Collection{
 		"miner_processed": minerColl,
 		"encoder_output":  outputColl,
 	}}

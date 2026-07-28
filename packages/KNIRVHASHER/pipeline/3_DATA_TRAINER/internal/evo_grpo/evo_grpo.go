@@ -3,17 +3,17 @@ package evo_grpo
 import (
 	"fmt"
 
-	"github.com/knirvcorp/knirvbase/pkg/knirvbase"
 	gates "github.com/lab/hasher/data-trainer/internal/gates"
+	"github.com/lab/hasher/data-trainer/internal/store"
 )
 
 // EvoGRPO implements Evolutionary Group Relative Policy Optimization
 type EvoGRPO struct {
-	kvbase knirvbase.Collection
+	kvbase store.Collection
 }
 
 // NewEvoGRPO creates a new EvoGRPO optimizer
-func NewEvoGRPO(kvbase knirvbase.Collection) *EvoGRPO {
+func NewEvoGRPO(kvbase store.Collection) *EvoGRPO {
 	return &EvoGRPO{kvbase: kvbase}
 }
 

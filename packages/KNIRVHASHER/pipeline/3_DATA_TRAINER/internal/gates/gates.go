@@ -4,16 +4,16 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/knirvcorp/knirvbase/pkg/knirvbase"
+	"github.com/lab/hasher/data-trainer/internal/store"
 )
 
 // UserSecurityGates implements training for user-centric logic gate hash networks
 type UserSecurityGates struct {
-	kvbase knirvbase.Collection
+	kvbase store.Collection
 }
 
 // NewUserSecurityGates creates a new UserSecurityGates trainer
-func NewUserSecurityGates(kvbase knirvbase.Collection) *UserSecurityGates {
+func NewUserSecurityGates(kvbase store.Collection) *UserSecurityGates {
 	return &UserSecurityGates{kvbase: kvbase}
 }
 

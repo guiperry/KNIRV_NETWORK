@@ -22,7 +22,7 @@ if [ ! -f "$ALPACA_JSON" ]; then
     exit 1
 fi
 
-echo "[1/5] Building Data Miner..."
+echo "[1/5] Building Data Mapper..."
 cd "$DATA_MAPPER_DIR"
 go mod tidy 2>/dev/null || true
 go build -o data-mapper ./cmd/data-mapper 2>/dev/null || {

@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/knirvcorp/knirvbase/pkg/nrv"
+	"data-encoder/pkg/nrvio"
 )
 
 type mockCollection struct {
@@ -29,16 +29,16 @@ func (m *mockCollection) FindAll(_ context.Context) ([]map[string]interface{}, e
 	return m.inserted, nil
 }
 func (m *mockCollection) AttachToNetwork(_ string) error { return nil }
-func (m *mockCollection) DetachFromNetwork() error      { return nil }
-func (m *mockCollection) ForceSync() error              { return nil }
+func (m *mockCollection) DetachFromNetwork() error       { return nil }
+func (m *mockCollection) ForceSync() error               { return nil }
 
 func TestNRVWriterWriteBracket(t *testing.T) {
 	mc := &mockCollection{}
 	w := NewNRVWriter(mc)
 
-	bracket := &nrv.Bracket{
+	bracket := &nrvio.Bracket{
 		Projections: [32]byte{1, 2, 3},
-		Syntactic:   0x42,
+		POSTag:      0x42,
 		DepHead:     5,
 		IntentFlags: 0x01,
 		DomainSig:   0x2000,

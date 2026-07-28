@@ -18,12 +18,13 @@ import (
 )
 
 type Config struct {
-	KNIRVSERVERAddr string         `yaml:"knirvserver_addr"`
-	OutputDir       string         `yaml:"output_dir"`
-	PollInterval    string         `yaml:"poll_interval"`
-	Ontology        OntologyConfig `yaml:"ontology"`
-	HuggingFace     HFConfig       `yaml:"huggingface"`
-	Arxiv           ArxivConfig    `yaml:"arxiv"`
+	KNIRVSERVERAddr     string         `yaml:"knirvserver_addr"` // HTTP ontology API
+	KNIRVSERVERGRPCAddr string         `yaml:"knirvserver_grpc_addr"`
+	OutputDir           string         `yaml:"output_dir"`
+	PollInterval        string         `yaml:"poll_interval"`
+	Ontology            OntologyConfig `yaml:"ontology"`
+	HuggingFace         HFConfig       `yaml:"huggingface"`
+	Arxiv               ArxivConfig    `yaml:"arxiv"`
 }
 
 type OntologyConfig struct {
@@ -35,10 +36,12 @@ type HFConfig struct {
 	MaxRows      int      `yaml:"max_rows_per_dataset"`
 	Token        string   `yaml:"token"`
 	RequestDelay string   `yaml:"request_delay"`
+	CacheDir     string   `yaml:"cache_dir"`
 }
 type ArxivConfig struct {
-	Categories []string `yaml:"categories"`
-	MaxPapers  int      `yaml:"max_papers"`
+	Categories           []string `yaml:"categories"`
+	MaxPapers            int      `yaml:"max_papers"`
+	DownloadDelaySeconds int      `yaml:"download_delay_seconds"`
 }
 
 func main() {
@@ -54,7 +57,7 @@ func main() {
 	w := writer.NewMDWriter(filepath.Join(config.OutputDir, "security"))
 
 	// Connect to KNIRVSERVER gRPC server
-	conn, err := grpc.NewClient(config.KNIRVSERVERAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, err := grpc.NewClient(config.KNIRVSERVERGRPCAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		log.Fatalf("connect to knirvserver: %v", err)
 	}
@@ -67,7 +70,7 @@ func main() {
 		pollInterval = 1 * time.Hour
 	}
 
-	log.Printf("0_DATA_CONNECTOR: Connected to KNIRVSERVER at %s, polling every %s", config.KNIRVSERVERAddr, pollInterval)
+	log.Printf("0_DATA_CONNECTOR: Connected to KNIRVSERVER gRPC at %s, polling every %s", config.KNIRVSERVERGRPCAddr, pollInterval)
 
 	exportData(client, w)
 }
@@ -104,6 +107,7 @@ func runPriority(config *Config, override connector.Tier) error {
 			for _, ds := range datasets {
 				client := &connector.HuggingFaceConnector{Config: connector.HuggingFaceConfig{
 					MaxRowsPerDS: config.HuggingFace.MaxRows,
+					CacheDir:     config.HuggingFace.CacheDir,
 					Token:        config.HuggingFace.Token,
 				}}
 				if client.Config.Token == "" {
@@ -134,7 +138,15 @@ func runPriority(config *Config, override connector.Tier) error {
 			return all, len(all) == 0, nil
 		},
 		Arxiv: func() ([]connector.RawRecord, bool, error) {
-			return connector.FetchArxiv(nil, config.Arxiv.Categories, config.Arxiv.MaxPapers)
+			if config.Arxiv.DownloadDelaySeconds > 0 {
+				time.Sleep(time.Duration(config.Arxiv.DownloadDelaySeconds) * time.Second)
+			}
+			return connector.FetchNextArxiv(
+				nil,
+				config.Arxiv.Categories,
+				config.Arxiv.MaxPapers,
+				filepath.Join(config.OutputDir, "arxiv_cursor.json"),
+			)
 		},
 	}
 	records, tier, err := runner.Run()
@@ -142,9 +154,8 @@ func runPriority(config *Config, override connector.Tier) error {
 		return err
 	}
 	log.Printf("0_DATA_CONNECTOR: selected %s, records=%d", tier, len(records))
-	if len(records) == 0 {
-		return nil
-	}
+	// Always replace the hand-off file, including on source exhaustion. Leaving
+	// the previous paper in place would make the mapper process it forever.
 	return connector.WriteRecords(filepath.Join(config.OutputDir, "records.jsonl"), records)
 }
 
@@ -182,12 +193,13 @@ func exportData(client hasherpb.HasherTrainingServiceClient, w *writer.MDWriter)
 
 func LoadConfig() *Config {
 	cfg := &Config{
-		KNIRVSERVERAddr: "localhost:50051",
-		OutputDir:       "./data/connector",
-		PollInterval:    "1h",
-		Ontology:        OntologyConfig{MinEntityCount: 1},
-		HuggingFace:     HFConfig{Datasets: []string{"tatsu-lab/alpaca"}, Splits: []string{"train"}, MaxRows: 50000, RequestDelay: "250ms"},
-		Arxiv:           ArxivConfig{Categories: []string{"cs.LG", "cs.CL"}, MaxPapers: 50},
+		KNIRVSERVERAddr:     "http://localhost:8084",
+		KNIRVSERVERGRPCAddr: "localhost:50051",
+		OutputDir:           "~/.local/share/knirvhasher/connector",
+		PollInterval:        "1h",
+		Ontology:            OntologyConfig{MinEntityCount: 1},
+		HuggingFace:         HFConfig{Datasets: []string{"tatsu-lab/alpaca"}, Splits: []string{"train"}, MaxRows: 50000, RequestDelay: "1s", CacheDir: "~/.cache/knirvhasher/hf"},
+		Arxiv:               ArxivConfig{Categories: []string{"cs.LG", "cs.CL"}, MaxPapers: 50, DownloadDelaySeconds: 2},
 	}
 
 	data, err := os.ReadFile("config/connector.yaml")
@@ -201,11 +213,14 @@ func LoadConfig() *Config {
 	if addr := os.Getenv("HASHER_GRPC_SOCKET_PATH"); addr != "" {
 		// If provided as a raw path, prefix with unix:// for gRPC
 		if !strings.HasPrefix(addr, "unix://") && !strings.HasPrefix(addr, "passthrough://") {
-			cfg.KNIRVSERVERAddr = "unix://" + addr
+			cfg.KNIRVSERVERGRPCAddr = "unix://" + addr
 		} else {
-			cfg.KNIRVSERVERAddr = addr
+			cfg.KNIRVSERVERGRPCAddr = addr
 		}
-	} else if addr := os.Getenv("KNIRVSERVER_ADDR"); addr != "" {
+	} else if addr := os.Getenv("KNIRVSERVER_GRPC_ADDR"); addr != "" {
+		cfg.KNIRVSERVERGRPCAddr = addr
+	}
+	if addr := os.Getenv("KNIRVSERVER_ADDR"); addr != "" {
 		cfg.KNIRVSERVERAddr = addr
 	}
 
