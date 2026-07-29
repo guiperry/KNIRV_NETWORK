@@ -13,6 +13,7 @@ export const useVault = () => {
   const [status, setStatus] = useState<VaultStatus>(() => vaultSession.status);
   const [accounts, setAccounts] = useState<any[]>(() => vaultSession.accounts);
   const [currentAccount, setCurrentAccount] = useState<any | null>(() => vaultSession.currentAccount);
+  const [oracleAddress, setOracleAddress] = useState<string | null>(null);
   const [dveVaults, setDVEVaults] = useState<DVEVault[]>(() => vaultSession.dveVaults);
   const [error, setError] = useState<string | null>(() => vaultSession.error);
 
@@ -44,6 +45,14 @@ export const useVault = () => {
       setCurrentAccount(vault.currentAccount || null);
     }
   }, [vault]);
+
+  useEffect(() => {
+    if (currentAccount && typeof currentAccount.getOracleAddress === 'function') {
+      currentAccount.getOracleAddress().then(setOracleAddress).catch(() => setOracleAddress(null));
+    } else {
+      setOracleAddress(null);
+    }
+  }, [currentAccount]);
 
   const createVault = useCallback(async (password: string): Promise<string> => {
     try {
@@ -182,7 +191,7 @@ export const useVault = () => {
   }, [vault, status]);
 
   return {
-    vault, status, accounts, currentAccount, dveVaults, error,
+    vault, status, accounts, currentAccount, oracleAddress, dveVaults, error,
     createVault, importVault, unlockVault, lockVault, clearVault,
     deriveDVEVault, updateDVEVaultStatus, removeDVEVault, signTransaction, signMessage,
   };

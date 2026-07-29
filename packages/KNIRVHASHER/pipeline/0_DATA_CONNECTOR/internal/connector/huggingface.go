@@ -61,20 +61,25 @@ func (c HuggingFaceConnector) Page(dataset, split string, offset, length int) (r
 		}
 		resp, err := client.Do(req)
 		if err != nil {
-			return nil, false, err
+			if attempt >= maxRetries {
+				log.Printf("0_DATA_CONNECTOR: HuggingFace unavailable after %d retries (%v); falling back to arXiv", maxRetries, err)
+				return nil, true, nil
+			}
+			delay := retryAfter("", baseDelay, attempt)
+			log.Printf("0_DATA_CONNECTOR: HuggingFace request failed dataset=%s offset=%d retry=%d/%d delay=%s error=%v", dataset, offset, attempt+1, maxRetries, delay, err)
+			sleep(delay)
+			continue
 		}
 
-		if resp.StatusCode == http.StatusTooManyRequests {
+		if resp.StatusCode == http.StatusTooManyRequests || retryableHuggingFaceStatus(resp.StatusCode) {
+			status := resp.Status
 			resp.Body.Close()
 			if attempt >= maxRetries {
-				// A persistently throttled source is unavailable for this run.
-				// Report it as exhausted so the priority runner advances to
-				// arXiv instead of terminating the complete pipeline.
-				log.Printf("0_DATA_CONNECTOR: HuggingFace remains rate limited after %d retries; falling back to arXiv", maxRetries)
+				log.Printf("0_DATA_CONNECTOR: HuggingFace unavailable with HTTP %s after %d retries; falling back to arXiv", status, maxRetries)
 				return nil, true, nil
 			}
 			delay := retryAfter(resp.Header.Get("Retry-After"), baseDelay, attempt)
-			log.Printf("0_DATA_CONNECTOR: HuggingFace rate limited dataset=%s offset=%d retry=%d/%d delay=%s", dataset, offset, attempt+1, maxRetries, delay)
+			log.Printf("0_DATA_CONNECTOR: HuggingFace transient HTTP %s dataset=%s offset=%d retry=%d/%d delay=%s", status, dataset, offset, attempt+1, maxRetries, delay)
 			sleep(delay)
 			continue
 		}
@@ -102,6 +107,14 @@ func (c HuggingFaceConnector) Page(dataset, split string, offset, length int) (r
 		}
 		return records, false, nil
 	}
+}
+
+func retryableHuggingFaceStatus(status int) bool {
+	return status == http.StatusRequestTimeout ||
+		status == http.StatusBadGateway ||
+		status == http.StatusServiceUnavailable ||
+		status == http.StatusGatewayTimeout ||
+		status >= 500
 }
 
 func retryAfter(value string, base time.Duration, attempt int) time.Duration {

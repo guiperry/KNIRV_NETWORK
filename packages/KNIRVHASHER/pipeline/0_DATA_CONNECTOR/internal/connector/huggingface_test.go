@@ -62,6 +62,53 @@ func TestHuggingFaceRateLimitFallsBack(t *testing.T) {
 	}
 }
 
+func TestHuggingFaceRetriesBadGateway(t *testing.T) {
+	var calls atomic.Int32
+	client := &http.Client{Transport: roundTripFunc(func(*http.Request) (*http.Response, error) {
+		if calls.Add(1) <= 2 {
+			return testResponse(http.StatusBadGateway, "temporary gateway failure", ""), nil
+		}
+		return testResponse(http.StatusOK, `{"rows":[{"row":{"text":"recovered"}}]}`, ""), nil
+	})}
+
+	connector := HuggingFaceConnector{
+		BaseURL:    "http://huggingface.test/rows",
+		Client:     client,
+		MaxRetries: 2,
+		Sleep:      func(time.Duration) {},
+	}
+	records, exhausted, err := connector.Page("example/data", "train", 0, 100)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if exhausted || len(records) != 1 {
+		t.Fatalf("records=%d exhausted=%v", len(records), exhausted)
+	}
+	if got := calls.Load(); got != 3 {
+		t.Fatalf("calls=%d, want 3", got)
+	}
+}
+
+func TestHuggingFaceBadGatewayFallsBack(t *testing.T) {
+	client := &http.Client{Transport: roundTripFunc(func(*http.Request) (*http.Response, error) {
+		return testResponse(http.StatusBadGateway, "temporary gateway failure", ""), nil
+	})}
+
+	connector := HuggingFaceConnector{
+		BaseURL:    "http://huggingface.test/rows",
+		Client:     client,
+		MaxRetries: 1,
+		Sleep:      func(time.Duration) {},
+	}
+	records, exhausted, err := connector.Page("example/data", "train", 0, 100)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !exhausted || len(records) != 0 {
+		t.Fatalf("records=%d exhausted=%v", len(records), exhausted)
+	}
+}
+
 func testResponse(status int, body, retryAfter string) *http.Response {
 	headers := make(http.Header)
 	if retryAfter != "" {

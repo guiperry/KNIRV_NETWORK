@@ -9,6 +9,13 @@ chain_id: knirv-server-mainnet
 node_role: dve-manager
 testnet: false
 
+# Production Feature Flags
+# These capabilities are part of the production KNIRVSERVER stack.
+feature_flags:
+  ebpf: true
+  cognitive_engine: true
+  blockchain_integration: true
+
 # Wrapper (main.go) Configuration
 # port: the port the knirvserver wrapper listens on
 # backend_port: the port the embedded backend_server API listens on (must match api.port below)

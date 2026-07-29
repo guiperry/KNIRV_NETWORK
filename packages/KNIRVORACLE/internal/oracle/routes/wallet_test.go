@@ -2,6 +2,7 @@ package routes
 
 import (
 	"bytes"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -424,4 +425,57 @@ func createWalletThroughAPI(t *testing.T, mux *http.ServeMux) walletCreateRespon
 		t.Fatalf("decode wallet: %v", err)
 	}
 	return resp
+}
+
+// TestTSGoSignatureRoundTrip verifies that signatures produced by
+// knirvwallet-module's signOracleMessage (cosmjs/secp256k1) are
+// verifiable by Go's ethcrypto.SigToPub (go-ethereum). This is the
+// critical interop gate before wiring Piece 3/4 transfers.
+func TestTSGoSignatureRoundTrip(t *testing.T) {
+	// Known keypair from the TypeScript spike: private key with only
+	// the last byte set to 1. This produces a deterministic secp256k1
+	// keypair that both TypeScript and Go can independently derive.
+	privateKeyHex := "0000000000000000000000000000000000000000000000000000000000000001"
+	message := "register:0xTESTADDR:controller-test"
+
+	// Signature produced by TypeScript's signOracleMessage (cosmjs):
+	//   keccak_256(message) → Secp256k1.createSignature → 65-byte fixed length
+	tsSignatureHex := "2b78463fda6665f1732713020aa171b6a04f978b0225a84054069fd1b04a7707752d3bb3bba65c7b751e261a95f39a55dca9bbb7ea03caab72fc35e54b3b0f2801"
+
+	expectedAddress := "0x7e5f4552091a69125d5dfcb7b8c2659029395bdf"
+
+	sig, err := hex.DecodeString(tsSignatureHex)
+	if err != nil {
+		t.Fatalf("decode signature: %v", err)
+	}
+
+	recovered, err := crypto.RecoverAddress([]byte(message), sig)
+	if err != nil {
+		t.Fatalf("recover address: %v", err)
+	}
+	if recovered.String() != expectedAddress {
+		t.Fatalf("recovered address = %s, want %s", recovered.String(), expectedAddress)
+	}
+
+	// Also verify the same keypair in Go produces a compatible address
+	kp, err := crypto.PrivateKeyFromHex(privateKeyHex)
+	if err != nil {
+		t.Fatalf("parse private key: %v", err)
+	}
+	if kp.Address.String() != expectedAddress {
+		t.Fatalf("go-derived address = %s, want %s", kp.Address.String(), expectedAddress)
+	}
+
+	// Verify Go can also sign and recover the same message
+	goSig, err := kp.Sign([]byte(message))
+	if err != nil {
+		t.Fatalf("go sign: %v", err)
+	}
+	goRecovered, err := crypto.RecoverAddress([]byte(message), goSig)
+	if err != nil {
+		t.Fatalf("go recover: %v", err)
+	}
+	if goRecovered.String() != expectedAddress {
+		t.Fatalf("go recovered address = %s, want %s", goRecovered.String(), expectedAddress)
+	}
 }

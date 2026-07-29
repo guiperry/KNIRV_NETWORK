@@ -545,9 +545,15 @@ func (s *Server) setupRoutes() error {
 
 	// Inner Agent WebSocket tunnel — connects WebSocket clients directly to the
 	// KNIRVAGENT's inner agent API via Unix socket for real-time streaming.
+	// Must match the /ws/dve/{dveId}/inner/... shape the frontend actually
+	// requests (inner-agent-terminal.tsx) and that backend_server's
+	// DVEInnerAgentWSHandler was previously the only thing serving — the
+	// gateway now terminates this directly instead of tunneling it through
+	// to the backend, consistent with the rest of the network never
+	// bypassing the gateway.
 	if s.config.AgentSocketDir != "" {
-		r.HandleFunc("/ws/{dveId}/inner/stream/{sessionId}", s.handleInnerAgentWS).Methods("GET")
-		r.HandleFunc("/ws/{dveId}/inner", s.handleInnerAgentWS).Methods("GET")
+		r.HandleFunc("/ws/dve/{dveId}/inner/stream/{sessionId}", s.handleInnerAgentWS).Methods("GET")
+		r.HandleFunc("/ws/dve/{dveId}/inner", s.handleInnerAgentWS).Methods("GET")
 		s.logger.Info("Inner Agent WS tunnel registered", zap.String("socketDir", s.config.AgentSocketDir))
 	} else {
 		s.logger.Warn("Inner Agent WS tunnel not configured — /ws/* will not be available")

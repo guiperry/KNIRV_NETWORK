@@ -25,8 +25,8 @@ const Scanner: React.FC = () => {
   const [joinedSessionID, setJoinedSessionID] = useState<string | null>(null);
   const [verificationError, setVerificationError] = useState<string | null>(null);
   
-  const { currentAccount, status: vaultStatus, signMessage } = useVault();
-  const { sendNRN } = useBackend(currentAccount ? currentAccount.getAddress('knirv') : null);
+   const { currentAccount, status: vaultStatus, signMessage, oracleAddress } = useVault();
+   const { sendNRN, registerVault } = useBackend();
 
   const handleScanResult = async (data: string) => {
     setIsVerifying(true);
@@ -149,20 +149,23 @@ const Scanner: React.FC = () => {
     }, 2000);
   };
 
-  const confirmSend = async () => {
-    if (sendDetails) {
-      setIsVerifying(true);
-      const result = await sendNRN(sendDetails.address, sendDetails.amount);
-      setIsVerifying(false);
-      if (result.success) {
-        impactHeavy();
-        setVerificationStatus('success');
-      } else {
-        notificationError();
-        setVerificationStatus('error');
-      }
-    }
-  };
+   const confirmSend = async () => {
+     if (sendDetails) {
+       setIsVerifying(true);
+       if (oracleAddress) {
+         await registerVault();
+       }
+       const result = await sendNRN(sendDetails.address, sendDetails.amount);
+       setIsVerifying(false);
+       if (result.success) {
+         impactHeavy();
+         setVerificationStatus('success');
+       } else {
+         notificationError();
+         setVerificationStatus('error');
+       }
+     }
+   };
 
   const resetScanner = () => {
     setScanResult(null);
