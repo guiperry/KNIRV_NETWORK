@@ -1,6 +1,9 @@
 package p2pconsensus
 
-import "time"
+import (
+	"encoding/json"
+	"time"
+)
 
 // PeerInfo represents a remote peer in the consensus network.
 type PeerInfo struct {
@@ -17,6 +20,12 @@ type P2PMessage struct {
 	SenderID  string      `json:"sender_id"`
 	Timestamp int64       `json:"timestamp"`
 	Payload   interface{} `json:"payload"`
+}
+
+type WireMessage struct {
+	Type      string          `json:"type"`
+	NetworkID string          `json:"network_id"`
+	Payload   json.RawMessage `json:"payload"`
 }
 
 // SyncRequest asks a peer for operations newer than the given vector clock.
@@ -37,6 +46,7 @@ type SyncResponse struct {
 
 // OperationEnvelope wraps a serialized CRDT operation with metadata.
 type OperationEnvelope struct {
+	NetworkID   string           `json:"network_id"`
 	Collection  string           `json:"collection"`
 	DocumentID  string           `json:"document_id"`
 	Data        []byte           `json:"data"` // JSON-encoded CRDTOperation

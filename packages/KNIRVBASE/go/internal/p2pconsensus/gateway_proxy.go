@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"net/url"
 	"sync"
 	"time"
 )
@@ -95,11 +96,11 @@ func (g *GatewayProxy) PublishOperation(ctx context.Context, op OperationEnvelop
 
 // DiscoverPeers asks the gateway for peers in the given network.
 func (g *GatewayProxy) DiscoverPeers(query string) ([]PeerInfo, error) {
-	url := fmt.Sprintf("%s/knirvbase/discover?network_id=%s", g.gatewayURL, g.networkID)
+	endpoint := fmt.Sprintf("%s/knirvbase/discover?network_id=%s", g.gatewayURL, url.QueryEscape(g.networkID))
 	if query != "" {
-		url += "&query=" + query
+		endpoint += "&query=" + url.QueryEscape(query)
 	}
-	resp, err := g.client.Get(url)
+	resp, err := g.client.Get(endpoint)
 	if err != nil {
 		return nil, fmt.Errorf("discover peers: %w", err)
 	}
@@ -109,6 +110,34 @@ func (g *GatewayProxy) DiscoverPeers(query string) ([]PeerInfo, error) {
 		return nil, fmt.Errorf("decode peers: %w", err)
 	}
 	return peers, nil
+}
+
+// RequestSync forwards a network-scoped sync request to the gateway.
+func (g *GatewayProxy) RequestSync(ctx context.Context, req SyncRequest) error {
+	if req.NetworkID == "" {
+		req.NetworkID = g.networkID
+	}
+	data, err := json.Marshal(req)
+	if err != nil {
+		return err
+	}
+	r, err := http.NewRequestWithContext(ctx, http.MethodPost, g.gatewayURL+"/knirvbase/sync-request", bytes.NewReader(data))
+	if err != nil {
+		return err
+	}
+	r.Header.Set("Content-Type", "application/json")
+	if sig := SignMessage(g.networkID, g.networkSecret, data); sig != "" {
+		r.Header.Set("X-KNIRV-Signature", sig)
+	}
+	resp, err := g.client.Do(r)
+	if err != nil {
+		return fmt.Errorf("sync request: %w", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("sync request returned %d", resp.StatusCode)
+	}
+	return nil
 }
 
 // Health checks if the gateway is reachable.

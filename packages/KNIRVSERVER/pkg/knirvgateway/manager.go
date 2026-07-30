@@ -112,23 +112,24 @@ type Manager struct {
 }
 
 type ManagerConfig struct {
-	BinaryPath        string
-	Port              int
-	BackendAPIPort    int
-	Ports             *PortConfig
-	DBPath            string
-	AuthSecret        string
-	MinerAddress      string
-	BackendSocketPath string
-	ChainSocketPath   string
-	GraphSocketPath   string
-	OracleSocketPath  string
-	StartTimeout      time.Duration
-	StopTimeout       time.Duration
-	ChainID           string
-	Stdout            io.Writer
-	Stderr            io.Writer
-	EnvOverrides      map[string]string // extra env vars (e.g. Cloudflare creds from root.key)
+	BinaryPath             string
+	Port                   int
+	BackendAPIPort         int
+	Ports                  *PortConfig
+	DBPath                 string
+	AuthSecret             string
+	MinerAddress           string
+	BackendSocketPath      string
+	AgentControlSocketPath string
+	ChainSocketPath        string
+	GraphSocketPath        string
+	OracleSocketPath       string
+	StartTimeout           time.Duration
+	StopTimeout            time.Duration
+	ChainID                string
+	Stdout                 io.Writer
+	Stderr                 io.Writer
+	EnvOverrides           map[string]string // extra env vars (e.g. Cloudflare creds from root.key)
 }
 
 type PortConfig struct {
@@ -290,6 +291,9 @@ func (m *Manager) Start(ctx context.Context) error {
 
 	if m.config.BackendSocketPath != "" {
 		env = append(env, fmt.Sprintf("BACKEND_SOCKET_PATH=%s", m.config.BackendSocketPath))
+	}
+	if m.config.AgentControlSocketPath != "" {
+		env = append(env, fmt.Sprintf("AGENT_CONTROL_SOCKET_PATH=%s", m.config.AgentControlSocketPath))
 	}
 	if m.config.ChainSocketPath != "" {
 		env = append(env, fmt.Sprintf("CHAIN_SOCKET_PATH=%s", m.config.ChainSocketPath))

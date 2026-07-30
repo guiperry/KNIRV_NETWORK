@@ -4,7 +4,10 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"crypto/hmac"
 	"crypto/rand"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -87,6 +90,7 @@ type Config struct {
 	ChainIsBootnode       bool
 	ChainBootnodeRegistry string // defaults to BootnodeRegistryURL
 	ChainCallbackSocket   string // unix socket for KNIRVCHAIN callbacks
+	BaseNetworkSecret     string // optional PSK for KNIRVBASE callbacks
 }
 
 // DHTManager manages DHT operations for KNIRVGATEWAY.
@@ -135,6 +139,8 @@ type DHTManager struct {
 	baseCallbackClient *http.Client
 	baseOpsTopic       *pubsub.Topic
 	baseOpsSub         *pubsub.Subscription
+	baseNetworkID      string
+	baseNetworkSecret  string
 
 	// Resource cache for broadcast system
 	resourceCache ResourceCacheInterface
@@ -250,6 +256,7 @@ func NewDHTManager(cfg *Config) (*DHTManager, error) {
 		chainClientOnly:     cfg.ChainClientOnly,
 		chainIsBootnode:     cfg.ChainIsBootnode,
 		chainCallbackSocket: cfg.ChainCallbackSocket,
+		baseNetworkSecret:   cfg.BaseNetworkSecret,
 		chainP2PPort:        p2pPort,
 		bootnodeRegistry:    bootnodeRegistry,
 		networkPaused:       false,
@@ -572,8 +579,11 @@ func (dm *DHTManager) SetBaseCallbackSocket(socketPath string) {
 }
 
 // SetupCRDTPubSub joins a GossipSub topic for CRDT operations scoped to a networkID.
-func (dm *DHTManager) SetupCRDTPubSub(networkID string) error {
+func (dm *DHTManager) SetupCRDTPubSub(networkID string, requestedTopic ...string) error {
 	topicName := networkID + ".ops"
+	if len(requestedTopic) > 0 && requestedTopic[0] != "" {
+		topicName = requestedTopic[0]
+	}
 	topic, err := dm.pubsub.Join(topicName)
 	if err != nil {
 		return fmt.Errorf("join topic %s: %w", topicName, err)
@@ -585,11 +595,35 @@ func (dm *DHTManager) SetupCRDTPubSub(networkID string) error {
 	dm.mutex.Lock()
 	dm.baseOpsTopic = topic
 	dm.baseOpsSub = sub
+	dm.baseNetworkID = networkID
 	dm.mutex.Unlock()
 
 	// Start handling incoming operations
 	go dm.handleBaseCRDTOperations(sub, topicName)
 	return nil
+}
+
+// VerifyBaseMessage authenticates a KNIRVBASE request when a gateway PSK is configured.
+func (dm *DHTManager) VerifyBaseMessage(networkID, signature string, payload []byte) bool {
+	dm.mutex.RLock()
+	secret := dm.baseNetworkSecret
+	configuredID := dm.baseNetworkID
+	dm.mutex.RUnlock()
+	if configuredID != "" && networkID != configuredID {
+		return false
+	}
+	if secret == "" {
+		return true
+	}
+	h := sha256.New()
+	_, _ = h.Write([]byte("knirvbase-network-v1"))
+	_, _ = h.Write([]byte{0})
+	_, _ = h.Write([]byte(networkID))
+	_, _ = h.Write([]byte{0})
+	_, _ = h.Write([]byte(secret))
+	mac := hmac.New(sha256.New, h.Sum(nil))
+	_, _ = mac.Write(payload)
+	return hmac.Equal([]byte(hex.EncodeToString(mac.Sum(nil))), []byte(signature))
 }
 
 // PublishOperation publishes a CRDT operation to the GossipSub topic.
@@ -601,6 +635,25 @@ func (dm *DHTManager) PublishOperation(ctx context.Context, data []byte) error {
 		return fmt.Errorf("CRDT pubsub topic not set up")
 	}
 	return topic.Publish(ctx, data)
+}
+
+func (dm *DHTManager) PublishSyncRequest(ctx context.Context, networkID string, data []byte) error {
+	dm.mutex.RLock()
+	topic := dm.baseOpsTopic
+	dm.mutex.RUnlock()
+	if topic == nil {
+		return fmt.Errorf("CRDT pubsub topic not set up")
+	}
+	wire := struct {
+		Type      string          `json:"type"`
+		NetworkID string          `json:"network_id"`
+		Payload   json.RawMessage `json:"payload"`
+	}{Type: "sync_request", NetworkID: networkID, Payload: data}
+	encoded, err := json.Marshal(wire)
+	if err != nil {
+		return err
+	}
+	return topic.Publish(ctx, encoded)
 }
 
 // handleBaseCRDTOperations receives CRDT ops from GossipSub and forwards to KNIRVBASE.
@@ -619,7 +672,28 @@ func (dm *DHTManager) handleBaseCRDTOperations(sub *pubsub.Subscription, topicNa
 		if msg.GetFrom() == dm.host.ID() {
 			continue
 		}
-		dm.forwardToBase("/internal/p2p/received-op", msg.Data)
+		var wire struct {
+			Type    string          `json:"type"`
+			Payload json.RawMessage `json:"payload"`
+		}
+		path := "/internal/p2p/received-op"
+		data := msg.Data
+		if json.Unmarshal(msg.Data, &wire) == nil && wire.Type == "sync_request" {
+			path = "/internal/p2p/received-sync-request"
+			data = wire.Payload
+			if response, err := dm.forwardToBaseResponse(path, data); err == nil {
+				var syncResponse struct {
+					Operations []json.RawMessage `json:"operations"`
+				}
+				if json.Unmarshal(response, &syncResponse) == nil {
+					for _, operation := range syncResponse.Operations {
+						_ = dm.PublishOperation(dm.ctx, operation)
+					}
+				}
+			}
+			continue
+		}
+		dm.forwardToBase(path, data)
 	}
 }
 
@@ -633,19 +707,63 @@ func (dm *DHTManager) HandleCRDTOperations(ctx context.Context, data []byte) err
 
 // forwardToBase forwards data to KNIRVBASE via Unix socket callback.
 func (dm *DHTManager) forwardToBase(path string, data []byte) {
+	_, _ = dm.forwardToBaseResponse(path, data)
+}
+
+func (dm *DHTManager) forwardToBaseResponse(path string, data []byte) ([]byte, error) {
 	dm.mutex.RLock()
 	client := dm.baseCallbackClient
 	socket := dm.baseCallbackSocket
 	dm.mutex.RUnlock()
 	if client == nil || socket == "" {
-		return
+		return nil, fmt.Errorf("base callback is not configured")
 	}
 	url := "http://knirvbase" + path
-	resp, err := client.Post(url, "application/json", bytes.NewReader(data))
+	req, err := http.NewRequest(http.MethodPost, url, bytes.NewReader(data))
 	if err != nil {
-		return
+		return nil, err
 	}
-	resp.Body.Close()
+	req.Header.Set("Content-Type", "application/json")
+	var envelope struct {
+		NetworkID string `json:"network_id"`
+	}
+	if json.Unmarshal(data, &envelope) == nil && envelope.NetworkID != "" {
+		if sig := dm.SignBaseMessage(envelope.NetworkID, data); sig != "" {
+			req.Header.Set("X-KNIRV-Signature", sig)
+		}
+	}
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return body, fmt.Errorf("base callback returned %d", resp.StatusCode)
+	}
+	return body, nil
+}
+
+// SignBaseMessage creates the same signature as the KNIRVBASE proxy client.
+func (dm *DHTManager) SignBaseMessage(networkID string, payload []byte) string {
+	dm.mutex.RLock()
+	secret := dm.baseNetworkSecret
+	dm.mutex.RUnlock()
+	if secret == "" {
+		return ""
+	}
+	h := sha256.New()
+	_, _ = h.Write([]byte("knirvbase-network-v1"))
+	_, _ = h.Write([]byte{0})
+	_, _ = h.Write([]byte(networkID))
+	_, _ = h.Write([]byte{0})
+	_, _ = h.Write([]byte(secret))
+	mac := hmac.New(sha256.New, h.Sum(nil))
+	_, _ = mac.Write(payload)
+	return hex.EncodeToString(mac.Sum(nil))
 }
 
 // PublishToBaseDiscovery lets peers discover KNIRVBASE resources via DHT.

@@ -7,8 +7,8 @@ import (
 	coll "github.com/knirvcorp/knirvbase/internal/collection"
 	"github.com/knirvcorp/knirvbase/internal/crypto/pqc"
 	db "github.com/knirvcorp/knirvbase/internal/database"
-	stor "github.com/knirvcorp/knirvbase/internal/storage"
 	"github.com/knirvcorp/knirvbase/internal/p2pconsensus"
+	stor "github.com/knirvcorp/knirvbase/internal/storage"
 	typ "github.com/knirvcorp/knirvbase/internal/types"
 	"github.com/knirvcorp/knirvbase/pkg/nrv"
 )
@@ -16,8 +16,8 @@ import (
 // Options configures the KNIRVBASE database.
 type Options struct {
 	DataDir                   string
-	DistributedEnabled        bool // Deprecated: use Consensus.Enabled
-	DistributedNetworkID      string // Deprecated: use Consensus.NetworkID
+	DistributedEnabled        bool     // Deprecated: use Consensus.Enabled
+	DistributedNetworkID      string   // Deprecated: use Consensus.NetworkID
 	DistributedBootstrapPeers []string // Deprecated: use Consensus.BootstrapPeers
 	Consensus                 p2pconsensus.ConsensusConfig
 }
@@ -45,6 +45,7 @@ func New(ctx context.Context, opts Options) (*DB, error) {
 	if len(opts.Consensus.BootstrapPeers) == 0 {
 		dopts.Distributed.BootstrapPeers = opts.DistributedBootstrapPeers
 	}
+	dopts.Consensus = opts.Consensus
 
 	inner, err := db.NewDistributedDatabase(ctx, dopts, store)
 	if err != nil {
@@ -56,7 +57,7 @@ func New(ctx context.Context, opts Options) (*DB, error) {
 func DefaultOptions() Options {
 	return Options{
 		DataDir:              "./data",
-		DistributedEnabled:   true,
+		DistributedEnabled:   false,
 		DistributedNetworkID: "knirvbase-default",
 		Consensus:            p2pconsensus.DefaultConsensusConfig(),
 	}
@@ -129,9 +130,16 @@ func (ds *NRVDataset) SetLinguistic(token, unit string) error {
 func NewNRV(ctx context.Context, opts Options, keyPair *pqc.PQCKeyPair) (*DB, error) {
 	store := stor.NewNRVStorage(opts.DataDir, keyPair)
 	dopts := db.DistributedDbOptions{}
-	dopts.Distributed.Enabled = opts.DistributedEnabled
-	dopts.Distributed.NetworkID = opts.DistributedNetworkID
-	dopts.Distributed.BootstrapPeers = opts.DistributedBootstrapPeers
+	dopts.Distributed.Enabled = opts.Consensus.Enabled || opts.DistributedEnabled
+	dopts.Distributed.NetworkID = opts.Consensus.NetworkID
+	if dopts.Distributed.NetworkID == "" {
+		dopts.Distributed.NetworkID = opts.DistributedNetworkID
+	}
+	dopts.Distributed.BootstrapPeers = opts.Consensus.BootstrapPeers
+	if len(dopts.Distributed.BootstrapPeers) == 0 {
+		dopts.Distributed.BootstrapPeers = opts.DistributedBootstrapPeers
+	}
+	dopts.Consensus = opts.Consensus
 	inner, err := db.NewDistributedDatabase(ctx, dopts, store)
 	if err != nil {
 		return nil, err

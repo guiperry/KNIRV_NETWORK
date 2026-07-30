@@ -40,6 +40,7 @@ import (
 	"knirv-server/internal/bootkey"
 	dveevidence "knirv-server/internal/dveevidence"
 	"knirv-server/internal/knirvproof"
+	"knirv-server/internal/proofledger"
 	"knirv-server/internal/tlsprovider"
 	"knirv-server/internal/updater"
 	"knirv-server/pkg/embedded"
@@ -85,6 +86,7 @@ type Config struct {
 	LogLevel              string   `mapstructure:"log_level"`
 	Testnet               bool     `mapstructure:"testnet"`
 	ProofStoreDir         string   `mapstructure:"proof_store_dir"`
+	ProofLedgerDir        string   `mapstructure:"proof_ledger_dir"`
 	ProofMaxObjectBytes   int64    `mapstructure:"proof_max_object_bytes"`
 	ProofRequiredReplicas int      `mapstructure:"proof_required_replicas"`
 	ProofReplicaDirs      []string `mapstructure:"proof_replica_dirs"`
@@ -281,6 +283,8 @@ type ServerApp struct {
 	dveRoutes                *gin.Engine
 	proofService             *knirvproof.Service
 	proofRoutes              *gin.Engine
+	proofLedger              *proofledger.Ledger
+	proofLedgerRoutes        *gin.Engine
 	internalAuthToken        string
 	proofValidatorPrivateKey string
 	backendCmd               *exec.Cmd
@@ -307,6 +311,7 @@ type agentSupervisor interface {
 type AgentControlServer struct {
 	socketPath string
 	appDataDir string
+	authToken  string
 	manager    agentSupervisor
 	server     *http.Server
 	listener   net.Listener
@@ -373,10 +378,11 @@ func mergeEnvSlices(base, extra []string) []string {
 	return result
 }
 
-func newAgentControlServer(manager agentSupervisor, socketPath, appDataDir string) *AgentControlServer {
+func newAgentControlServer(manager agentSupervisor, socketPath, appDataDir, authToken string) *AgentControlServer {
 	srv := &AgentControlServer{
 		socketPath:    socketPath,
 		appDataDir:    appDataDir,
+		authToken:     authToken,
 		manager:       manager,
 		workspacePath: make(map[string]string),
 		baseExtraEnv:  collectAgentExtraEnv(),
@@ -413,7 +419,7 @@ func (app *ServerApp) startAgentControl() error {
 	managerCfg.ExtraEnv = collectAgentExtraEnv()
 
 	manager := knirvagent.NewManager(managerCfg, zap.NewNop())
-	control := newAgentControlServer(manager, controlSocket, appDataDir)
+	control := newAgentControlServer(manager, controlSocket, appDataDir, app.internalAuthToken)
 	if err := control.Start(); err != nil {
 		return err
 	}
@@ -478,7 +484,15 @@ func (s *AgentControlServer) routes() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/control/status", s.handleStatus)
 	mux.HandleFunc("/control/agents/", s.handleAgents)
-	return mux
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		parts := strings.Fields(r.Header.Get("Authorization"))
+		if len(parts) != 2 || !strings.EqualFold(parts[0], "Bearer") || parts[1] == "" || parts[1] != s.authToken {
+			w.Header().Set("WWW-Authenticate", `Bearer realm="knirv-agent-control"`)
+			http.Error(w, "authentication required", http.StatusUnauthorized)
+			return
+		}
+		mux.ServeHTTP(w, r)
+	})
 }
 
 func (s *AgentControlServer) Start() error {
@@ -1311,6 +1325,16 @@ func (app *ServerApp) setupRoutes() error {
 	if err := app.setupProofRoutes(); err != nil {
 		return fmt.Errorf("failed to configure native proof routes: %w", err)
 	}
+	if err := app.setupProofLedgerRoutes(); err != nil {
+		return fmt.Errorf("failed to configure proof ledger routes: %w", err)
+	}
+	app.router.Any("/git/*path", func(c *gin.Context) {
+		if app.proofLedgerRoutes == nil {
+			c.JSON(http.StatusServiceUnavailable, gin.H{"error": "proof ledger unavailable"})
+			return
+		}
+		app.proofLedgerRoutes.ServeHTTP(c.Writer, c.Request)
+	})
 
 	// Health check endpoint
 	app.router.GET("/health", func(c *gin.Context) {
@@ -1705,7 +1729,7 @@ func (app *ServerApp) setupDVEIngestRoutes() error {
 			return err
 		}
 		store := dveevidence.NewFileStore(filepath.Join(appDataDir, "dve-evidence"))
-		app.dveIngest = dveevidence.NewIngestService(store, dveevidence.ResolveKeyResolverFromEnv(), nil)
+		app.dveIngest = dveevidence.NewIngestService(store, dveevidence.ResolveKeyResolverFromEnv(), dveevidence.ResolvePolicyFromEnv())
 	}
 
 	// Registered on a dedicated engine, not app.router: the /api/*path
@@ -1723,10 +1747,6 @@ func (app *ServerApp) setupDVEIngestRoutes() error {
 
 func dveIngestAuthMiddleware(authorizer knirvproof.Authorizer) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		if c.Request.Method != http.MethodPost || !strings.HasSuffix(c.Request.URL.Path, "/sessions/ingest") {
-			c.Next()
-			return
-		}
 		parts := strings.Fields(c.GetHeader("Authorization"))
 		if len(parts) != 2 || !strings.EqualFold(parts[0], "Bearer") || parts[1] == "" {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "authentication required"})
@@ -1736,23 +1756,29 @@ func dveIngestAuthMiddleware(authorizer knirvproof.Authorizer) gin.HandlerFunc {
 			c.AbortWithStatusJSON(http.StatusServiceUnavailable, gin.H{"error": "authorization service unavailable"})
 			return
 		}
-		body, err := io.ReadAll(http.MaxBytesReader(c.Writer, c.Request.Body, 64<<20))
-		if err != nil {
-			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "invalid ingest request"})
-			return
+		projectID := c.Param("dve")
+		action := knirvproof.ActionProofRead
+		var userID string
+		if c.Request.Method == http.MethodPost && strings.HasSuffix(c.Request.URL.Path, "/sessions/ingest") {
+			body, err := io.ReadAll(http.MaxBytesReader(c.Writer, c.Request.Body, 64<<20))
+			if err != nil {
+				c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "invalid ingest request"})
+				return
+			}
+			c.Request.Body = io.NopCloser(bytes.NewReader(body))
+			var request struct {
+				Bundle *struct {
+					ProjectID string `json:"project_id"`
+					UserID    string `json:"user_id"`
+				} `json:"bundle"`
+			}
+			if err := json.Unmarshal(body, &request); err != nil || request.Bundle == nil || strings.TrimSpace(request.Bundle.ProjectID) == "" {
+				c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "bundle project_id is required"})
+				return
+			}
+			projectID, userID, action = request.Bundle.ProjectID, request.Bundle.UserID, knirvproof.ActionProofSubmit
 		}
-		c.Request.Body = io.NopCloser(bytes.NewReader(body))
-		var request struct {
-			Bundle *struct {
-				ProjectID string `json:"project_id"`
-				UserID    string `json:"user_id"`
-			} `json:"bundle"`
-		}
-		if err := json.Unmarshal(body, &request); err != nil || request.Bundle == nil || strings.TrimSpace(request.Bundle.ProjectID) == "" {
-			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "bundle project_id is required"})
-			return
-		}
-		principal, err := authorizer.Authorize(c.Request.Context(), parts[1], request.Bundle.ProjectID, knirvproof.ActionProofSubmit)
+		principal, err := authorizer.Authorize(c.Request.Context(), parts[1], projectID, action)
 		if err != nil {
 			status := http.StatusForbidden
 			switch {
@@ -1768,7 +1794,7 @@ func dveIngestAuthMiddleware(authorizer knirvproof.Authorizer) gin.HandlerFunc {
 			c.AbortWithStatusJSON(http.StatusServiceUnavailable, gin.H{"error": "authorization service omitted principal"})
 			return
 		}
-		if request.Bundle.UserID != principal.ID {
+		if userID != "" && userID != principal.ID {
 			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "bundle user_id does not match authenticated principal"})
 			return
 		}
@@ -1867,6 +1893,30 @@ func (app *ServerApp) setupProofRoutes() error {
 	if err := service.Resume(context.Background()); err != nil {
 		return fmt.Errorf("resume proof operations: %w", err)
 	}
+	return nil
+}
+
+func (app *ServerApp) setupProofLedgerRoutes() error {
+	root := strings.TrimSpace(app.config.ProofLedgerDir)
+	if root == "" {
+		appDataDir, err := getAppDataDir()
+		if err != nil {
+			return err
+		}
+		root = filepath.Join(appDataDir, "proof-ledger")
+	}
+	authorizer, err := knirvproof.NewBackendAuthorizer(app.config.BackendSocket, app.internalAuthToken)
+	if err != nil {
+		return err
+	}
+	ledger, err := proofledger.New(root, app.dveIngest, authorizer)
+	if err != nil {
+		return err
+	}
+	app.proofLedger = ledger
+	app.proofLedgerRoutes = gin.New()
+	app.proofLedgerRoutes.Use(gin.Recovery())
+	proofledger.RegisterRoutes(app.proofLedgerRoutes, ledger)
 	return nil
 }
 
@@ -2725,6 +2775,8 @@ func (app *ServerApp) startBackend() error {
 		fmt.Sprintf("KNIRV_INTERNAL_AUTH_TOKEN=%s", app.internalAuthToken),
 		fmt.Sprintf("KNIRV_PROOF_VALIDATOR_X25519_PRIVATE_KEY=%s", app.proofValidatorPrivateKey),
 		fmt.Sprintf("KNIRV_SERVER_BASE_URL=http://127.0.0.1:%d", app.config.Port),
+		fmt.Sprintf("KNIRV_AGENT_CONTROL_GATEWAY_URL=http://127.0.0.1:%d/internal/agent-control", app.config.GatewayPort),
+		fmt.Sprintf("KNIRV_AGENT_CONTROL_TOKEN=%s", app.internalAuthToken),
 		fmt.Sprintf("KNIRV_PUBLIC_URL=%s", publicURL),
 		fmt.Sprintf("KNIRV_AUTH_PUBLIC_URL=%s", authPublicURL),
 		fmt.Sprintf("PUBLIC_HOST=%s", publicOrigin.Hostname()),
@@ -3258,6 +3310,7 @@ func loadConfig() (*Config, error) {
 	viper.SetDefault("proof_validator_id", "")
 	viper.SetDefault("proof_replica_dirs", []string{})
 	if appDataDir, err := getAppDataDir(); err == nil {
+		viper.SetDefault("proof_ledger_dir", filepath.Join(appDataDir, "proof-ledger"))
 		viper.SetDefault("proof_chain_socket", filepath.Join(appDataDir, "sockets", "chain.sock"))
 	}
 	if networkMode == "production" || networkMode == "enterprise" {

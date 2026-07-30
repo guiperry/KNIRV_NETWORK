@@ -74,6 +74,15 @@ func (h *CollectionEventHandler) OnSyncRequestReceived(req p2pconsensus.SyncRequ
 	}, nil
 }
 
+func (h *CollectionEventHandler) OnSyncResponseReceived(resp p2pconsensus.SyncResponse) error {
+	for _, op := range resp.Operations {
+		if err := h.OnOperationReceived(op); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // OnPeerDiscovered reacts to a newly discovered peer by proactively requesting
 // a sync so this node converges quickly. It is a no-op when the collection is
 // not attached to a network.

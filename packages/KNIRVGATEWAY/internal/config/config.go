@@ -103,8 +103,12 @@ type Config struct {
 	AgentSocketDir     string // /var/lib/knirvserver/sockets/ (agent-{dveId}.sock lives here)
 	AgentMaxConcurrent int    // max concurrent agent processes (default 32)
 
-	// KNIRVHASHER socket path (headless CLI mode)
+	// HasherSocketPath for headless CLI mode
 	HasherSocketPath string // /var/run/knirvhasher.sock
+
+	// AgentControlSocketPath is the Unix socket for the AgentControlServer.
+	// All traffic routes through the gateway, never directly to this socket.
+	AgentControlSocketPath string // /var/lib/knirvserver/sockets/agent-control.sock
 
 	// KNIRVARENA socket path (in-process static bundle server)
 	ArenaSocketPath string // /var/lib/knirvserver/sockets/arena.sock
@@ -112,6 +116,7 @@ type Config struct {
 	// KNIRVBASE callback support
 	BaseCallbackSocket string `envconfig:"BASE_CALLBACK_SOCKET"`
 	BaseNetworkID      string `envconfig:"BASE_NETWORK_ID"`
+	BaseNetworkSecret  string `envconfig:"BASE_NETWORK_SECRET"`
 
 	// Cloudflare tunnel node identity
 	// NetworkMode is one of production, testnet, development, or enterprise.
@@ -186,9 +191,11 @@ func Load() (*Config, error) {
 		AgentSocketDir:            getEnv("AGENT_SOCKET_DIR", ""),
 		AgentMaxConcurrent:        getEnvInt("AGENT_MAX_CONCURRENT", 32),
 		HasherSocketPath:          getEnv("HASHER_SOCKET_PATH", "/var/run/knirvhasher.sock"),
+		AgentControlSocketPath:    getEnv("AGENT_CONTROL_SOCKET_PATH", ""),
 		ArenaSocketPath:           getEnv("ARENA_SOCKET_PATH", ""),
 		BaseCallbackSocket:        getEnv("BASE_CALLBACK_SOCKET", ""),
 		BaseNetworkID:             getEnv("BASE_NETWORK_ID", ""),
+		BaseNetworkSecret:         getEnv("BASE_NETWORK_SECRET", ""),
 		NetworkMode:               resolveNetworkMode(),
 		PublicURL:                 getEnv("KNIRV_PUBLIC_URL", ""),
 		EnterpriseMode:            getEnvBool("KNIRV_ENTERPRISE", false),

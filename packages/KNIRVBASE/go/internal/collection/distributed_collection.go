@@ -292,6 +292,7 @@ func (dc *DistributedCollection) broadcastOperation(op typ.CRDTOperation) {
 		data, _ := json.Marshal(op)
 		env := p2pconsensus.OperationEnvelope{
 			Collection:  dc.Name,
+			NetworkID:   dc.networkID,
 			DocumentID:  op.DocumentID,
 			Data:        data,
 			VectorClock: op.Vector,
@@ -346,9 +347,20 @@ func (dc *DistributedCollection) requestSync() error {
 
 	// Route sync request through p2pconsensus if available
 	if dc.consensus != nil && dc.consensus.Enabled() {
-		go func() {
-			time.Sleep(10 * time.Second)
+		requester, ok := dc.consensus.(p2pconsensus.SyncRequester)
+		if !ok {
 			syncState.SyncInProgress = false
+			return errors.New("consensus manager does not support sync")
+		}
+		req := p2pconsensus.SyncRequest{NetworkID: dc.networkID, Collection: dc.Name, VectorClock: map[string]int64(syncState.LocalVector)}
+		go func() {
+			err := requester.RequestSync(context.Background(), req)
+			dc.mu.Lock()
+			syncState.SyncInProgress = false
+			dc.mu.Unlock()
+			if err != nil {
+				return
+			}
 		}()
 		return nil
 	}

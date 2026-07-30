@@ -8,6 +8,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"path/filepath"
 	"sync"
 )
 
@@ -55,17 +56,31 @@ func (s *SocketServer) Serve() error {
 	s.mu.Unlock()
 
 	// Remove existing socket file if present (left over from a previous crash).
+	if dir := filepath.Dir(s.socketPath); dir != "." {
+		if err := os.MkdirAll(dir, 0700); err != nil {
+			return fmt.Errorf("create socket directory: %w", err)
+		}
+	}
 	if err := os.Remove(s.socketPath); err != nil && !os.IsNotExist(err) {
+		s.mu.Lock()
+		s.started = false
+		s.mu.Unlock()
 		return fmt.Errorf("remove socket: %w", err)
 	}
 
 	listener, err := net.Listen("unix", s.socketPath)
 	if err != nil {
+		s.mu.Lock()
+		s.started = false
+		s.mu.Unlock()
 		return fmt.Errorf("listen on socket %s: %w", s.socketPath, err)
 	}
 	// Restrictive permissions: only the owner may connect to this IPC channel.
 	if err := os.Chmod(s.socketPath, 0600); err != nil {
 		_ = listener.Close()
+		s.mu.Lock()
+		s.started = false
+		s.mu.Unlock()
 		return fmt.Errorf("chmod socket: %w", err)
 	}
 
@@ -146,6 +161,10 @@ func (s *SocketServer) handleReceivedOp(w http.ResponseWriter, r *http.Request) 
 		http.Error(w, fmt.Sprintf("bad request: %v", err), http.StatusBadRequest)
 		return
 	}
+	if s.networkID != "" && op.NetworkID != "" && op.NetworkID != s.networkID {
+		http.Error(w, "network mismatch", http.StatusBadRequest)
+		return
+	}
 	if s.handler == nil {
 		http.Error(w, "no handler registered", http.StatusInternalServerError)
 		return
@@ -175,6 +194,10 @@ func (s *SocketServer) handleSyncRequest(w http.ResponseWriter, r *http.Request)
 	var req SyncRequest
 	if err := json.Unmarshal(body, &req); err != nil {
 		http.Error(w, fmt.Sprintf("bad request: %v", err), http.StatusBadRequest)
+		return
+	}
+	if s.networkID != "" && req.NetworkID != "" && req.NetworkID != s.networkID {
+		http.Error(w, "network mismatch", http.StatusBadRequest)
 		return
 	}
 	if s.handler == nil {

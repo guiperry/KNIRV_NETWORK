@@ -160,6 +160,7 @@ func New(cfg *config.Config, webguiStaticDir string, logger *zap.Logger, db ...*
 			ChainIsBootnode:       cfg.ChainIsBootnode,
 			ChainBootnodeRegistry: cfg.ChainBootnodeRegistry,
 			ChainCallbackSocket:   cfg.ChainCallbackSocket,
+			BaseNetworkSecret:     cfg.BaseNetworkSecret,
 		}
 		var err error
 		dhtMgr, err = dht.NewDHTManager(dhtConfig)
@@ -239,7 +240,8 @@ func (s *Server) setupRoutes() error {
 
 	// KNIRVBASE proxy endpoints (Phase 4)
 	r.HandleFunc("/knirvbase/register-callback", s.handleBaseRegisterCallback).Methods("POST")
-	r.HandleFunc("/knirvbase/publish-op", s.handlePublishOperation).Methods("POST")
+	r.HandleFunc("/knirvbase/publish-op", s.handleBasePublishOperation).Methods("POST")
+	r.HandleFunc("/knirvbase/sync-request", s.handleBaseSyncRequest).Methods("POST")
 	r.HandleFunc("/knirvbase/discover", s.handleBaseDiscovery).Methods("GET")
 
 	// Register auth routes directly
@@ -301,6 +303,7 @@ func (s *Server) setupRoutes() error {
 		r.PathPrefix("/api/v1/system/update").Handler(serverProxy)
 		r.PathPrefix("/api/v1/system/info").Handler(serverProxy)
 		r.PathPrefix("/api/dve/").Handler(serverProxy)
+		r.PathPrefix("/git/").Handler(serverProxy)
 		s.logger.Info("KNIRVSERVER native proof proxy registered", zap.String("target", s.config.ServerBaseURL))
 	}
 	var backendProxy *httputil.ReverseProxy
@@ -535,6 +538,14 @@ func (s *Server) setupRoutes() error {
 		s.logger.Warn("Arena socket path not configured — /arena/* will not be proxied")
 	}
 
+	// AgentControlServer proxy — all AgentControlServer traffic routes
+	// through the gateway, never directly to the control socket.
+	if s.config.AgentControlSocketPath != "" {
+		agentControlProxy := newSocketProxy(s.config.AgentControlSocketPath, "http://knirvagentcontrol")
+		r.PathPrefix("/internal/agent-control/").Handler(http.StripPrefix("/internal/agent-control", agentControlProxy))
+		s.logger.Info("AgentControl proxy registered", zap.String("socket", s.config.AgentControlSocketPath))
+	}
+
 	// Agent proxy — KNIRVAGENT per-DVE dynamic socket proxy (Phase 6)
 	if s.config.AgentSocketDir != "" {
 		r.PathPrefix("/api/agent/").Handler(s.dynamicAgentProxy())
@@ -563,6 +574,7 @@ func (s *Server) setupRoutes() error {
 	// over the backend Unix socket so the browser can connect through the
 	// gateway's public HTTP port.
 	if s.config.BackendSocketPath != "" {
+		r.HandleFunc("/ws/dve/{dveId}/advisor/stream/{sessionId}", s.handleBackendWebSocketProxy).Methods("GET")
 		r.HandleFunc("/ws", s.handleBackendWebSocketProxy).Methods("GET")
 		r.PathPrefix("/ws/").HandlerFunc(s.handleBackendWebSocketProxy).Methods("GET")
 		s.logger.Info("Backend WS proxy registered", zap.String("socket", s.config.BackendSocketPath))
@@ -1993,6 +2005,7 @@ func (s *Server) handleBaseRegisterCallback(w http.ResponseWriter, r *http.Reque
 	var req struct {
 		SocketPath string `json:"socket_path"`
 		NetworkID  string `json:"network_id"`
+		Topic      string `json:"topic"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "bad request", http.StatusBadRequest)
@@ -2000,7 +2013,7 @@ func (s *Server) handleBaseRegisterCallback(w http.ResponseWriter, r *http.Reque
 	}
 	s.dhtManager.SetBaseCallbackSocket(req.SocketPath)
 	if req.NetworkID != "" {
-		if err := s.dhtManager.SetupCRDTPubSub(req.NetworkID); err != nil {
+		if err := s.dhtManager.SetupCRDTPubSub(req.NetworkID, req.Topic); err != nil {
 			http.Error(w, fmt.Sprintf("pubsub setup: %v", err), http.StatusInternalServerError)
 			return
 		}
@@ -2016,6 +2029,34 @@ func (s *Server) handlePublishOperation(w http.ResponseWriter, r *http.Request) 
 	data, err := io.ReadAll(r.Body)
 	if err != nil {
 		http.Error(w, "read error", http.StatusBadRequest)
+		return
+	}
+	if err := s.dhtManager.PublishOperation(r.Context(), data); err != nil {
+		http.Error(w, fmt.Sprintf("publish: %v", err), http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+}
+
+func (s *Server) handleBasePublishOperation(w http.ResponseWriter, r *http.Request) {
+	if s.dhtManager == nil {
+		http.Error(w, "DHT not initialized", http.StatusServiceUnavailable)
+		return
+	}
+	data, err := io.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, "read error", http.StatusBadRequest)
+		return
+	}
+	var envelope struct {
+		NetworkID string `json:"network_id"`
+	}
+	if err := json.Unmarshal(data, &envelope); err != nil || envelope.NetworkID == "" {
+		http.Error(w, "network_id required", http.StatusBadRequest)
+		return
+	}
+	if !s.dhtManager.VerifyBaseMessage(envelope.NetworkID, r.Header.Get("X-KNIRV-Signature"), data) {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
 	if err := s.dhtManager.PublishOperation(r.Context(), data); err != nil {
@@ -2055,6 +2096,34 @@ func (s *Server) handleP2PSyncRequest(w http.ResponseWriter, r *http.Request) {
 	}
 	// Forward sync request through CRDT operation channel
 	if err := s.dhtManager.PublishOperation(r.Context(), data); err != nil {
+		http.Error(w, fmt.Sprintf("sync: %v", err), http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+}
+
+func (s *Server) handleBaseSyncRequest(w http.ResponseWriter, r *http.Request) {
+	if s.dhtManager == nil {
+		http.Error(w, "DHT not initialized", http.StatusServiceUnavailable)
+		return
+	}
+	data, err := io.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, "read error", http.StatusBadRequest)
+		return
+	}
+	var envelope struct {
+		NetworkID string `json:"network_id"`
+	}
+	if err := json.Unmarshal(data, &envelope); err != nil || envelope.NetworkID == "" {
+		http.Error(w, "network_id required", http.StatusBadRequest)
+		return
+	}
+	if !s.dhtManager.VerifyBaseMessage(envelope.NetworkID, r.Header.Get("X-KNIRV-Signature"), data) {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+	if err := s.dhtManager.PublishSyncRequest(r.Context(), envelope.NetworkID, data); err != nil {
 		http.Error(w, fmt.Sprintf("sync: %v", err), http.StatusInternalServerError)
 		return
 	}
