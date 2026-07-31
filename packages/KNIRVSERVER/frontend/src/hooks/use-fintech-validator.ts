@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 
 export interface FintechStatus {
   enabled: boolean;
@@ -96,7 +96,7 @@ const defaultStatus: FintechStatus = {
 
 function useFinTechValidator() {
   const [status, setStatus] = useState<FintechStatus>(defaultStatus);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const [evidencePacks, setEvidencePacks] = useState<EvidencePack[]>([]);
@@ -119,10 +119,21 @@ function useFinTechValidator() {
       }
     } catch (e) {
       console.error('Failed to fetch fintech status', e);
+    } finally {
+      setIsLoading(false);
     }
   }, []);
 
+  useEffect(() => {
+    void fetchStatus();
+    const interval = window.setInterval(() => void fetchStatus(), 15000);
+    return () => window.clearInterval(interval);
+  }, [fetchStatus]);
+
+  const isPluginEnabled = status.enabled && status.running;
+
   const fetchNRVTraces = useCallback(async () => {
+    if (!isPluginEnabled) return;
     setIsLoading(true);
     setError(null);
     try {
@@ -135,9 +146,10 @@ function useFinTechValidator() {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [isPluginEnabled]);
 
   const fetchNRVTrace = useCallback(async (traceId: string) => {
+    if (!isPluginEnabled) return;
     setIsLoading(true);
     setError(null);
     try {
@@ -150,9 +162,10 @@ function useFinTechValidator() {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [isPluginEnabled]);
 
   const fetchEvidencePacks = useCallback(async () => {
+    if (!isPluginEnabled) return;
     setIsLoading(true);
     setError(null);
     try {
@@ -165,9 +178,10 @@ function useFinTechValidator() {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [isPluginEnabled]);
 
   const fetchTrajectories = useCallback(async () => {
+    if (!isPluginEnabled) return;
     setIsLoading(true);
     setError(null);
     try {
@@ -180,9 +194,10 @@ function useFinTechValidator() {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [isPluginEnabled]);
 
   const scoreFidelity = useCallback(async (traceId: string, expectedOutcome?: string) => {
+    if (!isPluginEnabled) return;
     setIsLoading(true);
     setError(null);
     try {
@@ -199,9 +214,10 @@ function useFinTechValidator() {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [isPluginEnabled]);
 
   const calculateSemanticDistance = useCallback(async (traceId: string, expectedOutcome?: string) => {
+    if (!isPluginEnabled) return;
     setIsLoading(true);
     setError(null);
     try {
@@ -218,9 +234,10 @@ function useFinTechValidator() {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [isPluginEnabled]);
 
   const detectKYCBypass = useCallback(async (traceId: string) => {
+    if (!isPluginEnabled) return;
     setIsLoading(true);
     setError(null);
     try {
@@ -233,9 +250,10 @@ function useFinTechValidator() {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [isPluginEnabled]);
 
   const detectPositionLimits = useCallback(async (traceId: string, limits?: Record<string, number>) => {
+    if (!isPluginEnabled) return;
     setIsLoading(true);
     setError(null);
     try {
@@ -252,9 +270,10 @@ function useFinTechValidator() {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [isPluginEnabled]);
 
   const validate = useCallback(async (agentId: string, agentCode?: string) => {
+    if (!isPluginEnabled) return;
     setIsLoading(true);
     setError(null);
     try {
@@ -271,7 +290,7 @@ function useFinTechValidator() {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [isPluginEnabled]);
 
   return {
     status,
@@ -297,7 +316,7 @@ function useFinTechValidator() {
     detectPositionLimits,
     validate,
     // Convenience derived state for plugin gating
-    isPluginEnabled: status.enabled && status.running,
+    isPluginEnabled,
   };
 }
 

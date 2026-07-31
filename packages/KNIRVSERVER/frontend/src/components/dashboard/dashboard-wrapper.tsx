@@ -17,6 +17,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { NetworkAccessModal } from '@/components/nap/nap-access-modal';
+import BuiltinPluginCard from '@/components/dashboard/builtin-plugin-card';
+import { useBuiltinPlugins } from '@/hooks/use-builtin-plugins';
+import useFinTechValidator from '@/hooks/use-fintech-validator';
+import FinancialComplianceDashboard from '@/components/dashboard/financial-compliance-dashboard';
 
 import DVEWorkspacePanel from './dve-workspace-panel'; // Modular DVE Workspace
 import DVECreationManagement from '@/components/dve-management/dve-creation-management';
@@ -85,6 +89,8 @@ function DashboardWrapperInner({ children, onRentDVE }: DashboardWrapperProps) {
   const { securityStatus: teeSecurityStatus, isLoading: teeLoading } = useTEESecurity();
   const { securitySubsystem } = useSecuritySubsystem();
   const networkMonitor = useNetworkMonitor();
+  const { builtins, loading: builtinsLoading, error: builtinsError, toggle: toggleBuiltin, updateConfig: updateBuiltinConfig } = useBuiltinPlugins();
+  const { isPluginEnabled } = useFinTechValidator();
 
   // ── Controlled tab state (allows postMessage navigation from Electron menu) ──
   const searchParams = useSearchParams();
@@ -587,7 +593,7 @@ function DashboardWrapperInner({ children, onRentDVE }: DashboardWrapperProps) {
                 <span>Setup</span>
               </TabsTrigger>
 
-              {user?.nexus_access?.includes('compliance:read') && (
+              {user?.nexus_access?.includes('compliance:read') && isPluginEnabled && (
                 <TabsTrigger value="compliance" className="flex items-center space-x-2 text-gray-400 data-[state=active]:text-indigo-400 data-[state=active]:bg-indigo-500/10">
                   <Scale className="w-4 h-4" />
                   <span>Compliance</span>
@@ -730,6 +736,26 @@ function DashboardWrapperInner({ children, onRentDVE }: DashboardWrapperProps) {
                           </Card>
                         </div>
 
+                        <div className="rounded-3xl overflow-hidden aether-bevel-dark p-6">
+                          <div className="mb-4">
+                            <h2 className="text-xl font-bold text-gray-200">Built-in Plugins</h2>
+                            <p className="text-sm text-gray-500">Manage first-party services and their runtime lifecycle.</p>
+                          </div>
+                          {builtinsLoading && <p className="text-sm text-gray-500">Loading plugins…</p>}
+                          {builtinsError && <p className="text-sm text-red-400">{builtinsError}</p>}
+                          {!builtinsLoading && builtins.length === 0 && !builtinsError && (
+                            <p className="text-sm text-gray-500">No built-in plugins are registered.</p>
+                          )}
+                          {builtins.map(plugin => (
+                            <BuiltinPluginCard
+                              key={plugin.id}
+                              plugin={plugin}
+                              onToggle={toggleBuiltin}
+                              onUpdateConfig={updateBuiltinConfig}
+                            />
+                          ))}
+                        </div>
+
                         <div className="mt-6 p-4 aether-glass-panel rounded-xl">
                           <div className="flex items-center justify-between">
                             <div className="flex items-center space-x-3">
@@ -751,7 +777,7 @@ function DashboardWrapperInner({ children, onRentDVE }: DashboardWrapperProps) {
                 )}
               </TabsContent>
               
-              {user?.nexus_access?.includes('compliance:read') && (
+              {user?.nexus_access?.includes('compliance:read') && isPluginEnabled && (
                 <TabsContent value="compliance">
                   <div className="space-y-6">
                     <div>
@@ -760,7 +786,7 @@ function DashboardWrapperInner({ children, onRentDVE }: DashboardWrapperProps) {
                         Deterministic Validation of Financial AI Agents - Evidence Packs, Fidelity Scoring, and Regulatory Compliance
                       </p>
                     </div>
-                    {/* FinTech dashboard will be loaded dynamically when the plugin runs */}
+                    <FinancialComplianceDashboard />
                   </div>
                 </TabsContent>
               )}

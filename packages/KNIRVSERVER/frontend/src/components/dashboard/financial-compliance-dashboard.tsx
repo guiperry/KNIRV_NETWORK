@@ -77,6 +77,23 @@ export function FinancialComplianceDashboard({ className }: FinancialComplianceD
   const [selectedTraceId, setSelectedTraceId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('overview');
 
+  useEffect(() => {
+    if (!isPluginEnabled) return;
+    void fetchNRVTraces();
+    void fetchEvidencePacks();
+    void fetchTrajectories();
+  }, [fetchNRVTraces, fetchEvidencePacks, fetchTrajectories]);
+
+  useEffect(() => {
+    if (error) {
+      toast({
+        title: 'Error',
+        description: error,
+        variant: 'destructive',
+      });
+    }
+  }, [error, toast]);
+
   // Plugin disabled guard — show a friendly message when the validator is off.
   if (!isPluginEnabled && !isLoading) {
     return (
@@ -90,22 +107,6 @@ export function FinancialComplianceDashboard({ className }: FinancialComplianceD
       </div>
     );
   }
-
-  useEffect(() => {
-    fetchNRVTraces();
-    fetchEvidencePacks();
-    fetchTrajectories();
-  }, [fetchNRVTraces, fetchEvidencePacks, fetchTrajectories]);
-
-  useEffect(() => {
-    if (error) {
-      toast({
-        title: 'Error',
-        description: error,
-        variant: 'destructive',
-      });
-    }
-  }, [error, toast]);
 
   const handleTraceSelect = async (traceId: string) => {
     setSelectedTraceId(traceId);

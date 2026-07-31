@@ -125,6 +125,9 @@ func (r *OracleRoutes) RegisterRoutes(mux *http.ServeMux) {
 	// Health and status
 	mux.HandleFunc("/oracle/v3/health", r.handleHealth)
 	mux.HandleFunc("/oracle/v3/status", r.handleStatus)
+
+	// DID resolution engine (Phase 1-A): register/resolve/deactivate did:knirv: documents.
+	r.RegisterDIDRoutes(mux)
 }
 
 // ========== Token Handlers ==========
