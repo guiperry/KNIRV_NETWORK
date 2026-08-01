@@ -132,6 +132,13 @@ func getMap(m map[string]interface{}, key string) map[string]interface{} {
 	return nil
 }
 
+func getFloat(m map[string]interface{}, key string) float64 {
+	if v, ok := m[key].(float64); ok {
+		return v
+	}
+	return 0
+}
+
 func (s *SyncManager) processPendingChanges(ctx context.Context) {
 	s.mu.Lock()
 	queue := make([]Change, len(s.pendingQueue))
@@ -173,7 +180,24 @@ func (s *SyncManager) processPendingChanges(ctx context.Context) {
 	s.mu.Unlock()
 }
 
+// commitChange dispatches a queued change to the graph. "edge" changes
+// (e.g. relationships extracted by graphrag — see
+// backend_server/internal/web/knirvgraph_handlers.go's IndexDocumentWithResult
+// handling) commit as edges via CreateEdge; everything else commits as a
+// generic node via CommitNode, as before.
 func (s *SyncManager) commitChange(ctx context.Context, change Change) error {
+	if change.Type == "edge" {
+		return s.graphClient.CreateEdge(ctx, GraphEdge{
+			EdgeID:    getString(change.Data, "edge_id"),
+			SourceID:  getString(change.Data, "source_id"),
+			TargetID:  getString(change.Data, "target_id"),
+			Type:      getString(change.Data, "relation_type"),
+			Weight:    getFloat(change.Data, "weight"),
+			Data:      change.Data,
+			Timestamp: time.Now(),
+		})
+	}
+
 	return s.graphClient.CommitNode(ctx, GraphNode{
 		NodeID:    change.Type + "_" + time.Now().Format("20060102150405"),
 		Type:      change.Type,

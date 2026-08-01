@@ -76,7 +76,9 @@ func Query(query string, limit int) ([]byte, error) {
 	if resultPtr == nil {
 		return nil, fmt.Errorf("graphrag query returned null pointer")
 	}
-	defer C.free(unsafe.Pointer(resultPtr))
+	// Rust allocates returned strings with CString::into_raw.  They must be
+	// released by the Rust allocator through the exported free function.
+	defer C.graphrag_free_string(resultPtr)
 
 	return C.GoBytes(unsafe.Pointer(resultPtr), C.int(bufLen)), nil
 }
@@ -99,7 +101,7 @@ func EmbedTexts(texts []string) ([][]float32, error) {
 	if resultPtr == nil {
 		return nil, fmt.Errorf("graphrag embed texts returned null pointer")
 	}
-	defer C.free(unsafe.Pointer(resultPtr))
+	defer C.graphrag_free_string(resultPtr)
 
 	raw := C.GoBytes(unsafe.Pointer(resultPtr), C.int(bufLen))
 	var embeddings [][]float32
@@ -124,7 +126,7 @@ func IndexDocumentWithResult(docID string, content []byte) ([]byte, error) {
 	if resultPtr == nil {
 		return nil, fmt.Errorf("graphrag get last extraction returned null pointer")
 	}
-	defer C.free(unsafe.Pointer(resultPtr))
+	defer C.graphrag_free_string(resultPtr)
 
 	return C.GoBytes(unsafe.Pointer(resultPtr), C.int(bufLen)), nil
 }

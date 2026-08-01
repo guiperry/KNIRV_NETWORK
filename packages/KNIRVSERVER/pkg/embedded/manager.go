@@ -43,9 +43,14 @@ func GetManager() *Manager {
 	return globalManager
 }
 
-// GraphRagService wraps graphrag CGo library
+// GraphRagService wraps the graphrag CGo library and the Unix-socket HTTP
+// server (server.go) that exposes it to backend_server (KNIRV_CORP), which
+// runs as a separate OS process and cannot reach this in-process CGo/Rust
+// engine any other way.
 type GraphRagService struct {
-	config []byte
+	config     []byte
+	socketPath string
+	server     *graphrag.Server
 }
 
 // Name returns service identifier
@@ -57,11 +62,28 @@ func (s *GraphRagService) Init(config []byte) error {
 	return graphrag.Init(config)
 }
 
-// Start is no-op for static libraries
-func (s *GraphRagService) Start(ctx context.Context) error { return nil }
+// Start launches the Unix-socket HTTP server bridging the already-initialized
+// graphrag engine to other processes. socketPath must be set (via
+// Manager.Initialize) before this is called.
+func (s *GraphRagService) Start(ctx context.Context) error {
+	if s.socketPath == "" {
+		return fmt.Errorf("graphrag socket path not configured")
+	}
+	server, err := graphrag.StartServer(ctx, s.socketPath)
+	if err != nil {
+		return fmt.Errorf("failed to start graphrag socket server: %w", err)
+	}
+	s.server = server
+	return nil
+}
 
-// Stop shuts down graphrag engine
-func (s *GraphRagService) Stop() error { return graphrag.Shutdown() }
+// Stop shuts down the socket server, then the graphrag engine itself.
+func (s *GraphRagService) Stop() error {
+	if s.server != nil {
+		_ = s.server.Close()
+	}
+	return graphrag.Shutdown()
+}
 
 // Health checks graphrag health status
 func (s *GraphRagService) Health() error { return graphrag.HealthCheck() }
@@ -123,11 +145,15 @@ func (s *TransactionChainService) Health() error {
 	return transactionchain.Get().HealthCheck()
 }
 
-// Initialize sets up the always-on embedded services (currently GraphRag).
-// Call StartValidationChain / StartTransactionChain separately — each is
-// independently best-effort (a failure in one must not prevent the other,
-// or graphrag, from running), so they are not folded into this call.
-func (m *Manager) Initialize(ctx context.Context, graphRagConfig []byte) error {
+// Initialize sets up the always-on embedded services (currently GraphRag):
+// it initializes the in-process graphrag-rs engine and starts the Unix
+// domain socket HTTP server at graphSocketPath that bridges it to
+// backend_server (KNIRV_CORP) — a separate OS process that cannot reach
+// this CGo-linked engine any other way. Call StartValidationChain /
+// StartTransactionChain separately — each is independently best-effort (a
+// failure in one must not prevent the other, or graphrag, from running), so
+// they are not folded into this call.
+func (m *Manager) Initialize(ctx context.Context, graphRagConfig []byte, graphSocketPath string) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -137,9 +163,12 @@ func (m *Manager) Initialize(ctx context.Context, graphRagConfig []byte) error {
 
 	m.ctx, m.cancelFunc = context.WithCancel(ctx)
 
-	graphSvc := &GraphRagService{}
+	graphSvc := &GraphRagService{socketPath: graphSocketPath}
 	if err := graphSvc.Init(graphRagConfig); err != nil {
 		return fmt.Errorf("failed to initialize graphrag: %w", err)
+	}
+	if err := graphSvc.Start(m.ctx); err != nil {
+		return fmt.Errorf("failed to start graphrag socket server: %w", err)
 	}
 	m.services = append(m.services, graphSvc)
 

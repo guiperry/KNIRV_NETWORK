@@ -2462,6 +2462,17 @@ func transactionChainSocketPath() string {
 	return embeddedChainSocketPath("KNIRV_TRANSACTION_CHAIN_SOCKET_PATH", "transactionchain.sock")
 }
 
+// graphragSocketPath resolves the Unix domain socket KNIRVSERVER binds its
+// embedded graphrag-rs engine's HTTP bridge to (see pkg/embedded/graphrag's
+// StartServer). graphrag-rs is linked directly into this process via CGo,
+// never spawned as a subprocess, so unlike validationChainSocketPath /
+// transactionChainSocketPath there is no separate binary on the other end —
+// this process both owns the engine and serves this socket. backend_server
+// (KNIRV_CORP) only holds an HTTP client dialing it.
+func graphragSocketPath() string {
+	return embeddedChainSocketPath("KNIRV_GRAPHRAG_SOCKET_PATH", "graphrag.sock")
+}
+
 func embeddedChainSocketPath(overrideEnv, filename string) string {
 	if override := strings.TrimSpace(os.Getenv(overrideEnv)); override != "" {
 		return override
@@ -2484,6 +2495,23 @@ func unixHTTPClient(socketPath string, timeout time.Duration) *http.Client {
 			},
 		},
 	}
+}
+
+// startGraphRAG initializes the embedded graphrag-rs engine in-process
+// (pkg/embedded/graphrag, linked via CGo — never spawned as a subprocess)
+// and starts the Unix domain socket HTTP server that bridges it to
+// backend_server (KNIRV_CORP), a separate OS process that would otherwise
+// link its own, independently-uninitialized copy of the same static
+// library and be unable to reach the engine this process initializes.
+//
+// Must be called before startBackend so the socket exists by the time
+// backend_server's memory/knowledge_base services try to dial it.
+func (app *ServerApp) startGraphRAG(ctx context.Context) error {
+	if err := embedded.GetManager().Initialize(ctx, []byte("{}"), graphragSocketPath()); err != nil {
+		return fmt.Errorf("failed to initialize graphrag: %w", err)
+	}
+	log.Printf("GraphRAG engine initialized, socket server started on %s", graphragSocketPath())
+	return nil
 }
 
 // startValidationChain starts the Validation Chain subprocess that
@@ -3146,6 +3174,15 @@ func (app *ServerApp) Start() error {
 				tlsprovider.StartAutoRenew(context.Background(), bootContent.CloudflareAPIToken, bootContent.CloudflareZoneID, certFile, keyFile, 0)
 			}
 		}
+	}
+
+	// GraphRAG must be initialized and its socket bridge listening before
+	// backend_server starts, since backend_server's memory/knowledge_base
+	// services dial that socket (pkg/embedded/graphrag) for indexing and
+	// queries. Best-effort: a failure here must not block the rest of
+	// KNIRVSERVER from starting, matching Validation/Transaction Chain.
+	if err := app.startGraphRAG(context.Background()); err != nil {
+		log.Printf("Warning: failed to start GraphRAG: %v", err)
 	}
 
 	// Start backend (spawns KNIRVORACLE among other services)

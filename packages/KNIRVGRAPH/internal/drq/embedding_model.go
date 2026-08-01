@@ -2,11 +2,14 @@ package drq
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"hash/fnv"
 	"math"
+	"net"
 	"net/http"
+	"os"
 	"sync"
 	"time"
 )
@@ -47,27 +50,62 @@ const (
 	OPENAI_SMALL                      // 1536-dim
 )
 
+// defaultGraphRAGSocketPath is the last-resort fallback KNIRVSERVER itself
+// falls back to when it cannot resolve its app data directory (see
+// embeddedChainSocketPath in KNIRV_NETWORK's packages/KNIRVSERVER/main.go).
+const defaultGraphRAGSocketPath = "/var/lib/knirvserver/sockets/graphrag.sock"
+
+// GraphRAGEmbedder dials the Unix domain socket KNIRVSERVER's embedded
+// graphrag-rs engine bridges over (pkg/embedded/graphrag/server.go,
+// KNIRV_NETWORK). KNIRVGRAPH runs as a separate OS process from
+// KNIRVSERVER, so — like backend_server (KNIRV_CORP) — this socket is the
+// only way to reach that CGo-linked engine; there is no HTTP route exposed
+// over TCP for it.
 type GraphRAGEmbedder struct {
-	endpoint     string
-	client       *http.Client
-	cache        *EmbeddingCache
-	dimension    int
-	timeout      time.Duration
+	socketPath string
+	client     *http.Client
+	cache      *EmbeddingCache
+	dimension  int
+	timeout    time.Duration
 }
 
-func NewGraphRAGEmbedder(endpoint string, dim int) *GraphRAGEmbedder {
-	if endpoint == "" {
-		endpoint = "http://localhost:8084" // default KNIRVSERVER
+// unixHTTPClient builds an http.Client that dials a Unix domain socket
+// regardless of the URL host given to it — callers use the "http://unix"
+// base URL by convention (matching KNIRVSERVER's pkg/embedded/graphrag
+// Client).
+func unixHTTPClient(socketPath string, timeout time.Duration) *http.Client {
+	return &http.Client{
+		Timeout: timeout,
+		Transport: &http.Transport{
+			DialContext: func(ctx context.Context, _, _ string) (net.Conn, error) {
+				return (&net.Dialer{}).DialContext(ctx, "unix", socketPath)
+			},
+		},
+	}
+}
+
+// NewGraphRAGEmbedder builds an embedder dialing socketPath. An empty
+// socketPath falls back to the KNIRV_GRAPHRAG_SOCKET_PATH env var
+// (KNIRVSERVER honors the same variable), then the shared well-known
+// default, so both sides agree on a path without an explicit override in
+// most deployments.
+func NewGraphRAGEmbedder(socketPath string, dim int) *GraphRAGEmbedder {
+	if socketPath == "" {
+		socketPath = os.Getenv("KNIRV_GRAPHRAG_SOCKET_PATH")
+	}
+	if socketPath == "" {
+		socketPath = defaultGraphRAGSocketPath
 	}
 	if dim <= 0 {
 		dim = 128
 	}
+	timeout := 30 * time.Second
 	return &GraphRAGEmbedder{
-		endpoint: endpoint,
-		client: &http.Client{Timeout: 30 * time.Second},
-		cache:   NewEmbeddingCache(),
-		dimension: dim,
-		timeout:   30 * time.Second,
+		socketPath: socketPath,
+		client:     unixHTTPClient(socketPath, timeout),
+		cache:      NewEmbeddingCache(),
+		dimension:  dim,
+		timeout:    timeout,
 	}
 }
 
@@ -87,12 +125,12 @@ func (e *GraphRAGEmbedder) EmbedBatch(texts []string) ([][]float64, error) {
 		return nil, nil
 	}
 
-	body, err := json.Marshal(texts)
+	body, err := json.Marshal(map[string]interface{}{"texts": texts})
 	if err != nil {
 		return nil, fmt.Errorf("embed marshal: %w", err)
 	}
 
-	req, err := http.NewRequest("POST", e.endpoint+"/oracle/embed", bytes.NewReader(body))
+	req, err := http.NewRequest("POST", "http://unix/embed", bytes.NewReader(body))
 	if err != nil {
 		return nil, fmt.Errorf("embed request: %w", err)
 	}
@@ -100,9 +138,13 @@ func (e *GraphRAGEmbedder) EmbedBatch(texts []string) ([][]float64, error) {
 
 	resp, err := e.client.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("embed call: %w", err)
+		return nil, fmt.Errorf("embed call to graphrag socket %s: %w", e.socketPath, err)
 	}
 	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("embed call to graphrag socket %s returned %d", e.socketPath, resp.StatusCode)
+	}
 
 	var raw [][]float64
 	if err := json.NewDecoder(resp.Body).Decode(&raw); err != nil {

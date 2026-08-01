@@ -10,15 +10,15 @@ type GraphQuery struct {
 }
 
 type GraphResult struct {
-	ID        string      `json:"id"`
-	Query     string      `json:"query"`
-	Mode      string      `json:"mode"`
-	Nodes     []Node      `json:"nodes"`
-	Edges     []Edge      `json:"edges"`
-	Chunks    []Chunk     `json:"chunks"`
-	Summary   string      `json:"summary"`
-	Score     float64     `json:"score"`
-	Timestamp time.Time   `json:"timestamp"`
+	ID        string    `json:"id"`
+	Query     string    `json:"query"`
+	Mode      string    `json:"mode"`
+	Nodes     []Node    `json:"nodes"`
+	Edges     []Edge    `json:"edges"`
+	Chunks    []Chunk   `json:"chunks"`
+	Summary   string    `json:"summary"`
+	Score     float64   `json:"score"`
+	Timestamp time.Time `json:"timestamp"`
 }
 
 type Node struct {
@@ -55,24 +55,28 @@ type IndexStatus struct {
 }
 
 type ExtractionResult struct {
-	Entities      []ExtractedEntity      `json:"entities"`
+	Entities      []ExtractedEntity       `json:"entities"`
 	Relationships []ExtractedRelationship `json:"relationships"`
-	Chunks        []ExtractedChunk       `json:"chunks"`
+	Chunks        []ExtractedChunk        `json:"chunks"`
 }
 
 type ExtractedEntity struct {
 	ID         string                 `json:"id"`
 	Type       string                 `json:"type"`
+	EntityType string                 `json:"entity_type,omitempty"`
 	Name       string                 `json:"name"`
 	Properties map[string]interface{} `json:"properties"`
 }
 
 type ExtractedRelationship struct {
-	ID       string  `json:"id"`
-	SourceID string  `json:"source_id"`
-	TargetID string  `json:"target_id"`
-	Type     string  `json:"type"`
-	Weight   float64 `json:"weight"`
+	ID           string  `json:"id"`
+	SourceID     string  `json:"source_id"`
+	TargetID     string  `json:"target_id"`
+	Source       string  `json:"source,omitempty"`
+	Target       string  `json:"target,omitempty"`
+	Type         string  `json:"type"`
+	RelationType string  `json:"relation_type,omitempty"`
+	Weight       float64 `json:"weight"`
 }
 
 type ExtractedChunk struct {

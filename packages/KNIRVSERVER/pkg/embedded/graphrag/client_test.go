@@ -7,8 +7,13 @@ import (
 	"testing"
 )
 
+// testSocketPath is never dialed by these tests — every case here exercises
+// a validation path that returns before Client.post ever opens a
+// connection, so the path just needs to be syntactically present.
+const testSocketPath = "/tmp/graphrag-client-test.sock"
+
 func TestNewClient(t *testing.T) {
-	c := NewClient(nil)
+	c := NewClient(nil, testSocketPath)
 	if c == nil {
 		t.Fatal("expected non-nil client")
 	}
@@ -22,14 +27,14 @@ func TestNewClient(t *testing.T) {
 
 func TestNewClientWithLogger(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(os.Stderr, nil))
-	c := NewClient(logger)
+	c := NewClient(logger, testSocketPath)
 	if c.logger != logger {
 		t.Error("expected provided logger to be used")
 	}
 }
 
 func TestClientQueryNil(t *testing.T) {
-	c := NewClient(nil)
+	c := NewClient(nil, testSocketPath)
 	_, err := c.Query(context.Background(), "test-kb", nil)
 	if err == nil {
 		t.Fatal("expected error for nil query")
@@ -37,7 +42,7 @@ func TestClientQueryNil(t *testing.T) {
 }
 
 func TestClientQueryMissingIndex(t *testing.T) {
-	c := NewClient(nil)
+	c := NewClient(nil, testSocketPath)
 	q := &GraphQuery{Query: "test", Limit: 10}
 	_, err := c.Query(context.Background(), "missing-kb", q)
 	if err == nil || err.Error() != "index not found for knowledge base: missing-kb" {
@@ -46,7 +51,7 @@ func TestClientQueryMissingIndex(t *testing.T) {
 }
 
 func TestClientQueryBuildingStatus(t *testing.T) {
-	c := NewClient(nil)
+	c := NewClient(nil, testSocketPath)
 	c.mu.Lock()
 	c.indexes["test-kb"] = &Index{KBID: "test-kb", Status: "building"}
 	c.mu.Unlock()
@@ -59,7 +64,7 @@ func TestClientQueryBuildingStatus(t *testing.T) {
 }
 
 func TestClientBuildIndex(t *testing.T) {
-	c := NewClient(nil)
+	c := NewClient(nil, testSocketPath)
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
@@ -70,7 +75,7 @@ func TestClientBuildIndex(t *testing.T) {
 }
 
 func TestClientGetIndexStatusMissing(t *testing.T) {
-	c := NewClient(nil)
+	c := NewClient(nil, testSocketPath)
 	status, err := c.GetIndexStatus(context.Background(), "missing-kb")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -84,7 +89,7 @@ func TestClientGetIndexStatusMissing(t *testing.T) {
 }
 
 func TestClientGetIndexStatusReady(t *testing.T) {
-	c := NewClient(nil)
+	c := NewClient(nil, testSocketPath)
 	c.mu.Lock()
 	c.indexes["ready-kb"] = &Index{
 		KBID:        "ready-kb",
@@ -108,7 +113,7 @@ func TestClientGetIndexStatusReady(t *testing.T) {
 }
 
 func TestClientGetIndexStatusError(t *testing.T) {
-	c := NewClient(nil)
+	c := NewClient(nil, testSocketPath)
 	c.mu.Lock()
 	c.indexes["error-kb"] = &Index{
 		KBID:   "error-kb",
@@ -130,7 +135,7 @@ func TestClientGetIndexStatusError(t *testing.T) {
 }
 
 func TestClientIndexDocumentEmptyDocID(t *testing.T) {
-	c := NewClient(nil)
+	c := NewClient(nil, testSocketPath)
 	err := c.IndexDocument(context.Background(), "", []byte("content"))
 	if err == nil {
 		t.Fatal("expected error for empty docID")
@@ -138,7 +143,7 @@ func TestClientIndexDocumentEmptyDocID(t *testing.T) {
 }
 
 func TestClientIndexDocumentEmptyContent(t *testing.T) {
-	c := NewClient(nil)
+	c := NewClient(nil, testSocketPath)
 	err := c.IndexDocument(context.Background(), "test-doc", nil)
 	if err == nil {
 		t.Fatal("expected error for nil content")
@@ -146,7 +151,7 @@ func TestClientIndexDocumentEmptyContent(t *testing.T) {
 }
 
 func TestClientEmbedTextsEmpty(t *testing.T) {
-	c := NewClient(nil)
+	c := NewClient(nil, testSocketPath)
 	_, err := c.EmbedTexts(context.Background(), nil)
 	if err == nil {
 		t.Fatal("expected error for empty texts")
@@ -154,7 +159,7 @@ func TestClientEmbedTextsEmpty(t *testing.T) {
 }
 
 func TestClientClose(t *testing.T) {
-	c := NewClient(nil)
+	c := NewClient(nil, testSocketPath)
 	c.mu.Lock()
 	c.indexes["test"] = &Index{KBID: "test", Status: "ready"}
 	c.mu.Unlock()
