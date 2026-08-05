@@ -485,6 +485,60 @@ paths:
         '200':
           description: List of models
 
+  /oracle/v3/payment/checkout/create:
+    post:
+      tags:
+        - payments
+      summary: Create subscription-plan checkout session
+      description: |
+        Creates a Stripe Checkout Session for a KNIRV plan purchase —
+        subscription mode for professional/enterprise, one-time payment mode
+        for investor (the $50,000 Bootnode-operator package). Called by
+        onboarding.knirv.com through this public gateway hostname. Distinct
+        from /payment/api/create-checkout-session above, which is the
+        one-time mainnet token-purchase flow.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - plan
+                - sessionId
+              properties:
+                plan:
+                  type: string
+                  enum: [professional, enterprise, investor]
+                sessionId:
+                  type: string
+                  description: onboarding.knirv.com session ID, round-tripped in Stripe metadata
+                customerEmail:
+                  type: string
+                successUrl:
+                  type: string
+                cancelUrl:
+                  type: string
+      responses:
+        '200':
+          description: Checkout session created
+        '400':
+          description: Invalid request or payment processor not configured
+
+  /oracle/v3/payment/webhooks/stripe:
+    post:
+      tags:
+        - payments
+      summary: Stripe webhook receiver
+      description: |
+        Handles "checkout.session.completed" (confirms a plan purchase with
+        onboarding.knirv.com) and "charge.succeeded" (disburses NRN to the
+        wallet address in the charge's metadata). Configured as the Stripe
+        webhook endpoint URL.
+      responses:
+        '200':
+          description: Event processed
+
   # ========================================
   # KNIRVSERVER PLATFORM API ENDPOINTS
   # ========================================

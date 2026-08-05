@@ -113,6 +113,16 @@ type OracleConfig struct {
 	PaymentUSDPerToken      float64 `json:"payment_usd_per_token"`
 	PaymentETHPerToken      float64 `json:"payment_eth_per_token"`
 
+	// Subscription-plan checkout (KNIRV.COM Pro plan). See payment.Config for
+	// how these are used — this is a distinct flow from the fiat->NRN
+	// disbursement fields above.
+	StripeProfessionalPriceID    string `json:"stripe_professional_price_id,omitempty"`
+	StripeEnterprisePriceID      string `json:"stripe_enterprise_price_id,omitempty"`
+	StripeInvestorPriceID        string `json:"stripe_investor_price_id,omitempty"`
+	PaymentSuccessURL            string `json:"payment_success_url,omitempty"`
+	PaymentCancelURL             string `json:"payment_cancel_url,omitempty"`
+	PaymentOnboardingCallbackURL string `json:"payment_onboarding_callback_url,omitempty"`
+
 	// Storage configuration
 	DataDir   string `json:"data_dir"`
 	DBBackend string `json:"db_backend"`
@@ -265,14 +275,20 @@ func NewOracle(config *OracleConfig, logger *zap.Logger) (*Oracle, error) {
 	}
 
 	oracle.paymentProcessor = payment.NewProcessor(payment.Config{
-		Enabled:               config.PaymentProcessorEnabled,
-		StripeSecretKey:       config.StripeSecretKey,
-		StripeWebhookSecret:   config.StripeWebhookSecret,
-		CoinbaseAPIKey:        config.CoinbaseAPIKey,
-		CoinbaseWebhookSecret: config.CoinbaseWebhookSecret,
-		TokenDecimals:         config.PaymentTokenDecimals,
-		USDPerToken:           config.PaymentUSDPerToken,
-		ETHPerToken:           config.PaymentETHPerToken,
+		Enabled:                   config.PaymentProcessorEnabled,
+		StripeSecretKey:           config.StripeSecretKey,
+		StripeWebhookSecret:       config.StripeWebhookSecret,
+		CoinbaseAPIKey:            config.CoinbaseAPIKey,
+		CoinbaseWebhookSecret:     config.CoinbaseWebhookSecret,
+		TokenDecimals:             config.PaymentTokenDecimals,
+		USDPerToken:               config.PaymentUSDPerToken,
+		ETHPerToken:               config.PaymentETHPerToken,
+		StripeProfessionalPriceID: config.StripeProfessionalPriceID,
+		StripeEnterprisePriceID:   config.StripeEnterprisePriceID,
+		StripeInvestorPriceID:     config.StripeInvestorPriceID,
+		DefaultSuccessURL:         config.PaymentSuccessURL,
+		DefaultCancelURL:          config.PaymentCancelURL,
+		OnboardingCallbackURL:     config.PaymentOnboardingCallbackURL,
 	}, oracle, logger)
 
 	if err := os.MkdirAll(config.DataDir, 0755); err != nil {

@@ -122,6 +122,14 @@ func (r *OracleRoutes) RegisterRoutes(mux *http.ServeMux) {
 	// P-256-signed KNIRVCHAIN wallet path with the oracle's own secp256k1 mint.
 	mux.HandleFunc("/oracle/v3/payment/webhooks/stripe", r.oracle.GetPaymentProcessor().HandleStripeWebhook)
 
+	// Subscription-plan checkout (KNIRV.COM Pro plan). Public: reached by
+	// onboarding.knirv.com's browser-side JS through KNIRVGATEWAY's public
+	// hostnames (gateway.knirv.network / testnet-gateway.knirv.network),
+	// which proxy this path verbatim. Distinct from the disbursement webhook
+	// above — this creates the Stripe Checkout Session; the webhook above
+	// confirms it once Stripe redirects back.
+	mux.HandleFunc("/oracle/v3/payment/checkout/create", r.oracle.GetPaymentProcessor().HandleCreateCheckoutSession)
+
 	// Health and status
 	mux.HandleFunc("/oracle/v3/health", r.handleHealth)
 	mux.HandleFunc("/oracle/v3/status", r.handleStatus)

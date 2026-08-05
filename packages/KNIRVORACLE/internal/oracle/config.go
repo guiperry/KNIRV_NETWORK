@@ -205,6 +205,24 @@ func LoadConfigFromEnv() (*OracleConfig, error) {
 		}
 		config.PaymentETHPerToken = f
 	}
+	if v := os.Getenv("ORACLE_STRIPE_PROFESSIONAL_PRICE_ID"); v != "" {
+		config.StripeProfessionalPriceID = v
+	}
+	if v := os.Getenv("ORACLE_STRIPE_ENTERPRISE_PRICE_ID"); v != "" {
+		config.StripeEnterprisePriceID = v
+	}
+	if v := os.Getenv("ORACLE_STRIPE_INVESTOR_PRICE_ID"); v != "" {
+		config.StripeInvestorPriceID = v
+	}
+	if v := os.Getenv("ORACLE_PAYMENT_SUCCESS_URL"); v != "" {
+		config.PaymentSuccessURL = v
+	}
+	if v := os.Getenv("ORACLE_PAYMENT_CANCEL_URL"); v != "" {
+		config.PaymentCancelURL = v
+	}
+	if v := os.Getenv("ORACLE_PAYMENT_ONBOARDING_CALLBACK_URL"); v != "" {
+		config.PaymentOnboardingCallbackURL = v
+	}
 
 	return config, nil
 }
