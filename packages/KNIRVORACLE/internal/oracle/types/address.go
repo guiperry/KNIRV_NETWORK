@@ -1,17 +1,22 @@
 package types
 
 import (
-	"encoding/hex"
+	"encoding/json"
 	"fmt"
-	"strings"
+
+	knirvsigning "github.com/KNIRV/KNIRV_NETWORK/KNIRVSDK/go/signing"
 )
 
-// Address represents an Ethereum-style 20-byte address
+// Address is the canonical 20-byte KNIRV account identifier, rendered as
+// knirv-prefixed Bech32 on every external interface.
 type Address [20]byte
 
-// String returns the hex-encoded address with 0x prefix
 func (a Address) String() string {
-	return "0x" + hex.EncodeToString(a[:])
+	value, err := knirvsigning.EncodeAddress(a[:], knirvsigning.DefaultAddressPrefix)
+	if err != nil {
+		panic(err)
+	}
+	return value
 }
 
 // Bytes returns the address as a byte slice
@@ -29,15 +34,10 @@ func (a Address) IsZero() bool {
 	return true
 }
 
-// AddressFromString creates an Address from a hex string (with or without 0x prefix)
 func AddressFromString(s string) (Address, error) {
-	// Remove 0x prefix if present
-	s = strings.TrimPrefix(s, "0x")
-
-	// Decode hex string
-	bytes, err := hex.DecodeString(s)
+	bytes, err := knirvsigning.DecodeAddress(s, knirvsigning.DefaultAddressPrefix)
 	if err != nil {
-		return Address{}, fmt.Errorf("invalid hex string: %w", err)
+		return Address{}, fmt.Errorf("invalid KNIRV address: %w", err)
 	}
 
 	if len(bytes) != 20 {
@@ -47,6 +47,21 @@ func AddressFromString(s string) (Address, error) {
 	var addr Address
 	copy(addr[:], bytes)
 	return addr, nil
+}
+
+func (a Address) MarshalJSON() ([]byte, error) { return json.Marshal(a.String()) }
+
+func (a *Address) UnmarshalJSON(data []byte) error {
+	var encoded string
+	if err := json.Unmarshal(data, &encoded); err != nil {
+		return err
+	}
+	parsed, err := AddressFromString(encoded)
+	if err != nil {
+		return err
+	}
+	*a = parsed
+	return nil
 }
 
 // AddressFromBytes creates an Address from a byte slice

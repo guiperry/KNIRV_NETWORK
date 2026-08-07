@@ -4,9 +4,10 @@ import (
 	"crypto/ecdsa"
 	"encoding/hex"
 	"fmt"
+	"math"
+	"time"
 
-	"github.com/btcsuite/btcd/btcec/v2"
-	btcecsecp "github.com/btcsuite/btcd/btcec/v2/ecdsa"
+	knirvsigning "github.com/KNIRV/KNIRV_NETWORK/KNIRVSDK/go/signing"
 	"github.com/ethereum/go-ethereum/crypto"
 )
 
@@ -21,9 +22,10 @@ const CheckpointFinalityDepth = uint64(32)
 // PubKeyHex carries the signer's compressed secp256k1 public key (hex, no 0x
 // prefix) so the quorum can be verified without an out-of-band key lookup.
 type AuthorSig struct {
-	Address   string `json:"address"`    // oracle address (0x + keccak of uncompressed pubkey)
+	Address   string `json:"address"`    // canonical knirv Bech32 address
 	PubKeyHex string `json:"pubkey_hex"` // compressed secp256k1 pubkey, hex
-	Signature []byte `json:"signature"`  // 64-byte raw secp256k1 (r||s) over keccak256(digest hex)
+	Signature []byte `json:"signature"`  // Cosmos-compatible 64-byte r||s
+	Envelope  []byte `json:"envelope"`
 }
 
 // Checkpoint is the self-describing checkpoint object KNIRVCHAIN posts to the
@@ -93,16 +95,13 @@ func SignCheckpoint(c *Checkpoint, key *ecdsa.PrivateKey) error {
 	if key == nil {
 		return fmt.Errorf("nil private key")
 	}
-	sig, err := SignMessage(key, c.SignedMessage())
+	signed, err := signEnvelope(key, c.SignedMessage(), "chain-checkpoint", c.ChainID)
 	if err != nil {
 		return err
 	}
-	cpk := crypto.CompressPubkey(key.Public().(*ecdsa.PublicKey))
-	addr := OracleAddress(key.Public().(*ecdsa.PublicKey))
 	c.Signatures = append(c.Signatures, AuthorSig{
-		Address:   addr,
-		PubKeyHex: hex.EncodeToString(cpk),
-		Signature: sig,
+		Address: signed.Address, PubKeyHex: hex.EncodeToString(signed.PublicKey),
+		Signature: signed.Signature, Envelope: signed.Envelope,
 	})
 	return nil
 }
@@ -113,14 +112,8 @@ func (c *Checkpoint) VerifySignature(sig AuthorSig) bool {
 	if err != nil {
 		return false
 	}
-	pub, err := btcec.ParsePubKey(pubBytes)
-	if err != nil {
-		return false
-	}
-	if OracleAddress(pub.ToECDSA()) != sig.Address {
-		return false
-	}
-	return VerifyMessage(pub, c.SignedMessage(), sig.Signature)
+	signed := knirvsigning.SignedMessage{Envelope: sig.Envelope, Signature: sig.Signature, PublicKey: pubBytes, Address: sig.Address}
+	return knirvsigning.VerifyMessagePayload(signed, "knirv.chain", "chain-checkpoint", c.ChainID, []byte(c.SignedMessage()), time.Now()) == nil
 }
 
 // VerifyQuorum checks that the checkpoint carries valid, unique signatures from
@@ -152,34 +145,30 @@ func (c *Checkpoint) VerifyQuorum(authors map[string]bool, quorumNumer, quorumDe
 
 // SignMessage signs msg with the KNIRVCONTROLLER scheme: keccak256(utf8(msg))
 // with secp256k1, returning the 64-byte raw signature (r||s).
+func signEnvelope(key *ecdsa.PrivateKey, msg, purpose, chainID string) (knirvsigning.SignedMessage, error) {
+	now := time.Now().Unix()
+	return knirvsigning.SignMessage(crypto.FromECDSA(key), knirvsigning.MessageEnvelope{
+		Domain: "knirv.chain", Purpose: purpose, ChainID: chainID, Nonce: msg,
+		IssuedAtUnix: now, ExpiresAtUnix: math.MaxInt64, Payload: []byte(msg),
+	})
+}
+
 func SignMessage(key *ecdsa.PrivateKey, msg string) ([]byte, error) {
-	hash := crypto.Keccak256([]byte(msg))
-	full, err := crypto.Sign(hash, key) // 65 bytes: r||s||v
+	signed, err := signEnvelope(key, msg, "service-message", "knirv-1")
 	if err != nil {
 		return nil, err
 	}
-	return full[:64], nil
-}
-
-// VerifyMessage verifies a 64-byte raw secp256k1 signature over keccak256(msg).
-func VerifyMessage(pub *btcec.PublicKey, msg string, sig []byte) bool {
-	if len(sig) != 64 {
-		return false
-	}
-	hash := crypto.Keccak256([]byte(msg))
-	var r, s btcec.ModNScalar
-	r.SetByteSlice(sig[:32])
-	s.SetByteSlice(sig[32:64])
-	signature := btcecsecp.NewSignature(&r, &s)
-	return signature.Verify(hash, pub)
+	return signed.Signature, nil
 }
 
 // OracleAddress derives the controller's oracle address from a secp256k1 key:
 // 0x + keccak256(uncompressed pubkey without 0x04 prefix)[12:].
 func OracleAddress(pub *ecdsa.PublicKey) string {
-	unc := crypto.FromECDSAPub(pub) // 65 bytes, 0x04 prefix
-	sum := crypto.Keccak256(unc[1:])
-	return "0x" + hex.EncodeToString(sum[12:])
+	address, err := knirvsigning.Address(crypto.CompressPubkey(pub), knirvsigning.DefaultAddressPrefix)
+	if err != nil {
+		panic(err)
+	}
+	return address
 }
 
 func stripHexPrefix(s string) string {

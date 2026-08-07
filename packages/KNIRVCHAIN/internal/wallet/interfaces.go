@@ -13,18 +13,18 @@ type WalletManager interface {
 	LoadWallet(path string, password string) (*Wallet, error)
 	UnloadWallet(walletID string) error
 	DeleteWallet(walletID string) error
-	
+
 	// Wallet operations
 	GetWallet(walletID string) (*Wallet, error)
 	GetAllWallets() ([]*Wallet, error)
 	LockWallet(walletID string) error
 	UnlockWallet(walletID string, password string) error
-	
+
 	// Key management
 	GenerateAddress(walletID string) (*Address, error)
 	ImportPrivateKey(walletID string, privateKey string) (*Address, error)
 	ExportPrivateKey(walletID string, address string) (string, error)
-	
+
 	// Lifecycle
 	Start(ctx context.Context) error
 	Stop() error
@@ -37,16 +37,16 @@ type PaymentProcessor interface {
 	ProcessPayment(paymentID string) error
 	CancelPayment(paymentID string) error
 	RefundPayment(paymentID string, amount *big.Int) error
-	
+
 	// Payment queries
 	GetPayment(paymentID string) (*Payment, error)
 	GetPaymentsByWallet(walletID string) ([]*Payment, error)
 	GetPaymentHistory(walletID string, limit int) ([]*Payment, error)
-	
+
 	// Payment validation
 	ValidatePayment(payment *Payment) error
 	EstimateFee(payment *Payment) (*big.Int, error)
-	
+
 	// Event handling
 	OnPaymentCompleted(handler PaymentHandler) error
 	OnPaymentFailed(handler PaymentHandler) error
@@ -62,7 +62,7 @@ type TransactionBuilder interface {
 	SetFee(fee *big.Int) *TransactionBuilder
 	SetData(data []byte) *TransactionBuilder
 	SetNonce(nonce uint64) *TransactionBuilder
-	
+
 	// Transaction finalization
 	Build() (*Transaction, error)
 	Sign(privateKey string) (*Transaction, error)
@@ -75,7 +75,7 @@ type WalletServer interface {
 	Start(ctx context.Context) error
 	Stop() error
 	GetStatus() ServerStatus
-	
+
 	// API endpoints
 	HandleCreateWallet(request *CreateWalletRequest) (*CreateWalletResponse, error)
 	HandleSendTransaction(request *SendTransactionRequest) (*SendTransactionResponse, error)
@@ -89,11 +89,11 @@ type MasterWallet interface {
 	Initialize(seed string) error
 	DeriveWallet(index uint32) (*Wallet, error)
 	GetMasterKey() (string, error)
-	
+
 	// Hierarchical operations
 	DeriveAddress(walletIndex, addressIndex uint32) (*Address, error)
 	GetDerivationPath(walletIndex, addressIndex uint32) string
-	
+
 	// Backup and recovery
 	ExportSeed() (string, error)
 	ImportSeed(seed string) error
@@ -103,14 +103,14 @@ type MasterWallet interface {
 
 // Wallet represents a cryptocurrency wallet
 type Wallet struct {
-	ID        string     `json:"id"`
-	Name      string     `json:"name"`
-	Type      string     `json:"type"`
-	Addresses []*Address `json:"addresses"`
-	Balance   *big.Int   `json:"balance"`
-	Locked    bool       `json:"locked"`
-	CreatedAt time.Time  `json:"created_at"`
-	UpdatedAt time.Time  `json:"updated_at"`
+	ID        string                 `json:"id"`
+	Name      string                 `json:"name"`
+	Type      string                 `json:"type"`
+	Addresses []*Address             `json:"addresses"`
+	Balance   *big.Int               `json:"balance"`
+	Locked    bool                   `json:"locked"`
+	CreatedAt time.Time              `json:"created_at"`
+	UpdatedAt time.Time              `json:"updated_at"`
 	Metadata  map[string]interface{} `json:"metadata,omitempty"`
 }
 
@@ -127,17 +127,17 @@ type Address struct {
 
 // Payment represents a payment transaction
 type Payment struct {
-	ID          string    `json:"id"`
-	From        string    `json:"from"`
-	To          string    `json:"to"`
-	Amount      *big.Int  `json:"amount"`
-	Fee         *big.Int  `json:"fee"`
-	Currency    string    `json:"currency"`
-	Status      string    `json:"status"`
-	Description string    `json:"description,omitempty"`
-	CreatedAt   time.Time `json:"created_at"`
-	CompletedAt *time.Time `json:"completed_at,omitempty"`
-	TxHash      string    `json:"tx_hash,omitempty"`
+	ID          string                 `json:"id"`
+	From        string                 `json:"from"`
+	To          string                 `json:"to"`
+	Amount      *big.Int               `json:"amount"`
+	Fee         *big.Int               `json:"fee"`
+	Currency    string                 `json:"currency"`
+	Status      string                 `json:"status"`
+	Description string                 `json:"description,omitempty"`
+	CreatedAt   time.Time              `json:"created_at"`
+	CompletedAt *time.Time             `json:"completed_at,omitempty"`
+	TxHash      string                 `json:"tx_hash,omitempty"`
 	Metadata    map[string]interface{} `json:"metadata,omitempty"`
 }
 
@@ -153,25 +153,31 @@ type PaymentResult struct {
 
 // Transaction represents a blockchain transaction
 type Transaction struct {
-	ID        string    `json:"id"`
-	From      string    `json:"from"`
-	To        string    `json:"to"`
-	Amount    *big.Int  `json:"amount"`
-	Fee       *big.Int  `json:"fee"`
-	Nonce     uint64    `json:"nonce"`
-	Data      []byte    `json:"data,omitempty"`
-	Signature string    `json:"signature"`
-	Hash      string    `json:"hash"`
-	Timestamp time.Time `json:"timestamp"`
+	ID            string    `json:"id"`
+	From          string    `json:"from"`
+	To            string    `json:"to"`
+	Amount        *big.Int  `json:"amount"`
+	Fee           *big.Int  `json:"fee"`
+	Nonce         uint64    `json:"nonce"`
+	Data          []byte    `json:"data,omitempty"`
+	Signature     string    `json:"signature"`
+	Hash          string    `json:"hash"`
+	Timestamp     time.Time `json:"timestamp"`
+	ChainID       string    `json:"chain_id"`
+	AccountNumber uint64    `json:"account_number"`
+	BodyBytes     string    `json:"body_bytes"`
+	AuthInfoBytes string    `json:"auth_info_bytes"`
+	PublicKey     string    `json:"public_key"`
+	Signatures    []string  `json:"signatures"`
 }
 
 // ServerStatus represents the status of the wallet server
 type ServerStatus struct {
-	Running       bool      `json:"running"`
-	WalletCount   int       `json:"wallet_count"`
-	ActiveSessions int      `json:"active_sessions"`
-	LastActivity  time.Time `json:"last_activity"`
-	Version       string    `json:"version"`
+	Running        bool      `json:"running"`
+	WalletCount    int       `json:"wallet_count"`
+	ActiveSessions int       `json:"active_sessions"`
+	LastActivity   time.Time `json:"last_activity"`
+	Version        string    `json:"version"`
 }
 
 // WalletBackup represents a wallet backup
@@ -191,9 +197,9 @@ type CreateWalletRequest struct {
 }
 
 type CreateWalletResponse struct {
-	WalletID string   `json:"wallet_id"`
-	Address  string   `json:"address"`
-	Mnemonic string   `json:"mnemonic,omitempty"`
+	WalletID string `json:"wallet_id"`
+	Address  string `json:"address"`
+	Mnemonic string `json:"mnemonic,omitempty"`
 }
 
 type SendTransactionRequest struct {
@@ -207,9 +213,9 @@ type SendTransactionRequest struct {
 }
 
 type SendTransactionResponse struct {
-	TxHash    string   `json:"tx_hash"`
-	Status    string   `json:"status"`
-	Fee       *big.Int `json:"fee"`
+	TxHash    string    `json:"tx_hash"`
+	Status    string    `json:"status"`
+	Fee       *big.Int  `json:"fee"`
 	Timestamp time.Time `json:"timestamp"`
 }
 
@@ -219,7 +225,7 @@ type GetBalanceRequest struct {
 }
 
 type GetBalanceResponse struct {
-	Balance   *big.Int `json:"balance"`
+	Balance   *big.Int         `json:"balance"`
 	Addresses []AddressBalance `json:"addresses,omitempty"`
 }
 
@@ -242,11 +248,11 @@ type GetHistoryResponse struct {
 
 // Balance represents account balance information
 type Balance struct {
-	Address   string   `json:"address"`
-	Available *big.Int `json:"available"`
-	Pending   *big.Int `json:"pending"`
-	Total     *big.Int `json:"total"`
-	Currency  string   `json:"currency"`
+	Address   string    `json:"address"`
+	Available *big.Int  `json:"available"`
+	Pending   *big.Int  `json:"pending"`
+	Total     *big.Int  `json:"total"`
+	Currency  string    `json:"currency"`
 	UpdatedAt time.Time `json:"updated_at"`
 }
 
@@ -266,14 +272,14 @@ type WalletEventHandler func(event *WalletEvent) error
 
 // WalletConfig represents wallet configuration
 type WalletConfig struct {
-	DataDir           string        `json:"data_dir"`
-	NetworkType       string        `json:"network_type"`
-	DefaultFee        *big.Int      `json:"default_fee"`
-	MaxFee            *big.Int      `json:"max_fee"`
-	ConfirmationBlocks int          `json:"confirmation_blocks"`
-	AutoLockTimeout   time.Duration `json:"auto_lock_timeout"`
-	BackupEnabled     bool          `json:"backup_enabled"`
-	BackupInterval    time.Duration `json:"backup_interval"`
+	DataDir            string        `json:"data_dir"`
+	NetworkType        string        `json:"network_type"`
+	DefaultFee         *big.Int      `json:"default_fee"`
+	MaxFee             *big.Int      `json:"max_fee"`
+	ConfirmationBlocks int           `json:"confirmation_blocks"`
+	AutoLockTimeout    time.Duration `json:"auto_lock_timeout"`
+	BackupEnabled      bool          `json:"backup_enabled"`
+	BackupInterval     time.Duration `json:"backup_interval"`
 }
 
 // CryptoProvider defines the interface for cryptographic operations
@@ -288,13 +294,13 @@ type CryptoProvider interface {
 
 // Error types for wallet operations
 var (
-	ErrWalletNotFound     = NewWalletError("wallet not found")
-	ErrWalletLocked       = NewWalletError("wallet is locked")
-	ErrInsufficientFunds  = NewWalletError("insufficient funds")
-	ErrInvalidAddress     = NewWalletError("invalid address")
-	ErrInvalidPassword    = NewWalletError("invalid password")
-	ErrTransactionFailed  = NewWalletError("transaction failed")
-	ErrPaymentFailed      = NewWalletError("payment failed")
+	ErrWalletNotFound    = NewWalletError("wallet not found")
+	ErrWalletLocked      = NewWalletError("wallet is locked")
+	ErrInsufficientFunds = NewWalletError("insufficient funds")
+	ErrInvalidAddress    = NewWalletError("invalid address")
+	ErrInvalidPassword   = NewWalletError("invalid password")
+	ErrTransactionFailed = NewWalletError("transaction failed")
+	ErrPaymentFailed     = NewWalletError("payment failed")
 )
 
 // WalletError represents a wallet-specific error

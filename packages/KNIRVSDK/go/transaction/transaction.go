@@ -7,11 +7,11 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/cloud-equities/KNIRVCHAIN/sdk/go/transaction/internal/apijson"
-	"github.com/cloud-equities/KNIRVCHAIN/sdk/go/transaction/internal/requestconfig"
-	"github.com/cloud-equities/KNIRVCHAIN/sdk/go/transaction/option"
-	"github.com/cloud-equities/KNIRVCHAIN/sdk/go/transaction/packages/param"
-	"github.com/cloud-equities/KNIRVCHAIN/sdk/go/transaction/packages/respjson"
+	"github.com/guiperry/KNIRV_NETWORK/KNIRVSDK/go/transaction/internal/apijson"
+	"github.com/guiperry/KNIRV_NETWORK/KNIRVSDK/go/transaction/internal/requestconfig"
+	"github.com/guiperry/KNIRV_NETWORK/KNIRVSDK/go/transaction/option"
+	"github.com/guiperry/KNIRV_NETWORK/KNIRVSDK/go/transaction/packages/param"
+	"github.com/guiperry/KNIRV_NETWORK/KNIRVSDK/go/transaction/packages/respjson"
 )
 
 // TransactionService contains methods and other services that help with
@@ -46,6 +46,11 @@ func (r *TransactionService) Submit(ctx context.Context, body TransactionSubmitP
 }
 
 type Transaction struct {
+	BodyBytes     string   `json:"body_bytes"`
+	AuthInfoBytes string   `json:"auth_info_bytes"`
+	Signatures    []string `json:"signatures"`
+	ChainID       string   `json:"chain_id"`
+	AccountNumber string   `json:"account_number"`
 	// Transaction hash/ID.
 	ID string `json:"id,required"`
 	// NRN token gas fee paid for this transaction
@@ -110,6 +115,11 @@ func (r Transaction) ToParam() TransactionParam {
 // The properties ID, Fee, From, PublicKey, Signature, Timestamp, Type, Version are
 // required.
 type TransactionParam struct {
+	BodyBytes     string   `json:"body_bytes"`
+	AuthInfoBytes string   `json:"auth_info_bytes"`
+	Signatures    []string `json:"signatures"`
+	ChainID       string   `json:"chain_id"`
+	AccountNumber string   `json:"account_number"`
 	// Transaction hash/ID.
 	ID string `json:"id,required"`
 	// NRN token gas fee paid for this transaction

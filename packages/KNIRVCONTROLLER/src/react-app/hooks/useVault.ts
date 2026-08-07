@@ -1,12 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
+import type { MessageEnvelope } from '@knirv/sdk/signing';
 import { nativeStorage } from '@/react-app/platform/nativeStorage';
 import { impactMedium, notificationError } from '@/react-app/platform/haptics';
 import { DVEVault } from '@/shared/types';
 import { getVaultSession, updateVaultSession, type VaultStatus } from './vaultSession';
 
 const VAULT_STORAGE_KEY = 'knirv_vault';
-const DVE_DERIVATION_BASE_PATH = "m/44'/60'/1'/0/";
-
 export const useVault = () => {
   const vaultSession = getVaultSession();
   const [vault, setVault] = useState<any | null>(() => vaultSession.vault);
@@ -47,11 +46,15 @@ export const useVault = () => {
   }, [vault]);
 
   useEffect(() => {
-    if (currentAccount && typeof currentAccount.getOracleAddress === 'function') {
-      currentAccount.getOracleAddress().then(setOracleAddress).catch(() => setOracleAddress(null));
-    } else {
+    let cancelled = false;
+    if (!currentAccount || typeof currentAccount.getAddress !== 'function') {
       setOracleAddress(null);
+      return;
     }
+    Promise.resolve(currentAccount.getAddress('knirv'))
+      .then((address) => { if (!cancelled) setOracleAddress(address); })
+      .catch(() => { if (!cancelled) setOracleAddress(null); });
+    return () => { cancelled = true; };
   }, [currentAccount]);
 
   const createVault = useCallback(async (password: string): Promise<string> => {
@@ -147,10 +150,19 @@ export const useVault = () => {
     if (!vault || status !== 'unlocked') {
       throw new Error('Vault is locked or not initialized');
     }
-    const derivationPath = `${DVE_DERIVATION_BASE_PATH}${index}`;
+    if (!Number.isSafeInteger(index) || index < 0) {
+      throw new Error('DVE derivation index must be a non-negative integer');
+    }
+    const keyring = vault.defaultHDWalletKeyring;
+    if (!keyring || typeof keyring.getPublicKey !== 'function') {
+      throw new Error('DVE service keys require the controller HD wallet');
+    }
+    const { publicKeyToAddress } = await import('knirvwallet-module');
+    const publicKey = await keyring.getPublicKey(index);
+    const vaultAddress = await publicKeyToAddress(publicKey, 'knirv');
     const dveVault: DVEVault = {
       dveID, dveName,
-      vaultAddress: `${derivationPath}_${dveID.substring(0, 8)}`,
+      vaultAddress,
       derivationIndex: index, teeType, status: 'offline',
       stakeAmount: 0, reputationScore: 0, capabilities: [], attachedPolicies: [],
       badgeNFTIDs: [], supervisorAgentID: '',
@@ -183,7 +195,7 @@ export const useVault = () => {
     return vault.signTransaction(tx);
   }, [vault, status]);
 
-  const signMessage = useCallback(async (message: string): Promise<string> => {
+  const signMessage = useCallback(async (message: string | MessageEnvelope): Promise<string> => {
     if (!vault || status !== 'unlocked') {
       throw new Error('Vault is locked or not initialized');
     }

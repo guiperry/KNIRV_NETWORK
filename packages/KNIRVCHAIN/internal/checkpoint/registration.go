@@ -65,12 +65,11 @@ func NewSignedRegistration(chainID string, signers map[string]*ecdsa.PrivateKey)
 		if key == nil {
 			continue
 		}
-		sig, err := SignMessage(key, fmt.Sprintf("%x", digest))
+		signed, err := signEnvelope(key, fmt.Sprintf("%x", digest), "chain-registration", chainID)
 		if err != nil {
 			return nil, err
 		}
-		pub := key.Public().(*ecdsa.PublicKey)
-		reg.RotationSigs = append(reg.RotationSigs, AuthorSig{Address: OracleAddress(pub), PubKeyHex: hex.EncodeToString(crypto.CompressPubkey(pub)), Signature: sig})
+		reg.RotationSigs = append(reg.RotationSigs, AuthorSig{Address: signed.Address, PubKeyHex: hex.EncodeToString(signed.PublicKey), Signature: signed.Signature, Envelope: signed.Envelope})
 	}
 	return reg, nil
 }

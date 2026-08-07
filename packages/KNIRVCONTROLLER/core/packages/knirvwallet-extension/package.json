@@ -76,7 +76,7 @@
   },
   "dependencies": {
     "@bufbuild/protobuf": "2.2.3",
-    "@knirv/sdk": "file:../../../KNIRVSDK/ts/unified",
+    "@knirv/sdk": "file:../../../../KNIRVSDK/ts/unified",
     "@tanstack/react-query": "4.36.1",
     "axios": "1.7.9",
     "bignumber.js": "9.1.2",

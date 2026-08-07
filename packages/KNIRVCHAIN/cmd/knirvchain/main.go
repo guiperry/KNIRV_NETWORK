@@ -247,30 +247,6 @@ func Install(configPath string, bootnode bool, role interface{}, nonInteractive 
 	return installation.Install(configPath, bootnode, roleValue, nonInteractive, walletPath)
 }
 
-type FailoverManager struct {
-	// Placeholder
-}
-
-func (fm *FailoverManager) StartMonitoring() {
-	// Placeholder
-}
-
-func (fm *FailoverManager) StopMonitoring() {
-	// Placeholder
-}
-
-func NewFailoverManager(rootAPIURL string, cfg interface{}, configPath string, wm *wallet.WalletManagerImpl, w *wallet.WalletImpl, param interface{}, cancel interface{}) *FailoverManager {
-	return &FailoverManager{}
-}
-
-func SetGlobalFailoverManager(fm interface{}) {
-	// Placeholder
-}
-
-func GetGlobalFailoverManager() *FailoverManager {
-	return &FailoverManager{}
-}
-
 // Missing types and functions
 type GoReverseProxy = network.GoReverseProxy
 
@@ -329,32 +305,12 @@ func NewBlockchain(genesisBlock interface{}, chainID, minersAddress string, db *
 	return blockchain.NewBlockchain(blockGenesis, chainID, minersAddress, db, chromemMgr, searchablePath, cerebrasCfg)
 }
 
-// initPaymentProcessor is a no-op: KNIRVORACLE is the only component
-// permitted to disburse NRN. Fiat-webhook-triggered disbursement now lives in
-// KNIRVORACLE's internal/oracle/payment package, migrated from this
-// package's internal/wallet/payment_processor.go (deleted).
-func initPaymentProcessor(_ interface{}, _ *LevelDB, _ interface{}) (*PaymentProcessor, error) {
-	return &PaymentProcessor{}, nil
-}
-
 // WalletServer is provided by internal/wallet package; no placeholder here.
 
 type BlockchainServer = blockchain.BlockchainServer
 
 func NewBlockchainServer(port uint64, socketPath string, bc *BlockchainStruct, db *LevelDB, discoveryMgr p2p.DiscoveryService, p2pPort int) *BlockchainServer {
 	return blockchain.NewBlockchainServer(port, socketPath, bc, db, discoveryMgr, p2pPort)
-}
-
-type PaymentProcessor struct {
-	// Placeholder
-}
-
-func (pp *PaymentProcessor) Stop() error {
-	return nil
-}
-
-func HandleFailoverPromotion(configPath string, cfg interface{}, wm *wallet.WalletManagerImpl) error {
-	return nil
 }
 
 // getKeys returns a slice of keys from a map[string]interface{}
@@ -738,20 +694,32 @@ func main() {
 			}
 		}
 	} else {
-		// For Root role, skip wallet file operations
-
-		if cfg.MinersAddress == utils.BLOCKCHAIN_ADDRESS || cfg.MinersAddress == "_Faucet" {
-			log.Printf("Root: Configured MinersAddress ('%s') matches predefined blockchain identity. Using hardcoded private key from constants.go.", cfg.MinersAddress)
-			mainWallet = wallet.NewWalletFromPrivateKeyHex(utils.BLOCKCHAIN_PRIVATE_KEY)
-			if mainWallet.GetAddress() != utils.BLOCKCHAIN_ADDRESS {
-				log.Fatalf("FATAL: BLOCKCHAIN_PRIVATE_KEY in constants.go does not correspond to BLOCKCHAIN_ADDRESS. Expected %s, got %s. Please check constants.go.", utils.BLOCKCHAIN_ADDRESS, mainWallet.GetAddress())
-			}
-			log.Printf("[INFO] - Root: Successfully initialized wallet using hardcoded key for %s.", cfg.MinersAddress)
-		} else {
-			// Skip all wallet file operations for root role
-			log.Printf("Root: Skipping wallet file operations")
-			_ = wallet.NewWalletFromPrivateKeyHex(utils.BLOCKCHAIN_PRIVATE_KEY) // Still need a wallet instance
+		// Root is an unattended service. Its registered secp256k1 key must be
+		// provisioned explicitly and never compiled into the binary.
+		serviceKeyPath := strings.TrimSpace(os.Getenv("KNIRV_CHAIN_SERVICE_KEY_FILE"))
+		if serviceKeyPath == "" {
+			log.Fatal("FATAL: root role requires KNIRV_CHAIN_SERVICE_KEY_FILE")
 		}
+		info, err := os.Stat(serviceKeyPath)
+		if err != nil {
+			log.Fatalf("FATAL: stat chain service key: %v", err)
+		}
+		if info.Mode().Perm()&0077 != 0 {
+			log.Fatalf("FATAL: chain service key %s must not be accessible by group or others", serviceKeyPath)
+		}
+		keyBytes, err := os.ReadFile(serviceKeyPath)
+		if err != nil {
+			log.Fatalf("FATAL: read chain service key: %v", err)
+		}
+		mainWallet = wallet.NewWalletFromPrivateKeyHex(strings.TrimSpace(string(keyBytes)))
+		if mainWallet == nil {
+			log.Fatal("FATAL: KNIRV_CHAIN_SERVICE_KEY_FILE does not contain a valid secp256k1 private key")
+		}
+		if cfg.MinersAddress != "" && cfg.MinersAddress != mainWallet.GetAddress() {
+			log.Fatalf("FATAL: registered miner address %s does not match service key address %s", cfg.MinersAddress, mainWallet.GetAddress())
+		}
+		cfg.MinersAddress = mainWallet.GetAddress()
+		log.Printf("[INFO] - Root: loaded registered service wallet %s.", cfg.MinersAddress)
 		log.Printf("[INFO] - Root wallet setup process complete.")
 	}
 
@@ -932,34 +900,6 @@ func main() {
 
 	// Store cancel function and wait group in global variables for GUI access
 	// Note: These are declared in altgui.go and used for GUI coordination
-
-	// --- Initialize FailoverManager for Bootnode role ---
-	if nodeRole == config.RoleBootnode && cfg.IsBootnode {
-		// Initialize FailoverManager to monitor root node
-		var rootAPIURL string
-		if cfg.CurrentOracleNodeAPIURL != "" {
-			rootAPIURL = cfg.CurrentOracleNodeAPIURL
-		} else {
-			// Try to construct from root configuration if available
-			log.Println("[FailoverManager] No CurrentOracleNodeAPIURL configured, failover monitoring will be disabled")
-		}
-
-		if rootAPIURL != "" {
-			fm := NewFailoverManager(rootAPIURL, cfg, loadedConfigPath, wm, mainWallet, nil, cancel)
-			if fm != nil {
-				SetGlobalFailoverManager(fm)
-				log.Printf("[FailoverManager] Initialized for monitoring root at: %s", rootAPIURL)
-				// Start monitoring in a separate goroutine
-				go fm.StartMonitoring()
-				// Ensure cleanup on shutdown
-				defer func() {
-					if fm := GetGlobalFailoverManager(); fm != nil {
-						fm.StopMonitoring()
-					}
-				}()
-			}
-		}
-	}
 
 	// --- Declare variables needed for GUI pre-initialization ---
 	var guiNodeConfig *config.Config = nil // Which config is for the GUI node
@@ -1443,18 +1383,8 @@ func main() {
 		log.Printf("[%s] P2P disabled - skipping P2P Consensus Manager wait", guiNodeConfig.ChainID)
 	}
 
-	// Initialize payment processor if in root mode and enabled (moved outside the P2P check)
-	if guiNodeConfig != nil {
-		// Initialize payment processor if in root mode and enabled
-		if guiNodeConfig.IsRoot && guiNodeConfig.PaymentProcessor.Enabled {
-			var err error
-			_, err = initPaymentProcessor(guiNodeConfig, guiDB, nodeRole)
-			if err != nil {
-				log.Printf("[%s] Warning: Failed to initialize payment processor: %v", guiNodeConfig.ChainID, err)
-			} else {
-				log.Printf("[%s] Payment processor initialized successfully", guiNodeConfig.ChainID)
-			}
-		}
+	if guiNodeConfig != nil && guiNodeConfig.IsRoot && guiNodeConfig.PaymentProcessor.Enabled {
+		log.Printf("[%s] Payment processor configuration ignored: KNIRVORACLE owns payment settlement", guiNodeConfig.ChainID)
 	}
 
 	// Launch background update check — non-blocking, errors are logged and ignored.
@@ -1820,20 +1750,8 @@ func startNode(ctx context.Context, wg *sync.WaitGroup, cfg config.Config, role 
 			log.Printf("[%s][%s] Wallet server launch requested but ignored; KNIRVORACLE owns network wallet operations", role.String(), cfg.ChainID)
 		}
 
-		// 7. Payment processor (root mode only)
-		var paymentProcessor *PaymentProcessor
 		if cfg.IsRoot && cfg.PaymentProcessor.Enabled {
-			paymentProcessor, err = initPaymentProcessor(&cfg, db, role)
-			if err != nil {
-				log.Printf("[%s][%s] ERROR: Failed to initialize payment processor: %v", role.String(), cfg.ChainID, err)
-				return
-			}
-			defer func() {
-				log.Printf("[%s][%s] Stopping payment processor...", role.String(), cfg.ChainID)
-				if err := paymentProcessor.Stop(); err != nil {
-					log.Printf("[%s][%s] WARNING: Error stopping payment processor: %v", role.String(), cfg.ChainID, err)
-				}
-			}()
+			log.Printf("[%s][%s] Payment processor configuration ignored: KNIRVORACLE owns payment settlement", role.String(), cfg.ChainID)
 		}
 
 		// 8. Start blockchain HTTP server
@@ -2047,12 +1965,6 @@ func waitForShutdownSignal(cancel context.CancelFunc, wg *sync.WaitGroup, config
 
 	log.Println("All shutdown procedures completed.")
 
-	// Check if this was a failover-triggered shutdown and handle promotion
-	if err := HandleFailoverPromotion(configPath, cfg, wm); err != nil {
-		log.Printf("Failover promotion failed: %v", err)
-		log.Println("Exiting normally without promotion.")
-	}
-
 	log.Println("Exiting normally.")
 }
 
@@ -2062,14 +1974,17 @@ func integrateInferenceEngineWithDHT(discoveryMgr p2p.DiscoveryService) error {
 		return fmt.Errorf("discovery manager is not available")
 	}
 
-	// We can't access the underlying DHT/ctx for discovery manager from here,
-	// so defer metric sharing until the p2p package exposes a DHT PutValue helper.
-	// For now, simply log that we would integrate metrics sharing.
 	nodeID := discoveryMgr.GetPeerID()
-	metricsKey := fmt.Sprintf("/KNIRVCHAIN/inference-metrics/%s", nodeID)
-	log.Printf("Integrate inference engine with DHT - would use metrics key: %s", metricsKey)
-
-	// TODO: Implement actual DHT PutValue via exported discoveryManager method
+	if nodeID == "" {
+		return fmt.Errorf("discovery manager has no peer identity")
+	}
+	// Metrics are mutable and do not belong in immutable DHT value records.
+	// Announce the node as the provider; peers retrieve current metrics from
+	// its authenticated chain API.
+	if err := discoveryMgr.AnnounceGenericResource(nodeID, p2p.DiscoveryResourceTypeNRN); err != nil {
+		return fmt.Errorf("announce inference metrics provider: %w", err)
+	}
+	log.Printf("Published inference metrics provider %s through the KNIRV DHT", nodeID)
 	return nil
 }
 

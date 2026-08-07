@@ -3,9 +3,7 @@ package oracle
 import (
 	"bytes"
 	"crypto/ecdsa"
-	"encoding/hex"
 	"encoding/json"
-	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -152,15 +150,11 @@ func TestRollupProjectsToProvisionalCheckpoint(t *testing.T) {
 		Status:      types.RollupStatusSubmitted,
 		SubmittedAt: time.Now().UTC(),
 	}
-	sigBytes, err := types.SignMessage(key, fmt.Sprintf("%x", rec.Digest()))
+	sig, err := types.SignDigest(key, rec.Digest(), "rollup-submission", rec.ChainID)
 	if err != nil {
 		t.Fatalf("sign rollup: %v", err)
 	}
-	rec.Signatures = []types.AuthorSig{{
-		Address:   reg.Authors[0].Address,
-		PubKeyHex: hex.EncodeToString(reg.Authors[0].PubKey),
-		Signature: sigBytes,
-	}}
+	rec.Signatures = []types.AuthorSig{sig}
 	if err := oracleInst.SubmitRollup(rec); err != nil {
 		t.Fatalf("submit rollup: %v", err)
 	}

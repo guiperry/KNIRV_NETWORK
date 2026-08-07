@@ -2,6 +2,7 @@ package economics
 
 import (
 	"context"
+	"crypto/sha256"
 	"math/big"
 	"sync"
 	"time"
@@ -29,11 +30,16 @@ type EconomicsEngine struct {
 // NewEconomicsEngine creates a new economics engine
 func NewEconomicsEngine(nrnToken *token.NRN, logger *zap.Logger) *EconomicsEngine {
 	ctx, cancel := context.WithCancel(context.Background())
+	poolHash := sha256.Sum256([]byte("knirv.oracle.reward-pool.v1"))
+	rewardPool, err := types.AddressFromBytes(poolHash[:20])
+	if err != nil {
+		panic(err)
+	}
 
 	ee := &EconomicsEngine{
 		nrnToken:         nrnToken,
-		feeCollector:     NewFeeCollector(nrnToken, logger),
-		rewardManager:    NewRewardManager(nrnToken, logger),
+		feeCollector:     NewFeeCollector(nrnToken, rewardPool, logger),
+		rewardManager:    NewRewardManager(nrnToken, rewardPool, logger),
 		stakingManager:   NewStakingManager(nrnToken, logger),
 		burnTracker:      NewBurnTracker(logger),
 		metricsCollector: NewMetricsCollector(logger),
@@ -120,29 +126,22 @@ func (ee *EconomicsEngine) ProcessFee(from types.Address, feeType FeeType, amoun
 		return err
 	}
 
-	// Calculate burn and reward portions
-	burnConfig := ee.feeCollector.GetBurnConfig()
-	burnAmount := new(big.Int).Mul(amount, big.NewInt(int64(burnConfig.BurnPercentage*10000)))
-	burnAmount.Div(burnAmount, big.NewInt(10000))
-
-	rewardAmount := new(big.Int).Sub(amount, burnAmount)
-
 	// Track burn
-	if burnAmount.Cmp(big.NewInt(0)) > 0 {
-		ee.burnTracker.RecordBurn(from, burnAmount, string(feeType))
+	if receipt.Burned.Sign() > 0 {
+		ee.burnTracker.RecordBurn(from, receipt.Burned, string(feeType))
 	}
 
 	// Add to reward pool
-	if rewardAmount.Cmp(big.NewInt(0)) > 0 {
-		ee.rewardManager.AddToRewardPool(rewardAmount)
+	if receipt.Rewarded.Sign() > 0 {
+		ee.rewardManager.AddToRewardPool(receipt.Rewarded)
 	}
 
 	ee.logger.Debug("Fee processed",
 		zap.String("from", from.String()),
 		zap.String("type", string(feeType)),
 		zap.String("amount", amount.String()),
-		zap.String("burn", burnAmount.String()),
-		zap.String("reward", rewardAmount.String()),
+		zap.String("burn", receipt.Burned.String()),
+		zap.String("reward", receipt.Rewarded.String()),
 		zap.String("tx_hash", receipt.TxHash),
 	)
 

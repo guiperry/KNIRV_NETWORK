@@ -1,6 +1,7 @@
 package economics
 
 import (
+	"crypto/sha256"
 	"fmt"
 	"math/big"
 	"sync"
@@ -42,17 +43,19 @@ type RewardManager struct {
 	totalDistributed *big.Int
 	rewardHistory    []Reward
 	logger           *zap.Logger
+	escrowAddress    types.Address
 	mu               sync.RWMutex
 }
 
 // NewRewardManager creates a new reward manager
-func NewRewardManager(nrnToken *token.NRN, logger *zap.Logger) *RewardManager {
+func NewRewardManager(nrnToken *token.NRN, escrowAddress types.Address, logger *zap.Logger) *RewardManager {
 	return &RewardManager{
 		nrnToken:         nrnToken,
 		rewardPool:       big.NewInt(0),
 		totalDistributed: big.NewInt(0),
 		rewardHistory:    make([]Reward, 0),
 		logger:           logger,
+		escrowAddress:    escrowAddress,
 	}
 }
 
@@ -85,6 +88,9 @@ func (rm *RewardManager) DistributeRewards(stakers []Staker, totalAmount *big.In
 	// Calculate total stake
 	totalStake := big.NewInt(0)
 	for _, staker := range stakers {
+		if staker.Address.IsZero() || staker.StakedAmount == nil || staker.StakedAmount.Sign() < 0 {
+			return fmt.Errorf("invalid staker")
+		}
 		totalStake.Add(totalStake, staker.StakedAmount)
 	}
 
@@ -93,6 +99,7 @@ func (rm *RewardManager) DistributeRewards(stakers []Staker, totalAmount *big.In
 	}
 
 	// Distribute proportionally
+	distributed := big.NewInt(0)
 	for _, staker := range stakers {
 		// Calculate share: (staker_stake / total_stake) * total_amount
 		share := new(big.Int).Mul(staker.StakedAmount, totalAmount)
@@ -102,14 +109,9 @@ func (rm *RewardManager) DistributeRewards(stakers []Staker, totalAmount *big.In
 			continue // Skip if share rounds to zero
 		}
 
-		// Mint rewards (simplified - in production might transfer from pool)
-		receipt, err := rm.nrnToken.Mint(staker.Address, share)
+		err := rm.nrnToken.TransferBetween(rm.escrowAddress, staker.Address, share)
 		if err != nil {
-			rm.logger.Error("Failed to mint reward",
-				zap.String("recipient", staker.Address.String()),
-				zap.Error(err),
-			)
-			continue
+			return fmt.Errorf("transfer reward to %s: %w", staker.Address, err)
 		}
 
 		// Record reward
@@ -118,10 +120,11 @@ func (rm *RewardManager) DistributeRewards(stakers []Staker, totalAmount *big.In
 			Amount:    share,
 			Type:      RewardTypeStaking,
 			Timestamp: time.Now(),
-			TxHash:    receipt.TransactionHash,
+			TxHash:    rewardTransactionHash(rm.escrowAddress, staker.Address, share),
 		}
 		rm.rewardHistory = append(rm.rewardHistory, reward)
 		rm.totalDistributed.Add(rm.totalDistributed, share)
+		distributed.Add(distributed, share)
 
 		rm.logger.Debug("Reward distributed",
 			zap.String("recipient", staker.Address.String()),
@@ -130,7 +133,7 @@ func (rm *RewardManager) DistributeRewards(stakers []Staker, totalAmount *big.In
 	}
 
 	// Deduct from pool
-	rm.rewardPool.Sub(rm.rewardPool, totalAmount)
+	rm.rewardPool.Sub(rm.rewardPool, distributed)
 
 	rm.logger.Info("Rewards distributed",
 		zap.String("total_amount", totalAmount.String()),
@@ -153,10 +156,12 @@ func (rm *RewardManager) DistributeReward(recipient types.Address, amount *big.I
 		return fmt.Errorf("insufficient reward pool balance")
 	}
 
-	// Mint reward
-	receipt, err := rm.nrnToken.Mint(recipient, amount)
+	if recipient.IsZero() {
+		return fmt.Errorf("reward recipient is required")
+	}
+	err := rm.nrnToken.TransferBetween(rm.escrowAddress, recipient, amount)
 	if err != nil {
-		return fmt.Errorf("failed to mint reward: %w", err)
+		return fmt.Errorf("failed to transfer reward: %w", err)
 	}
 
 	// Record reward
@@ -165,7 +170,7 @@ func (rm *RewardManager) DistributeReward(recipient types.Address, amount *big.I
 		Amount:    new(big.Int).Set(amount),
 		Type:      rewardType,
 		Timestamp: time.Now(),
-		TxHash:    receipt.TransactionHash,
+		TxHash:    rewardTransactionHash(rm.escrowAddress, recipient, amount),
 	}
 	rm.rewardHistory = append(rm.rewardHistory, reward)
 	rm.totalDistributed.Add(rm.totalDistributed, amount)
@@ -178,6 +183,11 @@ func (rm *RewardManager) DistributeReward(recipient types.Address, amount *big.I
 	)
 
 	return nil
+}
+
+func rewardTransactionHash(from, to types.Address, amount *big.Int) string {
+	digest := sha256.Sum256([]byte(fmt.Sprintf("reward:%s:%s:%s", from, to, amount)))
+	return fmt.Sprintf("%X", digest)
 }
 
 // GetRewardPoolBalance returns the current reward pool balance

@@ -1,15 +1,21 @@
 package routes
 
 import (
+	"bytes"
+	"crypto/sha256"
+	"crypto/subtle"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"math/big"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
+	signing "github.com/KNIRV/KNIRV_NETWORK/KNIRVSDK/go/signing"
 	"github.com/knirvcorp/knirvoracle/internal/oracle"
 	"github.com/knirvcorp/knirvoracle/internal/oracle/crosschain"
 	"github.com/knirvcorp/knirvoracle/internal/oracle/governance"
@@ -20,15 +26,18 @@ import (
 
 // OracleRoutes provides HTTP handlers for oracle endpoints
 type OracleRoutes struct {
-	oracle *oracle.Oracle
-	logger *zap.Logger
+	oracle         *oracle.Oracle
+	logger         *zap.Logger
+	mintMu         sync.Mutex
+	usedMintNonces map[string]time.Time
 }
 
 // NewOracleRoutes creates a new oracle routes handler
 func NewOracleRoutes(oracleInstance *oracle.Oracle, logger *zap.Logger) *OracleRoutes {
 	return &OracleRoutes{
-		oracle: oracleInstance,
-		logger: logger,
+		oracle:         oracleInstance,
+		logger:         logger,
+		usedMintNonces: make(map[string]time.Time),
 	}
 }
 
@@ -197,8 +206,9 @@ func (r *OracleRoutes) handleTokenMint(w http.ResponseWriter, req *http.Request)
 	}
 
 	var mintReq struct {
-		To     string `json:"to"`
-		Amount string `json:"amount"`
+		To        string `json:"to"`
+		Amount    string `json:"amount"`
+		Signature string `json:"signature"`
 	}
 
 	if err := json.NewDecoder(req.Body).Decode(&mintReq); err != nil {
@@ -213,13 +223,57 @@ func (r *OracleRoutes) handleTokenMint(w http.ResponseWriter, req *http.Request)
 	}
 
 	amount, ok := new(big.Int).SetString(mintReq.Amount, 10)
-	if !ok {
+	if !ok || amount.Sign() <= 0 {
 		http.Error(w, "Invalid amount", http.StatusBadRequest)
 		return
 	}
+	registeredMinter := strings.TrimSpace(os.Getenv("KNIRV_ORACLE_MINTER_ADDRESS"))
+	if registeredMinter == "" {
+		http.Error(w, "Oracle mint service is not configured", http.StatusServiceUnavailable)
+		return
+	}
+	var signed signing.SignedMessage
+	if err := json.Unmarshal([]byte(mintReq.Signature), &signed); err != nil {
+		http.Error(w, "Invalid canonical mint authorization", http.StatusBadRequest)
+		return
+	}
+	envelope, err := signing.ParseMessageEnvelope(signed.Envelope)
+	if err != nil || envelope.Domain != "knirv.oracle" || envelope.Purpose != "token-mint" || signed.Address != registeredMinter {
+		http.Error(w, "Invalid mint authorization domain or signer", http.StatusUnauthorized)
+		return
+	}
+	chainID := r.oracle.ChainID()
+	if err := signing.VerifyMessage(signed, "knirv.oracle", "token-mint", chainID, envelope.Nonce, time.Now()); err != nil {
+		http.Error(w, "Invalid or expired mint authorization", http.StatusUnauthorized)
+		return
+	}
+	payload, _ := json.Marshal(struct {
+		To     string `json:"to"`
+		Amount string `json:"amount"`
+	}{toAddr.String(), amount.String()})
+	if !bytes.Equal(payload, envelope.Payload) {
+		http.Error(w, "Mint authorization payload mismatch", http.StatusUnauthorized)
+		return
+	}
+	r.mintMu.Lock()
+	for nonce, expiry := range r.usedMintNonces {
+		if time.Now().After(expiry) {
+			delete(r.usedMintNonces, nonce)
+		}
+	}
+	if _, exists := r.usedMintNonces[envelope.Nonce]; exists {
+		r.mintMu.Unlock()
+		http.Error(w, "Mint authorization was already used", http.StatusConflict)
+		return
+	}
+	r.usedMintNonces[envelope.Nonce] = time.Unix(envelope.ExpiresAtUnix, 0)
+	r.mintMu.Unlock()
 
 	receipt, err := r.oracle.GetNRNToken().Mint(toAddr, amount)
 	if err != nil {
+		r.mintMu.Lock()
+		delete(r.usedMintNonces, envelope.Nonce)
+		r.mintMu.Unlock()
 		http.Error(w, fmt.Sprintf("Mint failed: %v", err), http.StatusInternalServerError)
 		return
 	}
@@ -232,37 +286,7 @@ func (r *OracleRoutes) handleTokenTransfer(w http.ResponseWriter, req *http.Requ
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
-
-	var transferReq struct {
-		FromPrivateKey string `json:"from_private_key"`
-		To             string `json:"to"`
-		Amount         string `json:"amount"`
-	}
-
-	if err := json.NewDecoder(req.Body).Decode(&transferReq); err != nil {
-		http.Error(w, fmt.Sprintf("Invalid request: %v", err), http.StatusBadRequest)
-		return
-	}
-
-	toAddr, err := types.AddressFromString(transferReq.To)
-	if err != nil {
-		http.Error(w, fmt.Sprintf("Invalid to address: %v", err), http.StatusBadRequest)
-		return
-	}
-
-	amount, ok := new(big.Int).SetString(transferReq.Amount, 10)
-	if !ok {
-		http.Error(w, "Invalid amount", http.StatusBadRequest)
-		return
-	}
-
-	receipt, err := r.oracle.GetNRNToken().Transfer(transferReq.FromPrivateKey, toAddr, amount)
-	if err != nil {
-		http.Error(w, fmt.Sprintf("Transfer failed: %v", err), http.StatusInternalServerError)
-		return
-	}
-
-	respondJSON(w, http.StatusOK, receipt)
+	http.Error(w, "private-key transfer is disabled; use /oracle/v3/token/transfer/signed with KNIRVCONTROLLER", http.StatusGone)
 }
 
 func (r *OracleRoutes) handleTokenTransferSigned(w http.ResponseWriter, req *http.Request) {
@@ -299,13 +323,13 @@ func (r *OracleRoutes) handleTokenTransferSigned(w http.ResponseWriter, req *htt
 		http.Error(w, "Invalid amount", http.StatusBadRequest)
 		return
 	}
-	signature, err := decodeHexBytes(transferReq.Signature)
-	if err != nil {
+	var signed signing.SignedMessage
+	if err := json.Unmarshal([]byte(transferReq.Signature), &signed); err != nil {
 		http.Error(w, fmt.Sprintf("Invalid signature: %v", err), http.StatusBadRequest)
 		return
 	}
 
-	receipt, err := r.oracle.GetNRNToken().TransferSigned(fromAddr, toAddr, amount, transferReq.Nonce, signature)
+	receipt, err := r.oracle.GetNRNToken().TransferSigned(fromAddr, toAddr, amount, transferReq.Nonce, signed)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("Transfer failed: %v", err), http.StatusBadRequest)
 		return
@@ -319,31 +343,7 @@ func (r *OracleRoutes) handleTokenBurn(w http.ResponseWriter, req *http.Request)
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
-
-	var burnReq struct {
-		PrivateKey string `json:"private_key"`
-		Amount     string `json:"amount"`
-		Reason     string `json:"reason"`
-	}
-
-	if err := json.NewDecoder(req.Body).Decode(&burnReq); err != nil {
-		http.Error(w, fmt.Sprintf("Invalid request: %v", err), http.StatusBadRequest)
-		return
-	}
-
-	amount, ok := new(big.Int).SetString(burnReq.Amount, 10)
-	if !ok {
-		http.Error(w, "Invalid amount", http.StatusBadRequest)
-		return
-	}
-
-	receipt, err := r.oracle.GetNRNToken().Burn(burnReq.PrivateKey, amount, burnReq.Reason)
-	if err != nil {
-		http.Error(w, fmt.Sprintf("Burn failed: %v", err), http.StatusInternalServerError)
-		return
-	}
-
-	respondJSON(w, http.StatusOK, receipt)
+	http.Error(w, "private-key burn is disabled; use /oracle/v3/token/burn/signed with KNIRVCONTROLLER", http.StatusGone)
 }
 
 func (r *OracleRoutes) handleTokenBurnSigned(w http.ResponseWriter, req *http.Request) {
@@ -375,13 +375,13 @@ func (r *OracleRoutes) handleTokenBurnSigned(w http.ResponseWriter, req *http.Re
 		http.Error(w, "Invalid amount", http.StatusBadRequest)
 		return
 	}
-	signature, err := decodeHexBytes(burnReq.Signature)
-	if err != nil {
+	var signed signing.SignedMessage
+	if err := json.Unmarshal([]byte(burnReq.Signature), &signed); err != nil {
 		http.Error(w, fmt.Sprintf("Invalid signature: %v", err), http.StatusBadRequest)
 		return
 	}
 
-	receipt, err := r.oracle.GetNRNToken().BurnSigned(fromAddr, amount, burnReq.Reason, burnReq.Nonce, signature)
+	receipt, err := r.oracle.GetNRNToken().BurnSigned(fromAddr, amount, burnReq.Reason, burnReq.Nonce, signed)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("Burn failed: %v", err), http.StatusBadRequest)
 		return
@@ -399,21 +399,53 @@ func (r *OracleRoutes) handleProposals(w http.ResponseWriter, req *http.Request)
 		respondJSON(w, http.StatusOK, proposals)
 
 	case http.MethodPost:
-		var propReq governance.ProposalRequest
-		if err := json.NewDecoder(req.Body).Decode(&propReq); err != nil {
+		var submit struct {
+			Proposal  governance.ProposalRequest `json:"proposal"`
+			Deposit   string                     `json:"deposit"`
+			Nonce     uint64                     `json:"nonce"`
+			Signature string                     `json:"signature"`
+		}
+		if err := json.NewDecoder(req.Body).Decode(&submit); err != nil {
 			http.Error(w, fmt.Sprintf("Invalid request: %v", err), http.StatusBadRequest)
 			return
 		}
-
-		// Parse deposit from query param
-		depositStr := req.URL.Query().Get("deposit")
-		deposit, ok := new(big.Int).SetString(depositStr, 10)
-		if !ok {
-			deposit = big.NewInt(100000000) // Default deposit
+		deposit, ok := new(big.Int).SetString(submit.Deposit, 10)
+		if !ok || deposit.Sign() <= 0 {
+			http.Error(w, "Invalid positive deposit", http.StatusBadRequest)
+			return
+		}
+		if err := r.oracle.GetGovernanceSystem().ValidateProposal(&submit.Proposal, deposit); err != nil {
+			http.Error(w, fmt.Sprintf("Invalid proposal: %v", err), http.StatusBadRequest)
+			return
+		}
+		authorizationPayload, err := json.Marshal(struct {
+			Proposal governance.ProposalRequest `json:"proposal"`
+			Deposit  string                     `json:"deposit"`
+			Nonce    uint64                     `json:"nonce"`
+		}{submit.Proposal, submit.Deposit, submit.Nonce})
+		if err != nil {
+			http.Error(w, "Failed to encode proposal authorization", http.StatusInternalServerError)
+			return
+		}
+		var signed signing.SignedMessage
+		if err := json.Unmarshal([]byte(submit.Signature), &signed); err != nil {
+			http.Error(w, fmt.Sprintf("Invalid signature: %v", err), http.StatusBadRequest)
+			return
+		}
+		escrowHash := sha256.Sum256([]byte("knirv.oracle.governance.deposit"))
+		escrow, _ := types.AddressFromBytes(escrowHash[:20])
+		if err := r.oracle.GetNRNToken().LockGovernanceDeposit(submit.Proposal.Proposer, escrow, deposit, submit.Nonce, authorizationPayload, signed); err != nil {
+			http.Error(w, fmt.Sprintf("Failed to lock proposal deposit: %v", err), http.StatusUnauthorized)
+			return
 		}
 
-		proposal, err := r.oracle.GetGovernanceSystem().CreateProposal(&propReq, deposit)
+		proposal, err := r.oracle.GetGovernanceSystem().CreateProposal(&submit.Proposal, deposit)
 		if err != nil {
+			// Creation can still fail due to entropy or a concurrent parameter
+			// update. Restore funds; the consumed nonce remains replay-safe.
+			if refundErr := r.oracle.GetNRNToken().TransferBetween(escrow, submit.Proposal.Proposer, deposit); refundErr != nil {
+				r.logger.Error("failed to refund governance deposit", zap.Error(refundErr), zap.String("proposer", submit.Proposal.Proposer.String()))
+			}
 			http.Error(w, fmt.Sprintf("Failed to create proposal: %v", err), http.StatusInternalServerError)
 			return
 		}
@@ -451,7 +483,7 @@ func (r *OracleRoutes) handleVote(w http.ResponseWriter, req *http.Request) {
 		ProposalID string `json:"proposal_id"`
 		Voter      string `json:"voter"`
 		Option     int    `json:"option"`
-		PrivateKey string `json:"private_key"`
+		Signature  string `json:"signature"`
 	}
 
 	if err := json.NewDecoder(req.Body).Decode(&voteReq); err != nil {
@@ -471,7 +503,12 @@ func (r *OracleRoutes) handleVote(w http.ResponseWriter, req *http.Request) {
 		Option:     governance.VoteOption(voteReq.Option),
 	}
 
-	vote, err := r.oracle.GetGovernanceSystem().CastVote(govVoteReq, voteReq.PrivateKey)
+	var signed signing.SignedMessage
+	if err := json.Unmarshal([]byte(voteReq.Signature), &signed); err != nil {
+		http.Error(w, fmt.Sprintf("Invalid signature: %v", err), http.StatusBadRequest)
+		return
+	}
+	vote, err := r.oracle.GetGovernanceSystem().CastVote(govVoteReq, signed)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("Failed to cast vote: %v", err), http.StatusInternalServerError)
 		return
@@ -1069,6 +1106,12 @@ func (r *OracleRoutes) handleSubmitAttestation(w http.ResponseWriter, req *http.
 func (r *OracleRoutes) handleRegisterVerifier(w http.ResponseWriter, req *http.Request) {
 	if req.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	registrationToken := strings.TrimSpace(os.Getenv("KNIRV_VERIFIER_REGISTRATION_TOKEN"))
+	suppliedToken := strings.TrimPrefix(req.Header.Get("Authorization"), "Bearer ")
+	if registrationToken == "" || subtle.ConstantTimeCompare([]byte(suppliedToken), []byte(registrationToken)) != 1 {
+		respondJSON(w, http.StatusForbidden, map[string]interface{}{"error": "verifier registration requires an explicitly configured operator token"})
 		return
 	}
 	var body struct {

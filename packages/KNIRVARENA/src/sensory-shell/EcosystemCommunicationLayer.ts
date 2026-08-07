@@ -176,7 +176,7 @@ export class EcosystemCommunicationLayer extends EventEmitter {
       this.registerEndpoint({
         id: 'knirv-chain',
         name: 'KNIRV-CHAIN',
-        url: 'http://localhost:8080',
+        url: `${(import.meta.env.VITE_KNIRV_GATEWAY_URL || 'https://gateway.knirv.network').replace(/\/$/, '')}/api/chain`,
         protocol: 'http',
         authentication: { type: 'none' },
         healthCheckPath: '/status',

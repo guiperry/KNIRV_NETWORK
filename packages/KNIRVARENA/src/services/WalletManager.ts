@@ -49,8 +49,8 @@ export class WalletManager {
 
   constructor(config?: XionMetaAccountConfig, storage?: StorageInterface) {
     this.config = config || {
-      rpcEndpoint: 'https://rpc.xion-testnet-1.burnt.com:443',
-      chainId: 'xion-testnet-1'
+      rpcEndpoint: 'https://rpc.xion-testnet-2.burnt.com:443',
+      chainId: 'xion-testnet-2'
     };
     this.storage = storage || new MemoryStorage();
   }

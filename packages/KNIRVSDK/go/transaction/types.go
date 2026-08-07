@@ -1,86 +1,116 @@
 package transaction
 
 import (
-	"crypto/ecdsa"
-	"crypto/elliptic"
-	"crypto/rand"
+	"encoding/base64"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"strconv"
+	"strings"
+
+	knirvsigning "github.com/KNIRV/KNIRV_NETWORK/KNIRVSDK/go/signing"
+	"github.com/decred/dcrd/dcrec/secp256k1/v4"
 )
 
-// Wallet represents a blockchain wallet with its associated keys and address
+// Wallet is an explicitly provisioned unattended service identity. User
+// wallets are held and approved by KNIRVCONTROLLER and must not be generated
+// inside a headless SDK process.
 type Wallet struct {
 	address    string
-	publicKey  *ecdsa.PublicKey
-	privateKey *ecdsa.PrivateKey
+	privateKey []byte
+	publicKey  []byte
 }
 
-// GetAddress returns the wallet's address
-func (w *Wallet) GetAddress() string {
-	return w.address
+func (w *Wallet) GetAddress() string { return w.address }
+
+func (w *Wallet) GetPublicKeyHex() string { return hex.EncodeToString(w.publicKey) }
+
+// NewWallet is retained only to fail closed for callers of the obsolete API.
+func NewWallet() (*Wallet, error) {
+	return nil, errors.New("implicit wallet generation is disabled; use KNIRVCONTROLLER for user custody or NewServiceWallet with a registered service key")
 }
 
-// GetPublicKeyHex returns the wallet's public key in hexadecimal format
-func (w *Wallet) GetPublicKeyHex() string {
-	if w.publicKey == nil {
-		return ""
+// NewServiceWallet loads an operator-provisioned secp256k1 key and requires
+// its canonical address to match the address registered for that service.
+func NewServiceWallet(privateKeyHex, registeredAddress string) (*Wallet, error) {
+	raw, err := hex.DecodeString(strings.TrimPrefix(strings.TrimSpace(privateKeyHex), "0x"))
+	if err != nil || len(raw) != 32 {
+		return nil, errors.New("service private key must be 32-byte hex")
 	}
-	return hex.EncodeToString(elliptic.Marshal(w.publicKey.Curve, w.publicKey.X, w.publicKey.Y))
-}
-
-// SignTransaction signs a transaction using the wallet's private key
-func (w *Wallet) SignTransaction(txn *Transaction) error {
-	if w.privateKey == nil {
-		return errors.New("private key not available")
+	key := secp256k1.PrivKeyFromBytes(raw)
+	if key.Key.IsZero() {
+		return nil, errors.New("service private key cannot be zero")
 	}
-
-	// Create the message to sign (transaction data)
-	message := fmt.Sprintf("%s%s%s%s%d%s%d",
-		txn.From,
-		txn.To,
-		txn.Value,
-		txn.Type,
-		txn.Timestamp,
-		txn.Fee,
-		txn.Version,
-	)
-
-	// Sign the message
-	r, s, err := ecdsa.Sign(rand.Reader, w.privateKey, []byte(message))
+	pub := key.PubKey().SerializeCompressed()
+	address, err := knirvsigning.Address(pub, knirvsigning.DefaultAddressPrefix)
 	if err != nil {
-		return fmt.Errorf("failed to sign transaction: %w", err)
+		return nil, err
 	}
+	if registeredAddress == "" || address != registeredAddress {
+		return nil, fmt.Errorf("service key address %s does not match registered address %s", address, registeredAddress)
+	}
+	return &Wallet{address: address, privateKey: append([]byte(nil), raw...), publicKey: pub}, nil
+}
 
-	// Encode the signature
-	signature := append(r.Bytes(), s.Bytes()...)
-	txn.Signature = hex.EncodeToString(signature)
-	txn.PublicKey = w.GetPublicKeyHex()
-
+// SignTransaction applies KNIRV's canonical Cosmos SIGN_MODE_DIRECT wire
+// contract and writes the complete TxRaw components into txn.
+func (w *Wallet) SignTransaction(txn *Transaction, chainID string, accountNumber, sequence uint64) error {
+	if w == nil || len(w.privateKey) != 32 {
+		return errors.New("registered service private key is not available")
+	}
+	if txn == nil {
+		return errors.New("transaction is required")
+	}
+	if txn.From != "" && txn.From != w.address {
+		return errors.New("transaction sender does not match service key")
+	}
+	amount, err := strconv.ParseUint(defaultDecimal(txn.Value), 10, 64)
+	if err != nil {
+		return fmt.Errorf("invalid transaction value: %w", err)
+	}
+	fee, err := strconv.ParseUint(defaultDecimal(txn.Fee), 10, 64)
+	if err != nil {
+		return fmt.Errorf("invalid transaction fee: %w", err)
+	}
+	var payload []byte
+	if txn.Data != nil {
+		payload, err = json.Marshal(txn.Data)
+		if err != nil {
+			return fmt.Errorf("marshal transaction payload: %w", err)
+		}
+	}
+	signed, err := knirvsigning.SignTransaction(w.privateKey, knirvsigning.SignRequest{
+		Action: knirvsigning.Action{
+			Action: txn.Type, Sender: w.address, Recipient: txn.To,
+			Amount: amount, Payload: payload, TimestampUnix: txn.Timestamp,
+		},
+		ChainID: chainID, AccountNumber: accountNumber, Sequence: sequence,
+		Fee: knirvsigning.Fee{Denom: "uknirv", Amount: strconv.FormatUint(fee, 10)},
+	})
+	if err != nil {
+		return err
+	}
+	txn.From = w.address
+	txn.BodyBytes = base64.StdEncoding.EncodeToString(signed.BodyBytes)
+	txn.AuthInfoBytes = base64.StdEncoding.EncodeToString(signed.AuthInfoBytes)
+	txn.Signatures = []string{base64.StdEncoding.EncodeToString(signed.Signatures[0])}
+	txn.Signature = txn.Signatures[0]
+	txn.PublicKey = base64.StdEncoding.EncodeToString(signed.PublicKey)
+	txn.ChainID = chainID
+	txn.AccountNumber = strconv.FormatUint(accountNumber, 10)
+	txn.TransactionHash = strings.ToUpper(hex.EncodeToString(signed.Hash))
+	txn.ID = txn.TransactionHash
 	return nil
 }
 
-// NewWallet creates a new wallet with a new key pair
-func NewWallet() (*Wallet, error) {
-	// Generate a new private key
-	privateKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	if err != nil {
-		return nil, fmt.Errorf("failed to generate private key: %w", err)
+func defaultDecimal(value string) string {
+	if strings.TrimSpace(value) == "" {
+		return "0"
 	}
-
-	// Create the wallet
-	wallet := &Wallet{
-		privateKey: privateKey,
-		publicKey:  &privateKey.PublicKey,
-	}
-
-	// Generate address from public key
-	wallet.address = hex.EncodeToString(elliptic.Marshal(privateKey.Curve, privateKey.PublicKey.X, privateKey.PublicKey.Y))
-
-	return wallet, nil
+	return value
 }
 
-// TransactionType represents the type of transaction
 type TransactionType string
 
 const (
@@ -90,7 +120,6 @@ const (
 	TransactionTypeMCPUpdateCapability   TransactionType = "mcp_update_capability"
 )
 
-// ResourceType represents the type of resource
 type ResourceType string
 
 const (
@@ -99,7 +128,6 @@ const (
 	ResourceTypeCode   ResourceType = "code"
 )
 
-// ResourceDescriptor represents a resource in the system
 type ResourceDescriptor struct {
 	ID           string       `json:"id"`
 	ResourceType ResourceType `json:"resource_type"`
@@ -109,24 +137,10 @@ type ResourceDescriptor struct {
 	} `json:"schema"`
 }
 
-// NewMCPTransaction creates a new MCP transaction
 func NewMCPTransaction(from, to string, value uint64, data []byte, txType TransactionType, fee uint64, timestamp int64) *Transaction {
 	return &Transaction{
-		From:            from,
-		To:              to,
-		Value:           fmt.Sprintf("%d", value),
-		Type:            string(txType),
-		Fee:             fmt.Sprintf("%d", fee),
-		Timestamp:       timestamp,
-		Version:         1,
-		Data:            make(map[string]any),
-		TransactionHash: calculateHash(from, to, value, data, txType, fee, timestamp),
+		From: from, To: to, Value: strconv.FormatUint(value, 10), Type: string(txType),
+		Fee: strconv.FormatUint(fee, 10), Timestamp: timestamp, Version: 1,
+		Data: map[string]any{"payload": base64.StdEncoding.EncodeToString(data)},
 	}
-}
-
-// calculateHash generates a hash for the transaction
-func calculateHash(from, to string, value uint64, data []byte, txType TransactionType, fee uint64, timestamp int64) string {
-	// In a real implementation, this would use a proper cryptographic hash function
-	// For now, we'll return a placeholder
-	return fmt.Sprintf("%x", []byte(fmt.Sprintf("%s%s%d%s%d%d", from, to, value, txType, fee, timestamp)))
 }

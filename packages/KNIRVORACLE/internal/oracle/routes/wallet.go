@@ -5,23 +5,15 @@ import (
 	"fmt"
 	"math/big"
 	"net/http"
+	"os"
+	"strings"
+	"time"
 
-	"github.com/knirvcorp/knirvoracle/internal/oracle/crypto"
+	knirvsigning "github.com/KNIRV/KNIRV_NETWORK/KNIRVSDK/go/signing"
 	"github.com/knirvcorp/knirvoracle/internal/oracle/token"
 	"github.com/knirvcorp/knirvoracle/internal/oracle/types"
 	"go.uber.org/zap"
 )
-
-type walletCreateResponse struct {
-	Address           string             `json:"address"`
-	PrivateKey        string             `json:"private_key"`
-	PublicKey         string             `json:"public_key"`
-	DVEID             string             `json:"dve_id,omitempty"`
-	InitialFunding    string             `json:"initial_funding,omitempty"`
-	Balance           string             `json:"balance,omitempty"`
-	FundingReceipt    *token.MintReceipt `json:"funding_receipt,omitempty"`
-	WalletServerOwner string             `json:"wallet_server_owner,omitempty"`
-}
 
 type walletRegisterResponse struct {
 	Address           string             `json:"address"`
@@ -30,14 +22,6 @@ type walletRegisterResponse struct {
 	Balance           string             `json:"balance,omitempty"`
 	FundingReceipt    *token.MintReceipt `json:"funding_receipt,omitempty"`
 	WalletServerOwner string             `json:"wallet_server_owner,omitempty"`
-}
-
-type legacyTransactionRequest struct {
-	FromAddress string `json:"from_address"`
-	ToAddress   string `json:"to_address"`
-	Value       uint64 `json:"value"`
-	PrivateKey  string `json:"private_key"`
-	PublicKey   string `json:"public_key"`
 }
 
 type faucetRequest struct {
@@ -51,23 +35,7 @@ func (r *OracleRoutes) handleInstallWallet(w http.ResponseWriter, req *http.Requ
 		return
 	}
 
-	var walletReq struct {
-		OwnerID string `json:"owner_id"`
-	}
-
-	if err := json.NewDecoder(req.Body).Decode(&walletReq); err != nil {
-		http.Error(w, fmt.Sprintf("Invalid request: %v", err), http.StatusBadRequest)
-		return
-	}
-
-	response, err := r.createWalletResponse(walletReq.OwnerID)
-	if err != nil {
-		r.logger.Error("Failed to create funded wallet", zap.Error(err))
-		http.Error(w, fmt.Sprintf("Failed to generate wallet: %v", err), http.StatusInternalServerError)
-		return
-	}
-
-	respondJSON(w, http.StatusOK, response)
+	http.Error(w, "Oracle wallet generation is disabled; create and custody wallets in KNIRVCONTROLLER, then call /oracle/v3/wallet/register", http.StatusGone)
 }
 
 func (r *OracleRoutes) handleGenerateWallet(w http.ResponseWriter, req *http.Request) {
@@ -76,15 +44,7 @@ func (r *OracleRoutes) handleGenerateWallet(w http.ResponseWriter, req *http.Req
 		return
 	}
 
-	ownerID := req.URL.Query().Get("owner_id")
-	response, err := r.createWalletResponse(ownerID)
-	if err != nil {
-		r.logger.Error("Failed to generate wallet", zap.Error(err))
-		http.Error(w, fmt.Sprintf("Failed to generate wallet: %v", err), http.StatusInternalServerError)
-		return
-	}
-
-	respondJSON(w, http.StatusCreated, response)
+	http.Error(w, "Oracle wallet generation is disabled; create and custody wallets in KNIRVCONTROLLER", http.StatusGone)
 }
 
 func (r *OracleRoutes) handleRegisterWallet(w http.ResponseWriter, req *http.Request) {
@@ -114,7 +74,7 @@ func (r *OracleRoutes) handleRegisterWallet(w http.ResponseWriter, req *http.Req
 		return
 	}
 
-	if err := verifyWalletRegistrationSignature(address, walletReq.OwnerID, walletReq.Signature); err != nil {
+	if err := verifyWalletRegistrationSignature(address, walletReq.OwnerID, walletReq.Signature, r.oracle.ChainID()); err != nil {
 		http.Error(w, fmt.Sprintf("Invalid signature: %v", err), http.StatusBadRequest)
 		return
 	}
@@ -175,44 +135,17 @@ func (r *OracleRoutes) handleSendSignedTransaction(w http.ResponseWriter, req *h
 		return
 	}
 
-	var txReq legacyTransactionRequest
-	if err := json.NewDecoder(req.Body).Decode(&txReq); err != nil {
-		http.Error(w, fmt.Sprintf("Invalid request: %v", err), http.StatusBadRequest)
-		return
-	}
-
-	keyPair, err := crypto.PrivateKeyFromHex(txReq.PrivateKey)
-	if err != nil {
-		http.Error(w, fmt.Sprintf("Invalid private key: %v", err), http.StatusBadRequest)
-		return
-	}
-	if txReq.PublicKey != "" && keyPair.PublicKeyHex() != txReq.PublicKey {
-		http.Error(w, "Private key does not match public key", http.StatusBadRequest)
-		return
-	}
-	if txReq.FromAddress != "" && keyPair.Address.String() != txReq.FromAddress {
-		http.Error(w, "Private key does not match from_address", http.StatusBadRequest)
-		return
-	}
-
-	toAddr, err := types.AddressFromString(txReq.ToAddress)
-	if err != nil {
-		http.Error(w, fmt.Sprintf("Invalid to address: %v", err), http.StatusBadRequest)
-		return
-	}
-
-	receipt, err := r.oracle.GetNRNToken().Transfer(txReq.PrivateKey, toAddr, new(big.Int).SetUint64(txReq.Value))
-	if err != nil {
-		http.Error(w, fmt.Sprintf("Transfer failed: %v", err), http.StatusBadRequest)
-		return
-	}
-
-	respondJSON(w, http.StatusCreated, receipt)
+	http.Error(w, "private-key transaction submission is disabled; use /oracle/v3/token/transfer/signed with KNIRVCONTROLLER", http.StatusGone)
 }
 
 func (r *OracleRoutes) handleTestFaucet(w http.ResponseWriter, req *http.Request) {
 	if req.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	demo := strings.TrimSpace(os.Getenv("KNIRV_ENABLE_DEMO"))
+	if demo != "1" && !strings.EqualFold(demo, "true") {
+		http.Error(w, "test faucet is disabled; set KNIRV_ENABLE_DEMO=true explicitly", http.StatusNotFound)
 		return
 	}
 
@@ -239,43 +172,6 @@ func (r *OracleRoutes) handleTestFaucet(w http.ResponseWriter, req *http.Request
 	}
 
 	respondJSON(w, http.StatusCreated, receipt)
-}
-
-func (r *OracleRoutes) createWalletResponse(ownerID string) (*walletCreateResponse, error) {
-	kp, err := crypto.GenerateKeyPair()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &walletCreateResponse{
-		Address:           kp.Address.String(),
-		PrivateKey:        kp.PrivateKeyHex(),
-		PublicKey:         kp.PublicKeyHex(),
-		Balance:           "0",
-		WalletServerOwner: "KNIRVORACLE",
-	}
-	if ownerID != "" {
-		response.DVEID = ownerID
-	}
-
-	if !r.oracle.WalletServerEnabled() {
-		return response, nil
-	}
-
-	initialFunding := r.oracle.GetWalletInitialFunding()
-	if initialFunding.Sign() <= 0 {
-		return response, nil
-	}
-
-	receipt, err := r.oracle.FundAddress(kp.Address, initialFunding, "initial wallet funding")
-	if err != nil {
-		return nil, err
-	}
-
-	response.InitialFunding = initialFunding.String()
-	response.Balance = receipt.NewBalance
-	response.FundingReceipt = receipt
-	return response, nil
 }
 
 func (r *OracleRoutes) createWalletRegistrationResponse(address types.Address, ownerID string) (*walletRegisterResponse, error) {
@@ -312,22 +208,20 @@ func (r *OracleRoutes) createWalletRegistrationResponse(address types.Address, o
 	return response, nil
 }
 
-func verifyWalletRegistrationSignature(address types.Address, ownerID, signatureHex string) error {
+func verifyWalletRegistrationSignature(address types.Address, ownerID, signatureHex, chainID string) error {
 	if signatureHex == "" {
 		return fmt.Errorf("signature is required")
 	}
 
-	signature, err := decodeHexBytes(signatureHex)
-	if err != nil {
-		return err
+	var signed knirvsigning.SignedMessage
+	if err := json.Unmarshal([]byte(signatureHex), &signed); err != nil {
+		return fmt.Errorf("decode canonical signed envelope: %w", err)
 	}
-
 	message := []byte(walletRegistrationMessage(address, ownerID))
-	recovered, err := crypto.RecoverAddress(message, signature)
-	if err != nil {
+	if err := knirvsigning.VerifyMessagePayload(signed, "knirv.oracle", "wallet-registration", chainID, message, time.Now()); err != nil {
 		return err
 	}
-	if recovered != address {
+	if signed.Address != address.String() {
 		return fmt.Errorf("signature does not match address")
 	}
 	return nil

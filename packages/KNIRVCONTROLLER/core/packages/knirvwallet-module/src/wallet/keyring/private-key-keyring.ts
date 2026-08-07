@@ -5,6 +5,8 @@ import { documentToTx } from '../../utils/messages';
 import type { Document } from '../../utils/messages';
 import { SimpleKNIRVWallet, KNIRVWallet } from './keyring-util';
 import { Keyring, KeyringData, KeyringType } from './keyring';
+import { broadcastCommit, broadcastSync } from './broadcast';
+import { toBase64 } from '../../encoding';
 
 export class PrivateKeyKeyring implements Keyring {
   public readonly id: string;
@@ -37,23 +39,17 @@ export class PrivateKeyKeyring implements Keyring {
   }
 
   private async signByWallet(wallet: KNIRVWallet, document: Document) {
-    const signedTx = await wallet.signTransaction(documentToTx(document));
-    const signatures =
-      (signedTx.signatures || []).length > 0
-        ? signedTx.signatures.map((sig) => ({
-            pub_key: {
-              key: '',
-            },
-            signature: sig,
-          }))
-        : [
-            {
-              pub_key: {
-                key: '',
-              },
-              signature: '',
-            },
-          ];
+    const signedTx = await wallet.signTransaction(documentToTx(document), document);
+		if (!signedTx.signatures?.length) {
+			throw new Error('Canonical signer returned no signature');
+		}
+		const publicKey = toBase64(await wallet.getPublicKey());
+		const signatures = signedTx.signatures.map((sig) => ({
+					pub_key: {
+						key: publicKey,
+					},
+					signature: sig,
+				}));
     return {
       signed: signedTx,
       signature: signatures,
@@ -61,26 +57,11 @@ export class PrivateKeyKeyring implements Keyring {
   }
 
   async broadcastTxSync(provider: Provider, signedTx: Tx) {
-    // For KNIRV, we'll use the transaction SDK to submit transactions
-    // This is a placeholder implementation
-    return {
-      hash: 'placeholder-hash',
-      code: 0,
-      log: 'Transaction broadcasting not implemented yet - use KNIRV transaction SDK',
-    };
+    return broadcastSync(provider, signedTx);
   }
 
   async broadcastTxCommit(provider: Provider, signedTx: Tx) {
-    // For KNIRV, we'll use the transaction SDK to submit transactions
-    // This is a placeholder implementation
-    return {
-      hash: 'placeholder-hash',
-      height: 0,
-      code: 0,
-      log: 'Transaction broadcasting not implemented yet - use KNIRV transaction SDK',
-      gasUsed: 0,
-      gasWanted: 0,
-    };
+    return broadcastCommit(provider, signedTx);
   }
 
   public static async fromPrivateKeyStr(privateKeyStr: string) {

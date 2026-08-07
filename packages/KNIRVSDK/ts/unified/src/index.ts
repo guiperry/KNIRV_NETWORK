@@ -6,7 +6,8 @@
  */
 
 // Re-export the main client
-export { KNIRVClient, type KNIRVClientConfig } from './client';
+import { KNIRVClient, type KNIRVClientConfig } from './client';
+export { KNIRVClient, type KNIRVClientConfig };
 
 // Service classes
 export {
@@ -26,6 +27,7 @@ export * from './wallet';
 // Common types and utilities
 export * from './types';
 export * from './errors';
+export * from './signing';
 
 // Convenience factory functions
 export function createKNIRVClient(config?: KNIRVClientConfig): KNIRVClient {

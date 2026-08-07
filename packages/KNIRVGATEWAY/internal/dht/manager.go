@@ -284,11 +284,13 @@ func (dm *DHTManager) Start() error {
 		return fmt.Errorf("failed to bootstrap DHT: %w", err)
 	}
 
-	if dm.chainIsBootnode {
-		if err := dm.RegisterBootnodeWithRegistry(); err != nil {
-			log.Printf("[%s][%s] WARNING: failed to register bootnode with registry: %v", dm.nodeRole, dm.chainID, err)
-		}
+	// Every KNIRVSERVER instance publishes a renewable registry lease. The
+	// initial registration happens synchronously; refreshes run every 15
+	// minutes until the DHT context is cancelled.
+	if err := dm.registerNodeWithRegistry(); err != nil {
+		log.Printf("[%s][%s] WARNING: failed to register with registry: %v", dm.nodeRole, dm.chainID, err)
 	}
+	go dm.registryHeartbeat(15 * time.Minute)
 
 	log.Printf("[%s][%s] Connecting to bootstrap nodes...", dm.nodeRole, dm.chainID)
 
@@ -1097,6 +1099,41 @@ func (dm *DHTManager) RegisterBootnodeWithRegistry() error {
 	return RegisterWithRegistry(dm.bootnodeRegistry, dm.chainID, dm.chainP2PPort, publicHost, dm.host.ID().String())
 }
 
+func (dm *DHTManager) registerNodeWithRegistry() error {
+	if dm.bootnodeRegistry == "" {
+		return fmt.Errorf("bootnode registry is not configured")
+	}
+	if dm.chainP2PPort <= 0 {
+		return fmt.Errorf("chain p2p port is not configured")
+	}
+	publicHost, err := dm.resolveRegistryPublicHost()
+	if err != nil {
+		return err
+	}
+	nodeType := strings.ToLower(strings.TrimSpace(dm.nodeRole))
+	if dm.chainIsBootnode {
+		nodeType = "bootnode"
+	} else if nodeType == "" {
+		nodeType = "server"
+	}
+	return registerWithRegistry(dm.bootnodeRegistry, dm.chainID, dm.chainP2PPort, publicHost, dm.host.ID().String(), nodeType)
+}
+
+func (dm *DHTManager) registryHeartbeat(interval time.Duration) {
+	ticker := time.NewTicker(interval)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-dm.ctx.Done():
+			return
+		case <-ticker.C:
+			if err := dm.registerNodeWithRegistry(); err != nil {
+				log.Printf("[%s][%s] WARNING: registry heartbeat failed: %v", dm.nodeRole, dm.chainID, err)
+			}
+		}
+	}
+}
+
 func (dm *DHTManager) resolveRegistryPublicHost() (string, error) {
 	candidate := strings.TrimSpace(dm.publicHost)
 	if candidate != "" && net.ParseIP(candidate) != nil {
@@ -1126,6 +1163,10 @@ func (dm *DHTManager) resolveRegistryPublicHost() (string, error) {
 
 // RegisterWithRegistry publishes this node to the external bootnode registry.
 func RegisterWithRegistry(registryURL string, nodeChainID string, nodeP2PPort int, nodeIP string, nodePeerID string) error {
+	return registerWithRegistry(registryURL, nodeChainID, nodeP2PPort, nodeIP, nodePeerID, "bootnode")
+}
+
+func registerWithRegistry(registryURL string, nodeChainID string, nodeP2PPort int, nodeIP string, nodePeerID string, nodeType string) error {
 	registryURL = strings.TrimSpace(registryURL)
 	if registryURL == "" {
 		return fmt.Errorf("registry URL is required")
@@ -1138,7 +1179,7 @@ func RegisterWithRegistry(registryURL string, nodeChainID string, nodeP2PPort in
 		ChainID: nodeChainID,
 		IP:      nodeIP,
 		Port:    nodeP2PPort,
-		Type:    "bootnode",
+		Type:    nodeType,
 		PeerID:  nodePeerID,
 	}
 

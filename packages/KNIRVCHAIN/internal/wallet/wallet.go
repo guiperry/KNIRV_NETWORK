@@ -2,17 +2,20 @@ package wallet
 
 import (
 	"KNIRVCHAIN/internal/utils"
-	"bytes"
 	"crypto/ecdsa"
-	"crypto/elliptic"
 	"crypto/rand"
-	"crypto/sha256"
+	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"log"
 	"math/big"
+	"os"
 	"strings"
+	"time"
+
+	knirvsigning "github.com/KNIRV/KNIRV_NETWORK/KNIRVSDK/go/signing"
+	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 )
 
 // WalletImpl stores private and public keys
@@ -25,14 +28,14 @@ type WalletImpl struct {
 // walletJSON is an auxiliary struct for custom JSON marshaling/unmarshaling of Wallet
 type walletJSON struct {
 	PrivateKeyDHex string `json:"private_key_d_hex"`
-	CurveName      string `json:"curve_name"` // e.g., "P-256"
+	CurveName      string `json:"curve_name"`
 	PublicKeyXHex  string `json:"public_key_x_hex"`
 	PublicKeyYHex  string `json:"public_key_y_hex"`
 	Address        string `json:"address"`
 }
 
 func NewWallet() (*WalletImpl, error) {
-	privateKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	privateKey, err := ecdsa.GenerateKey(ethcrypto.S256(), rand.Reader)
 	if err != nil {
 		return nil, err
 	}
@@ -46,45 +49,53 @@ func NewWallet() (*WalletImpl, error) {
 }
 
 func NewWalletFromPrivateKeyHex(privateKeyHex string) *WalletImpl {
-	pk := privateKeyHex[2:]
-	d := new(big.Int)
-	d.SetString(pk, 16)
-
-	var npk ecdsa.PrivateKey
-	npk.D = d
-	npk.PublicKey.Curve = elliptic.P256()
-	npk.PublicKey.X, npk.PublicKey.Y = npk.PublicKey.Curve.ScalarBaseMult(d.Bytes())
+	pk := strings.TrimPrefix(privateKeyHex, "0x")
+	parsed, err := ethcrypto.HexToECDSA(pk)
+	if err != nil {
+		return nil
+	}
 
 	wallet := new(WalletImpl)
-	wallet.PrivateKey = &npk
-	wallet.PublicKey = &npk.PublicKey
+	wallet.PrivateKey = parsed
+	wallet.PublicKey = &parsed.PublicKey
 	wallet.Address = wallet.GetAddress() // Populate address
 
 	return wallet
 }
 
 func (w *WalletImpl) SignTransaction(tx *Transaction) error {
-	// Create a simple hash of the transaction data for signing
-	// This is a simplified version - in production you'd want proper serialization
-	txData := fmt.Sprintf("%s:%s:%s:%s", tx.From, tx.To, tx.Amount.String(), string(tx.Data))
-	bs := []byte(txData)
-
-	// Hash the canonical bytes
-	hash := sha256.Sum256(bs)
-
-	// Sign the hash
-	sig, err := ecdsa.SignASN1(rand.Reader, w.PrivateKey, hash[:])
+	if w.PrivateKey == nil || tx.Amount == nil || !tx.Timestamp.After(time.Time{}) {
+		return fmt.Errorf("private key, amount, and timestamp are required")
+	}
+	chainID := tx.ChainID
+	if chainID == "" {
+		chainID = os.Getenv("KNIRV_CHAIN_ID")
+	}
+	if chainID == "" {
+		chainID = "knirv-1"
+	}
+	fee := "0"
+	if tx.Fee != nil {
+		fee = tx.Fee.String()
+	}
+	signed, err := knirvsigning.SignTransaction(privateKeyBytes(w.PrivateKey), knirvsigning.SignRequest{
+		Action:  knirvsigning.Action{Action: "transfer", Sender: tx.From, Recipient: tx.To, Amount: tx.Amount.Uint64(), Payload: tx.Data, TimestampUnix: tx.Timestamp.Unix()},
+		ChainID: chainID, AccountNumber: tx.AccountNumber, Sequence: tx.Nonce,
+		Fee: knirvsigning.Fee{Denom: "unrn", Amount: fee},
+	})
 	if err != nil {
 		return fmt.Errorf("failed to sign transaction: %w", err)
 	}
-
-	// Update transaction with signature (convert to hex string)
-	tx.Signature = fmt.Sprintf("%x", sig)
-
-	// Set the transaction hash
-	tx.Hash = fmt.Sprintf("%x", hash)
-
+	wire := signed.Wire()
+	tx.ChainID, tx.BodyBytes, tx.AuthInfoBytes = chainID, wire.BodyBytes, wire.AuthInfoBytes
+	tx.PublicKey, tx.Signatures, tx.Signature, tx.Hash = wire.PublicKey, wire.Signatures, wire.Signatures[0], wire.Hash
 	return nil
+}
+
+func privateKeyBytes(key *ecdsa.PrivateKey) []byte {
+	raw := make([]byte, 32)
+	key.D.FillBytes(raw)
+	return raw
 }
 func (w *WalletImpl) GetPrivateKeyHex() string {
 	return fmt.Sprintf("0x%x", w.PrivateKey.D)
@@ -101,80 +112,7 @@ func (w *WalletImpl) GetPublicKeyHex() string {
 		// log.Println("Warning: GetPublicKeyHex called on wallet with nil PublicKey or coordinates.") // Can be noisy
 		return ""
 	}
-	// Use compressed public key format (02/03 prefix + X coordinate)
-	prefix := byte(0x02)
-	if w.PublicKey.Y.Bit(0) != 0 {
-		prefix = 0x03
-	}
-	compressed := append([]byte{prefix}, w.PublicKey.X.Bytes()...)
-	// Add checksum (first 4 bytes of double SHA256)
-	hash := sha256.Sum256(compressed)
-	hash = sha256.Sum256(hash[:])
-	checksum := hash[:4]
-
-	// Base58 encode with checksum
-	full := append(compressed, checksum...)
-	return "0x" + base58Encode(full)
-}
-
-func base58Encode(input []byte) string {
-	const alphabet = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
-
-	var result []byte
-	x := new(big.Int).SetBytes(input)
-	base := big.NewInt(58)
-	zero := big.NewInt(0)
-	mod := new(big.Int)
-
-	for x.Cmp(zero) != 0 {
-		x.DivMod(x, base, mod)
-		result = append(result, alphabet[mod.Int64()])
-	}
-
-	// Reverse bytes
-	for i, j := 0, len(result)-1; i < j; i, j = i+1, j-1 {
-		result[i], result[j] = result[j], result[i]
-	}
-
-	return string(result)
-}
-
-func base58Decode(input string) ([]byte, error) {
-	const alphabet = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
-
-	result := big.NewInt(0)
-	for _, char := range input {
-		alphaIndex := -1
-		for i, a := range alphabet {
-			if rune(a) == char {
-				alphaIndex = i
-				break
-			}
-		}
-		if alphaIndex == -1 {
-			return nil, fmt.Errorf("invalid character '%c' in base58 string", char)
-		}
-		result.Mul(result, big.NewInt(58))
-		result.Add(result, big.NewInt(int64(alphaIndex)))
-	}
-
-	decoded := result.Bytes()
-
-	// Validate checksum
-	if len(decoded) < 4 {
-		return nil, fmt.Errorf("invalid base58 string (too short for checksum)")
-	}
-	payload := decoded[:len(decoded)-4]
-	checksum := decoded[len(decoded)-4:]
-
-	hash := sha256.Sum256(payload)
-	hash = sha256.Sum256(hash[:])
-
-	if !bytes.Equal(checksum, hash[:4]) {
-		return nil, fmt.Errorf("invalid base58 checksum")
-	}
-
-	return payload, nil
+	return base64.StdEncoding.EncodeToString(ethcrypto.CompressPubkey(w.PublicKey))
 }
 
 func (w *WalletImpl) GetAddress() string {
@@ -185,50 +123,28 @@ func (w *WalletImpl) GetAddress() string {
 	}
 
 	// If we need to generate it from keys, ensure keys are present.
-	publicKeyHex := w.GetPublicKeyHex() // This will call the revised GetPublicKeyHex
-	if publicKeyHex == "" {
+	if w.PublicKey == nil {
+		return w.Address
+	}
+	publicKey := ethcrypto.CompressPubkey(w.PublicKey)
+	if len(publicKey) == 0 {
 		// log.Println("Warning: GetPublicKeyHex returned empty in GetAddress. Cannot generate address from keys. Returning w.Address.")
 		return w.Address // Fallback to w.Address if key-based generation fails (w.Address might be empty)
 	}
 
-	// Ensure publicKeyHex starts with "0x" and has content after it.
-	if !strings.HasPrefix(publicKeyHex, "0x") || len(publicKeyHex) <= 2 {
-		// log.Printf("Warning: GetPublicKeyHex returned invalid hex '%s' in GetAddress. Cannot generate address. Returning w.Address.", publicKeyHex)
-		return w.Address // Fallback to w.Address
+	address, err := knirvsigning.Address(publicKey, knirvsigning.DefaultAddressPrefix)
+	if err != nil {
+		return w.Address
 	}
-
-	hash := sha256.Sum256([]byte(publicKeyHex[2:])) // Slice off "0x"
-	hexStr := fmt.Sprintf("%x", hash[:])
-	address := utils.ADDRESS_PREFIX + hexStr[len(hexStr)-40:]
 	return address
 }
 
 func (w *WalletImpl) GetSignedTxn(unsignedTxn Transaction) (*Transaction, error) {
-	// Create a simple hash of the transaction data for signing
-	txData := fmt.Sprintf("%s:%s:%s:%s", unsignedTxn.From, unsignedTxn.To, unsignedTxn.Amount.String(), string(unsignedTxn.Data))
-	bs := []byte(txData)
-
-	hash := sha256.Sum256(bs)
-
-	sig, err := ecdsa.SignASN1(rand.Reader, w.PrivateKey, hash[:])
-	if err != nil {
+	signedTxn := unsignedTxn
+	if err := w.SignTransaction(&signedTxn); err != nil {
 		return nil, err
 	}
-
-	// Create a copy of the transaction with signature
-	signedTxn := &Transaction{
-		From:      unsignedTxn.From,
-		To:        unsignedTxn.To,
-		Amount:    unsignedTxn.Amount,
-		Data:      unsignedTxn.Data,
-		Timestamp: unsignedTxn.Timestamp,
-		Fee:       unsignedTxn.Fee,
-		Nonce:     unsignedTxn.Nonce,
-		Signature: fmt.Sprintf("%x", sig),
-		Hash:      fmt.Sprintf("%x", hash),
-	}
-
-	return signedTxn, nil
+	return &signedTxn, nil
 }
 
 // MarshalJSON implements custom JSON marshaling for Wallet
@@ -276,12 +192,8 @@ func (w *WalletImpl) UnmarshalJSON(data []byte) error {
 		return fmt.Errorf("failed to decode public key Y from hex: %w", err)
 	}
 
-	var curve elliptic.Curve
-	switch aux.CurveName {
-	case "P-256": // elliptic.P256().Params().Name returns "P-256"
-		curve = elliptic.P256()
-	// Add other curves if you plan to support them, e.g., P-224, P-384, P-521
-	default:
+	curve := ethcrypto.S256()
+	if aux.CurveName != curve.Params().Name {
 		return fmt.Errorf("unsupported elliptic curve: %s", aux.CurveName)
 	}
 

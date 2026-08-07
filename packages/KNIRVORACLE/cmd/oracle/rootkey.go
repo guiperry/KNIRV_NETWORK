@@ -24,9 +24,23 @@ const (
 )
 
 type rootKeyContent struct {
-	RootPrivateKeyHex   string
+	RootPrivateKeyHex  string
 	CloudflareAPIToken string
 	CloudflareZoneID   string
+
+	// KNIRVORACLE plan-checkout payment processor (root nodes only — see
+	// internal/oracle/payment). Field numbers 1, 2, 29-35 in
+	// KNIRV_CORP/packages/server/backend_server/internal/proto/root_key.proto
+	// (mirrored in KNIRV_NETWORK/shared-proto/knirvserver/v1/root_key.proto).
+	StripeSecretKey              string
+	StripeWebhookSecret          string
+	PaymentProcessorEnabled      bool
+	StripeProfessionalPriceID    string
+	StripeEnterprisePriceID      string
+	StripeInvestorPriceID        string
+	PaymentSuccessURL            string
+	PaymentCancelURL             string
+	PaymentOnboardingCallbackURL string
 }
 
 func initOracleWithSecrets(content *rootKeyContent, logger *zap.Logger) (*oracle.Oracle, error) {
@@ -40,6 +54,12 @@ func initOracleWithSecrets(content *rootKeyContent, logger *zap.Logger) (*oracle
 		return nil, nil
 	}
 
+	// LoadConfigFromEnv is the fallback layer: with the assumption that
+	// KNIRVORACLE only ever runs as a KNIRVSERVER subprocess and root.key is
+	// the sole source of configuration, this only matters for local
+	// dev/testing without a root.key (or a root.key that predates a given
+	// field). Whichever of these fields root.key actually carries below
+	// takes precedence over whatever env vars set here.
 	oracleCfg, err := oracle.LoadConfigFromEnv()
 	if err != nil {
 		return nil, fmt.Errorf("oracle: failed to load config from env: %w", err)
@@ -52,6 +72,37 @@ func initOracleWithSecrets(content *rootKeyContent, logger *zap.Logger) (*oracle
 		oracleCfg.DataDir = filepath.Join(appDataDir, "oracle")
 	}
 	oracleCfg.OwnerPrivateKey = rootPrivateKey
+
+	// Payment processor config — root.key is authoritative whenever it
+	// carries a value; ORACLE_KEY_PASSWORD remains the only variable an
+	// operator sets manually to start KNIRVSERVER at all.
+	if content.StripeSecretKey != "" {
+		oracleCfg.StripeSecretKey = content.StripeSecretKey
+	}
+	if content.StripeWebhookSecret != "" {
+		oracleCfg.StripeWebhookSecret = content.StripeWebhookSecret
+	}
+	if content.PaymentProcessorEnabled {
+		oracleCfg.PaymentProcessorEnabled = true
+	}
+	if content.StripeProfessionalPriceID != "" {
+		oracleCfg.StripeProfessionalPriceID = content.StripeProfessionalPriceID
+	}
+	if content.StripeEnterprisePriceID != "" {
+		oracleCfg.StripeEnterprisePriceID = content.StripeEnterprisePriceID
+	}
+	if content.StripeInvestorPriceID != "" {
+		oracleCfg.StripeInvestorPriceID = content.StripeInvestorPriceID
+	}
+	if content.PaymentSuccessURL != "" {
+		oracleCfg.PaymentSuccessURL = content.PaymentSuccessURL
+	}
+	if content.PaymentCancelURL != "" {
+		oracleCfg.PaymentCancelURL = content.PaymentCancelURL
+	}
+	if content.PaymentOnboardingCallbackURL != "" {
+		oracleCfg.PaymentOnboardingCallbackURL = content.PaymentOnboardingCallbackURL
+	}
 
 	if err := oracle.ValidateConfig(oracleCfg); err != nil {
 		return nil, fmt.Errorf("oracle: invalid config: %w", err)
@@ -282,7 +333,7 @@ func loadEncryptedKeyFile(keyFilePath string, password []byte) (*rootKeyContent,
 		return nil, fmt.Errorf("failed to decrypt key file (incorrect password?): %w", err)
 	}
 
-	fields, err := parseProtoFields(decryptedData)
+	fields, varints, err := parseProtoFields(decryptedData)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse root key content: %w", err)
 	}
@@ -295,10 +346,24 @@ func loadEncryptedKeyFile(keyFilePath string, password []byte) (*rootKeyContent,
 	cloudflareAPIToken := string(firstFieldValue(fields[18]))
 	cloudflareZoneID := string(firstFieldValue(fields[19]))
 
+	// Field numbers 1, 2, 29-35 — see root_key.proto in
+	// KNIRV_CORP/packages/server/backend_server/internal/proto (mirrored in
+	// KNIRV_NETWORK/shared-proto/knirvserver/v1).
+	paymentProcessorEnabled := firstVarintValue(varints[29]) != 0
+
 	return &rootKeyContent{
-		RootPrivateKeyHex: rootPrivateKey,
-		CloudflareAPIToken: cloudflareAPIToken,
-		CloudflareZoneID:   cloudflareZoneID,
+		RootPrivateKeyHex:            rootPrivateKey,
+		CloudflareAPIToken:           cloudflareAPIToken,
+		CloudflareZoneID:             cloudflareZoneID,
+		StripeSecretKey:              string(firstFieldValue(fields[1])),
+		StripeWebhookSecret:          string(firstFieldValue(fields[2])),
+		PaymentProcessorEnabled:      paymentProcessorEnabled,
+		StripeProfessionalPriceID:    string(firstFieldValue(fields[30])),
+		StripeEnterprisePriceID:      string(firstFieldValue(fields[31])),
+		StripeInvestorPriceID:        string(firstFieldValue(fields[32])),
+		PaymentSuccessURL:            string(firstFieldValue(fields[33])),
+		PaymentCancelURL:             string(firstFieldValue(fields[34])),
+		PaymentOnboardingCallbackURL: string(firstFieldValue(fields[35])),
 	}, nil
 }
 
@@ -328,7 +393,7 @@ func decrypt(data, key []byte) ([]byte, error) {
 }
 
 func parseEncryptedRootKeyEnvelope(data []byte) ([]byte, []byte, error) {
-	fields, err := parseProtoFields(data)
+	fields, _, err := parseProtoFields(data)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to parse encrypted key file: %w", err)
 	}
@@ -346,7 +411,7 @@ func parseEncryptedRootKeyEnvelope(data []byte) ([]byte, []byte, error) {
 }
 
 func parseRootPrivateKeyHex(data []byte) (string, error) {
-	fields, err := parseProtoFields(data)
+	fields, _, err := parseProtoFields(data)
 	if err != nil {
 		return "", fmt.Errorf("failed to parse root key content: %w", err)
 	}
@@ -359,13 +424,20 @@ func parseRootPrivateKeyHex(data []byte) (string, error) {
 	return rootPrivateKey, nil
 }
 
-func parseProtoFields(data []byte) (map[int][][]byte, error) {
+// parseProtoFields walks a proto3 wire-format message without depending on
+// generated code (packages/cli and this package are in different Go
+// modules/repos from the .proto's canonical home in KNIRV_CORP). Returns
+// length-delimited field values (strings/bytes, wire type 2) keyed by field
+// number, and varint field values (bools/ints, wire type 0) keyed
+// separately — needed for payment_processor_enabled (field 29, bool).
+func parseProtoFields(data []byte) (map[int][][]byte, map[int][]uint64, error) {
 	fields := make(map[int][][]byte)
+	varints := make(map[int][]uint64)
 
 	for i := 0; i < len(data); {
 		key, next, err := readVarint(data, i)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		i = next
 
@@ -374,40 +446,48 @@ func parseProtoFields(data []byte) (map[int][][]byte, error) {
 
 		switch wireType {
 		case 0:
-			_, next, err = readVarint(data, i)
+			value, next, err := readVarint(data, i)
 			if err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 			i = next
+			varints[fieldNum] = append(varints[fieldNum], value)
 		case 1:
 			if i+8 > len(data) {
-				return nil, fmt.Errorf("truncated fixed64 field")
+				return nil, nil, fmt.Errorf("truncated fixed64 field")
 			}
 			i += 8
 		case 2:
 			length, next, err := readVarint(data, i)
 			if err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 			i = next
 			end := i + int(length)
 			if end > len(data) {
-				return nil, fmt.Errorf("truncated length-delimited field")
+				return nil, nil, fmt.Errorf("truncated length-delimited field")
 			}
 			value := append([]byte(nil), data[i:end]...)
 			fields[fieldNum] = append(fields[fieldNum], value)
 			i = end
 		case 5:
 			if i+4 > len(data) {
-				return nil, fmt.Errorf("truncated fixed32 field")
+				return nil, nil, fmt.Errorf("truncated fixed32 field")
 			}
 			i += 4
 		default:
-			return nil, fmt.Errorf("unsupported wire type %d", wireType)
+			return nil, nil, fmt.Errorf("unsupported wire type %d", wireType)
 		}
 	}
 
-	return fields, nil
+	return fields, varints, nil
+}
+
+func firstVarintValue(values []uint64) uint64 {
+	if len(values) == 0 {
+		return 0
+	}
+	return values[0]
 }
 
 func firstFieldValue(values [][]byte) []byte {

@@ -8,9 +8,9 @@ import (
 	"os"
 	"testing"
 
-	knirvchaintransactionsdk "github.com/cloud-equities/KNIRVCHAIN/sdk/go/transaction"
-	"github.com/cloud-equities/KNIRVCHAIN/sdk/go/transaction/internal/testutil"
-	"github.com/cloud-equities/KNIRVCHAIN/sdk/go/transaction/option"
+	knirvchaintransactionsdk "github.com/guiperry/KNIRV_NETWORK/KNIRVSDK/go/transaction"
+	"github.com/guiperry/KNIRV_NETWORK/KNIRVSDK/go/transaction/internal/testutil"
+	"github.com/guiperry/KNIRV_NETWORK/KNIRVSDK/go/transaction/option"
 )
 
 func TestMcpCapabilityGet(t *testing.T) {

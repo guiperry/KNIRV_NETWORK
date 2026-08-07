@@ -159,32 +159,8 @@ var Web3AuthKeyring = /** @class */ (function () {
     };
     Web3AuthKeyring.prototype.sign = function (provider, document, hdPath) {
         return __awaiter(this, void 0, void 0, function () {
-            var wallet, accounts, stdSignDoc, signature, tx;
             return __generator(this, function (_a) {
-                switch (_a.label) {
-                    case 0: return [4 /*yield*/, amino_1.Secp256k1Wallet.fromKey(this.privateKey)];
-                    case 1:
-                        wallet = _a.sent();
-                        return [4 /*yield*/, wallet.getAccounts()];
-                    case 2:
-                        accounts = _a.sent();
-                        stdSignDoc = convertToStdSignDoc(__assign(__assign({}, document), { chain_id: provider.chainId }));
-                        return [4 /*yield*/, wallet.signAmino(accounts[0].address, stdSignDoc)];
-                    case 3:
-                        signature = (_a.sent()).signature;
-                        return [4 /*yield*/, convertToTx(this.privateKey, stdSignDoc, (0, encoding_1.fromBase64)(signature.signature))];
-                    case 4:
-                        tx = _a.sent();
-                        return [2 /*return*/, {
-                                signed: tx,
-                                signature: [{
-                                        pub_key: {
-                                            key: (0, data_1.arrayToHex)(accounts[0].pubkey)
-                                        },
-                                        signature: signature.signature
-                                    }]
-                            }];
-                }
+                throw new Error('This stale CJS Web3Auth build cannot sign Amino; use the SIGN_MODE_DIRECT package build');
             });
         });
     };

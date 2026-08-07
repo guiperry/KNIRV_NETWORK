@@ -41,6 +41,8 @@ export interface AgentCoreConfig {
   agentDescription: string;
   agentVersion: string;
   author: string;
+	/** Canonical KNIRVCONTROLLER-approved signed-message envelope. */
+	signature?: string;
   tools: ToolConfig[];
   cognitiveCapabilities: CognitiveCapability[];
   sensoryInterfaces: SensoryInterface[];
@@ -912,6 +914,9 @@ export class ${className} {
 
   private processTemplate(template: string, config: AgentCoreConfig): string {
     let processed = template;
+	if (template.includes('{{signature}}') && !config.signature) {
+	  throw new Error('Agent compilation requires a KNIRVCONTROLLER-approved canonical signature');
+	}
 
     // Enhanced template processing with all required variables
     const replacements = {
@@ -922,7 +927,7 @@ export class ${className} {
       '{{author}}': config.author,
       '{{buildTarget}}': config.buildTarget,
       '{{ttl}}': '3600', // Default TTL
-      '{{signature}}': 'mock-signature-' + Date.now(),
+	  '{{signature}}': config.signature ?? '',
       '{{cognitiveConfig.maxContextSize}}': '2048',
       '{{cognitiveConfig.temperature}}': '0.7',
       '{{cognitiveConfig.topP}}': '0.9',

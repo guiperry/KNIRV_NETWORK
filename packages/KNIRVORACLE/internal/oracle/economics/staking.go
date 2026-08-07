@@ -1,6 +1,7 @@
 package economics
 
 import (
+	"crypto/sha256"
 	"fmt"
 	"math/big"
 	"sync"
@@ -41,6 +42,7 @@ type Stake struct {
 	StakedAt        time.Time     `json:"staked_at"`
 	UnbondingAt     *time.Time    `json:"unbonding_at,omitempty"`
 	UnbondingHeight uint64        `json:"unbonding_height,omitempty"`
+	PendingUnbond   *big.Int      `json:"pending_unbond"`
 	RewardsEarned   *big.Int      `json:"rewards_earned"`
 }
 
@@ -52,7 +54,8 @@ type StakingManager struct {
 	bondedByStaker  map[types.Address]*big.Int
 	totalStaked     *big.Int
 	minStake        *big.Int
-	unbondingPeriod uint64 // in blocks
+	unbondingPeriod time.Duration
+	escrowAddress   types.Address
 	logger          *zap.Logger
 	mu              sync.RWMutex
 }
@@ -71,6 +74,11 @@ type ChainBond struct {
 
 // NewStakingManager creates a new staking manager
 func NewStakingManager(nrnToken *token.NRN, logger *zap.Logger) *StakingManager {
+	escrowHash := sha256.Sum256([]byte("knirv.oracle.staking-escrow.v1"))
+	escrowAddress, err := types.AddressFromBytes(escrowHash[:20])
+	if err != nil {
+		panic(err)
+	}
 	return &StakingManager{
 		nrnToken:        nrnToken,
 		stakes:          make(map[types.Address]*Stake),
@@ -78,7 +86,8 @@ func NewStakingManager(nrnToken *token.NRN, logger *zap.Logger) *StakingManager 
 		bondedByStaker:  make(map[types.Address]*big.Int),
 		totalStaked:     big.NewInt(0),
 		minStake:        big.NewInt(1000000000), // 1000 NRN minimum
-		unbondingPeriod: 201600,                 // ~28 days at 5s/block
+		unbondingPeriod: 28 * 24 * time.Hour,
+		escrowAddress:   escrowAddress,
 		logger:          logger,
 	}
 }
@@ -135,6 +144,9 @@ func (sm *StakingManager) SlashChainBond(chainID string, amount *big.Int) (*Chai
 	if actual.Sign() == 0 {
 		return cloneChainBond(bond), actual, nil
 	}
+	if err := sm.nrnToken.BurnFrom(sm.escrowAddress, actual, "chain-bond-slashing:"+chainID); err != nil {
+		return nil, nil, fmt.Errorf("burn slashed stake from escrow: %w", err)
+	}
 	bond.Remaining.Sub(bond.Remaining, actual)
 	bond.Slashed.Add(bond.Slashed, actual)
 	sm.bondedByStaker[bond.Owner].Sub(sm.bondedByStaker[bond.Owner], actual)
@@ -188,6 +200,9 @@ func (sm *StakingManager) Stake(staker types.Address, amount *big.Int) (*Stake, 
 	defer sm.mu.Unlock()
 
 	// Validate amount
+	if staker.IsZero() || amount == nil || amount.Sign() <= 0 {
+		return nil, fmt.Errorf("staker and positive amount are required")
+	}
 	if amount.Cmp(sm.minStake) < 0 {
 		return nil, fmt.Errorf("stake amount below minimum: %s", sm.minStake.String())
 	}
@@ -195,6 +210,9 @@ func (sm *StakingManager) Stake(staker types.Address, amount *big.Int) (*Stake, 
 	// Check if already has stake
 	existingStake, exists := sm.stakes[staker]
 	if exists && existingStake.Status == StakeStatusActive {
+		if err := sm.nrnToken.TransferBetween(staker, sm.escrowAddress, amount); err != nil {
+			return nil, fmt.Errorf("lock additional stake: %w", err)
+		}
 		// Add to existing stake
 		existingStake.Amount.Add(existingStake.Amount, amount)
 		sm.totalStaked.Add(sm.totalStaked, amount)
@@ -205,15 +223,14 @@ func (sm *StakingManager) Stake(staker types.Address, amount *big.Int) (*Stake, 
 			zap.String("total", existingStake.Amount.String()),
 		)
 
-		return existingStake, nil
+		return cloneStake(existingStake), nil
 	}
 
-	// Transfer tokens (lock them)
-	// In production, would transfer to staking contract/address
-	// For now, just verify balance
-	balance := sm.nrnToken.GetBalance(staker)
-	if balance.Cmp(amount) < 0 {
-		return nil, fmt.Errorf("insufficient balance")
+	if exists && existingStake.Status == StakeStatusUnbonding {
+		return nil, fmt.Errorf("stake is currently unbonding")
+	}
+	if err := sm.nrnToken.TransferBetween(staker, sm.escrowAddress, amount); err != nil {
+		return nil, fmt.Errorf("lock stake in escrow: %w", err)
 	}
 
 	// Create new stake
@@ -223,6 +240,7 @@ func (sm *StakingManager) Stake(staker types.Address, amount *big.Int) (*Stake, 
 		Status:        StakeStatusActive,
 		StakedAt:      time.Now(),
 		RewardsEarned: big.NewInt(0),
+		PendingUnbond: big.NewInt(0),
 	}
 
 	sm.stakes[staker] = stake
@@ -233,7 +251,7 @@ func (sm *StakingManager) Stake(staker types.Address, amount *big.Int) (*Stake, 
 		zap.String("amount", amount.String()),
 	)
 
-	return stake, nil
+	return cloneStake(stake), nil
 }
 
 // Unstake initiates unstaking (starts unbonding period)
@@ -262,34 +280,30 @@ func (sm *StakingManager) Unstake(staker types.Address, amount *big.Int) error {
 		return fmt.Errorf("unstake amount exceeds unbonded stake: available %s, bonded %s", available, reserved)
 	}
 
-	// If unstaking full amount, start unbonding
-	if amount.Cmp(stake.Amount) == 0 {
-		now := time.Now()
-		stake.Status = StakeStatusUnbonding
-		stake.UnbondingAt = &now
-		stake.UnbondingHeight = 0 // Would be current block height in production
-
-		sm.logger.Info("Unbonding started",
-			zap.String("staker", staker.String()),
-			zap.String("amount", amount.String()),
-		)
-	} else {
-		// Partial unstake - just reduce amount
-		stake.Amount.Sub(stake.Amount, amount)
-		sm.totalStaked.Sub(sm.totalStaked, amount)
-
-		sm.logger.Info("Stake reduced",
-			zap.String("staker", staker.String()),
-			zap.String("reduced", amount.String()),
-			zap.String("remaining", stake.Amount.String()),
-		)
+	if stake.PendingUnbond != nil && stake.PendingUnbond.Sign() > 0 {
+		return fmt.Errorf("an unbonding request is already pending")
 	}
+	now := time.Now().UTC()
+	stake.UnbondingAt = &now
+	stake.UnbondingHeight = 0 // deprecated: Oracle uses an explicit wall-clock unbonding deadline
+	if amount.Cmp(stake.Amount) == 0 {
+		stake.Status = StakeStatusUnbonding
+	} else {
+		stake.Amount.Sub(stake.Amount, amount)
+		stake.PendingUnbond = new(big.Int).Set(amount)
+	}
+	sm.totalStaked.Sub(sm.totalStaked, amount)
+
+	sm.logger.Info("Unbonding started",
+		zap.String("staker", staker.String()),
+		zap.String("amount", amount.String()),
+	)
 
 	return nil
 }
 
 // CompleteUnbonding completes the unbonding process
-func (sm *StakingManager) CompleteUnbonding(staker types.Address, currentHeight uint64) error {
+func (sm *StakingManager) CompleteUnbonding(staker types.Address, _ uint64) error {
 	sm.mu.Lock()
 	defer sm.mu.Unlock()
 
@@ -298,31 +312,43 @@ func (sm *StakingManager) CompleteUnbonding(staker types.Address, currentHeight 
 		return fmt.Errorf("no stake found")
 	}
 
-	if stake.Status != StakeStatusUnbonding {
+	pending := big.NewInt(0)
+	if stake.PendingUnbond != nil {
+		pending.Set(stake.PendingUnbond)
+	}
+	if stake.Status != StakeStatusUnbonding && pending.Sign() == 0 {
 		return fmt.Errorf("stake not unbonding")
 	}
-	if reserved := sm.bondedByStaker[staker]; reserved != nil && reserved.Sign() > 0 {
-		return fmt.Errorf("stake has %s locked in chain bonds", reserved)
+	if stake.Status == StakeStatusUnbonding {
+		pending.Set(stake.Amount)
 	}
-
-	// Check if unbonding period elapsed (simplified - uses time instead of blocks)
-	if stake.UnbondingAt != nil {
-		unbondingDuration := time.Duration(sm.unbondingPeriod) * 5 * time.Second
-		if time.Since(*stake.UnbondingAt) < unbondingDuration {
-			return fmt.Errorf("unbonding period not elapsed")
+	if stake.Status == StakeStatusUnbonding {
+		if reserved := sm.bondedByStaker[staker]; reserved != nil && reserved.Sign() > 0 {
+			return fmt.Errorf("stake has %s locked in chain bonds", reserved)
 		}
 	}
 
-	// Complete unbonding
-	stake.Status = StakeStatusUnbonded
-	sm.totalStaked.Sub(sm.totalStaked, stake.Amount)
+	// Oracle staking uses a wall-clock deadline so progress does not depend on
+	// synthetic/empty blocks.
+	if stake.UnbondingAt != nil {
+		if time.Since(*stake.UnbondingAt) < sm.unbondingPeriod {
+			return fmt.Errorf("unbonding period not elapsed")
+		}
+	}
+	if err := sm.nrnToken.TransferBetween(sm.escrowAddress, staker, pending); err != nil {
+		return fmt.Errorf("release stake from escrow: %w", err)
+	}
 
-	// In production, would transfer tokens back to user
-	// For now, just mark as unbonded
+	if stake.Status == StakeStatusUnbonding {
+		stake.Status = StakeStatusUnbonded
+	} else {
+		stake.PendingUnbond.SetInt64(0)
+		stake.UnbondingAt = nil
+	}
 
 	sm.logger.Info("Unbonding completed",
 		zap.String("staker", staker.String()),
-		zap.String("amount", stake.Amount.String()),
+		zap.String("amount", pending.String()),
 	)
 
 	return nil
@@ -338,7 +364,7 @@ func (sm *StakingManager) GetStake(staker types.Address) (*Stake, error) {
 		return nil, fmt.Errorf("no stake found")
 	}
 
-	return stake, nil
+	return cloneStake(stake), nil
 }
 
 // GetAllStakers returns all active stakers
@@ -372,6 +398,9 @@ func (sm *StakingManager) UpdateRewards(staker types.Address, rewardAmount *big.
 	sm.mu.Lock()
 	defer sm.mu.Unlock()
 
+	if rewardAmount == nil || rewardAmount.Sign() < 0 {
+		return fmt.Errorf("reward amount must be non-negative")
+	}
 	stake, exists := sm.stakes[staker]
 	if !exists {
 		return fmt.Errorf("no stake found")
@@ -388,12 +417,29 @@ func (sm *StakingManager) UpdateRewards(staker types.Address, rewardAmount *big.
 	return nil
 }
 
+func cloneStake(stake *Stake) *Stake {
+	if stake == nil {
+		return nil
+	}
+	out := *stake
+	out.Amount = new(big.Int).Set(stake.Amount)
+	out.RewardsEarned = new(big.Int).Set(stake.RewardsEarned)
+	if stake.PendingUnbond != nil {
+		out.PendingUnbond = new(big.Int).Set(stake.PendingUnbond)
+	}
+	if stake.UnbondingAt != nil {
+		when := *stake.UnbondingAt
+		out.UnbondingAt = &when
+	}
+	return &out
+}
+
 // SetMinStake sets the minimum stake amount
 func (sm *StakingManager) SetMinStake(amount *big.Int) error {
 	sm.mu.Lock()
 	defer sm.mu.Unlock()
 
-	if amount.Cmp(big.NewInt(0)) <= 0 {
+	if amount == nil || amount.Sign() <= 0 {
 		return fmt.Errorf("minimum stake must be positive")
 	}
 
@@ -407,18 +453,18 @@ func (sm *StakingManager) SetMinStake(amount *big.Int) error {
 }
 
 // SetUnbondingPeriod sets the unbonding period
-func (sm *StakingManager) SetUnbondingPeriod(blocks uint64) error {
+func (sm *StakingManager) SetUnbondingPeriod(period time.Duration) error {
 	sm.mu.Lock()
 	defer sm.mu.Unlock()
 
-	if blocks == 0 {
+	if period <= 0 {
 		return fmt.Errorf("unbonding period must be positive")
 	}
 
-	sm.unbondingPeriod = blocks
+	sm.unbondingPeriod = period
 
 	sm.logger.Info("Unbonding period updated",
-		zap.Uint64("blocks", blocks),
+		zap.Duration("period", period),
 	)
 
 	return nil
@@ -450,7 +496,7 @@ func (sm *StakingManager) GetStakingStats() map[string]interface{} {
 		"unbonding_stakes": unbondingCount,
 		"total_rewards":    totalRewards.String(),
 		"min_stake":        sm.minStake.String(),
-		"unbonding_period": sm.unbondingPeriod,
+		"unbonding_period": sm.unbondingPeriod.String(),
 	}
 }
 
@@ -462,7 +508,7 @@ func (sm *StakingManager) ListActiveStakes() []*Stake {
 	stakes := make([]*Stake, 0)
 	for _, stake := range sm.stakes {
 		if stake.Status == StakeStatusActive {
-			stakes = append(stakes, stake)
+			stakes = append(stakes, cloneStake(stake))
 		}
 	}
 
@@ -477,7 +523,7 @@ func (sm *StakingManager) ListUnbondingStakes() []*Stake {
 	stakes := make([]*Stake, 0)
 	for _, stake := range sm.stakes {
 		if stake.Status == StakeStatusUnbonding {
-			stakes = append(stakes, stake)
+			stakes = append(stakes, cloneStake(stake))
 		}
 	}
 

@@ -3,6 +3,7 @@ module github.com/KNIRV/KNIRV_NETWORK/KNIRVGATEWAY
 go 1.25.7
 
 require (
+	github.com/KNIRV/KNIRV_NETWORK/KNIRVSDK/go v0.0.0
 	github.com/gorilla/mux v1.8.1
 	github.com/gorilla/sessions v1.2.2
 	github.com/joho/godotenv v1.5.1
@@ -10,6 +11,8 @@ require (
 	github.com/rs/cors v1.11.1
 	go.uber.org/zap v1.27.1
 )
+
+replace github.com/KNIRV/KNIRV_NETWORK/KNIRVSDK/go => ../KNIRVSDK/go
 
 require (
 	github.com/gorilla/websocket v1.5.3
@@ -27,6 +30,7 @@ require (
 	filippo.io/keygen v0.0.0-20260114151900-8e2790ea4c5b // indirect
 	github.com/benbjohnson/clock v1.3.5 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
+	github.com/btcsuite/btcd/btcutil v1.1.0 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/davidlazar/go-crypto v0.0.0-20200604182044-b73af7476f6c // indirect
@@ -133,6 +137,6 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/securecookie v1.1.2 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
-	golang.org/x/crypto v0.50.0
+	golang.org/x/crypto v0.50.0 // indirect
 	golang.org/x/sys v0.43.0 // indirect
 )

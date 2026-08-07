@@ -10,6 +10,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"net/url"
 
 	"strings"
 	"sync"
@@ -36,13 +37,9 @@ import (
 	"github.com/multiformats/go-multihash"
 )
 
-// Default bootstrap nodes - these would be replaced with actual stable nodes in production
-var DefaultBootstrapPeers = []string{
-	"/ip4/104.131.131.82/tcp/4001/p2p/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ",
-	"/ip4/104.236.179.241/tcp/4001/p2p/QmSoLPppuBtQSGwKDZT2M73ULpjvfd3aZ6ha4oFGL1KrGM",
-	"/ip4/128.199.219.111/tcp/4001/p2p/QmSoLSafTMBsPKadTEgaXctDQVcqN88CNLHXMkTNwMKPnu",
-	"/ip4/104.236.76.40/tcp/4001/p2p/QmSoLV4Bbm51jM9C4gDYZQ9Cy3U6aXMJDAbzgu2fzaDs64",
-}
+// Bootstrap peers are supplied by KNIRVGATEWAY/registry discovery. Never
+// fall back to unrelated public IPFS peers.
+var DefaultBootstrapPeers = []string{}
 
 // BootnodeRegistryURL is the URL for the KNIRVCHAIN Node Registry
 var BootnodeRegistryURL = "https://registry.knirv.com"
@@ -67,7 +64,6 @@ type DiscoveryManager struct {
 	host         host.Host
 	dht          *dual.DHT
 	bootstrapped bool
-	clients      map[string]*ReflectionClient
 	mu           sync.Mutex
 	stopChan     chan struct{}
 	ctx          context.Context
@@ -211,7 +207,6 @@ func NewDiscoveryManager(chainID string, p2pPort int, clientOnly bool, IsBootnod
 	return &DiscoveryManager{
 		host:        h,
 		dht:         idht,
-		clients:     make(map[string]*ReflectionClient),
 		ctx:         ctx,
 		cancel:      cancel,
 		chainID:     chainID,
@@ -610,9 +605,6 @@ func (dm *DiscoveryManager) Run(interval time.Duration) {
 	announceTicker := time.NewTicker(interval)
 	defer announceTicker.Stop()
 
-	healthTicker := time.NewTicker(interval / 2)
-	defer healthTicker.Stop()
-
 	for {
 		select {
 		case <-announceTicker.C:
@@ -726,22 +718,6 @@ func (dm *DiscoveryManager) Run(interval time.Duration) {
 				// if connectionSucceeded || dm.host.Network().Connectedness(peerID) == network.Connected {
 				//    /* ... Your reflection update logic ... */
 				// }
-			}
-			dm.mu.Unlock()
-
-		case <-healthTicker.C:
-			dm.mu.Lock()
-			for url, client := range dm.clients {
-				isActive := client.Ping()
-				// Update blockchain manager's reflection status
-				reflections := GetReflectionManager().GetReflections()
-				for i, r := range reflections {
-					if r.ReflectionAddress == url {
-						reflections[i].IsActive = isActive
-						reflections[i].LastSeen = time.Now()
-						break
-					}
-				}
 			}
 			dm.mu.Unlock()
 
@@ -875,24 +851,45 @@ func (dm *DiscoveryManager) Close() {
 
 // GetMultiaddrFromURI extracts a multiaddr from a KNIRVCHAIN URI
 func GetMultiaddrFromURI(uri string) (string, error) {
-	// This is a placeholder for the actual implementation
-	// In a real implementation, this would resolve the URI using the DHT
-	// and return a valid multiaddr
-
-	// For now, we'll just convert the old format to a multiaddr
 	if strings.HasPrefix(uri, "chain://") {
-		// Extract the chain ID
 		parts := strings.Split(uri[8:], ".")
-		if len(parts) < 1 {
+		if len(parts) < 1 || strings.TrimSpace(parts[0]) == "" {
 			return "", fmt.Errorf("invalid chain URI format: %s", uri)
 		}
-
-		chainID := parts[0]
-		// This would be replaced with actual DHT lookup
-		return fmt.Sprintf("/ip4/127.0.0.1/tcp/5000/p2p/%s", chainID), nil
+		uri = fmt.Sprintf("knirv://knirv.network/%s.chain", url.PathEscape(parts[0]))
 	}
-
-	return "", fmt.Errorf("unsupported URI format: %s", uri)
+	if !strings.HasPrefix(uri, "knirv://") {
+		return "", fmt.Errorf("unsupported URI format: %s", uri)
+	}
+	gateways := []string{"https://gateway.knirv.network", "https://testnet-gateway.knirv.network", "http://localhost:8080"}
+	client := &http.Client{Timeout: 15 * time.Second}
+	var failures []string
+	for _, gateway := range gateways {
+		resp, err := client.Get(gateway + "/api/uri/resolve?uri=" + url.QueryEscape(uri))
+		if err != nil {
+			failures = append(failures, gateway+": "+err.Error())
+			continue
+		}
+		body, readErr := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
+		_ = resp.Body.Close()
+		if readErr != nil || resp.StatusCode != http.StatusOK {
+			failures = append(failures, fmt.Sprintf("%s: HTTP %d", gateway, resp.StatusCode))
+			continue
+		}
+		var resolved struct {
+			Multiaddress string `json:"multiaddress"`
+		}
+		if err := json.Unmarshal(body, &resolved); err != nil || resolved.Multiaddress == "" {
+			failures = append(failures, gateway+": response has no multiaddress")
+			continue
+		}
+		if _, err := multiaddr.NewMultiaddr(resolved.Multiaddress); err != nil {
+			failures = append(failures, gateway+": invalid multiaddress")
+			continue
+		}
+		return resolved.Multiaddress, nil
+	}
+	return "", fmt.Errorf("unable to resolve KNIRV URI: %s", strings.Join(failures, "; "))
 }
 
 // GenerateResourceCID creates a CID for a resource

@@ -1,7 +1,9 @@
 package server
 
 import (
+	"bytes"
 	"context"
+	"crypto/subtle"
 	"database/sql"
 	"encoding/json"
 	"fmt"
@@ -14,14 +16,15 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/ipfs/go-cid"
 	"github.com/multiformats/go-multihash"
 
-	"github.com/KNIRV/KNIRV_NETWORK/KNIRVGATEWAY/internal/auth"
 	"github.com/KNIRV/KNIRV_NETWORK/KNIRVGATEWAY/internal/config"
 	"github.com/KNIRV/KNIRV_NETWORK/KNIRVGATEWAY/internal/dht"
 	"github.com/KNIRV/KNIRV_NETWORK/KNIRVGATEWAY/internal/dveviewer"
@@ -44,7 +47,6 @@ type Server struct {
 	config          *config.Config
 	sessionManager  *session.Manager
 	proxyHandler    *proxy.Handler
-	authHandler     *auth.Handler
 	operatorService *operator.Service
 	operatorHandler *operator.Handler
 	tunnelService   *tunnel.Service
@@ -64,10 +66,7 @@ type Server struct {
 
 // New creates a new HTTP server
 func New(cfg *config.Config, webguiStaticDir string, logger *zap.Logger, db ...*sql.DB) (*Server, error) {
-	var dbInstance *sql.DB
-	if len(db) > 0 {
-		dbInstance = db[0]
-	}
+	_ = db // retained for source compatibility; authentication is backend-owned
 	// Initialize operator service.
 	// Oracle is only accessible through the gateway's Unix socket reverse proxy.
 	// No fallback to a TCP port — if the socket path is unset, the operator
@@ -77,7 +76,7 @@ func New(cfg *config.Config, webguiStaticDir string, logger *zap.Logger, db ...*
 		oracleBaseURL = "http://knirvoracle" // proxied via socket
 	}
 	operatorSvc := operator.NewService(logger, oracleBaseURL)
-	operatorSvc.Initialize() // Load mock data
+	operatorSvc.Initialize()
 
 	operatorHdlr := operator.NewHandler(operatorSvc, logger)
 
@@ -88,7 +87,7 @@ func New(cfg *config.Config, webguiStaticDir string, logger *zap.Logger, db ...*
 		PublicRelayPort:     cfg.TunnelRegistryRelayPort,
 		STUNPort:            cfg.TunnelRegistrySTUNPort,
 		ServerPublicHost:    cfg.PublicHost,
-		RelayServerPeerID:   cfg.InternalAPIKey, // Using internal API key as peer ID for now
+		RelayServerPeerID:   "",
 	}
 	tunnelSvc := tunnel.NewService(tunnelConfig, logger)
 	tunnelHdlr := tunnelSvc.GetHandler()
@@ -99,13 +98,12 @@ func New(cfg *config.Config, webguiStaticDir string, logger *zap.Logger, db ...*
 		CoinbaseAPIKey:      "", // Will be set from environment
 		FaucetCooldownHours: 24,
 		DefaultNetwork:      "mainnet",
-		EconomicsEnabled:    true,
+		// The gateway's historical economics engine is an in-memory demo. The
+		// package-level KNIRVORACLE owns all production token accounting.
+		EconomicsEnabled: cfg.DemoEnabled,
 	}
 	paymentSvc := payment.NewService(paymentConfig, logger)
 	paymentHdlr := payment.NewHandler(paymentSvc, logger)
-
-	// Initialize auth handler
-	authHdlr := auth.NewHandler(cfg, logger, dbInstance)
 
 	// Initialize URI handler
 	uriHdlr := uri.NewHandler(logger)
@@ -170,12 +168,17 @@ func New(cfg *config.Config, webguiStaticDir string, logger *zap.Logger, db ...*
 			logger.Info("DHT manager initialized", zap.Int("port", cfg.DHTPort))
 		}
 	}
+	if dhtMgr != nil {
+		// The relay identity is the gateway's actual libp2p host identity. An
+		// internal API credential is neither a peer ID nor safe to disclose in
+		// generated multiaddresses.
+		tunnelConfig.RelayServerPeerID = dhtMgr.GetPeerID()
+	}
 
 	s := &Server{
 		config:          cfg,
 		sessionManager:  session.NewManager(cfg.SessionSecret),
 		proxyHandler:    proxy.NewHandler(logger),
-		authHandler:     authHdlr,
 		operatorService: operatorSvc,
 		operatorHandler: operatorHdlr,
 		tunnelService:   tunnelSvc,
@@ -244,9 +247,6 @@ func (s *Server) setupRoutes() error {
 	r.HandleFunc("/knirvbase/sync-request", s.handleBaseSyncRequest).Methods("POST")
 	r.HandleFunc("/knirvbase/discover", s.handleBaseDiscovery).Methods("GET")
 
-	// Register auth routes directly
-	s.authHandler.RegisterRoutes(r)
-
 	// Register operator registry routes directly
 	if s.operatorHandler != nil {
 		s.operatorHandler.RegisterRoutes(r)
@@ -255,8 +255,12 @@ func (s *Server) setupRoutes() error {
 	// Register tunnel registry routes directly
 	s.tunnelHandler.RegisterRoutes(r)
 
-	// Register payment oracle routes directly
-	s.paymentHandler.RegisterRoutes(r)
+	// The legacy payment package fabricates an in-memory ledger and faucet
+	// receipts, so expose it only in an explicitly selected demo runtime.
+	// Production payment/economics APIs are reverse-proxied to KNIRVORACLE.
+	if s.config.DemoEnabled {
+		s.paymentHandler.RegisterRoutes(r)
+	}
 
 	// Register URI generation routes directly
 	s.uriHandler.RegisterRoutes(r)
@@ -314,6 +318,12 @@ func (s *Server) setupRoutes() error {
 		// selected gateway. Keep auth on that same public origin while the
 		// backend remains the authority that issues and approves the token.
 		r.PathPrefix("/api/auth/").Handler(backendProxy)
+		// Legacy Gateway auth paths are aliases for the backend's real auth
+		// implementation. No credentials or tokens are minted in Gateway.
+		r.PathPrefix("/auth/").HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+			req.URL.Path = "/api" + req.URL.Path
+			backendProxy.ServeHTTP(w, req)
+		})
 		// Also proxy /api/badge/* to the backend socket (badge templates, guardrail injectors)
 		r.PathPrefix("/api/badge/").Handler(backendProxy)
 		// Also proxy /api/dve-nodes* to the backend socket (DVE node listing)
@@ -321,6 +331,34 @@ func (s *Server) setupRoutes() error {
 		s.logger.Info("Backend proxy registered", zap.String("socket", s.config.BackendSocketPath))
 	} else {
 		s.logger.Warn("Backend proxy not configured — /api/v1/* will not be proxied")
+	}
+
+	// Xion and IPFS are local KNIRVSERVER-owned subprocesses. Their private
+	// listeners are exposed only through these Gateway prefixes.
+	if xionRPC, err := newHTTPProxy(s.config.XionRPCURL); err == nil {
+		r.PathPrefix("/xion/rpc/").Handler(http.StripPrefix("/xion/rpc", xionRPC))
+	} else {
+		return fmt.Errorf("configure Xion RPC proxy: %w", err)
+	}
+	if xionREST, err := newHTTPProxy(s.config.XionRESTURL); err == nil {
+		r.PathPrefix("/xion/rest/").Handler(http.StripPrefix("/xion/rest", xionREST))
+	} else {
+		return fmt.Errorf("configure Xion REST proxy: %w", err)
+	}
+	if ipfsAPI, err := newHTTPProxy(s.config.IPFSAPIURL); err == nil {
+		r.PathPrefix("/ipfs/api/").Handler(newIPFSAPIHandler(http.StripPrefix("/ipfs", ipfsAPI), s.config.InternalAuthToken))
+	} else {
+		return fmt.Errorf("configure IPFS API proxy: %w", err)
+	}
+	if ipfsGateway, err := newHTTPProxy(s.config.IPFSGatewayURL); err == nil {
+		r.PathPrefix("/ipfs/").Handler(ipfsGateway)
+	} else {
+		return fmt.Errorf("configure IPFS gateway proxy: %w", err)
+	}
+	if embedder, err := newHTTPProxy(s.config.TextEmbedderURL); err == nil {
+		r.PathPrefix("/text-embedder/").Handler(http.StripPrefix("/text-embedder", embedder))
+	} else {
+		return fmt.Errorf("configure text-embedder proxy: %w", err)
 	}
 
 	// === PHASES 1-4: Unified Proxy Architecture ===
@@ -357,8 +395,9 @@ func (s *Server) setupRoutes() error {
 	// double, which should keep the old mock/empty fallback instead of
 	// making a real outbound call.
 	if oracleProxy == nil && !isRootNode && (s.config.OracleSocketPath != "" || s.config.NetworkMode != "" || s.config.OracleGatewayURL != "") {
-		upstream := defaultOracleGatewayURL(s.config.NetworkMode, s.config.OracleGatewayURL)
-		if p, err := newHTTPProxy(upstream); err == nil {
+		upstreams := oracleGatewayCandidates(s.config.OracleGatewayURL)
+		upstream := strings.Join(upstreams, ", ")
+		if p, err := newFailoverHTTPProxy(upstreams); err == nil {
 			oracleProxy = p
 			s.logger.Info("Oracle proxy registered (upstream KNIRVGATEWAY)", zap.String("upstream", upstream))
 		} else {
@@ -391,6 +430,10 @@ func (s *Server) setupRoutes() error {
 		r.HandleFunc("/send_signed_txn", oracleProxy.ServeHTTP).Methods("POST", "OPTIONS")
 		r.HandleFunc("/transactions", oracleProxy.ServeHTTP).Methods("POST", "OPTIONS")
 		r.HandleFunc("/test/faucet", oracleProxy.ServeHTTP).Methods("POST", "OPTIONS")
+
+		// Preserve the public checkout alias while ensuring the implementation
+		// and all disbursement accounting remain in KNIRVORACLE.
+		r.Handle("/api/create-checkout-session", rewriteProxyPath(oracleProxy, "/oracle/v3/payment/checkout/create")).Methods("POST", "OPTIONS")
 	}
 
 	// 301 redirects from old flat paths — wallet info and transaction submission
@@ -1082,12 +1125,71 @@ func defaultOracleGatewayURL(networkMode, oracleGatewayURL string) string {
 	if override := strings.TrimSpace(oracleGatewayURL); override != "" {
 		return override
 	}
-	switch strings.ToLower(strings.TrimSpace(networkMode)) {
-	case "production", "prod", "mainnet":
-		return "https://gateway.knirv.network"
-	default:
-		return "https://testnet-gateway.knirv.network"
+	return "https://gateway.knirv.network"
+}
+
+func oracleGatewayCandidates(override string) []string {
+	if override = strings.TrimRight(strings.TrimSpace(override), "/"); override != "" {
+		return []string{override}
 	}
+	return []string{"https://gateway.knirv.network", "https://testnet-gateway.knirv.network"}
+}
+
+type failoverRoundTripper struct {
+	targets []*url.URL
+	base    http.RoundTripper
+}
+
+func (t *failoverRoundTripper) RoundTrip(request *http.Request) (*http.Response, error) {
+	var requestBody []byte
+	if request.Body != nil {
+		var err error
+		requestBody, err = io.ReadAll(request.Body)
+		if err != nil {
+			return nil, err
+		}
+		request.Body.Close()
+	}
+	var lastErr error
+	for _, target := range t.targets {
+		clone := request.Clone(request.Context())
+		clone.URL.Scheme, clone.URL.Host, clone.Host = target.Scheme, target.Host, target.Host
+		if requestBody != nil {
+			clone.Body = io.NopCloser(bytes.NewReader(requestBody))
+			clone.ContentLength = int64(len(requestBody))
+		}
+		response, err := t.base.RoundTrip(clone)
+		if err == nil && response.StatusCode < 500 {
+			return response, nil
+		}
+		if err != nil {
+			lastErr = err
+		} else {
+			lastErr = fmt.Errorf("%s returned %d", target.Host, response.StatusCode)
+			response.Body.Close()
+		}
+	}
+	return nil, lastErr
+}
+
+func newFailoverHTTPProxy(targetBases []string) (*httputil.ReverseProxy, error) {
+	if len(targetBases) == 0 {
+		return nil, fmt.Errorf("at least one upstream is required")
+	}
+	targets := make([]*url.URL, 0, len(targetBases))
+	for _, base := range targetBases {
+		target, err := url.Parse(base)
+		if err != nil {
+			return nil, err
+		}
+		targets = append(targets, target)
+	}
+	proxy, err := newHTTPProxy(targets[0].String())
+	if err != nil {
+		return nil, err
+	}
+	proxy.Transport = &failoverRoundTripper{targets: targets, base: http.DefaultTransport}
+	return proxy, nil
 }
 
 func newHTTPProxy(targetBase string) (*httputil.ReverseProxy, error) {
@@ -1108,6 +1210,56 @@ func newHTTPProxy(targetBase string) (*httputil.ReverseProxy, error) {
 		return nil
 	}
 	return proxy, nil
+}
+
+// rewriteProxyPath exposes a compatibility route without duplicating the
+// implementation owned by the proxied service. The original request is
+// cloned so middleware and concurrent handlers never observe a mutated URL.
+func rewriteProxyPath(next http.Handler, targetPath string) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		cloned := r.Clone(r.Context())
+		urlCopy := *r.URL
+		urlCopy.Path = targetPath
+		urlCopy.RawPath = ""
+		cloned.URL = &urlCopy
+		next.ServeHTTP(w, cloned)
+	})
+}
+
+// newIPFSAPIHandler exposes only KNIRV's required Kubo RPC operations and
+// requires the private service token. Public CID reads use /ipfs/<cid>.
+func newIPFSAPIHandler(next http.Handler, internalToken string) http.Handler {
+	allowed := map[string]struct{}{
+		"version": {}, "id": {}, "add": {}, "cat": {}, "get": {}, "ls": {}, "refs": {},
+		"block/get": {}, "block/put": {}, "block/stat": {},
+		"dag/get": {}, "dag/put": {}, "dag/stat": {},
+		"pin/add": {}, "pin/rm": {}, "pin/ls": {}, "repo/stat": {},
+		"files/cp": {}, "files/flush": {}, "files/ls": {}, "files/mkdir": {},
+		"files/mv": {}, "files/read": {}, "files/rm": {}, "files/stat": {}, "files/write": {},
+		"name/publish": {}, "name/resolve": {}, "swarm/peers": {},
+	}
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if internalToken == "" {
+			http.Error(w, "IPFS API proxy requires KNIRV_INTERNAL_AUTH_TOKEN", http.StatusServiceUnavailable)
+			return
+		}
+		supplied := strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer ")
+		if subtle.ConstantTimeCompare([]byte(supplied), []byte(internalToken)) != 1 {
+			http.Error(w, "IPFS API authorization required", http.StatusUnauthorized)
+			return
+		}
+		if r.Method != http.MethodPost {
+			http.Error(w, "Kubo RPC operations require POST", http.StatusMethodNotAllowed)
+			return
+		}
+		command := strings.Trim(strings.TrimPrefix(r.URL.Path, "/ipfs/api/v0/"), "/")
+		if _, ok := allowed[command]; !ok {
+			http.Error(w, "IPFS API operation is not exposed by KNIRVGATEWAY", http.StatusForbidden)
+			return
+		}
+		r.Body = http.MaxBytesReader(w, r.Body, 64<<20)
+		next.ServeHTTP(w, r)
+	})
 }
 
 func (s *Server) handleBackendWebSocketProxy(w http.ResponseWriter, r *http.Request) {
@@ -1402,6 +1554,15 @@ func (s *Server) handleSetSession(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
+	dhtStatus := map[string]interface{}{"status": "disabled"}
+	if s.dhtManager != nil {
+		dhtStatus = map[string]interface{}{
+			"status":          "active",
+			"peer_id":         s.dhtManager.GetPeerID(),
+			"connected_peers": len(s.dhtManager.GetConnectedPeers()),
+			"self_addrs":      s.dhtManager.GetSelfMultiaddrs(),
+		}
+	}
 	status := map[string]interface{}{
 		"status":    "healthy",
 		"network":   s.config.NetworkMode,
@@ -1409,43 +1570,11 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 		"timestamp": time.Now().UnixMilli(),
 		"chainId":   s.config.ChainID,
 		"port":      s.actualPort,
-		"dht": map[string]interface{}{
-			"status": "not_implemented",
-		},
+		"dht":       dhtStatus,
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(status)
-}
-
-func (s *Server) handleProvision(w http.ResponseWriter, r *http.Request) {
-	// Placeholder for DHT provisioning
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode([]interface{}{})
-}
-
-func (s *Server) handleDHTStatus(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"status":  "not_implemented",
-		"network": s.config.NetworkMode,
-	})
-}
-
-func (s *Server) handleDHTStart(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"error":   "Not Implemented",
-		"message": "DHT functionality not yet implemented in Go version",
-	})
-}
-
-func (s *Server) handleDHTStop(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"error":   "Not Implemented",
-		"message": "DHT functionality not yet implemented in Go version",
-	})
 }
 
 func (s *Server) handleControllerProxy() http.Handler {
@@ -1468,15 +1597,22 @@ func (s *Server) handleControllerProxy() http.Handler {
 // Replaces the Next.js API route /api/network-monitor/status which is
 // excluded from the static export.
 func (s *Server) handleNetworkMonitorStatus(w http.ResponseWriter, r *http.Request) {
+	services := s.networkMonitorServices(r.Context())
+	up := 0
+	for _, service := range services {
+		if service["status"] == "up" {
+			up++
+		}
+	}
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"success": true,
 		"data": map[string]interface{}{
-			"name":           "KNIRV Local Network",
-			"overall_status": "healthy",
-			"services_up":    3,
-			"services_down":  0,
-			"services_total": 6,
+			"name":           "KNIRV Network",
+			"overall_status": map[bool]string{true: "healthy", false: "degraded"}[up == len(services)],
+			"services_up":    up,
+			"services_down":  len(services) - up,
+			"services_total": len(services),
 			"last_update":    time.Now().UTC().Format(time.RFC3339),
 		},
 		"timestamp": time.Now().UTC().Format(time.RFC3339),
@@ -1486,42 +1622,31 @@ func (s *Server) handleNetworkMonitorStatus(w http.ResponseWriter, r *http.Reque
 // handleNetworkMonitorServices returns per-service health status.
 func (s *Server) handleNetworkMonitorServices(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	services := map[string]interface{}{
-		"knirvchain": map[string]interface{}{
-			"name": "knirvchain", "url": "http://localhost:8080", "status": "up",
-			"lastCheck": time.Now().UTC().Format(time.RFC3339), "responseTime": 5, "uptime": 99.5,
-		},
-		"knirvserver": map[string]interface{}{
-			"name": "knirvserver", "url": "http://localhost:8082", "status": "up",
-			"lastCheck": time.Now().UTC().Format(time.RFC3339), "responseTime": 3, "uptime": 99.8,
-		},
-		"knirvgraph": map[string]interface{}{
-			"name": "knirvgraph", "url": "http://localhost:8081", "status": "up",
-			"lastCheck": time.Now().UTC().Format(time.RFC3339), "responseTime": 8, "uptime": 98.2,
-		},
-	}
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"success":   true,
-		"data":      services,
+		"data":      s.networkMonitorServices(r.Context()),
 		"timestamp": time.Now().UTC().Format(time.RFC3339),
 	})
 }
 
 // handleNetworkMonitorMetrics returns system metrics (simplified).
 func (s *Server) handleNetworkMonitorMetrics(w http.ResponseWriter, r *http.Request) {
+	var memory runtime.MemStats
+	runtime.ReadMemStats(&memory)
+	var disk syscall.Statfs_t
+	diskData := map[string]interface{}{}
+	if err := syscall.Statfs(".", &disk); err == nil {
+		total, available := disk.Blocks*uint64(disk.Bsize), disk.Bavail*uint64(disk.Bsize)
+		diskData = map[string]interface{}{"total_bytes": total, "used_bytes": total - available, "available_bytes": available}
+	}
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"success": true,
 		"data": map[string]interface{}{
-			"cpu": map[string]interface{}{
-				"usage_percent": 12.5, "load_average": []float64{0.8, 0.6, 0.4},
-			},
 			"memory": map[string]interface{}{
-				"total_bytes": 16e9, "used_bytes": 8e9, "available_bytes": 8e9, "usage_percent": 50.0,
+				"heap_alloc_bytes": memory.HeapAlloc, "system_bytes": memory.Sys, "goroutines": runtime.NumGoroutine(),
 			},
-			"disk": map[string]interface{}{
-				"total_bytes": 500e9, "used_bytes": 200e9, "available_bytes": 300e9, "usage_percent": 40.0,
-			},
+			"disk":      diskData,
 			"timestamp": time.Now().UTC().Format(time.RFC3339),
 		},
 		"timestamp": time.Now().UTC().Format(time.RFC3339),
@@ -1532,10 +1657,8 @@ func (s *Server) handleNetworkMonitorMetrics(w http.ResponseWriter, r *http.Requ
 func (s *Server) handleNetworkMonitorLogs(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
-		"success": true,
-		"data": []map[string]interface{}{
-			{"level": "info", "message": "Network monitor initialized", "service": "network-monitor", "timestamp": time.Now().UTC().Format(time.RFC3339)},
-		},
+		"success":   true,
+		"data":      []map[string]interface{}{},
 		"timestamp": time.Now().UTC().Format(time.RFC3339),
 	})
 }
@@ -1546,15 +1669,60 @@ func (s *Server) handleNetworkMonitorConfig(w http.ResponseWriter, r *http.Reque
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"success": true,
 		"data": map[string]interface{}{
-			"active_network": "local",
+			"active_network": s.config.NetworkMode,
 			"networks": map[string]interface{}{
-				"local": map[string]interface{}{
-					"name": "KNIRV Local", "description": "Local development network",
+				s.config.NetworkMode: map[string]interface{}{
+					"name": "KNIRV " + s.config.NetworkMode,
 				},
 			},
 		},
 		"timestamp": time.Now().UTC().Format(time.RFC3339),
 	})
+}
+
+func (s *Server) networkMonitorServices(ctx context.Context) map[string]map[string]interface{} {
+	type target struct {
+		name, endpoint, socket string
+	}
+	targets := []target{
+		{"backend", "http://service/health", s.config.BackendSocketPath},
+		{"knirvchain", "http://service/health", s.config.ChainSocketPath},
+		{"knirvgraph", "http://service/health", s.config.GraphSocketPath},
+		{"xion", strings.TrimRight(s.config.XionRPCURL, "/") + "/health", ""},
+		{"ipfs", strings.TrimRight(s.config.IPFSAPIURL, "/") + "/api/v0/version", ""},
+		{"text-embedder", strings.TrimRight(s.config.TextEmbedderURL, "/") + "/health", ""},
+	}
+	result := make(map[string]map[string]interface{}, len(targets))
+	for _, target := range targets {
+		start := time.Now()
+		client := &http.Client{Timeout: 3 * time.Second}
+		if target.socket != "" {
+			client.Transport = &http.Transport{DialContext: func(ctx context.Context, _, _ string) (net.Conn, error) {
+				return (&net.Dialer{}).DialContext(ctx, "unix", target.socket)
+			}}
+		}
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, target.endpoint, nil)
+		status := "down"
+		statusCode := 0
+		if err == nil {
+			if response, requestErr := client.Do(req); requestErr == nil {
+				statusCode = response.StatusCode
+				response.Body.Close()
+				if response.StatusCode/100 == 2 {
+					status = "up"
+				}
+			} else {
+				err = requestErr
+			}
+		}
+		entry := map[string]interface{}{"name": target.name, "url": target.endpoint, "status": status,
+			"lastCheck": time.Now().UTC().Format(time.RFC3339), "responseTime": time.Since(start).Milliseconds(), "statusCode": statusCode}
+		if err != nil {
+			entry["error"] = err.Error()
+		}
+		result[target.name] = entry
+	}
+	return result
 }
 
 // handleAPIInfo returns server info — used by the WebGUI's backend detection.

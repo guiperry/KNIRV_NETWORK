@@ -24,13 +24,14 @@ var (
 // nothing exposes a TCP port for it. KNIRVGATEWAY/backend_server proxy
 // requests to it over that socket (see api_router.go's chain proxy routes).
 type ValidationChain struct {
-	ctx        context.Context
-	cancelFunc context.CancelFunc
-	cmd        *exec.Cmd
-	socketPath string
-	client     *http.Client
-	restartMu  sync.Mutex
-	running    bool
+	ctx               context.Context
+	cancelFunc        context.CancelFunc
+	cmd               *exec.Cmd
+	socketPath        string
+	client            *http.Client
+	restartMu         sync.Mutex
+	running           bool
+	servicePrivateKey string
 }
 
 // Get returns the singleton ValidationChain instance.
@@ -60,7 +61,7 @@ func unixHTTPClient(socketPath string, timeout time.Duration) *http.Client {
 // before returning.
 const validationChainDataDir = "/var/lib/knirvserver/validationchain/data"
 
-func (vc *ValidationChain) Start(ctx context.Context, socketPath string) error {
+func (vc *ValidationChain) Start(ctx context.Context, socketPath, servicePrivateKey string) error {
 	vc.restartMu.Lock()
 	defer vc.restartMu.Unlock()
 
@@ -75,6 +76,7 @@ func (vc *ValidationChain) Start(ctx context.Context, socketPath string) error {
 
 	vc.ctx, vc.cancelFunc = context.WithCancel(ctx)
 	vc.socketPath = socketPath
+	vc.servicePrivateKey = servicePrivateKey
 	vc.client = unixHTTPClient(socketPath, 5*time.Second)
 
 	if err := os.MkdirAll(dirOf(socketPath), 0o700); err != nil {
@@ -88,7 +90,8 @@ func (vc *ValidationChain) Start(ctx context.Context, socketPath string) error {
 	vc.cmd = exec.CommandContext(vc.ctx, binPath)
 	vc.cmd.Env = append(os.Environ(),
 		fmt.Sprintf("VALIDATION_CHAIN_SOCKET_PATH=%s", socketPath),
-		"CHAIN_ID=validation-testnet",
+		"VALIDATION_CHAIN_ID=knirv-validation-1",
+		fmt.Sprintf("VALIDATION_CHAIN_SERVICE_PRIVATE_KEY=%s", servicePrivateKey),
 		fmt.Sprintf("DATA_PATH=%s", validationChainDataDir),
 	)
 	vc.cmd.Stdout = os.Stdout
@@ -166,7 +169,8 @@ func (vc *ValidationChain) monitorProcess(binPath string) {
 		vc.cmd = exec.CommandContext(vc.ctx, binPath)
 		vc.cmd.Env = append(os.Environ(),
 			fmt.Sprintf("VALIDATION_CHAIN_SOCKET_PATH=%s", vc.socketPath),
-			"CHAIN_ID=validation-testnet",
+			"VALIDATION_CHAIN_ID=knirv-validation-1",
+			fmt.Sprintf("VALIDATION_CHAIN_SERVICE_PRIVATE_KEY=%s", vc.servicePrivateKey),
 			fmt.Sprintf("DATA_PATH=%s", validationChainDataDir),
 		)
 		vc.cmd.Stdout = os.Stdout

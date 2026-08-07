@@ -1,6 +1,7 @@
 package economics
 
 import (
+	"crypto/sha256"
 	"fmt"
 	"math/big"
 	"sync"
@@ -41,6 +42,8 @@ type FeeReceipt struct {
 	From      types.Address `json:"from"`
 	FeeType   FeeType       `json:"fee_type"`
 	Amount    *big.Int      `json:"amount"`
+	Burned    *big.Int      `json:"burned"`
+	Rewarded  *big.Int      `json:"rewarded"`
 	TxHash    string        `json:"tx_hash"`
 	Timestamp time.Time     `json:"timestamp"`
 }
@@ -53,11 +56,12 @@ type FeeCollector struct {
 	totalFees  *big.Int
 	feeHistory []FeeReceipt
 	logger     *zap.Logger
+	rewardPool types.Address
 	mu         sync.RWMutex
 }
 
 // NewFeeCollector creates a new fee collector
-func NewFeeCollector(nrnToken *token.NRN, logger *zap.Logger) *FeeCollector {
+func NewFeeCollector(nrnToken *token.NRN, rewardPool types.Address, logger *zap.Logger) *FeeCollector {
 	fc := &FeeCollector{
 		nrnToken:   nrnToken,
 		feeConfigs: make(map[FeeType]*FeeConfig),
@@ -67,6 +71,7 @@ func NewFeeCollector(nrnToken *token.NRN, logger *zap.Logger) *FeeCollector {
 		totalFees:  big.NewInt(0),
 		feeHistory: make([]FeeReceipt, 0),
 		logger:     logger,
+		rewardPool: rewardPool,
 	}
 
 	// Set default fee configs
@@ -161,21 +166,24 @@ func (fc *FeeCollector) CollectFee(from types.Address, feeType FeeType, amount *
 		return nil, fmt.Errorf("fee amount must be positive")
 	}
 
-	// Transfer fee to zero address (burn) - simplified
-	// In production, would transfer to fee collector address
-	// Note: Transfer requires privateKey, but for fee collection we just track it
-	// In production, this would be handled differently (e.g., through allowance mechanism)
-
-	// For now, just record the fee (actual transfer would happen externally)
-	// TODO: Implement proper fee collection mechanism
+	burnAmount := new(big.Int).Mul(amount, big.NewInt(int64(fc.burnConfig.BurnPercentage*10000)))
+	burnAmount.Div(burnAmount, big.NewInt(10000))
+	rewardAmount := new(big.Int).Sub(amount, burnAmount)
+	if err := fc.nrnToken.CollectFee(from, fc.rewardPool, burnAmount, rewardAmount); err != nil {
+		return nil, err
+	}
+	now := time.Now().UTC()
+	txHash := sha256.Sum256([]byte(fmt.Sprintf("fee:%s:%s:%s:%d", from, feeType, amount, now.UnixNano())))
 
 	// Create fee receipt
 	feeReceipt := FeeReceipt{
 		From:      from,
 		FeeType:   feeType,
 		Amount:    new(big.Int).Set(amount),
-		TxHash:    "", // Would be populated by actual transfer
-		Timestamp: time.Now(),
+		Burned:    new(big.Int).Set(burnAmount),
+		Rewarded:  new(big.Int).Set(rewardAmount),
+		TxHash:    fmt.Sprintf("%X", txHash),
+		Timestamp: now,
 	}
 
 	// Update totals

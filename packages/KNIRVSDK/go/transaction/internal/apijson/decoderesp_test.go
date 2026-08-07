@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/cloud-equities/KNIRVCHAIN/sdk/go/transaction/internal/apijson"
-	"github.com/cloud-equities/KNIRVCHAIN/sdk/go/transaction/packages/respjson"
+	"github.com/guiperry/KNIRV_NETWORK/KNIRVSDK/go/transaction/internal/apijson"
+	"github.com/guiperry/KNIRV_NETWORK/KNIRVSDK/go/transaction/packages/respjson"
 )
 
 type StructWithNullExtraField struct {

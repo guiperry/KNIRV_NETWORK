@@ -243,8 +243,17 @@ func (h *Handler) handleGetMetrics(w http.ResponseWriter, r *http.Request) {
 
 // handleGetTransaction handles transaction retrieval
 func (h *Handler) handleGetTransaction(w http.ResponseWriter, r *http.Request) {
-	// For now, return a mock response since we don't have direct transaction lookup
-	h.sendError(w, http.StatusNotImplemented, "Transaction lookup not implemented")
+	id := mux.Vars(r)["id"]
+	tx, ok := h.service.GetTransaction(id)
+	if !ok {
+		h.sendError(w, http.StatusNotFound, "Transaction not found")
+		return
+	}
+	h.sendSuccess(w, map[string]interface{}{
+		"id": tx.ID, "type": tx.Type, "from": tx.From, "to": tx.To,
+		"amount": tx.AmountStr, "purpose": tx.Purpose, "metadata": tx.Metadata,
+		"status": tx.Status, "timestamp": tx.Timestamp,
+	})
 }
 
 // handleGetTransactions handles transaction list requests

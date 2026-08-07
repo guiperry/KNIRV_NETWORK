@@ -288,9 +288,292 @@ type ServerApp struct {
 	internalAuthToken        string
 	proofValidatorPrivateKey string
 	backendCmd               *exec.Cmd
+	ipfsCmd                  *exec.Cmd
+	xionCmd                  *exec.Cmd
+	textEmbedderCmd          *exec.Cmd
 	backendPath              string
 	tempDir                  string
 	upd                      *updater.Updater
+}
+
+func (app *ServerApp) startIPFS(ctx context.Context) error {
+	binary := strings.TrimSpace(os.Getenv("IPFS_BINARY_PATH"))
+	if binary == "" {
+		var err error
+		binary, err = exec.LookPath("ipfs")
+		if err != nil {
+			return fmt.Errorf("IPFS binary not found (set IPFS_BINARY_PATH): %w", err)
+		}
+	}
+	appDataDir, err := getAppDataDir()
+	if err != nil {
+		return err
+	}
+	ipfsPath := strings.TrimSpace(os.Getenv("IPFS_PATH"))
+	if ipfsPath == "" {
+		ipfsPath = filepath.Join(appDataDir, "ipfs")
+	}
+	env := setChildEnv(os.Environ(), "IPFS_PATH", ipfsPath)
+	run := func(args ...string) error {
+		cmd := exec.CommandContext(ctx, binary, args...)
+		cmd.Env, cmd.Stdout, cmd.Stderr = env, os.Stdout, os.Stderr
+		if err := cmd.Run(); err != nil {
+			return fmt.Errorf("ipfs %s: %w", strings.Join(args, " "), err)
+		}
+		return nil
+	}
+	if _, err := os.Stat(filepath.Join(ipfsPath, "config")); os.IsNotExist(err) {
+		if err := run("init", "--profile=server"); err != nil {
+			return err
+		}
+	}
+	for _, setting := range [][2]string{{"Addresses.API", "/ip4/127.0.0.1/tcp/5001"}, {"Addresses.Gateway", "/ip4/127.0.0.1/tcp/8081"}} {
+		if err := run("config", setting[0], setting[1]); err != nil {
+			return err
+		}
+	}
+	cmd := exec.CommandContext(ctx, binary, "daemon", "--migrate=true")
+	cmd.Env, cmd.Stdout, cmd.Stderr = env, os.Stdout, os.Stderr
+	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
+	if err := cmd.Start(); err != nil {
+		return fmt.Errorf("start IPFS daemon: %w", err)
+	}
+	app.ipfsCmd = cmd
+	go func() {
+		if err := cmd.Wait(); err != nil && ctx.Err() == nil {
+			log.Printf("IPFS daemon exited: %v", err)
+		}
+	}()
+	log.Printf("IPFS daemon started (API 127.0.0.1:5001, gateway 127.0.0.1:8081)")
+	return nil
+}
+
+func (app *ServerApp) startXion(ctx context.Context) error {
+	binary := strings.TrimSpace(os.Getenv("XION_BINARY_PATH"))
+	if binary == "" {
+		var err error
+		binary, err = exec.LookPath("xiond")
+		if err != nil {
+			return fmt.Errorf("xiond binary not found (set XION_BINARY_PATH or install github.com/burnt-labs/xion): %w", err)
+		}
+	}
+	home := strings.TrimSpace(os.Getenv("XION_HOME"))
+	if home == "" {
+		appDataDir, err := getAppDataDir()
+		if err != nil {
+			return fmt.Errorf("resolve Xion data directory: %w", err)
+		}
+		home = filepath.Join(appDataDir, "xion")
+	}
+	chainID := strings.TrimSpace(os.Getenv("XION_CHAIN_ID"))
+	if chainID == "" {
+		switch strings.ToLower(strings.TrimSpace(app.config.NetworkMode)) {
+		case "production", "prod", "mainnet":
+			chainID = "xion-mainnet-1"
+		case "development", "dev", "devnet", "local":
+			chainID = "xion-local-testnet-1"
+		default:
+			chainID = "xion-testnet-2"
+		}
+	}
+	if err := os.MkdirAll(home, 0700); err != nil {
+		return fmt.Errorf("create Xion home: %w", err)
+	}
+	configDir := filepath.Join(home, "config")
+	genesisPath := filepath.Join(configDir, "genesis.json")
+	if _, err := os.Stat(configDir); os.IsNotExist(err) {
+		initCmd := exec.CommandContext(ctx, binary, "init", "knirvserver", "--home", home, "--chain-id", chainID)
+		initCmd.Stdout, initCmd.Stderr = os.Stdout, os.Stderr
+		initCmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
+		if err := initCmd.Run(); err != nil {
+			return fmt.Errorf("initialize Xion home: %w", err)
+		}
+	}
+	if _, err := os.Stat(genesisPath); os.IsNotExist(err) {
+		if chainID == "xion-local-testnet-1" {
+			return fmt.Errorf("local Xion genesis is missing at %s; initialize it with xiond add-genesis-account/gentx/collect-gentxs", genesisPath)
+		}
+		genesisURL := strings.TrimSpace(os.Getenv("XION_GENESIS_URL"))
+		if genesisURL == "" {
+			if chainID == "xion-mainnet-1" {
+				genesisURL = "https://raw.githubusercontent.com/burnt-labs/burnt-networks/main/mainnet/xion-mainnet-1/genesis.json"
+			} else if chainID == "xion-testnet-2" {
+				genesisURL = "https://raw.githubusercontent.com/burnt-labs/xion-testnet-2/config/genesis.json"
+			}
+		}
+		if genesisURL == "" {
+			return fmt.Errorf("no genesis source configured for Xion chain %s", chainID)
+		}
+		if err := downloadXionGenesis(ctx, genesisURL, genesisPath); err != nil {
+			return err
+		}
+	}
+	if err := validateXionGenesis(genesisPath, chainID); err != nil {
+		return err
+	}
+	if err := ensureXionKeyPermissions(home); err != nil {
+		return err
+	}
+	cmd := exec.CommandContext(ctx, binary, "start", "--home", home,
+		"--chain-id", chainID, "--rpc.laddr", "tcp://127.0.0.1:26657",
+		"--grpc.address", "127.0.0.1:9091", "--api.address", "tcp://127.0.0.1:1317")
+	cmd.Stdout, cmd.Stderr = os.Stdout, os.Stderr
+	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
+	if err := cmd.Start(); err != nil {
+		return fmt.Errorf("start Xion: %w", err)
+	}
+	app.xionCmd = cmd
+	go func() {
+		if err := cmd.Wait(); err != nil && ctx.Err() == nil {
+			log.Printf("Xion exited: %v", err)
+		}
+	}()
+	log.Printf("Xion started (chain %s, home %s, RPC 127.0.0.1:26657, REST 127.0.0.1:1317, gRPC 127.0.0.1:9091)", chainID, home)
+	return nil
+}
+
+func downloadXionGenesis(ctx context.Context, source, destination string) error {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, source, nil)
+	if err != nil {
+		return fmt.Errorf("create Xion genesis request: %w", err)
+	}
+	resp, err := (&http.Client{Timeout: 60 * time.Second}).Do(req)
+	if err != nil {
+		return fmt.Errorf("download Xion genesis: %w", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("download Xion genesis: HTTP %d from %s", resp.StatusCode, source)
+	}
+	data, err := io.ReadAll(io.LimitReader(resp.Body, 512<<20))
+	if err != nil {
+		return fmt.Errorf("read Xion genesis: %w", err)
+	}
+	var document struct {
+		ChainID string `json:"chain_id"`
+	}
+	if err := json.Unmarshal(data, &document); err != nil {
+		return fmt.Errorf("decode Xion genesis: %w", err)
+	}
+	if strings.TrimSpace(document.ChainID) == "" {
+		return fmt.Errorf("Xion genesis %s has no chain_id", source)
+	}
+	if err := os.MkdirAll(filepath.Dir(destination), 0700); err != nil {
+		return fmt.Errorf("create Xion config directory: %w", err)
+	}
+	tmp, err := os.CreateTemp(filepath.Dir(destination), ".genesis-*")
+	if err != nil {
+		return fmt.Errorf("create temporary Xion genesis: %w", err)
+	}
+	tmpName := tmp.Name()
+	defer os.Remove(tmpName)
+	if err := tmp.Chmod(0644); err != nil {
+		tmp.Close()
+		return fmt.Errorf("set Xion genesis permissions: %w", err)
+	}
+	if _, err := tmp.Write(data); err != nil {
+		tmp.Close()
+		return fmt.Errorf("write Xion genesis: %w", err)
+	}
+	if err := tmp.Close(); err != nil {
+		return fmt.Errorf("close Xion genesis: %w", err)
+	}
+	if err := os.Rename(tmpName, destination); err != nil {
+		return fmt.Errorf("install Xion genesis: %w", err)
+	}
+	return nil
+}
+
+func validateXionGenesis(path, expectedChainID string) error {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return fmt.Errorf("read Xion genesis: %w", err)
+	}
+	var document struct {
+		ChainID string `json:"chain_id"`
+	}
+	if err := json.Unmarshal(data, &document); err != nil {
+		return fmt.Errorf("decode Xion genesis: %w", err)
+	}
+	if document.ChainID != expectedChainID {
+		return fmt.Errorf("Xion genesis chain_id %q does not match configured chain %q", document.ChainID, expectedChainID)
+	}
+	return nil
+}
+
+func ensureXionKeyPermissions(home string) error {
+	configDir := filepath.Join(home, "config")
+	for _, name := range []string{"priv_validator_key.json", "node_key.json", "priv_validator_state.json"} {
+		path := filepath.Join(configDir, name)
+		if _, err := os.Stat(path); err == nil {
+			if err := os.Chmod(path, 0600); err != nil {
+				return fmt.Errorf("secure Xion key %s: %w", path, err)
+			}
+		} else if !os.IsNotExist(err) {
+			return fmt.Errorf("inspect Xion key %s: %w", path, err)
+		}
+	}
+	for _, keyring := range []string{"keyring-file", "keyring-test"} {
+		root := filepath.Join(home, keyring)
+		if _, err := os.Stat(root); os.IsNotExist(err) {
+			continue
+		}
+		if err := filepath.WalkDir(root, func(path string, entry os.DirEntry, walkErr error) error {
+			if walkErr != nil {
+				return walkErr
+			}
+			if entry.Type()&os.ModeSymlink != 0 {
+				return nil
+			}
+			if entry.IsDir() {
+				return os.Chmod(path, 0700)
+			}
+			return os.Chmod(path, 0600)
+		}); err != nil {
+			return fmt.Errorf("secure Xion %s: %w", keyring, err)
+		}
+	}
+	return nil
+}
+
+func (app *ServerApp) startTextEmbedder(ctx context.Context) error {
+	binary := strings.TrimSpace(os.Getenv("TEXT_EMBEDDER_BINARY_PATH"))
+	if binary == "" {
+		for _, name := range []string{"text-embedder", "embedder"} {
+			if resolved, err := exec.LookPath(name); err == nil {
+				binary = resolved
+				break
+			}
+		}
+	}
+	if binary == "" {
+		return fmt.Errorf("text-embedder binary not found (set TEXT_EMBEDDER_BINARY_PATH)")
+	}
+	cmd := exec.CommandContext(ctx, binary)
+	cmd.Env = setChildEnv(os.Environ(), "PORT", "8089")
+	cmd.Stdout, cmd.Stderr = os.Stdout, os.Stderr
+	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
+	if err := cmd.Start(); err != nil {
+		return fmt.Errorf("start text-embedder: %w", err)
+	}
+	app.textEmbedderCmd = cmd
+	go func() {
+		if err := cmd.Wait(); err != nil && ctx.Err() == nil {
+			log.Printf("text-embedder exited: %v", err)
+		}
+	}()
+	log.Printf("Deterministic text-embedder started on 127.0.0.1:8089")
+	return nil
+}
+
+func stopManagedProcess(name string, cmd *exec.Cmd) {
+	if cmd == nil || cmd.Process == nil {
+		return
+	}
+	if err := syscall.Kill(-cmd.Process.Pid, syscall.SIGTERM); err != nil {
+		_ = cmd.Process.Signal(syscall.SIGTERM)
+	}
+	log.Printf("Stopped %s subprocess", name)
 }
 
 const defaultAgentControlSocketName = "knirvagent-control.sock"
@@ -2531,24 +2814,17 @@ func (app *ServerApp) startGraphRAG(ctx context.Context) error {
 // whose tunnel isn't up yet just wastes the first attempt. Failure here is
 // logged and non-fatal either way, since ensureRegistered retries on every
 // subsequent poll.
-func (app *ServerApp) startValidationChain(ctx context.Context) {
+func (app *ServerApp) startValidationChain(ctx context.Context) error {
 	socketPath := validationChainSocketPath()
-	if err := embedded.GetManager().StartValidationChain(ctx, socketPath); err != nil {
-		log.Printf("Warning: failed to start Validation Chain: %v", err)
-		return
-	}
-	log.Printf("Validation Chain started on socket %s", socketPath)
-
-	appDataDir, err := getAppDataDir()
+	signer, err := validationchain.LoadCheckpointSigner()
 	if err != nil {
-		log.Printf("Warning: failed to resolve app data dir for checkpoint signer: %v", err)
-		return
+		return fmt.Errorf("load explicitly provisioned Validation Chain service signer: %w", err)
 	}
-	signer, err := validationchain.LoadOrCreateCheckpointSigner(appDataDir)
-	if err != nil {
-		log.Printf("Warning: failed to load/create Validation Chain checkpoint signer: %v", err)
-		return
+	servicePrivateKey := fmt.Sprintf("%064x", signer.D)
+	if err := embedded.GetManager().StartValidationChain(ctx, socketPath, servicePrivateKey); err != nil {
+		return fmt.Errorf("start Validation Chain: %w", err)
 	}
+	log.Printf("Validation Chain started on socket %s with registered service signer %s", socketPath, validationchain.CheckpointAddress(&signer.PublicKey))
 	gatewayURL, gwErr := resolvePublicURL(app.config)
 	if gwErr != nil {
 		gatewayURL = checkpoint.DefaultOracleGatewayURL
@@ -2566,6 +2842,7 @@ func (app *ServerApp) startValidationChain(ctx context.Context) {
 	runtime := checkpoint.NewRuntime(socketPath, gatewayURL, oracleURL, signer)
 	go runtime.Run(ctx, 30*time.Second)
 	log.Printf("Validation Chain checkpoint runtime started (posting to KNIRVORACLE via gateway %s, oracle %s)", gatewayURL, oracleURL)
+	return nil
 }
 
 // oracleGatewayURL resolves KNIRVORACLE's public address. KNIRVORACLE only
@@ -2619,28 +2896,32 @@ func waitForOracleHealth(ctx context.Context, timeout time.Duration, oracleURL s
 // provisional balance pool — see fundRootKeyHolderWallet. KNIRVORACLE itself
 // is reached through the public gateway (it only runs on the root node),
 // not assumed local even when this happens to be the root node.
-func (app *ServerApp) startTransactionChain(ctx context.Context) {
+func (app *ServerApp) startTransactionChain(ctx context.Context) error {
 	socketPath := transactionChainSocketPath()
-	if err := embedded.GetManager().StartTransactionChain(ctx, socketPath); err != nil {
-		log.Printf("Warning: failed to start Transaction Chain: %v", err)
-		return
+	if err := embedded.GetManager().StartTransactionChain(ctx, socketPath, app.internalAuthToken); err != nil {
+		return fmt.Errorf("start Transaction Chain: %w", err)
 	}
 	log.Printf("Transaction Chain started on socket %s", socketPath)
 
 	oracleURL := oracleGatewayURL(app.config)
 	if !waitForOracleHealth(ctx, 60*time.Second, oracleURL) {
 		log.Printf("Warning: KNIRVORACLE did not become healthy in time; skipping Transaction Chain wallet funding")
-		return
+		return nil
 	}
 	// StartTransactionChain only guarantees the process was spawned, not that
 	// its HTTP server has finished booting (sqlite table creation + chain
 	// load happen asynchronously before app.listen()) — wait for its own
 	// /health before crediting, or the very first request loses this race.
 	if !waitForTransactionChainHealth(ctx, socketPath, 30*time.Second) {
-		log.Printf("Warning: Transaction Chain did not become healthy in time; skipping wallet funding")
-		return
+		return fmt.Errorf("Transaction Chain did not become healthy within 30s")
 	}
-	app.fundRootKeyHolderWallet(ctx, oracleURL)
+	demo := strings.TrimSpace(os.Getenv("KNIRV_ENABLE_DEMO"))
+	if demo == "1" || strings.EqualFold(demo, "true") {
+		app.fundRootKeyHolderWallet(ctx, oracleURL)
+	} else {
+		log.Printf("Transaction Chain demo funding disabled; balances must be established through Oracle settlement")
+	}
+	return nil
 }
 
 // waitForTransactionChainHealth polls the Transaction Chain's own /health
@@ -2672,24 +2953,19 @@ func waitForTransactionChainHealth(ctx context.Context, socketPath string, timeo
 // root.key holder's Transaction Chain wallet on startup, for testing.
 // There is no per-address staking lookup or root.key-to-wallet linkage
 // anywhere in this codebase today (see pkg/embedded/validationchain.
-// LoadOrCreateCheckpointSigner's doc comment) — sizing this off "current
+// LoadCheckpointSigner's doc comment) — sizing this off "current
 // stake" is future work once that infrastructure exists.
 const testFundingAmountNRN = 100_000_000
 
 // fundRootKeyHolderWallet derives the root.key holder's address from the
-// same checkpoint signer identity (LoadOrCreateCheckpointSigner) and credits
+// same checkpoint signer identity (LoadCheckpointSigner) and credits
 // its Transaction Chain wallet with a flat provisional NRN balance, sourced
 // from KNIRVORACLE's Faucet via the public gateway. One-time per process
 // start; safe to call repeatedly since both the Faucet mint and the wallet
 // credit are additive (a restart adds another testFundingAmountNRN, which
 // is fine for testing).
 func (app *ServerApp) fundRootKeyHolderWallet(ctx context.Context, oracleURL string) {
-	appDataDir, err := getAppDataDir()
-	if err != nil {
-		log.Printf("Warning: failed to resolve app data dir for wallet funding: %v", err)
-		return
-	}
-	signer, err := validationchain.LoadOrCreateCheckpointSigner(appDataDir)
+	signer, err := validationchain.LoadCheckpointSigner()
 	if err != nil {
 		log.Printf("Warning: failed to load checkpoint signer for wallet funding: %v", err)
 		return
@@ -2700,7 +2976,7 @@ func (app *ServerApp) fundRootKeyHolderWallet(ctx context.Context, oracleURL str
 		log.Printf("Warning: failed to fund %s from KNIRVORACLE faucet: %v", address, err)
 		return
 	}
-	if err := creditTransactionChainWallet(ctx, transactionChainSocketPath(), address, testFundingAmountNRN); err != nil {
+	if err := creditTransactionChainWallet(ctx, transactionChainSocketPath(), app.internalAuthToken, address, testFundingAmountNRN); err != nil {
 		log.Printf("Warning: failed to credit Transaction Chain wallet for %s: %v", address, err)
 		return
 	}
@@ -2728,7 +3004,7 @@ func requestOracleFaucet(ctx context.Context, oracleURL, address string, amount 
 	return nil
 }
 
-func creditTransactionChainWallet(ctx context.Context, txChainSocketPath, address string, amount int64) error {
+func creditTransactionChainWallet(ctx context.Context, txChainSocketPath, internalAuthToken, address string, amount int64) error {
 	body, err := json.Marshal(map[string]any{"address": address, "amount": amount, "reason": "root-key-holder-provisional-funding"})
 	if err != nil {
 		return err
@@ -2738,6 +3014,7 @@ func creditTransactionChainWallet(ctx context.Context, txChainSocketPath, addres
 		return err
 	}
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+internalAuthToken)
 	resp, err := unixHTTPClient(txChainSocketPath, 15*time.Second).Do(req)
 	if err != nil {
 		return err
@@ -2870,6 +3147,25 @@ func (app *ServerApp) startBackend() error {
 		networkMode = "testnet"
 	}
 	env = append(env, "KNIRV_NETWORK_MODE="+networkMode)
+	// Keep the embedded Gateway, CLI-facing services, and xiond subprocess on
+	// the same Xion network selected by the server wrapper.
+	xionChainID := strings.TrimSpace(os.Getenv("XION_CHAIN_ID"))
+	if xionChainID == "" {
+		switch strings.ToLower(strings.TrimSpace(networkMode)) {
+		case "production", "prod", "mainnet":
+			xionChainID = "xion-mainnet-1"
+		case "development", "dev", "devnet", "local":
+			xionChainID = "xion-local-testnet-1"
+		default:
+			xionChainID = "xion-testnet-2"
+		}
+	}
+	env = append(env, "XION_CHAIN_ID="+xionChainID)
+	if strings.TrimSpace(os.Getenv("XION_HOME")) == "" {
+		if appDataDir, err := getAppDataDir(); err == nil {
+			env = append(env, "XION_HOME="+filepath.Join(appDataDir, "xion"))
+		}
+	}
 	// Node role: root.key present → Root; boot.key present → Bootnode; neither → Client.
 	// Both keys are discovered at runtime from standard filesystem locations.
 	if rootKeyPath := bootkey.FindRootKey(); rootKeyPath != "" {
@@ -2987,9 +3283,7 @@ func (app *ServerApp) startBackend() error {
 		}
 		time.Sleep(500 * time.Millisecond)
 	}
-	log.Printf("Warning: backend did not become healthy within 30s — proceeding anyway")
-
-	return nil
+	return fmt.Errorf("unified backend did not become healthy within 30s")
 }
 
 func backendCommandArgs(configFile string, autoStartHasher bool) []string {
@@ -3181,8 +3475,27 @@ func (app *ServerApp) Start() error {
 	// services dial that socket (pkg/embedded/graphrag) for indexing and
 	// queries. Best-effort: a failure here must not block the rest of
 	// KNIRVSERVER from starting, matching Validation/Transaction Chain.
-	if err := app.startGraphRAG(context.Background()); err != nil {
-		log.Printf("Warning: failed to start GraphRAG: %v", err)
+	if strings.EqualFold(strings.TrimSpace(os.Getenv("KNIRV_ENABLE_LEGACY_GRAPHRAG")), "true") {
+		if err := app.startGraphRAG(context.Background()); err != nil {
+			log.Printf("Warning: failed to start legacy GraphRAG: %v", err)
+		}
+	}
+	production := strings.EqualFold(strings.TrimSpace(app.config.NetworkMode), "production")
+	requiredServices := []struct {
+		name  string
+		start func(context.Context) error
+	}{
+		{"text-embedder", app.startTextEmbedder},
+		{"IPFS", app.startIPFS},
+		{"Xion", app.startXion},
+	}
+	for _, service := range requiredServices {
+		if err := service.start(context.Background()); err != nil {
+			if production {
+				return fmt.Errorf("required production service %s failed: %w", service.name, err)
+			}
+			log.Printf("Warning: %s was not started: %v", service.name, err)
+		}
 	}
 
 	// Start backend (spawns KNIRVORACLE among other services)
@@ -3193,14 +3506,18 @@ func (app *ServerApp) Start() error {
 	// Transaction Chain starts only after KNIRVORACLE is confirmed healthy,
 	// since Oracle must fund every Transaction Chain wallet's provisional
 	// balance pool (see startTransactionChain / fundRootKeyHolderWallet).
-	app.startTransactionChain(context.Background())
+	if err := app.startTransactionChain(context.Background()); err != nil {
+		return err
+	}
 
 	// Validation Chain is initialized last, after KNIRVORACLE has had a
 	// chance to start and establish its tunnel endpoint through
 	// KNIRVGATEWAY — its checkpoint runtime registers with KNIRVORACLE on
 	// first run, and doing that before Oracle's tunnel is reachable just
 	// wastes the first attempt (see startValidationChain).
-	app.startValidationChain(context.Background())
+	if err := app.startValidationChain(context.Background()); err != nil {
+		return err
+	}
 
 	// Create HTTP server
 	// WriteTimeout is 0 (disabled) so SSE and long-lived streaming responses are
@@ -3240,6 +3557,9 @@ func (app *ServerApp) Stop() error {
 
 	// Stop backend
 	app.stopBackend()
+	stopManagedProcess("Xion", app.xionCmd)
+	stopManagedProcess("IPFS", app.ipfsCmd)
+	stopManagedProcess("text-embedder", app.textEmbedderCmd)
 
 	// Stop the embedded Validation Chain / Transaction Chain subprocesses.
 	if err := embedded.GetManager().Shutdown(); err != nil {

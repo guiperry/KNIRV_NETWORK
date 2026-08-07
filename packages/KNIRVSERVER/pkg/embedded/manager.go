@@ -94,7 +94,8 @@ func (s *GraphRagService) Health() error { return graphrag.HealthCheck() }
 // lifecycle; backend_server (KNIRV_CORP) only holds an HTTP client dialing
 // the same socket — nothing exposes a TCP port for it.
 type ValidationChainService struct {
-	socketPath string
+	socketPath        string
+	servicePrivateKey string
 }
 
 // Name returns service identifier
@@ -105,7 +106,7 @@ func (s *ValidationChainService) Init(config []byte) error { return nil }
 
 // Start extracts and launches the validation chain subprocess.
 func (s *ValidationChainService) Start(ctx context.Context) error {
-	return validationchain.Get().Start(ctx, s.socketPath)
+	return validationchain.Get().Start(ctx, s.socketPath, s.servicePrivateKey)
 }
 
 // Stop stops the validation chain subprocess.
@@ -121,7 +122,8 @@ func (s *ValidationChainService) Health() error { return validationchain.Get().H
 // only holds an HTTP client dialing the same socket — nothing exposes a TCP
 // port for it.
 type TransactionChainService struct {
-	socketPath string
+	socketPath        string
+	internalAuthToken string
 }
 
 // Name returns service identifier
@@ -132,7 +134,7 @@ func (s *TransactionChainService) Init(config []byte) error { return nil }
 
 // Start launches transaction chain process
 func (s *TransactionChainService) Start(ctx context.Context) error {
-	return transactionchain.Get().Start(ctx, s.socketPath)
+	return transactionchain.Get().Start(ctx, s.socketPath, s.internalAuthToken)
 }
 
 // Stop stops transaction chain process
@@ -179,8 +181,8 @@ func (m *Manager) Initialize(ctx context.Context, graphRagConfig []byte, graphSo
 // StartValidationChain starts the embedded Validation Chain subprocess
 // bound to socketPath and registers it for Health()/Shutdown() tracking.
 // Must be called after Initialize.
-func (m *Manager) StartValidationChain(ctx context.Context, socketPath string) error {
-	svc := &ValidationChainService{socketPath: socketPath}
+func (m *Manager) StartValidationChain(ctx context.Context, socketPath, servicePrivateKey string) error {
+	svc := &ValidationChainService{socketPath: socketPath, servicePrivateKey: servicePrivateKey}
 	if err := svc.Start(ctx); err != nil {
 		return err
 	}
@@ -193,8 +195,8 @@ func (m *Manager) StartValidationChain(ctx context.Context, socketPath string) e
 // StartTransactionChain starts the embedded Transaction Chain subprocess
 // bound to socketPath and registers it for Health()/Shutdown() tracking.
 // Must be called after Initialize.
-func (m *Manager) StartTransactionChain(ctx context.Context, socketPath string) error {
-	svc := &TransactionChainService{socketPath: socketPath}
+func (m *Manager) StartTransactionChain(ctx context.Context, socketPath, internalAuthToken string) error {
+	svc := &TransactionChainService{socketPath: socketPath, internalAuthToken: internalAuthToken}
 	if err := svc.Start(ctx); err != nil {
 		return err
 	}

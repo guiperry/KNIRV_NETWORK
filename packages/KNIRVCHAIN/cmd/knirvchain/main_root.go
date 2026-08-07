@@ -18,14 +18,13 @@ func init() {
 
 	// Set root constants from main package
 	rootConstants := config.RootConstants{
-		BlockchainAddress:    utils.BLOCKCHAIN_ADDRESS,
-		BlockchainPrivateKey: utils.BLOCKCHAIN_PRIVATE_KEY,
-		RootchainURL:         utils.ROOTCHAIN_URL,
-		BlockchainName:       utils.BLOCKCHAIN_NAME,
-		CurrencyName:         utils.CURRENCY_NAME,
-		Decimal:              utils.DECIMAL,
-		MiningDifficulty:     utils.MINING_DIFFICULTY,
-		MiningReward:         utils.MINING_REWARD,
+		BlockchainAddress: utils.BLOCKCHAIN_ADDRESS,
+		RootchainURL:      utils.ROOTCHAIN_URL,
+		BlockchainName:    utils.BLOCKCHAIN_NAME,
+		CurrencyName:      utils.CURRENCY_NAME,
+		Decimal:           utils.DECIMAL,
+		MiningDifficulty:  utils.MINING_DIFFICULTY,
+		MiningReward:      utils.MINING_REWARD,
 	}
 	config.SetRootConstants(rootConstants)
 	log.Println("Root constants set from build configuration")

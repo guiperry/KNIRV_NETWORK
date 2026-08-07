@@ -14,11 +14,13 @@ import (
 	"KNIRVCHAIN/internal/database"
 )
 
-// DefaultOracleBaseURL is the primary testnet Oracle entry (merkle-math.md §1.4).
+// DefaultOracleBaseURL is the canonical mainnet gateway. Public clients always
+// try mainnet, then testnet, then the co-located development gateway.
 // Non-root KNIRVCHAIN deployments post here; co-located root nodes may instead set
 // SocketPath to talk to the Oracle over its unix socket (no bearer token needed).
-const DefaultOracleBaseURL = "https://testnet-gateway.knirv.network"
-const DefaultOracleFailoverURL = "https://testnet-oracle.knirv.network"
+const DefaultOracleBaseURL = "https://gateway.knirv.network"
+const DefaultOracleFailoverURL = "https://testnet-gateway.knirv.network"
+const DefaultOracleLocalURL = "http://localhost:8080"
 
 // SubmitStatus is the persisted posting state of a checkpoint.
 type SubmitStatus string
@@ -124,6 +126,9 @@ func (p *Poster) postJSON(ctx context.Context, path string, body interface{}) (m
 	targets = append(targets, target{base: p.baseURL, client: p.httpClient})
 	if p.failoverURL != "" && p.failoverURL != p.baseURL {
 		targets = append(targets, target{base: p.failoverURL, client: p.httpClient})
+	}
+	if DefaultOracleLocalURL != p.baseURL && DefaultOracleLocalURL != p.failoverURL {
+		targets = append(targets, target{base: DefaultOracleLocalURL, client: p.httpClient})
 	}
 	var lastErr error
 	for attempt := 0; attempt < p.retries; attempt++ {

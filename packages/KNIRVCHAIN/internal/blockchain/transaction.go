@@ -5,27 +5,31 @@ import (
 	pb "KNIRVCHAIN/internal/protocol/proto"
 	"KNIRVCHAIN/internal/types"
 	"KNIRVCHAIN/internal/utils"
-	"crypto/ecdsa"
-	"crypto/elliptic"
 	"crypto/sha256"
+	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"log"
 	"math"
 	"math/big"
+	"os"
 	"reflect"
 	"strings"
 	"time"
 
+	knirvsigning "github.com/KNIRV/KNIRV_NETWORK/KNIRVSDK/go/signing"
 	"google.golang.org/protobuf/proto"
 )
 
-// Placeholder proto type for Transaction
 type TransactionProtoForHashing struct {
-	From string
-	To   string
-	Data []byte
+	From      string
+	To        string
+	Value     uint64
+	Data      []byte
+	Timestamp int64
+	Fee       uint64
+	Type      string
 }
 
 type Transaction struct {
@@ -38,6 +42,11 @@ type Transaction struct {
 	TransactionHash string       `json:"transaction_hash"`
 	PublicKey       string       `json:"public_key,omitempty"`
 	Signature       []byte       `json:"signature"`
+	BodyBytes       string       `json:"body_bytes,omitempty"`
+	AuthInfoBytes   string       `json:"auth_info_bytes,omitempty"`
+	ChainID         string       `json:"chain_id,omitempty"`
+	AccountNumber   uint64       `json:"account_number,omitempty"`
+	Sequence        uint64       `json:"sequence,omitempty"`
 	DeepCopy        *Transaction `json:"deep_copy,omitempty"`
 	Fee             uint64       `json:"fee"`                  // NRN token gas fee paid for this transaction
 	Type            string       `json:"type,omitempty"`       // Transaction type for MCP transactions
@@ -48,21 +57,21 @@ type Transaction struct {
 // ToProtoForHashing converts transaction to proto format for hashing
 func (tx *Transaction) ToProtoForHashing() (*TransactionProtoForHashing, error) {
 	return &TransactionProtoForHashing{
-		From: tx.From,
-		To:   tx.To,
-		Data: tx.Data,
+		From: tx.From, To: tx.To, Value: tx.Value, Data: tx.Data,
+		Timestamp: tx.Timestamp, Fee: tx.Fee, Type: tx.Type,
 	}, nil
 }
 
-// base58Decode placeholder function
-func base58Decode(s string) ([]byte, error) {
-	return []byte(s), nil // Placeholder implementation
-}
-
 // GetCanonicalBytesForHashingTransaction returns canonical bytes for transaction hashing
-func GetCanonicalBytesForHashingTransaction(proto *TransactionProtoForHashing) ([]byte, error) {
-	// Placeholder implementation - use JSON marshaling for now
-	return []byte(fmt.Sprintf("tx-hash-%s-%s", proto.From, proto.To)), nil
+func GetCanonicalBytesForHashingTransaction(tx *TransactionProtoForHashing) ([]byte, error) {
+	actionType := tx.Type
+	if actionType == "" {
+		actionType = "transfer"
+	}
+	return knirvsigning.MarshalAction(knirvsigning.Action{
+		Action: actionType, Sender: tx.From, Recipient: tx.To, Amount: tx.Value,
+		Payload: tx.Data, TimestampUnix: tx.Timestamp,
+	})
 }
 
 func (tx *Transaction) DetermineDataType() string {
@@ -239,6 +248,9 @@ func (t Transaction) ToJson() string {
 }
 
 func (t Transaction) VerifyTxn() bool {
+	if t.From == utils.BLOCKCHAIN_ADDRESS {
+		return t.isValidProtocolTransaction()
+	}
 	// Skip value check for MCP transactions that might have zero value
 	if t.Type == "" {
 		if t.Value <= 0 {
@@ -337,12 +349,6 @@ func (t Transaction) VerifyTxn() bool {
 		}
 	}
 
-	// Skip signature verification for transactions from the blockchain address
-	// (mining rewards, faucet transactions, etc.)
-	if t.From == utils.BLOCKCHAIN_ADDRESS {
-		return true
-	}
-
 	valid, err := t.VerifySignature()
 	if err != nil {
 		return false
@@ -352,8 +358,10 @@ func (t Transaction) VerifyTxn() bool {
 }
 
 func (t *Transaction) VerifySignature() (bool, error) {
-	// Allow transactions from blockchain address to bypass signature verification
 	if t.From == utils.BLOCKCHAIN_ADDRESS {
+		if !t.isValidProtocolTransaction() {
+			return false, fmt.Errorf("invalid unsigned protocol transaction")
+		}
 		return true, nil
 	}
 
@@ -362,69 +370,79 @@ func (t *Transaction) VerifySignature() (bool, error) {
 		log.Println("Verification failed: Signature is nil or empty")
 		return false, fmt.Errorf("signature is nil or empty")
 	}
-	if t.PublicKey == "" {
-		log.Println("Verification failed: PublicKey is empty")
-		return false, fmt.Errorf("public key is empty")
+	if t.PublicKey == "" || t.BodyBytes == "" || t.AuthInfoBytes == "" || t.ChainID == "" {
+		return false, fmt.Errorf("canonical signing fields are incomplete")
 	}
-
-	// Decode the public key
-	publicKeyEcdsa, err := GetPublicKeyFromHex(t.PublicKey)
+	body, err := base64.StdEncoding.DecodeString(t.BodyBytes)
 	if err != nil {
-		log.Printf("Verification failed: Error getting public key from hex '%s': %v", t.PublicKey, err)
-		return false, fmt.Errorf("error getting public key from hex: %w", err)
+		return false, fmt.Errorf("decode body_bytes: %w", err)
 	}
-
-	// --- Reconstruct the data that was originally signed ---
-	// Create a temporary transaction struct containing only the fields
-	// that were present *before* signing. Match the fields used in NewTransaction
-	// and potentially modified before signing (if any).
-	// IMPORTANT: Ensure this structure matches exactly what was used for signing
-	unsignedTxnForVerification := Transaction{
-		From:      t.From,
-		To:        t.To,
-		Value:     t.Value,
-		Data:      t.Data,
-		Timestamp: t.Timestamp,
-		Fee:       t.Fee,
-		Type:      t.Type,
-	}
-
-	// For MCP transactions, include additional fields used in hash generation
-	if t.Type != "" {
-		unsignedTxnForVerification.Fee = t.Fee
-		unsignedTxnForVerification.Type = t.Type
-	}
-	// --- End reconstruction ---
-
-	// Convert the reconstructed unsigned transaction to proto
-	txProtoForVerification, err := unsignedTxnForVerification.ToProtoForHashing()
+	auth, err := base64.StdEncoding.DecodeString(t.AuthInfoBytes)
 	if err != nil {
-		log.Printf("Verification failed: Error converting transaction to proto for verification: %v", err)
-		return false, fmt.Errorf("error converting transaction to proto for verification: %w", err)
+		return false, fmt.Errorf("decode auth_info_bytes: %w", err)
 	}
-	// Get canonical bytes
-	bs, err := GetCanonicalBytesForHashingTransaction(txProtoForVerification)
+	pub, err := base64.StdEncoding.DecodeString(t.PublicKey)
 	if err != nil {
-		log.Printf("Verification failed: Error marshalling proto transaction for verification: %v", err)
-		return false, fmt.Errorf("error marshalling proto transaction for verification: %w", err)
+		return false, fmt.Errorf("decode public_key: %w", err)
 	}
-
-	log.Printf("Verification hash input: %s", string(bs)) // Verbose
-	log.Printf("Verification hash bytes (hex): %x", bs)   // Verbose
-	log.Printf("Signature bytes (hex): %x", t.Signature)  // Verbose
-	hash := sha256.Sum256(bs)
-
-	// Verify the original signature against the hash using the decoded public key
-	isValid := ecdsa.VerifyASN1(publicKeyEcdsa, hash[:], t.Signature)
-	if !isValid {
-		// Add more detail for debugging if verification fails
-		log.Printf("Verification failed: ECDSA signature verification returned false for txn %s", t.TransactionHash)
-		return false, nil // Signature is invalid, but no error in the process itself
+	action, err := knirvsigning.ParseActionBody(body)
+	if err != nil {
+		return false, fmt.Errorf("decode signed action: %w", err)
+	}
+	expectedType := t.Type
+	if expectedType == "" {
+		expectedType = "transfer"
+	}
+	if action.Action != expectedType || action.Sender != t.From || action.Recipient != t.To ||
+		action.Amount != t.Value || action.TimestampUnix != t.Timestamp || !reflect.DeepEqual(action.Payload, t.Data) {
+		return false, fmt.Errorf("signed action does not match transaction fields")
+	}
+	address, err := knirvsigning.Address(pub, knirvsigning.DefaultAddressPrefix)
+	if err != nil || address != t.From {
+		return false, fmt.Errorf("public key does not match transaction sender")
+	}
+	signed := knirvsigning.SignedTransaction{
+		BodyBytes: body, AuthInfoBytes: auth, Signatures: [][]byte{t.Signature},
+		PublicKey: pub, Address: t.From,
+	}
+	if err := knirvsigning.VerifyTransaction(signed, t.ChainID, t.AccountNumber); err != nil {
+		return false, err
+	}
+	raw := knirvsigning.MarshalTxRaw(body, auth, [][]byte{t.Signature})
+	hash := sha256.Sum256(raw)
+	if t.TransactionHash != "" && !strings.EqualFold(strings.TrimPrefix(t.TransactionHash, "0x"), fmt.Sprintf("%x", hash)) {
+		return false, fmt.Errorf("transaction hash does not match signed TxRaw")
 	}
 	return true, nil
 }
 
+func (t *Transaction) isValidProtocolTransaction() bool {
+	if t == nil || t.From != utils.BLOCKCHAIN_ADDRESS || t.Fee != 0 || t.To == "" {
+		return false
+	}
+	switch t.Type {
+	case "protocol_mining_reward":
+		return t.Value == utils.MINING_REWARD && len(t.Data) == 0
+	case "protocol_validation_proof":
+		return t.Value == 0 && len(t.Data) > 0
+	case "protocol_uri_mint":
+		return t.Value == 0 && len(t.Data) > 0
+	case "demo_faucet":
+		return strings.EqualFold(strings.TrimSpace(os.Getenv("KNIRV_ENABLE_DEMO")), "true") && t.Value > 0
+	default:
+		return false
+	}
+}
+
 func (t Transaction) Hash() string {
+	if t.BodyBytes != "" && t.AuthInfoBytes != "" && len(t.Signature) == 64 {
+		body, bodyErr := base64.StdEncoding.DecodeString(t.BodyBytes)
+		auth, authErr := base64.StdEncoding.DecodeString(t.AuthInfoBytes)
+		if bodyErr == nil && authErr == nil {
+			sum := sha256.Sum256(knirvsigning.MarshalTxRaw(body, auth, [][]byte{t.Signature}))
+			return utils.HEX_PREFIX + hex.EncodeToString(sum[:])
+		}
+	}
 	// Create unsigned transaction copy for hash calculation
 	unsignedTx := &Transaction{
 		From:      t.From,
@@ -451,54 +469,6 @@ func (t Transaction) Hash() string {
 	return formattedHexRep
 }
 
-func GetPublicKeyFromHex(publicKeyHex string) (*ecdsa.PublicKey, error) {
-	if !strings.HasPrefix(publicKeyHex, "0x") {
-		return nil, fmt.Errorf("invalid public key hex format: missing 0x prefix")
-	}
-	rpk := publicKeyHex[2:] // Remove "0x"
-
-	// Decode the Base58 string
-	compressedBytes, err := base58Decode(rpk)
-	if err != nil {
-		return nil, fmt.Errorf("failed to decode base58 public key: %w", err)
-	}
-
-	// Decompress the public key (using elliptic curve operations)
-	curve := elliptic.P256()
-	x := new(big.Int).SetBytes(compressedBytes[1:])             // X coordinate is after the prefix byte
-	ySq := new(big.Int).Exp(x, big.NewInt(3), curve.Params().P) // y^2 = x^3 + ax + b mod P (a= -3 for P256)
-	threeX := new(big.Int).Mul(big.NewInt(3), x)
-	aX := new(big.Int).Sub(curve.Params().P, threeX) // a = -3
-	ySq.Add(ySq, aX)
-	ySq.Add(ySq, curve.Params().B)
-	ySq.Mod(ySq, curve.Params().P)
-
-	// Calculate square root mod P to find Y
-	y := new(big.Int).ModSqrt(ySq, curve.Params().P)
-	if y == nil {
-		return nil, fmt.Errorf("failed to compute square root for Y coordinate (invalid point)")
-	}
-
-	// Choose the correct Y based on the prefix byte
-	prefix := compressedBytes[0]
-	if (prefix == 0x03 && y.Bit(0) == 0) || (prefix == 0x02 && y.Bit(0) != 0) {
-		y.Sub(curve.Params().P, y)
-	}
-
-	// Check if the point is on the curve
-	if !curve.IsOnCurve(x, y) {
-		return nil, fmt.Errorf("decompressed point is not on the curve")
-	}
-
-	publicKey := &ecdsa.PublicKey{
-		Curve: curve,
-		X:     x,
-		Y:     y,
-	}
-
-	return publicKey, nil
-}
-
 func (tx *Transaction) Clone() *Transaction {
 
 	copiedSignature := make([]byte, len(tx.Signature))
@@ -519,6 +489,13 @@ func (tx *Transaction) Clone() *Transaction {
 		TransactionHash: tx.TransactionHash,
 		Fee:             tx.Fee,
 		Type:            tx.Type,
+		BodyBytes:       tx.BodyBytes,
+		AuthInfoBytes:   tx.AuthInfoBytes,
+		ChainID:         tx.ChainID,
+		AccountNumber:   tx.AccountNumber,
+		Sequence:        tx.Sequence,
+		Verified:        tx.Verified,
+		BlockHash:       tx.BlockHash,
 
 		PublicKey: copiedPublicKey,
 		Signature: copiedSignature,
@@ -763,23 +740,23 @@ const (
 	TransactionTypeLLMRooting              = "llm_rooting"
 
 	// KNIRVCHAIN ErrorNode → SkillNode Mining Flow
-	TransactionTypeErrorNodeSubmit      = "error_node_submit"
-	TransactionTypeSkillMiningProposal  = "skill_mining_proposal"
-	TransactionTypeSkillValidation      = "skill_validation"
-	TransactionTypeSkillConfirmation    = "skill_confirmation"
+	TransactionTypeErrorNodeSubmit     = "error_node_submit"
+	TransactionTypeSkillMiningProposal = "skill_mining_proposal"
+	TransactionTypeSkillValidation     = "skill_validation"
+	TransactionTypeSkillConfirmation   = "skill_confirmation"
 
 	// KNIRVCHAIN ContextNode → CapabilityNode Minting Flow
-	TransactionTypeContextNodeCreate       = "context_node_create"
-	TransactionTypeCapabilityMintProposal  = "capability_mint_proposal"
-	TransactionTypeCapabilityValidation    = "capability_validation"
-	TransactionTypeCapabilityMint          = "capability_mint"
+	TransactionTypeContextNodeCreate      = "context_node_create"
+	TransactionTypeCapabilityMintProposal = "capability_mint_proposal"
+	TransactionTypeCapabilityValidation   = "capability_validation"
+	TransactionTypeCapabilityMint         = "capability_mint"
 
 	// KNIRVCHAIN IdeaNode → PropertyNode Making Flow
-	TransactionTypeIdeaNodeSubmit       = "idea_node_submit"
-	TransactionTypeNoveltyAssessment    = "novelty_assessment"
-	TransactionTypePropertyMint         = "property_mint"
-	TransactionTypePropertyTransfer     = "property_transfer"
-	TransactionTypeRoyaltyDistribution  = "royalty_distribution"
+	TransactionTypeIdeaNodeSubmit      = "idea_node_submit"
+	TransactionTypeNoveltyAssessment   = "novelty_assessment"
+	TransactionTypePropertyMint        = "property_mint"
+	TransactionTypePropertyTransfer    = "property_transfer"
+	TransactionTypeRoyaltyDistribution = "royalty_distribution"
 
 	// TransactionTypeEventBundleMint mints one KNIRVCHAIN EventBundleNFT per
 	// CLI decision/error event, bundling the Skills/Capabilities(MCPs)/

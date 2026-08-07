@@ -52,7 +52,7 @@ function ToggleRow({ title, description, enabled, onToggle }: ToggleRowProps) {
 }
 
 export default function Settings() {
-  const { status, currentAccount, lockVault, clearVault } = useVault();
+  const { status, oracleAddress, lockVault, clearVault } = useVault();
   const [autoOpenVault, setAutoOpenVault] = usePersistedToggle(SETTINGS_KEYS.autoOpenVault, true);
   const [badgeNotifications, setBadgeNotifications] = usePersistedToggle(SETTINGS_KEYS.badgeNotifications, true);
   const [voiceHints, setVoiceHints] = usePersistedToggle(SETTINGS_KEYS.voiceHints, false);
@@ -92,7 +92,7 @@ export default function Settings() {
               <div className="flex items-center justify-between gap-3">
                 <span className="text-xs uppercase tracking-widest text-slate-500 font-mono">Vault Address</span>
                 <span className="text-xs font-mono text-slate-300 truncate text-right max-w-[220px]">
-                  {currentAccount ? currentAccount.getAddress('knirv') : 'Unavailable'}
+                  {oracleAddress ?? 'Unavailable'}
                 </span>
               </div>
             </div>

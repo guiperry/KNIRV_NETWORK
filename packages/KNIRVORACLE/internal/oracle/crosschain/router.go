@@ -1,12 +1,13 @@
 package crosschain
 
 import (
+	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"sync"
 	"time"
 
-	"github.com/knirvcorp/knirvoracle/internal/oracle/crypto"
+	"github.com/knirvcorp/knirvoracle/internal/oracle/governance"
 	"github.com/knirvcorp/knirvoracle/internal/oracle/ibc"
 	"go.uber.org/zap"
 )
@@ -18,17 +19,19 @@ type Router struct {
 	transfers     map[string]*CrossChainTransfer
 	transferQueue *TransferQueue
 	logger        *zap.Logger
+	governance    *governance.GovernanceSystem
 	mu            sync.RWMutex
 }
 
 // NewRouter creates a new cross-chain router
-func NewRouter(ibcHandler *ibc.Handler, bridgeManager *BridgeManager, logger *zap.Logger) *Router {
+func NewRouter(ibcHandler *ibc.Handler, bridgeManager *BridgeManager, governanceSystem *governance.GovernanceSystem, logger *zap.Logger) *Router {
 	return &Router{
 		ibcHandler:    ibcHandler,
 		bridgeManager: bridgeManager,
 		transfers:     make(map[string]*CrossChainTransfer),
 		transferQueue: NewTransferQueue(),
 		logger:        logger,
+		governance:    governanceSystem,
 	}
 }
 
@@ -128,7 +131,7 @@ func (r *Router) InitiateTransfer(req *TransferRequest) (*TransferReceipt, error
 	transfer.Status = StatusInTransit
 
 	// Generate transaction hash
-	txHash := crypto.Keccak256HashWithPrefix(packetData)
+	txHash := fmt.Sprintf("%X", sha256.Sum256(packetData))
 
 	r.logger.Info("Initiated cross-chain transfer",
 		zap.String("transfer_id", transferID),
@@ -167,7 +170,10 @@ func (r *Router) ReceiveTransfer(transfer *CrossChainTransfer) error {
 
 	// Validate proof if present
 	if transfer.Proof != nil {
-		if err := ValidateProof(transfer.Proof, transfer); err != nil {
+		if r.governance == nil {
+			return fmt.Errorf("proof validation requires the registered governance validator set")
+		}
+		if err := ValidateProof(transfer.Proof, transfer, r.governance.ListActiveValidators()); err != nil {
 			existingTransfer.Status = StatusFailed
 			existingTransfer.Error = fmt.Sprintf("proof validation failed: %v", err)
 			return fmt.Errorf("proof validation failed: %w", err)
@@ -306,5 +312,5 @@ func generateTransferID(req *TransferRequest) string {
 		req.Amount,
 		time.Now().UnixNano(),
 	)
-	return crypto.Keccak256HashWithPrefix([]byte(data))
+	return fmt.Sprintf("%X", sha256.Sum256([]byte(data)))
 }

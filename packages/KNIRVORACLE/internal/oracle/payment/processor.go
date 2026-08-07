@@ -9,8 +9,12 @@ package payment
 
 import (
 	"bytes"
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"io"
 	"math/big"
 	"net/http"
 	"net/url"
@@ -315,13 +319,13 @@ func (p *Processor) HandleCreateCheckoutSession(w http.ResponseWriter, r *http.R
 		return
 	}
 	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		writeJSONError(w, http.StatusMethodNotAllowed, "Method not allowed")
 		return
 	}
 
 	var req CheckoutSessionRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		writeJSONError(w, http.StatusBadRequest, "Invalid request body")
 		return
 	}
 
@@ -329,12 +333,23 @@ func (p *Processor) HandleCreateCheckoutSession(w http.ResponseWriter, r *http.R
 	if err != nil {
 		p.logger.Warn("failed to create plan checkout session",
 			zap.String("plan", req.Plan), zap.String("session_id", req.SessionID), zap.Error(err))
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		writeJSONError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(session)
+}
+
+// writeJSONError writes {"error": message} — the onboarding site's browser
+// JS (startProCheckout/startEnterpriseCheckout/startBootnodeCheckout in
+// index.html) parses error responses as JSON and falls back to a useless
+// generic "HTTP <code>" message when that parse fails, which is exactly
+// what plain-text http.Error() responses caused here before.
+func writeJSONError(w http.ResponseWriter, status int, message string) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	json.NewEncoder(w).Encode(map[string]string{"error": message})
 }
 
 // handleCheckoutSessionCompleted processes a completed subscription-plan
@@ -423,18 +438,95 @@ func (p *Processor) notifyOnboardingPaid(sessionID, plan string) error {
 	return nil
 }
 
-// HandleStripeWebhook processes incoming Stripe webhook events. Two event
+const (
+	// stripeSignatureTolerance bounds how old a webhook's t= timestamp may be
+	// before it's rejected as a possible replay, per Stripe's documented
+	// scheme (https://stripe.com/docs/webhooks/signatures#replay-attacks).
+	stripeSignatureTolerance = 5 * time.Minute
+	// maxWebhookBodyBytes caps how much of the request body this public
+	// endpoint will buffer before verifying its signature — Stripe's actual
+	// payloads are a few KB at most.
+	maxWebhookBodyBytes = 1 << 20 // 1 MiB
+)
+
+// verifyStripeSignature implements Stripe's documented webhook signature
+// scheme by hand (https://stripe.com/docs/webhooks/signatures), consistent
+// with the rest of this file's hand-rolled Stripe integration (no stripe-go
+// dependency). The Stripe-Signature header looks like
+// "t=<unix-seconds>,v1=<hex-hmac>[,v1=<hex-hmac>...]" — multiple v1 entries
+// appear during Stripe's own signing-secret rotation, and a match on any one
+// of them is accepted; v0 entries are the legacy SHA-1 scheme and are
+// ignored, matching Stripe's own guidance to only check v1.
+func verifyStripeSignature(payload []byte, sigHeader, secret string, tolerance time.Duration) error {
+	if secret == "" {
+		return fmt.Errorf("stripe webhook secret not configured")
+	}
+	if sigHeader == "" {
+		return fmt.Errorf("missing Stripe-Signature header")
+	}
+
+	var timestamp int64
+	var signatures []string
+	for _, part := range strings.Split(sigHeader, ",") {
+		kv := strings.SplitN(strings.TrimSpace(part), "=", 2)
+		if len(kv) != 2 {
+			continue
+		}
+		switch kv[0] {
+		case "t":
+			ts, err := strconv.ParseInt(kv[1], 10, 64)
+			if err != nil {
+				return fmt.Errorf("invalid timestamp in Stripe-Signature header: %w", err)
+			}
+			timestamp = ts
+		case "v1":
+			signatures = append(signatures, kv[1])
+		}
+	}
+	if timestamp == 0 {
+		return fmt.Errorf("missing timestamp in Stripe-Signature header")
+	}
+	if len(signatures) == 0 {
+		return fmt.Errorf("missing v1 signature in Stripe-Signature header")
+	}
+
+	if tolerance > 0 {
+		age := time.Since(time.Unix(timestamp, 0))
+		if age < 0 {
+			age = -age
+		}
+		if age > tolerance {
+			return fmt.Errorf("Stripe-Signature timestamp outside tolerance window (possible replay)")
+		}
+	}
+
+	signedPayload := fmt.Sprintf("%d.%s", timestamp, payload)
+	mac := hmac.New(sha256.New, []byte(secret))
+	mac.Write([]byte(signedPayload))
+	expected := mac.Sum(nil)
+
+	for _, sig := range signatures {
+		decoded, err := hex.DecodeString(sig)
+		if err != nil {
+			continue
+		}
+		if hmac.Equal(decoded, expected) {
+			return nil
+		}
+	}
+
+	return fmt.Errorf("no matching Stripe-Signature v1 value")
+}
+
+// HandleStripeWebhook processes incoming Stripe webhook events, after
+// verifying the Stripe-Signature header against config.StripeWebhookSecret
+// (see verifyStripeSignature) — without this, anyone who discovered this
+// public URL could forge a "checkout.session.completed" or "charge.succeeded"
+// event and mark a plan paid or trigger an NRN mint for free. Two event
 // types are handled: "checkout.session.completed" confirms a subscription
 // plan purchase with onboarding.knirv.com (see handleCheckoutSessionCompleted
 // above), and "charge.succeeded" disburses NRN to the address supplied in
 // the charge's metadata (the original fiat->NRN path, unchanged below).
-//
-// TODO: this does not yet verify the Stripe-Signature header against
-// config.StripeWebhookSecret using the Stripe SDK. Do not enable Enabled in
-// production until that verification is wired in — see
-// docs/Validator_Terms_and_Conditions_DRAFT.md and
-// docs/Bootnode_Failover_Implementation_Plan.md Phase 1 for the tracked
-// follow-up.
 func (p *Processor) HandleStripeWebhook(w http.ResponseWriter, r *http.Request) {
 	if !p.config.Enabled {
 		http.Error(w, "payment processor disabled", http.StatusServiceUnavailable)
@@ -445,8 +537,24 @@ func (p *Processor) HandleStripeWebhook(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
+	body, err := io.ReadAll(io.LimitReader(r.Body, maxWebhookBodyBytes+1))
+	if err != nil {
+		http.Error(w, "Failed to read request body", http.StatusBadRequest)
+		return
+	}
+	if int64(len(body)) > maxWebhookBodyBytes {
+		http.Error(w, "Request body too large", http.StatusRequestEntityTooLarge)
+		return
+	}
+
+	if err := verifyStripeSignature(body, r.Header.Get("Stripe-Signature"), p.config.StripeWebhookSecret, stripeSignatureTolerance); err != nil {
+		p.logger.Warn("rejected stripe webhook: signature verification failed", zap.Error(err))
+		http.Error(w, "Invalid signature", http.StatusBadRequest)
+		return
+	}
+
 	var event map[string]interface{}
-	if err := json.NewDecoder(r.Body).Decode(&event); err != nil {
+	if err := json.Unmarshal(body, &event); err != nil {
 		http.Error(w, "Cannot parse request body", http.StatusBadRequest)
 		return
 	}

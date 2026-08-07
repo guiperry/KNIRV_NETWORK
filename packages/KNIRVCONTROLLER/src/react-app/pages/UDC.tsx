@@ -1,11 +1,9 @@
 import { Shield, Clock, Key, CheckCircle, AlertTriangle, RefreshCw, Loader } from 'lucide-react';
 import Layout from '@/react-app/components/Layout';
-import { useVault } from '@/react-app/hooks/useVault';
 import { useBackend } from '@/react-app/hooks/useBackend';
 
 export default function UDC() {
-  const { currentAccount } = useVault();
-  const { udcData, isLoading, refresh } = useBackend(currentAccount ? currentAccount.getAddress('knirv') : null);
+  const { udcData, isLoading, refresh } = useBackend();
 
   if (isLoading || !udcData) {
     return (

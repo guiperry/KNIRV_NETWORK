@@ -2,7 +2,9 @@ package network
 
 import (
 	"KNIRVGRAPH/internal/economics"
+	"KNIRVGRAPH/internal/indexing"
 	"KNIRVGRAPH/internal/nrv"
+	"KNIRVGRAPH/internal/query"
 	"KNIRVGRAPH/internal/types"
 	"context"
 	"crypto/sha256"
@@ -16,6 +18,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/gorilla/mux"
@@ -32,6 +35,7 @@ type RPCServer struct {
 	server          *http.Server
 	port            int
 	socketPath      string
+	txMu            sync.Mutex
 }
 
 type GraphChainInterface interface {
@@ -48,6 +52,9 @@ type GraphChainInterface interface {
 
 type AppInterface interface {
 	IsNetworkPaused() bool
+	IsProcessingEnabled() bool
+	GetIndexManager() *indexing.IndexManager
+	GetQueryProcessor() *query.QueryProcessor
 }
 
 func NewRPCServer(gc GraphChainInterface, logger *zap.Logger, port int) *RPCServer {
@@ -185,6 +192,12 @@ func NewRPCServerWithEconomics(gc GraphChainInterface, nrvSys *nrv.NRVSystem, nr
 	router.HandleFunc("/economics/metrics", rpc.getEconomicMetrics).Methods("GET", "OPTIONS")
 	router.HandleFunc("/economics/commit-skill", rpc.commitSkill).Methods("POST", "OPTIONS")
 	router.HandleFunc("/economics/proof/solution", rpc.submitSolutionProof).Methods("POST", "OPTIONS")
+
+	// Register processing and retrieval routes
+	router.HandleFunc("/api/v1/document", rpc.indexDocument).Methods("POST", "OPTIONS")
+	router.HandleFunc("/api/v1/document/{id}", rpc.deleteDocument).Methods("DELETE", "OPTIONS")
+	router.HandleFunc("/api/v1/index/{id}/status", rpc.getDocumentStatus).Methods("GET", "OPTIONS")
+	router.HandleFunc("/api/v1/query", rpc.queryDocuments).Methods("GET", "POST", "OPTIONS")
 
 	// Health check
 	router.HandleFunc("/health", rpc.healthCheck).Methods("GET", "OPTIONS")
@@ -392,13 +405,55 @@ func (rpc *RPCServer) submitGraphTransaction(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	if !tx.Verify() {
-		http.Error(w, "invalid graph transaction signature", http.StatusBadRequest)
+	if err := tx.VerifyError(); err != nil {
+		http.Error(w, "invalid graph transaction: "+err.Error(), http.StatusBadRequest)
+		return
+	}
+	if tx.AccountNumber != 0 {
+		http.Error(w, "graph accounts currently require account_number 0", http.StatusBadRequest)
+		return
+	}
+	if tx.Amount != 0 || tx.Fee != 0 {
+		http.Error(w, "graph value and fee settlement must be submitted through KNIRVORACLE", http.StatusBadRequest)
 		return
 	}
 
-	// In a real implementation, this would be sent to the graph mempool
-	response := map[string]string{"status": "accepted", "tx_id": tx.ID}
+	rpc.txMu.Lock()
+	defer rpc.txMu.Unlock()
+	account := rpc.graphchain.GetState().GetAccount(tx.From)
+	if account.Nonce != tx.Nonce {
+		http.Error(w, fmt.Sprintf("invalid sequence: expected %d", account.Nonce), http.StatusConflict)
+		return
+	}
+
+	switch tx.Type {
+	case types.CreateNodeTx:
+		if tx.GraphData.NodeData == nil {
+			http.Error(w, "node_data is required", http.StatusBadRequest)
+			return
+		}
+		if err := rpc.graphchain.AddNode(tx.GraphData.NodeData); err != nil {
+			http.Error(w, "failed to apply graph transaction: "+err.Error(), http.StatusConflict)
+			return
+		}
+	case types.CreateEdgeTx:
+		if tx.GraphData.EdgeData == nil {
+			http.Error(w, "edge_data is required", http.StatusBadRequest)
+			return
+		}
+		if err := rpc.graphchain.AddEdge(tx.GraphData.EdgeData); err != nil {
+			http.Error(w, "failed to apply graph transaction: "+err.Error(), http.StatusConflict)
+			return
+		}
+	default:
+		http.Error(w, "graph transaction type is not supported by the state engine", http.StatusNotImplemented)
+		return
+	}
+
+	account.Nonce++
+	rpc.graphchain.GetState().SetAccount(account)
+	tx.ID = tx.Hash()
+	response := map[string]string{"status": "committed", "tx_id": tx.ID}
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
 }
@@ -963,7 +1018,7 @@ func (rpc *RPCServer) createBulkEdges(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(map[string]interface{}{
-		"success":   true,
+		"success":    true,
 		"edge_count": len(req.Edges),
 	})
 }
@@ -989,8 +1044,165 @@ func (rpc *RPCServer) healthCheck(w http.ResponseWriter, r *http.Request) {
 		status["services"].(map[string]interface{})["proof_of_solution"] = "disabled"
 	}
 
+	if rpc.app != nil && rpc.app.IsProcessingEnabled() {
+		status["services"].(map[string]interface{})["processing"] = "running"
+		status["services"].(map[string]interface{})["embeddings"] = "running"
+		status["services"].(map[string]interface{})["retrieval"] = "running"
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(status)
+}
+
+// Processing and retrieval handlers
+
+func (rpc *RPCServer) indexDocument(w http.ResponseWriter, r *http.Request) {
+	if rpc.app == nil || !rpc.app.IsProcessingEnabled() {
+		http.Error(w, "processing not enabled", http.StatusServiceUnavailable)
+		return
+	}
+
+	var req struct {
+		Document struct {
+			ID       string                 `json:"id"`
+			SourceID string                 `json:"source_id"`
+			Content  string                 `json:"content"`
+			Metadata map[string]interface{} `json:"metadata"`
+		} `json:"document"`
+		Overwrite bool `json:"overwrite"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "invalid document format", http.StatusBadRequest)
+		return
+	}
+
+	doc := types.ProcessedDocument{
+		ID:       req.Document.ID,
+		SourceID: req.Document.SourceID,
+		Content:  req.Document.Content,
+		Metadata: req.Document.Metadata,
+		Status:   types.DocumentStatusPending,
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+	}
+
+	idxManager := rpc.app.GetIndexManager()
+	if idxManager == nil {
+		http.Error(w, "index manager not initialized", http.StatusServiceUnavailable)
+		return
+	}
+
+	if err := idxManager.IndexDocument(r.Context(), doc); err != nil {
+		http.Error(w, fmt.Sprintf("failed to index document: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusAccepted)
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"status": "accepted",
+		"doc_id": doc.ID,
+	})
+}
+
+func (rpc *RPCServer) deleteDocument(w http.ResponseWriter, r *http.Request) {
+	if rpc.app == nil || !rpc.app.IsProcessingEnabled() {
+		http.Error(w, "processing not enabled", http.StatusServiceUnavailable)
+		return
+	}
+
+	vars := mux.Vars(r)
+	docID := vars["id"]
+	if docID == "" {
+		http.Error(w, "document id is required", http.StatusBadRequest)
+		return
+	}
+
+	idxManager := rpc.app.GetIndexManager()
+	if idxManager == nil {
+		http.Error(w, "index manager not initialized", http.StatusServiceUnavailable)
+		return
+	}
+
+	if err := idxManager.DeleteDocument(r.Context(), docID); err != nil {
+		http.Error(w, fmt.Sprintf("failed to delete document: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"status": "deleted",
+		"doc_id": docID,
+	})
+}
+
+func (rpc *RPCServer) getDocumentStatus(w http.ResponseWriter, r *http.Request) {
+	if rpc.app == nil || !rpc.app.IsProcessingEnabled() {
+		http.Error(w, "processing not enabled", http.StatusServiceUnavailable)
+		return
+	}
+
+	vars := mux.Vars(r)
+	docID := vars["id"]
+
+	idxManager := rpc.app.GetIndexManager()
+	if idxManager == nil {
+		http.Error(w, "index manager not initialized", http.StatusServiceUnavailable)
+		return
+	}
+
+	rec, err := idxManager.GetDocument(docID)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("document not found: %v", err), http.StatusNotFound)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(rec)
+}
+
+func (rpc *RPCServer) queryDocuments(w http.ResponseWriter, r *http.Request) {
+	if rpc.app == nil || !rpc.app.IsProcessingEnabled() {
+		http.Error(w, "processing not enabled", http.StatusServiceUnavailable)
+		return
+	}
+
+	var req types.QueryRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		if r.Method == http.MethodGet {
+			req.Query = r.URL.Query().Get("q")
+			req.TopK = 10
+			if v := r.URL.Query().Get("top_k"); v != "" {
+				fmt.Sscanf(v, "%d", &req.TopK)
+			}
+		} else {
+			http.Error(w, "invalid query format", http.StatusBadRequest)
+			return
+		}
+	}
+
+	if req.Query == "" {
+		http.Error(w, "query is required", http.StatusBadRequest)
+		return
+	}
+	if req.TopK <= 0 {
+		req.TopK = 10
+	}
+
+	qp := rpc.app.GetQueryProcessor()
+	if qp == nil {
+		http.Error(w, "query processor not initialized", http.StatusServiceUnavailable)
+		return
+	}
+
+	resp, err := qp.Process(r.Context(), req)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("query failed: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(resp)
 }
 
 // findOpenPort searches for an open port starting from preferredPort
@@ -999,21 +1211,21 @@ func (rpc *RPCServer) healthCheck(w http.ResponseWriter, r *http.Request) {
 
 // SkillNodeResponse mirrors nrv.SkillNode for demo data when NRV system is unavailable
 type SkillNodeResponse struct {
-	ID           string                 `json:"id"`
-	SkillType    string                 `json:"skill_type"`
-	Capabilities []string               `json:"capabilities"`
-	Requirements map[string]interface{} `json:"requirements"`
+	ID           string                      `json:"id"`
+	SkillType    string                      `json:"skill_type"`
+	Capabilities []string                    `json:"capabilities"`
+	Requirements map[string]interface{}      `json:"requirements"`
 	Performance  *PerformanceMetricsResponse `json:"performance"`
 	Validation   *ValidationStatusResponse   `json:"validation"`
-	Timestamp    string                 `json:"timestamp"`
+	Timestamp    string                      `json:"timestamp"`
 }
 
 // PerformanceMetricsResponse mirrors nrv.PerformanceMetrics
 type PerformanceMetricsResponse struct {
-	SuccessRate      float64 `json:"success_rate"`
+	SuccessRate       float64 `json:"success_rate"`
 	AvgResolutionTime float64 `json:"avg_resolution_time"`
-	TotalResolutions int    `json:"total_resolutions"`
-	LastUpdated      string `json:"last_updated"`
+	TotalResolutions  int     `json:"total_resolutions"`
+	LastUpdated       string  `json:"last_updated"`
 }
 
 // ValidationStatusResponse mirrors nrv.ValidationStatus
@@ -1051,32 +1263,32 @@ func getDemoSkills() []SkillNodeResponse {
 	return []SkillNodeResponse{
 		{ID: "skill_nlp_001", SkillType: "Natural Language Processing", Capabilities: []string{"text_analysis", "sentiment_analysis", "entity_extraction"},
 			Performance: &PerformanceMetricsResponse{SuccessRate: 0.92, AvgResolutionTime: 1.8, TotalResolutions: 1542, LastUpdated: "2025-05-15T10:30:00Z"},
-			Validation: &ValidationStatusResponse{IsValidated: true, ValidatedBy: []string{"peer_node_01", "peer_node_02"}, ValidationScore: 0.89, LastValidated: "2025-05-14T08:00:00Z"},
-			Timestamp: "2025-05-10T12:00:00Z"},
+			Validation:  &ValidationStatusResponse{IsValidated: true, ValidatedBy: []string{"peer_node_01", "peer_node_02"}, ValidationScore: 0.89, LastValidated: "2025-05-14T08:00:00Z"},
+			Timestamp:   "2025-05-10T12:00:00Z"},
 		{ID: "skill_vision_002", SkillType: "Computer Vision", Capabilities: []string{"image_classification", "object_detection", "pattern_recognition"},
 			Performance: &PerformanceMetricsResponse{SuccessRate: 0.87, AvgResolutionTime: 2.3, TotalResolutions: 987, LastUpdated: "2025-05-15T09:45:00Z"},
-			Validation: &ValidationStatusResponse{IsValidated: true, ValidatedBy: []string{"peer_node_01"}, ValidationScore: 0.85, LastValidated: "2025-05-13T16:00:00Z"},
-			Timestamp: "2025-05-09T14:00:00Z"},
+			Validation:  &ValidationStatusResponse{IsValidated: true, ValidatedBy: []string{"peer_node_01"}, ValidationScore: 0.85, LastValidated: "2025-05-13T16:00:00Z"},
+			Timestamp:   "2025-05-09T14:00:00Z"},
 		{ID: "skill_audio_003", SkillType: "Audio Processing", Capabilities: []string{"speech_to_text", "audio_classification", "noise_reduction"},
 			Performance: &PerformanceMetricsResponse{SuccessRate: 0.95, AvgResolutionTime: 1.2, TotalResolutions: 2341, LastUpdated: "2025-05-15T11:00:00Z"},
-			Validation: &ValidationStatusResponse{IsValidated: true, ValidatedBy: []string{"peer_node_01", "peer_node_03", "peer_node_04"}, ValidationScore: 0.94, LastValidated: "2025-05-14T12:00:00Z"},
-			Timestamp: "2025-05-08T09:00:00Z"},
+			Validation:  &ValidationStatusResponse{IsValidated: true, ValidatedBy: []string{"peer_node_01", "peer_node_03", "peer_node_04"}, ValidationScore: 0.94, LastValidated: "2025-05-14T12:00:00Z"},
+			Timestamp:   "2025-05-08T09:00:00Z"},
 		{ID: "skill_net_004", SkillType: "Network Diagnostics", Capabilities: []string{"connection_timeout", "dns_resolution", "latency_analysis", "packet_loss"},
 			Performance: &PerformanceMetricsResponse{SuccessRate: 0.88, AvgResolutionTime: 3.1, TotalResolutions: 756, LastUpdated: "2025-05-15T08:30:00Z"},
-			Validation: &ValidationStatusResponse{IsValidated: true, ValidatedBy: []string{"peer_node_02"}, ValidationScore: 0.82, LastValidated: "2025-05-12T10:00:00Z"},
-			Timestamp: "2025-05-07T16:00:00Z"},
+			Validation:  &ValidationStatusResponse{IsValidated: true, ValidatedBy: []string{"peer_node_02"}, ValidationScore: 0.82, LastValidated: "2025-05-12T10:00:00Z"},
+			Timestamp:   "2025-05-07T16:00:00Z"},
 		{ID: "skill_db_005", SkillType: "Database Repair", Capabilities: []string{"query_optimization", "index_rebuild", "data_recovery", "replication_fix"},
 			Performance: &PerformanceMetricsResponse{SuccessRate: 0.91, AvgResolutionTime: 4.5, TotalResolutions: 423, LastUpdated: "2025-05-14T22:15:00Z"},
-			Validation: &ValidationStatusResponse{IsValidated: true, ValidatedBy: []string{"peer_node_03"}, ValidationScore: 0.87, LastValidated: "2025-05-11T14:00:00Z"},
-			Timestamp: "2025-05-06T10:00:00Z"},
+			Validation:  &ValidationStatusResponse{IsValidated: true, ValidatedBy: []string{"peer_node_03"}, ValidationScore: 0.87, LastValidated: "2025-05-11T14:00:00Z"},
+			Timestamp:   "2025-05-06T10:00:00Z"},
 		{ID: "skill_security_006", SkillType: "Security Analysis", Capabilities: []string{"vulnerability_scan", "access_audit", "anomaly_detection"},
 			Performance: &PerformanceMetricsResponse{SuccessRate: 0.93, AvgResolutionTime: 2.0, TotalResolutions: 1123, LastUpdated: "2025-05-15T07:00:00Z"},
-			Validation: &ValidationStatusResponse{IsValidated: true, ValidatedBy: []string{"peer_node_01", "peer_node_04"}, ValidationScore: 0.91, LastValidated: "2025-05-14T18:00:00Z"},
-			Timestamp: "2025-05-05T11:00:00Z"},
+			Validation:  &ValidationStatusResponse{IsValidated: true, ValidatedBy: []string{"peer_node_01", "peer_node_04"}, ValidationScore: 0.91, LastValidated: "2025-05-14T18:00:00Z"},
+			Timestamp:   "2025-05-05T11:00:00Z"},
 		{ID: "skill_memory_007", SkillType: "Memory Management", Capabilities: []string{"leak_detection", "allocation_optimization", "garbage_collection"},
 			Performance: &PerformanceMetricsResponse{SuccessRate: 0.84, AvgResolutionTime: 5.2, TotalResolutions: 312, LastUpdated: "2025-05-14T20:30:00Z"},
-			Validation: &ValidationStatusResponse{IsValidated: false, ValidatedBy: []string{}, ValidationScore: 0.72, LastValidated: "2025-05-10T09:00:00Z"},
-			Timestamp: "2025-05-04T13:00:00Z"},
+			Validation:  &ValidationStatusResponse{IsValidated: false, ValidatedBy: []string{}, ValidationScore: 0.72, LastValidated: "2025-05-10T09:00:00Z"},
+			Timestamp:   "2025-05-04T13:00:00Z"},
 	}
 }
 

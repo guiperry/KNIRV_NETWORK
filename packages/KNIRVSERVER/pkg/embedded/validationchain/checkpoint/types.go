@@ -14,7 +14,10 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"math"
+	"time"
 
+	knirvsigning "github.com/KNIRV/KNIRV_NETWORK/KNIRVSDK/go/signing"
 	"github.com/ethereum/go-ethereum/crypto"
 )
 
@@ -26,6 +29,7 @@ type AuthorSig struct {
 	Address   string `json:"address"`
 	PubKeyHex string `json:"pubkey_hex"`
 	Signature []byte `json:"signature"`
+	Envelope  []byte `json:"envelope"`
 }
 
 // RegisteredAuthor is one entry in a chain's registered author set.
@@ -109,34 +113,33 @@ func (c *Checkpoint) SignedMessage() string { return fmt.Sprintf("%x", c.Digest(
 
 // signMessage signs msg with keccak256 + secp256k1, returning the 64-byte
 // raw signature (r||s) — same scheme as KNIRVORACLE/KNIRVCHAIN.
-func signMessage(key *ecdsa.PrivateKey, msg string) ([]byte, error) {
-	hash := crypto.Keccak256([]byte(msg))
-	full, err := crypto.Sign(hash, key) // 65 bytes: r||s||v
-	if err != nil {
-		return nil, err
-	}
-	return full[:64], nil
+func signMessage(key *ecdsa.PrivateKey, msg, purpose, chainID string) (knirvsigning.SignedMessage, error) {
+	now := time.Now().Unix()
+	return knirvsigning.SignMessage(crypto.FromECDSA(key), knirvsigning.MessageEnvelope{
+		Domain: "knirv.chain", Purpose: purpose, ChainID: chainID, Nonce: msg,
+		IssuedAtUnix: now, ExpiresAtUnix: math.MaxInt64, Payload: []byte(msg),
+	})
 }
 
 // SignCheckpoint signs the checkpoint with key and appends the AuthorSig.
 func SignCheckpoint(cp *Checkpoint, key *ecdsa.PrivateKey) error {
-	sig, err := signMessage(key, cp.SignedMessage())
+	signed, err := signMessage(key, cp.SignedMessage(), "chain-checkpoint", cp.ChainID)
 	if err != nil {
 		return err
 	}
-	pub := key.Public().(*ecdsa.PublicKey)
 	cp.Signatures = append(cp.Signatures, AuthorSig{
-		Address:   oracleAddress(pub),
-		PubKeyHex: hex.EncodeToString(crypto.CompressPubkey(pub)),
-		Signature: sig,
+		Address: signed.Address, PubKeyHex: hex.EncodeToString(signed.PublicKey),
+		Signature: signed.Signature, Envelope: signed.Envelope,
 	})
 	return nil
 }
 
 func oracleAddress(pub *ecdsa.PublicKey) string {
-	unc := crypto.FromECDSAPub(pub)
-	sum := crypto.Keccak256(unc[1:])
-	return "0x" + hex.EncodeToString(sum[12:])
+	address, err := knirvsigning.Address(crypto.CompressPubkey(pub), knirvsigning.DefaultAddressPrefix)
+	if err != nil {
+		panic(err)
+	}
+	return address
 }
 
 // registrationBody is the signature-free, deterministic registration payload
@@ -177,15 +180,13 @@ func SignRegistration(reg *ChainRegistration, key *ecdsa.PrivateKey) error {
 		return err
 	}
 	digest := sha256.Sum256(body)
-	sig, err := signMessage(key, fmt.Sprintf("%x", digest))
+	signed, err := signMessage(key, fmt.Sprintf("%x", digest), "chain-registration", reg.ChainID)
 	if err != nil {
 		return err
 	}
-	pub := key.Public().(*ecdsa.PublicKey)
 	reg.RotationSigs = append(reg.RotationSigs, AuthorSig{
-		Address:   oracleAddress(pub),
-		PubKeyHex: hex.EncodeToString(crypto.CompressPubkey(pub)),
-		Signature: sig,
+		Address: signed.Address, PubKeyHex: hex.EncodeToString(signed.PublicKey),
+		Signature: signed.Signature, Envelope: signed.Envelope,
 	})
 	return nil
 }

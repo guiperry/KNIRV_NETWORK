@@ -4,13 +4,18 @@ import (
 	"bytes"
 	"context"
 	"crypto/rand"
+	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
+	"runtime"
+	"strings"
 	"sync"
 	"time"
 
+	knirvsigning "github.com/KNIRV/KNIRV_NETWORK/KNIRVSDK/go/signing"
 	"go.uber.org/zap"
 )
 
@@ -20,6 +25,7 @@ type Service struct {
 	operators      map[string]*Operator
 	mutex          sync.RWMutex
 	knirvOracleURL string
+	startedAt      time.Time
 }
 
 // NewService creates a new operator registry service
@@ -28,11 +34,12 @@ func NewService(logger *zap.Logger, knirvOracleURL string) *Service {
 		logger:         logger,
 		operators:      make(map[string]*Operator),
 		knirvOracleURL: knirvOracleURL,
+		startedAt:      time.Now(),
 	}
 }
 
-// generateMockSignature creates a mock signature for an operator
-func (s *Service) generateMockSignature(operatorID string, createdDate *string, issuer, sigType string) *OperatorSignature {
+// generateDemoSignature creates non-production catalog metadata.
+func (s *Service) generateDemoSignature(operatorID string, createdDate *string, issuer, sigType string) *OperatorSignature {
 	creationDate := time.Now().Format(time.RFC3339)
 	if createdDate != nil {
 		creationDate = *createdDate
@@ -68,8 +75,8 @@ func (s *Service) generateMockSignature(operatorID string, createdDate *string, 
 	}
 }
 
-// getMockOperators returns the mock operator data
-func (s *Service) getMockOperators() []*Operator {
+// getDemoOperators returns the explicit demo catalog.
+func (s *Service) getDemoOperators() []*Operator {
 	return []*Operator{
 		{
 			OperatorFacts: OperatorFacts{
@@ -103,7 +110,7 @@ func (s *Service) getMockOperators() []*Operator {
 				},
 				AvatarURL:  "https://placehold.co/100x100.png",
 				DataAIHint: "robot language",
-				Signature:  s.generateMockSignature("did:nanda:operator-translator-001", stringPtr("2024-01-14T00:00:00Z"), "PolyglotAI CA", ""),
+				Signature:  s.generateDemoSignature("did:nanda:operator-translator-001", stringPtr("2024-01-14T00:00:00Z"), "PolyglotAI CA", ""),
 			},
 			AddrTTL:      3600,
 			AddrFactsURL: "https://polyglotai.com/.well-known/operator-facts-linguabot.jsonld",
@@ -135,7 +142,7 @@ func (s *Service) getMockOperators() []*Operator {
 				},
 				AvatarURL:  "https://placehold.co/100x100.png",
 				DataAIHint: "shield security",
-				Signature:  s.generateMockSignature("did:nanda:operator-dataprotector-002", stringPtr("2023-11-19T00:00:00Z"), "SecureDataCorp CA", "EcdsaSecp256k1Signature2019"),
+				Signature:  s.generateDemoSignature("did:nanda:operator-dataprotector-002", stringPtr("2023-11-19T00:00:00Z"), "SecureDataCorp CA", "EcdsaSecp256k1Signature2019"),
 			},
 			AddrTTL:      7200,
 			AddrFactsURL: "https://securedatacorp.com/.well-known/operator-facts-guardian.jsonld",
@@ -167,7 +174,7 @@ func (s *Service) getMockOperators() []*Operator {
 				},
 				AvatarURL:  "https://placehold.co/100x100.png",
 				DataAIHint: "abstract art",
-				Signature:  s.generateMockSignature("did:nanda:operator-artcreator-003", stringPtr("2024-02-28T00:00:00Z"), "ArtifyInc CA", ""),
+				Signature:  s.generateDemoSignature("did:nanda:operator-artcreator-003", stringPtr("2024-02-28T00:00:00Z"), "ArtifyInc CA", ""),
 			},
 			AddrTTL:      1800,
 			AddrFactsURL: "https://artifyinc.com/.well-known/operator-facts-pixel.jsonld",
@@ -198,7 +205,7 @@ func (s *Service) getMockOperators() []*Operator {
 				},
 				AvatarURL:  "https://placehold.co/100x100.png",
 				DataAIHint: "code computer",
-				Signature:  s.generateMockSignature("did:nanda:operator-codehelper-004", stringPtr("2024-02-09T00:00:00Z"), "CodeGenius Community CA", ""),
+				Signature:  s.generateDemoSignature("did:nanda:operator-codehelper-004", stringPtr("2024-02-09T00:00:00Z"), "CodeGenius Community CA", ""),
 			},
 			AddrTTL:      3600,
 			AddrFactsURL: "https://codegenius.com/.well-known/operator-facts-devmentor.jsonld",
@@ -231,7 +238,7 @@ func (s *Service) getMockOperators() []*Operator {
 				},
 				AvatarURL:  "https://placehold.co/100x100.png",
 				DataAIHint: "database tech",
-				Signature:  s.generateMockSignature("did:nanda:operator-dbquery-005", stringPtr("2023-09-04T00:00:00Z"), "QueryWorks Trusted CA", "JsonWebSignature2020"),
+				Signature:  s.generateDemoSignature("did:nanda:operator-dbquery-005", stringPtr("2023-09-04T00:00:00Z"), "QueryWorks Trusted CA", "JsonWebSignature2020"),
 			},
 			AddrTTL:      3000,
 			AddrFactsURL: "https://queryworks.com/.well-known/operator-facts-dataoracle.jsonld",
@@ -240,17 +247,22 @@ func (s *Service) getMockOperators() []*Operator {
 	}
 }
 
-// Initialize loads mock data into the service
+// Initialize loads demo data only when explicitly enabled.
 func (s *Service) Initialize() {
+	demo := strings.TrimSpace(os.Getenv("KNIRV_ENABLE_DEMO"))
+	if demo != "1" && !strings.EqualFold(demo, "true") {
+		s.logger.Info("Operator registry initialized without demo records")
+		return
+	}
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
-	mockOperators := s.getMockOperators()
-	for _, operator := range mockOperators {
+	demoOperators := s.getDemoOperators()
+	for _, operator := range demoOperators {
 		s.operators[operator.ID] = operator
 	}
 
-	s.logger.Info("Operator registry initialized with mock data", zap.Int("count", len(mockOperators)))
+	s.logger.Info("Operator registry initialized with explicit demo data", zap.Int("count", len(demoOperators)))
 }
 
 // GetOperatorByID retrieves an operator by ID
@@ -333,8 +345,14 @@ func (s *Service) registerOperatorWithKnirvOracle(operator *Operator) (*KnirvOra
 
 // RegisterNewOperator registers a new operator
 func (s *Service) RegisterNewOperator(req *RegisterOperatorRequest) (*RegisterOperatorResponse, error) {
-	// Generate operator ID if not provided
-	operatorID := fmt.Sprintf("did:nanda:operator-%d", time.Now().Unix())
+	if strings.TrimSpace(req.ID) == "" {
+		return nil, fmt.Errorf("operator id is required")
+	}
+	signature, err := verifyOperatorRegistration(req)
+	if err != nil {
+		return nil, err
+	}
+	operatorID := req.ID
 
 	// Create the operator
 	operator := &Operator{
@@ -353,7 +371,11 @@ func (s *Service) RegisterNewOperator(req *RegisterOperatorRequest) (*RegisterOp
 			ProtocolExtensions: req.ProtocolExtensions,
 			AvatarURL:          req.AvatarURL,
 			DataAIHint:         req.DataAIHint,
-			Signature:          s.generateMockSignature(operatorID, nil, "", ""),
+			Signature: &OperatorSignature{
+				Type: "CosmosSignModeDirectEnvelope", Created: time.Now().UTC().Format(time.RFC3339),
+				VerificationMethod: signature.Address, ProofPurpose: "operator-registration",
+				ProofValue: req.ControllerSignature,
+			},
 		},
 		AddrTTL:      req.AddrTTL,
 		AddrFactsURL: req.AddrFactsURL,
@@ -365,10 +387,7 @@ func (s *Service) RegisterNewOperator(req *RegisterOperatorRequest) (*RegisterOp
 		operator.AddrTTL = 3600
 	}
 	if operator.AddrFactsURL == "" {
-		operator.AddrFactsURL = fmt.Sprintf("https://example.com/.well-known/operator-facts-%s.jsonld", operatorID)
-	}
-	if operator.AvatarURL == "" {
-		operator.AvatarURL = "https://placehold.co/100x100.png"
+		return nil, fmt.Errorf("operator facts URL is required")
 	}
 
 	// Register with KNIRV-ORACLE
@@ -401,32 +420,57 @@ func (s *Service) RegisterNewOperator(req *RegisterOperatorRequest) (*RegisterOp
 	}, nil
 }
 
+func verifyOperatorRegistration(req *RegisterOperatorRequest) (knirvsigning.SignedMessage, error) {
+	var signed knirvsigning.SignedMessage
+	if err := json.Unmarshal([]byte(req.ControllerSignature), &signed); err != nil {
+		return signed, fmt.Errorf("decode controller signature: %w", err)
+	}
+	copyReq := *req
+	copyReq.ControllerSignature = ""
+	payload, err := json.Marshal(copyReq)
+	if err != nil {
+		return signed, err
+	}
+	digest := sha256.Sum256(payload)
+	expected := []byte(fmt.Sprintf("operator-registration:%s:%x", req.ID, digest))
+	if err := knirvsigning.VerifyMessagePayload(signed, "knirv.gateway", "operator-registration", "knirv-1", expected, time.Now()); err != nil {
+		return signed, fmt.Errorf("verify controller signature: %w", err)
+	}
+	return signed, nil
+}
+
 // GetHealth returns health information
 func (s *Service) GetHealth() *HealthResponse {
 	s.mutex.RLock()
 	operatorCount := len(s.operators)
 	s.mutex.RUnlock()
 
+	var memory runtime.MemStats
+	runtime.ReadMemStats(&memory)
+	uptime := time.Since(s.startedAt).Seconds()
+	oracleState := "not_configured"
+	if s.knirvOracleURL != "" {
+		oracleState = "configured"
+	}
 	return &HealthResponse{
 		Status:    "healthy",
 		Service:   "NANDA ANS - Operator Registry",
 		Version:   "1.0.0",
 		Timestamp: time.Now().Format(time.RFC3339),
-		Uptime:    time.Since(time.Now().Add(-time.Hour)).Seconds(), // Mock uptime
+		Uptime:    uptime,
 		Components: map[string]string{
 			"api":                      "operational",
 			"database":                 "operational",
 			"operator_registry":        "operational",
-			"knirv_oracle_integration": "operational",
+			"knirv_oracle_integration": oracleState,
 		},
 		Metrics: map[string]interface{}{
 			"memory_usage": map[string]interface{}{
-				"rss":       50 * 1024 * 1024, // Mock 50MB
-				"heapTotal": 40 * 1024 * 1024, // Mock 40MB
-				"heapUsed":  30 * 1024 * 1024, // Mock 30MB
+				"heap_alloc": memory.HeapAlloc,
+				"heap_sys":   memory.HeapSys,
+				"sys":        memory.Sys,
 			},
-			"cpu_usage":      []interface{}{0.1, 0.05}, // Mock CPU usage
-			"uptime_seconds": time.Since(time.Now().Add(-time.Hour)).Seconds(),
+			"uptime_seconds": uptime,
 			"operator_count": operatorCount,
 		},
 		Endpoints: map[string]string{

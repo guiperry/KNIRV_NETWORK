@@ -16,9 +16,8 @@ import (
 	"github.com/spf13/viper"
 )
 
-// EmbeddedRootKeyData is defined in build-tag specific files:
-// - embedded_key_testnet.go (for testnet builds with -tags testnet)
-// - embedded_key_production.go (for production builds without tags)
+// Root and service keys are loaded from explicit runtime key files. No build
+// embeds fallback signing material.
 
 const AppName = "KNIRVCHAIN"
 
@@ -100,14 +99,13 @@ type BootnodeConfig struct {
 
 // RootConstants holds constants from the main package that are needed for root configuration
 type RootConstants struct {
-	BlockchainAddress    string
-	BlockchainPrivateKey string
-	RootchainURL         string
-	BlockchainName       string
-	CurrencyName         string
-	Decimal              int
-	MiningDifficulty     int
-	MiningReward         int
+	BlockchainAddress string
+	RootchainURL      string
+	BlockchainName    string
+	CurrencyName      string
+	Decimal           int
+	MiningDifficulty  int
+	MiningReward      int
 }
 
 // Global root constants that can be set at initialization
@@ -1250,10 +1248,6 @@ func SaveConfigToUserDir(cfg *Config, role Role) {
 	// Use the minimal config approach directly
 	SaveMinimalConfigToUserDir(cfg, role)
 }
-
-// BLOCKCHAIN_ADDRESS_CONSTANT_FROM_MAIN_OR_CONFIG is a placeholder.
-// You'll need to access the actual BLOCKCHAIN_ADDRESS from your constants.go.
-const BLOCKCHAIN_ADDRESS_CONSTANT_FROM_MAIN_OR_CONFIG = "b53c1e30b8a578c091dd40612bfd1433991b4e09" // Replace with actual access
 
 // DefaultTerminalIntegration returns the default terminal integration configuration
 func DefaultTerminalIntegration() *TerminalIntegration {

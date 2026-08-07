@@ -1,0 +1,32 @@
+syntax = "proto3";
+
+package knirv.signing.v1;
+
+option go_package = "github.com/KNIRV/KNIRV_NETWORK/KNIRVSDK/go/signing;signing";
+
+// Action is the single canonical KNIRV transaction message carried in a
+// cosmos.tx.v1beta1.TxBody Any as /knirv.signing.v1.Action.
+message Action {
+  string schema_version = 1;
+  string action = 2;
+  string sender = 3;
+  string recipient = 4;
+  uint64 amount = 5;
+  bytes payload = 6;
+  int64 timestamp_unix = 7;
+}
+
+// MessageEnvelope is signed independently of a transaction. Domain and
+// purpose are mandatory replay boundaries (for example knirv.controller and
+// cli-login). Nonce must be supplied by the verifier.
+message MessageEnvelope {
+  string schema_version = 1;
+  string domain = 2;
+  string purpose = 3;
+  string chain_id = 4;
+  string nonce = 5;
+  int64 issued_at_unix = 6;
+  int64 expires_at_unix = 7;
+  bytes payload = 8;
+}
+

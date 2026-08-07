@@ -4,37 +4,24 @@ import (
 	"crypto/ecdsa"
 	"encoding/hex"
 	"fmt"
+	"math"
+	"time"
 
-	"github.com/btcsuite/btcd/btcec/v2"
-	btcecsecp "github.com/btcsuite/btcd/btcec/v2/ecdsa"
+	knirvsigning "github.com/KNIRV/KNIRV_NETWORK/KNIRVSDK/go/signing"
 	"github.com/ethereum/go-ethereum/crypto"
 )
 
-// Digest returns the canonical 32-byte hash over the checkpoint body that
-// authors sign. It excludes the Signatures field. It must stay byte-identical
-// to KNIRVCHAIN's checkpoint.Checkpoint.Digest so cross-service signatures
-// verify. The scheme matches KNIRVCONTROLLER's KnirvWallet: keccak256 over the
-// canonical body (schema|0x00|chainID|0x00|start|end|root|prev|proposer|0x00).
 func (c *Checkpoint) Digest() [32]byte {
 	parts := [][]byte{
-		[]byte(c.SchemaVersion),
-		[]byte{0x00},
-		[]byte(c.ChainID),
-		[]byte{0x00},
-		u64Bytes(c.StartHeight),
-		u64Bytes(c.EndHeight),
-		c.Root[:],
-		c.PrevCheckHash[:],
-		[]byte(c.Proposer),
-		[]byte{0x00},
+		[]byte(c.SchemaVersion), {0x00}, []byte(c.ChainID), {0x00},
+		u64Bytes(c.StartHeight), u64Bytes(c.EndHeight), c.Root[:], c.PrevCheckHash[:],
+		[]byte(c.Proposer), {0x00},
 	}
 	var data []byte
-	for _, p := range parts {
-		data = append(data, p...)
+	for _, part := range parts {
+		data = append(data, part...)
 	}
-	var out [32]byte
-	copy(out[:], crypto.Keccak256(data))
-	return out
+	return crypto.Keccak256Hash(data)
 }
 
 func u64Bytes(v uint64) []byte {
@@ -45,57 +32,38 @@ func u64Bytes(v uint64) []byte {
 	return b
 }
 
-// SignedMessage is the canonical string the official KNIRVCONTROLLER wallet
-// signs: the hex encoding of the digest.
-func (c *Checkpoint) SignedMessage() string {
-	return fmt.Sprintf("%x", c.Digest())
-}
+func (c *Checkpoint) SignedMessage() string { return fmt.Sprintf("%x", c.Digest()) }
 
-// VerifyAuthorSig verifies a single AuthorSig against the checkpoint digest,
-// using the KNIRVCONTROLLER signing scheme: keccak256(utf8(hex digest)) signed
-// with secp256k1, producing a 64-byte raw signature (r||s).
 func VerifyAuthorSig(cp *Checkpoint, sig AuthorSig) bool {
-	return VerifyAuthorSigDigest(cp.Digest(), sig)
+	return VerifyAuthorSigFor(cp.Digest(), sig, "chain-checkpoint", cp.ChainID)
 }
 
-// VerifyAuthorSigDigest verifies a single AuthorSig against an explicit digest.
-// The signed message is the hex encoding of the digest (same as
-// Checkpoint.SignedMessage), so a rotation over a registration body uses the
-// body's sha256 digest encoded as hex.
+// VerifyAuthorSigDigest remains for wire callers that predate explicit
+// purpose parameters. It still requires a canonical KNIRV envelope and uses
+// the purpose/chain encoded into that signed envelope.
 func VerifyAuthorSigDigest(digest [32]byte, sig AuthorSig) bool {
-	pubBytes, err := hex.DecodeString(stripHexPrefix(sig.PubKeyHex))
+	envelope, err := knirvsigning.ParseMessageEnvelope(sig.Envelope)
 	if err != nil {
 		return false
 	}
-	pub, err := btcec.ParsePubKey(pubBytes)
+	return VerifyAuthorSigFor(digest, sig, envelope.Purpose, envelope.ChainID)
+}
+
+func VerifyAuthorSigFor(digest [32]byte, sig AuthorSig, purpose, chainID string) bool {
+	pub, err := hex.DecodeString(stripHexPrefix(sig.PubKeyHex))
 	if err != nil {
 		return false
 	}
-	if OracleAddress(pub.ToECDSA()) != sig.Address {
-		return false
-	}
-	return VerifyMessage(pub, fmt.Sprintf("%x", digest), sig.Signature)
+	signed := knirvsigning.SignedMessage{Envelope: sig.Envelope, Signature: sig.Signature, PublicKey: pub, Address: sig.Address}
+	return knirvsigning.VerifyMessagePayload(signed, "knirv.chain", purpose, chainID, []byte(fmt.Sprintf("%x", digest)), time.Now()) == nil
 }
 
-// VerifyMessage verifies a 64-byte raw secp256k1 signature over keccak256(msg).
-func VerifyMessage(pub *btcec.PublicKey, msg string, sig []byte) bool {
-	if len(sig) != 64 {
-		return false
-	}
-	hash := crypto.Keccak256([]byte(msg))
-	var r, s btcec.ModNScalar
-	r.SetByteSlice(sig[:32])
-	s.SetByteSlice(sig[32:64])
-	signature := btcecsecp.NewSignature(&r, &s)
-	return signature.Verify(hash, pub)
-}
-
-// OracleAddress derives the controller's oracle address from a secp256k1 key:
-// 0x + keccak256(uncompressed pubkey without 0x04 prefix)[12:].
 func OracleAddress(pub *ecdsa.PublicKey) string {
-	unc := crypto.FromECDSAPub(pub)
-	sum := crypto.Keccak256(unc[1:])
-	return "0x" + hex.EncodeToString(sum[12:])
+	address, err := knirvsigning.Address(crypto.CompressPubkey(pub), knirvsigning.DefaultAddressPrefix)
+	if err != nil {
+		panic(err)
+	}
+	return address
 }
 
 func stripHexPrefix(s string) string {
@@ -105,49 +73,50 @@ func stripHexPrefix(s string) string {
 	return s
 }
 
-// SignMessage signs msg with the KNIRVCONTROLLER scheme: keccak256(utf8(msg))
-// with secp256k1, returning the 64-byte raw signature (r||s).
-func SignMessage(key *ecdsa.PrivateKey, msg string) ([]byte, error) {
-	hash := crypto.Keccak256([]byte(msg))
-	full, err := crypto.Sign(hash, key) // 65 bytes: r||s||v
-	if err != nil {
-		return nil, err
-	}
-	return full[:64], nil
+func signedDigest(key *ecdsa.PrivateKey, digest [32]byte, purpose, chainID string) (knirvsigning.SignedMessage, error) {
+	now := time.Now().Unix()
+	return knirvsigning.SignMessage(crypto.FromECDSA(key), knirvsigning.MessageEnvelope{
+		Domain: "knirv.chain", Purpose: purpose, ChainID: chainID,
+		Nonce: fmt.Sprintf("%x", digest), IssuedAtUnix: now, ExpiresAtUnix: math.MaxInt64,
+		Payload: []byte(fmt.Sprintf("%x", digest)),
+	})
 }
 
-// SignCheckpoint signs the checkpoint with key and appends the AuthorSig, using
-// the same keccak256 + secp256k1 raw-sig scheme as KNIRVCHAIN and the official
-// KNIRVCONTROLLER wallet, so cross-service signatures verify.
+func SignDigest(key *ecdsa.PrivateKey, digest [32]byte, purpose, chainID string) (AuthorSig, error) {
+	signed, err := signedDigest(key, digest, purpose, chainID)
+	if err != nil {
+		return AuthorSig{}, err
+	}
+	return AuthorSig{
+		Address: signed.Address, PubKeyHex: hex.EncodeToString(signed.PublicKey),
+		Signature: signed.Signature, Envelope: signed.Envelope,
+	}, nil
+}
+
 func SignCheckpoint(cp *Checkpoint, key *ecdsa.PrivateKey) error {
-	sig, err := SignMessage(key, cp.SignedMessage())
+	signed, err := signedDigest(key, cp.Digest(), "chain-checkpoint", cp.ChainID)
 	if err != nil {
 		return err
 	}
-	cpk := crypto.CompressPubkey(key.Public().(*ecdsa.PublicKey))
-	addr := OracleAddress(key.Public().(*ecdsa.PublicKey))
 	cp.Signatures = append(cp.Signatures, AuthorSig{
-		Address:   addr,
-		PubKeyHex: hex.EncodeToString(cpk),
-		Signature: sig,
+		Address: signed.Address, PubKeyHex: hex.EncodeToString(signed.PublicKey),
+		Signature: signed.Signature, Envelope: signed.Envelope,
 	})
 	return nil
 }
 
-// SignRegistration authorizes initial enrollment or rotation. The signature is
-// kept in RotationSigs for wire compatibility with the existing rotate route.
 func SignRegistration(reg *ChainRegistration, key *ecdsa.PrivateKey) error {
 	digest, err := ChainRegistrationDigest(reg)
 	if err != nil {
 		return err
 	}
-	sig, err := SignMessage(key, fmt.Sprintf("%x", digest))
+	signed, err := signedDigest(key, digest, "chain-registration", reg.ChainID)
 	if err != nil {
 		return err
 	}
-	pub := key.Public().(*ecdsa.PublicKey)
 	reg.RotationSigs = append(reg.RotationSigs, AuthorSig{
-		Address: OracleAddress(pub), PubKeyHex: hex.EncodeToString(crypto.CompressPubkey(pub)), Signature: sig,
+		Address: signed.Address, PubKeyHex: hex.EncodeToString(signed.PublicKey),
+		Signature: signed.Signature, Envelope: signed.Envelope,
 	})
 	return nil
 }

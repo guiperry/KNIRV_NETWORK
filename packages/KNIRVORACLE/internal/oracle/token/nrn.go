@@ -21,6 +21,7 @@ type NRN struct {
 	registered  map[types.Address]bool
 	owner       types.Address
 	ownerKey    *crypto.KeyPair
+	chainID     string
 	mu          sync.RWMutex
 }
 
@@ -63,6 +64,7 @@ func NewNRN(name, symbol string, initialSupply, maxSupply *big.Int, ownerPrivate
 		registered:  make(map[types.Address]bool),
 		owner:       keyPair.Address,
 		ownerKey:    keyPair,
+		chainID:     "knirvoracle-1",
 	}
 
 	// Mint initial supply to owner
@@ -70,6 +72,18 @@ func NewNRN(name, symbol string, initialSupply, maxSupply *big.Int, ownerPrivate
 
 	return nrn, nil
 }
+
+func (n *NRN) SetChainID(chainID string) error {
+	if chainID == "" {
+		return fmt.Errorf("chain ID is required")
+	}
+	n.mu.Lock()
+	defer n.mu.Unlock()
+	n.chainID = chainID
+	return nil
+}
+
+func (n *NRN) ChainID() string { n.mu.RLock(); defer n.mu.RUnlock(); return n.chainID }
 
 // Info returns basic token information
 func (n *NRN) Info() TokenInfo {
@@ -155,6 +169,48 @@ func (n *NRN) RegisterAddress(addr types.Address) bool {
 	}
 	n.registered[addr] = true
 	return true
+}
+
+// CollectFee atomically debits a fee, burns the burn portion, and moves the
+// remainder into the on-ledger reward-pool account.
+func (n *NRN) CollectFee(from, rewardPool types.Address, burnAmount, rewardAmount *big.Int) error {
+	if from.IsZero() || rewardPool.IsZero() || from == rewardPool {
+		return fmt.Errorf("invalid fee collection account")
+	}
+	if burnAmount == nil || rewardAmount == nil || burnAmount.Sign() < 0 || rewardAmount.Sign() < 0 {
+		return fmt.Errorf("fee portions must be non-negative")
+	}
+	total := new(big.Int).Add(burnAmount, rewardAmount)
+	if total.Sign() <= 0 {
+		return fmt.Errorf("fee amount must be positive")
+	}
+
+	n.mu.Lock()
+	defer n.mu.Unlock()
+	balance := n.balances[from]
+	if balance == nil || balance.Cmp(total) < 0 {
+		return fmt.Errorf("%w: have %s, need %s", types.ErrInsufficientBalance, valueOrZero(balance), total)
+	}
+
+	n.setBalance(from, new(big.Int).Sub(balance, total))
+	if rewardAmount.Sign() > 0 {
+		poolBalance := n.balances[rewardPool]
+		if poolBalance == nil {
+			poolBalance = big.NewInt(0)
+		}
+		n.setBalance(rewardPool, new(big.Int).Add(poolBalance, rewardAmount))
+	}
+	if burnAmount.Sign() > 0 {
+		n.totalSupply.Sub(n.totalSupply, burnAmount)
+	}
+	return nil
+}
+
+func valueOrZero(value *big.Int) *big.Int {
+	if value == nil {
+		return big.NewInt(0)
+	}
+	return value
 }
 
 // setBalance sets the balance for an address (internal use only, must hold lock)

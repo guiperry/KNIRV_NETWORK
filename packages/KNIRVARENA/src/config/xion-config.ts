@@ -11,29 +11,30 @@ export interface XionConfig {
   explorerUrl?: string;
 }
 
+const gatewayOrigin = ((import.meta as ImportMeta & { env?: Record<string, string> }).env?.VITE_KNIRV_GATEWAY_URL || 'https://gateway.knirv.network').replace(/\/$/, '');
+
 export const XION_TESTNET_CONFIG: XionConfig = {
-  chainId: 'xion-testnet-1',
-  rpcEndpoint: 'https://rpc.xion-testnet-1.burnt.com:443',
-  restEndpoint: 'https://api.xion-testnet-1.burnt.com:443',
-  gasPrice: '0.025unrn',
+  chainId: 'xion-testnet-2',
+  rpcEndpoint: `${gatewayOrigin}/xion/rpc`,
+  restEndpoint: `${gatewayOrigin}/xion/rest`,
+  gasPrice: '0.025uxion',
   gasAdjustment: 1.5,
   prefix: 'xion',
   coinType: 118,
   hdPath: "m/44'/118'/0'/0/0",
-  faucetUrl: 'https://faucet.xion-testnet-1.burnt.com',
-  explorerUrl: 'https://explorer.xion-testnet-1.burnt.com'
+  explorerUrl: `${gatewayOrigin}/xion/rpc`
 };
 
 export const XION_MAINNET_CONFIG: XionConfig = {
   chainId: 'xion-mainnet-1',
-  rpcEndpoint: 'https://rpc.xion-mainnet-1.burnt.com:443',
-  restEndpoint: 'https://api.xion-mainnet-1.burnt.com:443',
-  gasPrice: '0.025unrn',
+  rpcEndpoint: `${gatewayOrigin}/xion/rpc`,
+  restEndpoint: `${gatewayOrigin}/xion/rest`,
+  gasPrice: '0.025uxion',
   gasAdjustment: 1.5,
   prefix: 'xion',
   coinType: 118,
   hdPath: "m/44'/118'/0'/0/0",
-  explorerUrl: 'https://explorer.xion-mainnet-1.burnt.com'
+  explorerUrl: `${gatewayOrigin}/xion/rpc`
 };
 
 export function getXionConfig(network: 'testnet' | 'mainnet' = 'testnet'): XionConfig {

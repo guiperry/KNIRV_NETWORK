@@ -41,6 +41,18 @@ message RootKeyFileContentProto {
   // gateway token → gateway.knirv.network; oracle token → oracle.knirv.network (root nodes only).
   string cloudflare_tunnel_token = 27;
   string cloudflare_oracle_tunnel_token = 28;
+
+  // KNIRVORACLE plan-checkout payment processor (root nodes only — see
+  // packages/KNIRVORACLE/internal/oracle/payment). Mirrors
+  // KNIRV_CORP/packages/server/backend_server/internal/proto/root_key.proto —
+  // keep field numbers identical across both copies.
+  bool payment_processor_enabled = 29;
+  string stripe_professional_price_id = 30;
+  string stripe_enterprise_price_id = 31;
+  string stripe_investor_price_id = 32;
+  string payment_success_url = 33;
+  string payment_cancel_url = 34;
+  string payment_onboarding_callback_url = 35;
 }
 
 message EncryptedRootKeyFile {

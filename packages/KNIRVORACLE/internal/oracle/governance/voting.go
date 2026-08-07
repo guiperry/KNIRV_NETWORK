@@ -1,17 +1,18 @@
 package governance
 
 import (
+	"encoding/json"
 	"fmt"
 	"math/big"
 	"time"
 
-	"github.com/knirvcorp/knirvoracle/internal/oracle/crypto"
+	knirvsigning "github.com/KNIRV/KNIRV_NETWORK/KNIRVSDK/go/signing"
 	"github.com/knirvcorp/knirvoracle/internal/oracle/types"
 	"go.uber.org/zap"
 )
 
 // CastVote casts a vote on a proposal
-func (gs *GovernanceSystem) CastVote(req *VoteRequest, privateKey string) (*Vote, error) {
+func (gs *GovernanceSystem) CastVote(req *VoteRequest, signed knirvsigning.SignedMessage) (*Vote, error) {
 	gs.mu.Lock()
 	defer gs.mu.Unlock()
 
@@ -60,19 +61,18 @@ func (gs *GovernanceSystem) CastVote(req *VoteRequest, privateKey string) (*Vote
 		Timestamp:  now,
 	}
 
-	// Sign vote
-	voteData := fmt.Sprintf("%s:%s:%s:%s",
+	voteData := fmt.Sprintf("vote:%s:%s:%s",
 		vote.ProposalID,
 		vote.Voter.String(),
 		vote.Option.String(),
-		vote.Weight.String(),
 	)
-	signatureHex, err := crypto.SignMessage(privateKey, []byte(voteData))
-	if err != nil {
-		return nil, fmt.Errorf("failed to sign vote: %w", err)
+	if err := knirvsigning.VerifyMessagePayload(signed, "knirv.oracle", "governance-vote", gs.chainID, []byte(voteData), now); err != nil {
+		return nil, fmt.Errorf("invalid governance vote signature: %w", err)
 	}
-	// Convert hex signature to bytes
-	vote.Signature = []byte(signatureHex)
+	if signed.Address != vote.Voter.String() {
+		return nil, fmt.Errorf("governance vote signer does not match voter")
+	}
+	vote.Signature, _ = json.Marshal(signed)
 
 	// Store vote
 	gs.votes[req.ProposalID][req.Voter] = vote
@@ -227,23 +227,27 @@ func (gs *GovernanceSystem) GetVoteStats(proposalID string) (map[string]interfac
 // VerifyVote verifies a vote signature
 func (gs *GovernanceSystem) VerifyVote(vote *Vote) (bool, error) {
 	// Get validator
-	validator, exists := gs.validators[vote.Voter]
+	_, exists := gs.validators[vote.Voter]
 	if !exists {
 		return false, ErrValidatorNotFound
 	}
 
-	// Reconstruct vote data
-	voteData := fmt.Sprintf("%s:%s:%s:%s",
+	voteData := fmt.Sprintf("vote:%s:%s:%s",
 		vote.ProposalID,
 		vote.Voter.String(),
 		vote.Option.String(),
-		vote.Weight.String(),
 	)
-	voteHash := crypto.Keccak256([]byte(voteData))
-
-	// Verify signature
-	valid := crypto.VerifySignature(validator.PubKey, voteHash, vote.Signature)
-	return valid, nil
+	var signed knirvsigning.SignedMessage
+	if err := json.Unmarshal(vote.Signature, &signed); err != nil {
+		return false, err
+	}
+	if signed.Address != vote.Voter.String() {
+		return false, nil
+	}
+	if err := knirvsigning.VerifyMessagePayload(signed, "knirv.oracle", "governance-vote", gs.chainID, []byte(voteData), vote.Timestamp); err != nil {
+		return false, nil
+	}
+	return true, nil
 }
 
 // Helper: update tally with new vote

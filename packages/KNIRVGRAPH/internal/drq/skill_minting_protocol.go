@@ -2,6 +2,7 @@ package drq
 
 import (
 	"errors"
+	"fmt"
 )
 
 // KNIRVGRAPHClient is a stub for the KNIRVGRAPH client
@@ -21,10 +22,19 @@ func (kgc *KNIRVGRAPHClient) RevertSkillMinting(skillID string) {
 	_ = skillID
 }
 
-// MintCanonicalSkill is a stub for canonical minting on KNIRVCHAIN
+// MintCanonicalSkill mints (or, if MintSkillNode already minted it,
+// re-fetches) skillNode's EventBundleNFT commit-bundle proof on KNIRVCHAIN.
+// This is idempotent per skillNode.ID, so calling it after
+// SkillDiscoveryEngine.DiscoverSkill has already minted the same skill
+// (MintSkillFromCluster's step 2 calls DiscoverSkill, which itself mints via
+// MintSkillNode, before this step 5 canonical mint runs) simply returns the
+// existing receipt rather than double-minting or double-burning NRN.
 func (kc *KNIRVCHAINClient) MintCanonicalSkill(skillNode *SkillNode) error {
-	// TODO: Implement actual KNIRVCHAIN canonical minting logic
-	_ = skillNode
+	receipt, err := kc.mintSkillEventBundle(skillNode)
+	if err != nil {
+		return fmt.Errorf("mint canonical skill on KNIRVCHAIN: %w", err)
+	}
+	skillNode.ValidationProof = receipt
 	return nil
 }
 

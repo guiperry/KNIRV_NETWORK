@@ -2,7 +2,7 @@
  * Unified KNIRV Client - Provides access to all KNIRV Network services
  */
 
-import { KNIRVWallet, WalletResponse } from './wallet';
+import { KNIRVWallet } from './wallet';
 import {
   KNIRVNetworkInfo,
   Badge,
@@ -106,7 +106,7 @@ export class KNIRVClient {
     }
 
     // Initialize wallet
-    this.wallet = new KNIRVWallet(config.wallet);
+    this.wallet = new KNIRVWallet({ ...config.wallet, apiKey: config.auth?.apiKey || config.gateway?.apiKey });
 
     // Initialize all services with appropriate endpoints
     const apiKey = config.auth?.apiKey || config.gateway?.apiKey;
@@ -155,49 +155,49 @@ export class KNIRVClient {
       'public-production': {
         chainId: 'knirv-1',
         networkName: 'KNIRV Production Network',
-        rpcUrl: 'https://rpc.knirv.com',
+        rpcUrl: 'https://gateway.knirv.network/rpc',
         currency: { name: 'NRN', symbol: 'NRN', decimals: 18 },
         environment: 'public-production',
         services: {
-          controller: 'https://controller.knirv.com',
-          router: 'https://router.knirv.com',
-          graph: 'https://graph.knirv.com',
-          chain: 'https://chain.knirv.com',
-          oracle: 'https://oracle.knirv.com',
-          nexus: 'https://nexus.knirv.com',
-          gateway: 'https://gateway.knirv.com',
+          controller: 'https://gateway.knirv.network',
+          router: 'https://gateway.knirv.network',
+          graph: 'https://gateway.knirv.network',
+          chain: 'https://gateway.knirv.network',
+          oracle: 'https://gateway.knirv.network',
+          nexus: 'https://gateway.knirv.network',
+          gateway: 'https://gateway.knirv.network',
         },
       },
       'public-testnet': {
         chainId: 'knirv-testnet-1',
         networkName: 'KNIRV Testnet',
-        rpcUrl: 'https://testnet-rpc.knirv.com',
+        rpcUrl: 'https://testnet-gateway.knirv.network/rpc',
         currency: { name: 'NRN', symbol: 'NRN', decimals: 18 },
         environment: 'public-testnet',
         services: {
-          controller: 'https://testnet-controller.knirv.com',
-          router: 'https://testnet-router.knirv.com',
-          graph: 'https://testnet-graph.knirv.com',
-          chain: 'https://testnet-chain.knirv.com',
-          oracle: 'https://testnet-oracle.knirv.com',
-          nexus: 'https://testnet-nexus.knirv.com',
-          gateway: 'https://testnet-gateway.knirv.com',
+          controller: 'https://testnet-gateway.knirv.network',
+          router: 'https://testnet-gateway.knirv.network',
+          graph: 'https://testnet-gateway.knirv.network',
+          chain: 'https://testnet-gateway.knirv.network',
+          oracle: 'https://testnet-gateway.knirv.network',
+          nexus: 'https://testnet-gateway.knirv.network',
+          gateway: 'https://testnet-gateway.knirv.network',
         },
       },
       'local-testnet': {
         chainId: 'knirv-local-testnet',
         networkName: 'KNIRV Local Testnet',
-        rpcUrl: 'http://localhost:26657',
+        rpcUrl: 'http://localhost:8080/rpc',
         currency: { name: 'NRN', symbol: 'NRN', decimals: 18 },
         environment: 'local-testnet',
         services: {
-          controller: 'http://localhost:3000',
-          router: 'http://localhost:8085',
-          graph: 'http://localhost:8081',
+          controller: 'http://localhost:8080',
+          router: 'http://localhost:8080',
+          graph: 'http://localhost:8080',
           chain: 'http://localhost:8080',
-          oracle: 'http://localhost:8086',
-          nexus: 'http://localhost:8090',
-          gateway: 'http://localhost:8087',
+          oracle: 'http://localhost:8080',
+          nexus: 'http://localhost:8080',
+          gateway: 'http://localhost:8080',
         },
       },
       'local-production': {

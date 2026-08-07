@@ -49,7 +49,6 @@ export class BaseService {
     data?: any,
     headers?: Record<string, string>
   ): Promise<T> {
-    const url = `${this.baseURL}${endpoint}`;
     const requestHeaders: Record<string, string> = {
       'Content-Type': 'application/json',
       ...headers,
@@ -62,24 +61,30 @@ export class BaseService {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), this.timeout);
 
+    const canonicalGateways = ['https://gateway.knirv.network', 'https://testnet-gateway.knirv.network', 'http://localhost:8080'];
+    const candidates = canonicalGateways.includes(this.baseURL)
+      ? [this.baseURL, ...canonicalGateways.filter((candidate) => candidate !== this.baseURL)]
+      : [this.baseURL];
+    let lastError: unknown;
     try {
-      const response = await fetch(url, {
+      for (const baseURL of candidates) {
+        try {
+          const response = await fetch(`${baseURL}${endpoint}`, {
         method,
         headers: requestHeaders,
         body: data ? JSON.stringify(data) : undefined,
         signal: controller.signal,
-      });
-
-      clearTimeout(timeoutId);
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          });
+          if (response.status >= 500) throw new Error(`${baseURL} returned HTTP ${response.status}`);
+          if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          return await response.json();
+        } catch (error) {
+          lastError = error;
+        }
       }
-
-      return await response.json();
-    } catch (error) {
+      throw lastError instanceof Error ? lastError : new Error('No KNIRV gateway is available');
+    } finally {
       clearTimeout(timeoutId);
-      throw error;
     }
   }
 }

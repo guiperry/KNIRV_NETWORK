@@ -22,7 +22,7 @@ import (
 	"unicode/utf8"
 	_ "unsafe" // for linkname
 
-	"github.com/cloud-equities/KNIRVCHAIN/sdk/go/transaction/internal/encoding/json/shims"
+	"github.com/guiperry/KNIRV_NETWORK/KNIRVSDK/go/transaction/internal/encoding/json/shims"
 )
 
 // Unmarshal parses the JSON-encoded data and stores the result

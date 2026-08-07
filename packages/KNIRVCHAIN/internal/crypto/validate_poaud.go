@@ -11,25 +11,28 @@ type BlockchainStruct = blockchain.BlockchainStruct
 type Transaction = blockchain.Transaction
 type Block = blockchain.Block
 
-// Missing constants and types
-const TransactionTypeMCPInvokeCapability = "MCP_INVOKE_CAPABILITY"
+const TransactionTypeMCPInvokeCapability = blockchain.TransactionTypeMCPInvokeCapability
 const TXN_VERIFICATION_SUCCESS = "SUCCESS"
 
-// Missing functions
 func NewTransactionPoolManager(bc *BlockchainStruct) *blockchain.TransactionPoolManager {
-	return &blockchain.TransactionPoolManager{} // Placeholder
+	return blockchain.NewTransactionPoolManager(bc)
 }
 
 func ValidateTransactionForDelegation(tx *Transaction) bool {
-	return tx.Type == TransactionTypeMCPInvokeCapability // Placeholder validation
+	return tx != nil && tx.Type == TransactionTypeMCPInvokeCapability && tx.TransactionHash != "" && len(tx.Signature) > 0
 }
 
 func IsDelegationEnabled(bc *BlockchainStruct) bool {
-	return bc.PoAuDEnabled // Placeholder
+	if bc == nil {
+		return false
+	}
+	bc.Lock()
+	defer bc.Unlock()
+	return bc.PoAuDEnabled
 }
 
 func GetDelegationStats(tpm *blockchain.TransactionPoolManager) interface{} {
-	return map[string]interface{}{"stats": "placeholder"} // Placeholder
+	return blockchain.GetDelegationStats(tpm)
 }
 
 // ValidatePoAuDImplementation validates that all PoAu-D components are properly implemented

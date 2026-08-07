@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
+	"strings"
 
 	"github.com/KNIRV/KNIRV_NETWORK/KNIRVGATEWAY/internal/config"
 	"github.com/gorilla/mux"
@@ -82,8 +84,11 @@ func (h *Handler) proxyRequest(w http.ResponseWriter, r *http.Request, endpoint 
 			zap.Error(err),
 		)
 
-		// Return mock data as fallback (similar to TypeScript implementation)
-		h.returnMockData(w, endpoint)
+		if strings.EqualFold(strings.TrimSpace(os.Getenv("KNIRV_ENABLE_DEMO")), "true") {
+			h.returnDemoData(w, endpoint)
+			return
+		}
+		http.Error(w, "backend unavailable", http.StatusBadGateway)
 		return
 	}
 	defer resp.Body.Close()
@@ -102,8 +107,8 @@ func (h *Handler) proxyRequest(w http.ResponseWriter, r *http.Request, endpoint 
 	io.Copy(w, resp.Body)
 }
 
-// returnMockData returns mock data when backend is unavailable
-func (h *Handler) returnMockData(w http.ResponseWriter, endpoint string) {
+// returnDemoData is available only when the process explicitly enables demo mode.
+func (h *Handler) returnDemoData(w http.ResponseWriter, endpoint string) {
 	w.Header().Set("Content-Type", "application/json")
 
 	switch endpoint {

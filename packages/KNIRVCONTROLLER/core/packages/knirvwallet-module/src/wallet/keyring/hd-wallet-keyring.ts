@@ -4,6 +4,7 @@ import type {
   Tx,
   TxSignature,
 } from '../wallet';
+import { broadcastCommit, broadcastSync } from './broadcast';
 
 // Standard Cosmos/Gno HD path: m/44'/118'/0'/0/{accountIndex}
 // (matches ledger-keyring.ts's generateHDPath so software and hardware
@@ -96,51 +97,29 @@ export class HDWalletKeyring implements Keyring {
   }
 
   private async signByWallet(wallet: KNIRVWallet, document: Document) {
-    const signedTx = await wallet.signTransaction(documentToTx(document));
+    const signedTx = await wallet.signTransaction(documentToTx(document), document);
     const pubKeyBase64 = toBase64(await wallet.getPublicKey());
-    const signatures =
-      (signedTx.signatures || []).length > 0
-        ? signedTx.signatures.map((sig) => ({
-            pub_key: {
-              key: pubKeyBase64,
-            },
-            signature: sig,
-          }))
-        : [
-            {
-              pub_key: {
-                key: pubKeyBase64,
-              },
-              signature: '',
-            },
-          ];
+		if (!signedTx.signatures?.length) {
+			throw new Error('Canonical signer returned no signature');
+		}
+		const signatures = signedTx.signatures.map((sig) => ({
+					pub_key: {
+						key: pubKeyBase64,
+					},
+					signature: sig,
+				}));
     return {
       signed: signedTx,
       signature: signatures,
     };
   }
 
-  async broadcastTxSync(provider: Provider, signedTx: Tx, hdPath: number = 0) {
-    // For KNIRV, we'll use the transaction SDK to submit transactions
-    // This is a placeholder implementation
-    return {
-      hash: 'placeholder-hash',
-      code: 0,
-      log: 'Transaction broadcasting not implemented yet - use KNIRV transaction SDK',
-    };
+  async broadcastTxSync(provider: Provider, signedTx: Tx, _hdPath: number = 0) {
+    return broadcastSync(provider, signedTx);
   }
 
-  async broadcastTxCommit(provider: Provider, signedTx: Tx, hdPath: number = 0) {
-    // For KNIRV, we'll use the transaction SDK to submit transactions
-    // This is a placeholder implementation
-    return {
-      hash: 'placeholder-hash',
-      height: 0,
-      code: 0,
-      log: 'Transaction broadcasting not implemented yet - use KNIRV transaction SDK',
-      gasUsed: 0,
-      gasWanted: 0,
-    };
+  async broadcastTxCommit(provider: Provider, signedTx: Tx, _hdPath: number = 0) {
+    return broadcastCommit(provider, signedTx);
   }
 
   public static async fromMnemonic(mnemonic: string) {

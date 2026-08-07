@@ -1,7 +1,7 @@
 import CryptoJS from 'crypto-js';
-import { sha256 } from '../crypto';
 import { Argon2id, isArgon2idOptions } from '../crypto';
-import { toAscii, toHex } from '../encoding';
+import { sha256 } from '../crypto';
+import { toHex } from '../encoding';
 
 interface KdfConfiguration {
   /**
@@ -22,19 +22,15 @@ export async function executeKdf(
     throw new Error('Invalid KDF configuration: missing algorithm');
   }
 
-  // Only support argon2id for backward compatibility, but use KNIRV crypto implementation
+  // Vault KDF parameters are serialized with the vault and must be honored exactly.
   if (configuration.algorithm !== 'argon2id') {
     throw new Error(`Unsupported KDF algorithm: ${configuration.algorithm}`);
   }
 
-  // Use crypto-js implementation for KDF operations
-  const hexKey = await makeCryptKey(password);
-  // Convert hex string to Uint8Array
-  const bytes = new Uint8Array(hexKey.length / 2);
-  for (let i = 0; i < hexKey.length; i += 2) {
-    bytes[i / 2] = parseInt(hexKey.substr(i, 2), 16);
+  if (!isArgon2idOptions(configuration.params)) {
+    throw new Error('Invalid Argon2id parameters');
   }
-  return bytes;
+  return Argon2id.execute(password, new TextEncoder().encode(salt), configuration.params);
 }
 
 export const makeCryptKey = async (password: string) => {

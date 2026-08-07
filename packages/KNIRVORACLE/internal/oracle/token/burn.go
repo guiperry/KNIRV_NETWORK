@@ -1,10 +1,13 @@
 package token
 
 import (
+	"crypto/sha256"
+	"encoding/json"
 	"fmt"
 	"math/big"
+	"time"
 
-	"github.com/knirvcorp/knirvoracle/internal/oracle/crypto"
+	knirvsigning "github.com/KNIRV/KNIRV_NETWORK/KNIRVSDK/go/signing"
 	"github.com/knirvcorp/knirvoracle/internal/oracle/types"
 )
 
@@ -28,75 +31,20 @@ type BurnReceipt struct {
 
 // Burn burns tokens from an address
 func (n *NRN) Burn(fromPrivateKey string, amount *big.Int, reason string) (*BurnReceipt, error) {
-	// Validate amount
-	if err := validateAmount(amount); err != nil {
-		return nil, err
-	}
-
-	// Get burner key pair and address
-	fromKeyPair, err := crypto.PrivateKeyFromHex(fromPrivateKey)
-	if err != nil {
-		return nil, fmt.Errorf("invalid private key: %w", err)
-	}
-	fromAddr := fromKeyPair.Address
-
-	n.mu.Lock()
-	defer n.mu.Unlock()
-
-	// Check balance
-	fromBalance := n.balances[fromAddr]
-	if fromBalance == nil {
-		fromBalance = big.NewInt(0)
-	}
-
-	if fromBalance.Cmp(amount) < 0 {
-		return nil, fmt.Errorf("%w: have %s, need %s",
-			types.ErrInsufficientBalance, fromBalance.String(), amount.String())
-	}
-
-	// Calculate new balance and total supply
-	newBalance := new(big.Int).Sub(fromBalance, amount)
-	newTotalSupply := new(big.Int).Sub(n.totalSupply, amount)
-
-	// Create transaction data
-	txData := fmt.Sprintf("burn:%s:%s:%s", fromAddr.String(), amount.String(), reason)
-
-	// Sign the transaction
-	signature, err := fromKeyPair.Sign([]byte(txData))
-	if err != nil {
-		return nil, fmt.Errorf("failed to sign burn transaction: %w", err)
-	}
-
-	// Update balance and total supply
-	n.setBalance(fromAddr, newBalance)
-	n.totalSupply = newTotalSupply
-
-	// Generate transaction hash
-	txHash := crypto.Keccak256HashWithPrefix([]byte(txData))
-
-	return &BurnReceipt{
-		From:            fromAddr,
-		Amount:          amount.String(),
-		NewBalance:      newBalance.String(),
-		NewTotalSupply:  newTotalSupply.String(),
-		Reason:          reason,
-		TransactionHash: txHash,
-		Signature:       fmt.Sprintf("0x%x", signature),
-	}, nil
+	return nil, fmt.Errorf("private-key burn is disabled; submit a KNIRVCONTROLLER SignedMessage to BurnSigned")
 }
 
 // BurnSigned burns tokens after verifying a client-side signature.
-func (n *NRN) BurnSigned(fromAddr types.Address, amount *big.Int, reason string, nonce uint64, signature []byte) (*BurnReceipt, error) {
+func (n *NRN) BurnSigned(fromAddr types.Address, amount *big.Int, reason string, nonce uint64, signed knirvsigning.SignedMessage) (*BurnReceipt, error) {
 	if err := validateAmount(amount); err != nil {
 		return nil, err
 	}
 
 	txData := fmt.Sprintf("burn:%s:%s:%s:%d", fromAddr.String(), amount.String(), reason, nonce)
-	recoveredAddr, err := crypto.RecoverAddress([]byte(txData), signature)
-	if err != nil {
-		return nil, fmt.Errorf("invalid signature: %w", err)
+	if err := knirvsigning.VerifyMessagePayload(signed, "knirv.oracle", "oracle-burn", n.chainID, []byte(txData), time.Now()); err != nil {
+		return nil, fmt.Errorf("invalid canonical signature: %w", err)
 	}
-	if recoveredAddr != fromAddr {
+	if signed.Address != fromAddr.String() {
 		return nil, fmt.Errorf("signature does not match from address")
 	}
 
@@ -123,7 +71,9 @@ func (n *NRN) BurnSigned(fromAddr types.Address, amount *big.Int, reason string,
 	n.totalSupply = newTotalSupply
 	n.nonces[fromAddr] = expectedNonce + 1
 
-	txHash := crypto.Keccak256HashWithPrefix([]byte(txData))
+	txHashBytes := sha256.Sum256(signed.Envelope)
+	txHash := fmt.Sprintf("%X", txHashBytes)
+	signedJSON, _ := json.Marshal(signed)
 
 	return &BurnReceipt{
 		From:            fromAddr,
@@ -132,7 +82,7 @@ func (n *NRN) BurnSigned(fromAddr types.Address, amount *big.Int, reason string,
 		NewTotalSupply:  newTotalSupply.String(),
 		Reason:          reason,
 		TransactionHash: txHash,
-		Signature:       fmt.Sprintf("0x%x", signature),
+		Signature:       string(signedJSON),
 	}, nil
 }
 
@@ -169,8 +119,7 @@ func (n *NRN) BurnFrom(addr types.Address, amount *big.Int, reason string) error
 // BurnForSkillInvocation burns tokens for a skill invocation
 // This is a specialized burn function for the KNIRV network's skill system
 func (n *NRN) BurnForSkillInvocation(fromPrivateKey, skillID string, amount *big.Int) (*BurnReceipt, error) {
-	reason := fmt.Sprintf("skill_invocation:%s", skillID)
-	return n.Burn(fromPrivateKey, amount, reason)
+	return nil, fmt.Errorf("private-key skill burn is disabled; submit a KNIRVCONTROLLER SignedMessage")
 }
 
 // BurnForFee burns tokens as a fee payment

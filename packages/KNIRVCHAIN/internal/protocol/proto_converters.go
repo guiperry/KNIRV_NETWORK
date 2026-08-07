@@ -2,7 +2,6 @@ package protocol
 
 import (
 	"errors"
-	"fmt"
 	"log"
 	"time"
 
@@ -11,7 +10,6 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	// Import the generated protobuf types from the correct location
-	"KNIRVCHAIN/internal/blockchain"
 	pb "KNIRVCHAIN/internal/protocol/proto"
 	"KNIRVCHAIN/internal/types"
 )
@@ -525,74 +523,4 @@ func ProtoTimestampToUnixTime(ts *timestamppb.Timestamp) int64 { // Accept APIv2
 func GetCanonicalBytesForHashing(msg proto.Message) ([]byte, error) {
 	// Use the proto.Marshal function to get deterministic binary output for hashing
 	return proto.Marshal(msg)
-}
-
-// TransactionToProto converts the Go Transaction struct to its Protobuf representation.
-// This is now an alias for TransactionToProtoForStorage to ensure consistent behavior.
-func TransactionToProto(t *blockchain.Transaction) (*pb.TransactionProto, error) {
-	return TransactionToProtoForStorage(t)
-}
-
-// TransactionToProtoForHashing creates a TransactionProto specifically for hashing (used in signing/verification).
-// It omits fields that are not part of the signed content.
-func TransactionToProtoForHashing(t *blockchain.Transaction) (*pb.TransactionProto, error) {
-	// Use the old API timestamp to match the generated TransactionProto struct
-	// t.Timestamp is int64 Unix seconds
-	ts := timestamppb.New(time.Unix(t.Timestamp, 0)) // Use APIv2 timestamppb
-	return &pb.TransactionProto{
-		From:      t.From,
-		To:        t.To,
-		Value:     t.Value,
-		Data:      t.Data,
-		Timestamp: ts,
-		Fee:       t.Fee,
-		Type:      t.Type,
-	}, nil
-}
-
-// TransactionToProtoForStorage creates a TransactionProto that includes all fields needed for storage
-// including Signature and PublicKey
-func TransactionToProtoForStorage(t *blockchain.Transaction) (*pb.TransactionProto, error) {
-	ts := timestamppb.New(time.Unix(t.Timestamp, 0)) // Use APIv2 timestamppb
-	return &pb.TransactionProto{
-		From:      t.From,
-		To:        t.To,
-		Value:     t.Value,
-		Data:      t.Data,
-		Timestamp: ts,
-		Fee:       t.Fee,
-		Type:      t.Type,
-		Signature: []byte(t.Signature),
-		PublicKey: []byte(t.PublicKey),
-	}, nil
-}
-
-// BlockToProto converts the Go Block struct to its Protobuf representation for hashing.
-func BlockToProto(b *blockchain.Block) (*pb.BlockProto, error) {
-	var finalProtoTransactions []*pb.TransactionProto // Default to nil
-
-	if len(b.Transactions) > 0 {
-		finalProtoTransactions = make([]*pb.TransactionProto, len(b.Transactions))
-		for i, tx := range b.Transactions {
-			ptx, err := TransactionToProto(tx)
-			if err != nil {
-				return nil, fmt.Errorf("failed to convert transaction %d to proto: %w", i, err)
-			}
-			finalProtoTransactions[i] = ptx
-		}
-	}
-
-	// SmartContract (b.Data) field removed from BlockProto
-
-	ts := timestamppb.New(time.Unix(b.Timestamp, 0)) // Use APIv2 timestamppb
-
-	return &pb.BlockProto{
-		BlockNumber:  b.BlockNumber,
-		PrevHash:     b.PrevHash,
-		Timestamp:    ts,
-		Nonce:        int32(b.Nonce),         // Ensure Nonce type matches proto (e.g., int32)
-		Transactions: finalProtoTransactions, // Will be nil if b.Transactions is empty
-		// SmartContract field removed
-		ProposerAddress: b.ProposerAddress,
-	}, nil
 }

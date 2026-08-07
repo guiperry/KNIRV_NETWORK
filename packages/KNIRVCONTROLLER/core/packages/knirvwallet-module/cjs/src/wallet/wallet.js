@@ -611,26 +611,11 @@ var KnirvWallet = /** @class */ (function () {
         var mnemonic = crypto_1.Bip39.encode(entropy);
         return mnemonic.toString();
     };
-    /**
-     * Sign transaction method for test compatibility
-     * This is a simplified version that creates a mock signed transaction
-     */
+    /** @deprecated Use the package's SIGN_MODE_DIRECT build. */
     KnirvWallet.prototype.signTransaction = function (transaction) {
         return __awaiter(this, void 0, void 0, function () {
             return __generator(this, function (_a) {
-                // Mock implementation for testing - in real implementation, this would use proper signing
-                return [2 /*return*/, __assign(__assign({}, transaction), { signatures: [
-                            {
-                                pub_key: {
-                                    type: 'tendermint/PubKeySecp256k1',
-                                    value: 'mock-public-key-value'
-                                },
-                                signature: 'mock-signature-value'
-                            }
-                        ], memo: transaction.memo || '', fee: {
-                            amount: [{ denom: transaction.token || 'unrn', amount: '0' }],
-                            gas: transaction.gasLimit || '200000'
-                        } })];
+                throw new Error('This stale CJS wallet build cannot sign; use the SIGN_MODE_DIRECT package build');
             });
         });
     };

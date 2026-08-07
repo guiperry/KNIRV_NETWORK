@@ -3,7 +3,7 @@ package apijson
 import (
 	"reflect"
 
-	"github.com/cloud-equities/KNIRVCHAIN/sdk/go/transaction/packages/respjson"
+	"github.com/guiperry/KNIRV_NETWORK/KNIRVSDK/go/transaction/packages/respjson"
 )
 
 func getSubField(root reflect.Value, index []int, name string) reflect.Value {

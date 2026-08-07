@@ -6,7 +6,6 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
-	"fmt"
 	"sync"
 	"testing"
 	"time"
@@ -85,15 +84,11 @@ func projectTestRollupAs(t *testing.T, o *Oracle, chainID, proposer string, prop
 		Status:      types.RollupStatusSubmitted,
 		SubmittedAt: time.Now().UTC(),
 	}
-	sigBytes, err := types.SignMessage(key, fmt.Sprintf("%x", rr.Digest()))
+	sig, err := types.SignDigest(key, rr.Digest(), "rollup-submission", rr.ChainID)
 	if err != nil {
 		t.Fatalf("sign rollup: %v", err)
 	}
-	rr.Signatures = []types.AuthorSig{{
-		Address:   proposer,
-		PubKeyHex: hex.EncodeToString(proposerPubKey),
-		Signature: sigBytes,
-	}}
+	rr.Signatures = []types.AuthorSig{sig}
 	if err := o.SubmitRollup(rr); err != nil {
 		t.Fatalf("SubmitRollup: %v", err)
 	}

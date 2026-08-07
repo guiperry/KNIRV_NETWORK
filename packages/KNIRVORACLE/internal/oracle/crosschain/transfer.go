@@ -103,8 +103,8 @@ type TransferProof struct {
 // ValidatorSignature represents a validator's signature on a transfer
 type ValidatorSignature struct {
 	ValidatorAddress string `json:"validator_address"`
-	Signature        string `json:"signature"`
-	VotingPower      uint64 `json:"voting_power"`
+	Signature        string `json:"signature"`              // JSON-encoded canonical SignedMessage
+	VotingPower      uint64 `json:"voting_power,omitempty"` // deprecated; power comes from the registered validator set
 }
 
 // TransferEvent represents an event in the transfer lifecycle

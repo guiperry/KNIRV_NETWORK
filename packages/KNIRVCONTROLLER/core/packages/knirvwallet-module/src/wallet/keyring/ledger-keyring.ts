@@ -1,6 +1,7 @@
 import { LedgerConnector } from '@cosmjs/ledger-amino';
 import { Slip10RawIndex, HdPath } from '@cosmjs/crypto';
 import type { Provider, Tx } from '../wallet';
+import { broadcastCommit, broadcastSync } from './broadcast';
 
 // Utility function to replace generateHDPath
 function generateHDPath(accountIndex: number): HdPath {
@@ -14,10 +15,7 @@ function generateHDPath(accountIndex: number): HdPath {
 }
 import { v4 as uuidv4 } from 'uuid';
 
-import { toBase64 } from '../../encoding';
-import { documentToTx } from '../../utils/messages';
 import type { Document } from '../../utils/messages';
-import { SimpleKNIRVWallet, KNIRVWallet } from './keyring-util';
 import { Keyring, KeyringData, KeyringType } from './keyring';
 
 export class LedgerKeyring implements Keyring {
@@ -49,63 +47,19 @@ export class LedgerKeyring implements Keyring {
     };
   }
 
-  async sign(provider: Provider, document: Document, hdPath: number = 0) {
+  async sign(_provider: Provider, _document: Document, _hdPath: number = 0): Promise<never> {
     if (!this.connector) {
       throw new Error('Ledger connector does not found');
     }
-    const wallet = await SimpleKNIRVWallet.fromLedger(this.connector as any, {
-      accountIndex: hdPath,
-    });
-    wallet.connect(provider);
-    return this.signByWallet(wallet, document);
+    throw new Error('The Cosmos Ledger app supports legacy Amino signing only; KNIRV requires SIGN_MODE_DIRECT. Approve this action in KNIRVCONTROLLER instead.');
   }
 
-  private async signByWallet(wallet: KNIRVWallet, document: Document) {
-    const signedTx = await wallet.signTransaction(documentToTx(document));
-    const pubKeyBase64 = toBase64(await wallet.getPublicKey());
-    const signatures =
-      (signedTx.signatures || []).length > 0
-        ? signedTx.signatures.map((sig) => ({
-            pub_key: {
-              key: pubKeyBase64,
-            },
-            signature: sig,
-          }))
-        : [
-            {
-              pub_key: {
-                key: pubKeyBase64,
-              },
-              signature: '',
-            },
-          ];
-    return {
-      signed: signedTx,
-      signature: signatures,
-    };
+  async broadcastTxSync(provider: Provider, signedTx: Tx, _hdPath: number = 0) {
+    return broadcastSync(provider, signedTx);
   }
 
-  async broadcastTxSync(provider: Provider, signedTx: Tx, hdPath: number = 0) {
-    // For KNIRV, we'll use the transaction SDK to submit transactions
-    // This is a placeholder implementation
-    return {
-      hash: 'placeholder-hash',
-      code: 0,
-      log: 'Transaction broadcasting not implemented yet - use KNIRV transaction SDK',
-    };
-  }
-
-  async broadcastTxCommit(provider: Provider, signedTx: Tx, hdPath: number = 0) {
-    // For KNIRV, we'll use the transaction SDK to submit transactions
-    // This is a placeholder implementation
-    return {
-      hash: 'placeholder-hash',
-      height: 0,
-      code: 0,
-      log: 'Transaction broadcasting not implemented yet - use KNIRV transaction SDK',
-      gasUsed: 0,
-      gasWanted: 0,
-    };
+  async broadcastTxCommit(provider: Provider, signedTx: Tx, _hdPath: number = 0) {
+    return broadcastCommit(provider, signedTx);
   }
 
   public static async fromLedger(connector: LedgerConnector) {

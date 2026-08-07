@@ -136,10 +136,21 @@ func (b *Block) VerifyBlock() bool {
 		return false
 	}
 
-	// Verify all transactions in the block
+	// Verify all transactions in the block. Exactly one protocol mining reward
+	// is required; all other protocol records must satisfy their explicit
+	// schema instead of receiving a blanket signature bypass.
+	rewardCount := 0
 	for i, txn := range b.Transactions {
-		// Skip mining reward transactions (which don't have signatures)
 		if txn.From == utils.BLOCKCHAIN_ADDRESS {
+			if !txn.isValidProtocolTransaction() {
+				return false
+			}
+			if txn.Type == "protocol_mining_reward" {
+				rewardCount++
+				if b.ProposerAddress != "" && txn.To != b.ProposerAddress {
+					return false
+				}
+			}
 			continue
 		}
 		// Verify other transactions
@@ -149,6 +160,9 @@ func (b *Block) VerifyBlock() bool {
 				b.BlockNumber, i, txn.TransactionHash), nil)
 			return false
 		}
+	}
+	if b.BlockNumber > 0 && rewardCount != 1 {
+		return false
 	}
 
 	// If all checks pass

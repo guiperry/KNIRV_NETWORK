@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"os"
+	"strings"
 	"sync"
 	"time"
 )
@@ -39,6 +41,8 @@ func NewBlockchainAdapter(blockchain BlockchainInterface, minerAddress string) *
 		minerAddress: minerAddress,
 	}
 }
+
+func (a *BlockchainAdapter) Available() bool { return a.blockchain != nil || a.txPoolSubmitFunc != nil }
 
 func (a *BlockchainAdapter) SubmitTurnSessionTx(sessionData map[string]interface{}) error {
 	sessionData["recorded_at"] = time.Now().UTC().Format(time.RFC3339)
@@ -80,14 +84,14 @@ func (a *BlockchainAdapter) SubmitTurnSessionTx(sessionData map[string]interface
 		}
 	}
 
-	a.statsMutex.Lock()
-	a.sessionCount++
-	a.statsMutex.Unlock()
-
-	log.Printf("TURN session recorded (mock mode) for client %s",
-		sessionData["client_addr"])
-
-	return nil
+	if strings.EqualFold(strings.TrimSpace(os.Getenv("KNIRV_ENABLE_DEMO")), "true") {
+		a.statsMutex.Lock()
+		a.sessionCount++
+		a.statsMutex.Unlock()
+		log.Printf("TURN session recorded in explicit demo mode for client %s", sessionData["client_addr"])
+		return nil
+	}
+	return fmt.Errorf("TURN transaction submitter is not configured")
 }
 
 func (a *BlockchainAdapter) SubmitNRNMintTx(recipient, amount, reason, proofID string) error {
@@ -129,24 +133,36 @@ func (a *BlockchainAdapter) SubmitNRNMintTx(recipient, amount, reason, proofID s
 		return nil
 	}
 
-	a.statsMutex.Lock()
-	a.mintCount++
-	a.statsMutex.Unlock()
-
-	log.Printf("NRN mint recorded (mock mode): recipient=%s, amount=%s, reason=%s",
-		recipient, amount, reason)
-
-	return nil
+	if strings.EqualFold(strings.TrimSpace(os.Getenv("KNIRV_ENABLE_DEMO")), "true") {
+		a.statsMutex.Lock()
+		a.mintCount++
+		a.statsMutex.Unlock()
+		log.Printf("NRN mint recorded in explicit demo mode: recipient=%s, amount=%s, reason=%s", recipient, amount, reason)
+		return nil
+	}
+	return fmt.Errorf("NRN mint transaction submitter is not configured")
 }
 
 func (a *BlockchainAdapter) SubmitConnectivityProofReward(nodeID, proofID string, score float64, amount string) error {
 	reason := fmt.Sprintf("connectivity_proof_reward_score_%.2f", score)
-	return a.SubmitNRNMintTx(nodeID, amount, reason, proofID)
+	if err := a.SubmitNRNMintTx(nodeID, amount, reason, proofID); err != nil {
+		return err
+	}
+	a.statsMutex.Lock()
+	a.connectivityCount++
+	a.statsMutex.Unlock()
+	return nil
 }
 
 func (a *BlockchainAdapter) SubmitParticipationReward(nodeID, participationType, amount string) error {
 	reason := fmt.Sprintf("participation_reward_%s", participationType)
-	return a.SubmitNRNMintTx(nodeID, amount, reason, "")
+	if err := a.SubmitNRNMintTx(nodeID, amount, reason, ""); err != nil {
+		return err
+	}
+	a.statsMutex.Lock()
+	a.participationCount++
+	a.statsMutex.Unlock()
+	return nil
 }
 
 func (a *BlockchainAdapter) GetMintingStats() map[string]interface{} {
@@ -155,7 +171,7 @@ func (a *BlockchainAdapter) GetMintingStats() map[string]interface{} {
 
 	stats := map[string]interface{}{
 		"minter_address":              "NRN_MINTER",
-		"minting_enabled":             true,
+		"minting_enabled":             a.Available(),
 		"last_updated":                time.Now(),
 		"total_turn_sessions":         a.sessionCount,
 		"total_nrn_mints":             a.mintCount,

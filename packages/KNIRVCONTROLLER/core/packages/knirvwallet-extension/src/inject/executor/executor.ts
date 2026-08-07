@@ -89,15 +89,7 @@ export class AdenaExecutor {
   };
 
   public signAmino = (params: TransactionParams): Promise<WalletResponse<unknown>> => {
-    const result = this.validateContractMessage(params);
-    if (result) {
-      return this.sendEventMessage(result);
-    }
-    const eventMessage = AdenaExecutor.createEventMessage(
-      WalletResponseExecuteType.SIGN_AMINO,
-      params,
-    );
-    return this.sendEventMessage(eventMessage);
+    return this.signTx(params);
   };
 
   public signTx = (params: TransactionParams): Promise<SignTxResponse> => {

@@ -1,6 +1,8 @@
 package config
 
 import (
+	"crypto/rand"
+	"encoding/base64"
 	"fmt"
 	"os"
 	"os/exec"
@@ -32,6 +34,9 @@ type Config struct {
 	// Payment Gateway
 	PaymentGatewayEnabled bool
 	PaymentGatewayPort    int
+	// DemoEnabled permits explicitly non-production catalogs, faucets, and
+	// in-memory economics. Production accounting is owned by KNIRVORACLE.
+	DemoEnabled bool
 
 	// Tunnel Registry
 	TunnelRegistryEnabled     bool
@@ -88,6 +93,11 @@ type Config struct {
 	ServerBaseURL     string // wrapper-owned native APIs, normally http://127.0.0.1:8090
 	ChainSocketPath   string // /var/lib/knirvserver/sockets/chain.sock
 	GraphSocketPath   string // /var/lib/knirvserver/sockets/graph.sock
+	XionRPCURL        string // local xiond CometBFT RPC
+	XionRESTURL       string // local xiond Cosmos REST API
+	IPFSAPIURL        string // local Kubo RPC API
+	IPFSGatewayURL    string // local Kubo content gateway
+	TextEmbedderURL   string // local deterministic text-embedder HTTP API
 
 	// InternalAuthToken is the shared service-to-service token KNIRVCHAIN
 	// expects on X-KNIRV-Internal-Token for its internal-only mint endpoints
@@ -142,10 +152,15 @@ func Load() (*Config, error) {
 	_ = godotenv.Load(".env.testnet")
 	_ = godotenv.Load(".env")
 
+	networkMode := resolveNetworkMode()
+	defaultChainID := "knirv-1"
+	if strings.EqualFold(networkMode, "testnet") {
+		defaultChainID = "knirv-testnet-1"
+	}
 	cfg := &Config{
 		Port:                      getEnvInt("PORT", 8080),
 		SocketPath:                getEnv("SOCKET_PATH", ""),
-		ChainID:                   getEnv("KNIRV_CHAIN_ID", "testnet"),
+		ChainID:                   getEnv("KNIRV_CHAIN_ID", defaultChainID),
 		PublicHost:                getEnv("PUBLIC_HOST", "localhost"),
 		DisableDHT:                getEnvBool("DISABLE_DHT", false),
 		DHTPort:                   getEnvInt("DHT_PORT", 0), // 0 means auto-select
@@ -156,6 +171,7 @@ func Load() (*Config, error) {
 		NodeJSServicesAutoStart:   getEnvBool("NODEJS_SERVICES_AUTOSTART", true),
 		PaymentGatewayEnabled:     getEnvBool("PAYMENT_GATEWAY_ENABLED", true),
 		PaymentGatewayPort:        getEnvInt("PAYMENT_GATEWAY_PORT", 3001),
+		DemoEnabled:               getEnvBool("KNIRV_ENABLE_DEMO", false),
 		TunnelRegistryEnabled:     getEnvBool("TUNNEL_REGISTRY_ENABLED", true),
 		TunnelRegistryHTTPPort:    getEnvInt("TUNNEL_REGISTRY_HTTP_PORT", 3002),
 		TunnelRegistryControlPort: getEnvInt("TUNNEL_REGISTRY_CONTROL_PORT", 3003),
@@ -165,7 +181,7 @@ func Load() (*Config, error) {
 		OperatorRegistryPort:      getEnvInt("OPERATOR_REGISTRY_PORT", 3006),
 		WebGUIEnabled:             getEnvBool("WEBGUI_ENABLED", true),
 		WebGUIPort:                getEnvInt("WEBGUI_PORT", 3007),
-		SessionSecret:             getEnv("SESSION_SECRET", generateSessionSecret()),
+		SessionSecret:             getEnv("SESSION_SECRET", ""),
 		AutoOpenBrowser:           getEnvBool("AUTO_OPEN_BROWSER", true),
 		OracleSocketPath:          getEnv("ORACLE_SOCKET_PATH", ""),
 		OracleGatewayURL:          getEnv("ORACLE_GATEWAY_URL", ""),
@@ -173,7 +189,7 @@ func Load() (*Config, error) {
 		TurnServerUDPPort:         getEnvInt("TURN_SERVER_UDP_PORT", 3478),
 		TurnServerTCPPort:         getEnvInt("TURN_SERVER_TCP_PORT", 3479),
 		TurnServerAPIPort:         getEnvInt("TURN_SERVER_API_PORT", 3476),
-		TurnServerAuthSecret:      getEnv("TURN_SERVER_AUTH_SECRET", "knirvchain-turn-secret"),
+		TurnServerAuthSecret:      getEnv("TURN_SERVER_AUTH_SECRET", ""),
 		TurnServerRealm:           getEnv("TURN_SERVER_REALM", "knirvgateway.local"),
 		TurnServerMinerAddress:    getEnv("TURN_SERVER_MINER_ADDRESS", "GATEWAY_MINER"),
 		ChainNodeRole:             getEnv("CHAIN_NODE_ROLE", "Client"),
@@ -187,6 +203,11 @@ func Load() (*Config, error) {
 		ChainSocketPath:           getEnv("CHAIN_SOCKET_PATH", ""),
 		InternalAuthToken:         getEnv("KNIRV_INTERNAL_AUTH_TOKEN", ""),
 		GraphSocketPath:           getEnv("GRAPH_SOCKET_PATH", ""),
+		XionRPCURL:                getEnv("XION_RPC_URL", "http://127.0.0.1:26657"),
+		XionRESTURL:               getEnv("XION_REST_URL", "http://127.0.0.1:1317"),
+		IPFSAPIURL:                getEnv("IPFS_API_URL", "http://127.0.0.1:5001"),
+		IPFSGatewayURL:            getEnv("IPFS_GATEWAY_URL", "http://127.0.0.1:8081"),
+		TextEmbedderURL:           getEnv("KNIRV_TEXT_EMBEDDER_URL", "http://127.0.0.1:8089"),
 		ShellSocketPath:           getEnv("SHELL_SOCKET_PATH", ""),
 		AgentSocketDir:            getEnv("AGENT_SOCKET_DIR", ""),
 		AgentMaxConcurrent:        getEnvInt("AGENT_MAX_CONCURRENT", 32),
@@ -196,7 +217,7 @@ func Load() (*Config, error) {
 		BaseCallbackSocket:        getEnv("BASE_CALLBACK_SOCKET", ""),
 		BaseNetworkID:             getEnv("BASE_NETWORK_ID", ""),
 		BaseNetworkSecret:         getEnv("BASE_NETWORK_SECRET", ""),
-		NetworkMode:               resolveNetworkMode(),
+		NetworkMode:               networkMode,
 		PublicURL:                 getEnv("KNIRV_PUBLIC_URL", ""),
 		EnterpriseMode:            getEnvBool("KNIRV_ENTERPRISE", false),
 		UserIDTag:                 getEnv("KNIRV_USER_ID_TAG", ""),
@@ -204,6 +225,19 @@ func Load() (*Config, error) {
 		CloudflareD1DatabaseID:    getEnv("CLOUDFLARE_D1_DATABASE_ID", ""),
 	}
 
+	production := strings.EqualFold(networkMode, "production") || strings.EqualFold(networkMode, "prod") || strings.EqualFold(networkMode, "mainnet")
+	if cfg.SessionSecret == "" {
+		if production {
+			return nil, fmt.Errorf("SESSION_SECRET is required in production")
+		}
+		cfg.SessionSecret = generateSessionSecret()
+	}
+	if cfg.TurnServerEnabled && cfg.TurnServerAuthSecret == "" {
+		if production {
+			return nil, fmt.Errorf("TURN_SERVER_AUTH_SECRET is required when TURN is enabled in production")
+		}
+		cfg.TurnServerAuthSecret = generateSessionSecret()
+	}
 	return cfg, nil
 }
 
@@ -261,9 +295,11 @@ func getEnvArray(key string, defaultValue []string) []string {
 }
 
 func generateSessionSecret() string {
-	// Generate a simple session secret (for development)
-	// In production, this should be set via environment variable
-	return fmt.Sprintf("knirv-oracle-secret-%d", os.Getpid())
+	secret := make([]byte, 32)
+	if _, err := rand.Read(secret); err != nil {
+		panic(fmt.Sprintf("generate runtime secret: %v", err))
+	}
+	return base64.RawURLEncoding.EncodeToString(secret)
 }
 
 // OpenBrowser opens the specified URL in the default browser

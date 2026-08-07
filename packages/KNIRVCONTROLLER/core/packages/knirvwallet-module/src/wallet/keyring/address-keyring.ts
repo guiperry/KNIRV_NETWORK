@@ -13,6 +13,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { Document } from '../..';
 import { fromBech32 } from '../../encoding';
 import { Keyring, KeyringData, KeyringType } from './keyring';
+import { broadcastCommit, broadcastSync } from './broadcast';
 
 export class AddressKeyring implements Keyring {
   public readonly id: string;
@@ -46,26 +47,11 @@ export class AddressKeyring implements Keyring {
   }
 
   async broadcastTxSync(provider: Provider, signedTx: Tx) {
-    // For KNIRV, we'll use the transaction SDK to submit transactions
-    // This is a placeholder implementation - in practice, you'd use the KNIRV transaction client
-    return {
-      hash: 'placeholder-hash',
-      code: 1,
-      log: 'Transaction broadcasting not implemented for airgap accounts',
-    };
+    return broadcastSync(provider, signedTx);
   }
 
   async broadcastTxCommit(provider: Provider, signedTx: Tx) {
-    // For KNIRV, we'll use the transaction SDK to submit transactions
-    // This is a placeholder implementation - in practice, you'd use the KNIRV transaction client
-    return {
-      hash: 'placeholder-hash',
-      height: 0,
-      code: 1,
-      log: 'Transaction broadcasting not implemented for airgap accounts',
-      gasUsed: 0,
-      gasWanted: 0,
-    };
+    return broadcastCommit(provider, signedTx);
   }
 
   public static async fromAddress(address: string) {

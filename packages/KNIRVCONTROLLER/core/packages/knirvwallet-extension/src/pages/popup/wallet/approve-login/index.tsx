@@ -116,11 +116,7 @@ export const ApproveLogin = (): JSX.Element => {
         navigate(RoutePath.ApproveTransaction + location.search, { state: { requestData } });
         return;
       case 'SIGN_AMINO':
-        if (currentAccount === null || isAirgapAccount(currentAccount)) {
-          navigate(RoutePath.ApproveSignFailed);
-          return;
-        }
-        navigate(RoutePath.ApproveSign + location.search, { state: { requestData } });
+        navigate(RoutePath.ApproveSignFailed);
         return;
       case 'SIGN_TX':
         if (currentAccount === null || isAirgapAccount(currentAccount)) {

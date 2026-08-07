@@ -39,10 +39,7 @@ type BlockchainServer struct {
 	discoveryManager   DiscoveryService
 	p2pPort            int
 	testMode           bool                 // Flag indicating if running in test mode
-	xionBridge         *XionBridge          // XION bridge integration
-	xionPaymentGateway *XIONPaymentGateway  // XION payment gateway integration
 	consensusManager   *P2PConsensusManager // Reference to consensus manager for network pause checking
-	fm                 *FailoverManager     // Reference to failover manager
 	validationProofMu  sync.Mutex
 	checkpointStatusMu sync.RWMutex
 	checkpointStatus   func() interface{}
@@ -88,27 +85,11 @@ func (bcs *BlockchainServer) SetDiscoveryManager(discoveryMgr DiscoveryService) 
 	bcs.discoveryManager = discoveryMgr
 }
 
-// NewBlockchainServerWithFailover creates a new BlockchainServer with failover integration
-func NewBlockchainServerWithFailover(port uint64, socketPath string, blockchain *BlockchainStruct, db *LevelDB, discoveryMgr DiscoveryService, p2pPort int, consensusMgr *P2PConsensusManager, failoverMgr *FailoverManager) *BlockchainServer {
-	bcs := NewBlockchainServer(port, socketPath, blockchain, db, discoveryMgr, p2pPort)
-	bcs.consensusManager = consensusMgr
-	bcs.fm = failoverMgr
-	return bcs
-}
-
 // isNetworkPaused checks if the network is currently paused for maintenance or failover
 func (bcs *BlockchainServer) isNetworkPaused() bool {
-	// Check with consensus manager first (newer failover system)
 	if bcs.consensusManager != nil {
 		return bcs.consensusManager.IsNetworkPaused()
 	}
-
-	// Fallback to failover manager check
-	if bcs.fm != nil {
-		return bcs.fm.IsNetworkPaused()
-	}
-
-	// Default to not paused if no coordination managers available
 	return false
 }
 
@@ -326,37 +307,14 @@ func NewBlockchainServer(port uint64, socketPath string, blockchain *BlockchainS
 	// Set the server port globally so it can be accessed from other parts of the code
 	utils.SetServerPort(port) // Keep this if needed elsewhere
 
-	// Initialize XION bridge
-	bridgeConfig := BridgeConfig{
-		XionRPC:       "https://rpc.xion-testnet-1.burnt.com:443",
-		XionChainID:   "xion-testnet-1",
-		NRNContract:   "xion1nrn_contract_address", // Would be set from config
-		BridgeKeyName: "bridge_key",
-		KeyringDir:    "./keyring",
-	}
-
-	xionBridge, err := NewXionBridge(bridgeConfig, db)
-	if err != nil {
-		log.Printf("Warning: Failed to initialize XION bridge: %v", err)
-		xionBridge = nil
-	}
-
-	// Initialize XION Payment Gateway (will be properly initialized later with economics integration)
-	var xionPaymentGateway *XIONPaymentGateway
-	// TODO: Initialize XION payment gateway when economics integration is available
-	// xionGatewayConfig := &XIONGatewayConfig{...}
-	// xionPaymentGateway = NewXIONPaymentGateway(xionGatewayConfig, economicsAPI)
-
 	return &BlockchainServer{
-		port:               port,
-		socketPath:         socketPath,
-		BlockchainPtr:      blockchain,
-		db:                 db,
-		discoveryManager:   discoveryMgr,   // Store the passed-in manager
-		p2pPort:            p2pPort,        // Store the correct P2P port
-		server:             &http.Server{}, // Initialize empty server to prevent nil dereference
-		xionBridge:         xionBridge,
-		xionPaymentGateway: xionPaymentGateway,
+		port:             port,
+		socketPath:       socketPath,
+		BlockchainPtr:    blockchain,
+		db:               db,
+		discoveryManager: discoveryMgr,   // Store the passed-in manager
+		p2pPort:          p2pPort,        // Store the correct P2P port
+		server:           &http.Server{}, // Initialize empty server to prevent nil dereference
 	}
 }
 
@@ -436,12 +394,6 @@ func (bcs *BlockchainServer) Prepare() (uint64, error) {
 	mux.HandleFunc("/agent/capabilities/", bcs.HandleGetAgentCapabilities) // Handles /agent/capabilities/{agentId}
 	mux.HandleFunc("/agent/capability/invoke", bcs.HandleInvokeAgentCapability)
 
-	// Add XION Payment Gateway routes (if available)
-	if bcs.xionPaymentGateway != nil {
-		bcs.xionPaymentGateway.RegisterRoutes(mux)
-		log.Println("XION Payment Gateway routes registered")
-	}
-
 	// Add internal API endpoints for Node.js services
 	mux.HandleFunc("/internal/dht/findResource", bcs.handleInternalDHTFindResource)
 	mux.HandleFunc("/internal/dht/announceResource", bcs.handleInternalDHTAnnounceResource)
@@ -460,14 +412,6 @@ func (bcs *BlockchainServer) Prepare() (uint64, error) {
 	mux.HandleFunc("/poaud/network-authors/add", bcs.AddNetworkAuthor)
 	mux.HandleFunc("/poaud/network-authors/remove", bcs.RemoveNetworkAuthor)
 	mux.HandleFunc("/poaud/network-authors", bcs.GetNetworkAuthors)
-
-	// Add Network Monitor proxy endpoints (for testnet mode)
-	mux.PathPrefix("/api/health-monitor/").HandlerFunc(bcs.handleNetworkMonitorProxy)
-
-	// Add XION bridge endpoints if bridge is available
-	if bcs.xionBridge != nil {
-		bcs.xionBridge.IntegrateWith(mux)
-	}
 
 	// NANDA-ANS service removed as per refactor plan
 
@@ -513,38 +457,6 @@ func (bcs *BlockchainServer) Prepare() (uint64, error) {
 		log.Printf("BlockchainServer for chain %s prepared for port %d", bcs.BlockchainPtr.ChainID, actualPort)
 	}
 	return actualPort, nil
-}
-
-// InitializeXIONPaymentGateway initializes the XION payment gateway (economics integration moved elsewhere)
-func (bcs *BlockchainServer) InitializeXIONPaymentGateway() error {
-	if bcs.xionPaymentGateway != nil {
-		return nil // Already initialized
-	}
-
-	// Initialize XION Payment Gateway configuration
-	xionGatewayConfig := &XIONGatewayConfig{
-		XIONChainID:          "xion-testnet-1",
-		XIONRPCEndpoint:      "https://rpc.xion-testnet-1.burnt.com:443",
-		XIONRESTEndpoint:     "https://api.xion-testnet-1.burnt.com",
-		USDCContractAddr:     "xion1usdc_contract_address", // Would be set from config
-		NRNContractAddr:      "xion1nrn_contract_address",  // Would be set from config
-		TreasuryAddr:         "xion1treasury_address",      // Would be set from config
-		ConversionRate:       "10",                         // 1 USDC = 10 NRN
-		GaslessEnabled:       true,
-		MaxTransactionAmount: "10000000000", // 10,000 USDC (6 decimals)
-		MinTransactionAmount: "1000000",     // 1 USDC (6 decimals)
-	}
-
-	// Create XION payment gateway (without economics API since it's moved)
-	bcs.xionPaymentGateway = NewXIONPaymentGateway(xionGatewayConfig, nil)
-
-	// Start the payment gateway
-	if err := bcs.xionPaymentGateway.Start(); err != nil {
-		return fmt.Errorf("failed to start XION payment gateway: %w", err)
-	}
-
-	log.Println("XION Payment Gateway initialized and started successfully")
-	return nil
 }
 
 // handleInternalDHTFindResource handles internal requests to find a resource on the DHT
@@ -741,17 +653,6 @@ func (bcs *BlockchainServer) StartListenAndServe() error {
 		}
 	}
 
-	// Start XION bridge service if available
-	if bcs.xionBridge != nil {
-		ctx := context.Background()
-		go func() {
-			if err := bcs.xionBridge.StartBridgeService(ctx); err != nil {
-				log.Printf("Error starting XION bridge service: %v", err)
-			}
-		}()
-		log.Printf("XION bridge service started for chain %s", bcs.BlockchainPtr.ChainID)
-	}
-
 	// Start the server
 	err = bcs.server.Serve(listener)
 
@@ -763,67 +664,6 @@ func (bcs *BlockchainServer) StartListenAndServe() error {
 
 	log.Printf("HTTP server listener for chain %s stopped.", bcs.BlockchainPtr.ChainID)
 	return nil
-}
-
-// handleNetworkMonitorProxy proxies requests to the embedded network monitor
-func (bcs *BlockchainServer) handleNetworkMonitorProxy(w http.ResponseWriter, r *http.Request) {
-	// Only allow in testnet mode when network monitor is running
-	if globalNetworkMonitorManager == nil || !globalNetworkMonitorManager.IsRunning() {
-		http.Error(w, "Network monitor not available", http.StatusServiceUnavailable)
-		return
-	}
-
-	// Remove the /api/health-monitor prefix and forward to network monitor
-	targetPath := strings.TrimPrefix(r.URL.Path, "/api/health-monitor")
-	if targetPath == "" {
-		targetPath = "/"
-	}
-
-	// Build the target URL
-	targetURL := fmt.Sprintf("http://localhost:%d%s", globalNetworkMonitorManager.GetPort(), targetPath)
-	if r.URL.RawQuery != "" {
-		targetURL += "?" + r.URL.RawQuery
-	}
-
-	// Create the proxy request
-	proxyReq, err := http.NewRequest(r.Method, targetURL, r.Body)
-	if err != nil {
-		log.Printf("Failed to create proxy request: %v", err)
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		return
-	}
-
-	// Copy headers
-	for name, values := range r.Header {
-		for _, value := range values {
-			proxyReq.Header.Add(name, value)
-		}
-	}
-
-	// Make the request to network monitor
-	client := &http.Client{Timeout: 30 * time.Second}
-	resp, err := client.Do(proxyReq)
-	if err != nil {
-		log.Printf("Failed to proxy request to network monitor: %v", err)
-		http.Error(w, "Network monitor unavailable", http.StatusBadGateway)
-		return
-	}
-	defer resp.Body.Close()
-
-	// Copy response headers
-	for name, values := range resp.Header {
-		for _, value := range values {
-			w.Header().Add(name, value)
-		}
-	}
-
-	// Set status code
-	w.WriteHeader(resp.StatusCode)
-
-	// Copy response body
-	if _, err := io.Copy(w, resp.Body); err != nil {
-		log.Printf("Failed to copy response body: %v", err)
-	}
 }
 
 func (bcs *BlockchainServer) handlePing(w http.ResponseWriter, r *http.Request) {
@@ -1317,6 +1157,7 @@ func (bcs *BlockchainServer) handleURIGenerator(w http.ResponseWriter, r *http.R
 		0,                        // Value
 		[]byte(uri),              // Data contains the URI
 	)
+	uriTxn.Type = "protocol_uri_mint"
 	uriTxn.Status = TXN_VERIFICATION_SUCCESS // Bypass verification
 
 	// Add to transaction pool
@@ -1501,6 +1342,10 @@ func (bcs *BlockchainServer) handleWalletInfo(w http.ResponseWriter, r *http.Req
 }
 
 func (bcs *BlockchainServer) handleTestFaucet(w http.ResponseWriter, r *http.Request) {
+	if !strings.EqualFold(strings.TrimSpace(os.Getenv("KNIRV_ENABLE_DEMO")), "true") {
+		http.NotFound(w, r)
+		return
+	}
 	// IMPORTANT: Add checks here to ensure this endpoint is ONLY active during testing
 	// e.g., check an environment variable, build tag, or a specific config flag.
 	// if !IsTestEnvironment() {
@@ -1528,6 +1373,7 @@ func (bcs *BlockchainServer) handleTestFaucet(w http.ResponseWriter, r *http.Req
 
 	// Create the funding transaction from the blockchain faucet address
 	faucetTxn := NewTransaction(utils.BLOCKCHAIN_ADDRESS, req.Address, req.Amount, []byte("test faucet funding"))
+	faucetTxn.Type = "demo_faucet"
 	// Mark as successful immediately - bypasses normal signing/verification for faucet
 	faucetTxn.Status = TXN_VERIFICATION_SUCCESS // Mark as verified to enter pool
 
@@ -1968,8 +1814,10 @@ func (bcs *BlockchainServer) handleMCPRegisterCapabilityFinalize(w http.Response
 			capabilityDescriptor, err := ConvertProtoToCapability(registerProto.CapabilityDescriptor)
 			if err == nil {
 				// Extract ID and type from the capability descriptor
-				capabilityID = capabilityDescriptor.ID
-				capabilityType = capabilityDescriptor.CapabilityType
+				capabilityID, capabilityType, err = capabilityIdentity(capabilityDescriptor)
+				if err != nil {
+					log.Printf("[WARN] Failed to identify capability for DHT announcement: %v", err)
+				}
 			}
 		}
 	} else {
@@ -2710,7 +2558,10 @@ func (bcs *BlockchainServer) handleMCPListCapabilities(w http.ResponseWriter, r 
 			if err != nil {
 				continue // Skip this capability if conversion fails
 			}
-			owner = capability.Owner
+			owner, err = capabilityOwner(capability)
+			if err != nil {
+				continue
+			}
 			if owner == ownerFilter {
 				capabilities = append(capabilities, capInterface)
 			}

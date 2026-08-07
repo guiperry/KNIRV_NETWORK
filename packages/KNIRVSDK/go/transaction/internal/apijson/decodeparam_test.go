@@ -6,8 +6,8 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/cloud-equities/KNIRVCHAIN/sdk/go/transaction/internal/apijson"
-	"github.com/cloud-equities/KNIRVCHAIN/sdk/go/transaction/packages/param"
+	"github.com/guiperry/KNIRV_NETWORK/KNIRVSDK/go/transaction/internal/apijson"
+	"github.com/guiperry/KNIRV_NETWORK/KNIRVSDK/go/transaction/packages/param"
 )
 
 func TestOptionalDecoders(t *testing.T) {

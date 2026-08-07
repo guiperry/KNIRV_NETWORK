@@ -17,10 +17,10 @@ import (
 	"time"
 
 	"KNIRVCHAIN/config"
-	"KNIRVCHAIN/internal/agent"
 	"KNIRVCHAIN/internal/database"
 	agentlog "KNIRVCHAIN/internal/log"
 	"KNIRVCHAIN/internal/p2p"
+	"KNIRVCHAIN/internal/protocol"
 	pb "KNIRVCHAIN/internal/protocol/proto"
 	"KNIRVCHAIN/internal/types"
 	"KNIRVCHAIN/internal/uri"
@@ -142,114 +142,73 @@ type ConsensusManager = p2p.ConsensusManager
 // Additional type aliases for blockchain_server.go
 type DiscoveryService = p2p.DiscoveryService
 type P2PConsensusManager = p2p.P2PConsensusManager
-type FailoverManager struct {
-	// Placeholder for FailoverManager
-}
-
-func (fm *FailoverManager) IsNetworkPaused() bool {
-	return false // Placeholder implementation
-}
-
-// XionBridge - Moved to KNIRVORACLE
-// XIONPaymentGateway - Moved to KNIRVORACLE
-
-// Additional missing types and functions
-type BridgeConfig struct {
-	XionRPC       string
-	XionChainID   string
-	NRNContract   string
-	BridgeKeyName string
-	KeyringDir    string
-}
-
-type XIONGatewayConfig struct {
-	XIONChainID          string
-	XIONRPCEndpoint      string
-	XIONRESTEndpoint     string
-	USDCContractAddr     string
-	NRNContractAddr      string
-	TreasuryAddr         string
-	ConversionRate       string
-	GaslessEnabled       bool
-	MaxTransactionAmount string
-	MinTransactionAmount string
-}
-
-// XionBridge - Moved to KNIRVORACLE (kept for API compatibility)
-type XionBridge struct{}
-
-func (xb *XionBridge) StartBridgeService(ctx context.Context) error {
-	return nil
-}
-
-func (xb *XionBridge) IntegrateWith(_ interface{}) {
-	// XION moved to KNIRVORACLE
-}
-
-// XIONPaymentGateway - Moved to KNIRVORACLE (kept for API compatibility)
-type XIONPaymentGateway struct{}
-
-func (xpg *XIONPaymentGateway) Start() error {
-	return nil
-}
-
-func (xpg *XIONPaymentGateway) RegisterRoutes(_ interface{}) {
-	// XION moved to KNIRVORACLE
-}
-
-// NewXionBridge - Moved to KNIRVORACLE
-func NewXionBridge(config BridgeConfig, db *LevelDB) (*XionBridge, error) {
-	return &XionBridge{}, nil
-}
-
-func NewXIONPaymentGateway(config interface{}, economicsAPI interface{}) *XIONPaymentGateway {
-	return &XIONPaymentGateway{}
-}
-
-// NetworkMonitorManager type for globalNetworkMonitorManager
-type NetworkMonitorManager struct {
-	// Placeholder for NetworkMonitorManager
-}
-
-func (nmm *NetworkMonitorManager) IsRunning() bool {
-	return false // Placeholder
-}
-
-func (nmm *NetworkMonitorManager) GetPort() int {
-	return 8080 // Placeholder
-}
-
-var globalNetworkMonitorManager = &NetworkMonitorManager{}
 
 func createDataDescriptionFormatted(data interface{}, format ...string) string {
-	_ = data                            // data is intentionally unused in this placeholder implementation
-	_ = format                          // format is intentionally unused in this placeholder implementation
-	return "formatted data description" // Placeholder
+	encoded, err := json.Marshal(data)
+	if err != nil {
+		return fmt.Sprintf("%T", data)
+	}
+	if len(format) > 0 && format[0] != "" {
+		return format[0] + ": " + string(encoded)
+	}
+	return string(encoded)
 }
 
 const DiscoveryResourceTypeChain = "chain" // Placeholder constant
 
 // Additional missing conversion functions
-func ConvertProtoToCapability(proto interface{}) (*Capability, error) {
-	return &Capability{
-		ID:             "converted-cap-id",
-		GasFeeNRN:      100,
-		Name:           "converted-capability",
-		CapabilityType: "converted",
-		Owner:          "placeholder-owner",
-		Metadata:       make(map[string]interface{}),
-	}, nil
+func ConvertProtoToCapability(value interface{}) (interface{}, error) {
+	container, ok := value.(*pb.CapabilityDescriptorContainerProto)
+	if !ok || container == nil {
+		return nil, fmt.Errorf("expected *CapabilityDescriptorContainerProto, got %T", value)
+	}
+	return protocol.ConvertProtoToCapability(container)
 }
 
 func ConvertToCapabilityDescriptorContainerProto(capability interface{}) (interface{}, error) {
-	return map[string]interface{}{
-		"name": "capability-name",
-		"type": "capability-type",
-	}, nil
+	return protocol.ConvertToCapabilityDescriptorContainerProto(capability)
 }
 
 func ConvertProtoCapabilitiesToInterfaces(protos []interface{}) ([]interface{}, error) {
-	return protos, nil // Placeholder
+	containers := make([]*pb.CapabilityDescriptorContainerProto, 0, len(protos))
+	for index, value := range protos {
+		container, ok := value.(*pb.CapabilityDescriptorContainerProto)
+		if !ok || container == nil {
+			return nil, fmt.Errorf("capability %d: expected *CapabilityDescriptorContainerProto, got %T", index, value)
+		}
+		containers = append(containers, container)
+	}
+	return protocol.ConvertProtoCapabilitiesToInterfaces(containers)
+}
+
+func capabilityOwner(capability interface{}) (string, error) {
+	switch descriptor := capability.(type) {
+	case types.ResourceDescriptor:
+		return descriptor.Owner, nil
+	case types.ToolDescriptor:
+		return descriptor.Owner, nil
+	case types.PromptDescriptor:
+		return descriptor.Owner, nil
+	case types.MemoryServiceDescriptor:
+		return descriptor.Owner, nil
+	default:
+		return "", fmt.Errorf("unsupported capability type %T", capability)
+	}
+}
+
+func capabilityIdentity(capability interface{}) (string, string, error) {
+	switch descriptor := capability.(type) {
+	case types.ResourceDescriptor:
+		return descriptor.ID, string(descriptor.CapabilityType), nil
+	case types.ToolDescriptor:
+		return descriptor.ID, string(descriptor.CapabilityType), nil
+	case types.PromptDescriptor:
+		return descriptor.ID, string(descriptor.CapabilityType), nil
+	case types.MemoryServiceDescriptor:
+		return descriptor.ID, string(descriptor.CapabilityType), nil
+	default:
+		return "", "", fmt.Errorf("unsupported capability type %T", capability)
+	}
 }
 
 // Additional missing types for blockchain_server.go
@@ -266,13 +225,26 @@ type ToolDescriptor struct {
 
 // Missing method for AgentManager
 func (am *AgentManager) AddResourceCapabilityToAgent(agentID, name, description, resourceType string, metadata map[string]interface{}) (*Capability, error) {
-	return &Capability{
-		ID:             fmt.Sprintf("cap_%s_%s", agentID, name),
+	if agentID == "" || name == "" || resourceType == "" {
+		return nil, fmt.Errorf("agent ID, name, and resource type are required")
+	}
+	capability := &Capability{
+		ID:             generateUniqueID(),
 		Name:           name,
+		Description:    description,
 		CapabilityType: resourceType,
 		Owner:          agentID,
-		Metadata:       metadata,
-	}, nil
+		Metadata:       copyMetadata(metadata),
+	}
+	am.mu.Lock()
+	defer am.mu.Unlock()
+	if am.capabilities[agentID] == nil {
+		am.capabilities[agentID] = make(map[string]*Capability)
+	}
+	am.capabilities[agentID][capability.ID] = capability
+	copy := *capability
+	copy.Metadata = copyMetadata(capability.Metadata)
+	return &copy, nil
 }
 
 func (am *AgentManager) LinkResourceToCapability(agentID, resourceCapabilityID, functionalCapabilityID string, parameters map[string]interface{}) error {
@@ -285,7 +257,15 @@ func (am *AgentManager) LinkResourceToCapability(agentID, resourceCapabilityID, 
 	if functionalCapabilityID == "" {
 		return fmt.Errorf("functional capability ID is required")
 	}
-	log.Printf("[AgentManager] Linked resource %s to capability %s for agent %s", resourceCapabilityID, functionalCapabilityID, agentID)
+	am.mu.Lock()
+	defer am.mu.Unlock()
+	if am.capabilities[agentID] == nil || am.capabilities[agentID][resourceCapabilityID] == nil {
+		return fmt.Errorf("resource capability %s not found", resourceCapabilityID)
+	}
+	if am.links[agentID] == nil {
+		am.links[agentID] = make(map[string]resourceCapabilityLink)
+	}
+	am.links[agentID][resourceCapabilityID] = resourceCapabilityLink{FunctionalCapabilityID: functionalCapabilityID, Parameters: copyMetadata(parameters)}
 	return nil
 }
 
@@ -299,7 +279,17 @@ func (am *AgentManager) CreateResourceCapabilityGroup(agentID, groupName, descri
 	if len(capabilities) == 0 {
 		return fmt.Errorf("at least one capability is required")
 	}
-	log.Printf("[AgentManager] Created capability group '%s' with %d capabilities for agent %s", groupName, len(capabilities), agentID)
+	am.mu.Lock()
+	defer am.mu.Unlock()
+	for _, id := range capabilities {
+		if am.capabilities[agentID] == nil || am.capabilities[agentID][id] == nil {
+			return fmt.Errorf("capability %s not found", id)
+		}
+	}
+	if am.groups[agentID] == nil {
+		am.groups[agentID] = make(map[string]resourceCapabilityGroup)
+	}
+	am.groups[agentID][groupName] = resourceCapabilityGroup{Name: groupName, Description: description, CapabilityIDs: append([]string(nil), capabilities...)}
 	return nil
 }
 
@@ -307,27 +297,61 @@ func (am *AgentManager) GetResourceCapabilities(agentID string) ([]interface{}, 
 	if agentID == "" {
 		return nil, fmt.Errorf("agent ID is required")
 	}
-	log.Printf("[AgentManager] Getting resource capabilities for agent %s", agentID)
-	return []interface{}{}, nil
+	am.mu.RLock()
+	defer am.mu.RUnlock()
+	result := make([]interface{}, 0, len(am.capabilities[agentID]))
+	for _, capability := range am.capabilities[agentID] {
+		copy := *capability
+		copy.Metadata = copyMetadata(capability.Metadata)
+		result = append(result, copy)
+	}
+	return result, nil
 }
 
 func (am *AgentManager) GetResourceCapabilityGroups(agentID string) ([]interface{}, error) {
 	if agentID == "" {
 		return nil, fmt.Errorf("agent ID is required")
 	}
-	log.Printf("[AgentManager] Getting capability groups for agent %s", agentID)
-	return []interface{}{}, nil
+	am.mu.RLock()
+	defer am.mu.RUnlock()
+	result := make([]interface{}, 0, len(am.groups[agentID]))
+	for _, group := range am.groups[agentID] {
+		result = append(result, group)
+	}
+	return result, nil
 }
 
 func (am *AgentManager) InvokeResourceCapability(agentID, capabilityID string, parameters map[string]interface{}, initiator string) (interface{}, error) {
-	return map[string]interface{}{
-		"result": "capability invoked successfully",
-		"output": "placeholder output",
-	}, nil
+	am.mu.RLock()
+	capability := am.capabilities[agentID][capabilityID]
+	link, linked := am.links[agentID][capabilityID]
+	am.mu.RUnlock()
+	if capability == nil {
+		return nil, fmt.Errorf("capability %s not found", capabilityID)
+	}
+	if !linked {
+		return nil, fmt.Errorf("capability %s has no functional capability link", capabilityID)
+	}
+	result := map[string]interface{}{
+		"resource_capability_id": capabilityID, "functional_capability_id": link.FunctionalCapabilityID,
+		"parameters": parameters, "initiator": initiator,
+	}
+	record := resourceCapabilityInvocation{CapabilityID: capabilityID, Initiator: initiator, Parameters: copyMetadata(parameters), Result: result, InvokedAt: time.Now().UTC()}
+	am.mu.Lock()
+	am.history[agentID+"\x00"+capabilityID] = append(am.history[agentID+"\x00"+capabilityID], record)
+	am.mu.Unlock()
+	return result, nil
 }
 
 func (am *AgentManager) GetResourceCapabilityInvocationHistory(agentID, capabilityID string) ([]interface{}, error) {
-	return []interface{}{}, nil // Return empty list as placeholder
+	am.mu.RLock()
+	defer am.mu.RUnlock()
+	records := am.history[agentID+"\x00"+capabilityID]
+	result := make([]interface{}, len(records))
+	for index := range records {
+		result[index] = records[index]
+	}
+	return result, nil
 }
 
 // Agent type for GetAgent method
@@ -339,12 +363,16 @@ type Agent struct {
 }
 
 func (am *AgentManager) GetAgent(agentID string) (*Agent, error) {
-	return &Agent{
-		ID:           agentID,
-		Name:         "placeholder agent",
-		Metadata:     make(map[string]interface{}),
-		Capabilities: []Capability{},
-	}, nil
+	if agentID == "" {
+		return nil, fmt.Errorf("agent ID is required")
+	}
+	am.mu.RLock()
+	defer am.mu.RUnlock()
+	capabilities := make([]Capability, 0, len(am.capabilities[agentID]))
+	for _, capability := range am.capabilities[agentID] {
+		capabilities = append(capabilities, *capability)
+	}
+	return &Agent{ID: agentID, Name: agentID, Metadata: map[string]interface{}{}, Capabilities: capabilities}, nil
 }
 
 // Missing utility function
@@ -353,8 +381,13 @@ func generateUniqueID() string {
 }
 
 // Missing delegation function
-func GetDelegationStats(tpm interface{}) interface{} {
-	return map[string]interface{}{"stats": "placeholder"}
+func GetDelegationStats(tpm *TransactionPoolManager) interface{} {
+	if tpm == nil {
+		return map[string]interface{}{
+			"main_pool_size": 0, "pas_pool_size": 0, "delegated_transactions": 0,
+		}
+	}
+	return tpm.GetPoolStats()
 }
 
 // Additional missing methods for existing types
@@ -387,6 +420,7 @@ type Capability struct {
 	ID             string
 	GasFeeNRN      uint64
 	Name           string
+	Description    string
 	CapabilityType string
 	Owner          string
 	Metadata       map[string]interface{}
@@ -398,7 +432,18 @@ func convertToP2PTransaction(tx *Transaction) *p2p.Transaction {
 		TransactionHash: tx.TransactionHash,
 		Type:            tx.Type,
 		From:            tx.From,
+		To:              tx.To,
+		Value:           tx.Value,
 		Data:            tx.Data,
+		Timestamp:       tx.Timestamp,
+		Fee:             tx.Fee,
+		PublicKey:       tx.PublicKey,
+		Signature:       append([]byte(nil), tx.Signature...),
+		BodyBytes:       tx.BodyBytes,
+		AuthInfoBytes:   tx.AuthInfoBytes,
+		ChainID:         tx.ChainID,
+		AccountNumber:   tx.AccountNumber,
+		Sequence:        tx.Sequence,
 	}
 }
 
@@ -563,11 +608,49 @@ func (nft *NFTManager) AttachCapability(nftID, capabilityID, address string, par
 
 // AgentManager provides blockchain-specific agent management functionality
 type AgentManager struct {
-	// Placeholder for AgentManager - will be properly implemented later
+	mu           sync.RWMutex
+	capabilities map[string]map[string]*Capability
+	links        map[string]map[string]resourceCapabilityLink
+	groups       map[string]map[string]resourceCapabilityGroup
+	history      map[string][]resourceCapabilityInvocation
+	mcpProcessor *MCPProcessor
 }
 
 func NewAgentManager(chromemMgr *ChromemManager, mcpProcessor *MCPProcessor, wallet *Wallet, discoveryMgr interface{}) *AgentManager {
-	return &AgentManager{}
+	return &AgentManager{
+		capabilities: make(map[string]map[string]*Capability),
+		links:        make(map[string]map[string]resourceCapabilityLink),
+		groups:       make(map[string]map[string]resourceCapabilityGroup),
+		history:      make(map[string][]resourceCapabilityInvocation),
+		mcpProcessor: mcpProcessor,
+	}
+}
+
+type resourceCapabilityLink struct {
+	FunctionalCapabilityID string                 `json:"functional_capability_id"`
+	Parameters             map[string]interface{} `json:"parameters,omitempty"`
+}
+
+type resourceCapabilityGroup struct {
+	Name          string   `json:"name"`
+	Description   string   `json:"description,omitempty"`
+	CapabilityIDs []string `json:"capability_ids"`
+}
+
+type resourceCapabilityInvocation struct {
+	CapabilityID string                 `json:"capability_id"`
+	Initiator    string                 `json:"initiator"`
+	Parameters   map[string]interface{} `json:"parameters,omitempty"`
+	Result       interface{}            `json:"result"`
+	InvokedAt    time.Time              `json:"invoked_at"`
+}
+
+func copyMetadata(input map[string]interface{}) map[string]interface{} {
+	output := make(map[string]interface{}, len(input))
+	for key, value := range input {
+		output[key] = value
+	}
+	return output
 }
 
 type Wallet struct {
@@ -785,11 +868,16 @@ func (bc *BlockchainStruct) SetP2PConsensusManager(pm *p2p.P2PConsensusManager) 
 }
 
 // SetAgentManager sets the agent manager for the blockchain (for testing purposes)
-func (bc *BlockchainStruct) SetAgentManager(agentManager *agent.AgentManager) {
+func (bc *BlockchainStruct) SetAgentManager(agentManager interface{}) {
 	bc.Lock()
 	defer bc.Unlock()
-	// Convert agent.AgentManager to blockchain.AgentManager
-	bc.agentManager = &AgentManager{}
+	if agentManager == nil {
+		bc.agentManager = nil
+		return
+	}
+	// The legacy agent package has a separate storage facade; initialize the
+	// blockchain-facing resource registry without manufacturing records.
+	bc.agentManager = NewAgentManager(bc.ChromemDBManager, bc.mcpProcessor, nil, nil)
 }
 
 // Account represents a KNIRVCHAIN account with NRN token balance
@@ -1663,6 +1751,9 @@ func (bc *BlockchainStruct) AddTransactionToTransactionPool(txInterface interfac
 func (bc *BlockchainStruct) addTransactionToTransactionPoolInternal(transaction *Transaction) error {
 	bc.Lock() // Lock for pool and block checks
 	defer bc.Unlock()
+	if transaction.From == utils.BLOCKCHAIN_ADDRESS {
+		return fmt.Errorf("protocol transactions cannot enter through the public transaction pool")
+	}
 
 	// Validate transaction signature, unless it's from the blockchain faucet.
 	// VerifyTxn (called later) also includes a signature check.
@@ -2115,6 +2206,7 @@ func (bc *BlockchainStruct) ProofOfWorkMining(ctx context.Context, minersAddress
 
 			// 8. Add mining reward
 			rewardTxn := NewTransaction(utils.BLOCKCHAIN_ADDRESS, minersAddress, utils.MINING_REWARD, []byte{})
+			rewardTxn.Type = "protocol_mining_reward"
 			rewardTxn.Status = utils.SUCCESS
 			guessBlock.Transactions = append(guessBlock.Transactions, rewardTxn)
 
@@ -2318,6 +2410,7 @@ func (bc *BlockchainStruct) createPoAuDBlock(proposerAddress string, transaction
 
 	// Create mining reward transaction
 	rewardTx := NewTransaction(utils.BLOCKCHAIN_ADDRESS, proposerAddress, utils.MINING_REWARD, []byte{})
+	rewardTx.Type = "protocol_mining_reward"
 	rewardTx.Status = TXN_VERIFICATION_SUCCESS
 	rewardTx.TransactionHash = rewardTx.Hash()
 

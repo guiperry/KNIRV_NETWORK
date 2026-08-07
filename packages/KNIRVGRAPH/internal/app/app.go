@@ -1,12 +1,19 @@
 package app
 
 import (
+	"KNIRVGRAPH/internal/dht"
 	"KNIRVGRAPH/internal/economics"
+	"KNIRVGRAPH/internal/embeddings"
 	"KNIRVGRAPH/internal/graphchain"
+	"KNIRVGRAPH/internal/indexing"
 	"KNIRVGRAPH/internal/network"
 	"KNIRVGRAPH/internal/nrv"
-	"KNIRVGRAPH/internal/dht"
+	"KNIRVGRAPH/internal/processing"
+	"KNIRVGRAPH/internal/query"
+	"KNIRVGRAPH/internal/retrieval"
 	"KNIRVGRAPH/internal/storage"
+	"KNIRVGRAPH/internal/synthesis"
+	"KNIRVGRAPH/internal/types"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -135,6 +142,42 @@ type Config struct {
 	Clustering ClusteringConfig `json:"clustering"`
 	Topology   TopologyConfig   `json:"topology"`
 	Validation ValidationConfig `json:"validation"`
+	Processing ProcessingConfig `json:"processing"`
+	Embedding  EmbeddingConfig  `json:"embedding"`
+	Retrieval  RetrievalConfig  `json:"retrieval"`
+}
+
+// ProcessingConfig holds processing pipeline configuration
+type ProcessingConfig struct {
+	Enabled           bool              `json:"enabled"`
+	ChunkSize         int               `json:"chunk_size"`
+	ChunkOverlap      int               `json:"chunk_overlap"`
+	ChunkStrategy     types.ChunkingStrategy `json:"chunk_strategy"`
+	EnableEntities    bool              `json:"enable_entities"`
+	EnableRelationships bool            `json:"enable_relationships"`
+	MinConfidence     float64           `json:"min_confidence"`
+	LLMEndpoint       string            `json:"llm_endpoint"`
+	LLMModel          string            `json:"llm_model"`
+}
+
+// EmbeddingConfig holds embedding configuration
+type EmbeddingConfig struct {
+	Enabled       bool                      `json:"enabled"`
+	Provider      types.EmbeddingProviderType `json:"provider"`
+	Endpoint      string                     `json:"endpoint"`
+	Model         string                     `json:"model"`
+	Dimension     int                        `json:"dimension"`
+	BatchSize     int                        `json:"batch_size"`
+	TimeoutSeconds int                       `json:"timeout_seconds"`
+}
+
+// RetrievalConfig holds retrieval configuration
+type RetrievalConfig struct {
+	Enabled      bool    `json:"enabled"`
+	HybridWeight float64 `json:"hybrid_weight"`
+	TopK         int     `json:"top_k"`
+	UseRerank    bool    `json:"use_rerank"`
+	RerankModel  string  `json:"rerank_model"`
 }
 
 // NetworkConfig holds network-specific configuration
@@ -201,6 +244,16 @@ type App struct {
 	dhtManager      *dht.DHTClientAdapter
 	logger          *zap.Logger
 	config          *Config
+
+	processingEnabled bool
+	chunker           *processing.Chunker
+	extractor         *processing.Extractor
+	embeddingService  *embeddings.EmbeddingService
+	vectorIndex       *retrieval.RetrievalPipeline
+	synthesizer       *synthesis.Synthesizer
+	queryProcessor    *query.QueryProcessor
+	indexManager      *indexing.IndexManager
+	reranker          *retrieval.Reranker
 }
 
 // NewApp creates a new GraphChain application instance
@@ -257,6 +310,28 @@ func NewApp(homeDir string, rpcPort int, enableAutoRelay bool) (*App, error) {
 			MinAttestations:  5,
 			Timeout:          "300s",
 		},
+		Processing: ProcessingConfig{
+			Enabled:           false,
+			ChunkSize:         1000,
+			ChunkOverlap:      200,
+			ChunkStrategy:     types.ChunkStrategyRecursive,
+			EnableEntities:    true,
+			EnableRelationships: true,
+			MinConfidence:     0.5,
+		},
+		Embedding: EmbeddingConfig{
+			Enabled:       true,
+			Provider:      types.EmbeddingProviderDeterministic,
+			Dimension:     384,
+			BatchSize:     32,
+			TimeoutSeconds: 10,
+		},
+		Retrieval: RetrievalConfig{
+			Enabled:      true,
+			HybridWeight: 0.5,
+			TopK:         10,
+			UseRerank:    false,
+		},
 	}
 
 	// Initialize BluntDB storage
@@ -307,7 +382,69 @@ func NewApp(homeDir string, rpcPort int, enableAutoRelay bool) (*App, error) {
 	rpc = network.NewRPCServerWithEconomics(gc, nrvSystem, nrnIntegration, proofOfSolution, app, logger, config.Network.RPCPort, config.Network.SocketPath)
 	app.rpc = rpc
 
+	app.initProcessingServices()
+
 	return app, nil
+}
+
+func (app *App) initProcessingServices() {
+	if !app.config.Processing.Enabled {
+		return
+	}
+	app.processingEnabled = true
+	app.chunker = processing.NewChunker(types.ChunkingConfig{
+		Strategy:    app.config.Processing.ChunkStrategy,
+		ChunkSize:   app.config.Processing.ChunkSize,
+		Overlap:     app.config.Processing.ChunkOverlap,
+	})
+	app.extractor = processing.NewExtractor(types.ExtractionConfig{
+		EnableEntities:     app.config.Processing.EnableEntities,
+		EnableRelationships: app.config.Processing.EnableRelationships,
+		MinConfidence:      app.config.Processing.MinConfidence,
+		LLMEndpoint:        app.config.Processing.LLMEndpoint,
+		LLMModel:           app.config.Processing.LLMModel,
+	})
+	if app.config.Embedding.Enabled {
+		providerConfig := embeddings.ProviderConfig{
+			Type:           app.config.Embedding.Provider,
+			Endpoint:       app.config.Embedding.Endpoint,
+			Model:          app.config.Embedding.Model,
+			Dimension:      app.config.Embedding.Dimension,
+			BatchSize:      app.config.Embedding.BatchSize,
+			TimeoutSeconds: app.config.Embedding.TimeoutSeconds,
+		}
+		embService, err := embeddings.NewEmbeddingService(providerConfig, app.logger)
+		if err == nil {
+			app.embeddingService = embService
+		} else {
+			app.logger.Warn("Failed to initialize embedding service", zap.Error(err))
+		}
+	}
+	if app.config.Retrieval.Enabled {
+		app.vectorIndex = retrieval.NewRetrievalPipeline(app.config.Retrieval.HybridWeight)
+		if app.config.Retrieval.UseRerank {
+			app.reranker = retrieval.NewReranker("", app.config.Retrieval.RerankModel)
+		}
+		app.synthesizer = synthesis.NewSynthesizer("", "llama3")
+		app.queryProcessor = query.NewQueryProcessor(
+			app.embeddingService,
+			nil,
+			app.vectorIndex,
+			app.synthesizer,
+			app.reranker,
+			app.logger,
+		)
+		app.indexManager = indexing.NewIndexManager(
+			app.storage,
+			app.chunker,
+			app.extractor,
+			app.embeddingService,
+			app.vectorIndex,
+			app.logger,
+			types.ChunkingConfig{Strategy: app.config.Processing.ChunkStrategy, ChunkSize: app.config.Processing.ChunkSize, Overlap: app.config.Processing.ChunkOverlap},
+			types.ExtractionConfig{EnableEntities: app.config.Processing.EnableEntities, EnableRelationships: app.config.Processing.EnableRelationships, MinConfidence: app.config.Processing.MinConfidence},
+		)
+	}
 }
 
 // GetConfig returns the application configuration
@@ -451,6 +588,8 @@ func NewAppWithConfig(homeDir string, rpcPort int, appConfig *Config, enableAuto
 	// Initialize RPC server with app reference
 	rpc = network.NewRPCServerWithEconomics(gc, nrvSystem, nrnIntegration, proofOfSolution, app, logger, config.Network.RPCPort, config.Network.SocketPath)
 	app.rpc = rpc
+
+	app.initProcessingServices()
 
 	// Pre-populate test data if testnet mode is enabled
 	if config != nil && config.Testnet.Enabled && config.Testnet.PrePopulate {
@@ -685,3 +824,24 @@ func (app *App) IsNetworkPaused() bool {
 
 	return app.dhtManager.IsNetworkPaused()
 }
+
+func (app *App) IsProcessingEnabled() bool {
+	return app.processingEnabled
+}
+
+func (app *App) GetIndexManager() *indexing.IndexManager {
+	return app.indexManager
+}
+
+func (app *App) GetQueryProcessor() *query.QueryProcessor {
+	return app.queryProcessor
+}
+
+func (app *App) GetEmbeddingService() *embeddings.EmbeddingService {
+	return app.embeddingService
+}
+
+func (app *App) GetVectorPipeline() *retrieval.RetrievalPipeline {
+	return app.vectorIndex
+}
+

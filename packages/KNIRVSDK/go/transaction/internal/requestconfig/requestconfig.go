@@ -18,10 +18,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/cloud-equities/KNIRVCHAIN/sdk/go/transaction/internal"
-	"github.com/cloud-equities/KNIRVCHAIN/sdk/go/transaction/internal/apierror"
-	"github.com/cloud-equities/KNIRVCHAIN/sdk/go/transaction/internal/apiform"
-	"github.com/cloud-equities/KNIRVCHAIN/sdk/go/transaction/internal/apiquery"
+	"github.com/guiperry/KNIRV_NETWORK/KNIRVSDK/go/transaction/internal"
+	"github.com/guiperry/KNIRV_NETWORK/KNIRVSDK/go/transaction/internal/apierror"
+	"github.com/guiperry/KNIRV_NETWORK/KNIRVSDK/go/transaction/internal/apiform"
+	"github.com/guiperry/KNIRV_NETWORK/KNIRVSDK/go/transaction/internal/apiquery"
 )
 
 func getDefaultHeaders() map[string]string {

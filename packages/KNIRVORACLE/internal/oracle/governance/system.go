@@ -34,6 +34,7 @@ type GovernanceSystem struct {
 	validators map[types.Address]*Validator
 	params     *NetworkParameters
 	logger     *zap.Logger
+	chainID    string
 	mu         sync.RWMutex
 }
 
@@ -45,7 +46,18 @@ func NewGovernanceSystem(logger *zap.Logger) *GovernanceSystem {
 		validators: make(map[types.Address]*Validator),
 		params:     DefaultNetworkParameters(),
 		logger:     logger,
+		chainID:    "knirvoracle-1",
 	}
+}
+
+func (gs *GovernanceSystem) SetChainID(chainID string) error {
+	if chainID == "" {
+		return fmt.Errorf("chain ID is required")
+	}
+	gs.mu.Lock()
+	defer gs.mu.Unlock()
+	gs.chainID = chainID
+	return nil
 }
 
 // CreateProposal creates a new governance proposal
@@ -95,6 +107,24 @@ func (gs *GovernanceSystem) CreateProposal(req *ProposalRequest, deposit *big.In
 	)
 
 	return proposal, nil
+}
+
+// ValidateProposal verifies that a proposal can be accepted before the token
+// layer locks its deposit. CreateProposal repeats this validation while holding
+// the write lock so parameter changes cannot bypass governance rules.
+func (gs *GovernanceSystem) ValidateProposal(req *ProposalRequest, deposit *big.Int) error {
+	gs.mu.RLock()
+	defer gs.mu.RUnlock()
+	if deposit == nil || deposit.Sign() <= 0 {
+		return ErrInsufficientDeposit
+	}
+	if err := gs.validateProposalRequest(req); err != nil {
+		return fmt.Errorf("%w: %v", ErrInvalidProposal, err)
+	}
+	if deposit.Cmp(gs.params.ProposalDeposit) < 0 {
+		return ErrInsufficientDeposit
+	}
+	return nil
 }
 
 // GetProposal retrieves a proposal by ID

@@ -1,3 +1,10 @@
+import {
+  MESSAGE_SCHEMA_VERSION,
+  verifyMessageEnvelope,
+  type MessageEnvelope,
+  type SignedMessageEnvelope,
+} from '@knirv/sdk';
+
 interface QRData {
   version: string;
   type: string;
@@ -7,6 +14,10 @@ interface QRData {
   expires_at: number;
   endpoint: string;
   public_key: string;
+	chain_id?: string;
+	user_id?: string;
+	device_type?: string;
+	timestamp?: number;
   capabilities?: string[];
   encrypted_payload?: string;
   signature: string;
@@ -96,17 +107,19 @@ export class DesktopConnectionService {
       console.log('Connecting to desktop:', qrData);
 
       // Validate QR code
-      if (!this.validateQRCode(qrData)) {
+      if (!(await this.validateQRCode(qrData))) {
         throw new Error('Invalid QR code');
       }
 
       // Prepare mobile linkage data
+	  const deviceId = this.generateDeviceId();
+	  const signedLinkage = await this.signLinkageData(qrData, deviceId);
       const linkageData: MobileLinkageData = {
-        device_id: this.generateDeviceId(),
-        wallet_address: this.getWalletAddress(),
-        public_key: this.getPublicKey(),
-        capabilities: this.getDeviceCapabilities(),
-        signature: this.signLinkageData(qrData.session_id)
+		device_id: deviceId,
+		wallet_address: signedLinkage.address,
+		public_key: signedLinkage.public_key,
+		capabilities: this.getDeviceCapabilities(),
+		signature: JSON.stringify(signedLinkage),
       };
 
       // Send connection request to desktop
@@ -295,7 +308,7 @@ export class DesktopConnectionService {
   }
 
   // Validate QR code data
-  private validateQRCode(qrData: QRData): boolean {
+  private async validateQRCode(qrData: QRData): Promise<boolean> {
     // Check required fields
     if (!qrData.version || !qrData.session_id || !qrData.desktop_id || !qrData.endpoint) {
       return false;
@@ -306,19 +319,22 @@ export class DesktopConnectionService {
       return false;
     }
 
-    // Validate signature (simplified)
-    // In production, implement proper cryptographic verification
-    return !!(qrData.signature && qrData.signature.length > 0);
-  }
-
-  // Get wallet address (mock implementation)
-  private getWalletAddress(): string {
-    return localStorage.getItem('wallet_address') || 'mock_wallet_address';
-  }
-
-  // Get public key (mock implementation)
-  private getPublicKey(): string {
-    return localStorage.getItem('public_key') || 'mock_public_key';
+	if (!qrData.chain_id || !qrData.timestamp || !qrData.signature) return false;
+	try {
+	  const signed = JSON.parse(qrData.signature) as SignedMessageEnvelope;
+	  const payload = new TextEncoder().encode(JSON.stringify({
+		version: qrData.version, type: qrData.type, session_id: qrData.session_id,
+		desktop_id: qrData.desktop_id, user_id: qrData.user_id ?? '',
+		device_type: qrData.device_type ?? '', capabilities: qrData.capabilities ?? [],
+	  }));
+	  return verifyMessageEnvelope(signed, {
+		schemaVersion: MESSAGE_SCHEMA_VERSION, domain: 'knirv.controller-integration',
+		purpose: 'pairing-invitation', chainId: qrData.chain_id, nonce: qrData.session_id,
+		issuedAtUnix: qrData.timestamp, expiresAtUnix: qrData.expires_at, payload,
+	  });
+	} catch {
+	  return false;
+	}
   }
 
   // Get device capabilities
@@ -341,11 +357,57 @@ export class DesktopConnectionService {
     return capabilities;
   }
 
-  // Sign linkage data (mock implementation)
-  private signLinkageData(sessionId: string): string {
-    // In production, implement proper cryptographic signing
-    const data = `${this.generateDeviceId()}_${sessionId}_${Date.now()}`;
-    return btoa(data); // Base64 encode as mock signature
+  private async signLinkageData(qrData: QRData, deviceId: string): Promise<SignedMessageEnvelope> {
+	const chainId = qrData.chain_id || 'knirv-1';
+	const now = Math.floor(Date.now() / 1000);
+	const nonceBytes = crypto.getRandomValues(new Uint8Array(24));
+	const nonce = this.bytesToBase64(nonceBytes, true);
+	const envelope: MessageEnvelope = {
+	  schemaVersion: MESSAGE_SCHEMA_VERSION, domain: 'knirv.arena', purpose: 'desktop-linkage',
+	  chainId, nonce, issuedAtUnix: now, expiresAtUnix: now + 300,
+	  payload: new TextEncoder().encode(JSON.stringify({ device_id: deviceId, session_id: qrData.session_id, desktop_id: qrData.desktop_id })),
+	};
+	const request = {
+	  kind: 'message', chain_id: chainId,
+	  envelope: {
+		schemaVersion: envelope.schemaVersion, domain: envelope.domain, purpose: envelope.purpose,
+		chainId: envelope.chainId, nonce: envelope.nonce, issuedAtUnix: envelope.issuedAtUnix,
+		expiresAtUnix: envelope.expiresAtUnix, payload: this.bytesToBase64(envelope.payload),
+	  },
+	};
+	const gateways = ['https://gateway.knirv.network', 'https://testnet-gateway.knirv.network', 'http://localhost:8080'];
+	let selected = '';
+	let created: { request_id: string; approval_uri: string; expires_at?: string } | undefined;
+	for (const gateway of gateways) {
+	  try {
+		const response = await fetch(`${gateway}/api/controller/signing/requests`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(request) });
+		if (!response.ok) continue;
+		created = await response.json(); selected = gateway; break;
+	  } catch { /* try the next canonical gateway */ }
+	}
+	if (!created || !selected) throw new Error('No KNIRVCONTROLLER signing broker is available');
+	window.open(created.approval_uri, '_blank', 'noopener,noreferrer');
+	const deadline = created.expires_at ? new Date(created.expires_at).getTime() : Date.now() + 300_000;
+	while (Date.now() < deadline) {
+	  const response = await fetch(`${selected}/api/controller/signing/requests/${encodeURIComponent(created.request_id)}`);
+	  if (!response.ok) throw new Error(`Controller signing status failed: HTTP ${response.status}`);
+	  const status = await response.json();
+	  if (status.status === 'approved') {
+		const signed = status.result as SignedMessageEnvelope;
+		if (!(await verifyMessageEnvelope(signed, envelope))) throw new Error('KNIRVCONTROLLER returned an invalid linkage signature');
+		return signed;
+	  }
+	  if (status.status === 'rejected' || status.status === 'expired') throw new Error(status.reason || `Controller request ${status.status}`);
+	  await new Promise(resolve => window.setTimeout(resolve, 1500));
+	}
+	throw new Error('KNIRVCONTROLLER signing request expired');
+  }
+
+  private bytesToBase64(value: Uint8Array, urlSafe = false): string {
+	let binary = '';
+	for (const byte of value) binary += String.fromCharCode(byte);
+	const encoded = btoa(binary);
+	return urlSafe ? encoded.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '') : encoded;
   }
 
   // Start heartbeat to maintain connection

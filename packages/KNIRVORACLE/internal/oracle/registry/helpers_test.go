@@ -8,18 +8,13 @@ import (
 	"github.com/knirvcorp/knirvoracle/internal/oracle/types"
 )
 
-// signCheckpoint signs cp with key using the KNIRVCONTROLLER scheme
-// (keccak256(utf8(hex digest)) + secp256k1 raw 64-byte sig) and returns an
-// AuthorSig carrying the controller oracle address.
-func signCheckpoint(t *testing.T, cp *types.Checkpoint, key *ecdsa.PrivateKey, addr, pubHex string) types.AuthorSig {
+func signCheckpoint(t *testing.T, cp *types.Checkpoint, key *ecdsa.PrivateKey, _addr, _pubHex string) types.AuthorSig {
 	t.Helper()
-	msg := cp.SignedMessage()
-	hash := crypto.Keccak256([]byte(msg))
-	full, err := crypto.Sign(hash, key)
+	sig, err := types.SignDigest(key, cp.Digest(), "chain-checkpoint", cp.ChainID)
 	if err != nil {
 		t.Fatalf("sign: %v", err)
 	}
-	return types.AuthorSig{Address: addr, PubKeyHex: pubHex, Signature: full[:64]}
+	return sig
 }
 
 // genAuthor returns a registered author + its secp256k1 private key, with the

@@ -1,29 +1,46 @@
 package ibc
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
+	"os"
+	"strings"
 	"sync"
 	"time"
 
+	"github.com/gorilla/websocket"
 	"github.com/knirvcorp/knirvoracle/internal/oracle/types"
 	"go.uber.org/zap"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/protobuf/types/known/emptypb"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 )
+
+type MessageHandler func(context.Context, IBCMessage) error
 
 // Handler is the central IBC coordinator for the KNIRV network
 type Handler struct {
-	channels       map[string]*IBCChannel
-	connections    map[string]*IBCConnection
-	clients        map[string]*IBCClient
-	messageQueue   chan IBCMessage
-	packetQueue    chan *PendingPacket
-	chainChannels  map[types.ChainID]string // Maps chain ID to channel ID
-	sequenceNumber uint64
-	logger         *zap.Logger
-	mu             sync.RWMutex
-	ctx            context.Context
-	cancel         context.CancelFunc
+	channels        map[string]*IBCChannel
+	connections     map[string]*IBCConnection
+	clients         map[string]*IBCClient
+	messageQueue    chan IBCMessage
+	packetQueue     chan *PendingPacket
+	chainChannels   map[types.ChainID]string // Maps chain ID to channel ID
+	sequenceNumber  uint64
+	logger          *zap.Logger
+	mu              sync.RWMutex
+	ctx             context.Context
+	cancel          context.CancelFunc
+	httpClient      *http.Client
+	messageHandlers map[MessageType]MessageHandler
+	startOnce       sync.Once
+	stopOnce        sync.Once
+	wg              sync.WaitGroup
 }
 
 // NewHandler creates a new IBC handler
@@ -31,25 +48,27 @@ func NewHandler(logger *zap.Logger) *Handler {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	return &Handler{
-		channels:      make(map[string]*IBCChannel),
-		connections:   make(map[string]*IBCConnection),
-		clients:       make(map[string]*IBCClient),
-		messageQueue:  make(chan IBCMessage, 1000),
-		packetQueue:   make(chan *PendingPacket, 1000),
-		chainChannels: make(map[types.ChainID]string),
-		logger:        logger,
-		ctx:           ctx,
-		cancel:        cancel,
+		channels:        make(map[string]*IBCChannel),
+		connections:     make(map[string]*IBCConnection),
+		clients:         make(map[string]*IBCClient),
+		messageQueue:    make(chan IBCMessage, 1000),
+		packetQueue:     make(chan *PendingPacket, 1000),
+		chainChannels:   make(map[types.ChainID]string),
+		logger:          logger,
+		ctx:             ctx,
+		cancel:          cancel,
+		httpClient:      &http.Client{Timeout: 15 * time.Second},
+		messageHandlers: make(map[MessageType]MessageHandler),
 	}
 }
 
 // Start starts the IBC handler
 func (h *Handler) Start() error {
-	// Start message processor
-	go h.processMessages()
-
-	// Start packet processor
-	go h.processPackets()
+	h.startOnce.Do(func() {
+		h.wg.Add(2)
+		go func() { defer h.wg.Done(); h.processMessages() }()
+		go func() { defer h.wg.Done(); h.processPackets() }()
+	})
 
 	h.logger.Info("IBC handler started")
 	return nil
@@ -57,11 +76,25 @@ func (h *Handler) Start() error {
 
 // Stop stops the IBC handler
 func (h *Handler) Stop() error {
-	h.cancel()
-	close(h.messageQueue)
-	close(h.packetQueue)
+	h.stopOnce.Do(func() {
+		h.cancel()
+		h.wg.Wait()
+	})
 
 	h.logger.Info("IBC handler stopped")
+	return nil
+}
+
+func (h *Handler) RegisterMessageHandler(messageType MessageType, handler MessageHandler) error {
+	if handler == nil {
+		return fmt.Errorf("message handler is required")
+	}
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	if _, exists := h.messageHandlers[messageType]; exists {
+		return fmt.Errorf("handler for %s already registered", messageType.String())
+	}
+	h.messageHandlers[messageType] = handler
 	return nil
 }
 
@@ -359,18 +392,15 @@ func (h *Handler) handleMessage(msg IBCMessage) {
 		zap.String("sender", msg.Sender),
 	)
 
-	// TODO: Implement specific message type handling
-	switch msg.Type {
-	case MessageTypeNRNBurn:
-		h.handleNRNBurn(msg.Data)
-	case MessageTypeSkillRegistration:
-		h.handleSkillRegistration(msg.Data)
-	case MessageTypeCrossChainTransfer:
-		h.handleCrossChainTransfer(msg.Data)
-	case MessageTypeGovernanceProposal:
-		h.handleGovernanceProposal(msg.Data)
-	default:
-		h.logger.Warn("Unknown message type", zap.String("type", msg.Type.String()))
+	h.mu.RLock()
+	handler := h.messageHandlers[msg.Type]
+	h.mu.RUnlock()
+	if handler == nil {
+		h.logger.Error("No IBC message handler registered", zap.String("type", msg.Type.String()))
+		return
+	}
+	if err := handler(h.ctx, msg); err != nil {
+		h.logger.Error("IBC message handler failed", zap.String("type", msg.Type.String()), zap.Error(err))
 	}
 }
 
@@ -424,13 +454,18 @@ func (h *Handler) handlePacket(pending *PendingPacket) {
 
 // transmitPacket transmits a packet to a destination chain
 func (h *Handler) transmitPacket(connection *IBCConnection, packet *IBCPacket) error {
+	if connection.State != ConnectionStateOpen {
+		return fmt.Errorf("connection %s is not open", connection.ConnectionID)
+	}
+	if packet == nil {
+		return fmt.Errorf("packet is required")
+	}
 	// Serialize packet
 	packetBytes, err := json.Marshal(packet)
 	if err != nil {
 		return fmt.Errorf("failed to marshal packet: %w", err)
 	}
 
-	// TODO: Implement actual transmission based on transport type
 	switch connection.Transport {
 	case TransportGRPC:
 		return h.transmitGRPC(connection.Endpoint, packetBytes)
@@ -457,47 +492,92 @@ func (h *Handler) retryPacket(pending *PendingPacket) {
 
 	// Retry after delay
 	go func() {
-		time.Sleep(time.Second * time.Duration(pending.Retries))
-		h.packetQueue <- pending
+		timer := time.NewTimer(time.Second * time.Duration(pending.Retries))
+		defer timer.Stop()
+		select {
+		case <-timer.C:
+			select {
+			case h.packetQueue <- pending:
+			case <-h.ctx.Done():
+			}
+		case <-h.ctx.Done():
+		}
 	}()
 }
 
-// Placeholder transmission methods (to be implemented)
 func (h *Handler) transmitGRPC(endpoint string, data []byte) error {
 	h.logger.Debug("Transmitting via gRPC", zap.String("endpoint", endpoint))
-	// TODO: Implement gRPC transmission
+	target := strings.TrimPrefix(strings.TrimPrefix(endpoint, "grpc://"), "grpcs://")
+	if target == "" {
+		return fmt.Errorf("gRPC endpoint is required")
+	}
+	ctx, cancel := context.WithTimeout(h.ctx, 15*time.Second)
+	defer cancel()
+	connection, err := grpc.NewClient(target, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		return fmt.Errorf("create gRPC client: %w", err)
+	}
+	defer connection.Close()
+	method := strings.TrimSpace(os.Getenv("KNIRV_IBC_GRPC_METHOD"))
+	if method == "" {
+		method = "/knirv.oracle.ibc.v1.PacketService/RelayPacket"
+	}
+	if err := connection.Invoke(ctx, method, wrapperspb.Bytes(data), &emptypb.Empty{}); err != nil {
+		return fmt.Errorf("invoke %s: %w", method, err)
+	}
 	return nil
 }
 
 func (h *Handler) transmitHTTP(endpoint string, data []byte) error {
 	h.logger.Debug("Transmitting via HTTP", zap.String("endpoint", endpoint))
-	// TODO: Implement HTTP transmission
+	request, err := http.NewRequestWithContext(h.ctx, http.MethodPost, endpoint, bytes.NewReader(data))
+	if err != nil {
+		return fmt.Errorf("create HTTP packet request: %w", err)
+	}
+	request.Header.Set("Content-Type", "application/json")
+	response, err := h.httpClient.Do(request)
+	if err != nil {
+		return fmt.Errorf("send HTTP packet: %w", err)
+	}
+	defer response.Body.Close()
+	body, readErr := io.ReadAll(io.LimitReader(response.Body, 1<<20))
+	if readErr != nil {
+		return fmt.Errorf("read HTTP acknowledgement: %w", readErr)
+	}
+	if response.StatusCode/100 != 2 {
+		return fmt.Errorf("HTTP relay returned %s: %s", response.Status, strings.TrimSpace(string(body)))
+	}
 	return nil
 }
 
 func (h *Handler) transmitWebSocket(endpoint string, data []byte) error {
 	h.logger.Debug("Transmitting via WebSocket", zap.String("endpoint", endpoint))
-	// TODO: Implement WebSocket transmission
+	ctx, cancel := context.WithTimeout(h.ctx, 15*time.Second)
+	defer cancel()
+	connection, response, err := websocket.DefaultDialer.DialContext(ctx, endpoint, http.Header{"Origin": []string{"https://gateway.knirv.network"}})
+	if err != nil {
+		if response != nil {
+			response.Body.Close()
+		}
+		return fmt.Errorf("dial WebSocket relay: %w", err)
+	}
+	defer connection.Close()
+	if err := connection.WriteMessage(websocket.TextMessage, data); err != nil {
+		return fmt.Errorf("write WebSocket packet: %w", err)
+	}
+	if err := connection.SetReadDeadline(time.Now().Add(15 * time.Second)); err != nil {
+		return fmt.Errorf("set WebSocket acknowledgement deadline: %w", err)
+	}
+	_, acknowledgement, err := connection.ReadMessage()
+	if err != nil {
+		return fmt.Errorf("read WebSocket acknowledgement: %w", err)
+	}
+	var ack PacketAcknowledgement
+	if err := json.Unmarshal(acknowledgement, &ack); err != nil {
+		return fmt.Errorf("decode WebSocket acknowledgement: %w", err)
+	}
+	if !ack.Success {
+		return fmt.Errorf("WebSocket relay rejected packet: %s", ack.Error)
+	}
 	return nil
-}
-
-// Placeholder message handlers (to be implemented)
-func (h *Handler) handleNRNBurn(data map[string]interface{}) {
-	h.logger.Debug("Handling NRN burn", zap.Any("data", data))
-	// TODO: Implement
-}
-
-func (h *Handler) handleSkillRegistration(data map[string]interface{}) {
-	h.logger.Debug("Handling skill registration", zap.Any("data", data))
-	// TODO: Implement
-}
-
-func (h *Handler) handleCrossChainTransfer(data map[string]interface{}) {
-	h.logger.Debug("Handling cross-chain transfer", zap.Any("data", data))
-	// TODO: Implement
-}
-
-func (h *Handler) handleGovernanceProposal(data map[string]interface{}) {
-	h.logger.Debug("Handling governance proposal", zap.Any("data", data))
-	// TODO: Implement
 }

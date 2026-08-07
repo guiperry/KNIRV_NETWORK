@@ -1,6 +1,10 @@
 import { LedgerConnector } from '@cosmjs/ledger-amino';
-import { Secp256k1 } from '@cosmjs/crypto';
-import { keccak_256 } from '@noble/hashes/sha3';
+import {
+  signDirectTransaction,
+  signMessageEnvelope,
+  type DirectSignRequest,
+  type MessageEnvelope,
+} from '@knirv/sdk/signing';
 
 // KNIRV-compatible types to replace Gnolang types
 export interface Provider {
@@ -27,8 +31,7 @@ export interface BroadcastTxCommitResult {
 import type { Tx, TxSignature } from '../utils/messages';
 export type { Tx, TxSignature };
 
-import { Bip39, Random, sha256 } from '../crypto';
-import { toBase64, toHex } from '../encoding';
+import { Bip39, Random } from '../crypto';
 import { arrayContentEquals, arrayToHex, hexToArray } from '../utils';
 import { Document } from '..';
 import {
@@ -97,9 +100,9 @@ export interface Wallet {
     signed: Tx;
     signature: TxSignature[];
   }>;
-  signTransaction: (transaction: any) => Promise<any>;
-  signOracleMessage: (message: string) => Promise<string>;
-  signOracleMessageByAccountId: (accountId: string, message: string) => Promise<string>;
+  signTransaction: (transaction: DirectSignRequest) => Promise<any>;
+  signOracleMessage: (message: string | MessageEnvelope) => Promise<string>;
+  signOracleMessageByAccountId: (accountId: string, message: string | MessageEnvelope) => Promise<string>;
   broadcastTxSync: (
     provider: Provider,
     accountId: string,
@@ -516,63 +519,33 @@ export class KnirvWallet implements Wallet {
     return mnemonic.toString();
   }
 
-  /**
-   * Signs an arbitrary transaction-like object with the current account's
-   * real secp256k1 key, over sha256(JSON.stringify(transaction)).
-   *
-   * This does not implement Cosmos/Gno SIGN_MODE_DIRECT or
-   * LEGACY_AMINO_JSON canonical byte encoding - no canonical wire format for
-   * KNIRV's Tx shape exists in this codebase yet, so a chain node expecting
-   * one of those won't verify this signature as-is (tracked separately, see
-   * docs/Bootnode_Failover_Implementation_Plan.md Phase 0.4 in KNIRV_NETWORK).
-   * What this replaces is the mock itself: the previous implementation
-   * returned literal strings ('mock-signature-value') without touching any
-   * key material at all.
-   */
-  public async signTransaction(transaction: any): Promise<any> {
+  public async signTransaction(transaction: DirectSignRequest): Promise<any> {
     const privateKey = await this.getPrivateKey();
-    const { pubkey } = await Secp256k1.makeKeypair(privateKey);
-    const compressedPubkey = Secp256k1.compressPubkey(pubkey);
-
-    const unsigned = {
-      ...transaction,
-      memo: transaction.memo || '',
-      fee: {
-        amount: [{ denom: transaction.token || 'unrn', amount: '0' }],
-        gas: transaction.gasLimit || '200000',
-      },
-    };
-    const messageHash = sha256(new TextEncoder().encode(JSON.stringify(unsigned)));
-    const signature = await Secp256k1.createSignature(messageHash, privateKey);
-
-    return {
-      ...unsigned,
-      signatures: [
-        {
-          pub_key: {
-            type: 'tendermint/PubKeySecp256k1',
-            value: toBase64(compressedPubkey),
-          },
-          signature: toBase64(signature.toFixedLength()),
-        },
-      ],
-    };
+    return signDirectTransaction(privateKey, transaction);
   }
 
-  public async signOracleMessage(message: string): Promise<string> {
+  public async signOracleMessage(message: string | MessageEnvelope): Promise<string> {
     return this.signOracleMessageByAccountId(this.currentAccount.id, message);
   }
 
-  public async signOracleMessageByAccountId(accountId: string, message: string): Promise<string> {
+  public async signOracleMessageByAccountId(accountId: string, message: string | MessageEnvelope): Promise<string> {
     const account = this._accounts.find((account) => account.id === accountId);
     if (!account) {
       throw new Error('Account not found');
     }
 
     const privateKey = await this.getPrivateKeyByAccount(account);
-    const messageHash = keccak_256(new TextEncoder().encode(message));
-    const signature = await Secp256k1.createSignature(messageHash, privateKey);
-    return `0x${toHex(signature.toFixedLength())}`;
+    const now = Math.floor(Date.now() / 1000);
+    const envelope: MessageEnvelope = typeof message === 'string' ? {
+      domain: 'knirv.controller',
+      purpose: 'user-approval',
+      chainId: 'knirv-1',
+      nonce: crypto.randomUUID(),
+      issuedAtUnix: now,
+      expiresAtUnix: now + 300,
+      payload: new TextEncoder().encode(message),
+    } : message;
+    return JSON.stringify(await signMessageEnvelope(privateKey, envelope));
   }
 }
 

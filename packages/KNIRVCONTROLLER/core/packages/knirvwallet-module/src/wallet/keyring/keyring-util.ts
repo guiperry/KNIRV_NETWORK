@@ -2,15 +2,14 @@ import { Secp256k1, Slip10, Slip10Curve, Slip10RawIndex, HdPath } from '@cosmjs/
 
 import type { Tx } from '../wallet';
 import { decodeTxMessages, Document, documentToTx } from '../../utils/messages';
-import { toBase64 } from '../../encoding';
-import { sha256 } from '../../crypto';
 import { publicKeyToAddress } from '../../utils/address';
 import { Bip39, EnglishMnemonic } from '../../crypto';
+import { signDirectTransaction, type DirectSignRequest } from '@knirv/sdk/signing';
 
 // KNIRV Wallet interface to replace Tm2Wallet
 export interface KNIRVWallet {
   connect(provider: any): void;
-  signTransaction(tx: Tx, decodeFn?: any): Promise<Tx>;
+  signTransaction(tx: Tx, document?: Document): Promise<Tx>;
   getPublicKey(): Promise<Uint8Array>;
   getAddress(): Promise<string>;
 }
@@ -30,47 +29,47 @@ function generateHDPath(accountIndex: number): HdPath {
 // Simple KNIRV wallet implementation
 export class SimpleKNIRVWallet implements KNIRVWallet {
   private privateKey: Uint8Array;
-  private provider: any;
 
   constructor(privateKey: Uint8Array) {
     this.privateKey = privateKey;
   }
 
-  connect(provider: any): void {
-    this.provider = provider;
+  connect(_provider: any): void {
   }
 
-  // Signs a deterministic JSON serialization of `tx` with secp256k1
-  // (RFC 6979 deterministic, low-S, Cosmos-native 64-byte r|s encoding).
-  //
-  // Note: this does not yet implement Cosmos/Gno SIGN_MODE_DIRECT or
-  // LEGACY_AMINO_JSON canonical encoding, so a chain node expecting one of
-  // those wire formats will not accept this signature as-is. No canonical
-  // encoding for KNIRV's Tx shape is defined anywhere in this codebase yet -
-  // that is tracked separately (see docs/Bootnode_Failover_Implementation_Plan.md
-  // Phase 0.4 in KNIRV_NETWORK). What this fixes is the mock itself: the
-  // previous implementation returned `tx` completely unsigned.
-  async signTransaction(tx: Tx, decodeFn?: any): Promise<Tx> {
-    const { pubkey } = await Secp256k1.makeKeypair(this.privateKey);
-    const compressedPubkey = Secp256k1.compressPubkey(pubkey);
-    const messageHash = sha256(new TextEncoder().encode(JSON.stringify(tx)));
-    const signature = await Secp256k1.createSignature(messageHash, this.privateKey);
-    const signatureBase64 = toBase64(signature.toFixedLength());
-
+  async signTransaction(tx: Tx, document?: Document): Promise<Tx> {
+    if (!document) throw new Error('Cosmos SIGN_MODE_DIRECT requires the original signing document');
+    const address = await this.getAddress();
+    const decoded = decodeTxMessages(tx.body.messages);
+    const first = decoded[0] || {};
+    const rawAmount = first.amount?.[0]?.amount ?? first.amount ?? first.value ?? 0;
+    const numericAmount = /^\d+$/.test(String(rawAmount)) ? String(rawAmount) : '0';
+    const request: DirectSignRequest = {
+      action: {
+        action: first['@type'] || 'knirv.transaction',
+        sender: first.from_address || first.caller || first.creator || first.sender || address,
+        recipient: first.to_address || first.recipient || first.contract || '',
+        amount: numericAmount,
+        payload: new TextEncoder().encode(JSON.stringify({ messages: decoded, memo: document.memo || '' })),
+        timestampUnix: Math.floor(Date.now() / 1000),
+      },
+      chainId: document.chain_id,
+      accountNumber: document.account_number,
+      sequence: document.sequence,
+      fee: {
+        denom: document.fee.amount[0]?.denom,
+        amount: document.fee.amount[0]?.amount,
+        gasLimit: document.fee.gas,
+        payer: document.fee.payer,
+        granter: document.fee.granter,
+      },
+    };
+    const signed = await signDirectTransaction(this.privateKey, request);
     return {
       ...tx,
-      auth_info: {
-        ...tx.auth_info,
-        signer_infos: [
-          {
-            public_key: { key: toBase64(compressedPubkey) },
-            mode_info: { single: { mode: 1 } },
-            sequence: tx.auth_info?.signer_infos?.[0]?.sequence ?? '0',
-          },
-        ],
-      },
-      signatures: [signatureBase64],
-    };
+      ...signed,
+      signatures: signed.signatures,
+    } as Tx;
   }
 
   async getPublicKey(): Promise<Uint8Array> {
@@ -98,15 +97,6 @@ export class SimpleKNIRVWallet implements KNIRVWallet {
     return new SimpleKNIRVWallet(privkey);
   }
 
-  static async fromLedger(connector: any, options?: { accountIndex?: number }): Promise<KNIRVWallet> {
-    // Ledger signing requires delegating the signature operation to the
-    // connected hardware device (it never exposes a private key to sign
-    // locally with, unlike fromMnemonic/fromPrivateKey above). That
-    // integration isn't wired up yet, so this throws rather than silently
-    // returning a wallet backed by a zero-filled key, which would look valid
-    // but sign nothing meaningful.
-    throw new Error('SimpleKNIRVWallet.fromLedger is not implemented yet; Ledger signing requires direct connector integration.');
-  }
 }
 import { AddressKeyring } from './address-keyring';
 import { HDWalletKeyring } from './hd-wallet-keyring';
@@ -150,13 +140,11 @@ export function hasPrivateKey(
   return false;
 }
 
-export function useTm2Wallet(document: Document): typeof SimpleKNIRVWallet {
+export function useTm2Wallet(_document: Document): typeof SimpleKNIRVWallet {
   return SimpleKNIRVWallet;
 }
 
 export function makeSignedTx(wallet: KNIRVWallet, document: Document): Promise<Tx> {
   const tx = documentToTx(document);
-  const decodeTxMessageFunction = decodeTxMessages;
-
-  return wallet.signTransaction(tx, decodeTxMessageFunction);
+  return wallet.signTransaction(tx, document);
 }

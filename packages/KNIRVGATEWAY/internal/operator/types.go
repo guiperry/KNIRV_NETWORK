@@ -92,21 +92,23 @@ type KnirvOracleRegistrationResponse struct {
 
 // RegisterOperatorRequest represents a request to register a new operator
 type RegisterOperatorRequest struct {
-	Name               string                `json:"name,omitempty"`
-	AnsName            string                `json:"ansName,omitempty"`
-	Capability         string                `json:"capability,omitempty"`
-	Capabilities       []string              `json:"capabilities,omitempty"`
-	Provider           string                `json:"provider,omitempty"`
-	Version            string                `json:"version,omitempty"`
-	Extension          string                `json:"extension,omitempty"`
-	Description        string                `json:"description,omitempty"`
-	Endpoints          *EndpointSet          `json:"endpoints,omitempty"`
-	Attestations       []string              `json:"attestations,omitempty"`
-	ProtocolExtensions *ProtocolExtensionSet `json:"protocolExtensions,omitempty"`
-	AvatarURL          string                `json:"avatarUrl,omitempty"`
-	DataAIHint         string                `json:"dataAiHint,omitempty"`
-	AddrTTL            int                   `json:"addr_ttl,omitempty"`
-	AddrFactsURL       string                `json:"addr_facts_url,omitempty"`
+	ID                  string                `json:"id"`
+	ControllerSignature string                `json:"controller_signature"`
+	Name                string                `json:"name,omitempty"`
+	AnsName             string                `json:"ansName,omitempty"`
+	Capability          string                `json:"capability,omitempty"`
+	Capabilities        []string              `json:"capabilities,omitempty"`
+	Provider            string                `json:"provider,omitempty"`
+	Version             string                `json:"version,omitempty"`
+	Extension           string                `json:"extension,omitempty"`
+	Description         string                `json:"description,omitempty"`
+	Endpoints           *EndpointSet          `json:"endpoints,omitempty"`
+	Attestations        []string              `json:"attestations,omitempty"`
+	ProtocolExtensions  *ProtocolExtensionSet `json:"protocolExtensions,omitempty"`
+	AvatarURL           string                `json:"avatarUrl,omitempty"`
+	DataAIHint          string                `json:"dataAiHint,omitempty"`
+	AddrTTL             int                   `json:"addr_ttl,omitempty"`
+	AddrFactsURL        string                `json:"addr_facts_url,omitempty"`
 }
 
 // RegisterOperatorResponse represents the response from registering a new operator

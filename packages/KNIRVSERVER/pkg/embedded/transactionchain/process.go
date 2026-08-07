@@ -183,7 +183,7 @@ func nodeToolEnv(nodeBin string) []string {
 // Start launches the transaction chain service bound to socketPath,
 // extracting the embedded bundle first if needed and running `npm install`
 // before the initial start.
-func (tc *TransactionChain) Start(ctx context.Context, socketPath string) error {
+func (tc *TransactionChain) Start(ctx context.Context, socketPath, internalAuthToken string) error {
 	tc.restartMu.Lock()
 	defer tc.restartMu.Unlock()
 
@@ -224,7 +224,10 @@ func (tc *TransactionChain) Start(ctx context.Context, socketPath string) error 
 
 	tc.cmd = exec.CommandContext(tc.ctx, nodeBin, "main.js")
 	tc.cmd.Dir = destDir
-	tc.cmd.Env = append(nodeToolEnv(nodeBin), fmt.Sprintf("SOCKET_PATH=%s", socketPath))
+	tc.cmd.Env = append(nodeToolEnv(nodeBin),
+		fmt.Sprintf("SOCKET_PATH=%s", socketPath),
+		fmt.Sprintf("KNIRV_INTERNAL_AUTH_TOKEN=%s", internalAuthToken),
+	)
 	tc.cmd.Stdout = os.Stdout
 	tc.cmd.Stderr = os.Stderr
 	tc.cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}

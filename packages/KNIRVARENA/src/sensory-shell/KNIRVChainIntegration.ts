@@ -153,13 +153,13 @@ export class KNIRVChainIntegration extends EventEmitter {
     super();
 
     this.config = {
-      rpcUrl: 'http://localhost:8080',
-      chainId: 'knirv-chain-1',
+      rpcUrl: `${(import.meta.env.VITE_KNIRV_GATEWAY_URL || 'https://gateway.knirv.network').replace(/\/$/, '')}/api/chain`,
+      chainId: 'knirv-1',
       networkName: 'KNIRV Network',
       contractAddresses: {
-        nrnToken: '0x1234567890123456789012345678901234567890',
-        llmRegistry: '0x2345678901234567890123456789012345678901',
-        skillRegistry: '0x3456789012345678901234567890123456789012',
+        nrnToken: '',
+        llmRegistry: '',
+        skillRegistry: '',
       },
       gasPrice: '20000000000', // 20 gwei
       gasLimit: '500000',

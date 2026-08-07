@@ -30,41 +30,6 @@ func (d *DummyEmbeddingClient) GenerateEmbedding(ctx context.Context, text strin
 	return make([]float32, 384), nil // Common embedding dimension
 }
 
-// DeterministicEmbeddingClient provides deterministic embeddings based on text hash
-type DeterministicEmbeddingClient struct{}
-
-func (d *DeterministicEmbeddingClient) GenerateEmbedding(ctx context.Context, text string) ([]float32, error) {
-	return generateDeterministicEmbedding(text), nil
-}
-
-// generateDeterministicEmbedding creates a deterministic embedding from text
-func generateDeterministicEmbedding(text string) []float32 {
-	// Simple hash-based deterministic embedding
-	const embeddingDim = 384
-	embedding := make([]float32, embeddingDim)
-
-	// Use a simple hash function to generate deterministic values
-	hash := 0
-	for i, char := range text {
-		hash = hash*31 + int(char)
-		embedding[i%embeddingDim] += float32(hash%100) / 100.0
-	}
-
-	// Normalize the embedding
-	var norm float32
-	for _, val := range embedding {
-		norm += val * val
-	}
-	if norm > 0 {
-		norm = float32(1.0 / (norm + 1e-8)) // Add small epsilon to avoid division by zero
-		for i := range embedding {
-			embedding[i] *= norm
-		}
-	}
-
-	return embedding
-}
-
 // Collection constants (temporarily defined here to avoid circular imports)
 const (
 	AgentCollection             = "agents"
@@ -237,13 +202,10 @@ func NewChromemManager(cfg *config.ChromemConfig) (*ChromemManager, error) {
 		}
 		embeddingClient = &DummyEmbeddingClient{} // Use dummy client for tests
 	} else {
-		// Use deterministic embedding function for production
-		log.Println("ChromemDB Manager: Using deterministic embedding function.")
-		embedFunc = func(ctx context.Context, text string) ([]float32, error) {
-			// Simple deterministic embedding based on text hash
-			return generateDeterministicEmbedding(text), nil
-		}
-		embeddingClient = &DeterministicEmbeddingClient{} // Use deterministic client
+		// Use the shared deterministic text-embedder service in production.
+		embeddingClient = NewTextEmbedderClient(os.Getenv("KNIRV_TEXT_EMBEDDER_URL"))
+		log.Println("ChromemDB Manager: Using KNIRV text-embedder service.")
+		embedFunc = embeddingClient.GenerateEmbedding
 	}
 
 	// Get or create transaction collection

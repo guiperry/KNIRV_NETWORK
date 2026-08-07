@@ -81,14 +81,14 @@ export class AbstraxionWalletService {
   // Configuration
   private config = {
     contracts: {
-      tokenContract: "xion1usdc_contract_address", // USDC contract address on XION
-      swapContract: "xion1nrn_contract_address", // NRN contract for conversion
-      treasuryContract: "xion1treasury_address", // Treasury contract for gasless transactions
+      tokenContract: import.meta.env.VITE_XION_USDC_CONTRACT || '',
+      swapContract: import.meta.env.VITE_XION_NRN_SWAP_CONTRACT || '',
+      treasuryContract: import.meta.env.VITE_XION_TREASURY_CONTRACT || '',
     },
     endpoints: {
-      rpc: "https://rpc.xion-testnet-1.burnt.com:443",
-      rest: "https://api.xion-testnet-1.burnt.com",
-      knirvOracle: "http://localhost:8080", // KNIRVORACLE payment gateway endpoint
+      rpc: `${(import.meta.env.VITE_KNIRV_GATEWAY_URL || 'https://gateway.knirv.network').replace(/\/$/, '')}/xion/rpc`,
+      rest: `${(import.meta.env.VITE_KNIRV_GATEWAY_URL || 'https://gateway.knirv.network').replace(/\/$/, '')}/xion/rest`,
+      knirvOracle: (import.meta.env.VITE_KNIRV_GATEWAY_URL || 'https://gateway.knirv.network').replace(/\/$/, ''),
     },
     paymentGateway: {
       enabled: true,
@@ -122,16 +122,7 @@ export class AbstraxionWalletService {
       // 4. Initialize Treasury Contracts for gasless transactions
       // 5. Set up event listeners for account changes
 
-      // Mock SDK initialization
-      this.abstraxionSDK = {
-        connect: this.mockConnect.bind(this),
-        disconnect: this.mockDisconnect.bind(this),
-        signTransaction: this.mockSignTransaction.bind(this),
-        executeContract: this.mockExecuteContract.bind(this)
-      };
-
-      this.isInitialized = true;
-      console.log('Abstraxion wallet service initialized with Dave SDK');
+			throw new Error('Abstraxion wallet runtime is not connected; use the KNIRVCONTROLLER remote/QR custody flow');
     } catch (error) {
       console.error('Failed to initialize Abstraxion service:', error);
     }
@@ -155,14 +146,16 @@ export class AbstraxionWalletService {
 
       // Log connection result for debugging
       console.log('Connection established:', connectionResult.success);
+			if (!connectionResult.success || typeof connectionResult.account !== 'string' || !connectionResult.account.startsWith('xion1')) {
+				throw new Error('XION wallet did not return a valid Bech32 account');
+			}
 
-      // Simulate connection with Meta Account features
       this.account = {
-        id: 'xion_meta_account_' + Date.now(),
-        address: 'xion1abc123def456...',
+        id: `xion_meta_account_${connectionResult.account}`,
+        address: connectionResult.account,
         name: `XION Meta Account (${authMethod})`,
-        balance: '1000',
-        usdcBalance: '500',
+        balance: '0',
+        usdcBalance: '0',
         nrnBalance: '0',
         isConnected: true,
         metaAccountType: authMethod,
@@ -289,6 +282,9 @@ export class AbstraxionWalletService {
   private async convertViaDirectTransaction(request: ConversionRequest): Promise<ConversionResult> {
     try {
       console.log('Using direct XION transaction for conversion...');
+			if (!this.config.contracts.swapContract) {
+				throw new Error('VITE_XION_NRN_SWAP_CONTRACT is required for direct XION conversion');
+			}
 
       // Calculate conversion rate
       const conversionRate = parseFloat(this.config.paymentGateway.conversionRate);
@@ -403,19 +399,18 @@ export class AbstraxionWalletService {
   // Check direct blockchain transaction status
   private async checkDirectTransactionStatus(transactionId: string): Promise<ConversionResult | null> {
     try {
-      // In a real implementation, this would query the XION blockchain
-      console.log('Checking direct transaction status:', transactionId);
-
-      // Simulate blockchain query
-      const result: ConversionResult = {
-        transactionId,
-        usdcAmount: '100',
-        nrnAmount: '1000',
-        status: 'confirmed',
-        timestamp: new Date(Date.now() - 60000) // 1 minute ago
-      };
-
-      return result;
+			const response = await fetch(`${this.config.endpoints.rpc}/tx?hash=0x${encodeURIComponent(transactionId.replace(/^0x/, ''))}`);
+			if (response.status === 404) return null;
+			if (!response.ok) throw new Error(`XION transaction query failed: ${response.status}`);
+			const payload = await response.json() as { result?: { tx_result?: { code?: number; height?: string } } };
+			const code = payload.result?.tx_result?.code ?? 0;
+			return {
+				transactionId,
+				usdcAmount: '0',
+				nrnAmount: '0',
+				status: code === 0 ? 'confirmed' : 'failed',
+				timestamp: new Date()
+			};
     } catch (error) {
       console.error('Failed to check direct transaction status:', error);
       return null;
@@ -510,11 +505,8 @@ export class AbstraxionWalletService {
   // Monitor transaction status (for direct transactions)
   private async monitorTransactionStatus(result: ConversionResult): Promise<void> {
     try {
-      // Simulate transaction monitoring
-      setTimeout(() => {
-        result.status = 'confirmed';
-        console.log(`Transaction ${result.transactionId} confirmed`);
-      }, 3000);
+			const status = await this.checkDirectTransactionStatus(result.transactionId);
+			if (status) result.status = status.status;
     } catch (error) {
       console.error('Transaction monitoring failed:', error);
       result.status = 'failed';
@@ -539,15 +531,7 @@ export class AbstraxionWalletService {
       return configResult.data;
     } catch (error) {
       console.error('Failed to get payment gateway config:', error);
-      // Return default config
-      return {
-        chain_id: 'xion-testnet-1',
-        conversion_rate: this.config.paymentGateway.conversionRate,
-        gasless_enabled: true,
-        min_transaction_amount: this.config.paymentGateway.minTransactionAmount,
-        max_transaction_amount: this.config.paymentGateway.maxTransactionAmount,
-        supported_meta_accounts: ['email', 'social', 'wallet', 'passkey']
-      };
+			throw error;
     }
   }
 
@@ -569,14 +553,7 @@ export class AbstraxionWalletService {
       return ratesResult.data;
     } catch (error) {
       console.error('Failed to get conversion rates:', error);
-      // Return default rates
-      return {
-        usdc_to_nrn: this.config.paymentGateway.conversionRate,
-        last_updated: new Date().toISOString(),
-        rate_type: 'fixed',
-        base_currency: 'USDC',
-        quote_currency: 'NRN'
-      };
+			throw error;
     }
   }
 
@@ -681,77 +658,13 @@ export class AbstraxionWalletService {
       return balanceResult.data;
     } catch (error) {
       console.error('Failed to get account balance:', error);
-      // Return mock balance
-      return {
-        address: targetAddress,
-        usdc_balance: '1000000000', // 1000 USDC
-        nrn_balance: '5000000000000000000000', // 5000 NRN
-        last_updated: new Date().toISOString()
-      };
-    }
-  }
-
-  // Mock SDK methods (in real implementation, these would be from @burnt-labs/abstraxion-react-native)
-  private async mockConnect(options: ConnectOptions): Promise<{ success: boolean; account: string }> {
-    console.log('Mock connect with options:', options);
-    return { success: true, account: 'xion1...' };
-  }
-
-  private async mockDisconnect(): Promise<void> {
-    console.log('Mock disconnect');
-  }
-
-  private async mockSignTransaction(txMsg: TransactionMessage): Promise<TransactionResult> {
-    console.log('Mock sign transaction:', txMsg);
-    return {
-      transactionHash: 'tx_' + Date.now(),
-      gasUsed: '150000',
-      fee: '0.001',
-      success: true
-    };
-  }
-
-  private async mockExecuteContract(contractMsg: ContractMessage): Promise<TransactionResult> {
-    console.log('Mock execute contract:', contractMsg);
-    return {
-      transactionHash: 'contract_tx_' + Date.now(),
-      success: true
-    };
+			throw error;
+	    }
   }
 
   // Get conversion history
   async getConversionHistory(): Promise<ConversionResult[]> {
-    try {
-      // In a real implementation, this would fetch from blockchain or local storage
-      console.log('Fetching conversion history...');
-
-      // Simulate history with gasless and regular transactions
-      const history: ConversionResult[] = [
-        {
-          transactionId: 'gasless_tx_1234567890',
-          usdcAmount: '50',
-          nrnAmount: '500',
-          status: 'confirmed',
-          timestamp: new Date(Date.now() - 86400000), // 1 day ago
-          gasUsed: '0',
-          fee: '0'
-        },
-        {
-          transactionId: 'tx_0987654321',
-          usdcAmount: '25',
-          nrnAmount: '250',
-          status: 'confirmed',
-          timestamp: new Date(Date.now() - 172800000), // 2 days ago
-          gasUsed: '150000',
-          fee: '0.001'
-        }
-      ];
-
-      return history;
-    } catch (error) {
-      console.error('Failed to get conversion history:', error);
-      return [];
-    }
+		return this.getPaymentHistory();
   }
 }
 

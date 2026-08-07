@@ -17,6 +17,7 @@
     "@capacitor/status-bar": "^8.0.2",
     "@capgo/capacitor-speech-recognition": "^8.1.7",
     "@hono/zod-validator": "^0.5.0",
+    "@knirv/sdk": "file:../KNIRVSDK/ts/unified",
     "capacitor-barcode-scanner": "^8.0.0",
     "hono": "4.7.7",
     "html5-qrcode": "^2.3.8",

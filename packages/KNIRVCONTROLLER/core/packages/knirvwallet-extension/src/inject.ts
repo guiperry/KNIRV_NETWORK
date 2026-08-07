@@ -46,7 +46,7 @@ const init = (): void => {
     },
     async Sign(message: TransactionParams): Promise<WalletResponse<unknown>> {
       const executor = new AdenaExecutor();
-      const response = await executor.signAmino(message);
+      const response = await executor.signTx(message);
       return response;
     },
     async SignTx(message: TransactionParams): Promise<SignTxResponse> {

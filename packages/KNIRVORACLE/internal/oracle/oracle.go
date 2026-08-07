@@ -146,18 +146,20 @@ func DefaultOracleConfig() *OracleConfig {
 		// (30 minutes on testnet, disabled on production); this default of 30
 		// minutes only applies when OracleConfig is constructed directly
 		// (e.g. in tests), bypassing that env-driven resolution.
-		BlockTime:           30 * time.Minute,
-		TokenName:           "KNIRV Network Token",
-		TokenSymbol:         "NRN",
-		InitialSupply:       initialSupply,
-		MaxSupply:           maxSupply,
-		OwnerPrivateKey:     "",
-		ContractAddress:     "",
-		XionRPC:             "https://rpc.xion.testnet",
-		P2PListenAddr:       "/ip4/0.0.0.0/tcp/26656",
-		BootstrapPeers:      []string{},
-		DHTEnabled:          true,
-		GossipSubEnabled:    true,
+		BlockTime:       30 * time.Minute,
+		TokenName:       "KNIRV Network Token",
+		TokenSymbol:     "NRN",
+		InitialSupply:   initialSupply,
+		MaxSupply:       maxSupply,
+		OwnerPrivateKey: "",
+		ContractAddress: "",
+		// xiond is supervised by KNIRVSERVER and exposed through KNIRVGATEWAY.
+		XionRPC:        "http://127.0.0.1:8080/xion/rpc",
+		P2PListenAddr:  "/ip4/0.0.0.0/tcp/26656",
+		BootstrapPeers: []string{},
+		// KNIRVGATEWAY is the sole libp2p/DHT/GossipSub owner.
+		DHTEnabled:          false,
+		GossipSubEnabled:    false,
 		ValidatorMode:       false,
 		IBCEnabled:          true,
 		RPCAddr:             "127.0.0.1:26657",
@@ -188,6 +190,9 @@ func NewOracle(config *OracleConfig, logger *zap.Logger) (*Oracle, error) {
 
 	// Initialize governance
 	governanceSystem := governance.NewGovernanceSystem(logger)
+	if err := governanceSystem.SetChainID(config.ChainID); err != nil {
+		return nil, err
+	}
 
 	// Initialize economics engine
 	economicsEngine := economics.NewEconomicsEngine(nrnToken, logger)
@@ -241,7 +246,7 @@ func NewOracle(config *OracleConfig, logger *zap.Logger) (*Oracle, error) {
 	ibcHandler := ibc.NewHandler(logger)
 
 	// Initialize cross-chain router
-	crossChainRouter := crosschain.NewRouter(ibcHandler, bridgeManager, logger)
+	crossChainRouter := crosschain.NewRouter(ibcHandler, bridgeManager, governanceSystem, logger)
 
 	// Initialize P2P manager
 	p2pConfig := &p2p.P2PConfig{
@@ -604,6 +609,8 @@ func (o *Oracle) GetNRNToken() *token.NRN {
 	return o.nrnToken
 }
 
+func (o *Oracle) ChainID() string { return o.config.ChainID }
+
 // GetGovernanceSystem returns the governance system
 func (o *Oracle) GetGovernanceSystem() *governance.GovernanceSystem {
 	return o.governanceSystem
@@ -732,6 +739,9 @@ func initializeNRNToken(config *OracleConfig, logger *zap.Logger) (*token.NRN, e
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create NRN token: %w", err)
+	}
+	if err := nrnToken.SetChainID(config.ChainID); err != nil {
+		return nil, err
 	}
 
 	logger.Info("NRN token initialized",

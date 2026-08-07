@@ -12,7 +12,7 @@ import (
 	"time"
 )
 
-// DefaultOracleGatewayURL is the public testnet KNIRVGATEWAY entry, mirroring
+// DefaultOracleGatewayURL is the public mainnet KNIRVGATEWAY entry, mirroring
 // KNIRVCHAIN's internal/checkpoint/poster.go (DefaultOracleBaseURL there).
 // KNIRVORACLE only runs on the root node — never assume it's reachable on a
 // local socket; every non-root instance (the common case) must reach it
@@ -20,7 +20,7 @@ import (
 // does. Callers should prefer passing KNIRVSERVER's own resolvePublicURL()
 // result (network-mode-aware: testnet/production/devnet/enterprise) instead
 // of relying on this default where possible.
-const DefaultOracleGatewayURL = "https://testnet-gateway.knirv.network"
+const DefaultOracleGatewayURL = "https://gateway.knirv.network"
 
 // DefaultOracleFailoverURL is tried if the primary gateway URL fails. There is
 // no built-in default: KNIRVORACLE has no standalone public domain of its
@@ -29,7 +29,8 @@ const DefaultOracleGatewayURL = "https://testnet-gateway.knirv.network"
 // just be a permanent, unresolvable DNS lookup masking the real failure from
 // the primary gateway attempt. Set KNIRV_ORACLE_FAILOVER_URL explicitly if a
 // deployment genuinely has a secondary gateway to fail over to.
-const DefaultOracleFailoverURL = ""
+const DefaultOracleFailoverURL = "https://testnet-gateway.knirv.network"
+const DefaultOracleLocalURL = "http://localhost:8080"
 
 // Poster delivers signed checkpoints and chain registration to KNIRVORACLE
 // via the public KNIRVGATEWAY (gateway.knirv.network / testnet-gateway.knirv.network
@@ -76,7 +77,7 @@ func (p *Poster) postJSON(ctx context.Context, path string, body any) (map[strin
 		return nil, err
 	}
 
-	targets := make([]string, 0, 3)
+	targets := make([]string, 0, 4)
 	if p.gatewayURL != "" && p.gatewayURL != p.baseURL {
 		targets = append(targets, p.gatewayURL)
 	}
@@ -85,6 +86,9 @@ func (p *Poster) postJSON(ctx context.Context, path string, body any) (map[strin
 	}
 	if p.failoverURL != "" && p.failoverURL != p.baseURL && p.failoverURL != p.gatewayURL {
 		targets = append(targets, p.failoverURL)
+	}
+	if DefaultOracleLocalURL != p.baseURL && DefaultOracleLocalURL != p.gatewayURL && DefaultOracleLocalURL != p.failoverURL {
+		targets = append(targets, DefaultOracleLocalURL)
 	}
 
 	var lastErr error
@@ -148,17 +152,33 @@ func (p *Poster) PostCheckpoint(ctx context.Context, cp *Checkpoint) (map[string
 
 // Health checks KNIRVORACLE's health endpoint through the gateway.
 func (p *Poster) Health(ctx context.Context) error {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, p.baseURL+"/oracle/v3/health", nil)
-	if err != nil {
-		return err
+	targets := []string{p.gatewayURL, p.baseURL, p.failoverURL, DefaultOracleLocalURL}
+	seen := make(map[string]struct{}, len(targets))
+	var lastErr error
+	for _, base := range targets {
+		base = strings.TrimRight(strings.TrimSpace(base), "/")
+		if base == "" {
+			continue
+		}
+		if _, ok := seen[base]; ok {
+			continue
+		}
+		seen[base] = struct{}{}
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, base+"/oracle/v3/health", nil)
+		if err != nil {
+			lastErr = err
+			continue
+		}
+		resp, err := p.httpClient.Do(req)
+		if err != nil {
+			lastErr = err
+			continue
+		}
+		resp.Body.Close()
+		if resp.StatusCode == http.StatusOK {
+			return nil
+		}
+		lastErr = fmt.Errorf("oracle health at %s returned %d", base, resp.StatusCode)
 	}
-	resp, err := p.httpClient.Do(req)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("oracle health returned %d", resp.StatusCode)
-	}
-	return nil
+	return fmt.Errorf("all oracle health targets failed: %w", lastErr)
 }

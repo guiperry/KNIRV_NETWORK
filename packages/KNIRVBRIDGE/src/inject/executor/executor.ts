@@ -89,15 +89,9 @@ export class AdenaExecutor {
   };
 
   public signAmino = (params: TransactionParams): Promise<WalletResponse<unknown>> => {
-    const result = this.validateContractMessage(params);
-    if (result) {
-      return this.sendEventMessage(result);
-    }
-    const eventMessage = AdenaExecutor.createEventMessage(
-      WalletResponseExecuteType.SIGN_AMINO,
-      params,
-    );
-    return this.sendEventMessage(eventMessage);
+    // Preserve the old method name without preserving Amino signing. All
+    // callers are routed through the protobuf SIGN_MODE_DIRECT request.
+    return this.signTx(params);
   };
 
   public signTx = (params: TransactionParams): Promise<SignTxResponse> => {

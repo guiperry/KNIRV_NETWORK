@@ -23,16 +23,15 @@ type Peer struct {
 // P2PManager manages peer-to-peer networking
 // In production, this would use github.com/libp2p/go-libp2p
 type P2PManager struct {
-	listenAddr     string
-	bootstrapPeers []string
-	peers          map[PeerID]*Peer
-	dht            *DHTManager
-	gossip         *GossipManager
-	paused         bool
-	logger         *zap.Logger
-	ctx            context.Context
-	cancel         context.CancelFunc
-	mu             sync.RWMutex
+	listenAddr    string
+	peers         map[PeerID]*Peer
+	dhtEnabled    bool
+	gossipEnabled bool
+	paused        bool
+	logger        *zap.Logger
+	ctx           context.Context
+	cancel        context.CancelFunc
+	mu            sync.RWMutex
 }
 
 // P2PConfig contains P2P configuration
@@ -48,23 +47,14 @@ func NewP2PManager(config *P2PConfig, logger *zap.Logger) *P2PManager {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	pm := &P2PManager{
-		listenAddr:     config.ListenAddr,
-		bootstrapPeers: config.BootstrapPeers,
-		peers:          make(map[PeerID]*Peer),
-		paused:         false,
-		logger:         logger,
-		ctx:            ctx,
-		cancel:         cancel,
-	}
-
-	// Initialize DHT if enabled
-	if config.EnableDHT {
-		pm.dht = NewDHTManager(logger)
-	}
-
-	// Initialize GossipSub if enabled
-	if config.EnableGossip {
-		pm.gossip = NewGossipManager(logger)
+		listenAddr:    config.ListenAddr,
+		peers:         make(map[PeerID]*Peer),
+		dhtEnabled:    config.EnableDHT,
+		gossipEnabled: config.EnableGossip,
+		paused:        false,
+		logger:        logger,
+		ctx:           ctx,
+		cancel:        cancel,
 	}
 
 	return pm
@@ -74,25 +64,11 @@ func NewP2PManager(config *P2PConfig, logger *zap.Logger) *P2PManager {
 func (pm *P2PManager) Start() error {
 	pm.logger.Info("Starting P2P manager",
 		zap.String("listen_addr", pm.listenAddr),
-		zap.Int("bootstrap_peers", len(pm.bootstrapPeers)),
+		zap.String("transport_owner", "KNIRVGATEWAY"),
 	)
-
-	// Start DHT
-	if pm.dht != nil {
-		if err := pm.dht.Start(); err != nil {
-			return fmt.Errorf("failed to start DHT: %w", err)
-		}
+	if pm.dhtEnabled || pm.gossipEnabled {
+		return fmt.Errorf("Oracle-local DHT/GossipSub is disabled; configure KNIRVGATEWAY as the network transport")
 	}
-
-	// Start GossipSub
-	if pm.gossip != nil {
-		if err := pm.gossip.Start(); err != nil {
-			return fmt.Errorf("failed to start GossipSub: %w", err)
-		}
-	}
-
-	// Connect to bootstrap peers
-	go pm.connectToBootstrapPeers()
 
 	return nil
 }
@@ -102,16 +78,6 @@ func (pm *P2PManager) Stop() error {
 	pm.logger.Info("Stopping P2P manager")
 
 	pm.cancel()
-
-	// Stop DHT
-	if pm.dht != nil {
-		pm.dht.Stop()
-	}
-
-	// Stop GossipSub
-	if pm.gossip != nil {
-		pm.gossip.Stop()
-	}
 
 	return nil
 }
@@ -232,53 +198,17 @@ func (pm *P2PManager) Broadcast(topic string, data []byte) error {
 		return fmt.Errorf("P2P is paused")
 	}
 
-	if pm.gossip != nil {
-		return pm.gossip.Publish(topic, data)
-	}
-
-	pm.logger.Debug("Message broadcast",
-		zap.String("topic", topic),
-		zap.Int("size", len(data)),
-	)
-
-	return nil
+	return fmt.Errorf("Oracle cannot publish topic %q directly; publish through KNIRVGATEWAY", topic)
 }
 
 // Subscribe subscribes to a topic
 func (pm *P2PManager) Subscribe(topic string, handler func([]byte) error) error {
-	if pm.gossip != nil {
-		return pm.gossip.Subscribe(topic, handler)
-	}
-
-	return fmt.Errorf("GossipSub not enabled")
+	return fmt.Errorf("Oracle cannot subscribe to topic %q directly; subscriptions are owned by KNIRVGATEWAY", topic)
 }
 
 // FindPeers finds peers using DHT
 func (pm *P2PManager) FindPeers(count int) ([]*Peer, error) {
-	if pm.dht != nil {
-		return pm.dht.FindPeers(count)
-	}
-
-	return nil, fmt.Errorf("DHT not enabled")
-}
-
-// connectToBootstrapPeers connects to bootstrap peers
-func (pm *P2PManager) connectToBootstrapPeers() {
-	for _, addr := range pm.bootstrapPeers {
-		peer := &Peer{
-			ID:        PeerID(addr),
-			Addresses: []string{addr},
-			Connected: true,
-			LastSeen:  time.Now(),
-		}
-
-		if err := pm.AddPeer(peer); err != nil {
-			pm.logger.Warn("Failed to add bootstrap peer",
-				zap.String("addr", addr),
-				zap.Error(err),
-			)
-		}
-	}
+	return nil, fmt.Errorf("Oracle cannot query peers directly; query KNIRVGATEWAY /dht/peers")
 }
 
 // GetStats returns P2P statistics
@@ -298,14 +228,7 @@ func (pm *P2PManager) GetStats() map[string]interface{} {
 		"connected_peers": connectedCount,
 		"paused":          pm.paused,
 		"listen_addr":     pm.listenAddr,
-	}
-
-	if pm.dht != nil {
-		stats["dht"] = pm.dht.GetStats()
-	}
-
-	if pm.gossip != nil {
-		stats["gossip"] = pm.gossip.GetStats()
+		"transport_owner": "KNIRVGATEWAY",
 	}
 
 	return stats

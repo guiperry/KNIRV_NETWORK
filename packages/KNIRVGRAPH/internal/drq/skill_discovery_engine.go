@@ -24,10 +24,16 @@ func (wim *WASMInferenceModel) ApplyLoRA(loraAdapter []byte) {
 // KNIRVCHAINClient is a stub for the KNIRVCHAIN client
 type KNIRVCHAINClient struct{}
 
-// MintSkillNode is a stub for minting a skill node on KNIRVCHAIN
+// MintSkillNode mints an EventBundleNFT on KNIRVCHAIN for skillNode,
+// recording the resulting commit-bundle proof receipt in
+// skillNode.ValidationProof so the mint can be independently re-verified
+// later (see mintSkillEventBundle for the full rationale).
 func (kc *KNIRVCHAINClient) MintSkillNode(skillNode *SkillNode) error {
-	// TODO: Implement actual KNIRVCHAIN minting logic
-	_ = skillNode
+	receipt, err := kc.mintSkillEventBundle(skillNode)
+	if err != nil {
+		return fmt.Errorf("mint skill node on KNIRVCHAIN: %w", err)
+	}
+	skillNode.ValidationProof = receipt
 	return nil
 }
 

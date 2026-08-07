@@ -46,7 +46,9 @@ const init = (): void => {
     },
     async Sign(message: TransactionParams): Promise<WalletResponse<unknown>> {
       const executor = new AdenaExecutor();
-      const response = await executor.signAmino(message);
+      // The legacy `Sign` alias is retained for application compatibility,
+      // but it must use the canonical protobuf SIGN_MODE_DIRECT flow.
+      const response = await executor.signTx(message);
       return response;
     },
     async SignTx(message: TransactionParams): Promise<SignTxResponse> {

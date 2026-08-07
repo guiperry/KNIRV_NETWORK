@@ -1,4 +1,4 @@
-import { WalletResponseFailureType } from '@knirv/sdk';
+import { WalletResponseFailureType, WalletResponseRejectType } from '@knirv/sdk';
 import { MemoryProvider } from '@common/provider/memory/memory-provider';
 import { HandlerMethod } from '.';
 import { CommandMessageData } from './command-message';
@@ -137,11 +137,13 @@ export class MessageHandler {
           });
         break;
       case 'SIGN_AMINO':
-        HandlerMethod.checkEstablished(core, message, sendResponse).then((isEstablished) => {
-          if (isEstablished) {
-            HandlerMethod.signAmino(message, sendResponse);
-          }
-        });
+        sendResponse(
+          InjectionMessageInstance.failure(
+            WalletResponseRejectType.SIGN_REJECTED,
+            { error: 'SIGN_AMINO is disabled; use SignTx with SIGN_MODE_DIRECT' },
+            message.key,
+          ),
+        );
         break;
       case 'SIGN_TX':
         HandlerMethod.checkEstablished(core, message, sendResponse).then((isEstablished) => {

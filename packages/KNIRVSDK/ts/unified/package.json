@@ -50,8 +50,11 @@
   },
   "homepage": "https://github.com/knirv-network/knirv-sdk#readme",
   "dependencies": {
+    "@cosmjs/crypto": "^0.34.0",
     "@cosmjs/ledger-amino": "^0.34.0",
     "@gnolang/tm2-js-client": "^1.3.0",
+    "@noble/hashes": "^1.3.3",
+    "bech32": "^2.0.0",
     "libp2p": "^1.0.0",
     "multiformats": "^13.0.0",
     "uint8arrays": "^5.0.0"
@@ -107,6 +110,11 @@
       "import": "./dist/wallet.esm.js",
       "require": "./dist/wallet.js",
       "types": "./dist/wallet.d.ts"
+    },
+    "./signing": {
+      "import": "./dist/signing.js",
+      "require": "./dist/signing.js",
+      "types": "./dist/signing.d.ts"
     },
     "./package.json": "./package.json"
   },

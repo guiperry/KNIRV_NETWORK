@@ -1,11 +1,10 @@
 package crypto
 
 import (
-	"crypto/ecdsa"
 	"fmt"
 
-	"github.com/knirvcorp/knirvoracle/internal/oracle/types"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
+	"github.com/knirvcorp/knirvoracle/internal/oracle/types"
 )
 
 // ValidateAddress checks if an address string is valid
@@ -40,8 +39,8 @@ func PublicKeyBytesToAddress(publicKeyBytes []byte) (types.Address, error) {
 	return PublicKeyToAddress(publicKey), nil
 }
 
-// ChecksumAddress returns the checksummed version of an address (EIP-55)
+// ChecksumAddress returns the canonical external representation. KNIRV does
+// not use Ethereum EIP-55 addresses; its checksum is part of Bech32.
 func ChecksumAddress(addr types.Address) string {
-	// This uses the Ethereum checksum format
-	return ethcrypto.PubkeyToAddress(*new(ecdsa.PublicKey)).Hex() // Placeholder - implement proper EIP-55
+	return addr.String()
 }

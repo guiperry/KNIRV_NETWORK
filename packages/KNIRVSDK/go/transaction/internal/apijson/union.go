@@ -4,7 +4,7 @@ import (
 	"errors"
 	"reflect"
 
-	"github.com/cloud-equities/KNIRVCHAIN/sdk/go/transaction/packages/param"
+	"github.com/guiperry/KNIRV_NETWORK/KNIRVSDK/go/transaction/packages/param"
 
 	"github.com/tidwall/gjson"
 )

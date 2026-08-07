@@ -1,8 +1,8 @@
 package paramutil
 
 import (
-	"github.com/cloud-equities/KNIRVCHAIN/sdk/go/transaction/packages/param"
-	"github.com/cloud-equities/KNIRVCHAIN/sdk/go/transaction/packages/respjson"
+	"github.com/guiperry/KNIRV_NETWORK/KNIRVSDK/go/transaction/packages/param"
+	"github.com/guiperry/KNIRV_NETWORK/KNIRVSDK/go/transaction/packages/respjson"
 )
 
 func AddrIfPresent[T comparable](v param.Opt[T]) *T {

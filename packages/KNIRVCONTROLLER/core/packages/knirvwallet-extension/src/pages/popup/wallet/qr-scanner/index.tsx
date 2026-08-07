@@ -1,5 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useWalletContext } from '@hooks/use-context';
+import { useCurrentAccount } from '@hooks/use-current-account';
 import { RoutePath } from '@types';
 
 // ---------------------------------------------------------------------------
@@ -140,6 +142,8 @@ function useQrCamera(onDecode: (raw: string) => void) {
 // ---------------------------------------------------------------------------
 const QrScannerPage: React.FC = () => {
   const navigate = useNavigate();
+  const { wallet } = useWalletContext();
+  const { currentAccount } = useCurrentAccount();
   const [scanned, setScanned] = useState<KnirvPayload | null>(null);
   const [scanError, setScanError] = useState('');
   const [status, setStatus] = useState<'idle' | 'connecting' | 'done' | 'error'>('idle');
@@ -187,17 +191,33 @@ const QrScannerPage: React.FC = () => {
         setStatusMsg(`Connected to ${TARGET_LABELS[scanned.type].label}`);
         setStatus('done');
       } else {
-        // Registration: sign the nonce and POST to the callback.
-        // Real implementation: use the wallet's signing service.
-        // Placeholder: post without a real signature so server can verify later.
-        const address = localStorage.getItem('knirv_wallet_address') ?? 'PLACEHOLDER_ADDRESS';
-        const pubkey = localStorage.getItem('knirv_wallet_pubkey') ?? 'PLACEHOLDER_PUBKEY';
-        const signature = `sig:${scanned.nonce}:${address}`; // TODO: replace with real crypto sign
+        if (!wallet || !currentAccount) {
+          throw new Error('Unlock KNIRVCONTROLLER and select an account before approving registration');
+        }
+
+        const now = Math.floor(Date.now() / 1000);
+        const signed = JSON.parse(await wallet.signOracleMessageByAccountId(currentAccount.id, {
+          domain: 'knirv.controller',
+          purpose: 'account-registration',
+          chainId: scanned.network || 'knirv-1',
+          nonce: scanned.nonce,
+          issuedAtUnix: now,
+          expiresAtUnix: now + 300,
+          payload: new TextEncoder().encode(scanned.nonce),
+        })) as { envelope: string; signature: string; public_key: string; address: string };
 
         const res = await fetch(scanned.callback, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ nonce: scanned.nonce, signature, pubkey, address, role: 'General' }),
+          body: JSON.stringify({
+            nonce: scanned.nonce,
+            signature: signed.signature,
+            pubkey: signed.public_key,
+            address: signed.address,
+            envelope: signed.envelope,
+            signed_message: signed,
+            role: 'General',
+          }),
         });
         if (!res.ok) throw new Error(`Registration callback failed: ${res.status}`);
 
@@ -208,7 +228,7 @@ const QrScannerPage: React.FC = () => {
       setStatus('error');
       setStatusMsg((e as Error).message ?? 'Connection failed');
     }
-  }, [scanned]);
+  }, [currentAccount, scanned, wallet]);
 
   const reset = () => {
     decoded.current = false;

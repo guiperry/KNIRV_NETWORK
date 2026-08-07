@@ -1,12 +1,11 @@
 package routes
 
 import (
+	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"time"
-
-	"github.com/knirvcorp/knirvoracle/internal/oracle/crypto"
 )
 
 func (r *OracleRoutes) handleInstallDVEURI(w http.ResponseWriter, req *http.Request) {
@@ -44,9 +43,6 @@ func (r *OracleRoutes) handleInstallDVEURI(w http.ResponseWriter, req *http.Requ
 
 func generateDVEURI(dveID, desiredID string) string {
 	data := fmt.Sprintf("dve:%s:%s:%d", dveID, desiredID, time.Now().UnixNano())
-	hash := crypto.Keccak256HashWithPrefix([]byte(data))
-	if len(hash) > 12 {
-		hash = hash[:12]
-	}
-	return "knirv://" + hash[2:] + "/" + dveID
+	hash := fmt.Sprintf("%x", sha256.Sum256([]byte(data)))
+	return "knirv://" + hash[:10] + "/" + dveID
 }

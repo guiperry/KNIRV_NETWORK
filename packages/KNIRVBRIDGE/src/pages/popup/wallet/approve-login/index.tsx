@@ -116,11 +116,9 @@ export const ApproveLogin = (): JSX.Element => {
         navigate(RoutePath.ApproveTransaction + location.search, { state: { requestData } });
         return;
       case 'SIGN_AMINO':
-        if (currentAccount === null || isAirgapAccount(currentAccount)) {
-          navigate(RoutePath.ApproveSignFailed);
-          return;
-        }
-        navigate(RoutePath.ApproveSign + location.search, { state: { requestData } });
+        // Amino requests are rejected by the message handler. Keep this guard
+        // fail-closed for stale popup URLs or persisted extension state.
+        navigate(RoutePath.ApproveSignFailed);
         return;
       case 'SIGN_TX':
         if (currentAccount === null || isAirgapAccount(currentAccount)) {

@@ -8,8 +8,8 @@ import { impactHeavy, notificationError } from '@/react-app/platform/haptics';
 
 export default function VaultPage() {
   const navigate = useNavigate();
-  const { status, currentAccount, unlockVault, lockVault } = useVault();
-  const { vaultData, transactions, isLoading, refresh, sendNRN } = useBackend(currentAccount ? currentAccount.getAddress('knirv') : null);
+  const { status, oracleAddress, unlockVault, lockVault } = useVault();
+  const { vaultData, transactions, isLoading, refresh, sendNRN } = useBackend();
   
   const [password, setPassword] = useState('');
   const [showUnlockModal, setShowUnlockModal] = useState(false);
@@ -146,15 +146,15 @@ export default function VaultPage() {
             </div>
             <div className="flex-1 overflow-hidden">
               <p className="font-mono text-sm text-white truncate">
-                {currentAccount ? currentAccount.getAddress('knirv') : 'Loading...'}
+                {oracleAddress ?? 'Loading...'}
               </p>
               <p className="text-xs text-slate-500 font-mono">KNIRV Network</p>
             </div>
             <div className="flex space-x-2">
               <button 
                 onClick={() => {
-                  if (currentAccount) {
-                    navigator.clipboard.writeText(currentAccount.getAddress('knirv'));
+                  if (oracleAddress) {
+                    navigator.clipboard.writeText(oracleAddress);
                   }
                 }}
                 className="p-2 hover:bg-white/5 rounded-lg text-slate-400 hover:text-white transition-all"

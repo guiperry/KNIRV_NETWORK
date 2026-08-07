@@ -32,7 +32,7 @@ type Server struct {
 
 func NewServer(config *TurnServerConfig, txPool TxSubmitter, logger *zap.Logger) (*Server, error) {
 	if config.AuthSecret == "" {
-		config.AuthSecret = "knirvchain-turn-secret"
+		return nil, fmt.Errorf("TURN authentication secret is required")
 	}
 	if config.Realm == "" {
 		config.Realm = "knirvgateway.local"
@@ -229,11 +229,12 @@ func (s *Server) setupHTTPServer() {
 
 	mux.HandleFunc("/api/turn/status", s.handleTurnStatus)
 	mux.HandleFunc("/api/turn/stats", s.handleTurnStats)
-	mux.HandleFunc("/api/proof/submit", s.handleSubmitProof)
-	mux.HandleFunc("/api/proof/status", s.handleProofStatus)
-	mux.HandleFunc("/api/mint/nrn", s.handleMintNRN)
-	mux.HandleFunc("/api/mint/reward", s.handleMintReward)
-	mux.HandleFunc("/api/stats/minting", s.handleMintingStats)
+	if availability, ok := s.txPool.(interface{ Available() bool }); s.txPool != nil && (!ok || availability.Available()) {
+		mux.HandleFunc("/api/proof/submit", s.handleSubmitProof)
+		mux.HandleFunc("/api/mint/nrn", s.handleMintNRN)
+		mux.HandleFunc("/api/mint/reward", s.handleMintReward)
+		mux.HandleFunc("/api/stats/minting", s.handleMintingStats)
+	}
 	mux.HandleFunc("/api/health", s.handleHealth)
 
 	s.httpServer = &http.Server{

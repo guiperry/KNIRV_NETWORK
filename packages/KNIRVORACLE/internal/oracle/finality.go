@@ -2,13 +2,13 @@ package oracle
 
 import (
 	"bytes"
-	"crypto/ed25519"
 	"encoding/json"
 	"fmt"
 	"math/big"
 	"os"
 	"time"
 
+	knirvsigning "github.com/KNIRV/KNIRV_NETWORK/KNIRVSDK/go/signing"
 	"github.com/knirvcorp/knirvoracle/internal/oracle/consensus"
 	"github.com/knirvcorp/knirvoracle/internal/oracle/mmr"
 	"github.com/knirvcorp/knirvoracle/internal/oracle/types"
@@ -48,6 +48,13 @@ func (o *Oracle) loadVerifiers() error {
 		}
 	}
 	for id, key := range keys {
+		if len(key) != 33 {
+			return fmt.Errorf("verifier %q uses a legacy/non-secp256k1 key; re-register it with a canonical KNIRV service key", id)
+		}
+		address, err := knirvsigning.Address(key, knirvsigning.DefaultAddressPrefix)
+		if err != nil || address != id {
+			return fmt.Errorf("verifier %q public key does not match its canonical KNIRV address", id)
+		}
 		o.verifiers[id] = append([]byte(nil), key...)
 	}
 	return nil
@@ -78,8 +85,15 @@ func (o *Oracle) RegisterVerifier(id string, publicKey ...[]byte) error {
 	if len(publicKey) > 0 {
 		key = publicKey[0]
 	}
-	if len(key) != ed25519.PublicKeySize {
-		return fmt.Errorf("verifier ed25519 public key must be %d bytes", ed25519.PublicKeySize)
+	if len(key) != 33 {
+		return fmt.Errorf("verifier secp256k1 public key must be 33 compressed bytes")
+	}
+	address, err := knirvsigning.Address(key, knirvsigning.DefaultAddressPrefix)
+	if err != nil {
+		return fmt.Errorf("derive verifier address: %w", err)
+	}
+	if id != address {
+		return fmt.Errorf("verifier_id must be the canonical service-key address %s", address)
 	}
 	o.verifiersMu.Lock()
 	defer o.verifiersMu.Unlock()
@@ -107,7 +121,8 @@ func (o *Oracle) verifyAttestations(cp *types.CheckpointRecord, attestations []t
 			return 0, fmt.Errorf("attestation leaf mismatch")
 		}
 		message := types.AttestationMessage(att.LeafIndex, cp.LeafHash, att.Approved)
-		if !ed25519.Verify(ed25519.PublicKey(key), message, att.Signature) {
+		signed := knirvsigning.SignedMessage{Envelope: att.Envelope, Signature: att.Signature, PublicKey: key, Address: att.VerifierID}
+		if err := knirvsigning.VerifyMessagePayload(signed, "knirv.oracle", "verifier-attestation", cp.Checkpoint.ChainID, message, time.Now()); err != nil {
 			return 0, fmt.Errorf("invalid attestation signature from %q", att.VerifierID)
 		}
 		seen[att.VerifierID] = true

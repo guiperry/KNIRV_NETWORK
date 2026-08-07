@@ -3,8 +3,8 @@
 package transaction
 
 import (
-	"github.com/cloud-equities/KNIRVCHAIN/sdk/go/transaction/internal/apierror"
-	"github.com/cloud-equities/KNIRVCHAIN/sdk/go/transaction/packages/param"
+	"github.com/guiperry/KNIRV_NETWORK/KNIRVSDK/go/transaction/internal/apierror"
+	"github.com/guiperry/KNIRV_NETWORK/KNIRVSDK/go/transaction/packages/param"
 )
 
 // aliased to make [param.APIUnion] private when embedding

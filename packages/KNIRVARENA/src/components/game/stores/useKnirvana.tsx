@@ -457,7 +457,7 @@ const generateInitialAgents = (personas: AgentPersona[]): Agent[] => {
 // ── Engine initialization ─────────────────────────────────────────────────
 
 const verifier = new Verifier();
-const loraxClient = new LoraxClient('http://localhost:8080');
+const loraxClient = new LoraxClient(`${(import.meta.env.VITE_KNIRV_GATEWAY_URL || 'https://gateway.knirv.network').replace(/\/$/, '')}/api`);
 const tournament = new Tournament(verifier, loraxClient);
 const trainingManager = new TrainingManager();
 

@@ -420,6 +420,10 @@ func (h *Handler) handleResolveURI(w http.ResponseWriter, r *http.Request) {
 
 		if nodeInfo != nil {
 			if nodeInfo.IsTunneled {
+				if h.config.RelayServerPeerID == "" {
+					http.Error(w, "gateway relay identity unavailable", http.StatusServiceUnavailable)
+					return
+				}
 				relaySegment := fmt.Sprintf("/ip4/%s/tcp/%d/p2p/%s", h.config.ServerPublicHost, h.config.PublicRelayPort, h.config.RelayServerPeerID)
 				fullMultiaddress := fmt.Sprintf("%s/p2p-circuit/p2p/%s", relaySegment, nodeInfo.DevID)
 				connectionDetails = map[string]interface{}{

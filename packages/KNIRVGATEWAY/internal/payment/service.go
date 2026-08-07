@@ -338,6 +338,14 @@ func (s *Service) GetTransactions(limit int, status string) []*EconomicTransacti
 	return s.economics.GetTransactions(limit, status)
 }
 
+// GetTransaction retrieves a transaction from the configured economics ledger.
+func (s *Service) GetTransaction(id string) (*EconomicTransaction, bool) {
+	if s.economics == nil {
+		return nil, false
+	}
+	return s.economics.GetTransaction(id)
+}
+
 // GetBurnHistory returns burn history
 func (s *Service) GetBurnHistory(limit int, user, purpose string) []*BurnEvent {
 	if s.economics == nil {

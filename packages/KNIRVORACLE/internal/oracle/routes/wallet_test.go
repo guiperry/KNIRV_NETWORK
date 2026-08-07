@@ -10,14 +10,17 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
+	knirvsigning "github.com/KNIRV/KNIRV_NETWORK/KNIRVSDK/go/signing"
+	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"github.com/knirvcorp/knirvoracle/internal/oracle"
 	"github.com/knirvcorp/knirvoracle/internal/oracle/crypto"
 	"github.com/knirvcorp/knirvoracle/internal/oracle/types"
 	"go.uber.org/zap"
 )
 
-func TestGenerateWalletFundsNewWallet(t *testing.T) {
+func TestGenerateWalletRequiresControllerCustody(t *testing.T) {
 	oracleInstance := newTestOracle(t)
 	router := NewOracleRoutes(oracleInstance, zap.NewNop())
 	mux := http.NewServeMux()
@@ -27,23 +30,8 @@ func TestGenerateWalletFundsNewWallet(t *testing.T) {
 	rec := httptest.NewRecorder()
 	mux.ServeHTTP(rec, req)
 
-	if rec.Code != http.StatusCreated {
+	if rec.Code != http.StatusGone {
 		t.Fatalf("status = %d, body = %s", rec.Code, rec.Body.String())
-	}
-
-	var resp walletCreateResponse
-	if err := json.NewDecoder(rec.Body).Decode(&resp); err != nil {
-		t.Fatalf("decode response: %v", err)
-	}
-
-	if resp.PrivateKey == "" || resp.PublicKey == "" || resp.Address == "" {
-		t.Fatalf("expected generated wallet credentials, got %+v", resp)
-	}
-	if resp.InitialFunding != "1000" {
-		t.Fatalf("initial funding = %q, want 1000", resp.InitialFunding)
-	}
-	if resp.Balance != "1000" {
-		t.Fatalf("balance = %q, want 1000", resp.Balance)
 	}
 }
 
@@ -119,51 +107,18 @@ func TestRegisterWalletRequiresOwnerSignatureAndFundsOnlyOnce(t *testing.T) {
 	}
 }
 
-func TestSendSignedTransactionTransfersOracleBalances(t *testing.T) {
+func TestLegacyPrivateKeyTransactionIsDisabled(t *testing.T) {
 	oracleInstance := newTestOracle(t)
 	router := NewOracleRoutes(oracleInstance, zap.NewNop())
 	mux := http.NewServeMux()
 	router.RegisterRoutes(mux)
 
-	sender := createWalletThroughAPI(t, mux)
-	receiver := createWalletThroughAPI(t, mux)
-
-	body, _ := json.Marshal(legacyTransactionRequest{
-		FromAddress: sender.Address,
-		ToAddress:   receiver.Address,
-		Value:       250,
-		PrivateKey:  sender.PrivateKey,
-		PublicKey:   sender.PublicKey,
-	})
-
-	req := httptest.NewRequest(http.MethodPost, "/send_signed_txn", bytes.NewReader(body))
+	req := httptest.NewRequest(http.MethodPost, "/send_signed_txn", bytes.NewReader([]byte(`{}`)))
 	rec := httptest.NewRecorder()
 	mux.ServeHTTP(rec, req)
 
-	if rec.Code != http.StatusCreated {
+	if rec.Code != http.StatusGone {
 		t.Fatalf("status = %d, body = %s", rec.Code, rec.Body.String())
-	}
-
-	balanceReq := httptest.NewRequest(http.MethodGet, "/balance/"+sender.Address, nil)
-	balanceRec := httptest.NewRecorder()
-	mux.ServeHTTP(balanceRec, balanceReq)
-	if balanceRec.Code != http.StatusOK {
-		t.Fatalf("sender balance status = %d, body = %s", balanceRec.Code, balanceRec.Body.String())
-	}
-	bodyBytes, _ := io.ReadAll(balanceRec.Body)
-	if !bytes.Contains(bodyBytes, []byte(`"balance":"750"`)) {
-		t.Fatalf("sender balance body = %s, want 750", string(bodyBytes))
-	}
-
-	receiverBalanceReq := httptest.NewRequest(http.MethodGet, "/balance/"+receiver.Address, nil)
-	receiverBalanceRec := httptest.NewRecorder()
-	mux.ServeHTTP(receiverBalanceRec, receiverBalanceReq)
-	if receiverBalanceRec.Code != http.StatusOK {
-		t.Fatalf("receiver balance status = %d, body = %s", receiverBalanceRec.Code, receiverBalanceRec.Body.String())
-	}
-	receiverBodyBytes, _ := io.ReadAll(receiverBalanceRec.Body)
-	if !bytes.Contains(receiverBodyBytes, []byte(`"balance":"1250"`)) {
-		t.Fatalf("receiver balance body = %s, want 1250", string(receiverBodyBytes))
 	}
 }
 
@@ -266,15 +221,19 @@ func TestSignedBurnVerifiesSignatureAndNonce(t *testing.T) {
 }
 
 func TestOracleFaucetFundsWallet(t *testing.T) {
+	t.Setenv("KNIRV_ENABLE_DEMO", "true")
 	oracleInstance := newTestOracle(t)
 	router := NewOracleRoutes(oracleInstance, zap.NewNop())
 	mux := http.NewServeMux()
 	router.RegisterRoutes(mux)
 
-	walletResp := createWalletThroughAPI(t, mux)
+	walletKey, err := crypto.GenerateKeyPair()
+	if err != nil {
+		t.Fatalf("generate wallet: %v", err)
+	}
 
 	body, _ := json.Marshal(faucetRequest{
-		Address: walletResp.Address,
+		Address: walletKey.Address.String(),
 		Amount:  500,
 	})
 	req := httptest.NewRequest(http.MethodPost, "/test/faucet", bytes.NewReader(body))
@@ -285,15 +244,15 @@ func TestOracleFaucetFundsWallet(t *testing.T) {
 		t.Fatalf("status = %d, body = %s", rec.Code, rec.Body.String())
 	}
 
-	balanceReq := httptest.NewRequest(http.MethodGet, "/balance/"+walletResp.Address, nil)
+	balanceReq := httptest.NewRequest(http.MethodGet, "/balance/"+walletKey.Address.String(), nil)
 	balanceRec := httptest.NewRecorder()
 	mux.ServeHTTP(balanceRec, balanceReq)
 	if balanceRec.Code != http.StatusOK {
 		t.Fatalf("balance status = %d, body = %s", balanceRec.Code, balanceRec.Body.String())
 	}
 	bodyBytes, _ := io.ReadAll(balanceRec.Body)
-	if !bytes.Contains(bodyBytes, []byte(`"balance":"1500"`)) {
-		t.Fatalf("balance body = %s, want 1500", string(bodyBytes))
+	if !bytes.Contains(bodyBytes, []byte(`"balance":"500"`)) {
+		t.Fatalf("balance body = %s, want 500", string(bodyBytes))
 	}
 }
 
@@ -304,34 +263,38 @@ func signRegisterForTest(t *testing.T, keyPair *crypto.KeyPair, address, ownerID
 	if err != nil {
 		t.Fatalf("parse registration address: %v", err)
 	}
-	message := []byte(walletRegistrationMessage(parsedAddress, ownerID))
-	signature, err := keyPair.Sign(message)
-	if err != nil {
-		t.Fatalf("sign registration: %v", err)
-	}
-	return fmt.Sprintf("0x%x", signature)
+	return signEnvelopeForTest(t, keyPair, "wallet-registration", ownerID, []byte(walletRegistrationMessage(parsedAddress, ownerID)))
 }
 
 func signTransferForTest(t *testing.T, keyPair *crypto.KeyPair, from, to, amount string, nonce uint64) string {
 	t.Helper()
 
 	message := []byte(fmt.Sprintf("transfer:%s:%s:%s:%d", from, to, amount, nonce))
-	signature, err := keyPair.Sign(message)
-	if err != nil {
-		t.Fatalf("sign transfer: %v", err)
-	}
-	return fmt.Sprintf("0x%x", signature)
+	return signEnvelopeForTest(t, keyPair, "oracle-transfer", fmt.Sprint(nonce), message)
 }
 
 func signBurnForTest(t *testing.T, keyPair *crypto.KeyPair, from, amount, reason string, nonce uint64) string {
 	t.Helper()
 
 	message := []byte(fmt.Sprintf("burn:%s:%s:%s:%d", from, amount, reason, nonce))
-	signature, err := keyPair.Sign(message)
+	return signEnvelopeForTest(t, keyPair, "oracle-burn", fmt.Sprint(nonce), message)
+}
+
+func signEnvelopeForTest(t *testing.T, keyPair *crypto.KeyPair, purpose, nonce string, payload []byte) string {
+	t.Helper()
+	now := time.Now().Unix()
+	signed, err := knirvsigning.SignMessage(ethcrypto.FromECDSA(keyPair.PrivateKey), knirvsigning.MessageEnvelope{
+		Domain: "knirv.oracle", Purpose: purpose, ChainID: "knirv-1", Nonce: nonce,
+		IssuedAtUnix: now, ExpiresAtUnix: now + 300, Payload: payload,
+	})
 	if err != nil {
-		t.Fatalf("sign burn: %v", err)
+		t.Fatalf("sign %s: %v", purpose, err)
 	}
-	return fmt.Sprintf("0x%x", signature)
+	encoded, err := json.Marshal(signed)
+	if err != nil {
+		t.Fatalf("encode %s: %v", purpose, err)
+	}
+	return string(encoded)
 }
 
 func postRegisterWallet(t *testing.T, mux *http.ServeMux, address, ownerID, signature string, wantStatus int) {
@@ -409,73 +372,24 @@ func newTestOracle(t *testing.T) *oracle.Oracle {
 	return instance
 }
 
-func createWalletThroughAPI(t *testing.T, mux *http.ServeMux) walletCreateResponse {
-	t.Helper()
-
-	req := httptest.NewRequest(http.MethodGet, "/generate_wallet", nil)
-	rec := httptest.NewRecorder()
-	mux.ServeHTTP(rec, req)
-
-	if rec.Code != http.StatusCreated {
-		t.Fatalf("status = %d, body = %s", rec.Code, rec.Body.String())
-	}
-
-	var resp walletCreateResponse
-	if err := json.NewDecoder(rec.Body).Decode(&resp); err != nil {
-		t.Fatalf("decode wallet: %v", err)
-	}
-	return resp
-}
-
-// TestTSGoSignatureRoundTrip verifies that signatures produced by
-// knirvwallet-module's signOracleMessage (cosmjs/secp256k1) are
-// verifiable by Go's ethcrypto.SigToPub (go-ethereum). This is the
-// critical interop gate before wiring Piece 3/4 transfers.
-func TestTSGoSignatureRoundTrip(t *testing.T) {
-	// Known keypair from the TypeScript spike: private key with only
-	// the last byte set to 1. This produces a deterministic secp256k1
-	// keypair that both TypeScript and Go can independently derive.
-	privateKeyHex := "0000000000000000000000000000000000000000000000000000000000000001"
-	message := "register:0xTESTADDR:controller-test"
-
-	// Signature produced by TypeScript's signOracleMessage (cosmjs):
-	//   keccak_256(message) → Secp256k1.createSignature → 65-byte fixed length
-	tsSignatureHex := "2b78463fda6665f1732713020aa171b6a04f978b0225a84054069fd1b04a7707752d3bb3bba65c7b751e261a95f39a55dca9bbb7ea03caab72fc35e54b3b0f2801"
-
-	expectedAddress := "0x7e5f4552091a69125d5dfcb7b8c2659029395bdf"
-
-	sig, err := hex.DecodeString(tsSignatureHex)
+func TestCanonicalMessageRoundTrip(t *testing.T) {
+	privateKey, err := hex.DecodeString("0000000000000000000000000000000000000000000000000000000000000001")
 	if err != nil {
-		t.Fatalf("decode signature: %v", err)
+		t.Fatal(err)
 	}
-
-	recovered, err := crypto.RecoverAddress([]byte(message), sig)
+	now := time.Now().Unix()
+	signed, err := knirvsigning.SignMessage(privateKey, knirvsigning.MessageEnvelope{
+		Domain: "knirv.oracle", Purpose: "wallet-registration", ChainID: "knirv-1",
+		Nonce: "controller-test", IssuedAtUnix: now, ExpiresAtUnix: now + 300,
+		Payload: []byte("register:knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e:controller-test"),
+	})
 	if err != nil {
-		t.Fatalf("recover address: %v", err)
+		t.Fatalf("sign: %v", err)
 	}
-	if recovered.String() != expectedAddress {
-		t.Fatalf("recovered address = %s, want %s", recovered.String(), expectedAddress)
+	if signed.Address != "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e" {
+		t.Fatalf("address = %s", signed.Address)
 	}
-
-	// Also verify the same keypair in Go produces a compatible address
-	kp, err := crypto.PrivateKeyFromHex(privateKeyHex)
-	if err != nil {
-		t.Fatalf("parse private key: %v", err)
-	}
-	if kp.Address.String() != expectedAddress {
-		t.Fatalf("go-derived address = %s, want %s", kp.Address.String(), expectedAddress)
-	}
-
-	// Verify Go can also sign and recover the same message
-	goSig, err := kp.Sign([]byte(message))
-	if err != nil {
-		t.Fatalf("go sign: %v", err)
-	}
-	goRecovered, err := crypto.RecoverAddress([]byte(message), goSig)
-	if err != nil {
-		t.Fatalf("go recover: %v", err)
-	}
-	if goRecovered.String() != expectedAddress {
-		t.Fatalf("go recovered address = %s, want %s", goRecovered.String(), expectedAddress)
+	if err := knirvsigning.VerifyMessage(signed, "knirv.oracle", "wallet-registration", "knirv-1", "controller-test", time.Now()); err != nil {
+		t.Fatalf("verify: %v", err)
 	}
 }

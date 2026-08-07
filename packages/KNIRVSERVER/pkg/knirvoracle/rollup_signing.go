@@ -6,11 +6,14 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"math"
 	"os"
 	"path/filepath"
 	"strings"
 	"sync"
+	"time"
 
+	knirvsigning "github.com/KNIRV/KNIRV_NETWORK/KNIRVSDK/go/signing"
 	"github.com/ethereum/go-ethereum/crypto"
 )
 
@@ -20,6 +23,7 @@ type AuthorSig struct {
 	Address   string `json:"address"`
 	PubKeyHex string `json:"pubkey_hex"`
 	Signature []byte `json:"signature"`
+	Envelope  []byte `json:"envelope"`
 }
 
 // RegisteredAuthor is one entry in a chain's registered author set.
@@ -52,18 +56,19 @@ type chainRegistration struct {
 }
 
 func oracleAddress(pub *ecdsa.PublicKey) string {
-	unc := crypto.FromECDSAPub(pub)
-	sum := crypto.Keccak256(unc[1:])
-	return "0x" + hex.EncodeToString(sum[12:])
+	address, err := knirvsigning.Address(crypto.CompressPubkey(pub), knirvsigning.DefaultAddressPrefix)
+	if err != nil {
+		panic(err)
+	}
+	return address
 }
 
-func signMessage(key *ecdsa.PrivateKey, msg string) ([]byte, error) {
-	hash := crypto.Keccak256([]byte(msg))
-	full, err := crypto.Sign(hash, key) // 65 bytes: r||s||v
-	if err != nil {
-		return nil, err
-	}
-	return full[:64], nil
+func signMessage(key *ecdsa.PrivateKey, msg, purpose, chainID string) (knirvsigning.SignedMessage, error) {
+	now := time.Now().Unix()
+	return knirvsigning.SignMessage(crypto.FromECDSA(key), knirvsigning.MessageEnvelope{
+		Domain: "knirv.chain", Purpose: purpose, ChainID: chainID, Nonce: msg,
+		IssuedAtUnix: now, ExpiresAtUnix: math.MaxInt64, Payload: []byte(msg),
+	})
 }
 
 // Digest returns the canonical 32-byte hash over the rollup submission body
@@ -187,14 +192,13 @@ func signRollup(record *RollupRecord) error {
 	}
 	pub := key.Public().(*ecdsa.PublicKey)
 	record.Proposer = oracleAddress(pub)
-	sig, err := signMessage(key, fmt.Sprintf("%x", record.Digest()))
+	signed, err := signMessage(key, fmt.Sprintf("%x", record.Digest()), "rollup-submit", record.ChainID)
 	if err != nil {
 		return err
 	}
 	record.Signatures = []AuthorSig{{
-		Address:   record.Proposer,
-		PubKeyHex: hex.EncodeToString(crypto.CompressPubkey(pub)),
-		Signature: sig,
+		Address: record.Proposer, PubKeyHex: hex.EncodeToString(signed.PublicKey),
+		Signature: signed.Signature, Envelope: signed.Envelope,
 	}}
 	return nil
 }
@@ -226,14 +230,13 @@ func (c *Client) ensureRollupChainRegistered(chainID string) error {
 		return err
 	}
 	digest := sha256.Sum256(body)
-	sig, err := signMessage(key, fmt.Sprintf("%x", digest))
+	signed, err := signMessage(key, fmt.Sprintf("%x", digest), "chain-registration", chainID)
 	if err != nil {
 		return err
 	}
 	reg.RotationSigs = []AuthorSig{{
-		Address:   address,
-		PubKeyHex: hex.EncodeToString(crypto.CompressPubkey(pub)),
-		Signature: sig,
+		Address: address, PubKeyHex: hex.EncodeToString(signed.PublicKey),
+		Signature: signed.Signature, Envelope: signed.Envelope,
 	}}
 
 	if err := c.post("/oracle/v3/registry/register", reg, nil); err != nil {

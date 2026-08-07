@@ -10,7 +10,13 @@ require (
 // github.com/KNIRV/KNIRV_NETWORK/KNIRVSDK/go/transmission v0.0.0-00010101000000-000000000000 // TODO: Fix dependencies
 )
 
-require github.com/KNIRV/KNIRV_NETWORK/KNIRVSDK/go/oracled v0.0.0-00010101000000-000000000000
+require (
+	github.com/KNIRV/KNIRV_NETWORK/KNIRVSDK/go/oracled v0.0.0-00010101000000-000000000000
+	github.com/btcsuite/btcd/btcutil v1.1.0
+	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.3.0
+	golang.org/x/crypto v0.47.0
+	google.golang.org/protobuf v1.36.11
+)
 
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect

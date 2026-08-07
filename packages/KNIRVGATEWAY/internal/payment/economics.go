@@ -25,11 +25,11 @@ type EconomicsEngine struct {
 // NewEconomicsEngine creates a new economics engine
 func NewEconomicsEngine(logger *zap.Logger) *EconomicsEngine {
 	rules := &EconomicRules{
-		SkillInvocationCost: big.NewInt(1000000000000000000), // 1 NRN in wei
-		LLMRegistrationFee:  big.NewInt(500000000000000000),  // 0.5 NRN in wei
-		ValidationReward:    big.NewInt(200000000000000000),  // 0.2 NRN in wei
+		SkillInvocationCost:  big.NewInt(1000000000000000000), // 1 NRN in wei
+		LLMRegistrationFee:   big.NewInt(500000000000000000),  // 0.5 NRN in wei
+		ValidationReward:     big.NewInt(200000000000000000),  // 0.2 NRN in wei
 		ValidationReportCost: big.NewInt(1000000000000000000), // 1 NRN in wei
-		BaseGasPrice:        big.NewInt(1000),
+		BaseGasPrice:         big.NewInt(1000),
 	}
 
 	// Convert to strings for JSON
@@ -242,7 +242,7 @@ func (ee *EconomicsEngine) ProcessValidationReport(req *ValidationReportRequest)
 		AmountStr: amount.String(),
 		Purpose:   "validation_report",
 		Metadata: map[string]interface{}{
-			"dveId":  req.DVEID,
+			"dveId":    req.DVEID,
 			"signedTx": req.SignedTx,
 		},
 		Status:    "confirmed",
@@ -341,6 +341,19 @@ func (ee *EconomicsEngine) GetTransactions(limit int, status string) []*Economic
 	}
 
 	return filtered
+}
+
+// GetTransaction returns one recorded economics transaction by its stable ID.
+func (ee *EconomicsEngine) GetTransaction(id string) (*EconomicTransaction, bool) {
+	ee.mu.RLock()
+	defer ee.mu.RUnlock()
+	for _, tx := range ee.transactions {
+		if tx.ID == id {
+			copy := *tx
+			return &copy, true
+		}
+	}
+	return nil, false
 }
 
 // GetBurnHistory returns burn history

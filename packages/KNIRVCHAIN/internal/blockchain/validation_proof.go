@@ -185,10 +185,8 @@ func (bcs *BlockchainServer) handleValidationProofMint(w http.ResponseWriter, r 
 	}
 
 	transaction := NewTransaction(utils.BLOCKCHAIN_ADDRESS, request.Submission.ProofRoot, 0, canonical)
-	if err := bcs.BlockchainPtr.AddTransactionToTransactionPool(transaction); err != nil {
-		http.Error(w, "add validation proof transaction: "+err.Error(), http.StatusServiceUnavailable)
-		return
-	}
+	transaction.Type = "protocol_validation_proof"
+	bcs.BlockchainPtr.addVerifiedTxnToPoolAndSignal(transaction)
 	record = &validationProofRecord{
 		ProjectID: request.Submission.ProjectID, CommitSHA256: request.Submission.Git.RawSHA256,
 		ProofRoot: request.Submission.ProofRoot, RequestHash: requestHash,

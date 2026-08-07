@@ -6,10 +6,10 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/cloud-equities/KNIRVCHAIN/sdk/go/transaction/internal/apijson"
-	"github.com/cloud-equities/KNIRVCHAIN/sdk/go/transaction/internal/requestconfig"
-	"github.com/cloud-equities/KNIRVCHAIN/sdk/go/transaction/option"
-	"github.com/cloud-equities/KNIRVCHAIN/sdk/go/transaction/packages/respjson"
+	"github.com/guiperry/KNIRV_NETWORK/KNIRVSDK/go/transaction/internal/apijson"
+	"github.com/guiperry/KNIRV_NETWORK/KNIRVSDK/go/transaction/internal/requestconfig"
+	"github.com/guiperry/KNIRV_NETWORK/KNIRVSDK/go/transaction/option"
+	"github.com/guiperry/KNIRV_NETWORK/KNIRVSDK/go/transaction/packages/respjson"
 )
 
 // ChainService contains methods and other services that help with interacting with

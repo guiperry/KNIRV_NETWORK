@@ -14,6 +14,7 @@ type AuthorSig struct {
 	Address   string `json:"address"`
 	PubKeyHex string `json:"pubkey_hex"`
 	Signature []byte `json:"signature"`
+	Envelope  []byte `json:"envelope"`
 }
 
 // RegisteredAuthor is one entry in a chain's registered author set.
@@ -122,11 +123,12 @@ type VerifierAttestation struct {
 	VerifierID string `json:"verifier_id"`
 	LeafIndex  uint64 `json:"leaf_index"`
 	Approved   bool   `json:"approved"`
-	Signature  []byte `json:"signature"` // ed25519 over (LeafIndex|CheckpointHash|Approved)
+	Envelope   []byte `json:"envelope"`
+	Signature  []byte `json:"signature"` // Cosmos secp256k1 r|s over the KNIRV envelope
 }
 
-// AttestationMessage is the canonical ed25519 message shared by Oracle and
-// verifier chains: big-endian leaf index || checkpoint hash || approved byte.
+// AttestationMessage is the canonical payload wrapped by the KNIRV service
+// signing envelope: big-endian leaf index || checkpoint hash || approved byte.
 func AttestationMessage(leafIndex uint64, checkpointHash [32]byte, approved bool) []byte {
 	message := make([]byte, 8+32+1)
 	for i := 0; i < 8; i++ {

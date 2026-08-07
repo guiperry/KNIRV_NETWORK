@@ -11,11 +11,13 @@ interface AbstraxionWalletProviderProps {
 }
 
 export const AbstraxionWalletProvider: React.FC<AbstraxionWalletProviderProps> = ({ children }) => {
+
+  const gateway = ((import.meta as ImportMeta & { env?: Record<string, string> }).env?.VITE_KNIRV_GATEWAY_URL || 'https://gateway.knirv.network').replace(/\/$/, '');
   // Abstraxion configuration
   const abstraxionConfig = {
-    chainId: "xion-testnet-1",
-    rpcUrl: "https://rpc.xion-testnet-1.burnt.com:443",
-    restUrl: "https://api.xion-testnet-1.burnt.com",
+    chainId: "xion-testnet-2",
+    rpcUrl: `${gateway}/xion/rpc`,
+    restUrl: `${gateway}/xion/rest`,
     walletUrl: "https://wallet.burnt.com",
     indexerUrl: "https://indexer.burnt.com",
   };

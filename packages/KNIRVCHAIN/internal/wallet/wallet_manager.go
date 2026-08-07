@@ -89,14 +89,8 @@ func (wm *WalletManagerImpl) LoadWallet(address string, role config.Role) (*Wall
 		return nil, fmt.Errorf("failed to determine wallet path: %w", err)
 	}
 
-	// For Root role, always use the hardcoded BLOCKCHAIN_ADDRESS and its key.
-	// No file loading is performed. The 'address' parameter should match BLOCKCHAIN_ADDRESS.
 	if role == config.Root {
-		// Wallet is effectively in-memory, derived from constants. BLOCKCHAIN_ADDRESS is key.
-		wallet := &WalletImpl{
-			Address: utils.BLOCKCHAIN_ADDRESS, // Ensure it's the constant
-		}
-		return wallet, nil
+		return loadRootServiceWallet(address)
 	}
 
 	wallet, err := wm.LoadWalletFromFile(walletPath)
@@ -155,10 +149,7 @@ func (wm *WalletManagerImpl) LoadWallet(address string, role config.Role) (*Wall
 func (wm *WalletManagerImpl) LoadMasterWallet(address string, role config.Role) (*WalletImpl, error) {
 	// For Root role, the "master" identity is the same as its primary blockchain identity.
 	if role == config.Root {
-		wallet := &WalletImpl{
-			Address: utils.BLOCKCHAIN_ADDRESS, // Master identity is the BLOCKCHAIN_ADDRESS
-		}
-		return wallet, nil
+		return loadRootServiceWallet(address)
 	}
 
 	masterWalletPath, err := wm.pathProvider.GetMasterWalletPath(role)
@@ -215,6 +206,32 @@ func (wm *WalletManagerImpl) LoadMasterWallet(address string, role config.Role) 
 		}
 	}
 
+	return wallet, nil
+}
+
+func loadRootServiceWallet(expectedAddress string) (*WalletImpl, error) {
+	path := strings.TrimSpace(os.Getenv("KNIRV_CHAIN_SERVICE_KEY_FILE"))
+	if path == "" {
+		return nil, fmt.Errorf("root role requires KNIRV_CHAIN_SERVICE_KEY_FILE")
+	}
+	info, err := os.Stat(path)
+	if err != nil {
+		return nil, fmt.Errorf("stat chain service key: %w", err)
+	}
+	if info.Mode().Perm()&0077 != 0 {
+		return nil, fmt.Errorf("chain service key must not be accessible by group or others")
+	}
+	encoded, err := os.ReadFile(path)
+	if err != nil {
+		return nil, fmt.Errorf("read chain service key: %w", err)
+	}
+	wallet := NewWalletFromPrivateKeyHex(strings.TrimSpace(string(encoded)))
+	if wallet == nil {
+		return nil, fmt.Errorf("chain service key is not valid secp256k1 material")
+	}
+	if expectedAddress != "" && expectedAddress != wallet.GetAddress() {
+		return nil, fmt.Errorf("service wallet address mismatch: expected %s, got %s", expectedAddress, wallet.GetAddress())
+	}
 	return wallet, nil
 }
 

@@ -26,6 +26,9 @@ func isProductionNetworkMode() bool {
 // Falls back to defaults if variables are not set
 func LoadConfigFromEnv() (*OracleConfig, error) {
 	config := DefaultOracleConfig()
+	if isProductionNetworkMode() {
+		config.NetworkID = "knirv-mainnet"
+	}
 
 	// Core Oracle Settings
 	if chainID := os.Getenv("ORACLE_CHAIN_ID"); chainID != "" {

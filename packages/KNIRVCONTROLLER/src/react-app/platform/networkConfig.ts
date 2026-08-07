@@ -18,9 +18,9 @@ export const NETWORK_OPTIONS: NetworkOption[] = [
     name: 'Mainnet',
     description: 'The production KNIRV network.',
     url: 'https://gateway.knirv.network',
-    editable: false,
-    disabled: true,
-    badge: 'Coming Soon',
+	editable: false,
+	disabled: false,
+	badge: 'Default',
   },
   {
     id: 'testnet',
@@ -29,7 +29,6 @@ export const NETWORK_OPTIONS: NetworkOption[] = [
     url: 'https://testnet-gateway.knirv.network',
     editable: false,
     disabled: false,
-    badge: 'Default',
   },
   {
     id: 'dev',
@@ -41,7 +40,7 @@ export const NETWORK_OPTIONS: NetworkOption[] = [
   },
 ];
 
-export const DEFAULT_NETWORK_ID: NetworkId = 'testnet';
+export const DEFAULT_NETWORK_ID: NetworkId = 'mainnet';
 
 const DEFAULT_DEV_SERVER_URL = NETWORK_OPTIONS.find((option) => option.id === 'dev')!.url;
 
@@ -73,4 +72,11 @@ export function setStoredNetwork(id: NetworkId, devServerUrl?: string): void {
 export function getActiveServerUrl(): string {
   const id = getStoredNetworkId() ?? DEFAULT_NETWORK_ID;
   return id === 'dev' ? getStoredDevServerUrl() : getNetworkOption(id).url;
+}
+
+// Public network operations always probe production, testnet, then local.
+export function getGatewayCandidates(): string[] {
+	const local = getStoredDevServerUrl().replace(/\/$/, '');
+	return ['https://gateway.knirv.network', 'https://testnet-gateway.knirv.network', local]
+		.filter((value, index, all) => all.indexOf(value) === index);
 }

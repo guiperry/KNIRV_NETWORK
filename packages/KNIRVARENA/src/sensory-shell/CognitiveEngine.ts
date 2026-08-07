@@ -334,9 +334,9 @@ export class CognitiveEngine extends EventEmitter {
     // Initialize KNIRV Wallet Integration
     if (this._config.walletIntegrationEnabled) {
       this.walletIntegration = new KNIRVWalletIntegration({
-        apiBaseUrl: 'http://localhost:8083/api/v1',
-        chainId: 'knirv-mainnet-1',
-        rpcUrl: 'https://rpc.knirv.com',
+        apiBaseUrl: `${(import.meta.env.VITE_KNIRV_GATEWAY_URL || 'https://gateway.knirv.network').replace(/\/$/, '')}/api`,
+        chainId: 'knirv-1',
+        rpcUrl: `${(import.meta.env.VITE_KNIRV_GATEWAY_URL || 'https://gateway.knirv.network').replace(/\/$/, '')}/api/chain`,
         enableCrossPlatform: true,
         autoConnectMobile: false,
         qrCodeTimeout: 300000,
@@ -346,13 +346,13 @@ export class CognitiveEngine extends EventEmitter {
     // Initialize KNIRV Chain Integration
     if (this._config.chainIntegrationEnabled) {
       this.chainIntegration = new KNIRVChainIntegration({
-        rpcUrl: 'http://localhost:8080',
-        chainId: 'knirv-chain-1',
+        rpcUrl: `${(import.meta.env.VITE_KNIRV_GATEWAY_URL || 'https://gateway.knirv.network').replace(/\/$/, '')}/api/chain`,
+        chainId: 'knirv-1',
         networkName: 'KNIRV Network',
         contractAddresses: {
-          nrnToken: '0x1234567890123456789012345678901234567890',
-          llmRegistry: '0x2345678901234567890123456789012345678901',
-          skillRegistry: '0x3456789012345678901234567890123456789012',
+          nrnToken: '',
+          llmRegistry: '',
+          skillRegistry: '',
         },
         gasPrice: '20000000000',
         gasLimit: '500000',

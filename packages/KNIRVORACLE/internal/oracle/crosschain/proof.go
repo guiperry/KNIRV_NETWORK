@@ -3,13 +3,18 @@ package crosschain
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
+	"math"
+	"time"
 
-	"github.com/knirvcorp/knirvoracle/internal/oracle/crypto"
+	knirvsigning "github.com/KNIRV/KNIRV_NETWORK/KNIRVSDK/go/signing"
+	"github.com/knirvcorp/knirvoracle/internal/oracle/governance"
+	"github.com/knirvcorp/knirvoracle/internal/oracle/types"
 )
 
 // ValidateProof validates a cross-chain transfer proof
-func ValidateProof(proof *TransferProof, transfer *CrossChainTransfer) error {
+func ValidateProof(proof *TransferProof, transfer *CrossChainTransfer, validators []*governance.Validator) error {
 	if proof == nil {
 		return fmt.Errorf("proof is nil")
 	}
@@ -20,7 +25,7 @@ func ValidateProof(proof *TransferProof, transfer *CrossChainTransfer) error {
 	}
 
 	// Validate validator signatures
-	if err := validateValidatorSignatures(proof, transfer); err != nil {
+	if err := validateValidatorSignatures(proof, transfer, validators); err != nil {
 		return fmt.Errorf("validator signature validation failed: %w", err)
 	}
 
@@ -70,44 +75,64 @@ func validateMerkleProof(proof *TransferProof, transfer *CrossChainTransfer) err
 }
 
 // validateValidatorSignatures validates validator signatures
-func validateValidatorSignatures(proof *TransferProof, transfer *CrossChainTransfer) error {
+func validateValidatorSignatures(proof *TransferProof, transfer *CrossChainTransfer, validators []*governance.Validator) error {
 	if len(proof.ValidatorSigs) == 0 {
 		return fmt.Errorf("no validator signatures provided")
 	}
 
-	// Calculate required voting power (2/3+)
+	registered := make(map[types.Address]*governance.Validator, len(validators))
 	totalVotingPower := uint64(0)
-	for _, sig := range proof.ValidatorSigs {
-		totalVotingPower += sig.VotingPower
+	for _, validator := range validators {
+		if validator == nil || !validator.Active || validator.Jailed || validator.VotingPower == nil || !validator.VotingPower.IsUint64() {
+			continue
+		}
+		power := validator.VotingPower.Uint64()
+		if math.MaxUint64-totalVotingPower < power {
+			return fmt.Errorf("registered validator voting power overflow")
+		}
+		registered[validator.Address] = validator
+		totalVotingPower += power
 	}
-
-	requiredVotingPower := (totalVotingPower * 2) / 3
+	if totalVotingPower == 0 {
+		return fmt.Errorf("registered validator set is empty")
+	}
+	if totalVotingPower > math.MaxUint64/2 {
+		return fmt.Errorf("registered validator voting power is too large")
+	}
+	requiredVotingPower := (totalVotingPower*2)/3 + 1
 
 	// Verify signatures
 	validVotingPower := uint64(0)
 	transferHash := computeTransferHash(transfer)
+	seen := make(map[types.Address]struct{})
 
 	for i, sig := range proof.ValidatorSigs {
-		// Decode signature
-		sigBytes, err := hex.DecodeString(sig.Signature)
-		if err != nil {
-			return fmt.Errorf("invalid signature at index %d: %w", i, err)
-		}
-
-		// Decode validator address
-		validatorAddr, err := hex.DecodeString(sig.ValidatorAddress)
+		validatorAddr, err := types.AddressFromString(sig.ValidatorAddress)
 		if err != nil {
 			return fmt.Errorf("invalid validator address at index %d: %w", i, err)
 		}
-
-		// Verify signature (simplified - in production would verify against validator public key)
-		if !crypto.VerifySignature(validatorAddr, transferHash, sigBytes) {
-			// For now, we'll be lenient and just log the error
-			// In production, this should fail validation
-			continue
+		validator, ok := registered[validatorAddr]
+		if !ok {
+			return fmt.Errorf("validator %s is not in the active registered set", validatorAddr.String())
 		}
-
-		validVotingPower += sig.VotingPower
+		if _, duplicate := seen[validatorAddr]; duplicate {
+			return fmt.Errorf("duplicate validator signature from %s", validatorAddr.String())
+		}
+		seen[validatorAddr] = struct{}{}
+		var signed knirvsigning.SignedMessage
+		if err := json.Unmarshal([]byte(sig.Signature), &signed); err != nil {
+			return fmt.Errorf("decode validator signature at index %d: %w", i, err)
+		}
+		if signed.Address != validatorAddr.String() {
+			return fmt.Errorf("validator signature address mismatch at index %d", i)
+		}
+		if err := knirvsigning.VerifyMessagePayload(
+			signed, "knirv.oracle", "crosschain-proof", transfer.SourceChain.String(), transferHash,
+			time.Unix(proof.Timestamp, 0),
+		); err != nil {
+			return fmt.Errorf("invalid validator signature at index %d: %w", i, err)
+		}
+		validVotingPower += validator.VotingPower.Uint64()
 	}
 
 	// Check if we have enough voting power
@@ -128,9 +153,12 @@ func validateBlockHash(proof *TransferProof) error {
 		return fmt.Errorf("block height is zero")
 	}
 
-	// In production, would verify block hash against light client
-	// For now, just basic validation
-	if len(proof.BlockHash) != 64 && len(proof.BlockHash) != 66 { // 32 bytes hex, with or without 0x
+	blockHash := proof.BlockHash
+	if len(blockHash) == 66 && blockHash[:2] == "0x" {
+		blockHash = blockHash[2:]
+	}
+	decoded, err := hex.DecodeString(blockHash)
+	if err != nil || len(decoded) != sha256.Size {
 		return fmt.Errorf("invalid block hash length")
 	}
 
@@ -148,7 +176,8 @@ func computeTransferHash(transfer *CrossChainTransfer) []byte {
 		transfer.Amount,
 		transfer.Denom,
 	)
-	return crypto.Keccak256([]byte(data))
+	digest := sha256.Sum256([]byte(data))
+	return digest[:]
 }
 
 // GenerateProof generates a proof for a transfer (used by validators)

@@ -47,6 +47,19 @@ A comprehensive graph-based application featuring Network Resolution Vectors (NR
 - **Economic Metrics**: Real-time tracking of network economic activity
 - **Reward Distribution**: Automated NRN rewards for network participation
 
+### 🔍 GraphRAG Integration (Retrieval-Augmented Generation)
+- **Text Processing Pipeline**: Recursive, token-based, and semantic chunking with configurable overlap
+- **Entity Extraction**: Regex-based and LLM-powered entity recognition with confidence scoring
+- **Relationship Extraction**: Co-occurrence, pattern matching, and LLM-based relationship detection
+- **Embedding Providers**: Deterministic, Ollama, custom text-embedder, and stub providers with caching
+- **Vector Indexing**: HNSW-based ANN index for efficient similarity search
+- **Hybrid Retrieval**: Combined vector + BM25 keyword search with weighted fusion
+- **LightRAG & HippoRAG**: Graph-enhanced and adaptive retrieval strategies
+- **Cross-Encoder Reranking**: LLM-powered relevance reranking for improved result quality
+- **LLM Synthesis**: Answer generation with reasoning traces and source attribution
+- **Document Lifecycle**: Incremental indexing, status tracking, and deletion via REST API
+- **Primary Embedding Provider**: Custom text-embedder from https://github.com/guiperry/text-embedder
+
 ## 🧪 Testing Infrastructure
 
 ### Testing Architecture
@@ -266,6 +279,15 @@ make build
 |--------|----------|-------------|
 | GET | `/health` | System health check with service status |
 
+### GraphRAG Processing API
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/v1/document` | Ingest and index a document |
+| DELETE | `/api/v1/document/{id}` | Delete an indexed document |
+| GET | `/api/v1/index/{id}/status` | Get document indexing status |
+| GET/POST | `/api/v1/query` | Retrieve and synthesize answers from indexed documents |
+
 ### Example API Usage
 
 #### Graph Operations
@@ -385,6 +407,39 @@ curl -X POST http://localhost:8081/economics/proof/solution \
 curl http://localhost:8081/health
 ```
 
+#### GraphRAG Operations
+```bash
+# Ingest a document
+curl -X POST http://localhost:8081/api/v1/document \
+  -H "Content-Type: application/json" \
+  -d '{
+    "document": {
+      "id": "doc1",
+      "source_id": "source1",
+      "content": "KNIRVGRAPH is a decentralized knowledge graph...",
+      "metadata": {"author": "knirv", "version": "1.0"}
+    },
+    "overwrite": false
+  }'
+
+# Query the index
+curl -X POST http://localhost:8081/api/v1/query \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "What is KNIRVGRAPH?",
+    "top_k": 5,
+    "use_hybrid": true,
+    "use_rerank": true,
+    "synthesize": true
+  }'
+
+# Get document status
+curl http://localhost:8081/api/v1/index/doc1/status
+
+# Delete a document
+curl -X DELETE http://localhost:8081/api/v1/document/doc1
+```
+
 ## Testing Economics Integration
 
 ### Automated Testing
@@ -438,11 +493,16 @@ KNIRVGRAPH/
 │   ├── graphchain/        # GraphChain core
 │   ├── nrv/               # Network Resolution Vector system
 │   ├── economics/         # NRN token integration and Proof-of-Solution
-│   │   ├── nrn_integration.go    # KNIRVORACLE integration
-│   │   └── proof_of_solution.go  # Proof-of-Solution consensus
 │   ├── network/           # Networking and RPC with economics endpoints
 │   ├── storage/           # Data persistence with NRV support
-│   └── types/             # Data structures for graph and NRV
+│   ├── types/             # Data structures for graph and NRV
+│   ├── processing/        # Text chunking and entity/relationship extraction
+│   ├── embeddings/        # Embedding providers (deterministic, Ollama, text-embedder)
+│   ├── vector/            # Vector index (HNSW-based ANN search)
+│   ├── retrieval/         # BM25, hybrid retrieval, LightRAG, HippoRAG, reranking
+│   ├── synthesis/         # LLM-powered answer synthesis
+│   ├── query/             # Query processor orchestrating retrieval + synthesis
+│   └── indexing/          # Document lifecycle and index management
 ├── pkg/                   # Public libraries
 │   ├── crypto/            # Cryptographic functions
 │   └── utils/             # Utility functions
@@ -661,11 +721,14 @@ MIT License - see LICENSE file for details.
 - [x] **KNIRV Ecosystem Integration** - Seamless integration with other KNIRV components
 - [x] **Economic Metrics Tracking** - Real-time economics monitoring
 - [x] **Automated Testing** - Comprehensive test suite for economics integration
+- [x] **GraphRAG Migration** - Text processing, embedding, vector indexing, retrieval, and synthesis migrated into KNIRVGRAPH
 
 ### 🔄 In Progress
 - [ ] **Enhanced Graph Visualization** - NRV-aware graph visualization tools
 - [ ] **Advanced NRV Algorithms** - Improved vector resolution and confidence scoring
 - [ ] **Cross-Component DHT** - Enhanced DHT integration with other KNIRV services
+- [ ] **Real Embedding Provider Integration** - Connect custom text-embedder and Ollama in production
+- [ ] **Advanced Retrieval Strategies** - LightRAG graph-enhanced retrieval tuning
 
 ### 📋 Planned
 - [ ] **Graph Smart Contracts** - Smart contract layer for graph operations

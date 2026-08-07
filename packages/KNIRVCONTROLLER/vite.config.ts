@@ -21,7 +21,7 @@ export default defineConfig({
     react(),
     nodePolyfills({
       include: ['buffer', 'process', 'util', 'stream', 'events'],
-      globals: { Buffer: true, global: true, process: true },
+      globals: { Buffer: false, global: false, process: false },
     }),
   ],
   optimizeDeps: { esbuildOptions: { target: 'esnext' } },

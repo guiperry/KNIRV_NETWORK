@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	shimjson "github.com/cloud-equities/KNIRVCHAIN/sdk/go/transaction/internal/encoding/json"
+	shimjson "github.com/guiperry/KNIRV_NETWORK/KNIRVSDK/go/transaction/internal/encoding/json"
 )
 
 func NewOpt[T comparable](v T) Opt[T] {

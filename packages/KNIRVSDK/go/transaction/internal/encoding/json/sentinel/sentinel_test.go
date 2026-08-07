@@ -5,7 +5,7 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/cloud-equities/KNIRVCHAIN/sdk/go/transaction/internal/encoding/json/sentinel"
+	"github.com/guiperry/KNIRV_NETWORK/KNIRVSDK/go/transaction/internal/encoding/json/sentinel"
 )
 
 type Pair struct {

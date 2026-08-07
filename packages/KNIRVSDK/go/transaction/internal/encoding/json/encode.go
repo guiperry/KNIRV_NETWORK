@@ -29,8 +29,8 @@ import (
 	"unicode/utf8"
 	_ "unsafe" // for linkname
 
-	"github.com/cloud-equities/KNIRVCHAIN/sdk/go/transaction/internal/encoding/json/sentinel"
-	"github.com/cloud-equities/KNIRVCHAIN/sdk/go/transaction/internal/encoding/json/shims"
+	"github.com/guiperry/KNIRV_NETWORK/KNIRVSDK/go/transaction/internal/encoding/json/sentinel"
+	"github.com/guiperry/KNIRV_NETWORK/KNIRVSDK/go/transaction/internal/encoding/json/shims"
 )
 
 // Marshal returns the JSON encoding of v.

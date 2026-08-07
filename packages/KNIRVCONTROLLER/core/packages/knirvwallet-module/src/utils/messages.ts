@@ -130,17 +130,6 @@ export interface KNIRVMemPackage {
   files: KNIRVMemFile[];
 }
 
-function createMemPackage(memPackage: RawMemPackage): KNIRVMemPackage {
-  return {
-    name: memPackage.name,
-    path: memPackage.path,
-    files: memPackage.files.map((file: any) => ({
-      name: file.name,
-      body: file.body,
-    })),
-  };
-}
-
 function encodeMessageValue(message: { type: string; value: any }): Any {
   // For KNIRV, we encode the message value as JSON
   const jsonValue = JSON.stringify(message.value);

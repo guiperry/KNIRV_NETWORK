@@ -1,10 +1,14 @@
 package token
 
 import (
+	"crypto/sha256"
+	"encoding/json"
 	"fmt"
 	"math/big"
+	"time"
 
-	"github.com/knirvcorp/knirvoracle/internal/oracle/crypto"
+	knirvsigning "github.com/KNIRV/KNIRV_NETWORK/KNIRVSDK/go/signing"
+	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"github.com/knirvcorp/knirvoracle/internal/oracle/types"
 )
 
@@ -58,8 +62,12 @@ func (n *NRN) Mint(toAddr types.Address, amount *big.Int) (*MintReceipt, error) 
 	// Create transaction data
 	txData := fmt.Sprintf("mint:%s:%s", toAddr.String(), amount.String())
 
-	// Sign the transaction
-	signature, err := n.ownerKey.Sign([]byte(txData))
+	now := time.Now()
+	signed, err := knirvsigning.SignMessage(ethcrypto.FromECDSA(n.ownerKey.PrivateKey), knirvsigning.MessageEnvelope{
+		Domain: "knirv.oracle", Purpose: "oracle-mint", ChainID: n.chainID,
+		Nonce: fmt.Sprintf("mint:%d", now.UnixNano()), IssuedAtUnix: now.Unix(), ExpiresAtUnix: now.Add(5 * time.Minute).Unix(),
+		Payload: []byte(txData),
+	})
 	if err != nil {
 		// Rollback on signing failure
 		n.setBalance(toAddr, currentBalance)
@@ -67,8 +75,9 @@ func (n *NRN) Mint(toAddr types.Address, amount *big.Int) (*MintReceipt, error) 
 		return nil, fmt.Errorf("failed to sign mint transaction: %w", err)
 	}
 
-	// Generate transaction hash
-	txHash := crypto.Keccak256HashWithPrefix([]byte(txData))
+	txHashBytes := sha256.Sum256(signed.Envelope)
+	txHash := fmt.Sprintf("%X", txHashBytes)
+	signedJSON, _ := json.Marshal(signed)
 
 	return &MintReceipt{
 		To:              toAddr,
@@ -76,7 +85,7 @@ func (n *NRN) Mint(toAddr types.Address, amount *big.Int) (*MintReceipt, error) 
 		NewBalance:      newBalance.String(),
 		NewTotalSupply:  newTotalSupply.String(),
 		TransactionHash: txHash,
-		Signature:       fmt.Sprintf("0x%x", signature),
+		Signature:       string(signedJSON),
 	}, nil
 }
 
