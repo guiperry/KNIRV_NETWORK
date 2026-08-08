@@ -73,6 +73,14 @@ func (r *OracleRoutes) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/oracle/v3/economics/staking", r.handleStaking)
 	mux.HandleFunc("/oracle/v3/economics/burns", r.handleBurns)
 
+	// Skill economics endpoints (internal-service-token gated): used by
+	// KNIRVGRAPH's DRQ skill-minting pipeline, not signed end users.
+	mux.HandleFunc("/oracle/v3/skills/burn", r.handleSkillBurn)
+	mux.HandleFunc("/oracle/v3/skills/bounty", r.handleSkillBounty)
+	mux.HandleFunc("/oracle/v3/skills/ownership", r.handleSkillOwnership)
+	mux.HandleFunc("/oracle/v3/skills/ownership/", r.handleSkillOwnership)
+	mux.HandleFunc("/oracle/v3/skills/verify", r.handleSkillVerify)
+
 	// Cross-chain endpoints
 	mux.HandleFunc("/oracle/v3/crosschain/transfer", r.handleCrossChainTransfer)
 	mux.HandleFunc("/oracle/v3/crosschain/transfer/", r.handleGetTransfer)

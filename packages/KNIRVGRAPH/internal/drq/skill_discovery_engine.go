@@ -40,12 +40,8 @@ func (kc *KNIRVCHAINClient) MintSkillNode(skillNode *SkillNode) error {
 // KNIRVORACLEClient is a stub for the KNIRV-ORACLE client
 type KNIRVORACLEClient struct{}
 
-// VerifySkillNode is a stub for verifying a skill node with KNIRV-ORACLE
-func (koc *KNIRVORACLEClient) VerifySkillNode(skillNode *SkillNode) (bool, error) {
-	// TODO: Implement actual KNIRV-ORACLE verification logic
-	_ = skillNode
-	return true, nil // Assume verified for stub
-}
+// VerifySkillNode, BurnNRNForSkill, GrantOwnershipRights, and PayBounty are
+// implemented in knirvoracle_client.go.
 
 // SkillNode is a stub for the SkillNode struct (defined in SDD Section 7.3)
 type SkillNode struct {

@@ -50,6 +50,13 @@ type Oracle struct {
 	verifiers     map[string][]byte
 	verifiersPath string
 
+	// Skill ownership registry: durable perpetual invocation-fee
+	// entitlements registered via POST /oracle/v3/skills/ownership (see
+	// types.SkillOwnershipRecord), keyed by skill ID.
+	skillOwnershipMu   sync.RWMutex
+	skillOwnership     map[string]*types.SkillOwnershipRecord
+	skillOwnershipPath string
+
 	// Checkpoint pipeline (Phase 2): per-foreign-chain registry, audit MMR,
 	// and indexed checkpoint records.
 	checkpoint *checkpointState
@@ -260,23 +267,25 @@ func NewOracle(config *OracleConfig, logger *zap.Logger) (*Oracle, error) {
 	didResolver := did.NewResolver(did.NewMemoryStore())
 
 	oracle := &Oracle{
-		nrnToken:         nrnToken,
-		governanceSystem: governanceSystem,
-		didResolver:      didResolver,
-		economicsEngine:  economicsEngine,
-		consensusEngine:  consensusEngine,
-		ibcHandler:       ibcHandler,
-		crossChainRouter: crossChainRouter,
-		p2pManager:       p2pManager,
-		bridgeManager:    bridgeManager,
-		rollups:          make(map[string]*types.RollupRecord),
-		rollupsPath:      filepath.Join(config.DataDir, "rollups.json"),
-		verifiers:        make(map[string][]byte),
-		verifiersPath:    filepath.Join(config.DataDir, "verifiers.json"),
-		config:           config,
-		logger:           logger,
-		ctx:              ctx,
-		cancel:           cancel,
+		nrnToken:           nrnToken,
+		governanceSystem:   governanceSystem,
+		didResolver:        didResolver,
+		economicsEngine:    economicsEngine,
+		consensusEngine:    consensusEngine,
+		ibcHandler:         ibcHandler,
+		crossChainRouter:   crossChainRouter,
+		p2pManager:         p2pManager,
+		bridgeManager:      bridgeManager,
+		rollups:            make(map[string]*types.RollupRecord),
+		rollupsPath:        filepath.Join(config.DataDir, "rollups.json"),
+		verifiers:          make(map[string][]byte),
+		verifiersPath:      filepath.Join(config.DataDir, "verifiers.json"),
+		skillOwnership:     make(map[string]*types.SkillOwnershipRecord),
+		skillOwnershipPath: filepath.Join(config.DataDir, "skill_ownership.json"),
+		config:             config,
+		logger:             logger,
+		ctx:                ctx,
+		cancel:             cancel,
 	}
 
 	oracle.paymentProcessor = payment.NewProcessor(payment.Config{
@@ -303,6 +312,10 @@ func NewOracle(config *OracleConfig, logger *zap.Logger) (*Oracle, error) {
 	if err := oracle.loadRollups(); err != nil {
 		cancel()
 		return nil, fmt.Errorf("failed to load persisted oracle rollups: %w", err)
+	}
+	if err := oracle.loadSkillOwnership(); err != nil {
+		cancel()
+		return nil, fmt.Errorf("failed to load persisted skill ownership records: %w", err)
 	}
 
 	cs, err := LoadCheckpointState(config.DataDir)
@@ -550,6 +563,84 @@ func (o *Oracle) persistRollupsLocked() error {
 	}
 
 	return nil
+}
+
+func (o *Oracle) loadSkillOwnership() error {
+	o.skillOwnershipMu.Lock()
+	defer o.skillOwnershipMu.Unlock()
+
+	data, err := os.ReadFile(o.skillOwnershipPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
+		return fmt.Errorf("failed to read skill ownership state: %w", err)
+	}
+
+	var records []*types.SkillOwnershipRecord
+	if err := json.Unmarshal(data, &records); err != nil {
+		return fmt.Errorf("failed to decode skill ownership state: %w", err)
+	}
+
+	o.skillOwnership = make(map[string]*types.SkillOwnershipRecord, len(records))
+	for _, record := range records {
+		if record == nil {
+			continue
+		}
+		o.skillOwnership[record.SkillID] = record
+	}
+
+	return nil
+}
+
+func (o *Oracle) persistSkillOwnershipLocked() error {
+	if o.skillOwnershipPath == "" {
+		return nil
+	}
+
+	records := make([]*types.SkillOwnershipRecord, 0, len(o.skillOwnership))
+	for _, record := range o.skillOwnership {
+		records = append(records, record)
+	}
+
+	payload, err := json.MarshalIndent(records, "", "  ")
+	if err != nil {
+		return fmt.Errorf("failed to encode skill ownership state: %w", err)
+	}
+
+	tempPath := o.skillOwnershipPath + ".tmp"
+	if err := os.WriteFile(tempPath, payload, 0644); err != nil {
+		return fmt.Errorf("failed to write skill ownership temp file: %w", err)
+	}
+
+	if err := os.Rename(tempPath, o.skillOwnershipPath); err != nil {
+		return fmt.Errorf("failed to move skill ownership state into place: %w", err)
+	}
+
+	return nil
+}
+
+// RegisterSkillOwnership persists rights, overwriting any existing
+// registration for the same SkillID (later registrations win — the caller,
+// KNIRVGRAPH's DRQ pipeline, is expected to register once per canonical
+// mint, but this keeps the operation idempotent under retries).
+func (o *Oracle) RegisterSkillOwnership(rights *types.SkillOwnershipRecord) error {
+	o.skillOwnershipMu.Lock()
+	defer o.skillOwnershipMu.Unlock()
+
+	o.skillOwnership[rights.SkillID] = rights
+	if err := o.persistSkillOwnershipLocked(); err != nil {
+		return err
+	}
+	return nil
+}
+
+// GetSkillOwnership retrieves a previously registered ownership record.
+func (o *Oracle) GetSkillOwnership(skillID string) (*types.SkillOwnershipRecord, bool) {
+	o.skillOwnershipMu.RLock()
+	defer o.skillOwnershipMu.RUnlock()
+	record, ok := o.skillOwnership[skillID]
+	return record, ok
 }
 
 // Start starts all oracle services

@@ -2,12 +2,15 @@ package drq
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 )
@@ -51,22 +54,59 @@ type knirvchainEventBundleReceipt struct {
 	FinalizedAt   time.Time `json:"finalized_at,omitempty"`
 }
 
-// knirvchainDirectURL resolves KNIRVCHAIN's own HTTP API for internal,
-// service-to-service calls. This intentionally bypasses KNIRVGATEWAY: the
-// gateway's /api/v1/event-bundles/mint proxy requires a logged-in user's
-// bearer session token (packages/KNIRVGATEWAY/internal/server/
-// eventbundle_proxy.go) because it fronts the CLI's end-user-triggered
-// decision-event flow on the public internet. DRQ's skill minting is an
-// unattended, network-wide background process with no user session — it
-// authenticates with the same shared KNIRV_INTERNAL_AUTH_TOKEN service key
-// KNIRVCHAIN itself expects, calling it directly as an internal peer
-// (the "explicitly registered service keys for unattended node operations"
-// custody model, as opposed to user-action controller custody).
-func knirvchainDirectURL() (string, error) {
-	if raw := strings.TrimSpace(os.Getenv("KNIRVCHAIN_URL")); raw != "" {
-		return strings.TrimRight(raw, "/"), nil
+// defaultChainSocketPath is KNIRVSERVER's well-known fallback chain socket
+// location (packages/KNIRVSERVER/pkg/knirvchain/manager.go's
+// appDataDir/"sockets"/"chain.sock", where appDataDir defaults to
+// /var/lib/knirvserver) — the same default KNIRVGATEWAY's CHAIN_SOCKET_PATH
+// and this package's own getOracleSocketPath()/embedding_model.go resolve
+// to when nothing more specific is configured.
+const defaultChainSocketPath = "/var/lib/knirvserver/sockets/chain.sock"
+
+// knirvchainSocketSchemeAndHost is the placeholder base URL used with the
+// Unix-socket-dialing http.Client below — the host is never actually
+// resolved over the network, matching GraphRAGEmbedder's "http://unix"
+// convention in this same package (embedding_model.go).
+const knirvchainSocketSchemeAndHost = "http://unix"
+
+// knirvchainSocketPath resolves KNIRVCHAIN's Unix domain socket for
+// internal, service-to-service calls. This intentionally bypasses
+// KNIRVGATEWAY's public HTTP proxy: the gateway's /api/v1/event-bundles/mint
+// route (packages/KNIRVGATEWAY/internal/server/eventbundle_proxy.go)
+// requires a logged-in user's bearer session token on top of the internal
+// token, because it fronts the CLI's end-user-triggered decision-event flow
+// on the public internet. DRQ's skill minting is an unattended,
+// network-wide background process with no user session, so — like every
+// other internal-to-internal KNIRV service call (KNIRVGATEWAY→KNIRVCHAIN,
+// this package's own KNIRVORACLE/GraphRAG clients) — it talks directly over
+// the sibling service's local Unix socket rather than a public/TCP URL,
+// authenticating with the same shared KNIRV_INTERNAL_AUTH_TOKEN service key
+// KNIRVCHAIN's handler expects (the "explicitly registered service keys for
+// unattended node operations" custody model, as opposed to user-action
+// controller custody).
+func knirvchainSocketPath() string {
+	if explicit := strings.TrimSpace(os.Getenv("KNIRV_CHAIN_SOCKET_PATH")); explicit != "" {
+		return explicit
 	}
-	return "", errors.New("KNIRVCHAIN_URL is not configured; set it to KNIRVCHAIN's internal HTTP API address")
+	if appDataDir := strings.TrimSpace(os.Getenv("KNIRV_APP_DATA_DIR")); appDataDir != "" {
+		return filepath.Join(appDataDir, "sockets", "chain.sock")
+	}
+	return defaultChainSocketPath
+}
+
+// unixHTTPClient builds an http.Client that dials a Unix domain socket
+// regardless of the URL host given to it, mirroring this package's
+// GraphRAGEmbedder helper of the same name (embedding_model.go) — kept
+// separate here (rather than exported/shared) since the two call sites
+// don't otherwise share a type.
+func knirvchainUnixHTTPClient(socketPath string, timeout time.Duration) *http.Client {
+	return &http.Client{
+		Timeout: timeout,
+		Transport: &http.Transport{
+			DialContext: func(ctx context.Context, _, _ string) (net.Conn, error) {
+				return (&net.Dialer{}).DialContext(ctx, "unix", socketPath)
+			},
+		},
+	}
 }
 
 // mintSkillEventBundle mints (or, if already minted, fetches) an
@@ -94,11 +134,6 @@ func (kc *KNIRVCHAINClient) mintSkillEventBundle(skillNode *SkillNode) ([]byte, 
 	if token == "" {
 		return nil, errors.New("KNIRV_INTERNAL_AUTH_TOKEN is not configured")
 	}
-	baseURL, err := knirvchainDirectURL()
-	if err != nil {
-		return nil, err
-	}
-
 	request := knirvchainEventBundleMintRequest{
 		SchemaVersion: knirvchainEventBundleMintSchema,
 		EventID:       eventID,
@@ -115,14 +150,14 @@ func (kc *KNIRVCHAINClient) mintSkillEventBundle(skillNode *SkillNode) ([]byte, 
 		return nil, fmt.Errorf("marshal event bundle mint request: %w", err)
 	}
 
-	httpRequest, err := http.NewRequest(http.MethodPost, baseURL+"/api/v1/event-bundles/mint", bytes.NewReader(body))
+	httpRequest, err := http.NewRequest(http.MethodPost, knirvchainSocketSchemeAndHost+"/api/v1/event-bundles/mint", bytes.NewReader(body))
 	if err != nil {
 		return nil, fmt.Errorf("build event bundle mint request: %w", err)
 	}
 	httpRequest.Header.Set("Content-Type", "application/json")
 	httpRequest.Header.Set("X-KNIRV-Internal-Token", token)
 
-	client := &http.Client{Timeout: 20 * time.Second}
+	client := knirvchainUnixHTTPClient(knirvchainSocketPath(), 20*time.Second)
 	response, err := client.Do(httpRequest)
 	if err != nil {
 		return nil, fmt.Errorf("mint event bundle on KNIRVCHAIN: %w", err)
