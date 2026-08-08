@@ -28,7 +28,6 @@ require (
 
 require (
 	fyne.io/fyne/v2 v2.7.1
-	github.com/btcsuite/btcd/btcec/v2 v2.2.0
 	github.com/consensys/gnark v0.14.0
 	github.com/consensys/gnark-crypto v0.19.0
 	github.com/ethereum/go-ethereum v1.13.15
@@ -99,6 +98,7 @@ require (
 require (
 	github.com/bits-and-blooms/bitset v1.24.0 // indirect
 	github.com/blang/semver/v4 v4.0.0 // indirect
+	github.com/btcsuite/btcd/btcec/v2 v2.2.0 // indirect
 	github.com/btcsuite/btcd/btcutil v1.1.0 // indirect
 	github.com/btcsuite/btcd/chaincfg/chainhash v1.0.1 // indirect
 	github.com/bytedance/sonic v1.14.0 // indirect
