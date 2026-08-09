@@ -26,7 +26,7 @@ type Content struct {
 	DeviceIP              string // field 22
 	DevicePassword        string // field 23
 	DeviceUsername        string // field 24
-	MasterWalletKeyHex    string // field 1 — reserved for the user wallet; never used as an unattended service key
+	MasterWalletKeyHex    string // field 1 — master wallet key; used as the Validation Chain checkpoint signer identity on Bootnodes that have no root.key (see startValidationChain in main.go)
 }
 
 // searchPaths builds a deduplicated, prioritized list of filesystem paths for
@@ -210,7 +210,7 @@ type RootKeyCloudflareCreds struct {
 	CloudflareAccountID       string // field 26
 	CloudflareTunnelToken     string // field 27
 	CloudflareOracleTunnelTok string // field 28
-	RootPrivateKeyHex         string // field 5 — legacy user/root signing key; never used as an unattended service key
+	RootPrivateKeyHex         string // field 5 — root node private key; used as the Validation Chain checkpoint signer identity on Root nodes (see startValidationChain in main.go)
 }
 
 // LoadRootKeyCloudflareCreds finds root.key, decrypts it using the

@@ -2814,6 +2814,12 @@ func (app *ServerApp) startGraphRAG(ctx context.Context) error {
 // whose tunnel isn't up yet just wastes the first attempt. Failure here is
 // logged and non-fatal either way, since ensureRegistered retries on every
 // subsequent poll.
+//
+// LoadCheckpointSigner requires an explicitly provisioned service key
+// (KNIRV_VALIDATION_SERVICE_KEY_FILE/_PRIVATE_KEY). startBackend already
+// derives and sets that env var from root.key (Root) or boot.key (Bootnode)
+// before this runs, so operators only need to set it explicitly on Client
+// nodes with neither key.
 func (app *ServerApp) startValidationChain(ctx context.Context) error {
 	socketPath := validationChainSocketPath()
 	signer, err := validationchain.LoadCheckpointSigner()
@@ -3195,6 +3201,19 @@ func (app *ServerApp) startBackend() error {
 				env = append(env, "CLOUDFLARE_ORACLE_TUNNEL_TOKEN="+rootCreds.CloudflareOracleTunnelTok)
 			}
 			log.Println("[KEY] Cloudflare credentials loaded from root.key")
+
+			// Derive the Validation Chain checkpoint signer from root.key's root
+			// private key — the same identity KNIRVORACLE itself represents on a
+			// Root node — unless the operator already set an explicit override.
+			// Set in this process's own environment (not the child env slice
+			// above) since startValidationChain runs here in KNIRVSERVER, not in
+			// the backend_server subprocess.
+			if strings.TrimSpace(os.Getenv("KNIRV_VALIDATION_SERVICE_PRIVATE_KEY")) == "" &&
+				strings.TrimSpace(os.Getenv("KNIRV_VALIDATION_SERVICE_KEY_FILE")) == "" &&
+				rootCreds.RootPrivateKeyHex != "" {
+				os.Setenv("KNIRV_VALIDATION_SERVICE_PRIVATE_KEY", rootCreds.RootPrivateKeyHex)
+				log.Println("[KEY] Validation Chain checkpoint signer derived from root.key")
+			}
 		} else if rootErr != nil {
 			log.Printf("[KEY] root.key found but Cloudflare credentials could not be loaded: %v", rootErr)
 			log.Printf("[KEY] Set ORACLE_KEY_PASSWORD to unlock root.key credentials, or export CLOUDFLARE_API_TOKEN/CLOUDFLARE_ZONE_ID directly")
@@ -3219,6 +3238,17 @@ func (app *ServerApp) startBackend() error {
 				env = append(env, "CLOUDFLARE_GATEWAY_TUNNEL_TOKEN="+bootContent.CloudflareTunnelToken)
 			}
 			log.Printf("Boot node detected: registration_id=%s", bootContent.RegistrationID)
+
+			// Derive the Validation Chain checkpoint signer from boot.key's master
+			// wallet key on Bootnodes that have no root.key, mirroring the Root
+			// node derivation above, unless the operator already set an explicit
+			// override.
+			if strings.TrimSpace(os.Getenv("KNIRV_VALIDATION_SERVICE_PRIVATE_KEY")) == "" &&
+				strings.TrimSpace(os.Getenv("KNIRV_VALIDATION_SERVICE_KEY_FILE")) == "" &&
+				bootContent.MasterWalletKeyHex != "" {
+				os.Setenv("KNIRV_VALIDATION_SERVICE_PRIVATE_KEY", bootContent.MasterWalletKeyHex)
+				log.Println("[KEY] Validation Chain checkpoint signer derived from boot.key")
+			}
 		} else if bootkey.Exists() {
 			// boot.key present but couldn't decrypt — still mark as bootnode role
 			env = setChildEnv(env, "CHAIN_NODE_ROLE", "Bootnode")
@@ -3267,7 +3297,17 @@ func (app *ServerApp) startBackend() error {
 		client = &http.Client{Timeout: 2 * time.Second}
 	}
 
-	deadline := time.Now().Add(30 * time.Second)
+	// backend_server starts KNIRVGATEWAY synchronously as part of its own Start()
+	// sequence (KNIRV_CORP/packages/server/backend_server/cmd/backend_server/main.go),
+	// and KNIRVGATEWAY's own health wait budgets up to StartTimeout (30s, see
+	// pkg/knirvgateway/manager.go) before giving up and letting backend_server
+	// continue. So backend_server's own /health endpoint can legitimately take
+	// well over 30s to come up — a 30s budget here fired spuriously even on runs
+	// that succeeded a bit over a minute later. 150s covers gateway's worst case
+	// (stale-process/port cleanup + its own 30s health timeout) plus the graph,
+	// chain, hasher, arena, and inference-provider setup that follows it.
+	const backendHealthTimeout = 150 * time.Second
+	deadline := time.Now().Add(backendHealthTimeout)
 	for time.Now().Before(deadline) {
 		resp, err := client.Get(healthURL)
 		if err == nil {
@@ -3283,7 +3323,7 @@ func (app *ServerApp) startBackend() error {
 		}
 		time.Sleep(500 * time.Millisecond)
 	}
-	return fmt.Errorf("unified backend did not become healthy within 30s")
+	return fmt.Errorf("unified backend did not become healthy within %s", backendHealthTimeout)
 }
 
 func backendCommandArgs(configFile string, autoStartHasher bool) []string {
