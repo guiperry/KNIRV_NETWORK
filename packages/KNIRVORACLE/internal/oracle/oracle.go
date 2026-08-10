@@ -111,9 +111,13 @@ type OracleConfig struct {
 	WalletInitialFund   *big.Int `json:"wallet_initial_fund"`
 
 	// Payment processor configuration (fiat-triggered NRN disbursement)
-	PaymentProcessorEnabled bool    `json:"payment_processor_enabled"`
-	StripeSecretKey         string  `json:"stripe_secret_key,omitempty"`
-	StripeWebhookSecret     string  `json:"stripe_webhook_secret,omitempty"`
+	PaymentProcessorEnabled bool   `json:"payment_processor_enabled"`
+	StripeSecretKey         string `json:"stripe_secret_key,omitempty"`
+	StripeWebhookSecret     string `json:"stripe_webhook_secret,omitempty"`
+	// StripeThinWebhookSecret is the signing secret for a second Stripe Event
+	// Destination delivering "thin" payloads — see payment.Config's doc
+	// comment on the same field for why a second secret is needed at all.
+	StripeThinWebhookSecret string  `json:"stripe_thin_webhook_secret,omitempty"`
 	CoinbaseAPIKey          string  `json:"coinbase_api_key,omitempty"`
 	CoinbaseWebhookSecret   string  `json:"coinbase_webhook_secret,omitempty"`
 	PaymentTokenDecimals    int     `json:"payment_token_decimals"`
@@ -292,6 +296,7 @@ func NewOracle(config *OracleConfig, logger *zap.Logger) (*Oracle, error) {
 		Enabled:                   config.PaymentProcessorEnabled,
 		StripeSecretKey:           config.StripeSecretKey,
 		StripeWebhookSecret:       config.StripeWebhookSecret,
+		StripeThinWebhookSecret:   config.StripeThinWebhookSecret,
 		CoinbaseAPIKey:            config.CoinbaseAPIKey,
 		CoinbaseWebhookSecret:     config.CoinbaseWebhookSecret,
 		TokenDecimals:             config.PaymentTokenDecimals,

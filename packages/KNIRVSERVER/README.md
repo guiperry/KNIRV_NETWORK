@@ -6,7 +6,7 @@ The current codebase supports a guarded execution model rather than a generic ap
 
 - policies and guardrails for AI workloads
 - DVE lifecycle and agent execution
-- knowledge base and GraphRAG-backed retrieval surfaces
+- knowledge-base and retrieval surfaces backed by the standalone KNIRVGRAPH service
 - onboarding and org configuration
 - shell/session access for controlled execution
 - evidence anchoring and other audit-oriented flows

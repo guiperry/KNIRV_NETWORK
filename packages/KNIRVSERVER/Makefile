@@ -54,7 +54,6 @@ CONTAINER_DEPLOYER_SOURCE_DIR := $(HOME)/.local/share/knirvserver/container_depl
 
 # Embedded Programs Configuration
 EMBEDDED_DIR := $(BACKEND_DIR)/internal/embedded
-GRAPHRAG_DIR := $(EMBEDDED_DIR)/graphrag-rs
 VALIDATION_CHAIN_DIR := $(EMBEDDED_DIR)/validation_chain
 TRANSACTION_CHAIN_DIR := $(EMBEDDED_DIR)/transaction_chain
 EMBEDDED_BUILD_DIR := $(ROOT_DIR)/build/embedded
@@ -605,20 +604,8 @@ validation-chain-build: validation-chain-deps ## Build validation_chain standalo
 	@gzip -cf $(VALIDATION_CHAIN_DIR)/target/release/validationchain > $(ROOT_DIR)/pkg/embedded/validationchain/bin/validationchain
 	@echo "$(GREEN)validation_chain binary embedded: $(ROOT_DIR)/pkg/embedded/validationchain/bin/validationchain$(NC)"
 
-# Internal Embedded Programs - GraphRAG (Rust)
-graphrag-deps: ## Install graphrag-rs dependencies
-	@echo "$(BLUE)Installing graphrag-rs dependencies...$(NC)"
-	cd $(GRAPHRAG_DIR) && cargo fetch
-
-graphrag-build: graphrag-deps ## Build graphrag-rs static library for CGo FFI
-	@echo "$(BLUE)Building graphrag-rs static library...$(NC)"
-	@mkdir -p $(EMBEDDED_BUILD_DIR)/graphrag
-	cd $(GRAPHRAG_DIR) && cargo build --release --lib --package graphrag-core
-	cp $(GRAPHRAG_DIR)/target/release/libgraphrag_core.a $(EMBEDDED_BUILD_DIR)/graphrag/
-	@echo "$(GREEN)graphrag-rs built: $(EMBEDDED_BUILD_DIR)/graphrag/libgraphrag_core.a$(NC)"
-
 # Unified Embedded Build
-embedded-build: graphrag-build validation-chain-build transaction-chain-build ## Build all embedded programs
+embedded-build: validation-chain-build transaction-chain-build ## Build all embedded programs
 	@echo "$(GREEN)All embedded programs built successfully$(NC)"
 
 # KNIRVAGENT (Embedded) targets

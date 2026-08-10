@@ -1,9 +1,12 @@
 package retrieval
 
 import (
+	"KNIRVGRAPH/internal/storage"
 	"KNIRVGRAPH/internal/types"
 	"KNIRVGRAPH/internal/vector"
+	"fmt"
 	"sort"
+	"sync"
 )
 
 type RetrievalPipeline struct {
@@ -12,6 +15,7 @@ type RetrievalPipeline struct {
 	chunkStore   ChunkStore
 	chunks       []types.Chunk
 	hybridWeight float64
+	mu           sync.RWMutex
 }
 
 func NewRetrievalPipeline(hybridWeight float64) *RetrievalPipeline {
@@ -29,18 +33,75 @@ func NewRetrievalPipeline(hybridWeight float64) *RetrievalPipeline {
 	}
 }
 
+func NewPersistentRetrievalPipeline(hybridWeight float64, dimension int, metric vector.Metric, store storage.Storage) (*RetrievalPipeline, error) {
+	p := NewRetrievalPipeline(hybridWeight)
+	idx, err := vector.NewPersistentVectorIndex(dimension, vector.Options{Metric: metric}, store)
+	if err != nil {
+		return nil, err
+	}
+	p.vectorIndex = idx
+	return p, nil
+}
+
 func (p *RetrievalPipeline) IndexChunks(chunks []types.Chunk) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
 	for _, c := range chunks {
 		p.chunkStore.(*InMemoryChunkStore).Put(&c)
 		p.bm25Index.Add(c.ID, c.Text)
 		if len(c.Embedding) > 0 {
-			p.vectorIndex.Add(c.ID, c.Embedding)
+			_ = p.vectorIndex.Add(c.ID, c.Embedding)
 		}
 	}
 	p.chunks = append(p.chunks, chunks...)
 }
 
+func (p *RetrievalPipeline) IndexChunksWithError(chunks []types.Chunk) error {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	for _, c := range chunks {
+		p.chunkStore.(*InMemoryChunkStore).Put(&c)
+		p.bm25Index.Add(c.ID, c.Text)
+		if len(c.Embedding) > 0 {
+			if err := p.vectorIndex.Add(c.ID, c.Embedding); err != nil {
+				return err
+			}
+		}
+	}
+	p.chunks = append(p.chunks, chunks...)
+	return nil
+}
+
+func (p *RetrievalPipeline) DeleteChunks(ids []string) error {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	remove := make(map[string]struct{}, len(ids))
+	for _, id := range ids {
+		remove[id] = struct{}{}
+		p.vectorIndex.Delete(id)
+		p.bm25Index.Remove(id)
+		p.chunkStore.(*InMemoryChunkStore).Delete(id)
+	}
+	out := p.chunks[:0]
+	for _, c := range p.chunks {
+		if _, ok := remove[c.ID]; !ok {
+			out = append(out, c)
+		}
+	}
+	p.chunks = out
+	return nil
+}
+
+func (p *RetrievalPipeline) Optimize() error  { return p.vectorIndex.Optimize() }
+func (p *RetrievalPipeline) VectorCount() int { return p.vectorIndex.Len() }
+
 func (p *RetrievalPipeline) Search(query string, queryVec []float32, topK int) ([]types.VectorSearchResult, error) {
+	return p.SearchFiltered(query, queryVec, topK, nil)
+}
+
+func (p *RetrievalPipeline) SearchFiltered(query string, queryVec []float32, topK int, filters map[string]interface{}) ([]types.VectorSearchResult, error) {
+	p.mu.RLock()
+	defer p.mu.RUnlock()
 	if topK <= 0 {
 		topK = 10
 	}
@@ -61,7 +122,45 @@ func (p *RetrievalPipeline) Search(query string, queryVec []float32, topK int) (
 		}
 	}
 	bm25Results, _ := p.bm25Index.Search(query, topK*2)
-	return p.fuseResults(vectorResults, bm25Results, topK), nil
+	results := p.fuseResults(vectorResults, bm25Results, topK*2)
+	filtered := results[:0]
+	for _, result := range results {
+		chunk, err := p.chunkStore.GetChunk(result.ID)
+		if err != nil {
+			continue
+		}
+		if result.Metadata == nil {
+			result.Metadata = map[string]interface{}{}
+		}
+		for k, v := range chunk.Metadata {
+			result.Metadata[k] = v
+		}
+		result.Metadata["document_id"] = chunk.DocumentID
+		result.Metadata["text"] = chunk.Text
+		if matchesFilters(chunk, filters) {
+			filtered = append(filtered, result)
+			if len(filtered) == topK {
+				break
+			}
+		}
+	}
+	return filtered, nil
+}
+
+func matchesFilters(chunk *types.Chunk, filters map[string]interface{}) bool {
+	for key, want := range filters {
+		var got interface{}
+		switch key {
+		case "kb_id", "document_id":
+			got = chunk.DocumentID
+		default:
+			got = chunk.Metadata[key]
+		}
+		if fmt.Sprint(got) != fmt.Sprint(want) {
+			return false
+		}
+	}
+	return true
 }
 
 func (p *RetrievalPipeline) fuseResults(a, b []types.VectorSearchResult, topK int) []types.VectorSearchResult {

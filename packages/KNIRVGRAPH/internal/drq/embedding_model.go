@@ -1,17 +1,14 @@
 package drq
 
 import (
-	"bytes"
+	"KNIRVGRAPH/internal/embeddings"
+	"KNIRVGRAPH/internal/types"
 	"context"
-	"encoding/json"
-	"fmt"
 	"hash/fnv"
 	"math"
-	"net"
-	"net/http"
-	"os"
 	"sync"
-	"time"
+
+	"go.uber.org/zap"
 )
 
 type EmbeddingCache struct {
@@ -19,158 +16,55 @@ type EmbeddingCache struct {
 	store map[uint64][]float64
 }
 
-func NewEmbeddingCache() *EmbeddingCache {
-	return &EmbeddingCache{store: make(map[uint64][]float64)}
-}
-
+func NewEmbeddingCache() *EmbeddingCache { return &EmbeddingCache{store: make(map[uint64][]float64)} }
 func (ec *EmbeddingCache) Get(key uint64) ([]float64, bool) {
 	ec.mu.RLock()
+	defer ec.mu.RUnlock()
 	v, ok := ec.store[key]
-	ec.mu.RUnlock()
-	return v, ok
+	return append([]float64(nil), v...), ok
 }
-
 func (ec *EmbeddingCache) Set(key uint64, embedding []float64) {
 	ec.mu.Lock()
-	ec.store[key] = embedding
+	ec.store[key] = append([]float64(nil), embedding...)
 	ec.mu.Unlock()
 }
-
-func (ec *EmbeddingCache) Len() int {
-	ec.mu.RLock()
-	defer ec.mu.RUnlock()
-	return len(ec.store)
-}
+func (ec *EmbeddingCache) Len() int { ec.mu.RLock(); defer ec.mu.RUnlock(); return len(ec.store) }
 
 type EmbeddingType int
 
 const (
-	BERT_BASE    EmbeddingType = iota // 768-dim
-	BERT_LARGE                        // 1024-dim
-	OPENAI_SMALL                      // 1536-dim
+	BERT_BASE EmbeddingType = iota
+	BERT_LARGE
+	OPENAI_SMALL
 )
 
-// defaultGraphRAGSocketPath is the last-resort fallback KNIRVSERVER itself
-// falls back to when it cannot resolve its app data directory (see
-// embeddedChainSocketPath in KNIRV_NETWORK's packages/KNIRVSERVER/main.go).
-const defaultGraphRAGSocketPath = "/var/lib/knirvserver/sockets/graphrag.sock"
-
-// GraphRAGEmbedder dials the Unix domain socket KNIRVSERVER's embedded
-// graphrag-rs engine bridges over (pkg/embedded/graphrag/server.go,
-// KNIRV_NETWORK). KNIRVGRAPH runs as a separate OS process from
-// KNIRVSERVER, so — like backend_server (KNIRV_CORP) — this socket is the
-// only way to reach that CGo-linked engine; there is no HTTP route exposed
-// over TCP for it.
-type GraphRAGEmbedder struct {
-	socketPath string
-	client     *http.Client
-	cache      *EmbeddingCache
-	dimension  int
-	timeout    time.Duration
-}
-
-// unixHTTPClient builds an http.Client that dials a Unix domain socket
-// regardless of the URL host given to it — callers use the "http://unix"
-// base URL by convention (matching KNIRVSERVER's pkg/embedded/graphrag
-// Client).
-func unixHTTPClient(socketPath string, timeout time.Duration) *http.Client {
-	return &http.Client{
-		Timeout: timeout,
-		Transport: &http.Transport{
-			DialContext: func(ctx context.Context, _, _ string) (net.Conn, error) {
-				return (&net.Dialer{}).DialContext(ctx, "unix", socketPath)
-			},
-		},
-	}
-}
-
-// NewGraphRAGEmbedder builds an embedder dialing socketPath. An empty
-// socketPath falls back to the KNIRV_GRAPHRAG_SOCKET_PATH env var
-// (KNIRVSERVER honors the same variable), then the shared well-known
-// default, so both sides agree on a path without an explicit override in
-// most deployments.
-func NewGraphRAGEmbedder(socketPath string, dim int) *GraphRAGEmbedder {
-	if socketPath == "" {
-		socketPath = os.Getenv("KNIRV_GRAPHRAG_SOCKET_PATH")
-	}
-	if socketPath == "" {
-		socketPath = defaultGraphRAGSocketPath
-	}
-	if dim <= 0 {
-		dim = 128
-	}
-	timeout := 30 * time.Second
-	return &GraphRAGEmbedder{
-		socketPath: socketPath,
-		client:     unixHTTPClient(socketPath, timeout),
-		cache:      NewEmbeddingCache(),
-		dimension:  dim,
-		timeout:    timeout,
-	}
-}
-
-func (e *GraphRAGEmbedder) Embed(text string) ([]float64, error) {
-	embeddings, err := e.EmbedBatch([]string{text})
-	if err != nil {
-		return nil, err
-	}
-	if len(embeddings) == 0 {
-		return nil, fmt.Errorf("empty embedding result")
-	}
-	return embeddings[0], nil
-}
-
-func (e *GraphRAGEmbedder) EmbedBatch(texts []string) ([][]float64, error) {
-	if len(texts) == 0 {
-		return nil, nil
-	}
-
-	body, err := json.Marshal(map[string]interface{}{"texts": texts})
-	if err != nil {
-		return nil, fmt.Errorf("embed marshal: %w", err)
-	}
-
-	req, err := http.NewRequest("POST", "http://unix/embed", bytes.NewReader(body))
-	if err != nil {
-		return nil, fmt.Errorf("embed request: %w", err)
-	}
-	req.Header.Set("Content-Type", "application/json")
-
-	resp, err := e.client.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("embed call to graphrag socket %s: %w", e.socketPath, err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("embed call to graphrag socket %s returned %d", e.socketPath, resp.StatusCode)
-	}
-
-	var raw [][]float64
-	if err := json.NewDecoder(resp.Body).Decode(&raw); err != nil {
-		return nil, fmt.Errorf("embed decode: %w", err)
-	}
-
-	return raw, nil
-}
-
+// EmbeddingModel adapts KNIRVGRAPH's shared EmbeddingService to DRQ's legacy
+// float64 clustering API. It no longer dials KNIRVSERVER or GraphRAG.
 type EmbeddingModel struct {
 	modelType  EmbeddingType
 	dimensions int
 	cache      *EmbeddingCache
-	embedder   *GraphRAGEmbedder
+	service    *embeddings.EmbeddingService
 }
 
 func NewEmbeddingModel(modelType EmbeddingType, endpoint string) *EmbeddingModel {
 	dim := dimsForType(modelType)
-	return &EmbeddingModel{
-		modelType:  modelType,
-		dimensions: dim,
-		cache:      NewEmbeddingCache(),
-		embedder:   NewGraphRAGEmbedder(endpoint, dim),
+	cfg := embeddings.ProviderConfig{Type: types.EmbeddingProviderTextEmbedder, Endpoint: endpoint, Model: "text-embedder", Dimension: dim, BatchSize: 32, TimeoutSeconds: 30}
+	if endpoint == "" {
+		cfg = embeddings.DefaultProviderConfig(types.EmbeddingProviderTextEmbedder)
+		dim = cfg.Dimension
 	}
+	svc, _ := embeddings.NewEmbeddingService(cfg, zap.NewNop())
+	return NewEmbeddingModelWithService(modelType, svc)
 }
 
+func NewEmbeddingModelWithService(modelType EmbeddingType, service *embeddings.EmbeddingService) *EmbeddingModel {
+	dim := dimsForType(modelType)
+	if service != nil {
+		dim = service.Dimension()
+	}
+	return &EmbeddingModel{modelType: modelType, dimensions: dim, cache: NewEmbeddingCache(), service: service}
+}
 func dimsForType(t EmbeddingType) int {
 	switch t {
 	case BERT_BASE:
@@ -184,58 +78,56 @@ func dimsForType(t EmbeddingType) int {
 	}
 }
 
-func (em *EmbeddingModel) Encode(
-	failureContext []byte,
-) []float64 {
-	contextHash := hashBytes(failureContext)
-	if cached, exists := em.cache.Get(contextHash); exists {
-		return cached
-	}
-
-	embeddings, err := em.embedder.EmbedBatch([]string{string(failureContext)})
-	if err != nil || len(embeddings) == 0 {
-		// fallback: hash-based local embedding
-		vec := hashEmbedding(failureContext, em.dimensions)
-		em.cache.Set(contextHash, vec)
-		return vec
-	}
-
-	vec := l2Normalize(embeddings[0])
-	em.cache.Set(contextHash, vec)
+func (em *EmbeddingModel) Encode(failureContext []byte) []float64 {
+	vec, _ := em.EncodeContext(context.Background(), failureContext)
 	return vec
+}
+func (em *EmbeddingModel) EncodeContext(ctx context.Context, failureContext []byte) ([]float64, error) {
+	h := hashBytes(failureContext)
+	if em.cache == nil {
+		em.cache = NewEmbeddingCache()
+	}
+	if cached, ok := em.cache.Get(h); ok {
+		return cached, nil
+	}
+	if em.service == nil {
+		vec := hashEmbedding(failureContext, em.dimensions)
+		em.cache.Set(h, vec)
+		return vec, nil
+	}
+	raw, err := em.service.Embed(ctx, string(failureContext))
+	if err != nil {
+		return nil, err
+	}
+	vec := make([]float64, len(raw))
+	for i, v := range raw {
+		vec[i] = float64(v)
+	}
+	vec = l2Normalize(vec)
+	em.cache.Set(h, vec)
+	return vec, nil
 }
 
 func CosineSimilarity(a, b []float64) float64 {
 	if len(a) != len(b) {
 		panic("dimension mismatch")
 	}
-	dotProduct := 0.0
-	normA := 0.0
-	normB := 0.0
+	var dot, na, nb float64
 	for i := range a {
-		dotProduct += a[i] * b[i]
-		normA += a[i] * a[i]
-		normB += b[i] * b[i]
+		dot += a[i] * b[i]
+		na += a[i] * a[i]
+		nb += b[i] * b[i]
 	}
-	if normA == 0 || normB == 0 {
+	if na == 0 || nb == 0 {
 		return 0
 	}
-	return dotProduct / (math.Sqrt(normA) * math.Sqrt(normB))
+	return dot / (math.Sqrt(na) * math.Sqrt(nb))
 }
-
-func hashBytes(data []byte) uint64 {
-	h := fnv.New64a()
-	h.Write(data)
-	return h.Sum64()
-}
-
-// hashEmbedding generates a deterministic embedding from input bytes
-// using hash-based feature hashing (no external deps).
+func hashBytes(data []byte) uint64 { h := fnv.New64a(); _, _ = h.Write(data); return h.Sum64() }
 func hashEmbedding(data []byte, dims int) []float64 {
 	vec := make([]float64, dims)
 	for i, b := range data {
 		idx := i % dims
-		// alternate sign based on bit to reduce bias
 		if i%2 == 0 {
 			vec[idx] += float64(b)
 		} else {
@@ -244,9 +136,8 @@ func hashEmbedding(data []byte, dims int) []float64 {
 	}
 	return l2Normalize(vec)
 }
-
 func l2Normalize(vec []float64) []float64 {
-	mag := 0.0
+	var mag float64
 	for _, v := range vec {
 		mag += v * v
 	}

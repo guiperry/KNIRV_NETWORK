@@ -3,6 +3,7 @@ package network
 import (
 	"KNIRVGRAPH/internal/economics"
 	"KNIRVGRAPH/internal/indexing"
+	graphmetrics "KNIRVGRAPH/internal/metrics"
 	"KNIRVGRAPH/internal/nrv"
 	"KNIRVGRAPH/internal/query"
 	"KNIRVGRAPH/internal/types"
@@ -22,6 +23,8 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.uber.org/zap"
 )
 
@@ -36,6 +39,7 @@ type RPCServer struct {
 	port            int
 	socketPath      string
 	txMu            sync.Mutex
+	ragMetrics      *graphmetrics.RAGMetrics
 }
 
 type GraphChainInterface interface {
@@ -55,6 +59,7 @@ type AppInterface interface {
 	IsProcessingEnabled() bool
 	GetIndexManager() *indexing.IndexManager
 	GetQueryProcessor() *query.QueryProcessor
+	SubsystemHealth(context.Context) map[string]error
 }
 
 func NewRPCServer(gc GraphChainInterface, logger *zap.Logger, port int) *RPCServer {
@@ -72,6 +77,7 @@ func NewRPCServerWithNRV(gc GraphChainInterface, nrvSys *nrv.NRVSystem, logger *
 	}
 
 	// Enable CORS
+	router.Use(tracingMiddleware(logger))
 	router.Use(func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Access-Control-Allow-Origin", "*")
@@ -126,6 +132,7 @@ func NewRPCServerWithNRV(gc GraphChainInterface, nrvSys *nrv.NRVSystem, logger *
 // NewRPCServerWithEconomics creates a new RPC server with economics integration
 func NewRPCServerWithEconomics(gc GraphChainInterface, nrvSys *nrv.NRVSystem, nrnIntegration *economics.NRNIntegration, proofOfSolution *economics.ProofOfSolution, app AppInterface, logger *zap.Logger, port int, socketPath string) *RPCServer {
 	router := mux.NewRouter()
+	registry := prometheus.NewRegistry()
 
 	rpc := &RPCServer{
 		graphchain:      gc,
@@ -136,9 +143,11 @@ func NewRPCServerWithEconomics(gc GraphChainInterface, nrvSys *nrv.NRVSystem, nr
 		logger:          logger,
 		port:            port,
 		socketPath:      socketPath,
+		ragMetrics:      graphmetrics.NewRAGMetrics(registry),
 	}
 
 	// Enable CORS
+	router.Use(tracingMiddleware(logger))
 	router.Use(func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Access-Control-Allow-Origin", "*")
@@ -201,6 +210,13 @@ func NewRPCServerWithEconomics(gc GraphChainInterface, nrvSys *nrv.NRVSystem, nr
 
 	// Health check
 	router.HandleFunc("/health", rpc.healthCheck).Methods("GET", "OPTIONS")
+	router.HandleFunc("/livez", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_ = json.NewEncoder(w).Encode(map[string]string{"status": "alive"})
+	}).Methods("GET")
+	router.HandleFunc("/readyz", rpc.healthCheck).Methods("GET")
+	router.Handle("/metrics", promhttp.HandlerFor(registry, promhttp.HandlerOpts{})).Methods("GET")
 
 	rpc.server = &http.Server{
 		Addr:              fmt.Sprintf(":%d", port),
@@ -1049,8 +1065,21 @@ func (rpc *RPCServer) healthCheck(w http.ResponseWriter, r *http.Request) {
 		status["services"].(map[string]interface{})["embeddings"] = "running"
 		status["services"].(map[string]interface{})["retrieval"] = "running"
 	}
+	code := http.StatusOK
+	if rpc.app != nil {
+		for name, err := range rpc.app.SubsystemHealth(r.Context()) {
+			if err != nil {
+				status["services"].(map[string]interface{})[name] = map[string]string{"status": "unhealthy", "error": err.Error()}
+				status["status"] = "unhealthy"
+				code = http.StatusServiceUnavailable
+			} else {
+				status["services"].(map[string]interface{})[name] = "running"
+			}
+		}
+	}
 
 	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(code)
 	json.NewEncoder(w).Encode(status)
 }
 
@@ -1077,11 +1106,11 @@ func (rpc *RPCServer) indexDocument(w http.ResponseWriter, r *http.Request) {
 	}
 
 	doc := types.ProcessedDocument{
-		ID:       req.Document.ID,
-		SourceID: req.Document.SourceID,
-		Content:  req.Document.Content,
-		Metadata: req.Document.Metadata,
-		Status:   types.DocumentStatusPending,
+		ID:        req.Document.ID,
+		SourceID:  req.Document.SourceID,
+		Content:   req.Document.Content,
+		Metadata:  req.Document.Metadata,
+		Status:    types.DocumentStatusPending,
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
 	}
@@ -1092,9 +1121,17 @@ func (rpc *RPCServer) indexDocument(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := idxManager.IndexDocument(r.Context(), doc); err != nil {
+	if err := idxManager.IndexDocumentWithOptions(r.Context(), doc, req.Overwrite); err != nil {
+		if rpc.ragMetrics != nil {
+			rpc.ragMetrics.Requests.WithLabelValues("index", "error").Inc()
+			rpc.ragMetrics.Failures.WithLabelValues("index").Inc()
+		}
 		http.Error(w, fmt.Sprintf("failed to index document: %v", err), http.StatusInternalServerError)
 		return
+	}
+	if rpc.ragMetrics != nil {
+		rpc.ragMetrics.Requests.WithLabelValues("index", "accepted").Inc()
+		rpc.ragMetrics.IndexedDocuments.Inc()
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -1162,6 +1199,12 @@ func (rpc *RPCServer) getDocumentStatus(w http.ResponseWriter, r *http.Request) 
 }
 
 func (rpc *RPCServer) queryDocuments(w http.ResponseWriter, r *http.Request) {
+	started := time.Now()
+	defer func() {
+		if rpc.ragMetrics != nil {
+			rpc.ragMetrics.Latency.WithLabelValues("query").Observe(time.Since(started).Seconds())
+		}
+	}()
 	if rpc.app == nil || !rpc.app.IsProcessingEnabled() {
 		http.Error(w, "processing not enabled", http.StatusServiceUnavailable)
 		return
@@ -1197,12 +1240,37 @@ func (rpc *RPCServer) queryDocuments(w http.ResponseWriter, r *http.Request) {
 
 	resp, err := qp.Process(r.Context(), req)
 	if err != nil {
+		if rpc.ragMetrics != nil {
+			rpc.ragMetrics.Requests.WithLabelValues("query", "error").Inc()
+			rpc.ragMetrics.Failures.WithLabelValues("query").Inc()
+		}
 		http.Error(w, fmt.Sprintf("query failed: %v", err), http.StatusInternalServerError)
 		return
+	}
+	if rpc.ragMetrics != nil {
+		rpc.ragMetrics.Requests.WithLabelValues("query", "success").Inc()
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(resp)
+}
+
+func (rpc *RPCServer) ObserveIndexCompletion(duration time.Duration, err error) {
+	if rpc.ragMetrics == nil {
+		return
+	}
+	rpc.ragMetrics.Latency.WithLabelValues("index_processing").Observe(duration.Seconds())
+	status := "success"
+	if err != nil {
+		status = "error"
+		rpc.ragMetrics.Failures.WithLabelValues("index_processing").Inc()
+	}
+	rpc.ragMetrics.Requests.WithLabelValues("index_processing", status).Inc()
+	if rpc.app != nil && rpc.app.GetIndexManager() != nil {
+		if count, ok := rpc.app.GetIndexManager().Stats()["vectors"].(int); ok {
+			rpc.ragMetrics.Vectors.Set(float64(count))
+		}
+	}
 }
 
 // findOpenPort searches for an open port starting from preferredPort

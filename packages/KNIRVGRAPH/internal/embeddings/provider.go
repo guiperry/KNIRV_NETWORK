@@ -24,10 +24,12 @@ type ProviderConfig struct {
 
 func DefaultProviderConfig(t types.EmbeddingProviderType) ProviderConfig {
 	switch t {
+	case types.EmbeddingProviderCandle:
+		return ProviderConfig{Type: t, Endpoint: "http://localhost:8091", Model: "sentence-transformers/all-MiniLM-L6-v2", Dimension: 384, BatchSize: 32, TimeoutSeconds: 30}
 	case types.EmbeddingProviderOllama:
 		return ProviderConfig{Type: t, Endpoint: "http://localhost:11434", Model: "nomic-embed-text", Dimension: 768, BatchSize: 32, TimeoutSeconds: 30}
 	case types.EmbeddingProviderTextEmbedder:
-		return ProviderConfig{Type: t, Endpoint: "http://localhost:8080", Model: "text-embedder", Dimension: 384, BatchSize: 64, TimeoutSeconds: 15}
+		return ProviderConfig{Type: t, Endpoint: "http://localhost:8089", Model: "text-embedder", Dimension: 384, BatchSize: 64, TimeoutSeconds: 15}
 	default:
 		return ProviderConfig{Type: types.EmbeddingProviderDeterministic, Dimension: 384, BatchSize: 32, TimeoutSeconds: 10}
 	}
@@ -35,6 +37,8 @@ func DefaultProviderConfig(t types.EmbeddingProviderType) ProviderConfig {
 
 func NewProvider(config ProviderConfig) (Provider, error) {
 	switch config.Type {
+	case types.EmbeddingProviderCandle:
+		return NewCandleProvider(config)
 	case types.EmbeddingProviderOllama:
 		return NewOllamaProvider(config)
 	case types.EmbeddingProviderTextEmbedder:

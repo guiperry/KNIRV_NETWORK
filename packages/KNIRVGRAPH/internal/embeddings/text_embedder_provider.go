@@ -18,7 +18,7 @@ type textEmbedderProvider struct {
 
 func NewTextEmbedderProvider(config ProviderConfig) (*textEmbedderProvider, error) {
 	if config.Endpoint == "" {
-		config.Endpoint = "http://localhost:8080"
+		config.Endpoint = "http://localhost:8089"
 	}
 	if config.Model == "" {
 		config.Model = "text-embedder"
@@ -67,8 +67,14 @@ func (p *textEmbedderProvider) Embed(ctx context.Context, texts []string) ([][]f
 	if err := json.NewDecoder(resp.Body).Decode(&raw); err != nil {
 		return nil, err
 	}
+	if len(raw) != len(texts) {
+		return nil, fmt.Errorf("text-embedder returned %d embeddings for %d texts", len(raw), len(texts))
+	}
 	out := make([][]float32, len(raw))
 	for i, vec := range raw {
+		if len(vec) != p.dimension {
+			return nil, fmt.Errorf("text-embedder embedding %d dimension mismatch: expected %d, got %d", i, p.dimension, len(vec))
+		}
 		out[i] = make([]float32, len(vec))
 		for j, v := range vec {
 			out[i][j] = float32(v)

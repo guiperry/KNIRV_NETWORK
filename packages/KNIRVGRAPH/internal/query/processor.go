@@ -42,11 +42,17 @@ func NewQueryProcessor(
 
 func (p *QueryProcessor) Process(ctx context.Context, req types.QueryRequest) (*types.QueryResponse, error) {
 	start := time.Now()
+	if p.embeddingService == nil {
+		return nil, fmt.Errorf("embedding service is not configured")
+	}
+	if p.pipeline == nil {
+		return nil, fmt.Errorf("retrieval pipeline is not configured")
+	}
 	queryVec, err := p.embeddingService.Embed(ctx, req.Query)
 	if err != nil {
 		return nil, fmt.Errorf("failed to embed query: %w", err)
 	}
-	results, err := p.pipeline.Search(req.Query, queryVec, req.TopK)
+	results, err := p.pipeline.SearchFiltered(req.Query, queryVec, req.TopK, req.Filters)
 	if err != nil {
 		return nil, fmt.Errorf("retrieval failed: %w", err)
 	}
@@ -62,7 +68,7 @@ func (p *QueryProcessor) Process(ctx context.Context, req types.QueryRequest) (*
 	var confidence float64
 	if req.Synthesize && p.synthesizer != nil {
 		synthReq := types.SynthesisRequest{
-			Query:   req.Query,
+			Query:    req.Query,
 			Contexts: []types.RetrievalResult{{Query: req.Query, Results: results}},
 		}
 		resp, err := p.synthesizer.Synthesize(ctx, synthReq)

@@ -6,20 +6,21 @@ import (
 	"fmt"
 	"hash/fnv"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"go.uber.org/zap"
 )
 
 type EmbeddingService struct {
-	provider      Provider
-	cache         map[uint64][]float32
-	cacheTTL      time.Duration
-	cacheExpiry   map[uint64]time.Time
-	mu            sync.RWMutex
-	batchSize     int
-	logger        *zap.Logger
-	metrics       *EmbeddingMetrics
+	provider    Provider
+	cache       map[uint64][]float32
+	cacheTTL    time.Duration
+	cacheExpiry map[uint64]time.Time
+	mu          sync.RWMutex
+	batchSize   int
+	logger      *zap.Logger
+	metrics     *EmbeddingMetrics
 }
 
 type EmbeddingMetrics struct {
@@ -57,14 +58,14 @@ func (s *EmbeddingService) Embed(ctx context.Context, text string) ([]float32, e
 	s.mu.RLock()
 	if vec, ok := s.cache[key]; ok && time.Now().Before(s.cacheExpiry[key]) {
 		s.mu.RUnlock()
-		s.metrics.CacheHits++
-		return vec, nil
+		atomic.AddInt64(&s.metrics.CacheHits, 1)
+		return append([]float32(nil), vec...), nil
 	}
 	s.mu.RUnlock()
-	s.metrics.CacheMisses++
+	atomic.AddInt64(&s.metrics.CacheMisses, 1)
 	vecs, err := s.provider.Embed(ctx, []string{text})
 	if err != nil {
-		s.metrics.ProviderFailures++
+		atomic.AddInt64(&s.metrics.ProviderFailures, 1)
 		return nil, err
 	}
 	if len(vecs) == 0 {
@@ -75,7 +76,7 @@ func (s *EmbeddingService) Embed(ctx context.Context, text string) ([]float32, e
 	s.cache[key] = result
 	s.cacheExpiry[key] = time.Now().Add(s.cacheTTL)
 	s.mu.Unlock()
-	s.metrics.TotalEmbeddings++
+	atomic.AddInt64(&s.metrics.TotalEmbeddings, 1)
 	return result, nil
 }
 
@@ -94,13 +95,13 @@ func (s *EmbeddingService) EmbedBatch(ctx context.Context, texts []string) ([][]
 		}
 		key := hashText(text)
 		if vec, ok := s.cache[key]; ok && time.Now().Before(s.cacheExpiry[key]) {
-			result[i] = vec
-			s.metrics.CacheHits++
+			result[i] = append([]float32(nil), vec...)
+			atomic.AddInt64(&s.metrics.CacheHits, 1)
 			continue
 		}
 		toEmbed = append(toEmbed, text)
 		indices = append(indices, i)
-		s.metrics.CacheMisses++
+		atomic.AddInt64(&s.metrics.CacheMisses, 1)
 	}
 	s.mu.RUnlock()
 	if len(toEmbed) == 0 {
@@ -115,7 +116,7 @@ func (s *EmbeddingService) EmbedBatch(ctx context.Context, texts []string) ([][]
 		batch := toEmbed[batchStart:batchEnd]
 		embeddings, err := s.provider.Embed(ctx, batch)
 		if err != nil {
-			s.metrics.ProviderFailures++
+			atomic.AddInt64(&s.metrics.ProviderFailures, 1)
 			return nil, fmt.Errorf("batch embedding failed: %w", err)
 		}
 		allEmbeddings = append(allEmbeddings, embeddings...)
@@ -128,7 +129,7 @@ func (s *EmbeddingService) EmbedBatch(ctx context.Context, texts []string) ([][]
 			s.cache[key] = allEmbeddings[k]
 			s.cacheExpiry[key] = time.Now().Add(s.cacheTTL)
 			s.mu.Unlock()
-			s.metrics.TotalEmbeddings++
+			atomic.AddInt64(&s.metrics.TotalEmbeddings, 1)
 		}
 	}
 	return result, nil
@@ -147,7 +148,7 @@ func (s *EmbeddingService) Close() error {
 }
 
 func (s *EmbeddingService) Metrics() EmbeddingMetrics {
-	return *s.metrics
+	return EmbeddingMetrics{TotalEmbeddings: atomic.LoadInt64(&s.metrics.TotalEmbeddings), CacheHits: atomic.LoadInt64(&s.metrics.CacheHits), CacheMisses: atomic.LoadInt64(&s.metrics.CacheMisses), ProviderFailures: atomic.LoadInt64(&s.metrics.ProviderFailures)}
 }
 
 func hashText(text string) uint64 {
@@ -166,6 +167,6 @@ func (s *EmbeddingService) StoreVectorIndex(id string, vector []float32) error {
 }
 
 func (s *EmbeddingService) MarshalMetrics() []byte {
-	data, _ := json.Marshal(s.metrics)
+	data, _ := json.Marshal(s.Metrics())
 	return data
 }

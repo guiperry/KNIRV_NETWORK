@@ -4,10 +4,49 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
+	"math/big"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 	"time"
+
+	"github.com/knirvcorp/knirvoracle/internal/oracle/token"
+	"github.com/knirvcorp/knirvoracle/internal/oracle/types"
 )
+
+// noopDisburser satisfies the Disburser interface without minting anything —
+// none of the billing-lifecycle event tests below exercise the fiat->NRN
+// disbursement path.
+type noopDisburser struct{}
+
+func (noopDisburser) FundAddress(types.Address, *big.Int, string) (*token.MintReceipt, error) {
+	return nil, fmt.Errorf("not implemented in test")
+}
+
+// newTestProcessor builds a Processor wired to a local httptest server
+// standing in for onboarding.knirv.com's /api/onboarding endpoint, so tests
+// can assert on the callback payload without hitting the network.
+func newTestProcessor(t *testing.T, onCallback func(payload map[string]interface{})) *Processor {
+	t.Helper()
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var payload map[string]interface{}
+		if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+			t.Fatalf("failed to decode callback payload: %v", err)
+		}
+		if onCallback != nil {
+			onCallback(payload)
+		}
+		w.WriteHeader(http.StatusOK)
+	}))
+	t.Cleanup(server.Close)
+
+	return NewProcessor(Config{
+		Enabled:               true,
+		OnboardingCallbackURL: server.URL,
+	}, noopDisburser{}, nil)
+}
 
 func signStripePayload(secret string, timestamp int64, payload []byte) string {
 	signedPayload := fmt.Sprintf("%d.%s", timestamp, payload)
@@ -128,5 +167,210 @@ func TestVerifyStripeSignature_IgnoresV0(t *testing.T) {
 
 	if err := verifyStripeSignature(payload, header, secret, stripeSignatureTolerance); err != nil {
 		t.Fatalf("expected a valid v1 signature alongside an unrelated v0 entry to pass, got: %v", err)
+	}
+}
+
+func TestMetadataPlanSession(t *testing.T) {
+	object := map[string]interface{}{
+		"metadata": map[string]interface{}{
+			"plan":      "professional",
+			"sessionId": "sess_123",
+		},
+	}
+	plan, sessionID := metadataPlanSession(object)
+	if plan != "professional" || sessionID != "sess_123" {
+		t.Fatalf("expected (professional, sess_123), got (%s, %s)", plan, sessionID)
+	}
+}
+
+func TestMetadataPlanSession_Missing(t *testing.T) {
+	plan, sessionID := metadataPlanSession(map[string]interface{}{})
+	if plan != "" || sessionID != "" {
+		t.Fatalf("expected empty plan/session when metadata is absent, got (%s, %s)", plan, sessionID)
+	}
+}
+
+// resolvePlanSession's mode=payment case: Stripe copies Checkout Session
+// metadata directly onto the resulting PaymentIntent/Charge/Refund object, so
+// this must resolve with zero Stripe API calls.
+func TestResolvePlanSession_DirectMetadata(t *testing.T) {
+	p := NewProcessor(Config{}, noopDisburser{}, nil)
+	object := map[string]interface{}{
+		"id": "re_123",
+		"metadata": map[string]interface{}{
+			"plan":      "investor",
+			"sessionId": "sess_abc",
+		},
+	}
+	plan, sessionID := p.resolvePlanSession(object)
+	if plan != "investor" || sessionID != "sess_abc" {
+		t.Fatalf("expected (investor, sess_abc), got (%s, %s)", plan, sessionID)
+	}
+}
+
+// resolvePlanSession's mode=subscription case: metadata lives at
+// subscription_details.metadata on the invoice, propagated there by
+// CreateCheckoutSession's subscription_data[metadata] fields.
+func TestResolvePlanSession_SubscriptionDetails(t *testing.T) {
+	p := NewProcessor(Config{}, noopDisburser{}, nil)
+	object := map[string]interface{}{
+		"id": "in_123",
+		"subscription_details": map[string]interface{}{
+			"metadata": map[string]interface{}{
+				"plan":      "enterprise",
+				"sessionId": "sess_xyz",
+			},
+		},
+	}
+	plan, sessionID := p.resolvePlanSession(object)
+	if plan != "enterprise" || sessionID != "sess_xyz" {
+		t.Fatalf("expected (enterprise, sess_xyz), got (%s, %s)", plan, sessionID)
+	}
+}
+
+// With no inline metadata and no subscription/invoice/payment_intent/charge
+// reference to chase, resolution must fail closed (empty), not panic or fall
+// back to some default plan.
+func TestResolvePlanSession_Unresolvable(t *testing.T) {
+	p := NewProcessor(Config{}, noopDisburser{}, nil)
+	plan, sessionID := p.resolvePlanSession(map[string]interface{}{"id": "re_999"})
+	if plan != "" || sessionID != "" {
+		t.Fatalf("expected unresolvable object to yield empty plan/session, got (%s, %s)", plan, sessionID)
+	}
+}
+
+func TestHandleRefundEvent_FailedIsLoggedOnly(t *testing.T) {
+	called := false
+	p := newTestProcessor(t, func(map[string]interface{}) { called = true })
+
+	rec := httptest.NewRecorder()
+	p.handleRefundEvent(rec, map[string]interface{}{"id": "re_1", "status": "failed"}, "refund.failed")
+
+	if called {
+		t.Fatal("refund.failed must never notify onboarding")
+	}
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", rec.Code)
+	}
+}
+
+func TestHandleRefundEvent_PendingIsIgnored(t *testing.T) {
+	called := false
+	p := newTestProcessor(t, func(map[string]interface{}) { called = true })
+
+	rec := httptest.NewRecorder()
+	p.handleRefundEvent(rec, map[string]interface{}{
+		"id":     "re_2",
+		"status": "pending",
+		"metadata": map[string]interface{}{
+			"plan": "professional", "sessionId": "sess_1",
+		},
+	}, "refund.created")
+
+	if called {
+		t.Fatal("a non-succeeded refund.created must not notify onboarding yet")
+	}
+}
+
+func TestHandleRefundEvent_SucceededNotifiesAndDedupes(t *testing.T) {
+	var payloads []map[string]interface{}
+	p := newTestProcessor(t, func(payload map[string]interface{}) {
+		payloads = append(payloads, payload)
+	})
+
+	object := map[string]interface{}{
+		"id":     "re_3",
+		"status": "succeeded",
+		"metadata": map[string]interface{}{
+			"plan": "professional", "sessionId": "sess_2",
+		},
+	}
+
+	rec1 := httptest.NewRecorder()
+	p.handleRefundEvent(rec1, object, "refund.created")
+	if len(payloads) != 1 {
+		t.Fatalf("expected exactly one onboarding notification, got %d", len(payloads))
+	}
+	if payloads[0]["eventType"] != "payment-refunded" || payloads[0]["plan"] != "professional" || payloads[0]["sessionId"] != "sess_2" {
+		t.Fatalf("unexpected callback payload: %+v", payloads[0])
+	}
+
+	// Stripe may redeliver the same event; the dedupe key must suppress it.
+	rec2 := httptest.NewRecorder()
+	p.handleRefundEvent(rec2, object, "refund.created")
+	if len(payloads) != 1 {
+		t.Fatalf("expected redelivered refund.created to be deduped, got %d total notifications", len(payloads))
+	}
+}
+
+func TestHandleInvoicePaidEvent_DedupesAcrossBothEventNames(t *testing.T) {
+	var payloads []map[string]interface{}
+	p := newTestProcessor(t, func(payload map[string]interface{}) {
+		payloads = append(payloads, payload)
+	})
+
+	object := map[string]interface{}{
+		"id": "in_1",
+		"subscription_details": map[string]interface{}{
+			"metadata": map[string]interface{}{
+				"plan": "enterprise", "sessionId": "sess_3",
+			},
+		},
+	}
+
+	rec1 := httptest.NewRecorder()
+	p.handleInvoicePaidEvent(rec1, object)
+	if len(payloads) != 1 || payloads[0]["eventType"] != "payment-confirmed" {
+		t.Fatalf("expected one payment-confirmed notification, got %+v", payloads)
+	}
+
+	// Stripe fires invoice.paid AND invoice.payment_succeeded for the same
+	// invoice — both route through this same handler and must dedupe by
+	// invoice ID, not by event name.
+	rec2 := httptest.NewRecorder()
+	p.handleInvoicePaidEvent(rec2, object)
+	if len(payloads) != 1 {
+		t.Fatalf("expected the second delivery for the same invoice ID to be deduped, got %d total notifications", len(payloads))
+	}
+}
+
+func TestHandleInvoicePaidEvent_NoMetadataIsIgnoredNotErrored(t *testing.T) {
+	called := false
+	p := newTestProcessor(t, func(map[string]interface{}) { called = true })
+
+	rec := httptest.NewRecorder()
+	p.handleInvoicePaidEvent(rec, map[string]interface{}{"id": "in_2"})
+
+	if called {
+		t.Fatal("an invoice with no plan/session metadata (e.g. the fiat->NRN path) must not notify onboarding")
+	}
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200 (ignored, not an error), got %d", rec.Code)
+	}
+}
+
+func TestHandlePaymentActionRequiredEvent_NotifiesAndDedupes(t *testing.T) {
+	var payloads []map[string]interface{}
+	p := newTestProcessor(t, func(payload map[string]interface{}) {
+		payloads = append(payloads, payload)
+	})
+
+	object := map[string]interface{}{
+		"id": "pi_1",
+		"metadata": map[string]interface{}{
+			"plan": "professional", "sessionId": "sess_4",
+		},
+	}
+
+	rec1 := httptest.NewRecorder()
+	p.handlePaymentActionRequiredEvent(rec1, object, "payment_intent.requires_action")
+	if len(payloads) != 1 || payloads[0]["eventType"] != "payment-action-required" {
+		t.Fatalf("expected one payment-action-required notification, got %+v", payloads)
+	}
+
+	rec2 := httptest.NewRecorder()
+	p.handlePaymentActionRequiredEvent(rec2, object, "payment_intent.requires_action")
+	if len(payloads) != 1 {
+		t.Fatalf("expected redelivery to be deduped, got %d total notifications", len(payloads))
 	}
 }

@@ -181,6 +181,9 @@ func LoadConfigFromEnv() (*OracleConfig, error) {
 	if v := os.Getenv("STRIPE_WEBHOOK_SECRET"); v != "" {
 		config.StripeWebhookSecret = v
 	}
+	if v := os.Getenv("STRIPE_THIN_WEBHOOK_SECRET"); v != "" {
+		config.StripeThinWebhookSecret = v
+	}
 	if v := os.Getenv("COINBASE_API_KEY"); v != "" {
 		config.CoinbaseAPIKey = v
 	}

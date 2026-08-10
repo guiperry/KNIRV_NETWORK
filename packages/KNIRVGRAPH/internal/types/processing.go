@@ -11,28 +11,28 @@ const (
 )
 
 type Chunk struct {
-	ID        string                 `json:"id"`
-	DocumentID string                `json:"document_id"`
-	Text      string                 `json:"text"`
-	Index     int                    `json:"index"`
-	StartOffset int                  `json:"start_offset"`
-	EndOffset   int                  `json:"end_offset"`
+	ID          string                 `json:"id"`
+	DocumentID  string                 `json:"document_id"`
+	Text        string                 `json:"text"`
+	Index       int                    `json:"index"`
+	StartOffset int                    `json:"start_offset"`
+	EndOffset   int                    `json:"end_offset"`
 	Metadata    map[string]interface{} `json:"metadata"`
-	Embedding   []float32             `json:"embedding,omitempty"`
-	CreatedAt   time.Time             `json:"created_at"`
+	Embedding   []float32              `json:"embedding,omitempty"`
+	CreatedAt   time.Time              `json:"created_at"`
 }
 
 type ProcessedDocument struct {
-	ID          string                 `json:"id"`
-	SourceID    string                 `json:"source_id"`
-	Content     string                 `json:"content"`
-	Chunks      []Chunk                `json:"chunks"`
-	Entities    []ExtractedEntity      `json:"entities"`
+	ID            string                  `json:"id"`
+	SourceID      string                  `json:"source_id"`
+	Content       string                  `json:"content"`
+	Chunks        []Chunk                 `json:"chunks"`
+	Entities      []ExtractedEntity       `json:"entities"`
 	Relationships []ExtractedRelationship `json:"relationships"`
-	Metadata    map[string]interface{} `json:"metadata"`
-	Status      DocumentStatus         `json:"status"`
-	CreatedAt   time.Time              `json:"created_at"`
-	UpdatedAt   time.Time              `json:"updated_at"`
+	Metadata      map[string]interface{}  `json:"metadata"`
+	Status        DocumentStatus          `json:"status"`
+	CreatedAt     time.Time               `json:"created_at"`
+	UpdatedAt     time.Time               `json:"updated_at"`
 }
 
 type DocumentStatus string
@@ -56,41 +56,46 @@ type ExtractedEntity struct {
 }
 
 type ExtractedRelationship struct {
-	ID         string                 `json:"id"`
-	DocumentID string                 `json:"document_id"`
-	Source     string                 `json:"source"`
-	Target     string                 `json:"target"`
-	Type       string                 `json:"type"`
-	Weight     float64                `json:"weight"`
-	Evidence   string                 `json:"evidence"`
-	Confidence float64                `json:"confidence"`
-	CreatedAt  time.Time              `json:"created_at"`
+	ID         string    `json:"id"`
+	DocumentID string    `json:"document_id"`
+	Source     string    `json:"source"`
+	Target     string    `json:"target"`
+	Type       string    `json:"type"`
+	Weight     float64   `json:"weight"`
+	Evidence   string    `json:"evidence"`
+	Confidence float64   `json:"confidence"`
+	CreatedAt  time.Time `json:"created_at"`
 }
 
 type ChunkingConfig struct {
-	Strategy    ChunkingStrategy `json:"strategy"`
-	ChunkSize   int              `json:"chunk_size"`
-	Overlap     int              `json:"overlap"`
-	Separators  []string         `json:"separators"`
-	LengthFunc  func(string) int `json:"-"`
+	Strategy   ChunkingStrategy `json:"strategy"`
+	ChunkSize  int              `json:"chunk_size"`
+	Overlap    int              `json:"overlap"`
+	Separators []string         `json:"separators"`
+	LengthFunc func(string) int `json:"-"`
 }
 
 type ExtractionConfig struct {
-	EnableEntities     bool     `json:"enable_entities"`
-	EnableRelationships bool    `json:"enable_relationships"`
-	EntityTypes        []string `json:"entity_types"`
-	MinConfidence      float64  `json:"min_confidence"`
-	LLMEndpoint        string   `json:"llm_endpoint"`
-	LLMModel           string   `json:"llm_model"`
+	EnableEntities      bool     `json:"enable_entities"`
+	EnableRelationships bool     `json:"enable_relationships"`
+	EntityTypes         []string `json:"entity_types"`
+	MinConfidence       float64  `json:"min_confidence"`
+	LLMEndpoint         string   `json:"llm_endpoint"`
+	LLMModel            string   `json:"llm_model"`
+	GLiNEREndpoint      string   `json:"gliner_endpoint"`
+	GLiNERModel         string   `json:"gliner_model"`
+	GLiNERFailOpen      bool     `json:"gliner_fail_open"`
+	TimeoutSeconds      int      `json:"timeout_seconds"`
 }
 
 type EmbeddingProviderType string
 
 const (
 	EmbeddingProviderDeterministic EmbeddingProviderType = "deterministic"
-	EmbeddingProviderOllama       EmbeddingProviderType = "ollama"
-	EmbeddingProviderTextEmbedder EmbeddingProviderType = "text_embedder"
-	EmbeddingProviderStub         EmbeddingProviderType = "stub"
+	EmbeddingProviderCandle        EmbeddingProviderType = "candle"
+	EmbeddingProviderOllama        EmbeddingProviderType = "ollama"
+	EmbeddingProviderTextEmbedder  EmbeddingProviderType = "text_embedder"
+	EmbeddingProviderStub          EmbeddingProviderType = "stub"
 )
 
 type EmbeddingProviderConfig struct {
@@ -111,36 +116,36 @@ type VectorSearchResult struct {
 }
 
 type RetrievalQuery struct {
-	Query        string                 `json:"query"`
-	TopK         int                    `json:"top_k"`
-	Filters      map[string]interface{} `json:"filters"`
-	IncludeVector bool                  `json:"include_vector"`
-	HybridWeight float64                `json:"hybrid_weight"`
+	Query         string                 `json:"query"`
+	TopK          int                    `json:"top_k"`
+	Filters       map[string]interface{} `json:"filters"`
+	IncludeVector bool                   `json:"include_vector"`
+	HybridWeight  float64                `json:"hybrid_weight"`
 }
 
 type RetrievalResult struct {
-	Query      string                `json:"query"`
-	Results    []VectorSearchResult  `json:"results"`
-	TotalFound int                   `json:"total_found"`
-	LatencyMs  int64                 `json:"latency_ms"`
-	Strategy   string                `json:"strategy"`
+	Query      string               `json:"query"`
+	Results    []VectorSearchResult `json:"results"`
+	TotalFound int                  `json:"total_found"`
+	LatencyMs  int64                `json:"latency_ms"`
+	Strategy   string               `json:"strategy"`
 }
 
 type SynthesisRequest struct {
-	Query        string                 `json:"query"`
-	Contexts     []RetrievalResult      `json:"contexts"`
-	MaxTokens    int                    `json:"max_tokens"`
-	Temperature  float64                `json:"temperature"`
-	LLMEndpoint  string                 `json:"llm_endpoint"`
-	LLMModel     string                 `json:"llm_model"`
+	Query       string            `json:"query"`
+	Contexts    []RetrievalResult `json:"contexts"`
+	MaxTokens   int               `json:"max_tokens"`
+	Temperature float64           `json:"temperature"`
+	LLMEndpoint string            `json:"llm_endpoint"`
+	LLMModel    string            `json:"llm_model"`
 }
 
 type SynthesisResponse struct {
-	Answer       string `json:"answer"`
-	Reasoning    string `json:"reasoning,omitempty"`
-	Confidence   float64 `json:"confidence"`
-	Sources      []string `json:"sources"`
-	LatencyMs    int64   `json:"latency_ms"`
+	Answer     string   `json:"answer"`
+	Reasoning  string   `json:"reasoning,omitempty"`
+	Confidence float64  `json:"confidence"`
+	Sources    []string `json:"sources"`
+	LatencyMs  int64    `json:"latency_ms"`
 }
 
 type IndexDocumentRequest struct {
@@ -158,10 +163,10 @@ type QueryRequest struct {
 }
 
 type QueryResponse struct {
-	Answer     string                `json:"answer"`
-	Reasoning  string                `json:"reasoning,omitempty"`
-	Results    []RetrievalResult     `json:"results"`
-	Sources    []string              `json:"sources"`
-	Confidence float64               `json:"confidence"`
-	LatencyMs  int64                 `json:"latency_ms"`
+	Answer     string            `json:"answer"`
+	Reasoning  string            `json:"reasoning,omitempty"`
+	Results    []RetrievalResult `json:"results"`
+	Sources    []string          `json:"sources"`
+	Confidence float64           `json:"confidence"`
+	LatencyMs  int64             `json:"latency_ms"`
 }

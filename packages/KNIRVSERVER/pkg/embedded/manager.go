@@ -2,10 +2,8 @@ package embedded
 
 import (
 	"context"
-	"fmt"
 	"sync"
 
-	"knirv-server/pkg/embedded/graphrag"
 	"knirv-server/pkg/embedded/transactionchain"
 	"knirv-server/pkg/embedded/validationchain"
 )
@@ -21,11 +19,8 @@ type EmbeddedService interface {
 
 // Manager handles lifecycle of all embedded services
 type Manager struct {
-	services    []EmbeddedService
-	ctx         context.Context
-	cancelFunc  context.CancelFunc
-	initialized bool
-	mu          sync.Mutex
+	services []EmbeddedService
+	mu       sync.Mutex
 }
 
 var (
@@ -37,56 +32,11 @@ var (
 func GetManager() *Manager {
 	managerOnce.Do(func() {
 		globalManager = &Manager{
-			services: make([]EmbeddedService, 0, 3),
+			services: make([]EmbeddedService, 0, 2),
 		}
 	})
 	return globalManager
 }
-
-// GraphRagService wraps the graphrag CGo library and the Unix-socket HTTP
-// server (server.go) that exposes it to backend_server (KNIRV_CORP), which
-// runs as a separate OS process and cannot reach this in-process CGo/Rust
-// engine any other way.
-type GraphRagService struct {
-	config     []byte
-	socketPath string
-	server     *graphrag.Server
-}
-
-// Name returns service identifier
-func (s *GraphRagService) Name() string { return "graphrag" }
-
-// Init initializes graphrag engine
-func (s *GraphRagService) Init(config []byte) error {
-	s.config = config
-	return graphrag.Init(config)
-}
-
-// Start launches the Unix-socket HTTP server bridging the already-initialized
-// graphrag engine to other processes. socketPath must be set (via
-// Manager.Initialize) before this is called.
-func (s *GraphRagService) Start(ctx context.Context) error {
-	if s.socketPath == "" {
-		return fmt.Errorf("graphrag socket path not configured")
-	}
-	server, err := graphrag.StartServer(ctx, s.socketPath)
-	if err != nil {
-		return fmt.Errorf("failed to start graphrag socket server: %w", err)
-	}
-	s.server = server
-	return nil
-}
-
-// Stop shuts down the socket server, then the graphrag engine itself.
-func (s *GraphRagService) Stop() error {
-	if s.server != nil {
-		_ = s.server.Close()
-	}
-	return graphrag.Shutdown()
-}
-
-// Health checks graphrag health status
-func (s *GraphRagService) Health() error { return graphrag.HealthCheck() }
 
 // ValidationChainService wraps the embedded Validation Chain binary,
 // spawned and monitored entirely within pkg/embedded/validationchain, bound
@@ -147,40 +97,8 @@ func (s *TransactionChainService) Health() error {
 	return transactionchain.Get().HealthCheck()
 }
 
-// Initialize sets up the always-on embedded services (currently GraphRag):
-// it initializes the in-process graphrag-rs engine and starts the Unix
-// domain socket HTTP server at graphSocketPath that bridges it to
-// backend_server (KNIRV_CORP) — a separate OS process that cannot reach
-// this CGo-linked engine any other way. Call StartValidationChain /
-// StartTransactionChain separately — each is independently best-effort (a
-// failure in one must not prevent the other, or graphrag, from running), so
-// they are not folded into this call.
-func (m *Manager) Initialize(ctx context.Context, graphRagConfig []byte, graphSocketPath string) error {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-
-	if m.initialized {
-		return fmt.Errorf("embedded manager already initialized")
-	}
-
-	m.ctx, m.cancelFunc = context.WithCancel(ctx)
-
-	graphSvc := &GraphRagService{socketPath: graphSocketPath}
-	if err := graphSvc.Init(graphRagConfig); err != nil {
-		return fmt.Errorf("failed to initialize graphrag: %w", err)
-	}
-	if err := graphSvc.Start(m.ctx); err != nil {
-		return fmt.Errorf("failed to start graphrag socket server: %w", err)
-	}
-	m.services = append(m.services, graphSvc)
-
-	m.initialized = true
-	return nil
-}
-
 // StartValidationChain starts the embedded Validation Chain subprocess
 // bound to socketPath and registers it for Health()/Shutdown() tracking.
-// Must be called after Initialize.
 func (m *Manager) StartValidationChain(ctx context.Context, socketPath, servicePrivateKey string) error {
 	svc := &ValidationChainService{socketPath: socketPath, servicePrivateKey: servicePrivateKey}
 	if err := svc.Start(ctx); err != nil {
@@ -194,7 +112,6 @@ func (m *Manager) StartValidationChain(ctx context.Context, socketPath, serviceP
 
 // StartTransactionChain starts the embedded Transaction Chain subprocess
 // bound to socketPath and registers it for Health()/Shutdown() tracking.
-// Must be called after Initialize.
 func (m *Manager) StartTransactionChain(ctx context.Context, socketPath, internalAuthToken string) error {
 	svc := &TransactionChainService{socketPath: socketPath, internalAuthToken: internalAuthToken}
 	if err := svc.Start(ctx); err != nil {
@@ -214,10 +131,6 @@ func (m *Manager) Shutdown() error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	if m.cancelFunc != nil {
-		m.cancelFunc()
-	}
-
 	var firstErr error
 	for i := len(m.services) - 1; i >= 0; i-- {
 		if err := m.services[i].Stop(); err != nil && firstErr == nil {
@@ -225,7 +138,6 @@ func (m *Manager) Shutdown() error {
 		}
 	}
 
-	m.initialized = false
 	m.services = nil
 
 	return firstErr
@@ -242,11 +154,4 @@ func (m *Manager) Health() map[string]error {
 	}
 
 	return health
-}
-
-// IsInitialized returns true if manager is properly initialized
-func (m *Manager) IsInitialized() bool {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	return m.initialized
 }

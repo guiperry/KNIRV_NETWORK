@@ -31,14 +31,26 @@ import (
 
 // Config holds configuration for the payment processor.
 type Config struct {
-	Enabled               bool
-	StripeSecretKey       string
-	StripeWebhookSecret   string
-	CoinbaseAPIKey        string
-	CoinbaseWebhookSecret string
-	TokenDecimals         int
-	USDPerToken           float64
-	ETHPerToken           float64
+	Enabled             bool
+	StripeSecretKey     string
+	StripeWebhookSecret string
+	// StripeThinWebhookSecret is the signing secret for a second Stripe Event
+	// Destination delivering "thin" payloads (see
+	// https://docs.stripe.com/event-destinations#thin-events). Stripe mints a
+	// distinct signing secret per destination, and — since account-level thin
+	// events for classic v1 resources (refund.*, invoice.*,
+	// checkout.session.*, payment_intent.*) are a private preview — selecting
+	// a mix of event types can force Stripe's dashboard to split one event
+	// selection into two destinations, one per payload style, even though
+	// both can point at this same webhook URL. Left empty, only
+	// StripeWebhookSecret is checked (unchanged, single-destination
+	// behavior).
+	StripeThinWebhookSecret string
+	CoinbaseAPIKey          string
+	CoinbaseWebhookSecret   string
+	TokenDecimals           int
+	USDPerToken             float64
+	ETHPerToken             float64
 
 	// Plan checkout (KNIRV.COM pricing tiers, sold through
 	// onboarding.knirv.com). Separate from the fiat->NRN disbursement path
@@ -62,6 +74,9 @@ func LoadConfigFromEnv(cfg *Config) {
 	}
 	if v := os.Getenv("STRIPE_WEBHOOK_SECRET"); v != "" {
 		cfg.StripeWebhookSecret = v
+	}
+	if v := os.Getenv("STRIPE_THIN_WEBHOOK_SECRET"); v != "" {
+		cfg.StripeThinWebhookSecret = v
 	}
 	if v := os.Getenv("COINBASE_API_KEY"); v != "" {
 		cfg.CoinbaseAPIKey = v
@@ -133,6 +148,129 @@ func NewProcessor(cfg Config, disburser Disburser, logger *zap.Logger) *Processo
 		logger:            logger,
 		processedPayments: make(map[string]string),
 	}
+}
+
+// alreadyProcessed and markProcessed share the idempotency map used across
+// every webhook event type this processor handles (checkout, refund,
+// invoice) — each caller picks its own prefixed key so unrelated event types
+// never collide.
+func (p *Processor) alreadyProcessed(key string) bool {
+	p.mu.RLock()
+	defer p.mu.RUnlock()
+	_, ok := p.processedPayments[key]
+	return ok
+}
+
+func (p *Processor) markProcessed(key, value string) {
+	p.mu.Lock()
+	p.processedPayments[key] = value
+	p.mu.Unlock()
+}
+
+// doStripeGet performs an authenticated GET against a fully-qualified Stripe
+// API URL, consistent with this file's hand-rolled (no stripe-go)
+// integration style.
+func (p *Processor) doStripeGet(fullURL string) (map[string]interface{}, error) {
+	req, err := http.NewRequest(http.MethodGet, fullURL, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to build stripe request: %w", err)
+	}
+	req.SetBasicAuth(p.config.StripeSecretKey, "")
+
+	client := &http.Client{Timeout: 15 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("stripe request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	var out map[string]interface{}
+	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
+		return nil, fmt.Errorf("failed to decode stripe response: %w", err)
+	}
+	if resp.StatusCode >= 300 {
+		return nil, fmt.Errorf("stripe GET %s failed: %v", fullURL, out["error"])
+	}
+	return out, nil
+}
+
+// fetchStripeObject performs an authenticated GET against api.stripe.com/v1/
+// for a bare "resource/id" path. Used as a one-hop fallback when a webhook
+// object doesn't carry the plan/session metadata inline (see
+// resolvePlanSession).
+func (p *Processor) fetchStripeObject(path string) (map[string]interface{}, error) {
+	return p.doStripeGet("https://api.stripe.com/v1/" + path)
+}
+
+// fetchStripeURL performs an authenticated GET against a full API path as
+// delivered in a thin event's related_object.url (e.g. "/v1/refunds/re_123"
+// or "/v2/core/accounts/acct_123") — distinct from fetchStripeObject, which
+// is handed a path relative to the v1 API root rather than the full,
+// version-prefixed path Stripe supplies inline.
+func (p *Processor) fetchStripeURL(urlPath string) (map[string]interface{}, error) {
+	return p.doStripeGet("https://api.stripe.com" + urlPath)
+}
+
+// metadataPlanSession reads the plan/sessionId pair CreateCheckoutSession
+// stamps onto Stripe objects at checkout time (see form.Set("metadata[...]")
+// and, for subscriptions, form.Set("subscription_data[metadata][...]")).
+func metadataPlanSession(object map[string]interface{}) (plan, sessionID string) {
+	metadata, _ := object["metadata"].(map[string]interface{})
+	plan, _ = metadata["plan"].(string)
+	sessionID, _ = metadata["sessionId"].(string)
+	return
+}
+
+// resolvePlanSession traces a billing-lifecycle event's Stripe object back to
+// the plan/session metadata set at Checkout time. Where that metadata lands
+// depends on checkout mode and object type:
+//   - mode=payment (investor): Stripe copies Checkout Session metadata onto
+//     the resulting PaymentIntent/Charge directly.
+//   - mode=subscription (professional/enterprise): CreateCheckoutSession sets
+//     subscription_data[metadata], so it lands on the Subscription; modern
+//     Stripe API versions also embed a snapshot of it at each invoice's
+//     subscription_details.metadata.
+//
+// When neither is present inline, this falls back to one authenticated GET
+// against whichever of subscription/invoice/payment_intent/charge the object
+// references, to bound worst-case latency/cost on a webhook handler to a
+// single extra round trip.
+func (p *Processor) resolvePlanSession(object map[string]interface{}) (plan, sessionID string) {
+	if plan, sessionID = metadataPlanSession(object); plan != "" && sessionID != "" {
+		return
+	}
+	if sd, ok := object["subscription_details"].(map[string]interface{}); ok {
+		if plan, sessionID = metadataPlanSession(sd); plan != "" && sessionID != "" {
+			return
+		}
+	}
+
+	for _, ref := range []struct{ field, path string }{
+		{"subscription", "subscriptions/"},
+		{"invoice", "invoices/"},
+		{"payment_intent", "payment_intents/"},
+		{"charge", "charges/"},
+	} {
+		id, _ := object[ref.field].(string)
+		if id == "" {
+			continue
+		}
+		fetched, err := p.fetchStripeObject(ref.path + id)
+		if err != nil {
+			p.logger.Warn("failed to resolve plan/session via Stripe API fallback",
+				zap.String("field", ref.field), zap.String("id", id), zap.Error(err))
+			continue
+		}
+		if plan, sessionID = metadataPlanSession(fetched); plan != "" && sessionID != "" {
+			return
+		}
+		if sd, ok := fetched["subscription_details"].(map[string]interface{}); ok {
+			if plan, sessionID = metadataPlanSession(sd); plan != "" && sessionID != "" {
+				return
+			}
+		}
+	}
+	return "", ""
 }
 
 // calculateTokenAmount determines how many smallest-unit NRN to disburse for a
@@ -268,6 +406,16 @@ func (p *Processor) CreateCheckoutSession(req *CheckoutSessionRequest) (*Checkou
 	}
 	form.Set("metadata[plan]", req.Plan)
 	form.Set("metadata[sessionId]", req.SessionID)
+	if price.mode == "subscription" {
+		// Checkout Session metadata is NOT copied onto the Subscription Stripe
+		// creates for mode=subscription (unlike mode=payment, where it's
+		// copied onto the PaymentIntent automatically) — without this,
+		// renewal-cycle events (invoice.paid, invoice.payment_action_required,
+		// etc.) would have no way to trace back to a plan/session via
+		// resolvePlanSession.
+		form.Set("subscription_data[metadata][plan]", req.Plan)
+		form.Set("subscription_data[metadata][sessionId]", req.SessionID)
+	}
 	if req.CustomerEmail != "" {
 		form.Set("customer_email", req.CustomerEmail)
 	}
@@ -352,15 +500,29 @@ func writeJSONError(w http.ResponseWriter, status int, message string) {
 	json.NewEncoder(w).Encode(map[string]string{"error": message})
 }
 
-// handleCheckoutSessionCompleted processes a completed subscription-plan
-// checkout (as opposed to the one-time "charge.succeeded" NRN-disbursement
-// path handled below): it confirms payment with onboarding.knirv.com rather
-// than minting tokens, since a Pro-plan purchase has no wallet address to
-// fund.
+// handleCheckoutSessionCompleted processes a checkout session that has
+// completed and actually collected payment — called for both
+// "checkout.session.completed" and "checkout.session.async_payment_succeeded"
+// (as opposed to the one-time "charge.succeeded" NRN-disbursement path
+// handled below): it confirms payment with onboarding.knirv.com rather than
+// minting tokens, since a plan purchase has no wallet address to fund.
+//
+// Delayed payment methods (e.g. bank debits) report
+// "checkout.session.completed" with payment_status="unpaid" — funds aren't
+// captured yet at that point, and confirming here would grant paid status
+// before money actually moved. Only payment_status="paid" is treated as a
+// real confirmation; an unpaid completed session just waits for the
+// following async_payment_succeeded/async_payment_failed event, which this
+// same function handles once payment_status has flipped to "paid".
 func (p *Processor) handleCheckoutSessionCompleted(w http.ResponseWriter, object map[string]interface{}) {
 	checkoutID, _ := object["id"].(string)
 	if checkoutID == "" {
 		http.Error(w, "Checkout session ID missing", http.StatusBadRequest)
+		return
+	}
+
+	if paymentStatus, _ := object["payment_status"].(string); paymentStatus != "paid" {
+		fmt.Fprintf(w, "Ignored: checkout session payment_status is %q, awaiting async confirmation", paymentStatus)
 		return
 	}
 
@@ -373,10 +535,8 @@ func (p *Processor) handleCheckoutSessionCompleted(w http.ResponseWriter, object
 		return
 	}
 
-	p.mu.RLock()
-	_, processed := p.processedPayments[checkoutID]
-	p.mu.RUnlock()
-	if processed {
+	dedupeKey := "checkout:" + checkoutID
+	if p.alreadyProcessed(dedupeKey) {
 		fmt.Fprintf(w, "Duplicate event, already processed")
 		return
 	}
@@ -388,9 +548,7 @@ func (p *Processor) handleCheckoutSessionCompleted(w http.ResponseWriter, object
 		return
 	}
 
-	p.mu.Lock()
-	p.processedPayments[checkoutID] = "onboarding-notified"
-	p.mu.Unlock()
+	p.markProcessed(dedupeKey, "onboarding-notified")
 
 	p.logger.Info("confirmed plan payment with onboarding",
 		zap.String("onboarding_session_id", onboardingSessionID), zap.String("plan", plan))
@@ -399,12 +557,136 @@ func (p *Processor) handleCheckoutSessionCompleted(w http.ResponseWriter, object
 	json.NewEncoder(w).Encode(map[string]string{"status": "confirmed"})
 }
 
-// notifyOnboardingPaid tells onboarding.knirv.com's session-sync endpoint
-// that the given onboarding session has completed payment, so it can flip
-// the customer profile from "pending" to "paid" (see
-// KNIRV_CORP/websites/ONBOARDING.KNIRV.COM/functions/api/onboarding.ts,
-// which gates paid-customer status on eventType == "payment-confirmed").
-func (p *Processor) notifyOnboardingPaid(sessionID, plan string) error {
+// handleRefundEvent processes refund.created and refund.failed. A refund
+// that has actually succeeded revokes the plan's paid status on
+// onboarding.knirv.com; a failed refund *attempt* changes nothing about the
+// customer's access (the original charge still stands) and is only logged.
+func (p *Processor) handleRefundEvent(w http.ResponseWriter, object map[string]interface{}, eventType string) {
+	refundID, _ := object["id"].(string)
+
+	if eventType == "refund.failed" {
+		p.logger.Warn("stripe refund attempt failed", zap.String("refund_id", refundID))
+		fmt.Fprintf(w, "Logged: refund attempt failed")
+		return
+	}
+
+	// refund.created: card refunds typically report status=succeeded
+	// immediately; other statuses (pending/requires_action, e.g. for bank
+	// debits) aren't final yet, so there's nothing to revoke until a later
+	// delivery reports succeeded.
+	status, _ := object["status"].(string)
+	if status != "succeeded" {
+		fmt.Fprintf(w, "Ignored: refund not yet succeeded (status=%s)", status)
+		return
+	}
+
+	dedupeKey := "refund-paid:" + refundID
+	if p.alreadyProcessed(dedupeKey) {
+		fmt.Fprintf(w, "Duplicate event, already processed")
+		return
+	}
+
+	plan, sessionID := p.resolvePlanSession(object)
+	if plan == "" || sessionID == "" {
+		p.logger.Warn("refund succeeded but could not resolve plan/session", zap.String("refund_id", refundID))
+		fmt.Fprintf(w, "Ignored: could not resolve plan/session for refund")
+		return
+	}
+
+	if err := p.notifyOnboardingStatus(sessionID, plan, "payment-refunded", plan+"-refunded"); err != nil {
+		p.logger.Error("failed to confirm refund with onboarding",
+			zap.String("onboarding_session_id", sessionID), zap.String("plan", plan), zap.Error(err))
+		http.Error(w, "Failed to confirm onboarding refund", http.StatusBadGateway)
+		return
+	}
+
+	p.markProcessed(dedupeKey, "onboarding-notified")
+	p.logger.Info("confirmed refund with onboarding",
+		zap.String("onboarding_session_id", sessionID), zap.String("plan", plan))
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{"status": "refunded"})
+}
+
+// handleInvoicePaidEvent processes invoice.paid and invoice.payment_succeeded
+// — Stripe fires both for the same successful invoice, deduped below by
+// invoice ID. A cleared invoice means a subscription renewal went through, so
+// the plan should read (or stay) "paid", same as the initial checkout.
+func (p *Processor) handleInvoicePaidEvent(w http.ResponseWriter, object map[string]interface{}) {
+	invoiceID, _ := object["id"].(string)
+	dedupeKey := "invoice-paid:" + invoiceID
+	if p.alreadyProcessed(dedupeKey) {
+		fmt.Fprintf(w, "Duplicate event, already processed")
+		return
+	}
+
+	plan, sessionID := p.resolvePlanSession(object)
+	if plan == "" || sessionID == "" {
+		// Not every invoice belongs to a plan-checkout subscription (the
+		// fiat->NRN disbursement path below never creates one) — that's the
+		// normal case here, not an error.
+		fmt.Fprintf(w, "Ignored: invoice has no tracked plan/session metadata")
+		return
+	}
+
+	if err := p.notifyOnboardingPaid(sessionID, plan); err != nil {
+		p.logger.Error("failed to confirm invoice payment with onboarding",
+			zap.String("onboarding_session_id", sessionID), zap.String("plan", plan), zap.Error(err))
+		http.Error(w, "Failed to confirm onboarding payment", http.StatusBadGateway)
+		return
+	}
+
+	p.markProcessed(dedupeKey, "onboarding-notified")
+	p.logger.Info("confirmed renewal payment with onboarding",
+		zap.String("onboarding_session_id", sessionID), zap.String("plan", plan))
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{"status": "confirmed"})
+}
+
+// handlePaymentActionRequiredEvent processes invoice.payment_action_required
+// and payment_intent.requires_action: the customer needs to complete
+// additional authentication (e.g. 3D Secure) before a renewal/charge clears.
+// This flags the account rather than revoking access — Stripe keeps
+// retrying/prompting on its own schedule, and onboarding.ts (resolveStatus)
+// deliberately will not downgrade an already-paid account off this signal
+// alone, only surface it for accounts that aren't paid yet.
+func (p *Processor) handlePaymentActionRequiredEvent(w http.ResponseWriter, object map[string]interface{}, eventType string) {
+	objectID, _ := object["id"].(string)
+	dedupeKey := "action-required:" + eventType + ":" + objectID
+	if p.alreadyProcessed(dedupeKey) {
+		fmt.Fprintf(w, "Duplicate event, already processed")
+		return
+	}
+
+	plan, sessionID := p.resolvePlanSession(object)
+	if plan == "" || sessionID == "" {
+		fmt.Fprintf(w, "Ignored: could not resolve plan/session for %s", eventType)
+		return
+	}
+
+	if err := p.notifyOnboardingStatus(sessionID, plan, "payment-action-required", plan+"-action-required"); err != nil {
+		p.logger.Error("failed to flag action-required payment with onboarding",
+			zap.String("onboarding_session_id", sessionID), zap.String("plan", plan), zap.Error(err))
+		http.Error(w, "Failed to notify onboarding", http.StatusBadGateway)
+		return
+	}
+
+	p.markProcessed(dedupeKey, "onboarding-notified")
+	p.logger.Info("flagged payment action required with onboarding",
+		zap.String("onboarding_session_id", sessionID), zap.String("plan", plan), zap.String("event_type", eventType))
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{"status": "action_required"})
+}
+
+// notifyOnboardingStatus tells onboarding.knirv.com's session-sync endpoint
+// about a billing-lifecycle status change for the given session (see
+// KNIRV_CORP/websites/ONBOARDING.KNIRV.COM/functions/api/onboarding.ts'
+// resolveStatus, which switches on eventType: "payment-confirmed" ->  paid,
+// "payment-refunded" -> refunded, "payment-action-required" -> action
+// required unless already paid).
+func (p *Processor) notifyOnboardingStatus(sessionID, plan, eventType, stage string) error {
 	if p.config.OnboardingCallbackURL == "" {
 		return fmt.Errorf("onboarding callback URL not configured")
 	}
@@ -412,8 +694,8 @@ func (p *Processor) notifyOnboardingPaid(sessionID, plan string) error {
 	payload, err := json.Marshal(map[string]interface{}{
 		"sessionId": sessionID,
 		"plan":      plan,
-		"stage":     plan + "-paid",
-		"eventType": "payment-confirmed",
+		"stage":     stage,
+		"eventType": eventType,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to encode callback payload: %w", err)
@@ -436,6 +718,13 @@ func (p *Processor) notifyOnboardingPaid(sessionID, plan string) error {
 		return fmt.Errorf("callback returned status %d", resp.StatusCode)
 	}
 	return nil
+}
+
+// notifyOnboardingPaid is the "payment-confirmed" case of
+// notifyOnboardingStatus, kept as a named wrapper since it's the original/
+// most common call (initial checkout and every renewal).
+func (p *Processor) notifyOnboardingPaid(sessionID, plan string) error {
+	return p.notifyOnboardingStatus(sessionID, plan, "payment-confirmed", plan+"-paid")
 }
 
 const (
@@ -518,15 +807,109 @@ func verifyStripeSignature(payload []byte, sigHeader, secret string, tolerance t
 	return fmt.Errorf("no matching Stripe-Signature v1 value")
 }
 
+// verifyWebhookSignature checks the raw request body's Stripe-Signature
+// against every configured secret, succeeding on the first match. This is
+// what makes it safe to point two Stripe Event Destinations — a snapshot one
+// and a thin one, each with its own Stripe-issued signing secret — at this
+// same URL (see the StripeThinWebhookSecret doc comment on Config). The
+// per-secret check itself (including replay-window tolerance and rotation
+// support for multiple v1= values in one header) is unchanged, see
+// verifyStripeSignature.
+func (p *Processor) verifyWebhookSignature(body []byte, sigHeader string) error {
+	secrets := []string{p.config.StripeWebhookSecret, p.config.StripeThinWebhookSecret}
+	var lastErr error
+	configured := false
+	for _, secret := range secrets {
+		if secret == "" {
+			continue
+		}
+		configured = true
+		if err := verifyStripeSignature(body, sigHeader, secret, stripeSignatureTolerance); err == nil {
+			return nil
+		} else {
+			lastErr = err
+		}
+	}
+	if !configured {
+		return fmt.Errorf("stripe webhook secret not configured")
+	}
+	return lastErr
+}
+
+// normalizeStripeEvent resolves an incoming webhook body to (eventType,
+// object) regardless of which Stripe Event Destination payload style
+// delivered it, so every handler below only ever deals with one shape:
+//
+//   - Snapshot events (`"object": "event"`) embed the full resource inline at
+//     data.object — used as-is.
+//   - Thin events (`"object": "v2.core.event"`) carry only a pointer at
+//     related_object.url; this fetches that URL from the Stripe API to
+//     obtain the same shape a snapshot event would have embedded directly.
+//     See https://docs.stripe.com/event-destinations#thin-events — thin
+//     payloads for classic v1 resources (refund.*, invoice.*,
+//     checkout.session.*, payment_intent.*) are what forces a second,
+//     thin-style Event Destination alongside the snapshot one.
+func (p *Processor) normalizeStripeEvent(raw map[string]interface{}) (eventType string, object map[string]interface{}, err error) {
+	eventType, _ = raw["type"].(string)
+	if eventType == "" {
+		return "", nil, fmt.Errorf("event missing type")
+	}
+
+	if objectKind, _ := raw["object"].(string); objectKind == "v2.core.event" {
+		relatedObject, _ := raw["related_object"].(map[string]interface{})
+		objURL, _ := relatedObject["url"].(string)
+		if objURL == "" {
+			return "", nil, fmt.Errorf("thin event missing related_object.url")
+		}
+		fetched, ferr := p.fetchStripeURL(objURL)
+		if ferr != nil {
+			return "", nil, fmt.Errorf("failed to fetch thin event's related object: %w", ferr)
+		}
+		return eventType, fetched, nil
+	}
+
+	data, _ := raw["data"].(map[string]interface{})
+	object, _ = data["object"].(map[string]interface{})
+	if object == nil {
+		return "", nil, fmt.Errorf("event object missing")
+	}
+	return eventType, object, nil
+}
+
 // HandleStripeWebhook processes incoming Stripe webhook events, after
-// verifying the Stripe-Signature header against config.StripeWebhookSecret
-// (see verifyStripeSignature) — without this, anyone who discovered this
-// public URL could forge a "checkout.session.completed" or "charge.succeeded"
-// event and mark a plan paid or trigger an NRN mint for free. Two event
-// types are handled: "checkout.session.completed" confirms a subscription
-// plan purchase with onboarding.knirv.com (see handleCheckoutSessionCompleted
-// above), and "charge.succeeded" disburses NRN to the address supplied in
-// the charge's metadata (the original fiat->NRN path, unchanged below).
+// verifying the Stripe-Signature header against every configured secret (see
+// verifyWebhookSignature) — without this, anyone who discovered this public
+// URL could forge a "checkout.session.completed" or "charge.succeeded" event
+// and mark a plan paid or trigger an NRN mint for free.
+//
+// This endpoint accepts both Stripe Event Destination payload styles —
+// classic snapshot (`{id, object: "event", type, data: {object: {...}}}`)
+// and thin (`{id, object: "v2.core.event", type, related_object: {url}}`) —
+// normalized to the same (eventType, object) shape by normalizeStripeEvent
+// before dispatch. Point both a snapshot-style and a thin-style Stripe Event
+// Destination at this same URL; each needs its own secret configured (see
+// Config.StripeThinWebhookSecret).
+//
+// Event types handled:
+//   - "checkout.session.completed" / "checkout.session.async_payment_succeeded"
+//     confirm a plan purchase once payment_status is actually "paid" (see
+//     handleCheckoutSessionCompleted) — "completed" alone doesn't mean funds
+//     cleared for delayed payment methods, hence the async event too
+//   - "checkout.session.expired" / "checkout.session.async_payment_failed"
+//     are logged only — the session never collected payment, so there's
+//     nothing to confirm or revoke
+//   - "refund.created" / "refund.failed" revoke paid status on a completed
+//     refund, or just log a failed refund attempt (see handleRefundEvent)
+//   - "invoice.paid" / "invoice.payment_succeeded" confirm a subscription
+//     renewal, same as the initial checkout (see handleInvoicePaidEvent)
+//   - "invoice.payment_action_required" / "payment_intent.requires_action"
+//     flag an account as needing customer action, without revoking an
+//     already-paid account (see handlePaymentActionRequiredEvent)
+//   - "invoice.sent" is logged only — informational, no plan-checkout
+//     subscription in this codebase uses Stripe's send-invoice collection
+//     method
+//   - "charge.succeeded" disburses NRN to the address supplied in the
+//     charge's metadata (the original fiat->NRN path, unchanged below)
 func (p *Processor) HandleStripeWebhook(w http.ResponseWriter, r *http.Request) {
 	if !p.config.Enabled {
 		http.Error(w, "payment processor disabled", http.StatusServiceUnavailable)
@@ -547,29 +930,48 @@ func (p *Processor) HandleStripeWebhook(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	if err := verifyStripeSignature(body, r.Header.Get("Stripe-Signature"), p.config.StripeWebhookSecret, stripeSignatureTolerance); err != nil {
+	if err := p.verifyWebhookSignature(body, r.Header.Get("Stripe-Signature")); err != nil {
 		p.logger.Warn("rejected stripe webhook: signature verification failed", zap.Error(err))
 		http.Error(w, "Invalid signature", http.StatusBadRequest)
 		return
 	}
 
-	var event map[string]interface{}
-	if err := json.Unmarshal(body, &event); err != nil {
+	var raw map[string]interface{}
+	if err := json.Unmarshal(body, &raw); err != nil {
 		http.Error(w, "Cannot parse request body", http.StatusBadRequest)
 		return
 	}
 
-	eventType, _ := event["type"].(string)
-	data, _ := event["data"].(map[string]interface{})
-	object, _ := data["object"].(map[string]interface{})
-	if object == nil {
-		http.Error(w, "Event object missing", http.StatusBadRequest)
+	eventType, object, err := p.normalizeStripeEvent(raw)
+	if err != nil {
+		p.logger.Warn("failed to normalize stripe event", zap.Error(err))
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
 	switch eventType {
-	case "checkout.session.completed":
+	case "checkout.session.completed", "checkout.session.async_payment_succeeded":
 		p.handleCheckoutSessionCompleted(w, object)
+		return
+	case "checkout.session.expired", "checkout.session.async_payment_failed":
+		checkoutID, _ := object["id"].(string)
+		p.logger.Info("stripe checkout session did not collect payment",
+			zap.String("checkout_id", checkoutID), zap.String("event_type", eventType))
+		fmt.Fprintf(w, "Logged: %s", eventType)
+		return
+	case "refund.created", "refund.failed":
+		p.handleRefundEvent(w, object, eventType)
+		return
+	case "invoice.paid", "invoice.payment_succeeded":
+		p.handleInvoicePaidEvent(w, object)
+		return
+	case "invoice.payment_action_required", "payment_intent.requires_action":
+		p.handlePaymentActionRequiredEvent(w, object, eventType)
+		return
+	case "invoice.sent":
+		invoiceID, _ := object["id"].(string)
+		p.logger.Info("stripe invoice sent", zap.String("invoice_id", invoiceID))
+		fmt.Fprintf(w, "Logged: invoice sent")
 		return
 	case "charge.succeeded":
 		// falls through to the disbursement logic below

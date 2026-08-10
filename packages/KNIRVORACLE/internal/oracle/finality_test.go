@@ -2,14 +2,15 @@ package oracle
 
 import (
 	"crypto/ecdsa"
-	"crypto/ed25519"
-	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"sync"
 	"testing"
 	"time"
 
+	ethcrypto "github.com/ethereum/go-ethereum/crypto"
+	knirvsigning "github.com/KNIRV/KNIRV_NETWORK/KNIRVSDK/go/signing"
 	"github.com/knirvcorp/knirvoracle/internal/oracle/consensus"
 	"github.com/knirvcorp/knirvoracle/internal/oracle/types"
 	"go.uber.org/zap"
@@ -28,31 +29,68 @@ func newPhase4Oracle(t *testing.T) *Oracle {
 	}
 }
 
-var phase4VerifierKeys sync.Map // map[*Oracle]map[string]ed25519.PrivateKey
+var phase4VerifierKeys sync.Map // map[*Oracle]map[string]*ecdsa.PrivateKey
+var phase4VerifierIDs sync.Map // map[*Oracle]map[string]string (test id -> canonical address)
 
 func registerPhase4Verifier(t *testing.T, o *Oracle, id string) {
 	t.Helper()
-	publicKey, privateKey, err := ed25519.GenerateKey(rand.Reader)
+	key, err := ethcrypto.GenerateKey()
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := o.RegisterVerifier(id, publicKey); err != nil {
+	pubKey := ethcrypto.CompressPubkey(&key.PublicKey)
+	address, err := knirvsigning.Address(pubKey, knirvsigning.DefaultAddressPrefix)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := o.RegisterVerifier(address, pubKey); err != nil {
 		t.Fatalf("RegisterVerifier: %v", err)
 	}
-	value, _ := phase4VerifierKeys.LoadOrStore(o, make(map[string]ed25519.PrivateKey))
-	value.(map[string]ed25519.PrivateKey)[id] = privateKey
+	value, _ := phase4VerifierKeys.LoadOrStore(o, make(map[string]*ecdsa.PrivateKey))
+	value.(map[string]*ecdsa.PrivateKey)[address] = key
+
+	idMap, _ := phase4VerifierIDs.LoadOrStore(o, make(map[string]string))
+	idMap.(map[string]string)[id] = address
 }
 
 func phase4Attestation(t *testing.T, o *Oracle, id string, rec *types.CheckpointRecord) types.VerifierAttestation {
 	t.Helper()
-	value, ok := phase4VerifierKeys.Load(o)
+	idMapVal, ok := phase4VerifierIDs.Load(o)
+	if !ok {
+		t.Fatalf("no verifier ids for oracle")
+	}
+	address, ok := idMapVal.(map[string]string)[id]
+	if !ok {
+		t.Fatalf("no verifier id for %q", id)
+	}
+
+	keyVal, ok := phase4VerifierKeys.Load(o)
 	if !ok {
 		t.Fatalf("no verifier keys for oracle")
 	}
-	key := value.(map[string]ed25519.PrivateKey)[id]
-	att := types.VerifierAttestation{VerifierID: id, LeafIndex: rec.MMRPosition, Approved: true}
-	att.Signature = ed25519.Sign(key, types.AttestationMessage(att.LeafIndex, rec.LeafHash, true))
-	return att
+	key, ok := keyVal.(map[string]*ecdsa.PrivateKey)[address]
+	if !ok {
+		t.Fatalf("no private key for verifier %q", address)
+	}
+
+	message := types.AttestationMessage(rec.MMRPosition, rec.LeafHash, true)
+	now := time.Now().Unix()
+	signed, err := knirvsigning.SignMessage(ethcrypto.FromECDSA(key), knirvsigning.MessageEnvelope{
+		Domain: "knirv.oracle", Purpose: "verifier-attestation", ChainID: rec.Checkpoint.ChainID,
+		Nonce: fmt.Sprintf("%d", rec.MMRPosition), IssuedAtUnix: now, ExpiresAtUnix: now + 300,
+		Payload: message,
+	})
+	if err != nil {
+		t.Fatalf("sign attestation: %v", err)
+	}
+
+	return types.VerifierAttestation{
+		VerifierID: address,
+		LeafIndex:  rec.MMRPosition,
+		Approved:   true,
+		Envelope:   signed.Envelope,
+		Signature:  signed.Signature,
+	}
 }
 
 // projectTestRollup registers a fresh chain and submits a signed rollup for

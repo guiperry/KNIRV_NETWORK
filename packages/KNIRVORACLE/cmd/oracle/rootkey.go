@@ -29,11 +29,12 @@ type rootKeyContent struct {
 	CloudflareZoneID   string
 
 	// KNIRVORACLE plan-checkout payment processor (root nodes only — see
-	// internal/oracle/payment). Field numbers 1, 2, 29-35 in
+	// internal/oracle/payment). Field numbers 1, 2, 29-36 in
 	// KNIRV_CORP/packages/server/backend_server/internal/proto/root_key.proto
 	// (mirrored in KNIRV_NETWORK/shared-proto/knirvserver/v1/root_key.proto).
 	StripeSecretKey              string
 	StripeWebhookSecret          string
+	StripeThinWebhookSecret      string
 	PaymentProcessorEnabled      bool
 	StripeProfessionalPriceID    string
 	StripeEnterprisePriceID      string
@@ -81,6 +82,9 @@ func initOracleWithSecrets(content *rootKeyContent, logger *zap.Logger) (*oracle
 	}
 	if content.StripeWebhookSecret != "" {
 		oracleCfg.StripeWebhookSecret = content.StripeWebhookSecret
+	}
+	if content.StripeThinWebhookSecret != "" {
+		oracleCfg.StripeThinWebhookSecret = content.StripeThinWebhookSecret
 	}
 	if content.PaymentProcessorEnabled {
 		oracleCfg.PaymentProcessorEnabled = true
@@ -346,7 +350,7 @@ func loadEncryptedKeyFile(keyFilePath string, password []byte) (*rootKeyContent,
 	cloudflareAPIToken := string(firstFieldValue(fields[18]))
 	cloudflareZoneID := string(firstFieldValue(fields[19]))
 
-	// Field numbers 1, 2, 29-35 — see root_key.proto in
+	// Field numbers 1, 2, 29-36 — see root_key.proto in
 	// KNIRV_CORP/packages/server/backend_server/internal/proto (mirrored in
 	// KNIRV_NETWORK/shared-proto/knirvserver/v1).
 	paymentProcessorEnabled := firstVarintValue(varints[29]) != 0
@@ -364,6 +368,7 @@ func loadEncryptedKeyFile(keyFilePath string, password []byte) (*rootKeyContent,
 		PaymentSuccessURL:            string(firstFieldValue(fields[33])),
 		PaymentCancelURL:             string(firstFieldValue(fields[34])),
 		PaymentOnboardingCallbackURL: string(firstFieldValue(fields[35])),
+		StripeThinWebhookSecret:      string(firstFieldValue(fields[36])),
 	}, nil
 }
 

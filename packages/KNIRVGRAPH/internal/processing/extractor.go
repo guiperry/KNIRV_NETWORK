@@ -4,6 +4,7 @@ import (
 	"KNIRVGRAPH/internal/types"
 	"bufio"
 	"context"
+	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -13,16 +14,17 @@ import (
 )
 
 var (
-	emailPattern    = regexp.MustCompile(`[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}`)
-	urlPattern      = regexp.MustCompile(`https?://[^\s)]+`)
-	ipPattern       = regexp.MustCompile(`\b(?:\d{1,3}\.){3}\d{1,3}\b`)
-	uuidPattern     = regexp.MustCompile(`[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}`)
-	datePattern     = regexp.MustCompile(`\d{4}-\d{2}-\d{2}`)
-	numberPattern   = regexp.MustCompile(`\b\d+(?:\.\d+)?\b`)
+	emailPattern  = regexp.MustCompile(`[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}`)
+	urlPattern    = regexp.MustCompile(`https?://[^\s)]+`)
+	ipPattern     = regexp.MustCompile(`\b(?:\d{1,3}\.){3}\d{1,3}\b`)
+	uuidPattern   = regexp.MustCompile(`[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}`)
+	datePattern   = regexp.MustCompile(`\d{4}-\d{2}-\d{2}`)
+	numberPattern = regexp.MustCompile(`\b\d+(?:\.\d+)?\b`)
 )
 
 type Extractor struct {
 	config types.ExtractionConfig
+	gliner *GLiNERClient
 }
 
 func NewExtractor(config types.ExtractionConfig) *Extractor {
@@ -32,15 +34,23 @@ func NewExtractor(config types.ExtractionConfig) *Extractor {
 	if config.MinConfidence <= 0 {
 		config.MinConfidence = 0.5
 	}
-	return &Extractor{config: config}
+	var gliner *GLiNERClient
+	if config.GLiNEREndpoint != "" {
+		gliner = NewGLiNERClient(config.GLiNEREndpoint, config.GLiNERModel, config.TimeoutSeconds)
+	}
+	return &Extractor{config: config, gliner: gliner}
 }
 
 func (e *Extractor) Extract(documentID, text string) ([]types.ExtractedEntity, []types.ExtractedRelationship, error) {
+	return e.ExtractContext(context.Background(), documentID, text)
+}
+
+func (e *Extractor) ExtractContext(ctx context.Context, documentID, text string) ([]types.ExtractedEntity, []types.ExtractedRelationship, error) {
 	var entities []types.ExtractedEntity
 	var relationships []types.ExtractedRelationship
 
 	if e.config.EnableEntities {
-		ents, err := e.extractEntities(documentID, text)
+		ents, err := e.extractEntities(ctx, documentID, text)
 		if err != nil {
 			return nil, nil, fmt.Errorf("entity extraction failed: %w", err)
 		}
@@ -48,7 +58,7 @@ func (e *Extractor) Extract(documentID, text string) ([]types.ExtractedEntity, [
 	}
 
 	if e.config.EnableRelationships {
-		rels, err := e.extractRelationships(documentID, text, entities)
+		rels, err := e.extractRelationships(ctx, documentID, text, entities)
 		if err != nil {
 			return nil, nil, fmt.Errorf("relationship extraction failed: %w", err)
 		}
@@ -58,7 +68,7 @@ func (e *Extractor) Extract(documentID, text string) ([]types.ExtractedEntity, [
 	return entities, relationships, nil
 }
 
-func (e *Extractor) extractEntities(documentID, text string) ([]types.ExtractedEntity, error) {
+func (e *Extractor) extractEntities(ctx context.Context, documentID, text string) ([]types.ExtractedEntity, error) {
 	var entities []types.ExtractedEntity
 
 	// Regex-based entity extraction
@@ -67,10 +77,19 @@ func (e *Extractor) extractEntities(documentID, text string) ([]types.ExtractedE
 	entities = append(entities, e.extractByPattern(documentID, text, "IP", ipPattern, 0.9)...)
 	entities = append(entities, e.extractByPattern(documentID, text, "UUID", uuidPattern, 0.95)...)
 	entities = append(entities, e.extractByPattern(documentID, text, "DATE", datePattern, 0.8)...)
+	if e.gliner != nil {
+		glinerEntities, err := e.gliner.Extract(ctx, documentID, text, e.config.EntityTypes, e.config.MinConfidence)
+		if err != nil && !e.config.GLiNERFailOpen {
+			return nil, err
+		}
+		if err == nil {
+			entities = append(entities, glinerEntities...)
+		}
+	}
 
 	// Try LLM-based extraction if configured
 	if e.config.LLMEndpoint != "" {
-		llmEntities, err := e.extractWithLLM(documentID, text)
+		llmEntities, err := e.extractWithLLM(ctx, documentID, text)
 		if err == nil {
 			entities = append(entities, llmEntities...)
 		}
@@ -92,7 +111,7 @@ func (e *Extractor) extractEntities(documentID, text string) ([]types.ExtractedE
 	}
 
 	for i := range filtered {
-		filtered[i].ID = fmt.Sprintf("entity_%s_%d", documentID, i)
+		filtered[i].ID = stableID("entity", documentID, strings.ToUpper(filtered[i].Type), strings.ToLower(filtered[i].Name))
 		filtered[i].DocumentID = documentID
 		filtered[i].CreatedAt = time.Now()
 	}
@@ -113,7 +132,7 @@ func (e *Extractor) extractByPattern(documentID, text, entityType string, patter
 	return entities
 }
 
-func (e *Extractor) extractWithLLM(documentID, text string) ([]types.ExtractedEntity, error) {
+func (e *Extractor) extractWithLLM(ctx context.Context, documentID, text string) ([]types.ExtractedEntity, error) {
 	if e.config.LLMEndpoint == "" {
 		return nil, nil
 	}
@@ -130,7 +149,7 @@ func (e *Extractor) extractWithLLM(documentID, text string) ([]types.ExtractedEn
 		return nil, err
 	}
 
-	req, err := http.NewRequestWithContext(context.Background(), "POST", e.config.LLMEndpoint+"/api/generate", strings.NewReader(string(body)))
+	req, err := http.NewRequestWithContext(ctx, "POST", e.config.LLMEndpoint+"/api/generate", strings.NewReader(string(body)))
 	if err != nil {
 		return nil, err
 	}
@@ -184,7 +203,7 @@ func parseLLMEntities(documentID, response string) ([]types.ExtractedEntity, err
 	return entities, scanner.Err()
 }
 
-func (e *Extractor) extractRelationships(documentID, text string, entities []types.ExtractedEntity) ([]types.ExtractedRelationship, error) {
+func (e *Extractor) extractRelationships(ctx context.Context, documentID, text string, entities []types.ExtractedEntity) ([]types.ExtractedRelationship, error) {
 	var relationships []types.ExtractedRelationship
 
 	entityNames := make(map[string]bool)
@@ -230,7 +249,7 @@ func (e *Extractor) extractRelationships(documentID, text string, entities []typ
 
 	// Try LLM-based relationship extraction
 	if e.config.LLMEndpoint != "" {
-		llmRels, err := e.extractRelationshipsWithLLM(documentID, text)
+		llmRels, err := e.extractRelationshipsWithLLM(ctx, documentID, text)
 		if err == nil {
 			relationships = append(relationships, llmRels...)
 		}
@@ -238,10 +257,22 @@ func (e *Extractor) extractRelationships(documentID, text string, entities []typ
 
 	for i := range relationships {
 		if relationships[i].ID == "" {
-			relationships[i].ID = fmt.Sprintf("rel_%s_%d", documentID, i)
+			relationships[i].ID = stableID("rel", documentID, relationships[i].Source, relationships[i].Target, relationships[i].Type)
 		}
 		relationships[i].DocumentID = documentID
 		relationships[i].CreatedAt = time.Now()
+	}
+	nameToID := make(map[string]string, len(entities))
+	for _, ent := range entities {
+		nameToID[strings.ToLower(ent.Name)] = ent.ID
+	}
+	for i := range relationships {
+		if id := nameToID[strings.ToLower(relationships[i].Source)]; id != "" {
+			relationships[i].Source = id
+		}
+		if id := nameToID[strings.ToLower(relationships[i].Target)]; id != "" {
+			relationships[i].Target = id
+		}
 	}
 
 	return relationships, nil
@@ -251,9 +282,9 @@ func (e *Extractor) extractPatternRelationships(documentID, text string) []types
 	var relationships []types.ExtractedRelationship
 
 	patterns := []struct {
-		pattern     *regexp.Regexp
-		relType     string
-		confidence  float64
+		pattern    *regexp.Regexp
+		relType    string
+		confidence float64
 	}{
 		{regexp.MustCompile(`(?i)(\w+)\s+(?:is\s+)?(?:a|an|the)\s+(?:type\s+of\s+)?(\w+)`), "is_a", 0.7},
 		{regexp.MustCompile(`(?i)(\w+)\s+(?:owns|owned\s+by)\s+(\w+)`), "owns", 0.8},
@@ -280,7 +311,7 @@ func (e *Extractor) extractPatternRelationships(documentID, text string) []types
 	return relationships
 }
 
-func (e *Extractor) extractRelationshipsWithLLM(documentID, text string) ([]types.ExtractedRelationship, error) {
+func (e *Extractor) extractRelationshipsWithLLM(ctx context.Context, documentID, text string) ([]types.ExtractedRelationship, error) {
 	if e.config.LLMEndpoint == "" {
 		return nil, nil
 	}
@@ -297,7 +328,7 @@ func (e *Extractor) extractRelationshipsWithLLM(documentID, text string) ([]type
 		return nil, err
 	}
 
-	req, err := http.NewRequestWithContext(context.Background(), "POST", e.config.LLMEndpoint+"/api/generate", strings.NewReader(string(body)))
+	req, err := http.NewRequestWithContext(ctx, "POST", e.config.LLMEndpoint+"/api/generate", strings.NewReader(string(body)))
 	if err != nil {
 		return nil, err
 	}
@@ -351,6 +382,15 @@ func (e *Extractor) extractRelationshipsWithLLM(documentID, text string) ([]type
 		}
 	}
 	return rels, scanner.Err()
+}
+
+func stableID(parts ...string) string {
+	h := sha256.New()
+	for _, p := range parts {
+		_, _ = h.Write([]byte(p))
+		_, _ = h.Write([]byte{0})
+	}
+	return parts[0] + "_" + fmt.Sprintf("%x", h.Sum(nil)[:12])
 }
 
 func truncate(s string, maxLen int) string {

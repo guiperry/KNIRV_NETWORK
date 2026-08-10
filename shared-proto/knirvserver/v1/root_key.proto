@@ -53,6 +53,11 @@ message RootKeyFileContentProto {
   string payment_success_url = 33;
   string payment_cancel_url = 34;
   string payment_onboarding_callback_url = 35;
+
+  // Signing secret for a second Stripe Event Destination delivering "thin"
+  // payloads alongside the snapshot-payload destination that
+  // stripe_webhook_secret (field 2) authenticates.
+  string stripe_thin_webhook_secret = 36;
 }
 
 message EncryptedRootKeyFile {

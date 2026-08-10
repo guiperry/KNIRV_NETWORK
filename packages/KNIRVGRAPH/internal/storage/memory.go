@@ -1,9 +1,39 @@
 package storage
 
 import (
+	"context"
+	"encoding/json"
+	"io"
 	"strings"
 	"sync"
 )
+
+func (m *MemoryStorage) BackupTo(ctx context.Context, w io.Writer) error {
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+	}
+	m.mutex.RLock()
+	defer m.mutex.RUnlock()
+	return json.NewEncoder(w).Encode(m.data)
+}
+func (m *MemoryStorage) RestoreFrom(ctx context.Context, r io.Reader) error {
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+	}
+	var data map[string][]byte
+	if err := json.NewDecoder(r).Decode(&data); err != nil {
+		return err
+	}
+	m.mutex.Lock()
+	m.data = data
+	m.mutex.Unlock()
+	return nil
+}
+func (m *MemoryStorage) Compact(context.Context) error { return nil }
 
 // MemoryStorage implements GraphStorage interface using in-memory maps
 type MemoryStorage struct {
@@ -63,6 +93,18 @@ func (m *MemoryStorage) Has(key []byte) (bool, error) {
 	return exists, nil
 }
 
+func (m *MemoryStorage) ScanPrefix(prefix []byte) (map[string][]byte, error) {
+	m.mutex.RLock()
+	defer m.mutex.RUnlock()
+	out := make(map[string][]byte)
+	for k, v := range m.data {
+		if strings.HasPrefix(k, string(prefix)) {
+			out[k] = append([]byte(nil), v...)
+		}
+	}
+	return out, nil
+}
+
 // Close closes the storage (no-op for memory storage)
 func (m *MemoryStorage) Close() error {
 	m.mutex.Lock()
@@ -102,6 +144,12 @@ func (m *MemoryStorage) PutNode(nodeID string, nodeData []byte) error {
 	m.nodes[nodeID] = nodeData
 	return nil
 }
+func (m *MemoryStorage) DeleteNode(nodeID string) error {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+	delete(m.nodes, nodeID)
+	return nil
+}
 
 // GetEdge retrieves edge data
 func (m *MemoryStorage) GetEdge(edgeID string) ([]byte, error) {
@@ -119,6 +167,12 @@ func (m *MemoryStorage) PutEdge(edgeID string, edgeData []byte) error {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 	m.edges[edgeID] = edgeData
+	return nil
+}
+func (m *MemoryStorage) DeleteEdge(edgeID string) error {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+	delete(m.edges, edgeID)
 	return nil
 }
 

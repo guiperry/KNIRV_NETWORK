@@ -3,10 +3,21 @@ package storage
 import (
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/errors"
+	"github.com/syndtr/goleveldb/leveldb/util"
 )
 
 type LevelDBStorage struct {
 	db *leveldb.DB
+}
+
+func (s *LevelDBStorage) ScanPrefix(prefix []byte) (map[string][]byte, error) {
+	out := make(map[string][]byte)
+	it := s.db.NewIterator(util.BytesPrefix(prefix), nil)
+	defer it.Release()
+	for it.Next() {
+		out[string(it.Key())] = append([]byte(nil), it.Value()...)
+	}
+	return out, it.Error()
 }
 
 func NewLevelDBStorage(path string) (*LevelDBStorage, error) {

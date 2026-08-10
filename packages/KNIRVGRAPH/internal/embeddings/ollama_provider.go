@@ -81,6 +81,9 @@ func (p *ollamaProvider) embedSingle(ctx context.Context, text string) ([]float3
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 		return nil, err
 	}
+	if len(result.Embedding) != p.dimension {
+		return nil, fmt.Errorf("ollama embedding dimension mismatch: expected %d, got %d", p.dimension, len(result.Embedding))
+	}
 	out := make([]float32, len(result.Embedding))
 	for i, v := range result.Embedding {
 		out[i] = float32(v)

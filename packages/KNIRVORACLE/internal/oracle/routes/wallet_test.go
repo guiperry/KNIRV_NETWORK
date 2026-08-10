@@ -284,7 +284,7 @@ func signEnvelopeForTest(t *testing.T, keyPair *crypto.KeyPair, purpose, nonce s
 	t.Helper()
 	now := time.Now().Unix()
 	signed, err := knirvsigning.SignMessage(ethcrypto.FromECDSA(keyPair.PrivateKey), knirvsigning.MessageEnvelope{
-		Domain: "knirv.oracle", Purpose: purpose, ChainID: "knirv-1", Nonce: nonce,
+		Domain: "knirv.oracle", Purpose: purpose, ChainID: "knirvoracle-1", Nonce: nonce,
 		IssuedAtUnix: now, ExpiresAtUnix: now + 300, Payload: payload,
 	})
 	if err != nil {

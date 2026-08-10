@@ -29,10 +29,10 @@ type BM25Index struct {
 
 func NewBM25Index() *BM25Index {
 	return &BM25Index{
-		docs:     make(map[string][]string),
-		df:       make(map[string]int),
-		k1:       1.5,
-		b:        0.75,
+		docs: make(map[string][]string),
+		df:   make(map[string]int),
+		k1:   1.5,
+		b:    0.75,
 	}
 }
 
@@ -99,7 +99,7 @@ func (b *BM25Index) Search(query string, topK int) ([]types.VectorSearchResult, 
 				idf = 0
 			}
 			numerator := float64(tf) * (b.k1 + 1)
-			denominator := float64(tf) + b.k1*(1-b.b + b.b*(docLen/b.avgDocLen))
+			denominator := float64(tf) + b.k1*(1-b.b+b.b*(docLen/b.avgDocLen))
 			score += idf * numerator / denominator
 		}
 		if score > 0 {
@@ -152,6 +152,26 @@ func NewInMemoryChunkStore() *InMemoryChunkStore {
 func (s *InMemoryChunkStore) Put(c *types.Chunk) {
 	s.chunks[c.ID] = c
 	s.byDoc[c.DocumentID] = append(s.byDoc[c.DocumentID], c.ID)
+}
+
+func (s *InMemoryChunkStore) Delete(id string) {
+	c, ok := s.chunks[id]
+	if !ok {
+		return
+	}
+	delete(s.chunks, id)
+	ids := s.byDoc[c.DocumentID]
+	out := ids[:0]
+	for _, existing := range ids {
+		if existing != id {
+			out = append(out, existing)
+		}
+	}
+	if len(out) == 0 {
+		delete(s.byDoc, c.DocumentID)
+	} else {
+		s.byDoc[c.DocumentID] = out
+	}
 }
 
 func (s *InMemoryChunkStore) GetChunk(id string) (*types.Chunk, error) {

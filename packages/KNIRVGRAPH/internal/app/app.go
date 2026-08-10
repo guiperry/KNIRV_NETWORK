@@ -14,6 +14,7 @@ import (
 	"KNIRVGRAPH/internal/storage"
 	"KNIRVGRAPH/internal/synthesis"
 	"KNIRVGRAPH/internal/types"
+	"KNIRVGRAPH/internal/vector"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -149,35 +150,39 @@ type Config struct {
 
 // ProcessingConfig holds processing pipeline configuration
 type ProcessingConfig struct {
-	Enabled           bool              `json:"enabled"`
-	ChunkSize         int               `json:"chunk_size"`
-	ChunkOverlap      int               `json:"chunk_overlap"`
-	ChunkStrategy     types.ChunkingStrategy `json:"chunk_strategy"`
-	EnableEntities    bool              `json:"enable_entities"`
-	EnableRelationships bool            `json:"enable_relationships"`
-	MinConfidence     float64           `json:"min_confidence"`
-	LLMEndpoint       string            `json:"llm_endpoint"`
-	LLMModel          string            `json:"llm_model"`
+	Enabled             bool                   `json:"enabled"`
+	ChunkSize           int                    `json:"chunk_size"`
+	ChunkOverlap        int                    `json:"chunk_overlap"`
+	ChunkStrategy       types.ChunkingStrategy `json:"chunk_strategy"`
+	EnableEntities      bool                   `json:"enable_entities"`
+	EnableRelationships bool                   `json:"enable_relationships"`
+	MinConfidence       float64                `json:"min_confidence"`
+	LLMEndpoint         string                 `json:"llm_endpoint"`
+	LLMModel            string                 `json:"llm_model"`
+	GLiNEREndpoint      string                 `json:"gliner_endpoint"`
+	GLiNERModel         string                 `json:"gliner_model"`
+	GLiNERFailOpen      bool                   `json:"gliner_fail_open"`
 }
 
 // EmbeddingConfig holds embedding configuration
 type EmbeddingConfig struct {
-	Enabled       bool                      `json:"enabled"`
-	Provider      types.EmbeddingProviderType `json:"provider"`
-	Endpoint      string                     `json:"endpoint"`
-	Model         string                     `json:"model"`
-	Dimension     int                        `json:"dimension"`
-	BatchSize     int                        `json:"batch_size"`
-	TimeoutSeconds int                       `json:"timeout_seconds"`
+	Enabled        bool                        `json:"enabled"`
+	Provider       types.EmbeddingProviderType `json:"provider"`
+	Endpoint       string                      `json:"endpoint"`
+	Model          string                      `json:"model"`
+	Dimension      int                         `json:"dimension"`
+	BatchSize      int                         `json:"batch_size"`
+	TimeoutSeconds int                         `json:"timeout_seconds"`
 }
 
 // RetrievalConfig holds retrieval configuration
 type RetrievalConfig struct {
-	Enabled      bool    `json:"enabled"`
-	HybridWeight float64 `json:"hybrid_weight"`
-	TopK         int     `json:"top_k"`
-	UseRerank    bool    `json:"use_rerank"`
-	RerankModel  string  `json:"rerank_model"`
+	Enabled      bool          `json:"enabled"`
+	HybridWeight float64       `json:"hybrid_weight"`
+	TopK         int           `json:"top_k"`
+	UseRerank    bool          `json:"use_rerank"`
+	RerankModel  string        `json:"rerank_model"`
+	Metric       vector.Metric `json:"metric"`
 }
 
 // NetworkConfig holds network-specific configuration
@@ -311,19 +316,21 @@ func NewApp(homeDir string, rpcPort int, enableAutoRelay bool) (*App, error) {
 			Timeout:          "300s",
 		},
 		Processing: ProcessingConfig{
-			Enabled:           false,
-			ChunkSize:         1000,
-			ChunkOverlap:      200,
-			ChunkStrategy:     types.ChunkStrategyRecursive,
-			EnableEntities:    true,
+			Enabled:             false,
+			ChunkSize:           1000,
+			ChunkOverlap:        200,
+			ChunkStrategy:       types.ChunkStrategyRecursive,
+			EnableEntities:      true,
 			EnableRelationships: true,
-			MinConfidence:     0.5,
+			MinConfidence:       0.5,
 		},
 		Embedding: EmbeddingConfig{
-			Enabled:       true,
-			Provider:      types.EmbeddingProviderDeterministic,
-			Dimension:     384,
-			BatchSize:     32,
+			Enabled:        true,
+			Provider:       types.EmbeddingProviderTextEmbedder,
+			Endpoint:       "http://localhost:8089",
+			Model:          "text-embedder",
+			Dimension:      384,
+			BatchSize:      32,
 			TimeoutSeconds: 10,
 		},
 		Retrieval: RetrievalConfig{
@@ -388,21 +395,51 @@ func NewApp(homeDir string, rpcPort int, enableAutoRelay bool) (*App, error) {
 }
 
 func (app *App) initProcessingServices() {
+	// Older configs predate these sections. Apply production defaults so the
+	// migration is active rather than silently serving 503s.
+	if app.config.Processing.ChunkSize == 0 {
+		app.config.Processing.Enabled = true
+		app.config.Processing.ChunkSize = 1000
+		app.config.Processing.ChunkOverlap = 200
+		app.config.Processing.ChunkStrategy = types.ChunkStrategyRecursive
+		app.config.Processing.EnableEntities = true
+		app.config.Processing.EnableRelationships = true
+		app.config.Processing.MinConfidence = .5
+		app.config.Processing.GLiNERFailOpen = true
+	}
+	if app.config.Embedding.Dimension == 0 {
+		app.config.Embedding.Enabled = true
+		app.config.Embedding.Provider = types.EmbeddingProviderTextEmbedder
+		app.config.Embedding.Endpoint = "http://localhost:8089"
+		app.config.Embedding.Model = "text-embedder"
+		app.config.Embedding.Dimension = 384
+		app.config.Embedding.BatchSize = 32
+		app.config.Embedding.TimeoutSeconds = 30
+	}
+	if app.config.Retrieval.TopK == 0 {
+		app.config.Retrieval.Enabled = true
+		app.config.Retrieval.TopK = 10
+		app.config.Retrieval.HybridWeight = .5
+		app.config.Retrieval.Metric = vector.MetricCosine
+	}
 	if !app.config.Processing.Enabled {
 		return
 	}
 	app.processingEnabled = true
 	app.chunker = processing.NewChunker(types.ChunkingConfig{
-		Strategy:    app.config.Processing.ChunkStrategy,
-		ChunkSize:   app.config.Processing.ChunkSize,
-		Overlap:     app.config.Processing.ChunkOverlap,
+		Strategy:  app.config.Processing.ChunkStrategy,
+		ChunkSize: app.config.Processing.ChunkSize,
+		Overlap:   app.config.Processing.ChunkOverlap,
 	})
 	app.extractor = processing.NewExtractor(types.ExtractionConfig{
-		EnableEntities:     app.config.Processing.EnableEntities,
+		EnableEntities:      app.config.Processing.EnableEntities,
 		EnableRelationships: app.config.Processing.EnableRelationships,
-		MinConfidence:      app.config.Processing.MinConfidence,
-		LLMEndpoint:        app.config.Processing.LLMEndpoint,
-		LLMModel:           app.config.Processing.LLMModel,
+		MinConfidence:       app.config.Processing.MinConfidence,
+		LLMEndpoint:         app.config.Processing.LLMEndpoint,
+		LLMModel:            app.config.Processing.LLMModel,
+		GLiNEREndpoint:      app.config.Processing.GLiNEREndpoint,
+		GLiNERModel:         app.config.Processing.GLiNERModel,
+		GLiNERFailOpen:      app.config.Processing.GLiNERFailOpen,
 	})
 	if app.config.Embedding.Enabled {
 		providerConfig := embeddings.ProviderConfig{
@@ -421,7 +458,12 @@ func (app *App) initProcessingServices() {
 		}
 	}
 	if app.config.Retrieval.Enabled {
-		app.vectorIndex = retrieval.NewRetrievalPipeline(app.config.Retrieval.HybridWeight)
+		pipeline, err := retrieval.NewPersistentRetrievalPipeline(app.config.Retrieval.HybridWeight, app.config.Embedding.Dimension, app.config.Retrieval.Metric, app.storage)
+		if err != nil {
+			app.logger.Error("Failed to initialize persistent retrieval index", zap.Error(err))
+			return
+		}
+		app.vectorIndex = pipeline
 		if app.config.Retrieval.UseRerank {
 			app.reranker = retrieval.NewReranker("", app.config.Retrieval.RerankModel)
 		}
@@ -444,6 +486,7 @@ func (app *App) initProcessingServices() {
 			types.ChunkingConfig{Strategy: app.config.Processing.ChunkStrategy, ChunkSize: app.config.Processing.ChunkSize, Overlap: app.config.Processing.ChunkOverlap},
 			types.ExtractionConfig{EnableEntities: app.config.Processing.EnableEntities, EnableRelationships: app.config.Processing.EnableRelationships, MinConfidence: app.config.Processing.MinConfidence},
 		)
+		app.indexManager.SetObserver(app.rpc.ObserveIndexCompletion)
 	}
 }
 
@@ -721,6 +764,9 @@ func (app *App) prePopulateTestData() error {
 
 func (app *App) Start(ctx context.Context) error {
 	app.logger.Info("Starting GraphChain application with NRV system and economics")
+	maintenanceCtx, maintenanceCancel := context.WithCancel(ctx)
+	defer maintenanceCancel()
+	go app.runMaintenance(maintenanceCtx)
 
 	// Start NRV system
 	if err := app.nrvSystem.Start(); err != nil {
@@ -779,11 +825,40 @@ func (app *App) Stop(ctx context.Context) error {
 	}
 
 	// Close storage
+	if app.embeddingService != nil {
+		if err := app.embeddingService.Close(); err != nil {
+			app.logger.Warn("Failed to close embedding service", zap.Error(err))
+		}
+	}
 	if err := app.storage.Close(); err != nil {
 		app.logger.Error("Failed to close storage", zap.Error(err))
 	}
 
 	return nil
+}
+
+func (app *App) runMaintenance(ctx context.Context) {
+	ticker := time.NewTicker(30 * time.Minute)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			if app.indexManager != nil {
+				if err := app.indexManager.Optimize(); err != nil {
+					app.logger.Warn("vector optimization failed", zap.Error(err))
+				}
+			}
+			if maint, ok := app.storage.(storage.MaintenanceStorage); ok {
+				compactCtx, cancel := context.WithTimeout(ctx, 5*time.Minute)
+				if err := maint.Compact(compactCtx); err != nil {
+					app.logger.Warn("storage compaction failed", zap.Error(err))
+				}
+				cancel()
+			}
+		}
+	}
 }
 
 // AnnounceSkill announces a new skill minted on the Graph via DHT
@@ -845,3 +920,25 @@ func (app *App) GetVectorPipeline() *retrieval.RetrievalPipeline {
 	return app.vectorIndex
 }
 
+func (app *App) SubsystemHealth(ctx context.Context) map[string]error {
+	out := map[string]error{}
+	if app.storage == nil {
+		out["storage"] = fmt.Errorf("not initialized")
+	} else {
+		_, err := app.storage.Has([]byte("__health_probe__"))
+		out["storage"] = err
+	}
+	if app.embeddingService == nil {
+		out["embeddings"] = fmt.Errorf("not initialized")
+	} else {
+		healthCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
+		out["embeddings"] = app.embeddingService.Health(healthCtx)
+		cancel()
+	}
+	if app.vectorIndex == nil {
+		out["retrieval"] = fmt.Errorf("not initialized")
+	} else {
+		out["retrieval"] = nil
+	}
+	return out
+}

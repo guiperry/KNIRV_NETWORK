@@ -1,8 +1,10 @@
 package storage
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"path/filepath"
@@ -88,6 +90,25 @@ func (s *BluntDBStorage) Has(key []byte) (bool, error) {
 	return true, nil
 }
 
+func (s *BluntDBStorage) ScanPrefix(prefix []byte) (map[string][]byte, error) {
+	out := make(map[string][]byte)
+	err := s.db.View(func(txn *badger.Txn) error {
+		opts := badger.DefaultIteratorOptions
+		opts.Prefix = prefix
+		it := txn.NewIterator(opts)
+		defer it.Close()
+		for it.Seek(prefix); it.ValidForPrefix(prefix); it.Next() {
+			item := it.Item()
+			key := string(item.KeyCopy(nil))
+			if err := item.Value(func(v []byte) error { out[key] = append([]byte(nil), v...); return nil }); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+	return out, err
+}
+
 func (s *BluntDBStorage) Close() error {
 	return s.db.Close()
 }
@@ -148,6 +169,9 @@ func (s *BluntDBStorage) PutNode(nodeID string, nodeData []byte) error {
 	key := fmt.Sprintf("node_%s", nodeID)
 	return s.Put([]byte(key), nodeData)
 }
+func (s *BluntDBStorage) DeleteNode(nodeID string) error {
+	return s.Delete([]byte(fmt.Sprintf("node_%s", nodeID)))
+}
 
 func (s *BluntDBStorage) GetEdge(edgeID string) ([]byte, error) {
 	key := fmt.Sprintf("edge_%s", edgeID)
@@ -157,6 +181,9 @@ func (s *BluntDBStorage) GetEdge(edgeID string) ([]byte, error) {
 func (s *BluntDBStorage) PutEdge(edgeID string, edgeData []byte) error {
 	key := fmt.Sprintf("edge_%s", edgeID)
 	return s.Put([]byte(key), edgeData)
+}
+func (s *BluntDBStorage) DeleteEdge(edgeID string) error {
+	return s.Delete([]byte(fmt.Sprintf("edge_%s", edgeID)))
 }
 
 func (s *BluntDBStorage) GetChildren(nodeID string) ([]string, error) {
@@ -322,5 +349,35 @@ func (s *BluntDBStorage) Backup(path string) error {
 	}()
 
 	_, err = s.db.Backup(file, 0)
+	return err
+}
+
+func (s *BluntDBStorage) BackupTo(ctx context.Context, w io.Writer) error {
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+	}
+	_, err := s.db.Backup(w, 0)
+	return err
+}
+func (s *BluntDBStorage) RestoreFrom(ctx context.Context, r io.Reader) error {
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+	}
+	return s.db.Load(r, 16)
+}
+func (s *BluntDBStorage) Compact(ctx context.Context) error {
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+	}
+	err := s.RunGC()
+	if err == badger.ErrNoRewrite {
+		return nil
+	}
 	return err
 }
