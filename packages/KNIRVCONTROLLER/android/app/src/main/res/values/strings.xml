@@ -1,7 +1,0 @@
-<?xml version='1.0' encoding='utf-8'?>
-<resources>
-    <string name="app_name">KNIRV Controller</string>
-    <string name="title_activity_main">KNIRV Controller</string>
-    <string name="package_name">com.knirv.controller</string>
-    <string name="custom_url_scheme">com.knirv.controller</string>
-</resources>

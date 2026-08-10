@@ -142,6 +142,7 @@ build-all: ## Build every package in packages/
 	@$(MAKE) build-knirvgateway
 	@$(MAKE) build-knirvgraph
 	@$(MAKE) build-knirvoracle
+	@$(MAKE) build-knirvmonitor
 	@$(MAKE) build-knirvhasher
 	@$(MAKE) build-knirvagent
 	@$(MAKE) build-knirvbase
@@ -174,6 +175,12 @@ build-knirvoracle: ## Build KNIRVORACLE (Go)
 	@echo "$(BLUE)Building KNIRVORACLE...$(NC)"
 	@cd packages/KNIRVORACLE && go build -v ./cmd/oracle
 	@echo "$(GREEN)✓ KNIRVORACLE built$(NC)"
+
+.PHONY: build-knirvmonitor
+build-knirvmonitor: ## Build KNIRVMONITOR (Go, network monitor aggregation service)
+	@echo "$(BLUE)Building KNIRVMONITOR...$(NC)"
+	@cd packages/KNIRVMONITOR && go build -v ./cmd/server
+	@echo "$(GREEN)✓ KNIRVMONITOR built$(NC)"
 
 .PHONY: build-knirvhasher
 build-knirvhasher: ## Build KNIRVHASHER (Go, ASIC inference pipeline)

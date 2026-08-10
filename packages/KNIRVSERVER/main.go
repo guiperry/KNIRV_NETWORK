@@ -33,7 +33,9 @@ import (
 	"time"
 
 	knirvagent "github.com/KNIRV/KNIRV_NETWORK/KNIRVAGENT"
+	knirvmonitor "github.com/KNIRV/KNIRV_NETWORK/KNIRVSERVER/pkg/knirvmonitor"
 	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/spf13/viper"
 	"github.com/subosito/gotenv"
 	"go.uber.org/zap"
@@ -83,6 +85,7 @@ type Config struct {
 	BackendSocket         string   `mapstructure:"backend_socket"`
 	GatewayPort           int      `mapstructure:"gateway_port"`
 	GatewaySocket         string   `mapstructure:"gateway_socket"`
+	MonitorPort           int      `mapstructure:"monitor_port"`
 	LogLevel              string   `mapstructure:"log_level"`
 	Testnet               bool     `mapstructure:"testnet"`
 	ProofStoreDir         string   `mapstructure:"proof_store_dir"`
@@ -294,6 +297,7 @@ type ServerApp struct {
 	backendPath              string
 	tempDir                  string
 	upd                      *updater.Updater
+	monitorManager           *knirvmonitor.Manager
 }
 
 func (app *ServerApp) startIPFS(ctx context.Context) error {

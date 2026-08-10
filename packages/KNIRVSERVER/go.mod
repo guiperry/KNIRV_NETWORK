@@ -6,6 +6,8 @@ replace github.com/KNIRV/KNIRV_NETWORK/KNIRVAGENT => ./pkg/knirvagent
 
 replace github.com/KNIRV/KNIRV_NETWORK/KNIRVSERVER/pkg/knirvgateway => ./pkg/knirvgateway
 
+replace github.com/KNIRV/KNIRV_NETWORK/KNIRVSERVER/pkg/knirvmonitor => ./pkg/knirvmonitor
+
 replace hasher => ./pkg/knirvhasher
 
 replace github.com/KNIRV/KNIRV_NETWORK/KNIRVSDK/go => ../KNIRVSDK/go
@@ -13,11 +15,13 @@ replace github.com/KNIRV/KNIRV_NETWORK/KNIRVSDK/go => ../KNIRVSDK/go
 require (
 	github.com/KNIRV/KNIRV_NETWORK/KNIRVAGENT v0.0.0
 	github.com/KNIRV/KNIRV_NETWORK/KNIRVSDK/go v0.0.0
+	github.com/KNIRV/KNIRV_NETWORK/KNIRVSERVER/pkg/knirvmonitor v0.0.0
 	github.com/ethereum/go-ethereum v1.13.15
 	github.com/gin-gonic/gin v1.10.1
+	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/spf13/viper v1.20.1
 	github.com/subosito/gotenv v1.6.0
-	go.uber.org/zap v1.26.0
+	go.uber.org/zap v1.27.0
 	golang.org/x/crypto v0.47.0
 )
 
