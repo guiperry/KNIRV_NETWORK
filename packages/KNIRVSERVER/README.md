@@ -94,6 +94,7 @@ Notable UI areas in the current tree include:
 - agent command surfaces
 - system and network monitoring views
 - compliance-oriented dashboards
+- **Network Monitor** admin tab (Health, Metrics, Routes, Grafana, Prometheus, Onboarding, Alerts)
 
 The server serves static assets and also supports the interactive routes needed by the browser app.
 

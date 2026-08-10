@@ -14,6 +14,7 @@ import (
 	"github.com/apache/arrow/go/v15/arrow/flight"
 	"github.com/knirvcorp/knirvbase/pkg/knirvbase"
 	"github.com/knirvcorp/knirvbase/pkg/nrv"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"google.golang.org/grpc"
 	"net"
 )
@@ -60,6 +61,7 @@ func main() {
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, map[string]any{"status": "ok", "network_id": *networkID, "flight_addr": *flightAddr})
 	})
+	mux.Handle("/metrics", promhttp.Handler())
 	mux.HandleFunc("/append", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "POST" {
 			http.Error(w, "method not allowed", 405)

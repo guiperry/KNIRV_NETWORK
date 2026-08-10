@@ -1,6 +1,6 @@
 "use client";
 
-import { Activity, AlertTriangle, Cpu, Network } from 'lucide-react';
+import { AlertTriangle, Network } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useNetworkMonitor } from '@/hooks/use-network-monitor';
@@ -10,7 +10,7 @@ interface NetworkMonitorCardProps {
 }
 
 export function NetworkMonitorCard({ className }: NetworkMonitorCardProps) {
-  const { status, metrics, isLoading, error } = useNetworkMonitor();
+  const { status, isLoading, error } = useNetworkMonitor();
   const health = status?.overall_status ?? (error ? 'unavailable' : 'checking');
   const badgeClass = health === 'healthy'
     ? 'bg-green-500/10 text-green-300 border-green-500/30'
@@ -39,26 +39,6 @@ export function NetworkMonitorCard({ className }: NetworkMonitorCardProps) {
           <Metric label="Up" value={status?.services_up ?? 0} tone="text-green-400" />
           <Metric label="Down" value={status?.services_down ?? 0} tone="text-red-400" />
           <Metric label="Total" value={status?.services_total ?? 0} tone="text-slate-200" />
-        </div>
-        <div className="grid grid-cols-2 gap-2 text-[11px]">
-          <div className="rounded-lg border border-slate-800 bg-slate-950/40 p-2">
-            <div className="flex items-center gap-1 text-slate-500">
-              <Cpu className="w-3 h-3" />
-              <span>CPU</span>
-            </div>
-            <div className="mt-1 font-mono text-sm font-bold text-slate-200">
-              {(metrics?.cpu?.usage_percent ?? 0).toFixed(1)}%
-            </div>
-          </div>
-          <div className="rounded-lg border border-slate-800 bg-slate-950/40 p-2">
-            <div className="flex items-center gap-1 text-slate-500">
-              <Activity className="w-3 h-3" />
-              <span>Memory</span>
-            </div>
-            <div className="mt-1 font-mono text-sm font-bold text-slate-200">
-              {(metrics?.memory?.usage_percent ?? 0).toFixed(1)}%
-            </div>
-          </div>
         </div>
         {error && (
           <div className="flex items-center gap-2 rounded-lg border border-amber-500/20 bg-amber-500/10 p-2 text-[10px] text-amber-300">

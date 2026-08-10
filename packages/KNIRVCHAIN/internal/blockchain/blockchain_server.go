@@ -27,6 +27,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/multiformats/go-multiaddr"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -346,6 +347,7 @@ func (bcs *BlockchainServer) Prepare() (uint64, error) {
 	mux.HandleFunc("/ping", bcs.handlePing)
 	mux.HandleFunc("/health", bcs.handleHealth)
 	mux.HandleFunc("/uriGenerator", bcs.handleURIGenerator)
+	mux.Handle("/metrics", promhttp.Handler())
 	mux.HandleFunc("/info", bcs.handleServerInfo)
 	mux.HandleFunc("/devs", bcs.handleGetPeers)
 	mux.HandleFunc("/p2p/connect", bcs.handleP2PConnect) // Register the new P2P connect handler

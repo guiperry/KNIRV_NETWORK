@@ -12,21 +12,15 @@ export interface NetworkMonitorStatus {
 }
 
 export interface NetworkMonitorMetrics {
-  cpu?: {
-    usage_percent: number;
-    load_average?: number[];
-  };
   memory?: {
-    total_bytes: number;
-    used_bytes: number;
-    available_bytes: number;
-    usage_percent: number;
+    heap_alloc_bytes: number;
+    system_bytes: number;
+    goroutines: number;
   };
   disk?: {
     total_bytes: number;
     used_bytes: number;
     available_bytes: number;
-    usage_percent: number;
   };
   timestamp?: string;
 }

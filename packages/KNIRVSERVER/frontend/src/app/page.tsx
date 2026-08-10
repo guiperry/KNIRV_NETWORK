@@ -110,7 +110,6 @@ export default function Dashboard() {
   // Use real backend hooks instead of mock data
   const { nodes: dveNodes, isLoading: dveLoading, error: dveError } = useDVENodes();
   const { tasks: validationTasks, isLoading: tasksLoading } = useValidationTasks();
-  const { systemHealth, isLoading: healthLoading } = useSystemHealth();
   
   const {
     isConnected,

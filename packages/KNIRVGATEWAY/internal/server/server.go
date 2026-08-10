@@ -291,6 +291,7 @@ func (s *Server) setupRoutes() error {
 	r.HandleFunc("/api/network-monitor/metrics", s.handleNetworkMonitorMetrics).Methods("GET")
 	r.HandleFunc("/api/network-monitor/logs", s.handleNetworkMonitorLogs).Methods("GET")
 	r.HandleFunc("/api/network-monitor/config", s.handleNetworkMonitorConfig).Methods("GET")
+	r.HandleFunc("/api/network-monitor/routes", s.handleNetworkMonitorRoutes).Methods("GET")
 
 	// Backend reverse proxy — proxy all /api/v1/* to the backend Unix socket
 	// (including /api/v1/info, which was previously handled locally by the gateway).
@@ -1676,6 +1677,44 @@ func (s *Server) handleNetworkMonitorConfig(w http.ResponseWriter, r *http.Reque
 				},
 			},
 		},
+		"timestamp": time.Now().UTC().Format(time.RFC3339),
+	})
+}
+
+// handleNetworkMonitorRoutes returns the proxy route table.
+func (s *Server) handleNetworkMonitorRoutes(w http.ResponseWriter, r *http.Request) {
+	routes := []map[string]interface{}{
+		{"name": "oracle", "pathPrefix": "/api/oracle/", "target": "KNIRVORACLE", "protocol": "http"},
+		{"name": "oracle-ws", "pathPrefix": "/oracle/", "target": "KNIRVORACLE", "protocol": "http"},
+		{"name": "backend", "pathPrefix": "/api/v1/", "target": "KNIRVSERVER", "protocol": "unix-socket"},
+		{"name": "auth", "pathPrefix": "/api/auth/", "target": "KNIRVSERVER", "protocol": "unix-socket"},
+		{"name": "badge", "pathPrefix": "/api/badge/", "target": "KNIRVSERVER", "protocol": "unix-socket"},
+		{"name": "dve-nodes", "pathPrefix": "/api/dve-nodes", "target": "KNIRVSERVER", "protocol": "unix-socket"},
+		{"name": "chain", "pathPrefix": "/api/chain/", "target": "KNIRVCHAIN", "protocol": "unix-socket"},
+		{"name": "chain-ws", "pathPrefix": "/chain/", "target": "KNIRVCHAIN", "protocol": "unix-socket"},
+		{"name": "graph", "pathPrefix": "/api/graph/", "target": "KNIRVGRAPH", "protocol": "unix-socket"},
+		{"name": "graph-ws", "pathPrefix": "/graph/", "target": "KNIRVGRAPH", "protocol": "unix-socket"},
+		{"name": "shell", "pathPrefix": "/api/shell/", "target": "KNIRVSERVER", "protocol": "unix-socket"},
+		{"name": "shell-v1", "pathPrefix": "/api/v1/shell/", "target": "KNIRVSERVER", "protocol": "unix-socket"},
+		{"name": "knirvshell", "pathPrefix": "/api/knirvshell/", "target": "KNIRVSERVER", "protocol": "unix-socket"},
+		{"name": "xion-rpc", "pathPrefix": "/xion/rpc/", "target": "XION", "protocol": "http"},
+		{"name": "xion-rest", "pathPrefix": "/xion/rest/", "target": "XION", "protocol": "http"},
+		{"name": "ipfs-api", "pathPrefix": "/ipfs/api/", "target": "IPFS", "protocol": "http"},
+		{"name": "ipfs-gw", "pathPrefix": "/ipfs/", "target": "IPFS", "protocol": "http"},
+		{"name": "text-embedder", "pathPrefix": "/text-embedder/", "target": "TextEmbedder", "protocol": "http"},
+		{"name": "hasher", "pathPrefix": "/api/knirvhasher/", "target": "KNIRVHASHER", "protocol": "http"},
+		{"name": "arena", "pathPrefix": "/arena/", "target": "KNIRVARENA", "protocol": "http"},
+		{"name": "agent-control", "pathPrefix": "/internal/agent-control/", "target": "KNIRVSERVER", "protocol": "http"},
+		{"name": "agent-api", "pathPrefix": "/api/agent/", "target": "KNIRVSERVER", "protocol": "http"},
+		{"name": "event-bundles-mint", "pathPrefix": "/api/v1/event-bundles/mint", "target": "KNIRVCHAIN", "protocol": "unix-socket"},
+		{"name": "event-bundles-get", "pathPrefix": "/api/v1/event-bundles/{event_id}", "target": "KNIRVCHAIN", "protocol": "unix-socket"},
+		{"name": "controller", "pathPrefix": "/controller", "target": "DynamicController", "protocol": "http"},
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"success":   true,
+		"data":      routes,
 		"timestamp": time.Now().UTC().Format(time.RFC3339),
 	})
 }

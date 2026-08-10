@@ -37,6 +37,7 @@ import { ModuleLogViewer } from '@/components/dashboard/module-log-viewer';
 import { KernelSecurityCard } from '@/components/dashboard/kernel-security-card';
 import { SystemTelemetryCard } from '@/components/dashboard/system-telemetry-card';
 import { NetworkMonitorCard } from '@/components/dashboard/network-monitor-card';
+import { NetworkMonitorPanel } from '@/components/dashboard/network-monitor-panel';
 import type { ProcessingActivity } from '@/components/dashboard/cognitive-engine-log-routing';
 import { useSecuritySubsystem } from '@/hooks/use-security-subsystem';
 import { useNetworkMonitor } from '@/hooks/use-network-monitor';
@@ -112,7 +113,7 @@ function DashboardWrapperInner({ children, onRentDVE }: DashboardWrapperProps) {
       goToWebgui('dashboard');
       return;
     }
-    if (section === 'cognitive' || section === 'nodes' || section === 'badgelab' || section === 'overview') {
+    if (section === 'cognitive' || section === 'nodes' || section === 'badgelab' || section === 'network-monitor' || section === 'overview') {
       setMainTab('system');
       setResourceTab(section);
     } else {
@@ -809,11 +810,14 @@ function DashboardWrapperInner({ children, onRentDVE }: DashboardWrapperProps) {
 
                     {/* NEW: Top Navigation Bar — moved up below the main title */}
                     <Tabs value={resourceTab} onValueChange={setResourceTab} className="space-y-6">
-                      <TabsList className="grid w-full grid-cols-4 bg-gray-900/50 border border-gray-800">
+                      <TabsList className="grid w-full grid-cols-5 bg-gray-900/50 border border-gray-800">
                         <TabsTrigger value="overview" className="text-gray-400 data-[state=active]:text-indigo-400 data-[state=active]:bg-indigo-500/10">Overview</TabsTrigger>
                         <TabsTrigger value="nodes" className="text-gray-400 data-[state=active]:text-indigo-400 data-[state=active]:bg-indigo-500/10">DVE Nodes</TabsTrigger>
                         <TabsTrigger value="cognitive" className="text-gray-400 data-[state=active]:text-indigo-400 data-[state=active]:bg-indigo-500/10">Cognitive Engine</TabsTrigger>
                         <TabsTrigger value="badgelab" className="text-gray-400 data-[state=active]:text-amber-400 data-[state=active]:bg-amber-500/10">Badge Lab</TabsTrigger>
+                        <RoleGuard allowedRoles={['admin']} showError={false}>
+                          <TabsTrigger value="network-monitor" className="text-gray-400 data-[state=active]:text-cyan-400 data-[state=active]:bg-cyan-500/10">Network Monitor</TabsTrigger>
+                        </RoleGuard>
                       </TabsList>
 
                       {/* ── Overview Tab: All 8 Card Tiles ── */}
@@ -1051,6 +1055,13 @@ function DashboardWrapperInner({ children, onRentDVE }: DashboardWrapperProps) {
                       {/* ── Badge Lab Tab ── */}
                       <TabsContent value="badgelab" className="space-y-4">
                         <BadgeLabPanel />
+                      </TabsContent>
+
+                      {/* ── Network Monitor Tab ── */}
+                      <TabsContent value="network-monitor" className="space-y-4">
+                        <RoleGuard allowedRoles={['admin']}>
+                          <NetworkMonitorPanel />
+                        </RoleGuard>
                       </TabsContent>
                     </Tabs>
                   </div>

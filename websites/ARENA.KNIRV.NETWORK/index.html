@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KNIRV ARENA | Actuarial Bug Bounty Syndicate</title>
+    <meta name="description" content="KNIRV ARENA creates a distributed risk syndicate for software vulnerabilities. Payouts priced automatically from collective risk pools based on eBPF telemetry.">
+    <meta name="keywords" content="Bug Bounty, Actuarial, Cyber Security, Smart Contracts, Vulnerability">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Space+Grotesk:wght@400;600;700&display=swap" rel="stylesheet">
+
+    <script src="https://resource.trickle.so/vendor_lib/unpkg/react@18/umd/react.production.min.js"></script>
+    <script src="https://resource.trickle.so/vendor_lib/unpkg/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://resource.trickle.so/vendor_lib/unpkg/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://resource.trickle.so/vendor_lib/unpkg/lucide-static@0.516.0/font/lucide.css" rel="stylesheet">
+
+    <style type="text/tailwindcss">
+    @layer theme {
+        :root {
+            --bg-black: #000000;
+            --bg-navy: #051024; /* Dark Navy Blue */
+            --accent-blue: #89CFF0; /* Baby Blue Highlights */
+            --text-white: #FFFFFF;
+            --text-gray: #A0ABC0;
+        }
+    }
+
+    @layer base {
+        body {
+            @apply bg-[var(--bg-black)] text-[var(--text-white)] antialiased;
+            font-family: 'Space Grotesk', sans-serif;
+        }
+        h1, h2, h3, h4, h5, h6 {
+            font-family: 'JetBrains Mono', monospace;
+        }
+    }
+
+    @layer components {
+        .glass-panel {
+            @apply bg-[var(--bg-navy)] bg-opacity-80 backdrop-blur-md border border-[var(--accent-blue)] border-opacity-20 rounded-xl;
+        }
+        .btn-primary {
+            @apply bg-[var(--accent-blue)] text-black font-bold py-3 px-6 rounded-md hover:bg-white transition-colors duration-300 font-mono tracking-tight;
+        }
+        .btn-outline {
+            @apply border border-[var(--accent-blue)] text-[var(--accent-blue)] font-bold py-3 px-6 rounded-md hover:bg-[var(--accent-blue)] hover:text-black transition-colors duration-300 font-mono tracking-tight;
+        }
+    }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+    <script type="text/babel" src="components/Header.js"></script>
+    <script type="text/babel" src="components/Hero.js"></script>
+    <script type="text/babel" src="components/Features.js"></script>
+    <script type="text/babel" src="components/Arena.js"></script>
+    <script type="text/babel" src="components/Footer.js"></script>
+    <script type="text/babel" src="app.js"></script>
+</body>
+</html>
