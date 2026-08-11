@@ -85,7 +85,11 @@ func (s *Server) Start() error {
 	mux.HandleFunc("/api/v1/gateway/routes", s.handleGatewayRoutes)
 	mux.HandleFunc("/api/v1/gateway/health", s.handleGatewayHealth)
 	mux.HandleFunc("/api/v1/onboarding/applications", s.handleOnboardingApplications)
+	// Subtree pattern (trailing "/") — coexists with the exact match above in
+	// stdlib ServeMux, matches e.g. "/api/v1/onboarding/applications/{id}/review".
+	mux.HandleFunc("/api/v1/onboarding/applications/", s.handleOnboardingApplicationAction)
 	mux.HandleFunc("/api/v1/onboarding/users", s.handleOnboardingUsers)
+	mux.HandleFunc("/api/v1/onboarding/users/", s.handleOnboardingUserAction)
 
 	addr := ":" + s.config.Port
 	srv := &http.Server{Addr: addr, Handler: s.loggingMiddleware(mux)}
@@ -144,12 +148,34 @@ func (s *Server) handleStatus(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// handleOnboardingApplications and handleOnboardingUsers proxy to
+// KNIRVGATEWAY's own native /api/admin/* endpoints (internal/rootkey +
+// internal/d1 in KNIRVGATEWAY query Cloudflare D1 directly) — GatewayURL is
+// the correct target; the paths below just need to match what KNIRVGATEWAY
+// actually registers.
 func (s *Server) handleOnboardingApplications(w http.ResponseWriter, r *http.Request) {
-	s.proxyToOnboarding(w, r, "/api/marketplace/operators")
+	s.proxyToOnboarding(w, r, "/api/admin/operators")
 }
 
 func (s *Server) handleOnboardingUsers(w http.ResponseWriter, r *http.Request) {
 	s.proxyToOnboarding(w, r, "/api/admin/users")
+}
+
+// handleOnboardingApplicationAction forwards e.g.
+// "/api/v1/onboarding/applications/{id}/review" to
+// "/api/admin/operators/{id}/review" on KNIRVGATEWAY, preserving whatever
+// suffix follows the fixed prefix.
+func (s *Server) handleOnboardingApplicationAction(w http.ResponseWriter, r *http.Request) {
+	suffix := strings.TrimPrefix(r.URL.Path, "/api/v1/onboarding/applications/")
+	s.proxyToOnboarding(w, r, "/api/admin/operators/"+suffix)
+}
+
+// handleOnboardingUserAction forwards e.g.
+// "/api/v1/onboarding/users/{id}/role" or ".../status" to
+// "/api/admin/users/{id}/role" or ".../status" on KNIRVGATEWAY.
+func (s *Server) handleOnboardingUserAction(w http.ResponseWriter, r *http.Request) {
+	suffix := strings.TrimPrefix(r.URL.Path, "/api/v1/onboarding/users/")
+	s.proxyToOnboarding(w, r, "/api/admin/users/"+suffix)
 }
 
 func (s *Server) proxyToOnboarding(w http.ResponseWriter, r *http.Request, path string) {

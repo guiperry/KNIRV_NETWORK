@@ -26,6 +26,7 @@ import (
 	"github.com/multiformats/go-multihash"
 
 	"github.com/KNIRV/KNIRV_NETWORK/KNIRVGATEWAY/internal/config"
+	"github.com/KNIRV/KNIRV_NETWORK/KNIRVGATEWAY/internal/d1"
 	"github.com/KNIRV/KNIRV_NETWORK/KNIRVGATEWAY/internal/dht"
 	"github.com/KNIRV/KNIRV_NETWORK/KNIRVGATEWAY/internal/dveviewer"
 	"github.com/KNIRV/KNIRV_NETWORK/KNIRVGATEWAY/internal/operator"
@@ -62,6 +63,7 @@ type Server struct {
 	router          *mux.Router
 	webguiStaticDir string
 	actualPort      int
+	d1Client        *d1.Client
 }
 
 // New creates a new HTTP server
@@ -191,6 +193,7 @@ func New(cfg *config.Config, webguiStaticDir string, logger *zap.Logger, db ...*
 		dhtManager:      dhtMgr,
 		logger:          logger,
 		webguiStaticDir: webguiStaticDir,
+		d1Client:        newAdminD1Client(logger),
 	}
 
 	if err := s.setupRoutes(); err != nil {
@@ -292,6 +295,17 @@ func (s *Server) setupRoutes() error {
 	r.HandleFunc("/api/network-monitor/logs", s.handleNetworkMonitorLogs).Methods("GET")
 	r.HandleFunc("/api/network-monitor/config", s.handleNetworkMonitorConfig).Methods("GET")
 	r.HandleFunc("/api/network-monitor/routes", s.handleNetworkMonitorRoutes).Methods("GET")
+
+	// Admin-only D1-backed onboarding endpoints (KNIRVMONITOR's Onboarding
+	// sub-view proxies here — see internal/rootkey and internal/d1). Every
+	// route requires a valid admin-role bearer token; requireD1 inside each
+	// handler additionally returns 503 if root.key credentials for
+	// Cloudflare weren't available at startup.
+	r.HandleFunc("/api/admin/operators", requireAdminJWT(s.handleAdminOperatorsList)).Methods("GET")
+	r.HandleFunc("/api/admin/operators/{id}/review", requireAdminJWT(s.handleAdminOperatorReview)).Methods("POST")
+	r.HandleFunc("/api/admin/users", requireAdminJWT(s.handleAdminUsersList)).Methods("GET")
+	r.HandleFunc("/api/admin/users/{id}/role", requireAdminJWT(s.handleAdminUserRole)).Methods("POST")
+	r.HandleFunc("/api/admin/users/{id}/status", requireAdminJWT(s.handleAdminUserStatus)).Methods("POST")
 
 	// Backend reverse proxy — proxy all /api/v1/* to the backend Unix socket
 	// (including /api/v1/info, which was previously handled locally by the gateway).
