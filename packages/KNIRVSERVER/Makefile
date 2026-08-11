@@ -220,10 +220,10 @@ key-encryptor: ## Build root_key_encryptor binary
 
 # Unified Binary (Frontend + Desktop + Backend + embedded pkg modules)
 # main.go embeds: bin/backend_server, config/*, desktop/dist/*, frontend/out/*
-# Module-owned binaries like KNIRVGATEWAY, KNIRVGRAPH, KNIRVCHAIN, KNIRVORACLE, KNIRVHASHER, and KNIRVAGENT
+# Module-owned binaries like KNIRVGATEWAY, KNIRVGRAPH, KNIRVCHAIN, KNIRVORACLE, KNIRVHASHER, KNIRVMONITOR, and KNIRVAGENT
 # are embedded and extracted by their pkg modules.
-binary: proto ebpf-generate frontend backend arena-build ## Build unified binary embedding frontend, desktop, backend, KNIRVGATEWAY, KNIRVGRAPH, KNIRVCHAIN, KNIRVORACLE, KNIRVHASHER, KNIRVAGENT, and KNIRVARENA
-	@echo "$(BLUE)Creating unified binary (embeds frontend, desktop, backend, KNIRVGATEWAY, KNIRVGRAPH, KNIRVCHAIN, KNIRVORACLE, KNIRVHASHER)...$(NC)"
+binary: proto ebpf-generate frontend backend arena-build ## Build unified binary embedding frontend, desktop, backend, KNIRVGATEWAY, KNIRVGRAPH, KNIRVCHAIN, KNIRVORACLE, KNIRVHASHER, KNIRVMONITOR, KNIRVAGENT, and KNIRVARENA
+	@echo "$(BLUE)Creating unified binary (embeds frontend, desktop, backend, KNIRVGATEWAY, KNIRVGRAPH, KNIRVCHAIN, KNIRVORACLE, KNIRVHASHER, KNIRVMONITOR)...$(NC)"
 	@mkdir -p $(DIST_DIR)
 	@rm -f $(DIST_DIR)/knirv-server
 	go build -ldflags "$(LDFLAGS)" -o $(DIST_DIR)/knirv-server .
