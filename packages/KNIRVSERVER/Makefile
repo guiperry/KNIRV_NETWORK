@@ -25,6 +25,9 @@ GRAPH_PKG_BIN := $(GRAPH_DIR)/bin/knirvgraph
 CHAIN_DIR := $(ROOT_DIR)/pkg/knirvchain
 CHAIN_SRC_DIR := $(ROOT_DIR)/../KNIRVCHAIN
 CHAIN_PKG_BIN := $(CHAIN_DIR)/bin/knirvchain
+MONITOR_DIR := $(ROOT_DIR)/pkg/knirvmonitor
+MONITOR_SRC_DIR := $(ROOT_DIR)/../KNIRVMONITOR
+MONITOR_PKG_BIN := $(MONITOR_DIR)/bin/monitor
 ORACLE_DIR := $(ROOT_DIR)/../KNIRVORACLE
 ORACLE_PKG_DIR := $(ROOT_DIR)/pkg/knirvoracle
 ORACLE_PKG_BIN := $(ORACLE_PKG_DIR)/bin/knirvoracle
@@ -180,7 +183,7 @@ frontend-dev: deps-node ## Start frontend development server
 	cd $(FRONTEND_DIR) && $(NPM_CMD) run dev
 
 # Backend Build (cmd/backend_server only)
-backend: deps-go gateway-build graph-build chain-build oracle-build hasher-build agent-build arena-build embedded-build ## Build complete Go backend service package
+backend: deps-go gateway-build graph-build chain-build monitor-build oracle-build hasher-build agent-build arena-build embedded-build ## Build complete Go backend service package
 	@echo "$(BLUE)Building complete backend package binary...$(NC)"
 	@rm -f $(BACKEND_DIR)/backend_server bin/backend_server
 	cd $(BACKEND_DIR) && go build -ldflags "$(LDFLAGS)" -o backend_server ./cmd/backend_server
@@ -532,6 +535,26 @@ chain-clean: ## Clean KNIRVCHAIN build artifacts
 	@echo "$(BLUE)Cleaning KNIRVCHAIN artifacts...$(NC)"
 	rm -f $(CHAIN_PKG_BIN)
 	cd $(CHAIN_SRC_DIR) && go clean
+
+# KNIRVMONITOR (Embedded) targets
+monitor-deps: ## Install KNIRVMONITOR dependencies
+	@echo "$(BLUE)Installing KNIRVMONITOR dependencies...$(NC)"
+	cd $(MONITOR_SRC_DIR) && go mod download && go mod tidy
+
+monitor-build: monitor-deps ## Build KNIRVMONITOR binary into pkg/knirvmonitor/bin/ (required before binary target)
+	@echo "$(BLUE)Building KNIRVMONITOR binary...$(NC)"
+	@mkdir -p $(MONITOR_DIR)/bin
+	@rm -f $(MONITOR_PKG_BIN)
+	cd $(MONITOR_SRC_DIR)/cmd/server && go build -ldflags "-s -w" -o $(MONITOR_PKG_BIN)
+	@echo "$(BLUE)Compressing KNIRVMONITOR binary with gzip...$(NC)"
+	@rm -f $(MONITOR_PKG_BIN).tmp
+	@gzip -cf $(MONITOR_PKG_BIN) > $(MONITOR_PKG_BIN).tmp && mv $(MONITOR_PKG_BIN).tmp $(MONITOR_PKG_BIN)
+	@echo "$(GREEN)KNIRVMONITOR binary built: $(MONITOR_PKG_BIN)$(NC)"
+
+monitor-clean: ## Clean KNIRVMONITOR build artifacts
+	@echo "$(BLUE)Cleaning KNIRVMONITOR artifacts...$(NC)"
+	rm -f $(MONITOR_PKG_BIN)
+	cd $(MONITOR_SRC_DIR) && go clean
 
 # KNIRVORACLE (Embedded) targets
 oracle-deps: ## Install KNIRVORACLE dependencies

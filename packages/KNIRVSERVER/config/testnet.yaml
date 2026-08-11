@@ -382,3 +382,17 @@ gateway:
   auth_secret: "knirv_testnet_jwt_secret_2025_secure_token_for_development_only"
   start_timeout: 60
   stop_timeout: 10
+
+# Embedded KNIRVMONITOR — backend for the dashboard's admin-only Network
+# Monitor tab (packages/KNIRVSERVER/frontend/src/components/dashboard/
+# network-monitor-panel.tsx). Started last by KNIRVSERVER's startMonitor().
+#
+# NOTE: port 9090 collides on paper with monitoring.metrics_port (line 254
+# above) — that key is currently unbound by anything in this deployment (no
+# process in this config actually listens on it today), so there is no live
+# conflict as of this writing. If that changes, one of the two must move.
+monitor:
+  enabled: true
+  port: 9090
+  start_timeout: 30
+  stop_timeout: 10

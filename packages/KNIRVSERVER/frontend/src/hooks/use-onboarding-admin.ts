@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery } from '@tanstack/react-query';
+import { getAuthHeaders } from '@/lib/api';
 
 export interface OnboardingApplication {
   id: string;
@@ -30,7 +31,7 @@ async function unwrap<T>(response: Response): Promise<T> {
 export function useOnboardingAdmin() {
   const applications = useQuery<{ applications: OnboardingApplication[] }>({
     queryKey: ['onboarding', 'applications'],
-    queryFn: async () => unwrap<{ applications: OnboardingApplication[] }>(await fetch('/api/v1/onboarding/applications')),
+    queryFn: async () => unwrap<{ applications: OnboardingApplication[] }>(await fetch('/api/v1/onboarding/applications', { headers: getAuthHeaders() })),
     refetchInterval: 30000,
     staleTime: 15000,
     retry: 1,
@@ -38,7 +39,7 @@ export function useOnboardingAdmin() {
 
   const users = useQuery<{ users: OnboardingUser[] }>({
     queryKey: ['onboarding', 'users'],
-    queryFn: async () => unwrap<{ users: OnboardingUser[] }>(await fetch('/api/v1/onboarding/users')),
+    queryFn: async () => unwrap<{ users: OnboardingUser[] }>(await fetch('/api/v1/onboarding/users', { headers: getAuthHeaders() })),
     refetchInterval: 30000,
     staleTime: 15000,
     retry: 1,

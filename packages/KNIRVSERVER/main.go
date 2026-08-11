@@ -1094,10 +1094,113 @@ func backendBaseURL(cfg *Config) string {
 	return fmt.Sprintf("http://localhost:%d", cfg.BackendPort)
 }
 
+// monitorAPIPrefixes are the KNIRVMONITOR-owned paths proxied to the
+// embedded monitor subprocess — see pkg/knirvmonitor and startMonitor.
+var monitorAPIPrefixes = []string{
+	"/api/v1/knirvbase/",
+	"/api/v1/knirvchain/",
+	"/api/v1/knirvgraph/",
+	"/api/v1/knirvoracle/",
+	"/api/v1/gateway/",
+	"/api/v1/onboarding/",
+}
+
+// monitorAPIExactPaths are single, non-prefixed monitor-owned paths.
+var monitorAPIExactPaths = map[string]bool{
+	"/api/v1/network/interfaces": true,
+}
+
+func isMonitorAPIPath(path string) bool {
+	if monitorAPIExactPaths[path] {
+		return true
+	}
+	for _, prefix := range monitorAPIPrefixes {
+		if strings.HasPrefix(path, prefix) {
+			return true
+		}
+	}
+	return false
+}
+
+// monitorJWTClaims mirrors backend_server's UserClaims shape (KNIRV_CORP
+// packages/server/backend_server/internal/web/middleware/auth.go) closely
+// enough to decode the same tokens it issues — just the Role field, since
+// that's all isAdminRequest needs.
+type monitorJWTClaims struct {
+	Role string `json:"role"`
+	jwt.RegisteredClaims
+}
+
+// jwtSigningSecret resolves the shared JWT secret backend_server's
+// AuthMiddleware signs tokens with: KNIRV_JWT_SECRET env override, else
+// security.jwt_secret, else auth.jwt_secret from the loaded config YAML
+// (testnet.yaml sets both to the same value). This must stay in sync with
+// whatever backend_server actually uses, or every admin-gated monitor
+// request will be rejected even for real admins.
+func jwtSigningSecret() string {
+	if secret := strings.TrimSpace(os.Getenv("KNIRV_JWT_SECRET")); secret != "" {
+		return secret
+	}
+	if secret := strings.TrimSpace(viper.GetString("security.jwt_secret")); secret != "" {
+		return secret
+	}
+	return strings.TrimSpace(viper.GetString("auth.jwt_secret"))
+}
+
+// isAdminRequest validates the request's bearer token against the shared
+// backend JWT secret and reports whether its role claim is "admin". This is
+// a minimal, same-repo equivalent of backend_server's
+// middleware.RequireRole("admin") (KNIRV_CORP/packages/server/backend_server/
+// internal/web/middleware/rbac.go) — duplicated here rather than imported
+// because backend_server is a separate Go module in a separate repo and this
+// codebase's convention is no cross-package Go imports between services
+// (see CLAUDE.md). It intentionally does NOT grant a bypass for any role
+// other than "admin" — unlike backend_server's RequireRole, which treats
+// "admin" as an implicit member of every allowed-role list, there is no
+// broader list here to bypass.
+func isAdminRequest(r *http.Request) bool {
+	secret := jwtSigningSecret()
+	if secret == "" {
+		return false
+	}
+	authHeader := strings.TrimSpace(r.Header.Get("Authorization"))
+	if authHeader == "" {
+		return false
+	}
+	parts := strings.SplitN(authHeader, " ", 2)
+	if len(parts) != 2 || !strings.EqualFold(parts[0], "Bearer") {
+		return false
+	}
+	tokenString := strings.TrimSpace(parts[1])
+	if tokenString == "" {
+		return false
+	}
+
+	claims := &monitorJWTClaims{}
+	token, err := jwt.ParseWithClaims(tokenString, claims, func(t *jwt.Token) (interface{}, error) {
+		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
+		}
+		return []byte(secret), nil
+	})
+	if err != nil || !token.Valid {
+		return false
+	}
+	return strings.EqualFold(claims.Role, "admin")
+}
+
 func gatewayBaseURL(cfg *Config) string {
 	port := cfg.GatewayPort
 	if port == 0 {
 		port = 8080
+	}
+	return fmt.Sprintf("http://localhost:%d", port)
+}
+
+func monitorBaseURL(cfg *Config) string {
+	port := cfg.MonitorPort
+	if port == 0 {
+		port = 9090
 	}
 	return fmt.Sprintf("http://localhost:%d", port)
 }
@@ -1199,6 +1302,7 @@ func (app *ServerApp) collectDeepHealthChecks() map[string]healthProbeResult {
 	addProbe("chain", filepath.Join(socketDir, "chain.sock"), "http://localhost/health")
 	addProbe("arena", filepath.Join(socketDir, "arena.sock"), "http://localhost/health")
 	addProbe("hasher", filepath.Join(socketDir, "hasher.sock"), "http://localhost/health")
+	addProbe("monitor", "", monitorBaseURL(app.config)+"/health")
 
 	if app.agentControl != nil {
 		addProbe("agent_control", app.agentControl.socketPath, "http://localhost/control/status")
@@ -1656,6 +1760,16 @@ func (app *ServerApp) setupRoutes() error {
 	gatewayTransport := socketProxyTransport(app.config.GatewaySocket)
 	gatewayBase := gatewayBaseURL(app.config)
 
+	// KNIRVMONITOR-owned API surface: proxied to the embedded monitor
+	// subprocess (see startMonitor / isMonitorAPIPath / isAdminRequest below)
+	// rather than falling through to the generic backend proxy, which has no
+	// handlers for these paths.
+	monitorBase := monitorBaseURL(app.config)
+	monitorProxy, monitorProxyErr := newPrefixProxy(monitorBase, http.DefaultTransport, "", "")
+	if monitorProxyErr != nil {
+		log.Printf("Warning: failed to configure monitor proxy: %v", monitorProxyErr)
+	}
+
 	registerGatewayPrefix := func(prefix, upstreamPrefix string) error {
 		proxy, err := newPrefixProxy(gatewayBase, gatewayTransport, prefix, upstreamPrefix)
 		if err != nil {
@@ -1802,6 +1916,26 @@ func (app *ServerApp) setupRoutes() error {
 					nmProxy.ServeHTTP(c.Writer, c.Request)
 					return
 				}
+			}
+			// KNIRVMONITOR-owned API paths (knirvbase/knirvchain/knirvgraph/
+			// knirvoracle metrics, the gateway route table, and the onboarding
+			// proxy) — reified from KNIRVGATEWAY's route table and internal
+			// service metrics, so admin-only. Must come before the generic
+			// backend fall-through: KNIRVGATEWAY's own /api/v1/ catch-all proxy
+			// would otherwise swallow these paths first (both KNIRVSERVER's and
+			// KNIRVGATEWAY's /api/v1/* proxies point at backend_server, which
+			// has no handlers for them at all).
+			if isMonitorAPIPath(c.Request.URL.Path) {
+				if !isAdminRequest(c.Request) {
+					c.JSON(http.StatusForbidden, gin.H{"error": "admin role required"})
+					return
+				}
+				if monitorProxyErr == nil {
+					monitorProxy.ServeHTTP(c.Writer, c.Request)
+					return
+				}
+				c.JSON(http.StatusServiceUnavailable, gin.H{"error": "monitor proxy unavailable"})
+				return
 			}
 			// DVE evidence ingest API: /api/dve/... — served locally by the
 			// dveevidence sub-router (same catch-all constraint as below).
@@ -2827,6 +2961,56 @@ func (app *ServerApp) startValidationChain(ctx context.Context) error {
 	return nil
 }
 
+// startMonitor launches the embedded KNIRVMONITOR subprocess (pkg/knirvmonitor),
+// the aggregation backend for the dashboard's admin-only Network Monitor tab.
+// It is started last, after every other embedded service, since its own
+// probes target them (gateway, and optionally knirvbase/knirvchain/knirvgraph/
+// knirvoracle/prometheus/grafana via env overrides below) — nothing else
+// depends on monitor being up, so a failure here is logged but never fatal.
+//
+// Only KNIRVGATEWAY is wired as a default probe target: it's the one
+// upstream guaranteed to be reachable over plain TCP in every deployment.
+// KNIRVCHAIN/KNIRVGRAPH run over Unix sockets under KNIRVSERVER (see
+// CLAUDE.md), which KNIRVMONITOR's generic HTTP probe client cannot dial, so
+// wiring a default URL for them would just probe a socket-shaped hole in the
+// TCP namespace and always fail — leave them unset (no probe registered)
+// unless an operator explicitly points KNIRV_MONITOR_KNIRVCHAIN_URL /
+// KNIRV_MONITOR_KNIRVGRAPH_URL / KNIRV_MONITOR_KNIRVBASE_URL /
+// KNIRV_MONITOR_KNIRVORACLE_URL / KNIRV_MONITOR_PROMETHEUS_URL /
+// KNIRV_MONITOR_GRAFANA_URL at a real TCP endpoint.
+func (app *ServerApp) startMonitor(ctx context.Context) error {
+	cfg := knirvmonitor.DefaultManagerConfig()
+	cfg.Port = app.config.MonitorPort
+	if cfg.Port == 0 {
+		cfg.Port = 9090
+	}
+	cfg.GatewayURL = gatewayBaseURL(app.config)
+	cfg.KNIRVBaseURL = strings.TrimSpace(os.Getenv("KNIRV_MONITOR_KNIRVBASE_URL"))
+	cfg.KNIRVChainURL = strings.TrimSpace(os.Getenv("KNIRV_MONITOR_KNIRVCHAIN_URL"))
+	cfg.KNIRVGraphURL = strings.TrimSpace(os.Getenv("KNIRV_MONITOR_KNIRVGRAPH_URL"))
+	cfg.KNIRVOracleURL = strings.TrimSpace(os.Getenv("KNIRV_MONITOR_KNIRVORACLE_URL"))
+	cfg.PrometheusURL = strings.TrimSpace(os.Getenv("KNIRV_MONITOR_PROMETHEUS_URL"))
+	cfg.GrafanaURL = strings.TrimSpace(os.Getenv("KNIRV_MONITOR_GRAFANA_URL"))
+
+	app.monitorManager = knirvmonitor.NewManager(cfg, zap.L())
+	if err := app.monitorManager.Start(ctx); err != nil {
+		return fmt.Errorf("start KNIRVMONITOR: %w", err)
+	}
+	log.Printf("KNIRVMONITOR started on %s (gateway probe target %s)", app.monitorManager.GetBaseURL(), cfg.GatewayURL)
+	return nil
+}
+
+func (app *ServerApp) stopMonitor() {
+	if app.monitorManager == nil {
+		return
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+	if err := app.monitorManager.Stop(ctx); err != nil {
+		log.Printf("Warning: KNIRVMONITOR shutdown error: %v", err)
+	}
+}
+
 // oracleGatewayURL resolves KNIRVORACLE's public address. KNIRVORACLE only
 // runs on the root node — every instance (root or not) must reach it
 // through the public KNIRVGATEWAY, never a local socket, so this always
@@ -3525,6 +3709,13 @@ func (app *ServerApp) Start() error {
 		return err
 	}
 
+	// KNIRVMONITOR starts last: it only probes the other embedded services,
+	// nothing depends on it, and a failure to start it must never block the
+	// rest of KNIRVSERVER from coming up.
+	if err := app.startMonitor(context.Background()); err != nil {
+		log.Printf("Warning: KNIRVMONITOR was not started: %v", err)
+	}
+
 	// Create HTTP server
 	// WriteTimeout is 0 (disabled) so SSE and long-lived streaming responses are
 	// not killed by the server. ReadTimeout still guards against slow-loris attacks.
@@ -3571,6 +3762,9 @@ func (app *ServerApp) Stop() error {
 	if err := embedded.GetManager().Shutdown(); err != nil {
 		log.Printf("Warning: embedded chain shutdown error: %v", err)
 	}
+
+	// Stop the embedded KNIRVMONITOR subprocess.
+	app.stopMonitor()
 
 	// Stop agent control plane and all running agents.
 	app.stopAgentControl()
@@ -3718,6 +3912,12 @@ func loadConfig() (*Config, error) {
 		config.GatewayPort = viper.GetInt("gateway.port")
 		if config.GatewayPort == 0 {
 			config.GatewayPort = 8080
+		}
+	}
+	if config.MonitorPort == 0 {
+		config.MonitorPort = viper.GetInt("monitor.port")
+		if config.MonitorPort == 0 {
+			config.MonitorPort = 9090
 		}
 	}
 

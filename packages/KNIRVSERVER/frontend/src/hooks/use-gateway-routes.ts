@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery } from '@tanstack/react-query';
+import { getAuthHeaders } from '@/lib/api';
 
 export interface GatewayRoute {
   name: string;
@@ -22,7 +23,7 @@ async function unwrap<T>(response: Response): Promise<T> {
 export function useGatewayRoutes() {
   return useQuery<{ routes: GatewayRoute[] }>({
     queryKey: ['gateway', 'routes'],
-    queryFn: async () => unwrap<{ routes: GatewayRoute[] }>(await fetch('/api/v1/gateway/routes')),
+    queryFn: async () => unwrap<{ routes: GatewayRoute[] }>(await fetch('/api/v1/gateway/routes', { headers: getAuthHeaders() })),
     refetchInterval: 15000,
     staleTime: 10000,
     retry: 1,

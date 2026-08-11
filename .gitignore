@@ -130,6 +130,7 @@ packages/KNIRVSERVER/pkg/bin/knirvchain
 /packages/KNIRVSERVER/pkg/knirvchain/bin
 /packages/KNIRVSERVER/pkg/knirvgateway/bin
 /packages/KNIRVSERVER/pkg/knirvgraph/bin
+/packages/KNIRVSERVER/pkg/knirvmonitor/bin
 /packages/KNIRVSERVER/pkg/knirvhasher/bin
 /packages/KNIRVSERVER/pkg/knirvoracle/bin
 /packages/KNIRVSERVER/frontend/menu/.next
@@ -154,3 +155,4 @@ packages/KNIRVSERVER/backend/cmd/container_deployer/container_deployer
 */enterprise.key
 packages/KNIRVBRIDGE/bin/knirvagent.wasm
 tools/dve-verifier-wasm/target/
+packages/KNIRVSERVER/pkg/knirvmonitor/bin/monitor

@@ -348,6 +348,16 @@ gateway:
   start_timeout: 30
   stop_timeout: 10
 
+# Embedded KNIRVMONITOR — backend for the dashboard's admin-only Network
+# Monitor tab. See testnet.yaml's monitor: block for the port-9090 /
+# monitoring.metrics_port collision note (line 266 above) — same caveat
+# applies here.
+monitor:
+  enabled: true
+  port: 9090
+  start_timeout: 30
+  stop_timeout: 10
+
 # DVE (Deterministic Validation Environment) Configuration
 dve:
   discovery:

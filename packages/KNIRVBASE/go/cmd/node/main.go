@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/apache/arrow/go/v15/arrow/flight"
+	"github.com/knirvcorp/knirvbase/internal/monitoring"
 	"github.com/knirvcorp/knirvbase/pkg/knirvbase"
 	"github.com/knirvcorp/knirvbase/pkg/nrv"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -57,12 +58,31 @@ func main() {
 			log.Printf("Arrow Flight stopped: %v", err)
 		}
 	}()
+	// metrics registers into the default Prometheus registry, the same one
+	// promhttp.Handler() below serves — instantiating it here is what makes
+	// the knirvbase_* counters/gauges actually appear on /metrics instead of
+	// being dead code exercised only by monitoring_test.go. Only the metrics
+	// observable from this HTTP handler layer are wired (store/retrieve ops,
+	// errors, active connections); blocks_committed/cache_hits/cache_misses/
+	// nrn_balance/index_size require instrumentation inside pkg/knirvbase's
+	// dataset/collection internals and are intentionally left unwired here —
+	// see the network_monitor metrics_alignment.md plan for that follow-up.
+	metrics := monitoring.NewMetrics()
+
+	instrumented := func(next http.HandlerFunc) http.HandlerFunc {
+		return func(w http.ResponseWriter, r *http.Request) {
+			metrics.ActiveConnections.Inc()
+			defer metrics.ActiveConnections.Dec()
+			next(w, r)
+		}
+	}
+
 	mux := http.NewServeMux()
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, map[string]any{"status": "ok", "network_id": *networkID, "flight_addr": *flightAddr})
 	})
 	mux.Handle("/metrics", promhttp.Handler())
-	mux.HandleFunc("/append", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/append", instrumented(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "POST" {
 			http.Error(w, "method not allowed", 405)
 			return
@@ -81,12 +101,14 @@ func main() {
 		copy(encoded[:], raw)
 		b := nrv.DecodeBracket(encoded)
 		if err := db.Dataset(req.Domain).AppendBracket(r.Context(), &b, nrv.ThermoAtmosphere{}); err != nil {
+			metrics.ErrorCount.Inc()
 			http.Error(w, err.Error(), 500)
 			return
 		}
+		metrics.MemoryStoreOps.Inc()
 		writeJSON(w, map[string]any{"ok": true})
-	})
-	mux.HandleFunc("/document", func(w http.ResponseWriter, r *http.Request) {
+	}))
+	mux.HandleFunc("/document", instrumented(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 			return
@@ -101,12 +123,14 @@ func main() {
 		}
 		stored, err := db.Collection(req.Collection).Insert(r.Context(), req.Document)
 		if err != nil {
+			metrics.ErrorCount.Inc()
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
+		metrics.MemoryStoreOps.Inc()
 		writeJSON(w, stored)
-	})
-	mux.HandleFunc("/stream", func(w http.ResponseWriter, r *http.Request) {
+	}))
+	mux.HandleFunc("/stream", instrumented(func(w http.ResponseWriter, r *http.Request) {
 		domain := r.URL.Query().Get("domain")
 		if domain == "" {
 			http.Error(w, "domain is required", 400)
@@ -114,6 +138,7 @@ func main() {
 		}
 		ch, err := db.Dataset(domain).StreamBrackets(r.Context(), false)
 		if err != nil {
+			metrics.ErrorCount.Inc()
 			http.Error(w, err.Error(), 500)
 			return
 		}
@@ -121,9 +146,10 @@ func main() {
 		for b := range ch {
 			raw := nrv.EncodeBracket(b)
 			out = append(out, bracketResponse{Bracket: base64.StdEncoding.EncodeToString(raw[:])})
+			metrics.MemoryRetrieveOps.Inc()
 		}
 		writeJSON(w, out)
-	})
+	}))
 	log.Printf("KNIRVBASE listening on %s (network=%s, flight=%s)", *addr, *networkID, *flightAddr)
 	if err := http.ListenAndServe(*addr, mux); err != nil {
 		log.Fatal(err)

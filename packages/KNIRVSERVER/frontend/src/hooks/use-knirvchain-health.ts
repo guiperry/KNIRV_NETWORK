@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery } from '@tanstack/react-query';
+import { getAuthHeaders } from '@/lib/api';
 
 export interface KnirvchainHealthData {
   url: string;
@@ -19,7 +20,7 @@ async function unwrap<T>(response: Response): Promise<T> {
 export function useKnirvchainHealth() {
   return useQuery<{ health: KnirvchainHealthData }>({
     queryKey: ['knirvchain', 'health'],
-    queryFn: async () => unwrap<{ health: KnirvchainHealthData }>(await fetch('/api/v1/knirvchain/health')),
+    queryFn: async () => unwrap<{ health: KnirvchainHealthData }>(await fetch('/api/v1/knirvchain/health', { headers: getAuthHeaders() })),
     refetchInterval: 15000,
     staleTime: 10000,
     retry: 1,
