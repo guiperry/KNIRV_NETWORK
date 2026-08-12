@@ -58,6 +58,12 @@ message RootKeyFileContentProto {
   // payloads alongside the snapshot-payload destination that
   // stripe_webhook_secret (field 2) authenticates.
   string stripe_thin_webhook_secret = 36;
+
+  // KNIRV Controller WASM control plane wasm-publisher service signer
+  // (secp256k1 private key, hex). Mirrors
+  // KNIRV_CORP/packages/server/backend_server/internal/proto/root_key.proto —
+  // keep field numbers identical across both copies.
+  string wasm_publisher_private_key_hex = 37;
 }
 
 message EncryptedRootKeyFile {

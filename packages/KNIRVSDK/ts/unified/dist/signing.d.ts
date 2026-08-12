@@ -1,3 +1,5 @@
+export * from './wasm';
+export * from './relay';
 export declare const KNIRV_HD_PATH = "m/44'/118'/0'/0/i";
 export declare const ACTION_SCHEMA_VERSION = "knirv.action.v1";
 export declare const MESSAGE_SCHEMA_VERSION = "knirv.message.v1";
@@ -64,4 +66,37 @@ export declare function signDirectTransaction(privateKey: Uint8Array, request: D
 export declare function marshalMessageEnvelope(envelope: MessageEnvelope): Uint8Array;
 export declare function signMessageEnvelope(privateKey: Uint8Array, envelope: MessageEnvelope): Promise<SignedMessageEnvelope>;
 export declare function verifyMessageEnvelope(signed: SignedMessageEnvelope, expected: MessageEnvelope): Promise<boolean>;
+export interface ParsedMessageEnvelope {
+    schemaVersion: string;
+    domain: string;
+    purpose: string;
+    chainId: string;
+    nonce: string;
+    issuedAtUnix: bigint;
+    expiresAtUnix: bigint;
+    payload: Uint8Array;
+}
+/**
+ * parseMessageEnvelope independently decodes envelope wire bytes — parity
+ * with Go ParseMessageEnvelope. Used by verifyMessage so validity-window and
+ * domain/purpose/chain/nonce checks are enforced against what was actually
+ * signed, not against caller-supplied values (see
+ * KNIRV_CORP/packages/controller/stateless_pwa_controller.md section 3.4).
+ */
+export declare function parseMessageEnvelope(data: Uint8Array): ParsedMessageEnvelope;
+/**
+ * verifyMessage is the TypeScript parity implementation of Go
+ * VerifyMessage: it independently parses the envelope (rather than trusting
+ * a caller-reconstructed "expected" envelope), checks domain/purpose/chainId
+ * /nonce, and enforces the validity window against wall-clock time with the
+ * same 60-second issued-at clock-skew allowance as the Go implementation.
+ * Throws on any verification failure.
+ */
+export declare function verifyMessage(signed: SignedMessageEnvelope, expectedDomain: string, expectedPurpose: string, expectedChainId: string, expectedNonce: string, now: Date): Promise<void>;
+/**
+ * verifyMessagePayload is the TypeScript parity implementation of Go
+ * VerifyMessagePayload: verifyMessage using the envelope's own nonce, plus a
+ * byte-for-byte check of the decoded payload against expectedPayload.
+ */
+export declare function verifyMessagePayload(signed: SignedMessageEnvelope, expectedDomain: string, expectedPurpose: string, expectedChainId: string, expectedPayload: Uint8Array, now: Date): Promise<void>;
 //# sourceMappingURL=signing.d.ts.map

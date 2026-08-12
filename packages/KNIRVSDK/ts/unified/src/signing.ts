@@ -2,6 +2,9 @@ import { Secp256k1, Secp256k1Signature, sha256 } from '@cosmjs/crypto';
 import { ripemd160 } from '@noble/hashes/ripemd160';
 import { bech32 } from 'bech32';
 
+export * from './wasm';
+export * from './relay';
+
 export const KNIRV_HD_PATH = "m/44'/118'/0'/0/i";
 export const ACTION_SCHEMA_VERSION = 'knirv.action.v1';
 export const MESSAGE_SCHEMA_VERSION = 'knirv.message.v1';
@@ -190,7 +193,10 @@ export async function signDirectTransaction(privateKey: Uint8Array, request: Dir
   const { pubkey } = await Secp256k1.makeKeypair(privateKey);
   const publicKey = Secp256k1.compressPubkey(pubkey);
   const { bodyBytes, authInfoBytes, signDoc } = buildDirectSignDoc(request, publicKey);
-  const signature = (await Secp256k1.createSignature(sha256(signDoc), privateKey)).toFixedLength();
+  // ExtendedSecp256k1Signature.toFixedLength() is r|s|recovery (65 bytes);
+  // the Cosmos-compatible wire format is the plain 64-byte r|s pair (see Go
+  // SignTransaction's compact[1:] slice in direct.go) — drop the recovery byte.
+  const signature = (await Secp256k1.createSignature(sha256(signDoc), privateKey)).toFixedLength().slice(0, 64);
   const txRaw = marshalTxRaw(bodyBytes, authInfoBytes, [signature]);
   return {
     body_bytes: toBase64(bodyBytes),
@@ -222,7 +228,9 @@ export async function signMessageEnvelope(privateKey: Uint8Array, envelope: Mess
   const bytes = marshalMessageEnvelope(envelope);
   const { pubkey } = await Secp256k1.makeKeypair(privateKey);
   const publicKey = Secp256k1.compressPubkey(pubkey);
-  const signature = (await Secp256k1.createSignature(sha256(bytes), privateKey)).toFixedLength();
+  // See signDirectTransaction above: strip the trailing recovery byte to get
+  // the plain 64-byte Cosmos r|s encoding.
+  const signature = (await Secp256k1.createSignature(sha256(bytes), privateKey)).toFixedLength().slice(0, 64);
   return {
     envelope: toBase64(bytes), signature: toBase64(signature), public_key: toBase64(publicKey),
     address: publicKeyToKNIRVAddress(publicKey),
@@ -238,4 +246,170 @@ export async function verifyMessageEnvelope(signed: SignedMessageEnvelope, expec
   const rawSignature = fromBase64(signed.signature);
   if (rawSignature.length !== 64) return false;
   return Secp256k1.verifySignature(Secp256k1Signature.fromFixedLength(rawSignature), sha256(envelope), publicKey);
+}
+
+export interface ParsedMessageEnvelope {
+  schemaVersion: string;
+  domain: string;
+  purpose: string;
+  chainId: string;
+  nonce: string;
+  issuedAtUnix: bigint;
+  expiresAtUnix: bigint;
+  payload: Uint8Array;
+}
+
+interface EnvelopeWireField {
+  number: number;
+  wireType: 0 | 2;
+  bytesValue?: Uint8Array;
+  uintValue?: bigint;
+}
+
+function readEnvelopeVarint(data: Uint8Array, start: number): { value: bigint; next: number } {
+  let value = 0n;
+  let shift = 0n;
+  let i = start;
+  for (; i < data.length; i++) {
+    const byte = data[i];
+    value |= BigInt(byte & 0x7f) << shift;
+    if ((byte & 0x80) === 0) return { value, next: i + 1 };
+    shift += 7n;
+    if (shift >= 64n) throw new Error('varint overflow');
+  }
+  throw new Error('truncated varint');
+}
+
+function readEnvelopeFields(data: Uint8Array): EnvelopeWireField[] {
+  const fields: EnvelopeWireField[] = [];
+  let i = 0;
+  while (i < data.length) {
+    const { value: key, next: afterKey } = readEnvelopeVarint(data, i);
+    i = afterKey;
+    const number = Number(key >> 3n);
+    const wireType = Number(key & 0x7n) as 0 | 2;
+    if (wireType === 0) {
+      const { value, next } = readEnvelopeVarint(data, i);
+      fields.push({ number, wireType, uintValue: value });
+      i = next;
+    } else if (wireType === 2) {
+      const { value: length, next: afterLen } = readEnvelopeVarint(data, i);
+      const end = afterLen + Number(length);
+      if (end > data.length) throw new Error('truncated length-delimited field');
+      fields.push({ number, wireType, bytesValue: data.subarray(afterLen, end) });
+      i = end;
+    } else {
+      throw new Error(`unsupported wire type ${wireType}`);
+    }
+  }
+  return fields;
+}
+
+/**
+ * parseMessageEnvelope independently decodes envelope wire bytes — parity
+ * with Go ParseMessageEnvelope. Used by verifyMessage so validity-window and
+ * domain/purpose/chain/nonce checks are enforced against what was actually
+ * signed, not against caller-supplied values (see
+ * KNIRV_CORP/packages/controller/stateless_pwa_controller.md section 3.4).
+ */
+export function parseMessageEnvelope(data: Uint8Array): ParsedMessageEnvelope {
+  const fields = readEnvelopeFields(data);
+  const byNumber = new Map<number, EnvelopeWireField>();
+  for (const field of fields) if (!byNumber.has(field.number)) byNumber.set(field.number, field);
+
+  const stringOf = (n: number) => {
+    const field = byNumber.get(n);
+    return field?.bytesValue ? decoder.decode(field.bytesValue) : '';
+  };
+  const uintOf = (n: number) => byNumber.get(n)?.uintValue ?? 0n;
+  const bytesOf = (n: number) => byNumber.get(n)?.bytesValue ?? new Uint8Array();
+
+  const parsed: ParsedMessageEnvelope = {
+    schemaVersion: stringOf(1),
+    domain: stringOf(2),
+    purpose: stringOf(3),
+    chainId: stringOf(4),
+    nonce: stringOf(5),
+    issuedAtUnix: uintOf(6),
+    expiresAtUnix: uintOf(7),
+    payload: bytesOf(8),
+  };
+  if (parsed.schemaVersion !== MESSAGE_SCHEMA_VERSION || !parsed.domain || !parsed.purpose || !parsed.chainId || !parsed.nonce) {
+    throw new Error('signed message envelope is incomplete');
+  }
+  return parsed;
+}
+
+const decoder = new TextDecoder();
+
+/**
+ * verifyMessage is the TypeScript parity implementation of Go
+ * VerifyMessage: it independently parses the envelope (rather than trusting
+ * a caller-reconstructed "expected" envelope), checks domain/purpose/chainId
+ * /nonce, and enforces the validity window against wall-clock time with the
+ * same 60-second issued-at clock-skew allowance as the Go implementation.
+ * Throws on any verification failure.
+ */
+export async function verifyMessage(
+  signed: SignedMessageEnvelope,
+  expectedDomain: string,
+  expectedPurpose: string,
+  expectedChainId: string,
+  expectedNonce: string,
+  now: Date,
+): Promise<void> {
+  const envelope = fromBase64(signed.envelope);
+  const fields = parseMessageEnvelope(envelope);
+
+  if (
+    fields.domain !== expectedDomain ||
+    fields.purpose !== expectedPurpose ||
+    fields.chainId !== expectedChainId ||
+    fields.nonce !== expectedNonce
+  ) {
+    throw new Error('message signing domain does not match request');
+  }
+
+  const nowUnix = BigInt(Math.floor(now.getTime() / 1000));
+  if (nowUnix < fields.issuedAtUnix - 60n || nowUnix > fields.expiresAtUnix) {
+    throw new Error('signed message is outside its validity window');
+  }
+
+  const publicKey = fromBase64(signed.public_key);
+  if (publicKey.length !== 33) throw new Error('compressed secp256k1 public key must be 33 bytes');
+  const address = publicKeyToKNIRVAddress(publicKey);
+  if (signed.address && signed.address !== address) {
+    throw new Error('message address does not match public key');
+  }
+
+  const rawSignature = fromBase64(signed.signature);
+  if (rawSignature.length !== 64) throw new Error('signature must use Cosmos 64-byte r|s encoding');
+
+  const digest = sha256(envelope);
+  const verified = await Secp256k1.verifySignature(Secp256k1Signature.fromFixedLength(rawSignature), digest, publicKey);
+  if (!verified) throw new Error('signature verification failed');
+}
+
+/**
+ * verifyMessagePayload is the TypeScript parity implementation of Go
+ * VerifyMessagePayload: verifyMessage using the envelope's own nonce, plus a
+ * byte-for-byte check of the decoded payload against expectedPayload.
+ */
+export async function verifyMessagePayload(
+  signed: SignedMessageEnvelope,
+  expectedDomain: string,
+  expectedPurpose: string,
+  expectedChainId: string,
+  expectedPayload: Uint8Array,
+  now: Date,
+): Promise<void> {
+  const envelope = fromBase64(signed.envelope);
+  const fields = parseMessageEnvelope(envelope);
+  await verifyMessage(signed, expectedDomain, expectedPurpose, expectedChainId, fields.nonce, now);
+  if (
+    fields.payload.length !== expectedPayload.length ||
+    fields.payload.some((byte, index) => byte !== expectedPayload[index])
+  ) {
+    throw new Error('signed message payload does not match request');
+  }
 }
