@@ -94,10 +94,10 @@ temp/
 internal/host/embedded/hasher-server-mips
 
 pipeline/2_DATA_ENCODER/data-encoder
-pipeline/3_DATA_TRAINER/data-trainer
+pipeline/3_DATA_SEEDER/data-seeder
 /hasher-host
-/pipeline/3_DATA_TRAINER/data
-/pipeline/3_DATA_TRAINER/data
+/pipeline/3_DATA_SEEDER/data
+/pipeline/3_DATA_SEEDER/data
 /cli
 /pipeline/AlpacaDataCleaned-main
 pipeline/AlpacaDataCleaned-main.zip

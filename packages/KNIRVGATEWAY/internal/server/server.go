@@ -807,6 +807,14 @@ func (s *Server) setupRoutes() error {
 	// The immutable evidence viewer and its wasm verifier are served directly by
 	// KNIRVGATEWAY on the public origin. More specialized legacy DVE workspace
 	// pages continue to proxy to backend_server below.
+	// Keep the DVE project API ahead of the parameterized viewer route below:
+	// without this explicit match, /dve/projects is interpreted as a viewer page
+	// for a DVE named "projects" and the CLI receives HTML instead of JSON.
+	if s.config.BackendSocketPath != "" {
+		dveAPIProxy := newSocketProxy(s.config.BackendSocketPath, "http://knirvserver")
+		r.Path("/dve/projects").Handler(dveAPIProxy).Methods(http.MethodGet, http.MethodPost, http.MethodOptions)
+		s.logger.Info("DVE project API proxy registered", zap.String("socket", s.config.BackendSocketPath))
+	}
 	viewer := dveviewer.New()
 	r.HandleFunc("/dve/_assets/{asset}", viewer.Asset).Methods(http.MethodGet, http.MethodHead)
 	r.HandleFunc("/dve/{dve}", viewer.Page).Methods(http.MethodGet, http.MethodHead)

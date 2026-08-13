@@ -47,7 +47,7 @@ PATTERNS=(
     "asic-monitor"
 	"data-mapper"
     "data-encoder"
-    "data-trainer"
+    "data-seeder"
 )
 
 # Timeout for graceful kill (seconds)

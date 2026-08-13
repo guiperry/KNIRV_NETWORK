@@ -17,8 +17,8 @@ To perform the demonstration, follow these steps in order:
 ### Step 1: Train the Demo Model
 Run the evolutionary trainer on the generated frames to discover the "Golden Seeds" for the target transitions.
 ```bash
-cd pipeline/3_DATA_TRAINER
-./bin/data-trainer -epochs 20 -difficulty-bits 12
+cd pipeline/3_DATA_SEEDER
+./bin/data-seeder -epochs 20 -difficulty-bits 12
 ```
 *Note: You should see "[WIN]" logs for token transitions like 906 → 917.*
 

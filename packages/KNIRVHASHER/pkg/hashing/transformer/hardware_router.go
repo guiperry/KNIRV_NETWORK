@@ -99,26 +99,29 @@ func (r *HardwareRouter) ProjectBatch2D(input []float32, seeds [][][32]byte) ([]
 
 // HashToVocab projects hidden state to vocabulary logits.
 // Uses hardware ComputeBatch when available, otherwise software path.
+//
+// Each vocab index hashes the *entire* hidden-state byte representation
+// together with a per-token derived seed, so the score genuinely depends on
+// the pattern of hidden activations. Previously this hashed only
+// (index, outputSeed) — independent of hidden entirely — and multiplied the
+// result by base = sum(hidden), a single scalar shared by every vocab index.
+// That made the predicted token's ranking almost totally fixed: for a given
+// sign of base, argmax_i(base * weight_i) == argmax_i(weight_i) regardless of
+// what the input actually was.
 func (r *HardwareRouter) HashToVocab(hidden []float32, outputSeed [32]byte, vocabSize int) []float32 {
 	if r.hashMethod != nil && r.hashMethod.IsAvailable() {
+		hiddenBytes := float32SliceToBytes(hidden)
 		inputs := make([][]byte, vocabSize)
 		for i := 0; i < vocabSize; i++ {
-			data := make([]byte, 36)
-			binary.BigEndian.PutUint32(data[0:4], uint32(i))
-			copy(data[4:], outputSeed[:])
-			inputs[i] = data
+			tokenSeed := expandSeed(outputSeed, uint32(i))
+			combined := make([]byte, len(hiddenBytes)+32)
+			copy(combined, hiddenBytes)
+			copy(combined[len(hiddenBytes):], tokenSeed[:])
+			inputs[i] = combined
 		}
 		hashes, err := r.hashMethod.ComputeBatch(inputs)
 		if err == nil {
-			scores := make([]float32, vocabSize)
-			base := float32(0)
-			for _, v := range hidden {
-				base += v
-			}
-			for i := 0; i < vocabSize; i++ {
-				scores[i] = base * hashesToFloats(hashes)[i]
-			}
-			return scores
+			return hashesToFloats(hashes)
 		}
 	}
 	return HashToVocab(hidden, outputSeed, vocabSize)
@@ -147,14 +150,20 @@ func float32SliceToBytes(vals []float32) []byte {
 	return bytes
 }
 
+// float32ToUint32 packs a signed [-1, 1] activation into the full uint32
+// range so hardware-path hashing sees the same sign information the software
+// path computes with. Clamping negatives to 0 (the earlier behavior) silently
+// zeroed out every inhibitory activation whenever hardware acceleration was
+// active, which would have made SeedToFloat's signed range pointless on that
+// path.
 func float32ToUint32(v float32) uint32 {
-	if v < 0 {
-		v = 0
+	if v < -1 {
+		v = -1
 	}
 	if v > 1 {
 		v = 1
 	}
-	return uint32(v * float32(^uint32(0)))
+	return uint32((float64(v) + 1.0) / 2.0 * float64(^uint32(0)))
 }
 
 func hashesToFloats(hashes [][32]byte) []float32 {

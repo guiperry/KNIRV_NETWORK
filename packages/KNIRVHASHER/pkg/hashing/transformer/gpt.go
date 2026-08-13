@@ -1,8 +1,6 @@
 package transformer
 
 import (
-	"crypto/sha256"
-	"encoding/binary"
 	"encoding/gob"
 	"encoding/json"
 	"fmt"
@@ -996,6 +994,8 @@ type hasherTransformerLayer struct {
 	ValueSeeds  [][][32]byte
 	OutputSeeds [][][32]byte
 	FFNSeeds    [][][32]byte
+	DecaySeeds  [][32]byte
+	FFNOutSeeds [][32]byte
 }
 
 // NewHasherTransformer creates a randomly-seeded HasherTransformer.
@@ -1031,6 +1031,8 @@ func newHasherLayer(cfg *HasherTransformerConfig) hasherTransformerLayer {
 		ValueSeeds:  make([][][32]byte, cfg.NumHeads),
 		OutputSeeds: make([][][32]byte, cfg.EmbedDim),
 		FFNSeeds:    make([][][32]byte, cfg.FFNHiddenDim),
+		DecaySeeds:  make([][32]byte, cfg.ContextLen),
+		FFNOutSeeds: make([][32]byte, cfg.EmbedDim),
 	}
 	for h := 0; h < cfg.NumHeads; h++ {
 		layer.QuerySeeds[h] = make([][32]byte, cfg.EmbedDim)
@@ -1053,6 +1055,12 @@ func newHasherLayer(cfg *HasherTransformerConfig) hasherTransformerLayer {
 		for k := 0; k < cfg.EmbedDim; k++ {
 			rand.Read(layer.FFNSeeds[j][k][:])
 		}
+	}
+	for s := 0; s < cfg.ContextLen; s++ {
+		rand.Read(layer.DecaySeeds[s][:])
+	}
+	for j := 0; j < cfg.EmbedDim; j++ {
+		rand.Read(layer.FFNOutSeeds[j][:])
 	}
 	return layer
 }
@@ -1127,13 +1135,26 @@ func (ht *HasherTransformer) hasherMultiHeadAttention(hidden [][]float32, layer 
 	for i := range out {
 		out[i] = make([]float32, dim)
 	}
+
+	cumDecay := precomputeCumulativeDecay(layer.DecaySeeds, seqLen)
+
 	for i := 0; i < seqLen; i++ {
 		for h := 0; h < ht.Config.NumHeads; h++ {
 			q := ht.projectSeeds(hidden[i], layer.QuerySeeds[h], router)
-			k := ht.projectSeeds(hidden[i], layer.KeySeeds[h], router)
-			v := ht.projectSeeds(hidden[i], layer.ValueSeeds[h], router)
-			for j := 0; j < dim && j < len(q) && j < len(k) && j < len(v); j++ {
-				out[i][j] += (q[j] * k[j] * v[j]) / float32(ht.Config.NumHeads)
+			for j := 0; j <= i; j++ {
+				k := ht.projectSeeds(hidden[j], layer.KeySeeds[h], router)
+				v := ht.projectSeeds(hidden[j], layer.ValueSeeds[h], router)
+				match := dotProduct(q, k)
+				if match > 88.0 {
+					match = 88.0
+				} else if match < -88.0 {
+					match = -88.0
+				}
+				attentionWeight := float32(math.Exp(float64(match)))
+				decay := getDecayFromCumulative(j+1, i+1, cumDecay)
+				for d := 0; d < dim && d < len(v); d++ {
+					out[i][d] += attentionWeight * decay * v[d] / float32(ht.Config.NumHeads)
+				}
 			}
 		}
 		out[i] = ht.projectSeeds2D(out[i], layer.OutputSeeds, router)
@@ -1142,10 +1163,11 @@ func (ht *HasherTransformer) hasherMultiHeadAttention(hidden [][]float32, layer 
 }
 
 func (ht *HasherTransformer) hasherFFN(hidden [][]float32, layer hasherTransformerLayer, router *HardwareRouter) [][]float32 {
+	outSeeds := ffnOutSeedsOrDerive(layer.FFNOutSeeds, layer.FFNSeeds, ht.Config.EmbedDim)
 	out := make([][]float32, len(hidden))
 	for i, h := range hidden {
 		expanded := ht.projectSeeds2D(h, layer.FFNSeeds, router)
-		out[i] = ht.projectBack(expanded, len(h), router)
+		out[i] = ht.projectBack(expanded, outSeeds, router)
 	}
 	return out
 }
@@ -1160,16 +1182,7 @@ func (ht *HasherTransformer) projectSeeds(input []float32, seeds [][32]byte, rou
 }
 
 func (ht *HasherTransformer) projectSeedsFallback(input []float32, seeds [][32]byte) []float32 {
-	out := make([]float32, len(seeds))
-	for i, seed := range seeds {
-		sum := float32(0)
-		hv := ht.seedToFloat(seed)
-		for _, v := range input {
-			sum += v * hv
-		}
-		out[i] = ht.activate(sum)
-	}
-	return out
+	return ProjectSeeds(input, seeds, ht.Config.Activation)
 }
 
 func (ht *HasherTransformer) projectSeeds2D(input []float32, seeds [][][32]byte, router *HardwareRouter) []float32 {
@@ -1182,43 +1195,28 @@ func (ht *HasherTransformer) projectSeeds2D(input []float32, seeds [][][32]byte,
 }
 
 func (ht *HasherTransformer) projectSeeds2DFallback(input []float32, seeds [][][32]byte) []float32 {
-	out := make([]float32, len(seeds))
-	for i, row := range seeds {
-		sum := float32(0)
-		for j := 0; j < len(input) && j < len(row); j++ {
-			sum += input[j] * ht.seedToFloat(row[j])
-		}
-		out[i] = ht.activate(sum)
-	}
-	return out
+	return ProjectSeeds2D(input, seeds, ht.Config.Activation)
 }
 
-func (ht *HasherTransformer) projectBack(input []float32, targetDim int, router *HardwareRouter) []float32 {
+// projectBack projects an FFN-expanded vector back down to len(seeds) output
+// dimensions. Earlier this discarded seeds entirely on the software path
+// (averaged every input into one scalar and broadcast it to every output —
+// see ProjectBack in seed_utils.go for why that was a rank-1 bottleneck), and
+// on the "hardware" path treated the raw float32 bit-patterns of a zeroed
+// input as fake seeds, which was disconnected from any real seed material.
+// Both paths now go through the same per-output-neuron seeds as every other
+// projection.
+func (ht *HasherTransformer) projectBack(input []float32, seeds [][32]byte, router *HardwareRouter) []float32 {
 	if router != nil {
-		seeds := make([][32]byte, len(input))
-		for i := range seeds {
-			var buf [4]byte
-			binary.BigEndian.PutUint32(buf[:], math.Float32bits(input[i]))
-			copy(seeds[i][:], buf[:])
-		}
-		if out, err := router.Project(make([]float32, targetDim), seeds); err == nil && len(out) > 0 {
+		if out, err := router.Project(input, seeds); err == nil && len(out) > 0 {
 			return out
 		}
 	}
-	return ht.projectBackFallback(input, targetDim)
+	return ht.projectBackFallback(input, seeds)
 }
 
-func (ht *HasherTransformer) projectBackFallback(input []float32, targetDim int) []float32 {
-	out := make([]float32, targetDim)
-	sum := float32(0)
-	for _, v := range input {
-		sum += v
-	}
-	avg := sum / float32(max(1, len(input)))
-	for i := range out {
-		out[i] = ht.activate(avg)
-	}
-	return out
+func (ht *HasherTransformer) projectBackFallback(input []float32, seeds [][32]byte) []float32 {
+	return ProjectBack(input, seeds, ht.Config.Activation)
 }
 
 func (ht *HasherTransformer) averagePool(hidden [][]float32) []float32 {
@@ -1238,26 +1236,15 @@ func (ht *HasherTransformer) averagePool(hidden [][]float32) []float32 {
 	return out
 }
 
+// seedToFloat delegates to the shared, signed [-1,1] SeedToFloat (seed_utils.go)
+// so HasherTransformer and UnifiedHasherEngine can never drift apart on what a
+// seed means numerically.
 func (ht *HasherTransformer) seedToFloat(seed [32]byte) float32 {
-	val := binary.BigEndian.Uint32(seed[:4])
-	return float32(val) / float32(^uint32(0))
+	return SeedToFloat(seed)
 }
 
 func (ht *HasherTransformer) activate(x float32) float32 {
-	switch ht.Config.Activation {
-	case "tanh":
-		return float32(math.Tanh(float64(x)))
-	case "sigmoid":
-		return float32(1.0 / (1.0 + math.Exp(-float64(x))))
-	default:
-		if x < 0 {
-			x = -x
-		}
-		if x > 1 {
-			x = 1
-		}
-		return x
-	}
+	return Activate(x, ht.Config.Activation)
 }
 
 func (ht *HasherTransformer) hasherLayerNorm(x float32) float32 {
@@ -1279,22 +1266,6 @@ func (ht *HasherTransformer) GenerateToken(ctx []int, temperature float32) (int,
 		return argmax32(scores), scores
 	}
 	return sampleTemp32(scores, temperature), scores
-}
-
-func (ht *HasherTransformer) projectToVocab(hidden []float32) []float32 {
-	scores := make([]float32, ht.Config.VocabSize)
-	for i := 0; i < ht.Config.VocabSize; i++ {
-		var sum float32
-		for j, v := range hidden {
-			data := make([]byte, 36)
-			binary.BigEndian.PutUint32(data[0:4], uint32(j))
-			copy(data[4:], ht.OutputSeed[:])
-			h := sha256.Sum256(data)
-			sum += v * float32(binary.BigEndian.Uint32(h[:4])) / float32(^uint32(0))
-		}
-		scores[i] = sum
-	}
-	return scores
 }
 
 func argmax32(s []float32) int {
@@ -1354,24 +1325,27 @@ func (ht *HasherTransformer) GenerateTokenWrapper(ctx []int, temperature float32
 	return engine.GenerateToken(ctx, temperature)
 }
 
-// NewUnifiedHasherEngineFromHasherTransformer converts a legacy HasherTransformer
-// into a UnifiedHasherEngine in transformer mode.
-func NewUnifiedHasherEngineFromHasherTransformer(ht *HasherTransformer) (*UnifiedHasherEngine, error) {
-	if ht == nil || ht.Config == nil {
-		return nil, fmt.Errorf("nil HasherTransformer")
-	}
-	cfg := &UnifiedConfig{
-		VocabSize:    ht.Config.VocabSize,
-		EmbedDim:     ht.Config.EmbedDim,
-		NumHeads:     ht.Config.NumHeads,
-		NumLayers:    ht.Config.NumLayers,
-		ContextLen:   ht.Config.ContextLen,
-		FFNHiddenDim: ht.Config.FFNHiddenDim,
-		Activation:   ht.Config.Activation,
+// hasherTransformerConfigToUnified converts a HasherTransformerConfig to the
+// equivalent UnifiedConfig.
+func hasherTransformerConfigToUnified(cfg *HasherTransformerConfig) *UnifiedConfig {
+	return &UnifiedConfig{
+		VocabSize:    cfg.VocabSize,
+		EmbedDim:     cfg.EmbedDim,
+		NumHeads:     cfg.NumHeads,
+		NumLayers:    cfg.NumLayers,
+		ContextLen:   cfg.ContextLen,
+		FFNHiddenDim: cfg.FFNHiddenDim,
+		Activation:   cfg.Activation,
 		Passes:       21,
 		Jitter:       0.01,
 		SeedRotation: false,
 	}
+}
+
+// hasherTransformerToSeedStore extracts ht's seeds into a standalone
+// SeedStore, shared by NewUnifiedHasherEngineFromHasherTransformer and
+// HasherTrainer.Train so both go through one conversion.
+func hasherTransformerToSeedStore(ht *HasherTransformer) *SeedStore {
 	seeds := &SeedStore{
 		Embeddings: ht.Embeddings,
 		Positional: ht.Positional,
@@ -1385,8 +1359,42 @@ func NewUnifiedHasherEngineFromHasherTransformer(ht *HasherTransformer) (*Unifie
 			ValueSeeds:  l.ValueSeeds,
 			OutputSeeds: l.OutputSeeds,
 			FFNSeeds:    l.FFNSeeds,
+			DecaySeeds:  l.DecaySeeds,
+			FFNOutSeeds: l.FFNOutSeeds,
 		}
 	}
+	return seeds
+}
+
+// applySeedStoreToHasherTransformer writes seeds back into ht in place — the
+// inverse of hasherTransformerToSeedStore. Used by HasherTrainer.Train to
+// commit an evolved SeedStore back onto the model it came from.
+func applySeedStoreToHasherTransformer(ht *HasherTransformer, seeds *SeedStore) {
+	ht.Embeddings = seeds.Embeddings
+	ht.Positional = seeds.Positional
+	ht.OutputSeed = seeds.OutputSeed
+	ht.Layers = make([]hasherTransformerLayer, len(seeds.Layers))
+	for i, l := range seeds.Layers {
+		ht.Layers[i] = hasherTransformerLayer{
+			QuerySeeds:  l.QuerySeeds,
+			KeySeeds:    l.KeySeeds,
+			ValueSeeds:  l.ValueSeeds,
+			OutputSeeds: l.OutputSeeds,
+			FFNSeeds:    l.FFNSeeds,
+			DecaySeeds:  l.DecaySeeds,
+			FFNOutSeeds: l.FFNOutSeeds,
+		}
+	}
+}
+
+// NewUnifiedHasherEngineFromHasherTransformer converts a legacy HasherTransformer
+// into a UnifiedHasherEngine in transformer mode.
+func NewUnifiedHasherEngineFromHasherTransformer(ht *HasherTransformer) (*UnifiedHasherEngine, error) {
+	if ht == nil || ht.Config == nil {
+		return nil, fmt.Errorf("nil HasherTransformer")
+	}
+	cfg := hasherTransformerConfigToUnified(ht.Config)
+	seeds := hasherTransformerToSeedStore(ht)
 	return NewUnifiedHasherEngineWithConfig(cfg, seeds, ht.hashMethod, ModeTransformer), nil
 }
 type HasherTrainingConfig struct {
@@ -1420,6 +1428,50 @@ func NewHasherTrainer(model *HasherTransformer, cfg *HasherTrainingConfig, data 
 	return &HasherTrainer{Model: model, Config: cfg, Data: data}
 }
 
-// Train runs the training loop (placeholder — full gradient-free update to be implemented).
-func (t *HasherTrainer) Train() error { return nil }
+// Train runs a real evolution-strategies search (see EvolveSeeds in
+// evolve.go) over the model's seeds, using t.Data as supervision: each
+// sample's InputTokens are treated as the context and the first entry of
+// OutputTokens as the token that should follow it. Every generation is
+// accepted only if it measurably improves (or does not worsen) a contrastive
+// ranking fitness against that data — a real, if simple, optimizer.
+//
+// This used to be a one-line stub ("full gradient-free update to be
+// implemented") that returned nil unconditionally, so calling Train had no
+// effect: seeds stayed exactly the crypto/rand noise BuildDefaultSeedStore /
+// NewHasherTransformer generated at construction time, forever.
+func (t *HasherTrainer) Train() error {
+	if t.Model == nil || t.Model.Config == nil {
+		return fmt.Errorf("HasherTrainer: nil model")
+	}
+
+	records := make([]TrainingRecord, 0, len(t.Data))
+	for _, s := range t.Data {
+		if len(s.InputTokens) == 0 || len(s.OutputTokens) == 0 {
+			continue
+		}
+		records = append(records, TrainingRecord{
+			Context:       s.InputTokens,
+			TargetTokenID: s.OutputTokens[0],
+		})
+	}
+	if len(records) == 0 {
+		return fmt.Errorf("HasherTrainer: no usable training samples (need InputTokens and at least one OutputTokens entry)")
+	}
+
+	cfg := hasherTransformerConfigToUnified(t.Model.Config)
+	seeds := hasherTransformerToSeedStore(t.Model)
+
+	evCfg := DefaultEvolveConfig()
+	if t.Config != nil && t.Config.Epochs > 0 {
+		evCfg.Generations = t.Config.Epochs * evCfg.Generations
+	}
+
+	evolved, _, err := EvolveSeeds(cfg, seeds, records, evCfg)
+	if err != nil {
+		return fmt.Errorf("HasherTrainer: %w", err)
+	}
+
+	applySeedStoreToHasherTransformer(t.Model, evolved)
+	return nil
+}
 

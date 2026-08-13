@@ -5,7 +5,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PIPELINE_DIR="$(dirname "$SCRIPT_DIR")"
 DATA_MAPPER_DIR="$PIPELINE_DIR/1_DATA_MAPPER"
 DATA_ENCODER_DIR="$PIPELINE_DIR/2_DATA_ENCODER"
-DATA_TRAINER_DIR="$PIPELINE_DIR/3_DATA_TRAINER"
+DATA_TRAINER_DIR="$PIPELINE_DIR/3_DATA_SEEDER"
 ALPACA_DIR="$PIPELINE_DIR/AlpacaDataCleaned-main"
 OUTPUT_DIR="$HOME/.local/share/knirvhasher"
 
@@ -96,8 +96,8 @@ OUTPUT_NRV="$OUTPUT_DIR/encoder/alpaca_frames.nrv"
 echo "[5/5] Building Data Trainer..."
 cd "$DATA_TRAINER_DIR"
 go mod tidy 2>/dev/null || true
-go build -o data-trainer . 2>/dev/null || {
-    echo "ERROR: Failed to build data-trainer"
+go build -o data-seeder . 2>/dev/null || {
+    echo "ERROR: Failed to build data-seeder"
     exit 1
 }
 
@@ -110,7 +110,7 @@ echo ""
 echo "Next steps:"
 echo "  1. To run training:"
 echo "     cd $DATA_TRAINER_DIR"
-echo "     ./data-trainer -epochs 10 -population 64 -data $OUTPUT_NRV"
+echo "     ./data-seeder -epochs 10 -population 64 -data $OUTPUT_NRV"
 echo ""
 echo "  2. Or run incrementally:"
 echo "     cd $DATA_MAPPER_DIR && ./data-mapper -single-batch"

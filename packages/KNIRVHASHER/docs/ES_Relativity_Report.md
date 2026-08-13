@@ -71,7 +71,7 @@ weight matrices. The network's "parameters" are entirely defined by `Seeds1`, `S
 - `ComputePassReward`: bit-matching reward per pass (leading zeros in XOR output)
 - Alignment ≥ 0.95 = "found" — maps hash output to token space
 
-### 2.4 EvolutionaryHarness (`pipeline/3_DATA_TRAINER/pkg/training/evolutionary.go`)
+### 2.4 EvolutionaryHarness (`pipeline/3_DATA_SEEDER/pkg/training/evolutionary.go`)
 
 The actual training loop — where optimization lives:
 
@@ -83,7 +83,7 @@ The actual training loop — where optimization lives:
 - `SelectAndMutate`: elite selection (top 25%) + `BitcoinAwareMutate` (bit-flip)
 - Dynamic Difficulty Scaling (DDS): progressive target mask from 8→32 bits across epochs
 
-### 2.5 EvoGRPO (`pipeline/3_DATA_TRAINER/internal/evo_grpo/evo_grpo.go`)
+### 2.5 EvoGRPO (`pipeline/3_DATA_SEEDER/internal/evo_grpo/evo_grpo.go`)
 
 Placeholder implementation of Evolutionary GRPO — the intended fusion of evolutionary
 search with GRPO-style advantage weighting. Population → fitness eval → selection →
@@ -140,7 +140,7 @@ making discontinuous reward signals tractable for optimization.
 
 **ES paper (Section 5):** *"ES is an inference-only fine-tuning mechanism, where the
 model weights are never differentiated, only evaluated."*
-**KNIRVHASHER:** Already 100% inference-only. The entire training loop in `3_DATA_TRAINER`
+**KNIRVHASHER:** Already 100% inference-only. The entire training loop in `3_DATA_SEEDER`
 consists of forward passes through the jitter engine. No backpropagation exists anywhere
 in the codebase.
 
@@ -211,7 +211,7 @@ tied to epoch would unify these mechanisms.
 
 ### 5.1 Where ES Applies
 
-ES maps onto KNIRVHASHER's **training pipeline** (`3_DATA_TRAINER`), specifically
+ES maps onto KNIRVHASHER's **training pipeline** (`3_DATA_SEEDER`), specifically
 `EvolutionaryHarness`. The `EvoGRPO` struct was already designed with this fusion in
 mind but currently holds placeholder logic.
 

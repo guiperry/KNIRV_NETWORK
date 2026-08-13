@@ -59,7 +59,7 @@ var AvailableBinaries = []BinaryInfo{
 		TargetArch:  "amd64",
 	},
 	{
-		Name:        "data-trainer",
+		Name:        "data-seeder",
 		Description: "Data Trainer - Model training and neural network optimization pipeline",
 		TargetOS:    "linux",
 		TargetArch:  "amd64",

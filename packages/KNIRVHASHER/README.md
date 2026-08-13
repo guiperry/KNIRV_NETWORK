@@ -14,11 +14,11 @@ KNIRVHASHER extends HASHER with a complete data pipeline for training user-centr
 1. **0_DATA_CONNECTOR**: Receives gRPC streams from KNIRVSERVER, decrypts chunks, and writes raw `.md` files to KNIRVBASE
 2. **1_DATA_MINER**: Processes `.md` files through SpaCy NLP, normalizes security data, and writes `.arrow` IPC files
 3. **2_DATA_ENCODER**: Encodes `.arrow` batches into 80-byte `.nrv` Tier-3 Brackets with BGE embeddings and NRV KB lookups
-4. **3_DATA_TRAINER**: Trains UserSecurityGates using Evo-GRPO with security constraints, re-indexes NRV Knowledge Base, and applies MathModeDriftMask for consistency
+4. **3_DATA_SEEDER**: Trains UserSecurityGates using Evo-GRPO with security constraints, re-indexes NRV Knowledge Base, and applies MathModeDriftMask for consistency
 
 The pipeline transforms user ontology data into `.nrv` datasets for future global model updates across the KNIRV network.
 
-### 3_DATA_TRAINER Components
+### 3_DATA_SEEDER Components
 
 - **UserSecurityGates**: Implements training for user-centric logic gate hash networks using NRV bracket data
 - **Evo-GRPO**: Evolutionary Group Relative Policy Optimization for model enhancement
@@ -286,8 +286,21 @@ The system architecture consists of three main components:
                      │  ┌─────────────┐ │
                      │  │ seedToFloat │ │ ← CPU fallback
                      │  └─────────────┘ │
-                     └──────────────────┘
+                      └──────────────────┘
 ```
+
+### FoX Attention Mechanism
+
+The transformer mode uses **FoX (Formula X)** attention, which combines sharp softmax-style attention weights with a scalar decay chain for temporal forgetting:
+
+```
+sum_{j=1}^{t} exp(q_t^T k_j) * (prod_{s=j+1}^{t} alpha_s) * v_j
+```
+
+- **Sharp attention**: `exp(q_t^T k_j)` concentrates weight on relevant tokens
+- **Temporal decay**: `prod_{s=j+1}^{t} alpha_s` reduces influence of distant tokens
+- **Numerical stability**: Clamped exp values and epsilon-floored cumulative decay products
+- **Backward compatibility**: Legacy `HasherTransformer` automatically upgrades to FoX via `NewUnifiedHasherEngineFromHasherTransformer`
 
 ### ASIC Protocol Implementation
 

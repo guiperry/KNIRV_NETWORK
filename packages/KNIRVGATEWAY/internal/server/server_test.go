@@ -2,6 +2,7 @@ package server
 
 import (
 	"encoding/json"
+	"io"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -490,6 +491,43 @@ func TestCompleteKNIRVServerAPIProxyFallback(t *testing.T) {
 				t.Fatalf("proxied path = %q, want %q", got, path)
 			}
 		})
+	}
+}
+
+func TestDVEProjectAPIProxyPrecedesViewerRoute(t *testing.T) {
+	socketPath := filepath.Join(t.TempDir(), "backend.sock")
+	listener, err := net.Listen("unix", socketPath)
+	if err != nil {
+		t.Fatalf("listen on backend socket: %v", err)
+	}
+	backend := &http.Server{Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/dve/projects" {
+			t.Errorf("backend path = %q, want /dve/projects", r.URL.Path)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`[]`))
+	})}
+	go func() { _ = backend.Serve(listener) }()
+	t.Cleanup(func() { _ = backend.Close() })
+
+	s := testServer(&config.Config{Port: 8888, BackendSocketPath: socketPath})
+	ts := httptest.NewServer(s.router)
+	defer ts.Close()
+
+	resp, err := http.Get(ts.URL + "/dve/projects")
+	if err != nil {
+		t.Fatalf("GET /dve/projects: %v", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("GET /dve/projects status = %d, want %d", resp.StatusCode, http.StatusOK)
+	}
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatalf("read response: %v", err)
+	}
+	if got := string(body); got != "[]" {
+		t.Fatalf("GET /dve/projects body = %q, want []", got)
 	}
 }
 

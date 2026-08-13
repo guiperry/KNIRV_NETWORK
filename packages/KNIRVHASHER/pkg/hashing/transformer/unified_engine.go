@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"math"
 	"math/rand"
 	"os"
 	"sync"
@@ -80,6 +81,12 @@ type TransformerLayerSeeds struct {
 	ValueSeeds  [][][32]byte
 	OutputSeeds [][][32]byte
 	FFNSeeds    [][][32]byte
+	DecaySeeds  [][32]byte
+	// FFNOutSeeds is one seed per output neuron of the FFN's down-projection
+	// (expanded -> EmbedDim). Length EmbedDim. May be empty on seed stores
+	// persisted before this field existed; ffnOutSeedsOrDerive derives a
+	// deterministic fallback from FFNSeeds in that case.
+	FFNOutSeeds [][32]byte
 }
 
 // EngineStats tracks inference statistics.
@@ -444,13 +451,26 @@ func (e *UnifiedHasherEngine) attnForward(hidden [][]float32, layer TransformerL
 	for i := range out {
 		out[i] = make([]float32, dim)
 	}
+
+	cumDecay := precomputeCumulativeDecay(layer.DecaySeeds, seqLen)
+
 	for i := 0; i < seqLen; i++ {
 		for h := 0; h < numHeads; h++ {
 			q := ProjectSeeds(hidden[i], layer.QuerySeeds[h], e.config.Activation)
-			k := ProjectSeeds(hidden[i], layer.KeySeeds[h], e.config.Activation)
-			v := ProjectSeeds(hidden[i], layer.ValueSeeds[h], e.config.Activation)
-			for j := 0; j < dim && j < len(q) && j < len(k) && j < len(v); j++ {
-				out[i][j] += (q[j] * k[j] * v[j]) / float32(numHeads)
+			for j := 0; j <= i; j++ {
+				k := ProjectSeeds(hidden[j], layer.KeySeeds[h], e.config.Activation)
+				v := ProjectSeeds(hidden[j], layer.ValueSeeds[h], e.config.Activation)
+				match := dotProduct(q, k)
+				if match > 88.0 {
+					match = 88.0
+				} else if match < -88.0 {
+					match = -88.0
+				}
+				attentionWeight := float32(math.Exp(float64(match)))
+				decay := getDecayFromCumulative(j+1, i+1, cumDecay)
+				for d := 0; d < dim && d < len(v); d++ {
+					out[i][d] += attentionWeight * decay * v[d] / float32(numHeads)
+				}
 			}
 		}
 		proj := ProjectSeeds2D(out[i], layer.OutputSeeds, e.config.Activation)
@@ -459,11 +479,61 @@ func (e *UnifiedHasherEngine) attnForward(hidden [][]float32, layer TransformerL
 	return out
 }
 
+func computeDecayChain(startPos, endPos int, decaySeeds [][32]byte) float32 {
+	if startPos >= endPos || len(decaySeeds) == 0 {
+		return 1.0
+	}
+	var product float32 = 1.0
+	for s := startPos; s < endPos; s++ {
+		if s < len(decaySeeds) {
+			alpha := SeedToUnitFloat(decaySeeds[s])
+			product *= alpha
+		}
+	}
+	if product < 1e-30 {
+		product = 1e-30
+	}
+	return product
+}
+
+func precomputeCumulativeDecay(decaySeeds [][32]byte, maxLen int) []float32 {
+	cumDecay := make([]float32, maxLen+1)
+	cumDecay[0] = 1.0
+	for t := 1; t <= maxLen; t++ {
+		alpha := float32(1.0)
+		if t-1 < len(decaySeeds) {
+			alpha = SeedToUnitFloat(decaySeeds[t-1])
+		}
+		cumDecay[t] = cumDecay[t-1] * alpha
+		if cumDecay[t] < 1e-30 {
+			cumDecay[t] = 1e-30
+		}
+	}
+	return cumDecay
+}
+
+func getDecayFromCumulative(startPos, endPos int, cumDecay []float32) float32 {
+	if startPos >= endPos || len(cumDecay) == 0 {
+		return 1.0
+	}
+	if endPos >= len(cumDecay) {
+		endPos = len(cumDecay) - 1
+	}
+	if startPos >= len(cumDecay) {
+		startPos = len(cumDecay) - 1
+	}
+	if cumDecay[startPos] == 0 {
+		return 1e-30
+	}
+	return cumDecay[endPos] / cumDecay[startPos]
+}
+
 func (e *UnifiedHasherEngine) ffnForward(hidden [][]float32, layer TransformerLayerSeeds, router *HardwareRouter) [][]float32 {
+	outSeeds := ffnOutSeedsOrDerive(layer.FFNOutSeeds, layer.FFNSeeds, e.config.EmbedDim)
 	out := make([][]float32, len(hidden))
 	for i, h := range hidden {
 		expanded := ProjectSeeds2D(h, layer.FFNSeeds, e.config.Activation)
-		out[i] = ProjectBack(expanded, len(h), e.config.Activation)
+		out[i] = ProjectBack(expanded, outSeeds, e.config.Activation)
 	}
 	return out
 }
@@ -985,11 +1055,13 @@ func abs(x int) int {
 }
 
 // NewUnifiedHasherEngineFromConfig is a convenience constructor used by HEARTService.
+// It prefers seeds mined by the 3_DATA_TRAINER pipeline (see
+// LoadOrBuildSeedStore / DefaultFramesDir) over unmined crypto/rand noise.
 func NewUnifiedHasherEngineFromConfig(cfg *UnifiedConfig) (*UnifiedHasherEngine, error) {
 	if cfg == nil {
 		cfg = DefaultUnifiedConfig()
 	}
-	seeds := BuildDefaultSeedStore(cfg)
+	seeds, _ := LoadOrBuildSeedStore(DefaultFramesDir, cfg)
 	engine := NewUnifiedHasherEngineWithConfig(cfg, seeds, nil, ModeTransformer)
 	return engine, nil
 }
@@ -1037,6 +1109,8 @@ func buildDefaultLayerSeeds(cfg *UnifiedConfig) TransformerLayerSeeds {
 		ValueSeeds:  make([][][32]byte, cfg.NumHeads),
 		OutputSeeds: make([][][32]byte, cfg.EmbedDim),
 		FFNSeeds:    make([][][32]byte, cfg.FFNHiddenDim),
+		DecaySeeds:  make([][32]byte, cfg.ContextLen),
+		FFNOutSeeds: make([][32]byte, cfg.EmbedDim),
 	}
 	for h := 0; h < cfg.NumHeads; h++ {
 		layer.QuerySeeds[h] = make([][32]byte, cfg.EmbedDim)
@@ -1059,6 +1133,12 @@ func buildDefaultLayerSeeds(cfg *UnifiedConfig) TransformerLayerSeeds {
 		for k := 0; k < cfg.EmbedDim; k++ {
 			rand.Read(layer.FFNSeeds[j][k][:])
 		}
+	}
+	for s := 0; s < cfg.ContextLen; s++ {
+		rand.Read(layer.DecaySeeds[s][:])
+	}
+	for j := 0; j < cfg.EmbedDim; j++ {
+		rand.Read(layer.FFNOutSeeds[j][:])
 	}
 	return layer
 }

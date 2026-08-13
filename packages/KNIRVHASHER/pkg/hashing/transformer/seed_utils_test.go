@@ -15,8 +15,38 @@ func TestSeedToFloat(t *testing.T) {
 
 	seed = [32]byte{0x00, 0x00, 0x00, 0x00}
 	val = SeedToFloat(seed)
+	if val != -1.0 {
+		t.Fatalf("expected -1.0, got %f", val)
+	}
+}
+
+func TestSeedToUnitFloat(t *testing.T) {
+	seed := [32]byte{0xFF, 0xFF, 0xFF, 0xFF}
+	val := SeedToUnitFloat(seed)
+	if val != 1.0 {
+		t.Fatalf("expected 1.0, got %f", val)
+	}
+
+	seed = [32]byte{0x00, 0x00, 0x00, 0x00}
+	val = SeedToUnitFloat(seed)
 	if val != 0.0 {
 		t.Fatalf("expected 0.0, got %f", val)
+	}
+}
+
+func TestProjectSeeds_NotRankOne(t *testing.T) {
+	// Two different seeds must be able to produce outputs that aren't simply
+	// proportional to sum(input) — i.e. the projection must be sensitive to
+	// which input dimensions are active, not just their total.
+	seedA := [32]byte{0x01}
+	seedB := [32]byte{0x02}
+	seeds := [][32]byte{seedA, seedB}
+
+	out1 := ProjectSeeds([]float32{1, 0, 0}, seeds, "tanh")
+	out2 := ProjectSeeds([]float32{0, 1, 0}, seeds, "tanh")
+
+	if out1[0] == out2[0] && out1[1] == out2[1] {
+		t.Fatal("expected projection to depend on which input dimension is active, not just its sum")
 	}
 }
 
@@ -40,9 +70,47 @@ func TestProjectSeeds2D(t *testing.T) {
 
 func TestProjectBack(t *testing.T) {
 	input := []float32{1.0, 2.0, 3.0}
-	out := ProjectBack(input, 2, "hash")
+	seeds := [][32]byte{{0x01}, {0x02}}
+	out := ProjectBack(input, seeds, "hash")
 	if len(out) != 2 {
 		t.Fatalf("expected length 2, got %d", len(out))
+	}
+}
+
+func TestProjectBack_NotRankOne(t *testing.T) {
+	seedA := [32]byte{0x01}
+	seedB := [32]byte{0x02}
+	seeds := [][32]byte{seedA, seedB}
+
+	out1 := ProjectBack([]float32{1, 0, 0}, seeds, "tanh")
+	out2 := ProjectBack([]float32{0, 1, 0}, seeds, "tanh")
+
+	if out1[0] == out2[0] && out1[1] == out2[1] {
+		t.Fatal("expected ProjectBack output to depend on which input dimension is active, not just its sum")
+	}
+}
+
+func TestFFNOutSeedsOrDerive_BackwardCompat(t *testing.T) {
+	ffnSeeds := [][][32]byte{{{0x01}, {0x02}}, {{0x03}, {0x04}}}
+	derived := ffnOutSeedsOrDerive(nil, ffnSeeds, 4)
+	if len(derived) != 4 {
+		t.Fatalf("expected 4 derived seeds, got %d", len(derived))
+	}
+	var allZero = true
+	for _, s := range derived {
+		if s != ([32]byte{}) {
+			allZero = false
+		}
+	}
+	if allZero {
+		t.Fatal("expected derived seeds to be non-trivial")
+	}
+
+	existing := make([][32]byte, 4)
+	existing[0] = [32]byte{0xAB}
+	kept := ffnOutSeedsOrDerive(existing, ffnSeeds, 4)
+	if kept[0] != existing[0] {
+		t.Fatal("expected existing FFNOutSeeds to be used as-is when already populated")
 	}
 }
 

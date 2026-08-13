@@ -580,7 +580,7 @@ batchLoop:
 			}
 			cmd.Dir = binDir
 
-			if stage.BinName == "data-mapper" || stage.BinName == "data-trainer" {
+			if stage.BinName == "data-mapper" || stage.BinName == "data-seeder" {
 				// Ensure spaCy shared lib and Python packages are findable.
 				// Filter out any inherited PYTHONPATH/LD_LIBRARY_PATH first so our
 				// values are not shadowed by duplicates when glibc does the lookup.
@@ -653,15 +653,15 @@ batchLoop:
 			// The Hugging Face GOAT API can hand back a batch that the encoder's
 			// checkpoint has already fully deduplicated (or a genuine repeat, since
 			// we don't control the ordering it serves us). When that happens the
-			// encoder writes an empty training_frames.json, and data-trainer would
+			// encoder writes an empty training_frames.json, and data-seeder would
 			// otherwise fatal out on it. Treat that as "nothing to train yet" and
 			// restart the pipeline for the next batch instead of failing the whole run.
 			if stage.BinName == "data-encoder" {
 				empty, checkErr := encoderOutputIsEmpty()
 				if checkErr != nil {
-					fmt.Printf("[pipeline] Warning: could not inspect encoder output, continuing to data-trainer: %v\n", checkErr)
+					fmt.Printf("[pipeline] Warning: could not inspect encoder output, continuing to data-seeder: %v\n", checkErr)
 				} else if empty {
-					fmt.Printf("[pipeline] Batch %d: encoder produced 0 training frames (likely a duplicate Hugging Face batch) - skipping data-trainer and starting over\n", batchNum)
+					fmt.Printf("[pipeline] Batch %d: encoder produced 0 training frames (likely a duplicate Hugging Face batch) - skipping data-seeder and starting over\n", batchNum)
 					continue batchLoop
 				}
 			}
@@ -691,7 +691,7 @@ func (c *Controller) streamPipelineOutput(cmd *exec.Cmd, stdout, stderr io.ReadC
 				logMsg := fmt.Sprintf("[%s] %s", time.Now().Format("15:04:05"), line)
 				// Non-blocking send: the primary log path is os.Stdout above.
 				// Blocking here would stall the pipe reader, fill the OS pipe buffer,
-				// and deadlock the subprocess — causing data-encoder and data-trainer
+				// and deadlock the subprocess — causing data-encoder and data-seeder
 				// logs to disappear entirely.
 				select {
 				case c.pipelineLogChan <- PipelineLogMsg{
@@ -945,8 +945,8 @@ func envOrDefault(key, fallback string) string {
 
 func buildPipelineStages(pipelineType string) []PipelineStage {
 	trainerStage := PipelineStage{
-		Name:    "data-trainer",
-		BinName: "data-trainer",
+		Name:    "data-seeder",
+		BinName: "data-seeder",
 		Args:    []string{"-verbose", "-epochs", "5", "-sequential", "-hash-method", "auto"},
 		Desc:    "Data Trainer - Neural network training",
 	}
@@ -980,7 +980,7 @@ func buildPipelineStages(pipelineType string) []PipelineStage {
 			{Name: "data-mapper", BinName: "data-mapper",
 				// -single-batch makes data-mapper process one batch (~100 records)
 				// and exit, instead of looping forever inside its own process.
-				// This lets the pipeline hand off to data-encoder / data-trainer
+				// This lets the pipeline hand off to data-encoder / data-seeder
 				// after every batch, and lets RunPipeline restart the whole
 				// pipeline for the next batch (see RunPipeline below).
 				Args: []string{"-single-batch"}, Desc: "Data Mapper - staged source records"},
@@ -992,8 +992,8 @@ func buildPipelineStages(pipelineType string) []PipelineStage {
 }
 
 // encoderOutputIsEmpty reports whether data-encoder's training_frames.json
-// output (shared with data-trainer via the default frames directory) contains
-// zero records. Used to decide whether to skip data-trainer for a batch
+// output (shared with data-seeder via the default frames directory) contains
+// zero records. Used to decide whether to skip data-seeder for a batch
 // rather than let it fatal out on an empty input file.
 func encoderOutputIsEmpty() (bool, error) {
 	cfg, err := config.LoadDeviceConfig()

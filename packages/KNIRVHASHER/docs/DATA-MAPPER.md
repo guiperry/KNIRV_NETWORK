@@ -799,7 +799,7 @@ From codec.go comments (lines 43-55):
    0x29-0x2C: [04 Bytes ] -----> GoldenSeed
    0x2D-0x3A: [14 Bytes ] -----> Slots 6-8 (Memory)
    0x3B-0x3E: [04 Bytes ] -----> Slot 11 (LSHSalt)
-   0x3F-0x4F: [17 Bytes ] -----> Reserved
+   0x3F-0x4F: [17 Bytes ] -----> Reserved for Ternary Syntax Bank in SLot 6
 
    EXPECTED OFFSETS:
    buf[0:32]    = Projections (0x00-0x1F) ✓

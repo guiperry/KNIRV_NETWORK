@@ -1217,13 +1217,25 @@ func (hs *HEARTService) handleReloadSeeds(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	newStore := BuildDefaultSeedStore(DefaultUnifiedConfig())
+	// No custom payload: prefer seeds mined by 3_DATA_TRAINER over unmined
+	// crypto/rand noise. Previously this always called BuildDefaultSeedStore
+	// directly, so a bare reload silently discarded any mined data and
+	// re-randomized the whole engine.
+	newStore, stats := LoadOrBuildSeedStore(DefaultFramesDir, DefaultUnifiedConfig())
 	hs.unifiedEngine.SetSeeds(newStore)
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	seedSource := "default"
+	resp := map[string]interface{}{
 		"status": "reloaded",
 		"mode":   hs.unifiedEngine.Mode(),
-		"seeds":  "default",
-	})
+	}
+	if stats != nil {
+		seedSource = "mined"
+		resp["ledger_records"] = stats.LedgerRecords
+		resp["tokens_covered"] = stats.TokensCovered
+		resp["tokens_total"] = stats.TokensTotal
+	}
+	resp["seeds"] = seedSource
+	json.NewEncoder(w).Encode(resp)
 }
 
 func (hs *HEARTService) getAvgLatency() float64 {

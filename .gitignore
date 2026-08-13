@@ -156,3 +156,7 @@ packages/KNIRVSERVER/backend/cmd/container_deployer/container_deployer
 packages/KNIRVBRIDGE/bin/knirvagent.wasm
 tools/dve-verifier-wasm/target/
 packages/KNIRVSERVER/pkg/knirvmonitor/bin/monitor
+/packages/KNIRVSERVER/tools/dve-verifier-wasm/target/release
+/packages/KNIRVSERVER/tools/dve-verifier-wasm/target/wasm32-unknown-unknown/release
+/packages/KNIRVSERVER/tools/dve-verifier-wasm/target
+/packages/KNIRVSERVER/tools/dve-verifier-wasm/target

@@ -194,7 +194,7 @@ func shutdownPipelineProcess(cmd *exec.Cmd) {
 		}
 	}
 
-	pipelineBinaries := []string{"data-mapper", "data-encoder", "data-trainer"}
+	pipelineBinaries := []string{"data-mapper", "data-encoder", "data-seeder"}
 	for _, bin := range pipelineBinaries {
 		exec.Command("pkill", "-TERM", "-f", bin).Run()
 		time.Sleep(100 * time.Millisecond)

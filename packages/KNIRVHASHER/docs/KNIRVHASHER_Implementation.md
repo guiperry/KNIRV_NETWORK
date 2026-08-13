@@ -78,7 +78,7 @@ There are two distinct contexts in which the pipeline runs:
 ║  │                   HASHER PIPELINE                          │   ║
 ║  │                                                            │   ║
 ║  │  [Phase 1]         [Phase 2]         [Phase 3]            │   ║
-║  │  1_DATA_MINER  ──▶ 2_DATA_ENCODER ──▶ 3_DATA_TRAINER     │   ║
+║  │  1_DATA_MINER  ──▶ 2_DATA_ENCODER ──▶ 3_DATA_SEEDER     │   ║
 ║  │  SpaCy NLP        BGE Embed            Evo-GRPO seeds     │   ║
 ║  │                                              │             │   ║
 ║  │                                              ▼             │   ║
@@ -667,7 +667,7 @@ func (w *ArrowWriter) WriteBatch(docID string, records []*SecurityRecord) error 
 `2_DATA_ENCODER` receives the shared KNIRVBASE handle. It reads the **`.arrow` IPC
 files** registered in the `miner_processed` collection by `1_DATA_MINER`, runs the
 BGE embedding + TensorPacker stages, and writes the result as **`.nrv` Tier-3
-Brackets** into the `encoder_output` KNIRVBASE collection for `3_DATA_TRAINER`.
+Brackets** into the `encoder_output` KNIRVBASE collection for `3_DATA_SEEDER`.
 
 #### Directory additions
 
@@ -1185,7 +1185,7 @@ pos_mappings:
 
 ### 4.1 Training Module
 
-**File:** `pipeline/3_DATA_TRAINER/pkg/training/user_security_gates.go`
+**File:** `pipeline/3_DATA_SEEDER/pkg/training/user_security_gates.go`
 
 ```go
 type UserSecurityGates struct {
@@ -1618,7 +1618,7 @@ KNIRVHASHER/
 │   │       ├── security_schema.yaml
 │   │       └── variance_indices.json
 │   │
-│   └── 3_DATA_TRAINER/
+│   └── 3_DATA_SEEDER/
 │       └── pkg/training/user_security_gates.go
 ├── pkg/
 │   └── storage/
@@ -1677,7 +1677,7 @@ KNIRVSERVER DVE → gRPC → 0_DATA_CONNECTOR
   → miner_processed (.arrow) via KNIRVBASE Flight
   → 2_DATA_ENCODER (BGE embed + TensorPack)
   → encoder_output (.nrv brackets) via KNIRVBASE Flight
-  → 3_DATA_TRAINER (Evo-GRPO seeds)
+  → 3_DATA_SEEDER (Evo-GRPO seeds)
   → hasher_seeds collection (.nrv datasets)
 KNIRVSERVER Flight client → KNIRVBASE gold stream → seed brackets → enforcement
 ```
@@ -1748,11 +1748,11 @@ func DialHasher(cfg *Config) (*grpc.ClientConn, error) {
 
 **Decision:** Training jobs are queued and executed **sequentially** — one job at a
 time per hasher node. Within a single job the pipeline phases (`1_DATA_MINER`,
-`2_DATA_ENCODER`, `3_DATA_TRAINER`) may execute **in parallel** as goroutines where
+`2_DATA_ENCODER`, `3_DATA_SEEDER`) may execute **in parallel** as goroutines where
 their KNIRVBASE collection boundaries allow it. The collections serve as the
 back-pressure boundary between phases.
 
-**`pipeline/3_DATA_TRAINER/pkg/training/scheduler.go`:**
+**`pipeline/3_DATA_SEEDER/pkg/training/scheduler.go`:**
 
 ```go
 // TrainingQueue serialises training jobs. Phases within each job may overlap

@@ -157,7 +157,7 @@ export async function verifyMessageEnvelope(signed, expected) {
     if (envelope.length !== receivedEnvelope.length || envelope.some((byte, index) => byte !== receivedEnvelope[index]))
         return false;
     const publicKey = fromBase64(signed.public_key);
-    if (publicKey.length !== 33 || publicKeyToKNIRVAddress(publicKey) !== signed.address)
+    if (publicKey.length !== 33 || !signed.address || publicKeyToKNIRVAddress(publicKey) !== signed.address)
         return false;
     const rawSignature = fromBase64(signed.signature);
     if (rawSignature.length !== 64)
@@ -266,7 +266,7 @@ export async function verifyMessage(signed, expectedDomain, expectedPurpose, exp
     if (publicKey.length !== 33)
         throw new Error('compressed secp256k1 public key must be 33 bytes');
     const address = publicKeyToKNIRVAddress(publicKey);
-    if (signed.address && signed.address !== address) {
+    if (!signed.address || signed.address !== address) {
         throw new Error('message address does not match public key');
     }
     const rawSignature = fromBase64(signed.signature);

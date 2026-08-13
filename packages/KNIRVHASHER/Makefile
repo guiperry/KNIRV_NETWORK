@@ -24,7 +24,7 @@ CLANG=clang
 LLVM_STRIP=llvm-strip
 
 
-.PHONY: all build clean test proto ebpf deps help build-asic-test build-probe build-probe build-probe-v2 build-protocol-discover build-monitor build-diagnostics deploy deploy-probe deploy-probe-v2 deploy-protocol-discover deploy-monitor build-pipeline-all build-data-connector build-data-mapper build-data-encoder build-data-trainer build-knirvbase
+.PHONY: all build clean test proto ebpf deps help build-asic-test build-probe build-probe build-probe-v2 build-protocol-discover build-monitor build-diagnostics deploy deploy-probe deploy-probe-v2 deploy-protocol-discover deploy-monitor build-pipeline-all build-data-connector build-data-mapper build-data-encoder build-data-seeder build-knirvbase
 
 ANTMINER_IP ?= $(shell [ -f .env ] && source .env && echo $$DEVICE_IP || echo 192.168.12.151)
 ANTMINER_USER ?= root
@@ -353,13 +353,13 @@ build-data-encoder:
 	@chmod 755 $(EMBED_DIR)/data-encoder
 	@echo "✅ Built: $(EMBED_DIR)/data-encoder"
 
-## build-data-trainer: Build data trainer pipeline binary
-build-data-trainer:
-	@echo "🔨 Building data-trainer from 3_DATA_TRAINER..."
+## build-data-seeder: Build data trainer pipeline binary
+build-data-seeder:
+	@echo "🔨 Building data-seeder from 3_DATA_SEEDER..."
 	@mkdir -p $(EMBED_DIR)
-	cd $(PIPELINE_DIR)/3_DATA_TRAINER && go build -ldflags "-s -w" -o ../../$(EMBED_DIR)/data-trainer ./cmd/data-trainer
+	cd $(PIPELINE_DIR)/3_DATA_SEEDER && go build -ldflags "-s -w" -o ../../$(EMBED_DIR)/data-seeder ./cmd/data-seeder
 	@cp pkg/hashing/methods/cuda/libcuda_hash.so $(EMBED_DIR)/libcuda_hash.so
-	@echo "✅ Built: $(EMBED_DIR)/data-trainer (+ libcuda_hash.so)"
+	@echo "✅ Built: $(EMBED_DIR)/data-seeder (+ libcuda_hash.so)"
 
 ## build-knirvbase: Build the standalone embedded KNIRVBASE service
 build-knirvbase:
@@ -369,7 +369,7 @@ build-knirvbase:
 	@echo "✅ Built: $(EMBED_DIR)/knirvbase"
 
 ## build-pipeline-all: Build all pipeline binaries
-build-pipeline-all: build-data-connector build-data-mapper build-data-encoder build-data-trainer build-knirvbase
+build-pipeline-all: build-data-connector build-data-mapper build-data-encoder build-data-seeder build-knirvbase
 	@echo "✅ All pipeline binaries built"
 	@echo "📦 Pipeline binaries in: $(EMBED_DIR)"
 	@ls -lh $(EMBED_DIR)/

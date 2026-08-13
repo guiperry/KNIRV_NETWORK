@@ -750,7 +750,7 @@ func RunContinuousWorkflow(ctx context.Context, config *Config, statsManager *St
 
 			// When run as a pipeline stage, process exactly one batch then
 			// return so control passes back to the stage orchestrator
-			// (data-encoder / data-trainer), which restarts the whole
+			// (data-encoder / data-seeder), which restarts the whole
 			// pipeline for the next batch. Otherwise continue the
 			// standalone continuous workflow: the checkpoint advances the
 			// offset so each iteration fetches new records.

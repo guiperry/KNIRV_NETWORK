@@ -554,8 +554,8 @@ func NewModel() Model {
 				Desc:    "Data Encoder - Tokenization and embeddings",
 			},
 			{
-				Name:    "data-trainer",
-				BinName: "data-trainer",
+				Name:    "data-seeder",
+				BinName: "data-seeder",
 				Args:    []string{"-verbose", "-epochs", "5", "-sequential", "-hash-method", "cuda"},
 				Desc:    "Data Trainer - Neural network training",
 			},
@@ -1485,8 +1485,8 @@ func dataVerificationModeFromTitle(title string) string {
 // buildPipelineStages returns the pipeline stages for the given type.
 func buildPipelineStages(pipelineType string) []PipelineStage {
 	trainerStage := PipelineStage{
-		Name:    "data-trainer",
-		BinName: "data-trainer",
+		Name:    "data-seeder",
+		BinName: "data-seeder",
 		Args:    []string{"-verbose", "-epochs", "5", "-sequential", "-hash-method", "cuda"},
 		Desc:    "Data Trainer - Neural network training",
 	}
@@ -1634,7 +1634,7 @@ func (m Model) renderPipelineView() string {
 	}{
 		{"data-mapper", "Document structuring and PDF processing", "⛏️"},
 		{"data-encoder", "Tokenization and embedding generation", "🔐"},
-		{"data-trainer", "Neural network training and optimization", "🧠"},
+		{"data-seeder", "Neural network training and optimization", "🧠"},
 	}
 
 	for i, stage := range stages {
@@ -2640,8 +2640,8 @@ func (m Model) runPipelineStage(binDir string, stageIndex int) tea.Cmd {
 			m.ensureSpacyLib(binDir)
 		}
 
-		// For data-trainer, ensure cuda library is available
-		if stage.BinName == "data-trainer" {
+		// For data-seeder, ensure cuda library is available
+		if stage.BinName == "data-seeder" {
 			m.ensureCudaLib(binDir)
 		}
 
@@ -2655,7 +2655,7 @@ func (m Model) runPipelineStage(binDir string, stageIndex int) tea.Cmd {
 		cmd.Dir = binDir
 
 		// Set LD_LIBRARY_PATH for required libraries
-		if stage.BinName == "data-mapper" || stage.BinName == "data-trainer" {
+		if stage.BinName == "data-mapper" || stage.BinName == "data-seeder" {
 			cmd.Env = append(os.Environ(), "LD_LIBRARY_PATH="+binDir+":"+os.Getenv("LD_LIBRARY_PATH"))
 		}
 
