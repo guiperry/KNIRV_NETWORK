@@ -353,7 +353,7 @@ build-data-encoder:
 	@chmod 755 $(EMBED_DIR)/data-encoder
 	@echo "✅ Built: $(EMBED_DIR)/data-encoder"
 
-## build-data-seeder: Build data trainer pipeline binary
+## build-data-seeder: Build data seeder pipeline binary
 build-data-seeder:
 	@echo "🔨 Building data-seeder from 3_DATA_SEEDER..."
 	@mkdir -p $(EMBED_DIR)

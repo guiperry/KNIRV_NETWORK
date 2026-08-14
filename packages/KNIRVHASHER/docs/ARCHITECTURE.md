@@ -2,6 +2,11 @@
 
 ## Overview
 
+The language-model attention path is software-only float computation. The
+attestation/mining path is separate: its software SHA-256 implementation is
+for development and hardware-equivalence tests only, and does not provide the
+production proof-of-work guarantees of a real ASIC-backed run.
+
 The Hasher system consists of two main components that work together to provide AI inference capabilities using ASIC hardware:
 
 - **Hasher Host**: Orchestrator running on user machine (CLI/API server)

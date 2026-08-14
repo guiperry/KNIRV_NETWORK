@@ -428,7 +428,7 @@ func (e *UnifiedHasherEngine) forwardLayer(hidden [][]float32, layerIdx int, rou
 	}
 	layer := e.seeds.Layers[layerIdx]
 
-	attn := e.attnForward(hidden, layer, router)
+	attn := e.attnForward(hidden, layer)
 	for i := 0; i < seqLen; i++ {
 		for j := 0; j < dim; j++ {
 			hidden[i][j] = LayerNorm(hidden[i][j]+attn[i][j], LayerNormMin, LayerNormMax)
@@ -443,7 +443,9 @@ func (e *UnifiedHasherEngine) forwardLayer(hidden [][]float32, layerIdx int, rou
 	return hidden
 }
 
-func (e *UnifiedHasherEngine) attnForward(hidden [][]float32, layer TransformerLayerSeeds, router *HardwareRouter) [][]float32 {
+// attnForward is LM-only float computation. Attestation hashing belongs to
+// the mining path and must not be implied by this attention API.
+func (e *UnifiedHasherEngine) attnForward(hidden [][]float32, layer TransformerLayerSeeds) [][]float32 {
 	seqLen := len(hidden)
 	dim := e.config.EmbedDim
 	numHeads := e.config.NumHeads
@@ -1055,7 +1057,7 @@ func abs(x int) int {
 }
 
 // NewUnifiedHasherEngineFromConfig is a convenience constructor used by HEARTService.
-// It prefers seeds mined by the 3_DATA_TRAINER pipeline (see
+// It prefers seeds mined by the 3_DATA_SEEDER pipeline (see
 // LoadOrBuildSeedStore / DefaultFramesDir) over unmined crypto/rand noise.
 func NewUnifiedHasherEngineFromConfig(cfg *UnifiedConfig) (*UnifiedHasherEngine, error) {
 	if cfg == nil {

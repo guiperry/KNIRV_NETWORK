@@ -30,6 +30,7 @@ const (
 // ParquetTrainingRecord represents the structure in the Parquet file
 // Matches the TrainingFrame schema from 2_DATA_ENCODER
 type ParquetTrainingRecord struct {
+	SchemaVersion int32 `parquet:"name=schema_version, type=INT32"`
 	// Metadata
 	SourceFile string `parquet:"name=source_file, type=BYTE_ARRAY, convertedtype=UTF8"`
 	ChunkID    int32  `parquet:"name=chunk_id, type=INT32"`
@@ -54,7 +55,9 @@ type ParquetTrainingRecord struct {
 	AsicSlots11 int32 `parquet:"name=asic_slot_11, type=INT32"`
 
 	// Target
-	TargetTokenID int32 `parquet:"name=target_token_id, type=INT32"`
+	TargetTokenID int32   `parquet:"name=target_token_id, type=INT32"`
+	TokenSequence []int32 `parquet:"name=token_sequence, type=LIST, valuetype=INT32"`
+	AssertionSpan []int32 `parquet:"name=assertion_span, type=LIST, valuetype=INT32"`
 
 	// Seed (placeholder for Stage 3)
 	BestSeed []byte `parquet:"name=best_seed, type=BYTE_ARRAY"`
@@ -587,13 +590,15 @@ func (di *DataIngestor) convertJSONRecord(jr *JSONTrainingRecord) *training.Trai
 	}
 
 	record := &training.TrainingRecord{
+		SchemaVersion: jr.SchemaVersion,
 		SourceFile:    jr.SourceFile,
 		ChunkID:       jr.ChunkID,
 		WindowStart:   jr.WindowStart,
 		TargetToken:   jr.TargetTokenID,
 		TokenSequence: tokenSequenceOrTarget(jr.TokenSequence, jr.TargetTokenID),
-		ContextHash:   uint32(jr.ChunkID), // Using ChunkID as context identifier
+		AssertionSpan: jr.AssertionSpan,
 	}
+	record.ContextHash = training.ComputeContextHash(record.TokenSequence, 5)
 
 	// Map ASIC slots to FeatureVector
 	record.FeatureVector = [12]uint32{
@@ -618,13 +623,15 @@ func (di *DataIngestor) convertParquetRecord(pr *ParquetTrainingRecord, fileName
 	}
 
 	record := &training.TrainingRecord{
+		SchemaVersion: pr.SchemaVersion,
 		SourceFile:    fileName,
 		ChunkID:       pr.ChunkID,
 		WindowStart:   pr.WindowStart,
 		TargetToken:   pr.TargetTokenID,
-		TokenSequence: tokenSequenceOrTarget(nil, pr.TargetTokenID),
-		ContextHash:   uint32(pr.ChunkID), // Using ChunkID as context identifier
+		TokenSequence: tokenSequenceOrTarget(pr.TokenSequence, pr.TargetTokenID),
+		AssertionSpan: pr.AssertionSpan,
 	}
+	record.ContextHash = training.ComputeContextHash(record.TokenSequence, 5)
 
 	// Map ASIC slots to FeatureVector
 	record.FeatureVector = [12]uint32{

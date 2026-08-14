@@ -10,6 +10,7 @@ import (
 	"data-encoder/pkg/embeddings"
 	"data-encoder/pkg/mapper"
 	"data-encoder/pkg/schema"
+	"data-encoder/pkg/sliding"
 	"data-encoder/pkg/tokenizer"
 )
 
@@ -457,6 +458,100 @@ func TestSlidingWindowIntegration(t *testing.T) {
 	}
 
 	t.Logf("✓ Sliding window test complete: %d tokens generated", len(tokens))
+}
+
+// TestTrainingFrameCarriesRealTokenSequence guards the Phase 1 fix: frame
+// construction in processSingleRecordWithSlidingWindow must copy
+// window.ContextTokens into TrainingFrame.TokenSequence. Previously this was
+// computed (and used for the embedding request) but silently dropped when the
+// frame was built, so every downstream consumer fell back to a single-token
+// pseudo-sequence echoing just the target token — see
+// pkg/training/evolutionary.go's tokenSequenceOrTarget in 3_DATA_SEEDER.
+func TestTrainingFrameCarriesRealTokenSequence(t *testing.T) {
+	tk, err := tokenizer.New()
+	if err != nil {
+		t.Fatalf("failed to create tokenizer: %v", err)
+	}
+
+	testText := "The quick brown fox jumps over the lazy dog near the riverbank"
+	tokens := tk.Encode(testText)
+	if len(tokens) < 4 {
+		t.Fatalf("expected at least 4 tokens, got %d", len(tokens))
+	}
+
+	sg := sliding.NewGenerator(3, 1)
+	windows := sg.GenerateWindows(tokens)
+	if len(windows) == 0 {
+		t.Fatal("expected at least one window")
+	}
+
+	for _, window := range windows {
+		if len(window.ContextTokens) == 0 {
+			continue // window with no preceding context; nothing to carry
+		}
+
+		// Mirror processSingleRecordWithSlidingWindow's frame construction.
+		tokenSeq := make([]int32, len(window.ContextTokens))
+		for j, tok := range window.ContextTokens {
+			tokenSeq[j] = int32(tok)
+		}
+		frame := schema.TrainingFrame{
+			WindowStart:   int32(window.StartPos),
+			WindowEnd:     int32(window.EndPos),
+			ContextLength: int32(len(window.ContextTokens)),
+			TargetTokenID: int32(window.TargetToken),
+			TokenSequence: tokenSeq,
+		}
+
+		if len(frame.TokenSequence) != len(window.ContextTokens) {
+			t.Fatalf("TokenSequence length = %d, want %d (window [%d,%d])",
+				len(frame.TokenSequence), len(window.ContextTokens), window.StartPos, window.EndPos)
+		}
+		for j, tok := range window.ContextTokens {
+			if frame.TokenSequence[j] != int32(tok) {
+				t.Fatalf("TokenSequence[%d] = %d, want %d", j, frame.TokenSequence[j], tok)
+			}
+		}
+
+		// Round-trip through the exact JSON tag 3_DATA_SEEDER's ingestion path
+		// reads (aux["token_sequence"] in pkg/storage/types.go's UnmarshalJSON).
+		data, err := json.Marshal(frame)
+		if err != nil {
+			t.Fatalf("marshal frame: %v", err)
+		}
+		var raw map[string]interface{}
+		if err := json.Unmarshal(data, &raw); err != nil {
+			t.Fatalf("unmarshal frame: %v", err)
+		}
+		seq, ok := raw["token_sequence"].([]interface{})
+		if !ok {
+			t.Fatalf("expected \"token_sequence\" key in serialized frame, got keys: %v", raw)
+		}
+		if len(seq) != len(window.ContextTokens) {
+			t.Fatalf("serialized token_sequence length = %d, want %d", len(seq), len(window.ContextTokens))
+		}
+	}
+}
+
+func TestAssertionSpanForWindowUsesClauseBoundaries(t *testing.T) {
+	ids := []int{10, 11, 12, 13, 14, 15}
+	texts := []string{"The", "quick", "fox", ".", "jumps", "high"}
+
+	got := assertionSpanForWindow(ids, texts, 5, 6)
+	want := []int32{14, 15}
+	if len(got) != len(want) {
+		t.Fatalf("span length = %d, want %d (%v)", len(got), len(want), got)
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Fatalf("span[%d] = %d, want %d", i, got[i], want[i])
+		}
+	}
+
+	bounded := assertionSpanForWindow(ids, texts, 5, 1)
+	if len(bounded) != 1 || bounded[0] != 15 {
+		t.Fatalf("bounded span = %v, want [15]", bounded)
+	}
 }
 
 // Helper function to generate a test embedding

@@ -10,7 +10,7 @@ import (
 
 const (
 	LayerNormMin = -10.0
-	LayerNormMax =  10.0
+	LayerNormMax = 10.0
 )
 
 // ffnOutSalt salts derivation of a fallback FFN down-projection seed from a
@@ -105,6 +105,7 @@ func Activate(x float32, activation string) float32 {
 // scaled copy of the same underlying number — a rank-1 collapse regardless of
 // how many seeds were stored. The bias term is derived from the same seed
 // with a reserved salt, so no extra storage is needed.
+// This is language-model projection logic only, never attestation hashing.
 func ProjectSeeds(input []float32, seeds [][32]byte, activation string) []float32 {
 	out := make([]float32, len(seeds))
 	for i, seed := range seeds {
@@ -158,6 +159,7 @@ func ProjectBack(input []float32, seeds [][32]byte, activation string) []float32
 // scores[i] = weight_i * sum(hidden) for every token — meaning the predicted
 // token was almost entirely determined by the fixed per-token weight and
 // barely moved with the actual input content.
+// This is language-model output logic only, never attestation hashing.
 func HashToVocab(hidden []float32, outputSeed [32]byte, vocabSize int) []float32 {
 	scores := make([]float32, vocabSize)
 	for i := 0; i < vocabSize; i++ {

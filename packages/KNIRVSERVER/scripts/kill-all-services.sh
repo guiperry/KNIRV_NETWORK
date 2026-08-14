@@ -2,8 +2,9 @@
 # Script to kill all KNIRVSERVER services
 # Usage: ./kill-all-services.sh [--force]
 #
-# NOTE: This script is AGGRESSIVE - it will use SIGKILL as fallback and searches
-# in common installation directories including ~/.local/share/
+# The process checks in this script are deliberately conservative.  A matching
+# port or a matching word in an arbitrary command line is not enough to kill a
+# process: it must also be a KNIRV executable/command.
 #
 # IMPORTANT: Many KNIRV services run as root. If you see "Operation not
 # permitted" errors below, re-run with: sudo ./kill-all-services.sh
@@ -66,7 +67,45 @@ sudo_kill() {
     return 1
 }
 
-# ── Kill by pgrep pattern ─────────────────────────────────────────────────
+# Return success only for a process which is safe for this script to manage.
+#
+# Do not remove these checks in favour of a bare `pgrep -f ... | xargs kill`.
+# This script is commonly started from a terminal, so its own path (and the
+# path of the shell that started it) can contain KNIRVSERVER.  More
+# importantly, ports such as 8080 and 4001 are not owned exclusively by KNIRV.
+is_knirv_process() {
+    local pid="$1"
+    local cmd comm ancestor
+
+    [[ "$pid" =~ ^[0-9]+$ ]] || return 1
+    [[ "$pid" -gt 1 && "$pid" != "$$" ]] || return 1
+
+    # Never kill this script or one of the shells which launched it.
+    ancestor="$PPID"
+    while [[ "$ancestor" =~ ^[0-9]+$ && "$ancestor" -gt 1 ]]; do
+        [[ "$pid" == "$ancestor" ]] && return 1
+        ancestor=$(ps -o ppid= -p "$ancestor" 2>/dev/null | tr -d ' ')
+    done
+
+    comm=$(ps -o comm= -p "$pid" 2>/dev/null | tr -d ' ')
+    cmd=$(ps -o args= -p "$pid" 2>/dev/null)
+    [[ -n "$cmd" ]] || return 1
+    [[ "$comm" != "pgrep" && "$comm" != "pkill" && "$comm" != "grep" ]] || return 1
+    [[ "$cmd" != *"kill-all-services.sh"* ]] || return 1
+
+    # Source-tree/runtime commands carry a KNIRV path/name.  The explicit
+    # executable names cover installed services whose argv contains only the
+    # binary name.
+    if printf '%s\n' "$cmd" | grep -Eqi 'knirv|/KNIRV'; then
+        return 0
+    fi
+    case "$comm" in
+        backend_server|container_deployer|os_builder) return 0 ;;
+    esac
+    return 1
+}
+
+# ── Kill by validated pgrep pattern ───────────────────────────────────────
 kill_by_pattern() {
     local pattern="$1"
     local signal="${2:-SIGTERM}"
@@ -74,7 +113,13 @@ kill_by_pattern() {
 
     echo "Looking for processes matching: $pattern"
 
-    local pids=$(pgrep -f "$pattern" 2>/dev/null || true)
+    local pids=""
+    local candidate
+    for candidate in $(pgrep -f -- "$pattern" 2>/dev/null || true); do
+        if is_knirv_process "$candidate"; then
+            pids+="$candidate "
+        fi
+    done
 
     if [[ -z "$pids" ]]; then
         echo "  No processes found matching '$pattern'"
@@ -111,7 +156,12 @@ kill_by_pattern() {
     done
 
     # Final check — SIGKILL any survivors
-    local remaining_pids=$(pgrep -f "$pattern" 2>/dev/null || true)
+    local remaining_pids=""
+    for candidate in $(pgrep -f -- "$pattern" 2>/dev/null || true); do
+        if is_knirv_process "$candidate"; then
+            remaining_pids+="$candidate "
+        fi
+    done
     if [[ -n "$remaining_pids" ]]; then
         echo "  Warning: Some processes still running: $remaining_pids"
         if [[ "$FORCE" == "true" ]] || [[ "$aggressive" == "true" ]]; then
@@ -141,11 +191,16 @@ kill_by_binary_path() {
         if [[ -x "$binary" ]]; then
             local bin_name=$(basename "$binary")
             echo "  Checking for: $bin_name"
-            local pids=$(pgrep -f "$bin_name" 2>/dev/null || true)
+            # Match the executable name, not any occurrence in a command
+            # line.  The latter used to kill unrelated desktop applications
+            # with common names such as node.
+            local pids=$(pgrep -x -- "$bin_name" 2>/dev/null || true)
             if [[ -n "$pids" ]]; then
-                echo "    Found PIDs: $pids - force killing"
                 for pid in $pids; do
-                    sudo_kill "$pid" 9 || true
+                    if is_knirv_process "$pid"; then
+                        echo "    Found PID: $pid - force killing"
+                        sudo_kill "$pid" 9 || true
+                    fi
                 done
             fi
         fi
@@ -206,24 +261,32 @@ echo "6. Killing KNIRV-related Node.js processes..."
 kill_by_pattern "node.*knirv" "SIGTERM" "true"
 kill_by_pattern "node.*KNIRV" "SIGTERM" "true"
 
-# Kill any processes listening on KNIRV ports (aggressive)
+# Kill KNIRV processes listening on KNIRV ports.  A port alone is never a
+# sufficient reason to terminate a process; these ports may be used by other
+# local applications.
 echo ""
 echo "7. Checking for processes on KNIRV ports..."
 PORTS="8080 8081 8082 8084 8086 8090 4001 9080 9090 9002 7090"
 for port in $PORTS; do
     if command -v lsof >/dev/null 2>&1; then
-        pid=$(lsof -ti:$port 2>/dev/null || true)
-        if [[ -n "$pid" ]]; then
-            echo "  Found process $pid on port $port - force killing"
-            sudo_kill "$pid" 9 || true
-        fi
+        for pid in $(lsof -ti:"$port" 2>/dev/null || true); do
+            if is_knirv_process "$pid"; then
+                echo "  Found KNIRV process $pid on port $port - force killing"
+                sudo_kill "$pid" 9 || true
+            else
+                echo "  Ignoring non-KNIRV process on port $port (PID $pid)"
+            fi
+        done
     elif command -v ss >/dev/null 2>&1; then
         # Alternative using ss and awk
-        pid=$(ss -ltnp | grep ":$port " | awk '{print $6}' | cut -d= -f2 | cut -d, -f1 | head -1)
-        if [[ -n "$pid" ]]; then
-            echo "  Found process $pid on port $port - force killing"
-            sudo_kill "$pid" 9 || true
-        fi
+        for pid in $(ss -ltnp 2>/dev/null | awk -v port="$port" '$0 ~ ":" port " " { while (match($0, /pid=[0-9]+/)) { print substr($0, RSTART + 4, RLENGTH - 4); $0=substr($0, RSTART + RLENGTH) } }' | sort -u); do
+            if is_knirv_process "$pid"; then
+                echo "  Found KNIRV process $pid on port $port - force killing"
+                sudo_kill "$pid" 9 || true
+            else
+                echo "  Ignoring non-KNIRV process on port $port (PID $pid)"
+            fi
+        done
     fi
 done
 

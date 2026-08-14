@@ -9,7 +9,9 @@ import (
 	"knirvhasher/pkg/hashing/jitter"
 )
 
-// SoftwareMethod implements the HashMethod interface for pure software hashing
+// SoftwareMethod is the canonical pure-Go SHA-256 reference implementation.
+// It is intended for development and hardware-equivalence tests, not for
+// production proof-of-work attestations.
 type SoftwareMethod struct {
 	initialized  bool
 	mutex        sync.RWMutex
@@ -29,7 +31,7 @@ func NewSoftwareMethod() *SoftwareMethod {
 	}
 }
 
-// SoftwareHashMethod implements the jitter.HashMethod interface
+// SoftwareHashMethod implements jitter.HashMethod with canonical byte hashing.
 type SoftwareHashMethod struct{}
 
 // ComputeHash computes SHA-256 using crypto/sha256
@@ -129,12 +131,14 @@ func (m *SoftwareMethod) GetCapabilities() *core.Capabilities {
 
 	if m.caps == nil {
 		m.caps = &core.Capabilities{
-			Name:              "Software Fallback",
-			IsHardware:        false,
-			HashRate:          1000000, // 1 MH/s
-			ProductionReady:   true,
+			Name:       "Software Fallback",
+			IsHardware: false,
+			HashRate:   1000000, // 1 MH/s
+			// Matching a hardware hash is useful for tests, but does not supply
+			// the hardware-backed proof-of-work guarantee required in production.
+			ProductionReady:   false,
 			TrainingOptimized: false,
-			JitterSupported:   false, // No jitter support in software method
+			JitterSupported:   true,
 			MaxBatchSize:      100,
 			AvgLatencyUs:      1000, // 1 millisecond
 		}

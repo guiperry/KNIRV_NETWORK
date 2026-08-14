@@ -477,7 +477,8 @@ gateway-deps: ## Install KNIRVGATEWAY dependencies (Go only)
 
 dve-verifier-build: ## Build the browser-side DVE wasm verifier into KNIRVGATEWAY
 	@echo "$(BLUE)Building DVE browser verifier...$(NC)"
-	cd $(DVE_VERIFIER_DIR) && wasm-pack build --target web --release --no-pack --no-typescript --out-name verifier --out-dir $(DVE_VERIFIER_ASSETS)
+	cd $(DVE_VERIFIER_DIR) && cargo build --target wasm32-unknown-unknown --release
+	cp $(DVE_VERIFIER_DIR)/target/wasm32-unknown-unknown/release/dve_verifier_wasm.wasm $(DVE_VERIFIER_ASSETS)/verifier_bg.wasm
 	@echo "$(GREEN)DVE browser verifier built$(NC)"
 
 gateway-build: webgui-build gateway-deps dve-verifier-build ## Build KNIRVGATEWAY binary into pkg/knirvgateway/bin/ (builds WebGUI and DVE verifier first)

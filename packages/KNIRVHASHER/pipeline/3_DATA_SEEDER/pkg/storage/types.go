@@ -15,11 +15,12 @@ type WeightRecord struct {
 // JSONTrainingRecord represents the structure in the JSON file
 // Using PascalCase to match the existing training_frames.json format
 type JSONTrainingRecord struct {
+	SchemaVersion int32
 	// Metadata
-	SourceFile string
-	ChunkID    int32
-	WindowStart int32
-	WindowEnd   int32
+	SourceFile    string
+	ChunkID       int32
+	WindowStart   int32
+	WindowEnd     int32
 	ContextLength int32
 
 	// ASIC input slots (12 x 4 bytes = 48 bytes)
@@ -39,6 +40,7 @@ type JSONTrainingRecord struct {
 	// Target
 	TargetTokenID int32
 	TokenSequence []int32
+	AssertionSpan []int32
 
 	// Seed (placeholder for Stage 3)
 	BestSeed []byte
@@ -90,6 +92,7 @@ func (jtr *JSONTrainingRecord) UnmarshalJSON(data []byte) error {
 	}
 
 	jtr.SourceFile = getString("source_file", "SourceFile")
+	jtr.SchemaVersion = getInt32("schema_version", "SchemaVersion")
 	jtr.ChunkID = getInt32("chunk_id", "ChunkID")
 	jtr.WindowStart = getInt32("window_start", "WindowStart")
 	jtr.WindowEnd = getInt32("window_end", "WindowEnd")
@@ -141,6 +144,21 @@ func (jtr *JSONTrainingRecord) UnmarshalJSON(data []byte) error {
 		for i, v := range ts {
 			if f, ok := v.(float64); ok {
 				jtr.TokenSequence[i] = int32(f)
+			}
+		}
+	}
+	if ts, ok := aux["assertion_span"].([]interface{}); ok {
+		jtr.AssertionSpan = make([]int32, len(ts))
+		for i, v := range ts {
+			if f, ok := v.(float64); ok {
+				jtr.AssertionSpan[i] = int32(f)
+			}
+		}
+	} else if ts, ok := aux["AssertionSpan"].([]interface{}); ok {
+		jtr.AssertionSpan = make([]int32, len(ts))
+		for i, v := range ts {
+			if f, ok := v.(float64); ok {
+				jtr.AssertionSpan[i] = int32(f)
 			}
 		}
 	}

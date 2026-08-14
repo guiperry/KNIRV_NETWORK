@@ -17,16 +17,16 @@ import (
 	"time"
 )
 
-// DefaultFramesDir is the host directory where the 3_DATA_TRAINER pipeline
+// DefaultFramesDir is the host directory where the 3_DATA_SEEDER pipeline
 // persists mined seeds for this node, per the KNIRV_NETWORK production
 // layout. It is one level below the "dataPath" that
-// pipeline/3_DATA_TRAINER/pkg/storage/seed_writer.go accepts (that package
+// pipeline/3_DATA_SEEDER/pkg/storage/seed_writer.go accepts (that package
 // joins "frames" onto dataPath itself); this constant already points at the
 // frames directory.
 const DefaultFramesDir = "/var/lib/knirvserver/knirvhasher/data/frames"
 
 // seedWritesFile is the append-only ledger written by
-// pipeline/3_DATA_TRAINER's DualSeedWriter. It is authoritative for "every
+// pipeline/3_DATA_SEEDER's DualSeedWriter. It is authoritative for "every
 // winning seed ever found," per the comment on ledgerSeedsByKey in that
 // package, so it — not the periodically-rewritten training_frames*.json
 // snapshots — is what this loader reads.
@@ -38,7 +38,7 @@ const seedWritesFile = "seed_writes.jsonl"
 // to BuildDefaultSeedStore rather than treat it as fatal.
 var ErrLedgerNotFound = errors.New("transformer: seed ledger not found")
 
-// ledgerEntry mirrors pipeline/3_DATA_TRAINER/pkg/storage/seed_writer.go's
+// ledgerEntry mirrors pipeline/3_DATA_SEEDER/pkg/storage/seed_writer.go's
 // SeedWriteLedgerEntry. It is redefined here (rather than imported) because
 // KNIRVHASHER's pipeline stages are independent Go modules with no
 // cross-package imports, per repo convention.
@@ -85,7 +85,7 @@ var (
 // InvalidateFramesCache drops any cached ledger parse for framesDir (or all
 // cached directories if framesDir is empty), forcing the next
 // LoadSeedStoreFromFrames call to re-read from disk. Useful after a known
-// 3_DATA_TRAINER write burst if callers don't want to wait out ledgerCacheTTL.
+// 3_DATA_SEEDER write burst if callers don't want to wait out ledgerCacheTTL.
 func InvalidateFramesCache(framesDir string) {
 	ledgerCacheMu.Lock()
 	defer ledgerCacheMu.Unlock()
@@ -193,7 +193,7 @@ func expandAggregateSeed(aggregate []byte, dim int) [][32]byte {
 // LoadSeedStoreFromFrames builds a SeedStore the same shape as
 // BuildDefaultSeedStore, but for every vocabulary token the mining ledger in
 // framesDir has evidence for, the token's embedding row is derived
-// deterministically from the real "golden seeds" 3_DATA_TRAINER's
+// deterministically from the real "golden seeds" 3_DATA_SEEDER's
 // evolutionary Hamming-similarity search found for it — instead of being
 // pure crypto/rand noise. Tokens absent from the ledger, and all
 // non-token-indexed seeds (positional, per-layer Q/K/V/Output/FFN/Decay),

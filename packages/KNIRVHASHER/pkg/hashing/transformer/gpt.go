@@ -1343,8 +1343,8 @@ func hasherTransformerConfigToUnified(cfg *HasherTransformerConfig) *UnifiedConf
 }
 
 // hasherTransformerToSeedStore extracts ht's seeds into a standalone
-// SeedStore, shared by NewUnifiedHasherEngineFromHasherTransformer and
-// HasherTrainer.Train so both go through one conversion.
+// SeedStore, used by NewUnifiedHasherEngineFromHasherTransformer for the
+// HasherTransformer → UnifiedHasherEngine conversion path.
 func hasherTransformerToSeedStore(ht *HasherTransformer) *SeedStore {
 	seeds := &SeedStore{
 		Embeddings: ht.Embeddings,
@@ -1366,27 +1366,6 @@ func hasherTransformerToSeedStore(ht *HasherTransformer) *SeedStore {
 	return seeds
 }
 
-// applySeedStoreToHasherTransformer writes seeds back into ht in place — the
-// inverse of hasherTransformerToSeedStore. Used by HasherTrainer.Train to
-// commit an evolved SeedStore back onto the model it came from.
-func applySeedStoreToHasherTransformer(ht *HasherTransformer, seeds *SeedStore) {
-	ht.Embeddings = seeds.Embeddings
-	ht.Positional = seeds.Positional
-	ht.OutputSeed = seeds.OutputSeed
-	ht.Layers = make([]hasherTransformerLayer, len(seeds.Layers))
-	for i, l := range seeds.Layers {
-		ht.Layers[i] = hasherTransformerLayer{
-			QuerySeeds:  l.QuerySeeds,
-			KeySeeds:    l.KeySeeds,
-			ValueSeeds:  l.ValueSeeds,
-			OutputSeeds: l.OutputSeeds,
-			FFNSeeds:    l.FFNSeeds,
-			DecaySeeds:  l.DecaySeeds,
-			FFNOutSeeds: l.FFNOutSeeds,
-		}
-	}
-}
-
 // NewUnifiedHasherEngineFromHasherTransformer converts a legacy HasherTransformer
 // into a UnifiedHasherEngine in transformer mode.
 func NewUnifiedHasherEngineFromHasherTransformer(ht *HasherTransformer) (*UnifiedHasherEngine, error) {
@@ -1396,82 +1375,5 @@ func NewUnifiedHasherEngineFromHasherTransformer(ht *HasherTransformer) (*Unifie
 	cfg := hasherTransformerConfigToUnified(ht.Config)
 	seeds := hasherTransformerToSeedStore(ht)
 	return NewUnifiedHasherEngineWithConfig(cfg, seeds, ht.hashMethod, ModeTransformer), nil
-}
-type HasherTrainingConfig struct {
-	Epochs         int
-	BatchSize      int
-	LearningRate   float32
-	WeightDecay    float32
-	WarmupSteps    int
-	ValidationFreq int
-	SaveFreq       int
-	ModelPath      string
-	DataPath       string
-}
-
-// HasherDataSample is one training example for HasherTransformer.
-type HasherDataSample struct {
-	InputTokens   []int
-	OutputTokens  []int
-	AttentionMask []bool
-}
-
-// HasherTrainer trains a HasherTransformer.
-type HasherTrainer struct {
-	Model  *HasherTransformer
-	Config *HasherTrainingConfig
-	Data   []HasherDataSample
-}
-
-// NewHasherTrainer creates a HasherTrainer.
-func NewHasherTrainer(model *HasherTransformer, cfg *HasherTrainingConfig, data []HasherDataSample) *HasherTrainer {
-	return &HasherTrainer{Model: model, Config: cfg, Data: data}
-}
-
-// Train runs a real evolution-strategies search (see EvolveSeeds in
-// evolve.go) over the model's seeds, using t.Data as supervision: each
-// sample's InputTokens are treated as the context and the first entry of
-// OutputTokens as the token that should follow it. Every generation is
-// accepted only if it measurably improves (or does not worsen) a contrastive
-// ranking fitness against that data — a real, if simple, optimizer.
-//
-// This used to be a one-line stub ("full gradient-free update to be
-// implemented") that returned nil unconditionally, so calling Train had no
-// effect: seeds stayed exactly the crypto/rand noise BuildDefaultSeedStore /
-// NewHasherTransformer generated at construction time, forever.
-func (t *HasherTrainer) Train() error {
-	if t.Model == nil || t.Model.Config == nil {
-		return fmt.Errorf("HasherTrainer: nil model")
-	}
-
-	records := make([]TrainingRecord, 0, len(t.Data))
-	for _, s := range t.Data {
-		if len(s.InputTokens) == 0 || len(s.OutputTokens) == 0 {
-			continue
-		}
-		records = append(records, TrainingRecord{
-			Context:       s.InputTokens,
-			TargetTokenID: s.OutputTokens[0],
-		})
-	}
-	if len(records) == 0 {
-		return fmt.Errorf("HasherTrainer: no usable training samples (need InputTokens and at least one OutputTokens entry)")
-	}
-
-	cfg := hasherTransformerConfigToUnified(t.Model.Config)
-	seeds := hasherTransformerToSeedStore(t.Model)
-
-	evCfg := DefaultEvolveConfig()
-	if t.Config != nil && t.Config.Epochs > 0 {
-		evCfg.Generations = t.Config.Epochs * evCfg.Generations
-	}
-
-	evolved, _, err := EvolveSeeds(cfg, seeds, records, evCfg)
-	if err != nil {
-		return fmt.Errorf("HasherTrainer: %w", err)
-	}
-
-	applySeedStoreToHasherTransformer(t.Model, evolved)
-	return nil
 }
 

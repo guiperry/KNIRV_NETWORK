@@ -14,16 +14,14 @@ KNIRVHASHER extends HASHER with a complete data pipeline for training user-centr
 1. **0_DATA_CONNECTOR**: Receives gRPC streams from KNIRVSERVER, decrypts chunks, and writes raw `.md` files to KNIRVBASE
 2. **1_DATA_MINER**: Processes `.md` files through SpaCy NLP, normalizes security data, and writes `.arrow` IPC files
 3. **2_DATA_ENCODER**: Encodes `.arrow` batches into 80-byte `.nrv` Tier-3 Brackets with BGE embeddings and NRV KB lookups
-4. **3_DATA_SEEDER**: Trains UserSecurityGates using Evo-GRPO with security constraints, re-indexes NRV Knowledge Base, and applies MathModeDriftMask for consistency
+4. **3_DATA_SEEDER**: Mines proof-of-work-witnessed assertions via `EvolutionaryHarness` — a real (1+1)-style evolution strategy over candidate nonces, scored by Hamming-similarity fitness (see below) — and writes them to the seed ledger
 
 The pipeline transforms user ontology data into `.nrv` datasets for future global model updates across the KNIRV network.
 
 ### 3_DATA_SEEDER Components
 
-- **UserSecurityGates**: Implements training for user-centric logic gate hash networks using NRV bracket data
-- **Evo-GRPO**: Evolutionary Group Relative Policy Optimization for model enhancement
-- **NRV Knowledge Base**: Manages re-indexing of knowledge representations from optimized models
-- **MathModeDriftMask**: Applies drift correction for mathematical consistency in trained models
+- **EvolutionaryHarness** (`pkg/training/evolutionary.go`): population of candidate nonces per context, `BitwiseMutation`/`BitcoinAwareMutate` for mutation, `calculateAlignmentReward` for fitness, `GetEliteSeeds` for selection — this is the real, running mining loop
+- **DualSeedWriter**: persists winning seeds to the canonical `seed_writes.jsonl` ledger
 
 **Updated Algorithm:** The system now uses the ASIC as a **deterministic bucket generator** rather than a generic hash function. By setting a "Difficulty 1" target, we use the first valid Nonce discovered as the LSH (Locality Sensitive Hashing) signature, maintaining the 500 GH/s speed advantage by repurposing the mining hardware's natural state.
 

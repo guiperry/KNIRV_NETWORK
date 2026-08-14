@@ -299,6 +299,42 @@ func TestComputeContextHash(t *testing.T) {
 	}
 }
 
+func TestAssertionCommitmentUsesContextAndSpan(t *testing.T) {
+	base := TrainingRecord{
+		SchemaVersion: 2,
+		TokenSequence: []int32{11, 22, 33},
+		AssertionSpan: []int32{44, 55},
+		TargetToken:   44,
+	}
+	contextVariant := base
+	contextVariant.TokenSequence = []int32{11, 22, 34}
+	spanVariant := base
+	spanVariant.AssertionSpan = []int32{44, 56}
+
+	if got, want := base.Span(), []int32{44, 55}; len(got) != len(want) || got[1] != want[1] {
+		t.Fatalf("Span() = %#v, want %#v", got, want)
+	}
+	if base.AssertionCommitmentTarget() == contextVariant.AssertionCommitmentTarget() {
+		t.Fatal("commitment target must change when context changes")
+	}
+	if base.AssertionCommitmentTarget() == spanVariant.AssertionCommitmentTarget() {
+		t.Fatal("commitment target must change when assertion span changes")
+	}
+	if ComputeContextHash(base.TokenSequence, 5) == ComputeContextHash(contextVariant.TokenSequence, 5) {
+		t.Fatal("context hash must change when real context changes")
+	}
+}
+
+func TestLegacyRecordFallsBackToSingleTokenAssertion(t *testing.T) {
+	record := TrainingRecord{TokenSequence: []int32{1, 2}, TargetToken: 99}
+	if got := record.Span(); len(got) != 1 || got[0] != 99 {
+		t.Fatalf("legacy Span() = %#v, want [99]", got)
+	}
+	if record.AssertionCommitmentTarget() == 0 {
+		t.Fatal("legacy record should still produce a commitment target")
+	}
+}
+
 func BenchmarkNewSeedPopulation(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		_ = NewSeedPopulation(42, 12345, 100)

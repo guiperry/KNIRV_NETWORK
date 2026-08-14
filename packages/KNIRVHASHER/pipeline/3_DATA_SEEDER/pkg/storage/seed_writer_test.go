@@ -138,3 +138,31 @@ func TestDualSeedWriterAppendsLedgerBeforeBestEffortMaterialization(t *testing.T
 		t.Fatalf("ledger seed = %q, want base64 seed", entry.BestSeed)
 	}
 }
+
+func TestDualSeedWriterPersistsVersionedAssertionIdentity(t *testing.T) {
+	root := t.TempDir()
+	sw := NewDualSeedWriter(root)
+	slots := [12]uint32{1, 2, 3}
+	context := []int32{10, 20, 30}
+	span := []int32{40, 50}
+	if err := sw.AddAssertionWrite("frames.json", slots, 40, context, span, 123, 456, []byte("seed")); err != nil {
+		t.Fatal(err)
+	}
+	data, err := os.ReadFile(filepath.Join(root, "frames", "seed_writes.jsonl"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var entry SeedWriteLedgerEntry
+	if err := json.Unmarshal(data[:len(data)-1], &entry); err != nil {
+		t.Fatal(err)
+	}
+	if entry.SchemaVersion != 2 || entry.ContextHash != 123 || entry.CommitmentTarget != 456 {
+		t.Fatalf("unexpected assertion metadata: %+v", entry)
+	}
+	if entry.AssertionKey == "" {
+		t.Fatal("versioned assertion ledger entry is missing its canonical key")
+	}
+	if len(entry.ContextTokens) != 3 || len(entry.AssertionSpan) != 2 {
+		t.Fatalf("assertion identity was not persisted: %+v", entry)
+	}
+}

@@ -228,9 +228,9 @@ make test-coverage
 make test-bench
 
 # Run specific package tests
-go test -v ./pkg/training
-go test -v ./pkg/simulator
-go test -v ./pkg/storage
+LD_LIBRARY_PATH=/var/lib/knirvserver/bin go test -v ./pkg/training
+LD_LIBRARY_PATH=/var/lib/knirvserver/bin go test -v ./pkg/simulator
+LD_LIBRARY_PATH=/var/lib/knirvserver/bin go test -v ./pkg/storage
 ```
 
 ### Code Quality

@@ -2,14 +2,25 @@ package schema
 
 // TrainingFrame represents the output schema for Parquet and JSON files
 type TrainingFrame struct {
+	SchemaVersion int32 `json:"schema_version" parquet:"name=schema_version, type=INT32"`
 	// 1. Metadata for traceability
 	SourceFile string `json:"source_file" parquet:"name=source_file, type=BYTE_ARRAY, convertedtype=UTF8, encoding=PLAIN_DICTIONARY"`
 	ChunkID    int32  `json:"chunk_id" parquet:"name=chunk_id, type=INT32"`
 
 	// 2. Window Metadata (NEW: Sliding window information)
-	WindowStart   int32 `json:"window_start" parquet:"name=window_start, type=INT32"`   // Start token position
-	WindowEnd     int32 `json:"window_end" parquet:"name=window_end, type=INT32"`       // End token position (exclusive)
+	WindowStart   int32 `json:"window_start" parquet:"name=window_start, type=INT32"`     // Start token position
+	WindowEnd     int32 `json:"window_end" parquet:"name=window_end, type=INT32"`         // End token position (exclusive)
 	ContextLength int32 `json:"context_length" parquet:"name=context_length, type=INT32"` // Number of context tokens used
+
+	// 2b. Real preceding token IDs for this window (sliding.SlidingWindow.ContextTokens).
+	// Previously computed and used for the embedding request but never carried into
+	// the frame, so 3_DATA_SEEDER's ComputeContextHash fell back to a single-token
+	// pseudo-sequence echoing TargetTokenID instead of real context.
+	TokenSequence []int32 `json:"token_sequence" parquet:"tokenSequence"`
+	// AssertionSpan is the fact claimed by this context. It is explicit even
+	// when the current sliding-window producer emits a one-token claim, so the
+	// ledger can evolve to phrase/clause spans without changing identity again.
+	AssertionSpan []int32 `json:"assertion_span,omitempty" parquet:"assertionSpan"`
 
 	// 3. The Input (What the ASIC sees)
 	// 12 slots * 4 bytes = 48 bytes total

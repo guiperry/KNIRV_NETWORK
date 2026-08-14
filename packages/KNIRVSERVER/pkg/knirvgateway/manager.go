@@ -100,6 +100,39 @@ func releaseTCPPort(port int, logger *zap.Logger) {
 	}
 }
 
+// withEnvOverrides returns a child environment with each override replacing
+// the inherited value. execve permits duplicate environment keys, but lookup
+// order for duplicates is platform/runtime-dependent. That matters here:
+// backend_server supplies the key-derived CHAIN_NODE_ROLE and Cloudflare
+// credentials as overrides, while KNIRVSERVER may already have values for
+// those names in its own environment. Leaving both entries can make the
+// gateway see the stale value and reject tunnel ownership during startup.
+func withEnvOverrides(env []string, overrides map[string]string) []string {
+	if len(overrides) == 0 {
+		return env
+	}
+
+	keys := make(map[string]struct{}, len(overrides))
+	for key := range overrides {
+		keys[key] = struct{}{}
+	}
+
+	filtered := make([]string, 0, len(env)+len(overrides))
+	for _, entry := range env {
+		key, _, ok := strings.Cut(entry, "=")
+		if ok {
+			if _, replaced := keys[key]; replaced {
+				continue
+			}
+		}
+		filtered = append(filtered, entry)
+	}
+	for key, value := range overrides {
+		filtered = append(filtered, key+"="+value)
+	}
+	return filtered
+}
+
 type Manager struct {
 	binaryPath string
 	config     *ManagerConfig
@@ -306,9 +339,9 @@ func (m *Manager) Start(ctx context.Context) error {
 	}
 
 	// Apply env overrides (e.g. Cloudflare credentials from root.key).
-	for k, v := range m.config.EnvOverrides {
-		env = append(env, fmt.Sprintf("%s=%s", k, v))
-	}
+	// Replace inherited entries so the child cannot observe a stale role or
+	// credential before the authoritative override.
+	env = withEnvOverrides(env, m.config.EnvOverrides)
 
 	env = append(env, fmt.Sprintf("PORT=%d", gatewayPort))
 

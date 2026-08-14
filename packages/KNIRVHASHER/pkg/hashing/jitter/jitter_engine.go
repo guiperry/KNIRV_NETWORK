@@ -37,7 +37,9 @@ type HashMethod interface {
 	ComputeDoubleHash(data []byte) ([32]byte, error)
 }
 
-// SoftwareHashMethod implements HashMethod using pure Go
+// SoftwareHashMethod implements canonical byte-for-byte SHA-256 in pure Go.
+// It is the development and hardware-equivalence reference, not evidence of a
+// production hardware-backed proof-of-work attestation.
 type SoftwareHashMethod struct{}
 
 // ComputeHash computes SHA-256 using crypto/sha256
@@ -223,15 +225,15 @@ func (je *JitterEngine) Execute21PassLoop(header []byte, targetTokenID uint32) (
 func (je *JitterEngine) getJitterRPC(conn net.Conn, slots [12]uint32, hash uint32, pass int) (JitterVector, bool) {
 	// Protocol: [Slots 48 bytes] + [Hash 4 bytes] + [Pass 4 bytes] = 56 bytes
 	buf := make([]byte, 56)
-	
+
 	// Pack Slots
 	for i := 0; i < 12; i++ {
 		binary.LittleEndian.PutUint32(buf[i*4:], slots[i])
 	}
-	
+
 	// Pack Hash
 	binary.LittleEndian.PutUint32(buf[48:52], hash)
-	
+
 	// Pack Pass
 	binary.LittleEndian.PutUint32(buf[52:56], uint32(pass))
 

@@ -14,10 +14,12 @@ type HashMethod interface {
 	// Shutdown performs cleanup and shuts down the hashing method
 	Shutdown() error
 
-	// ComputeHash computes a single SHA-256 hash
+	// ComputeHash computes canonical SHA-256 over exactly the supplied bytes.
+	// Attestation callers rely on this byte-for-byte contract; implementations
+	// must not reinterpret input as weighted seed projections or vocabulary data.
 	ComputeHash(data []byte) ([32]byte, error)
 
-	// ComputeBatch computes multiple SHA-256 hashes in parallel/batch
+	// ComputeBatch computes canonical SHA-256 over each supplied byte slice.
 	ComputeBatch(data [][]byte) ([][32]byte, error)
 
 	// MineHeader performs Bitcoin-style mining on an 80-byte header

@@ -641,6 +641,7 @@ func (to *TrainingOrchestrator) trainBatch(ctx context.Context, records []*train
 
 func (to *TrainingOrchestrator) trainRecord(ctx context.Context, record *training.TrainingRecord) error {
 	contextHash := training.ComputeContextHash(record.TokenSequence, 5)
+	commitmentTarget := record.AssertionCommitmentTarget()
 	pop := training.NewSeedPopulation(record.TargetToken, contextHash, *population)
 
 	tokenMap := map[int32]bool{record.TargetToken: true}
@@ -661,13 +662,13 @@ func (to *TrainingOrchestrator) trainRecord(ctx context.Context, record *trainin
 		if len(eliteSeeds) > 0 {
 			bestSeed := eliteSeeds[0]
 			// Winning condition: passes difficulty mask OR has very high advantage
-			if to.harness.IsWinningSeed(bestSeed.HashOutput, uint32(record.TargetToken)) {
-				to.logger.Info("[WIN] Token %d: Found winning seed in generation %d (%d-bit prefix match)", record.TargetToken, gen, *difficultyBits)
+			if to.harness.IsWinningSeed(bestSeed.HashOutput, commitmentTarget) {
+				to.logger.Info("[WIN] Assertion for token %d: Found winning seed in generation %d (%d-bit prefix match)", record.TargetToken, gen, *difficultyBits)
 				return to.saveWinningSeed(record, bestSeed, gen)
 			}
 			// Also accept if advantage is very high AND meets a minimum quality threshold
 			if bestSeed.Advantage > 2.0 {
-				diff := bestSeed.HashOutput ^ uint32(record.TargetToken)
+				diff := bestSeed.HashOutput ^ commitmentTarget
 				matchingBits := bits.LeadingZeros32(diff)
 				if matchingBits >= *difficultyBits { // Require at least difficulty-bits of similarity for a high-advantage win
 					to.logger.Info("[WIN] Token %d: Found winning seed in gen %d (high advantage=%.2f, %d bits)", record.TargetToken, gen, bestSeed.Advantage, matchingBits)
@@ -684,7 +685,7 @@ func (to *TrainingOrchestrator) trainRecord(ctx context.Context, record *trainin
 			bestPrefix := 0
 			bestHamming := 0
 			if len(eliteSeeds) > 0 {
-				diff := eliteSeeds[0].HashOutput ^ uint32(record.TargetToken)
+				diff := eliteSeeds[0].HashOutput ^ commitmentTarget
 				bestPrefix = bits.LeadingZeros32(diff)
 				bestHamming = 32 - bits.OnesCount32(diff)
 			}
@@ -695,7 +696,7 @@ func (to *TrainingOrchestrator) trainRecord(ctx context.Context, record *trainin
 		if gen%50 == 0 && *verbose {
 			bestMatch := 0
 			if len(eliteSeeds) > 0 {
-				diff := eliteSeeds[0].HashOutput ^ uint32(record.TargetToken)
+				diff := eliteSeeds[0].HashOutput ^ commitmentTarget
 				bestMatch = bits.LeadingZeros32(diff)
 			}
 			to.logger.Debug("Token %d gen %d: fitness=%.4f, best_match=%d bits", record.TargetToken, gen, pop.Fitness, bestMatch)
@@ -722,12 +723,15 @@ func (to *TrainingOrchestrator) trainToken(ctx context.Context, targetToken int3
 
 	// Create a TrainingRecord for the targetToken
 	record := &training.TrainingRecord{
+		SchemaVersion: 2,
 		SourceFile:    "synthetic",
 		TargetToken:   targetToken,
 		TokenSequence: []int32{targetToken},
+		AssertionSpan: []int32{targetToken},
 		ContextHash:   training.ComputeContextHash([]int32{targetToken}, 5),
 		FeatureVector: [12]uint32{}, // Initialize with zeros
 	}
+	commitmentTarget := record.AssertionCommitmentTarget()
 
 	for gen := 0; gen < *maxGenerations; gen++ {
 		select {
@@ -745,7 +749,7 @@ func (to *TrainingOrchestrator) trainToken(ctx context.Context, targetToken int3
 		if len(eliteSeeds) > 0 {
 			bestSeed := eliteSeeds[0]
 			// Winning condition: passes difficulty mask OR has very high advantage
-			if to.harness.IsWinningSeed(bestSeed.HashOutput, uint32(targetToken)) {
+			if to.harness.IsWinningSeed(bestSeed.HashOutput, commitmentTarget) {
 				to.logger.Info("[WIN] Token %d: Found winning seed in generation %d (%d-bit prefix match)", targetToken, gen, *difficultyBits)
 				return to.saveWinningSeed(record, bestSeed, gen)
 			}
@@ -764,7 +768,7 @@ func (to *TrainingOrchestrator) trainToken(ctx context.Context, targetToken int3
 			bestPrefix := 0
 			bestHamming := 0
 			if len(eliteSeeds) > 0 {
-				diff := eliteSeeds[0].HashOutput ^ uint32(targetToken)
+				diff := eliteSeeds[0].HashOutput ^ commitmentTarget
 				bestPrefix = bits.LeadingZeros32(diff)
 				bestHamming = 32 - bits.OnesCount32(diff)
 			}
@@ -775,7 +779,7 @@ func (to *TrainingOrchestrator) trainToken(ctx context.Context, targetToken int3
 		if gen%50 == 0 && *verbose {
 			bestMatch := 0
 			if len(eliteSeeds) > 0 {
-				diff := eliteSeeds[0].HashOutput ^ uint32(targetToken)
+				diff := eliteSeeds[0].HashOutput ^ commitmentTarget
 				bestMatch = bits.LeadingZeros32(diff)
 			}
 			to.logger.Debug("Token %d gen %d: fitness=%.4f, best_match=%d bits", targetToken, gen, pop.Fitness, bestMatch)
@@ -787,18 +791,6 @@ func (to *TrainingOrchestrator) trainToken(ctx context.Context, targetToken int3
 }
 
 func (to *TrainingOrchestrator) saveWinningSeed(record *training.TrainingRecord, seed training.SeedResult, generation int) error {
-	weightRecord := storage.WeightRecord{
-		TokenID:      record.TargetToken,
-		BestSeed:     seed.Seed,
-		FitnessScore: seed.Reward,
-		Generation:   int32(generation),
-		ContextKey:   record.ContextHash,
-	}
-
-	layerID := int32(record.TargetToken / 100)
-	if err := to.storage.SaveWeights([]storage.WeightRecord{weightRecord}, layerID); err != nil {
-		return fmt.Errorf("failed to save weight: %w", err)
-	}
 
 	checkpointEntry := training.CheckpointEntry{
 		TokenID:      record.TargetToken,
@@ -817,7 +809,7 @@ func (to *TrainingOrchestrator) saveWinningSeed(record *training.TrainingRecord,
 		record.TargetToken, record.FeatureVector[0], record.SourceFile)
 
 	// Ensure we pass the actual record's feature vector and source file for matching
-	if err := to.seedWriter.AddSeedWrite(record.SourceFile, record.FeatureVector, record.TargetToken, seed.Seed); err != nil {
+	if err := to.seedWriter.AddAssertionWrite(record.SourceFile, record.FeatureVector, record.TargetToken, record.TokenSequence, record.Span(), record.ContextHash, record.AssertionCommitmentTarget(), seed.Seed); err != nil {
 		return fmt.Errorf("failed to queue seed write-back for token %d: %w", record.TargetToken, err)
 	} else {
 		if err := to.seedWriter.WriteBack(); err != nil {

@@ -20,21 +20,61 @@ import (
 )
 
 const (
-	SeedSize          = 32
-	FeatureVectorSize = 12
-	GroupSize         = 128
-	MutationRateBase  = 10
+	SeedSize               = 32
+	FeatureVectorSize      = 12
+	GroupSize              = 128
+	MutationRateBase       = 10
+	AssertionSchemaVersion = 2
 )
 
 type TrainingRecord struct {
-	SourceFile    string     `json:"source_file"`
-	ChunkID       int32      `json:"chunk_id"`
-	WindowStart   int32      `json:"window_start"`
-	TokenSequence []int32    `json:"token_sequence"`
+	SchemaVersion int32   `json:"schema_version"`
+	SourceFile    string  `json:"source_file"`
+	ChunkID       int32   `json:"chunk_id"`
+	WindowStart   int32   `json:"window_start"`
+	TokenSequence []int32 `json:"token_sequence"`
+	// AssertionSpan is the fact claimed by this record. Version 2 records use
+	// this span for the PoW commitment; old records fall back to TargetToken.
+	AssertionSpan []int32    `json:"assertion_span,omitempty"`
 	FeatureVector [12]uint32 `json:"feature_vector"`
 	TargetToken   int32      `json:"target_token"`
 	ContextHash   uint32     `json:"context_hash"`
 	BestSeed      []byte     `json:"best_seed,omitempty"`
+}
+
+// Span returns the versioned assertion span, retaining compatibility with
+// historical single-token frames that predate the assertion schema.
+func (tr *TrainingRecord) Span() []int32 {
+	if len(tr.AssertionSpan) > 0 {
+		return append([]int32(nil), tr.AssertionSpan...)
+	}
+	if tr.TargetToken != 0 {
+		return []int32{tr.TargetToken}
+	}
+	return nil
+}
+
+// AssertionCommitmentTarget is the four-byte PoW target derived from the
+// actual context and asserted span. It is intentionally domain-separated and
+// length-delimited so context/claim concatenations cannot be ambiguous.
+func (tr *TrainingRecord) AssertionCommitmentTarget() uint32 {
+	h := sha256.New()
+	h.Write([]byte("KNIRV-ASSERTION-V2\x00"))
+	writeTokens := func(tokens []int32) {
+		var length [4]byte
+		binary.BigEndian.PutUint32(length[:], uint32(len(tokens)))
+		h.Write(length[:])
+		for _, token := range tokens {
+			var encoded [4]byte
+			binary.BigEndian.PutUint32(encoded[:], uint32(token))
+			h.Write(encoded[:])
+		}
+	}
+	writeTokens(tr.TokenSequence)
+	writeTokens(tr.Span())
+	var digest [32]byte
+	copy(digest[:], h.Sum(nil))
+	return binary.BigEndian.Uint32(digest[:4])
 }
 
 // BitcoinHeader constants for the "Camouflage" strategy
@@ -270,6 +310,9 @@ func (tr *TrainingRecord) Validate() bool {
 	if tr.TargetToken <= 0 {
 		return false
 	}
+	if len(tr.Span()) == 0 {
+		return false
+	}
 
 	// Check if FeatureVector is all zeros
 	if tr.FeatureVector == [12]uint32{} {
@@ -383,14 +426,14 @@ func (eh *EvolutionaryHarness) IsWinningSeed(hash uint32, target uint32) bool {
 	return (hash & eh.DifficultyMask) == (target & eh.DifficultyMask)
 }
 
-func (eh *EvolutionaryHarness) calculateAlignmentReward(goldenNonce uint32, targetToken int32, tokenMap map[int32]bool) float64 {
+func (eh *EvolutionaryHarness) calculateAlignmentReward(goldenNonce uint32, commitmentTarget uint32) float64 {
 	// Exact match gets full reward
-	if goldenNonce == uint32(targetToken) {
+	if goldenNonce == commitmentTarget {
 		return 1.0
 	}
 
 	// Calculate bit-wise similarity (Hamming similarity)
-	xor := goldenNonce ^ uint32(targetToken)
+	xor := goldenNonce ^ commitmentTarget
 	matchingBits := 32 - bits.OnesCount32(xor)
 
 	// Continuous gradient: even 1 bit match gives some reward
@@ -401,7 +444,7 @@ func (eh *EvolutionaryHarness) calculateAlignmentReward(goldenNonce uint32, targ
 	}
 
 	// Bonus for passing the threshold (prefix matching)
-	if eh.IsWinningSeed(goldenNonce, uint32(targetToken)) {
+	if eh.IsWinningSeed(goldenNonce, commitmentTarget) {
 		reward += 0.10
 	}
 
@@ -468,66 +511,11 @@ func (eh *EvolutionaryHarness) calculateStabilityReward(seed []byte, sim simulat
 	return stability
 }
 
-func (eh *EvolutionaryHarness) CalculateReward(seed []byte, targetToken int32, tokenMap map[int32]bool, sim simulator.HashSimulator) (*SeedResult, error) {
-	result := &SeedResult{
-		Seed: make([]byte, len(seed)),
-	}
-	copy(result.Seed, seed)
-
-	// Extract nonce from seed (last 4 bytes of 32-byte seed)
-	nonce := binary.LittleEndian.Uint32(seed[len(seed)-4:])
-
-	// For Bitcoin compatibility, we need to construct a temporary header
-	// In real implementation, this would use the full TrainingRecord
-	tempSlots := [12]uint32{
-		0x12345678, 0x23456789, 0x34567890, 0x45678901, // Placeholder slots 0-7
-		0x56789012, 0x67890123, 0x78901234, 0x89012345, // Placeholder slots 8-11
-		0x90123456, 0x01234567, 0x12345678, 0x23456789,
-	}
-
-	// Create temporary hardware prep
-	hwPrep := hardware.NewHardwarePrep(false)
-
-	// Build Bitcoin header with the nonce from this seed
-	bitcoinHeader := hwPrep.PrepareAsicJob(tempSlots, nonce)
-
-	// Perform Double-SHA256 using the Bitcoin header method
-	// This replicates the BM1382's hard-wired behavior
-	finalHash, err := eh.simulateBitcoinHeader(bitcoinHeader, sim)
-	if err != nil {
-		return nil, fmt.Errorf("bitcoin header simulation failed: %w", err)
-	}
-
-	// The golden nonce is the first 4 bytes of the final Double-SHA256
-	goldenNonce := finalHash
-
-	// Calculate alignment reward (primary - matches target)
-	alignmentReward := eh.calculateAlignmentReward(goldenNonce, targetToken, tokenMap)
-
-	// Calculate stability reward (convergence patterns)
-	stabilityReward := eh.calculateStabilityReward(seed, sim)
-
-	// Calculate format reward (valid token in map)
-	formatReward := eh.calculateFormatReward(goldenNonce, targetToken, tokenMap)
-
-	// Bonus reward for exact target match
-	exactMatchBonus := 0.0
-	if goldenNonce == uint32(targetToken) {
-		exactMatchBonus = 0.5 // Significant bonus for exact match
-	}
-
-	result.HashOutput = goldenNonce // Store hash for bit-matching
-	result.Alignment = alignmentReward
-	result.Stability = stabilityReward
-	result.Format = formatReward
-	result.Reward = alignmentReward + stabilityReward + formatReward + exactMatchBonus
-
-	return result, nil
-}
+// CalculateBitMatchAdvantage calculates advantage based on bit-match scores (GRPO style)
 
 // CalculateBitMatchAdvantage calculates advantage based on bit-match scores (GRPO style)
 // This provides a gradient for evolution to follow despite SHA-256 avalanche effect
-func (eh *EvolutionaryHarness) CalculateBitMatchAdvantage(results []SeedResult, targetToken int32) []SeedResult {
+func (eh *EvolutionaryHarness) CalculateBitMatchAdvantage(results []SeedResult, commitmentTarget uint32) []SeedResult {
 	if len(results) == 0 {
 		return results
 	}
@@ -538,7 +526,7 @@ func (eh *EvolutionaryHarness) CalculateBitMatchAdvantage(results []SeedResult, 
 
 	for i, res := range results {
 		// Use total matching bits (Hamming similarity) for the gradient
-		xor := res.HashOutput ^ uint32(targetToken)
+		xor := res.HashOutput ^ commitmentTarget
 		matchingBits := 32 - bits.OnesCount32(xor)
 
 		// Normalize to 0-1 range
@@ -563,7 +551,7 @@ func (eh *EvolutionaryHarness) CalculateBitMatchAdvantage(results []SeedResult, 
 		}
 
 		// Boost advantage for seeds that pass the actual difficulty threshold (prefix match)
-		if eh.IsWinningSeed(results[i].HashOutput, uint32(targetToken)) {
+		if eh.IsWinningSeed(results[i].HashOutput, commitmentTarget) {
 			results[i].Advantage += 2.0
 		}
 	}
@@ -827,7 +815,8 @@ func (eh *EvolutionaryHarness) EvaluatePopulationBatch(
 			}
 		}
 		// Use the optimized batch processing
-		loopResults, batchErr = hWrap.GetHashMethod().Execute21PassLoopBatch(headers, uint32(record.TargetToken))
+		commitmentTarget := record.AssertionCommitmentTarget()
+		loopResults, batchErr = hWrap.GetHashMethod().Execute21PassLoopBatch(headers, commitmentTarget)
 	} else {
 		// Fallback to sequential if not HasherWrapper
 		loopResults = make([]*core.JitterResult, len(headers))
@@ -871,13 +860,14 @@ func (eh *EvolutionaryHarness) EvaluatePopulationBatch(
 		result.HashOutput = goldenNonce
 
 		// Calculate rewards
-		result.Alignment = eh.calculateAlignmentReward(goldenNonce, record.TargetToken, tokenMap)
+		commitmentTarget := record.AssertionCommitmentTarget()
+		result.Alignment = eh.calculateAlignmentReward(goldenNonce, commitmentTarget)
 		result.Stability = eh.calculateStabilityReward(result.Seed, sim)
 		result.Format = eh.calculateFormatReward(goldenNonce, record.TargetToken, tokenMap)
 
 		// Bonus for exact target match
 		exactMatchBonus := 0.0
-		if goldenNonce == uint32(record.TargetToken) {
+		if goldenNonce == commitmentTarget {
 			exactMatchBonus = 0.5 // Significant bonus for exact match
 		}
 
@@ -886,7 +876,7 @@ func (eh *EvolutionaryHarness) EvaluatePopulationBatch(
 	}
 
 	// Calculate advantages using bit-match scores (provides gradient despite SHA-256 avalanche)
-	results = eh.CalculateBitMatchAdvantage(results, record.TargetToken)
+	results = eh.CalculateBitMatchAdvantage(results, record.AssertionCommitmentTarget())
 
 	// Calculate population fitness (mean reward)
 	var totalReward float64
@@ -930,7 +920,7 @@ func hammingDistance(a, b uint32) int {
 }
 
 func ComputeContextHash(tokenSequence []int32, windowSize int) uint32 {
-	if len(tokenSequence) == 0 {
+	if len(tokenSequence) == 0 || windowSize <= 0 {
 		return 0
 	}
 
@@ -939,16 +929,20 @@ func ComputeContextHash(tokenSequence []int32, windowSize int) uint32 {
 		start = 0
 	}
 
-	hash := make([]byte, 0, 4)
+	// Hash the complete bounded context. The previous implementation returned
+	// the first four serialized bytes, making contexts with the same leading
+	// token indistinguishable even when the remaining tokens differed.
+	h := sha256.New()
+	var length [4]byte
+	binary.BigEndian.PutUint32(length[:], uint32(len(tokenSequence)-start))
+	h.Write(length[:])
 	for i := start; i < len(tokenSequence); i++ {
-		hash = append(hash, byte(tokenSequence[i]), byte(tokenSequence[i]>>8), byte(tokenSequence[i]>>16), byte(tokenSequence[i]>>24))
+		var encoded [4]byte
+		binary.BigEndian.PutUint32(encoded[:], uint32(tokenSequence[i]))
+		h.Write(encoded[:])
 	}
-
-	if len(hash) < 4 {
-		hash = append(hash, 0, 0, 0, 0)
-	}
-
-	return uint32(hash[0]) | uint32(hash[1])<<8 | uint32(hash[2])<<16 | uint32(hash[3])<<24
+	digest := h.Sum(nil)
+	return binary.BigEndian.Uint32(digest[:4])
 }
 
 // ---- Phase 11: ES Weighted Update ----

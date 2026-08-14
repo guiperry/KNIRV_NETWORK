@@ -160,3 +160,4 @@ packages/KNIRVSERVER/pkg/knirvmonitor/bin/monitor
 /packages/KNIRVSERVER/tools/dve-verifier-wasm/target/wasm32-unknown-unknown/release
 /packages/KNIRVSERVER/tools/dve-verifier-wasm/target
 /packages/KNIRVSERVER/tools/dve-verifier-wasm/target
+/packages/KNIRVARENA/rust-wasm/controller-relay/target

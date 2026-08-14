@@ -1676,67 +1676,38 @@ func (o *Orchestrator) handleTrain(c *gin.Context) {
 
 	start := time.Now()
 
-	// Create training data
-	data := make([]transformer.HasherDataSample, len(req.DataSamples))
-	for i, sample := range req.DataSamples {
-		// Tokenize input and output using the tokenizer package
-		inputTokens := tokenizer.Tokenize(sample, o.cryptoModel.Config.VocabSize)
-
-		// Create target tokens (shifted by 1 for next-token prediction)
-		outputTokens := make([]int, len(inputTokens))
-		for j := 0; j < len(inputTokens)-1; j++ {
-			outputTokens[j] = inputTokens[j+1]
-		}
-		if len(inputTokens) > 0 {
-			outputTokens[len(inputTokens)-1] = inputTokens[0] // Wrap around
-		}
-		data[i] = transformer.HasherDataSample{
-			InputTokens:   inputTokens,
-			OutputTokens:  outputTokens,
-			AttentionMask: make([]bool, len(inputTokens)),
-		}
-	}
-
-	// Set up training configuration
-	trainConfig := &transformer.HasherTrainingConfig{
-		Epochs:         req.Epochs,
-		BatchSize:      req.BatchSize,
-		LearningRate:   req.LearningRate,
-		WeightDecay:    0.01,
-		ValidationFreq: 1,
-		SaveFreq:       req.Epochs, // Save at end
-	}
-	if trainConfig.Epochs <= 0 {
-		trainConfig.Epochs = 1
-	}
-	if trainConfig.BatchSize <= 0 {
-		trainConfig.BatchSize = 4
-	}
-	if trainConfig.LearningRate <= 0 {
-		trainConfig.LearningRate = 0.01
-	}
-
-	// Create trainer and run training
-	trainer := transformer.NewHasherTrainer(o.cryptoModel, trainConfig, data)
-
 	// Run single epoch training (for API responsiveness)
 	var totalLoss float32
 	var correct, total int
 
-	for _, sample := range data {
+	for _, sampleStr := range req.DataSamples {
+		// Tokenize input using the tokenizer package
+		inputTokens := tokenizer.Tokenize(sampleStr, o.cryptoModel.Config.VocabSize)
+		if len(inputTokens) == 0 {
+			continue
+		}
+
+		// Create target tokens (shifted by 1 for next-token prediction)
+		var targetToken int
+		if len(inputTokens) > 1 {
+			targetToken = inputTokens[1]
+		} else {
+			targetToken = inputTokens[0]
+		}
+
 		// Forward pass
-		output := o.cryptoModel.Forward(sample.InputTokens)
+		output := o.cryptoModel.Forward(inputTokens)
 
 		// Calculate simple loss (MSE proxy)
-		if len(output) > 0 && len(sample.OutputTokens) > 0 {
-			target := float32(sample.OutputTokens[0])
+		if len(output) > 0 {
+			target := float32(targetToken)
 			diff := output[0] - target
 			totalLoss += diff * diff
 		}
 
 		// Check prediction accuracy
-		predicted, _ := o.cryptoModel.GenerateToken(sample.InputTokens, 0.0)
-		if len(sample.OutputTokens) > 0 && predicted == sample.OutputTokens[0] {
+		predicted, _ := o.cryptoModel.GenerateToken(inputTokens, 0.0)
+		if predicted == targetToken {
 			correct++
 		}
 		total++
@@ -1755,9 +1726,6 @@ func (o *Orchestrator) handleTrain(c *gin.Context) {
 	}
 
 	latency := time.Since(start)
-
-	// Use trainer state for logging (trainer was initialized above)
-	_ = trainer // Trainer available for future full training runs
 
 	c.JSON(http.StatusOK, TrainResponse{
 		Epoch:     1,

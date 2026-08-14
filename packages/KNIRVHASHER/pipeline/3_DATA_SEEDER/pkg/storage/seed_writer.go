@@ -1,7 +1,9 @@
 package storage
 
 import (
+	"crypto/sha256"
 	"encoding/base64"
+	"encoding/binary"
 	"encoding/json"
 	"fmt"
 	"math"
@@ -75,9 +77,33 @@ func ledgerSeedsByKey(dataPath string) map[string][]byte {
 		// Later entries for the same key overwrite earlier ones, so the most
 		// recently discovered seed for a given record wins.
 		seeds[asicKey(entry.AsicSlots, entry.TargetTokenID)] = seed
+		if entry.AssertionKey != "" {
+			seeds[entry.AssertionKey] = seed
+		}
 	}
 
 	return seeds
+}
+
+// assertionKey is the canonical ledger identity for a context/span claim.
+// Length prefixes make the encoding unambiguous (e.g. [1, 23] differs from
+// [12, 3]). The digest keeps ledger keys compact while retaining all input
+// material in the ledger entry for auditability.
+func assertionKey(contextTokens, assertionSpan []int32) string {
+	h := sha256.New()
+	writeTokens := func(tokens []int32) {
+		var length [4]byte
+		binary.BigEndian.PutUint32(length[:], uint32(len(tokens)))
+		h.Write(length[:])
+		for _, token := range tokens {
+			var encoded [4]byte
+			binary.BigEndian.PutUint32(encoded[:], uint32(token))
+			h.Write(encoded[:])
+		}
+	}
+	writeTokens(contextTokens)
+	writeTokens(assertionSpan)
+	return fmt.Sprintf("assertion-v2:%x", h.Sum(nil))
 }
 
 func (sw *JSONSeedWriter) AddSeedWrite(sourceFile string, slots [12]uint32, targetTokenID int32, bestSeed []byte) error {
@@ -399,12 +425,18 @@ type DualSeedWriter struct {
 }
 
 type SeedWriteLedgerEntry struct {
-	Timestamp     time.Time  `json:"timestamp"`
-	SourceFile    string     `json:"source_file"`
-	TargetTokenID int32      `json:"target_token_id"`
-	AsicSlots     [12]uint32 `json:"asic_slots"`
-	BestSeed      string     `json:"best_seed"`
-	SeedBytes     int        `json:"seed_bytes"`
+	SchemaVersion    int32      `json:"schema_version"`
+	Timestamp        time.Time  `json:"timestamp"`
+	SourceFile       string     `json:"source_file"`
+	TargetTokenID    int32      `json:"target_token_id"`
+	AssertionKey     string     `json:"assertion_key,omitempty"`
+	ContextTokens    []int32    `json:"context_tokens,omitempty"`
+	AssertionSpan    []int32    `json:"assertion_span,omitempty"`
+	CommitmentTarget uint32     `json:"commitment_target,omitempty"`
+	ContextHash      uint32     `json:"context_hash,omitempty"`
+	AsicSlots        [12]uint32 `json:"asic_slots"`
+	BestSeed         string     `json:"best_seed"`
+	SeedBytes        int        `json:"seed_bytes"`
 }
 
 // NewDualSeedWriter creates a new DualSeedWriter
@@ -418,7 +450,9 @@ func NewDualSeedWriter(dataPath string) *DualSeedWriter {
 
 // AddSeedWrite queues a win
 func (dsw *DualSeedWriter) AddSeedWrite(sourceFile string, slots [12]uint32, targetTokenID int32, bestSeed []byte) error {
-	if err := dsw.appendLedger(sourceFile, slots, targetTokenID, bestSeed); err != nil {
+	// Legacy API: retain token-only callers, but mark the ledger entry as the
+	// pre-assertion format. New callers should use AddAssertionWrite.
+	if err := dsw.appendLedger(sourceFile, slots, targetTokenID, nil, nil, 0, 0, bestSeed); err != nil {
 		return err
 	}
 	if err := dsw.jsonWriter.AddSeedWrite(sourceFile, slots, targetTokenID, bestSeed); err != nil {
@@ -427,7 +461,20 @@ func (dsw *DualSeedWriter) AddSeedWrite(sourceFile string, slots [12]uint32, tar
 	return dsw.arrowWriter.AddSeedWrite(sourceFile, slots, targetTokenID, bestSeed)
 }
 
-func (dsw *DualSeedWriter) appendLedger(sourceFile string, slots [12]uint32, targetTokenID int32, bestSeed []byte) error {
+// AddAssertionWrite persists a versioned span-level witness. JSON/Arrow
+// materialization still uses the legacy record key for compatibility, while
+// the append-only ledger retains the complete assertion identity.
+func (dsw *DualSeedWriter) AddAssertionWrite(sourceFile string, slots [12]uint32, targetTokenID int32, contextTokens, assertionSpan []int32, contextHash, commitmentTarget uint32, bestSeed []byte) error {
+	if err := dsw.appendLedger(sourceFile, slots, targetTokenID, contextTokens, assertionSpan, contextHash, commitmentTarget, bestSeed); err != nil {
+		return err
+	}
+	if err := dsw.jsonWriter.AddSeedWrite(sourceFile, slots, targetTokenID, bestSeed); err != nil {
+		return err
+	}
+	return dsw.arrowWriter.AddSeedWrite(sourceFile, slots, targetTokenID, bestSeed)
+}
+
+func (dsw *DualSeedWriter) appendLedger(sourceFile string, slots [12]uint32, targetTokenID int32, contextTokens, assertionSpan []int32, contextHash, commitmentTarget uint32, bestSeed []byte) error {
 	if len(bestSeed) == 0 {
 		return fmt.Errorf("cannot ledger empty seed")
 	}
@@ -436,13 +483,26 @@ func (dsw *DualSeedWriter) appendLedger(sourceFile string, slots [12]uint32, tar
 	if err := os.MkdirAll(ledgerDir, 0755); err != nil {
 		return fmt.Errorf("create seed ledger directory: %w", err)
 	}
+	schemaVersion := int32(2)
+	if len(contextTokens) == 0 && len(assertionSpan) == 0 {
+		schemaVersion = 1
+	}
 	entry := SeedWriteLedgerEntry{
-		Timestamp:     time.Now().UTC(),
-		SourceFile:    filepath.Base(sourceFile),
-		TargetTokenID: targetTokenID,
-		AsicSlots:     slots,
-		BestSeed:      base64.StdEncoding.EncodeToString(bestSeed),
-		SeedBytes:     len(bestSeed),
+		SchemaVersion:    schemaVersion,
+		Timestamp:        time.Now().UTC(),
+		SourceFile:       filepath.Base(sourceFile),
+		TargetTokenID:    targetTokenID,
+		AssertionKey:     "",
+		ContextTokens:    append([]int32(nil), contextTokens...),
+		AssertionSpan:    append([]int32(nil), assertionSpan...),
+		CommitmentTarget: commitmentTarget,
+		ContextHash:      contextHash,
+		AsicSlots:        slots,
+		BestSeed:         base64.StdEncoding.EncodeToString(bestSeed),
+		SeedBytes:        len(bestSeed),
+	}
+	if len(contextTokens) > 0 && len(assertionSpan) > 0 {
+		entry.AssertionKey = assertionKey(contextTokens, assertionSpan)
 	}
 	data, err := json.Marshal(entry)
 	if err != nil {

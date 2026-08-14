@@ -1002,10 +1002,12 @@ func processSingleRecordWithSlidingWindow(record *schema.MinedRecord, frameCount
 	// Pre-calculate token character offsets for mapping to SpaCy metadata
 	// This is necessary because tiktoken and SpaCy use different tokenization
 	tokenStartOffsets := make([]int, len(allTokens))
+	tokenTexts := make([]string, len(allTokens))
 	currentPos := 0
 	for i, tokenID := range allTokens {
 		tokenStartOffsets[i] = currentPos
 		tokenText := tk.Decode([]int{tokenID})
+		tokenTexts[i] = tokenText
 		currentPos += len(tokenText)
 	}
 
@@ -1134,13 +1136,20 @@ func processSingleRecordWithSlidingWindow(record *schema.MinedRecord, frameCount
 			memoryState[2] ^= asicSlots[2]
 
 			// Create training frame
+			tokenSeq := make([]int32, len(window.ContextTokens))
+			for j, t := range window.ContextTokens {
+				tokenSeq[j] = int32(t)
+			}
 			frame := schema.TrainingFrame{
+				SchemaVersion: 2,
 				SourceFile:    record.FileName,
 				ChunkID:       int32(record.ChunkID),
 				WindowStart:   int32(window.StartPos),
 				WindowEnd:     int32(window.EndPos),
 				ContextLength: int32(len(window.ContextTokens)),
 				TargetTokenID: int32(window.TargetToken),
+				TokenSequence: tokenSeq,
+				AssertionSpan: assertionSpanForWindow(allTokens, tokenTexts, window.EndPos, config.WindowSize),
 				BestSeed:      nil,
 			}
 			frame.SetAsicSlots(asicSlots)
@@ -1163,6 +1172,35 @@ func effectiveWindowStride(record *schema.MinedRecord, config *Config) int {
 		return config.WindowSize
 	}
 	return stride
+}
+
+// assertionSpanForWindow extracts the fact asserted at targetPos. Mapper
+// dependency metadata is aligned to spaCy tokens rather than BPE positions,
+// so punctuation is the stable boundary available after tokenization. The
+// span includes the target and the preceding tokens since the last clause or
+// sentence boundary, bounded by the encoder context window.
+func assertionSpanForWindow(tokenIDs []int, tokenTexts []string, targetPos, maxLen int) []int32 {
+	if targetPos < 0 || targetPos >= len(tokenIDs) || targetPos >= len(tokenTexts) {
+		return nil
+	}
+	if maxLen <= 0 {
+		maxLen = len(tokenIDs)
+	}
+	start := targetPos - maxLen + 1
+	if start < 0 {
+		start = 0
+	}
+	for i := targetPos - 1; i >= start; i-- {
+		if strings.ContainsAny(tokenTexts[i], ".!?;:\n") {
+			start = i + 1
+			break
+		}
+	}
+	span := make([]int32, targetPos-start+1)
+	for i := start; i <= targetPos; i++ {
+		span[i-start] = int32(tokenIDs[i])
+	}
+	return span
 }
 
 func processStreamingJSON(jsonFile *os.File, tp *mapper.TensorPacker, tk *tokenizer.Service, ew *embeddings.Service, frames *[]schema.TrainingFrame, config *Config, cpManager *checkpoint.Manager) error {

@@ -27,12 +27,15 @@ func TestTrainingConvergence(t *testing.T) {
 	tokenMap := map[int32]bool{targetToken: true}
 
 	record := &TrainingRecord{
+		SchemaVersion: 2,
 		TargetToken:   targetToken,
 		TokenSequence: []int32{targetToken},
+		AssertionSpan: []int32{targetToken},
 		FeatureVector: [12]uint32{0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8, 0x9, 0xA, 0xB, 0xC},
 	}
 
 	contextHash := uint32(12345)
+	commitmentTarget := record.AssertionCommitmentTarget()
 	pop := NewSeedPopulation(targetToken, contextHash, 64)
 
 	found := false
@@ -45,9 +48,9 @@ func TestTrainingConvergence(t *testing.T) {
 		eliteSeeds := harness.GetEliteSeeds(results)
 		if len(eliteSeeds) > 0 {
 			bestSeed := eliteSeeds[0]
-			if harness.IsWinningSeed(bestSeed.HashOutput, uint32(targetToken)) {
+			if harness.IsWinningSeed(bestSeed.HashOutput, commitmentTarget) {
 				fmt.Printf("Found winning seed in generation %d! Hash: %08x, Target: %08x\n",
-					gen, bestSeed.HashOutput, uint32(targetToken))
+					gen, bestSeed.HashOutput, commitmentTarget)
 				found = true
 				break
 			}

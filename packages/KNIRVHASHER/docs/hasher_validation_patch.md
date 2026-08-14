@@ -1,6 +1,22 @@
 # HASHER Assertion-Layer & LM Split — Implementation Plan
 
-**Status:** Decided direction, unimplemented. This supersedes the earlier draft of this document — every open question there now has an owner decision, recorded in Section 1. What follows is sequenced, file-level implementation work, not a menu of options.
+**Status:** Phases 0–3 are implemented in the current working tree. Phase 2 carries versioned assertion spans from the encoder through the seeder and commits mining targets to `(context, span)`; Phase 3 makes the byte-hash attestation contract explicit, limits software hashing to development/equivalence use, and scopes seed projections to the LM. Remaining phases are sequenced below. This supersedes the earlier draft of this document — every open question there now has an owner decision, recorded in Section 1. What follows is sequenced, file-level implementation work, not a menu of options.
+
+### Runtime validation note
+
+`libcuda_hash.so` is built with the seeder bundle and embedded by
+`internal/cli/embedded/binaries.go`. KNIRVSERVER extracts it during
+initialization to `/var/lib/knirvserver/bin/libcuda_hash.so`, and pipeline
+subprocesses are launched with that directory in `LD_LIBRARY_PATH`. A direct
+developer-side `go test` does not inherit the server's subprocess environment;
+run CUDA-linked seeder tests as follows:
+
+```bash
+LD_LIBRARY_PATH=/var/lib/knirvserver/bin go test ./pkg/training ./pkg/storage
+```
+
+An unqualified loader error from direct `go test` means the extracted runtime
+directory was not searched; it does not establish that the library is missing.
 
 ## 0. What's changing, in one paragraph
 
@@ -83,6 +99,12 @@ Every decision below was made against the specific finding cited; consult the fi
 5. Update `ComputeContextHash`'s callers to consume real multi-token windows instead of the `[]int32{targetTokenID}` fallback.
 
 **Acceptance check:** sample `training_frames.json` post-fix and confirm `token_sequence` is present and multi-token for records with `context_length > 1`; confirm `ComputeContextHash` output actually varies across different real contexts sharing the same target token (it currently doesn't — that's the bug).
+
+The installed `/var/lib/knirvserver/knirvhasher/data/frames/training_frames.json`
+may be a pre-Phase-1 artifact and must not be treated as post-fix evidence; the
+encoder must be rerun to regenerate it. The code-level acceptance gate now
+covers this invariant with encoder serialization, seeder ingestion, span, and
+same-target/different-context commitment/hash regression tests.
 
 ### Phase 2 — Redefine the mining objective around spans (D7, D8, D10)
 

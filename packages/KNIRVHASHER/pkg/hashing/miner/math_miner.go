@@ -137,7 +137,7 @@ func deriveTargetTokenID(proofStep string) int32 {
 //	<outputPath>.pipeline.json — flat schema, JSON-tag-compatible with
 //	                             pipeline/2_DATA_ENCODER/pkg/schema.TrainingFrame.
 //	                             Feed this file to the 2_DATA_ENCODER pipeline stage
-//	                             to produce the Arrow IPC file consumed by 3_DATA_TRAINER.
+//	                             to produce the Arrow IPC file consumed by 3_DATA_SEEDER.
 func (m *MathMiner) saveFrames(frames []jitter.TrainingFrame, outputPath string) error {
 	// Strip any existing .json suffix so we control both output file names cleanly.
 	base := strings.TrimSuffix(outputPath, ".json")

@@ -1217,7 +1217,7 @@ func (hs *HEARTService) handleReloadSeeds(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	// No custom payload: prefer seeds mined by 3_DATA_TRAINER over unmined
+	// No custom payload: prefer seeds mined by 3_DATA_SEEDER over unmined
 	// crypto/rand noise. Previously this always called BuildDefaultSeedStore
 	// directly, so a bare reload silently discarded any mined data and
 	// re-randomized the whole engine.

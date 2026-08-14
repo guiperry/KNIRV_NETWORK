@@ -3,6 +3,8 @@ package storage
 import (
 	"encoding/json"
 	"testing"
+
+	"github.com/lab/hasher/data-seeder/pkg/training"
 )
 
 func TestConvertJSONRecordAcceptsEncoderFrameWithoutTokenSequence(t *testing.T) {
@@ -72,5 +74,27 @@ func TestConvertJSONRecordPreservesTokenSequence(t *testing.T) {
 
 	if got, want := record.TokenSequence, frame.TokenSequence; len(got) != len(want) || got[0] != want[0] || got[1] != want[1] || got[2] != want[2] {
 		t.Fatalf("expected token sequence %#v, got %#v", want, got)
+	}
+	if got, want := record.ContextHash, training.ComputeContextHash(frame.TokenSequence, 5); got != want {
+		t.Fatalf("context hash = %d, want computed hash %d", got, want)
+	}
+}
+
+func TestConvertJSONRecordPreservesAssertionSpan(t *testing.T) {
+	frame := &JSONTrainingRecord{
+		SchemaVersion: 2,
+		TargetTokenID: 30,
+		TokenSequence: []int32{4, 5, 6},
+		AssertionSpan: []int32{7, 8, 9},
+		AsicSlots0:    1, AsicSlots1: 2, AsicSlots2: 3, AsicSlots3: 4,
+		AsicSlots4: 5, AsicSlots5: 6, AsicSlots6: 7, AsicSlots7: 8,
+		AsicSlots8: 9, AsicSlots9: 10, AsicSlots10: 11, AsicSlots11: 12,
+	}
+	record := NewDataIngestor(t.TempDir()).convertJSONRecord(frame)
+	if record == nil {
+		t.Fatal("expected JSON frame to convert to a training record")
+	}
+	if len(record.AssertionSpan) != 3 || record.AssertionSpan[2] != 9 {
+		t.Fatalf("assertion span = %#v, want [7 8 9]", record.AssertionSpan)
 	}
 }
