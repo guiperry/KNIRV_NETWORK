@@ -82,6 +82,9 @@ type DataIngestor struct {
 	filesCache     []string
 	filesCacheTime time.Time
 	filesCacheMu   sync.RWMutex
+	// filesExplicitlySet keeps caller-selected inputs from being replaced by a
+	// directory scan after the normal discovery cache expires.
+	filesExplicitlySet bool
 
 	// Progress tracking
 	progressMu   sync.RWMutex
@@ -159,11 +162,16 @@ func NewProgressBar(width int, total int64) *ProgressBar {
 
 func (pb *ProgressBar) Update(current int64) string {
 	pb.current = current
-	if pb.total == 0 {
+	if pb.total <= 0 {
 		return "[>          ] 0%"
 	}
 
 	percent := float64(current) / float64(pb.total)
+	if percent < 0 {
+		percent = 0
+	} else if percent > 1 {
+		percent = 1
+	}
 	filled := int(percent * float64(pb.width))
 	empty := pb.width - filled
 
@@ -240,6 +248,7 @@ func (di *DataIngestor) SetFiles(files []string) {
 	di.filesCacheMu.Lock()
 	di.filesCache = normalized
 	di.filesCacheTime = time.Now()
+	di.filesExplicitlySet = true
 	di.filesCacheMu.Unlock()
 	di.fileIndex = -1
 }
@@ -248,7 +257,7 @@ func (di *DataIngestor) SetFiles(files []string) {
 func (di *DataIngestor) getAvailableFiles() ([]string, error) {
 	// Check cache first
 	di.filesCacheMu.RLock()
-	if di.filesCache != nil && time.Since(di.filesCacheTime) < 5*time.Second {
+	if di.filesCache != nil && (di.filesExplicitlySet || time.Since(di.filesCacheTime) < 5*time.Second) {
 		files := di.filesCache
 		di.filesCacheMu.RUnlock()
 		return files, nil
@@ -736,14 +745,19 @@ func (di *DataIngestor) ProcessAllFilesWithProgress(progressCallback func(*Inges
 	di.logger.Info("Ingesting from files: %v", availableFiles)
 	di.logger.Info("Found %d parquet/json file(s)", len(availableFiles))
 
-	// Get total records estimate for progress bar
-	totalRecords, err := di.GetTotalRecords()
-	if err != nil {
-		di.logger.Debug("Failed to estimate total records: %v", err)
-		totalRecords = 0
-	} else {
-		di.logger.Debug("Estimated total records: %d", totalRecords)
+	// Estimate from the same immutable input list used below. A directory scan
+	// may change while ingestion is running, but it must not change this run's
+	// file count or progress total.
+	var totalRecords int64
+	for _, file := range availableFiles {
+		count, countErr := di.countRecordsInFile(file)
+		if countErr != nil {
+			di.logger.Debug("Failed to count records in %s: %v", filepath.Base(file), countErr)
+			continue
+		}
+		totalRecords += count
 	}
+	di.logger.Debug("Estimated total records: %d", totalRecords)
 
 	// Initialize stats
 	stats := &IngestionStats{
@@ -757,18 +771,14 @@ func (di *DataIngestor) ProcessAllFilesWithProgress(progressCallback func(*Inges
 	// Create progress bar
 	progressBar := NewProgressBar(40, totalRecords)
 
-	// Process each file
-	for di.HasMoreFiles() {
+	// Process the file list captured at the start of this run. Do not repeatedly
+	// call discovery here: its short-lived cache can otherwise introduce files
+	// that were never selected for this ingestion.
+	for _, filePath := range availableFiles {
 		select {
 		case <-di.ctx.Done():
 			return allRecords, di.ctx.Err()
 		default:
-		}
-
-		filePath, err := di.GetNextFile()
-		if err != nil {
-			di.logger.Error("Failed to get next file: %v", err)
-			break
 		}
 
 		stats.CurrentFile = filepath.Base(filePath)

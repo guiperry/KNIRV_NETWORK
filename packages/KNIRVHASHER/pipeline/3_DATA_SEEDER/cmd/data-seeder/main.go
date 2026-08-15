@@ -41,7 +41,7 @@ var (
 )
 
 type seedWriterInterface interface {
-	AddSeedWrite(sourceFile string, slots [12]uint32, targetTokenID int32, bestSeed []byte) error
+	AddAssertionWrite(sourceFile string, slots [12]uint32, targetTokenID int32, contextTokens, assertionSpan []int32, contextHash, commitmentTarget uint32, bestSeed []byte) error
 	WriteBack() error
 }
 

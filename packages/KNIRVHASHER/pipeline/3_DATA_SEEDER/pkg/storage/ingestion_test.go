@@ -2,10 +2,47 @@ package storage
 
 import (
 	"encoding/json"
+	"os"
+	"path/filepath"
+	"strings"
 	"testing"
+	"time"
 
 	"github.com/lab/hasher/data-seeder/pkg/training"
 )
+
+func TestProgressBarClampsProgressAboveTotal(t *testing.T) {
+	bar := NewProgressBar(40, 10)
+	got := bar.Update(11)
+	if !strings.Contains(got, "100%") {
+		t.Fatalf("progress = %q, want a clamped 100%% progress bar", got)
+	}
+}
+
+func TestSetFilesPersistsPastDiscoveryCacheExpiry(t *testing.T) {
+	dir := t.TempDir()
+	selected := filepath.Join(dir, "training_frames.json")
+	if err := os.WriteFile(selected, []byte("[]"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "unrelated.json"), []byte("{}"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	ingestor := NewDataIngestor(dir)
+	ingestor.SetFiles([]string{selected})
+	ingestor.filesCacheMu.Lock()
+	ingestor.filesCacheTime = time.Now().Add(-6 * time.Second)
+	ingestor.filesCacheMu.Unlock()
+
+	files, err := ingestor.GetAvailableFiles()
+	if err != nil {
+		t.Fatalf("GetAvailableFiles() error = %v", err)
+	}
+	if len(files) != 1 || files[0] != selected {
+		t.Fatalf("GetAvailableFiles() = %v, want only explicitly selected %q", files, selected)
+	}
+}
 
 func TestConvertJSONRecordAcceptsEncoderFrameWithoutTokenSequence(t *testing.T) {
 	raw := []byte(`{

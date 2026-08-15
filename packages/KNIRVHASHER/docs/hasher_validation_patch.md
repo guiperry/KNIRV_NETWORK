@@ -1,6 +1,24 @@
 # HASHER Assertion-Layer & LM Split — Implementation Plan
 
-**Status:** Phases 0–3 are implemented in the current working tree. Phase 2 carries versioned assertion spans from the encoder through the seeder and commits mining targets to `(context, span)`; Phase 3 makes the byte-hash attestation contract explicit, limits software hashing to development/equivalence use, and scopes seed projections to the LM. Remaining phases are sequenced below. This supersedes the earlier draft of this document — every open question there now has an owner decision, recorded in Section 1. What follows is sequenced, file-level implementation work, not a menu of options.
+**Status:** Phases 0–6 are implemented in the current working tree. Phase 2 carries versioned assertion spans from the encoder through the seeder and commits mining targets to `(context, span)`; Phase 3 makes the byte-hash attestation contract explicit, limits software hashing to development/equivalence use, and scopes seed projections to the LM; Phase 4 replaces the non-functional Gorgonia scaffold (`gpt.go`) with a real, tested, backprop-trained transformer; Phase 5 bridges LM candidates to the versioned attestation ledger; and Phase 6 has traced and recorded the historical infrastructure boundaries that Phase 5 must not assume. This supersedes the earlier draft of this document — every open question there now has an owner decision, recorded in Section 1. What follows is sequenced, file-level implementation work, not a menu of options.
+
+### Phase 4 completion note
+
+The scaffold this replaced looked real (genuine Gorgonia matmuls, softmax, `gorgonia.Grad` calls) but wasn't: `EmbeddingLayer.Forward` ignored its token-ID argument and returned a fixed matrix for any input; `GPT.loss` was `mean(logits)` with no dependency on any target token; `TrainModel`'s loop never read `dataset.inputs`/`targets` into the forward pass; `runGorgoniteInference`'s legacy branch called `hs.gpt.Forward(false)` ignoring the `tokens` parameter entirely. Same "real ops, disconnected from real data" pattern as everything else found this session.
+
+Fixed, in `pkg/hashing/transformer/gpt.go`:
+- Real embedding lookup: `one-hot(tokenIDs) x embeddings` matmul, so output genuinely depends on input tokens (`TestGPTForward_DependsOnInput`, `TestGPTForward_VariesByPosition`).
+- Real cross-entropy loss against real targets, via `gorgonia.LogSoftMax` — not plain `SoftMax` + `Log`, which produces `-Inf` at underflowed probabilities and `0 * -Inf = NaN` when Hadamard-multiplied against the one-hot target vector.
+- FoX-style attention ported into differentiable form: causal-masked softmax multiplied by a fixed temporal-decay matrix (`foxDecayMatrix`), rather than the original hash-based version's unnormalized `exp(scores)` — softmax's built-in numerical stability was judged safer than hand-rolling clamped-exp in a differentiable graph; documented as an intentional adaptation, not full formula fidelity.
+- `gorgonia.Grad` ordering bug: it performs symbolic differentiation and must run *before* the `TapeMachine` is constructed (it inserts nodes into the graph); the original scaffold — and this rewrite's first draft — called it after, which left added gradient nodes outside the machine's compiled tape and surfaced as a nil-value panic in the solver step once an actual test exercised it.
+- Gradient clipping (`gorgonia.WithClip(1.0)`), without which an early unclipped step reliably drove the loss to `NaN` within ~4 steps on the test model.
+- `GPT` no longer holds permanent gorgonia nodes tied to one graph; weights persist as plain `*tensor.Dense` (`namedParams()`), rebuilt into a fresh graph each `Forward`/`TrainStep` call — `SaveModel`/`LoadModel`/`cerebras_bridge.go`'s weight export updated to match.
+
+Verified real, not just non-erroring: `TestGPTTrainStep_LossDecreases` trains 41 steps on a fixed (context, target) pair and asserts the loss actually drops (27.96 → 0.016) *and* is never `NaN`/`Inf` at any step — a plain `>=` comparison against a diverged loss would have passed silently, since IEEE 754 makes every comparison against `NaN` false; the test checks explicitly.
+
+**Update:** `GPT` is now the default inference path in `runGorgoniteInference` — the `InferenceMode == "legacy"` gate (whose polarity was backwards from its name: the hash-seed `UnifiedHasherEngine` ran by default, GPT was what `"legacy"` mode opted into) is removed. GPT runs unconditionally when initialized; `unifiedEngine` is now a plain fallback used only if GPT is nil or its forward pass errors, not a config-selectable mode.
+
+**Not yet done, out of this phase's scope:** training on the real corpus end-to-end (Phase 4 wires the trainer to accept real token sequences via `PrepareDataset`/`TrainModel`; an actual training run against `connector/records.jsonl`'s successor is an operational step, not a code gap); true mini-batched gradient averaging (`TrainModel` takes one SGD step per example, not per batch); bias terms (none of the attention/FFN weights have them, matching the prior scaffold — a reasonable increment, not a correctness gap).
 
 ### Runtime validation note
 
@@ -145,14 +163,74 @@ No new evolutionary machinery needs to be built — the existing loop in `cmd/da
 3. Look up the bucket against the attestation ledger (`FlashSearcher`-style, contingent on Phase 6 item 1 confirming it's live).
 4. Hit → attach a confidence/grounding signal (and the PoW proof, for cross-node verification). Miss → flag low confidence (D7) and enqueue the `(context, span)` pair for mining (feeds Phase 2's `EvolutionaryHarness`) rather than blocking generation.
 
+**Implemented:** `pkg/hashing/transformer/attestation_bridge.go` loads only
+schema-v2 `seed_writes.jsonl` entries, indexes them by the Slot 0–3 identity
+bucket, and then requires an exact length-prefixed `(context, span)` identity
+match inside that bucket before reporting a hit. It rejects malformed or
+payload/key-mismatched ledger rows, returns the decoded PoW witness on a hit,
+and performs a non-blocking, de-duplicated enqueue on a miss. The bridge's
+bucket quantizer is byte-for-byte equivalent to `2_DATA_ENCODER`'s
+`TensorPacker` Slot 0–3 `[-1,1] → uint32` quantization and accepts the same
+configured signal dimensions. `HEARTService` calls it after the LM proposes
+its top next-token span, exposes the grounding result in `WASMDecision`, and
+annotates its rationale without changing or blocking the LM output. Reloading
+seed data also reloads the attestation index. `attestation_bridge_test.go`
+covers hit/proof propagation, low-confidence enqueue behavior, and rejection
+of a forged assertion identity.
+
 ### Phase 6 — Verification gate before trusting Phase 5's design details
 
-These three are carried over from the prior draft's open questions; they should be resolved with actual code tracing, not further inference, before Phase 5 is finalized:
+**Complete.** The following was resolved by tracing the live call paths in the
+current tree. The decisions are deliberately specific about what is live and
+what Phase 5 must not reuse.
 
-1. **Is `flash_search.go`/`jitter_engine.go` actually wired into the mining hot path?** Trace whether `Execute21PassLoopBatch` (via `core.HashMethod`, per hardware tier under `pkg/hashing/methods/*`) calls into `jitter.NewServer`'s `GetAssociativeJitter`/`FlashSearcher.Search`, or whether the jitter RPC server `cmd/data-seeder/main.go` starts is disconnected from the hot path. Determines whether Phase 5 can reuse this infrastructure directly or needs to build retrieval fresh.
-2. **Is `2_DATA_ENCODER`'s BGE-variance/POS computation real or stubbed?** Confirm `tensor_packer.go` and the BGE embedding call do real work (not constants or random values) before relying on Slot 0–3 as the LSH key in Phase 5.
-3. **Confirm `DynamicGraph.Forward()` is equally real** (Phase 4, item 1) — only `Backward()` was inspected in this pass.
-4. **Confirm `EvaluatePopulationBatch`'s fitness comparison doesn't share the stale-incumbent noise problem the retired `EvolveSeeds` had** (D10's inherited risk): does it re-score the whole population fresh each generation (no carried-over baseline scored against a different random draw), or does any part of `GetEliteSeeds`/`CalculateBitMatchAdvantage` compare across generations using stale data? Worth a direct read of `evolutionary.go` before Phase 2 item 3 ships, since this determines whether the new reward function actually produces clean accept/reject signal.
+1. **Jitter/flash path — live for seeder mining, but not Phase 5 retrieval.**
+   `TrainingOrchestrator.initializeComponents` starts `jitter.NewServer` at
+   `/tmp/jitter.sock` before `Run`. `trainRecord` calls
+   `EvaluatePopulationBatch`, which calls the active `core.HashMethod`'s
+   `Execute21PassLoopBatch`; software, CUDA, and ASIC methods delegate that to
+   `JitterEngine.Execute21PassLoopBatch`. The engine's default configuration
+   enables flash search and specifies that same socket. Each of the 21 passes
+   therefore calls the RPC server's `FlashManager.GetAssociativeJitter` when
+   the socket is available. If it is unavailable, the engine falls back to its
+   local `FlashSearcher` (or a generated default jitter), so an unavailable
+   server does not disconnect mining but does remove that knowledge-base
+   lookup. This RPC lookup is a legacy jitter input, not an assertion-ledger
+   retrieval API; Phase 5 correctly uses its own v2-ledger index and exact
+   `(context, span)` identity check instead of reusing it.
+
+2. **Encoder identity slots — real computation, with backend-dependent
+   provenance.** `performVarianceAnalysis` samples supplied 768-d embeddings
+   or obtains them through `EmbeddingService`, computes per-dimension variance,
+   selects the top 24 dimensions, and passes them to `mapper.TensorPacker`.
+   `PackFrame` quantizes the first four selected dimensions with the same
+   `[-1,1] → uint32` mapping used by `AttestationBridge.Bucket`; the bridge is
+   therefore compatible with real encoder slot values. The old label
+   “BGE-variance” is conditional, however: BGE is used only for the configured
+   Cloudflare backend. The default is the deterministic local
+   `text-embedder`, and failed analysis can intentionally use cached/default
+   indices. Consequently, a bridge candidate must use the encoder's same
+   embedding backend and selected-dimension configuration. A mismatch is
+   fail-safe (the exact assertion identity prevents a false hit) but reduces
+   retrieval recall; it is not evidence that every deployment used BGE.
+
+3. **`DynamicGraph.Forward()` — not a usable Phase 4 training engine.** It
+   reconstructs Gorgonia nodes and operations, but only builds a tape machine;
+   it does not execute one. Its `Backward` path then adds gradients after that
+   machine has been constructed, the ordering bug that made the old scaffold
+   unsafe once exercised. It has no callers outside `dynamic_graph.go`.
+   Phase 4's `GPT` intentionally bypasses it, rebuilding and executing its
+   complete Gorgonia graph per `Forward`/`TrainStep` and persisting tensor
+   values. Do not reuse `DynamicGraph` without a separate repair and tests.
+
+4. **Population fitness — no stale incumbent comparison.** Each generation in
+   `trainRecord` invokes `EvaluatePopulation` for the current population.
+   `EvaluatePopulationBatch` rebuilds headers, obtains a fresh result for every
+   candidate nonce, and recomputes reward and advantage across that generation
+   only. `GetEliteSeeds` sorts only that freshly returned slice;
+   `SelectAndMutate` carries seed bytes forward but no historical score or
+   advantage. The Phase 2 reward redesign can therefore use this selection
+   loop without inheriting the retired `EvolveSeeds` stale-baseline defect.
 
 ---
 

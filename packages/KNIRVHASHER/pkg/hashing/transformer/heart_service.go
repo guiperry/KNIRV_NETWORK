@@ -12,8 +12,6 @@ import (
 	"sync"
 	"time"
 
-	"gorgonia.org/gorgonia"
-
 	"knirvhasher/pkg/embeddings"
 )
 
@@ -33,6 +31,7 @@ type HEARTService struct {
 	baseline          *VarianceAnalyzerSnapshot
 	generatorSwitcher *GeneratorSwitcher
 	unifiedEngine     *UnifiedHasherEngine
+	attestation       *AttestationBridge
 	mu                sync.RWMutex
 }
 
@@ -43,29 +42,29 @@ type VarianceAnalyzerSnapshot struct {
 }
 
 type HEARTServiceStats struct {
-	TotalInquiries       uint64
-	SuccessfulResponses  uint64
-	FailedResponses      uint64
-	TotalResponseTimeMs  float64
-	MinResponseTimeMs    float64
-	MaxResponseTimeMs    float64
-	ErrorTypeCounts      map[string]uint64
-	HeuristicUsage       map[string]uint64
+	TotalInquiries      uint64
+	SuccessfulResponses uint64
+	FailedResponses     uint64
+	TotalResponseTimeMs float64
+	MinResponseTimeMs   float64
+	MaxResponseTimeMs   float64
+	ErrorTypeCounts     map[string]uint64
+	HeuristicUsage      map[string]uint64
 }
 
 // HEARTErrorInquiry matches the proto definition
 type HEARTErrorInquiry struct {
-	ErrorID          string            `json:"error_id"`
-	ErrorType        string            `json:"error_type"`
-	ErrorMessage     string            `json:"error_message"`
-	ErrorContext     string            `json:"error_context"`
-	StackTrace       string            `json:"stack_trace,omitempty"`
-	Metadata         map[string]string `json:"metadata,omitempty"`
-	NetworkMetrics   *NetworkMetrics   `json:"network_metrics,omitempty"`
-	Prompt           string            `json:"prompt,omitempty"`
-	ModelResponse    string            `json:"model_response,omitempty"`
-	ConfidenceScore  float32           `json:"confidence_score,omitempty"`
-	Timestamp        uint64            `json:"timestamp"`
+	ErrorID         string            `json:"error_id"`
+	ErrorType       string            `json:"error_type"`
+	ErrorMessage    string            `json:"error_message"`
+	ErrorContext    string            `json:"error_context"`
+	StackTrace      string            `json:"stack_trace,omitempty"`
+	Metadata        map[string]string `json:"metadata,omitempty"`
+	NetworkMetrics  *NetworkMetrics   `json:"network_metrics,omitempty"`
+	Prompt          string            `json:"prompt,omitempty"`
+	ModelResponse   string            `json:"model_response,omitempty"`
+	ConfidenceScore float32           `json:"confidence_score,omitempty"`
+	Timestamp       uint64            `json:"timestamp"`
 }
 
 // NetworkMetrics for HEART analysis
@@ -82,20 +81,20 @@ type NetworkMetrics struct {
 
 // HEARTHeuristicResponse matches the proto definition
 type HEARTHeuristicResponse struct {
-	InquiryID           string          `json:"inquiry_id"`
-	CommandVector       []float32       `json:"command_vector"`
-	AlertLevel          uint32          `json:"alert_level"`
-	HeuristicID         uint32          `json:"heuristic_id"`
-	TargetNodeID        uint32          `json:"target_node_id"`
-	ConfidenceScore     float32         `json:"confidence_score"`
-	ActionParameters    []float32       `json:"action_parameters"`
-	AnalysisSummary     string          `json:"analysis_summary"`
-	RecommendedActions  []string        `json:"recommended_actions"`
-	DebugInsights       []string        `json:"debug_insights"`
-	IdentifiedPatterns  []ErrorPattern  `json:"identified_patterns"`
-	SimilarErrors       []SimilarError  `json:"similar_errors"`
-	ProcessingTimeMs    float32         `json:"processing_time_ms"`
-	Timestamp           uint64          `json:"timestamp"`
+	InquiryID          string         `json:"inquiry_id"`
+	CommandVector      []float32      `json:"command_vector"`
+	AlertLevel         uint32         `json:"alert_level"`
+	HeuristicID        uint32         `json:"heuristic_id"`
+	TargetNodeID       uint32         `json:"target_node_id"`
+	ConfidenceScore    float32        `json:"confidence_score"`
+	ActionParameters   []float32      `json:"action_parameters"`
+	AnalysisSummary    string         `json:"analysis_summary"`
+	RecommendedActions []string       `json:"recommended_actions"`
+	DebugInsights      []string       `json:"debug_insights"`
+	IdentifiedPatterns []ErrorPattern `json:"identified_patterns"`
+	SimilarErrors      []SimilarError `json:"similar_errors"`
+	ProcessingTimeMs   float32        `json:"processing_time_ms"`
+	Timestamp          uint64         `json:"timestamp"`
 }
 
 type ErrorPattern struct {
@@ -120,8 +119,8 @@ func NewHEARTService(bridge *CerebrasBridge, processor *NetworkMetricsProcessor)
 		bridge:    bridge,
 		processor: processor,
 		stats: &HEARTServiceStats{
-			ErrorTypeCounts: make(map[string]uint64),
-			HeuristicUsage:  make(map[string]uint64),
+			ErrorTypeCounts:   make(map[string]uint64),
+			HeuristicUsage:    make(map[string]uint64),
 			MinResponseTimeMs: 999999.0,
 		},
 	}
@@ -129,8 +128,7 @@ func NewHEARTService(bridge *CerebrasBridge, processor *NetworkMetricsProcessor)
 
 // NewHEARTServiceWithConfig creates a new HEART service with configuration (Phase 2)
 func NewHEARTServiceWithConfig(cfg *HEARTConfig) (*HEARTService, error) {
-	g := gorgonia.NewGraph()
-	gpt := NewGPT(g, &cfg.Gorgonite)
+	gpt := NewGPT(&cfg.Gorgonite)
 
 	tok, err := NewTiktokenTokenizer("cl100k_base")
 	if err != nil {
@@ -160,6 +158,11 @@ func NewHEARTServiceWithConfig(cfg *HEARTConfig) (*HEARTService, error) {
 		}
 	}
 
+	attestation := NewEmptyAttestationBridge(cfg.AttestationLedgerDir, cfg.AttestationSignalIndices, cfg.AttestationQueueSize)
+	if err := attestation.Reload(); err != nil {
+		log.Printf("attestation ledger unavailable (%v); LM assertions will be queued with low confidence", err)
+	}
+
 	svc := &HEARTService{
 		gpt:           gpt,
 		bridge:        cfg.getBridge(),
@@ -171,6 +174,7 @@ func NewHEARTServiceWithConfig(cfg *HEARTConfig) (*HEARTService, error) {
 		hashNet:       hashNet,
 		config:        cfg,
 		unifiedEngine: unifiedEngine,
+		attestation:   attestation,
 		stats: &HEARTServiceStats{
 			ErrorTypeCounts:   make(map[string]uint64),
 			HeuristicUsage:    make(map[string]uint64),
@@ -254,44 +258,82 @@ func classifyInquiry(path string) WASMType {
 
 // runGorgoniteInference runs the Gorgonite GPT forward pass and returns logits.
 // Instruments per-token entropy and routes spikes to gap queues (Phase 13).
+//
+// GPT (real, backprop-trained — see Phase 4) is the default and only path
+// when available; it is no longer gated behind an InferenceMode == "legacy"
+// flag, and the flag's polarity was backwards from what its name implied
+// either way (the hash-seed UnifiedHasherEngine ran by default; GPT — the
+// actual LM per D1/D9 in docs/hasher_validation_patch.md — was what "legacy"
+// mode opted into). unifiedEngine is now only a fallback for when GPT itself
+// isn't initialized or its forward pass errors, not a mode selectable via
+// config.
 func (hs *HEARTService) runGorgoniteInference(tokens []int) ([]float32, error) {
-	if hs.gpt == nil {
-		return nil, fmt.Errorf("gpt not initialized")
+	if hs.gpt != nil {
+		data, err := hs.gpt.Forward(tokens)
+		if err == nil {
+			if len(tokens) > 0 {
+				vocabSize := hs.gpt.config.VocabSize
+				lastStart := (len(tokens) - 1) * vocabSize
+				if lastStart >= 0 && lastStart+vocabSize <= len(data) {
+					data = data[lastStart : lastStart+vocabSize]
+				}
+			}
+			hs.reportEntropy(data)
+			return data, nil
+		}
+		log.Printf("[gorgonite] GPT forward failed, falling back to unifiedEngine: %v", err)
 	}
 
-	if hs.config != nil && hs.config.InferenceMode != "legacy" && hs.unifiedEngine != nil {
+	if hs.unifiedEngine != nil {
 		logits := hs.unifiedEngine.Forward(tokens)
 		if len(logits) > 0 {
-			entropy := computeEntropy(logits)
-			threshold := 3.0
-			if hs.config.EntropySpikethreshold > 0 {
-				threshold = hs.config.EntropySpikethreshold
-			}
-			if entropy > threshold {
-				hs.handleEntropySpike(entropy, threshold)
-			}
+			hs.reportEntropy(logits)
 			return logits, nil
 		}
 	}
 
-	logitsNode, err := hs.gpt.Forward(false)
-	if err != nil {
-		return nil, fmt.Errorf("gpt forward: %w", err)
-	}
-	vm := gorgonia.NewTapeMachine(hs.gpt.graph)
-	defer vm.Close()
-	if err := vm.RunAll(); err != nil {
-		return nil, fmt.Errorf("gpt vm: %w", err)
-	}
-	if logitsNode.Value() == nil {
-		return nil, fmt.Errorf("nil logits value")
-	}
-	data, ok := logitsNode.Value().Data().([]float32)
-	if !ok {
-		return nil, fmt.Errorf("unexpected logits type")
-	}
+	return nil, fmt.Errorf("gpt not initialized and unifiedEngine fallback unavailable")
+}
 
-	entropy := computeEntropy(data)
+// groundLMProposal turns the LM's most likely next token into the current
+// one-token assertion span and asks the attestation bridge for a witness. The
+// bridge is deliberately advisory: a miss returns low confidence and queues
+// mining, but it never changes or blocks the language-model output.
+func (hs *HEARTService) groundLMProposal(tokens []int, logits []float32) *AttestationResult {
+	if hs.attestation == nil || len(tokens) == 0 || len(logits) == 0 || hs.embedder == nil {
+		return nil
+	}
+	best := 0
+	for i := 1; i < len(logits); i++ {
+		if logits[i] > logits[best] {
+			best = i
+		}
+	}
+	contextText := fmt.Sprint(tokens)
+	if hs.tokenizer != nil {
+		contextText = hs.tokenizer.Decode(tokens)
+	}
+	context := make([]int32, len(tokens))
+	for i, token := range tokens {
+		context[i] = int32(token)
+	}
+	result, err := hs.attestation.Ground(AttestationCandidate{
+		ContextTokens:    context,
+		AssertionSpan:    []int32{int32(best)},
+		ContextEmbedding: hs.embedder.GetEmbedding(contextText),
+	})
+	if err != nil {
+		log.Printf("attestation lookup skipped: %v", err)
+		return nil
+	}
+	return &result
+}
+
+// reportEntropy instruments per-token entropy and routes spikes to gap
+// queues (Phase 13) — shared by both the GPT and unifiedEngine paths in
+// runGorgoniteInference.
+func (hs *HEARTService) reportEntropy(logits []float32) {
+	entropy := computeEntropy(logits)
 	threshold := 3.0
 	if hs.config != nil && hs.config.EntropySpikethreshold > 0 {
 		threshold = hs.config.EntropySpikethreshold
@@ -299,8 +341,6 @@ func (hs *HEARTService) runGorgoniteInference(tokens []int) ([]float32, error) {
 	if entropy > threshold {
 		hs.handleEntropySpike(entropy, threshold)
 	}
-
-	return data, nil
 }
 
 // handleEntropySpike routes high-entropy token activations to gap queues (Phase 13).
@@ -567,6 +607,7 @@ func (hs *HEARTService) buildDecision(ctx context.Context, s4 *Stage4Result, s3 
 		WASMType:  s4.WASMType,
 		Rationale: s3.Rationale,
 		TurnCount: 1,
+		Grounding: s3.Grounding,
 	}
 
 	if hs.compiler == nil {
@@ -650,8 +691,8 @@ func (hs *HEARTService) handleAnalyze(w http.ResponseWriter, r *http.Request) {
 	dveInquiry := DVEErrorInquiry{
 		DVESessionID: inquiry.ErrorID, // Use ErrorID as session ID for compatibility
 		ErrorType:    inquiry.ErrorType,
-		ErrorMessage:  inquiry.ErrorMessage,
-		ErrorContext:  inquiry.ErrorContext,
+		ErrorMessage: inquiry.ErrorMessage,
+		ErrorContext: inquiry.ErrorContext,
 		StackTrace:   inquiry.StackTrace,
 		Metadata:     inquiry.Metadata,
 	}
@@ -1026,9 +1067,9 @@ func (hs *HEARTService) findSimilarErrors(inquiry *HEARTErrorInquiry) []SimilarE
 		// Simulated known errors with pre-computed embeddings
 		knownErrors := []struct {
 			ID         string
-			Text        string
-			Resolution  string
-			SkillID     string
+			Text       string
+			Resolution string
+			SkillID    string
 		}{
 			{"ERR-2024-001", "TypeError undefined validation", "Applied type validation LoRA adapter", "skill-typecheck-v1"},
 			{"ERR-2024-042", "NetworkError timeout fetch", "Network timeout retry logic", "skill-network-v2"},
@@ -1130,9 +1171,9 @@ func (hs *HEARTService) handleGenerate(w http.ResponseWriter, r *http.Request) {
 	text := tok.Decode(outTokens)
 
 	json.NewEncoder(w).Encode(map[string]interface{}{
-		"text":    text,
-		"ready":   true,
-		"tokens":  len(outTokens),
+		"text":   text,
+		"ready":  true,
+		"tokens": len(outTokens),
 	})
 }
 
@@ -1170,14 +1211,14 @@ func (hs *HEARTService) handleStats(w http.ResponseWriter, r *http.Request) {
 	defer hs.mu.RUnlock()
 
 	json.NewEncoder(w).Encode(map[string]interface{}{
-		"total_inquiries":       hs.stats.TotalInquiries,
-		"successful_responses":  hs.stats.SuccessfulResponses,
-		"failed_responses":      hs.stats.FailedResponses,
+		"total_inquiries":      hs.stats.TotalInquiries,
+		"successful_responses": hs.stats.SuccessfulResponses,
+		"failed_responses":     hs.stats.FailedResponses,
 		"avg_response_time_ms": hs.getAvgLatency(),
 		"min_response_time_ms": hs.stats.MinResponseTimeMs,
 		"max_response_time_ms": hs.stats.MaxResponseTimeMs,
-		"error_type_counts":     hs.stats.ErrorTypeCounts,
-		"heuristic_usage":       hs.stats.HeuristicUsage,
+		"error_type_counts":    hs.stats.ErrorTypeCounts,
+		"heuristic_usage":      hs.stats.HeuristicUsage,
 	})
 }
 
@@ -1210,9 +1251,9 @@ func (hs *HEARTService) handleReloadSeeds(w http.ResponseWriter, r *http.Request
 	if req.Seeds != nil {
 		hs.unifiedEngine.SetSeeds(req.Seeds)
 		json.NewEncoder(w).Encode(map[string]interface{}{
-			"status":  "reloaded",
-			"mode":    hs.unifiedEngine.Mode(),
-			"seeds":   "custom",
+			"status": "reloaded",
+			"mode":   hs.unifiedEngine.Mode(),
+			"seeds":  "custom",
 		})
 		return
 	}
@@ -1233,6 +1274,14 @@ func (hs *HEARTService) handleReloadSeeds(w http.ResponseWriter, r *http.Request
 		resp["ledger_records"] = stats.LedgerRecords
 		resp["tokens_covered"] = stats.TokensCovered
 		resp["tokens_total"] = stats.TokensTotal
+	}
+	if hs.attestation != nil {
+		if err := hs.attestation.Reload(); err != nil {
+			resp["attestation_ledger"] = "unavailable"
+			resp["attestation_error"] = err.Error()
+		} else {
+			resp["attestation_ledger"] = "reloaded"
+		}
 	}
 	resp["seeds"] = seedSource
 	json.NewEncoder(w).Encode(resp)

@@ -17,14 +17,41 @@ import (
 	"knirvhasher/pkg/hashing/core"
 )
 
+// ---- Real backprop-trained LM (Phase 4) ----
+//
+// This replaces a previous Gorgonia scaffold that looked complete (real
+// matmuls, real softmax, real gradient calls) but was not: EmbeddingLayer
+// ignored token IDs entirely and returned a fixed (seqLen x embedDim) matrix
+// regardless of input; GPT.loss was mean(logits) with no dependency on any
+// target token; TrainModel's inner loop never read dataset.inputs/targets
+// into the forward pass. The graph was, in effect, the same for every input
+// and never learned anything — the same "real ops, disconnected from real
+// data" failure pattern found elsewhere in this package before this session's
+// fixes. See docs/hasher_validation_patch.md Phase 4.
+//
+// Design: GPT owns its learnable weights as plain *tensor.Dense values (not
+// permanently-bound gorgonia nodes). Each Forward/TrainStep call builds a
+// fresh gorgonia graph sized to the actual input, binds fresh nodes to the
+// current weight values via gorgonia.WithValue, runs it, and — for
+// TrainStep — writes the post-gradient-step values back into the persisted
+// tensors. This mirrors the "rebuild the graph, carry the values" pattern
+// DynamicGraph already used elsewhere in this package, applied directly so
+// the full attention/FFN math (which needs ops DynamicGraph doesn't wrap —
+// SoftMax, Transpose, HadamardProd) can be expressed with plain Gorgonia
+// calls instead of extending that wrapper's limited op set.
+
+// GorgoniteConfig defines architecture for the real, backprop-trained LM.
 type GorgoniteConfig struct {
 	VocabSize    int
 	EmbedDim     int
 	NumHeads     int
 	NumLayers    int
 	ContextLen   int
-	DropoutRate  float64
+	DropoutRate  float64 // reserved; dropout is not applied in this pass
 	FFNHiddenDim int
+	// DecayAlpha is the FoX temporal-decay rate applied per position step
+	// (see foxAttention below), in (0, 1]. 1.0 disables decay entirely.
+	DecayAlpha float32
 }
 
 func DefaultGorgoniteConfig() *GorgoniteConfig {
@@ -33,54 +60,355 @@ func DefaultGorgoniteConfig() *GorgoniteConfig {
 		EmbedDim:     768,
 		NumHeads:     12,
 		NumLayers:    12,
-		ContextLen:  2048,
-		DropoutRate: 0.1,
+		ContextLen:   2048,
+		DropoutRate:  0.1,
 		FFNHiddenDim: 3072,
+		DecayAlpha:   0.95,
 	}
 }
 
-type EmbeddingLayer struct {
+// layerParams holds one transformer block's learnable weights as plain
+// tensors. No biases, matching the prior scaffold's shape (a bias-free
+// transformer still trains; adding biases is a reasonable future increment,
+// not required for the forward/backward path to be real and correct).
+type layerParams struct {
+	wQuery  []*tensor.Dense // one per head, each [EmbedDim, HeadDim]
+	wKey    []*tensor.Dense
+	wValue  []*tensor.Dense
+	wOutput *tensor.Dense // [EmbedDim, EmbedDim]
+	w1      *tensor.Dense // [EmbedDim, FFNHiddenDim]
+	w2      *tensor.Dense // [FFNHiddenDim, EmbedDim]
+}
+
+// GPT is a small, real, backprop-trained transformer language model.
+type GPT struct {
+	config     *GorgoniteConfig
+	embeddings *tensor.Dense // [VocabSize, EmbedDim]
+	outputProj *tensor.Dense // [EmbedDim, VocabSize]
+	layers     []*layerParams
+
+	trained          bool
+	trainingProgress float64
+}
+
+// NewGPT creates a GPT with freshly (Glorot-style) initialized weights.
+func NewGPT(config *GorgoniteConfig) *GPT {
+	if config == nil {
+		config = DefaultGorgoniteConfig()
+	}
+	headDim := config.EmbedDim / config.NumHeads
+
+	gpt := &GPT{
+		config:     config,
+		embeddings: randDense(config.VocabSize, config.EmbedDim),
+		outputProj: randDense(config.EmbedDim, config.VocabSize),
+		layers:     make([]*layerParams, config.NumLayers),
+	}
+	for l := 0; l < config.NumLayers; l++ {
+		lp := &layerParams{
+			wQuery:  make([]*tensor.Dense, config.NumHeads),
+			wKey:    make([]*tensor.Dense, config.NumHeads),
+			wValue:  make([]*tensor.Dense, config.NumHeads),
+			wOutput: randDense(config.EmbedDim, config.EmbedDim),
+			w1:      randDense(config.EmbedDim, config.FFNHiddenDim),
+			w2:      randDense(config.FFNHiddenDim, config.EmbedDim),
+		}
+		for h := 0; h < config.NumHeads; h++ {
+			lp.wQuery[h] = randDense(config.EmbedDim, headDim)
+			lp.wKey[h] = randDense(config.EmbedDim, headDim)
+			lp.wValue[h] = randDense(config.EmbedDim, headDim)
+		}
+		gpt.layers[l] = lp
+	}
+	return gpt
+}
+
+// randDense creates a [rows, cols] tensor with small Gaussian-ish random
+// init (Box-Muller), scaled like Glorot/Xavier (1/sqrt(fanIn)) to keep
+// activations from exploding or vanishing at the start of training.
+func randDense(rows, cols int) *tensor.Dense {
+	data := make([]float32, rows*cols)
+	scale := float32(1.0 / math.Sqrt(float64(rows)))
+	for i := range data {
+		u1, u2 := rand.Float64(), rand.Float64()
+		if u1 < 1e-12 {
+			u1 = 1e-12
+		}
+		z := math.Sqrt(-2*math.Log(u1)) * math.Cos(2*math.Pi*u2)
+		data[i] = float32(z) * scale
+	}
+	return tensor.New(tensor.WithBacking(data), tensor.WithShape(rows, cols))
+}
+
+// namedParams returns every learnable tensor with a stable name, in a fixed
+// order — used to build matching gorgonia nodes each forward call and to
+// serialize/deserialize the model.
+func (gpt *GPT) namedParams() ([]string, []*tensor.Dense) {
+	names := []string{"embeddings", "output_projection"}
+	values := []*tensor.Dense{gpt.embeddings, gpt.outputProj}
+	for l, lp := range gpt.layers {
+		for h := range lp.wQuery {
+			names = append(names, fmt.Sprintf("layer%d.head%d.wq", l, h))
+			values = append(values, lp.wQuery[h])
+			names = append(names, fmt.Sprintf("layer%d.head%d.wk", l, h))
+			values = append(values, lp.wKey[h])
+			names = append(names, fmt.Sprintf("layer%d.head%d.wv", l, h))
+			values = append(values, lp.wValue[h])
+		}
+		names = append(names, fmt.Sprintf("layer%d.wOutput", l))
+		values = append(values, lp.wOutput)
+		names = append(names, fmt.Sprintf("layer%d.w1", l))
+		values = append(values, lp.w1)
+		names = append(names, fmt.Sprintf("layer%d.w2", l))
+		values = append(values, lp.w2)
+	}
+	return names, values
+}
+
+// graphBuild is what buildGraph returns: the fresh graph, the parameter
+// nodes bound to it (parallel to namedParams' order, so gradients can be
+// mapped back to the persisted tensors), the logits node, and — only when
+// targetIDs was non-nil — the scalar loss node.
+type graphBuild struct {
 	graph      *gorgonia.ExprGraph
-	embeddings *gorgonia.Node
-	vocabSize  int
-	embedDim   int
-	seqLen     int
+	paramNodes []*gorgonia.Node
+	logits     *gorgonia.Node
+	loss       *gorgonia.Node
 }
 
-func NewEmbeddingLayer(g *gorgonia.ExprGraph, vocabSize, embedDim, seqLen int) *EmbeddingLayer {
-	embeddings := gorgonia.NewMatrix(g,
-		tensor.Float32,
-		gorgonia.WithShape(seqLen, embedDim),
-		gorgonia.WithName("embeddings"),
-		gorgonia.WithInit(gorgonia.GlorotN(1.0)),
-	)
-
-	return &EmbeddingLayer{
-		graph:     g,
-		embeddings: embeddings,
-		vocabSize: vocabSize,
-		embedDim:  embedDim,
-		seqLen:    seqLen,
+// buildGraph constructs a fresh computational graph for exactly the given
+// token sequence. Unlike the previous scaffold, embedding lookup is a real
+// one-hot(tokenIDs) x embeddings matmul — the graph's output genuinely
+// depends on which tokens were passed in — and, when targetIDs is provided,
+// the loss is real cross-entropy against those targets, not mean(logits).
+func (gpt *GPT) buildGraph(tokenIDs []int, targetIDs []int) (*graphBuild, error) {
+	if len(tokenIDs) == 0 {
+		return nil, fmt.Errorf("buildGraph: empty token sequence")
 	}
+	cfg := gpt.config
+	seqLen := len(tokenIDs)
+	g := gorgonia.NewGraph()
+
+	names, values := gpt.namedParams()
+	paramNodes := make([]*gorgonia.Node, len(values))
+	byName := make(map[string]*gorgonia.Node, len(values))
+	for i, v := range values {
+		n := gorgonia.NewMatrix(g, tensor.Float32,
+			gorgonia.WithShape(v.Shape()...),
+			gorgonia.WithName(names[i]),
+			gorgonia.WithValue(v),
+		)
+		paramNodes[i] = n
+		byName[names[i]] = n
+	}
+
+	// One-hot(tokenIDs) x embeddings -> [seqLen, EmbedDim]. This is the
+	// standard trick for a differentiable embedding lookup without a
+	// gather op: the gradient w.r.t. embeddings flows back correctly
+	// through the matmul (only the rows for tokens that actually appeared
+	// get a nonzero gradient).
+	oneHot := make([]float32, seqLen*cfg.VocabSize)
+	for i, tok := range tokenIDs {
+		idx := tok % cfg.VocabSize
+		if idx < 0 {
+			idx += cfg.VocabSize
+		}
+		oneHot[i*cfg.VocabSize+idx] = 1
+	}
+	oneHotTensor := tensor.New(tensor.WithBacking(oneHot), tensor.WithShape(seqLen, cfg.VocabSize))
+	oneHotNode := gorgonia.NewConstant(oneHotTensor, gorgonia.WithName("token_one_hot"))
+
+	x, err := gorgonia.Mul(oneHotNode, byName["embeddings"])
+	if err != nil {
+		return nil, fmt.Errorf("embedding lookup: %w", err)
+	}
+
+	posEnc := sinusoidalPositionalEncoding(g, seqLen, cfg.EmbedDim)
+	x, err = gorgonia.Add(x, posEnc)
+	if err != nil {
+		return nil, fmt.Errorf("add positional encoding: %w", err)
+	}
+
+	decay := foxDecayMatrix(g, seqLen, cfg.DecayAlpha)
+	headDim := cfg.EmbedDim / cfg.NumHeads
+
+	for l, lp := range gpt.layers {
+		attnOut, err := foxMultiHeadAttention(g, x, decay, lp, l, byName, cfg.NumHeads, headDim)
+		if err != nil {
+			return nil, fmt.Errorf("layer %d attention: %w", l, err)
+		}
+		x, err = gorgonia.Add(x, attnOut)
+		if err != nil {
+			return nil, fmt.Errorf("layer %d attention residual: %w", l, err)
+		}
+
+		ffOut, err := feedForward(x, byName[fmt.Sprintf("layer%d.w1", l)], byName[fmt.Sprintf("layer%d.w2", l)])
+		if err != nil {
+			return nil, fmt.Errorf("layer %d feedforward: %w", l, err)
+		}
+		x, err = gorgonia.Add(x, ffOut)
+		if err != nil {
+			return nil, fmt.Errorf("layer %d feedforward residual: %w", l, err)
+		}
+	}
+
+	logits, err := gorgonia.Mul(x, byName["output_projection"])
+	if err != nil {
+		return nil, fmt.Errorf("output projection: %w", err)
+	}
+
+	build := &graphBuild{graph: g, paramNodes: paramNodes, logits: logits}
+
+	if targetIDs != nil {
+		if len(targetIDs) != seqLen {
+			return nil, fmt.Errorf("buildGraph: %d targets for %d tokens", len(targetIDs), seqLen)
+		}
+		loss, err := crossEntropyLoss(g, logits, targetIDs, cfg.VocabSize)
+		if err != nil {
+			return nil, fmt.Errorf("cross entropy loss: %w", err)
+		}
+		build.loss = loss
+	}
+
+	return build, nil
 }
 
-func (e *EmbeddingLayer) Forward(seqLen int) (*gorgonia.Node, error) {
-	return e.embeddings, nil
+// foxMultiHeadAttention computes one multi-head attention block using the
+// FoX-style ingredients — sharp (softmax) content matching combined
+// multiplicatively with a temporal decay matrix — then concatenates heads
+// and projects back through wOutput.
+//
+// This adapts the original hash-based FoX formula
+// (sum_j exp(q.k_j) * decay(j,i) * v_j, unnormalized) for a differentiable,
+// numerically-stable port: raw unnormalized exp(scores) can overflow before
+// the decay multiply ever gets a chance to shrink it back down, so this
+// computes softmax(scores) (Gorgonia's SoftMax is already numerically
+// stable — subtracts the row max internally) and multiplies that by the
+// decay matrix afterward, rather than exponentiating raw scores directly.
+// The result no longer sums to exactly 1 per row (decay attenuates it
+// further), which is the intended behavior: distant positions are
+// down-weighted both by content match *and* by explicit recency decay.
+func foxMultiHeadAttention(g *gorgonia.ExprGraph, x, decay *gorgonia.Node, lp *layerParams, layerIdx int, byName map[string]*gorgonia.Node, numHeads, headDim int) (*gorgonia.Node, error) {
+	seqLen := x.Shape()[0]
+	heads := make([]*gorgonia.Node, numHeads)
+
+	causalMask := causalMaskAdd(g, seqLen)
+
+	for h := 0; h < numHeads; h++ {
+		wq := byName[fmt.Sprintf("layer%d.head%d.wq", layerIdx, h)]
+		wk := byName[fmt.Sprintf("layer%d.head%d.wk", layerIdx, h)]
+		wv := byName[fmt.Sprintf("layer%d.head%d.wv", layerIdx, h)]
+
+		q, err := gorgonia.Mul(x, wq)
+		if err != nil {
+			return nil, err
+		}
+		k, err := gorgonia.Mul(x, wk)
+		if err != nil {
+			return nil, err
+		}
+		v, err := gorgonia.Mul(x, wv)
+		if err != nil {
+			return nil, err
+		}
+
+		kT, err := gorgonia.Transpose(k)
+		if err != nil {
+			return nil, err
+		}
+		scores, err := gorgonia.Mul(q, kT)
+		if err != nil {
+			return nil, err
+		}
+
+		scale := float32(1.0 / math.Sqrt(float64(headDim)))
+		scaleNode := gorgonia.NewScalar(g, tensor.Float32, gorgonia.WithValue(scale))
+		scores, err = gorgonia.HadamardProd(scores, scaleNode)
+		if err != nil {
+			return nil, err
+		}
+
+		scores, err = gorgonia.Add(scores, causalMask)
+		if err != nil {
+			return nil, err
+		}
+
+		weights, err := gorgonia.SoftMax(scores)
+		if err != nil {
+			return nil, err
+		}
+		weights, err = gorgonia.HadamardProd(weights, decay)
+		if err != nil {
+			return nil, err
+		}
+
+		headOut, err := gorgonia.Mul(weights, v)
+		if err != nil {
+			return nil, err
+		}
+		heads[h] = headOut
+	}
+
+	concat, err := gorgonia.Concat(1, heads...)
+	if err != nil {
+		return nil, err
+	}
+	return gorgonia.Mul(concat, byName[fmt.Sprintf("layer%d.wOutput", layerIdx)])
 }
 
-type PositionalEncoding struct {
-	graph    *gorgonia.ExprGraph
-	encoding *gorgonia.Node
-	seqLen   int
-	embedDim int
+func feedForward(x, w1, w2 *gorgonia.Node) (*gorgonia.Node, error) {
+	hidden, err := gorgonia.Mul(x, w1)
+	if err != nil {
+		return nil, err
+	}
+	hidden, err = gorgonia.Tanh(hidden) // simplified activation (GELU would be closer to a real GPT FFN)
+	if err != nil {
+		return nil, err
+	}
+	return gorgonia.Mul(hidden, w2)
 }
 
-func NewPositionalEncoding(g *gorgonia.ExprGraph, seqLen, embedDim int) *PositionalEncoding {
+// causalMaskAdd returns a [seqLen, seqLen] constant with 0 on/below the
+// diagonal and a large negative value above it, added to scores before
+// softmax so future positions get ~0 probability.
+func causalMaskAdd(g *gorgonia.ExprGraph, seqLen int) *gorgonia.Node {
+	data := make([]float32, seqLen*seqLen)
+	for i := 0; i < seqLen; i++ {
+		for j := i + 1; j < seqLen; j++ {
+			data[i*seqLen+j] = -1e10
+		}
+	}
+	t := tensor.New(tensor.WithBacking(data), tensor.WithShape(seqLen, seqLen))
+	return gorgonia.NewConstant(t, gorgonia.WithName("causal_mask"))
+}
+
+// foxDecayMatrix returns a [seqLen, seqLen] constant where entry (i, j) is
+// alpha^(i-j) for j <= i (temporal forgetting of older positions) and 0 for
+// j > i (redundant with the causal mask, but keeps this matrix correct on
+// its own if ever reused without one).
+func foxDecayMatrix(g *gorgonia.ExprGraph, seqLen int, alpha float32) *gorgonia.Node {
+	if alpha <= 0 || alpha > 1 {
+		alpha = 1
+	}
+	data := make([]float32, seqLen*seqLen)
+	for i := 0; i < seqLen; i++ {
+		v := float32(1.0)
+		for j := i; j >= 0; j-- {
+			data[i*seqLen+j] = v
+			v *= alpha
+		}
+	}
+	t := tensor.New(tensor.WithBacking(data), tensor.WithShape(seqLen, seqLen))
+	return gorgonia.NewConstant(t, gorgonia.WithName("fox_decay"))
+}
+
+// sinusoidalPositionalEncoding returns a fixed (non-learnable) [seqLen,
+// embedDim] constant, standard Transformer sin/cos positional encoding.
+func sinusoidalPositionalEncoding(g *gorgonia.ExprGraph, seqLen, embedDim int) *gorgonia.Node {
 	encoding := make([]float32, seqLen*embedDim)
-
 	for pos := 0; pos < seqLen; pos++ {
 		for i := 0; i < embedDim; i++ {
-			angle := float64(pos) / math.Pow(10000, float64(2*i)/float64(embedDim))
+			angle := float64(pos) / math.Pow(10000, float64(2*(i/2))/float64(embedDim))
 			if i%2 == 0 {
 				encoding[pos*embedDim+i] = float32(math.Sin(angle))
 			} else {
@@ -88,373 +416,132 @@ func NewPositionalEncoding(g *gorgonia.ExprGraph, seqLen, embedDim int) *Positio
 			}
 		}
 	}
-
-	posEncTensor := tensor.New(
-		tensor.WithBacking(encoding),
-		tensor.WithShape(seqLen, embedDim),
-	)
-
-	posEncNode := gorgonia.NewConstant(posEncTensor, gorgonia.WithName("pos_encoding"))
-
-	return &PositionalEncoding{
-		graph:    g,
-		encoding: posEncNode,
-		seqLen:   seqLen,
-		embedDim: embedDim,
-	}
+	t := tensor.New(tensor.WithBacking(encoding), tensor.WithShape(seqLen, embedDim))
+	return gorgonia.NewConstant(t, gorgonia.WithName("pos_encoding"))
 }
 
-func (p *PositionalEncoding) Forward(seqLen int) (*gorgonia.Node, error) {
-	return p.encoding, nil
-}
-
-type SelfAttention struct {
-	graph    *gorgonia.ExprGraph
-	wQuery   *gorgonia.Node
-	wKey     *gorgonia.Node
-	wValue   *gorgonia.Node
-	embedDim int
-	headDim  int
-	dropout  float64
-}
-
-func NewSelfAttention(g *gorgonia.ExprGraph, embedDim, headDim int, dropout float64, seqLen int) *SelfAttention {
-	wq := gorgonia.NewMatrix(g, tensor.Float32,
-		gorgonia.WithShape(embedDim, headDim),
-		gorgonia.WithName("w_query"),
-		gorgonia.WithInit(gorgonia.GlorotN(1.0)),
-	)
-
-	wk := gorgonia.NewMatrix(g, tensor.Float32,
-		gorgonia.WithShape(embedDim, headDim),
-		gorgonia.WithName("w_key"),
-		gorgonia.WithInit(gorgonia.GlorotN(1.0)),
-	)
-
-	wv := gorgonia.NewMatrix(g, tensor.Float32,
-		gorgonia.WithShape(embedDim, headDim),
-		gorgonia.WithName("w_value"),
-		gorgonia.WithInit(gorgonia.GlorotN(1.0)),
-	)
-
-	return &SelfAttention{
-		graph:    g,
-		wQuery:   wq,
-		wKey:     wk,
-		wValue:   wv,
-		embedDim: embedDim,
-		headDim:  headDim,
-		dropout:  dropout,
-	}
-}
-
-func (sa *SelfAttention) Forward(x *gorgonia.Node, mask *gorgonia.Node, training bool) (*gorgonia.Node, error) {
-	q, err := gorgonia.Mul(x, sa.wQuery)
+// crossEntropyLoss computes mean over positions of -log(softmax(logits)[i,
+// target[i]]), the standard next-token-prediction loss. Built the same way
+// embedding lookup is (one-hot times the value, so the constant one-hot
+// target vector selects out the right column), rather than requiring a
+// gather op.
+func crossEntropyLoss(g *gorgonia.ExprGraph, logits *gorgonia.Node, targetIDs []int, vocabSize int) (*gorgonia.Node, error) {
+	seqLen := len(targetIDs)
+	// LogSoftMax (not SoftMax followed by a separate Log) is required here,
+	// not just a style preference: computing log(softmax(x)) as two steps
+	// evaluates log(0) = -Inf whenever a probability underflows to exactly
+	// zero, and HadamardProd against the one-hot target vector then hits
+	// 0 * -Inf = NaN at every OTHER (non-target) vocab position — which
+	// contaminates the sum even though those positions "shouldn't" matter.
+	// LogSoftMax computes x - max(x) - logsumexp(x) directly and never
+	// produces -Inf for finite input.
+	logProbs, err := gorgonia.LogSoftMax(logits)
 	if err != nil {
 		return nil, err
 	}
 
-	k, err := gorgonia.Mul(x, sa.wKey)
-	if err != nil {
-		return nil, err
-	}
-
-	v, err := gorgonia.Mul(x, sa.wValue)
-	if err != nil {
-		return nil, err
-	}
-
-	kT, err := gorgonia.Transpose(k)
-	if err != nil {
-		return nil, err
-	}
-
-	scores, err := gorgonia.Mul(q, kT)
-	if err != nil {
-		return nil, err
-	}
-
-	scale := float32(1.0 / math.Sqrt(float64(sa.headDim)))
-	scaleNode := gorgonia.NewScalar(sa.graph, tensor.Float32, gorgonia.WithValue(scale))
-	scores, err = gorgonia.HadamardProd(scores, scaleNode)
-	if err != nil {
-		return nil, err
-	}
-
-	// if mask != nil {
-	// 	scores, err = gorgonia.Add(scores, mask)
-	// 	if err != nil {
-	// 		return nil, err
-	// 	}
-	// }
-
-	attnWeights, err := gorgonia.SoftMax(scores)
-	if err != nil {
-		return nil, err
-	}
-
-	// if training && sa.dropout > 0 {
-	// 	attnWeights, err = gorgonia.Dropout(attnWeights, sa.dropout)
-	// 	if err != nil {
-	// 		return nil, err
-	// 	}
-	// }
-
-	output, err := gorgonia.Mul(attnWeights, v)
-	if err != nil {
-		return nil, err
-	}
-
-	return output, nil
-}
-
-type MultiHeadAttention struct {
-	graph       *gorgonia.ExprGraph
-	heads       []*SelfAttention
-	wOutput     *gorgonia.Node
-	numHeads    int
-	embedDim    int
-	headDim     int
-}
-
-func NewMultiHeadAttention(g *gorgonia.ExprGraph, embedDim, numHeads int, dropout float64, seqLen int) *MultiHeadAttention {
-	headDim := embedDim / numHeads
-
-	heads := make([]*SelfAttention, numHeads)
-	for i := 0; i < numHeads; i++ {
-		heads[i] = NewSelfAttention(g, embedDim, headDim, dropout, seqLen)
-	}
-
-	wOut := gorgonia.NewMatrix(g, tensor.Float32,
-		gorgonia.WithShape(embedDim, embedDim),
-		gorgonia.WithName("w_output"),
-		gorgonia.WithInit(gorgonia.GlorotN(1.0)),
-	)
-
-	return &MultiHeadAttention{
-		graph:    g,
-		heads:    heads,
-		wOutput:  wOut,
-		numHeads: numHeads,
-		embedDim: embedDim,
-		headDim:  headDim,
-	}
-}
-
-func (mha *MultiHeadAttention) Forward(x *gorgonia.Node, mask *gorgonia.Node, training bool) (*gorgonia.Node, error) {
-	headOutputs := make([]*gorgonia.Node, mha.numHeads)
-	for i := 0; i < mha.numHeads; i++ {
-		out, err := mha.heads[i].Forward(x, mask, training)
-		if err != nil {
-			return nil, err
+	oneHot := make([]float32, seqLen*vocabSize)
+	for i, tgt := range targetIDs {
+		idx := tgt % vocabSize
+		if idx < 0 {
+			idx += vocabSize
 		}
-		headOutputs[i] = out
+		oneHot[i*vocabSize+idx] = 1
 	}
+	oneHotTensor := tensor.New(tensor.WithBacking(oneHot), tensor.WithShape(seqLen, vocabSize))
+	oneHotNode := gorgonia.NewConstant(oneHotTensor, gorgonia.WithName("target_one_hot"))
 
-	result, err := gorgonia.Concat(1, headOutputs...)
+	picked, err := gorgonia.HadamardProd(logProbs, oneHotNode)
 	if err != nil {
 		return nil, err
 	}
-
-	output, err := gorgonia.Mul(result, mha.wOutput)
+	summed, err := gorgonia.Sum(picked) // sum over the one nonzero entry per row = sum of picked log-probs
 	if err != nil {
 		return nil, err
 	}
-
-	return output, nil
+	negSummed, err := gorgonia.Neg(summed)
+	if err != nil {
+		return nil, err
+	}
+	n := gorgonia.NewScalar(g, tensor.Float32, gorgonia.WithValue(float32(seqLen)))
+	return gorgonia.HadamardDiv(negSummed, n)
 }
 
-type FeedForward struct {
-	graph      *gorgonia.ExprGraph
-	w1         *gorgonia.Node
-	w2         *gorgonia.Node
-	dropout    float64
-}
-
-func NewFeedForward(g *gorgonia.ExprGraph, embedDim int, dropout float64) *FeedForward {
-	hiddenDim := embedDim * 4
-
-	w1 := gorgonia.NewMatrix(g, tensor.Float32,
-		gorgonia.WithShape(embedDim, hiddenDim),
-		gorgonia.WithName("ffn_w1"),
-		gorgonia.WithInit(gorgonia.GlorotN(1.0)),
-	)
-
-	w2 := gorgonia.NewMatrix(g, tensor.Float32,
-		gorgonia.WithShape(hiddenDim, embedDim),
-		gorgonia.WithName("ffn_w2"),
-		gorgonia.WithInit(gorgonia.GlorotN(1.0)),
-	)
-
-	return &FeedForward{
-		graph:   g,
-		w1:      w1,
-		w2:      w2,
-		dropout: dropout,
-	}
-}
-
-func (ff *FeedForward) Forward(x *gorgonia.Node, training bool) (*gorgonia.Node, error) {
-	hidden, err := gorgonia.Mul(x, ff.w1)
+// Forward runs inference for tokenIDs and returns flattened [seqLen x
+// VocabSize] logits (row i = position i's distribution over the vocabulary).
+func (gpt *GPT) Forward(tokenIDs []int) ([]float32, error) {
+	build, err := gpt.buildGraph(tokenIDs, nil)
 	if err != nil {
 		return nil, err
 	}
-
-	// Simplified activation (should be GELU)
-	hidden, err = gorgonia.Tanh(hidden)
-	if err != nil {
-		return nil, err
+	vm := gorgonia.NewTapeMachine(build.graph)
+	defer vm.Close()
+	if err := vm.RunAll(); err != nil {
+		return nil, fmt.Errorf("forward VM run: %w", err)
 	}
-
-	// if training && ff.dropout > 0 {
-	// 	hidden, err = gorgonia.Dropout(hidden, ff.dropout)
-	// 	if err != nil {
-	// 		return nil, err
-	// 	}
-	// }
-
-	output, err := gorgonia.Mul(hidden, ff.w2)
-	if err != nil {
-		return nil, err
+	data, ok := build.logits.Value().Data().([]float32)
+	if !ok {
+		return nil, fmt.Errorf("unexpected logits value type %T", build.logits.Value().Data())
 	}
-
-	return output, nil
+	return data, nil
 }
 
-type TransformerBlock struct {
-	graph       *gorgonia.ExprGraph
-	attention   *MultiHeadAttention
-	feedForward *FeedForward
-}
-
-func NewTransformerBlock(g *gorgonia.ExprGraph, embedDim, numHeads int, dropout float64, seqLen int) *TransformerBlock {
-	return &TransformerBlock{
-		graph:       g,
-		attention:   NewMultiHeadAttention(g, embedDim, numHeads, dropout, seqLen),
-		feedForward: NewFeedForward(g, embedDim, dropout),
-	}
-}
-
-func (tb *TransformerBlock) Forward(x *gorgonia.Node, mask *gorgonia.Node, training bool) (*gorgonia.Node, error) {
-	attnOut, err := tb.attention.Forward(x, mask, training)
+// TrainStep runs one forward+backward+SGD-update step on a single (context,
+// target) example and returns the scalar loss. Parameter values are updated
+// in place on gpt's persisted tensors, so the next call — whether Forward
+// or another TrainStep — sees the updated weights.
+func (gpt *GPT) TrainStep(tokenIDs, targetIDs []int, learningRate float32) (float32, error) {
+	build, err := gpt.buildGraph(tokenIDs, targetIDs)
 	if err != nil {
-		return nil, err
+		return 0, err
+	}
+	if build.loss == nil {
+		return 0, fmt.Errorf("TrainStep: no target IDs given")
 	}
 
-	x, err = gorgonia.Add(x, attnOut)
-	if err != nil {
-		return nil, err
+	// gorgonia.Grad performs symbolic differentiation: it inserts gradient
+	// computation nodes into build.graph and must be called BEFORE the
+	// TapeMachine is constructed, so those nodes are part of what the
+	// machine compiles and runs. Calling it after (as the previous scaffold
+	// this replaced did) leaves the added nodes outside the machine's
+	// already-fixed instruction tape — their gradients silently never get
+	// computed, which surfaces as a nil-Value panic in the solver step.
+	if _, err := gorgonia.Grad(build.loss, build.paramNodes...); err != nil {
+		return 0, fmt.Errorf("gradient computation: %w", err)
 	}
 
-	ffOut, err := tb.feedForward.Forward(x, training)
-	if err != nil {
-		return nil, err
+	vm := gorgonia.NewTapeMachine(build.graph, gorgonia.BindDualValues())
+	defer vm.Close()
+	if err := vm.RunAll(); err != nil {
+		return 0, fmt.Errorf("forward+backward VM run: %w", err)
 	}
 
-	x, err = gorgonia.Add(x, ffOut)
-	if err != nil {
-		return nil, err
+	// Gradient clipping (norm 1.0, matching GetPretrainingConfig's default)
+	// is not optional here: an unclipped step on a freshly-initialized
+	// small model can produce a large-enough weight update that the next
+	// forward pass's logits overflow into a non-finite loss within a
+	// handful of steps.
+	solver := gorgonia.NewVanillaSolver(gorgonia.WithLearnRate(float64(learningRate)), gorgonia.WithClip(1.0))
+	if err := solver.Step(gorgonia.NodesToValueGrads(build.paramNodes)); err != nil {
+		return 0, fmt.Errorf("solver step: %w", err)
 	}
 
-	return x, nil
-}
-
-type GPT struct {
-	graph           *gorgonia.ExprGraph
-	config          *GorgoniteConfig
-	embedding       *EmbeddingLayer
-	posEncoding     *PositionalEncoding
-	blocks          []*TransformerBlock
-	outputLayer     *gorgonia.Node
-	logits          *gorgonia.Node
-	loss            *gorgonia.Node
-	learnables      []*gorgonia.Node
-	trained         bool
-	trainingProgress float64
-}
-
-func NewGPT(g *gorgonia.ExprGraph, config *GorgoniteConfig) *GPT {
-	embedding := NewEmbeddingLayer(g, config.VocabSize, config.EmbedDim, config.ContextLen)
-	posEncoding := NewPositionalEncoding(g, config.ContextLen, config.EmbedDim)
-
-	blocks := make([]*TransformerBlock, config.NumLayers)
-	for i := 0; i < config.NumLayers; i++ {
-		blocks[i] = NewTransformerBlock(g, config.EmbedDim, config.NumHeads, config.DropoutRate, config.ContextLen)
-	}
-
-	outputLayer := gorgonia.NewMatrix(g, tensor.Float32,
-		gorgonia.WithShape(config.EmbedDim, config.VocabSize),
-		gorgonia.WithName("output_projection"),
-		gorgonia.WithInit(gorgonia.GlorotN(1.0)),
-	)
-
-	// Collect learnable nodes (weights)
-	learnables := []*gorgonia.Node{embedding.embeddings, outputLayer}
-	// Attention and FFN weights from blocks
-	for _, block := range blocks {
-		learnables = append(learnables, block.attention.wOutput)
-		for _, head := range block.attention.heads {
-			learnables = append(learnables, head.wQuery, head.wKey, head.wValue)
+	// Copy each parameter node's post-step value back into gpt's persisted
+	// tensors, so the update actually survives past this graph's lifetime.
+	_, values := gpt.namedParams()
+	for i, node := range build.paramNodes {
+		updated, ok := node.Value().Data().([]float32)
+		if !ok {
+			return 0, fmt.Errorf("param %d: unexpected value type after step", i)
 		}
-		learnables = append(learnables, block.feedForward.w1, block.feedForward.w2)
+		copy(values[i].Data().([]float32), updated)
 	}
 
-	gpt := &GPT{
-		graph:       g,
-		config:      config,
-		embedding:   embedding,
-		posEncoding: posEncoding,
-		blocks:      blocks,
-		outputLayer: outputLayer,
-		learnables:  learnables,
+	lossVal, ok := build.loss.Value().Data().(float32)
+	if !ok {
+		return 0, fmt.Errorf("unexpected loss value type")
 	}
-
-	// Build the graph
-	seqLen := config.ContextLen
-	x, err := embedding.Forward(seqLen)
-	if err != nil {
-		panic(err)
-	}
-
-	posEnc, err := posEncoding.Forward(seqLen)
-	if err != nil {
-		panic(err)
-	}
-
-	x, err = gorgonia.Add(x, posEnc)
-	if err != nil {
-		panic(err)
-	}
-
-	mask := createCausalMask(g, seqLen)
-
-	for _, block := range blocks {
-		x, err = block.Forward(x, mask, false)
-		if err != nil {
-			panic(err)
-		}
-	}
-
-	logits, err := gorgonia.Mul(x, outputLayer)
-	if err != nil {
-		panic(err)
-	}
-
-	gpt.logits = logits
-
-	loss, err := gorgonia.Mean(logits)
-	if err != nil {
-		panic(err)
-	}
-	gpt.loss = loss
-
-	fmt.Printf("Graph has %d nodes\n", len(g.AllNodes()))
-
-	return gpt
-}
-
-func (gpt *GPT) Forward(training bool) (*gorgonia.Node, error) {
-	return gpt.logits, nil
+	return lossVal, nil
 }
 
 // SetTrained marks the GPT model as trained (or not), enabling the
@@ -487,22 +574,6 @@ func (gpt *GPT) Progress() float64 {
 	return gpt.trainingProgress
 }
 
-func createCausalMask(_ *gorgonia.ExprGraph, seqLen int) *gorgonia.Node {
-	maskData := make([]float32, seqLen*seqLen)
-	for i := 0; i < seqLen; i++ {
-		for j := i + 1; j < seqLen; j++ {
-			maskData[i*seqLen+j] = -1e10
-		}
-	}
-
-	maskTensor := tensor.New(
-		tensor.WithBacking(maskData),
-		tensor.WithShape(seqLen, seqLen),
-	)
-
-	return gorgonia.NewConstant(maskTensor)
-}
-
 type Dataset struct {
 	inputs  [][]int
 	targets [][]int
@@ -527,16 +598,16 @@ func PrepareDataset(text string, tokenizer Tokenizer, contextLen, stride int) *D
 }
 
 type TrainConfig struct {
-	LearningRate   float64
-	WeightDecay    float64
-	NumEpochs      int
-	BatchSize      int
-	WarmupSteps    int
-	MaxLR          float64
-	MinLR          float64
-	GradientClip   float64
-	EvalFreq       int
-	SaveFreq       int
+	LearningRate float64
+	WeightDecay  float64
+	NumEpochs    int
+	BatchSize    int
+	WarmupSteps  int
+	MaxLR        float64
+	MinLR        float64
+	GradientClip float64
+	EvalFreq     int
+	SaveFreq     int
 }
 
 func GetPretrainingConfig() TrainConfig {
@@ -554,95 +625,58 @@ func GetPretrainingConfig() TrainConfig {
 	}
 }
 
+// TrainModel runs real gradient-descent training: each example's real input
+// and target token IDs are fed through GPT.TrainStep, which is where the
+// actual forward+backward+update happens. BatchSize is honored as a
+// logging/reporting granularity (average loss per BatchSize examples) — each
+// example still gets its own SGD step; true mini-batched gradient averaging
+// across variable-length sequences is a reasonable future increment but not
+// required for the loop to be real and for loss to actually decrease.
 func TrainModel(model *GPT, dataset *Dataset, config TrainConfig) error {
-	vm := gorgonia.NewTapeMachine(model.graph, gorgonia.BindDualValues())
-	defer vm.Close()
-
-	solver := gorgonia.NewVanillaSolver(gorgonia.WithLearnRate(config.LearningRate))
+	if len(dataset.inputs) == 0 {
+		return fmt.Errorf("TrainModel: empty dataset")
+	}
+	batchSize := config.BatchSize
+	if batchSize <= 0 {
+		batchSize = 1
+	}
 
 	for epoch := 0; epoch < config.NumEpochs; epoch++ {
 		epochLoss := 0.0
+		steps := 0
 
-		for i := 0; i < len(dataset.inputs); i += config.BatchSize {
-			_, err := model.Forward(true)
+		for i := 0; i < len(dataset.inputs); i++ {
+			loss, err := model.TrainStep(dataset.inputs[i], dataset.targets[i], float32(config.LearningRate))
 			if err != nil {
-				return fmt.Errorf("forward pass error: %w", err)
+				return fmt.Errorf("train step %d: %w", i, err)
 			}
+			epochLoss += float64(loss)
+			steps++
 
-			loss := model.loss
-
-			if err := vm.RunAll(); err != nil {
-				return fmt.Errorf("VM execution error: %w", err)
+			if steps%batchSize == 0 {
+				log.Printf("Epoch %d step %d: loss=%.4f", epoch, steps, loss)
 			}
-
-			fmt.Printf("Debug: Loss node ID: %d, Shape: %v\n", loss.ID(), loss.Shape())
-			fmt.Printf("Debug: Computing gradients for %d learnables\n", len(model.learnables))
-
-			grads, err := gorgonia.Grad(loss, model.learnables...)
-			if err != nil {
-				fmt.Printf("Debug: gorgonia.Grad failed: %v\n", err)
-				return fmt.Errorf("backward pass error: %w", err)
-			}
-
-			fmt.Printf("Debug: Gradients computed successfully for %d nodes\n", len(grads))
-			for i, g := range grads {
-				if g != nil {
-					fmt.Printf("Debug: Grad %d ID: %d, Shape: %v\n", i, g.ID(), g.Shape())
-				} else {
-					fmt.Printf("Debug: Grad %d is nil\n", i)
-				}
-			}
-
-			// Run backward pass to compute gradient values
-			if err := vm.RunAll(); err != nil {
-				fmt.Printf("Debug: Backward VM run failed: %v\n", err)
-				return fmt.Errorf("backward VM run error: %w", err)
-			}
-
-			valueGrads := gorgonia.NodesToValueGrads(grads)
-			fmt.Printf("Debug: Converted to %d ValueGrads\n", len(valueGrads))
-			for i, vg := range valueGrads {
-				gradVal, err := vg.Grad()
-				if err != nil {
-					fmt.Printf("Debug: ValueGrad %d grad error: %v\n", i, err)
-				} else if gradVal != nil {
-					fmt.Printf("Debug: ValueGrad %d has grad value, shape: %v\n", i, gradVal.Shape())
-				} else {
-					fmt.Printf("Debug: ValueGrad %d has nil grad value\n", i)
-				}
-			}
-
-			if err := solver.Step(valueGrads); err != nil {
-				fmt.Printf("Debug: Solver step failed: %v\n", err)
-				// Print more details about the graph
-				fmt.Printf("Debug: Graph nodes: %d\n", len(model.graph.AllNodes()))
-				for _, node := range model.graph.AllNodes() {
-					if node.Value() != nil {
-						fmt.Printf("Debug: Node %d (%s): shape %v, has value\n", node.ID(), node.Name(), node.Shape())
-					} else {
-						fmt.Printf("Debug: Node %d (%s): shape %v, no value\n", node.ID(), node.Name(), node.Shape())
-					}
-				}
-				return fmt.Errorf("solver step error: %w", err)
-			}
-
-			vm.Reset()
-
-			lossValue := loss.Value().Data().(float32)
-			epochLoss += float64(lossValue)
 		}
 
-		avgLoss := epochLoss / float64(len(dataset.inputs)/config.BatchSize)
-		fmt.Printf("Epoch %d: Loss = %.4f\n", epoch, avgLoss)
+		avgLoss := epochLoss / float64(steps)
+		log.Printf("Epoch %d: avg loss = %.4f", epoch, avgLoss)
 
-		if epoch%config.SaveFreq == 0 {
-			SaveModel(model, fmt.Sprintf("checkpoint_epoch_%d.bin", epoch))
+		if config.SaveFreq > 0 && epoch%config.SaveFreq == 0 {
+			if err := SaveModel(model, fmt.Sprintf("checkpoint_epoch_%d.bin", epoch)); err != nil {
+				log.Printf("checkpoint save failed at epoch %d: %v", epoch, err)
+			}
 		}
 	}
 
 	return nil
 }
 
+// savedParam is the gob-serializable form of one named tensor.
+type savedParam struct {
+	Name  string
+	Shape []int
+	Data  []float32
+}
 
 func SaveModel(model *GPT, filepath string) error {
 	file, err := os.Create(filepath)
@@ -651,27 +685,17 @@ func SaveModel(model *GPT, filepath string) error {
 	}
 	defer file.Close()
 
-	encoder := gob.NewEncoder(file)
-
-	params := make(map[string][]float32)
-
-	for _, node := range model.graph.AllNodes() {
-		if node.Value() != nil {
-			data := node.Value().Data()
-			switch v := data.(type) {
-			case []float32:
-				params[node.Name()] = v
-			case []float64:
-				f32 := make([]float32, len(v))
-				for i, val := range v {
-					f32[i] = float32(val)
-				}
-				params[node.Name()] = f32
-			}
+	names, values := model.namedParams()
+	saved := make([]savedParam, len(names))
+	for i, name := range names {
+		saved[i] = savedParam{
+			Name:  name,
+			Shape: values[i].Shape(),
+			Data:  values[i].Data().([]float32),
 		}
 	}
 
-	return encoder.Encode(params)
+	return gob.NewEncoder(file).Encode(saved)
 }
 
 func LoadModel(model *GPT, filepath string) error {
@@ -681,32 +705,38 @@ func LoadModel(model *GPT, filepath string) error {
 	}
 	defer file.Close()
 
-	decoder := gob.NewDecoder(file)
-	params := make(map[string][]float32)
-
-	if err := decoder.Decode(&params); err != nil {
+	var saved []savedParam
+	if err := gob.NewDecoder(file).Decode(&saved); err != nil {
 		return err
 	}
 
-	for _, node := range model.graph.AllNodes() {
-		if data, exists := params[node.Name()]; exists {
-			t := tensor.New(
-				tensor.WithBacking(data),
-				tensor.WithShape(node.Shape()...),
-			)
-			gorgonia.Let(node, t)
+	byName := make(map[string][]float32, len(saved))
+	for _, sp := range saved {
+		byName[sp.Name] = sp.Data
+	}
+
+	names, values := model.namedParams()
+	for i, name := range names {
+		data, ok := byName[name]
+		if !ok {
+			continue
 		}
+		dst, ok := values[i].Data().([]float32)
+		if !ok || len(dst) != len(data) {
+			return fmt.Errorf("LoadModel: param %q shape mismatch", name)
+		}
+		copy(dst, data)
 	}
 
 	return nil
 }
 
+// Generate autoregressively samples maxNewTokens tokens continuing from
+// startTokens, using the model's own (real, content-dependent) forward pass
+// at each step.
 func Generate(model *GPT, startTokens []int, maxNewTokens int, temperature float32, topK int) []int {
 	tokens := make([]int, len(startTokens))
 	copy(tokens, startTokens)
-
-	vm := gorgonia.NewTapeMachine(model.graph)
-	defer vm.Close()
 
 	for i := 0; i < maxNewTokens; i++ {
 		context := tokens
@@ -714,44 +744,41 @@ func Generate(model *GPT, startTokens []int, maxNewTokens int, temperature float
 			context = context[len(context)-model.config.ContextLen:]
 		}
 
-		logits, err := model.Forward(false)
+		logits, err := model.Forward(context)
 		if err != nil {
-			log.Fatal(err)
+			log.Printf("Generate: forward failed: %v", err)
+			return tokens
 		}
 
-		if err := vm.RunAll(); err != nil {
-			log.Fatal(err)
-		}
+		lastStart := (len(context) - 1) * model.config.VocabSize
+		lastLogits := logits[lastStart : lastStart+model.config.VocabSize]
 
-		logitsData := logits.Value().Data().([]float32)
-		lastLogits := logitsData[len(context)*model.config.VocabSize:]
-
-		nextToken := SampleToken(lastLogits[:model.config.VocabSize], temperature, topK)
+		nextToken := SampleToken(lastLogits, temperature, topK)
 		tokens = append(tokens, nextToken)
-
-		vm.Reset()
 	}
 
 	return tokens
 }
 
 func SampleToken(logits []float32, temperature float32, topK int) int {
-	if temperature != 1.0 {
-		for i := range logits {
-			logits[i] /= temperature
+	scored := make([]float32, len(logits))
+	copy(scored, logits)
+	if temperature != 1.0 && temperature > 0 {
+		for i := range scored {
+			scored[i] /= temperature
 		}
 	}
 
-	maxLogit := logits[0]
-	for _, l := range logits {
+	maxLogit := scored[0]
+	for _, l := range scored {
 		if l > maxLogit {
 			maxLogit = l
 		}
 	}
 
 	expSum := float32(0)
-	probs := make([]float32, len(logits))
-	for i, l := range logits {
+	probs := make([]float32, len(scored))
+	for i, l := range scored {
 		probs[i] = float32(math.Exp(float64(l - maxLogit)))
 		expSum += probs[i]
 	}
@@ -890,27 +917,30 @@ func (t *TiktokenTokenizer) Encode(text string) []int {
 func (t *TiktokenTokenizer) Decode(tokens []int) string {
 	return t.enc.Decode(tokens)
 }
+
 // RunGorgoniteProtocol builds and runs a quick validation of the Gorgonite graph.
 func RunGorgoniteProtocol(cfg *GorgoniteConfig) error {
+	model := NewGPT(cfg)
 	if cfg == nil {
-		cfg = DefaultGorgoniteConfig()
+		cfg = model.config
 	}
-	g := gorgonia.NewGraph()
-	model := NewGPT(g, cfg)
-
-	logits, err := model.Forward(false)
+	dummy := make([]int, minInt(cfg.ContextLen, 8))
+	for i := range dummy {
+		dummy[i] = i % cfg.VocabSize
+	}
+	logits, err := model.Forward(dummy)
 	if err != nil {
 		return fmt.Errorf("forward pass failed: %w", err)
 	}
-
-	vm := gorgonia.NewTapeMachine(model.graph, gorgonia.BindDualValues())
-	defer vm.Close()
-	if err := vm.RunAll(); err != nil {
-		return fmt.Errorf("VM execution failed: %w", err)
-	}
-
-	log.Printf("RunGorgoniteProtocol OK — logits shape: %v", logits.Shape())
+	log.Printf("RunGorgoniteProtocol OK — logits len: %d (want %d)", len(logits), len(dummy)*cfg.VocabSize)
 	return nil
+}
+
+func minInt(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
 }
 
 // CreateDummyDataset generates a random dataset for testing.
@@ -949,8 +979,7 @@ func RunPretraining(cfg *GorgoniteConfig) error {
 		cfg.ContextLen = 32
 		cfg.FFNHiddenDim = 256
 	}
-	g := gorgonia.NewGraph()
-	model := NewGPT(g, cfg)
+	model := NewGPT(cfg)
 	dataset := CreateDummyDataset(10, cfg.VocabSize, cfg.ContextLen)
 	trainCfg := TrainConfig{
 		LearningRate: 3e-4,
@@ -961,6 +990,7 @@ func RunPretraining(cfg *GorgoniteConfig) error {
 	}
 	return TrainModel(model, dataset, trainCfg)
 }
+
 
 // ---- HasherTransformer: hash-seed-based transformer (hardware-accelerated path) ----
 

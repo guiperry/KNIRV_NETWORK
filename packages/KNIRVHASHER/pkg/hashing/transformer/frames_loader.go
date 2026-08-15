@@ -43,12 +43,18 @@ var ErrLedgerNotFound = errors.New("transformer: seed ledger not found")
 // KNIRVHASHER's pipeline stages are independent Go modules with no
 // cross-package imports, per repo convention.
 type ledgerEntry struct {
-	Timestamp     time.Time  `json:"timestamp"`
-	SourceFile    string     `json:"source_file"`
-	TargetTokenID int32      `json:"target_token_id"`
-	AsicSlots     [12]uint32 `json:"asic_slots"`
-	BestSeed      string     `json:"best_seed"`
-	SeedBytes     int        `json:"seed_bytes"`
+	SchemaVersion    int32      `json:"schema_version"`
+	Timestamp        time.Time  `json:"timestamp"`
+	SourceFile       string     `json:"source_file"`
+	TargetTokenID    int32      `json:"target_token_id"`
+	AssertionKey     string     `json:"assertion_key"`
+	ContextTokens    []int32    `json:"context_tokens"`
+	AssertionSpan    []int32    `json:"assertion_span"`
+	CommitmentTarget uint32     `json:"commitment_target"`
+	ContextHash      uint32     `json:"context_hash"`
+	AsicSlots        [12]uint32 `json:"asic_slots"`
+	BestSeed         string     `json:"best_seed"`
+	SeedBytes        int        `json:"seed_bytes"`
 }
 
 // FramesLoadStats reports how much of a loaded SeedStore actually came from

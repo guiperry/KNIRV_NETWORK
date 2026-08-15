@@ -11,16 +11,18 @@ type Stage1Result struct {
 }
 
 type Stage2Result struct {
-	PolicyPrinciples []PolicyPrinciple
-	ErrorClass       ErrorClass
-	CoreTechniques   []CoreTechnique
-	PatchScope       PatchScope
+	PolicyPrinciples   []PolicyPrinciple
+	ErrorClass         ErrorClass
+	CoreTechniques     []CoreTechnique
+	PatchScope         PatchScope
 	AffectedComponents []string
+	Grounding          *AttestationResult
 }
 
 type Stage3Result struct {
 	Sketch    string
 	Rationale string
+	Grounding *AttestationResult
 }
 
 type Stage4Result struct {
@@ -31,7 +33,7 @@ type Stage4Result struct {
 type PolicyPrinciple struct {
 	Name        string
 	Description string
-	Priority   int
+	Priority    int
 }
 
 type ErrorClass struct {
@@ -40,13 +42,13 @@ type ErrorClass struct {
 }
 
 type CoreTechnique struct {
-	Name         string
+	Name          string
 	Applicability float32
 }
 
 type PatchScope struct {
-	Severity    string
-	Urgency   string
+	Severity string
+	Urgency  string
 }
 
 func (s *HEARTService) runPipeline(ctx context.Context, wasmType WASMType, inquiry interface{}, priorFailures []string) (*Stage4Result, *Stage3Result, error) {
@@ -95,7 +97,12 @@ func (s *HEARTService) stage2GPT(ctx context.Context, s1 Stage1Result, priorFail
 		return nil, fmt.Errorf("stage2 GPT inference: %w", err)
 	}
 
-	return s.parseStage2Result(logits, s1.WASMType)
+	result, err := s.parseStage2Result(logits, s1.WASMType)
+	if err != nil {
+		return nil, err
+	}
+	result.Grounding = s.groundLMProposal(tokens, logits)
+	return result, nil
 }
 
 func (s *HEARTService) buildStage2Prompt(s1 Stage1Result, priorFailures []string) string {
@@ -134,7 +141,7 @@ func (s *HEARTService) parseStage2Result(logits []float32, wasmType WASMType) (*
 		}
 		techniques := []CoreTechnique{
 			{Name: "Retry with Backoff", Applicability: float32(bucket) / 100.0},
-			{Name: "Circuit Breaker", Applicability: float32((bucket + 20) % 100) / 100.0},
+			{Name: "Circuit Breaker", Applicability: float32((bucket+20)%100) / 100.0},
 		}
 		return &Stage2Result{ErrorClass: errorClass, CoreTechniques: techniques}, nil
 
@@ -142,7 +149,7 @@ func (s *HEARTService) parseStage2Result(logits []float32, wasmType WASMType) (*
 		severity := []string{"low", "medium", "high", "critical"}[bucket%4]
 		urgency := []string{"normal", "high", "immediate"}[bucket%3]
 		return &Stage2Result{
-			PatchScope:          PatchScope{Severity: severity, Urgency: urgency},
+			PatchScope:         PatchScope{Severity: severity, Urgency: urgency},
 			AffectedComponents: []string{"system", "network", "storage"}[:bucket%3+1],
 		}, nil
 	}
@@ -171,7 +178,14 @@ func (s *HEARTService) stage3GPT(ctx context.Context, s1 Stage1Result, s2 *Stage
 	sketch := s.generateSketchFromLogits(logits, s1.WASMType)
 	rationale := fmt.Sprintf("GPT decision for %s based on %d policy principles", s1.WASMType, len(s2.PolicyPrinciples)+len(s2.CoreTechniques))
 
-	return &Stage3Result{Sketch: sketch, Rationale: rationale}, nil
+	if s2.Grounding != nil {
+		if s2.Grounding.Hit {
+			rationale += "; assertion grounded by mined PoW witness"
+		} else {
+			rationale += "; assertion not yet witnessed (low confidence; queued for mining)"
+		}
+	}
+	return &Stage3Result{Sketch: sketch, Rationale: rationale, Grounding: s2.Grounding}, nil
 }
 
 func (s *HEARTService) buildStage3Prompt(s1 Stage1Result, s2 *Stage2Result) string {

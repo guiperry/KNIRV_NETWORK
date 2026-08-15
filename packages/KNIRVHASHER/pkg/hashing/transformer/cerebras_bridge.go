@@ -78,55 +78,23 @@ func (cb *CerebrasBridge) CompileCSLProgram(layoutFile string, params map[string
 	return nil
 }
 
-// ExportWeightsFromGorgonia exports Gorgonia model weights to NPZ format for Cerebras
+// ExportWeightsFromGorgonia exports GPT model weights to NPZ format for Cerebras.
+//
+// GPT no longer holds permanent gorgonia nodes (Phase 4 rebuilds its graph
+// fresh per forward/train call — see gpt.go) — its learnable weights live as
+// plain *tensor.Dense values, retrieved here via namedParams() instead of
+// walking gorgonia node fields that no longer exist.
 func (cb *CerebrasBridge) ExportWeightsFromGorgonia(model *GPT, outputPath string) error {
 	fmt.Println("Exporting Gorgonia weights to Cerebras format...")
 
-	// Extract weights from Gorgonia model
-	weights := make(map[string]*tensor.Dense)
-
-	// Embedding weights
-	if model.embedding.embeddings != nil {
-		weights["embedding_weights"] = extractTensorFromNode(model.embedding.embeddings)
-	}
-
-	// Positional encoding
-	if model.posEncoding.encoding != nil {
-		weights["positional_encoding"] = extractTensorFromNode(model.posEncoding.encoding)
-	}
-
-	// Layer weights (attention and FFN)
-	// Collect all layer weights into a single tensor
+	names, values := model.namedParams()
+	weights := make(map[string]*tensor.Dense, len(names))
 	var layerWeights []float32
-	for _, block := range model.blocks {
-		// Attention weights
-		for _, head := range block.attention.heads {
-			if head.wQuery != nil {
-				layerWeights = append(layerWeights, extractFloat32sFromNode(head.wQuery)...)
-			}
-			if head.wKey != nil {
-				layerWeights = append(layerWeights, extractFloat32sFromNode(head.wKey)...)
-			}
-			if head.wValue != nil {
-				layerWeights = append(layerWeights, extractFloat32sFromNode(head.wValue)...)
-			}
+	for i, name := range names {
+		weights[name] = values[i]
+		if data, ok := values[i].Data().([]float32); ok {
+			layerWeights = append(layerWeights, data...)
 		}
-		if block.attention.wOutput != nil {
-			layerWeights = append(layerWeights, extractFloat32sFromNode(block.attention.wOutput)...)
-		}
-
-		// FFN weights
-		if block.feedForward.w1 != nil {
-			layerWeights = append(layerWeights, extractFloat32sFromNode(block.feedForward.w1)...)
-		}
-		if block.feedForward.w2 != nil {
-			layerWeights = append(layerWeights, extractFloat32sFromNode(block.feedForward.w2)...)
-		}
-	}
-
-	// Output layer weights
-	if model.outputLayer != nil {
-		weights["output_weights"] = extractTensorFromNode(model.outputLayer)
 	}
 
 	// Write to NPZ file
