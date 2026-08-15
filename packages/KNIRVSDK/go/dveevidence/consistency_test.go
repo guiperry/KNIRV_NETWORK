@@ -46,3 +46,4 @@ func TestSharedEventLogGoldenVector(t *testing.T) {
 		t.Fatalf("Go verifier rejected the shared browser vector: %v", err)
 	}
 }
+

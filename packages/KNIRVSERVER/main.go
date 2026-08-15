@@ -3276,6 +3276,7 @@ func (app *ServerApp) startBackend() error {
 		binDir := filepath.Join(appDataDir, "bin")
 		env = append(env,
 			fmt.Sprintf("KNIRV_APP_DATA_DIR=%s", appDataDir),
+			fmt.Sprintf("KNIRV_DVE_EVIDENCE_DIR=%s", filepath.Join(appDataDir, "dve-evidence")),
 			fmt.Sprintf("KNIRV_GATEWAY_BINARY_PATH=%s", filepath.Join(binDir, "knirvgateway")),
 			fmt.Sprintf("KNIRV_GATEWAY_BINARY_DIR=%s", binDir),
 			fmt.Sprintf("KNIRV_CHAIN_BINARY_DIR=%s", binDir),

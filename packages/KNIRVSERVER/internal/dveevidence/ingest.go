@@ -1,7 +1,6 @@
 package dveevidence
 
 import (
-	"crypto/ed25519"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -13,6 +12,7 @@ import (
 	"sync"
 
 	"github.com/gin-gonic/gin"
+	. "github.com/KNIRV/KNIRV_NETWORK/KNIRVSDK/go/dveevidence"
 )
 
 type Store interface {
@@ -438,9 +438,10 @@ func (s *IngestService) handleReport(c *gin.Context) {
 	c.JSON(http.StatusOK, r)
 }
 
-func ResolverFromPublicKeys(keys map[string]ed25519.PublicKey) KeyResolver {
-	return func(keyID string) (ed25519.PublicKey, bool) {
-		pub, ok := keys[keyID]
-		return pub, ok
-	}
+
+// sha256Hex is adapter-local storage addressing. Verification/hash semantics
+// are supplied exclusively by the SDK package above.
+func sha256Hex(data []byte) string {
+	sum := sha256.Sum256(data)
+	return "sha256:" + hex.EncodeToString(sum[:])
 }

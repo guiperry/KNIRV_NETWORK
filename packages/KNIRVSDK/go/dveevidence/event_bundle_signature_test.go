@@ -38,3 +38,4 @@ func TestConfiguredSignatureWithoutResolvableKeyIsRejected(t *testing.T) {
 		t.Fatalf("report = %+v", report)
 	}
 }
+

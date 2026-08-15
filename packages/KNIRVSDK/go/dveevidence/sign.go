@@ -93,6 +93,11 @@ func (s *Signer) Sign(b *Bundle) error {
 
 type KeyResolver func(keyID string) (ed25519.PublicKey, bool)
 
+// ResolverFromPublicKeys adapts a static public-key map to the verifier.
+func ResolverFromPublicKeys(keys map[string]ed25519.PublicKey) KeyResolver {
+	return func(keyID string) (ed25519.PublicKey, bool) { pub, ok := keys[keyID]; return pub, ok }
+}
+
 func VerifySignature(b *Bundle, resolver KeyResolver) (bool, error) {
 	if b == nil || b.Signature == nil {
 		return false, nil

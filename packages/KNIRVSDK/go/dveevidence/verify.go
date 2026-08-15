@@ -57,6 +57,9 @@ type VerifyOptions struct {
 	Resolver KeyResolver
 	Policy   *Policy
 	Evidence *Evidence
+	// MaxEvidenceAge rejects completed bundles older than this duration. A zero
+	// value preserves compatibility for callers that do not impose freshness.
+	MaxEvidenceAge time.Duration
 }
 
 func VerifyBundle(b *Bundle, opts VerifyOptions) (*ValidationReport, error) {
@@ -73,6 +76,20 @@ func VerifyBundle(b *Bundle, opts VerifyOptions) (*ValidationReport, error) {
 	}
 	addSkip := func(name, detail string) {
 		report.Checks = append(report.Checks, CheckResult{Name: name, Passed: false, Skipped: true, Detail: detail})
+	}
+	if opts.MaxEvidenceAge > 0 {
+		completedAt, err := time.Parse(time.RFC3339, b.CompletedAt)
+		if err != nil || completedAt.IsZero() {
+			addCheck("freshness", false, "invalid completed_at timestamp")
+			report.Errors = append(report.Errors, "invalid completed_at timestamp")
+		} else if time.Since(completedAt) > opts.MaxEvidenceAge {
+			addCheck("freshness", false, "evidence bundle has expired")
+			report.Errors = append(report.Errors, "evidence bundle has expired")
+		} else {
+			addCheck("freshness", true, "evidence bundle is within the permitted age")
+		}
+	} else {
+		addSkip("freshness", "no maximum evidence age configured")
 	}
 
 	if b.SchemaVersion != SchemaVersion {
@@ -194,7 +211,7 @@ func deriveStatus(r *ValidationReport, sigOK, sigInvalid bool) {
 
 func isFatalCheck(name string) bool {
 	switch name {
-	case "schema", "hash_chain", "merkle_root":
+	case "schema", "hash_chain", "merkle_root", "freshness":
 		return true
 	}
 	return false
