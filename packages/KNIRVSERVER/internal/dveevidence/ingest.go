@@ -12,7 +12,6 @@ import (
 	"sync"
 
 	"github.com/gin-gonic/gin"
-	. "github.com/KNIRV/KNIRV_NETWORK/KNIRVSDK/go/dveevidence"
 )
 
 type Store interface {
@@ -437,7 +436,6 @@ func (s *IngestService) handleReport(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, r)
 }
-
 
 // sha256Hex is adapter-local storage addressing. Verification/hash semantics
 // are supplied exclusively by the SDK package above.

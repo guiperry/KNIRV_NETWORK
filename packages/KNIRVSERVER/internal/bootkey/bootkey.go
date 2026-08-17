@@ -14,19 +14,20 @@ import (
 // Content holds fields extracted from a decrypted boot.key file.
 // Field numbers mirror BootnodeKeyFileContentProto in bootnode_key.proto.
 type Content struct {
-	RegistrationID        string // field 2
-	JWTSecret             string // field 10
-	GeminiAPIKey          string // field 11
-	DeepseekAPIKey        string // field 12
-	CerebrasAPIKey        string // field 13
-	CloudflareAPIToken    string // field 18
-	CloudflareZoneID      string // field 19
-	CloudflareAccountID   string // field 20
-	CloudflareTunnelToken string // field 21
-	DeviceIP              string // field 22
-	DevicePassword        string // field 23
-	DeviceUsername        string // field 24
-	MasterWalletKeyHex    string // field 1 — master wallet key; used as the Validation Chain checkpoint signer identity on Bootnodes that have no root.key (see startValidationChain in main.go)
+	RegistrationID               string // field 2
+	JWTSecret                    string // field 10
+	GeminiAPIKey                 string // field 11
+	DeepseekAPIKey               string // field 12
+	CerebrasAPIKey               string // field 13
+	CloudflareAPIToken           string // field 18
+	CloudflareZoneID             string // field 19
+	CloudflareAccountID          string // field 20
+	CloudflareMainnetTunnelToken string // field 21
+	DeviceIP                     string // field 22
+	DevicePassword               string // field 23
+	DeviceUsername               string // field 24
+	CloudflareTestnetTunnelToken string // field 28
+	MasterWalletKeyHex           string // field 1 — master wallet key; used as the Validation Chain checkpoint signer identity on Bootnodes that have no root.key (see startValidationChain in main.go)
 }
 
 // searchPaths builds a deduplicated, prioritized list of filesystem paths for
@@ -202,15 +203,16 @@ func RootKeyExists() bool { return FindRootKey() != "" }
 // root.key file. Field numbers mirror RootKeyFileContentProto in root_key.proto
 // (KNIRV_CORP/packages/server/backend_server/internal/proto/root_key.proto) — NOT the
 // same field numbers as BootnodeKeyFileContentProto (see Content above); the two
-// protos assign cloudflare_account_id / cloudflare_tunnel_token to different
-// field numbers.
+// protos assign cloudflare_account_id / cloudflare_mainnet_tunnel_token to
+// different field numbers.
 type RootKeyCloudflareCreds struct {
-	CloudflareAPIToken        string // field 18
-	CloudflareZoneID          string // field 19
-	CloudflareAccountID       string // field 26
-	CloudflareTunnelToken     string // field 27
-	CloudflareOracleTunnelTok string // field 28
-	RootPrivateKeyHex         string // field 5 — root node private key; used as the Validation Chain checkpoint signer identity on Root nodes (see startValidationChain in main.go)
+	CloudflareAPIToken           string // field 18
+	CloudflareZoneID             string // field 19
+	CloudflareAccountID          string // field 26
+	CloudflareMainnetTunnelToken string // field 27
+	CloudflareOracleTunnelTok    string // field 28
+	CloudflareTestnetTunnelToken string // field 38
+	RootPrivateKeyHex            string // field 5 — root node private key; used as the Validation Chain checkpoint signer identity on Root nodes (see startValidationChain in main.go)
 }
 
 // LoadRootKeyCloudflareCreds finds root.key, decrypts it using the
@@ -233,12 +235,13 @@ func LoadRootKeyCloudflareCreds() (*RootKeyCloudflareCreds, error) {
 	}
 
 	return &RootKeyCloudflareCreds{
-		CloudflareAPIToken:        fields[18],
-		CloudflareZoneID:          fields[19],
-		CloudflareAccountID:       fields[26],
-		CloudflareTunnelToken:     fields[27],
-		CloudflareOracleTunnelTok: fields[28],
-		RootPrivateKeyHex:         fields[5],
+		CloudflareAPIToken:           fields[18],
+		CloudflareZoneID:             fields[19],
+		CloudflareAccountID:          fields[26],
+		CloudflareMainnetTunnelToken: fields[27],
+		CloudflareOracleTunnelTok:    fields[28],
+		CloudflareTestnetTunnelToken: fields[38],
+		RootPrivateKeyHex:            fields[5],
 	}, nil
 }
 
@@ -315,19 +318,20 @@ func decrypt(path string, password []byte) (*Content, error) {
 	}
 
 	return &Content{
-		RegistrationID:        fields[2],
-		JWTSecret:             fields[10],
-		GeminiAPIKey:          fields[11],
-		DeepseekAPIKey:        fields[12],
-		CerebrasAPIKey:        fields[13],
-		CloudflareAPIToken:    fields[18],
-		CloudflareZoneID:      fields[19],
-		CloudflareAccountID:   fields[20],
-		CloudflareTunnelToken: fields[21],
-		DeviceIP:              fields[22],
-		DevicePassword:        fields[23],
-		DeviceUsername:        fields[24],
-		MasterWalletKeyHex:    fields[1],
+		RegistrationID:               fields[2],
+		JWTSecret:                    fields[10],
+		GeminiAPIKey:                 fields[11],
+		DeepseekAPIKey:               fields[12],
+		CerebrasAPIKey:               fields[13],
+		CloudflareAPIToken:           fields[18],
+		CloudflareZoneID:             fields[19],
+		CloudflareAccountID:          fields[20],
+		CloudflareMainnetTunnelToken: fields[21],
+		DeviceIP:                     fields[22],
+		DevicePassword:               fields[23],
+		DeviceUsername:               fields[24],
+		CloudflareTestnetTunnelToken: fields[28],
+		MasterWalletKeyHex:           fields[1],
 	}, nil
 }
 

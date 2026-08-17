@@ -38,8 +38,12 @@ message RootKeyFileContentProto {
   string cloudflare_account_id = 26;
 
   // Pre-provisioned cloudflared tunnel tokens (skip API provisioning).
-  // gateway token → gateway.knirv.network; oracle token → oracle.knirv.network (root nodes only).
-  string cloudflare_tunnel_token = 27;
+  // mainnet token → gateway.knirv.network (production); testnet token →
+  // testnet-gateway.knirv.network; oracle token → oracle.knirv.network
+  // (root nodes only). KNIRVGATEWAY picks mainnet vs testnet at runtime from
+  // its resolved network mode — see resolvePublicEndpoint in
+  // packages/KNIRVGATEWAY/cmd/gateway/main.go.
+  string cloudflare_mainnet_tunnel_token = 27;
   string cloudflare_oracle_tunnel_token = 28;
 
   // KNIRVORACLE plan-checkout payment processor (root nodes only — see
@@ -64,6 +68,10 @@ message RootKeyFileContentProto {
   // KNIRV_CORP/packages/server/backend_server/internal/proto/root_key.proto —
   // keep field numbers identical across both copies.
   string wasm_publisher_private_key_hex = 37;
+
+  // Pre-provisioned testnet gateway tunnel token — see
+  // cloudflare_mainnet_tunnel_token (field 27) above.
+  string cloudflare_testnet_tunnel_token = 38;
 }
 
 message EncryptedRootKeyFile {

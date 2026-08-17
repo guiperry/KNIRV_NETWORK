@@ -3355,8 +3355,11 @@ func (app *ServerApp) startBackend() error {
 			if rootCreds.CloudflareAccountID != "" {
 				env = append(env, "CLOUDFLARE_ACCOUNT_ID="+rootCreds.CloudflareAccountID)
 			}
-			if rootCreds.CloudflareTunnelToken != "" {
-				env = append(env, "CLOUDFLARE_GATEWAY_TUNNEL_TOKEN="+rootCreds.CloudflareTunnelToken)
+			if rootCreds.CloudflareMainnetTunnelToken != "" {
+				env = append(env, "CLOUDFLARE_MAINNET_TUNNEL_TOKEN="+rootCreds.CloudflareMainnetTunnelToken)
+			}
+			if rootCreds.CloudflareTestnetTunnelToken != "" {
+				env = append(env, "CLOUDFLARE_TESTNET_TUNNEL_TOKEN="+rootCreds.CloudflareTestnetTunnelToken)
 			}
 			if rootCreds.CloudflareOracleTunnelTok != "" {
 				env = append(env, "CLOUDFLARE_ORACLE_TUNNEL_TOKEN="+rootCreds.CloudflareOracleTunnelTok)
@@ -3395,8 +3398,11 @@ func (app *ServerApp) startBackend() error {
 			if bootContent.CloudflareAccountID != "" {
 				env = append(env, "CLOUDFLARE_ACCOUNT_ID="+bootContent.CloudflareAccountID)
 			}
-			if bootContent.CloudflareTunnelToken != "" {
-				env = append(env, "CLOUDFLARE_GATEWAY_TUNNEL_TOKEN="+bootContent.CloudflareTunnelToken)
+			if bootContent.CloudflareMainnetTunnelToken != "" {
+				env = append(env, "CLOUDFLARE_MAINNET_TUNNEL_TOKEN="+bootContent.CloudflareMainnetTunnelToken)
+			}
+			if bootContent.CloudflareTestnetTunnelToken != "" {
+				env = append(env, "CLOUDFLARE_TESTNET_TUNNEL_TOKEN="+bootContent.CloudflareTestnetTunnelToken)
 			}
 			log.Printf("Boot node detected: registration_id=%s", bootContent.RegistrationID)
 

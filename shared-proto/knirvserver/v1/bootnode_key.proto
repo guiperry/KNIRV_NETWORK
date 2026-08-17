@@ -24,8 +24,10 @@ message BootnodeKeyFileContentProto {
   string cloudflare_api_token     = 18;
   string cloudflare_zone_id       = 19;
   string cloudflare_account_id    = 20;
-  // Pre-provisioned gateway tunnel token (optional; empty = provision via API)
-  string cloudflare_tunnel_token  = 21;
+  // Pre-provisioned gateway tunnel tokens (optional; empty = provision via
+  // API). mainnet vs testnet — see cloudflare_mainnet_tunnel_token in
+  // root_key.proto for the selection rule.
+  string cloudflare_mainnet_tunnel_token  = 21;
 
   // Hasher device credentials
   string device_ip       = 22;
@@ -36,6 +38,7 @@ message BootnodeKeyFileContentProto {
   string stripe_secret_key    = 25;
   string default_github_token = 26;
   string smtp_password        = 27;
+  string cloudflare_testnet_tunnel_token = 28;
 }
 
 message EncryptedBootnodeKeyFile {

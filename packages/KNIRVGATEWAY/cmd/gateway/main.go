@@ -249,14 +249,27 @@ func main() {
 	// Every server, oracle, and subsystem API shares this one gateway tunnel.
 	//
 	// Tunnels are only started when CLOUDFLARE_API_TOKEN and CLOUDFLARE_ZONE_ID
-	// are present. CLOUDFLARE_GATEWAY_TUNNEL_TOKEN / CLOUDFLARE_ORACLE_TUNNEL_TOKEN
-	// are optional: when set, cloudflared uses the pre-provisioned token instead
-	// of running full API provisioning on startup.
+	// are present. CLOUDFLARE_MAINNET_TUNNEL_TOKEN / CLOUDFLARE_TESTNET_TUNNEL_TOKEN /
+	// CLOUDFLARE_ORACLE_TUNNEL_TOKEN are optional: when set, cloudflared uses the
+	// pre-provisioned token instead of running full API provisioning on startup.
+	//
+	// The mainnet and testnet tunnels are separate Cloudflare Tunnels with
+	// separate connector tokens (see resolvePublicEndpoint above, which picks
+	// "knirv-gateway" for production and "knirv-testnet-gateway" for testnet).
+	// Reading a single token regardless of mode would connect cloudflared to
+	// the wrong tunnel whenever the two tokens differ, so the token env var is
+	// selected by the same mode check resolvePublicEndpoint uses.
 
 	var tunnelRunners []*cloudflare.TunnelRunner
 	tunnelCtx, tunnelCancel := context.WithCancel(context.Background())
 
-	cfGatewayToken := os.Getenv("CLOUDFLARE_GATEWAY_TUNNEL_TOKEN")
+	tunnelMode := strings.ToLower(strings.TrimSpace(cfg.NetworkMode))
+	var cfGatewayToken string
+	if tunnelMode == "production" || tunnelMode == "prod" || tunnelMode == "mainnet" {
+		cfGatewayToken = os.Getenv("CLOUDFLARE_MAINNET_TUNNEL_TOKEN")
+	} else {
+		cfGatewayToken = os.Getenv("CLOUDFLARE_TESTNET_TUNNEL_TOKEN")
+	}
 	cfOracleToken := os.Getenv("CLOUDFLARE_ORACLE_TUNNEL_TOKEN")
 	if cfGatewayToken == "" && cfOracleToken != "" {
 		// Migration compatibility for root keys created before the unified public
