@@ -1,0 +1,7 @@
+# DO NOT REMOVE. CLOUDLINUX PASSENGER CONFIGURATION BEGIN
+PassengerAppRoot "/home/houseofm/registry.knirv.com"
+PassengerBaseURI "/"
+PassengerNodejs "/home/houseofm/nodevenv/registry.knirv.com/19/bin/node"
+PassengerAppType node
+PassengerStartupFile registry-service.js
+# DO NOT REMOVE. CLOUDLINUX PASSENGER CONFIGURATION END

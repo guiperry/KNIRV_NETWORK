@@ -1172,7 +1172,11 @@ func registerWithRegistry(registryURL string, nodeChainID string, nodeP2PPort in
 		return fmt.Errorf("registry URL is required")
 	}
 	if !strings.HasPrefix(registryURL, "http://") && !strings.HasPrefix(registryURL, "https://") {
-		registryURL = "http://" + registryURL
+		// The public registry is HTTPS. Defaulting a scheme-less configured
+		// hostname to HTTP lets an HTTPS-enforcing proxy return a 301/302/303.
+		// Go follows those redirects by changing this POST into a GET, which the
+		// registry correctly rejects with 405.
+		registryURL = "https://" + registryURL
 	}
 
 	payload := registrationPayload{
@@ -1198,7 +1202,15 @@ func registerWithRegistry(registryURL string, nodeChainID string, nodeP2PPort in
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("User-Agent", "KNIRVGATEWAY/1.0")
 
-	client := &http.Client{Timeout: 30 * time.Second}
+	client := &http.Client{
+		Timeout: 30 * time.Second,
+		// Registration carries a JSON body and must remain a POST. Do not allow
+		// net/http to silently follow a 301/302/303 as a GET; report the bad
+		// registry URL or proxy configuration instead.
+		CheckRedirect: func(_ *http.Request, _ []*http.Request) error {
+			return http.ErrUseLastResponse
+		},
+	}
 	resp, err := client.Do(req)
 	if err != nil {
 		return fmt.Errorf("failed to send registration request: %w", err)
@@ -1211,6 +1223,9 @@ func registerWithRegistry(registryURL string, nodeChainID string, nodeP2PPort in
 	}
 
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
+		if resp.StatusCode >= http.StatusMultipleChoices && resp.StatusCode < http.StatusBadRequest {
+			return fmt.Errorf("registry redirected registration request with status %d to %q; configure CHAIN_BOOTNODE_REGISTRY with the final HTTPS URL or use a 307/308 redirect", resp.StatusCode, resp.Header.Get("Location"))
+		}
 		return fmt.Errorf("registry returned non-success status %d: %s", resp.StatusCode, string(body))
 	}
 
