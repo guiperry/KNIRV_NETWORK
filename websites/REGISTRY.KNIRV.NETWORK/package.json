@@ -1,24 +1,24 @@
 {
-  "name": "knirvchain-registry-service",
-  "version": "1.0.0",
-  "description": "Registry and STUN service for KNIRVCHAIN network",
-  "main": "registry-service.js",
+  "name": "knirv-bootnode-registry-service",
+  "version": "3.0.0",
+  "private": true,
+  "description": "Cloudflare Worker registry for KNIRV network nodes",
+  "type": "module",
+  "main": "src/index.js",
   "scripts": {
-    "start": "node registry-service.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "wrangler dev",
+    "build": "wrangler deploy --dry-run",
+    "deploy": "wrangler deploy"
   },
   "keywords": [
     "knirvchain",
     "registry",
-    "stun",
-    "p2p"
+    "cloudflare-workers",
+    "durable-objects"
   ],
-  "author": "KNIRVCHAIN Team",
+  "author": "KNIRV Team",
   "license": "MIT",
-  "dependencies": {
-    "express": "^4.21.2",
-    "node-fetch": "^3.3.2",
-    "node-turn": "^0.0.6",
-    "stun": "^2.1.0"
+  "devDependencies": {
+    "wrangler": "^4.33.0"
   }
 }

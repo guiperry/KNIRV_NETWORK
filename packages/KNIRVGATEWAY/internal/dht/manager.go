@@ -41,7 +41,7 @@ const (
 	DefaultAnnounceInterval = 5 * time.Minute
 
 	ChainSyncProtocolID = "/knirv/chain-sync/1.0.0"
-	BootnodeRegistryURL = "https://registry.knirv.com"
+	BootnodeRegistryURL = "https://registry.knirv.network"
 )
 
 // GraphAnnouncementMessage represents graph-related announcements.

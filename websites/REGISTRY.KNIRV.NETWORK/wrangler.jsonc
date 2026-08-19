@@ -1,0 +1,19 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "knirv-network-registry",
+  "main": "src/index.js",
+  "compatibility_date": "2026-08-19",
+  "workers_dev": true,
+  "observability": { "enabled": true },
+  "durable_objects": {
+    "bindings": [{ "name": "REGISTRY", "class_name": "RegistryStore" }]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["RegistryStore"] }],
+  "vars": {
+    "REGISTRY_VERSION": "2.0.0",
+    "NODE_TTL_SECONDS": "3600",
+    "STUN_HOST": "",
+    "STUN_PORT": "3478",
+    "TURN_TCP_PORT": "3479"
+  }
+}
