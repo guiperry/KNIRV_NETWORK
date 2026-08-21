@@ -7,7 +7,7 @@ import (
 	"math/big"
 	"time"
 
-	knirvsigning "github.com/KNIRV/KNIRV_NETWORK/KNIRVSDK/go/signing"
+	knirvsigning "github.com/guiperry/knirv-sdk-go/signing"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"github.com/knirvcorp/knirvoracle/internal/oracle/types"
 )

@@ -1,0 +1,3 @@
+[submodule "packages/KNIRVSDK/go-package"]
+	path = packages/KNIRVSDK/go-package
+	url = https://github.com/guiperry/knirv-sdk-go.git

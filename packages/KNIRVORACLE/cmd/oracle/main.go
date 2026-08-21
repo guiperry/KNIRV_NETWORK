@@ -14,6 +14,8 @@ import (
 	"time"
 
 	"github.com/knirvcorp/knirvoracle/internal/oracle"
+	"github.com/knirvcorp/knirvoracle/internal/oracle/actuarial"
+	"github.com/knirvcorp/knirvoracle/internal/oracle/chainverify"
 	"github.com/knirvcorp/knirvoracle/internal/oracle/routes"
 	"go.uber.org/zap"
 )
@@ -89,6 +91,13 @@ func main() {
 	oracleRoutes.RegisterRoutes(mux)
 	mux.HandleFunc("/health", handleHealth(oracleInst))
 
+	// Actuarial syndicate settlement payouts: the only path allowed to
+	// disburse NRN for a syndicate settlement, gated on a verified
+	// SETTLEMENT_COMMIT proof from KNIRVCHAIN (see internal/oracle/actuarial).
+	chainVerifyURL := os.Getenv("ORACLE_CHAIN_VERIFY_URL")
+	actuarialHandler := actuarial.NewHandler(oracleInst, chainverify.NewClient(chainVerifyURL), logger)
+	mux.HandleFunc("/oracle/v3/actuarial/settlements/payout", actuarialHandler.HandleSettlementPayout)
+
 	server := &http.Server{Handler: mux}
 
 	if err := oracleInst.Start(); err != nil {
@@ -143,4 +152,3 @@ func handleHealth(o *oracle.Oracle) http.HandlerFunc {
 		w.Write([]byte(`{"status":"healthy","oracle":"active","version":"` + Version + `"}`))
 	}
 }
-

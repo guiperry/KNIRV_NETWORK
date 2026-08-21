@@ -1,7 +1,5 @@
 module KNIRVCHAIN
 
-replace github.com/KNIRV/KNIRV_NETWORK/KNIRVSDK/go => ../KNIRVSDK/go
-
 go 1.24.0
 
 toolchain go1.24.11
@@ -11,7 +9,7 @@ replace github.com/libp2p/go-libp2p-p2p/protocol/circuitv2/autorelay => github.c
 replace github.com/quic-go/quic-go => github.com/quic-go/quic-go v0.48.0
 
 require (
-	github.com/KNIRV/KNIRV_NETWORK/KNIRVSDK/go v0.0.0
+	github.com/guiperry/knirv-sdk-go v0.1.0
 	github.com/gin-gonic/gin v1.11.0
 	github.com/google/uuid v1.6.0
 	github.com/ipfs/go-cid v0.5.0

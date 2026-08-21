@@ -6,7 +6,7 @@ import (
 	"os"
 	"strings"
 
-	knirvsigning "github.com/KNIRV/KNIRV_NETWORK/KNIRVSDK/go/signing"
+	knirvsigning "github.com/guiperry/knirv-sdk-go/signing"
 	"github.com/ethereum/go-ethereum/crypto"
 )
 

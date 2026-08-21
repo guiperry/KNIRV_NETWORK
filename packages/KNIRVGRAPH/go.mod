@@ -2,10 +2,8 @@ module KNIRVGRAPH
 
 go 1.24.6
 
-replace github.com/KNIRV/KNIRV_NETWORK/KNIRVSDK/go => ../KNIRVSDK/go
-
 require (
-	github.com/KNIRV/KNIRV_NETWORK/KNIRVSDK/go v0.0.0
+	github.com/guiperry/knirv-sdk-go v0.1.0
 	github.com/dgraph-io/badger/v3 v3.2103.5
 	github.com/gorilla/mux v1.8.0
 	github.com/gorilla/websocket v1.5.3

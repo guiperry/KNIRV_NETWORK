@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	knirvsigning "github.com/KNIRV/KNIRV_NETWORK/KNIRVSDK/go/signing"
+	knirvsigning "github.com/guiperry/knirv-sdk-go/signing"
 )
 
 // Address is the canonical 20-byte KNIRV account identifier, rendered as

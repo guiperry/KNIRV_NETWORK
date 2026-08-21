@@ -10,12 +10,24 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 )
 
 type Client struct {
 	baseURL string
 	client  *http.Client
+}
+
+// NewHTTPClient builds a Client that talks to KNIRVORACLE over a regular
+// HTTP(S) base URL — for reaching it through KNIRVGATEWAY's public
+// "/oracle/*" proxy (gateway.knirv.network / testnet-gateway.knirv.network)
+// rather than a local Unix socket. See FailoverClient.
+func NewHTTPClient(baseURL string) *Client {
+	return &Client{
+		baseURL: strings.TrimRight(baseURL, "/"),
+		client:  &http.Client{Timeout: 10 * time.Second},
+	}
 }
 
 func NewClient(socketPath string) *Client {
@@ -151,6 +163,38 @@ func (c *Client) GetRollup(id string) (map[string]interface{}, error) {
 	}
 
 	return result, nil
+}
+
+// SettlementPayoutRequest requests KNIRVORACLE disburse NRN for an
+// actuarial syndicate settlement. Amount is a decimal string in smallest
+// units. ChainTxHash is the SETTLEMENT_COMMIT transaction the oracle must
+// verify was actually accepted onto KNIRVCHAIN before it will disburse
+// anything — see KNIRV_NETWORK/packages/KNIRVORACLE/internal/oracle/actuarial.
+type SettlementPayoutRequest struct {
+	SettlementID   string `json:"settlement_id"`
+	PoolID         string `json:"pool_id"`
+	Destination    string `json:"destination"`
+	Amount         string `json:"amount"`
+	ChainTxHash    string `json:"chain_tx_hash"`
+	IdempotencyKey string `json:"idempotency_key"`
+}
+
+type SettlementPayoutResponse struct {
+	ProviderID string `json:"provider_id"`
+	Status     string `json:"status"`
+}
+
+// SubmitSettlementPayout is the only path backend_server may use to move
+// NRN for a syndicate settlement — KNIRVCHAIN itself never disburses funds.
+func (c *Client) SubmitSettlementPayout(req *SettlementPayoutRequest) (*SettlementPayoutResponse, error) {
+	if req == nil {
+		return nil, fmt.Errorf("settlement payout request is required")
+	}
+	var result SettlementPayoutResponse
+	if err := c.post("/oracle/v3/actuarial/settlements/payout", req, &result); err != nil {
+		return nil, err
+	}
+	return &result, nil
 }
 
 func (c *Client) Health() error {

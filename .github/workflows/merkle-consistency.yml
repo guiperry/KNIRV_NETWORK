@@ -1,9 +1,9 @@
 name: Merkle implementation consistency
 on:
   pull_request:
-    paths: ['packages/KNIRVORACLE/internal/oracle/mmr/**', 'packages/KNIRVCHAIN/internal/blockchain/mmr*', 'tools/dve-verifier-wasm/**', '.github/workflows/merkle-consistency.yml']
+    paths: ['packages/KNIRVORACLE/internal/oracle/mmr/**', 'packages/KNIRVCHAIN/internal/blockchain/mmr*', 'packages/KNIRVSDK/core/wasm-modules/dve-verifier/**', '.github/workflows/merkle-consistency.yml']
   push:
-    paths: ['packages/KNIRVORACLE/internal/oracle/mmr/**', 'packages/KNIRVCHAIN/internal/blockchain/mmr*', 'tools/dve-verifier-wasm/**']
+    paths: ['packages/KNIRVORACLE/internal/oracle/mmr/**', 'packages/KNIRVCHAIN/internal/blockchain/mmr*', 'packages/KNIRVSDK/core/wasm-modules/dve-verifier/**']
 jobs:
   golden-vectors:
     runs-on: ubuntu-latest
@@ -24,5 +24,5 @@ jobs:
         working-directory: KNIRV_NETWORK/packages/KNIRVCHAIN
       - run: go test ./internal/knirvverify -run TestSharedGoldenVectors -count=1
         working-directory: KNIRV_CORP/packages/server/backend_server
-      - run: cargo test --manifest-path tools/dve-verifier-wasm/Cargo.toml
+      - run: cargo test --manifest-path packages/KNIRVSDK/core/wasm-modules/dve-verifier/Cargo.toml
         working-directory: KNIRV_NETWORK

@@ -15,7 +15,7 @@ import (
 	"sync"
 	"time"
 
-	signing "github.com/KNIRV/KNIRV_NETWORK/KNIRVSDK/go/signing"
+	signing "github.com/guiperry/knirv-sdk-go/signing"
 	"github.com/knirvcorp/knirvoracle/internal/oracle"
 	"github.com/knirvcorp/knirvoracle/internal/oracle/crosschain"
 	"github.com/knirvcorp/knirvoracle/internal/oracle/governance"

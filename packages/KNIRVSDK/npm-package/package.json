@@ -1,0 +1,52 @@
+{
+  "name": "@knirv/sdk",
+  "version": "0.1.1",
+  "description": "Browser and edge WebAssembly SDK core for KNIRV Network",
+  "type": "module",
+  "main": "./index.js",
+  "module": "./index.js",
+  "types": "./index.d.ts",
+  "exports": {
+    ".": { "types": "./index.d.ts", "import": "./index.js", "default": "./index.js" },
+    "./slim": { "types": "./slim.d.ts", "import": "./slim.js", "default": "./slim.js" },
+    "./signing": { "types": "./signing.d.ts", "import": "./signing.js", "default": "./signing.js" },
+    "./modules": { "types": "./modules.d.ts", "import": "./modules.js", "default": "./modules.js" },
+    "./wasm/*": "./wasm/*",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "index.js",
+    "index.d.ts",
+    "slim.js",
+    "slim.d.ts",
+    "signing.js",
+    "signing.d.ts",
+    "runtime.js",
+    "runtime.d.ts",
+    "modules.js",
+    "modules.d.ts",
+    "modules/",
+    "wasm/",
+    "README.md",
+    "LICENSE"
+  ],
+  "sideEffects": false,
+  "scripts": {
+    "build": "node ./scripts/build.mjs && tsc --project tsconfig.json",
+    "clean": "node ./scripts/clean.mjs",
+    "test": "npm run build && node ./scripts/test-bindings.mjs",
+    "prepack": "npm run build",
+    "pack:check": "npm pack --dry-run"
+  },
+  "keywords": ["knirv", "knirv-sdk", "wasm", "webassembly", "browser", "edge"],
+  "license": "MIT",
+  "repository": { "type": "git", "url": "https://github.com/KNIRV/KNIRV_NETWORK.git", "directory": "packages/KNIRVSDK/npm-package" },
+  "engines": { "node": ">=18" },
+  "publishConfig": { "access": "public" },
+  "dependencies": {
+    "@cosmjs/crypto": "^0.34.0",
+    "@noble/hashes": "^1.3.3",
+    "bech32": "^2.0.0"
+  },
+  "devDependencies": { "typescript": "^5.0.0" }
+}

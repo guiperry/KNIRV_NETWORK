@@ -1,0 +1,7 @@
+{
+  "version": 1,
+  "requests": [
+    {"operation": "crypto.sha256", "payload": {"data": "knirv"}, "response": {"digest": "844ab93035e622284f4d0db575d2a4a29a89c06acc652925e7f0b2b0392d35cf"}},
+    {"operation": "wasm.manifest", "payload": {}}
+  ]
+}

@@ -1,13 +1,11 @@
 module github.com/KNIRV/KNIRV_NETWORK/KNIRVORACLE
 
-replace github.com/KNIRV/KNIRV_NETWORK/KNIRVSDK/go => ../../../KNIRVSDK/go
-
 go 1.24.0
 
 toolchain go1.24.1
 
 require (
-	github.com/KNIRV/KNIRV_NETWORK/KNIRVSDK/go v0.0.0
+	github.com/guiperry/knirv-sdk-go v0.1.0
 	github.com/ethereum/go-ethereum v1.13.15
 	go.uber.org/zap v1.27.0
 )

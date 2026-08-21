@@ -1,0 +1,16 @@
+[package]
+name = "knirv-sdk-c-abi"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "C-compatible binding boundary for knirv-sdk"
+
+[lib]
+crate-type = ["cdylib", "staticlib"]
+name = "knirv_sdk_core"
+
+[dependencies]
+knirv-sdk = { path = "../../core" }
+serde_json = "1"
+tokio = { version = "1", features = ["rt-multi-thread"] }
+prost = "0.13"

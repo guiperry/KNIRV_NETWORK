@@ -1,4 +1,4 @@
-# KNIRV SDK
+## Rust-backed binding migration
 
 The official Software Development Kits (SDKs) for the KNIRV Network ecosystem. This toolkit provides everything developers need to build applications and services on the KNIRV Decentralized Trusted Execution Network (D-TEN).
 
@@ -325,6 +325,13 @@ async function main() {
 
 main().catch(console.error);
 ```
+
+# KNIRV SDK
+
+The SDK currently ships direct Rust, Go, Python, and TypeScript packages. The
+Rust-backed binding migration lives in [`bindings/`](bindings/README.md): it
+defines one versioned JSON envelope API, C ABI, and language adapters without
+breaking the existing public package paths.
 
 ## License
 

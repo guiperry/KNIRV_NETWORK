@@ -8,7 +8,7 @@ import (
 	"os"
 	"time"
 
-	knirvsigning "github.com/KNIRV/KNIRV_NETWORK/KNIRVSDK/go/signing"
+	knirvsigning "github.com/guiperry/knirv-sdk-go/signing"
 	"github.com/knirvcorp/knirvoracle/internal/oracle/consensus"
 	"github.com/knirvcorp/knirvoracle/internal/oracle/mmr"
 	"github.com/knirvcorp/knirvoracle/internal/oracle/types"

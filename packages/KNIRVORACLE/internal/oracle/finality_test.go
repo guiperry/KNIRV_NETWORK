@@ -10,7 +10,7 @@ import (
 	"time"
 
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
-	knirvsigning "github.com/KNIRV/KNIRV_NETWORK/KNIRVSDK/go/signing"
+	knirvsigning "github.com/guiperry/knirv-sdk-go/signing"
 	"github.com/knirvcorp/knirvoracle/internal/oracle/consensus"
 	"github.com/knirvcorp/knirvoracle/internal/oracle/types"
 	"go.uber.org/zap"

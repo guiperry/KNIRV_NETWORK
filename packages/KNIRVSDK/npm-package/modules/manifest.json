@@ -1,0 +1,49 @@
+{
+  "version": 1,
+  "modules": [
+    {
+      "id": "cognitive-shell",
+      "artifact_version": "1.0.0",
+      "abi_version": 1,
+      "byte_length": 382108,
+      "sha256": "ecea193f876691b91544f0820d153882640057c572bad5ad73d0dfb31d73a05e",
+      "module_kind": "cognitive",
+      "capabilities": [
+        "cognitive.process"
+      ]
+    },
+    {
+      "id": "controller-relay",
+      "artifact_version": "1.0.0",
+      "abi_version": 1,
+      "byte_length": 38667,
+      "sha256": "7164752c846f88039690351ca56949c8c8c6ff47eb5ac34574081a62210f9ba3",
+      "module_kind": "relay",
+      "capabilities": [
+        "relay.envelope"
+      ]
+    },
+    {
+      "id": "crypto-core",
+      "artifact_version": "1.0.0",
+      "abi_version": 1,
+      "byte_length": 549,
+      "sha256": "9da085719be6a515b5188bf1295d52153a685c2853ad7e46d42d118f1b716f86",
+      "module_kind": "crypto",
+      "capabilities": [
+        "crypto.policy"
+      ]
+    },
+    {
+      "id": "dve-verifier",
+      "artifact_version": "1.0.0",
+      "abi_version": 1,
+      "byte_length": 271402,
+      "sha256": "6ace987570191c350d390ba64074d7d44678245982f56188c9261cf1de828eee",
+      "module_kind": "verifier",
+      "capabilities": [
+        "dve.verify"
+      ]
+    }
+  ]
+}

@@ -3,7 +3,7 @@ module github.com/KNIRV/KNIRV_NETWORK/KNIRVGATEWAY
 go 1.25.7
 
 require (
-	github.com/KNIRV/KNIRV_NETWORK/KNIRVSDK/go v0.0.0
+	github.com/guiperry/knirv-sdk-go v0.1.0
 	github.com/gorilla/mux v1.8.1
 	github.com/gorilla/sessions v1.2.2
 	github.com/joho/godotenv v1.5.1
@@ -12,7 +12,6 @@ require (
 	go.uber.org/zap v1.27.1
 )
 
-replace github.com/KNIRV/KNIRV_NETWORK/KNIRVSDK/go => ../KNIRVSDK/go
 
 require (
 	github.com/golang-jwt/jwt/v5 v5.3.1

@@ -18,7 +18,7 @@ import (
 	"strings"
 	"time"
 
-	knirvsigning "github.com/KNIRV/KNIRV_NETWORK/KNIRVSDK/go/signing"
+	knirvsigning "github.com/guiperry/knirv-sdk-go/signing"
 	"google.golang.org/protobuf/proto"
 )
 

@@ -137,6 +137,13 @@ type OracleConfig struct {
 	// Storage configuration
 	DataDir   string `json:"data_dir"`
 	DBBackend string `json:"db_backend"`
+
+	// ChainVerifyURL is KNIRVCHAIN's HTTP base URL, used to verify a
+	// SYNDICATE_* commitment's inclusion proof (GET /proof/tx/{hash}) before
+	// authorizing an actuarial-syndicate settlement payout — see
+	// internal/oracle/actuarial. Disbursement never proceeds without a
+	// verified proof from this endpoint.
+	ChainVerifyURL string `json:"chain_verify_url,omitempty"`
 }
 
 // DefaultOracleConfig returns default configuration

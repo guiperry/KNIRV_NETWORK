@@ -3,7 +3,7 @@ package dveevidence
 // This package adds server-side ingestion and persistence around the SDK's
 // evidence model. Explicit aliases keep that SDK model available to sibling
 // server packages; a dot import in ingest.go is file-scoped and cannot do so.
-import sdk "github.com/KNIRV/KNIRV_NETWORK/KNIRVSDK/go/dveevidence"
+import sdk "github.com/guiperry/knirv-sdk-go/dveevidence"
 
 const (
 	SchemaVersion              = sdk.SchemaVersion

@@ -161,3 +161,6 @@ packages/KNIRVSERVER/pkg/knirvmonitor/bin/monitor
 /packages/KNIRVSERVER/tools/dve-verifier-wasm/target
 /packages/KNIRVSERVER/tools/dve-verifier-wasm/target
 /packages/KNIRVARENA/rust-wasm/controller-relay/target
+/packages/KNIRVSDK/rust-wasm/cognitive-shell/target
+/packages/KNIRVSDK/rust-wasm/dve-verifier/target
+/packages/KNIRVSDK/rust-wasm/controller-relay/target

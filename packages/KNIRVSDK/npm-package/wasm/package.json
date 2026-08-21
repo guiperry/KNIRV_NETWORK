@@ -1,0 +1,21 @@
+{
+  "name": "knirv-sdk-wasm-core",
+  "type": "module",
+  "description": "Portable WebAssembly core for the KNIRV SDK npm package",
+  "version": "0.1.0",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/KNIRV/KNIRV_NETWORK"
+  },
+  "files": [
+    "knirv_sdk_core_bg.wasm",
+    "knirv_sdk_core.js",
+    "knirv_sdk_core.d.ts"
+  ],
+  "main": "knirv_sdk_core.js",
+  "types": "knirv_sdk_core.d.ts",
+  "sideEffects": [
+    "./snippets/*"
+  ]
+}

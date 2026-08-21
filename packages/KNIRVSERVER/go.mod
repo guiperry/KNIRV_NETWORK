@@ -10,11 +10,9 @@ replace github.com/KNIRV/KNIRV_NETWORK/KNIRVSERVER/pkg/knirvmonitor => ./pkg/kni
 
 replace hasher => ./pkg/knirvhasher
 
-replace github.com/KNIRV/KNIRV_NETWORK/KNIRVSDK/go => ../KNIRVSDK/go
-
 require (
 	github.com/KNIRV/KNIRV_NETWORK/KNIRVAGENT v0.0.0
-	github.com/KNIRV/KNIRV_NETWORK/KNIRVSDK/go v0.0.0
+	github.com/guiperry/knirv-sdk-go v0.1.0
 	github.com/KNIRV/KNIRV_NETWORK/KNIRVSERVER/pkg/knirvmonitor v0.0.0
 	github.com/ethereum/go-ethereum v1.13.15
 	github.com/gin-gonic/gin v1.10.1

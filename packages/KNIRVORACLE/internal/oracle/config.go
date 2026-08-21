@@ -82,6 +82,10 @@ func LoadConfigFromEnv() (*OracleConfig, error) {
 		config.OwnerPrivateKey = ownerKey
 	}
 
+	if chainVerifyURL := os.Getenv("ORACLE_CHAIN_VERIFY_URL"); chainVerifyURL != "" {
+		config.ChainVerifyURL = chainVerifyURL
+	}
+
 	if contractAddr := os.Getenv("ORACLE_NRN_CONTRACT"); contractAddr != "" {
 		config.ContractAddress = contractAddr
 	}
