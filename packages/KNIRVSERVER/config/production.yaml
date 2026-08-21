@@ -349,12 +349,10 @@ gateway:
   stop_timeout: 10
 
 # Embedded KNIRVMONITOR — backend for the dashboard's admin-only Network
-# Monitor tab. See testnet.yaml's monitor: block for the port-9090 /
-# monitoring.metrics_port collision note (line 266 above) — same caveat
-# applies here.
+# Monitor tab. It binds a private Unix socket; KNIRVGATEWAY is its sole
+# public transport.
 monitor:
   enabled: true
-  port: 9090
   start_timeout: 30
   stop_timeout: 10
 

@@ -913,6 +913,20 @@ func (bcs *BlockchainServer) HandleReceiveTransaction(w http.ResponseWriter, r *
 		}
 		log.Printf("Successfully processed MCP_INVOKE_CAPABILITY for Tx: %s", tx.TransactionHash)
 
+	case TransactionTypeRISKSNAPSHOTCommit, TransactionTypeMODELActivate, TransactionTypePOOLCREATE,
+		TransactionTypeSTAKEDEPOSIT, TransactionTypeSTAKEEXITREQUEST, TransactionTypeSUBMISSIONCOMMIT,
+		TransactionTypePRICINGDECISIONCOMMIT, TransactionTypeRESERVECOMMIT, TransactionTypeSETTLEMENTCOMMIT,
+		TransactionTypeLOSSALLOCATIONCOMMIT:
+		commitment, err := ValidateSyndicateCommitment(tx.Type, tx.Data)
+		if err != nil {
+			http.Error(w, fmt.Sprintf("Invalid syndicate commitment: %v", err), http.StatusBadRequest)
+			return
+		}
+		// The validated, signed transaction is then admitted to the normal pool
+		// below, where block consensus and checkpoint finality remain the source
+		// of authority. Dispatch must never imply financial finality.
+		log.Printf("Validated %s commitment entity=%s hash=%s", tx.Type, commitment.EntityID, commitment.CommitmentHash)
+
 	//case TransactionTypeStandard:
 	//log.Printf("Processing STANDARD_TRANSFER transaction: %s", tx.TransactionHash)
 	//if err := bcs.BlockchainPtr.ProcessStandardTransfer(&tx); err != nil {

@@ -4,8 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"os"
+	"path/filepath"
 	"runtime"
 	"strings"
 	"time"
@@ -16,11 +18,11 @@ import (
 )
 
 type Server struct {
-	config     *ServerConfig
-	startTime  time.Time
-	metrics    *aggregator.ProcessMetrics
-	registry   *aggregator.Registry
-	probes     *probes.ProbeManager
+	config    *ServerConfig
+	startTime time.Time
+	metrics   *aggregator.ProcessMetrics
+	registry  *aggregator.Registry
+	probes    *probes.ProbeManager
 }
 
 func NewServer(cfg *ServerConfig) *Server {
@@ -61,6 +63,8 @@ func (s *Server) Registry() *aggregator.Registry {
 	return s.registry
 }
 
+func (s *Server) HasBackendSocket() bool { return s.config.BackendSocketPath != "" }
+
 func (s *Server) Start() error {
 	mux := http.NewServeMux()
 
@@ -72,6 +76,7 @@ func (s *Server) Start() error {
 	mux.HandleFunc("/readyz", s.handleReadyz)
 	mux.Handle("/metrics", promhttp.HandlerFor(s.registry.Registry, promhttp.HandlerOpts{}))
 	mux.HandleFunc("/api/v1/status", s.handleStatus)
+	mux.HandleFunc("/api/v1/actuarial/metrics", s.handleActuarialMetrics)
 	mux.HandleFunc("/api/v1/knirvbase/metrics", s.handleKNIRVBaseMetrics)
 	mux.HandleFunc("/api/v1/knirvbase/health", s.handleKNIRVBaseHealth)
 	mux.HandleFunc("/api/v1/knirvchain/metrics", s.handleKNIRVChainMetrics)
@@ -91,9 +96,29 @@ func (s *Server) Start() error {
 	mux.HandleFunc("/api/v1/onboarding/users", s.handleOnboardingUsers)
 	mux.HandleFunc("/api/v1/onboarding/users/", s.handleOnboardingUserAction)
 
-	addr := ":" + s.config.Port
-	srv := &http.Server{Addr: addr, Handler: s.loggingMiddleware(mux)}
-	return srv.ListenAndServe()
+	if strings.TrimSpace(s.config.SocketPath) == "" {
+		return fmt.Errorf("monitor socket path is required")
+	}
+	if err := os.MkdirAll(filepath.Dir(s.config.SocketPath), 0750); err != nil {
+		return fmt.Errorf("create monitor socket directory: %w", err)
+	}
+	// A prior crashed monitor can leave its filesystem entry behind. Removing
+	// this exact configured path is safe; the listener below is the owner.
+	if err := os.Remove(s.config.SocketPath); err != nil && !os.IsNotExist(err) {
+		return fmt.Errorf("remove stale monitor socket: %w", err)
+	}
+	listener, err := net.Listen("unix", s.config.SocketPath)
+	if err != nil {
+		return fmt.Errorf("listen on monitor socket: %w", err)
+	}
+	if err := os.Chmod(s.config.SocketPath, 0660); err != nil {
+		listener.Close()
+		return fmt.Errorf("set monitor socket permissions: %w", err)
+	}
+	defer os.Remove(s.config.SocketPath)
+
+	srv := &http.Server{Handler: s.loggingMiddleware(mux)}
+	return srv.Serve(listener)
 }
 
 func (s *Server) loggingMiddleware(next http.Handler) http.Handler {
@@ -381,8 +406,8 @@ func (s *Server) handleKNIRVBaseHealth(w http.ResponseWriter, r *http.Request) {
 	}
 
 	health := KnirvbaseHealth{
-		URL:      s.config.KNIRVBaseURL,
-		Status:   status,
+		URL:       s.config.KNIRVBaseURL,
+		Status:    status,
 		LastCheck: time.Now(),
 	}
 

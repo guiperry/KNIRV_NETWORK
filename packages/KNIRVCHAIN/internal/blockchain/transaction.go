@@ -762,7 +762,64 @@ const (
 	// CLI decision/error event, bundling the Skills/Capabilities(MCPs)/
 	// Assets/Context/Credentials used to produce it (chain_refactor.md §3.2).
 	TransactionTypeEventBundleMint = "event_bundle_mint"
+
+	// Actuarial Syndicate transaction types follow UPPER_SNAKE_CASE to visually
+	// distinguish financial-authority operations from the mostly-snake_case
+	// non-financial types above. This is a deliberate deviation, not an oversight.
+	TransactionTypeRISKSNAPSHOTCommit    = "RISK_SNAPSHOT_COMMIT"
+	TransactionTypeMODELActivate         = "MODEL_ACTIVATE"
+	TransactionTypePOOLCREATE            = "POOL_CREATE"
+	TransactionTypeSTAKEDEPOSIT          = "STAKE_DEPOSIT"
+	TransactionTypeSTAKEEXITREQUEST      = "STAKE_EXIT_REQUEST"
+	TransactionTypeSUBMISSIONCOMMIT      = "SUBMISSION_COMMIT"
+	TransactionTypePRICINGDECISIONCOMMIT = "PRICING_DECISION_COMMIT"
+	TransactionTypeRESERVECOMMIT         = "RESERVE_COMMIT"
+	TransactionTypeSETTLEMENTCOMMIT      = "SETTLEMENT_COMMIT"
+	TransactionTypeLOSSALLOCATIONCOMMIT  = "LOSS_ALLOCATION_COMMIT"
 )
+
+// SyndicateCommitment is the only payload accepted for financial-authority
+// syndicate transactions. It contains commitments and public terms only; raw
+// telemetry, PoCs, identities, and provider credentials are never chain data.
+type SyndicateCommitment struct {
+	SchemaVersion   string `json:"schema_version"`
+	EntityID        string `json:"entity_id"`
+	CommitmentHash  string `json:"commitment_hash"`
+	PredecessorHash string `json:"predecessor_hash,omitempty"`
+	Amount          uint64 `json:"amount,omitempty"`
+	Currency        string `json:"currency,omitempty"`
+	ModelVersion    string `json:"model_version,omitempty"`
+	SnapshotID      string `json:"snapshot_id,omitempty"`
+}
+
+func IsSyndicateTransactionType(txType string) bool {
+	switch txType {
+	case TransactionTypeRISKSNAPSHOTCommit, TransactionTypeMODELActivate, TransactionTypePOOLCREATE, TransactionTypeSTAKEDEPOSIT, TransactionTypeSTAKEEXITREQUEST, TransactionTypeSUBMISSIONCOMMIT, TransactionTypePRICINGDECISIONCOMMIT, TransactionTypeRESERVECOMMIT, TransactionTypeSETTLEMENTCOMMIT, TransactionTypeLOSSALLOCATIONCOMMIT:
+		return true
+	default:
+		return false
+	}
+}
+
+func ValidateSyndicateCommitment(txType string, data []byte) (*SyndicateCommitment, error) {
+	if !IsSyndicateTransactionType(txType) {
+		return nil, fmt.Errorf("not a syndicate transaction type: %s", txType)
+	}
+	var commitment SyndicateCommitment
+	if err := json.Unmarshal(data, &commitment); err != nil {
+		return nil, fmt.Errorf("decode syndicate commitment: %w", err)
+	}
+	if commitment.SchemaVersion != "knirv.syndicate.v1" || commitment.EntityID == "" || len(commitment.CommitmentHash) != 64 {
+		return nil, fmt.Errorf("invalid syndicate commitment envelope")
+	}
+	if (txType == TransactionTypeSTAKEDEPOSIT || txType == TransactionTypeRESERVECOMMIT || txType == TransactionTypeSETTLEMENTCOMMIT || txType == TransactionTypeLOSSALLOCATIONCOMMIT) && commitment.Amount == 0 {
+		return nil, fmt.Errorf("%s requires a positive amount", txType)
+	}
+	if txType == TransactionTypePRICINGDECISIONCOMMIT && (commitment.ModelVersion == "" || commitment.SnapshotID == "") {
+		return nil, fmt.Errorf("pricing decision requires model version and snapshot")
+	}
+	return &commitment, nil
+}
 
 // NFTCapabilityAttachmentData represents the data for an NFT capability attachment transaction
 type NFTCapabilityAttachmentData struct {

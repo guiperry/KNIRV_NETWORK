@@ -63,21 +63,22 @@ type Manager struct {
 // to skip registering that probe (KNIRVMONITOR only registers a probe when
 // its URL flag is non-empty).
 type ManagerConfig struct {
-	BinaryPath     string
-	Port           int
-	PrometheusURL  string
-	GrafanaURL     string
-	KNIRVBaseURL   string
-	KNIRVChainURL  string
-	KNIRVGraphURL  string
-	KNIRVOracleURL string
-	GatewayURL     string
-	ScrapeInterval time.Duration
-	RequestTimeout time.Duration
-	StartTimeout   time.Duration
-	StopTimeout    time.Duration
-	Stdout         io.Writer
-	Stderr         io.Writer
+	BinaryPath        string
+	SocketPath        string
+	PrometheusURL     string
+	GrafanaURL        string
+	KNIRVBaseURL      string
+	KNIRVChainURL     string
+	KNIRVGraphURL     string
+	KNIRVOracleURL    string
+	GatewayURL        string
+	BackendSocketPath string
+	ScrapeInterval    time.Duration
+	RequestTimeout    time.Duration
+	StartTimeout      time.Duration
+	StopTimeout       time.Duration
+	Stdout            io.Writer
+	Stderr            io.Writer
 }
 
 type HealthStatus struct {
@@ -103,15 +104,10 @@ func getMonitorAppDataDir() string {
 	return filepath.Join(os.TempDir(), "knirvserver", "data")
 }
 
-// DefaultManagerConfig's Port default (9090) matches this repo's existing
-// convention of dedicated 90xx ports for embedded subsystems (validation
-// chain 9290, transaction chain 9190). Be aware KNIRVSERVER's own
-// testnet.yaml also declares monitoring.metrics_port: 9090 for an unrelated,
-// currently-unbound metrics endpoint — see the comment on the monitor: block
-// in testnet.yaml before changing either value.
+// DefaultManagerConfig deliberately has no TCP listener. KNIRVGATEWAY owns
+// public transport and reaches KNIRVMONITOR over its configured Unix socket.
 func DefaultManagerConfig() *ManagerConfig {
 	return &ManagerConfig{
-		Port:           9090,
 		ScrapeInterval: 15 * time.Second,
 		RequestTimeout: 5 * time.Second,
 		StartTimeout:   30 * time.Second,
@@ -129,9 +125,6 @@ func NewManager(cfg *ManagerConfig, logger *zap.Logger) *Manager {
 	}
 
 	defaults := DefaultManagerConfig()
-	if cfg.Port == 0 {
-		cfg.Port = defaults.Port
-	}
 	if cfg.ScrapeInterval == 0 {
 		cfg.ScrapeInterval = defaults.ScrapeInterval
 	}
@@ -149,8 +142,15 @@ func NewManager(cfg *ManagerConfig, logger *zap.Logger) *Manager {
 		logger, _ = zap.NewProduction()
 	}
 
-	baseURL := fmt.Sprintf("http://localhost:%d", cfg.Port)
-	client := &http.Client{Timeout: 10 * time.Second}
+	baseURL := "http://knirvmonitor"
+	transport := &http.Transport{}
+	if strings.TrimSpace(cfg.SocketPath) != "" {
+		socketPath := cfg.SocketPath
+		transport.DialContext = func(ctx context.Context, _, _ string) (net.Conn, error) {
+			return (&net.Dialer{}).DialContext(ctx, "unix", socketPath)
+		}
+	}
+	client := &http.Client{Timeout: 10 * time.Second, Transport: transport}
 
 	return &Manager{
 		binaryPath: cfg.BinaryPath,
@@ -180,7 +180,10 @@ func (m *Manager) Start(ctx context.Context) error {
 	}
 	m.config.BinaryPath = resolved
 
-	preflightClient := &http.Client{Timeout: 3 * time.Second}
+	if strings.TrimSpace(m.config.SocketPath) == "" {
+		return fmt.Errorf("KNIRVMONITOR socket path is required")
+	}
+	preflightClient := &http.Client{Timeout: 3 * time.Second, Transport: m.client.Transport}
 	if resp, err := preflightClient.Get(fmt.Sprintf("%s/health", m.baseURL)); err == nil {
 		resp.Body.Close()
 		if resp.StatusCode == http.StatusOK {
@@ -193,20 +196,17 @@ func (m *Manager) Start(ctx context.Context) error {
 	m.logger.Info("Killing any stale KNIRVMONITOR processes", zap.String("binary", m.config.BinaryPath))
 	killStaleMonitor(m.config.BinaryPath)
 
-	if !waitForPortFree(m.config.Port, 5*time.Second) {
-		m.logger.Warn("Monitor port still occupied after kill — proceeding anyway",
-			zap.Int("port", m.config.Port))
-	}
-
 	m.logger.Info("Starting KNIRVMONITOR",
-		zap.String("binary", m.config.BinaryPath),
-		zap.Int("port", m.config.Port))
+		zap.String("binary", m.config.BinaryPath), zap.String("socket", m.config.SocketPath))
 
 	env := os.Environ()
 	env = append(env, "KNIRV_MANAGED_BY_SERVER=true")
+	if m.config.BackendSocketPath != "" {
+		env = append(env, "BACKEND_SOCKET_PATH="+m.config.BackendSocketPath)
+	}
 
 	args := []string{
-		"-port", fmt.Sprintf("%d", m.config.Port),
+		"-socket", m.config.SocketPath,
 		"-scrape-interval", m.config.ScrapeInterval.String(),
 		"-request-timeout", m.config.RequestTimeout.String(),
 	}

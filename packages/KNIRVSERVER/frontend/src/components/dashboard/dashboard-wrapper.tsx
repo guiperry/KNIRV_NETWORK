@@ -37,6 +37,7 @@ import { ModuleLogViewer } from '@/components/dashboard/module-log-viewer';
 import { KernelSecurityCard } from '@/components/dashboard/kernel-security-card';
 import { SystemTelemetryCard } from '@/components/dashboard/system-telemetry-card';
 import { NetworkMonitorCard } from '@/components/dashboard/network-monitor-card';
+import { ActuarialMetricsCard } from '@/components/dashboard/actuarial-metrics-card';
 import { NetworkMonitorPanel } from '@/components/dashboard/network-monitor-panel';
 import type { ProcessingActivity } from '@/components/dashboard/cognitive-engine-log-routing';
 import { useSecuritySubsystem } from '@/hooks/use-security-subsystem';
@@ -1005,9 +1006,10 @@ function DashboardWrapperInner({ children, onRentDVE }: DashboardWrapperProps) {
                           </Card>
                         </div>
 
-                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
                           <KernelSecurityCard />
                           <NetworkMonitorCard />
+                          <ActuarialMetricsCard />
                           <SystemTelemetryCard className="aether-bevel-dark rounded-2xl" />
                         </div>
                       </TabsContent>

@@ -216,6 +216,140 @@ message VerifyMathResponse {
   float latency_ms = 6;
 }
 
+// FormalVerificationService provides formal proof verification services
+service FormalVerificationService {
+  // SubmitProof submits a canonical proof asset for formal verification
+  rpc SubmitProof(SubmitProofRequest) returns (SubmitProofResponse);
+  
+  // GetProofStatus retrieves the status of a previously submitted proof
+  rpc GetProofStatus(GetProofStatusRequest) returns (GetProofStatusResponse);
+  
+  // GetProofAsset retrieves a stored proof asset by ID
+  rpc GetProofAsset(GetProofAssetRequest) returns (GetProofAssetResponse);
+
+  // Metrics retrieves current verification metrics
+  rpc Metrics(MetricsRequest) returns (MetricsResponse);
+}
+
+// SubmitProofRequest contains a proof asset for formal verification
+message SubmitProofRequest {
+  // Canonical proof asset bytes
+  bytes canonical_proof_asset = 1;
+  
+  // Whether to request hardware attestation after verification
+  bool request_hardware_attestation = 2;
+}
+
+// SubmitProofResponse is the result of a proof submission
+message SubmitProofResponse {
+  // Content-addressed proof asset ID
+  string proof_asset_id = 1;
+  
+  // Current verification status
+  FormalProofStatus status = 2;
+  
+  // Human-readable diagnostic or error message
+  string diagnostic = 3;
+}
+
+// FormalProofStatus enumerates the possible states of a formal proof.
+enum FormalProofStatus {
+  FORMAL_PROOF_UNKNOWN = 0;
+  FORMALLY_VERIFIED = 1;
+  FORMALLY_REJECTED = 2;
+  PROOF_PENDING = 3;
+  CHECKER_UNAVAILABLE = 4;
+}
+
+// GetProofStatusRequest requests proof status by asset ID
+message GetProofStatusRequest {
+  // Proof asset ID to look up
+  string proof_asset_id = 1;
+}
+
+// GetProofStatusResponse contains the current proof status
+message GetProofStatusResponse {
+  // Proof asset ID
+  string proof_asset_id = 1;
+  
+  // Current status
+  FormalProofStatus status = 2;
+  
+  // Verification receipt if available
+  VerificationReceipt receipt = 3;
+}
+
+// GetProofAssetRequest requests a stored proof asset
+message GetProofAssetRequest {
+  // Proof asset ID
+  string proof_asset_id = 1;
+}
+
+// GetProofAssetResponse contains the proof asset
+message GetProofAssetResponse {
+  // Proof asset ID
+  string proof_asset_id = 1;
+  
+  // Canonical proof asset bytes
+  bytes canonical_proof_asset = 2;
+  
+  // Current verification status
+  FormalProofStatus status = 3;
+  
+  // Verification receipt if available
+  VerificationReceipt receipt = 4;
+}
+
+// MetricsRequest requests current verification metrics
+message MetricsRequest {
+  // Reserved for future filtering options
+}
+
+// MetricsResponse contains current verification metrics
+message MetricsResponse {
+  // Total number of proof submissions
+  uint64 total_submissions = 1;
+  
+  // Number of formally verified proofs
+  uint64 verified_count = 2;
+  
+  // Number of formally rejected proofs
+  uint64 rejected_count = 3;
+  
+  // Number of checker errors
+  uint64 error_count = 4;
+  
+  // Current queue depth
+  uint64 queue_depth = 5;
+  
+  // Median check time in milliseconds
+  float median_check_time_ms = 6;
+}
+
+// VerificationReceipt is produced by the formal checker worker
+message VerificationReceipt {
+  // Schema version
+  uint32 schema_version = 1;
+  
+  // Proof asset ID
+  string proof_asset_id = 2;
+  
+  // Verification status
+  string status = 3;
+  
+  // Checker digest (pins the checker implementation)
+  string checker_digest = 4;
+  
+  // Environment digest (pins the verification environment)
+  string environment_digest = 5;
+  
+  // When the check was performed
+  string checked_at = 6;
+  
+  // Diagnostic digest for audit
+  string diagnostic_digest = 7;
+}
+
 // ExportRequest requests DVE data export from KNIRVSERVER
 message ExportRequest {
   // Organization ID

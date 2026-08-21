@@ -1,4 +1,4 @@
-function Arena() {
+function Arena({ arenaURL }) {
     try {
         const bounties = [
             { id: "KNV-092", class: "Memory Corruption", target: "Rust Hypervisor", riskScore: 94.2, base: 25000, max: 185000, trend: "up" },
@@ -18,7 +18,7 @@ function Arena() {
                             </h2>
                             <p className="text-[var(--text-gray)] max-w-xl">Real-time risk pooling. Bounties fluctuate dynamically based on live node telemetry and syndicate staking.</p>
                         </div>
-                        <button className="btn-primary mt-6 md:mt-0">Connect to Network</button>
+                        <a href={arenaURL} className="btn-primary mt-6 md:mt-0">Connect to Network</a>
                     </div>
 
                     <div className="overflow-x-auto">

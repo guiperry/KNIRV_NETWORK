@@ -158,7 +158,7 @@ func NewHEARTServiceWithConfig(cfg *HEARTConfig) (*HEARTService, error) {
 		}
 	}
 
-	attestation := NewEmptyAttestationBridge(cfg.AttestationLedgerDir, cfg.AttestationSignalIndices, cfg.AttestationQueueSize)
+	attestation := NewEmptyAttestationBridge(cfg.AttestationLedgerDir, cfg.AttestationSignalIndices, cfg.AttestationQueueSize, "")
 	if err := attestation.Reload(); err != nil {
 		log.Printf("attestation ledger unavailable (%v); LM assertions will be queued with low confidence", err)
 	}

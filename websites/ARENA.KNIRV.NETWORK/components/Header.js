@@ -1,4 +1,4 @@
-function Header() {
+function Header({ selectedGateway, onGatewayChange, arenaURL }) {
     try {
         return (
             <header className="fixed top-0 w-full z-50 glass-panel !border-t-0 !border-l-0 !border-r-0 !rounded-none" data-name="header" data-file="components/Header.js">
@@ -12,8 +12,18 @@ function Header() {
                         <a href="index.html#arena" className="text-[var(--text-gray)] hover:text-[var(--accent-blue)] transition-colors">The Arena</a>
                         <a href="submit.html" className="text-[var(--accent-blue)] hover:text-white transition-colors border-b border-transparent hover:border-[var(--accent-blue)]">Submit PoC</a>
                     </nav>
-                    <div>
-                        <button className="btn-outline text-sm py-2 hidden sm:block">Initialize Node</button>
+                    <div className="flex items-center gap-3">
+                        <label className="sr-only" htmlFor="arena-gateway">Arena gateway</label>
+                        <select
+                            id="arena-gateway"
+                            value={selectedGateway}
+                            onChange={(event) => onGatewayChange(event.target.value)}
+                            className="hidden sm:block bg-[var(--bg-navy)] border border-[var(--accent-blue)] border-opacity-50 text-[var(--accent-blue)] rounded-md px-2 py-2 font-mono text-xs"
+                        >
+                            <option value="testnet">Testnet gateway</option>
+                            <option value="mainnet">Mainnet gateway</option>
+                        </select>
+                        <a href={arenaURL} className="btn-outline text-sm py-2 hidden sm:block">Initialize Node</a>
                     </div>
                 </div>
             </header>

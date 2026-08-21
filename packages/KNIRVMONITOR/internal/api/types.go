@@ -43,16 +43,42 @@ type ProcessMetrics struct {
 }
 
 type ServerConfig struct {
-	Port            string
-	PrometheusURL   string
-	GrafanaURL      string
-	ScrapeInterval  time.Duration
-	RequestTimeout  time.Duration
-	KNIRVBaseURL    string
-	KNIRVChainURL   string
-	KNIRVGraphURL   string
-	KNIRVOracleURL  string
-	GatewayURL      string
+	// Port is retained only for source compatibility with older callers. The
+	// monitor no longer binds it; SocketPath is the sole listener.
+	Port string
+	// SocketPath is the private HTTP listener. KNIRVMONITOR never exposes a
+	// TCP listener; KNIRVGATEWAY owns the public API and proxies to this socket.
+	SocketPath     string
+	PrometheusURL  string
+	GrafanaURL     string
+	ScrapeInterval time.Duration
+	RequestTimeout time.Duration
+	KNIRVBaseURL   string
+	KNIRVChainURL  string
+	KNIRVGraphURL  string
+	KNIRVOracleURL string
+	GatewayURL     string
+	// BackendSocketPath is the backend_server Unix socket used for aggregate
+	// actuarial health. No additional TCP service URL is required.
+	BackendSocketPath string
+}
+
+// ActuarialMetrics contains aggregate pool health only; no private telemetry,
+// researcher identity, or proof data is carried through the monitor.
+type ActuarialMetrics struct {
+	Enabled                    int   `json:"enabled"`
+	Paused                     int   `json:"paused"`
+	RiskClassesActive          int   `json:"risk_classes_active"`
+	RiskClassesObservationOnly int   `json:"risk_classes_observation_only"`
+	ReportsTotal               int   `json:"reports_total"`
+	SnapshotsFinalized         int   `json:"snapshots_finalized"`
+	PoolsActive                int   `json:"pools_active"`
+	PoolsCapacityRestricted    int   `json:"pools_capacity_restricted"`
+	LiquidBalance              int64 `json:"liquid_balance"`
+	ReservedBalance            int64 `json:"reserved_balance"`
+	SettlementsPending         int   `json:"settlements_pending"`
+	SettlementsFailed          int   `json:"settlements_failed"`
+	OutboxPending              int   `json:"outbox_pending"`
 }
 
 type KnirvbaseMetric struct {

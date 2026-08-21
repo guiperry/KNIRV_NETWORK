@@ -11,6 +11,8 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+
+	"knirvhasher/pkg/hashing/proofasset"
 )
 
 // AttestationCandidate is the assertion proposed by the LM. ContextEmbedding
@@ -51,6 +53,10 @@ type AttestationResult struct {
 // AttestationBridge is the Phase 5 boundary between the LM and the
 // append-only span-attestation ledger. It intentionally does not import the
 // 3_DATA_SEEDER module: pipeline stages are independent Go modules.
+//
+// After the formal proof enhancement, the bridge also supports independent
+// formal-proof lookup keyed by theorem/proof asset IDs, separate from the
+// PoW span-attestation path.
 type AttestationBridge struct {
 	ledgerPath string
 	signalDims [4]int
@@ -59,13 +65,18 @@ type AttestationBridge struct {
 	byBucket map[[4]uint32][]AttestationProof
 	queued   map[string]struct{}
 	pending  chan AttestationCandidate
+
+	// Formal proof lookups
+	proofLedgerPath string
+	proofLedger     *proofasset.ProofLedger
 }
 
 // NewAttestationBridge loads a seed_writes.jsonl ledger. Missing ledgers are
 // returned as errors so callers can distinguish an empty new node from a
 // malformed configured path; use NewEmptyAttestationBridge for the former.
-func NewAttestationBridge(framesDir string, signalIndices []int, queueSize int) (*AttestationBridge, error) {
-	b := NewEmptyAttestationBridge(framesDir, signalIndices, queueSize)
+// proofLedgerPath is the optional path to proof_writes.jsonl for formal proof lookup.
+func NewAttestationBridge(framesDir string, signalIndices []int, queueSize int, proofLedgerPath string) (*AttestationBridge, error) {
+	b := NewEmptyAttestationBridge(framesDir, signalIndices, queueSize, proofLedgerPath)
 	if err := b.Reload(); err != nil {
 		return b, err
 	}
@@ -74,7 +85,7 @@ func NewAttestationBridge(framesDir string, signalIndices []int, queueSize int) 
 
 // NewEmptyAttestationBridge provides the non-blocking miss/queue behavior
 // before the first mining run has produced a ledger.
-func NewEmptyAttestationBridge(framesDir string, signalIndices []int, queueSize int) *AttestationBridge {
+func NewEmptyAttestationBridge(framesDir string, signalIndices []int, queueSize int, proofLedgerPath string) *AttestationBridge {
 	if framesDir == "" {
 		framesDir = DefaultFramesDir
 	}
@@ -85,13 +96,18 @@ func NewEmptyAttestationBridge(framesDir string, signalIndices []int, queueSize 
 	for i := 0; i < len(signalIndices) && i < len(dims); i++ {
 		dims[i] = signalIndices[i]
 	}
-	return &AttestationBridge{
+	b := &AttestationBridge{
 		ledgerPath: filepath.Join(framesDir, seedWritesFile),
 		signalDims: dims,
 		byBucket:   make(map[[4]uint32][]AttestationProof),
 		queued:     make(map[string]struct{}),
 		pending:    make(chan AttestationCandidate, queueSize),
 	}
+	if proofLedgerPath != "" {
+		b.proofLedgerPath = proofLedgerPath
+		b.proofLedger = proofasset.NewProofLedger(proofLedgerPath)
+	}
+	return b
 }
 
 // Pending returns the receive-only mining queue. Consumers must persist or
@@ -226,4 +242,31 @@ func assertionIdentity(contextTokens, assertionSpan []int32) string {
 	write(contextTokens)
 	write(assertionSpan)
 	return fmt.Sprintf("assertion-v2:%x", h.Sum(nil))
+}
+
+// LookupProofAsset retrieves the most recent proof ledger entry for a given
+// proof asset ID. It returns nil if no entry is found. This lookup is
+// independent of the PoW span-attestation path.
+func (b *AttestationBridge) LookupProofAsset(proofAssetID string) *proofasset.ProofLedgerEntry {
+	if b.proofLedger == nil || proofAssetID == "" {
+		return nil
+	}
+	entries, err := b.proofLedger.ReadAll()
+	if err != nil {
+		return nil
+	}
+	// Return the most recent entry for the given proof asset ID.
+	var latest *proofasset.ProofLedgerEntry
+	for i := range entries {
+		if entries[i].ProofAssetID == proofAssetID {
+			cp := entries[i]
+			latest = &cp
+		}
+	}
+	return latest
+}
+
+// ProofLedger returns the proof ledger for direct access.
+func (b *AttestationBridge) ProofLedger() *proofasset.ProofLedger {
+	return b.proofLedger
 }

@@ -12,6 +12,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"knirvhasher/pkg/hashing/proofasset"
 )
 
 // JSONSeedWriter handles writing best seeds back to JSON with precise ASIC slot matching
@@ -422,8 +424,10 @@ type DualSeedWriter struct {
 	jsonWriter  *JSONSeedWriter
 	arrowWriter *ArrowSeedWriter
 	dataPath    string
+	proofWriter *proofasset.ProofLedger
 }
 
+// SeedWriteLedgerEntry is the existing append-only ledger record for PoW seeds.
 type SeedWriteLedgerEntry struct {
 	SchemaVersion    int32      `json:"schema_version"`
 	Timestamp        time.Time  `json:"timestamp"`
@@ -441,11 +445,27 @@ type SeedWriteLedgerEntry struct {
 
 // NewDualSeedWriter creates a new DualSeedWriter
 func NewDualSeedWriter(dataPath string) *DualSeedWriter {
+	proofLedgerPath := filepath.Join(dataPath, "frames", "proof_writes.jsonl")
 	return &DualSeedWriter{
 		jsonWriter:  NewJSONSeedWriter(dataPath),
 		arrowWriter: NewArrowSeedWriter(dataPath),
 		dataPath:    dataPath,
+		proofWriter: proofasset.NewProofLedger(proofLedgerPath),
 	}
+}
+
+// AddProofWrite appends a proof ledger entry to the separate append-only
+// proof_writes.jsonl. It does not affect the existing seed_writes.jsonl.
+func (dsw *DualSeedWriter) AddProofWrite(entry proofasset.ProofLedgerEntry) error {
+	if dsw.proofWriter == nil {
+		return fmt.Errorf("proof writer not initialized")
+	}
+	return dsw.proofWriter.Append(entry)
+}
+
+// ProofLedger returns the proof ledger for direct access.
+func (dsw *DualSeedWriter) ProofLedger() *proofasset.ProofLedger {
+	return dsw.proofWriter
 }
 
 // AddSeedWrite queues a win

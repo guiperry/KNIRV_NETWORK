@@ -153,6 +153,7 @@ type ManagerConfig struct {
 	AuthSecret             string
 	MinerAddress           string
 	BackendSocketPath      string
+	MonitorSocketPath      string
 	AgentControlSocketPath string
 	ChainSocketPath        string
 	GraphSocketPath        string
@@ -324,6 +325,9 @@ func (m *Manager) Start(ctx context.Context) error {
 
 	if m.config.BackendSocketPath != "" {
 		env = append(env, fmt.Sprintf("BACKEND_SOCKET_PATH=%s", m.config.BackendSocketPath))
+	}
+	if m.config.MonitorSocketPath != "" {
+		env = append(env, fmt.Sprintf("MONITOR_SOCKET_PATH=%s", m.config.MonitorSocketPath))
 	}
 	if m.config.AgentControlSocketPath != "" {
 		env = append(env, fmt.Sprintf("AGENT_CONTROL_SOCKET_PATH=%s", m.config.AgentControlSocketPath))

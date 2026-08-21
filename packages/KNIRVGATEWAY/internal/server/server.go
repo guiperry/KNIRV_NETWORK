@@ -307,6 +307,25 @@ func (s *Server) setupRoutes() error {
 	r.HandleFunc("/api/admin/users/{id}/role", requireAdminJWT(s.handleAdminUserRole)).Methods("POST")
 	r.HandleFunc("/api/admin/users/{id}/status", requireAdminJWT(s.handleAdminUserStatus)).Methods("POST")
 
+	// Network Monitor proxy — the monitor is socket-only. Register these
+	// routes before the generic /api/v1 backend proxy so public monitoring API
+	// requests stay gateway-owned and never require a monitor TCP listener.
+	if s.config.MonitorSocketPath != "" {
+		monitorProxy := newSocketProxy(s.config.MonitorSocketPath, "http://knirvmonitor")
+		for _, prefix := range []string{
+			"/api/v1/knirvbase/", "/api/v1/knirvchain/", "/api/v1/knirvgraph/",
+			"/api/v1/knirvoracle/", "/api/v1/gateway/", "/api/v1/onboarding/",
+		} {
+			r.PathPrefix(prefix).HandlerFunc(monitorProxy.ServeHTTP)
+		}
+		// Stable public Prometheus exposition endpoint. It maps directly to
+		// KNIRVMONITOR's native /metrics handler, not a nonexistent /targets UI.
+		r.Handle("/api/v1/monitor/metrics", rewriteProxyPath(monitorProxy, "/metrics")).Methods("GET")
+		s.logger.Info("Network monitor proxy registered", zap.String("socket", s.config.MonitorSocketPath))
+	} else {
+		s.logger.Warn("Network monitor socket path not configured — monitor API routes will not be proxied")
+	}
+
 	// Backend reverse proxy — proxy all /api/v1/* to the backend Unix socket
 	// (including /api/v1/info, which was previously handled locally by the gateway).
 	// The native encrypted CAS/proof protocol is owned by the KNIRVSERVER

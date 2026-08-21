@@ -1,6 +1,9 @@
 package dveevidence
 
-import "encoding/json"
+import (
+	"encoding/json"
+	"time"
+)
 
 const SchemaVersion = "dve.bundle.v1"
 
@@ -118,4 +121,29 @@ type Event struct {
 type Evidence struct {
 	Events         []Event  `json:"events,omitempty"`
 	ArtifactHashes []string `json:"artifact_hashes,omitempty"`
+}
+
+// ResearcherCredential is the portable, privacy-preserving credential proof
+// used for syndicate submissions. Personal/KYC data is intentionally excluded.
+type ResearcherCredential struct {
+	WalletAddress   string     `json:"wallet_address"`
+	BadgeCollection string     `json:"badge_collection"`
+	BadgeTokenID    string     `json:"badge_token_id"`
+	ClaimSetHash    string     `json:"claim_set_hash"`
+	ChainAnchorHash string     `json:"chain_anchor_hash"`
+	IssuedAt        time.Time  `json:"issued_at"`
+	ExpiresAt       time.Time  `json:"expires_at"`
+	RevokedAt       *time.Time `json:"revoked_at,omitempty"`
+}
+
+type SubmissionCommitment struct {
+	SchemaVersion      string `json:"schema_version"`
+	SubmissionID       string `json:"submission_id"`
+	ResearcherCommitment string `json:"researcher_commitment"`
+	PoCHash            string `json:"poc_hash"`
+	ReportHash         string `json:"report_hash"`
+	ScopeHash          string `json:"scope_hash"`
+	DedupeFingerprint  string `json:"dedupe_fingerprint"`
+	RiskClassID         string `json:"risk_class_id"`
+	CreatedAt           string `json:"created_at"`
 }

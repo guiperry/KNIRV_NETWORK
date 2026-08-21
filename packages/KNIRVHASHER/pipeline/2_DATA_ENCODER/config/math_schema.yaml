@@ -63,3 +63,11 @@ validation_rules:
   - name: "relation_cannot_follow_operator"
     prev_role: 0x07
     forbidden_next: [0x02, 0x05]
+
+formal_verification:
+  default_proof_system: lean
+  allowed_imports:
+    - Mathlib.Algebra.Group.Basic
+    - Mathlib.Data.Real.Basic
+  max_source_bytes: 65536
+  max_checker_seconds: 15

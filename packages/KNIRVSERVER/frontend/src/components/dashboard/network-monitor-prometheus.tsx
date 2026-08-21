@@ -20,14 +20,14 @@ export function NetworkMonitorPrometheus() {
         <div>
           <h3 className="text-lg font-semibold text-gray-200">Prometheus</h3>
           <p className="text-sm text-gray-500">
-            Targets page and expression browser
+            KNIRVMONITOR Prometheus exposition endpoint
           </p>
         </div>
         <Button
           variant="outline"
           size="sm"
           className="border-gray-700 text-gray-400 hover:bg-cyan-500/10 hover:text-cyan-400"
-          onClick={() => window.open('http://localhost:9090/targets', '_blank')}
+          onClick={() => window.open('/api/v1/monitor/metrics', '_blank')}
         >
           <ExternalLink className="w-4 h-4 mr-2" />
           Open in new tab
@@ -38,15 +38,15 @@ export function NetworkMonitorPrometheus() {
         <CardContent className="p-0">
           {!loaded && !error && (
             <div className="flex items-center justify-center py-24 text-gray-500">
-              Loading Prometheus targets...
+              Loading Prometheus metrics...
             </div>
           )}
           {error && (
             <div className="flex flex-col items-center justify-center py-24 text-gray-500">
-              <p className="mb-4">Prometheus is not reachable at localhost:9090.</p>
+              <p className="mb-4">Prometheus metrics are not reachable through KNIRVGATEWAY.</p>
               <Button
                 variant="outline"
-                onClick={() => window.open('http://localhost:9090/targets', '_blank')}
+                onClick={() => window.open('/api/v1/monitor/metrics', '_blank')}
               >
                 <ExternalLink className="w-4 h-4 mr-2" />
                 Open Prometheus in new tab
@@ -54,11 +54,11 @@ export function NetworkMonitorPrometheus() {
             </div>
           )}
           <iframe
-            src="http://localhost:9090/targets"
+            src="/api/v1/monitor/metrics"
             className="w-full h-[600px] border-0"
             onLoad={() => setLoaded(true)}
             onError={() => setError(true)}
-            title="Prometheus Targets"
+            title="KNIRVMONITOR Prometheus Metrics"
           />
         </CardContent>
       </Card>

@@ -90,6 +90,7 @@ type Config struct {
 
 	// Socket paths for internal service reverse proxies
 	BackendSocketPath string // /var/lib/knirvserver/sockets/backend.sock
+	MonitorSocketPath string // /var/lib/knirvserver/sockets/monitor.sock
 	ServerBaseURL     string // wrapper-owned native APIs, normally http://127.0.0.1:8090
 	ChainSocketPath   string // /var/lib/knirvserver/sockets/chain.sock
 	GraphSocketPath   string // /var/lib/knirvserver/sockets/graph.sock
@@ -199,6 +200,7 @@ func Load() (*Config, error) {
 		ChainBootnodeRegistry:     getEnv("CHAIN_BOOTNODE_REGISTRY", "https://registry.knirv.network"),
 		ChainCallbackSocket:       getEnv("CHAIN_CALLBACK_SOCKET", ""),
 		BackendSocketPath:         getEnv("BACKEND_SOCKET_PATH", ""),
+		MonitorSocketPath:         getEnv("MONITOR_SOCKET_PATH", ""),
 		ServerBaseURL:             getEnv("KNIRV_SERVER_BASE_URL", "http://127.0.0.1:8090"),
 		ChainSocketPath:           getEnv("CHAIN_SOCKET_PATH", ""),
 		InternalAuthToken:         getEnv("KNIRV_INTERNAL_AUTH_TOKEN", ""),

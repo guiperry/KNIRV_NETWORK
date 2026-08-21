@@ -85,7 +85,6 @@ type Config struct {
 	BackendSocket         string   `mapstructure:"backend_socket"`
 	GatewayPort           int      `mapstructure:"gateway_port"`
 	GatewaySocket         string   `mapstructure:"gateway_socket"`
-	MonitorPort           int      `mapstructure:"monitor_port"`
 	LogLevel              string   `mapstructure:"log_level"`
 	Testnet               bool     `mapstructure:"testnet"`
 	ProofStoreDir         string   `mapstructure:"proof_store_dir"`
@@ -1097,6 +1096,7 @@ func backendBaseURL(cfg *Config) string {
 // monitorAPIPrefixes are the KNIRVMONITOR-owned paths proxied to the
 // embedded monitor subprocess — see pkg/knirvmonitor and startMonitor.
 var monitorAPIPrefixes = []string{
+	"/api/v1/monitor/",
 	"/api/v1/knirvbase/",
 	"/api/v1/knirvchain/",
 	"/api/v1/knirvgraph/",
@@ -1141,6 +1141,13 @@ func jwtSigningSecret() string {
 	if secret := strings.TrimSpace(os.Getenv("KNIRV_JWT_SECRET")); secret != "" {
 		return secret
 	}
+	// startBackend supplies this same testnet default to backend_server. The
+	// wrapper does not mutate its own environment when it starts that child,
+	// so relying on testnet.yaml's differently named legacy secret here rejects
+	// otherwise-valid dashboard JWTs with 403 before the gateway can proxy.
+	if strings.EqualFold(strings.TrimSpace(viper.GetString("environment")), "testnet") {
+		return "testnet-jwt-secret-change-this-in-production"
+	}
 	if secret := strings.TrimSpace(viper.GetString("security.jwt_secret")); secret != "" {
 		return secret
 	}
@@ -1154,15 +1161,9 @@ func jwtSigningSecret() string {
 // internal/web/middleware/rbac.go) — duplicated here rather than imported
 // because backend_server is a separate Go module in a separate repo and this
 // codebase's convention is no cross-package Go imports between services
-// (see CLAUDE.md). It intentionally does NOT grant a bypass for any role
-// other than "admin" — unlike backend_server's RequireRole, which treats
-// "admin" as an implicit member of every allowed-role list, there is no
-// broader list here to bypass.
+// (see CLAUDE.md). Apart from the configured-testnet development credential,
+// it intentionally does NOT grant a bypass for any role other than "admin".
 func isAdminRequest(r *http.Request) bool {
-	secret := jwtSigningSecret()
-	if secret == "" {
-		return false
-	}
 	authHeader := strings.TrimSpace(r.Header.Get("Authorization"))
 	if authHeader == "" {
 		return false
@@ -1173,6 +1174,17 @@ func isAdminRequest(r *http.Request) bool {
 	}
 	tokenString := strings.TrimSpace(parts[1])
 	if tokenString == "" {
+		return false
+	}
+	// The dashboard deliberately supports this development-only credential
+	// without a JWT round trip. Keep its server-side meaning equally narrow:
+	// it is an admin credential only for a configured testnet instance.
+	if isTestnetEnvironment() && tokenString == "TESTNET_ADMIN_TOKEN" {
+		return true
+	}
+
+	secret := jwtSigningSecret()
+	if secret == "" {
 		return false
 	}
 
@@ -1189,18 +1201,14 @@ func isAdminRequest(r *http.Request) bool {
 	return strings.EqualFold(claims.Role, "admin")
 }
 
+func isTestnetEnvironment() bool {
+	return viper.GetBool("testnet") || strings.EqualFold(strings.TrimSpace(viper.GetString("environment")), "testnet")
+}
+
 func gatewayBaseURL(cfg *Config) string {
 	port := cfg.GatewayPort
 	if port == 0 {
 		port = 8080
-	}
-	return fmt.Sprintf("http://localhost:%d", port)
-}
-
-func monitorBaseURL(cfg *Config) string {
-	port := cfg.MonitorPort
-	if port == 0 {
-		port = 9090
 	}
 	return fmt.Sprintf("http://localhost:%d", port)
 }
@@ -1302,7 +1310,7 @@ func (app *ServerApp) collectDeepHealthChecks() map[string]healthProbeResult {
 	addProbe("chain", filepath.Join(socketDir, "chain.sock"), "http://localhost/health")
 	addProbe("arena", filepath.Join(socketDir, "arena.sock"), "http://localhost/health")
 	addProbe("hasher", filepath.Join(socketDir, "hasher.sock"), "http://localhost/health")
-	addProbe("monitor", "", monitorBaseURL(app.config)+"/health")
+	addProbe("monitor", filepath.Join(filepath.Dir(app.config.BackendSocket), "monitor.sock"), "http://localhost/health")
 
 	if app.agentControl != nil {
 		addProbe("agent_control", app.agentControl.socketPath, "http://localhost/control/status")
@@ -1759,16 +1767,19 @@ func (app *ServerApp) setupRoutes() error {
 
 	gatewayTransport := socketProxyTransport(app.config.GatewaySocket)
 	gatewayBase := gatewayBaseURL(app.config)
+	// KNIRVMONITOR is private: it listens only on this Unix socket. Use a
+	// synthetic HTTP host because the transport ignores it and dials the socket.
+	monitorSocket := filepath.Join(filepath.Dir(app.config.BackendSocket), "monitor.sock")
+	monitorTransport := socketProxyTransport(monitorSocket)
+	monitorProxy, monitorProxyErr := newPrefixProxy("http://knirvmonitor", monitorTransport, "", "")
+	if monitorProxyErr != nil {
+		return fmt.Errorf("configure monitor proxy: %w", monitorProxyErr)
+	}
 
 	// KNIRVMONITOR-owned API surface: proxied to the embedded monitor
 	// subprocess (see startMonitor / isMonitorAPIPath / isAdminRequest below)
 	// rather than falling through to the generic backend proxy, which has no
 	// handlers for these paths.
-	monitorBase := monitorBaseURL(app.config)
-	monitorProxy, monitorProxyErr := newPrefixProxy(monitorBase, http.DefaultTransport, "", "")
-	if monitorProxyErr != nil {
-		log.Printf("Warning: failed to configure monitor proxy: %v", monitorProxyErr)
-	}
 
 	registerGatewayPrefix := func(prefix, upstreamPrefix string) error {
 		proxy, err := newPrefixProxy(gatewayBase, gatewayTransport, prefix, upstreamPrefix)
@@ -2980,11 +2991,9 @@ func (app *ServerApp) startValidationChain(ctx context.Context) error {
 // KNIRV_MONITOR_GRAFANA_URL at a real TCP endpoint.
 func (app *ServerApp) startMonitor(ctx context.Context) error {
 	cfg := knirvmonitor.DefaultManagerConfig()
-	cfg.Port = app.config.MonitorPort
-	if cfg.Port == 0 {
-		cfg.Port = 9090
-	}
+	cfg.SocketPath = filepath.Join(filepath.Dir(app.config.BackendSocket), "monitor.sock")
 	cfg.GatewayURL = gatewayBaseURL(app.config)
+	cfg.BackendSocketPath = app.config.BackendSocket
 	cfg.KNIRVBaseURL = strings.TrimSpace(os.Getenv("KNIRV_MONITOR_KNIRVBASE_URL"))
 	cfg.KNIRVChainURL = strings.TrimSpace(os.Getenv("KNIRV_MONITOR_KNIRVCHAIN_URL"))
 	cfg.KNIRVGraphURL = strings.TrimSpace(os.Getenv("KNIRV_MONITOR_KNIRVGRAPH_URL"))
@@ -3337,9 +3346,14 @@ func (app *ServerApp) startBackend() error {
 	// Both keys are discovered at runtime from standard filesystem locations.
 	if rootKeyPath := bootkey.FindRootKey(); rootKeyPath != "" {
 		env = setChildEnv(env, "CHAIN_NODE_ROLE", "Root")
-		// Pass the resolved path so backend_server can find and decrypt root.key
-		// without embedding or hard-coding paths.
-		env = append(env, "ORACLE_KEY_PATH="+rootKeyPath)
+		// Pass the resolved key path using both names understood by the two
+		// independently-versioned server modules. The launcher discovers keys
+		// through ORACLE_KEY_PATH, while backend_server's config loader resolves
+		// KNIRV_ROOT_KEY_PATH before it initializes KNIRVORACLE. Without the
+		// latter, a valid key found in a noncanonical location is lost across the
+		// process boundary and the oracle silently remains inactive.
+		env = setChildEnv(env, "ORACLE_KEY_PATH", rootKeyPath)
+		env = setChildEnv(env, "KNIRV_ROOT_KEY_PATH", rootKeyPath)
 		log.Printf("[KEY] Root node: root.key at %s", rootKeyPath)
 
 		// Propagate Cloudflare credentials from root.key so KNIRVGATEWAY can start
@@ -3921,13 +3935,6 @@ func loadConfig() (*Config, error) {
 			config.GatewayPort = 8080
 		}
 	}
-	if config.MonitorPort == 0 {
-		config.MonitorPort = viper.GetInt("monitor.port")
-		if config.MonitorPort == 0 {
-			config.MonitorPort = 9090
-		}
-	}
-
 	// Network mode and Testnet are derived from -prod/-dev/-ent (or their env
 	// fallbacks) above, not from the config YAML, so they always win here.
 	config.NetworkMode = networkMode

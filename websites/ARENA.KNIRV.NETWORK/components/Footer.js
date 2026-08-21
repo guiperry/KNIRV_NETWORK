@@ -1,4 +1,4 @@
-function Footer() {
+function Footer({ arenaURL }) {
     try {
         return (
             <footer className="bg-[var(--bg-black)] border-t border-gray-900 py-12" data-name="footer" data-file="components/Footer.js">
@@ -16,7 +16,7 @@ function Footer() {
                         <div>
                             <h4 className="font-bold text-white mb-4 font-mono">Syndicate</h4>
                             <ul className="space-y-2 text-sm text-[var(--text-gray)] font-mono">
-                                <li><a href="#" className="hover:text-[var(--accent-blue)]">Initialize Node</a></li>
+                                <li><a href={arenaURL} className="hover:text-[var(--accent-blue)]">Initialize Node</a></li>
                                 <li><a href="#" className="hover:text-[var(--accent-blue)]">Underwriting Docs</a></li>
                                 <li><a href="#" className="hover:text-[var(--accent-blue)]">Smart Contracts</a></li>
                             </ul>

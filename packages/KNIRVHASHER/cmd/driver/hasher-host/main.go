@@ -27,12 +27,16 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"google.golang.org/grpc"
 
 	"knirvhasher/internal/config"
 	"knirvhasher/internal/discovery"
 	devicepkg "knirvhasher/internal/driver/device"
 	"knirvhasher/internal/host"
+	"knirvhasher/internal/formal/lean"
 	hasherapi "knirvhasher/pkg/hashing/api"
+	pb "knirvhasher/internal/proto/hasher/v1"
+	"knirvhasher/pkg/hashing/proofasset"
 	"knirvhasher/pkg/hashing/inference"
 	jitterpkg "knirvhasher/pkg/hashing/jitter"
 	hashermath "knirvhasher/pkg/hashing/math"
@@ -43,7 +47,9 @@ import (
 )
 
 const (
-	portFile = "/tmp/hasher-host.port"
+	portFile    = "/tmp/hasher-host.port"
+	socketFile  = "/tmp/hasher-host-grpc.sock"
+	socketDir   = "/tmp/knirvhasher"
 )
 
 // writePortFile writes the port to a temporary file for the CLI to discover.
@@ -56,6 +62,25 @@ func writePortFile(port int) error {
 func cleanupPortFile() {
 	log.Printf("Cleaning up port file: %s", portFile)
 	os.Remove(portFile)
+}
+
+// writeSocketFile writes the Unix socket path to a temporary file for discovery.
+func writeSocketFile(socketPath string) error {
+	if err := os.MkdirAll(socketDir, 0755); err != nil {
+		return fmt.Errorf("create socket directory: %w", err)
+	}
+	log.Printf("Writing socket path %s to %s", socketPath, socketFile)
+	return os.WriteFile(socketFile, []byte(socketPath), 0644)
+}
+
+// cleanupSocketFile removes the temporary socket file and socket itself.
+func cleanupSocketFile(socketPath string) {
+	if socketPath != "" {
+		log.Printf("Cleaning up socket file: %s", socketPath)
+		os.Remove(socketPath)
+	}
+	log.Printf("Cleaning up socket path file: %s", socketFile)
+	os.Remove(socketFile)
 }
 
 func init() {
@@ -131,6 +156,16 @@ var (
 	// at runtime depending on which schema YAML is loaded.
 	schemaPath = flag.String("schema", "", "Path to slot-schema YAML (e.g. pipeline/2_DATA_ENCODER/config/math_schema.yaml). When domain is MATHASHER, mounts POST /v1/verify/math on the API server.")
 	subdomain  = flag.Uint("subdomain", 0, "Math subdomain override when --schema names MATHASHER: 0=Arithmetic 1=Algebra 2=Calculus 3=Statistics 4=Logic")
+
+	// Formal verification configuration
+	formalVerifierEnabled = flag.Bool("formal-verifier", false, "enable formal proof verification via Lean worker")
+	leanBinary            = flag.String("lean-binary", "lean", "path to Lean binary for formal verification")
+	leanWorkDir           = flag.String("lean-work-dir", "", "working directory for Lean verification jobs (default: system temp dir)")
+	leanMaxSeconds        = flag.Int("lean-max-seconds", 15, "max CPU seconds per Lean verification job")
+	proofLedgerPath       = flag.String("proof-ledger", "", "path to proof_writes.jsonl (default: <data-path>/frames/proof_writes.jsonl)")
+	grpcPort              = flag.Int("grpc-port", 50051, "gRPC server port for FormalVerificationService")
+	grpcSocket            = flag.String("grpc-socket", "", "Unix socket path for FormalVerificationService gRPC (default: empty = TCP when not under KNIRVSERVER; /tmp/knirvhasher/formal-verifier.sock when --knirvserver-deployed)")
+	knirvserverDeployed   = flag.Bool("knirvserver-deployed", false, "indicates KNIRVHASHER is initialized by KNIRVSERVER; defaults gRPC to Unix socket and disables direct port binding")
 )
 
 // Orchestrator manages the recursive inference process
@@ -151,6 +186,16 @@ type Orchestrator struct {
 	// Routes POST /v1/verify/math and GET /v1/verify/math/health are mounted
 	// on the gin router only when this is set.
 	mathServer *hasherapi.MathVerifierServer
+
+	// Formal verification: attached when --formal-verifier is enabled.
+	formalVerifierEnabled bool
+	leanWorker            interface{} // *lean.Worker — kept as interface{} to avoid import cycle; cast in runAPIServer
+	proofLedgerPath       string
+	formalVerifierGRPCServer *lean.GRPCServer
+	grpcServer            *grpc.Server
+	grpcPort              int
+	grpcSocket            string
+	knirvserverDeployed   bool
 
 	// Connection monitoring
 	connectionHealthy bool          // Current connection health status
@@ -605,21 +650,52 @@ func main() {
 
 	// Create orchestrator
 	orch := &Orchestrator{
-		asicClient:         asicClient,
-		engine:             engine,
-		network:            network,
-		cryptoModel:        cryptoModel,
-		miningNeuron:       miningNeuron,
-		jitterEngine:       inferenceJitterEngine,
-		cgminerMethod:      cgminerMethod,
-		discoveryResult:    discoveryResult,
-		startTime:          time.Now(),
-		deployer:           deployer,
-		connectionHealthy:  asicClient != nil && !asicClient.IsUsingFallback(),
-		lastHealthCheck:    time.Now(),
-		stopMonitor:        make(chan struct{}),
-		stopLogMonitorChan: make(chan struct{}),
-		serverDeviceIPAddr: extractIPFromAddress(serverDeviceAddr),
+		asicClient:           asicClient,
+		engine:               engine,
+		network:              network,
+		cryptoModel:          cryptoModel,
+		miningNeuron:         miningNeuron,
+		jitterEngine:         inferenceJitterEngine,
+		cgminerMethod:        cgminerMethod,
+		discoveryResult:      discoveryResult,
+		startTime:            time.Now(),
+		deployer:             deployer,
+		connectionHealthy:    asicClient != nil && !asicClient.IsUsingFallback(),
+		lastHealthCheck:      time.Now(),
+		stopMonitor:          make(chan struct{}),
+		stopLogMonitorChan:   make(chan struct{}),
+		serverDeviceIPAddr:   extractIPFromAddress(serverDeviceAddr),
+		grpcSocket:           resolveGRPCSocket(*grpcSocket, *knirvserverDeployed),
+		knirvserverDeployed:  *knirvserverDeployed,
+	}
+
+	// Initialize formal verifier worker if enabled.
+	if *formalVerifierEnabled {
+		leanCfg := lean.DefaultConfig()
+		leanCfg.LeanBinary = *leanBinary
+		if *leanWorkDir != "" {
+			leanCfg.WorkDir = *leanWorkDir
+		}
+		leanCfg.MaxCheckerSeconds = *leanMaxSeconds
+		orch.leanWorker = lean.NewWorker(leanCfg, nil)
+		orch.grpcPort = *grpcPort
+		log.Printf("Formal verifier worker initialized (lean_binary=%s work_dir=%s)", leanCfg.LeanBinary, leanCfg.WorkDir)
+
+		workerPtr, ok := orch.leanWorker.(*lean.Worker)
+		if ok {
+			proofStoreDir := filepath.Join(os.TempDir(), "knirv-proof-assets")
+			proofStore, err := lean.NewFileSystemProofAssetStore(proofStoreDir)
+			if err != nil {
+				log.Printf("WARNING: failed to create proof asset store: %v", err)
+			} else {
+				orch.formalVerifierGRPCServer = lean.NewGRPCServer(workerPtr, proofStore)
+				if orch.knirvserverDeployed || orch.grpcSocket != "" {
+					log.Printf("Formal verification gRPC server will use Unix socket: %s", orch.grpcSocket)
+				} else {
+					log.Printf("Formal verification gRPC server initialized on port %d", *grpcPort)
+				}
+			}
+		}
 	}
 
 	// Load schema and activate domain-specific plugin if --schema is provided.
@@ -646,6 +722,28 @@ func main() {
 				log.Printf("MATHASHER mode: loaded %d validation rules", len(rules))
 				orch.mathServer = hasherapi.NewMathVerifierServerWithRules(subdomainVal, rules)
 			}
+
+			// Configure formal verifier if enabled.
+			if *formalVerifierEnabled {
+				orch.formalVerifierEnabled = true
+				allowedImports := []string{
+					"Mathlib.Algebra.Group.Basic",
+					"Mathlib.Data.Real.Basic",
+				}
+				if *proofLedgerPath != "" {
+					orch.proofLedgerPath = *proofLedgerPath
+				} else if *framesDir != "" {
+					orch.proofLedgerPath = filepath.Join(*framesDir, "proof_writes.jsonl")
+				}
+
+				orch.mathServer = orch.mathServer.
+					WithAllowedImports(allowedImports).
+					WithProofLedgerPath(orch.proofLedgerPath)
+
+				log.Printf("Formal verification enabled: lean_binary=%s max_seconds=%d ledger=%s",
+					*leanBinary, *leanMaxSeconds, orch.proofLedgerPath)
+			}
+
 			log.Printf("MATHASHER routes will be available at POST /v1/verify/math and GET /v1/verify/math/health")
 		}
 	}
@@ -714,6 +812,18 @@ func extractIPFromAddress(addr string) string {
 		return parts[0]
 	}
 	return addr
+}
+
+// resolveGRPCSocket returns the Unix socket path for gRPC when running under KNIRVSERVER,
+// or the explicit --grpc-socket value if provided. Returns empty string for TCP mode.
+func resolveGRPCSocket(explicitSocket string, knirvserverDeployed bool) string {
+	if explicitSocket != "" {
+		return explicitSocket
+	}
+	if knirvserverDeployed {
+		return filepath.Join(socketDir, "formal-verifier.sock")
+	}
+	return ""
 }
 
 // monitorServerLogs monitors the server logs via SSH and handles auto-reboot scenarios
@@ -1080,6 +1190,17 @@ func runAPIServer(orch *Orchestrator) {
 		v1.POST("/verify/math", gin.WrapF(orch.mathServer.VerifyHandler()))
 		v1.GET("/verify/math/health", gin.WrapF(orch.mathServer.MathHealthHandler()))
 		log.Printf("MATHASHER routes mounted: POST /v1/verify/math  |  GET /v1/verify/math/health")
+
+		// Formal verification routes — only mounted when formal verifier is enabled.
+		if orch.formalVerifierEnabled {
+			v1.POST("/verify/proof", orch.handleSubmitProof)
+			v1.GET("/verify/proof/:id", orch.handleGetProofStatus)
+			v1.GET("/verify/proof/:id/asset", orch.handleGetProofAsset)
+			v1.POST("/verify/proof/:id/replay", orch.handleReplayProof)
+			v1.POST("/verify/proof/:id/attest", orch.handleAttestProof)
+			v1.GET("/verify/proof/metrics", orch.handleFormalVerificationMetrics)
+			log.Printf("Formal verification routes mounted: POST /v1/verify/proof | GET /v1/verify/proof/:id | GET /v1/verify/proof/:id/asset | POST /v1/verify/proof/:id/replay | POST /v1/verify/proof/:id/attest | GET /v1/verify/proof/metrics")
+		}
 	}
 
 	// Set up graceful shutdown
@@ -1095,6 +1216,53 @@ func runAPIServer(orch *Orchestrator) {
 		}
 	}()
 
+	if orch.formalVerifierGRPCServer != nil {
+		var grpcLis net.Listener
+		var grpcAddr string
+		var err error
+
+		if orch.grpcSocket != "" {
+			socketPath := orch.grpcSocket
+			_ = os.Remove(socketPath)
+			grpcLis, err = net.Listen("unix", socketPath)
+			if err != nil {
+				log.Printf("WARNING: failed to start gRPC Unix socket at %s: %v", socketPath, err)
+			} else {
+				if err := writeSocketFile(socketPath); err != nil {
+					log.Printf("WARNING: failed to write socket discovery file: %v", err)
+				}
+				grpcAddr = "unix://" + socketPath
+				grpcSrv := grpc.NewServer()
+				pb.RegisterFormalVerificationServiceServer(grpcSrv, orch.formalVerifierGRPCServer)
+				go func() {
+					log.Printf("FormalVerificationService gRPC server listening on Unix socket %s", socketPath)
+					if err := grpcSrv.Serve(grpcLis); err != nil {
+						log.Printf("gRPC server error: %v", err)
+					}
+				}()
+				orch.grpcServer = grpcSrv
+			}
+		} else {
+			grpcAddr = fmt.Sprintf(":%d", orch.grpcPort)
+			grpcLis, err = net.Listen("tcp", grpcAddr)
+			if err != nil {
+				log.Printf("WARNING: failed to start gRPC server on %s: %v", grpcAddr, err)
+			} else {
+				grpcSrv := grpc.NewServer()
+				pb.RegisterFormalVerificationServiceServer(grpcSrv, orch.formalVerifierGRPCServer)
+				go func() {
+					log.Printf("FormalVerificationService gRPC server listening on %s", grpcAddr)
+					if err := grpcSrv.Serve(grpcLis); err != nil {
+						log.Printf("gRPC server error: %v", err)
+					}
+				}()
+				orch.grpcServer = grpcSrv
+			}
+		}
+
+		_ = grpcAddr
+	}
+
 	// Wait for interrupt signal
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
@@ -1109,6 +1277,11 @@ func runAPIServer(orch *Orchestrator) {
 	// Clean up port file right away
 	cleanupPortFile()
 
+	// Clean up Unix socket if used
+	if orch.grpcSocket != "" {
+		cleanupSocketFile(orch.grpcSocket)
+	}
+
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
@@ -1118,6 +1291,10 @@ func runAPIServer(orch *Orchestrator) {
 
 	if orch.asicClient != nil {
 		orch.asicClient.Close()
+	}
+
+	if orch.grpcServer != nil {
+		orch.grpcServer.GracefulStop()
 	}
 
 	// Cleanup deployed hasher-server if auto-deployment was used
@@ -1808,6 +1985,329 @@ func (o *Orchestrator) handleListDomains(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"domains": []interface{}{}, // Empty for now - could be extended to store domains
 		"total":   0,
+	})
+}
+
+// handleSubmitProof handles POST /v1/verify/proof for formal proof submission.
+func (o *Orchestrator) handleSubmitProof(c *gin.Context) {
+	if !o.formalVerifierEnabled {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "formal verifier not enabled"})
+		return
+	}
+
+	var req struct {
+		CanonicalProofAsset     []byte `json:"canonical_proof_asset"`
+		RequestHardwareAttestation bool `json:"request_hardware_attestation"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body: " + err.Error()})
+		return
+	}
+	if len(req.CanonicalProofAsset) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "canonical_proof_asset is required"})
+		return
+	}
+
+	worker, ok := o.leanWorker.(*lean.Worker)
+	if !ok || worker == nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "lean worker not initialized"})
+		return
+	}
+
+	// Deserialize the proof asset.
+	var asset proofasset.ProofAsset
+	if err := json.Unmarshal(req.CanonicalProofAsset, &asset); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid proof asset JSON: " + err.Error()})
+		return
+	}
+
+	// Run precheck before submitting to the expensive checker.
+	if err := proofasset.ValidateProofAsset(&asset, []string{
+		"Mathlib.Algebra.Group.Basic",
+		"Mathlib.Data.Real.Basic",
+	}); err != nil {
+		c.JSON(http.StatusOK, gin.H{
+			"proof_asset_id": "",
+			"status":         proofasset.StatusStructurallyRejected,
+			"diagnostic":     fmt.Sprintf("precheck failed: %v", err),
+		})
+		return
+	}
+
+	result, err := worker.SubmitProof(&asset)
+	if err != nil {
+		c.JSON(http.StatusOK, gin.H{
+			"proof_asset_id": "",
+			"status":         proofasset.StatusCheckerUnavailable,
+			"diagnostic":     fmt.Sprintf("checker error: %v", err),
+		})
+		return
+	}
+
+	proofAssetID, _ := proofasset.ComputeProofAssetID(&asset)
+	response := gin.H{
+		"proof_asset_id": proofAssetID,
+		"status":         result.Receipt.Status,
+		"diagnostic":     result.Diagnostic,
+	}
+
+	if result.Receipt != nil {
+		response["receipt"] = result.Receipt
+	}
+
+	if req.RequestHardwareAttestation && result.Receipt.Status == proofasset.StatusFormallyVerified {
+		response["hardware_attestation"] = gin.H{
+			"status": proofasset.StatusAttestationPending,
+			"note":   "hardware attestation queued for verified proof asset",
+		}
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
+// handleGetProofStatus handles GET /v1/verify/proof/:id for proof status polling.
+func (o *Orchestrator) handleGetProofStatus(c *gin.Context) {
+	proofAssetID := c.Param("id")
+	if proofAssetID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "proof asset ID is required"})
+		return
+	}
+
+	if o.proofLedgerPath == "" {
+		c.JSON(http.StatusNotFound, gin.H{"error": "proof ledger not configured"})
+		return
+	}
+
+	ledger := proofasset.NewProofLedger(o.proofLedgerPath)
+	entries, err := ledger.ReadAll()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to read proof ledger: " + err.Error()})
+		return
+	}
+
+	for i := len(entries) - 1; i >= 0; i-- {
+		if entries[i].ProofAssetID == proofAssetID {
+			c.JSON(http.StatusOK, gin.H{
+				"proof_asset_id": entries[i].ProofAssetID,
+				"status":         entries[i].FinalStatus,
+				"receipt":        entries[i].Receipt,
+			})
+			return
+		}
+	}
+
+	c.JSON(http.StatusNotFound, gin.H{"error": "proof asset not found"})
+}
+
+// handleGetProofAsset handles GET /v1/verify/proof/:id/asset for retrieving stored proof assets.
+func (o *Orchestrator) handleGetProofAsset(c *gin.Context) {
+	proofAssetID := c.Param("id")
+	if proofAssetID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "proof asset ID is required"})
+		return
+	}
+
+	if o.proofLedgerPath == "" {
+		c.JSON(http.StatusNotFound, gin.H{"error": "proof ledger not configured"})
+		return
+	}
+
+	ledger := proofasset.NewProofLedger(o.proofLedgerPath)
+	entries, err := ledger.ReadAll()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to read proof ledger: " + err.Error()})
+		return
+	}
+
+	for i := len(entries) - 1; i >= 0; i-- {
+		if entries[i].ProofAssetID == proofAssetID {
+			c.JSON(http.StatusOK, gin.H{
+				"proof_asset_id":   entries[i].ProofAssetID,
+				"canonical_asset":  entries[i].CanonicalAssetPath,
+				"canonical_digest": entries[i].CanonicalAssetDigest,
+				"status":           entries[i].FinalStatus,
+				"receipt":          entries[i].Receipt,
+			})
+			return
+		}
+	}
+
+	c.JSON(http.StatusNotFound, gin.H{"error": "proof asset not found"})
+}
+
+// handleReplayProof handles POST /v1/verify/proof/:id/replay for independent
+// replay of formal verification on a clean node.
+func (o *Orchestrator) handleReplayProof(c *gin.Context) {
+	proofAssetID := c.Param("id")
+	if proofAssetID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "proof asset ID is required"})
+		return
+	}
+
+	if !o.formalVerifierEnabled {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "formal verifier not enabled"})
+		return
+	}
+
+	ledger := proofasset.NewProofLedger(o.proofLedgerPath)
+	entries, err := ledger.ReadAll()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to read proof ledger: " + err.Error()})
+		return
+	}
+
+	var targetEntry *proofasset.ProofLedgerEntry
+	for i := range entries {
+		if entries[i].ProofAssetID == proofAssetID {
+			cp := entries[i]
+			targetEntry = &cp
+			break
+		}
+	}
+
+	if targetEntry == nil || targetEntry.Receipt == nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "proof asset or receipt not found"})
+		return
+	}
+
+	worker, ok := o.leanWorker.(*lean.Worker)
+	if !ok || worker == nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "lean worker not initialized"})
+		return
+	}
+
+	var asset proofasset.ProofAsset
+	canonicalPath := targetEntry.CanonicalAssetPath
+	if canonicalPath != "" {
+		data, err := os.ReadFile(canonicalPath)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to read canonical asset: " + err.Error()})
+			return
+		}
+		if err := json.Unmarshal(data, &asset); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to unmarshal canonical asset: " + err.Error()})
+			return
+		}
+	} else {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "canonical asset path not recorded in ledger"})
+		return
+	}
+
+	result, err := worker.SubmitProof(&asset)
+	if err != nil {
+		c.JSON(http.StatusOK, gin.H{
+			"proof_asset_id": proofAssetID,
+			"status":         proofasset.StatusCheckerUnavailable,
+			"diagnostic":     fmt.Sprintf("replay checker error: %v", err),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"proof_asset_id": proofAssetID,
+		"original_status": targetEntry.Receipt.Status,
+		"replay_status":   result.Receipt.Status,
+		"replay_diagnostic": result.Diagnostic,
+		"match":           targetEntry.Receipt.Status == result.Receipt.Status,
+	})
+}
+
+// handleAttestProof handles POST /v1/verify/proof/:id/attest for ASIC
+// attestation of verified proof assets.
+func (o *Orchestrator) handleAttestProof(c *gin.Context) {
+	proofAssetID := c.Param("id")
+	if proofAssetID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "proof asset ID is required"})
+		return
+	}
+
+	if !o.formalVerifierEnabled {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "formal verifier not enabled"})
+		return
+	}
+
+	ledger := proofasset.NewProofLedger(o.proofLedgerPath)
+	entries, err := ledger.ReadAll()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to read proof ledger: " + err.Error()})
+		return
+	}
+
+	var targetEntry *proofasset.ProofLedgerEntry
+	for i := range entries {
+		if entries[i].ProofAssetID == proofAssetID {
+			cp := entries[i]
+			targetEntry = &cp
+			break
+		}
+	}
+
+	if targetEntry == nil || targetEntry.Receipt == nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "proof asset or receipt not found"})
+		return
+	}
+
+	if targetEntry.Receipt.Status != proofasset.StatusFormallyVerified {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "only formally verified assets can be attested"})
+		return
+	}
+
+	attestSvc := proofasset.NewAsicAttestationService(true)
+	result := attestSvc.ComputeAttestation(proofasset.AttestationRequest{
+		ProofAssetID:     proofAssetID,
+		Receipt:          targetEntry.Receipt,
+		HeaderVersion:    1,
+		Target:           0x10000,
+		DeviceFirmware:   "software-fallback",
+		AsicSlots:        [12]uint32{},
+		NonceStart:       0,
+		NonceEnd:         0xFFFF,
+	})
+
+	if !result.Attested {
+		c.JSON(http.StatusOK, gin.H{
+			"proof_asset_id": proofAssetID,
+			"status":         proofasset.StatusAttestationPending,
+			"diagnostic":     result.Diagnostic,
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"proof_asset_id": proofAssetID,
+		"status":         proofasset.StatusHardwareAttested,
+		"attestation":    result.Record,
+		"diagnostic":     result.Diagnostic,
+	})
+}
+
+// handleFormalVerificationMetrics handles GET /v1/verify/proof/metrics for
+// formal verification queue and execution metrics.
+func (o *Orchestrator) handleFormalVerificationMetrics(c *gin.Context) {
+	if !o.formalVerifierEnabled {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "formal verifier not enabled"})
+		return
+	}
+
+	grpcSrv := o.formalVerifierGRPCServer
+	if grpcSrv == nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "gRPC formal verification server not initialized"})
+		return
+	}
+
+	resp, err := grpcSrv.Metrics(c, &pb.MetricsRequest{})
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("metrics request failed: %v", err)})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"total_submissions":     resp.TotalSubmissions,
+		"verified_count":        resp.VerifiedCount,
+		"rejected_count":        resp.RejectedCount,
+		"error_count":           resp.ErrorCount,
+		"queue_depth":           resp.QueueDepth,
+		"median_check_time_ms":  resp.MedianCheckTimeMs,
 	})
 }
 

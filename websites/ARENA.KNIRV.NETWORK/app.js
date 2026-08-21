@@ -37,15 +37,26 @@ class ErrorBoundary extends React.Component {
 
 function App() {
   try {
+    const arenaGateways = {
+      testnet: 'https://testnet-gateway.knirv.network',
+      mainnet: 'https://gateway.knirv.network',
+    };
+    const [selectedGateway, setSelectedGateway] = React.useState('testnet');
+    const arenaURL = `${arenaGateways[selectedGateway]}/arena/?arena=1`;
+
     return (
       <div className="min-h-screen flex flex-col" data-name="app" data-file="app.js">
-        <Header />
+        <Header
+          selectedGateway={selectedGateway}
+          onGatewayChange={setSelectedGateway}
+          arenaURL={arenaURL}
+        />
         <main className="flex-grow">
-            <Hero />
+            <Hero arenaURL={arenaURL} />
             <Features />
-            <Arena />
+            <Arena arenaURL={arenaURL} />
         </main>
-        <Footer />
+        <Footer arenaURL={arenaURL} />
       </div>
     );
   } catch (error) {

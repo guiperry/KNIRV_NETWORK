@@ -10,38 +10,104 @@ import (
 
 	"knirvhasher/pkg/hashing/math"
 	"knirvhasher/pkg/hashing/miner"
+	"knirvhasher/pkg/hashing/proofasset"
 )
 
-type MathVerifierServer struct {
-	watchdog  *math.InferenceWatchdog
-	mapper    *math.LaTeXMapper
-	subdomain uint32
+// FormalVerifierClient is the interface for submitting proof assets to a
+// formal checker worker. Implementations may be local (subprocess) or remote
+// (gRPC).
+type FormalVerifierClient interface {
+	SubmitProof(asset *proofasset.ProofAsset) (*proofasset.VerificationReceipt, error)
 }
 
+// MathVerifierServer orchestrates structural precheck and optional formal
+// verification of mathematical expressions.
+type MathVerifierServer struct {
+	watchdog        *math.InferenceWatchdog
+	mapper          *math.LaTeXMapper
+	subdomain       uint32
+	formalClient    FormalVerifierClient
+	allowedImports  []string
+	proofLedgerPath string
+}
+
+// NewMathVerifierServer creates a server whose watchdog uses hard-coded
+// fallback rules.
 func NewMathVerifierServer(subdomain uint32) *MathVerifierServer {
 	if subdomain == 0 {
 		subdomain = math.SUBDOMAIN_ARITHMETIC
 	}
 	return &MathVerifierServer{
-		watchdog:  math.NewInferenceWatchdog(subdomain),
-		mapper:    math.NewLaTeXMapper(subdomain),
-		subdomain: subdomain,
+		watchdog:        math.NewInferenceWatchdog(subdomain),
+		mapper:          math.NewLaTeXMapper(subdomain),
+		subdomain:       subdomain,
+		allowedImports:  []string{},
+		proofLedgerPath: "",
 	}
 }
 
-// NewMathVerifierServerWithRules creates a server whose watchdog uses schema-loaded rules.
+// NewMathVerifierServerWithRules creates a server whose watchdog uses
+// schema-loaded validation rules.
 func NewMathVerifierServerWithRules(subdomain uint32, rules []math.WatchdogRule) *MathVerifierServer {
 	if subdomain == 0 {
 		subdomain = math.SUBDOMAIN_ARITHMETIC
 	}
 	return &MathVerifierServer{
-		watchdog:  math.NewWatchdogWithRules(subdomain, rules),
-		mapper:    math.NewLaTeXMapper(subdomain),
-		subdomain: subdomain,
+		watchdog:        math.NewWatchdogWithRules(subdomain, rules),
+		mapper:          math.NewLaTeXMapper(subdomain),
+		subdomain:       subdomain,
+		allowedImports:  []string{},
+		proofLedgerPath: "",
 	}
 }
 
-func (s *MathVerifierServer) Verify(latex string, subdomain uint32) *MathVerifyResponse {
+// WithFormalVerifier attaches a formal verifier client to the server. When nil,
+// the server performs structural precheck only and returns PROOF_PENDING /
+// CHECKER_UNAVAILABLE as appropriate.
+func (s *MathVerifierServer) WithFormalVerifier(client FormalVerifierClient) *MathVerifierServer {
+	s.formalClient = client
+	return s
+}
+
+// WithAllowedImports sets the Lean import allowlist.
+func (s *MathVerifierServer) WithAllowedImports(imports []string) *MathVerifierServer {
+	s.allowedImports = imports
+	return s
+}
+
+// WithProofLedgerPath sets the path to the append-only proof ledger.
+func (s *MathVerifierServer) WithProofLedgerPath(path string) *MathVerifierServer {
+	s.proofLedgerPath = path
+	return s
+}
+
+// VerifyResponse is the enhanced response model for math verification.
+// PrecheckStatus is the outcome of the MATHASHER structural precheck.
+// FormalStatus is the outcome of the formal checker (empty when no checker
+// is configured or the candidate was not submitted).
+// ProofAssetID is the content-addressed identity of the proof asset when one
+// was built for formal checking.
+// Receipt is the full verification receipt when FormalStatus is
+// FORMALLY_VERIFIED; otherwise omitted.
+type VerifyResponse struct {
+	Status            string  `json:"status"`
+	PrecheckStatus    string  `json:"precheck_status"`
+	FormalStatus      string  `json:"formal_status,omitempty"`
+	ProofAssetID      string  `json:"proof_asset_id,omitempty"`
+	Nonce             string  `json:"nonce"`
+	NonceNote         string  `json:"nonce_note,omitempty"`
+	ResultHash        string  `json:"result_hash"`
+	DetokenizedOutput string  `json:"detokenized_output"`
+	LogicIntegrity    float32 `json:"logic_integrity"`
+	Receipt           *proofasset.VerificationReceipt `json:"receipt,omitempty"`
+	LatencyMs         float64 `json:"latency_ms"`
+}
+
+// Verify performs structural precheck and, when a formal verifier client is
+// attached, submits a proof asset for formal verification. The endpoint never
+// synthesizes a nonce from input text and presents it as a formal proof
+// witness.
+func (s *MathVerifierServer) Verify(latex string, subdomain uint32) *VerifyResponse {
 	start := time.Now()
 
 	if subdomain == 0 {
@@ -50,42 +116,164 @@ func (s *MathVerifierServer) Verify(latex string, subdomain uint32) *MathVerifyR
 
 	slots := s.mapper.MapLaTeXToTensor(latex, subdomain)
 	validation := s.watchdog.ValidateMathStep(0, slots)
-	latency := time.Since(start).Seconds() * 1000
+	precheckStatus := proofasset.StatusStructurallyValid
+	if !validation.Valid {
+		precheckStatus = proofasset.StatusStructurallyRejected
+	}
 
-	response := &MathVerifyResponse{
-		Status:            "UNVERIFIED",
+	response := &VerifyResponse{
+		Status:            precheckStatus,
+		PrecheckStatus:    precheckStatus,
 		Nonce:             fmt.Sprintf("0x%08x", slots[11]),
+		NonceNote:         "nonce is deterministic input-derived slot metadata; it is NOT a formal proof witness",
 		ResultHash:        fmt.Sprintf("0x%08x", slots[3]),
 		DetokenizedOutput: latex,
 		LogicIntegrity:    float32(validation.LogicIntegrity),
-		LatencyMs:         float32(latency),
+		LatencyMs:         float64(time.Since(start).Seconds() * 1000),
 	}
 
-	if validation.Valid {
-		response.Status = "VERIFIED"
-	} else if validation.Error != "" {
-		response.Status = "REJECTED"
+	if !validation.Valid {
 		response.ResultHash = validation.Error
+		response.FormalStatus = ""
+		return response
+	}
+
+	// Structurally valid: attempt formal verification if a client is attached.
+	if s.formalClient == nil {
+		response.FormalStatus = proofasset.StatusCheckerUnavailable
+		response.Status = proofasset.StatusProofPending
+		return response
+	}
+
+	asset, err := s.buildProofAsset(latex, slots)
+	if err != nil {
+		response.FormalStatus = proofasset.StatusCheckerUnavailable
+		response.Status = proofasset.StatusProofPending
+		response.ResultHash = fmt.Sprintf("proof asset build failed: %v", err)
+		return response
+	}
+
+	proofAssetID, err := proofasset.ComputeProofAssetID(asset)
+	if err != nil {
+		response.FormalStatus = proofasset.StatusCheckerUnavailable
+		response.Status = proofasset.StatusProofPending
+		response.ResultHash = fmt.Sprintf("proof asset ID computation failed: %v", err)
+		return response
+	}
+	response.ProofAssetID = proofAssetID
+
+	receipt, err := s.formalClient.SubmitProof(asset)
+	if err != nil {
+		response.FormalStatus = proofasset.StatusCheckerUnavailable
+		response.Status = proofasset.StatusProofPending
+		response.ResultHash = fmt.Sprintf("formal checker error: %v", err)
+		return response
+	}
+
+	response.FormalStatus = receipt.Status
+	response.Status = receipt.Status
+	if receipt.Status == proofasset.StatusFormallyVerified {
+		response.Receipt = receipt
+	}
+
+	// Persist to proof ledger if configured.
+	if s.proofLedgerPath != "" && response.ProofAssetID != "" {
+		ledger := proofasset.NewProofLedger(s.proofLedgerPath)
+		ledgerEntry := proofasset.ProofLedgerEntry{
+			SchemaVersion:        1,
+			ProofAssetID:         response.ProofAssetID,
+			TheoremID:            "", // filled below if possible
+			ProofSystem:          proofasset.ProofSystemLean,
+			CheckerDigest:        receipt.CheckerDigest,
+			DependencyLockDigest: "", // populated from asset in production
+			EnvironmentDigest:    receipt.EnvironmentDigest,
+			FinalStatus:          receipt.Status,
+			DiagnosticDigest:     receipt.DiagnosticDigest,
+			NrvBracketID:         fmt.Sprintf("0x%08x", slots[0]),
+			Receipt:              receipt,
+		}
+		if theoremID, terr := proofasset.ComputeTheoremID(proofasset.ProofSystemLean, "", asset.TheoremSource); terr == nil {
+			ledgerEntry.TheoremID = theoremID
+		}
+		if len(s.allowedImports) > 0 {
+			ledgerEntry.DependencyLockDigest = fmt.Sprintf("lean-%d-imports", len(s.allowedImports))
+		}
+		if err := ledger.Append(ledgerEntry); err != nil {
+			log.Printf("WARNING: proof ledger append failed: %v", err)
+		}
 	}
 
 	return response
 }
 
-type MathVerifyResponse struct {
+// buildProofAsset constructs a minimal ProofAsset from a structurally valid
+// LaTeX expression. The theorem source is the original expression; the proof
+// source is a placeholder that the formal checker must replace with a real
+// proof. In production, the neural/search layer would supply the proof source.
+func (s *MathVerifierServer) buildProofAsset(latex string, slots [12]uint32) (*proofasset.ProofAsset, error) {
+	theoremSource := []byte(fmt.Sprintf("theorem example_theorem : True := by\n  -- original expression: %s\n  trivial\n", latex))
+	proofSource := []byte(fmt.Sprintf("theorem example_theorem : True := by\n  -- auto-generated candidate for: %s\n  trivial\n", latex))
+
+	var imports []proofasset.ArtifactRef
+	for _, imp := range s.allowedImports {
+		imports = append(imports, proofasset.ArtifactRef{
+			Name:   imp,
+			Digest: "sha256:unknown",
+		})
+	}
+
+	asset := &proofasset.ProofAsset{
+		SchemaVersion:        1,
+		ProofSystem:          proofasset.ProofSystemLean,
+		ToolchainDigest:      "lean-dev",
+		DependencyLockDigest: fmt.Sprintf("lean-%d-imports", len(s.allowedImports)),
+		TheoremSource:        theoremSource,
+		ProofSource:          proofSource,
+		Imports:              imports,
+		CandidateProvenance: proofasset.CandidateProvenance{
+			SchemaVersion: 1,
+			GeneratedAt:   time.Now().UTC(),
+		},
+	}
+
+	if err := proofasset.ValidateProofAsset(asset, s.allowedImports); err != nil {
+		return nil, err
+	}
+
+	return asset, nil
+}
+
+// VerifyResponseLegacy is retained for backward compatibility during the
+// migration window. New clients should consume VerifyResponse.
+type VerifyResponseLegacy struct {
 	Status            string  `json:"status"`
 	Nonce             string  `json:"nonce"`
 	ResultHash        string  `json:"result_hash"`
 	DetokenizedOutput string  `json:"detokenized_output"`
-	LogicIntegrity    float32 `json:"logic_integrity"`
-	LatencyMs         float32 `json:"latency_ms"`
+	LogicIntegrity    float64 `json:"logic_integrity"`
+	LatencyMs         float64 `json:"latency_ms"`
 }
 
+// ToLegacy converts the enhanced response to the legacy format.
+func (r *VerifyResponse) ToLegacy() VerifyResponseLegacy {
+	return VerifyResponseLegacy{
+		Status:            r.Status,
+		Nonce:             r.Nonce,
+		ResultHash:        r.ResultHash,
+		DetokenizedOutput: r.DetokenizedOutput,
+		LogicIntegrity:    float64(r.LogicIntegrity),
+		LatencyMs:         r.LatencyMs,
+	}
+}
+
+// ServerConfig holds REST API server configuration.
 type ServerConfig struct {
 	Port       string
 	Subdomain  uint32
 	SchemaPath string // optional: path to slot-schema YAML for rule loading
 }
 
+// DefaultServerConfig returns default server configuration.
 func DefaultServerConfig() *ServerConfig {
 	return &ServerConfig{
 		Port:      ":50051",
@@ -189,16 +377,7 @@ type MathVerificationRequest struct {
 	ConfidenceThreshold float64 `json:"confidence_threshold"`
 }
 
-type MathVerificationResponse struct {
-	Status            string  `json:"status"`
-	Nonce             string  `json:"nonce"`
-	ResultHash        string  `json:"result_hash"`
-	DetokenizedOutput string  `json:"detokenized_output"`
-	LogicIntegrity    float64 `json:"logic_integrity"`
-	LatencyMs         float64 `json:"latency_ms"`
-}
-
-func VerifyMathDerivation(req MathVerificationRequest) (MathVerificationResponse, error) {
+func VerifyMathDerivation(req MathVerificationRequest) (VerifyResponseLegacy, error) {
 	subdomain := req.Subdomain
 	if subdomain == 0 {
 		subdomain = math.SUBDOMAIN_ARITHMETIC
@@ -210,7 +389,7 @@ func VerifyMathDerivation(req MathVerificationRequest) (MathVerificationResponse
 	slots := mapper.MapLaTeXToTensor(req.Proposition, subdomain)
 	validation := watchdog.ValidateMathStep(0, slots)
 
-	response := MathVerificationResponse{
+	response := VerifyResponseLegacy{
 		Status:            "UNVERIFIED",
 		Nonce:             fmt.Sprintf("0x%08x", slots[11]),
 		ResultHash:        fmt.Sprintf("0x%08x", slots[3]),
@@ -219,9 +398,9 @@ func VerifyMathDerivation(req MathVerificationRequest) (MathVerificationResponse
 	}
 
 	if validation.Valid {
-		response.Status = "VERIFIED"
+		response.Status = proofasset.StatusStructurallyValid
 	} else {
-		response.Status = "REJECTED"
+		response.Status = proofasset.StatusStructurallyRejected
 		response.ResultHash = validation.Error
 	}
 

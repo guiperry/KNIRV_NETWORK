@@ -56,7 +56,7 @@ export default function Arena() {
   }, []);
 
   const openTournament = (id) => {
-    setModal({ open: true, title: 'KNIRVARENA — Tournament', src: `/arena/${id}` });
+    setModal({ open: true, title: 'KNIRVARENA — Tournament', src: `/arena/?arena=${encodeURIComponent(id)}` });
   };
 
   const openDataset = (id) => {

@@ -387,12 +387,9 @@ gateway:
 # Monitor tab (packages/KNIRVSERVER/frontend/src/components/dashboard/
 # network-monitor-panel.tsx). Started last by KNIRVSERVER's startMonitor().
 #
-# NOTE: port 9090 collides on paper with monitoring.metrics_port (line 254
-# above) — that key is currently unbound by anything in this deployment (no
-# process in this config actually listens on it today), so there is no live
-# conflict as of this writing. If that changes, one of the two must move.
+# KNIRVMONITOR is private: it binds the backend socket directory's
+# monitor.sock. KNIRVGATEWAY is the sole public API transport.
 monitor:
   enabled: true
-  port: 9090
   start_timeout: 30
   stop_timeout: 10

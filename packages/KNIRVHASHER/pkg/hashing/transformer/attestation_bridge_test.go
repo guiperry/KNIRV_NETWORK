@@ -6,6 +6,12 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
+	"knirvhasher/pkg/hashing/proofasset"
 )
 
 func TestAttestationBridge_GroundsExactSpanAndQueuesMiss(t *testing.T) {
@@ -13,7 +19,7 @@ func TestAttestationBridge_GroundsExactSpanAndQueuesMiss(t *testing.T) {
 	embedding := []float32{-1, -0.5, 0.25, 1}
 	context := []int32{11, 22, 33}
 	span := []int32{44, 55}
-	empty := NewEmptyAttestationBridge(dir, []int{0, 1, 2, 3}, 2)
+	empty := NewEmptyAttestationBridge(dir, []int{0, 1, 2, 3}, 2, "")
 	bucket, err := empty.Bucket(embedding)
 	if err != nil {
 		t.Fatalf("Bucket: %v", err)
@@ -28,7 +34,7 @@ func TestAttestationBridge_GroundsExactSpanAndQueuesMiss(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	bridge, err := NewAttestationBridge(dir, []int{0, 1, 2, 3}, 2)
+	bridge, err := NewAttestationBridge(dir, []int{0, 1, 2, 3}, 2, "")
 	if err != nil {
 		t.Fatalf("NewAttestationBridge: %v", err)
 	}
@@ -60,7 +66,7 @@ func TestAttestationBridge_RejectsInvalidLedgerIdentity(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(dir, seedWritesFile), []byte(entry+"\n"), 0600); err != nil {
 		t.Fatal(err)
 	}
-	bridge, err := NewAttestationBridge(dir, nil, 1)
+	bridge, err := NewAttestationBridge(dir, nil, 1, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -71,4 +77,44 @@ func TestAttestationBridge_RejectsInvalidLedgerIdentity(t *testing.T) {
 	if result.Hit {
 		t.Fatal("invalid ledger identity must not produce a hit")
 	}
+}
+
+func TestAttestationBridge_LookupProofAsset(t *testing.T) {
+	dir := t.TempDir()
+	proofLedgerPath := filepath.Join(dir, "proof_writes.jsonl")
+	bridge := NewEmptyAttestationBridge(dir, nil, 1, proofLedgerPath)
+
+	// No entries yet.
+	entry := bridge.LookupProofAsset("missing-id")
+	assert.Nil(t, entry)
+
+	// Write a proof ledger entry directly.
+	ledger := proofasset.NewProofLedger(proofLedgerPath)
+	now := time.Now().UTC()
+	err := ledger.Append(proofasset.ProofLedgerEntry{
+		SchemaVersion:  1,
+		ProofAssetID:   "proof-001",
+		TheoremID:      "theorem-001",
+		ProofSystem:    proofasset.ProofSystemLean,
+		CheckerDigest:  "checker-abc",
+		FinalStatus:    proofasset.StatusFormallyVerified,
+		CreatedAt:      now,
+		UpdatedAt:      now,
+		Receipt: &proofasset.VerificationReceipt{
+			SchemaVersion: 1,
+			ProofAssetID:  "proof-001",
+			Status:        proofasset.StatusFormallyVerified,
+			CheckedAt:     now,
+		},
+	})
+	require.NoError(t, err)
+
+	found := bridge.LookupProofAsset("proof-001")
+	require.NotNil(t, found)
+	assert.Equal(t, "proof-001", found.ProofAssetID)
+	assert.Equal(t, proofasset.StatusFormallyVerified, found.FinalStatus)
+	assert.NotNil(t, found.Receipt)
+
+	missing := bridge.LookupProofAsset("proof-002")
+	assert.Nil(t, missing)
 }

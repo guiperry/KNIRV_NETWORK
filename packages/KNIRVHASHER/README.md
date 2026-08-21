@@ -827,6 +827,102 @@ Traditional LLMs treat math as "likely sequence of characters" - they drift into
 | Logic Guardrails | Self-correction fails | **Hard-coded Bitmasks** |
 | Verification | Black box | **Golden Nonce Proof** |
 
+### Formal Proof Verification (Neuro-Symbolic Enhancement)
+
+MATHASHER has been enhanced with a **neuro-symbolic formal proof system** that separates structural prechecking from formal theorem verification. The system now uses a pinned formal proof checker (initially Lean) as the sole authority for declaring a theorem formally verified.
+
+#### Verification Status Model
+
+The public status model distinguishes four independent claims that must not be conflated:
+
+| Status | Authority | Meaning |
+|:---|:---|:---|
+| `STRUCTURALLY_VALID` | MATHASHER precheck | Input conforms to syntax/domain constraints |
+| `PROOF_PENDING` | API orchestration | Valid candidate accepted for asynchronous checking |
+| `FORMALLY_VERIFIED` | Lean kernel | Complete proof term type-checks against theorem |
+| `FORMALLY_REJECTED` | Lean kernel | Proof failed formal checking |
+| `CHECKER_UNAVAILABLE` | API orchestration | Formal checker not reachable or misconfigured |
+| `HARDWARE_ATTESTED` | ASIC PoW | Optional hardware attestation after formal verification |
+
+**Key principle:** Only a successful formal-checker receipt can produce `FORMALLY_VERIFIED`. The MATHASHER nonce is deterministic input-derived metadata; it is explicitly NOT a proof term or witness of theorem validity.
+
+#### Proof Asset Model
+
+Proof assets are content-addressed artifacts that bind a theorem source, proof source, and environment identity:
+
+```go
+asset := &proofasset.ProofAsset{
+    SchemaVersion:        1,
+    ProofSystem:          proofasset.ProofSystemLean,
+    ToolchainDigest:      "lean-4.3.0",
+    DependencyLockDigest: "lean-lock-abc123",
+    TheoremSource:        []byte("theorem t : True := by trivial"),
+    ProofSource:          []byte("theorem t : True := by trivial"),
+    Imports: []proofasset.ArtifactRef{
+        {Name: "Mathlib.Data.Real.Basic", Digest: "sha256:def456"},
+    },
+}
+assetID, _ := proofasset.ComputeProofAssetID(asset)
+```
+
+#### Formal Verification API
+
+When `--formal-verifier` is enabled, the following endpoints are available:
+
+```bash
+# Submit a proof asset for formal verification
+curl -X POST http://localhost:8080/v1/verify/proof \
+  -H "Content-Type: application/json" \
+  -d '{"canonical_proof_asset": {...}, "request_hardware_attestation": false}'
+
+# Poll proof status
+curl http://localhost:8080/v1/verify/proof/{proof_asset_id}
+
+# Retrieve stored proof asset
+curl http://localhost:8080/v1/verify/proof/{proof_asset_id}/asset
+```
+
+#### Proof Ledger
+
+Verified proofs are recorded in an append-only `proof_writes.jsonl` ledger. The ledger only accepts `FORMALLY_VERIFIED` entries when the receipt validates against the exact stored artifact IDs.
+
+#### Running with Formal Verification
+
+```bash
+# Start hasher-host with MATHASHER schema and formal verifier enabled
+./bin/hasher-host \
+  --schema pipeline/2_DATA_ENCODER/config/math_schema.yaml \
+  --formal-verifier \
+  --lean-binary lean \
+  --lean-max-seconds 15 \
+  --frames-dir /data/hasher/frames
+```
+
+#### Schema Configuration
+
+The `math_schema.yaml` now includes a `formal_verification` policy section:
+
+```yaml
+formal_verification:
+  default_proof_system: lean
+  allowed_imports:
+    - Mathlib.Algebra.Group.Basic
+    - Mathlib.Data.Real.Basic
+  max_source_bytes: 65536
+  max_checker_seconds: 15
+```
+
+This is an admission-control policy only; it does not represent proof rules and does not replace the proof assistant environment lock.
+
+#### Trust Boundary
+
+The following components are **untrusted** with respect to theorem correctness:
+- LLMs, HASHER transformer modes, embeddings, retrieval, and evolutionary search
+- Candidate parsers, proof repair logic, and canonicalization implementation
+- Proof artifact ledger transport and ASIC hardware claims
+
+The **trusted correctness boundary** is the selected proof assistant's kernel plus the pinned trusted environment it requires.
+
 ---
 
 ## Future Enhancements

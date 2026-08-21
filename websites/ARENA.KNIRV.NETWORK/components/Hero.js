@@ -1,4 +1,4 @@
-function Hero() {
+function Hero({ arenaURL }) {
     try {
         return (
             <section className="relative pt-40 pb-20 overflow-hidden" data-name="hero" data-file="components/Hero.js">
@@ -23,9 +23,9 @@ function Hero() {
                         Payouts priced automatically from real eBPF telemetry and on-chain risk pools.
                     </p>
                     <div className="flex flex-col sm:flex-row justify-center gap-4">
-                        <button className="btn-primary flex items-center justify-center gap-2">
+                        <a href={arenaURL} className="btn-primary flex items-center justify-center gap-2">
                             <div className="icon-swords"></div> Enter Arena
-                        </button>
+                        </a>
                         <button className="btn-outline flex items-center justify-center gap-2">
                             <div className="icon-book-open"></div> Read Protocol Docs
                         </button>

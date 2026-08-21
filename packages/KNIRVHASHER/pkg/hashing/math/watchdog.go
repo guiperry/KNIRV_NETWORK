@@ -50,6 +50,19 @@ func LoadDomainFromSchema(path string) (string, error) {
 	return schema.Domain.Name, nil
 }
 
+// ValidationResult reports the outcome of a structural precheck.
+//
+// Valid=true means the input is STRUCTURALLY_VALID under the configured
+// role-sequence and domain rules. Valid=false means STRUCTURALLY_REJECTED.
+//
+// LogicIntegrity is a heuristic confidence score (0.0-1.0) computed from
+// role-sequence coverage, not a statement of mathematical truth. A high
+// LogicIntegrity score does not imply FORMALLY_VERIFIED; formal verification
+// requires a successful pinned formal-checker receipt.
+//
+// The GenerateTemporalLock nonce is deterministic input-derived metadata used
+// for slot-filling and temporal coherence. It is explicitly NOT a proof term,
+// witness, or attestation of theorem validity.
 type ValidationResult struct {
 	Valid          bool
 	Error          string

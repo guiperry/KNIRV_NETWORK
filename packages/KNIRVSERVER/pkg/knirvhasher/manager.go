@@ -41,19 +41,21 @@ type Manager struct {
 }
 
 type ManagerConfig struct {
-	BinaryPath     string
-	SocketPath     string
-	GRPCSocketPath string // backend gRPC socket the data-connector dials into
-	DataPath       string
-	SocketPerm     uint32
-	HeadlessMode   bool
-	ArxivEnabled   bool
-	PipelineType   string
-	StartTimeout   time.Duration
-	StopTimeout    time.Duration
-	Stdout         interface{}
-	Stderr         interface{}
-	EnvOverrides   map[string]string
+	BinaryPath        string
+	SocketPath        string
+	GRPCSocketPath    string // backend gRPC socket the data-connector dials into
+	DataPath          string
+	SocketPerm        uint32
+	HeadlessMode      bool
+	ArxivEnabled      bool
+	PipelineType      string
+	StartTimeout      time.Duration
+	StopTimeout       time.Duration
+	Stdout            interface{}
+	Stderr            interface{}
+	EnvOverrides      map[string]string
+	KnirvserverDeployed bool     // indicates KNIRVHASHER is initialized by KNIRVSERVER
+	FormalVerifierEnabled bool   // enables formal proof verification via Lean worker
 }
 
 type HasherStatus struct {
@@ -212,6 +214,13 @@ func (m *Manager) Start(ctx context.Context) error {
 	// Data-connector (CONNECTION source) only runs after full user onboarding.
 	if m.config.PipelineType == "goat" {
 		args = append(args, "-goat")
+	}
+
+	if m.config.KnirvserverDeployed {
+		args = append(args, "--knirvserver-deployed")
+	}
+	if m.config.FormalVerifierEnabled {
+		args = append(args, "--formal-verifier")
 	}
 
 	m.cmd = exec.Command(m.config.BinaryPath, args...)
