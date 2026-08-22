@@ -7,6 +7,9 @@ export function PWAProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if ("serviceWorker" in navigator) {
+      const reloadForUpdatedWorker = () => window.location.reload();
+      navigator.serviceWorker.addEventListener('controllerchange', reloadForUpdatedWorker);
+
       navigator.serviceWorker
         .register("/service-worker.js")
         .then((registration) => {
@@ -16,6 +19,10 @@ export function PWAProvider({ children }: { children: React.ReactNode }) {
         .catch((error) => {
           console.error("Service Worker registration failed:", error);
         });
+
+      return () => {
+        navigator.serviceWorker.removeEventListener('controllerchange', reloadForUpdatedWorker);
+      };
     }
   }, []);
 

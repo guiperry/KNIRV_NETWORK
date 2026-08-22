@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import LoginPage from './page';
 
@@ -11,7 +11,15 @@ jest.mock('next/navigation', () => ({
 }));
 
 jest.mock('@/lib/auth-context', () => ({
-  useAuth: () => ({ login: authLogin }),
+  clearStoredAuth: () => localStorage.clear(),
+  getStoredAuthToken: () => localStorage.getItem('knirv_nexus_token') || localStorage.getItem('knirv_auth_token'),
+  persistStoredAuth: (token: string, role: string, username: string) => {
+    localStorage.setItem('knirv_nexus_token', token);
+    localStorage.setItem('knirv_auth_token', token);
+    localStorage.setItem('knirv_nexus_role', role);
+    localStorage.setItem('knirv_nexus_user', username);
+  },
+  useAuth: () => ({ login: authLogin, user: null, isLoading: false }),
 }));
 
 describe('CLI device authorization', () => {
@@ -41,4 +49,23 @@ describe('CLI device authorization', () => {
     }));
     await waitFor(() => expect(push).not.toHaveBeenCalled());
   });
+});
+
+it('does not navigate with an unverified credential token', async () => {
+  window.history.replaceState({}, '', '/login');
+  authLogin.mockResolvedValueOnce(false);
+  global.fetch = jest.fn().mockResolvedValueOnce({
+    ok: true,
+    json: async () => ({ token: 'unverified-token', role: 'observer' }),
+  }) as typeof fetch;
+
+  render(<LoginPage />);
+  fireEvent.change(screen.getByPlaceholderText('Enter username'), { target: { value: 'operator' } });
+  fireEvent.change(screen.getByPlaceholderText('Enter password'), { target: { value: 'password' } });
+  fireEvent.click(screen.getByRole('button', { name: 'AUTHENTICATE' }));
+
+  expect(await screen.findByText('Authentication could not be verified. Please try again.')).toBeInTheDocument();
+  expect(push).not.toHaveBeenCalled();
+  expect(localStorage.getItem('knirv_nexus_token')).toBeNull();
+  expect(localStorage.getItem('knirv_auth_token')).toBeNull();
 });

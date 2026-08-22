@@ -2066,6 +2066,9 @@ Join us: https://discord.gg/knirv">
                 <li class="nav-item" role="presentation">
                   <button class="nav-link" id="qr-tab" data-bs-toggle="tab" data-bs-target="#qr-login" type="button" role="tab">QR Code</button>
                 </li>
+                <li class="nav-item" role="presentation">
+                  <button class="nav-link" id="access-token-tab" data-bs-toggle="tab" data-bs-target="#access-token-login" type="button" role="tab">Access Token</button>
+                </li>
               </ul>
               <div class="tab-content">
                 <div class="tab-pane fade show active" id="password-login" role="tabpanel">
@@ -2106,6 +2109,21 @@ Join us: https://discord.gg/knirv">
                     <button id="cancel-qr-btn" class="btn btn-sm btn-outline-secondary mt-2">Cancel</button>
                   </div>
                 </div>
+                <div class="tab-pane fade" id="access-token-login" role="tabpanel">
+                  <form id="access-token-form">
+                    <p class="text-muted small">Use an access token to enter a demo or an already-authorized WebGUI session.</p>
+                    <div class="mb-3">
+                      <label for="access-token" class="form-label">Access Token</label>
+                      <input type="password" class="form-control" id="access-token" name="access-token" autocomplete="off" spellcheck="false" required>
+                    </div>
+                    <div class="d-grid gap-2">
+                      <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-key me-2"></i>Access WebGUI
+                      </button>
+                      <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    </div>
+                  </form>
+                </div>
               </div>
            `;
 
@@ -2134,6 +2152,14 @@ Join us: https://discord.gg/knirv">
               form.addEventListener('submit', (e) => {
                 e.preventDefault();
                 this.handleLogin(form);
+              });
+            }
+
+            const accessTokenForm = container.querySelector('#access-token-form');
+            if (accessTokenForm) {
+              accessTokenForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                this.handleAccessTokenLogin(accessTokenForm);
               });
             }
 
@@ -2270,6 +2296,51 @@ Join us: https://discord.gg/knirv">
             }
           } catch (error) {
             this.showLoginError(error.message);
+          } finally {
+            submitBtn.innerHTML = originalText;
+            submitBtn.disabled = false;
+          }
+        }
+
+        async handleAccessTokenLogin(form) {
+          const token = String(new FormData(form).get('access-token') || '').trim();
+          if (!token) {
+            this.showLoginError('Enter an access token.');
+            return;
+          }
+
+          const submitBtn = form.querySelector('button[type="submit"]');
+          const originalText = submitBtn.innerHTML;
+          submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Verifying token...';
+          submitBtn.disabled = true;
+
+          try {
+            if (!this.currentNetwork) this.currentNetwork = this.networks.publicTestnet;
+
+            let user = null;
+            try {
+              const response = await this.authFetch('/me', {
+                headers: { 'Authorization': `Bearer ${token}` },
+              });
+              if (!response.ok) throw new Error('Invalid or expired access token.');
+              user = await response.json();
+            } catch (error) {
+              // Local/demo mode deliberately supports the documented demo tokens
+              // even when the local gateway cannot be reached from this public site.
+              const demoRoles = {
+                TESTNET_ADMIN_TOKEN: 'admin',
+                TESTNET_VALIDATOR_TOKEN: 'validator',
+                TESTNET_OBSERVER_TOKEN: 'observer',
+              };
+              const isLocalDemo = ['demo', 'local-testnet'].includes(this.currentNetwork?.type);
+              if (!isLocalDemo || !demoRoles[token]) throw error;
+              user = { role: demoRoles[token] };
+            }
+
+            localStorage.setItem('knirv_auth_token', token);
+            this.redirectToWebGUI({ token, user: { role: user.role || user.user?.role || 'General' } });
+          } catch (error) {
+            this.showLoginError(error.message || 'Unable to verify access token.');
           } finally {
             submitBtn.innerHTML = originalText;
             submitBtn.disabled = false;

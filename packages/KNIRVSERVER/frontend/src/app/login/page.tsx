@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/lib/auth-context';
+import { clearStoredAuth, getStoredAuthToken, persistStoredAuth, useAuth } from '@/lib/auth-context';
 
 async function approveCLIDevice(deviceCode: string, authToken: string): Promise<void> {
   const response = await fetch('/api/auth/device/approve', {
@@ -21,7 +21,7 @@ async function approveCLIDevice(deviceCode: string, authToken: string): Promise<
 
 export default function LoginPage() {
   const router = useRouter();
-  const { login: authLogin } = useAuth();
+  const { login: authLogin, user, isLoading: authLoading } = useAuth();
   const [loginMode, setLoginMode] = useState<'credentials' | 'token'>('credentials');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -56,7 +56,7 @@ export default function LoginPage() {
     if (!deviceCode) return;
     setCLIDeviceCode(deviceCode);
 
-    const existingToken = localStorage.getItem('knirv_nexus_token') || localStorage.getItem('knirv_auth_token');
+    const existingToken = getStoredAuthToken();
     if (!existingToken) return;
 
     setLoading(true);
@@ -144,17 +144,19 @@ export default function LoginPage() {
       }
 
       if (authToken) {
-        localStorage.setItem('knirv_nexus_token', authToken);
-        localStorage.setItem('knirv_nexus_role', role);
-        localStorage.setItem('knirv_nexus_user', username || 'user');
-        localStorage.setItem('knirv_auth_token', authToken);
-        localStorage.setItem('knirv_auth_role', role);
+        persistStoredAuth(authToken, role, username || 'user');
 
         // Sync the AuthProvider so DashboardWrapper doesn't redirect to /login
         // on the first navigation from the menu. Without this, the layout-level
         // AuthProvider has user=null (it only checks localStorage once on mount),
         // causing DashboardWrapper's auth guard to fire prematurely.
-        await authLogin(authToken);
+        const authenticated = await authLogin(authToken);
+        if (!authenticated) {
+          clearStoredAuth();
+          setError('Authentication could not be verified. Please try again.');
+          setLoading(false);
+          return;
+        }
 
         if (cliDeviceCode) {
           await approveCLIDevice(cliDeviceCode, authToken);
@@ -163,7 +165,7 @@ export default function LoginPage() {
           return;
         }
 
-        router.push('/');
+        router.replace('/');
       }
     } catch {
       setError('Cannot reach the KNIRV server. Ensure the server is running.');
@@ -231,12 +233,11 @@ export default function LoginPage() {
   };
 
   useEffect(() => {
-    const existingToken = localStorage.getItem('knirv_nexus_token') || localStorage.getItem('knirv_auth_token');
     const isCLIAuthorization = Boolean(new URLSearchParams(window.location.search).get('cli_token'));
-    if (existingToken && !isCLIAuthorization) {
-      router.push('/');
+    if (!authLoading && user?.authenticated && !isCLIAuthorization) {
+      router.replace('/');
     }
-  }, [router]);
+  }, [authLoading, user, router]);
 
   return (
     <div className="min-h-screen bg-black text-white relative overflow-hidden">

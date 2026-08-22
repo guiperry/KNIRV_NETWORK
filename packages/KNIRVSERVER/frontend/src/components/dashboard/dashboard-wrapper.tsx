@@ -111,7 +111,7 @@ function DashboardWrapperInner({ children, onRentDVE }: DashboardWrapperProps) {
       return;
     }
     if (section === 'p2p-webgui') {
-      goToWebgui('dashboard');
+      goToWebgui('constellation');
       return;
     }
     if (section === 'cognitive' || section === 'nodes' || section === 'badgelab' || section === 'network-monitor' || section === 'overview') {
@@ -127,7 +127,7 @@ function DashboardWrapperInner({ children, onRentDVE }: DashboardWrapperProps) {
     const handleMessage = (event: MessageEvent) => {
       const { type, section, modal } = event.data || {};
       if (type === 'navigate' && section) applyNavSection(section);
-      else if (type === 'open-modal' && modal === 'p2p-webgui') goToWebgui('dashboard');
+      else if (type === 'open-modal' && modal === 'p2p-webgui') goToWebgui('constellation');
     };
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
@@ -537,7 +537,7 @@ function DashboardWrapperInner({ children, onRentDVE }: DashboardWrapperProps) {
 
   useEffect(() => {
     if (!isLoading && !user?.authenticated) {
-      router.push('/login');
+      router.replace('/login');
     }
   }, [isLoading, user, router]);
 
@@ -896,7 +896,7 @@ function DashboardWrapperInner({ children, onRentDVE }: DashboardWrapperProps) {
                           {/* 4. P2P Transport */}
                           <Card 
                             className="aether-bevel-dark rounded-2xl cursor-pointer aether-bevel-dark-hover transition-interactive"
-                            onClick={() => goToWebgui('dashboard')}
+                            onClick={() => goToWebgui('constellation')}
                           >
                             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                               <div className="flex items-center space-x-2">
@@ -917,7 +917,7 @@ function DashboardWrapperInner({ children, onRentDVE }: DashboardWrapperProps) {
                           {/* 5. Active Memory (KNIRVBASE) */}
                           <Card 
                             className="aether-bevel-dark rounded-2xl cursor-pointer aether-bevel-dark-hover transition-interactive"
-                            onClick={() => goToWebgui('dashboard')}
+                            onClick={() => goToWebgui('constellation')}
                           >
                             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                               <div className="flex items-center space-x-2">

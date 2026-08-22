@@ -1,3 +1,59 @@
+/* Tailwind utilities only (no preflight/base) — this app is styled primarily
+   with Bootstrap, so Tailwind's element reset is deliberately skipped to avoid
+   clobbering Bootstrap's own defaults. Needed by the restored constellation
+   menu (packages/KNIRVSERVER/frontend originally), which is Tailwind-authored. */
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities);
+
+@theme inline {
+  --color-card: var(--knirv-card);
+  --color-card-foreground: var(--knirv-card-foreground);
+  --color-popover: var(--knirv-popover);
+  --color-popover-foreground: var(--knirv-popover-foreground);
+  --color-primary: var(--knirv-shadcn-primary);
+  --color-primary-foreground: var(--knirv-shadcn-primary-foreground);
+  --color-secondary: var(--knirv-shadcn-secondary);
+  --color-secondary-foreground: var(--knirv-shadcn-secondary-foreground);
+  --color-muted: var(--knirv-muted);
+  --color-muted-foreground: var(--knirv-muted-foreground);
+  --color-accent: var(--knirv-accent);
+  --color-accent-foreground: var(--knirv-accent-foreground);
+  --color-destructive: var(--knirv-destructive);
+  --color-border: var(--knirv-shadcn-border);
+  --color-input: var(--knirv-shadcn-input);
+  --color-ring: var(--knirv-shadcn-ring);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --radius-sm: calc(var(--knirv-radius) - 4px);
+  --radius-md: calc(var(--knirv-radius) - 2px);
+  --radius-lg: var(--knirv-radius);
+  --radius-xl: calc(var(--knirv-radius) + 4px);
+}
+
+/* shadcn/ui tokens, ported alongside the restored constellation menu's
+   settings-modal (packages/KNIRVSERVER/frontend/src/app/globals.css).
+   Namespaced (--knirv-*) so they can't collide with this app's existing
+   CSS variables of the same shadcn names. */
+:root {
+  --knirv-radius: 0.625rem;
+  --knirv-card: oklch(0.08 0 0);
+  --knirv-card-foreground: oklch(0.985 0 0);
+  --knirv-popover: oklch(0.08 0 0);
+  --knirv-popover-foreground: oklch(0.985 0 0);
+  --knirv-shadcn-primary: #00c0fa;
+  --knirv-shadcn-primary-foreground: oklch(0.05 0 0);
+  --knirv-shadcn-secondary: #2b56f5;
+  --knirv-shadcn-secondary-foreground: oklch(0.985 0 0);
+  --knirv-muted: oklch(0.12 0 0);
+  --knirv-muted-foreground: oklch(0.708 0 0);
+  --knirv-accent: oklch(0.15 0 0);
+  --knirv-accent-foreground: oklch(0.985 0 0);
+  --knirv-destructive: oklch(0.577 0.245 27.325);
+  --knirv-shadcn-border: oklch(0.2 0 0);
+  --knirv-shadcn-input: oklch(0.15 0 0);
+  --knirv-shadcn-ring: #00c0fa;
+}
+
 /* Global CSS Variables */
 :root {
   /* Colors */

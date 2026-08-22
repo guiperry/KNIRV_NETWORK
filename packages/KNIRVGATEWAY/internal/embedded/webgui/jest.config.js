@@ -3,25 +3,27 @@ module.exports = {
   setupFilesAfterEnv: ['<rootDir>/src/setupTests.js'],
   moduleNameMapper: {
     '\\.(css|less|scss|sass)$': 'identity-obj-proxy',
-    '\\.(gif|ttf|eot|svg|png)$': 'jest-transform-stub'
+    '\\.(gif|ttf|eot|svg|png)$': 'jest-transform-stub',
+    '^@/(.*)$': '<rootDir>/src/$1'
   },
   transform: {
-    '^.+\\.(js|jsx)$': ['babel-jest', {
+    '^.+\\.(js|jsx|ts|tsx)$': ['babel-jest', {
       presets: [
         ['@babel/preset-env', { targets: { node: 'current' } }],
-        ['@babel/preset-react', { runtime: 'automatic' }]
+        ['@babel/preset-react', { runtime: 'automatic' }],
+        '@babel/preset-typescript'
       ]
     }]
   },
   testMatch: [
-    '<rootDir>/src/**/__tests__/**/*.{js,jsx}',
-    '<rootDir>/src/**/*.{test,spec}.{js,jsx}'
+    '<rootDir>/src/**/__tests__/**/*.{js,jsx,ts,tsx}',
+    '<rootDir>/src/**/*.{test,spec}.{js,jsx,ts,tsx}'
   ],
   collectCoverageFrom: [
-    'src/**/*.{js,jsx}',
+    'src/**/*.{js,jsx,ts,tsx}',
     '!src/index.js',
     '!src/reportWebVitals.js',
-    '!src/**/*.test.{js,jsx}',
+    '!src/**/*.test.{js,jsx,ts,tsx}',
     '!src/**/__tests__/**'
   ],
   coverageThreshold: {
@@ -32,7 +34,7 @@ module.exports = {
       statements: 70
     }
   },
-  moduleFileExtensions: ['js', 'jsx', 'json'],
+  moduleFileExtensions: ['js', 'jsx', 'ts', 'tsx', 'json'],
   transformIgnorePatterns: [
     'node_modules/(?!(react-router|react-router-dom)/)'
   ]

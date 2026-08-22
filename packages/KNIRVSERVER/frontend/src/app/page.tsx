@@ -1,8 +1,6 @@
 "use client";
 
 import { useEffect } from "react";
-import { useRouter } from 'next/navigation';
-import { useAuth } from "@/lib/auth-context";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -96,17 +94,6 @@ interface NRNStaking {
 
 export default function Dashboard() {
   const { toast } = useToast();
-  const router = useRouter();
-  const { user } = useAuth();
-
-  useEffect(() => {
-    const token = localStorage.getItem('knirv_nexus_token') || localStorage.getItem('knirv_auth_token');
-    if (!token) {
-      router.push('/login');
-      return;
-    }
-  }, [router]);
-
   // Use real backend hooks instead of mock data
   const { nodes: dveNodes, isLoading: dveLoading, error: dveError } = useDVENodes();
   const { tasks: validationTasks, isLoading: tasksLoading } = useValidationTasks();

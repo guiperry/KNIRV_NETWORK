@@ -1,6 +1,6 @@
 import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
-import { AuthProvider, useAuth, ROLES } from '../auth-context';
+import { AuthProvider, clearStoredAuth, useAuth, ROLES } from '../auth-context';
 
 // Mock the API module
 jest.mock('../api', () => ({
@@ -26,6 +26,22 @@ describe('AuthContext', () => {
   beforeEach(() => {
     localStorage.clear();
     jest.clearAllMocks();
+  });
+
+  it('clears both current and legacy session keys together', () => {
+    localStorage.setItem('knirv_nexus_token', 'current-token');
+    localStorage.setItem('knirv_auth_token', 'legacy-token');
+    localStorage.setItem('knirv_nexus_role', 'observer');
+    localStorage.setItem('knirv_auth_role', 'observer');
+    localStorage.setItem('knirv_nexus_user', 'operator');
+
+    clearStoredAuth();
+
+    expect(localStorage.getItem('knirv_nexus_token')).toBeNull();
+    expect(localStorage.getItem('knirv_auth_token')).toBeNull();
+    expect(localStorage.getItem('knirv_nexus_role')).toBeNull();
+    expect(localStorage.getItem('knirv_auth_role')).toBeNull();
+    expect(localStorage.getItem('knirv_nexus_user')).toBeNull();
   });
 
   it('should provide auth context with initial state', async () => {

@@ -851,8 +851,17 @@ func (s *Server) setupRoutes() error {
 	// Root-level catch-all: serve WebGUI SPA shell for client-side routing.
 	// All unmatched paths get the WebGUI index.html with gateway config injected.
 	r.PathPrefix("/").Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// If path has a file extension and doesn't match a known static route, return 404
+		// Paths with a file extension are static assets (images, fonts, etc. under
+		// the Next.js public/ dir — e.g. /icons/brain.png). Serve them directly
+		// from the extracted static export if present; only 404 if the file is
+		// genuinely missing. This covers every public/ asset, not just the
+		// hardcoded root-level list above.
 		if strings.Contains(filepath.Base(r.URL.Path), ".") {
+			assetPath := filepath.Join(s.webguiStaticDir, filepath.Clean(r.URL.Path))
+			if info, err := os.Stat(assetPath); err == nil && !info.IsDir() {
+				http.ServeFile(w, r, assetPath)
+				return
+			}
 			http.NotFound(w, r)
 			return
 		}

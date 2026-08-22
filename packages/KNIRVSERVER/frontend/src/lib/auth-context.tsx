@@ -48,6 +48,33 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// The desktop client used the `knirv_auth_*` keys before the Nexus UI was
+// introduced. Keep the aliases in sync while they are supported: clearing only
+// one token lets a rejected session repeatedly redirect between `/` and
+// `/login`.
+export const getStoredAuthToken = (): string | null =>
+  localStorage.getItem('knirv_nexus_token') || localStorage.getItem('knirv_auth_token');
+
+export const persistStoredAuth = (token: string, role?: string, username?: string) => {
+  localStorage.setItem('knirv_nexus_token', token);
+  localStorage.setItem('knirv_auth_token', token);
+  if (role) {
+    localStorage.setItem('knirv_nexus_role', role);
+    localStorage.setItem('knirv_auth_role', role);
+  }
+  if (username) localStorage.setItem('knirv_nexus_user', username);
+};
+
+export const clearStoredAuth = () => {
+  [
+    'knirv_nexus_token',
+    'knirv_auth_token',
+    'knirv_nexus_role',
+    'knirv_auth_role',
+    'knirv_nexus_user',
+  ].forEach(key => localStorage.removeItem(key));
+};
+
 export function useAuth() {
   const context = useContext(AuthContext);
   if (context === undefined) {
@@ -66,7 +93,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   // Check for existing token on mount
   useEffect(() => {
-    const token = localStorage.getItem('knirv_nexus_token');
+    const token = getStoredAuthToken();
     if (token) {
       validateToken(token);
     } else {
@@ -81,12 +108,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         return;
       }
 
-      localStorage.setItem('knirv_nexus_token', data.token);
-      localStorage.setItem('knirv_auth_token', data.token);
-      if (typeof data.role === 'string' && data.role) {
-        localStorage.setItem('knirv_nexus_role', data.role);
-        localStorage.setItem('knirv_auth_role', data.role);
-      }
+      persistStoredAuth(data.token, typeof data.role === 'string' ? data.role : undefined);
       validateToken(data.token);
     };
 
@@ -132,7 +154,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       try {
         const payload = JSON.parse(atob(token.split('.')[1]));
         if (payload.exp && payload.exp * 1000 < Date.now()) {
-          localStorage.removeItem('knirv_nexus_token');
+          clearStoredAuth();
           setIsLoading(false);
           return;
         }
@@ -160,7 +182,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           authenticated: true
         });
       } else {
-        localStorage.removeItem('knirv_nexus_token');
+        clearStoredAuth();
       }
     } catch (error) {
       console.error('Token validation failed:', error);
@@ -176,7 +198,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           authenticated: true,
         });
       } else {
-        localStorage.removeItem('knirv_nexus_token');
+        clearStoredAuth();
       }
     } finally {
       setIsLoading(false);
@@ -217,7 +239,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
             nexus_access: ROLES[userData.role as Role]?.nexus_access || [],
             authenticated: true
           });
-          localStorage.setItem('knirv_nexus_token', token);
+          persistStoredAuth(token, userData.role, userData.username);
           return true;
         }
       }
@@ -264,7 +286,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       // Check if it's a testnet token
       if (testnetTokens[token]) {
         setUser(testnetTokens[token]);
-        localStorage.setItem('knirv_nexus_token', token);
+        persistStoredAuth(token);
         return true;
       }
 
@@ -286,7 +308,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           nexus_access: ROLES[userData.role as Role]?.nexus_access || [],
           authenticated: true
         });
-        localStorage.setItem('knirv_nexus_token', token);
+        persistStoredAuth(token, userData.role, userData.username);
         return true;
       }
 
@@ -301,7 +323,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const logout = () => {
     setUser(null);
-    localStorage.removeItem('knirv_nexus_token');
+    clearStoredAuth();
   };
 
   const hasPermission = (service: string, operation: string): boolean => {

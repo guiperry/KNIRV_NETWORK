@@ -1,10 +1,10 @@
-const CACHE_NAME = 'knirv-pwa-v1';
-const STATIC_CACHE_NAME = 'knirv-static-v1';
-const API_CACHE_NAME = 'knirv-api-v1';
+// Bump this whenever routing or authentication behavior changes. Existing
+// clients activate this worker immediately and discard the old app shell.
+const CACHE_NAME = 'knirv-pwa-v3';
+const STATIC_CACHE_NAME = 'knirv-static-v3';
+const API_CACHE_NAME = 'knirv-api-v3';
 
 const urlsToCache = [
-  '/',
-  '/index.html',
   '/manifest.json',
   '/favicon.ico',
 ];
@@ -24,17 +24,23 @@ self.addEventListener('install', (event) => {
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
+    caches.keys().then(async (cacheNames) => {
+      await Promise.all(
         cacheNames.map((cacheName) => {
           if (cacheName !== STATIC_CACHE_NAME && cacheName !== API_CACHE_NAME) {
             return caches.delete(cacheName);
           }
         })
       );
+      await self.clients.claim();
+
+      // A client that was booted from the previous app shell still has its old
+      // JavaScript in memory. Reload it once under this worker after a cache
+      // version upgrade, preserving its current route.
+      const openClients = await self.clients.matchAll({ type: 'window' });
+      await Promise.all(openClients.map((client) => client.navigate(client.url)));
     })
   );
-  self.clients.claim();
 });
 
 self.addEventListener('fetch', (event) => {
@@ -55,11 +61,11 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Let the browser handle these routes directly — do NOT call
-  // event.respondWith().  This avoids:
-  //   1. "promise was rejected" when an iframe navigation aborts the fetch
-  //   2. 503 fallback from networkFirst() returning JSON for an HTML page
-  if (url.pathname === '/login' || url.pathname === '/menu' || url.pathname.startsWith('/menu')) {
+  // Never cache app-router documents or React Server Component flight data.
+  // Serving a stale `/` document or `index.txt?_rsc=…` response can combine
+  // an old route tree with a new bundle and reintroduce a redirect loop.
+  // Hashed static assets remain safe to cache below.
+  if (request.mode === 'navigate' || url.searchParams.has('_rsc') || url.pathname.endsWith('/index.txt')) {
     return;
   }
 

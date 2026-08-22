@@ -1,18 +1,20 @@
 import React from 'react';
+import { useRouter } from 'next/router';
 import styles from './PageLayout.module.css';
 import SideNavigation from './SideNavigation';
 import SearchBar from './SearchBar';
 import Footer from './Footer';
 import { useRole } from '../contexts/RoleContext';
 
-const PageLayout = ({ 
-  children, 
-  activePage, 
-  pageTitle, 
-  onSearch = () => {} 
+const PageLayout = ({
+  children,
+  activePage,
+  pageTitle,
+  onSearch = () => {}
 }) => {
   const { role } = useRole();
-  
+  const router = useRouter();
+
   return (
     <div className={styles.dashboardContainer}>
       <SideNavigation activePage={activePage} />
@@ -26,6 +28,13 @@ const PageLayout = ({
               Role: <span className={styles.roleBadge}>{role}</span>
             </div>
             <SearchBar onSearch={onSearch} />
+            <button
+              type="button"
+              className={styles.menuButton}
+              onClick={() => router.push('/constellation')}
+            >
+              Menu
+            </button>
             <span className={styles.controlIcon}>🔔</span>
             <span className={styles.controlIcon}>⚙️</span>
             <span className={styles.controlIcon}>👤</span>

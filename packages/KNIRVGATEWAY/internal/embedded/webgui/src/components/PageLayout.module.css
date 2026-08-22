@@ -56,6 +56,22 @@
   cursor: pointer;
 }
 
+.menuButton {
+  padding: 6px 14px;
+  background-color: rgba(0, 0, 0, 0.2);
+  border: 1px solid var(--transparent-white-2);
+  border-radius: 4px;
+  color: var(--bright-blue);
+  font-size: 0.85rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.menuButton:hover {
+  background-color: rgba(0, 0, 0, 0.35);
+}
+
 .glassyContainer {
   background-color: var(--transparent-white-05);
   backdrop-filter: blur(8px);
