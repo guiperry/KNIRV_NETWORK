@@ -163,7 +163,7 @@ export default function LoginPage() {
           return;
         }
 
-        router.push('/menu');
+        router.push('/');
       }
     } catch {
       setError('Cannot reach the KNIRV server. Ensure the server is running.');
@@ -234,7 +234,7 @@ export default function LoginPage() {
     const existingToken = localStorage.getItem('knirv_nexus_token') || localStorage.getItem('knirv_auth_token');
     const isCLIAuthorization = Boolean(new URLSearchParams(window.location.search).get('cli_token'));
     if (existingToken && !isCLIAuthorization) {
-      router.push('/menu');
+      router.push('/');
     }
   }, [router]);
 

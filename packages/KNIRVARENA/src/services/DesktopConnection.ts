@@ -3,7 +3,7 @@ import {
   verifyMessageEnvelope,
   type MessageEnvelope,
   type SignedMessageEnvelope,
-} from '@knirv/sdk';
+} from '@knirv/sdk/signing';
 
 interface QRData {
   version: string;

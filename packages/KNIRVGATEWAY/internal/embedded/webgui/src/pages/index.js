@@ -5,8 +5,8 @@ export default function Home() {
   const router = useRouter();
 
   useEffect(() => {
-    // Redirect to dashboard as the main landing page
-    router.replace('/dashboard');
+    // The constellation is the WebGUI landing experience after authentication.
+    router.replace('/constellation');
   }, [router]);
 
   // Show loading while redirecting
@@ -30,7 +30,7 @@ export default function Home() {
           animation: 'spin 1s linear infinite',
           margin: '0 auto 20px'
         }}></div>
-        <h3>Redirecting to Dashboard...</h3>
+        <h3>Opening constellation...</h3>
       </div>
       <style jsx>{`
         @keyframes spin {

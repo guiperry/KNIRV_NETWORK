@@ -3,15 +3,14 @@ module github.com/KNIRV/KNIRV_NETWORK/KNIRVGATEWAY
 go 1.25.7
 
 require (
-	github.com/guiperry/knirv-sdk-go v0.1.0
 	github.com/gorilla/mux v1.8.1
 	github.com/gorilla/sessions v1.2.2
+	github.com/guiperry/knirv-sdk-go v0.1.1
 	github.com/joho/godotenv v1.5.1
 	github.com/pion/turn/v2 v2.1.6
 	github.com/rs/cors v1.11.1
 	go.uber.org/zap v1.27.1
 )
-
 
 require (
 	github.com/golang-jwt/jwt/v5 v5.3.1
@@ -30,7 +29,7 @@ require (
 	filippo.io/keygen v0.0.0-20260114151900-8e2790ea4c5b // indirect
 	github.com/benbjohnson/clock v1.3.5 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
-	github.com/btcsuite/btcd/btcutil v1.1.0 // indirect
+	github.com/btcsuite/btcd/btcutil v1.2.0 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/davidlazar/go-crypto v0.0.0-20200604182044-b73af7476f6c // indirect

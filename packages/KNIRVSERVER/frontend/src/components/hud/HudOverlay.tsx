@@ -182,7 +182,7 @@ export function HudOverlay({ className = '', refreshInterval = 2000 }: HudOverla
               {updateApplying ? 'RESTARTING' : 'UPDATE'}
             </button>
           )}
-          <button className={`${styles.controlBtn} ${styles.menuBackBtn} ${styles.desktopOnly}`} onClick={() => router.push('/menu')}>
+          <button className={`${styles.controlBtn} ${styles.menuBackBtn} ${styles.desktopOnly}`} onClick={() => router.push('/')}>
             &#9673; MENU
           </button>
           <button className={styles.controlBtn} onClick={() => setIsMinimized(true)} title="Minimize">

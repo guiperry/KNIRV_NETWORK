@@ -18,7 +18,7 @@ export const DEFAULT_PAGE_ACCESS = {
     'tools', 'basic', 'advanced',
     'settings', 'inventory', 'blockchain', 'dex', 'daos',
     'nft-capability-manager', 'add-capability',
-    'network-admin', 'auth-test',
+    'network-admin', 'auth-test', 'constellation',
   ],
   Bootnode: [
     'dashboard', 'controller-status', 'qr-connect', 'my-endpoints', 'payment-gateway',
@@ -33,7 +33,7 @@ export const DEFAULT_PAGE_ACCESS = {
     'tools', 'basic', 'advanced',
     'settings', 'inventory', 'blockchain', 'dex', 'daos',
     'nft-capability-manager', 'add-capability',
-    'auth-test',
+    'auth-test', 'constellation',
   ],
   Dev: [
     'dashboard', 'controller-status', 'qr-connect', 'my-endpoints', 'payment-gateway',
@@ -48,7 +48,7 @@ export const DEFAULT_PAGE_ACCESS = {
     'tools', 'basic', 'advanced',
     'settings', 'inventory', 'blockchain', 'dex',
     'nft-capability-manager', 'add-capability',
-    'explorer', 'capabilities', 'auth-test',
+    'explorer', 'capabilities', 'auth-test', 'constellation',
   ],
   General: [
     'dashboard', 'controller-status', 'qr-connect', 'my-endpoints', 'payment-gateway',
@@ -61,7 +61,7 @@ export const DEFAULT_PAGE_ACCESS = {
     'marketplace', 'skills', 'capabilities', 'properties', 'settlement',
     'my-models', 'my-wallets', 'my-skills', 'my-capabilities', 'my-properties', 'nft-property-explorer',
     'tools', 'basic', 'advanced',
-    'settings', 'inventory', 'dex', 'nft-capability-manager', 'capabilities', 'auth-test',
+    'settings', 'inventory', 'dex', 'nft-capability-manager', 'capabilities', 'auth-test', 'constellation',
   ],
 };
 
@@ -179,6 +179,10 @@ export const RoleProvider = ({ children }) => {
 
   const canAccess = (page) => {
     if (!isAuthenticated) return false;
+    // The constellation is the authenticated WebGUI landing page. Existing
+    // installations may have a page-access map saved before this route was
+    // introduced, so do not strand those users at the login callback.
+    if (page === 'constellation') return true;
     const accessList = pageAccess[role] || pageAccess.General;
     return accessList.includes(page);
   };

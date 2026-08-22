@@ -3,10 +3,10 @@ module KNIRVGRAPH
 go 1.24.6
 
 require (
-	github.com/guiperry/knirv-sdk-go v0.1.0
 	github.com/dgraph-io/badger/v3 v3.2103.5
 	github.com/gorilla/mux v1.8.0
 	github.com/gorilla/websocket v1.5.3
+	github.com/guiperry/knirv-sdk-go v0.1.1
 	github.com/libp2p/go-libp2p v0.39.1
 	github.com/libp2p/go-libp2p-pubsub v0.13.1
 	github.com/spf13/cobra v1.7.0
@@ -15,7 +15,7 @@ require (
 )
 
 require (
-	github.com/btcsuite/btcd/btcutil v1.1.0 // indirect
+	github.com/btcsuite/btcd/btcutil v1.2.0 // indirect
 	github.com/ipfs/go-cid v0.5.0 // indirect
 	github.com/multiformats/go-multiaddr v0.14.0 // indirect
 	github.com/multiformats/go-multihash v0.2.3 // indirect
@@ -30,7 +30,7 @@ require (
 	github.com/cespare/xxhash v1.1.0 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.3.0 // indirect
+	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.4.1 // indirect
 	github.com/dgraph-io/ristretto v0.1.1 // indirect
 	github.com/dustin/go-humanize v1.0.0 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect

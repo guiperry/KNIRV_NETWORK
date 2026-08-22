@@ -574,13 +574,6 @@ function DashboardWrapperInner({ children, onRentDVE }: DashboardWrapperProps) {
               {ROLES[user.role]?.displayName || user.role.toUpperCase()}
             </Badge>
           </div>
-          <button
-            onClick={() => router.push('/menu')}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-mono font-bold tracking-widest border border-indigo-500/40 text-indigo-400/70 bg-indigo-500/5 hover:bg-indigo-500/15 hover:text-indigo-400 hover:border-indigo-400/60 transition-all duration-200 rounded-sm"
-            title="Return to Constellation Menu"
-          >
-            ⬡ MENU
-          </button>
           <UserProfile />
         </div>
       </header>
