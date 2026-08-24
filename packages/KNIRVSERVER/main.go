@@ -33,7 +33,6 @@ import (
 	"time"
 
 	knirvagent "github.com/KNIRV/KNIRV_NETWORK/KNIRVAGENT"
-	knirvmonitor "github.com/KNIRV/KNIRV_NETWORK/KNIRVSERVER/pkg/knirvmonitor"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/spf13/viper"
@@ -42,6 +41,7 @@ import (
 	"knirv-server/internal/bootkey"
 	dveevidence "knirv-server/internal/dveevidence"
 	"knirv-server/internal/knirvproof"
+	"knirv-server/internal/monitor"
 	"knirv-server/internal/proofledger"
 	"knirv-server/internal/tlsprovider"
 	"knirv-server/internal/updater"
@@ -296,7 +296,7 @@ type ServerApp struct {
 	backendPath              string
 	tempDir                  string
 	upd                      *updater.Updater
-	monitorManager           *knirvmonitor.Manager
+	monitor                  *monitor.Service
 }
 
 func (app *ServerApp) startIPFS(ctx context.Context) error {
@@ -1094,7 +1094,7 @@ func backendBaseURL(cfg *Config) string {
 }
 
 // monitorAPIPrefixes are the KNIRVMONITOR-owned paths proxied to the
-// embedded monitor subprocess — see pkg/knirvmonitor and startMonitor.
+// embedded monitor service — see startMonitor.
 var monitorAPIPrefixes = []string{
 	"/api/v1/monitor/",
 	"/api/v1/knirvbase/",
@@ -2226,6 +2226,10 @@ func dveIngestAuthMiddleware(authorizer knirvproof.Authorizer) gin.HandlerFunc {
 			c.AbortWithStatusJSON(http.StatusServiceUnavailable, gin.H{"error": "authorization service omitted principal"})
 			return
 		}
+		if action == knirvproof.ActionProofSubmit && strings.TrimSpace(userID) == "" {
+			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "bundle user_id is required"})
+			return
+		}
 		if userID != "" && userID != principal.ID {
 			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "bundle user_id does not match authenticated principal"})
 			return
@@ -2972,8 +2976,8 @@ func (app *ServerApp) startValidationChain(ctx context.Context) error {
 	return nil
 }
 
-// startMonitor launches the embedded KNIRVMONITOR subprocess (pkg/knirvmonitor),
-// the aggregation backend for the dashboard's admin-only Network Monitor tab.
+// startMonitor starts the embedded KNIRVMONITOR service, the aggregation
+// backend for the dashboard's admin-only Network Monitor tab.
 // It is started last, after every other embedded service, since its own
 // probes target them (gateway, and optionally knirvbase/knirvchain/knirvgraph/
 // knirvoracle/prometheus/grafana via env overrides below) — nothing else
@@ -2990,34 +2994,37 @@ func (app *ServerApp) startValidationChain(ctx context.Context) error {
 // KNIRV_MONITOR_KNIRVORACLE_URL / KNIRV_MONITOR_PROMETHEUS_URL /
 // KNIRV_MONITOR_GRAFANA_URL at a real TCP endpoint.
 func (app *ServerApp) startMonitor(ctx context.Context) error {
-	cfg := knirvmonitor.DefaultManagerConfig()
-	cfg.SocketPath = filepath.Join(filepath.Dir(app.config.BackendSocket), "monitor.sock")
-	cfg.GatewayURL = gatewayBaseURL(app.config)
-	cfg.BackendSocketPath = app.config.BackendSocket
-	cfg.KNIRVBaseURL = strings.TrimSpace(os.Getenv("KNIRV_MONITOR_KNIRVBASE_URL"))
-	cfg.KNIRVChainURL = strings.TrimSpace(os.Getenv("KNIRV_MONITOR_KNIRVCHAIN_URL"))
-	cfg.KNIRVGraphURL = strings.TrimSpace(os.Getenv("KNIRV_MONITOR_KNIRVGRAPH_URL"))
-	cfg.KNIRVOracleURL = strings.TrimSpace(os.Getenv("KNIRV_MONITOR_KNIRVORACLE_URL"))
-	cfg.PrometheusURL = strings.TrimSpace(os.Getenv("KNIRV_MONITOR_PROMETHEUS_URL"))
-	cfg.GrafanaURL = strings.TrimSpace(os.Getenv("KNIRV_MONITOR_GRAFANA_URL"))
+	cfg := &monitor.Config{
+		SocketPath:        filepath.Join(filepath.Dir(app.config.BackendSocket), "monitor.sock"),
+		GatewayURL:        gatewayBaseURL(app.config),
+		BackendSocketPath: app.config.BackendSocket,
+		KNIRVBaseURL:      strings.TrimSpace(os.Getenv("KNIRV_MONITOR_KNIRVBASE_URL")),
+		KNIRVChainURL:     strings.TrimSpace(os.Getenv("KNIRV_MONITOR_KNIRVCHAIN_URL")),
+		KNIRVGraphURL:     strings.TrimSpace(os.Getenv("KNIRV_MONITOR_KNIRVGRAPH_URL")),
+		KNIRVOracleURL:    strings.TrimSpace(os.Getenv("KNIRV_MONITOR_KNIRVORACLE_URL")),
+		PrometheusURL:     strings.TrimSpace(os.Getenv("KNIRV_MONITOR_PROMETHEUS_URL")),
+		GrafanaURL:        strings.TrimSpace(os.Getenv("KNIRV_MONITOR_GRAFANA_URL")),
+	}
 
-	app.monitorManager = knirvmonitor.NewManager(cfg, zap.L())
-	if err := app.monitorManager.Start(ctx); err != nil {
+	service, err := monitor.Start(ctx, cfg)
+	if err != nil {
 		return fmt.Errorf("start KNIRVMONITOR: %w", err)
 	}
-	log.Printf("KNIRVMONITOR started on %s (gateway probe target %s)", app.monitorManager.GetBaseURL(), cfg.GatewayURL)
+	app.monitor = service
+	log.Printf("KNIRVMONITOR started on unix://%s (gateway probe target %s)", cfg.SocketPath, cfg.GatewayURL)
 	return nil
 }
 
 func (app *ServerApp) stopMonitor() {
-	if app.monitorManager == nil {
+	if app.monitor == nil {
 		return
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
-	if err := app.monitorManager.Stop(ctx); err != nil {
+	if err := app.monitor.Shutdown(ctx); err != nil {
 		log.Printf("Warning: KNIRVMONITOR shutdown error: %v", err)
 	}
+	app.monitor = nil
 }
 
 // oracleGatewayURL resolves KNIRVORACLE's public address. KNIRVORACLE only

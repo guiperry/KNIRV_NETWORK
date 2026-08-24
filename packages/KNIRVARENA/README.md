@@ -33,7 +33,7 @@ The ERGO now features advanced cognitive processing through the Adaline Gateway 
   - Language model-based filtering
 
 #### **DVE/CDE Validation Pipeline**
-- **DVE (Decision Validation Engine)**: Output validation through simulation
+- **DVE (Deterministic Validation Environment)**: Output validation through simulation
   - Skill code execution with failure context
   - Validation score calculation
   - Configurable thresholds via environment variables

@@ -26,6 +26,7 @@ pub struct Services {
     pub oracle: String,
     pub nexus: String,
     pub gateway: String,
+    pub backend: String,
 }
 #[derive(Clone, Debug)]
 pub struct NetworkInfo {
@@ -49,6 +50,7 @@ impl NetworkInfo {
                     oracle: "https://gateway.knirv.network".into(),
                     nexus: "https://gateway.knirv.network".into(),
                     gateway: "https://gateway.knirv.network".into(),
+                    backend: "https://gateway.knirv.network".into(),
                 },
             ),
             Network::PublicTestnet => (
@@ -63,6 +65,7 @@ impl NetworkInfo {
                     oracle: "https://testnet-gateway.knirv.network".into(),
                     nexus: "https://testnet-gateway.knirv.network".into(),
                     gateway: "https://testnet-gateway.knirv.network".into(),
+                    backend: "https://testnet-gateway.knirv.network".into(),
                 },
             ),
             Network::LocalTestnet => (
@@ -77,6 +80,7 @@ impl NetworkInfo {
                     oracle: "http://localhost:8080".into(),
                     nexus: "http://localhost:8080".into(),
                     gateway: "http://localhost:8080".into(),
+                    backend: "http://localhost:8082".into(),
                 },
             ),
             Network::LocalProduction => (
@@ -91,6 +95,7 @@ impl NetworkInfo {
                     oracle: "http://localhost:8086".into(),
                     nexus: "http://localhost:8090".into(),
                     gateway: "http://localhost:8087".into(),
+                    backend: "http://localhost:8082".into(),
                 },
             ),
         };
@@ -110,6 +115,7 @@ impl NetworkInfo {
             "oracle" => &self.services.oracle,
             "nexus" => &self.services.nexus,
             "gateway" => &self.services.gateway,
+            "backend" => &self.services.backend,
             _ => &self.services.gateway,
         }
     }
@@ -137,6 +143,7 @@ pub struct ClientConfig {
     pub transaction_url: Option<String>,
     pub gateway_url: Option<String>,
     pub controller_url: Option<String>,
+    pub backend_url: Option<String>,
     pub headers: BTreeMap<String, String>,
     pub idempotency_key: Option<String>,
 }
@@ -150,6 +157,7 @@ impl Default for ClientConfig {
             transaction_url: std::env::var("KNIRVCHAIN_TRANSACTION_SDK_BASE_URL").ok(),
             gateway_url: std::env::var("KNIRVGATEWAY_BASE_URL").ok(),
             controller_url: None,
+            backend_url: std::env::var("KNIRVSERVER_BACKEND_URL").ok(),
             headers: BTreeMap::new(),
             idempotency_key: None,
         }

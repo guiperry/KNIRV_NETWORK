@@ -1,0 +1,125 @@
+/* KNIRV Theme Variables - Adapted from altgui */
+:root {
+  /* Primary KNIRV Colors */
+  --knirv-dark-blue: #000c2e;
+  --knirv-bright-blue: #007bff;
+  --knirv-primary: #0d6efd;
+  
+  /* Status Colors */
+  --knirv-success: #28a745;
+  --knirv-danger: #dc3545;
+  --knirv-warning: #ffc107;
+  --knirv-info: #17a2b8;
+  
+  /* Cryptocurrency Colors */
+  --knirv-bitcoin: #f2a900;
+  --knirv-ethereum: #627eea;
+  --knirv-usdc: #2775ca;
+  --knirv-tether: #26a17b;
+  
+  /* Glass Morphism Effects */
+  --knirv-glass-light: rgba(255, 255, 255, 0.05);
+  --knirv-glass-medium: rgba(255, 255, 255, 0.1);
+  --knirv-glass-strong: rgba(255, 255, 255, 0.2);
+  --knirv-glass-dark: rgba(0, 0, 0, 0.3);
+  
+  /* Component Backgrounds */
+  --knirv-card-bg: rgba(255, 255, 255, 0.05);
+  --knirv-card-border: rgba(255, 255, 255, 0.1);
+  --knirv-success-bg: rgba(25, 135, 84, 0.2);
+  --knirv-danger-bg: rgba(220, 53, 69, 0.2);
+  --knirv-primary-bg: rgba(13, 110, 253, 0.2);
+}
+
+/* Custom Tailwind-compatible utility classes */
+.glass-card {
+  background-color: var(--knirv-card-bg);
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--knirv-card-border);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1);
+}
+
+.glass-card-dark {
+  background-color: var(--knirv-glass-dark);
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--knirv-card-border);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2);
+}
+
+.text-knirv-blue {
+  color: var(--knirv-bright-blue);
+}
+
+.text-knirv-primary {
+  color: var(--knirv-primary);
+}
+
+.text-knirv-success {
+  color: var(--knirv-success);
+}
+
+.text-knirv-danger {
+  color: var(--knirv-danger);
+}
+
+.bg-knirv-success {
+  background-color: var(--knirv-success-bg);
+}
+
+.bg-knirv-danger {
+  background-color: var(--knirv-danger-bg);
+}
+
+.bg-knirv-primary {
+  background-color: var(--knirv-primary-bg);
+}
+
+/* Cryptocurrency color utilities */
+.text-bitcoin {
+  color: var(--knirv-bitcoin);
+}
+
+.text-ethereum {
+  color: var(--knirv-ethereum);
+}
+
+.text-usdc {
+  color: var(--knirv-usdc);
+}
+
+.text-tether {
+  color: var(--knirv-tether);
+}
+
+/* Animation utilities for glass morphism */
+.glass-hover {
+  transition: all 0.3s ease;
+}
+
+.glass-hover:hover {
+  background-color: rgba(255, 255, 255, 0.08);
+  transform: translateY(-2px);
+  box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.15);
+}
+
+/* Status indicator utilities */
+.status-positive {
+  color: var(--knirv-success);
+}
+
+.status-negative {
+  color: var(--knirv-danger);
+}
+
+.status-neutral {
+  color: #6b7280; /* Tailwind gray-500 */
+}
+
+/* Gradient backgrounds for enhanced visual appeal */
+.bg-knirv-gradient {
+  background: linear-gradient(135deg, var(--knirv-dark-blue) 0%, #1e293b 50%, var(--knirv-dark-blue) 100%);
+}
+
+.bg-knirv-card-gradient {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%);
+}

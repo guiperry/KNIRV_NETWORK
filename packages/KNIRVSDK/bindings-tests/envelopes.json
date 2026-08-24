@@ -2,6 +2,9 @@
   "version": 1,
   "requests": [
     {"operation": "crypto.sha256", "payload": {"data": "knirv"}, "response": {"digest": "844ab93035e622284f4d0db575d2a4a29a89c06acc652925e7f0b2b0392d35cf"}},
-    {"operation": "wasm.manifest", "payload": {}}
+    {"operation": "wasm.manifest", "payload": {}},
+    {"operation": "actuarial.risk_classes", "payload": {"path": "/api/v1/actuarial/risk-classes"}, "response": {"kind": "risk_class_list"}},
+    {"operation": "actuarial.claim_submission", "payload": {"path": "/api/v1/actuarial/submissions/sub_1/claim", "resolver_wallet": "knirv1resolver"}, "response": {"kind": "submission"}},
+    {"operation": "actuarial.signed_intent", "payload": {"schema_version": "knirv.message.v1", "domain": "knirv.controller", "purpose": "user-approval", "chain_id": "knirv-testnet-1"}, "response": {"kind": "signed_message_envelope"}}
   ]
 }

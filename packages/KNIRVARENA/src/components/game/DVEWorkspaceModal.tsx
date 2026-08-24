@@ -14,6 +14,8 @@ import {
 } from './stores/useKnirvana';
 import { useAudio } from './stores/useAudio';
 import { getChallengeById } from '../../data/challenges';
+import { actuarialSyndicateService, type BountyPosting } from '../../services/ActuarialSyndicateService';
+import { selectCuratedChallenge } from '../../services/actuarialChallenge';
 import { DATASET_TEMPLATES, DEFAULT_TEMPLATE } from './VerifierOverlay';
 
 // Sovereign DVE Workspace — the arena counterpart of KNIRVSERVER's
@@ -170,7 +172,12 @@ export default function DVEWorkspaceModal() {
 
   const [tab, setTab] = useState<WorkspaceTab>(meta?.lastTab ?? 'overview');
   const [page, setPage] = useState<string | null>(meta?.lastPage ?? 'overview');
+  const [backendPostings, setBackendPostings] = useState<BountyPosting[]>([]);
   const consoleEndRef = useRef<HTMLDivElement>(null);
+
+  // Backend postings supersede the local catalog after the one-time seed. The
+  // fallback keeps old saved games usable until that admin migration is run.
+  useEffect(() => { let active = true; actuarialSyndicateService.listPostings('code_error').then(items => { if (active) setBackendPostings(items); }).catch(() => {}); return () => { active = false; }; }, []);
 
   // Restore per-workspace tab/page when switching nodes
   useEffect(() => {
@@ -205,7 +212,8 @@ export default function DVEWorkspaceModal() {
   const ringSet = isRingSet(node.id, rewardAnchors);
   const ringCommitted = isRingCommitted(node.id, rewardAnchors);
   const ringStraightened = ringCommitted && ringAnchors.length > 0 && ringAnchors.every(a => a.isHorizontal === false);
-  const challenge = node.challengeId ? getChallengeById(node.challengeId) : undefined;
+  const localChallenge = node.challengeId ? getChallengeById(node.challengeId) : undefined;
+  const challenge = selectCuratedChallenge(backendPostings, node.challengeId) ?? localChallenge;
   const template = DATASET_TEMPLATES[node.type] ?? DEFAULT_TEMPLATE;
   const idleFieldAgent = agents.find(a => !a.staged && a.status === 'idle');
 

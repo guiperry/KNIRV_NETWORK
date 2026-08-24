@@ -4,6 +4,7 @@
 //! and canonical direct-signing APIs supplied by the Go and TypeScript SDKs.
 
 pub mod bindings;
+pub mod actuarial;
 pub mod client;
 pub mod crypto;
 pub mod error;
@@ -23,6 +24,7 @@ pub use bindings::{
     ResponseEnvelope, BINDING_API_VERSION,
 };
 pub use client::{ClientConfig, HttpClient, Network, NetworkInfo, RetryConfig};
+pub use actuarial::ActuarialService;
 pub use error::{Error, Result};
 pub use gateway::GatewayClient;
 pub use governance::GovernanceClient;
@@ -52,6 +54,7 @@ pub struct KnirvClient {
     pub health: HealthService,
     pub config: ConfigService,
     pub transmission: TransmissionClient,
+    pub actuarial: ActuarialService,
     /// Static configuration for the selected KNIRV environment.
     pub network_info: NetworkInfo,
 }
@@ -73,9 +76,11 @@ impl KnirvClient {
             .controller_url
             .clone()
             .unwrap_or_else(|| network.services.controller.clone());
+        let backend_url = config.backend_url.clone().unwrap_or_else(|| network.services.backend.clone());
         network.services.chain = transaction_url.clone();
         network.services.gateway = gateway_url.clone();
         network.services.controller = controller_url.clone();
+        network.services.backend = backend_url.clone();
         Ok(Self {
             transaction: TransactionClient::new(HttpClient::new(transaction_url, config.clone())?),
             gateway: GatewayClient::new(HttpClient::new(&gateway_url, config.clone())?),
@@ -105,8 +110,9 @@ impl KnirvClient {
             config: ConfigService::new(HttpClient::new(&gateway_url, config.clone())?),
             transmission: TransmissionClient::new(HttpClient::new(
                 &network.services.router,
-                config,
+                config.clone(),
             )?),
+            actuarial: ActuarialService::new(HttpClient::new(&backend_url, config.clone())?),
             network_info: network,
         })
     }

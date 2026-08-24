@@ -11,6 +11,7 @@
     "./slim": { "types": "./slim.d.ts", "import": "./slim.js", "default": "./slim.js" },
     "./signing": { "types": "./signing.d.ts", "import": "./signing.js", "default": "./signing.js" },
     "./modules": { "types": "./modules.d.ts", "import": "./modules.js", "default": "./modules.js" },
+    "./actuarial": { "types": "./actuarial.d.ts", "import": "./actuarial.js", "default": "./actuarial.js" },
     "./wasm/*": "./wasm/*",
     "./package.json": "./package.json"
   },
@@ -25,6 +26,8 @@
     "runtime.d.ts",
     "modules.js",
     "modules.d.ts",
+    "actuarial.js",
+    "actuarial.d.ts",
     "modules/",
     "wasm/",
     "README.md",

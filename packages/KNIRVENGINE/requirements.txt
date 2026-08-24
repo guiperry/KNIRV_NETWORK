@@ -1,0 +1,11 @@
+# Python dependencies for KNIRV-Engine scripts
+# Install with: pip install -r requirements.txt
+
+# For embedding generation scripts
+sentence-transformers>=2.2.0
+numpy>=1.21.0
+beautifulsoup4>=4.9.0
+markdown>=3.3.0
+
+# For general script utilities
+requests>=2.25.0

@@ -1,0 +1,84 @@
+openapi: 3.1.0
+info:
+  title: KNIRV Actuarial Syndicate API
+  version: 1.0.0
+  description: Unified posting, validation, pricing, reserve, and settlement API for security exploits and curated code errors.
+servers:
+  - url: /api/v1/actuarial
+tags:
+  - name: postings
+  - name: credentials
+  - name: pools
+paths:
+  /risk-classes:
+    get:
+      tags: [postings]
+      summary: List unified bounty postings
+      responses: {'200': {description: Risk classes}} 
+    post:
+      tags: [postings]
+      summary: Curate a posting (admin only)
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/RiskClass'}}}}
+      responses: {'201': {description: Created}}
+  /credentials/enterprise:
+    post:
+      tags: [credentials]
+      summary: Create a session-backed enterprise credential
+      security: [{bearerAuth: []}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/EnterpriseCredentialRequest'}}}}
+      responses: {'201': {description: Verified credential}}
+  /submissions:
+    post:
+      tags: [postings]
+      summary: Submit a researcher or enterprise finding
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/SubmissionRequest'}}}}
+      responses: {'201': {description: Created}}
+  /submissions/{id}:
+    get:
+      tags: [postings]
+      summary: Get resolution and settlement status
+      parameters: [{$ref: '#/components/parameters/SubmissionID'}]
+      responses: {'200': {description: Submission}}
+  /submissions/{id}/claim:
+    post:
+      tags: [postings]
+      summary: Claim a submission as its resolver
+      parameters: [{$ref: '#/components/parameters/SubmissionID'}]
+      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [resolver_wallet], properties: {resolver_wallet: {type: string}}}}}}
+      responses: {'200': {description: Claimed}}
+  /pools:
+    get:
+      tags: [pools]
+      summary: List staking pools
+      responses: {'200': {description: Pools}}
+components:
+  securitySchemes:
+    bearerAuth: {type: http, scheme: bearer}
+  parameters:
+    SubmissionID: {name: id, in: path, required: true, schema: {type: string}}
+  schemas:
+    RiskClass:
+      type: object
+      required: [display_name, domain]
+      properties:
+        display_name: {type: string}
+        description: {type: string}
+        domain: {type: string, enum: [security_exploit, code_error]}
+        difficulty_tier: {type: integer, minimum: 0}
+    EnterpriseCredentialRequest:
+      type: object
+      required: [organization_id, session_subject]
+      properties:
+        organization_id: {type: string}
+        organization_name: {type: string}
+        session_subject: {type: string}
+        expires_at: {type: string, format: date-time}
+    SubmissionRequest:
+      type: object
+      required: [claimed_risk_class]
+      properties:
+        claimed_risk_class: {type: string}
+        researcher_credential_id: {type: string}
+        researcher_wallet: {type: string}
+        enterprise_credential_id: {type: string}
+        idempotency_key: {type: string}

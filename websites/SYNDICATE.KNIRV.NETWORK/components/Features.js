@@ -29,7 +29,7 @@ function Features() {
                                 </div>
                                 <div>
                                     <h4 className="text-xl font-bold mb-2">The KNIRV Way</h4>
-                                    <p className="text-[var(--text-gray)]">Submit PoC. Contract executes. Payout scales automatically based on blast radius, telemetry risk scores, and current syndicate liquidity. Guaranteed execution.</p>
+                                    <p className="text-[var(--text-gray)]">Submit through the authenticated WebGUI. The backend validates evidence and produces deterministic quotes from pinned inputs and current pool capacity.</p>
                                 </div>
                             </div>
                         </div>

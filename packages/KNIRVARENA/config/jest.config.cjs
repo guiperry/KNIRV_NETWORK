@@ -1,3 +1,6 @@
+const path = require('path');
+const projectRoot = path.resolve(__dirname, '..');
+
 module.exports = {
   rootDir: '../',
   preset: 'ts-jest',
@@ -89,59 +92,75 @@ module.exports = {
   projects: [
     {
       displayName: 'Unit Tests',
+      rootDir: projectRoot,
       testMatch: ['<rootDir>/tests/unit/**/*.test.(ts|tsx|js|jsx)'],
       testEnvironment: 'jsdom',
       testEnvironmentOptions: {
         html: '<html><body><div id="root"></div></body></html>',
         url: 'http://localhost:3000'
       },
-      setupFiles: ['<rootDir>/tests/polyfills.ts', '<rootDir>/jest.setup.js'],
+      setupFiles: ['<rootDir>/tests/polyfills.ts', '<rootDir>/config/jest.setup.js'],
       setupFilesAfterEnv: ['<rootDir>/src/setupTests.ts', '<rootDir>/tests/test-setup.ts', '<rootDir>/tests/setup-safety-checks.ts']
     },
     {
       displayName: 'Integration Tests',
+      rootDir: projectRoot,
       testMatch: ['<rootDir>/tests/integration/**/*.test.(ts|tsx|js|jsx)'],
       testEnvironment: 'jsdom',
       testEnvironmentOptions: {
         html: '<html><body><div id="root"></div></body></html>',
         url: 'http://localhost:3000'
       },
-      setupFiles: ['<rootDir>/tests/polyfills.ts', '<rootDir>/jest.setup.js'],
+      setupFiles: ['<rootDir>/tests/polyfills.ts', '<rootDir>/config/jest.setup.js'],
       setupFilesAfterEnv: ['<rootDir>/src/setupTests.ts', '<rootDir>/tests/test-setup.ts', '<rootDir>/tests/setup-safety-checks.ts']
     },
     {
       displayName: 'Sensory Shell Tests',
+      rootDir: projectRoot,
       testMatch: ['<rootDir>/src/sensory-shell/**/__tests__/**/*.test.(ts|tsx|js|jsx)'],
       testEnvironment: 'jsdom',
       testEnvironmentOptions: {
         html: '<html><body><div id="root"></div></body></html>',
         url: 'http://localhost:3000'
       },
-      setupFiles: ['<rootDir>/tests/polyfills.ts', '<rootDir>/jest.setup.js'],
+      setupFiles: ['<rootDir>/tests/polyfills.ts', '<rootDir>/config/jest.setup.js'],
       setupFilesAfterEnv: ['<rootDir>/src/setupTests.ts', '<rootDir>/tests/test-setup.ts', '<rootDir>/tests/setup-safety-checks.ts']
     },
     {
       displayName: 'Phase 3 Tests',
+      rootDir: projectRoot,
       testMatch: ['<rootDir>/tests/phase3/**/*.test.(ts|tsx|js|jsx)'],
       testEnvironment: 'jsdom',
       testEnvironmentOptions: {
         html: '<html><body><div id="root"></div></body></html>',
         url: 'http://localhost:3000'
       },
-      setupFiles: ['<rootDir>/tests/polyfills.ts', '<rootDir>/jest.setup.js'],
+      setupFiles: ['<rootDir>/tests/polyfills.ts', '<rootDir>/config/jest.setup.js'],
       setupFilesAfterEnv: ['<rootDir>/src/setupTests.ts', '<rootDir>/tests/test-setup.ts', '<rootDir>/tests/setup-safety-checks.ts']
     },
 
     {
       displayName: 'Error Resolution Tests',
+      rootDir: projectRoot,
       testMatch: ['<rootDir>/tests/error-resolution/**/*.test.(ts|tsx|js|jsx)'],
       testEnvironment: 'jsdom',
       testEnvironmentOptions: {
         html: '<html><body><div id="root"></div></body></html>',
         url: 'http://localhost:3000'
       },
-      setupFiles: ['<rootDir>/tests/polyfills.ts', '<rootDir>/jest.setup.js'],
+      setupFiles: ['<rootDir>/tests/polyfills.ts', '<rootDir>/config/jest.setup.js'],
       setupFilesAfterEnv: ['<rootDir>/src/setupTests.ts', '<rootDir>/tests/test-setup.ts', '<rootDir>/tests/setup-safety-checks.ts']
+    },
+    {
+      displayName: 'Actuarial Arena Tests',
+      rootDir: projectRoot,
+      testMatch: ['<rootDir>/src/services/__tests__/ActuarialSyndicateService.test.ts'],
+      testEnvironment: 'jsdom',
+      transform: {
+        '^.+\\.(ts|tsx)$': 'ts-jest'
+      },
+      setupFiles: ['<rootDir>/config/jest.actuarial.setup.cjs'],
+      setupFilesAfterEnv: []
     }
   ],
   reporters: [

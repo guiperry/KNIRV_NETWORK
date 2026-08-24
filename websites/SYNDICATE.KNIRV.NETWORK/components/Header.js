@@ -9,11 +9,11 @@ function Header({ selectedGateway, onGatewayChange, arenaURL }) {
                     </a>
                     <nav className="hidden md:flex gap-8 items-center font-mono text-sm">
                         <a href="index.html#features" className="text-[var(--text-gray)] hover:text-[var(--accent-blue)] transition-colors">Actuarial Logic</a>
-                        <a href="index.html#arena" className="text-[var(--text-gray)] hover:text-[var(--accent-blue)] transition-colors">The Arena</a>
-                        <a href="submit.html" className="text-[var(--accent-blue)] hover:text-white transition-colors border-b border-transparent hover:border-[var(--accent-blue)]">Submit PoC</a>
+                        <a href="index.html#syndicate" className="text-[var(--text-gray)] hover:text-[var(--accent-blue)] transition-colors">Syndicate Board</a>
+                        <a href="submit.html" className="text-[var(--accent-blue)] hover:text-white transition-colors border-b border-transparent hover:border-[var(--accent-blue)]">Submit a vulnerability</a>
                     </nav>
                     <div className="flex items-center gap-3">
-                        <label className="sr-only" htmlFor="arena-gateway">Arena gateway</label>
+                        <label className="sr-only" htmlFor="arena-gateway">Syndicate gateway</label>
                         <select
                             id="arena-gateway"
                             value={selectedGateway}

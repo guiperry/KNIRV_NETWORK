@@ -1,66 +1,26 @@
 function Arena({ arenaURL }) {
-    try {
-        const bounties = [
-            { id: "KNV-092", class: "Memory Corruption", target: "Rust Hypervisor", riskScore: 94.2, base: 25000, max: 185000, trend: "up" },
-            { id: "KNV-114", class: "Auth Bypass", target: "GraphQL API Core", riskScore: 88.5, base: 10000, max: 92000, trend: "up" },
-            { id: "KNV-047", class: "Deserialization", target: "JVM Runtime", riskScore: 71.8, base: 5000, max: 45000, trend: "down" },
-            { id: "KNV-103", class: "Race Condition", target: "Cosmos SDK Node", riskScore: 82.1, base: 15000, max: 110000, trend: "up" },
-        ];
+    const [state, setState] = React.useState({ loading: true, error: '', classes: [], pools: [] });
 
-        return (
-            <section id="arena" className="py-24 bg-[var(--bg-navy)] relative" data-name="arena" data-file="components/Arena.js">
-                <div className="container mx-auto px-6 max-w-6xl">
-                    <div className="flex flex-col md:flex-row justify-between items-end mb-12">
-                        <div>
-                            <h2 className="text-3xl md:text-5xl font-bold mb-4 font-mono uppercase tracking-tight text-white flex items-center gap-3">
-                                <div className="icon-gamepad-2 text-[var(--accent-blue)]"></div>
-                                Live Arena
-                            </h2>
-                            <p className="text-[var(--text-gray)] max-w-xl">Real-time risk pooling. Bounties fluctuate dynamically based on live node telemetry and syndicate staking.</p>
-                        </div>
-                        <a href={arenaURL} className="btn-primary mt-6 md:mt-0">Connect to Network</a>
-                    </div>
+    React.useEffect(() => {
+        const base = window.KNIRV_ACTUARIAL_API || 'http://localhost:8082/api/v1/actuarial';
+        Promise.all([fetch(`${base}/risk-classes`), fetch(`${base}/pools`)])
+            .then(async ([classes, pools]) => {
+                if (!classes.ok || !pools.ok) throw new Error('Actuarial API unavailable');
+                setState({ loading: false, error: '', classes: await classes.json(), pools: await pools.json() });
+            })
+            .catch(() => setState({ loading: false, error: 'Live syndicate data is temporarily unavailable.', classes: [], pools: [] }));
+    }, []);
 
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-left border-collapse">
-                            <thead>
-                                <tr className="border-b border-gray-800 text-[var(--accent-blue)] font-mono text-sm uppercase tracking-wider">
-                                    <th className="py-4 px-4">Contract ID</th>
-                                    <th className="py-4 px-4">Vulnerability Class</th>
-                                    <th className="py-4 px-4">Target Environment</th>
-                                    <th className="py-4 px-4">Actuarial Risk Score</th>
-                                    <th className="py-4 px-4 text-right">Dynamic Payout Range</th>
-                                    <th className="py-4 px-4"></th>
-                                </tr>
-                            </thead>
-                            <tbody className="font-mono text-sm">
-                                {bounties.map((bounty, idx) => (
-                                    <tr key={idx} className="border-b border-gray-800 hover:bg-white hover:bg-opacity-5 transition-colors group cursor-pointer">
-                                        <td className="py-5 px-4 text-gray-400">{bounty.id}</td>
-                                        <td className="py-5 px-4 font-bold text-white">{bounty.class}</td>
-                                        <td className="py-5 px-4 text-[var(--text-gray)]">{bounty.target}</td>
-                                        <td className="py-5 px-4">
-                                            <div className="flex items-center gap-2">
-                                                <div className={`w-2 h-2 rounded-full ${bounty.riskScore > 90 ? 'bg-red-500' : bounty.riskScore > 80 ? 'bg-orange-500' : 'bg-yellow-500'}`}></div>
-                                                {bounty.riskScore}
-                                            </div>
-                                        </td>
-                                        <td className="py-5 px-4 text-right text-green-400">
-                                            ${bounty.base.toLocaleString()} - ${bounty.max.toLocaleString()}
-                                        </td>
-                                        <td className="py-5 px-4 text-right">
-                                            <a href="submit.html" className="inline-block border border-gray-700 hover:border-[var(--accent-blue)] text-gray-300 hover:text-[var(--accent-blue)] px-3 py-1 rounded transition-colors text-xs">Submit PoC</a>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </section>
-        );
-    } catch (error) {
-        console.error('Arena component error:', error);
-        return null;
-    }
+    const poolsByClass = new Map(state.pools.map(pool => [pool.risk_class_id, pool]));
+    return <section id="syndicate" className="py-24 bg-[var(--bg-navy)] relative" data-name="syndicate-board">
+        <div className="container mx-auto px-6 max-w-6xl">
+            <div className="flex flex-col md:flex-row justify-between items-end mb-12">
+                <div><h2 className="text-3xl md:text-5xl font-bold mb-4 font-mono uppercase tracking-tight text-white">Live Syndicate Board</h2><p className="text-[var(--text-gray)] max-w-xl">Backend-owned postings and pool capacity across curated code errors and security exploits.</p></div>
+                <a href={arenaURL} className="btn-primary mt-6 md:mt-0">Join the Syndicate</a>
+            </div>
+            {state.loading && <p className="text-gray-400 font-mono">Loading live postings…</p>}
+            {state.error && <p className="text-red-300 font-mono">{state.error}</p>}
+            {!state.loading && !state.error && <div className="overflow-x-auto"><table className="w-full text-left border-collapse"><thead><tr className="border-b border-gray-800 text-[var(--accent-blue)] font-mono text-sm uppercase tracking-wider"><th className="py-4 px-4">Posting</th><th className="py-4 px-4">Domain</th><th className="py-4 px-4">Status</th><th className="py-4 px-4 text-right">Available capacity</th></tr></thead><tbody className="font-mono text-sm">{state.classes.map(riskClass => { const pool = poolsByClass.get(riskClass.id); const available = pool ? Math.max(0, pool.liquid_balance - pool.reserved_balance) : 0; return <tr key={riskClass.id} className="border-b border-gray-800"><td className="py-5 px-4"><strong className="text-white">{riskClass.display_name}</strong><p className="text-gray-400 mt-1">{riskClass.description}</p></td><td className="py-5 px-4 text-gray-300">{riskClass.domain.replace('_', ' ')}</td><td className="py-5 px-4 text-gray-300">{riskClass.status}</td><td className="py-5 px-4 text-right text-green-400">{available.toLocaleString()} NRN</td></tr>; })}</tbody></table></div>}
+        </div>
+    </section>;
 }

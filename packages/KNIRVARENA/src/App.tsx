@@ -3,6 +3,8 @@ import { useState, useEffect, useRef, Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route, useNavigate, useParams } from 'react-router-dom';
 import { QrCode, X } from 'lucide-react';
 import { initSentry } from './utils/sentry';
+import { actuarialSyndicateService } from './services/ActuarialSyndicateService';
+import { controllerActuarialAuthorizer } from './services/ControllerActuarialHandoff';
 
 // Receiver components
 import { KnirvShell } from './components/KnirvShell';
@@ -35,17 +37,12 @@ const Skills = lazy(() => import('./pages/Skills'));
 const UDC = lazy(() => import('./pages/UDC'));
 const WalletPage = lazy(() => import('./pages/Wallet'));
 const ChatBrain = lazy(() => import('./pages/ChatBrain'));
-
+const BountyBoard = lazy(() => import('./pages/BountyBoard'));
+const SyndicatePortfolio = lazy(() => import('./pages/SyndicatePortfolio'));
 
 // Types
 import { Agent } from './types/common';
 import { useKnirvana } from './components/game/stores/useKnirvana';
-
-
-
-
-
-
 
 // Window interface for global modal functions
 declare global {
@@ -103,7 +100,6 @@ export interface NRV {
 
 // Note: convertAgentToLegacy function removed - not currently needed but can be added back if LegacyAgent compatibility is required
 
-
 // Burger Menu Component
 interface BurgerMenuProps {
   isOpen: boolean;
@@ -115,7 +111,15 @@ interface BurgerMenuProps {
   setCurrentNetwork?: (network: NetworkType | null) => void;
 }
 
-const BurgerMenu: React.FC<BurgerMenuProps> = ({ isOpen, onToggle, children, showNetworkSelector, setShowNetworkSelector, currentNetwork, setCurrentNetwork }) => {
+const BurgerMenu: React.FC<BurgerMenuProps> = ({
+  isOpen,
+  onToggle,
+  children,
+  showNetworkSelector,
+  setShowNetworkSelector,
+  currentNetwork,
+  setCurrentNetwork,
+}) => {
   return (
     <div className="relative">
       {/* Burger Button */}
@@ -126,18 +130,25 @@ const BurgerMenu: React.FC<BurgerMenuProps> = ({ isOpen, onToggle, children, sho
         data-testid="burger-menu"
       >
         <div className="w-5 h-5 flex flex-col justify-center items-center">
-          <div className={`w-5 h-0.5 bg-white transition-all duration-300 ${isOpen ? 'rotate-45 translate-y-1' : ''}`}></div>
-          <div className={`w-5 h-0.5 bg-white transition-all duration-300 mt-1 ${isOpen ? 'opacity-0' : ''}`}></div>
-          <div className={`w-5 h-0.5 bg-white transition-all duration-300 mt-1 ${isOpen ? '-rotate-45 -translate-y-1' : ''}`}></div>
+          <div
+            className={`w-5 h-0.5 bg-white transition-all duration-300 ${isOpen ? 'rotate-45 translate-y-1' : ''}`}
+          ></div>
+          <div
+            className={`w-5 h-0.5 bg-white transition-all duration-300 mt-1 ${isOpen ? 'opacity-0' : ''}`}
+          ></div>
+          <div
+            className={`w-5 h-0.5 bg-white transition-all duration-300 mt-1 ${isOpen ? '-rotate-45 -translate-y-1' : ''}`}
+          ></div>
         </div>
       </button>
 
       {/* Menu Dropdown */}
       {isOpen && (
-        <div className="absolute top-full right-0 mt-2 bg-gray-800/90 backdrop-blur-sm border border-gray-600/50 rounded-lg shadow-xl min-w-48 z-50" data-testid="burger-menu-content">
-          <div className="p-2 space-y-1">
-            {children}
-          </div>
+        <div
+          className="absolute top-full right-0 mt-2 bg-gray-800/90 backdrop-blur-sm border border-gray-600/50 rounded-lg shadow-xl min-w-48 z-50"
+          data-testid="burger-menu-content"
+        >
+          <div className="p-2 space-y-1">{children}</div>
         </div>
       )}
 
@@ -146,7 +157,7 @@ const BurgerMenu: React.FC<BurgerMenuProps> = ({ isOpen, onToggle, children, sho
         <NetworkSelector
           isOpen={showNetworkSelector}
           onClose={() => setShowNetworkSelector?.(false)}
-          onNetworkChange={(network) => {
+          onNetworkChange={network => {
             setCurrentNetwork?.(network);
             console.log('Network changed to:', network.name);
           }}
@@ -182,7 +193,9 @@ const ReceiverInterface = () => {
   const gameStore = useKnirvana();
   const nrnBalance = gameStore.nrnBalance;
   const gamePhase = gameStore.gamePhase;
-  const [shellStatus, setShellStatus] = useState<'idle' | 'processing' | 'listening' | 'error'>('idle');
+  const [shellStatus, setShellStatus] = useState<'idle' | 'processing' | 'listening' | 'error'>(
+    'idle'
+  );
   const [isVoiceActive, setIsVoiceActive] = useState(false);
   const [currentNRVs, setCurrentNRVs] = useState<NRV[]>([]);
   const [selectedNRV, setSelectedNRV] = useState<NRV | null>(null);
@@ -204,7 +217,7 @@ const ReceiverInterface = () => {
     knirvWallet: 'connected',
     knirvRouters: 'connected',
     knirvana: 'connected',
-    knirvNexus: 'connected'
+    knirvNexus: 'connected',
   });
 
   const shellRef = useRef<HTMLDivElement>(null);
@@ -219,7 +232,7 @@ const ReceiverInterface = () => {
       expertise: ['React Components', 'State Management', 'Hooks'],
       trainingProgress: 100,
       nrnCost: 75,
-      description: 'Specialized in debugging React applications and component issues'
+      description: 'Specialized in debugging React applications and component issues',
     },
     {
       id: 'sub-agent-2',
@@ -229,7 +242,7 @@ const ReceiverInterface = () => {
       expertise: ['Microservices', 'API Design', 'Data Integration'],
       trainingProgress: 65,
       nrnCost: 90,
-      description: 'Expert in API design, integration patterns and microservices architecture'
+      description: 'Expert in API design, integration patterns and microservices architecture',
     },
     {
       id: 'sub-agent-3',
@@ -239,7 +252,7 @@ const ReceiverInterface = () => {
       expertise: ['OWASP', 'Security Testing', 'Penetration Testing'],
       trainingProgress: 0,
       nrnCost: 120,
-      description: 'Security-focused agent for vulnerability detection and security best practices'
+      description: 'Security-focused agent for vulnerability detection and security best practices',
     },
     {
       id: 'sub-agent-4',
@@ -249,8 +262,8 @@ const ReceiverInterface = () => {
       expertise: ['Performance Tuning', 'Memory Management', 'CPU Optimization'],
       trainingProgress: 100,
       nrnCost: 85,
-      description: 'Specializes in application performance optimization and resource management'
-    }
+      description: 'Specializes in application performance optimization and resource management',
+    },
   ]);
 
   // Sync shell status based on game phase
@@ -286,9 +299,9 @@ const ReceiverInterface = () => {
           author: 'KNIRV Network',
           capabilities: ['error-detection', 'system-analysis'],
           requirements: { memory: 256, cpu: 1, storage: 50 },
-          permissions: ['read', 'analyze']
+          permissions: ['read', 'analyze'],
         },
-        createdAt: new Date().toISOString()
+        createdAt: new Date().toISOString(),
       },
       {
         agentId: 'agent-2',
@@ -305,9 +318,9 @@ const ReceiverInterface = () => {
           author: 'KNIRV Network',
           capabilities: ['interface-design', 'user-experience'],
           requirements: { memory: 512, cpu: 2, storage: 100 },
-          permissions: ['read', 'write', 'design']
+          permissions: ['read', 'write', 'design'],
         },
-        createdAt: new Date().toISOString()
+        createdAt: new Date().toISOString(),
       },
       {
         agentId: 'agent-3',
@@ -324,10 +337,10 @@ const ReceiverInterface = () => {
           author: 'KNIRV Network',
           capabilities: ['security-analysis', 'threat-detection'],
           requirements: { memory: 1024, cpu: 4, storage: 200 },
-          permissions: ['admin', 'security', 'monitor']
+          permissions: ['admin', 'security', 'monitor'],
         },
-        createdAt: new Date().toISOString()
-      }
+        createdAt: new Date().toISOString(),
+      },
     ];
     setAvailableAgents(mockAgents);
   }, []);
@@ -345,12 +358,12 @@ const ReceiverInterface = () => {
           x: Math.random() * 800,
           y: Math.random() * 600,
           width: 200,
-          height: 150
+          height: 150,
         },
         temporalContext: new Date(),
         severity: 'Low',
         suggestedSolutionType: 'ui-adjustment',
-        status: 'Identified'
+        status: 'Identified',
       };
       setCurrentNRVs(prev => [...prev, newNRV]);
       setShellStatus('idle');
@@ -361,9 +374,7 @@ const ReceiverInterface = () => {
     setShellStatus('processing');
 
     setActivePanels(prev =>
-      prev.includes('key-agent-display')
-        ? prev
-        : [...prev, 'key-agent-display']
+      prev.includes('key-agent-display') ? prev : [...prev, 'key-agent-display']
     );
 
     setTimeout(() => {
@@ -375,7 +386,7 @@ const ReceiverInterface = () => {
         temporalContext: new Date(),
         severity: 'Medium',
         suggestedSolutionType: 'optimization',
-        status: 'Identified'
+        status: 'Identified',
       };
       setCurrentNRVs(prev => [...prev, newNRV]);
       setShellStatus('idle');
@@ -389,7 +400,9 @@ const ReceiverInterface = () => {
       // Generate factuality slice and POST to server endpoint
       const { createFactualitySlice } = await import('./slices/factualitySlice');
       const errorId = `error-${Date.now()}`;
-      const factuality = createFactualitySlice('User-submitted error for SkillNode training', { source: 'KNIRV-CONTROLLER-user' });
+      const factuality = createFactualitySlice('User-submitted error for SkillNode training', {
+        source: 'KNIRV-CONTROLLER-user',
+      });
 
       await fetch('/api/graph/error', {
         method: 'POST',
@@ -401,8 +414,8 @@ const ReceiverInterface = () => {
           description: 'User-submitted error for SkillNode training',
           context: { source: 'KNIRV-CONTROLLER-user', submissionType: 'manual' },
           timestamp: Date.now(),
-          factualitySlice: factuality
-        })
+          factualitySlice: factuality,
+        }),
       });
 
       const newNRV: NRV = {
@@ -413,7 +426,7 @@ const ReceiverInterface = () => {
         temporalContext: new Date(),
         severity: 'High',
         suggestedSolutionType: 'skill-training',
-        status: 'Identified'
+        status: 'Identified',
       };
       setCurrentNRVs(prev => [...prev, newNRV]);
       setShellStatus('idle');
@@ -431,7 +444,10 @@ const ReceiverInterface = () => {
       // Generate a simple capability slice and POST to server
       const { createFactualitySlice } = await import('./slices/factualitySlice');
       const contextId = `context-${Date.now()}`;
-      const capabilitySlice = createFactualitySlice('MCP server context for CapabilityNode creation', { serverType: 'user-submitted' });
+      const capabilitySlice = createFactualitySlice(
+        'MCP server context for CapabilityNode creation',
+        { serverType: 'user-submitted' }
+      );
 
       await fetch('/api/graph/context', {
         method: 'POST',
@@ -444,12 +460,12 @@ const ReceiverInterface = () => {
           mcpServerInfo: {
             serverType: 'user-submitted',
             capabilities: ['data-processing', 'api-integration'],
-            version: '1.0.0'
+            version: '1.0.0',
           },
           category: 'integration',
           timestamp: Date.now(),
-          capabilitySlice
-        })
+          capabilitySlice,
+        }),
       });
 
       const newNRV: NRV = {
@@ -460,7 +476,7 @@ const ReceiverInterface = () => {
         temporalContext: new Date(),
         severity: 'Medium',
         suggestedSolutionType: 'capability-mapping',
-        status: 'Identified'
+        status: 'Identified',
       };
       setCurrentNRVs(prev => [...prev, newNRV]);
       setShellStatus('idle');
@@ -478,7 +494,11 @@ const ReceiverInterface = () => {
       // Generate feasibility slice and POST to server
       const { createFeasibilitySlice } = await import('./slices/feasibilitySlice');
       const ideaId = `idea-${Date.now()}`;
-      const feasibility = createFeasibilitySlice('User Innovation Concept', 'User idea for PropertyNode development', []);
+      const feasibility = createFeasibilitySlice(
+        'User Innovation Concept',
+        'User idea for PropertyNode development',
+        []
+      );
 
       await fetch('/api/graph/idea', {
         method: 'POST',
@@ -489,8 +509,8 @@ const ReceiverInterface = () => {
           ideaName: 'User Innovation Concept',
           description: 'User idea for PropertyNode development',
           timestamp: Date.now(),
-          feasibilitySlice: feasibility
-        })
+          feasibilitySlice: feasibility,
+        }),
       });
 
       const newNRV: NRV = {
@@ -501,7 +521,7 @@ const ReceiverInterface = () => {
         temporalContext: new Date(),
         severity: 'Low',
         suggestedSolutionType: 'property-development',
-        status: 'Identified'
+        status: 'Identified',
       };
       setCurrentNRVs(prev => [...prev, newNRV]);
       setShellStatus('idle');
@@ -515,7 +535,7 @@ const ReceiverInterface = () => {
   const handleSubmitDemo = () => {
     // Toggle the voice demo functionality
     setIsVoiceActive(prev => !prev);
-    
+
     // Create Error Node demo NRVs
     const demoNRVs: NRV[] = [
       {
@@ -526,7 +546,7 @@ const ReceiverInterface = () => {
         temporalContext: new Date(),
         severity: 'High',
         suggestedSolutionType: 'component-fix',
-        status: 'Identified'
+        status: 'Identified',
       },
       {
         id: `demo-error-${Date.now()}-2`,
@@ -536,7 +556,7 @@ const ReceiverInterface = () => {
         temporalContext: new Date(Date.now() - 5000),
         severity: 'Medium',
         suggestedSolutionType: 'api-optimization',
-        status: 'Identified'
+        status: 'Identified',
       },
       {
         id: `demo-error-${Date.now()}-3`,
@@ -546,29 +566,25 @@ const ReceiverInterface = () => {
         temporalContext: new Date(Date.now() - 10000),
         severity: 'Critical',
         suggestedSolutionType: 'memory-management',
-        status: 'Identified'
-      }
+        status: 'Identified',
+      },
     ];
-    
+
     // Add demo NRVs to current list
     setCurrentNRVs(prev => [...demoNRVs, ...prev]);
-    
+
     // Set shell status to processing briefly to show activity
     setShellStatus('processing');
     setTimeout(() => setShellStatus('idle'), 1500);
   };
 
   const handleNRVMapping = (nrv: NRV) => {
-    setCurrentNRVs(prev => prev.map(n =>
-      n.id === nrv.id ? { ...n, status: 'Mapped' } : n
-    ));
+    setCurrentNRVs(prev => prev.map(n => (n.id === nrv.id ? { ...n, status: 'Mapped' } : n)));
     setShellStatus('processing');
 
     // Open Fabric Algorithm slideout
     setActivePanels(prev =>
-      prev.includes('fabric-algorithm')
-        ? prev
-        : [...prev, 'fabric-algorithm']
+      prev.includes('fabric-algorithm') ? prev : [...prev, 'fabric-algorithm']
     );
 
     setTimeout(() => {
@@ -578,20 +594,16 @@ const ReceiverInterface = () => {
 
   const handleAgentAssignment = (nrv: NRV, agent: Agent) => {
     if (gameStore.spendNRN(agent.nrnCost)) {
-      setCurrentNRVs(prev => prev.map(n =>
-        n.id === nrv.id ? { ...n, status: 'Assigned' } : n
-      ));
-      setAvailableAgents(prev => prev.map(a =>
-        a.agentId === agent.agentId ? { ...a, status: 'Deployed' } : a
-      ));
+      setCurrentNRVs(prev => prev.map(n => (n.id === nrv.id ? { ...n, status: 'Assigned' } : n)));
+      setAvailableAgents(prev =>
+        prev.map(a => (a.agentId === agent.agentId ? { ...a, status: 'Deployed' } : a))
+      );
 
       setTimeout(() => {
-        setCurrentNRVs(prev => prev.map(n =>
-          n.id === nrv.id ? { ...n, status: 'Resolved' } : n
-        ));
-        setAvailableAgents(prev => prev.map(a =>
-          a.agentId === agent.agentId ? { ...a, status: 'Available' } : a
-        ));
+        setCurrentNRVs(prev => prev.map(n => (n.id === nrv.id ? { ...n, status: 'Resolved' } : n)));
+        setAvailableAgents(prev =>
+          prev.map(a => (a.agentId === agent.agentId ? { ...a, status: 'Available' } : a))
+        );
       }, 5000);
     }
   };
@@ -624,7 +636,7 @@ const ReceiverInterface = () => {
       temporalContext: new Date(),
       severity: 'Low',
       suggestedSolutionType: 'skill-execution',
-      status: 'Resolved'
+      status: 'Resolved',
     };
     setCurrentNRVs(prev => [...prev, newNRV]);
   };
@@ -641,10 +653,14 @@ const ReceiverInterface = () => {
 
   const getEdgeColor = () => {
     switch (shellStatus) {
-      case 'processing': return '#3B82F6';
-      case 'listening': return '#14B8A6';
-      case 'error': return '#EF4444';
-      default: return '#10B981';
+      case 'processing':
+        return '#3B82F6';
+      case 'listening':
+        return '#14B8A6';
+      case 'error':
+        return '#EF4444';
+      default:
+        return '#10B981';
     }
   };
 
@@ -655,9 +671,7 @@ const ReceiverInterface = () => {
 
   const openCognitiveShell = () => {
     setActivePanels(prev =>
-      prev.includes('cognitive-shell')
-        ? prev
-        : [...prev, 'cognitive-shell']
+      prev.includes('cognitive-shell') ? prev : [...prev, 'cognitive-shell']
     );
     setMenuOpen(false);
   };
@@ -697,14 +711,14 @@ const ReceiverInterface = () => {
 
   const handleDeployAgent = (agentId: string, position: { x: number; y: number; z: number }) => {
     console.log('Deploying agent:', agentId, 'to position:', position);
-    
+
     // Find the sub-agent name for animation
     const subAgent = mockSubAgents.find(sa => sa.id === agentId);
     const agentName = subAgent?.name || `Agent ${agentId}`;
-    
+
     // Start deploy animation
     gameStore.startDeployAnimation(agentId, agentName, position);
-    
+
     // Close the modal
     setIsAgentManagementOpen(false);
   };
@@ -764,7 +778,13 @@ const ReceiverInterface = () => {
           <MenuItem onClick={openUSDCPurchase} icon="💰">
             Buy NRN Tokens
           </MenuItem>
-          <MenuItem onClick={() => { setShowNetworkSelector?.(true); setMenuOpen(false); }} icon="🔗">
+          <MenuItem
+            onClick={() => {
+              setShowNetworkSelector?.(true);
+              setMenuOpen(false);
+            }}
+            icon="🔗"
+          >
             Network
           </MenuItem>
           <MenuItem onClick={() => setIsAgentManagementOpen(true)} icon="🤖">
@@ -778,7 +798,7 @@ const ReceiverInterface = () => {
           </MenuItem>
         </BurgerMenu>
       </div>
-      
+
       <main ref={shellRef} className="relative w-full h-screen" role="main">
         <KnirvShell
           status={shellStatus}
@@ -830,7 +850,7 @@ const ReceiverInterface = () => {
                 className="w-64 h-64 rounded-full border-4 border-green-500/50 shadow-2xl"
               />
             </div>
-            
+
             {/* Key Agent Info */}
             <div className="text-center space-y-2">
               <h3 className="text-xl font-bold text-white">Key Agent</h3>
@@ -847,10 +867,9 @@ const ReceiverInterface = () => {
             <div className="bg-gray-800 rounded-lg p-4">
               <div className="text-sm font-medium text-gray-300 mb-1">Current Status</div>
               <div className="text-base text-white">
-                {availableAgents.length > 0 
+                {availableAgents.length > 0
                   ? `Monitoring ${availableAgents.length} active agents`
-                  : 'Awaiting agent deployment'
-                }
+                  : 'Awaiting agent deployment'}
               </div>
               <div className="text-xs text-gray-400 mt-2">
                 Last activity: {new Date().toLocaleTimeString()}
@@ -878,15 +897,19 @@ const ReceiverInterface = () => {
                 Open Agent Management
               </button>
             </div>
-            
+
             {/* Quick Stats */}
             <div className="grid grid-cols-2 gap-3 mt-4">
               <div className="bg-gray-800 rounded-lg p-3 text-center">
-                <div className="text-lg font-bold text-white">{mockSubAgents.filter(sa => sa.status === 'ready').length}</div>
+                <div className="text-lg font-bold text-white">
+                  {mockSubAgents.filter(sa => sa.status === 'ready').length}
+                </div>
                 <div className="text-xs text-gray-400">Ready Agents</div>
               </div>
               <div className="bg-gray-800 rounded-lg p-3 text-center">
-                <div className="text-lg font-bold text-blue-400">{mockSubAgents.filter(sa => sa.status === 'training').length}</div>
+                <div className="text-lg font-bold text-blue-400">
+                  {mockSubAgents.filter(sa => sa.status === 'training').length}
+                </div>
                 <div className="text-xs text-gray-400">In Training</div>
               </div>
             </div>
@@ -917,23 +940,14 @@ const ReceiverInterface = () => {
           title="Fabric Algorithm"
           side="right"
         >
-          <FabricAlgorithm
-            status={shellStatus}
-            nrvCount={currentNRVs.length}
-          />
+          <FabricAlgorithm status={shellStatus} nrvCount={currentNRVs.length} />
         </SlidingPanel>
 
         {/* CORTEX Builder Modal */}
-        <CortexBuilder
-          isOpen={isCortexBuilderOpen}
-          onClose={() => setIsCortexBuilderOpen(false)}
-        />
+        <CortexBuilder isOpen={isCortexBuilderOpen} onClose={() => setIsCortexBuilderOpen(false)} />
 
         {/* API Key Manager Modal */}
-        <ApiKeyManager
-          isOpen={isApiKeyManagerOpen}
-          onClose={() => setIsApiKeyManagerOpen(false)}
-        />
+        <ApiKeyManager isOpen={isApiKeyManagerOpen} onClose={() => setIsApiKeyManagerOpen(false)} />
 
         {/* USDC to NRN Purchase Modal */}
         {isUSDCPurchaseOpen && (
@@ -946,12 +960,12 @@ const ReceiverInterface = () => {
                 ×
               </button>
               <USDCToNRNPurchase
-                onPurchaseComplete={(result) => {
+                onPurchaseComplete={result => {
                   console.log('Purchase completed:', result);
                   // Update NRN balance if needed
                   gameStore.addNRN(parseFloat(result.nrnAmount));
                 }}
-                onError={(error) => {
+                onError={error => {
                   console.error('Purchase error:', error);
                   // Could show a toast notification here
                 }}
@@ -983,24 +997,25 @@ const ReceiverInterface = () => {
               </div>
             </div>
           ) : (
-            <div className={`px-3 py-1 rounded-full text-xs font-medium transition-all duration-300 ${
-              shellStatus === 'idle' ? 'bg-green-500/20 text-green-400 border border-green-500/30' :
-              shellStatus === 'processing' ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30' :
-              shellStatus === 'listening' ? 'bg-teal-500/20 text-teal-400 border border-teal-500/30' :
-              'bg-red-500/20 text-red-400 border border-red-500/30'
-            }`}>
+            <div
+              className={`px-3 py-1 rounded-full text-xs font-medium transition-all duration-300 ${
+                shellStatus === 'idle'
+                  ? 'bg-green-500/20 text-green-400 border border-green-500/30'
+                  : shellStatus === 'processing'
+                    ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
+                    : shellStatus === 'listening'
+                      ? 'bg-teal-500/20 text-teal-400 border border-teal-500/30'
+                      : 'bg-red-500/20 text-red-400 border border-red-500/30'
+              }`}
+            >
               {shellStatus.charAt(0).toUpperCase() + shellStatus.slice(1)}
             </div>
-            )}
+          )}
         </div>
-        </main>
+      </main>
 
       {/* Slide-Down Modals */}
-      <SlideDownModal
-        isOpen={activeModal === 'skills'}
-        onClose={handleModalClose}
-        title="Skills"
-      >
+      <SlideDownModal isOpen={activeModal === 'skills'} onClose={handleModalClose} title="Skills">
         <SkillsModalContent nrnBalance={nrnBalance} />
       </SlideDownModal>
 
@@ -1017,8 +1032,8 @@ const ReceiverInterface = () => {
         onClose={handleModalClose}
         title="KNIRV Wallet"
       >
-        <WalletModalContent 
-          nrnBalance={nrnBalance} 
+        <WalletModalContent
+          nrnBalance={nrnBalance}
           cognitiveMode={cognitiveMode}
           cognitiveState={{ mode: 'active', isActive: cognitiveMode }}
         />
@@ -1044,8 +1059,8 @@ const ReceiverInterface = () => {
         nrnBalance={nrnBalance}
         onDeployAgent={(nrv: NRV) => {
           // Find the first available agent to deploy
-          const availableAgent = availableAgents.find(agent =>
-            agent.status === 'Available' && nrnBalance >= agent.nrnCost
+          const availableAgent = availableAgents.find(
+            agent => agent.status === 'Available' && nrnBalance >= agent.nrnCost
           );
           if (availableAgent) {
             handleAgentAssignment(nrv, availableAgent);
@@ -1098,50 +1113,120 @@ const AgentProfile = () => {
   // Mock agent data - in real app this would come from API
   const agent = {
     id: agentId,
-    name: agentId === 'codet5-alpha' ? 'CodeT5-Alpha' :
-          agentId === 'seal-beta' ? 'SEAL-Beta' :
-          agentId === 'lora-gamma' ? 'LoRA-Gamma' : 'Unknown Agent',
-    type: agentId === 'codet5-alpha' ? 'KNIRV-CORTEX' :
-          agentId === 'seal-beta' ? 'KNIRVANA' :
-          agentId === 'lora-gamma' ? 'DVE' : 'Unknown',
-    status: agentId === 'codet5-alpha' ? 'active' :
-            agentId === 'seal-beta' ? 'active' :
-            agentId === 'lora-gamma' ? 'idle' : 'offline',
-    performance: agentId === 'codet5-alpha' ? 94 :
-                 agentId === 'seal-beta' ? 87 :
-                 agentId === 'lora-gamma' ? 91 : 78,
-    tasks: agentId === 'codet5-alpha' ? 12 :
-           agentId === 'seal-beta' ? 8 :
-           agentId === 'lora-gamma' ? 0 : 0,
-    lastActive: agentId === 'codet5-alpha' ? '2 min ago' :
-                agentId === 'seal-beta' ? '5 min ago' :
-                agentId === 'lora-gamma' ? '1 hour ago' : '3 hours ago',
-    specialization: agentId === 'codet5-alpha' ? ['code-generation', 'optimization'] :
-                    agentId === 'seal-beta' ? ['learning', 'adaptation'] :
-                    agentId === 'lora-gamma' ? ['fine-tuning', 'model-adaptation'] : ['unknown'],
-    nrnCost: agentId === 'codet5-alpha' ? 85 :
-             agentId === 'seal-beta' ? 90 :
-             agentId === 'lora-gamma' ? 120 : 100,
-    description: agentId === 'codet5-alpha' ? 'Advanced code generation and optimization agent powered by CodeT5 architecture.' :
-                 agentId === 'seal-beta' ? 'Self-evolving adaptive learning agent with continuous improvement capabilities.' :
-                 agentId === 'lora-gamma' ? 'Low-rank adaptation specialist for fine-tuning large language models.' : 'Unknown agent type.',
-    capabilities: agentId === 'codet5-alpha' ? ['Code Generation', 'Bug Detection', 'Performance Optimization', 'Documentation'] :
-                  agentId === 'seal-beta' ? ['Adaptive Learning', 'Pattern Recognition', 'Behavior Modeling', 'Prediction'] :
-                  agentId === 'lora-gamma' ? ['Model Fine-tuning', 'Parameter Optimization', 'Transfer Learning', 'Efficiency'] : ['Unknown'],
+    name:
+      agentId === 'codet5-alpha'
+        ? 'CodeT5-Alpha'
+        : agentId === 'seal-beta'
+          ? 'SEAL-Beta'
+          : agentId === 'lora-gamma'
+            ? 'LoRA-Gamma'
+            : 'Unknown Agent',
+    type:
+      agentId === 'codet5-alpha'
+        ? 'KNIRV-CORTEX'
+        : agentId === 'seal-beta'
+          ? 'KNIRVANA'
+          : agentId === 'lora-gamma'
+            ? 'DVE'
+            : 'Unknown',
+    status:
+      agentId === 'codet5-alpha'
+        ? 'active'
+        : agentId === 'seal-beta'
+          ? 'active'
+          : agentId === 'lora-gamma'
+            ? 'idle'
+            : 'offline',
+    performance:
+      agentId === 'codet5-alpha'
+        ? 94
+        : agentId === 'seal-beta'
+          ? 87
+          : agentId === 'lora-gamma'
+            ? 91
+            : 78,
+    tasks:
+      agentId === 'codet5-alpha'
+        ? 12
+        : agentId === 'seal-beta'
+          ? 8
+          : agentId === 'lora-gamma'
+            ? 0
+            : 0,
+    lastActive:
+      agentId === 'codet5-alpha'
+        ? '2 min ago'
+        : agentId === 'seal-beta'
+          ? '5 min ago'
+          : agentId === 'lora-gamma'
+            ? '1 hour ago'
+            : '3 hours ago',
+    specialization:
+      agentId === 'codet5-alpha'
+        ? ['code-generation', 'optimization']
+        : agentId === 'seal-beta'
+          ? ['learning', 'adaptation']
+          : agentId === 'lora-gamma'
+            ? ['fine-tuning', 'model-adaptation']
+            : ['unknown'],
+    nrnCost:
+      agentId === 'codet5-alpha'
+        ? 85
+        : agentId === 'seal-beta'
+          ? 90
+          : agentId === 'lora-gamma'
+            ? 120
+            : 100,
+    description:
+      agentId === 'codet5-alpha'
+        ? 'Advanced code generation and optimization agent powered by CodeT5 architecture.'
+        : agentId === 'seal-beta'
+          ? 'Self-evolving adaptive learning agent with continuous improvement capabilities.'
+          : agentId === 'lora-gamma'
+            ? 'Low-rank adaptation specialist for fine-tuning large language models.'
+            : 'Unknown agent type.',
+    capabilities:
+      agentId === 'codet5-alpha'
+        ? ['Code Generation', 'Bug Detection', 'Performance Optimization', 'Documentation']
+        : agentId === 'seal-beta'
+          ? ['Adaptive Learning', 'Pattern Recognition', 'Behavior Modeling', 'Prediction']
+          : agentId === 'lora-gamma'
+            ? ['Model Fine-tuning', 'Parameter Optimization', 'Transfer Learning', 'Efficiency']
+            : ['Unknown'],
     metrics: {
-      uptime: agentId === 'codet5-alpha' ? '99.2%' :
-              agentId === 'seal-beta' ? '98.7%' :
-              agentId === 'lora-gamma' ? '95.1%' : '89.3%',
-      accuracy: agentId === 'codet5-alpha' ? '94.8%' :
-                agentId === 'seal-beta' ? '92.3%' :
-                agentId === 'lora-gamma' ? '96.7%' : '78.2%',
-      responseTime: agentId === 'codet5-alpha' ? '1.2s' :
-                    agentId === 'seal-beta' ? '0.8s' :
-                    agentId === 'lora-gamma' ? '2.1s' : '3.4s',
-      totalTasks: agentId === 'codet5-alpha' ? 1247 :
-                  agentId === 'seal-beta' ? 892 :
-                  agentId === 'lora-gamma' ? 634 : 234
-    }
+      uptime:
+        agentId === 'codet5-alpha'
+          ? '99.2%'
+          : agentId === 'seal-beta'
+            ? '98.7%'
+            : agentId === 'lora-gamma'
+              ? '95.1%'
+              : '89.3%',
+      accuracy:
+        agentId === 'codet5-alpha'
+          ? '94.8%'
+          : agentId === 'seal-beta'
+            ? '92.3%'
+            : agentId === 'lora-gamma'
+              ? '96.7%'
+              : '78.2%',
+      responseTime:
+        agentId === 'codet5-alpha'
+          ? '1.2s'
+          : agentId === 'seal-beta'
+            ? '0.8s'
+            : agentId === 'lora-gamma'
+              ? '2.1s'
+              : '3.4s',
+      totalTasks:
+        agentId === 'codet5-alpha'
+          ? 1247
+          : agentId === 'seal-beta'
+            ? 892
+            : agentId === 'lora-gamma'
+              ? 634
+              : 234,
+    },
   };
 
   const handleQRScan = () => {
@@ -1149,26 +1234,66 @@ const AgentProfile = () => {
     setMenuOpen(false);
   };
 
-
-
   return (
     <div className="min-h-screen bg-gray-900 text-white relative overflow-hidden">
       {/* Burger Menu Navigation */}
       <div className="absolute top-4 right-4 z-50">
         <BurgerMenu isOpen={menuOpen} onToggle={() => setMenuOpen(!menuOpen)}>
-          <MenuItem onClick={() => { navigate('/manager/skills'); setMenuOpen(false); }} icon="⚡">
+          <MenuItem
+            onClick={() => {
+              navigate('/manager/skills');
+              setMenuOpen(false);
+            }}
+            icon="⚡"
+          >
             Skills
           </MenuItem>
-          <MenuItem onClick={() => { navigate('/manager/udc'); setMenuOpen(false); }} icon="🔐">
+          <MenuItem
+            onClick={() => {
+              navigate('/manager/udc');
+              setMenuOpen(false);
+            }}
+            icon="🔐"
+          >
             UDC
           </MenuItem>
-          <MenuItem onClick={() => { navigate('/manager/wallet'); setMenuOpen(false); }} icon="💰">
+          <MenuItem
+            onClick={() => {
+              navigate('/manager/wallet');
+              setMenuOpen(false);
+            }}
+            icon="💰"
+          >
             Wallet
+          </MenuItem>
+          <MenuItem
+            onClick={() => {
+              navigate('/manager/bounties');
+              setMenuOpen(false);
+            }}
+            icon="🎯"
+          >
+            Bounty Board
+          </MenuItem>
+          <MenuItem
+            onClick={() => {
+              navigate('/manager/syndicate');
+              setMenuOpen(false);
+            }}
+            icon="📊"
+          >
+            Syndicate Portfolio
           </MenuItem>
           <MenuItem onClick={handleQRScan} icon="📱">
             QR Scanner
           </MenuItem>
-          <MenuItem onClick={() => { navigate('/'); setMenuOpen(false); }} icon="🏠">
+          <MenuItem
+            onClick={() => {
+              navigate('/');
+              setMenuOpen(false);
+            }}
+            icon="🏠"
+          >
             Input Interface
           </MenuItem>
         </BurgerMenu>
@@ -1194,10 +1319,15 @@ const AgentProfile = () => {
           <div className="bg-gray-800/80 border border-gray-600/50 rounded-lg p-6">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center space-x-3">
-                <div className={`w-4 h-4 rounded-full ${
-                  agent.status === 'active' ? 'bg-green-400 animate-pulse' :
-                  agent.status === 'idle' ? 'bg-yellow-400' : 'bg-red-400'
-                }`}></div>
+                <div
+                  className={`w-4 h-4 rounded-full ${
+                    agent.status === 'active'
+                      ? 'bg-green-400 animate-pulse'
+                      : agent.status === 'idle'
+                        ? 'bg-yellow-400'
+                        : 'bg-red-400'
+                  }`}
+                ></div>
                 <h2 className="text-xl font-semibold text-white">Status: {agent.status}</h2>
               </div>
               <div className="text-right">
@@ -1231,7 +1361,10 @@ const AgentProfile = () => {
             <h3 className="text-lg font-semibold text-white mb-4">Capabilities</h3>
             <div className="grid grid-cols-2 gap-3">
               {agent.capabilities.map((capability, index) => (
-                <div key={index} className="bg-gray-700/50 border border-gray-600/30 rounded-lg p-3">
+                <div
+                  key={index}
+                  className="bg-gray-700/50 border border-gray-600/30 rounded-lg p-3"
+                >
                   <p className="text-white font-medium">{capability}</p>
                 </div>
               ))}
@@ -1262,7 +1395,10 @@ const AgentProfile = () => {
             <h3 className="text-lg font-semibold text-white mb-4">Specializations</h3>
             <div className="flex flex-wrap gap-2">
               {agent.specialization?.map((spec, index) => (
-                <span key={index} className="bg-blue-600/20 text-blue-400 px-3 py-1 rounded-full text-sm">
+                <span
+                  key={index}
+                  className="bg-blue-600/20 text-blue-400 px-3 py-1 rounded-full text-sm"
+                >
                   {spec}
                 </span>
               ))}
@@ -1311,12 +1447,20 @@ const ManagerInterface = () => {
 
   return (
     <div className="min-h-screen bg-gray-900 text-white relative">
-      <Suspense fallback={<div className="flex items-center justify-center h-screen"><div className="text-white">Loading...</div></div>}>
+      <Suspense
+        fallback={
+          <div className="flex items-center justify-center h-screen">
+            <div className="text-white">Loading...</div>
+          </div>
+        }
+      >
         <Routes>
           <Route path="/skills" element={<Skills />} />
           <Route path="/udc" element={<UDC />} />
           <Route path="/wallet" element={<WalletPage />} />
           <Route path="/chat-brain" element={<ChatBrain />} />
+          <Route path="/bounties" element={<BountyBoard />} />
+          <Route path="/syndicate" element={<SyndicatePortfolio />} />
           <Route path="/agent/:agentId" element={<AgentProfile />} />
         </Routes>
       </Suspense>
@@ -1329,6 +1473,7 @@ function App() {
   useEffect(() => {
     // Initialize Sentry for error monitoring
     initSentry();
+    actuarialSyndicateService.configureMutationAuthorizer(controllerActuarialAuthorizer());
   }, []);
 
   return (

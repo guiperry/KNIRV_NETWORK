@@ -1,0 +1,364 @@
+package database
+
+import (
+	"context"
+	"fmt"
+	"runtime"
+	"strconv"
+	"time"
+
+	"github.com/google/uuid"
+	"github.com/philippgille/chromem-go"
+)
+
+// Workflow represents an orchestration workflow
+type Workflow struct {
+	ID           string    `json:"id"`
+	AgentID      string    `json:"agent_id"`
+	TargetID     string    `json:"target_id"`
+	CapabilityID string    `json:"capability_id"`
+	Status       string    `json:"status"`
+	StartTime    time.Time `json:"start_time"`
+	EndTime      time.Time `json:"end_time,omitempty"`
+	Result       string    `json:"result,omitempty"`
+	OwnerID      int64     `json:"owner_id"`
+}
+
+// WorkflowRepository handles workflow persistence
+type WorkflowRepository struct {
+	collection *chromem.Collection
+}
+
+// NewWorkflowRepository creates a new workflow repository
+func NewWorkflowRepository(collection *chromem.Collection) *WorkflowRepository {
+	return &WorkflowRepository{
+		collection: collection,
+	}
+}
+
+// CreateWorkflow adds a new workflow to the database
+func (r *WorkflowRepository) CreateWorkflow(ctx context.Context, workflow *Workflow) error {
+	// Generate ID if not provided
+	if workflow.ID == "" {
+		workflow.ID = uuid.New().String()
+	}
+
+	// Set start time if not provided
+	if workflow.StartTime.IsZero() {
+		workflow.StartTime = time.Now()
+	}
+
+	// Convert workflow to metadata
+	metadata := map[string]string{
+		"agent_id":      workflow.AgentID,
+		"target_id":     workflow.TargetID,
+		"capability_id": workflow.CapabilityID,
+		"status":        workflow.Status,
+		"start_time":    workflow.StartTime.Format(time.RFC3339),
+		"owner_id":      fmt.Sprintf("%d", workflow.OwnerID),
+	}
+
+	// Add end time and result if present
+	if !workflow.EndTime.IsZero() {
+		metadata["end_time"] = workflow.EndTime.Format(time.RFC3339)
+	}
+
+	if workflow.Result != "" {
+		metadata["result"] = workflow.Result
+	}
+
+	// Create document for chromem-go
+	doc := chromem.Document{
+		ID:       workflow.ID,
+		Content:  fmt.Sprintf("Workflow using agent %s on target %s with capability %s", workflow.AgentID, workflow.TargetID, workflow.CapabilityID),
+		Metadata: metadata,
+	}
+
+	// Store workflow in chromem-go
+	return r.collection.AddDocuments(ctx, []chromem.Document{doc}, runtime.NumCPU())
+}
+
+// GetWorkflowByID retrieves a workflow by ID
+func (r *WorkflowRepository) GetWorkflowByID(ctx context.Context, id string) (*Workflow, error) {
+	// Get document by ID
+	docs, err := r.collection.Get(ctx, []string{id})
+	if err != nil {
+		return nil, err
+	}
+
+	if len(docs) == 0 {
+		return nil, fmt.Errorf("workflow not found: %s", id)
+	}
+
+	// Convert document to Workflow
+	return documentToWorkflow(docs[0])
+}
+
+// UpdateWorkflow updates an existing workflow
+func (r *WorkflowRepository) UpdateWorkflow(ctx context.Context, workflow *Workflow) error {
+	// Check if workflow exists
+	_, err := r.GetWorkflowByID(ctx, workflow.ID)
+	if err != nil {
+		return err
+	}
+
+	// Convert workflow to metadata
+	metadata := map[string]string{
+		"agent_id":      workflow.AgentID,
+		"target_id":     workflow.TargetID,
+		"capability_id": workflow.CapabilityID,
+		"status":        workflow.Status,
+		"start_time":    workflow.StartTime.Format(time.RFC3339),
+		"owner_id":      fmt.Sprintf("%d", workflow.OwnerID),
+	}
+
+	// Add end time and result if present
+	if !workflow.EndTime.IsZero() {
+		metadata["end_time"] = workflow.EndTime.Format(time.RFC3339)
+	}
+
+	if workflow.Result != "" {
+		metadata["result"] = workflow.Result
+	}
+
+	// Create document for chromem-go
+	doc := chromem.Document{
+		ID:       workflow.ID,
+		Content:  fmt.Sprintf("Workflow using agent %s on target %s with capability %s", workflow.AgentID, workflow.TargetID, workflow.CapabilityID),
+		Metadata: metadata,
+	}
+
+	// Update workflow in chromem-go
+	return r.collection.UpdateDocument(ctx, doc)
+}
+
+// DeleteWorkflow deletes a workflow
+func (r *WorkflowRepository) DeleteWorkflow(ctx context.Context, id string) error {
+	return r.collection.DeleteDocuments(ctx, []string{id})
+}
+
+// GetWorkflowsByOwner retrieves all workflows for a user
+func (r *WorkflowRepository) GetWorkflowsByOwner(ctx context.Context, ownerID int64) ([]*Workflow, error) {
+	// Query for workflows with matching owner ID
+	filter := map[string]string{
+		"owner_id": fmt.Sprintf("%d", ownerID),
+	}
+
+	docs, err := r.collection.GetByMetadata(ctx, filter)
+	if err != nil {
+		return nil, err
+	}
+
+	// Convert documents to Workflows
+	workflows := make([]*Workflow, len(docs))
+	for i, doc := range docs {
+		workflow, err := documentToWorkflow(doc)
+		if err != nil {
+			return nil, err
+		}
+		workflows[i] = workflow
+	}
+
+	return workflows, nil
+}
+
+// GetWorkflowsByStatus retrieves workflows by status
+func (r *WorkflowRepository) GetWorkflowsByStatus(ctx context.Context, status string) ([]*Workflow, error) {
+	// Query for workflows with matching status
+	filter := map[string]string{
+		"status": status,
+	}
+
+	docs, err := r.collection.GetByMetadata(ctx, filter)
+	if err != nil {
+		return nil, err
+	}
+
+	// Convert documents to Workflows
+	workflows := make([]*Workflow, len(docs))
+	for i, doc := range docs {
+		workflow, err := documentToWorkflow(doc)
+		if err != nil {
+			return nil, err
+		}
+		workflows[i] = workflow
+	}
+
+	return workflows, nil
+}
+
+// GetWorkflowsByAgent retrieves workflows for a specific agent
+func (r *WorkflowRepository) GetWorkflowsByAgent(ctx context.Context, agentID string) ([]*Workflow, error) {
+	// Query for workflows with matching agent ID
+	filter := map[string]string{
+		"agent_id": agentID,
+	}
+
+	docs, err := r.collection.GetByMetadata(ctx, filter)
+	if err != nil {
+		return nil, err
+	}
+
+	// Convert documents to Workflows
+	workflows := make([]*Workflow, len(docs))
+	for i, doc := range docs {
+		workflow, err := documentToWorkflow(doc)
+		if err != nil {
+			return nil, err
+		}
+		workflows[i] = workflow
+	}
+
+	return workflows, nil
+}
+
+// Helper function to convert a document to a Workflow
+func documentToWorkflow(doc chromem.Document) (*Workflow, error) {
+	startTime, err := time.Parse(time.RFC3339, doc.Metadata["start_time"])
+	if err != nil {
+		return nil, fmt.Errorf("invalid start_time timestamp: %w", err)
+	}
+
+	ownerID, err := strconv.ParseInt(doc.Metadata["owner_id"], 10, 64)
+	if err != nil {
+		return nil, fmt.Errorf("invalid owner_id: %w", err)
+	}
+
+	workflow := &Workflow{
+		ID:           doc.ID,
+		AgentID:      doc.Metadata["agent_id"],
+		TargetID:     doc.Metadata["target_id"],
+		CapabilityID: doc.Metadata["capability_id"],
+		Status:       doc.Metadata["status"],
+		StartTime:    startTime,
+		Result:       doc.Metadata["result"],
+		OwnerID:      ownerID,
+	}
+
+	// Parse end time if present
+	if endTimeStr, ok := doc.Metadata["end_time"]; ok && endTimeStr != "" {
+		endTime, err := time.Parse(time.RFC3339, endTimeStr)
+		if err != nil {
+			return nil, fmt.Errorf("invalid end_time timestamp: %w", err)
+		}
+		workflow.EndTime = endTime
+	}
+
+	return workflow, nil
+}
+
+// WorkflowStats represents statistics about workflows
+type WorkflowStats struct {
+	TotalCount  int     `json:"total_count"`
+	TodayCount  int     `json:"today_count"`
+	SuccessRate float64 `json:"success_rate"`
+	AvgDuration float64 `json:"avg_duration_ms"`
+	TargetCount int     `json:"target_count"`
+}
+
+// GetWorkflowStats calculates statistics about workflows for a user
+func (r *WorkflowRepository) GetWorkflowStats(ctx context.Context, ownerID int64) (*WorkflowStats, error) {
+	// Get all workflows for the user
+	workflows, err := r.GetWorkflowsByOwner(ctx, ownerID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Calculate statistics
+	stats := &WorkflowStats{}
+	stats.TotalCount = len(workflows)
+
+	// Count today's workflows
+	today := time.Now().Truncate(24 * time.Hour)
+
+	// Count successful workflows and calculate average duration
+	successCount := 0
+	totalDuration := int64(0)
+	completedCount := 0
+
+	// Track unique targets
+	uniqueTargets := make(map[string]bool)
+
+	for _, workflow := range workflows {
+		// Count today's workflows
+		if workflow.StartTime.After(today) || workflow.StartTime.Equal(today) {
+			stats.TodayCount++
+		}
+
+		// Track unique targets
+		uniqueTargets[workflow.TargetID] = true
+
+		// Count completed workflows
+		if workflow.Status == "completed" {
+			successCount++
+
+			// Calculate duration for completed workflows
+			if !workflow.EndTime.IsZero() {
+				duration := workflow.EndTime.Sub(workflow.StartTime)
+				totalDuration += duration.Milliseconds()
+				completedCount++
+			}
+		}
+	}
+
+	// Calculate success rate
+	if stats.TotalCount > 0 {
+		stats.SuccessRate = float64(successCount) / float64(stats.TotalCount)
+	}
+
+	// Calculate average duration
+	if completedCount > 0 {
+		stats.AvgDuration = float64(totalDuration) / float64(completedCount)
+	}
+
+	// Count unique targets
+	stats.TargetCount = len(uniqueTargets)
+
+	return stats, nil
+}
+
+// TopCapability represents a frequently used capability
+type TopCapability struct {
+	Name  string `json:"name"`
+	Count int    `json:"count"`
+}
+
+// GetTopCapabilities returns the most frequently used capabilities
+func (r *WorkflowRepository) GetTopCapabilities(ctx context.Context, ownerID int64, limit int) ([]TopCapability, error) {
+	// Get all workflows for the user
+	workflows, err := r.GetWorkflowsByOwner(ctx, ownerID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Count capability usage
+	capabilityCounts := make(map[string]int)
+	for _, workflow := range workflows {
+		capabilityCounts[workflow.CapabilityID]++
+	}
+
+	// Convert to slice for sorting
+	var topCapabilities []TopCapability
+	for id, count := range capabilityCounts {
+		topCapabilities = append(topCapabilities, TopCapability{
+			Name:  id, // Note: We're using ID here, would need to fetch actual names
+			Count: count,
+		})
+	}
+
+	// Sort by count (descending)
+	for i := 0; i < len(topCapabilities); i++ {
+		for j := i + 1; j < len(topCapabilities); j++ {
+			if topCapabilities[i].Count < topCapabilities[j].Count {
+				topCapabilities[i], topCapabilities[j] = topCapabilities[j], topCapabilities[i]
+			}
+		}
+	}
+
+	// Limit results
+	if len(topCapabilities) > limit {
+		topCapabilities = topCapabilities[:limit]
+	}
+
+	return topCapabilities, nil
+}
