@@ -44,7 +44,7 @@ jest.mock('../components/Sidebar', () => ({
   Sidebar: jest.fn(({ activeView, setActiveView, isOpen, setIsOpen }) => (
     <div data-testid="sidebar" className={isOpen ? 'translate-x-0' : '-translate-x-full'}>
       <button onClick={() => setActiveView('dashboard')}>Dashboard</button>
-      <button onClick={() => setActiveView('agents')}>Agents</button>
+      <button onClick={() => setActiveView('settings')}>Settings</button>
       <button onClick={() => setIsOpen(false)}>Close Sidebar</button>
     </div>
   ))
@@ -52,28 +52,6 @@ jest.mock('../components/Sidebar', () => ({
 
 jest.mock('../components/Dashboard', () => ({
   Dashboard: () => <div data-testid="dashboard">Dashboard Content</div>
-}));
-
-jest.mock('../components/AgentManager', () => ({
-  AgentManager: () => <div data-testid="agent-manager">Agent Manager Content</div>
-}));
-
-jest.mock('../components/CapabilityStore', () => ({
-  CapabilityStore: () => <div data-testid="capability-store">Capability Store Content</div>
-}));
-
-jest.mock('../components/TargetManager', () => ({
-  TargetManager: () => <div data-testid="target-manager">Target Manager Content</div>
-}));
-
-
-
-jest.mock('../components/WorkflowOrchestrator', () => ({
-  WorkflowOrchestrator: () => <div data-testid="workflow-orchestrator">Workflow Orchestrator Content</div>
-}));
-
-jest.mock('../components/Analytics', () => ({
-  Analytics: () => <div data-testid="analytics">Analytics Content</div>
 }));
 
 jest.mock('../components/Settings', () => ({

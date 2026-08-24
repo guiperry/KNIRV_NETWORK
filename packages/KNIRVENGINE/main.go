@@ -17,6 +17,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"sync"
 	"syscall"
 	"time"
@@ -117,6 +118,54 @@ func stopReactGUI() {
 	}
 }
 
+// launchElectronDesktop hands a direct desktop-binary launch to the Electron
+// host. The Go executable remains the backend child of that host, identified
+// through ELECTRON_MODE, so this cannot recurse.
+func launchElectronDesktop() (bool, error) {
+	if os.Getenv("ELECTRON_MODE") == "true" || os.Getenv("KNIRVENGINE_DISABLE_DESKTOP") == "true" {
+		return false, nil
+	}
+
+	workingDir, err := os.Getwd()
+	if err != nil {
+		return false, err
+	}
+	executablePath, err := os.Executable()
+	if err != nil {
+		return false, err
+	}
+
+	rootCandidates := []string{
+		workingDir,
+		filepath.Dir(executablePath),
+		filepath.Dir(filepath.Dir(executablePath)), // dist/knirv-engine-*
+	}
+	for _, root := range rootCandidates {
+		guiDir := filepath.Join(root, "gui")
+		electronPath := filepath.Join(guiDir, "node_modules", ".bin", "electron")
+		entryPoint := filepath.Join(guiDir, "desktop", "main.cjs")
+		if _, err := os.Stat(electronPath); err != nil {
+			continue
+		}
+		if _, err := os.Stat(entryPoint); err != nil {
+			continue
+		}
+
+		cmd := exec.Command(electronPath, entryPoint)
+		cmd.Dir = guiDir
+		cmd.Env = append(os.Environ(), "KNIRVENGINE_BACKEND="+executablePath)
+		cmd.Stdin = os.Stdin
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		if err := cmd.Run(); err != nil {
+			return true, fmt.Errorf("run Electron desktop host: %w", err)
+		}
+		return true, nil
+	}
+
+	return false, nil
+}
+
 // InferenceServiceAdapter adapts the inference service to the Agent Inferencer interface
 type InferenceServiceAdapter struct {
 	service      *inference.InferenceService
@@ -144,10 +193,23 @@ func (a *InferenceServiceAdapter) IsRunning() bool {
 func main() {
 	// Command line flags
 	var production = flag.Bool("production", false, "Run in production mode (serve static files)")
+	var browser = flag.Bool("browser", false, "Open the web interface in a browser instead of the desktop application")
 	var guiPort = flag.Int("gui-port", 8080, "Port for GUI server")
+	var guiPortFile = flag.String("gui-port-file", "", "Write the selected GUI port to this file")
 	var cleanDB = flag.Bool("clean-db", false, "Clean the database directory before starting")
 	var migrateDB = flag.Bool("migrate", false, "Run agent data migration")
 	flag.Parse()
+
+	if !*browser {
+		launched, err := launchElectronDesktop()
+		if err != nil {
+			log.Printf("Desktop host failed: %v", err)
+			return
+		}
+		if launched {
+			return
+		}
+	}
 
 	// Handle migration command
 	if *migrateDB {
@@ -257,6 +319,11 @@ func main() {
 		log.Printf("GUI port %d is unavailable; using port %d", *guiPort, selectedGUIPort)
 	}
 	*guiPort = selectedGUIPort
+	if *guiPortFile != "" {
+		if err := os.WriteFile(*guiPortFile, []byte(strconv.Itoa(*guiPort)), 0o600); err != nil {
+			log.Fatalf("Failed to write selected GUI port: %v", err)
+		}
+	}
 
 	// Vite reads this file before it starts its proxy. Keep it in sync with the
 	// port selected above so a manual Vite launch and the launcher use the same

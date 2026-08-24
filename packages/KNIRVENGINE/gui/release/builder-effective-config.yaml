@@ -1,0 +1,17 @@
+directories:
+  output: release
+  buildResources: build
+appId: com.knirv.engine
+productName: KNIRVENGINE
+files:
+  - filter:
+      - dist/**/*
+      - desktop/**/*
+      - package.json
+extraResources:
+  - from: ../knirv-engine
+    to: knirv-engine
+linux:
+  target:
+    - AppImage
+electronVersion: 43.4.1

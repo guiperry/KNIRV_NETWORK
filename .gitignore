@@ -164,3 +164,4 @@ packages/KNIRVSERVER/pkg/knirvmonitor/bin/monitor
 /packages/KNIRVSDK/rust-wasm/cognitive-shell/target
 /packages/KNIRVSDK/rust-wasm/dve-verifier/target
 /packages/KNIRVSDK/rust-wasm/controller-relay/target
+.gstack/

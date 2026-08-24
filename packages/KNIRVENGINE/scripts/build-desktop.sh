@@ -155,6 +155,25 @@ create_packages() {
     print_success "Distribution packages created in dist/"
 }
 
+# Build the four native engine executables distributed alongside desktop
+# releases. macOS has separate Intel and Apple Silicon binaries.
+build_platform_binaries() {
+    print_status "Building cross-platform KNIRVENGINE executables..."
+    cd "$PROJECT_ROOT"
+    mkdir -p dist
+
+    GOCACHE=/tmp/knirvengine-go-build CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -tags embed -o dist/knirv-engine-linux-amd64 .
+    GOCACHE=/tmp/knirvengine-go-build CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -tags embed -o dist/knirv-engine-windows-amd64.exe .
+    GOCACHE=/tmp/knirvengine-go-build CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -tags embed -o dist/knirv-engine-macos-amd64 .
+    GOCACHE=/tmp/knirvengine-go-build CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -tags embed -o dist/knirv-engine-macos-arm64 .
+
+    print_success "Created cross-platform executables:"
+    print_success "  dist/knirv-engine-linux-amd64"
+    print_success "  dist/knirv-engine-windows-amd64.exe"
+    print_success "  dist/knirv-engine-macos-amd64"
+    print_success "  dist/knirv-engine-macos-arm64"
+}
+
 # Development mode
 dev_mode() {
     print_status "Starting development mode..."
@@ -197,13 +216,19 @@ main() {
             ;;
         build)
             check_dependencies
-            build_frontend
-            build_backend ${2:-}
-            create_packages
+            print_status "Packaging the native desktop window..."
+            cd "$PROJECT_ROOT/gui"
+            npm run desktop:package
+            print_success "Desktop application package created in dist/release/"
             ;;
         backend)
             check_dependencies
             build_backend ${2:-}
+            ;;
+        binaries|all-binaries)
+            check_dependencies
+            build_frontend
+            build_platform_binaries
             ;;
         frontend)
             check_dependencies
@@ -225,6 +250,7 @@ main() {
             echo "  build [platform]  - Build the complete desktop application (default)"
             echo "  dev               - Start development mode with hot reload"
             echo "  backend           - Build only the Go backend"
+            echo "  binaries          - Build Linux, Windows, and macOS executables into dist/"
             echo "  frontend          - Build only the React frontend"
             echo "  clean             - Clean all build artifacts"
             echo "  help              - Show this help message"

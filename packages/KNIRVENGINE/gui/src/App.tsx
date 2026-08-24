@@ -2,18 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { BrowserRouter, HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Sidebar } from './components/Sidebar';
 import { Dashboard } from './components/Dashboard';
-import { Chat } from './components/Chat';
-import { Monitor } from './components/Monitor';
-import { Models } from './components/Models';
-import { Agents } from './components/Agents';
-import { Skills } from './components/Skills';
-import { Capabilities } from './components/Capabilities';
-import { Properties } from './components/Properties';
-import { API } from './components/API';
-import Analytics from './components/Analytics';
+import { Proxy } from './components/tools/Proxy';
+import { Instrumentation } from './components/tools/Instrumentation';
+import { Reversing } from './components/tools/Reversing';
+import { Fuzzing } from './components/tools/Fuzzing';
+import { StaticAnalysis } from './components/tools/StaticAnalysis';
+import { PacketCapture } from './components/tools/PacketCapture';
+import { AuthAudit } from './components/tools/AuthAudit';
+import { Sandbox } from './components/tools/Sandbox';
 import Settings from './components/Settings';
-import { WebConnections } from './components/WebConnections';
-import { Wallet } from './components/Wallet';
 import { AuthProvider } from './components/AuthContext';
 import LoginPage from './components/LoginPage';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -28,7 +25,17 @@ import OnboardingSequence from './components/onboarding/OnboardingSequence';
 import LoadingScreen from './components/LoadingScreen';
 import './components/onboarding/onboarding.css';
 
-type ActiveView = 'dashboard' | 'chat' | 'monitor' | 'models' | 'agents' | 'skills' | 'capabilities' | 'properties' | 'api' | 'targets' | 'workflows' | 'analytics' | 'settings' | 'web-connections' | 'wallet';
+type ActiveView =
+  | 'dashboard'
+  | 'proxy'
+  | 'instrumentation'
+  | 'reversing'
+  | 'fuzzing'
+  | 'static-analysis'
+  | 'packet-capture'
+  | 'auth-audit'
+  | 'sandbox'
+  | 'settings';
 
 // Detect if we're running in Electron or web browser
 const isElectron = () => {
@@ -319,9 +326,9 @@ function App() {
             </ProtectedRoute>
           } />
           
-          <Route path="/chat/*" element={
+          <Route path="/proxy" element={
             <ProtectedRoute>
-              <ErrorBoundary componentName="Chat">
+              <ErrorBoundary componentName="Proxy">
                 <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900">
                   <div className="flex">
                     <Sidebar
@@ -331,7 +338,7 @@ function App() {
                       setIsOpen={setSidebarOpen}
                     />
                     <main className="flex-1 lg:ml-64">
-                      <Chat />
+                      <Proxy />
                     </main>
                   </div>
                 </div>
@@ -339,9 +346,9 @@ function App() {
             </ProtectedRoute>
           } />
 
-          <Route path="/monitor/*" element={
+          <Route path="/instrumentation/*" element={
             <ProtectedRoute>
-              <ErrorBoundary componentName="Monitor">
+              <ErrorBoundary componentName="Instrumentation">
                 <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900">
                   <div className="flex">
                     <Sidebar
@@ -351,7 +358,7 @@ function App() {
                       setIsOpen={setSidebarOpen}
                     />
                     <main className="flex-1 lg:ml-64">
-                      <Monitor />
+                      <Instrumentation />
                     </main>
                   </div>
                 </div>
@@ -359,9 +366,9 @@ function App() {
             </ProtectedRoute>
           } />
 
-          <Route path="/models/*" element={
+          <Route path="/reversing/*" element={
             <ProtectedRoute>
-              <ErrorBoundary componentName="Models">
+              <ErrorBoundary componentName="Reversing">
                 <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900">
                   <div className="flex">
                     <Sidebar
@@ -371,7 +378,7 @@ function App() {
                       setIsOpen={setSidebarOpen}
                     />
                     <main className="flex-1 lg:ml-64">
-                      <Models />
+                      <Reversing />
                     </main>
                   </div>
                 </div>
@@ -379,9 +386,9 @@ function App() {
             </ProtectedRoute>
           } />
 
-          <Route path="/agents/*" element={
+          <Route path="/fuzzing/*" element={
             <ProtectedRoute>
-              <ErrorBoundary componentName="Agents">
+              <ErrorBoundary componentName="Fuzzing">
                 <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900">
                   <div className="flex">
                     <Sidebar
@@ -391,7 +398,7 @@ function App() {
                       setIsOpen={setSidebarOpen}
                     />
                     <main className="flex-1 lg:ml-64">
-                      <Agents />
+                      <Fuzzing />
                     </main>
                   </div>
                 </div>
@@ -399,9 +406,9 @@ function App() {
             </ProtectedRoute>
           } />
 
-          <Route path="/skills/*" element={
+          <Route path="/static-analysis/*" element={
             <ProtectedRoute>
-              <ErrorBoundary componentName="Skills">
+              <ErrorBoundary componentName="StaticAnalysis">
                 <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900">
                   <div className="flex">
                     <Sidebar
@@ -411,17 +418,17 @@ function App() {
                       setIsOpen={setSidebarOpen}
                     />
                     <main className="flex-1 lg:ml-64">
-                      <Skills />
+                      <StaticAnalysis />
                     </main>
                   </div>
                 </div>
               </ErrorBoundary>
             </ProtectedRoute>
           } />
-          
-          <Route path="/capabilities/*" element={
+
+          <Route path="/packet-capture/*" element={
             <ProtectedRoute>
-              <ErrorBoundary componentName="Capabilities">
+              <ErrorBoundary componentName="PacketCapture">
                 <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900">
                   <div className="flex">
                     <Sidebar
@@ -431,7 +438,7 @@ function App() {
                       setIsOpen={setSidebarOpen}
                     />
                     <main className="flex-1 lg:ml-64">
-                      <Capabilities />
+                      <PacketCapture />
                     </main>
                   </div>
                 </div>
@@ -439,9 +446,9 @@ function App() {
             </ProtectedRoute>
           } />
 
-          <Route path="/properties/*" element={
+          <Route path="/auth-audit/*" element={
             <ProtectedRoute>
-              <ErrorBoundary componentName="Properties">
+              <ErrorBoundary componentName="AuthAudit">
                 <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900">
                   <div className="flex">
                     <Sidebar
@@ -451,7 +458,7 @@ function App() {
                       setIsOpen={setSidebarOpen}
                     />
                     <main className="flex-1 lg:ml-64">
-                      <Properties />
+                      <AuthAudit />
                     </main>
                   </div>
                 </div>
@@ -459,9 +466,9 @@ function App() {
             </ProtectedRoute>
           } />
 
-          <Route path="/api/*" element={
+          <Route path="/sandbox/*" element={
             <ProtectedRoute>
-              <ErrorBoundary componentName="API">
+              <ErrorBoundary componentName="Sandbox">
                 <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900">
                   <div className="flex">
                     <Sidebar
@@ -471,96 +478,11 @@ function App() {
                       setIsOpen={setSidebarOpen}
                     />
                     <main className="flex-1 lg:ml-64">
-                      <API />
+                      <Sandbox />
                     </main>
                   </div>
                 </div>
               </ErrorBoundary>
-            </ProtectedRoute>
-          } />
-
-
-          <Route path="/analytics" element={
-            <ProtectedRoute>
-              <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900">
-                <div className="flex">
-                  <Sidebar 
-                    activeView={activeView} 
-                    setActiveView={setActiveView}
-                    isOpen={sidebarOpen}
-                    setIsOpen={setSidebarOpen}
-                  />
-                  <main className="flex-1 lg:ml-64">
-                    <div className="lg:hidden">
-                      <button
-                        onClick={() => setSidebarOpen(!sidebarOpen)}
-                        className="fixed top-4 left-4 z-50 p-2 bg-slate-800 rounded-lg text-white"
-                      >
-                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                        </svg>
-                      </button>
-                    </div>
-                    <Analytics />
-                  </main>
-                </div>
-              </div>
-            </ProtectedRoute>
-          } />
-
-          <Route path="/web-connections" element={
-            <ProtectedRoute>
-              <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900">
-                <div className="flex">
-                  <Sidebar
-                    activeView={activeView}
-                    setActiveView={setActiveView}
-                    isOpen={sidebarOpen}
-                    setIsOpen={setSidebarOpen}
-                  />
-                  <main className="flex-1 lg:ml-64">
-                    <div className="lg:hidden">
-                      <button
-                        onClick={() => setSidebarOpen(!sidebarOpen)}
-                        className="fixed top-4 left-4 z-50 p-2 bg-slate-800 rounded-lg text-white"
-                      >
-                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                        </svg>
-                      </button>
-                    </div>
-                    <WebConnections />
-                  </main>
-                </div>
-              </div>
-            </ProtectedRoute>
-          } />
-
-          <Route path="/wallet" element={
-            <ProtectedRoute>
-              <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900">
-                <div className="flex">
-                  <Sidebar
-                    activeView={activeView}
-                    setActiveView={setActiveView}
-                    isOpen={sidebarOpen}
-                    setIsOpen={setSidebarOpen}
-                  />
-                  <main className="flex-1 lg:ml-64">
-                    <div className="lg:hidden">
-                      <button
-                        onClick={() => setSidebarOpen(!sidebarOpen)}
-                        className="fixed top-4 left-4 z-50 p-2 bg-slate-800 rounded-lg text-white"
-                      >
-                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                        </svg>
-                      </button>
-                    </div>
-                    <Wallet />
-                  </main>
-                </div>
-              </div>
             </ProtectedRoute>
           } />
 

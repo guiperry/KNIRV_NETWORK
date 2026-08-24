@@ -9,6 +9,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -25,6 +26,20 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
 )
+
+// isDesktopLoopbackOrigin permits the Electron window served by this local
+// engine, including when startup selected a non-default GUI port.
+func isDesktopLoopbackOrigin(origin string) bool {
+	if origin == "file://" {
+		return true
+	}
+	parsed, err := url.Parse(origin)
+	if err != nil || (parsed.Scheme != "http" && parsed.Scheme != "https") {
+		return false
+	}
+	host := parsed.Hostname()
+	return host == "localhost" || net.ParseIP(host).IsLoopback()
+}
 
 // TroubleshootingChunk represents a chunk of troubleshooting information
 type TroubleshootingChunk struct {
@@ -3593,12 +3608,7 @@ func (s *SimpleAPIServer) mainWebSocketHandler(w http.ResponseWriter, r *http.Re
 		WriteBufferSize: 1024,
 		CheckOrigin: func(r *http.Request) bool {
 			if electronMode {
-				// In Electron mode, allow file:// and localhost origins
-				origin := r.Header.Get("Origin")
-				return origin == "file://" ||
-					origin == "http://localhost:3001" ||
-					origin == "http://localhost:8080" ||
-					origin == "http://localhost:8081"
+				return isDesktopLoopbackOrigin(r.Header.Get("Origin"))
 			} else {
 				// In cloud mode, be more restrictive (adjust as needed)
 				return true // For now, allow all origins - adjust for production
@@ -3691,9 +3701,7 @@ func (s *SimpleAPIServer) desktopSecureWebSocketHandler(w http.ResponseWriter, r
 		ReadBufferSize:  1024,
 		WriteBufferSize: 1024,
 		CheckOrigin: func(r *http.Request) bool {
-			// Only allow connections from Electron app (file:// protocol or localhost)
-			origin := r.Header.Get("Origin")
-			return origin == "file://" || origin == "http://localhost:3001"
+			return isDesktopLoopbackOrigin(r.Header.Get("Origin"))
 		},
 	}
 

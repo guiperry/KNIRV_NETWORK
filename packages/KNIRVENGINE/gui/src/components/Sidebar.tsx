@@ -1,23 +1,17 @@
 import { forwardRef, useState } from 'react';
 import {
   LayoutDashboard,
-  Bot,
-  Zap,
-  Target,
-  BarChart3,
+  Radio,
+  Cpu,
+  Binary,
+  Bug,
+  ScanSearch,
+  Waves,
+  KeyRound,
+  Box,
   Settings,
   X,
-  GitMerge,
   LogOut,
-  Globe,
-  Wallet,
-  MessageSquare,
-  Monitor,
-  Brain,
-  Briefcase,
-  ShoppingBag,
-  Layers,
-  Server,
   ChevronDown,
   ChevronRight
 } from 'lucide-react';
@@ -26,7 +20,24 @@ import { useAuth } from './AuthContext';
 import { useAppLogo } from '../hooks/useAssetPath';
 import { ErrorNotificationBell } from './ErrorInferenceNotification';
 
-type ActiveView = 'dashboard' | 'chat' | 'monitor' | 'models' | 'agents' | 'skills' | 'capabilities' | 'properties' | 'api' | 'targets' | 'workflows' | 'analytics' | 'settings' | 'web-connections' | 'wallet';
+type ActiveView =
+  | 'dashboard'
+  | 'proxy'
+  | 'instrumentation'
+  | 'reversing'
+  | 'fuzzing'
+  | 'static-analysis'
+  | 'packet-capture'
+  | 'auth-audit'
+  | 'sandbox'
+  | 'settings'
+  | 'frida' | 'proxychains-ng' | 'bpftrace'
+  | 'ghidra' | 'cutter' | 'ilspy' | 'jadx'
+  | 'libafl' | 'aflplusplus'
+  | 'semgrep' | 'tree-sitter' | 'trufflehog'
+  | 'wireshark' | 'zeek'
+  | 'jwt-tool' | 'saml-raider'
+  | 'bubblewrap' | 'novnc';
 
 interface SidebarProps {
   activeView: ActiveView;
@@ -44,96 +55,79 @@ export const Sidebar = forwardRef<HTMLDivElement, SidebarProps>(
 
     const navigation = [
       { id: 'dashboard', name: 'Dashboard', icon: LayoutDashboard, path: '/dashboard' },
+      { id: 'proxy', name: 'Proxy', icon: Radio, path: '/proxy' },
       {
-        id: 'chat',
-        name: 'Chat',
-        icon: MessageSquare,
-        path: '/chat',
+        id: 'instrumentation',
+        name: 'Instrumentation',
+        icon: Cpu,
+        path: '/instrumentation',
         subItems: [
-          { id: 'chatchain', name: 'ChatChain', path: '/chat/chatchain' },
-          { id: 'mychatbrain', name: 'MyChatBrain', path: '/chat/mychatbrain' }
+          { id: 'frida', name: 'Frida', path: '/instrumentation/frida' },
+          { id: 'proxychains-ng', name: 'proxychains-ng', path: '/instrumentation/proxychains-ng' },
+          { id: 'bpftrace', name: 'bpftrace', path: '/instrumentation/bpftrace' }
         ]
       },
       {
-        id: 'monitor',
-        name: 'Monitor',
-        icon: Monitor,
-        path: '/monitor',
+        id: 'reversing',
+        name: 'Reversing',
+        icon: Binary,
+        path: '/reversing',
         subItems: [
-          { id: 'network-monitor', name: 'Network Monitor', path: '/monitor/network-monitor' },
-          { id: 'local-analytics', name: 'Local Analytics', path: '/monitor/local-analytics' },
-          {
-            id: 'network-explorers',
-            name: 'Network Explorers',
-            path: '/monitor/network-explorers',
-            subItems: [
-              { id: 'graph', name: 'Graph', path: '/monitor/network-explorers/graph' },
-              { id: 'chain', name: 'Chain', path: '/monitor/network-explorers/chain' },
-              { id: 'oracle', name: 'Oracle', path: '/monitor/network-explorers/oracle' },
-              { id: 'router', name: 'Router', path: '/monitor/network-explorers/router' },
-              { id: 'nexus', name: 'Nexus', path: '/monitor/network-explorers/nexus' }
-            ]
-          }
+          { id: 'ghidra', name: 'Ghidra', path: '/reversing/ghidra' },
+          { id: 'cutter', name: 'Cutter', path: '/reversing/cutter' },
+          { id: 'ilspy', name: 'ILSpy', path: '/reversing/ilspy' },
+          { id: 'jadx', name: 'JADX', path: '/reversing/jadx' }
         ]
       },
       {
-        id: 'models',
-        name: 'Models',
-        icon: Brain,
-        path: '/models',
+        id: 'fuzzing',
+        name: 'Fuzzing',
+        icon: Bug,
+        path: '/fuzzing',
         subItems: [
-          { id: 'codex-builder', name: 'Codex Builder', path: '/models/codex-builder' },
-          { id: 'fallback-config', name: 'Optional Fallback API & HOM Config', path: '/models/fallback-config' },
-          { id: 'dao-voting', name: 'DAO KNIRVCORTEX Shared Model voting', path: '/models/dao-voting' }
+          { id: 'libafl', name: 'LibAFL', path: '/fuzzing/libafl' },
+          { id: 'aflplusplus', name: 'AFL++', path: '/fuzzing/aflplusplus' }
         ]
       },
       {
-        id: 'agents',
-        name: 'Agents',
-        icon: Bot,
-        path: '/agents',
+        id: 'static-analysis',
+        name: 'Static Analysis',
+        icon: ScanSearch,
+        path: '/static-analysis',
         subItems: [
-          { id: 'my-agents', name: 'My Agents', path: '/agents/my-agents' },
-          { id: 'my-targets', name: 'My Targets', path: '/agents/my-targets' },
-          { id: 'my-workflows', name: 'My Workflows', path: '/agents/my-workflows' }
+          { id: 'semgrep', name: 'Semgrep', path: '/static-analysis/semgrep' },
+          { id: 'tree-sitter', name: 'Tree-sitter', path: '/static-analysis/tree-sitter' },
+          { id: 'trufflehog', name: 'TruffleHog', path: '/static-analysis/trufflehog' }
         ]
       },
       {
-        id: 'skills',
-        name: 'Skills',
-        icon: Briefcase,
-        path: '/skills',
+        id: 'packet-capture',
+        name: 'Packet Capture',
+        icon: Waves,
+        path: '/packet-capture',
         subItems: [
-          { id: 'skills-dex', name: 'Skills DEX', path: '/skills/skills-dex' }
+          { id: 'wireshark', name: 'Wireshark (TShark)', path: '/packet-capture/wireshark' },
+          { id: 'zeek', name: 'Zeek', path: '/packet-capture/zeek' }
         ]
       },
       {
-        id: 'capabilities',
-        name: 'Capabilities',
-        icon: Zap,
-        path: '/capabilities',
+        id: 'auth-audit',
+        name: 'Auth Audit',
+        icon: KeyRound,
+        path: '/auth-audit',
         subItems: [
-          { id: 'capability-store', name: 'Capability Store', path: '/capabilities/capability-store' },
-          { id: 'mcp-manager', name: 'MCP Manager', path: '/capabilities/mcp-manager' },
-          { id: 'mcp-servers', name: 'MCP Servers', path: '/capabilities/mcp-servers' }
+          { id: 'jwt-tool', name: 'jwt_tool', path: '/auth-audit/jwt-tool' },
+          { id: 'saml-raider', name: 'SAML Raider', path: '/auth-audit/saml-raider' }
         ]
       },
       {
-        id: 'properties',
-        name: 'Properties',
-        icon: Layers,
-        path: '/properties',
+        id: 'sandbox',
+        name: 'Sandbox',
+        icon: Box,
+        path: '/sandbox',
         subItems: [
-          { id: 'nft-ip-vault', name: 'NFT IP Vault', path: '/properties/nft-ip-vault' }
-        ]
-      },
-      {
-        id: 'api',
-        name: 'API',
-        icon: Server,
-        path: '/api',
-        subItems: [
-          { id: 'personal-endpoints', name: 'Personal API Endpoints', path: '/api/personal-endpoints' }
+          { id: 'bubblewrap', name: 'Bubblewrap', path: '/sandbox/bubblewrap' },
+          { id: 'novnc', name: 'noVNC', path: '/sandbox/novnc' }
         ]
       },
       { id: 'settings', name: 'Settings', icon: Settings, path: '/settings' },

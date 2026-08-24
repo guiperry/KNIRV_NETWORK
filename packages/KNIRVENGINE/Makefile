@@ -113,15 +113,15 @@ cloud-release: cloud-package upload-to-s3
 
 # Build desktop application for current platform
 desktop-build:
-	@echo "Building native desktop application for current platform..."
-	@./scripts/build-desktop.sh build
-	@echo "Desktop build completed. Check dist/ for output."
+	@echo "Building KNIRVENGINE desktop application for current platform..."
+	@cd gui && npm run desktop:package
+	@echo "Desktop build completed. Check dist/release/ for the application package."
 
 # Build desktop application for all platforms
 desktop-build-all:
-	@echo "Building native desktop application for all platforms..."
-	@./scripts/build-desktop.sh build all
-	@echo "Desktop build completed for all platforms."
+	@echo "Building KNIRVENGINE executables for Linux, Windows, and macOS..."
+	@./scripts/build-desktop.sh binaries
+	@echo "Cross-platform executables created in dist/."
 
 # Create desktop release with version management
 desktop-release:
