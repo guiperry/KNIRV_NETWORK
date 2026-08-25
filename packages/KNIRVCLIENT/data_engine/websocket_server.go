@@ -40,6 +40,7 @@ type WebSocketServer struct {
 	upgrader     websocket.Upgrader
 	server       *http.Server
 	dataEngine   *DataEngine
+	config       WebSocketConfig
 	isRunning    bool
 	ctx          context.Context
 	cancel       context.CancelFunc
@@ -80,6 +81,7 @@ func NewWebSocketServer(config WebSocketConfig, dataEngine *DataEngine) *WebSock
 			},
 		},
 		dataEngine: dataEngine,
+		config:     config,
 		ctx:        ctx,
 		cancel:     cancel,
 	}
@@ -100,7 +102,7 @@ func (s *WebSocketServer) Start() error {
 	mux.HandleFunc("/health", s.handleHealth)
 
 	s.server = &http.Server{
-		Addr:              fmt.Sprintf(":%d", 8080),
+		Addr:              fmt.Sprintf(":%d", s.config.Port),
 		Handler:           mux,
 		ReadTimeout:       15 * time.Second,
 		WriteTimeout:      15 * time.Second,

@@ -265,6 +265,24 @@ func (m *SandboxManager) CloseSession(sessionID string) error {
 	return nil
 }
 
+// CloseAll stops every managed sandbox during engine shutdown. Sessions are
+// removed before process termination so concurrent HTTP requests cannot reuse
+// a target that is in the process of being torn down.
+func (m *SandboxManager) CloseAll() {
+	m.mutex.Lock()
+	sessions := make([]*SandboxSession, 0, len(m.sessions))
+	for id, session := range m.sessions {
+		delete(m.sessions, id)
+		sessions = append(sessions, session)
+	}
+	m.mutex.Unlock()
+	for _, session := range sessions {
+		if err := session.Close(); err != nil {
+			log.Printf("failed to close sandbox %s during shutdown: %v", session.ID, err)
+		}
+	}
+}
+
 // CleanupExpiredSessions removes expired sessions.
 func (m *SandboxManager) CleanupExpiredSessions() {
 	m.mutex.Lock()
@@ -600,6 +618,16 @@ func (s *SandboxSession) handleOutput(pipe io.ReadCloser, stream string, isStder
 // This keeps automatic browser launch scoped to a server the sandboxed target
 // has explicitly announced, not arbitrary URLs that happen to appear in logs.
 func extractLoopbackFrontendURL(output string) string {
+	lower := strings.ToLower(output)
+	// Dependency failures can mention unrelated local services (for example a
+	// ChromaDB URL on :8000). Only accept a URL from an affirmative web-server
+	// announcement, never from an error line.
+	if strings.Contains(lower, "failed") || strings.Contains(lower, "error") ||
+		!(strings.Contains(lower, "server started") || strings.Contains(lower, "server listening") ||
+			strings.Contains(lower, "listening on") || strings.Contains(lower, "listen ") || strings.Contains(lower, "dashboard:") ||
+			strings.Contains(lower, "opening dashboard")) {
+		return ""
+	}
 	match := loopbackFrontendURL.FindString(output)
 	if match == "" {
 		return ""
@@ -701,15 +729,21 @@ func (s *SandboxSession) proxyFrontendRequest(w http.ResponseWriter, r *http.Req
 		requestURL = &url.URL{Scheme: target.Scheme, Host: r.Host, Path: r.URL.Path, RawQuery: r.URL.RawQuery}
 	}
 	flow := SandboxProxyFlow{Method: r.Method, Host: requestURL.Host, Path: requestURL.RequestURI()}
+	if r.Method == http.MethodConnect {
+		connectURL := &url.URL{Host: r.Host}
+		flow.Host, flow.Path = connectURL.Host, "CONNECT"
+		if connectURL.Hostname() != target.Hostname() || connectURL.Port() != target.Port() {
+			flow.Error = "blocked: proxy is scoped to the sandbox frontend"
+			http.Error(w, flow.Error, http.StatusForbidden)
+			s.recordProxyFlow(flow, started)
+			return
+		}
+		s.proxyConnect(w, r, flow, started)
+		return
+	}
 	if requestURL.Hostname() != target.Hostname() || requestURL.Port() != target.Port() {
 		flow.Error = "blocked: proxy is scoped to the sandbox frontend"
 		http.Error(w, flow.Error, http.StatusForbidden)
-		s.recordProxyFlow(flow, started)
-		return
-	}
-	if r.Method == http.MethodConnect {
-		flow.Error = "HTTPS CONNECT is not decrypted"
-		http.Error(w, flow.Error, http.StatusNotImplemented)
 		s.recordProxyFlow(flow, started)
 		return
 	}
@@ -734,6 +768,41 @@ func (s *SandboxSession) proxyFrontendRequest(w http.ResponseWriter, r *http.Req
 	bytes, _ := io.Copy(w, response.Body)
 	flow.Status, flow.ContentType, flow.Size = response.StatusCode, response.Header.Get("Content-Type"), bytes
 	s.recordProxyFlow(flow, started)
+}
+
+// proxyConnect passes WebSocket/TLS CONNECT traffic through unchanged. It is
+// restricted to the detected frontend host and port, so it cannot become a
+// general-purpose host proxy. CONNECT payloads are intentionally not decoded.
+func (s *SandboxSession) proxyConnect(w http.ResponseWriter, r *http.Request, flow SandboxProxyFlow, started time.Time) {
+	upstream, err := net.DialTimeout("tcp", r.Host, 10*time.Second)
+	if err != nil {
+		flow.Error = err.Error()
+		http.Error(w, err.Error(), http.StatusBadGateway)
+		s.recordProxyFlow(flow, started)
+		return
+	}
+	defer upstream.Close()
+	hijacker, ok := w.(http.Hijacker)
+	if !ok {
+		flow.Error = "proxy response does not support connection hijacking"
+		http.Error(w, flow.Error, http.StatusInternalServerError)
+		s.recordProxyFlow(flow, started)
+		return
+	}
+	client, _, err := hijacker.Hijack()
+	if err != nil {
+		flow.Error = err.Error()
+		s.recordProxyFlow(flow, started)
+		return
+	}
+	defer client.Close()
+	_, _ = client.Write([]byte("HTTP/1.1 200 Connection Established\r\n\r\n"))
+	flow.Status = http.StatusOK
+	s.recordProxyFlow(flow, started)
+	done := make(chan struct{})
+	go func() { _, _ = io.Copy(upstream, client); close(done) }()
+	_, _ = io.Copy(client, upstream)
+	<-done
 }
 
 func (s *SandboxSession) recordProxyFlow(flow SandboxProxyFlow, started time.Time) {

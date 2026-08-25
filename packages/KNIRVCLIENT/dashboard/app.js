@@ -152,7 +152,12 @@ class KNIRVClientDashboard {
         this.updateConnectionStatus();
 
         try {
-            this.ws = new WebSocket(`ws://${window.location.host}/ws`);
+            // Keep the WebSocket on the dashboard's actual origin. In
+            // particular, HTTPS pages must use WSS or browsers reject the
+            // connection as mixed content before it reaches the backend.
+            const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            this.wsURL = `${wsProtocol}//${window.location.host}/ws`;
+            this.ws = new WebSocket(this.wsURL);
         } catch (error) {
             console.error('Failed to create WebSocket:', error);
             this.handleConnectionError();
@@ -193,8 +198,8 @@ class KNIRVClientDashboard {
         };
 
         this.ws.onerror = (error) => {
-            console.error('WebSocket error:', error);
-            this.appendConsoleLog('WebSocket error: ' + (error && error.message ? error.message : JSON.stringify(error)));
+            console.error(`WebSocket error connecting to ${this.wsURL}:`, error);
+            this.appendConsoleLog(`WebSocket error connecting to ${this.wsURL}`);
         };
 
         this.ws.onclose = (ev) => {
@@ -205,7 +210,7 @@ class KNIRVClientDashboard {
             // Stop heartbeat
             this.stopHeartbeat();
 
-            this.appendConsoleLog('WebSocket disconnected');
+            this.appendConsoleLog(`WebSocket disconnected (code ${ev.code}${ev.reason ? `: ${ev.reason}` : ''})`);
 
             // Attempt to reconnect if not intentionally closed
             if (ev.code !== 1000 && this.reconnectAttempts < this.maxReconnectAttempts) {

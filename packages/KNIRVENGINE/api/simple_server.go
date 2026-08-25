@@ -735,6 +735,9 @@ func (s *SimpleAPIServer) Start() error {
 // Stop stops the API server
 func (s *SimpleAPIServer) Stop(ctx context.Context) error {
 	log.Println("Stopping Simple API server...")
+	if s.sandboxManager != nil {
+		s.sandboxManager.CloseAll()
+	}
 	if s.httpServer == nil {
 		return nil // Or return an error if server was not initialized
 	}

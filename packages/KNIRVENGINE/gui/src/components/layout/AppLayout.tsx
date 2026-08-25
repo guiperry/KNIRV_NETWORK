@@ -57,9 +57,9 @@ export const AppLayout: React.FC = () => {
           <div className="min-h-0 flex-1">
             <Outlet />
           </div>
+          <SandboxDock />
         </main>
       </div>
-      <SandboxDock />
       <div className="fixed right-4 top-4 z-50">
         <RealTimeNotifications />
       </div>

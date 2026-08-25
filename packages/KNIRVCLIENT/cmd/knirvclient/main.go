@@ -98,18 +98,24 @@ func main() {
 	var dataEngineInstance *data_engine.DataEngine
 	if cfg.DataEngine.Enable {
 		log.Println("📈 Initializing Data Engine...")
+		if cfg.DataEngine.EnableWebSocket {
+			log.Println("ℹ️  Data Engine standalone WebSocket disabled: the consolidated server owns /ws")
+		}
 		dataEngineConfig := data_engine.DataEngineConfig{
 			EnableKafka:      cfg.DataEngine.EnableKafka,
 			KafkaBrokers:     cfg.DataEngine.KafkaBrokers,
 			ChromaDBURL:      cfg.DataEngine.ChromaDBURL,
 			ChromaCollection: cfg.DataEngine.ChromaCollection,
 			EnableChromaDB:   cfg.DataEngine.EnableChromaDB,
-			EnableWebSocket:  cfg.DataEngine.EnableWebSocket,
-			WebSocketPort:    cfg.DataEngine.WebSocketPort,
-			EnableRESTAPI:    cfg.DataEngine.EnableRESTAPI,
-			RESTAPIPort:      cfg.DataEngine.RESTAPIPort,
-			WindowSize:       1 * time.Minute,
-			MetricsInterval:  30 * time.Second,
+			// The dashboard connects to the consolidated server's dynamic /ws
+			// endpoint. Starting a second data-engine listener races for a port
+			// and can send the browser to the wrong backend.
+			EnableWebSocket: false,
+			WebSocketPort:   cfg.DataEngine.WebSocketPort,
+			EnableRESTAPI:   cfg.DataEngine.EnableRESTAPI,
+			RESTAPIPort:     cfg.DataEngine.RESTAPIPort,
+			WindowSize:      1 * time.Minute,
+			MetricsInterval: 30 * time.Second,
 		}
 
 		dataEngineInstance = data_engine.NewDataEngine(dataEngineConfig)
@@ -121,9 +127,7 @@ func main() {
 			if cfg.DataEngine.EnableChromaDB {
 				log.Printf("   📊 External Chroma-db: %s", cfg.DataEngine.ChromaDBURL)
 			}
-			if cfg.DataEngine.EnableWebSocket {
-				log.Printf("   🔌 WebSocket server: port %d", cfg.DataEngine.WebSocketPort)
-			}
+			log.Printf("   🔌 Dashboard WebSocket: unified server port (selected at startup)")
 			if cfg.DataEngine.EnableRESTAPI {
 				log.Printf("   🌐 REST API server: port %d", cfg.DataEngine.RESTAPIPort)
 			}

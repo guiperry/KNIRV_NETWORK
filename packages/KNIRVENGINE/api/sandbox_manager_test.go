@@ -117,6 +117,8 @@ func TestExtractLoopbackFrontendURL(t *testing.T) {
 	}{
 		{"server started at http://localhost:33159", "http://localhost:33159"},
 		{"listen http://127.0.0.1:8080/api", "http://127.0.0.1:8080/api"},
+		{"Data Engine failed to connect: http://localhost:8000/api/v1", ""},
+		{"Consolidated server started on http://localhost:33159", "http://localhost:33159"},
 		{"remote https://example.com/dashboard", ""},
 		{"not a URL", ""},
 	} {

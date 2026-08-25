@@ -47,6 +47,7 @@ interface SandboxContextValue {
   error: string | null;
   launch: (config: SandboxLaunchConfig) => Promise<void>;
   stop: () => Promise<void>;
+  clearLog: () => void;
   setTargetLabel: (label: string) => void;
   setProjectPath: (path: string) => void;
   setProjectFiles: (files: SandboxProjectFile[]) => void;
@@ -93,6 +94,7 @@ export const SandboxProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const setProjectTargetPath = useCallback((path: string) => {
     setProjectTargetPathState(path);
   }, []);
+  const clearLog = useCallback(() => setLog([]), []);
 
   const connectStatusStream = useCallback((id: string) => {
     if (wsRef.current) {
@@ -233,6 +235,7 @@ export const SandboxProvider: React.FC<{ children: React.ReactNode }> = ({ child
         error,
         launch,
         stop,
+        clearLog,
         setTargetLabel,
         setProjectPath,
         setProjectFiles,

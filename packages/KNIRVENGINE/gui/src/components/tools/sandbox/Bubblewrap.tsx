@@ -14,7 +14,7 @@ type ElectronWindow = Window & {
 };
 
 const Bubblewrap: React.FC = () => {
-  const { launch, stop, status, log, targetLabel, projectPath, projectTargetPath, error, deps, depsInstalling, installDeps } = useSandbox();
+  const { launch, stop, clearLog, status, log, targetLabel, projectPath, projectTargetPath, error, deps, depsInstalling, installDeps } = useSandbox();
   const running = status === 'running' || status === 'provisioning';
   const missingDeps = (deps ?? []).filter((d) => !d.present);
 
@@ -167,13 +167,17 @@ const Bubblewrap: React.FC = () => {
             <p className="text-slate-400 text-sm font-mono">unprivileged namespace sandbox</p>
           </div>
         </div>
+        <div className="flex items-center gap-2">
         <button
-          onClick={running ? stopSandbox : launchSandbox}
+          onClick={launchSandbox}
+          disabled={running}
           className="flex items-center space-x-2 px-3 py-2 rounded-lg text-sm font-medium bg-fuchsia-500/20 border border-fuchsia-500/40 text-fuchsia-300 hover:bg-fuchsia-500/30"
         >
-          {running ? <Square className="w-4 h-4" /> : <Play className="w-4 h-4" />}
-          <span>{running ? 'Stop' : 'Launch'}</span>
+          <Play className="w-4 h-4" />
+          <span>Launch</span>
         </button>
+        {running && <button onClick={stopSandbox} className="flex items-center space-x-2 px-3 py-2 rounded-lg text-sm font-medium bg-red-500/20 border border-red-500/40 text-red-300 hover:bg-red-500/30"><Square className="w-4 h-4" /><span>Stop session</span></button>}
+        </div>
       </div>
 
       {missingDeps.length > 0 && (
@@ -209,7 +213,7 @@ const Bubblewrap: React.FC = () => {
         </div>
       )}
 
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
         <div className="bg-slate-800/50 border border-slate-700/50 rounded-lg p-4 space-y-4">
           <div>
             <div className="flex items-center justify-between mb-2">
@@ -312,33 +316,26 @@ const Bubblewrap: React.FC = () => {
           )}
         </div>
 
-        <div className="bg-slate-800/50 border border-slate-700/50 rounded-lg p-4 flex flex-col">
+        <div className="bg-slate-800/50 border border-slate-700/50 rounded-lg p-4">
           <div className="text-xs text-slate-500 uppercase mb-2">Generated command</div>
-          <pre className="text-xs font-mono text-fuchsia-300 bg-slate-900/60 rounded p-3 overflow-x-auto mb-4">{command}</pre>
+          <pre className="text-xs font-mono text-fuchsia-300 bg-slate-900/60 rounded p-3 overflow-x-auto">{command}</pre>
+        </div>
+      </div>
 
-          <div className="mb-2 flex items-center justify-between">
-            <div className="text-xs uppercase text-slate-500">Namespace log</div>
-            <button
-              type="button"
-              onClick={copyLog}
-              disabled={!error && log.length === 0}
-              className="flex items-center gap-1 rounded px-2 py-1 text-xs text-slate-400 hover:bg-slate-700/50 hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
-              aria-label="Copy namespace log"
-            >
-              {copyStatus === 'copied' ? <Check className="h-3.5 w-3.5 text-green-400" /> : <Clipboard className="h-3.5 w-3.5" />}
-              <span>{copyStatus === 'copied' ? 'Copied' : copyStatus === 'failed' ? 'Copy failed' : 'Copy all'}</span>
-            </button>
-          </div>
-          <div className="min-h-[140px] flex-1 select-text overflow-y-auto rounded bg-slate-900/60 p-2 font-mono text-xs text-slate-400">
+      <section className="mt-4 flex min-h-[13rem] flex-col rounded-lg border border-slate-700/50 bg-slate-800/50 p-4">
+        <div className="mb-2 flex items-center justify-between">
+          <div className="text-xs uppercase text-slate-500">Namespace log</div>
+          <div className="flex items-center gap-1"><button type="button" onClick={clearLog} disabled={!error && log.length === 0} className="rounded px-2 py-1 text-xs text-slate-400 hover:bg-slate-700/50 hover:text-white disabled:cursor-not-allowed disabled:opacity-40">Clear</button><button type="button" onClick={copyLog} disabled={!error && log.length === 0} className="flex items-center gap-1 rounded px-2 py-1 text-xs text-slate-400 hover:bg-slate-700/50 hover:text-white disabled:cursor-not-allowed disabled:opacity-40" aria-label="Copy namespace log">{copyStatus === 'copied' ? <Check className="h-3.5 w-3.5 text-green-400" /> : <Clipboard className="h-3.5 w-3.5" />}<span>{copyStatus === 'copied' ? 'Copied' : copyStatus === 'failed' ? 'Copy failed' : 'Copy all'}</span></button></div>
+        </div>
+        <div className="min-h-0 flex-1 select-text overflow-y-auto rounded bg-slate-900/60 p-3 font-mono text-xs text-slate-400">
             {error && <div className="text-red-400">{error}</div>}
             {log.length === 0 ? (
               <span className="text-slate-700">launch to provision the namespace</span>
             ) : (
               log.map((line, index) => <div key={`${index}-${line}`} className="whitespace-pre-wrap text-green-400">{line}</div>)
             )}
-          </div>
         </div>
-      </div>
+      </section>
     </div>
   );
 };
