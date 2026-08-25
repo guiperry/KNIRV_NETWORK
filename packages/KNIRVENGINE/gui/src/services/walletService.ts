@@ -82,7 +82,7 @@ export interface SkillInvocation {
   timeout: number;
 }
 
-class WalletService {
+export class WalletService {
   private baseUrl: string;
   private controllerConnectionStatus: ControllerConnectionStatus;
 
@@ -275,7 +275,7 @@ class WalletService {
     }
   }
 
-  async signTransaction(transactionData: any): Promise<string> {
+  async signTransaction(transactionData: unknown): Promise<string> {
     const response = await api.post(`${this.baseUrl}/sign`, transactionData);
     return response.data.signature;
   }
@@ -298,7 +298,7 @@ class WalletService {
     return response.data;
   }
 
-  async invokeSkill(invocation: SkillInvocation): Promise<any> {
+  async invokeSkill(invocation: SkillInvocation): Promise<unknown> {
     const response = await api.post(`${this.baseUrl}/skills/invoke`, invocation);
     return response.data;
   }
@@ -363,12 +363,12 @@ class WalletService {
   }
 
   // Cross-platform operations
-  async generateQRCode(data: any): Promise<string> {
+  async generateQRCode(data: unknown): Promise<string> {
     const response = await api.post(`${this.baseUrl}/qr/generate`, data);
     return response.data.qrCode;
   }
 
-  async scanQRCode(qrData: string): Promise<any> {
+  async scanQRCode(qrData: string): Promise<unknown> {
     const response = await api.post(`${this.baseUrl}/qr/scan`, { qrData });
     return response.data;
   }
@@ -398,7 +398,7 @@ class WalletService {
     await api.post(`${this.baseUrl}/network/switch`, { chainId });
   }
 
-  async addNetwork(networkConfig: any): Promise<void> {
+  async addNetwork(networkConfig: unknown): Promise<void> {
     await api.post(`${this.baseUrl}/network/add`, networkConfig);
   }
 

@@ -1,137 +1,78 @@
-# **KNIRV-ENGINE: The Desktop Agent Development Environment**
+# **KNIRV-ENGINE: The Verification Layer for Software and AI Agents**
 
 ### **Abstract**
 
-The **KNIRV-ENGINE** serves as the comprehensive desktop development environment for creating, testing, and deploying AI agents within the KNIRV D-TEN ecosystem. Following the major refactor, KNIRV-ENGINE has evolved to focus on desktop-based agent development while maintaining seamless integration with the KNIRV-CONTROLLER through QR code connectivity. The platform provides a robust development environment with chromem-go database integration, electron-based desktop applications, and comprehensive agent development tools that enable developers to create sophisticated AI agents with full access to the KNIRV ecosystem's capabilities.
+Software that runs unexamined is software that runs untrusted. The **KNIRV-ENGINE** is the verification layer of the KNIRV Network: a desktop platform where code, compiled binaries, and autonomous workflows are placed in an isolated sandbox and exercised against a full suite of static analysis, dynamic instrumentation, fuzzing, reverse engineering, network inspection, and authentication-flow auditing tools — the same techniques a security review would use, run as a matter of course before anything is trusted. Where the rest of the KNIRV Network concerns itself with running agents under guardrails, KNIRV-ENGINE concerns itself with the step that has to happen first: proving that a piece of software behaves the way its author claims it does. The evidence it produces — decompiled structure, fuzz results, intercepted traffic, verified secrets, tampered-and-retested auth tokens — is what KNIRVORACLE checks before a report is registered or an agentic workflow is minted onto the network.
 
 ### **1. Introduction**
 
-The **KNIRV-ENGINE** represents the desktop counterpart to the KNIRV-CONTROLLER, providing a comprehensive development environment specifically designed for creating and testing AI agents on desktop platforms. While KNIRV-CONTROLLER focuses on mobile and unified agent management, KNIRV-ENGINE provides the powerful desktop tools needed for intensive agent development, testing, and deployment workflows.
+#### **1.1 The Problem: Trust Without Evidence**
 
-The platform integrates seamlessly with the broader KNIRV ecosystem through QR code connectivity with KNIRV-CONTROLLER, enabling developers to create agents on desktop and deploy them across the entire network. This separation of concerns allows for specialized development workflows while maintaining unified agent management and deployment capabilities.
+Agent networks, plugin marketplaces, and report registries all face the same gap: a submission looks correct, but "looks correct" is not "was verified." A binary can claim a capability it doesn't have, mishandle a token it claims to validate, or fail silently under adversarial input — and none of that is visible from source review alone. Verifying it properly means running it: in isolation, under instrumentation, against a hostile network peer, with a fuzzer generating the inputs its author didn't think to test.
+
+Doing that by hand, tool by tool, host by host, is exactly the friction that causes teams to skip it. KNIRV-ENGINE exists to remove that friction — one sandboxed target, one operator console, the full verification toolchain wired directly against it.
+
+#### **1.2 The Vision: Verification as a Gate, Not an Afterthought**
+
+KNIRV-ENGINE treats verification as a precondition, not a courtesy. A target is loaded, a sandbox is provisioned around it, and only then does any tool in the suite get to touch it — nothing in KNIRV-ENGINE runs against a live, unsandboxed system. The output of that process — the findings, the corpora, the traffic captures — becomes the evidence a report carries into KNIRVORACLE's registration flow and into a minted workflow's provenance. Trust on the network is downstream of verification, not a separate claim made alongside it.
+
+#### **1.3 Core Concepts**
+
+1. **Sandboxed ground truth.** Every verification tool operates against the same live, isolated namespace — one target, one sandbox, one consistent set of findings, never a simulation running alongside the real thing.
+2. **Composable tradecraft, not a monolith.** Each verification category wraps a focused, purpose-built open-source engine (Ghidra, Frida, Semgrep, AFL++, Wireshark, and others) rather than reimplementing their functionality — KNIRV-ENGINE is the orchestration and evidence layer above them.
+3. **Evidence as the unit of trust.** What KNIRVORACLE registers is not a self-report from the submitter; it's the artifact produced when the submission was actually run.
 
 ### **2. Core Architecture & Components**
 
-The **KNIRV-ENGINE** architecture is built around desktop-native technologies that provide powerful development capabilities while maintaining integration with the broader KNIRV ecosystem.
+#### **2.1 The Sandbox Layer**
 
-#### **2.1. Desktop Application Framework**
+At the center of KNIRV-ENGINE is an unprivileged isolation boundary built on **Bubblewrap (`bwrap`)**: read-only binds for the base system, an isolated `tmpfs`, and namespace controls (`unshare-all` with an optional single shared network path) around the target process. Where the target is GUI-driven, an ephemeral **Xvfb** display backs it, streamed to the operator through a Go-native VNC bridge and docked directly into the console via **noVNC**. A dependency-check pass reports which underlying tool binaries are present on the host and can trigger installation for what's missing, so a sandbox never silently degrades into a partial verification.
 
-*   **Electron Wrapper**: The platform utilizes an electron wrapper to provide cross-platform desktop application capabilities, enabling consistent development experiences across Windows, macOS, and Linux platforms.
-*   **Production Build System**: Comprehensive build system located in scripts/run_production.sh that creates desktop applications with binaries distributed in dist/desktop-host directory.
-*   **Application-Relative Data Directories**: Sophisticated data management that uses application-relative directories rather than dist-relative paths, ensuring proper data isolation and management.
-*   **Native Desktop Integration**: Full integration with desktop operating system capabilities including file system access, native notifications, and system-level integrations.
+Every sandbox session carries a stable identity — session id, status, target label, namespace handle, display, VNC path — that every downstream tool consumes through one narrow contract. No tool derives which namespace it's operating on from a filename or a label; it asks the sandbox session directly. This is what makes it safe to run eight independent tool categories against one target without any of them drifting onto the wrong process.
 
-#### **2.2. Database & Storage Systems**
+#### **2.2 The Verification Toolbench**
 
-*   **Chromem-Go Database**: Integration with chromem-go database system providing robust data storage and retrieval capabilities with admin/admin123 credentials for development access.
-*   **Application Data Management**: Sophisticated data management systems that handle agent configurations, development projects, and deployment artifacts.
-*   **Version Control Integration**: Built-in version control capabilities for tracking agent development iterations and managing collaborative development workflows.
-*   **Backup and Recovery**: Comprehensive backup and recovery systems ensuring development work is protected and can be restored when needed.
+Each category below is a thin, purpose-built operator surface over a real engine, not a simulated approximation of one:
 
-#### **2.3. Agent Development Tools**
+| Category | Tools | What it proves |
+| --- | --- | --- |
+| **Sandbox** | Bubblewrap, noVNC | The target is actually isolated, and its display is observable live. |
+| **Proxy** | Interception/replay engine | What the target actually sends and receives, not what its documentation claims. |
+| **Instrumentation** | Frida, proxychains-ng, bpftrace | Runtime behavior at the function-hook, socket, and kernel-trace level. |
+| **Reversing** | Ghidra, Cutter, ILSpy, JADX | The target's actual compiled structure across native, .NET, and Android binaries. |
+| **Fuzzing** | LibAFL, AFL++ | Resilience against inputs the target's author didn't anticipate. |
+| **Static Analysis** | Semgrep, Tree-sitter, TruffleHog | Pattern-level vulnerability classes, syntax-tree structure, and embedded secrets. |
+| **Packet Capture** | Wireshark (TShark), Zeek | Protocol-level ground truth for anything the target puts on the wire. |
+| **Auth Audit** | jwt_tool, SAML Raider | Whether the target's authentication flow actually resists tampering, not just whether it implements one. |
 
-*   **Visual Agent Designer**: Comprehensive visual tools for designing agent architectures, defining skill sets, and configuring agent behaviors through intuitive graphical interfaces.
-*   **Code Editor Integration**: Advanced code editing capabilities with syntax highlighting, auto-completion, and debugging support for agent development languages.
-*   **Testing Framework**: Comprehensive testing infrastructure that enables unit testing, integration testing, and performance testing of agents before deployment.
-*   **Deployment Pipeline**: Sophisticated deployment tools that enable agents to be packaged and deployed to various targets including KNIRV-CONTROLLER and network services.
+#### **2.3 The AI Error Inference Engine**
 
-### **3. Development Workflow & Integration**
+Verification runs generate failures — a fuzzer stalls, a sandbox fails to provision, a hook fails to attach — and those failures are themselves diagnostic signal. The Error Inference Engine treats them that way: an LLM-backed analysis layer (Cerebras, Gemini, or DeepSeek, with automatic fallback across providers) classifies each failure by type, severity, and probable root cause, surfaces it through a severity-aware notification system, and offers an interactive chat interface for step-by-step remediation. A rule-based fallback path keeps this working even with every provider unreachable, and a retry-with-backoff strategy resolves the transient cases automatically — so a verification run's own instrumentation doesn't become the next thing an operator has to debug by hand.
 
-KNIRV-ENGINE provides a comprehensive development workflow that spans from initial agent conception through deployment and ongoing management.
+### **3. Verification Workflow**
 
-#### **3.1. Agent Development Lifecycle**
+KNIRV-ENGINE enforces one sequence, not by convention but by construction — the tool views themselves refuse to activate outside it:
 
-*   **Project Creation**: Streamlined project creation workflows that provide templates and scaffolding for different types of agent development projects.
-*   **Development Environment**: Rich development environment with debugging tools, performance profilers, and testing capabilities specifically designed for agent development.
-*   **Simulation and Testing**: Comprehensive simulation environments that enable agents to be tested in controlled conditions before deployment to live networks.
-*   **Packaging and Distribution**: Sophisticated packaging tools that create deployable agent packages compatible with KNIRV-CONTROLLER and other network components.
+1. **Load.** The Dashboard opens a local project or file — the target under test — through the browser's File System Access API, building a navigable file tree.
+2. **Provision.** The Sandbox view launches a Bubblewrap namespace scoped to that target; status moves from `provisioning` to `running` before anything else is allowed to proceed.
+3. **Verify.** Every tool category — Proxy, Instrumentation, Reversing, Fuzzing, Static Analysis, Packet Capture, Auth Audit — operates against that one running namespace, in whatever combination the target calls for: decompile a binary while fuzzing it, intercept its traffic while hooking its TLS calls, audit its tokens while tracing its syscalls.
+4. **Register.** The evidence produced — function lists, crash corpora, flagged secrets, tampered-token results, captured flows — travels with the report or workflow submission into KNIRVORACLE's registration path.
 
-#### **3.2. KNIRV-CONTROLLER Integration**
+### **4. Integration with the KNIRV Network**
 
-*   **QR Code Connectivity**: Seamless QR code scanning functionality enables KNIRV-ENGINE to connect with KNIRV-CONTROLLER instances, creating a unified development and deployment workflow.
-*   **Agent Synchronization**: Developed agents can be synchronized between KNIRV-ENGINE and KNIRV-CONTROLLER, enabling desktop development with mobile deployment.
-*   **Cross-Platform Testing**: Agents developed in KNIRV-ENGINE can be tested across different platforms including mobile devices through KNIRV-CONTROLLER integration.
-*   **Unified Agent Management**: Agent configurations and capabilities are synchronized across platforms, ensuring consistent behavior regardless of deployment target.
+KNIRV-ENGINE is not a standalone security scanner; it is the entry point through which software earns standing on the network.
 
-### **4. Technical Infrastructure**
+* **KNIRVORACLE** — report registration and workflow-minting requests carry the verification evidence generated during a KNIRV-ENGINE session; wallet balance and transaction calls are proxied through the same authenticated client.
+* **KNIRVCONTROLLER** — a linked wallet connection surfaces NRN balance directly in the engine, so a verified report can flow into the controller's identity and vault layer without a second authentication step.
+* **Role-based access control** — every top-level tool category and every individual sub-tool is gated per user, so which parts of the verification surface an operator can reach is itself a governed, auditable decision.
 
-KNIRV-ENGINE leverages advanced technical infrastructure to provide powerful development capabilities while maintaining integration with the KNIRV ecosystem.
+### **5. Security and Isolation Guarantees**
 
-#### **4.1. Build and Deployment Systems**
+* **Sandboxed by construction, not by convention.** `RequireSandbox` blocks every tool view until the underlying namespace is confirmed `running` — there is no path to point a tool at an unsandboxed target.
+* **Namespace isolation.** Bubblewrap's unprivileged user namespaces, combined with read-only system binds and a `tmpfs` working directory, keep the target from touching the host filesystem outside what it's explicitly given.
+* **Single source of sandbox identity.** The `useSandboxSession` contract is the only path any tool has to a running namespace, preventing a tool from silently operating against the wrong target.
+* **JWT-authenticated, role-gated access.** All API access requires an authenticated session, and page/sub-page visibility is enforced against the authenticated user's role on both the frontend and the underlying permission checks.
 
-*   **Consolidated Script Architecture**: All scripts are consolidated into KNIRVENGINE/scripts directory, providing centralized management of build, test, and deployment workflows.
-*   **Orchestrating Makefile**: Comprehensive Makefile that orchestrates all development workflows, from initial setup through final deployment.
-*   **Binary Management**: Sophisticated binary management that handles the creation, distribution, and versioning of agent binaries and related artifacts.
-*   **Dependency Management**: Advanced dependency management that ensures all required components are properly included and versioned in development projects.
+### **6. Conclusion**
 
-#### **4.2. Performance and Optimization**
-
-*   **HRM Weights as Rust WASM**: Implementation of Hierarchical Reasoning Model (HRM) weights as Rust WASM in agent-core.wasm rather than separate files, providing optimized performance and reduced complexity.
-*   **Minimized Node Dependencies**: Strategic minimization of root-level node dependencies by moving WebSocket dependencies to specific applications that require them, reducing overhead and complexity.
-*   **Resource Optimization**: Comprehensive resource optimization tools that ensure developed agents operate efficiently within target deployment environments.
-*   **Performance Profiling**: Advanced profiling tools that enable developers to identify and resolve performance bottlenecks in agent implementations.
-
-### **5. Integration with KNIRV Ecosystem**
-
-KNIRV-ENGINE provides comprehensive integration with all components of the KNIRV ecosystem, enabling developers to create agents that leverage the full capabilities of the network.
-
-#### **5.1. Network Service Integration**
-
-*   **KNIRV-NEXUS Integration**: Direct integration with KNIRV-NEXUS DVEs for testing agent capabilities in secure, validated environments.
-*   **KNIRV-GRAPH Connectivity**: Seamless connectivity to KNIRV-GRAPH for accessing and contributing to the network's collective intelligence.
-*   **KNIRV-ORACLE Integration**: Direct integration with KNIRV-ORACLE for agent registration, skill validation, and economic transactions.
-*   **Service Discovery**: Advanced service discovery capabilities that enable agents to automatically discover and connect to available network services.
-
-#### **5.2. Development Tool Integration**
-
-*   **KNIRV-SDK Integration**: Full integration with KNIRV-SDK providing access to all network capabilities through standardized APIs and interfaces.
-*   **KNIRV-SHELL Integration**: Integration with KNIRV-SHELL for command-line development workflows and advanced network operations.
-*   **KNIRV-CORTEX Integration**: Seamless integration with KNIRV-CORTEX for agent core development and WASM compilation workflows.
-*   **Cross-Component Synchronization**: Sophisticated synchronization mechanisms that ensure consistency across all integrated development tools.
-
-### **6. Security and Validation**
-
-Security and validation are paramount in KNIRV-ENGINE, ensuring that developed agents meet the highest standards for safety and reliability.
-
-#### **6.1. Development Security**
-
-*   **Secure Development Environment**: Isolated development environments that prevent contamination and ensure secure development workflows.
-*   **Code Validation**: Comprehensive static analysis and validation tools that identify potential security vulnerabilities during development.
-*   **Dependency Auditing**: Automated auditing of all dependencies to ensure they meet security and licensing requirements.
-*   **Access Control**: Granular access control systems that ensure only authorized developers can access sensitive development resources.
-
-#### **6.2. Agent Validation**
-
-*   **Pre-Deployment Testing**: Comprehensive testing frameworks that validate agent behavior, performance, and security before deployment.
-*   **Simulation Environments**: Sophisticated simulation environments that enable agents to be tested in controlled conditions that mirror production environments.
-*   **Compliance Checking**: Automated compliance checking that ensures developed agents meet network standards and requirements.
-*   **Security Scanning**: Advanced security scanning tools that identify potential vulnerabilities in agent implementations.
-
-### **7. Future Roadmap**
-
-KNIRV-ENGINE will continue to evolve to meet the growing demands of the agent development community and the expanding capabilities of the KNIRV ecosystem.
-
-#### **7.1. Phase 1 (Current - Q2 2026)**
-
-*   **Desktop Application Stabilization**: Complete stabilization of the electron-based desktop application with full cross-platform support.
-*   **Development Tool Integration**: Full integration of all development tools including editors, debuggers, and testing frameworks.
-*   **KNIRV-CONTROLLER Connectivity**: Seamless QR code connectivity with KNIRV-CONTROLLER for unified development workflows.
-*   **Basic Agent Development**: Core agent development capabilities including creation, testing, and deployment workflows.
-
-#### **7.2. Phase 2 (Q3-Q4 2026)**
-
-*   **Advanced Development Features**: Enhanced development capabilities including visual agent designers, advanced debugging tools, and performance profilers.
-*   **Ecosystem Integration**: Deep integration with all KNIRV ecosystem components for comprehensive agent development capabilities.
-*   **Collaboration Tools**: Advanced collaboration tools that enable team-based agent development workflows.
-*   **Automated Testing**: Comprehensive automated testing frameworks that ensure agent quality and reliability.
-
-#### **7.3. Phase 3 (2027+)**
-
-*   **AI-Assisted Development**: AI-powered development tools that can automatically generate agent components and optimize implementations.
-*   **Advanced Simulation**: Sophisticated simulation environments that can model complex real-world scenarios for agent testing.
-*   **Enterprise Features**: Enterprise-grade features including advanced security, compliance, and management capabilities.
-*   **Cloud Integration**: Optional cloud integration for distributed development workflows and enhanced computational capabilities.
-
-### **8. Conclusion**
-
-The **KNIRV-ENGINE** represents a comprehensive desktop development environment that empowers developers to create sophisticated AI agents within the KNIRV ecosystem. By providing powerful desktop-native tools while maintaining seamless integration with KNIRV-CONTROLLER and the broader network, KNIRV-ENGINE enables developers to leverage the full capabilities of the KNIRV D-TEN while maintaining the productivity and power of desktop development environments. The platform's focus on security, validation, and comprehensive tooling ensures that developed agents meet the highest standards for quality and reliability while contributing to the network's collective intelligence and capabilities.
+KNIRV-ENGINE makes the case that trust in software — and in the AI workflows built on top of it — should rest on evidence produced by actually running the thing, not on a submission's own account of itself. By making sandboxed, instrumented verification the default first step rather than an optional extra, and by feeding what that verification produces directly into KNIRVORACLE's registration path, KNIRV-ENGINE turns "this was checked" from a claim into a matter of record. It is the layer that lets the rest of the KNIRV Network run agentic workflowss under guardrails with some confidence that what's inside those guardrails was actually examined first.

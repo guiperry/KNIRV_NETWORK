@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Radio, Play, Pause, Trash2, RotateCcw, ShieldAlert, Circle } from 'lucide-react';
+import { useSandboxSession } from '../../hooks/useSandboxSession';
 
 type FlowMethod = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
 
@@ -43,11 +44,17 @@ const statusColor = (status: number | null) => {
 };
 
 export const Proxy: React.FC = () => {
+  const { session, proxyFlows } = useSandboxSession();
+  const targetEndpoint = session?.frontendUrl;
   const [running, setRunning] = useState(true);
   const [intercepting, setIntercepting] = useState(false);
   const [filter, setFilter] = useState('~tls');
-  const [flows, setFlows] = useState(seedFlows);
-  const [selectedId, setSelectedId] = useState<number | null>(4);
+  const [hiddenFlowIds, setHiddenFlowIds] = useState<number[]>([]);
+  const [selectedId, setSelectedId] = useState<number | null>(null);
+  const flows: Flow[] = proxyFlows.filter((flow) => !hiddenFlowIds.includes(flow.id)).map((flow) => ({
+    id: flow.id, method: flow.method as FlowMethod, host: flow.host, path: flow.path,
+    status: flow.status || null, contentType: flow.contentType || '-', size: `${flow.size}b`, time: `${flow.durationMs}ms`, tls: false, intercepted: Boolean(flow.error),
+  }));
 
   const selected = flows.find(f => f.id === selectedId) ?? null;
 
@@ -60,12 +67,16 @@ export const Proxy: React.FC = () => {
     return `${f.method} ${f.host}${f.path}`.toLowerCase().includes(q);
   });
 
-  const releaseFlow = (id: number) => {
-    setFlows(prev => prev.map(f => f.id === id ? { ...f, intercepted: false, status: 200, contentType: 'application/json', size: '1.1kb', time: '104ms' } : f));
-  };
+  const releaseFlow = (id: number) => setHiddenFlowIds((ids) => [...ids, id]);
 
   return (
     <div className="h-full bg-slate-900 p-6">
+      {session?.targetLabel && (
+        <div className="mb-4 inline-flex items-center gap-2 rounded-lg border border-slate-700/50 bg-slate-800/40 px-3 py-1.5 text-xs font-mono text-slate-400">
+          <span className="text-slate-500">sandbox target</span>
+          <span className="text-slate-200">{session.targetLabel}</span>
+        </div>
+      )}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center space-x-3">
           <div className="p-2 bg-orange-500/20 rounded-lg">
@@ -73,7 +84,9 @@ export const Proxy: React.FC = () => {
           </div>
           <div>
             <h1 className="text-2xl font-bold text-white">mitmproxy</h1>
-            <p className="text-slate-400 text-sm font-mono">listening on 127.0.0.1:8080 · transparent mode · upstream cert: mitmproxy-ca.pem</p>
+            <p className="text-slate-400 text-sm font-mono">
+              {targetEndpoint ? `sandbox target: ${targetEndpoint}` : 'waiting for the sandbox target to publish a loopback frontend URL'}
+            </p>
           </div>
         </div>
         <div className="flex items-center space-x-2">
@@ -97,7 +110,7 @@ export const Proxy: React.FC = () => {
             <span>{running ? 'Pause' : 'Resume'}</span>
           </button>
           <button
-            onClick={() => setFlows([])}
+            onClick={() => setHiddenFlowIds(proxyFlows.map((flow) => flow.id))}
             className="flex items-center space-x-2 px-3 py-2 rounded-lg text-sm font-medium bg-slate-800/50 border border-slate-700/50 text-slate-300 hover:text-white"
           >
             <Trash2 className="w-4 h-4" />

@@ -36,7 +36,7 @@ func TestCloudBuild(t *testing.T) {
 	})
 
 	t.Run("Cloud Binary Build", func(t *testing.T) {
-		cmd := exec.Command("make", "cloud-build")
+		cmd := exec.Command("make", "build")
 		cmd.Dir = projectRoot
 
 		output, err := cmd.CombinedOutput()
@@ -50,7 +50,7 @@ func TestCloudBuild(t *testing.T) {
 	})
 
 	t.Run("Cross-Platform Build", func(t *testing.T) {
-		cmd := exec.Command("make", "cloud-build-all")
+		cmd := exec.Command("make", "build-all")
 		cmd.Dir = projectRoot
 
 		output, err := cmd.CombinedOutput()
@@ -152,7 +152,7 @@ func TestCloudDeployment(t *testing.T) {
 
 	t.Run("Cloud Server Start", func(t *testing.T) {
 		// Build first
-		cmd := exec.Command("make", "cloud-build")
+		cmd := exec.Command("make", "build")
 		cmd.Dir = projectRoot
 		cmd.Run()
 

@@ -2,300 +2,223 @@
 
 ## Overview
 
-The KNIRVENGINE is a comprehensive platform for designing, deploying, and managing autonomous AI agents through an intuitive no-code interface. Built with a powerful Go backend and a modern React/TypeScript frontend, it empowers users to define complex goals, equip agents with diverse capabilities, and orchestrate their operations to achieve sophisticated outcomes. The engine supports multiple AI language models (including Cerebras, Gemini, and DeepSeek) with intelligent fallback mechanisms to ensure reliable operation.
+KNIRVENGINE is the verification layer of the KNIRV Network — the desktop platform where code, compiled binaries, and autonomous workflows get proven out before anyone trusts them. Where the rest of the network is concerned with running agentic workflows under guardrails, KNIRVENGINE is concerned with the step before that: taking a piece of software a developer is about to ship, dropping it into an isolated sandbox, and putting it through the same static analysis, dynamic instrumentation, fuzzing, and traffic inspection a security review would use — so that what eventually gets registered as a report or minted as an workflow on the network has actually been exercised, not just reviewed by eye.
 
-## Key Features
+It ships as a single Go binary with an embedded React/TypeScript frontend, launched either as a browser client (`--browser`) or as a native desktop application. A local API server handles authentication, sandbox orchestration, and the AI-assisted error inference engine; the frontend is the operator console for every verification tool in the suite.
 
-### Agent Management
-* **NFT-Agents:** Create, configure, and manage AI agents with unique identities
-* **Agent Builder:** Generate custom agents from templates with specific capabilities
-* **Agent Inferencer:** Process inference requests through appropriate agent plugins
-* **Plugin System:** Extensible architecture for adding custom agent capabilities
-* **Terminal Integration:** Interact with agents through terminal sessions
+## The Verification Workflow
 
-### Built-in Sub-Agent Infrastructure
-* **Autonomous Sub-Agent Spawning:** Main agents can independently spawn sub-agents based on task requirements without external API calls
-* **SubagentManager:** Complete sub-agent lifecycle management (create, start, stop, delete) with resource limits and TEE isolation
-* **8 Orchestration Patterns:** Support for Sequential Agents, Parallel Processing, Hierarchical Delegation, and Collaborative Problem Solving
-* **Dedicated Terminal Sessions:** Each sub-agent gets its own terminal for independent operation and logging
-* **Communication Hub:** Structured parent-sub-agent messaging with peer communication and error escalation
-* **Multi-Language Support:** Python and JavaScript sub-agent templates with specialized prompt generation
-* **Resource Management:** Memory, CPU, and timeout limits for sub-agents with monitoring and performance tracking
-* **TEE Security:** Sub-agents run within the main agent's Trusted Execution Environment for secure isolation
+KNIRVENGINE's tools are gated behind one deliberate sequence, enforced by the frontend itself (`RequireSandbox`):
 
-### AI Model Integration
-* **Multi-Provider Support:** Seamlessly integrate with Cerebras, Gemini, and DeepSeek models
-* **Intelligent Fallback:** Automatically switch to backup providers if primary ones fail
-* **Mixture of Agents (MOA):** Combine multiple AI models for enhanced capabilities
-* **Context Management:** Process large inputs exceeding token limits with intelligent chunking strategies
+1. **Load a target.** The Dashboard opens a local project directory (via the File System Access API) or a single file, builds a file tree, and lets you pick the binary, script, or repository under test.
+2. **Provision a sandbox.** The Sandbox view launches an unprivileged `bubblewrap` namespace around the target — read-only binds for the base system, a `tmpfs`, and (optionally) full namespace isolation with a single shared network path back out through the instrumentation layer. An `Xvfb` virtual display backs any GUI the target needs, streamed to the operator over a Go-native VNC bridge.
+3. **Verify.** With the sandbox `running`, every tool in the suite operates against that same namespace and the same live target — nothing runs against production, and nothing runs unsandboxed.
+4. **Register the result.** Findings, decompiled structure, fuzz corpora, and traffic captures produced during verification become the evidence trail that KNIRVORACLE checks before a report is registered or an workflow is minted onto the network.
 
-### Workflow Orchestration
-* **Target Systems:** Define and manage objectives for agents to pursue
-* **Inference Orchestration:** Coordinate complex workflows involving multiple agents
-* **Workflow Repository:** Track and manage workflow execution and results
-* **Analytics Dashboard:** Monitor agent performance and system metrics
+Every verification view shows the active sandbox target inline, so an operator always knows which running namespace a given finding came from.
 
-### Security & Authentication
-* **User Management:** Secure authentication with role-based access control
-* **JWT Authentication:** Token-based security for API access
-* **Permission System:** Granular control over user capabilities
-* **Trusted Execution Environment (TEE):** Secure environment for sensitive operations
+## The Verification Toolbench
 
-### Web & System Integration
-* **Web Connections:** Integrate with external web services and APIs
-* **System Connections:** Interface with local system resources
-* **Database Integration:** Persistent storage for agents, workflows, and user data
-* **WebSocket Support:** Real-time communication for terminal sessions and monitoring
+Eight tool categories, each wired to real open-source engines rather than a simulated approximation:
 
-## 🚀 Key Innovation: AI Error Inference Engine
+### Sandbox
+* **Bubblewrap (`bwrap`)** — unprivileged user-namespace isolation for the target process: bind mounts, network namespace control, `Xvfb`-backed display.
+* **noVNC** — HTML5 RFB client docked into the operator UI, streaming the sandboxed target's display live.
 
-The KNIRVENGINE features a groundbreaking **AI Error Inference Engine** that transforms error handling from reactive debugging to proactive intelligent assistance:
+### Proxy
+* Traffic interception and replay for the sandboxed target's egress — flow list with method/host/status/TLS columns, request/response inspection, and manual intercept-and-edit for in-flight requests.
 
-### 🤖 **Intelligent Error Analysis**
-* **LLM-Powered Diagnosis:** Automatically analyzes system errors using advanced language models
-* **Smart Categorization:** Classifies errors by type, severity, and root cause
-* **Confidence Scoring:** Provides confidence levels for suggested solutions
-* **Context-Aware Analysis:** Collects comprehensive system information for accurate diagnosis
+### Instrumentation
+* **Frida** — attach to the sandboxed process by PID, inject a JS agent, hook exports and Java/ObjC methods at runtime.
+* **proxychains-ng** — force a target's socket connections through the proxy layer without modifying the binary.
+* **bpftrace** — kernel-level tracing of the sandboxed process via eBPF probes.
 
-### 🔔 **Real-Time Error Notifications**
-* **Smart Notification Bell:** Header-mounted indicator with error count badges and severity alerts
-* **Automatic Triggering:** Auto-analyzes critical and high-severity errors immediately
-* **Priority-Based Alerts:** Different notification styles based on error severity
-* **Unread Indicators:** Visual cues for new errors requiring attention
+### Reversing
+* **Ghidra** — headless `analyzeHeadless` runs producing a function list, cross-references, and a decompiled C view.
+* **Cutter** — radare2 GUI: graph view, ESIL evaluation, and an `r2` command console.
+* **ILSpy** — .NET decompiler: assembly tree to C#, IL, and MSIL disassembly.
+* **JADX** — APK/DEX to Java, with smali fallback, resource browser, and deobfuscation.
 
-### 💬 **Interactive Error Assistant**
-* **Chat Modal Interface:** Conversational AI assistant for error troubleshooting
-* **Follow-Up Questions:** Ask detailed questions about specific errors
-* **Step-by-Step Guidance:** Detailed resolution instructions with estimated time
-* **Recovery Strategies:** Automatic retry logic and intelligent recovery actions
+### Fuzzing
+* **LibAFL** — Rust fuzzing framework for composing custom executors, mutators, and corpus stages against the sandboxed target.
+* **AFL++** — coverage-guided fuzzing campaigns with live crash/hang/coverage monitoring.
 
-### 🔄 **Self-Healing Capabilities**
-* **Automated Recovery:** Intelligent retry strategies with exponential backoff
-* **Fallback Analysis:** Rule-based analysis when LLM inference is unavailable
-* **System Context Collection:** Captures user agent, URL, session info, and stack traces
-* **Error History Tracking:** Maintains error patterns for improved future analysis
+### Static Analysis
+* **Semgrep** — pattern-based AST analysis with rule packs for OWASP classes, secrets, and custom patterns.
+* **Tree-sitter** — incremental parsing with a live syntax tree and S-expression queries.
+* **TruffleHog** — verified secret scanning across the filesystem, git history, and live repositories.
 
-### 📊 **Production-Ready Features**
-* **Error Statistics Dashboard:** Real-time metrics and error trend analysis
-* **Severity Thresholds:** Configurable auto-analysis triggers
-* **React Hook Integration:** Seamless integration with frontend components
-* **Performance Monitoring:** Tracks error resolution success rates and response times
+### Packet Capture
+* **Wireshark (TShark)** — live packet list with display filters, protocol columns, and stream following.
+* **Zeek** — protocol-level network security monitoring and connection logging.
 
-This innovation creates a **self-healing system** where the inference engine detects, analyzes, and often suggests automated fixes for system errors, significantly reducing debugging time and improving system reliability.
+### Auth Audit
+* **jwt_tool** — decode, tamper, and re-sign JWTs: `alg:none`, algorithm confusion, and known-key attacks.
+* **SAML Raider** — SSO assertion tampering for federated auth flow testing.
+
+## AI Error Inference Engine
+
+KNIRVENGINE turns its own error handling into part of the verification story. When a tool run, sandbox launch, or API call fails, the inference engine:
+
+* **Diagnoses automatically** — an LLM-backed analysis (Cerebras, Gemini, or DeepSeek, with automatic fallback between providers) classifies the error by type, severity, and probable root cause, with a confidence score.
+* **Notifies in real time** — a header-mounted bell surfaces error counts and severity, auto-triggering analysis for critical and high-severity failures.
+* **Explains interactively** — a chat interface answers follow-up questions about a specific error and walks through remediation step by step.
+* **Recovers where it can** — retry logic with exponential backoff, plus a rule-based fallback analysis path when no LLM provider is reachable.
+* **Falls back safely** — if every provider is unreachable, the rule-based path still returns a categorized result instead of leaving the operator with nothing.
+
+## Network Integration
+
+KNIRVENGINE doesn't verify in isolation:
+
+* **KNIRVORACLE** — report registration and workflow minting requests carry the verification evidence produced by the toolbench; wallet balance and transaction endpoints are proxied through the same client.
+* **KNIRVCONTROLLER** — a linked wallet connection surfaces NRN balance and lets verified capabilities flow into the controller's identity/vault layer without re-authenticating.
+* **Role-based access** — every top-level view and every sub-tool is gated per-user (`canAccessPage` / `canAccessSubPage`), so an operator's role determines which parts of the toolbench they can reach.
 
 ## Architecture
 
-The KNIRVENGINE employs a modular, service-oriented architecture:
+### Backend
+* **API Server** — Go, Gorilla Mux, JWT-authenticated, with a dedicated security middleware chain (CORS, rate limiting, request validation).
+* **Sandbox Manager** (`api/sandbox_manager.go`) — owns the `bubblewrap`/`Xvfb` lifecycle, a dependency-check/install path for the underlying tool binaries, and a status + VNC WebSocket pair per session.
+* **Inference Services** — provider-agnostic client layer over Cerebras, Gemini, and DeepSeek with fallback ordering.
+* **Database** — SQLite-backed persistence for users, sessions, and sandbox history.
 
-### Backend Components
-* **API Server:** RESTful API built with Go's HTTP package and Gorilla Mux router
-* **Inference Services:** Manages interactions with LLM providers
-* **Agent Services:** Handles agent lifecycle, capabilities, and inference
-* **Database Services:** SQLite-based persistence for domain objects and authentication
-* **Workflow Services:** Orchestrates complex agent workflows and tracks execution
+### Frontend
+* **React 18 + TypeScript**, Tailwind CSS, React Router.
+* **SandboxContext / `useSandboxSession`** — the single seam every tool integration consumes: session id, status, target label, namespace handle, display, and VNC path. No tool derives sandbox identity any other way.
+* **RequireSandbox** — the gate component that blocks tool views until a sandbox is actually `running`.
 
-### Frontend Components
-* **React/TypeScript SPA:** Modern single-page application with TypeScript
-* **Tailwind CSS:** Utility-first styling for responsive design
-* **Component Architecture:** Modular UI components for each functional area
-* **WebSocket Integration:** Real-time updates and terminal sessions
-* **Authentication Flow:** Secure login and session management
-
-### Deployment Options
-* **Development Mode:** Integrated development server with hot reloading
-* **Production Mode:** Static file serving with embedded assets
-* **Desktop Application:** Electron-based desktop version available
-* **Cross-Platform Support:** Runs on Linux, macOS, and Windows
+### Deployment
+* **Development** — hot-reloading Vite dev server against the Go API.
+* **Production** — static assets embedded into the Go binary, served with `--production`.
+* **Desktop** — Electron-wrapped native application; browser mode available via `--browser`.
+* **Cross-platform** — Linux, macOS, Windows.
 
 ## Setup and Installation
 
 ### Prerequisites
 
-* **Go:** Version 1.21 or later for the backend. [https://go.dev/doc/install](https://go.dev/doc/install)
-* **Node.js and npm:** Version 16+ for frontend development. [https://nodejs.org/](https://nodejs.org/)
-* **AI Provider Accounts:** API keys from Cerebras, Google (for Gemini), or DeepSeek
+* **Go** 1.21+ — [https://go.dev/doc/install](https://go.dev/doc/install)
+* **Node.js and npm** 16+ — [https://nodejs.org/](https://nodejs.org/)
+* **AI Provider Accounts** — API keys from Cerebras, Google (Gemini), or DeepSeek, used by the error inference engine
+* A Linux host with `bubblewrap`, `Xvfb`, and the individual verification tool binaries (Frida, Ghidra, Semgrep, etc.) installed for sandbox provisioning — the Sandbox view's dependency check reports what's missing and can trigger install where supported
 
 ### Installation
 
-1. **Clone the Repository:**
+1. **Clone the repository:**
    ```bash
    git clone https://github.com/guiperry/KNIRV-Engine.git
    cd KNIRV-Engine
    ```
 
-2. **Configure Environment Variables:**
-   * Create a `.env` file in the project root:
-     ```dotenv
-     # API Keys
-     CEREBRAS_API_KEY=your_cerebras_api_key_here
-     GEMINI_API_KEY=your_gemini_api_key_here
-     DEEPSEEK_API_KEY=your_deepseek_api_key_here
-     
-     # Security
-     JWT_SECRET=your_jwt_secret_key_here
-     
-     # Server Configuration
-     API_PORT=8081
-     GUI_PORT=8080
-     ```
+2. **Configure environment variables** — create a `.env` file in the project root:
+   ```dotenv
+   # AI providers (error inference engine)
+   CEREBRAS_API_KEY=your_cerebras_api_key_here
+   GEMINI_API_KEY=your_gemini_api_key_here
+   DEEPSEEK_API_KEY=your_deepseek_api_key_here
 
-3. **Build and Run:**
-   * **Quick Start:**
+   # Security
+   JWT_SECRET=your_jwt_secret_key_here
+
+   # Server configuration
+   API_PORT=8081
+   GUI_PORT=8080
+   ```
+
+3. **Build and run:**
+
+   * **Quick start:**
      ```bash
-     # Build the backend
      go build -o knirv-engine
-     
-     # Sync environment variables
      ./sync-env.sh
-     
-     # Start the application
      ./knirv-engine
      ```
-   
-   * **Development Mode:**
+
+   * **Development mode:**
      ```bash
-     # Start backend
      go run main.go
-     
-     # In another terminal, start frontend
+
+     # in another terminal
      cd gui
      npm install
      npm run dev
      ```
-   
-   * **Production Mode:**
+
+   * **Production mode:**
      ```bash
-     # Build backend with production flag
      go build -o knirv-engine
-     
-     # Build frontend
+
      cd gui
      npm install
      npm run build
-     
-     # Run in production mode
+
      cd ..
      ./knirv-engine --production
      ```
 
 ### Port Configuration
 
-The application uses configurable ports via the `ports.config` file:
-- **API_PORT:** Backend server port (default: 8081)
-- **GUI_PORT:** Frontend server port (default: 8080)
+Configurable via `ports.config`:
+- **API_PORT:** backend server port (default: 8081)
+- **GUI_PORT:** frontend server port (default: 8080)
 
-To change ports:
-1. Edit `ports.config` file with your desired ports
-2. Run `./sync-env.sh` to update frontend configuration
-3. Restart the application
-
-See [docs/PORT_CONFIGURATION.md](docs/PORT_CONFIGURATION.md) for detailed port configuration guide.
+To change ports, edit `ports.config`, run `./sync-env.sh`, and restart. See [docs/PORT_CONFIGURATION.md](docs/PORT_CONFIGURATION.md).
 
 ## Usage Guide
 
 ### Authentication
-1. Access the application through your web browser at `http://localhost:8080` (or your configured port)
-2. Log in with your credentials (default admin user is created on first run)
-3. For first-time setup, navigate to Settings to configure API keys
+1. Open `http://localhost:8080` (or your configured port).
+2. Log in — a default admin user is created on first run.
+3. Configure AI provider keys under Settings on first use.
 
-### Creating and Managing Agents
-1. Navigate to the "NFT-Agents" section
-2. Click "Create New Agent" to define a new agent
-3. Configure the agent's profile, base instructions, and capabilities
-4. Select the AI model(s) the agent should use
-5. Save and activate the agent
+### Running a Verification Pass
+1. **Dashboard** — open the project directory or file under test.
+2. **Sandbox → Bubblewrap** — launch a namespace targeting that project; wait for status `running`.
+3. Move to any tool category (Proxy, Instrumentation, Reversing, Fuzzing, Static Analysis, Packet Capture, Auth Audit) — each one now operates against the live sandboxed target.
+4. **Sandbox → noVNC** — watch the target's display directly if it's GUI-driven.
+5. Review findings inline (functions decompiled, secrets found, flows intercepted, fuzz crashes) before deciding whether the target is fit to register as a network capability.
 
-### Defining Capabilities and Targets
-1. Visit the "Capabilities" section to enable tools for your agents
-2. In "Target Systems," define objectives for agents to pursue
-3. Assign agents to specific targets and configure parameters
-
-### Orchestrating Workflows
-1. Use the "Inference" section to design complex workflows
-2. Configure sequential or parallel execution of agent tasks
-3. Monitor workflow execution in real-time
-4. View results and analytics in the Dashboard
-
-### Advanced Features
-1. Terminal Integration: Interact with agents through command-line interfaces
-2. Context Management: Configure chunking strategies for large inputs
-3. LLM Provider Settings: Set primary and fallback models
-4. Workflow Analytics: Track performance metrics and success rates
+### Error Recovery
+1. Watch the notification bell for auto-triggered analysis on critical/high-severity failures.
+2. Open the chat assistant for step-by-step remediation on any specific error.
+3. Let the retry/backoff path attempt automatic recovery before escalating manually.
 
 ## API Reference
 
-The KNIRVENGINE provides a comprehensive RESTful API:
+### Authentication
+- `POST /api/v1/auth/login` — authenticate, receive a JWT
+- `POST /api/v1/auth/register` — create a user
+- `POST /api/v1/auth/refresh` — refresh an existing token
 
-### Authentication Endpoints
-- `POST /api/auth/login`: Authenticate and receive JWT token
-- `POST /api/auth/refresh`: Refresh an existing JWT token
-- `POST /api/auth/logout`: Invalidate current token
+### Sandbox
+- `GET /api/v1/sandboxes/deps` — check verification-tool dependency status
+- `POST /api/v1/sandboxes/deps/install` — install missing dependencies
+- `GET /api/v1/sandboxes` — list active sandbox sessions
+- `POST /api/v1/sandboxes` — provision a new sandbox for a target
+- `GET /api/v1/sandboxes/{id}` — get session detail
+- `DELETE /api/v1/sandboxes/{id}` — stop a session
+- `GET /api/v1/sandboxes/{id}/ws` — status/log WebSocket
+- `GET /api/v1/sandboxes/{id}/vnc` — VNC bridge WebSocket
 
-### Agent Endpoints
-- `GET /api/v1/agents`: List all agents
-- `POST /api/v1/agents`: Create a new agent
-- `GET /api/v1/agents/{id}`: Get agent details
-- `PUT /api/v1/agents/{id}`: Update agent configuration
-- `POST /api/v1/agents/{id}/build`: Build agent from template
-
-### Inference Endpoints
-- `POST /api/v1/adk/agents/inference`: Process inference request
-- `GET /api/v1/inference/models`: List available LLM models
-
-### Workflow Endpoints
-- `POST /api/v1/workflows`: Create a new workflow
-- `GET /api/v1/workflows`: List all workflows
-- `GET /api/v1/workflows/{id}`: Get workflow details
-- `PUT /api/v1/workflows/{id}`: Update workflow status
-
-### Terminal Endpoints
-- `POST /api/v1/terminal/create`: Create a terminal session
-- `GET /api/v1/terminal/ws`: WebSocket for terminal I/O
+### Health
+- `GET /api/v1/health` — service health
 
 ## System Requirements
 
-### Minimum Requirements
+### Minimum
 - **CPU:** 2+ cores
 - **RAM:** 4GB+
 - **Disk:** 1GB free space
 - **OS:** Linux, macOS, or Windows 10+
-- **Browser:** Chrome, Firefox, Safari, or Edge (latest versions)
+- **Browser:** Chrome, Firefox, Safari, or Edge (latest)
 
-### Recommended Requirements
+### Recommended (for fuzzing/reversing workloads)
 - **CPU:** 4+ cores
 - **RAM:** 8GB+
 - **Disk:** 5GB+ free space
-- **Network:** Stable internet connection for API access
-
-## Development and Extension
-
-### Plugin Development
-The KNIRVENGINE supports custom plugins for extending agent capabilities:
-1. Use the plugin development templates in `agentify/examples/`
-2. Implement the `AgentPluginInterface` for custom functionality
-3. Build and import plugins through the UI or API
-
-### Frontend Customization
-1. The React frontend can be customized by modifying components in `gui/src/components/`
-2. Styling uses Tailwind CSS for easy customization
-3. New views can be added by extending the routing in `App.tsx`
-
-### Backend Extension
-1. Add new services by implementing appropriate interfaces
-2. Register new API endpoints in `api/simple_server.go`
-3. Extend database models in `database/models/`
-
-## License
-
-*MIT, Apache 2.0*
-
-## Contributing
-
-We welcome contributions! Please read our [contributing guidelines](CONTRIBUTING.md) before submitting pull requests.
+- **Network:** stable connection for AI provider calls and network integration
 
 ## Testing
-
-The KNIRVENGINE includes a comprehensive test suite covering all components:
 
 ```bash
 # Run all tests
@@ -305,44 +228,47 @@ make test
 make test-unit          # Unit tests
 make test-integration   # Integration tests
 make test-frontend      # Frontend tests
-make test-api          # API tests
-make test-mcp          # MCP integration tests
-make test-security     # Security tests
-make test-performance  # Performance tests
-make test-connectivity # End-to-end connectivity tests
-make test-chat         # Agent chat functionality tests
+make test-api           # API tests
+make test-security      # Security tests
+make test-performance    # Performance tests
+make test-connectivity  # End-to-end connectivity tests
 
-# Run API endpoint tests
-make test-api-endpoints # API endpoint integration tests
-make test-api-simple   # Simple API tests
-
-# Run comprehensive test suite
+# Comprehensive suite
 ./scripts/run_comprehensive_tests.sh [mode]
-# Available modes: unit, integration, frontend, api, mcp, cloud, desktop,
-#                  security, performance, wasm, connectivity, chat, ci, all, full
+# Available modes: unit, integration, frontend, api, cloud, desktop,
+#                  security, performance, wasm, connectivity, ci, all, full
 ```
 
-## Current Implementation Status
+## Development and Extension
 
-The KNIRVENGINE is currently **production-ready** with comprehensive functionality across all major components. For detailed implementation status, see [current_status_implementation.md](current_status_implementation.md).
+### Adding a Verification Tool
+1. Add the tool component under `gui/src/components/tools/<category>/`.
+2. Wire its route into the category's parent component (e.g. `Reversing.tsx`) and into `Sidebar.tsx`'s navigation tree.
+3. Consume the sandbox contract exclusively via `useSandboxSession()` — never derive sandbox identity from any other source.
+4. Extend `AuthContext`'s `canAccessSubPage` gating for the new sub-page.
 
-### Phase 2: Data Consistency and Validation (Weeks 5-8)
+### Frontend Customization
+1. Components live under `gui/src/components/`.
+2. Styling uses Tailwind CSS.
+3. New top-level views extend the routing in `App.tsx` and the navigation array in `Sidebar.tsx`.
 
-We are now ready to implement **Phase 2** of the [full_continuity_implementation_plan.md](full_continuity_implementation_plan.md), which focuses on:
+### Backend Extension
+1. Add new services implementing the appropriate interfaces.
+2. Register new API endpoints in `api/simple_server.go` (general API) or `api/sandbox_manager.go` (sandbox lifecycle).
+3. Extend database models in `database/models/`.
 
-- **Data Storage Consolidation**: Unifying storage systems for improved consistency
-- **Enhanced Validation**: Implementing comprehensive data validation across all components
-- **Performance Optimization**: Optimizing database queries and API response times
-- **Advanced Error Handling**: Enhanced error reporting and recovery mechanisms
-- **System Monitoring**: Comprehensive monitoring and alerting capabilities
+## License
 
-The foundation is solid with excellent test coverage, and Phase 2 will focus on optimization and advanced features.
+*MIT, Apache 2.0*
+
+## Contributing
+
+We welcome contributions! Please read our [contributing guidelines](CONTRIBUTING.md) before submitting pull requests.
 
 ## Documentation
 
 Additional documentation is available in the `docs/` directory:
-- [PORT_CONFIGURATION.md](docs/PORT_CONFIGURATION.md): Detailed port configuration guide
-- [AGENT_BUILDER_IMPLEMENTATION_SUMMARY.md](docs/AGENT_BUILDER_IMPLEMENTATION_SUMMARY.md): Agent builder details
-- [MCP_INTEGRATION.md](docs/MCP_INTEGRATION.md): MCP integration documentation
-- [Testing.md](docs/Testing.md): Testing strategies and procedures
-- [current_status_implementation.md](current_status_implementation.md): Current implementation status and roadmap
+- [PORT_CONFIGURATION.md](docs/PORT_CONFIGURATION.md) — port configuration guide
+- [MCP_INTEGRATION.md](docs/MCP_INTEGRATION.md) — MCP integration documentation
+- [Testing.md](docs/Testing.md) — testing strategies and procedures
+- [KNIRV-ENGINE_Whitepaper.md](KNIRV-ENGINE_Whitepaper.md) — architecture and vision

@@ -17,6 +17,7 @@
     "test:coverage": "jest --coverage"
   },
   "dependencies": {
+    "@novnc/novnc": "^1.7.0",
     "@picahq/authkit": "^1.0.2",
     "@xterm/addon-fit": "^0.10.0",
     "@xterm/addon-search": "^0.15.0",
@@ -78,7 +79,15 @@
       }
     ],
     "linux": {
-      "target": ["AppImage"]
+      "target": [
+        "AppImage"
+      ],
+      "extraResources": [
+        {
+          "from": "../tools",
+          "to": "tools"
+        }
+      ]
     }
   }
 }

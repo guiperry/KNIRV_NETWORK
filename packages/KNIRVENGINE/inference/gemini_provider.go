@@ -114,7 +114,7 @@ func NewGeminiProvider(apiKey, model string, extraHeaders map[string]string) pro
 			log.Printf("Gemini model set from GEMINI_MODEL_NAME: %s", provider.model)
 		} else {
 			// Use default
-			provider.model = "gemini-1.5-flash-latest" // Use the known working model name
+			provider.model = "gemini-2.5-flash"
 			log.Printf("Gemini model defaulting to %s", provider.model)
 		}
 	}
@@ -345,10 +345,10 @@ func (p *GeminiProvider) SetDefaultOptions(cfg *config.Config) {
 	}
 
 	// Set model: Prioritize provider-specific, then global, then keep existing default
-	if providerModel != "" && (p.model == "" || p.model == "gemini-1.5-flash-latest") { // Updated default check
+	if providerModel != "" && (p.model == "" || p.model == "gemini-2.5-flash") {
 		p.model = providerModel
 		p.logger.Info("Applied provider-specific default model", "model", p.model)
-	} else if cfg.Model != "" && (p.model == "" || p.model == "gemini-1.5-flash-latest") { // Updated default check
+	} else if cfg.Model != "" && (p.model == "" || p.model == "gemini-2.5-flash") {
 		p.model = cfg.Model // Fallback to global default model
 		p.logger.Info("Applied global default model", "model", p.model)
 	}

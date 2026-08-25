@@ -1,9 +1,13 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { KNIRVOracleService } from '../services/knirvoracleService';
 import { WalletService } from '../services/walletService';
 
-// Mock axios for controlled testing
-vi.mock('axios');
+type MockClient = {
+  post: jest.Mock;
+  get: jest.Mock;
+};
+
+const getClient = (service: KNIRVOracleService): MockClient =>
+  (service as unknown as { client: MockClient }).client;
 
 describe('KNIRVORACLE Integration Tests', () => {
   let knirvoracleService: KNIRVOracleService;
@@ -21,7 +25,7 @@ describe('KNIRVORACLE Integration Tests', () => {
   });
 
   afterEach(() => {
-    vi.clearAllMocks();
+    jest.clearAllMocks();
   });
 
   describe('KNIRVOracleService', () => {
@@ -54,8 +58,8 @@ describe('KNIRVORACLE Integration Tests', () => {
       };
 
       // Mock the axios post method
-      const mockPost = vi.fn().mockResolvedValue({ data: mockResponse });
-      (knirvoracleService as any).client.post = mockPost;
+      const mockPost = jest.fn().mockResolvedValue({ data: mockResponse });
+      getClient(knirvoracleService).post = mockPost;
 
       const mintRequest = {
         agent_id: 'test-agent-123',
@@ -70,7 +74,7 @@ describe('KNIRVORACLE Integration Tests', () => {
 
       const result = await knirvoracleService.mintAgent(mintRequest);
 
-      expect(mockPost).toHaveBeenCalledWith('/agent/mint', mintRequest);
+      expect(mockPost).toHaveBeenCalledWith('/agent/mint', mintRequest, { timeout: 60000 });
       expect(result).toEqual(mockResponse);
       expect(result.success).toBe(true);
       expect(result.transaction_id).toBe('tx-123');
@@ -85,8 +89,8 @@ describe('KNIRVORACLE Integration Tests', () => {
         message: 'Capability registered successfully',
       };
 
-      const mockPost = vi.fn().mockResolvedValue({ data: mockResponse });
-      (knirvoracleService as any).client.post = mockPost;
+      const mockPost = jest.fn().mockResolvedValue({ data: mockResponse });
+      getClient(knirvoracleService).post = mockPost;
 
       const registrationRequest = {
         name: 'Test Capability',
@@ -97,14 +101,14 @@ describe('KNIRVORACLE Integration Tests', () => {
           properties: {
             input: { type: 'string' },
           },
-        },
+        } as const,
         owner: 'test-owner',
         gas_fee_nrn: 1000,
       };
 
       const result = await knirvoracleService.registerCapability(registrationRequest);
 
-      expect(mockPost).toHaveBeenCalledWith('/wallet/mcp/create_register_capability', registrationRequest);
+      expect(mockPost).toHaveBeenCalledWith('/wallet/mcp/create_register_capability', registrationRequest, { timeout: 30000 });
       expect(result).toEqual(mockResponse);
       expect(result.success).toBe(true);
       expect(result.capability_id).toBe('cap-789');
@@ -120,8 +124,8 @@ describe('KNIRVORACLE Integration Tests', () => {
         message: 'Faucet request successful',
       };
 
-      const mockPost = vi.fn().mockResolvedValue({ data: mockResponse });
-      (knirvoracleService as any).client.post = mockPost;
+      const mockPost = jest.fn().mockResolvedValue({ data: mockResponse });
+      getClient(knirvoracleService).post = mockPost;
 
       const faucetRequest = {
         address: '0x742d35Cc6aa34567890abcdef1234567890abcdef',
@@ -146,8 +150,8 @@ describe('KNIRVORACLE Integration Tests', () => {
         usd_value: '312.75',
       };
 
-      const mockGet = vi.fn().mockResolvedValue({ data: mockResponse });
-      (knirvoracleService as any).client.get = mockGet;
+      const mockGet = jest.fn().mockResolvedValue({ data: mockResponse });
+      getClient(knirvoracleService).get = mockGet;
 
       const address = '0x742d35Cc6aa34567890abcdef1234567890abcdef';
       const result = await knirvoracleService.getWalletBalance(address);
@@ -167,8 +171,8 @@ describe('KNIRVORACLE Integration Tests', () => {
         message: 'Transaction submitted',
       };
 
-      const mockPost = vi.fn().mockResolvedValue({ data: mockResponse });
-      (knirvoracleService as any).client.post = mockPost;
+      const mockPost = jest.fn().mockResolvedValue({ data: mockResponse });
+      getClient(knirvoracleService).post = mockPost;
 
       const transactionRequest = {
         from: '0x742d35Cc6aa34567890abcdef1234567890abcdef',
@@ -187,18 +191,18 @@ describe('KNIRVORACLE Integration Tests', () => {
     });
 
     it('should handle health checks', async () => {
-      const mockGet = vi.fn().mockResolvedValue({ status: 200 });
-      (knirvoracleService as any).client.get = mockGet;
+      const mockGet = jest.fn().mockResolvedValue({ status: 200 });
+      getClient(knirvoracleService).get = mockGet;
 
       const result = await knirvoracleService.healthCheck();
 
-      expect(mockGet).toHaveBeenCalledWith('/health');
+      expect(mockGet).toHaveBeenCalledWith('/health', { timeout: 5000 });
       expect(result).toBe(true);
     });
 
     it('should handle health check failures', async () => {
-      const mockGet = vi.fn().mockRejectedValue(new Error('Network error'));
-      (knirvoracleService as any).client.get = mockGet;
+      const mockGet = jest.fn().mockRejectedValue(new Error('Network error'));
+      getClient(knirvoracleService).get = mockGet;
 
       const result = await knirvoracleService.healthCheck();
 
@@ -212,8 +216,8 @@ describe('KNIRVORACLE Integration Tests', () => {
         execution_time: 1500,
       };
 
-      const mockPost = vi.fn().mockResolvedValue({ data: mockResponse });
-      (knirvoracleService as any).client.post = mockPost;
+      const mockPost = jest.fn().mockResolvedValue({ data: mockResponse });
+      getClient(knirvoracleService).post = mockPost;
 
       const capabilityId = 'cap-123';
       const inputData = { input: 'test data' };
@@ -230,8 +234,8 @@ describe('KNIRVORACLE Integration Tests', () => {
     });
 
     it('should handle error responses gracefully', async () => {
-      const mockPost = vi.fn().mockRejectedValue(new Error('API Error'));
-      (knirvoracleService as any).client.post = mockPost;
+      const mockPost = jest.fn().mockRejectedValue(new Error('API Error'));
+      getClient(knirvoracleService).post = mockPost;
 
       const mintRequest = {
         agent_id: 'test-agent',
@@ -298,8 +302,8 @@ describe('KNIRVORACLE Integration Tests', () => {
 
   describe('Error Handling', () => {
     it('should handle network timeouts', async () => {
-      const mockPost = vi.fn().mockRejectedValue(new Error('timeout'));
-      (knirvoracleService as any).client.post = mockPost;
+      const mockPost = jest.fn().mockRejectedValue(new Error('timeout'));
+      getClient(knirvoracleService).post = mockPost;
 
       const mintRequest = {
         agent_id: 'test-agent',
@@ -313,8 +317,8 @@ describe('KNIRVORACLE Integration Tests', () => {
     });
 
     it('should handle invalid responses', async () => {
-      const mockPost = vi.fn().mockResolvedValue({ data: null });
-      (knirvoracleService as any).client.post = mockPost;
+      const mockPost = jest.fn().mockResolvedValue({ data: null });
+      getClient(knirvoracleService).post = mockPost;
 
       const mintRequest = {
         agent_id: 'test-agent',

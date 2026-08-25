@@ -1,9 +1,11 @@
-import React from 'react';
+import React, { lazy, Suspense } from 'react';
 import { Box, MonitorPlay } from 'lucide-react';
 import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
 import Bubblewrap from './sandbox/Bubblewrap';
-import NoVnc from './sandbox/NoVnc';
+
+// The RFB client is sizeable and is only needed for the dedicated noVNC page.
+const NoVnc = lazy(() => import('./sandbox/NoVnc'));
 
 export const Sandbox: React.FC = () => {
   const navigate = useNavigate();
@@ -16,7 +18,7 @@ export const Sandbox: React.FC = () => {
     return (
       <Routes>
         <Route path="/bubblewrap" element={<Bubblewrap />} />
-        <Route path="/novnc" element={<NoVnc />} />
+        <Route path="/novnc" element={<Suspense fallback={<div className="h-full bg-slate-900" />}><NoVnc /></Suspense>} />
       </Routes>
     );
   }

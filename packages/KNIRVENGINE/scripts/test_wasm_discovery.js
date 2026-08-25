@@ -1,8 +1,6 @@
 #!/usr/bin/env node
 
 // Test script to verify WASM agent discovery is working
-const fetch = require('node-modules/node-fetch');
-
 async function testAgentDiscovery() {
   try {
     console.log('🔍 Testing Agent Discovery...');

@@ -310,6 +310,11 @@ func (sm *SecurityMiddleware) isExemptFromCSRF(path string) bool {
 		// Capabilities endpoints
 		"/api/v1/capabilities",
 		"/api/v1/capabilities/mcp",
+
+		// Sandbox collection root. Nested sandbox paths are covered by the
+		// desktop-operation prefix below; the create endpoint has no trailing
+		// slash and must be exempt explicitly as well.
+		"/api/v1/sandboxes",
 	}
 
 	// Check for exact matches first
@@ -326,6 +331,9 @@ func (sm *SecurityMiddleware) isExemptFromCSRF(path string) bool {
 
 		// Terminal endpoints
 		"/api/v1/terminal/",
+
+		// Sandbox endpoints
+		"/api/v1/sandboxes/",
 
 		// Agent endpoints (all agent operations)
 		"/api/v1/agents/",

@@ -1,41 +1,33 @@
-import React, { useState, useEffect } from 'react';
+import React, { lazy, Suspense, useState, useEffect } from 'react';
 import { BrowserRouter, HashRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { Sidebar } from './components/Sidebar';
 import { Dashboard } from './components/Dashboard';
-import { Proxy } from './components/tools/Proxy';
-import { Instrumentation } from './components/tools/Instrumentation';
-import { Reversing } from './components/tools/Reversing';
-import { Fuzzing } from './components/tools/Fuzzing';
-import { StaticAnalysis } from './components/tools/StaticAnalysis';
-import { PacketCapture } from './components/tools/PacketCapture';
-import { AuthAudit } from './components/tools/AuthAudit';
-import { Sandbox } from './components/tools/Sandbox';
-import Settings from './components/Settings';
 import { AuthProvider } from './components/AuthContext';
 import LoginPage from './components/LoginPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import UnauthorizedPage from './components/UnauthorizedPage';
-import RealTimeNotifications from './components/RealTimeNotifications';
-import ErrorBoundary from './components/ErrorBoundary';
 import { initializeWebSocket, cleanupWebSocket } from './utils/websocket';
 import { initializeAccessibility } from './utils/accessibility';
 import { enableIntelligentErrorAnalysis, handleApiError } from './utils/errorHandler';
 import { OnboardingProvider } from './components/onboarding/OnboardingProvider';
 import OnboardingSequence from './components/onboarding/OnboardingSequence';
 import LoadingScreen from './components/LoadingScreen';
+import { SandboxProvider } from './components/SandboxContext';
+import { AppLayout } from './components/layout/AppLayout';
+import { RequireSandbox } from './components/RequireSandbox';
+import { getApiBaseUrl } from './utils/apiBase';
 import './components/onboarding/onboarding.css';
 
-type ActiveView =
-  | 'dashboard'
-  | 'proxy'
-  | 'instrumentation'
-  | 'reversing'
-  | 'fuzzing'
-  | 'static-analysis'
-  | 'packet-capture'
-  | 'auth-audit'
-  | 'sandbox'
-  | 'settings';
+// Tooling is visited on demand. Splitting these route modules keeps the
+// dashboard responsive and avoids downloading noVNC with every application load.
+const Proxy = lazy(() => import('./components/tools/Proxy').then((module) => ({ default: module.Proxy })));
+const Instrumentation = lazy(() => import('./components/tools/Instrumentation').then((module) => ({ default: module.Instrumentation })));
+const Reversing = lazy(() => import('./components/tools/Reversing').then((module) => ({ default: module.Reversing })));
+const Fuzzing = lazy(() => import('./components/tools/Fuzzing').then((module) => ({ default: module.Fuzzing })));
+const StaticAnalysis = lazy(() => import('./components/tools/StaticAnalysis').then((module) => ({ default: module.StaticAnalysis })));
+const PacketCapture = lazy(() => import('./components/tools/PacketCapture').then((module) => ({ default: module.PacketCapture })));
+const AuthAudit = lazy(() => import('./components/tools/AuthAudit').then((module) => ({ default: module.AuthAudit })));
+const Sandbox = lazy(() => import('./components/tools/Sandbox').then((module) => ({ default: module.Sandbox })));
+const Settings = lazy(() => import('./components/Settings'));
 
 // Detect if we're running in Electron or web browser
 const isElectron = () => {
@@ -56,12 +48,6 @@ const isElectron = () => {
   return false;
 };
 
-// The engine owns its API server. The GUI can be hosted separately, so using
-// the current page origin would accidentally target a public KNIRV website.
-const getApiBaseUrl = () =>
-  (import.meta.env.VITE_API_BASE_URL ||
-    (window.location.protocol === 'file:' ? 'http://localhost:8081' : '')).replace(/\/$/, '');
-
 // Dynamic Router component that chooses the appropriate router based on environment
 const DynamicRouter: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   if (isElectron()) {
@@ -72,8 +58,6 @@ const DynamicRouter: React.FC<{ children: React.ReactNode }> = ({ children }) =>
 };
 
 function App() {
-  const [activeView, setActiveView] = useState<ActiveView>('dashboard');
-  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [loadingMessage, setLoadingMessage] = useState('Starting KNIRVENGINE...');
   const [loadingProgress, setLoadingProgress] = useState(0);
@@ -165,7 +149,7 @@ function App() {
     const handleGlobalError = (event: ErrorEvent) => {
       console.error('Global error caught:', event.error, event);
 
-      const errorDetails = handleApiError(event.error || new Error(event.message), {
+      handleApiError(event.error || new Error(event.message), {
         operation: 'global_error',
         component: 'App',
         filename: event.filename,
@@ -190,7 +174,7 @@ function App() {
     const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
       console.error('Unhandled promise rejection:', event.reason);
 
-      const errorDetails = handleApiError(event.reason, {
+      handleApiError(event.reason, {
         operation: 'unhandled_promise_rejection',
         component: 'App',
         timestamp: new Date().toISOString(),
@@ -256,269 +240,38 @@ function App() {
       <OnboardingProvider>
         <AuthProvider>
           <DynamicRouter>
+        <Suspense fallback={<div className="min-h-screen bg-slate-900" />}>
         <Routes>
           {/* Public routes */}
           <Route path="/login" element={<LoginPage />} />
           <Route path="/unauthorized" element={<UnauthorizedPage />} />
-          
-          {/* Protected routes */}
-          <Route path="/" element={
-            <ProtectedRoute>
-              <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900">
-                <div className="flex">
-                  <Sidebar 
-                    activeView={activeView} 
-                    setActiveView={setActiveView}
-                    isOpen={sidebarOpen}
-                    setIsOpen={setSidebarOpen}
-                  />
-                  <main id="main-content" className="flex-1 lg:ml-64" role="main" aria-label="Main content">
-                    <div className="lg:hidden">
-                      <button
-                        onClick={() => setSidebarOpen(!sidebarOpen)}
-                        className="fixed top-4 left-4 z-50 p-2 bg-slate-800 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-                        aria-label="Toggle navigation menu"
-                        aria-expanded={sidebarOpen}
-                      >
-                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                        </svg>
-                      </button>
-                    </div>
-                    {/* Real-time notifications */}
-                    <div className="fixed top-4 right-4 z-50">
-                      <RealTimeNotifications />
-                    </div>
-                    <Dashboard />
-                  </main>
-                </div>
-              </div>
-            </ProtectedRoute>
-          } />
-          
-          <Route path="/dashboard" element={
-            <ProtectedRoute>
-              <ErrorBoundary componentName="Dashboard">
-                <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900">
-                  <div className="flex">
-                    <Sidebar
-                      activeView={activeView}
-                      setActiveView={setActiveView}
-                      isOpen={sidebarOpen}
-                      setIsOpen={setSidebarOpen}
-                    />
-                    <main className="flex-1 lg:ml-64">
-                      <div className="lg:hidden">
-                        <button
-                          onClick={() => setSidebarOpen(!sidebarOpen)}
-                          className="fixed top-4 left-4 z-50 p-2 bg-slate-800 rounded-lg text-white"
-                        >
-                          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                          </svg>
-                        </button>
-                      </div>
-                      <Dashboard />
-                    </main>
-                  </div>
-                </div>
-              </ErrorBoundary>
-            </ProtectedRoute>
-          } />
-          
-          <Route path="/proxy" element={
-            <ProtectedRoute>
-              <ErrorBoundary componentName="Proxy">
-                <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900">
-                  <div className="flex">
-                    <Sidebar
-                      activeView={activeView}
-                      setActiveView={setActiveView}
-                      isOpen={sidebarOpen}
-                      setIsOpen={setSidebarOpen}
-                    />
-                    <main className="flex-1 lg:ml-64">
-                      <Proxy />
-                    </main>
-                  </div>
-                </div>
-              </ErrorBoundary>
-            </ProtectedRoute>
-          } />
 
-          <Route path="/instrumentation/*" element={
+          {/* Protected routes — one layout shell with a persistent dock.
+              The 7 tool routes are gated by RequireSandbox; the catch-all
+              lives inside the layout route so unauthenticated hits still
+              pass through ProtectedRoute. */}
+          <Route element={
             <ProtectedRoute>
-              <ErrorBoundary componentName="Instrumentation">
-                <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900">
-                  <div className="flex">
-                    <Sidebar
-                      activeView={activeView}
-                      setActiveView={setActiveView}
-                      isOpen={sidebarOpen}
-                      setIsOpen={setSidebarOpen}
-                    />
-                    <main className="flex-1 lg:ml-64">
-                      <Instrumentation />
-                    </main>
-                  </div>
-                </div>
-              </ErrorBoundary>
+              <SandboxProvider>
+                <AppLayout />
+              </SandboxProvider>
             </ProtectedRoute>
-          } />
-
-          <Route path="/reversing/*" element={
-            <ProtectedRoute>
-              <ErrorBoundary componentName="Reversing">
-                <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900">
-                  <div className="flex">
-                    <Sidebar
-                      activeView={activeView}
-                      setActiveView={setActiveView}
-                      isOpen={sidebarOpen}
-                      setIsOpen={setSidebarOpen}
-                    />
-                    <main className="flex-1 lg:ml-64">
-                      <Reversing />
-                    </main>
-                  </div>
-                </div>
-              </ErrorBoundary>
-            </ProtectedRoute>
-          } />
-
-          <Route path="/fuzzing/*" element={
-            <ProtectedRoute>
-              <ErrorBoundary componentName="Fuzzing">
-                <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900">
-                  <div className="flex">
-                    <Sidebar
-                      activeView={activeView}
-                      setActiveView={setActiveView}
-                      isOpen={sidebarOpen}
-                      setIsOpen={setSidebarOpen}
-                    />
-                    <main className="flex-1 lg:ml-64">
-                      <Fuzzing />
-                    </main>
-                  </div>
-                </div>
-              </ErrorBoundary>
-            </ProtectedRoute>
-          } />
-
-          <Route path="/static-analysis/*" element={
-            <ProtectedRoute>
-              <ErrorBoundary componentName="StaticAnalysis">
-                <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900">
-                  <div className="flex">
-                    <Sidebar
-                      activeView={activeView}
-                      setActiveView={setActiveView}
-                      isOpen={sidebarOpen}
-                      setIsOpen={setSidebarOpen}
-                    />
-                    <main className="flex-1 lg:ml-64">
-                      <StaticAnalysis />
-                    </main>
-                  </div>
-                </div>
-              </ErrorBoundary>
-            </ProtectedRoute>
-          } />
-
-          <Route path="/packet-capture/*" element={
-            <ProtectedRoute>
-              <ErrorBoundary componentName="PacketCapture">
-                <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900">
-                  <div className="flex">
-                    <Sidebar
-                      activeView={activeView}
-                      setActiveView={setActiveView}
-                      isOpen={sidebarOpen}
-                      setIsOpen={setSidebarOpen}
-                    />
-                    <main className="flex-1 lg:ml-64">
-                      <PacketCapture />
-                    </main>
-                  </div>
-                </div>
-              </ErrorBoundary>
-            </ProtectedRoute>
-          } />
-
-          <Route path="/auth-audit/*" element={
-            <ProtectedRoute>
-              <ErrorBoundary componentName="AuthAudit">
-                <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900">
-                  <div className="flex">
-                    <Sidebar
-                      activeView={activeView}
-                      setActiveView={setActiveView}
-                      isOpen={sidebarOpen}
-                      setIsOpen={setSidebarOpen}
-                    />
-                    <main className="flex-1 lg:ml-64">
-                      <AuthAudit />
-                    </main>
-                  </div>
-                </div>
-              </ErrorBoundary>
-            </ProtectedRoute>
-          } />
-
-          <Route path="/sandbox/*" element={
-            <ProtectedRoute>
-              <ErrorBoundary componentName="Sandbox">
-                <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900">
-                  <div className="flex">
-                    <Sidebar
-                      activeView={activeView}
-                      setActiveView={setActiveView}
-                      isOpen={sidebarOpen}
-                      setIsOpen={setSidebarOpen}
-                    />
-                    <main className="flex-1 lg:ml-64">
-                      <Sandbox />
-                    </main>
-                  </div>
-                </div>
-              </ErrorBoundary>
-            </ProtectedRoute>
-          } />
-
-          <Route path="/settings" element={
-            <ProtectedRoute>
-              <ErrorBoundary componentName="Settings">
-                <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900">
-                  <div className="flex">
-                    <Sidebar
-                      activeView={activeView}
-                      setActiveView={setActiveView}
-                      isOpen={sidebarOpen}
-                      setIsOpen={setSidebarOpen}
-                    />
-                    <main className="flex-1 lg:ml-64">
-                      <div className="lg:hidden">
-                        <button
-                          onClick={() => setSidebarOpen(!sidebarOpen)}
-                          className="fixed top-4 left-4 z-50 p-2 bg-slate-800 rounded-lg text-white"
-                        >
-                          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                          </svg>
-                        </button>
-                      </div>
-                      <Settings />
-                    </main>
-                  </div>
-                </div>
-              </ErrorBoundary>
-            </ProtectedRoute>
-          } />
-          
-          {/* Redirect any other path to dashboard */}
-          <Route path="*" element={<Navigate to="/dashboard" replace />} />
+          }>
+            <Route path="/" element={<Navigate to="/dashboard" replace />} />
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/proxy" element={<RequireSandbox><Proxy /></RequireSandbox>} />
+            <Route path="/instrumentation/*" element={<RequireSandbox><Instrumentation /></RequireSandbox>} />
+            <Route path="/reversing/*" element={<RequireSandbox><Reversing /></RequireSandbox>} />
+            <Route path="/fuzzing/*" element={<RequireSandbox><Fuzzing /></RequireSandbox>} />
+            <Route path="/static-analysis/*" element={<RequireSandbox><StaticAnalysis /></RequireSandbox>} />
+            <Route path="/packet-capture/*" element={<RequireSandbox><PacketCapture /></RequireSandbox>} />
+            <Route path="/auth-audit/*" element={<RequireSandbox><AuthAudit /></RequireSandbox>} />
+            <Route path="/sandbox/*" element={<Sandbox />} />
+            <Route path="/settings" element={<Settings />} />
+            <Route path="*" element={<Navigate to="/dashboard" replace />} />
+          </Route>
         </Routes>
+        </Suspense>
         <OnboardingSequence />
           </DynamicRouter>
         </AuthProvider>

@@ -35,7 +35,7 @@ func TestDesktopBuild(t *testing.T) {
 	})
 
 	t.Run("Desktop Build Current Platform", func(t *testing.T) {
-		cmd := exec.Command("make", "desktop-build")
+		cmd := exec.Command("make", "build")
 		cmd.Dir = projectRoot
 
 		output, err := cmd.CombinedOutput()
@@ -55,7 +55,7 @@ func TestDesktopBuild(t *testing.T) {
 			t.Skip("Cross-platform desktop build test only on Linux")
 		}
 
-		cmd := exec.Command("make", "desktop-build-all")
+		cmd := exec.Command("make", "build-all")
 		cmd.Dir = projectRoot
 
 		output, err := cmd.CombinedOutput()
@@ -286,7 +286,7 @@ func TestDesktopPackaging(t *testing.T) {
 	projectRoot := getProjectRoot(t)
 
 	t.Run("Package Creation", func(t *testing.T) {
-		cmd := exec.Command("make", "desktop-build")
+		cmd := exec.Command("make", "build")
 		cmd.Dir = projectRoot
 
 		output, err := cmd.CombinedOutput()

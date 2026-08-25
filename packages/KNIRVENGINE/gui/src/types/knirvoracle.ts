@@ -22,7 +22,7 @@ export interface AgentMintRequest {
   name: string;
   description: string;
   owner: string;
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
   image_url?: string;
 }
 
@@ -40,7 +40,7 @@ export interface AgentMetadata {
   use_vertex_search?: boolean;
   created_at: number;
   version: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 // Capability-related interfaces
@@ -73,8 +73,8 @@ export interface CapabilitySchemaProperty {
   properties?: Record<string, CapabilitySchemaProperty>;
   items?: CapabilitySchemaProperty;
   required?: string[];
-  enum?: any[];
-  default?: any;
+  enum?: unknown[];
+  default?: unknown;
 }
 
 export interface AgentCapability {
@@ -93,13 +93,13 @@ export interface AgentCapability {
 export interface CapabilityInvocationRequest {
   capability_id: string;
   interaction_type: 'invoke' | 'query' | 'execute';
-  input_data: Record<string, any>;
+  input_data: Record<string, unknown>;
   timestamp: number;
 }
 
 export interface CapabilityInvocationResponse {
   success: boolean;
-  result?: any;
+  result?: unknown;
   error?: string;
   execution_time?: number;
   gas_consumed?: number;
@@ -163,7 +163,7 @@ export interface EconomicsOperation {
 export interface KNIRVOracleError extends Error {
   code?: string;
   status?: number;
-  response?: any;
+  response?: unknown;
   isKNIRVOracleError: true;
 }
 
@@ -171,7 +171,7 @@ export interface KNIRVOracleErrorResponse {
   success: false;
   message: string;
   error_code?: string;
-  details?: Record<string, any>;
+  details?: Record<string, unknown>;
 }
 
 // Service status interfaces
@@ -242,7 +242,7 @@ export interface KNIRVOracleResponseMap {
 // Event interfaces for real-time updates
 export interface KNIRVOracleEvent {
   type: 'agent_minted' | 'capability_registered' | 'transaction_confirmed' | 'balance_updated';
-  data: any;
+  data: unknown;
   timestamp: number;
   source: 'knirvoracle';
 }
@@ -268,8 +268,8 @@ export interface CapabilityRegisteredEvent extends KNIRVOracleEvent {
 }
 
 // Validation helpers
-export const isKNIRVOracleError = (error: any): error is KNIRVOracleError => {
-  return error && error.isKNIRVOracleError === true;
+export const isKNIRVOracleError = (error: unknown): error is KNIRVOracleError => {
+  return typeof error === 'object' && error !== null && 'isKNIRVOracleError' in error && error.isKNIRVOracleError === true;
 };
 
 export const isValidAddress = (address: string): boolean => {

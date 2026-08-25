@@ -1,0 +1,13 @@
+{
+  "name": "knirvengine-scripts",
+  "version": "1.0.0",
+  "description": "Desktop build and smoke-test scripts for KNIRVENGINE",
+  "private": true,
+  "scripts": {
+    "test-api": "node test-desktop-api.js",
+    "test-system": "node test-desktop-system.js",
+    "package-desktop": "./deploy.sh",
+    "start-desktop": "./start-desktop.sh",
+    "start-browser": "./start-browser.sh"
+  }
+}

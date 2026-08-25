@@ -35,11 +35,11 @@ LLM_PROVIDERS = {
     },
     "google": {
         "endpoint": "https://generativelanguage.googleapis.com/v1/models/{model}:generateContent",
-        "models": ["gemini-1.5-pro", "gemini-1.5-flash"]
+        "models": ["gemini-2.5-pro", "gemini-2.5-flash"]
     },
     "cerebras": {
         "endpoint": "https://api.cerebras.ai/v1/chat/completions",
-        "models": ["llama-4-scout-17b-16e-instruct"]
+        "models": ["gpt-oss-120b"]
     }
 }
 

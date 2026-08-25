@@ -32,6 +32,16 @@ RUN microdnf install -y \
     ca-certificates && \
     microdnf clean all
 
+# Sandbox pipeline dependencies: bubblewrap (namespace sandbox), Xvfb
+# (virtual framebuffer), and x11vnc (framebuffer -> VNC bridge).
+# x11vnc lives in EPEL, so enable it first on the UBI9-minimal base.
+RUN microdnf install -y epel-release && \
+    microdnf install -y \
+    bubblewrap \
+    xorg-x11-server-Xvfb \
+    x11vnc && \
+    microdnf clean all
+
 # Create application user
 RUN useradd -r -u 1001 -g 0 knirvengine
 

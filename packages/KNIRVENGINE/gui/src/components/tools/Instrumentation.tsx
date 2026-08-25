@@ -2,6 +2,7 @@ import React from 'react';
 import { Cpu, Waypoints, Activity } from 'lucide-react';
 import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
+import { useSandboxSession } from '../../hooks/useSandboxSession';
 import Frida from './instrumentation/Frida';
 import ProxychainsNg from './instrumentation/ProxychainsNg';
 import Bpftrace from './instrumentation/Bpftrace';
@@ -10,6 +11,7 @@ export const Instrumentation: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { canAccessSubPage } = useAuth();
+  const { session } = useSandboxSession();
 
   const isSubRoute = location.pathname !== '/instrumentation';
 
@@ -25,6 +27,12 @@ export const Instrumentation: React.FC = () => {
 
   return (
     <div className="h-full bg-slate-900 p-6">
+      {session?.targetLabel && (
+        <div className="mb-4 inline-flex items-center gap-2 rounded-lg border border-slate-700/50 bg-slate-800/40 px-3 py-1.5 text-xs font-mono text-slate-400">
+          <span className="text-slate-500">sandbox target</span>
+          <span className="text-slate-200">{session.targetLabel}</span>
+        </div>
+      )}
       <div className="flex items-center space-x-3 mb-6">
         <div className="p-2 bg-cyan-500/20 rounded-lg">
           <Cpu className="w-6 h-6 text-cyan-400" />

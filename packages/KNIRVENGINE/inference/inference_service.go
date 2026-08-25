@@ -82,12 +82,12 @@ func (s *InferenceService) Start() error {
 	// --- Define the desired attempts ---
 	// Example: Try Cerebras model A, then Cerebras model B, then fallback to Gemini Flash, then Gemini Pro
 	attemptConfigs := []LLMAttemptConfig{
-		{ProviderName: "cerebras", ModelName: "llama-4-scout-17b-16e-instruct", APIKeyEnvVar: "CEREBRAS_API_KEY", MaxTokens: 4000, IsPrimary: true},
+		{ProviderName: "cerebras", ModelName: "gpt-oss-120b", APIKeyEnvVar: "CEREBRAS_API_KEY", MaxTokens: 4000, IsPrimary: true},
 		// {ProviderName: "cerebras", ModelName: "some-other-cerebras-model", APIKeyEnvVar: "CEREBRAS_API_KEY", MaxTokens: 8000, IsPrimary: true}, // Example: another primary
-		// {ProviderName: "cerebras", ModelName: "llama-4-scout-17b-16e-instruct", APIKeyEnvVar: "CEREBRAS_API_KEY_2", MaxTokens: 4000, IsPrimary: true}, // Example: different key
-		{ProviderName: "gemini", ModelName: "gemini-1.5-flash-latest", APIKeyEnvVar: "GEMINI_API_KEY", MaxTokens: 100000, IsPrimary: false}, // Fallback 1 (Use working model name)
-		{ProviderName: "deepseek", ModelName: "deepseek-chat", APIKeyEnvVar: "DEEPSEEK_API_KEY", MaxTokens: 8000, IsPrimary: false},         // Fallback 2 (Target for final chunking)
-		// {ProviderName: "gemini", ModelName: "gemini-1.5-pro-latest", APIKeyEnvVar: "GEMINI_API_KEY", MaxTokens: 1000000, IsPrimary: false}, // Fallback 3 (Example: Use Pro if needed)
+		// {ProviderName: "cerebras", ModelName: "gpt-oss-120b", APIKeyEnvVar: "CEREBRAS_API_KEY_2", MaxTokens: 4000, IsPrimary: true}, // Example: different key
+		{ProviderName: "gemini", ModelName: "gemini-2.5-flash", APIKeyEnvVar: "GEMINI_API_KEY", MaxTokens: 100000, IsPrimary: false},
+		{ProviderName: "deepseek", ModelName: "deepseek-chat", APIKeyEnvVar: "DEEPSEEK_API_KEY", MaxTokens: 8000, IsPrimary: false}, // Fallback 2 (Target for final chunking)
+		// {ProviderName: "gemini", ModelName: "gemini-2.5-pro", APIKeyEnvVar: "GEMINI_API_KEY", MaxTokens: 1000000, IsPrimary: false}, // Fallback 3 (Example: Use Pro if needed)
 	}
 
 	s.primaryAttempts = make([]LLMAttempt, 0)

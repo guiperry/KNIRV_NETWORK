@@ -4,7 +4,7 @@ import { useAuth } from './AuthContext';
 import { GlassCard } from './common';
 
 const Settings: React.FC = () => {
-  const { user, updateUser } = useAuth();
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('profile');
 
   const tabs = [

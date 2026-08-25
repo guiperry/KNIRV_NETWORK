@@ -1,6 +1,8 @@
 package api
 
 import (
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"testing"
@@ -292,6 +294,14 @@ func TestNewSimpleAPIServer(t *testing.T) {
 		} else {
 			assert.NotNil(t, server)
 			assert.NotNil(t, server.router)
+
+			// Sandbox routes belong to SimpleAPIServer itself, not only to the
+			// production main entrypoint. This guards the GUI's dynamically
+			// selected API port from serving a router without sandbox endpoints.
+			request := httptest.NewRequest(http.MethodGet, "/api/v1/sandboxes", nil)
+			response := httptest.NewRecorder()
+			server.GetRouter().ServeHTTP(response, request)
+			assert.Equal(t, http.StatusOK, response.Code)
 		}
 	})
 

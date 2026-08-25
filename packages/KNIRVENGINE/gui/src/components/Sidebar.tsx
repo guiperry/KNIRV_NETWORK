@@ -19,6 +19,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from './AuthContext';
 import { useAppLogo } from '../hooks/useAssetPath';
 import { ErrorNotificationBell } from './ErrorInferenceNotification';
+import type { LucideIcon } from 'lucide-react';
 
 type ActiveView =
   | 'dashboard'
@@ -46,6 +47,14 @@ interface SidebarProps {
   setIsOpen: (open: boolean) => void;
 }
 
+interface NavigationItem {
+  id: ActiveView;
+  name: string;
+  path: string;
+  icon?: LucideIcon;
+  subItems?: NavigationItem[];
+}
+
 export const Sidebar = forwardRef<HTMLDivElement, SidebarProps>(
   ({ activeView, setActiveView, isOpen, setIsOpen }, ref) => {
     const navigate = useNavigate();
@@ -53,8 +62,9 @@ export const Sidebar = forwardRef<HTMLDivElement, SidebarProps>(
     const logoPath = useAppLogo();
     const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
 
-    const navigation = [
+    const navigation: NavigationItem[] = [
       { id: 'dashboard', name: 'Dashboard', icon: LayoutDashboard, path: '/dashboard' },
+      { id: 'sandbox', name: 'Sandbox', icon: Box, path: '/sandbox', subItems: [ { id: 'bubblewrap', name: 'Bubblewrap', path: '/sandbox/bubblewrap' }, { id: 'novnc', name: 'noVNC', path: '/sandbox/novnc' } ] },
       { id: 'proxy', name: 'Proxy', icon: Radio, path: '/proxy' },
       {
         id: 'instrumentation',
@@ -120,16 +130,6 @@ export const Sidebar = forwardRef<HTMLDivElement, SidebarProps>(
           { id: 'saml-raider', name: 'SAML Raider', path: '/auth-audit/saml-raider' }
         ]
       },
-      {
-        id: 'sandbox',
-        name: 'Sandbox',
-        icon: Box,
-        path: '/sandbox',
-        subItems: [
-          { id: 'bubblewrap', name: 'Bubblewrap', path: '/sandbox/bubblewrap' },
-          { id: 'novnc', name: 'noVNC', path: '/sandbox/novnc' }
-        ]
-      },
       { id: 'settings', name: 'Settings', icon: Settings, path: '/settings' },
     ];
 
@@ -154,12 +154,12 @@ export const Sidebar = forwardRef<HTMLDivElement, SidebarProps>(
       setExpandedItems(newExpanded);
     };
 
-    const renderSubItems = (parentItem: any, level: number = 1) => {
+    const renderSubItems = (parentItem: NavigationItem, level: number = 1) => {
       if (!parentItem.subItems) return null;
 
       return (
         <div className={`ml-${level * 4} space-y-1`}>
-          {parentItem.subItems.map((subItem: any) => {
+          {parentItem.subItems.map((subItem) => {
             if (!canAccessSubPage(parentItem.id, subItem.id)) return null;
 
             return (
@@ -253,7 +253,7 @@ export const Sidebar = forwardRef<HTMLDivElement, SidebarProps>(
                         `}
                       >
                         <div className="flex items-center space-x-3">
-                          <Icon className="w-5 h-5" />
+                          {Icon && <Icon className="w-5 h-5" />}
                           <span className="font-medium">{item.name}</span>
                         </div>
                         {hasSubItems && (

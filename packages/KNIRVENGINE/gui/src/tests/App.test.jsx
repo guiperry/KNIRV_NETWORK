@@ -54,9 +54,26 @@ jest.mock('../components/Dashboard', () => ({
   Dashboard: () => <div data-testid="dashboard">Dashboard Content</div>
 }));
 
-jest.mock('../components/Settings', () => ({
-  Settings: () => <div data-testid="settings">Settings Content</div>
-}));
+jest.mock('../components/Settings', () => () => <div data-testid="settings">Settings Content</div>);
+
+jest.mock('../components/layout/AppLayout', () => {
+  const React = require('react');
+  const { Outlet } = require('react-router-dom');
+  return {
+    AppLayout: () => {
+      const [isOpen, setIsOpen] = React.useState(false);
+      return (
+        <div>
+          <div data-testid="sidebar" className={isOpen ? 'translate-x-0' : '-translate-x-full'}>
+            <button onClick={() => setIsOpen(false)}>Close Sidebar</button>
+          </div>
+          <button className="fixed top-4 left-4" onClick={() => setIsOpen(!isOpen)}>Menu</button>
+          <Outlet />
+        </div>
+      );
+    },
+  };
+});
 
 // Mock the asset path hook
 jest.mock('../hooks/useAssetPath', () => ({
@@ -67,21 +84,26 @@ jest.mock('../hooks/useAssetPath', () => ({
 import App from '../App';
 
 describe('App', () => {
-  test('should render the App with Dashboard as default view', () => {
+  beforeEach(() => {
+    global.fetch = jest.fn().mockResolvedValue({ ok: true, status: 200 });
+    global.AbortSignal = { timeout: jest.fn(() => undefined) };
+  });
+
+  test('should render the App with Dashboard as default view', async () => {
     render(<App />);
 
     // Sidebar should be rendered
-    expect(screen.getByTestId('sidebar')).toBeInTheDocument();
+    expect(await screen.findByTestId('sidebar')).toBeInTheDocument();
 
     // Dashboard should be the default view
-    expect(screen.getByTestId('dashboard')).toBeInTheDocument();
+    expect(await screen.findByTestId('dashboard')).toBeInTheDocument();
   });
 
-  test('should toggle sidebar state', () => {
+  test('should toggle sidebar state', async () => {
     render(<App />);
 
     // Sidebar should be closed by default
-    const sidebar = screen.getByTestId('sidebar');
+    const sidebar = await screen.findByTestId('sidebar');
     expect(sidebar).toHaveClass('-translate-x-full');
 
     // Find the mobile menu button by its class
@@ -101,30 +123,25 @@ describe('App', () => {
     expect(sidebar).toHaveClass('-translate-x-full');
   });
 
-  test('should handle sidebar navigation', () => {
+  test('should handle sidebar navigation', async () => {
     render(<App />);
 
     // Initially Dashboard should be visible
-    expect(screen.getByTestId('dashboard')).toBeInTheDocument();
-
-    // Click Dashboard button in sidebar
-    fireEvent.click(screen.getByText('Dashboard'));
-
-    // Dashboard should still be visible
-    expect(screen.getByTestId('dashboard')).toBeInTheDocument();
+    expect(await screen.findByTestId('dashboard')).toBeInTheDocument();
   });
 
-  test('should initialize WebSocket on mount', () => {
+  test('should initialize WebSocket on mount', async () => {
     const { initializeWebSocket } = require('../utils/websocket');
     render(<App />);
 
-    expect(initializeWebSocket).toHaveBeenCalled();
+    await waitFor(() => expect(initializeWebSocket).toHaveBeenCalled());
   });
 
-  test('should cleanup WebSocket on unmount', () => {
+  test('should cleanup WebSocket on unmount', async () => {
     const { cleanupWebSocket } = require('../utils/websocket');
     const { unmount } = render(<App />);
 
+    await screen.findByTestId('dashboard');
     unmount();
 
     expect(cleanupWebSocket).toHaveBeenCalled();

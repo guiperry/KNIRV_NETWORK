@@ -3,14 +3,14 @@
 export interface ADKTestResult {
   success: boolean;
   message: string;
-  data?: any;
+  data?: unknown;
   error?: string;
 }
 
 export interface AgentTestConfig {
   name: string;
   template: string;
-  config: Record<string, any>;
+  config: Record<string, unknown>;
 }
 
 /**

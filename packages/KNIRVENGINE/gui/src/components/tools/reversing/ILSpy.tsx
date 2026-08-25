@@ -71,7 +71,11 @@ const ILSpy: React.FC = () => {
   const toggle = (ns: string) => {
     setExpanded(prev => {
       const next = new Set(prev);
-      next.has(ns) ? next.delete(ns) : next.add(ns);
+      if (next.has(ns)) {
+        next.delete(ns);
+      } else {
+        next.add(ns);
+      }
       return next;
     });
   };

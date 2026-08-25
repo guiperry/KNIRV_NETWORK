@@ -38,7 +38,7 @@ RELEASE_ASSETS_DIR := ./release_assets
 # Example: export GPG_KEY_ID="Your Name <your.email@example.com>" or your Key ID
 GPG_KEY_ID ?= YOUR_GPG_KEY_ID_HERE
 
-.PHONY: all clean cloud-build cloud-build-all cloud-package cloud-release desktop-build desktop-build-all desktop-release upload-release upload-release-public release-public force-release-micro force-release-micro-public upload-to-s3 trigger-s3-workflow help
+.PHONY: all clean build build-all backend-build cloud-package cloud-release desktop-release upload-release upload-release-public release-public force-release-micro force-release-micro-public upload-to-s3 trigger-s3-workflow help
 
 # Legacy target - defaults to cloud package for backward compatibility
 all: cloud-package
@@ -46,16 +46,15 @@ all: cloud-package
 help:
 	@echo "Available targets:"
 	@echo ""
-	@echo "CLOUD DEPLOYMENT:"
-	@echo "  cloud-build        Build raw Linux binary for cloud deployment"
-	@echo "  cloud-build-all    Build binaries for all cloud platforms using cross-compile.sh"
+	@echo "APPLICATION BUILD:"
+	@echo "  build              Build KNIRVENGINE for the current platform"
+	@echo "  build-all          Build KNIRVENGINE executables for all platforms"
+	@echo ""
+	@echo "RELEASE PACKAGING:"
 	@echo "  cloud-package      Archive, sign, and checksum cloud binaries"
 	@echo "  cloud-release      Complete cloud release (build + package + upload)"
 	@echo ""
-	@echo "DESKTOP DEPLOYMENT:"
-	@echo "  desktop-build      Build desktop application for current platform"
-	@echo "  desktop-build-all  Build desktop application for all platforms"
-	@echo "  desktop-release    Create desktop release with version bump"
+	@echo "  desktop-release    Create release with version bump"
 	@echo ""
 	@echo "LEGACY/COMPATIBILITY:"
 	@echo "  all                Build cloud binaries and package them (default - legacy)"
@@ -80,24 +79,24 @@ clean:
 	@echo "Cleanup complete."
 
 # ==================================================================================== #
-# CLOUD DEPLOYMENT TARGETS
+# APPLICATION BUILD TARGETS
 # ==================================================================================== #
 
-# Build single Linux binary for cloud deployment
-cloud-build:
-	@echo "Building cloud binary for Linux..."
+# Bundle bwrap/Xvfb/x11vnc + their shared libs into tools/ (Linux only;
+# resolves before PATH at runtime). Safe no-op on non-Linux hosts and when the
+# tools are not installed on the build host.
+bundle-sandbox-tools:
+	@bash ./scripts/bundle-sandbox-tools.sh
+
+# Build the application for the current platform
+build: bundle-sandbox-tools
+	@echo "Building KNIRVENGINE for the current platform..."
 	@cd gui && npm run build
 	@go build -o knirv-engine .
-	@echo "Cloud binary built: ./knirv-engine"
-
-# Build binaries for all cloud platforms
-cloud-build-all:
-	@echo "Starting cross-compilation for $(APP_NAME) version $(VERSION)..."
-	@VERSION=$(VERSION) BINARY_NAME=$(APP_NAME) ./scripts/cross-compile.sh
-	@echo "Cross-compilation finished."
+	@echo "Build complete: ./knirv-engine"
 
 # Package cloud binaries for release
-cloud-package: cloud-build-all
+cloud-package: build-all
 	@echo "Packaging cloud release assets for $(APP_NAME) version $(VERSION)..."
 	@mkdir -p "$(RELEASE_ASSETS_DIR)/"
 	$(foreach target,$(CLOUD_TARGETS),$(call process_target,$(target)))
@@ -108,27 +107,22 @@ cloud-release: cloud-package upload-to-s3
 	@echo "Cloud release $(VERSION) completed successfully!"
 
 # ==================================================================================== #
-# DESKTOP DEPLOYMENT TARGETS (Native Go Builds)
+# CROSS-PLATFORM BUILD TARGETS
 # ==================================================================================== #
 
-# Build desktop application for current platform
-desktop-build:
-	@echo "Building KNIRVENGINE desktop application for current platform..."
-	@cd gui && npm run desktop:package
-	@echo "Desktop build completed. Check dist/release/ for the application package."
-
-# Build desktop application for all platforms
-desktop-build-all:
+# Build the application for all platforms
+build-all:
 	@echo "Building KNIRVENGINE executables for Linux, Windows, and macOS..."
 	@./scripts/build-desktop.sh binaries
+	@$(MAKE) bundle-sandbox-tools
 	@echo "Cross-platform executables created in dist/."
 
 # Create desktop release with version management
 desktop-release:
 	@echo "Creating native desktop release..."
 	@echo "Note: Version management should be handled manually or via separate script"
-	@$(MAKE) desktop-build-all
-	@echo "Desktop release completed. Packages are in dist/"
+	@$(MAKE) build-all
+	@echo "Release completed. Packages are in dist/"
 
 # Helper macro to process each target platform
 define process_target
@@ -628,17 +622,17 @@ tidy:
 cache:
 	go clean -cache -modcache -testcache
 
-## build: build the application
-.PHONY: build
-build:
+## backend-build: build only the Go backend
+.PHONY: backend-build
+backend-build:
 	@echo "Building $(APP_NAME) for host OS..."
 	@mkdir -p ${OUTPUT_DIR} # Ensure the output directory exists
 	go build -o=${OUTPUT_DIR}/${BINARY_NAME} ${MAIN_PACKAGE_PATH}
 
-## build/all: build the application for all target platforms (legacy - use cloud-build-all)
+## build/all: build the application for all target platforms (legacy - use build-all)
 .PHONY: build/all
-build/all: cloud-build-all
-	@echo "Legacy build/all completed. Use 'make cloud-build-all' for cloud builds or 'make desktop-build-all' for desktop builds."
+build/all: build-all
+	@echo "Legacy build/all completed. Use 'make build-all'."
 
 ## generate/wrapper: generate a simple run script for auto-restarting
 .PHONY: generate/wrapper
@@ -699,7 +693,7 @@ build/embed: frontend/build
 .PHONY: run/live
 run/live:
 	go run github.com/cosmtrek/air@v1.43.0 \
-	--build.cmd "make build" --build.bin "/tmp/bin/${BINARY_NAME}" --build.delay "100" \
+	--build.cmd "make backend-build" --build.bin "/tmp/bin/${BINARY_NAME}" --build.delay "100" \
 	--build.exclude_dir "" \
 	--build.include_ext "go, tpl, tmpl, html, css, scss, js, ts, sql, jpeg, jpg, gif, png, bmp, svg, webp, ico" \
 	--misc.clean_on_exit "true"
@@ -724,9 +718,9 @@ desktop/dev:
 	@echo "Starting native desktop application in development mode..."
 	@./scripts/build-desktop.sh dev
 
-## desktop/build: build desktop application for current platform (legacy)
+## desktop/build: build application for current platform (legacy)
 .PHONY: desktop/build
-desktop/build: desktop-build
+desktop/build: build
 
 ## desktop/build/linux: build desktop application for Linux (legacy)
 .PHONY: desktop/build/linux
@@ -746,9 +740,9 @@ desktop/build/macos:
 	@echo "Building native desktop application for macOS..."
 	@./scripts/build-desktop.sh build macos
 
-## desktop/build/all: build desktop application for all platforms (legacy)
+## desktop/build/all: build application for all platforms (legacy)
 .PHONY: desktop/build/all
-desktop/build/all: desktop-build-all
+desktop/build/all: build-all
 
 ## desktop/clean: clean desktop build artifacts
 .PHONY: desktop/clean

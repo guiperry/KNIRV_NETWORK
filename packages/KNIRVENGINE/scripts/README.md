@@ -31,19 +31,22 @@ All Go utilities are organized in separate subdirectories to avoid package confl
 
 ## Shell Scripts
 
-These scripts should be run from the project root directory.
+Most shell scripts resolve the project root from their own location and can be
+invoked from any working directory.
 
 ### Build & Deployment Scripts
 
 - `build-desktop.sh`: Build the desktop application.
 - `cross-compile.sh`: Cross-platform compilation.
+- `deploy.sh`: Create a local distributable desktop package.
+- `start-desktop.sh`: Start the Electron desktop application from source.
+- `start-browser.sh`: Run the local browser development workflow.
+- `start-dev.sh`: Alias for the browser development workflow.
+- `test-desktop-api.js`: Smoke-test the local desktop API.
+- `test-desktop-system.js`: Smoke-test the local API and sandbox service.
 - `release.sh`: Release preparation.
-- `run_production.sh`: Run the production build and start the application.  This script performs the following steps:
-    1. Rebuilds the frontend: `cd gui && npm run build`
-    2. Rebuilds the backend (if needed): `cd .. && go build -o knirv-engine .`
-    3. Repackages the Electron app: `cd electron && npm run pack:linux`
-    4. Runs the application: `./dist/linux-unpacked/knirv-engine-desktop`
-    **Note:** Vulkan warnings are disabled via `app.disableHardwareAcceleration()` in `main.js`. If you encounter graphics issues, you can re-enable hardware acceleration and use command line flags (see comments in `main.js`).
+- `run_production.sh`: Build and launch the Electron desktop application.
+- `copy-env-to-electron.sh`: Copy `.env` into an unpacked `electron-builder` release for local testing.
 
 ### Database Scripts
 
@@ -57,5 +60,5 @@ These scripts should be run from the project root directory.
 ##  Additional Notes
 
 - Each Go utility is designed to be run independently.
-- Shell scripts are intended to be executed from the project's root directory.
-
+- The migrated shell scripts resolve their paths from their own location, so they
+  can be invoked from any working directory.

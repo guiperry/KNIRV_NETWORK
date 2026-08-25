@@ -267,6 +267,7 @@ type SimpleAPIServer struct {
 	mcpMonitoringService    *MCPMonitoringService         // Added MCP monitoring service
 	systemMonitoringService *SystemMonitoringService      // Added system monitoring service
 	terminalManager         *TerminalManager              // Added Terminal Manager
+	sandboxManager          *SandboxManager               // Owns Bubblewrap/Xvfb/x11vnc sessions
 	agentTerminalHandler    *AgentTerminalHandler         // Added Agent Terminal Handler
 	shutdownSignalChan      chan<- struct{}               // Channel to signal main to shut down
 
@@ -395,6 +396,7 @@ func NewSimpleAPIServer(port int, dbPath string, shutdownSignal chan<- struct{},
 
 	// Initialize Terminal Manager
 	terminalManager := NewTerminalManager()
+	sandboxManager := NewSandboxManager()
 
 	apiServer := &SimpleAPIServer{
 		db:                      db,
@@ -419,7 +421,8 @@ func NewSimpleAPIServer(port int, dbPath string, shutdownSignal chan<- struct{},
 		webConnectionsService:   webConnectionsService,   // Store the web connections service
 		targetSystemService:     targetSystemService,     // Store the target system service
 		terminalManager:         terminalManager,         // Store the terminal manager
-		router:                  mux.NewRouter(),         // Initialize the router for the APIServer instance
+		sandboxManager:          sandboxManager,
+		router:                  mux.NewRouter(), // Initialize the router for the APIServer instance
 		shutdownSignalChan:      shutdownSignal,
 		demoDataEnabled:         true,                             // Demo data enabled by default
 		demoDataBackup:          nil,                              // No backup initially
@@ -484,6 +487,9 @@ func (s *SimpleAPIServer) setupRoutes() {
 	}
 	if s.targetSystemService != nil {
 		s.targetSystemService.RegisterHandlers(s.router)
+	}
+	if s.sandboxManager != nil {
+		s.sandboxManager.RegisterHandlers(s.router)
 	}
 
 	// Health check
@@ -1715,14 +1721,14 @@ func (s *SimpleAPIServer) handleInferenceModels(w http.ResponseWriter, r *http.R
 	// For now, return static model lists
 	models := map[string][]string{
 		"primary": {
-			"llama-4-scout-17b-16e-instruct",
+			"gpt-oss-120b",
 			"gpt-4",
 			"claude-3-sonnet",
 		},
 		"fallback": {
-			"gemini-1.5-flash-latest",
+			"gemini-2.5-flash",
 			"deepseek-chat",
-			"gemini-1.5-pro-latest",
+			"gemini-2.5-pro",
 		},
 	}
 

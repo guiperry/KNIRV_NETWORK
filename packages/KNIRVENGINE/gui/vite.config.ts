@@ -24,7 +24,7 @@ function readPortConfig() {
         break;
       }
     }
-  } catch (error) {
+  } catch {
     console.warn('Could not read ports.config, using default API port 8081');
   }
 
@@ -32,7 +32,7 @@ function readPortConfig() {
 }
 
 // https://vitejs.dev/config/
-export default defineConfig(({ mode }) => {
+export default defineConfig(() => {
   const apiPort = readPortConfig();
 
   return {
@@ -54,6 +54,10 @@ export default defineConfig(({ mode }) => {
       outDir: 'dist',
       emptyOutDir: true,
       assetsDir: 'assets',
+      // noVNC 1.7 ships ESM with top-level await, which the legacy es2020
+      // target rejects. This is an Electron/Chromium desktop client, so a
+      // modern target is safe.
+      target: 'esnext',
     },
     // Use relative paths for Electron compatibility
     base: './',

@@ -423,7 +423,7 @@ func main() {
 	// Create an adapter to bridge the inference service interface
 	inferenceAdapter := &InferenceServiceAdapter{
 		service:      inferenceService,
-		defaultModel: "llama-4-scout-17b-16e-instruct", // Default model to use
+		defaultModel: "gpt-oss-120b", // Public Cerebras model available to the error-analysis service
 	}
 
 	// Connect the inference service to the agent inferencer

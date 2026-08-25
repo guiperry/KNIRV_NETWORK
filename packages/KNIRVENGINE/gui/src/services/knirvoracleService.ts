@@ -174,7 +174,7 @@ export class KNIRVOracleService {
   /**
    * Invoke a capability through KNIRVORACLE
    */
-  async invokeCapability(capabilityId: string, inputData: Record<string, any>): Promise<Record<string, any>> {
+  async invokeCapability(capabilityId: string, inputData: Record<string, unknown>): Promise<Record<string, unknown>> {
     try {
       const requestBody = {
         capability_id: capabilityId,
@@ -183,7 +183,7 @@ export class KNIRVOracleService {
         timestamp: Date.now(),
       };
 
-      const response: AxiosResponse<Record<string, any>> = await this.client.post(
+      const response: AxiosResponse<Record<string, unknown>> = await this.client.post(
         '/wallet/mcp/create_invoke_capability',
         requestBody
       );
@@ -197,9 +197,9 @@ export class KNIRVOracleService {
   /**
    * Get treasury status from KNIRVORACLE
    */
-  async getTreasuryStatus(): Promise<Record<string, any>> {
+  async getTreasuryStatus(): Promise<Record<string, unknown>> {
     try {
-      const response: AxiosResponse<Record<string, any>> = await this.client.get('/api/treasury/status');
+      const response: AxiosResponse<Record<string, unknown>> = await this.client.get('/api/treasury/status');
       return response.data;
     } catch (error) {
       throw new Error(`Failed to get treasury status: ${error}`);

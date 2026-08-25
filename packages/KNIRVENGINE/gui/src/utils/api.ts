@@ -22,7 +22,7 @@ const getAuthHeaders = (): HeadersInit => {
 };
 
 // Helper function to handle API responses with automatic token refresh
-const handleApiResponse = async (response: Response): Promise<any> => {
+const handleApiResponse = async <T = unknown>(response: Response): Promise<T> => {
   if (response.status === 401) {
     // Token might be expired, try to refresh
     const refreshResult = await refreshAuthToken();
@@ -40,7 +40,7 @@ const handleApiResponse = async (response: Response): Promise<any> => {
     throw new Error(errorData.message || `HTTP ${response.status}: ${response.statusText}`);
   }
 
-  return response.json();
+  return response.json() as Promise<T>;
 };
 
 // Function to refresh authentication token
@@ -79,7 +79,7 @@ const refreshAuthToken = async (): Promise<boolean> => {
 };
 
 // Enhanced fetch function with automatic retry on token refresh and connection errors
-const apiRequest = async (url: string, options: RequestInit = {}, retryCount = 0): Promise<any> => {
+const apiRequest = async <T = unknown>(url: string, options: RequestInit = {}, retryCount = 0): Promise<T> => {
   const maxRetries = 3;
   const retryDelay = 1000; // 1 second
 
@@ -93,10 +93,10 @@ const apiRequest = async (url: string, options: RequestInit = {}, retryCount = 0
 
   try {
     const response = await fetch(url, requestOptions);
-    return await handleApiResponse(response);
+    return await handleApiResponse<T>(response);
   } catch (error) {
     // Handle token refresh
-    if (error.message === 'TOKEN_REFRESH_NEEDED') {
+    if (error instanceof Error && error.message === 'TOKEN_REFRESH_NEEDED') {
       const retryOptions = {
         ...options,
         headers: {
@@ -105,11 +105,11 @@ const apiRequest = async (url: string, options: RequestInit = {}, retryCount = 0
         },
       };
       const retryResponse = await fetch(url, retryOptions);
-      return await handleApiResponse(retryResponse);
+      return await handleApiResponse<T>(retryResponse);
     }
 
     // Handle connection errors with retry
-    if (error.name === 'TypeError' && error.message.includes('fetch') && retryCount < maxRetries) {
+    if (error instanceof Error && error.name === 'TypeError' && error.message.includes('fetch') && retryCount < maxRetries) {
       console.warn(`API request failed, retrying... (${retryCount + 1}/${maxRetries})`, error);
       await new Promise(resolve => setTimeout(resolve, retryDelay * (retryCount + 1)));
       return apiRequest(url, options, retryCount + 1);
@@ -169,7 +169,7 @@ export interface AgentTemplate {
   name: string;
   description: string;
   type: string;
-  config_schema: Record<string, any>;
+  config_schema: Record<string, unknown>;
   preview?: string;
 }
 
@@ -184,9 +184,9 @@ export interface AgentBuildConfig {
   network_access?: boolean;
   file_system_access?: boolean;
   tool_imports?: string;
-  custom_tools?: any[];
+  custom_tools?: unknown[];
   sub_agents?: string[];
-  extra_params?: Record<string, any>;
+  extra_params?: Record<string, unknown>;
 }
 
 export interface AgentBuildStatus {
@@ -216,7 +216,7 @@ export interface SubAgent {
   name: string;
   template: 'python' | 'java';
   status: 'starting' | 'running' | 'stopped' | 'error';
-  config: Record<string, any>;
+  config: Record<string, unknown>;
   created_at: string;
   terminal_session?: string;
 }
@@ -225,11 +225,11 @@ export interface SubAgent {
 export const fetchAgents = async (ownerId: number): Promise<Agent[]> => {
   try {
     // Include owner_id as a query parameter as required by the backend
-    const data = await apiRequest(`${API_BASE_URL}/agents?owner_id=${ownerId}`);
+    const data = await apiRequest<{ agents: Agent[] }>(`${API_BASE_URL}/agents?owner_id=${ownerId}`);
     
     // Process each agent to extract frontend-specific fields from config
     return data.agents.map((agent: Agent) => {
-      let configData: Record<string, any> = {};
+      let configData: Record<string, unknown> = {};
       try {
         if (agent.config) {
           configData = JSON.parse(agent.config);
@@ -266,7 +266,7 @@ export const fetchAgentById = async (id: string): Promise<Agent> => {
     const agent = data.agent;
     
     // Extract frontend-specific fields from config
-    let configData: Record<string, any> = {};
+    let configData: Record<string, unknown> = {};
     try {
       if (agent.config) {
         configData = JSON.parse(agent.config);
@@ -309,13 +309,13 @@ export const createAgent = async (agentData: AgentCreationRequest): Promise<Agen
       config: agentData.config || JSON.stringify(configObj)
     };
 
-    const data = await apiRequest(`${API_BASE_URL}/agents`, {
+    const data = await apiRequest<{ agent: Agent }>(`${API_BASE_URL}/agents`, {
       method: 'POST',
       body: JSON.stringify(apiPayload),
     });
     
     // Parse the config string to extract frontend-specific fields
-    let configData: Record<string, any> = {};
+    let configData: Record<string, unknown> = {};
     try {
       if (data.agent.config) {
         configData = JSON.parse(data.agent.config);
@@ -398,7 +398,7 @@ export const updateAgent = async (id: string, agentData: Partial<Agent>): Promis
     const data = await response.json();
     
     // Parse the updated config string to extract frontend-specific fields
-    let updatedConfigData: Record<string, any> = {};
+    let updatedConfigData: Record<string, unknown> = {};
     try {
       if (data.agent.config) {
         updatedConfigData = JSON.parse(data.agent.config);
@@ -509,7 +509,7 @@ export interface WorkflowRequest {
   agent_id: string;
   target_id: string;
   capability_id: string;
-  input: Record<string, any>;
+  input: Record<string, unknown>;
 }
 
 export interface Workflow {
@@ -520,14 +520,14 @@ export interface Workflow {
   agent_id: string;
   target_id: string;
   capability_id: string;
-  input: Record<string, any>;
-  output?: Record<string, any>;
+  input: Record<string, unknown>;
+  output?: Record<string, unknown>;
   error?: string;
   owner_id: number;
 }
 
 // Target System API functions
-export const fetchTargets = async (): Promise<any[]> => {
+export const fetchTargets = async (): Promise<unknown[]> => {
   try {
     const response = await fetch(`${API_BASE_URL}/targets`);
 
@@ -628,14 +628,14 @@ export interface ADKAgentConfig {
   custom_tools?: ADKTool[];
   sub_agents?: string[];
   max_iterations?: number;
-  extra_params?: Record<string, any>;
+  extra_params?: Record<string, unknown>;
 }
 
 export interface ADKTool {
   name: string;
   description: string;
   endpoint: string;
-  parameters: Record<string, any>;
+  parameters: Record<string, unknown>;
 }
 
 // ADK Agent API functions
@@ -746,7 +746,7 @@ export interface PluginInfo {
   isRegistered: boolean;
   size: number;
   modTime: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   error?: string;
 }
 
@@ -806,7 +806,7 @@ export interface AgentMessage {
   recipient_id: string;
   content: string;
   timestamp: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface AgentTask {
@@ -816,8 +816,8 @@ export interface AgentTask {
   status: 'pending' | 'in_progress' | 'completed' | 'failed';
   created_at: string;
   updated_at: string;
-  input?: Record<string, any>;
-  output?: Record<string, any>;
+  input?: Record<string, unknown>;
+  output?: Record<string, unknown>;
 }
 
 export interface AgentCapabilities {
@@ -867,7 +867,7 @@ export const fetchAvailableAgents = async (): Promise<string[]> => {
  * Fetch all agents (database + discovered) for the main agent listing
  * This combines user-created agents with discovered plugin/WASM agents
  */
-export const fetchAllAgents = async (): Promise<any[]> => {
+export const fetchAllAgents = async (): Promise<unknown[]> => {
   try {
     const response = await fetch(`${API_BASE_URL}/agents/all`);
 
@@ -886,7 +886,7 @@ export const fetchAllAgents = async (): Promise<any[]> => {
 export const sendAgentMessage = async (
   recipientId: string,
   content: string,
-  metadata?: Record<string, any>
+  metadata?: Record<string, unknown>
 ): Promise<AgentMessage> => {
   try {
     const response = await fetch(`${API_BASE_URL}/agents/message`, {
@@ -970,7 +970,7 @@ export interface MCPServer {
   status: 'available' | 'installed' | 'running' | 'stopped';
   version: string;
   dependencies?: string[];
-  configuration?: Record<string, any>;
+  configuration?: Record<string, unknown>;
   tags?: string[];
   rating: number;
   downloads: number;
@@ -1045,7 +1045,7 @@ export interface MCPLogEntry {
   message: string;
   timestamp: string;
   source: 'server' | 'system' | 'user';
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface MCPAlert {
@@ -1058,7 +1058,7 @@ export interface MCPAlert {
   status: 'active' | 'resolved' | 'acknowledged';
   created_at: string;
   resolved_at?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 // Analytics and Performance API functions
@@ -1562,7 +1562,7 @@ export const deleteAgentPlugin = async (pluginId: string): Promise<{ message: st
 /**
  * Spawn a new sub-agent
  */
-export const spawnSubAgent = async (parentId: string, template: 'python' | 'java', config: Record<string, any>): Promise<SubAgent> => {
+export const spawnSubAgent = async (parentId: string, template: 'python' | 'java', config: Record<string, unknown>): Promise<SubAgent> => {
   try {
     const response = await fetch(`${API_BASE_URL}/agents/${parentId}/sub-agents`, {
       method: 'POST',

@@ -1239,12 +1239,12 @@ func (b *AgentBuilder) ValidateAgentConfig(config AgentConfig) []TemplateValidat
 	// Validate model if specified
 	if config.Model != "" {
 		validModels := []string{
-			"llama-4-scout-17b-16e-instruct",
+			"gpt-oss-120b",
 			"gpt-4",
 			"claude-3-sonnet",
-			"gemini-1.5-flash-latest",
+			"gemini-2.5-flash",
 			"deepseek-chat",
-			"gemini-1.5-pro-latest",
+			"gemini-2.5-pro",
 		}
 
 		modelValid := false

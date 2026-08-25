@@ -11,7 +11,7 @@ export interface ProgressState {
   startTime: Date;
   endTime?: Date;
   estimatedDuration?: number; // in milliseconds
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface ProgressUpdate {
@@ -20,7 +20,7 @@ export interface ProgressUpdate {
   message?: string;
   details?: string;
   status?: ProgressState['status'];
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export type ProgressCallback = (state: ProgressState) => void;

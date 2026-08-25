@@ -2,12 +2,22 @@
 import { useState, useEffect, useCallback } from 'react';
 import { errorHandler, ErrorInfo } from '../utils/errorHandler';
 
+type ElectronWindow = Window & {
+  electronAPI?: { isElectron?: boolean };
+};
+
 // Hook for managing error inference state
 export const useErrorInference = () => {
   const [errors, setErrors] = useState<ErrorInfo[]>([]);
   const [errorsWithInference, setErrorsWithInference] = useState<ErrorInfo[]>([]);
   const [errorsNeedingInference, setErrorsNeedingInference] = useState<ErrorInfo[]>([]);
   const [isInferenceEnabled, setIsInferenceEnabled] = useState(true);
+
+  const updateErrorStates = useCallback(() => {
+    setErrors(errorHandler.getAllErrors());
+    setErrorsWithInference(errorHandler.getErrorsWithInference());
+    setErrorsNeedingInference(errorHandler.getErrorsNeedingInference());
+  }, []);
 
   useEffect(() => {
     // Load initial errors
@@ -27,13 +37,7 @@ export const useErrorInference = () => {
       unsubscribeErrors();
       unsubscribeInference();
     };
-  }, []);
-
-  const updateErrorStates = useCallback(() => {
-    setErrors(errorHandler.getAllErrors());
-    setErrorsWithInference(errorHandler.getErrorsWithInference());
-    setErrorsNeedingInference(errorHandler.getErrorsNeedingInference());
-  }, []);
+  }, [updateErrorStates]);
 
   const requestInference = useCallback(async (errorId: string) => {
     await errorHandler.requestInference(errorId);
@@ -208,7 +212,7 @@ export const useErrorChat = (errorId: string) => {
     type: 'user' | 'assistant' | 'system';
     content: string;
     timestamp: Date;
-    metadata?: any;
+    metadata?: unknown;
   }>>([]);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -227,7 +231,7 @@ export const useErrorChat = (errorId: string) => {
 
     try {
       // Get the correct API base URL for Electron vs web
-      const apiBaseUrl = typeof window !== 'undefined' && (window as any).electronAPI?.isElectron
+      const apiBaseUrl = typeof window !== 'undefined' && (window as ElectronWindow).electronAPI?.isElectron
         ? 'http://localhost:8081'
         : '';
 

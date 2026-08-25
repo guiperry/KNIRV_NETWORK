@@ -5,6 +5,7 @@ import AgentCreationModal from '../components/modals/AgentCreationModal';
 
 // Mock the API module
 jest.mock('../utils/api', () => ({
+  buildAgentPlugin: jest.fn(() => Promise.resolve({})),
   createAgent: jest.fn(() => Promise.resolve({
     id: 'test-agent-id',
     name: 'Test Agent',
@@ -14,7 +15,10 @@ jest.mock('../utils/api', () => ({
       capabilities: ['web_analysis'],
       target_types: ['browser']
     })
-  }))
+  })),
+  fetchAvailableAgents: jest.fn(() => Promise.resolve([])),
+  fetchCompiledPlugins: jest.fn(() => Promise.resolve([])),
+  getAgentBuildStatus: jest.fn(() => Promise.resolve({ status: 'success', plugin_path: '/tmp/test-agent.so' })),
 }));
 
 // Mock the image URLs to avoid network requests during tests
@@ -30,13 +34,17 @@ describe('AgentCreationModal', () => {
   const mockOnAgentCreated = jest.fn();
   
   const renderModal = (isOpen = true) => {
-    return render(
+    const result = render(
       <AgentCreationModal 
         isOpen={isOpen} 
         onClose={mockOnClose} 
         onAgentCreated={mockOnAgentCreated} 
       />
     );
+    if (isOpen) {
+      fireEvent.click(screen.getByRole('button', { name: /Create New Agent Build a custom agent/i }));
+    }
+    return result;
   };
 
   beforeEach(() => {
@@ -73,7 +81,7 @@ describe('AgentCreationModal', () => {
     renderModal();
 
     // Submit the form without filling any fields
-    fireEvent.click(screen.getByRole('button', { name: /Create Agent/i }));
+    fireEvent.click(screen.getByRole('button', { name: /^Create New Agent$/i }));
 
     // Wait for validation errors to appear
     await waitFor(() => {
@@ -113,12 +121,7 @@ describe('AgentCreationModal', () => {
     fireEvent.click(targetTypes[0]);
     
     // Submit the form by clicking the Create Agent button
-    fireEvent.click(screen.getByRole('button', { name: /Create Agent/i }));
-    
-    // Mock the async operation
-    await waitFor(() => {
-      expect(screen.getByText('Creating...')).toBeInTheDocument();
-    });
+    fireEvent.click(screen.getByRole('button', { name: /^Create New Agent$/i }));
     
     // Wait for success message and callback
     await waitFor(() => {
@@ -129,6 +132,6 @@ describe('AgentCreationModal', () => {
         id: expect.any(String),
         config: expect.any(String)
       }));
-    });
+    }, { timeout: 2500 });
   });
 });

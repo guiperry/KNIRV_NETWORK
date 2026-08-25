@@ -211,7 +211,7 @@ func NewCerebrasProvider(apiKey, model string, extraHeaders map[string]string) p
 			log.Printf("Cerebras model set from CEREBRAS_MODEL_NAME: %s", provider.model)
 		} else {
 			// Use default
-			provider.model = "llama-4-scout-17b-16e-instruct"
+			provider.model = "gpt-oss-120b"
 			log.Printf("Cerebras model defaulting to %s", provider.model)
 		}
 	}
@@ -742,7 +742,7 @@ func (p *CerebrasProvider) SetDefaultOptions(cfg *config.Config) {
 	}
 
 	// Apply provider-specific defaults
-	if providerModel != "" && (p.model == "" || p.model == "llama-4-scout-17b-16e-instruct") {
+	if providerModel != "" && (p.model == "" || p.model == "gpt-oss-120b") {
 		p.model = providerModel
 	}
 	if providerAPIKey != "" && p.apiKey == "" {
@@ -762,7 +762,7 @@ func (p *CerebrasProvider) SetDefaultOptions(cfg *config.Config) {
 	}
 
 	// Fallback to global defaults
-	if (p.model == "" || p.model == "llama-4-scout-17b-16e-instruct") && cfg.Model != "" {
+	if (p.model == "" || p.model == "gpt-oss-120b") && cfg.Model != "" {
 		p.model = cfg.Model
 	}
 	if (p.maxTokens == 0 || p.maxTokens == 1000) && cfg.MaxTokens > 0 {

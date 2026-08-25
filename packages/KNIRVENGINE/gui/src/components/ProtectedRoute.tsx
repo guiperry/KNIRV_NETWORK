@@ -8,7 +8,7 @@ interface ProtectedRouteProps {
 }
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requiredPermission }) => {
-  const { user, loading, isAuthenticated, hasPermission } = useAuth();
+  const { loading, isAuthenticated, hasPermission } = useAuth();
   const location = useLocation();
 
   // Show loading state while checking authentication
