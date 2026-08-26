@@ -28,8 +28,8 @@ export const AppLayout: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
-    <div className="flex min-h-screen flex-col bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900">
-      <div className="flex flex-1">
+    <div className="flex h-screen flex-col overflow-hidden bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900">
+      <div className="flex min-h-0 flex-1">
         <Sidebar
           activeView={activeView}
           setActiveView={setActiveView}
@@ -38,7 +38,7 @@ export const AppLayout: React.FC = () => {
         />
         <main
           id="main-content"
-          className="flex flex-1 flex-col lg:ml-64"
+          className="flex min-h-0 flex-1 flex-col lg:ml-64"
           role="main"
           aria-label="Main content"
         >
@@ -54,7 +54,7 @@ export const AppLayout: React.FC = () => {
               </svg>
             </button>
           </div>
-          <div className="min-h-0 flex-1">
+          <div className="min-h-0 flex-1 overflow-y-auto">
             <Outlet />
           </div>
           <SandboxDock />

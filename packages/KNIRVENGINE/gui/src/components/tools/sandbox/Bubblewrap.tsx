@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Box, Check, Clipboard, FolderOpen, Play, Square } from 'lucide-react';
+import { Box, FolderOpen, Play, Square } from 'lucide-react';
 import { useSandbox } from '../../SandboxContext';
 
 interface Bind {
@@ -14,7 +14,7 @@ type ElectronWindow = Window & {
 };
 
 const Bubblewrap: React.FC = () => {
-  const { launch, stop, clearLog, status, log, targetLabel, projectPath, projectTargetPath, error, deps, depsInstalling, installDeps } = useSandbox();
+  const { launch, stop, status, targetLabel, projectPath, projectTargetPath, deps, depsInstalling, installDeps } = useSandbox();
   const running = status === 'running' || status === 'provisioning';
   const missingDeps = (deps ?? []).filter((d) => !d.present);
 
@@ -35,7 +35,6 @@ const Bubblewrap: React.FC = () => {
   const [scriptPath, setScriptPath] = useState('');
   const [commandArguments, setCommandArguments] = useState('');
   const [selectedTargetDirectory, setSelectedTargetDirectory] = useState('');
-  const [copyStatus, setCopyStatus] = useState<'idle' | 'copied' | 'failed'>('idle');
   const [pickerMessage, setPickerMessage] = useState('');
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -129,27 +128,6 @@ const Bubblewrap: React.FC = () => {
       setPickerMessage('Browsers do not reveal absolute local paths. Run KNIRVENGINE in Electron to select a launchable binary.');
     }
     event.target.value = '';
-  };
-
-  const copyLog = async () => {
-    const text = [error, ...log].filter((line): line is string => Boolean(line)).join('\n');
-    if (!text) return;
-
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopyStatus('copied');
-    } catch {
-      // Electron and non-secure browser contexts may not expose Clipboard API.
-      const textarea = document.createElement('textarea');
-      textarea.value = text;
-      textarea.style.position = 'fixed';
-      textarea.style.opacity = '0';
-      document.body.appendChild(textarea);
-      textarea.select();
-      const copied = document.execCommand('copy');
-      textarea.remove();
-      setCopyStatus(copied ? 'copied' : 'failed');
-    }
   };
 
   const addBind = () => setBinds(prev => [...prev, { id: Date.now(), mode: 'ro-bind', src: '', dst: '' }]);
@@ -322,20 +300,6 @@ const Bubblewrap: React.FC = () => {
         </div>
       </div>
 
-      <section className="mt-4 flex min-h-[13rem] flex-col rounded-lg border border-slate-700/50 bg-slate-800/50 p-4">
-        <div className="mb-2 flex items-center justify-between">
-          <div className="text-xs uppercase text-slate-500">Namespace log</div>
-          <div className="flex items-center gap-1"><button type="button" onClick={clearLog} disabled={!error && log.length === 0} className="rounded px-2 py-1 text-xs text-slate-400 hover:bg-slate-700/50 hover:text-white disabled:cursor-not-allowed disabled:opacity-40">Clear</button><button type="button" onClick={copyLog} disabled={!error && log.length === 0} className="flex items-center gap-1 rounded px-2 py-1 text-xs text-slate-400 hover:bg-slate-700/50 hover:text-white disabled:cursor-not-allowed disabled:opacity-40" aria-label="Copy namespace log">{copyStatus === 'copied' ? <Check className="h-3.5 w-3.5 text-green-400" /> : <Clipboard className="h-3.5 w-3.5" />}<span>{copyStatus === 'copied' ? 'Copied' : copyStatus === 'failed' ? 'Copy failed' : 'Copy all'}</span></button></div>
-        </div>
-        <div className="min-h-0 flex-1 select-text overflow-y-auto rounded bg-slate-900/60 p-3 font-mono text-xs text-slate-400">
-            {error && <div className="text-red-400">{error}</div>}
-            {log.length === 0 ? (
-              <span className="text-slate-700">launch to provision the namespace</span>
-            ) : (
-              log.map((line, index) => <div key={`${index}-${line}`} className="whitespace-pre-wrap text-green-400">{line}</div>)
-            )}
-        </div>
-      </section>
     </div>
   );
 };

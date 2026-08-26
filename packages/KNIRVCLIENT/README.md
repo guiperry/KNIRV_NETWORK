@@ -1,8 +1,8 @@
 # KNIRV Client
 
-> **Autonomous Technical Debt Prevention & Architecture Intelligence Platform**
+> **The KNIRV Network's Error & Vulnerability Ingestor for Enterprises and Organizations**
 
-KNIRV Client is a GoLang-based autonomous system that provides deep visibility into software architecture, identifies risks, fixes broken dependencies, updates libraries, and prevents technical debt from accumulating—automatically.
+KNIRV Client is a GoLang-based autonomous system that enterprises and organizations deploy inside their own infrastructure to turn their codebases into a source of network intelligence. It scans deterministically, diagnoses risks locally, offers on-demand AI remediation — and, as its role in the wider **KNIRV Network**, packages every detected security vulnerability and high-severity technical debt item into a signed, self-contained `.nrv` report and submits it to **KNIRVGRAPH**. Source code, dependency graphs, and remediation never leave your perimeter; only the minimal, hashed, signed claim needed to register an issue does.
 
 [![Go Version](https://img.shields.io/badge/Go-1.23.3-00ADD8?logo=go)](https://go.dev/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
@@ -12,7 +12,7 @@ KNIRV Client is a GoLang-based autonomous system that provides deep visibility i
 
 ## 🎯 What KNIRV Client Does
 
-KNIRV Client performs three core functions with a deterministic, reliable architecture:
+KNIRV Client performs four core functions with a deterministic, reliable architecture:
 
 ### 1. **Understands Your System (Deterministic Scanning)**
 Creates a **real-time knowledge graph** showing how every component connects—code, APIs, databases, services, and data flows across your entire stack using **static analysis, AST parsing, and pattern matching**. Scans are fast, reproducible, and work offline.
@@ -22,6 +22,39 @@ Surfaces technical debt, security vulnerabilities, obsolete code, and dangerous 
 
 ### 3. **AI-Powered Remediation (On-Demand)**
 When you select an issue, **AI generates intelligent fix recommendations**. You review the proposed solution, approve it, and KNIRV Client applies the fix. AI is only used for generating solutions, never for scanning or detection.
+
+### 4. **Ingests Findings Into the KNIRV Network**
+Every scan that finds a security vulnerability or a critical/high-severity technical debt item packages it into a signed `.nrv` report and submits it to **KNIRVGRAPH**, KNIRV Network's knowledge graph. This is what makes KNIRV Client an *ingestor*, not just a scanner: it's the mechanism by which an enterprise's or organization's own detected issues become `ErrorNode`s that KNIRVARENA's Human Architects can craft fixes for, feeding the network's `ErrorNode → SkillNode` economy. See [Role in the KNIRV Network](#-role-in-the-knirv-network) below.
+
+---
+
+## 🌐 Role in the KNIRV Network
+
+Every other package in the KNIRV Network — KNIRVGRAPH, KNIRVARENA, KNIRVCHAIN — depends on a steady supply of real, well-formed error and vulnerability reports to mine into reusable knowledge. KNIRV Client is how enterprises and organizations supply that: it is the network's **ingestion point**, run inside an organization's own infrastructure against its own codebases, rather than a network-hosted service anyone can post arbitrary claims to.
+
+```mermaid
+graph LR
+    subgraph Perimeter["Enterprise / Organization Perimeter"]
+        Code[Your Codebase]
+        KC["KNIRV Client<br/>Scan • Diagnose • Sign"]
+    end
+
+    subgraph Network["KNIRV Network"]
+        GW["KNIRVGATEWAY<br/>/api/graph/nrv/errors/commit"]
+        GR["KNIRVGRAPH<br/>ErrorNode Registry"]
+        AR["KNIRVARENA<br/>Human Architects"]
+        SK["SkillNode<br/>skill.md"]
+    end
+
+    Code --> KC
+    KC -->|"Signed .nrv report<br/>(KNIRVSDK secp256k1)"| GW
+    GW --> GR
+    GR -->|ErrorNode| AR
+    AR -->|Dataset + Fix| SK
+    SK -.->|Mined Knowledge| GR
+```
+
+What crosses the perimeter is deliberately minimal: a `.nrv` report's `error_type`, `description`, enough `context` to reproduce the finding (file path, line, surrounding source, CVE/package data), a `severity` score, a `sha256` `error_root` binding all of that content, and a signer identity — never your full source tree, dependency graph, or scan history. See [KNIRVGRAPH Reporting](#knirvgraph-reporting) for the wire format and signing details.
 
 ---
 
@@ -114,6 +147,7 @@ graph TB
         subgraph "Core Services"
             Scanner[Code Scanner<br/>AST Analysis]
             RiskDiag[Risk Diagnoser<br/>Security Analysis]
+            NRVReporter[NRV Reporter<br/>Signs & Submits Issues]
             AIEngine[AI Inference Engine<br/>Multi-Provider]
             DataEngine[Data Engine<br/>Metrics & Events]
             AuthSvc[Auth Service<br/>GitHub OAuth]
@@ -130,6 +164,7 @@ graph TB
         Kafka[Kafka<br/>Optional]
         ChromaDB[ChromaDB<br/>Optional]
         AIProviders[AI Providers<br/>Cerebras/Gemini/Claude<br/>OpenAI/DeepSeek]
+        KNIRVGraph[KNIRVGRAPH<br/>via KNIRVGATEWAY]
     end
     
     Browser -->|HTTP/HTTPS| Dashboard
@@ -152,6 +187,7 @@ graph TB
     Scanner --> RiskDiag
     Scanner --> DataEngine
     RiskDiag -.->|User-Triggered Only| AIEngine
+    RiskDiag -->|Vulns + High-Severity Debt| NRVReporter
     DataAPI --> DataEngine
     AuthAPI --> AuthSvc
     MonitorAPI --> DataEngine
@@ -161,6 +197,7 @@ graph TB
     
     Scanner -->|Deterministic Results| ChromemDB
     RiskDiag -->|Detected Issues| ChromemDB
+    NRVReporter -->|Local .nrv Copy| ChromemDB
     DataEngine --> ChromemDB
     AuthSvc --> FileStore
     
@@ -168,6 +205,7 @@ graph TB
     DataEngine -.->|Optional| Kafka
     DataEngine -.->|Optional| ChromaDB
     AIEngine -.->|On-Demand Only| AIProviders
+    NRVReporter -->|"Signed .nrv Report"| KNIRVGraph
     
     WS -.->|Real-time Updates| Browser
     
@@ -278,6 +316,13 @@ graph TB
 - **Risk Scoring** - Priority-based issue ranking (deterministic)
 - **CVE Database Lookups** - Dependency vulnerability checking via external databases
 - **No AI Inference** - All detection is pattern-based and reproducible
+
+#### **NRV Reporter** (`internal/nrv/`)
+- **Network Ingestion Point** - Turns detected issues into the KNIRV Network's `ErrorNode`s
+- **Signed Commits** - Every report is signed with a KNIRVSDK secp256k1 identity, same as KNIRVCHAIN/KNIRVGATEWAY/KNIRVORACLE
+- **Self-Contained `.nrv` Packages** - Type, description, minimal context, severity, and a `sha256` content root, nothing else
+- **Best-Effort, Never Blocking** - Submission runs after every scan; failures are logged, never abort the scan
+- **Local Audit Trail** - Every `.nrv` file is also kept under the project's data directory regardless of submission outcome
 
 #### **AI Remediation Service** (`inference_engine/`)
 - **User-Triggered Only** - AI is invoked only when user requests a solution
@@ -522,9 +567,9 @@ Customize scan behavior in the dashboard **Settings** tab:
 
 ### KNIRVGRAPH Reporting
 
-After every scan, KNIRV Client automatically packages each detected **security vulnerability** and each **critical/high-severity technical debt item** into a self-contained `.nrv` report — a JSON file containing the issue's type, description, severity, file/line location, surrounding source (`code_context`), and a `sha256` content hash (`error_root`) binding the payload — and submits it to **KNIRVGRAPH** via the public **KNIRVGATEWAY** endpoint (`POST {gateway}/api/graph/nrv/errors/commit`). This feeds KNIRV Network's `ErrorNode → SkillNode` flow, where Human Architects on KNIRVARENA craft fixes for reported errors.
+This is the mechanism behind KNIRV Client's role as the network's error and vulnerability ingestor (see [Role in the KNIRV Network](#-role-in-the-knirv-network)). After every scan, KNIRV Client automatically packages each detected **security vulnerability** and each **critical/high-severity technical debt item** into a self-contained `.nrv` report — a JSON file containing the issue's type, description, severity, file/line location, surrounding source (`code_context`), and a `sha256` content hash (`error_root`) binding the payload — and submits it to **KNIRVGRAPH** via the public **KNIRVGATEWAY** endpoint (`POST {gateway}/api/graph/nrv/errors/commit`). This feeds KNIRV Network's `ErrorNode → SkillNode` flow, where Human Architects on KNIRVARENA craft fixes for reported errors.
 
-Each installation generates its own local ed25519 signing identity on first run (`<data-dir>/nrv/identity.key`) and uses it to sign every submission; the `signer_id` is its hex-encoded public key.
+Each installation generates its own local secp256k1 signing identity on first run (`<data-dir>/nrv/identity.key`) using [KNIRVSDK](https://github.com/guiperry/knirv-sdk-go)'s canonical signing package — the same signing scheme KNIRVCHAIN, KNIRVGATEWAY, and KNIRVORACLE use for their own identities, rather than a scheme private to KNIRV Client. The `signer_id` is the identity's bech32 `knirv1...` address; each report's `signature` is a KNIRVSDK domain-separated signed message (domain `knirv.nrv`, purpose `error-node-commit`) over the report's `error_root`.
 
 `.nrv` files are also kept locally under each project's data directory (`<project-data-dir>/nrv/`) for inspection, independent of whether submission succeeds — submission failures are logged and never abort a scan.
 
@@ -532,11 +577,14 @@ Each installation generates its own local ed25519 signing identity on first run 
 # Enable/disable automatic reporting to KNIRVGRAPH (default: true)
 NRV_REPORTING_ENABLE=true
 
-# Which network's gateway to submit to: "testnet" (default) or "mainnet"
+# Which network's gateway/chain to submit to: "testnet" (default) or "mainnet"
 NRV_NETWORK=testnet
 
 # Override the gateway base URL entirely (takes precedence over NRV_NETWORK)
 # NRV_GATEWAY_URL=https://testnet-gateway.knirv.network
+
+# Override the KNIRVSDK signing chain ID entirely (takes precedence over NRV_NETWORK)
+# NRV_CHAIN_ID=knirv-testnet-1
 
 # Lines of surrounding source included as code_context per report
 NRV_CONTEXT_LINES=15
@@ -943,4 +991,4 @@ KNIRV Client is designed for performance:
 
 **Built with ❤️ by the [KNIRV NETWORK](https://knirv.network/) Team**
 
-*Preventing technical debt, one commit at a time.*
+*Preventing technical debt and feeding the KNIRV Network's collective intelligence, one signed report at a time.*

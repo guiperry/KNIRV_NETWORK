@@ -4,29 +4,15 @@ import '@testing-library/jest-dom';
 import Bubblewrap from '../components/tools/sandbox/Bubblewrap';
 
 const mockUseSandbox = jest.fn();
-const writeText = jest.fn();
-
 jest.mock('../components/SandboxContext', () => ({ useSandbox: () => mockUseSandbox() }));
 
 describe('Bubblewrap', () => {
   beforeEach(() => {
-    writeText.mockResolvedValue(undefined);
-    Object.assign(navigator, { clipboard: { writeText } });
     mockUseSandbox.mockReturnValue({
       launch: jest.fn(), stop: jest.fn(), status: 'running',
       log: ['[sandbox] started', 'target output'], targetLabel: 'demo',
       error: null, deps: [], depsInstalling: false, installDeps: jest.fn(),
     });
-  });
-
-  it('allows selecting and copying the complete namespace log', async () => {
-    render(<Bubblewrap />);
-
-    expect(screen.getByText('target output').parentElement).toHaveClass('select-text');
-    fireEvent.click(screen.getByRole('button', { name: /copy namespace log/i }));
-
-    expect(writeText).toHaveBeenCalledWith('[sandbox] started\ntarget output');
-    expect(await screen.findByText('Copied')).toBeInTheDocument();
   });
 
   it('uses Electron native file selection for the target binary', async () => {

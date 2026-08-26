@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { ScanSearch, Play } from 'lucide-react';
+import { useToolScan } from '../../hooks/useToolScan';
+import { useSandboxSession } from '../../hooks/useSandboxSession';
 
 type Severity = 'ERROR' | 'WARNING' | 'INFO';
 
@@ -13,15 +15,6 @@ interface Finding {
   hasFix: boolean;
 }
 
-const findings: Finding[] = [
-  { id: 'f1', ruleId: 'go.lang.security.audit.crypto.use-of-md5', severity: 'ERROR', file: 'internal/cache/keys.go', line: 42, message: 'MD5 is a weak hash and should not be used in security contexts. Use SHA-256 or better.', hasFix: true },
-  { id: 'f2', ruleId: 'javascript.express.security.audit.express-jwt-hardcode', severity: 'ERROR', file: 'gui/src/services/api.ts', line: 118, message: 'Hardcoded credential detected. Move to environment configuration.', hasFix: false },
-  { id: 'f3', ruleId: 'generic.secrets.security.detected-private-key', severity: 'ERROR', file: 'scripts/deploy.sh', line: 7, message: 'A private key was found in this file. Rotate and remove immediately.', hasFix: false },
-  { id: 'f4', ruleId: 'go.lang.correctness.useless-eqeq', severity: 'WARNING', file: 'internal/mining/worker.go', line: 201, message: 'This expression compares a value to itself; likely a copy-paste error.', hasFix: true },
-  { id: 'f5', ruleId: 'javascript.lang.best-practice.dangerouslysetinnerhtml', severity: 'WARNING', file: 'gui/src/components/Dashboard.tsx', line: 312, message: 'dangerouslySetInnerHTML can lead to XSS if the value is not sanitized.', hasFix: false },
-  { id: 'f6', ruleId: 'go.lang.best-practice.unhandled-error', severity: 'INFO', file: 'internal/database/migrate.go', line: 55, message: 'Return value of this function is not checked, which could disguise a runtime error.', hasFix: false },
-];
-
 const sevColor: Record<Severity, string> = {
   ERROR: 'bg-red-500/20 text-red-300 border-red-500/30',
   WARNING: 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30',
@@ -29,14 +22,20 @@ const sevColor: Record<Severity, string> = {
 };
 
 const Semgrep: React.FC = () => {
+  const { session } = useSandboxSession();
+  const { structured, running, error, run } = useToolScan({
+    sessionID: session?.id ?? '',
+    tool: 'semgrep',
+  });
+
   const [ruleset, setRuleset] = useState('p/owasp-top-ten p/secrets p/golang');
-  const [scanning, setScanning] = useState(false);
-  const [selected, setSelected] = useState<Finding | null>(findings[0]);
+  const [selected, setSelected] = useState<Finding | null>(null);
   const [severityFilter, setSeverityFilter] = useState<Severity | 'ALL'>('ALL');
 
+  const findings: Finding[] = (structured as Finding[]) ?? [];
+
   const runScan = () => {
-    setScanning(true);
-    setTimeout(() => setScanning(false), 900);
+    run({ ruleset });
   };
 
   const visible = findings.filter(f => severityFilter === 'ALL' || f.severity === severityFilter);
@@ -57,13 +56,19 @@ const Semgrep: React.FC = () => {
         </div>
         <button
           onClick={runScan}
-          disabled={scanning}
+          disabled={running || !session}
           className="flex items-center space-x-2 px-3 py-2 rounded-lg text-sm font-medium bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/30 disabled:opacity-50"
         >
           <Play className="w-4 h-4" />
-          <span>{scanning ? 'Scanning…' : 'Run scan'}</span>
+          <span>{running ? 'Scanning…' : 'Run scan'}</span>
         </button>
       </div>
+
+      {error && (
+        <div className="mb-4 p-3 bg-red-500/10 border border-red-500/30 rounded-lg text-red-300 text-sm">
+          {error}
+        </div>
+      )}
 
       <div className="flex items-center space-x-2 mb-4">
         <span className="text-slate-500 font-mono text-sm">--config</span>
@@ -87,6 +92,18 @@ const Semgrep: React.FC = () => {
           </button>
         ))}
       </div>
+
+      {!session && (
+        <div className="text-center py-8 text-slate-500">
+          Start a sandbox session to run Semgrep against a mounted target.
+        </div>
+      )}
+
+      {session && findings.length === 0 && !running && (
+        <div className="text-center py-8 text-slate-500">
+          No findings yet. Click "Run scan" to analyze the mounted target.
+        </div>
+      )}
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
         <div className="xl:col-span-2 bg-slate-800/50 border border-slate-700/50 rounded-lg divide-y divide-slate-700/50">
@@ -118,7 +135,7 @@ const Semgrep: React.FC = () => {
                 <div className="text-xs text-slate-600 uppercase mb-1">{selected.file}:{selected.line}</div>
                 <pre className="text-xs font-mono bg-slate-900/60 rounded p-2 text-slate-400 overflow-x-auto">
 {`${selected.line - 1} │ ...
-${selected.line}   │ ${selected.ruleId.includes('md5') ? 'hash := md5.Sum(data)' : selected.ruleId.includes('jwt-hardcode') ? 'const SECRET = "sk_live_..."' : '// flagged expression'}
+${selected.line}   │ // flagged expression
 ${selected.line + 1} │ ...`}
                 </pre>
               </div>

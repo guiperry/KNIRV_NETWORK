@@ -66,6 +66,7 @@ type SandboxSession struct {
 	Status        SandboxSessionStatus `json:"status"`
 	Error         string               `json:"error,omitempty"`
 	Pid           int                  `json:"pid,omitempty"`
+	InnerPid      int                  `json:"innerPid,omitempty"`
 	Display       string               `json:"display"`
 	NetnsID       string               `json:"netnsId"`
 	VncPort       int                  `json:"vncPort"`
@@ -93,6 +94,7 @@ type SandboxSession struct {
 	proxyFlowID     int
 	started         bool
 	log             []string
+	proxychainsConf string
 
 	// Launch configuration snapshot used to build the bwrap argv.
 	binds         []SandboxBind
@@ -363,6 +365,14 @@ func (s *SandboxSession) Start() error {
 	s.Pid = bwrapCmd.Process.Pid
 	s.mutex.Unlock()
 
+	// Resolve the inner bwrap PID (the one that performed --unshare-all)
+	// so tool processes can join the sandbox's namespaces via nsenter.
+	// s.Pid is the outer setup process and stays in the host's namespaces.
+	if err := s.resolveInnerPid(); err != nil {
+		log.Printf("sandbox %s: failed to resolve inner PID: %v", s.ID, err)
+		// Non-fatal: tools that don't need namespace join still work.
+	}
+
 	// 3. x11vnc bridging the framebuffer (shared so dock + standalone can both connect)
 	vncCmd, err := s.spawn(s.manager.x11vncBin,
 		"-display", s.Display,
@@ -416,6 +426,13 @@ func buildBwrapArgs(s *SandboxSession) []string {
 		args = append(args, "--die-with-parent")
 	}
 	args = append(args, "--setenv", "DISPLAY", s.Display, "--")
+	// If proxychains is configured, prepend it to the target command so the
+	// sandboxed process's sockets are forced through the configured chain.
+	// proxychains-ng only redirects sockets of the process it directly wraps
+	// and its children, so it must be baked into the original exec.
+	if prefix := proxychainsPrefix(s); prefix != "" {
+		args = append(args, strings.Fields(prefix)...)
+	}
 	// Explicit arguments preserve spaces in script paths and avoid invoking a
 	// shell. Keep strings.Fields for clients created before targetArgs existed.
 	if s.targetArgs != nil {
@@ -1020,6 +1037,9 @@ func (m *SandboxManager) RegisterHandlers(router *mux.Router) {
 	router.HandleFunc("/api/v1/sandboxes/{id}", m.handleStop).Methods("DELETE")
 	router.HandleFunc("/api/v1/sandboxes/{id}/ws", m.handleStatusWebSocket)
 	router.HandleFunc("/api/v1/sandboxes/{id}/vnc", m.handleVNCWebSocket)
+
+	// Tool execution routes (Lanes 1-6).
+	m.registerToolRoutes(router)
 }
 
 func (m *SandboxManager) handleList(w http.ResponseWriter, r *http.Request) {
