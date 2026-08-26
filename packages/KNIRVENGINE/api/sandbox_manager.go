@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -334,7 +335,10 @@ func (s *SandboxSession) Start() error {
 	}
 	var missing []string
 	for _, st := range depStatuses {
-		if !st.Present {
+		// Optional consoles are reported and acquired through the same
+		// dependency endpoint, but must never stop Bubble Wrap itself from
+		// launching. Only its three foundational helpers are launch-gating.
+		if !st.Present && isRequiredSandboxDependency(st.Binary) {
 			missing = append(missing, fmt.Sprintf("%s (install: %s)", st.Binary, st.InstallCommand))
 		}
 	}
@@ -449,6 +453,20 @@ func buildBwrapArgs(s *SandboxSession) []string {
 // binary so it finds its shipped shared-library dependencies.
 func (s *SandboxSession) toolEnv(name string) []string {
 	env := os.Environ()
+	// Python tools are installed in the managed bundle venv.  Prepend it so
+	// transitive console helpers launched by those tools resolve consistently.
+	if venvBin := filepath.Join(sandboxToolsDir(), "pyenv", "bin"); func() bool {
+		info, err := os.Stat(venvBin)
+		return err == nil && info.IsDir()
+	}() {
+		env = append(env, "PATH="+venvBin+string(os.PathListSeparator)+os.Getenv("PATH"))
+	}
+	if dotnetTools := filepath.Join(sandboxToolsDir(), "dotnettools"); func() bool {
+		info, err := os.Stat(dotnetTools)
+		return err == nil && info.IsDir()
+	}() {
+		env = append(env, "PATH="+dotnetTools+string(os.PathListSeparator)+os.Getenv("PATH"))
+	}
 	if isBundledTool(name) {
 		if libDir := bundledToolsLibDir(); libDir != "" {
 			env = append(env, "LD_LIBRARY_PATH="+libDir)
@@ -512,6 +530,9 @@ func (s *SandboxSession) Close() error {
 	if s.cancelFunc != nil {
 		s.cancelFunc()
 	}
+	// Tool lanes run their own child processes and WebSocket clients.  Tear
+	// them down before the namespace they join disappears.
+	stopToolsForSandbox(s.ID)
 
 	s.mutex.Lock()
 	vncPid := 0

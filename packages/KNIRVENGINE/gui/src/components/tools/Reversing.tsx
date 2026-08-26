@@ -3,7 +3,6 @@ import { Binary, Compass, Layers3, FileCode2 } from 'lucide-react';
 import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
 import { useSandboxSession } from '../../hooks/useSandboxSession';
-import Ghidra from './reversing/Ghidra';
 import Cutter from './reversing/Cutter';
 import ILSpy from './reversing/ILSpy';
 import Jadx from './reversing/Jadx';
@@ -19,7 +18,6 @@ export const Reversing: React.FC = () => {
   if (isSubRoute) {
     return (
       <Routes>
-        <Route path="/ghidra" element={<Ghidra />} />
         <Route path="/cutter" element={<Cutter />} />
         <Route path="/ilspy" element={<ILSpy />} />
         <Route path="/jadx" element={<Jadx />} />
@@ -28,10 +26,9 @@ export const Reversing: React.FC = () => {
   }
 
   const cards = [
-    { id: 'ghidra', name: 'Ghidra', icon: Binary, color: 'green', desc: 'analyzeHeadless project — function list, cross-references, decompiled C view.', tag: '112 functions' },
-    { id: 'cutter', name: 'Cutter', icon: Compass, color: 'red', desc: 'radare2 GUI — graph view, ESIL, and an r2 command console.', tag: 'r2 attached' },
-    { id: 'ilspy', name: 'ILSpy', icon: Layers3, color: 'blue', desc: '.NET decompiler — assembly tree to C#, IL, and MSIL disassembly.', tag: '.NET 8.0' },
-    { id: 'jadx', name: 'JADX', icon: FileCode2, color: 'orange', desc: 'APK/DEX to Java — smali fallback, resource browser, deobfuscation.', tag: 'APK loaded' },
+    { id: 'cutter', name: 'Cutter', icon: Compass, color: 'red' },
+    { id: 'ilspy', name: 'ILSpy', icon: Layers3, color: 'blue' },
+    { id: 'jadx', name: 'JADX', icon: FileCode2, color: 'orange' },
   ] as const;
 
   const colorClasses: Record<string, string> = {
@@ -70,12 +67,11 @@ export const Reversing: React.FC = () => {
               <div className={`p-2 rounded-lg transition-colors ${colorClasses[c.color]}`}>
                 <c.icon className="w-6 h-6" />
               </div>
-              <h3 className="text-lg font-semibold text-white">{c.name}</h3>
+               <h3 className="text-lg font-semibold text-white">{c.name}</h3>
             </div>
-            <p className="text-slate-400 mb-4 font-mono text-sm">{c.desc}</p>
             <div className="flex items-center space-x-1 text-sm">
               <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-              <span className="text-slate-300">{c.tag}</span>
+              <span className="text-slate-300">available</span>
             </div>
           </button>
         ))}

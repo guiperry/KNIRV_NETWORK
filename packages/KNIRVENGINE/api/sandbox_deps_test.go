@@ -71,9 +71,7 @@ func TestManualInstallCommand(t *testing.T) {
 }
 
 func TestEnsureSandboxDependenciesAllPresent(t *testing.T) {
-	if !binaryExists("bwrap") || !binaryExists("Xvfb") || !binaryExists("x11vnc") {
-		t.Skip("one or more sandbox binaries already missing; skipping no-op test")
-	}
+	withFakeManagedTools(t)
 	statuses, err := EnsureSandboxDependencies(func(string, ...string) error { return nil })
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -94,18 +92,12 @@ func TestEnsureSandboxDependenciesRunnerInvoked(t *testing.T) {
 		attempted = append(attempted, name)
 		return nil
 	}
-	statuses, err := EnsureSandboxDependencies(runner)
-	if err != nil {
-		t.Skipf("no supported package manager in test env: %v", err)
+	st := EnsureToolDependency("bpftrace", runner)
+	if st.Present {
+		t.Skip("bpftrace is already present; cannot exercise package acquisition")
 	}
-	anyMissing := false
-	for _, st := range statuses {
-		if !st.Present {
-			anyMissing = true
-		}
-	}
-	if anyMissing && len(attempted) == 0 {
-		t.Fatal("expected an install attempt when binaries are missing")
+	if len(attempted) == 0 {
+		t.Fatal("expected a package-manager install attempt")
 	}
 }
 
@@ -114,13 +106,14 @@ func TestEnsureSandboxDependenciesRunnerNoOpReflectsReality(t *testing.T) {
 		t.Skip("linux-only")
 	}
 	runner := func(string, ...string) error { return nil }
+	withFakeManagedTools(t)
 	statuses, err := EnsureSandboxDependencies(runner)
 	if err != nil {
-		t.Skipf("no supported package manager in test env: %v", err)
+		t.Fatalf("unexpected dependency check error: %v", err)
 	}
 	for _, st := range statuses {
-		if binaryExists(st.Binary) != st.Present {
-			t.Errorf("present mismatch for %s", st.Binary)
+		if !st.Present {
+			t.Errorf("expected managed fake %s to be present", st.Binary)
 		}
 	}
 }
@@ -130,20 +123,38 @@ func TestEnsureSandboxDependenciesInstallErrorRecorded(t *testing.T) {
 		t.Skip("linux-only")
 	}
 	failRunner := func(string, ...string) error { return os.ErrPermission }
-	statuses, err := EnsureSandboxDependencies(failRunner)
-	if err != nil {
-		t.Skipf("no supported package manager in test env: %v", err)
+	st := EnsureToolDependency("bpftrace", failRunner)
+	if st.Present {
+		t.Skip("bpftrace is already present; cannot exercise failure")
 	}
-	anyMissing := false
-	for _, st := range statuses {
-		if !st.Present {
-			anyMissing = true
-			if st.Error == "" {
-				t.Errorf("expected error recorded for missing %s", st.Binary)
-			}
-		}
+	if st.Error == "" {
+		t.Error("expected package acquisition error")
 	}
-	if !anyMissing {
-		t.Skip("all binaries present; cannot exercise error path")
+}
+
+func withFakeManagedTools(t *testing.T) {
+	t.Helper()
+	dir := t.TempDir()
+	old := os.Getenv("KNIRVENGINE_SANDBOX_TOOLS_DIR")
+	t.Setenv("KNIRVENGINE_SANDBOX_TOOLS_DIR", dir)
+	if old != "" {
+		t.Cleanup(func() { _ = os.Setenv("KNIRVENGINE_SANDBOX_TOOLS_DIR", old) })
+	}
+	for _, binary := range []string{"bwrap", "Xvfb", "x11vnc", "java", "dotnet", "jadx", "proxychains4", "bpftrace", "tshark", "zeek", "afl-fuzz", "rizin", "frida-server"} {
+		writeFakeExecutable(t, filepath.Join(dir, binary))
+	}
+	for _, binary := range []string{"semgrep", "jwt_tool.py", "frida"} {
+		writeFakeExecutable(t, filepath.Join(dir, "pyenv", "bin", binary))
+	}
+	writeFakeExecutable(t, filepath.Join(dir, "dotnettools", "ilspycmd"))
+}
+
+func writeFakeExecutable(t *testing.T, path string) {
+	t.Helper()
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(path, []byte("#!/bin/sh\nexit 0\n"), 0o755); err != nil {
+		t.Fatal(err)
 	}
 }

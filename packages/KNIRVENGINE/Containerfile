@@ -34,12 +34,28 @@ RUN microdnf install -y \
 
 # Sandbox pipeline dependencies: bubblewrap (namespace sandbox), Xvfb
 # (virtual framebuffer), and x11vnc (framebuffer -> VNC bridge).
-# x11vnc lives in EPEL, so enable it first on the UBI9-minimal base.
+# x11vnc and several analysis tools live outside UBI's base repos. Enable EPEL,
+# Zeek's upstream repo, and Microsoft's runtime repo before installation.
 RUN microdnf install -y epel-release && \
+    curl -fsSL https://download.opensuse.org/repositories/security:/zeek/CentOS_9_Stream/security:zeek.repo -o /etc/yum.repos.d/security:zeek.repo && \
+    curl -fsSL https://packages.microsoft.com/config/rhel/9/packages-microsoft-prod.rpm -o /tmp/packages-microsoft-prod.rpm && \
+    rpm -Uvh /tmp/packages-microsoft-prod.rpm && \
     microdnf install -y \
-    bubblewrap \
-    xorg-x11-server-Xvfb \
-    x11vnc && \
+        bubblewrap \
+        xorg-x11-server-Xvfb \
+        x11vnc \
+        bpftrace \
+        wireshark-cli \
+        zeek \
+        aflplusplus \
+        rizin \
+        proxychains-ng \
+        python3 \
+        python3-pip \
+        java-17-openjdk-headless \
+        dotnet-runtime-8.0 \
+        gcc \
+        make && \
     microdnf clean all
 
 # Create application user

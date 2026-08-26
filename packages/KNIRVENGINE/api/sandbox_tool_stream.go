@@ -71,6 +71,12 @@ func registerLane2Tool(name string, adapter lane2Adapter) {
 	lane2Adapters[name] = adapter
 }
 
+// isLane2Tool reports whether a tool is registered as a streaming adapter.
+func isLane2Tool(name string) bool {
+	_, ok := lane2Adapters[name]
+	return ok
+}
+
 // handleToolStreamStart handles POST /api/v1/sandboxes/{id}/tools/{tool}/start.
 func (m *SandboxManager) handleToolStreamStart(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
@@ -94,8 +100,8 @@ func (m *SandboxManager) handleToolStreamStart(w http.ResponseWriter, r *http.Re
 	key := sessionID + "/" + tool
 	if existing, ok := lane2Registry.streams[key]; ok {
 		lane2Registry.Unlock()
-		// Stop existing stream first.
-		existing.cancel()
+		stopToolStream(existing)
+		lane2Registry.Lock()
 		delete(lane2Registry.streams, key)
 	}
 
@@ -111,29 +117,23 @@ func (m *SandboxManager) handleToolStreamStart(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	binary := resolveSandboxTool(adapter.binary)
-	if binary == adapter.binary {
-		if _, err := exec.LookPath(binary); err != nil {
-			lane2Registry.Unlock()
-			RespondWithValidationError(w, fmt.Sprintf("tool binary %q not found", binary))
-			return
-		}
+	if err := ensureToolAvailable(adapter.binary); err != nil {
+		lane2Registry.Unlock()
+		RespondWithValidationError(w, err.Error())
+		return
 	}
+	binary := resolveSandboxTool(adapter.binary)
 
 	cancel := context.CancelFunc(func() {})
 
-	var cmd *exec.Cmd
-	if adapter.needsJoin {
-		cmd, err = session.spawnJoined(binary, argv...)
-	} else {
-		cmd, err = session.spawn(binary, argv...)
-	}
+	cmd, stdin, stdout, stderr, err := session.startToolProcess(binary, adapter.needsJoin, argv...)
 	if err != nil {
 		cancel()
 		lane2Registry.Unlock()
 		RespondWithInternalError(w, fmt.Sprintf("failed to start %s: %v", tool, err))
 		return
 	}
+	_ = stdin.Close()
 
 	state := &toolStreamState{
 		tool:      tool,
@@ -145,20 +145,12 @@ func (m *SandboxManager) handleToolStreamStart(w http.ResponseWriter, r *http.Re
 	lane2Registry.streams[key] = state
 	lane2Registry.Unlock()
 
-	// Stream stdout/stderr to clients.
+	go streamReader(state, stdout, false)
+	go streamReader(state, stderr, true)
 	go func() {
-		stdout, err := cmd.StdoutPipe()
-		if err != nil {
-			log.Printf("tool %s: StdoutPipe failed: %v", tool, err)
-			return
+		if err := cmd.Wait(); err != nil {
+			log.Printf("tool %s exited: %v", tool, err)
 		}
-		stderr, err := cmd.StderrPipe()
-		if err != nil {
-			log.Printf("tool %s: StderrPipe failed: %v", tool, err)
-			return
-		}
-		go streamReader(state, stdout, false)
-		go streamReader(state, stderr, true)
 	}()
 
 	RespondWithSuccess(w, map[string]string{"status": "started", "tool": tool}, fmt.Sprintf("%s streaming started", tool))
@@ -251,19 +243,43 @@ func (m *SandboxManager) handleToolStreamStop(w http.ResponseWriter, r *http.Req
 	delete(lane2Registry.streams, key)
 	lane2Registry.Unlock()
 
+	stopToolStream(state)
+
+	RespondWithSuccess(w, map[string]string{"status": "stopped", "tool": tool}, fmt.Sprintf("%s streaming stopped", tool))
+}
+
+func stopToolStream(state *toolStreamState) {
+	if state == nil {
+		return
+	}
 	state.cancel()
 	if state.cmd != nil && state.cmd.Process != nil {
 		_ = state.cmd.Process.Kill()
 	}
-
-	// Close all WS clients.
 	state.mutex.Lock()
 	for c := range state.clients {
-		c.Close()
+		_ = c.Close()
 	}
+	state.clients = make(map[*websocket.Conn]bool)
 	state.mutex.Unlock()
+}
 
-	RespondWithSuccess(w, map[string]string{"status": "stopped", "tool": tool}, fmt.Sprintf("%s streaming stopped", tool))
+// stopToolsForSandbox is called during session teardown, ensuring a stopped
+// Bubblewrap session cannot leave namespace-joined tools or sockets behind.
+func stopToolsForSandbox(sessionID string) {
+	lane2Registry.Lock()
+	streams := make([]*toolStreamState, 0)
+	for key, state := range lane2Registry.streams {
+		if strings.HasPrefix(key, sessionID+"/") {
+			delete(lane2Registry.streams, key)
+			streams = append(streams, state)
+		}
+	}
+	lane2Registry.Unlock()
+	for _, state := range streams {
+		stopToolStream(state)
+	}
+	stopToolAttachmentsForSandbox(sessionID)
 }
 
 // handleToolStreamWS handles GET /api/v1/sandboxes/{id}/tools/{tool}/ws.

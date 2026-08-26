@@ -105,14 +105,11 @@ func (m *SandboxManager) handleToolScan(w http.ResponseWriter, r *http.Request) 
 	}
 
 	// Resolve the binary, preferring bundled copy.
-	binary := resolveSandboxTool(adapter.binary)
-	if binary == adapter.binary {
-		// Not bundled — verify it's on PATH.
-		if _, err := exec.LookPath(binary); err != nil {
-			RespondWithValidationError(w, fmt.Sprintf("tool binary %q not found: install %s or bundle it", binary, binary))
-			return
-		}
+	if err := ensureToolAvailable(adapter.binary); err != nil {
+		RespondWithValidationError(w, err.Error())
+		return
 	}
+	binary := resolveSandboxTool(adapter.binary)
 
 	startedAt := time.Now()
 	cmd := exec.CommandContext(session.ctx, binary, argv...)
@@ -170,8 +167,15 @@ func (m *SandboxManager) registerToolRoutes(router *mux.Router) {
 func mountedTargetDir(s *SandboxSession) string {
 	s.mutex.RLock()
 	defer s.mutex.RUnlock()
+	// The sandbox bootstrapping binds (/usr, /lib, /proc, …) precede the
+	// project bind.  Never let a file-oriented tool accidentally scan one of
+	// those system trees just because it is first in the bwrap argv.
+	systemMounts := map[string]bool{
+		"/usr": true, "/lib": true, "/lib64": true, "/bin": true,
+		"/sbin": true, "/proc": true, "/dev": true, "/tmp": true,
+	}
 	for _, b := range s.binds {
-		if b.Dst != "" && b.Mode != "tmpfs" {
+		if b.Dst != "" && b.Mode != "tmpfs" && !systemMounts[b.Dst] {
 			return b.Dst
 		}
 	}

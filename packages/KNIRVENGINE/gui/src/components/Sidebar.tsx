@@ -33,9 +33,9 @@ type ActiveView =
   | 'sandbox'
   | 'settings'
   | 'frida' | 'proxychains-ng' | 'bpftrace'
-  | 'ghidra' | 'cutter' | 'ilspy' | 'jadx'
-  | 'libafl' | 'aflplusplus'
-  | 'semgrep' | 'tree-sitter' | 'trufflehog'
+  | 'cutter' | 'ilspy' | 'jadx'
+  | 'aflplusplus'
+  | 'semgrep' | 'tree-sitter'
   | 'wireshark' | 'zeek'
   | 'jwt-tool' | 'saml-raider'
   | 'bubblewrap' | 'novnc';
@@ -83,7 +83,6 @@ export const Sidebar = forwardRef<HTMLDivElement, SidebarProps>(
         icon: Binary,
         path: '/reversing',
         subItems: [
-          { id: 'ghidra', name: 'Ghidra', path: '/reversing/ghidra' },
           { id: 'cutter', name: 'Cutter', path: '/reversing/cutter' },
           { id: 'ilspy', name: 'ILSpy', path: '/reversing/ilspy' },
           { id: 'jadx', name: 'JADX', path: '/reversing/jadx' }
@@ -95,7 +94,6 @@ export const Sidebar = forwardRef<HTMLDivElement, SidebarProps>(
         icon: Bug,
         path: '/fuzzing',
         subItems: [
-          { id: 'libafl', name: 'LibAFL', path: '/fuzzing/libafl' },
           { id: 'aflplusplus', name: 'AFL++', path: '/fuzzing/aflplusplus' }
         ]
       },
@@ -107,7 +105,6 @@ export const Sidebar = forwardRef<HTMLDivElement, SidebarProps>(
         subItems: [
           { id: 'semgrep', name: 'Semgrep', path: '/static-analysis/semgrep' },
           { id: 'tree-sitter', name: 'Tree-sitter', path: '/static-analysis/tree-sitter' },
-          { id: 'trufflehog', name: 'TruffleHog', path: '/static-analysis/trufflehog' }
         ]
       },
       {

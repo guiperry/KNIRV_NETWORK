@@ -17,16 +17,6 @@ interface Flow {
   intercepted: boolean;
 }
 
-const seedFlows: Flow[] = [
-  { id: 1, method: 'GET', host: 'api.knirv.network', path: '/v1/agents/registry', status: 200, contentType: 'application/json', size: '4.2kb', time: '182ms', tls: true, intercepted: false },
-  { id: 2, method: 'POST', host: 'oracle.knirv.network', path: '/oracle/checkpoint', status: 201, contentType: 'application/json', size: '812b', time: '96ms', tls: true, intercepted: false },
-  { id: 3, method: 'GET', host: 'cdn.assets.io', path: '/fonts/inter-var.woff2', status: 200, contentType: 'font/woff2', size: '48.1kb', time: '41ms', tls: true, intercepted: false },
-  { id: 4, method: 'POST', host: 'auth.targetapp.local', path: '/api/session/refresh', status: null, contentType: '-', size: '-', time: '-', tls: true, intercepted: true },
-  { id: 5, method: 'PUT', host: 'gateway.internal', path: '/api/knirvshell/exec', status: 403, contentType: 'application/json', size: '96b', time: '12ms', tls: false, intercepted: false },
-  { id: 6, method: 'GET', host: 'telemetry.targetapp.local', path: '/collect?ev=app_open', status: 204, contentType: '-', size: '0b', time: '58ms', tls: true, intercepted: false },
-  { id: 7, method: 'DELETE', host: 'api.knirv.network', path: '/v1/skills/sk_88f2', status: 200, contentType: 'application/json', size: '212b', time: '73ms', tls: true, intercepted: false },
-];
-
 const methodColor: Record<FlowMethod, string> = {
   GET: 'text-blue-400',
   POST: 'text-green-400',
@@ -206,8 +196,7 @@ export const Proxy: React.FC = () => {
 {`:authority: ${selected.host}
 :method: ${selected.method}
 :path: ${selected.path}
-user-agent: TargetApp/4.2 (Android 14; Build 3311)
-authorization: Bearer eyJhbGciOiJIUzI1NiIs...
+user-agent: TargetApp/4.2
 accept-encoding: gzip, deflate, br`}
                 </pre>
               </div>
@@ -219,7 +208,7 @@ accept-encoding: gzip, deflate, br`}
 {`content-type: ${selected.contentType}
 content-length: ${selected.size}
 
-{ "ok": true, "cursor": "eyJvZmZzZXQiOjQyfQ==" }`}
+{ "ok": true }`}
                   </pre>
                 </div>
               )}

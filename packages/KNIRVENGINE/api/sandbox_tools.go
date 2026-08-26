@@ -52,9 +52,14 @@ func sandboxToolsDir() string {
 // exists in the sandbox tools dir (and is executable), otherwise the bare name
 // so that exec.Command falls back to PATH resolution.
 func resolveSandboxTool(name string) string {
-	candidate := filepath.Join(sandboxToolsDir(), name)
-	if info, err := os.Stat(candidate); err == nil && !info.IsDir() && info.Mode()&0111 != 0 {
-		return candidate
+	for _, candidate := range []string{
+		filepath.Join(sandboxToolsDir(), name),
+		filepath.Join(sandboxToolsDir(), "pyenv", "bin", name),
+		filepath.Join(sandboxToolsDir(), "dotnettools", name),
+	} {
+		if info, err := os.Stat(candidate); err == nil && !info.IsDir() && info.Mode()&0111 != 0 {
+			return candidate
+		}
 	}
 	return name
 }
@@ -73,7 +78,9 @@ func isBundledTool(name string) bool {
 	if err != nil {
 		return false
 	}
-	return filepath.Dir(name) == cleanDir
+	return filepath.Dir(name) == cleanDir ||
+		filepath.Dir(name) == filepath.Join(cleanDir, "pyenv", "bin") ||
+		filepath.Dir(name) == filepath.Join(cleanDir, "dotnettools")
 }
 
 // bundledToolsLibDir returns the lib/ subdirectory of the bundled tools dir,

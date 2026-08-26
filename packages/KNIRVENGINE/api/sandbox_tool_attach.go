@@ -6,9 +6,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"os/exec"
+	"strings"
 	"sync"
 
 	"github.com/gorilla/mux"
@@ -81,19 +81,20 @@ func (m *SandboxManager) handleToolAttach(w http.ResponseWriter, r *http.Request
 		return
 	}
 	if req.Pid == 0 {
-		// Default to the sandboxed target's PID (inner bwrap's child).
-		req.Pid = session.InnerPid
-	}
-	if req.Pid == 0 {
-		RespondWithValidationError(w, "no target PID available — is the sandbox running?")
-		return
+		var targetErr error
+		req.Pid, targetErr = session.resolveTargetPid()
+		if targetErr != nil {
+			RespondWithValidationError(w, "no target PID available — is the sandbox running?")
+			return
+		}
 	}
 
 	lane3Registry.Lock()
 	key := sessionID + "/" + tool
 	if existing, ok := lane3Registry.sessions[key]; ok {
 		lane3Registry.Unlock()
-		existing.cancel()
+		stopToolAttachment(existing)
+		lane3Registry.Lock()
 		delete(lane3Registry.sessions, key)
 	}
 
@@ -104,23 +105,16 @@ func (m *SandboxManager) handleToolAttach(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	binary := resolveSandboxTool(adapter.binary)
-	if binary == adapter.binary {
-		if _, err := exec.LookPath(binary); err != nil {
-			lane3Registry.Unlock()
-			RespondWithValidationError(w, fmt.Sprintf("tool binary %q not found", binary))
-			return
-		}
+	if err := ensureToolAvailable(adapter.binary); err != nil {
+		lane3Registry.Unlock()
+		RespondWithValidationError(w, err.Error())
+		return
 	}
+	binary := resolveSandboxTool(adapter.binary)
 
 	cancel := context.CancelFunc(func() {})
 
-	var cmd *exec.Cmd
-	if adapter.needsJoin {
-		cmd, err = session.spawnJoined(binary, argv...)
-	} else {
-		cmd, err = session.spawn(binary, argv...)
-	}
+	cmd, stdin, stdout, stderr, err := session.startToolProcess(binary, adapter.needsJoin, argv...)
 	if err != nil {
 		cancel()
 		lane3Registry.Unlock()
@@ -128,14 +122,7 @@ func (m *SandboxManager) handleToolAttach(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	stdin, err := cmd.StdinPipe()
-	if err != nil {
-		cancel()
-		cmd.Process.Kill()
-		lane3Registry.Unlock()
-		RespondWithInternalError(w, fmt.Sprintf("failed to open stdin: %v", err))
-		return
-	}
+	_ = stderr
 
 	state := &ToolAttachState{
 		Tool:      tool,
@@ -152,11 +139,6 @@ func (m *SandboxManager) handleToolAttach(w http.ResponseWriter, r *http.Request
 
 	// Read bridge output.
 	go func() {
-		stdout, err := cmd.StdoutPipe()
-		if err != nil {
-			log.Printf("attach %s: StdoutPipe failed: %v", tool, err)
-			return
-		}
 		scanner := bufio.NewScanner(stdout)
 		for scanner.Scan() {
 			line := scanner.Text()
@@ -184,6 +166,7 @@ func (m *SandboxManager) handleToolAttach(w http.ResponseWriter, r *http.Request
 			})
 		}
 	}()
+	go func() { _, _ = io.Copy(io.Discard, stderr); _ = cmd.Wait() }()
 
 	RespondWithSuccess(w, map[string]interface{}{
 		"attached": true,
@@ -270,17 +253,45 @@ func (m *SandboxManager) handleToolDetach(w http.ResponseWriter, r *http.Request
 	delete(lane3Registry.sessions, key)
 	lane3Registry.Unlock()
 
+	stopToolAttachment(state)
+
+	RespondWithSuccess(w, map[string]string{"status": "detached", "tool": tool}, fmt.Sprintf("%s detached", tool))
+}
+
+func stopToolAttachment(state *ToolAttachState) {
+	if state == nil {
+		return
+	}
 	state.cancel()
+	state.mutex.Lock()
+	if state.stdin != nil {
+		_ = state.stdin.Close()
+		state.stdin = nil
+	}
+	for c := range state.clients {
+		_ = c.Close()
+	}
+	state.clients = make(map[*websocket.Conn]bool)
+	state.Attached = false
+	state.mutex.Unlock()
 	if state.cmd != nil && state.cmd.Process != nil {
 		_ = state.cmd.Process.Kill()
 	}
-	state.mutex.Lock()
-	for c := range state.clients {
-		c.Close()
-	}
-	state.mutex.Unlock()
+}
 
-	RespondWithSuccess(w, map[string]string{"status": "detached", "tool": tool}, fmt.Sprintf("%s detached", tool))
+func stopToolAttachmentsForSandbox(sessionID string) {
+	lane3Registry.Lock()
+	attachments := make([]*ToolAttachState, 0)
+	for key, state := range lane3Registry.sessions {
+		if strings.HasPrefix(key, sessionID+"/") {
+			delete(lane3Registry.sessions, key)
+			attachments = append(attachments, state)
+		}
+	}
+	lane3Registry.Unlock()
+	for _, state := range attachments {
+		stopToolAttachment(state)
+	}
 }
 
 // sendAttachCommand sends a command to an attached tool's bridge process.

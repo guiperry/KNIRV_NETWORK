@@ -20,56 +20,13 @@ type DependencyStatus struct {
 	Error          string `json:"error,omitempty"`
 }
 
-// requiredTool maps a required binary to the package that provides it on each
-// supported package manager.
-type requiredTool struct {
-	binary   string
-	packages map[string]string
-}
-
-func (t requiredTool) packageFor(pm string) string {
-	return t.packages[pm]
-}
-
-// requiredSandboxTools lists the binaries the sandbox pipeline needs and the
-// package name that provides each, keyed by package manager.
-var requiredSandboxTools = []requiredTool{
-	{
-		binary: "bwrap",
-		packages: map[string]string{
-			"apt-get":  "bubblewrap",
-			"dnf":      "bubblewrap",
-			"microdnf": "bubblewrap",
-			"yum":      "bubblewrap",
-			"pacman":   "bubblewrap",
-			"zypper":   "bubblewrap",
-			"apk":      "bubblewrap",
-		},
-	},
-	{
-		binary: "Xvfb",
-		packages: map[string]string{
-			"apt-get":  "xvfb",
-			"dnf":      "xorg-x11-server-Xvfb",
-			"microdnf": "xorg-x11-server-Xvfb",
-			"yum":      "xorg-x11-server-Xvfb",
-			"pacman":   "xorg-server-xvfb",
-			"zypper":   "xorg-x11-server",
-			"apk":      "xvfb",
-		},
-	},
-	{
-		binary: "x11vnc",
-		packages: map[string]string{
-			"apt-get":  "x11vnc",
-			"dnf":      "x11vnc",
-			"microdnf": "x11vnc",
-			"yum":      "x11vnc",
-			"pacman":   "x11vnc",
-			"zypper":   "x11vnc",
-			"apk":      "x11vnc",
-		},
-	},
+func isRequiredSandboxDependency(binary string) bool {
+	switch binary {
+	case "bwrap", "Xvfb", "x11vnc":
+		return true
+	default:
+		return false
+	}
 }
 
 // packageManagers is the ordered list of managers we know how to drive, by the
@@ -168,6 +125,31 @@ func enableExtraRepos(pm, id, idLike string, runner commandRunner) {
 	}
 }
 
+// enableExtraReposForTool extends the existing EPEL/universe precedent with
+// Zeek's upstream repository. Zeek is absent from most default distributions,
+// so its repository must be enabled before the normal package strategy runs.
+func enableExtraReposForTool(binary, pm, id, idLike string, runner commandRunner) {
+	if binary == "x11vnc" {
+		enableExtraRepos(pm, id, idLike, runner)
+		return
+	}
+	if binary != "zeek" {
+		return
+	}
+	// Repository URLs follow the project's openSUSE Build Service convention.
+	// They are best-effort: a distro package may already provide Zeek, and the
+	// subsequent install reports the actionable failure if neither does.
+	switch pm {
+	case "apt-get":
+		_ = runner("sh", "-c", "curl -fsSL https://download.opensuse.org/repositories/security:zeek/Debian_12/Release.key | gpg --dearmor -o /usr/share/keyrings/security_zeek.gpg && echo 'deb [signed-by=/usr/share/keyrings/security_zeek.gpg] https://download.opensuse.org/repositories/security:/zeek/Debian_12/ /' > /etc/apt/sources.list.d/security:zeek.list")
+		_ = runner("apt-get", "update")
+	case "dnf", "microdnf", "yum":
+		_ = runner(pm, "config-manager", "--add-repo", "https://download.opensuse.org/repositories/security:/zeek/Fedora_39/security:zeek.repo")
+	case "zypper":
+		_ = runner("zypper", "--non-interactive", "ar", "https://download.opensuse.org/repositories/security:/zeek/openSUSE_Tumbleweed/security:zeek.repo", "security-zeek")
+	}
+}
+
 // manualInstallCommand returns a human-runnable command to install the given
 // packages, always shown with `sudo` for clarity.
 func manualInstallCommand(pm string, pkgs []string) string {
@@ -217,50 +199,20 @@ func EnsureSandboxDependencies(runner commandRunner) ([]DependencyStatus, error)
 		return nil, fmt.Errorf("sandbox dependencies are only supported on Linux (current OS: %s)", runtime.GOOS)
 	}
 
-	pm, err := detectPackageManager()
-	if err != nil {
-		return nil, err
+	// All subprocess dependencies use the same strategy dispatch. This keeps
+	// Bubble Wrap's existing status banner authoritative for the complete tool
+	// suite while compiled-in Lane 6 tools remain absent by design.
+	binaries := []string{
+		"bwrap", "Xvfb", "x11vnc",
+		"java", "dotnet",
+		"semgrep", "jadx", "ilspycmd", "jwt_tool.py",
+		"proxychains4", "bpftrace", "tshark", "zeek", "afl-fuzz",
+		"rizin", "frida", "frida-server",
 	}
-
-	id, idLike := readOSRelease()
-	enableExtraRepos(pm, id, idLike, runner)
-
-	var statuses []DependencyStatus
-	var toInstall []string
-	for _, tool := range requiredSandboxTools {
-		st := DependencyStatus{Binary: tool.binary, Present: binaryExists(tool.binary)}
-		if !st.Present {
-			pkg := tool.packageFor(pm)
-			st.Package = pkg
-			if pkg != "" {
-				toInstall = append(toInstall, pkg)
-			}
-			st.InstallCommand = manualInstallCommand(pm, []string{pkg})
-		}
-		statuses = append(statuses, st)
+	statuses := make([]DependencyStatus, 0, len(binaries))
+	for _, binary := range binaries {
+		statuses = append(statuses, EnsureToolDependency(binary, runner))
 	}
-
-	if len(toInstall) > 0 {
-		if installErr := installPackages(pm, toInstall, runner); installErr != nil {
-			for i := range statuses {
-				if !statuses[i].Present {
-					statuses[i].Error = installErr.Error()
-				}
-			}
-		} else {
-			for i := range statuses {
-				if !statuses[i].Present {
-					if binaryExists(statuses[i].Binary) {
-						statuses[i].Present = true
-						statuses[i].Error = ""
-					} else {
-						statuses[i].Error = "package installed but binary still not found on PATH"
-					}
-				}
-			}
-		}
-	}
-
 	return statuses, nil
 }
 

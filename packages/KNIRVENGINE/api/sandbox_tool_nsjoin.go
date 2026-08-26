@@ -2,6 +2,7 @@ package api
 
 import (
 	"fmt"
+	"io"
 	"os/exec"
 	"strconv"
 	"strings"
@@ -40,6 +41,27 @@ func (s *SandboxSession) resolveInnerPid() error {
 	return nil
 }
 
+// resolveTargetPid returns the sandboxed program's host PID. The inner bwrap
+// process is PID 1 inside the new PID namespace; its first child is the target
+// command that instrumentation tools should attach to.
+func (s *SandboxSession) resolveTargetPid() (int, error) {
+	if s.InnerPid == 0 {
+		if err := s.resolveInnerPid(); err != nil {
+			return 0, err
+		}
+	}
+	cmd := exec.Command("ps", "--ppid", strconv.Itoa(s.InnerPid), "-o", "pid=", "--no-headers")
+	out, err := cmd.Output()
+	if err != nil {
+		return 0, fmt.Errorf("failed to resolve sandbox target PID: %w", err)
+	}
+	fields := strings.Fields(string(out))
+	if len(fields) == 0 {
+		return 0, fmt.Errorf("no target child found for inner bwrap PID %d", s.InnerPid)
+	}
+	return strconv.Atoi(fields[0])
+}
+
 // spawnJoined spawns a process inside the sandbox's namespaces. It uses
 // `nsenter -t <InnerPid> -m -p -i -u -n -C -- <name> <args...>` to join all
 // of the sandbox's namespaces (mnt, pid, ipc, uts, net, cgroup) and then
@@ -59,7 +81,45 @@ func (s *SandboxSession) spawnJoined(name string, args ...string) (*exec.Cmd, er
 		[]string{"-t", strconv.Itoa(s.InnerPid), "-m", "-p", "-i", "-u", "-n", "-C", "--", name},
 		args...,
 	)
-	return s.spawn("nsenter", nsenterArgs...)
+	return s.spawnAsRoot("nsenter", nsenterArgs...)
+}
+
+// startToolProcess starts a tool with direct access to its pipes. Session
+// spawn() owns pipes for namespace logs, while streaming/RPC lanes need to
+// consume stdout/stderr themselves for their own WebSocket protocols.
+func (s *SandboxSession) startToolProcess(name string, joined bool, args ...string) (*exec.Cmd, io.WriteCloser, io.ReadCloser, io.ReadCloser, error) {
+	command, commandArgs := name, args
+	if joined {
+		if s.InnerPid == 0 {
+			if err := s.resolveInnerPid(); err != nil {
+				return nil, nil, nil, nil, err
+			}
+		}
+		commandArgs = append([]string{"-t", strconv.Itoa(s.InnerPid), "-m", "-p", "-i", "-u", "-n", "-C", "--", name}, args...)
+		command = "nsenter"
+		if !isRoot() {
+			commandArgs = append([]string{"nsenter"}, commandArgs...)
+			command = "sudo"
+		}
+	}
+	cmd := exec.CommandContext(s.ctx, command, commandArgs...)
+	cmd.Env = s.toolEnv(name)
+	stdin, err := cmd.StdinPipe()
+	if err != nil {
+		return nil, nil, nil, nil, err
+	}
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		return nil, nil, nil, nil, err
+	}
+	stderr, err := cmd.StderrPipe()
+	if err != nil {
+		return nil, nil, nil, nil, err
+	}
+	if err := cmd.Start(); err != nil {
+		return nil, nil, nil, nil, err
+	}
+	return cmd, stdin, stdout, stderr, nil
 }
 
 // spawnAsRoot spawns a process with root escalation via sudo when the engine

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { ScanSearch, Play } from 'lucide-react';
-import { useToolScan } from '../../hooks/useToolScan';
-import { useSandboxSession } from '../../hooks/useSandboxSession';
+import { useToolScan } from '../../../hooks/useToolScan';
+import { useSandboxSession } from '../../../hooks/useSandboxSession';
 
 type Severity = 'ERROR' | 'WARNING' | 'INFO';
 

@@ -34,19 +34,16 @@ Eight tool categories, each wired to real open-source engines rather than a simu
 * **bpftrace** — kernel-level tracing of the sandboxed process via eBPF probes.
 
 ### Reversing
-* **Ghidra** — headless `analyzeHeadless` runs producing a function list, cross-references, and a decompiled C view.
 * **Cutter** — radare2 GUI: graph view, ESIL evaluation, and an `r2` command console.
 * **ILSpy** — .NET decompiler: assembly tree to C#, IL, and MSIL disassembly.
 * **JADX** — APK/DEX to Java, with smali fallback, resource browser, and deobfuscation.
 
 ### Fuzzing
-* **LibAFL** — Rust fuzzing framework for composing custom executors, mutators, and corpus stages against the sandboxed target.
 * **AFL++** — coverage-guided fuzzing campaigns with live crash/hang/coverage monitoring.
 
 ### Static Analysis
 * **Semgrep** — pattern-based AST analysis with rule packs for OWASP classes, secrets, and custom patterns.
 * **Tree-sitter** — incremental parsing with a live syntax tree and S-expression queries.
-* **TruffleHog** — verified secret scanning across the filesystem, git history, and live repositories.
 
 ### Packet Capture
 * **Wireshark (TShark)** — live packet list with display filters, protocol columns, and stream following.
@@ -65,6 +62,43 @@ KNIRVENGINE turns its own error handling into part of the verification story. Wh
 * **Explains interactively** — a chat interface answers follow-up questions about a specific error and walks through remediation step by step.
 * **Recovers where it can** — retry logic with exponential backoff, plus a rule-based fallback analysis path when no LLM provider is reachable.
 * **Falls back safely** — if every provider is unreachable, the rule-based path still returns a categorized result instead of leaving the operator with nothing.
+
+## Tool Execution Architecture
+
+KNIRVENGINE runs verification tools through six execution lanes, each optimized for a different interaction pattern:
+
+### Lane 1 — Batch Scan
+Tools that run to completion and return structured output. The generic handler spawns a subprocess, captures stdout/stderr, and parses the result. Overlap is prevented per session+tool via a running lock.
+- **Tools:** Semgrep, JADX, ILSpy, jwt_tool
+- **Endpoint:** `POST /api/v1/sandboxes/{id}/tools/{tool}/run`
+
+### Lane 2 — Streaming Daemon
+Tools that produce continuous output. The handler starts the process, reads stdout/stderr line-by-line, and fans events out to WebSocket clients. Historical events are replayed to new connections.
+- **Tools:** bpftrace, tshark, zeek, afl-fuzz
+- **Endpoints:** `POST /api/v1/sandboxes/{id}/tools/{tool}/start`, `POST /api/v1/sandboxes/{id}/tools/{tool}/stop`, `GET /api/v1/sandboxes/{id}/tools/{tool}/ws`
+
+### Lane 3 — RPC Attach
+Tools that attach to a running process via a bridge subprocess. The handler starts the bridge, reads its output, and forwards commands from the frontend over WebSocket.
+- **Tools:** Frida
+- **Endpoints:** `POST /api/v1/sandboxes/{id}/tools/{tool}/attach`, `POST /api/v1/sandboxes/{id}/tools/{tool}/detach`, `GET /api/v1/sandboxes/{id}/tools/{tool}/attach/ws`
+
+### Lane 4 — Launch Modifier
+Tools that modify the sandbox launch configuration rather than running as a separate process.
+- **Tools:** proxychains-ng
+- **Endpoint:** `POST /api/v1/sandboxes/{id}/tools/proxychains/configure`
+
+### Lane 5 — Headless Native UI
+Tools that run headless but produce structured data for KNIRVENGINE's own UI. The handler spawns the tool, parses its output, and returns function lists, decompiled code, or listings.
+- **Tools:** Cutter
+- **Endpoint:** `POST /api/v1/sandboxes/{id}/tools/{tool}/analyze`
+
+### Lane 6 — Native Go
+Tools implemented directly in Go, running in-process without subprocess spawning. They receive the session and raw JSON arguments, returning structured results.
+- **Tools:** Tree-sitter, SAML Raider
+- **Endpoint:** `POST /api/v1/sandboxes/{id}/tools/{tool}/native`
+
+### Namespace Join (Phase 0)
+All tool execution lanes that need sandbox access use `nsenter -t <InnerPid> -m -p -i -u -n -C -- <cmd>` to join the sandbox's namespaces. The inner PID is resolved from bwrap's child process at sandbox start time.
 
 ## Network Integration
 
@@ -200,6 +234,18 @@ To change ports, edit `ports.config`, run `./sync-env.sh`, and restart. See [doc
 - `GET /api/v1/sandboxes/{id}/ws` — status/log WebSocket
 - `GET /api/v1/sandboxes/{id}/vnc` — VNC bridge WebSocket
 
+### Tool Execution
+- `POST /api/v1/sandboxes/{id}/tools/{tool}/run` — Lane 1 batch scan
+- `POST /api/v1/sandboxes/{id}/tools/{tool}/native` — Lane 6 native Go tool
+- `POST /api/v1/sandboxes/{id}/tools/{tool}/start` — Lane 2 start streaming
+- `POST /api/v1/sandboxes/{id}/tools/{tool}/stop` — Lane 2 stop streaming
+- `GET /api/v1/sandboxes/{id}/tools/{tool}/ws` — Lane 2 WebSocket events
+- `POST /api/v1/sandboxes/{id}/tools/{tool}/attach` — Lane 3 RPC attach
+- `POST /api/v1/sandboxes/{id}/tools/{tool}/detach` — Lane 3 detach
+- `GET /api/v1/sandboxes/{id}/tools/{tool}/attach/ws` — Lane 3 WebSocket
+- `POST /api/v1/sandboxes/{id}/tools/{tool}/analyze` — Lane 5 headless analysis
+- `POST /api/v1/sandboxes/{id}/tools/proxychains/configure` — Lane 4 proxy config
+
 ### Health
 - `GET /api/v1/health` — service health
 
@@ -255,7 +301,8 @@ make test-connectivity  # End-to-end connectivity tests
 ### Backend Extension
 1. Add new services implementing the appropriate interfaces.
 2. Register new API endpoints in `api/simple_server.go` (general API) or `api/sandbox_manager.go` (sandbox lifecycle).
-3. Extend database models in `database/models/`.
+3. For new verification tools, add a lane adapter in the appropriate `sandbox_tool_*.go` file (`sandbox_tool_scan.go` for Lane 1, `sandbox_tool_stream.go` for Lane 2, `sandbox_tool_attach.go` for Lane 3, `sandbox_tool_launchmod.go` for Lane 4, `sandbox_tool_headless.go` for Lane 5, `sandbox_tool_native.go` for Lane 6).
+4. Extend database models in `database/models/`.
 
 ## License
 

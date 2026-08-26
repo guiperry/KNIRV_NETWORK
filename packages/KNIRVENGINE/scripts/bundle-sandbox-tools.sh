@@ -31,7 +31,16 @@ OUT_DIR="${1:-tools}"
 BIN_DIR="$OUT_DIR"
 LIB_DIR="$OUT_DIR/lib"
 
-TOOLS=("bwrap" "Xvfb" "x11vnc")
+# Native Linux executables used by the sandbox and the real tool consoles.
+# Missing entries are deliberately non-fatal: the engine will show its normal
+# dependency error and can acquire the corresponding package at runtime.
+TOOLS=("bwrap" "Xvfb" "x11vnc" "java" "dotnet" "bpftrace" "tshark" "zeek" "afl-fuzz" "rizin" "proxychains4")
+
+# pip-installed consoles live in the managed venv rather than the system
+# Python. If a build environment has provisioned this venv, keep it in the
+# shipped bundle and walk the executable dependencies too.
+PYTHON_TOOLS=("semgrep" "jwt_tool.py" "frida")
+DOTNET_TOOLS=("ilspycmd")
 
 # glibc core libraries are provided by the host; do not bundle them.
 GLIBC_CORE_RE='^(ld-linux|libc|libm|libpthread|libdl|librt|libutil|libresolv|libmvec|libnsl|libBrokenLocale|libanl|libthread_db)\.so'
@@ -64,6 +73,32 @@ for tool in "${TOOLS[@]}"; do
 	echo "[bundle-sandbox-tools] bundled $tool -> $BIN_DIR/$tool"
 done
 
+# 1b. Preserve an already-provisioned managed Python venv. The directory is
+# intentionally copied as a unit because entrypoint scripts reference the venv
+# interpreter by relative path. Do not fail a normal native-only build if it is
+# absent.
+for tool in "${PYTHON_TOOLS[@]}"; do
+	src="$OUT_DIR/pyenv/bin/$tool"
+	if [ -x "$src" ]; then
+		enqueue "$src"
+		echo "[bundle-sandbox-tools] bundled managed Python tool $tool"
+	else
+		echo "[bundle-sandbox-tools] WARNING: managed Python tool '$tool' not found in $OUT_DIR/pyenv/bin" >&2
+	fi
+done
+
+# ILSpy is a managed dotnet global tool. Preserve its tool-path directory in
+# exactly the same way as the Python venv; the backend resolves it before PATH.
+for tool in "${DOTNET_TOOLS[@]}"; do
+	src="$OUT_DIR/dotnettools/$tool"
+	if [ -x "$src" ]; then
+		enqueue "$src"
+		echo "[bundle-sandbox-tools] bundled managed .NET tool $tool"
+	else
+		echo "[bundle-sandbox-tools] WARNING: managed .NET tool '$tool' not found in $OUT_DIR/dotnettools" >&2
+	fi
+done
+
 if [ "${#missing[@]}" -gt 0 ]; then
 	echo "[bundle-sandbox-tools] NOTE: ${missing[*]} were not bundled (not installed on this build host)." >&2
 fi
@@ -73,7 +108,10 @@ while [ ${#QUEUE[@]} -gt 0 ]; do
 	cur="${QUEUE[0]}"
 	QUEUE=("${QUEUE[@]:1}")
 
-	deps="$(ldd "$cur" 2>/dev/null | awk '/=>/ {print $3}' | grep -E '^/')"
+	# Managed Python/.NET launchers are scripts, not ELF files. They are still
+	# copied with their managed directory, but have no shared-library closure to
+	# walk. Keep an empty ldd result non-fatal under `set -euo pipefail`.
+	deps="$(ldd "$cur" 2>/dev/null | awk '/=>/ {print $3}' | grep -E '^/' || true)"
 	for dep in $deps; do
 		[ -e "$dep" ] || continue
 		base="$(basename "$dep")"

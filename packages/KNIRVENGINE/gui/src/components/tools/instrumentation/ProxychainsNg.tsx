@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { Waypoints, Play, Plus, Trash2 } from 'lucide-react';
+import { useSandboxSession } from '../../../hooks/useSandboxSession';
+import { configureProxychains } from '../../../services/sandboxToolService';
 
 type ChainType = 'dynamic_chain' | 'strict_chain' | 'random_chain';
 
@@ -11,14 +13,12 @@ interface ProxyEntry {
 }
 
 const ProxychainsNg: React.FC = () => {
+	const { session, isReady } = useSandboxSession();
   const [chainType, setChainType] = useState<ChainType>('dynamic_chain');
   const [quietMode, setQuietMode] = useState(true);
   const [proxyDns, setProxyDns] = useState(true);
-  const [proxies, setProxies] = useState<ProxyEntry[]>([
-    { id: 1, type: 'socks5', host: '127.0.0.1', port: 9050 },
-    { id: 2, type: 'http', host: '127.0.0.1', port: 8080 },
-  ]);
-  const [command, setCommand] = useState('./target_binary --connect api.targetapp.local');
+  const [proxies, setProxies] = useState<ProxyEntry[]>([]);
+  const [command, setCommand] = useState('');
   const [output, setOutput] = useState<string[]>([]);
   const [running, setRunning] = useState(false);
 
@@ -28,19 +28,27 @@ const ProxychainsNg: React.FC = () => {
 
   const removeProxy = (id: number) => setProxies(prev => prev.filter(p => p.id !== id));
 
-  const runCommand = () => {
-    setRunning(true);
-    const lines = [
-      `[proxychains] config file found: proxychains.conf`,
-      `[proxychains] preloading /usr/lib/libproxychains4.so`,
-      `[proxychains] ${chainType.replace('_', '-')}  ...  ${proxies[0]?.host}:${proxies[0]?.port}  ...  OK`,
-      `[proxychains] DNS request  api.targetapp.local  <>  resolved via proxy`,
-      ...proxies.slice(1).map(p => `[proxychains] ${chainType.replace('_', '-')}  ...  ${p.host}:${p.port}  ...  OK`),
-      `[proxychains] target_binary connected through ${proxies.length}-hop chain`,
-    ];
-    setOutput(lines);
-    setTimeout(() => setRunning(false), 400);
-  };
+	const runCommand = async () => {
+		if (!session) return;
+		setRunning(true);
+		try {
+			const result = await configureProxychains(session.id, {
+				chainType: chainType.replace('_chain', ''),
+				quietMode,
+				dnsServers: proxyDns ? ['8.8.8.8'] : [],
+				proxyList: proxies.filter(proxy => proxy.host && proxy.port > 0),
+			});
+			setOutput([
+				`[proxychains] configuration written: ${result.configPath}`,
+				`[proxychains] ${proxies.length} proxy endpoint(s) configured`,
+				'[proxychains] restart Bubble Wrap to launch the target through this chain.',
+			]);
+		} catch (error) {
+			setOutput([`[proxychains] ${error instanceof Error ? error.message : String(error)}`]);
+		} finally {
+			setRunning(false);
+		}
+	};
 
   return (
     <div className="h-full bg-slate-900 p-6">
@@ -130,7 +138,7 @@ const ProxychainsNg: React.FC = () => {
 
         {/* launcher */}
         <div className="bg-slate-800/50 border border-slate-700/50 rounded-lg p-4 flex flex-col">
-          <div className="text-xs uppercase text-slate-500 mb-2">Run under chain</div>
+		  <div className="text-xs uppercase text-slate-500 mb-2">Configure next launch</div>
           <div className="flex items-center space-x-2 mb-3">
             <span className="text-slate-500 font-mono text-xs">proxychains4 -q</span>
             <input
@@ -140,11 +148,11 @@ const ProxychainsNg: React.FC = () => {
             />
             <button
               onClick={runCommand}
-              disabled={running}
+			  disabled={running || !isReady}
               className="flex items-center space-x-1 px-2.5 py-1.5 rounded bg-blue-500/20 text-blue-300 hover:bg-blue-500/30 text-xs disabled:opacity-50"
             >
               <Play className="w-3.5 h-3.5" />
-              <span>run</span>
+			  <span>apply</span>
             </button>
           </div>
           <div className="flex-1 bg-slate-900/60 rounded p-2 font-mono text-xs text-slate-400 overflow-y-auto min-h-[220px]">

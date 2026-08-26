@@ -214,9 +214,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const subPageAccess: Record<string, Record<string, string[]>> = {
     'instrumentation': uniformSubAccess(['frida', 'proxychains-ng', 'bpftrace']),
-    'reversing': uniformSubAccess(['ghidra', 'cutter', 'ilspy', 'jadx']),
-    'fuzzing': uniformSubAccess(['libafl', 'aflplusplus']),
-    'static-analysis': uniformSubAccess(['semgrep', 'tree-sitter', 'trufflehog']),
+	'reversing': uniformSubAccess(['cutter', 'ilspy', 'jadx']),
+	'fuzzing': uniformSubAccess(['aflplusplus']),
+	'static-analysis': uniformSubAccess(['semgrep', 'tree-sitter']),
     'packet-capture': uniformSubAccess(['wireshark', 'zeek']),
     'auth-audit': uniformSubAccess(['jwt-tool', 'saml-raider']),
     'sandbox': uniformSubAccess(['bubblewrap', 'novnc'])

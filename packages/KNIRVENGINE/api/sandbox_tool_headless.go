@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"os/exec"
+	"time"
 
 	"github.com/gorilla/mux"
 )
@@ -14,10 +15,11 @@ import (
 // tools. Structured data is rendered in KNIRVENGINE's own UI.
 type ToolHeadlessResult struct {
 	Tool       string         `json:"tool"`
+	RawOutput  string         `json:"rawOutput,omitempty"`
 	Functions  []FunctionInfo `json:"functions,omitempty"`
 	Decompiled string         `json:"decompiled,omitempty"`
 	Listing    string         `json:"listing,omitempty"`
-	StartedAt  string         `json:"startedAt"`
+	StartedAt  time.Time      `json:"startedAt"`
 	DurationMs int64          `json:"durationMs"`
 }
 
@@ -80,13 +82,11 @@ func (m *SandboxManager) handleToolHeadless(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	binary := resolveSandboxTool(adapter.binary)
-	if binary == adapter.binary {
-		if _, err := exec.LookPath(binary); err != nil {
-			RespondWithValidationError(w, fmt.Sprintf("tool binary %q not found", binary))
-			return
-		}
+	if err := ensureToolAvailable(adapter.binary); err != nil {
+		RespondWithValidationError(w, err.Error())
+		return
 	}
+	binary := resolveSandboxTool(adapter.binary)
 
 	cmd := exec.CommandContext(session.ctx, binary, argv...)
 	cmd.Env = session.toolEnv(binary)
@@ -116,9 +116,11 @@ func (m *SandboxManager) handleToolHeadless(w http.ResponseWriter, r *http.Reque
 	}
 
 	RespondWithSuccess(w, ToolHeadlessResult{
-		Tool:      tool,
-		Listing:   stdout.String(),
-		StartedAt: "", // filled by caller
+		Tool:       tool,
+		RawOutput:  stdout.String(),
+		Listing:    stdout.String(),
+		StartedAt:  time.Now(),
+		DurationMs: 0,
 	}, fmt.Sprintf("%s analysis complete", tool))
 }
 

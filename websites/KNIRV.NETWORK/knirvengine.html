@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en" class="js">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="author" content="KNIRV Network">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="description" content="KNIRVENGINE — the verification layer of the KNIRV Network. Coding is solved; bugs are not. A sandboxed desktop platform that proves software behaves the way its author claims before it earns trust.">
+    <meta name="keywords" content="KNIRVENGINE, verification layer, sandbox, fuzzing, reverse engineering, static analysis, KNIRVORACLE, evidence-based trust, AI agent verification">
+
+    <link rel="canonical" href="https://knirv.network/knirvengine.html">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://knirv.network/knirvengine.html">
+    <meta property="og:title" content="KNIRVENGINE | Coding Is Solved. Bugs Are Not.">
+    <meta property="og:description" content="The verification layer of the KNIRV Network — a sandboxed toolbench that proves software behaves the way its author claims, before it's trusted.">
+    <meta property="og:image" content="https://knirv.network/images/social/knirvengine-card.png">
+
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:url" content="https://knirv.network/knirvengine.html">
+    <meta name="twitter:title" content="KNIRVENGINE — Coding Is Solved. Bugs Are Not.">
+    <meta name="twitter:description" content="Sandboxed. Instrumented. Evidence-gated. KNIRVENGINE is the verification layer standing between generated code and trusted code.">
+    <meta name="twitter:image" content="https://knirv.network/images/social/knirvengine-card.png">
+
+    <link rel="shortcut icon" href="assets/favicon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="assets/favicon-16x16.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="assets/apple-touch-icon.png">
+
+    <title>KNIRVENGINE | Coding Is Solved. Bugs Are Not.</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="assets/css/vendor.bundle.css?ver=210">
+    <link rel="stylesheet" href="assets/css/style-dark.css?ver=210">
+    <link rel="stylesheet" href="assets/css/theme.css?ver=210">
+    <link rel="stylesheet" href="assets/css/rtl.css?ver=210">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .animated-logo-container { width:200px; height:60px; display:flex; align-items:center; justify-content:center }
+        .product-card {
+            background: rgba(43, 86, 245, 0.1);
+            border: 1px solid rgba(43, 86, 245, 0.3);
+            border-radius: 12px;
+            padding: 2rem;
+            text-align: center;
+            margin: 1rem 0;
+            transition: all 0.3s ease;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+        .product-card:hover {
+            transform: translateY(-5px);
+            border-color: rgba(43, 86, 245, 0.6);
+            background: rgba(43, 86, 245, 0.15);
+        }
+        .stat-tile { text-align: center; }
+        .stat-tile .stat-num { font-size: 2.4rem; font-weight: 900; background: linear-gradient(135deg, #00c0fa 0%, #2b56f5 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+        .stat-tile .stat-label { font-size: .72rem; letter-spacing: .08em; text-transform: uppercase; color: rgba(255,255,255,.45); margin-top: 6px; }
+        .usecase-card { padding: 1.75rem; border-radius: 16px; border: 1px solid rgba(255,255,255,.08); background: rgba(255,255,255,.02); height: 100%; }
+        .usecase-tag { display: inline-block; font-size: .62rem; font-weight: 900; letter-spacing: .1em; text-transform: uppercase; color: #6fb8ff; background: rgba(43,86,245,.12); border: 1px solid rgba(43,86,245,.25); border-radius: 999px; padding: 4px 10px; margin-bottom: .9rem; }
+        .phase-tile { text-align: center; }
+        .phase-tile .phase-n { width: 56px; height: 56px; margin: 0 auto 10px; border-radius: 14px; background: linear-gradient(135deg, rgba(43,86,245,.28), rgba(0,192,250,.18)); border: 1px solid rgba(43,86,245,.32); display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: .72rem; color: #6fb8ff; }
+        .security-log { border-radius: 16px; border: 1px solid rgba(239,68,68,.22); background: rgba(0,0,0,.35); padding: 1.4rem; font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace; font-size: .74rem; line-height: 1.9; }
+        .security-log .row-time { color: rgba(255,255,255,.25); }
+        .deploy-card { padding: 1.75rem; border-radius: 18px; border: 1px solid rgba(255,255,255,.1); background: rgba(255,255,255,.03); height: 100%; }
+        .deploy-card.cloud { border-color: rgba(0,192,250,.3); background: rgba(0,192,250,.05); }
+        .pull-quote { border-left: 3px solid #2b56f5; padding: .2rem 0 .2rem 1.4rem; font-size: 1.15rem; font-style: italic; color: rgba(255,255,255,.75); margin: 1.5rem 0; }
+        .verify-table { width: 100%; border-collapse: collapse; }
+        .verify-table th, .verify-table td { padding: .9rem 1rem; border-bottom: 1px solid rgba(255,255,255,.08); text-align: left; font-size: .88rem; }
+        .verify-table th { color: #6fb8ff; text-transform: uppercase; letter-spacing: .06em; font-size: .68rem; }
+        .verify-table td.status-solved { color: #3ad06b; font-weight: 700; }
+        .verify-table td.status-progress { color: #ffb84d; font-weight: 700; }
+        .verify-table td.status-human { color: #ff9d9d; font-weight: 700; }
+        .conclusion-band { background: linear-gradient(135deg, rgba(43,86,245,.14), rgba(0,192,250,.06)); border: 1px solid rgba(43,86,245,.28); border-radius: 20px; padding: 2.5rem; }
+    </style>
+</head>
+
+<body class="nk-body body-wider theme-dark mode-onepage">
+    <div class="nk-wrap">
+        <header class="nk-header page-header is-transparent is-sticky is-shrink is-dark" id="header">
+            <div class="header-main">
+                <div class="header-container container">
+                    <div class="header-wrap">
+                        <div class="header-logo logo animated" data-animate="fadeInDown" data-delay=".65">
+                            <a href="./" class="logo-link"><div id="animated-logo" class="animated-logo-container"></div></a>
+                        </div>
+                        <div class="header-nav-toggle">
+                            <a href="#" class="navbar-toggle" data-menu-toggle="example-menu-04"><div class="toggle-line"><span></span></div></a>
+                        </div>
+                        <div class="header-navbar header-navbar-s1">
+                            <nav class="header-menu" id="example-menu-04">
+                                <ul class="menu menu-s2 animated" data-animate="fadeInDown" data-delay=".75">
+                                    <li class="menu-item"><a class="menu-link nav-link" href="index.html">Home</a></li>
+                                    <li class="menu-item"><a class="menu-link nav-link" href="index.html#ecosystem">Ecosystem</a></li>
+                                    <li class="menu-item"><a class="menu-link nav-link" href="index.html#token">NRN Economics</a></li>
+                                    <li class="menu-item has-sub">
+                                        <a class="menu-link nav-link menu-toggle" href="#">Products</a>
+                                        <ul class="menu-sub menu-drop">
+                                            <li class="menu-item"><a class="menu-link nav-link" href="products.html">All Products</a></li>
+                                            <li class="menu-item"><a class="menu-link nav-link" href="knirvserver.html">KNIRVSERVER</a></li>
+                                            <li class="menu-item"><a class="menu-link nav-link" href="knirvcli.html">KNIRVCLI</a></li>
+                                            <li class="menu-item"><a class="menu-link nav-link" href="knirvcontroller.html">KNIRVCONTROLLER</a></li>
+                                            <li class="menu-item"><a class="menu-link nav-link" href="knirvoracle.html">KNIRVORACLE</a></li>
+                                            <li class="menu-item"><a class="menu-link nav-link" href="knirvengine.html">KNIRVENGINE</a></li>
+                                        </ul>
+                                    </li>
+                                    <li class="menu-item"><a class="menu-link nav-link" href="Whitepapers.html">Whitepapers</a></li>
+                                </ul>
+                                <ul class="menu-btns animated" data-animate="fadeInDown" data-delay=".85">
+                                    <li><a href="https://github.com/guiperry/KNIRV-Engine" class="btn btn-rg btn-auto btn-outline btn-grad on-bg-theme btn-round"><span>GitHub</span></a></li>
+                                    <li><a href="#conclusion" class="btn btn-rg btn-auto btn-outline btn-grad on-bg-theme btn-round"><span>Why It's the Solution</span></a></li>
+                                </ul>
+                            </nav>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="header-banner bg-theme-dark">
+                <div class="nk-banner">
+                    <div class="banner banner-mask-fix banner-fs banner-single tc-light">
+                        <div class="banner-wrap">
+                            <div class="container">
+                                <div class="row align-items-center justify-content-center gutter-vr-30px">
+                                    <div class="col-lg-6 order-lg-last">
+                                        <div class="banner-gfx banner-gfx-re-s3 animated" data-animate="fadeInUp" data-delay="1.25">
+                                            <img src="images/dark/gfx-d-dark.png" alt="KNIRVENGINE Verification Sandbox">
+                                            <img class="banner-gfx-icon banner-gfx-icon-1" src="images/icons/icon-custom.png" alt="Verification Icon">
+                                            <img class="banner-gfx-icon banner-gfx-icon-2" src="images/icons/icon-bitcoin.png" alt="Evidence Icon">
+                                        </div>
+                                    </div>
+                                    <div class="col-lg-6">
+                                        <div class="banner-caption wide-auto text-center text-lg-start">
+                                            <div class="cpn-head mt-0">
+                                                <h1 class="title title-xl-2 title-semibold animated" data-animate="fadeInUp" data-delay="1.35">Coding Is Solved.<br/>Bugs Are Not.</h1>
+                                            </div>
+                                            <div class="cpn-text cpn-text-s1">
+                                                <p class="lead animated" data-animate="fadeInUp" data-delay="1.45">A viral claim split the engineering community: AI now writes functional code as well as, or better than, most developers. It's not wrong. But writing code was never the hard part &mdash; <em>proving</em> it does what it claims is. KNIRVENGINE is the verification layer that closes that gap: one sandbox, one operator console, the full security-review toolchain wired directly against the thing you're about to trust.</p>
+                                            </div>
+                                            <div class="cpn-btns">
+                                                <ul class="btn-grp animated" data-animate="fadeInUp" data-delay="1.55">
+                                                    <li><a href="#toolbench" class="btn btn-md btn-grad btn-round">See the Toolbench</a></li>
+                                                    <li><a href="#bugs-not-solved" class="btn btn-md btn-grad btn-grad-alternet btn-round">Why Bugs Persist</a></li>
+                                                    <li><a href="https://github.com/guiperry/KNIRV-Engine/blob/main/KNIRV-ENGINE_Whitepaper.md" class="btn btn-md btn-outline btn-grad on-bg-theme btn-round">Read the Whitepaper</a></li>
+                                                </ul>
+                                            </div>
+                                            <div class="mt-4" style="display:flex;flex-wrap:wrap;gap:8px 20px;">
+                                                <span class="text-white-50" style="font-size:.72rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;">&#10003; Sandboxed by Construction</span>
+                                                <span class="text-white-50" style="font-size:.72rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;">&#10003; 8 Verification Categories</span>
+                                                <span class="text-white-50" style="font-size:.72rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;">&#10003; Evidence-Gated Registration</span>
+                                                <span class="text-white-50" style="font-size:.72rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;">&#10003; AI Error Inference</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="nk-ovm mask-c-dark shape-v mask-contain-bottom"></div>
+                <div id="particles-bg" class="particles-container particles-bg" data-pt-base="#00c0fa" data-pt-base-op=".3" data-pt-line="#2b56f5" data-pt-line-op=".5" data-pt-shape="#00c0fa" data-pt-shape-op=".2"></div>
+            </div>
+        </header>
+        <main class="nk-pages">
+
+            <!-- What "coding is solved" means -->
+            <section class="section mask-c-blend-dark bg-theme-dark-alt tc-light ov-h" id="coding-solved">
+                <div class="container">
+                    <div class="section-head text-center wide-auto-sm">
+                        <h2 class="title title-s4 animated" data-animate="fadeInUp" data-delay=".1">What "Coding Is Solved" Actually Means</h2>
+                        <p class="animated" data-animate="fadeInUp" data-delay=".2">The claim is only outrageous if you conflate three very different things. Split them apart, and the timeline is uncomfortably clear.</p>
+                    </div>
+                    <div class="nk-block">
+                        <div class="row justify-content-center gutter-vr-40px">
+                            <div class="col-lg-4 col-md-6">
+                                <div class="product-card animated" data-animate="fadeInUp" data-delay=".3">
+                                    <h4>Typing Code &mdash; Solved</h4>
+                                    <p>If coding means generating functioning source inside an editor, frontier models already do it as well as, or better than, most developers &mdash; without a human typing a key.</p>
+                                </div>
+                            </div>
+                            <div class="col-lg-4 col-md-6">
+                                <div class="product-card animated" data-animate="fadeInUp" data-delay=".4">
+                                    <h4>Coding-Adjacent Work &mdash; Emerging</h4>
+                                    <p>Debugging, profiling, and optimization are improving fast, but agents still submit changes without confirming they actually ran the app they just changed.</p>
+                                </div>
+                            </div>
+                            <div class="col-lg-4 col-md-6">
+                                <div class="product-card animated" data-animate="fadeInUp" data-delay=".5">
+                                    <h4>Full Engineering &mdash; Still Human-Led</h4>
+                                    <p>Planning, architecture, verification frameworks, and product judgment remain the part of the loop that AI hasn't closed &mdash; and it's the part where bugs actually live.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="section bg-theme-dark-alt tc-light border-b border-top">
+                <div class="container">
+                    <div class="row justify-content-center gutter-vr-30px">
+                        <div class="col-6 col-md-3 stat-tile"><div class="stat-num">8</div><div class="stat-label">Verification Tool Categories</div></div>
+                        <div class="col-6 col-md-3 stat-tile"><div class="stat-num">1</div><div class="stat-label">Sandboxed Namespace per Target</div></div>
+                        <div class="col-6 col-md-3 stat-tile"><div class="stat-num">3</div><div class="stat-label">AI Providers, Automatic Fallback</div></div>
+                        <div class="col-6 col-md-3 stat-tile"><div class="stat-num">4</div><div class="stat-label">Steps: Load, Provision, Verify, Register</div></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Engineering vs coding -->
+            <section class="section bg-theme-dark tc-light ov-h" id="engineering-vs-coding">
+                <div class="container">
+                    <div class="nk-block nk-block-text-wrap">
+                        <div class="row align-items-center justify-content-center justify-content-md-between gutter-vr-30px">
+                            <div class="col-mb-9 col-sm-7 col-md-6 col-lg-5 order-md-last">
+                                <div class="nk-block-img animated" data-animate="fadeInUp" data-delay=".1">
+                                    <img src="images/light/gfx-z-a.png" alt="Software Engineering Loop Beyond Coding">
+                                </div>
+                            </div>
+                            <div class="col-sm-10 col-md-6 text-center text-md-start">
+                                <div class="nk-block-text">
+                                    <h2 class="title animated" data-animate="fadeInUp" data-delay=".2">Engineering Is Bigger Than Coding</h2>
+                                    <p class="lead animated" data-animate="fadeInUp" data-delay=".3">Software engineering is the entire lifecycle around the code, not the code itself. AI agents are strong at generation and increasingly capable at coding-adjacent tasks &mdash; but the loop stays broken wherever verification is missing.</p>
+                                    <ul class="list list-dot pdb-r">
+                                        <li class="animated" data-animate="fadeInUp" data-delay=".4">Planning &mdash; figuring out what to build</li>
+                                        <li class="animated" data-animate="fadeInUp" data-delay=".45">Verification &mdash; testing and quality assurance</li>
+                                        <li class="animated" data-animate="fadeInUp" data-delay=".5">Architecting systems for continuous iteration</li>
+                                        <li class="animated" data-animate="fadeInUp" data-delay=".55">Managing feedback loops between users, specs, and code</li>
+                                    </ul>
+                                    <div class="pull-quote">"Models are coding better than I do; some coding-adjacent work too. But full engineering is far from solved."</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Why bugs persist -->
+            <section class="section bg-theme-dark-alt tc-light" id="bugs-not-solved">
+                <div class="container">
+                    <div class="row align-items-center gutter-vr-30px">
+                        <div class="col-lg-6">
+                            <h2 class="title title-s4">Why Bugs Are Not Yet Solved</h2>
+                            <p class="text-white-50">AI can write functional code but has no built-in mechanism to prove that code works as intended before it merges. A binary can claim a capability it doesn't have, mishandle a token it says it validates, or fail silently under input its author never imagined &mdash; and none of that is visible from source review alone.</p>
+                            <ul class="list-unstyled text-white-50">
+                                <li class="mb-2">&bull; Agents submit PRs without confirming they tested the actual app</li>
+                                <li class="mb-2">&bull; Fragile local environments mean even humans defer testing to CI</li>
+                                <li class="mb-2">&bull; Verifying properly means running the target in isolation, under instrumentation, against hostile input</li>
+                                <li class="mb-2">&bull; Doing that by hand, tool by tool, host by host, is exactly the friction that causes teams to skip it</li>
+                            </ul>
+                        </div>
+                        <div class="col-lg-6">
+                            <div class="security-log">
+                                <div class="mb-2" style="color:#3ad0ff;font-weight:800;text-transform:uppercase;font-size:.68rem;letter-spacing:.08em;">&#9679; KNIRVENGINE Session &mdash; Verify Phase</div>
+                                <div><span class="row-time">09:14:02.118</span> <span class="text-white-50">[SANDBOX] bwrap namespace running, target isolated</span></div>
+                                <div><span class="row-time">09:14:03.402</span> <span style="color:#3ad06b">[GHIDRA]</span> <span class="text-white-50">headless analysis complete &mdash; 214 functions decompiled</span></div>
+                                <div><span class="row-time">09:14:04.717</span> <span style="color:#ffb84d">[TRUFFLEHOG]</span> <span class="text-white-50">verified secret found in config bundle</span></div>
+                                <div><span class="row-time">09:14:06.930</span> <span style="color:#3ad0ff">[FRIDA]</span> <span class="text-white-50">hooked TLS write &mdash; plaintext payload captured</span></div>
+                                <div><span class="row-time">09:14:09.244</span> <span style="color:#ff9d4d;font-weight:700">[AFL++]</span> <span class="text-white-50">crash reproduced after 41,208 executions</span></div>
+                                <div><span class="row-time">09:14:11.008</span> <span style="color:#ff5b5b;font-weight:700">[JWT_TOOL]</span> <span class="text-white-50">alg:none tamper accepted &mdash; auth bypass confirmed</span></div>
+                                <div><span class="row-time">09:14:11.500</span> <span style="color:#3ad06b;font-weight:800">[REGISTER]</span> <span class="text-white-50">evidence packaged for KNIRVORACLE submission</span></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Real world example -->
+            <section class="section bg-theme-dark tc-light" id="real-world">
+                <div class="container">
+                    <div class="section-head text-center wide-auto-sm">
+                        <h2 class="title title-s4 animated" data-animate="fadeInUp" data-delay=".1">A Familiar Bug</h2>
+                        <p class="animated" data-animate="fadeInUp" data-delay=".2">The Cloud Code desktop app shipped an update popup with text cut off at the edge &mdash; the model generating the UI never considered the layout constraint. In human-driven development, someone usually renders the UI before merging. Agents, left unverified, often don't.</p>
+                    </div>
+                    <div class="row justify-content-center">
+                        <div class="col-lg-9">
+                            <div class="usecase-card text-center">
+                                <div class="usecase-tag">The Gap</div>
+                                <p class="text-white-50 mb-0">Coding generated the popup. Nothing actually rendered it, clicked through it, or exercised it against real input before it shipped. That's not a coding failure &mdash; it's a missing verification step. It's exactly the gap KNIRVENGINE exists to close.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- The toolbench -->
+            <section class="section mask-c-blend-dark bg-theme-dark-alt tc-light ov-h" id="toolbench">
+                <div class="container">
+                    <div class="section-head text-center wide-auto-sm">
+                        <h2 class="title title-s4 animated" data-animate="fadeInUp" data-delay=".1">One Sandbox. The Full Toolbench.</h2>
+                        <p class="animated" data-animate="fadeInUp" data-delay=".2">Eight tool categories, each a thin operator surface over a real open-source engine &mdash; not a simulated approximation of one. Every one operates against the same live, isolated target.</p>
+                    </div>
+                    <div class="nk-block">
+                        <div class="row gutter-vr-30px">
+                            <div class="col-lg-3 col-md-6"><div class="product-card"><h4>Sandbox</h4><p>Bubblewrap unprivileged namespaces plus noVNC &mdash; the target is actually isolated, and its display is observable live.</p></div></div>
+                            <div class="col-lg-3 col-md-6"><div class="product-card"><h4>Proxy</h4><p>Interception and replay of the target's egress &mdash; what it actually sends and receives, not what its docs claim.</p></div></div>
+                            <div class="col-lg-3 col-md-6"><div class="product-card"><h4>Instrumentation</h4><p>Frida, proxychains-ng, and bpftrace &mdash; runtime behavior at the function-hook, socket, and kernel-trace level.</p></div></div>
+                            <div class="col-lg-3 col-md-6"><div class="product-card"><h4>Reversing</h4><p>Ghidra, Cutter, ILSpy, and JADX &mdash; the target's actual compiled structure across native, .NET, and Android binaries.</p></div></div>
+                            <div class="col-lg-3 col-md-6"><div class="product-card"><h4>Fuzzing</h4><p>LibAFL and AFL++ &mdash; resilience against inputs the target's author didn't anticipate.</p></div></div>
+                            <div class="col-lg-3 col-md-6"><div class="product-card"><h4>Static Analysis</h4><p>Semgrep, Tree-sitter, and TruffleHog &mdash; vulnerability classes, syntax-tree structure, and embedded secrets.</p></div></div>
+                            <div class="col-lg-3 col-md-6"><div class="product-card"><h4>Packet Capture</h4><p>Wireshark (TShark) and Zeek &mdash; protocol-level ground truth for anything the target puts on the wire.</p></div></div>
+                            <div class="col-lg-3 col-md-6"><div class="product-card"><h4>Auth Audit</h4><p>jwt_tool and SAML Raider &mdash; whether the auth flow actually resists tampering, not just whether it implements one.</p></div></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- How to prepare -->
+            <section class="section bg-theme-dark tc-light" id="prepare">
+                <div class="container">
+                    <div class="section-head text-center wide-auto-sm">
+                        <h2 class="title title-s4 animated" data-animate="fadeInUp" data-delay=".1">How to Prepare Your Engineering System for AI Agents</h2>
+                        <p class="animated" data-animate="fadeInUp" data-delay=".2">This is the workflow infrastructure that lets AI coding assistants actually pay off &mdash; and it's the sequence KNIRVENGINE enforces by construction, not by convention.</p>
+                    </div>
+                    <div class="row gutter-vr-30px">
+                        <div class="col-lg-4 col-md-6">
+                            <div class="usecase-card"><div class="usecase-tag">Build for Verification</div><h4>One Sandbox, Every Tool</h4><p class="text-white-50 small">A dependency-check pass confirms every underlying tool binary is present before a session starts, so a sandbox never silently degrades into a partial verification.</p></div>
+                        </div>
+                        <div class="col-lg-4 col-md-6">
+                            <div class="usecase-card"><div class="usecase-tag">Enable Self-Verification</div><h4>RequireSandbox, Not Optional</h4><p class="text-white-50 small">Every tool view refuses to activate until the sandbox is confirmed <code>running</code> &mdash; there is no path to point a tool at an unsandboxed target, human or agent.</p></div>
+                        </div>
+                        <div class="col-lg-4 col-md-6">
+                            <div class="usecase-card"><div class="usecase-tag">Close the Feedback Loop</div><h4>Evidence Into KNIRVORACLE</h4><p class="text-white-50 small">Findings, corpora, and captures travel with the report or workflow submission into KNIRVORACLE's registration path &mdash; verification feeds planning instead of disappearing into a log.</p></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Tactical vs strategic -->
+            <section class="section bg-theme-dark-alt tc-light">
+                <div class="container">
+                    <div class="section-head text-center wide-auto-sm">
+                        <h2 class="title title-s4 animated" data-animate="fadeInUp" data-delay=".1">Tactical Tornadoes, Strategic Judgment</h2>
+                        <p class="animated" data-animate="fadeInUp" data-delay=".2">AI agents now operate as tactical tornadoes &mdash; churning out code fast, with little strategic foresight. Verification is where the two modes have to meet.</p>
+                    </div>
+                    <div class="row justify-content-center gutter-vr-30px">
+                        <div class="col-lg-5 col-md-6">
+                            <div class="deploy-card">
+                                <h4>Tactical Programming</h4>
+                                <p class="text-white-50 small">Day-to-day writing, fixing, and shipping code &mdash; largely automated by AI today.</p>
+                            </div>
+                        </div>
+                        <div class="col-lg-5 col-md-6">
+                            <div class="deploy-card cloud">
+                                <h4>Strategic Engineering</h4>
+                                <p class="text-white-50 small">Long-term planning, architecture, and maintainability decisions &mdash; still a human forte, and exactly what verification evidence is supposed to inform.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Summary table -->
+            <section class="section bg-theme-dark tc-light" id="summary">
+                <div class="container">
+                    <div class="section-head text-center wide-auto-sm">
+                        <h2 class="title title-s4 animated" data-animate="fadeInUp" data-delay=".1">Coding &amp; Engineering in the AI Era</h2>
+                        <p class="animated" data-animate="fadeInUp" data-delay=".2">Where each part of the loop stands today &mdash; and what closes the remaining gap.</p>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="verify-table">
+                            <thead>
+                                <tr>
+                                    <th>Aspect</th>
+                                    <th>AI Capability Status</th>
+                                    <th>What Closes the Gap</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr><td>Coding (typing code)</td><td class="status-solved">Solved</td><td class="text-white-50">AI writes and debugs code autonomously</td></tr>
+                                <tr><td>Verification</td><td class="status-progress">In progress</td><td class="text-white-50">KNIRVENGINE &mdash; sandboxed toolbench, run before anything is trusted</td></tr>
+                                <tr><td>Tactical programming</td><td class="status-solved">Mostly automated</td><td class="text-white-50">Day-to-day fixes and feature shipping</td></tr>
+                                <tr><td>Strategic engineering</td><td class="status-human">Human-led</td><td class="text-white-50">Architecture and planning, informed by KNIRVENGINE evidence</td></tr>
+                                <tr><td>Bug resolution</td><td class="status-progress">Partial AI support</td><td class="text-white-50">Detailed specs + fuzzing/instrumentation corpora from KNIRVENGINE</td></tr>
+                                <tr><td>Trust in a submission</td><td class="status-human">Essential, ungoverned</td><td class="text-white-50">KNIRVORACLE registration gated on KNIRVENGINE evidence, not self-report</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Conclusion -->
+            <section class="section bg-theme-dark-alt tc-light" id="conclusion">
+                <div class="container text-center">
+                    <div class="conclusion-band">
+                        <h2 class="title title-s4 animated" data-animate="fadeInUp" data-delay=".1">KNIRVENGINE Is the Solution</h2>
+                        <p class="lead animated" data-animate="fadeInUp" data-delay=".2" style="max-width:760px;margin:0 auto;">Trust in software &mdash; and in the AI workflows built on top of it &mdash; should rest on evidence produced by actually running the thing, not on a submission's own account of itself. KNIRVENGINE makes sandboxed, instrumented verification the default first step rather than an optional extra, and feeds what that verification produces directly into KNIRVORACLE's registration path. It turns "this was checked" from a claim into a matter of record &mdash; the missing half of "coding is solved."</p>
+                        <div class="row justify-content-center gutter-vr-30px mt-4">
+                            <div class="col-lg-5 col-md-6">
+                                <div class="deploy-card text-start">
+                                    <h4>Desktop Platform</h4>
+                                    <p class="text-white-50 small">Go binary, embedded React/TypeScript console</p>
+                                    <ul class="list-unstyled text-white-50 small">
+                                        <li class="mb-1">&#10003; Sandboxed by construction, not convention</li>
+                                        <li class="mb-1">&#10003; Load &rarr; Provision &rarr; Verify &rarr; Register</li>
+                                        <li class="mb-1">&#10003; Linux, macOS, Windows</li>
+                                        <li class="mb-1">&#10003; Role-gated per tool and sub-tool</li>
+                                    </ul>
+                                    <a href="https://github.com/guiperry/KNIRV-Engine" class="btn btn-md btn-grad btn-round w-100">Self-Host on GitHub</a>
+                                </div>
+                            </div>
+                            <div class="col-lg-5 col-md-6">
+                                <div class="deploy-card cloud text-start">
+                                    <h4>The Whitepaper</h4>
+                                    <p class="text-white-50 small">Architecture, guarantees, and the case for evidence over self-report</p>
+                                    <ul class="list-unstyled text-white-50 small">
+                                        <li class="mb-1">&#10003; Sandbox layer &amp; namespace isolation</li>
+                                        <li class="mb-1">&#10003; The verification workflow, tool by tool</li>
+                                        <li class="mb-1">&#10003; Integration with KNIRVORACLE &amp; KNIRVCONTROLLER</li>
+                                        <li class="mb-1">&#10003; Security and isolation guarantees</li>
+                                    </ul>
+                                    <a href="https://github.com/guiperry/KNIRV-Engine/blob/main/KNIRV-ENGINE_Whitepaper.md" class="btn btn-md btn-grad btn-grad-alternet btn-round w-100">Read the Whitepaper</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+    <script src="assets/js/jquery.bundle.js?ver=210"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="assets/js/scripts.js?ver=210"></script>
+    <script src="js/config-loader.js"></script>
+    <script src="js/universal-footer.js"></script>
+</body>
+</html>

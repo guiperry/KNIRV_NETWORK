@@ -6,6 +6,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/gorilla/mux"
 )
@@ -155,6 +156,33 @@ func TestSpawnJoined_RequiresInnerPid(t *testing.T) {
 	}
 }
 
+func TestMountedTargetDirSkipsSandboxBootstrapBinds(t *testing.T) {
+	session := &SandboxSession{binds: []SandboxBind{
+		{Mode: "ro-bind", Src: "/usr", Dst: "/usr"},
+		{Mode: "ro-bind", Src: "/lib", Dst: "/lib"},
+		{Mode: "bind", Src: "/workspace/target", Dst: "/workspace/target"},
+	}}
+	if got := mountedTargetDir(session); got != "/workspace/target" {
+		t.Fatalf("mountedTargetDir() = %q, want project bind", got)
+	}
+}
+
+func TestAllPlannedToolsAreRegistered(t *testing.T) {
+	for _, tool := range []string{"semgrep", "jadx", "ilspy", "jwt-tool"} {
+		if !isLane1Tool(tool) {
+			t.Errorf("Lane 1 tool %q is not registered", tool)
+		}
+	}
+	for _, tool := range []string{"bpftrace", "tshark", "zeek", "afl-fuzz"} {
+		if !isLane2Tool(tool) {
+			t.Errorf("Lane 2 tool %q is not registered", tool)
+		}
+	}
+	if !isLane3Tool("frida") || !isLane5Tool("cutter") || !isLane6Tool("tree-sitter") || !isLane6Tool("saml-raider") {
+		t.Error("one or more Lane 3/5/6 tools are not registered")
+	}
+}
+
 func TestProxychainsConfGeneration(t *testing.T) {
 	cfg := proxychainsConfig{
 		ChainType: "dynamic",
@@ -191,10 +219,450 @@ func TestIsRoot(t *testing.T) {
 	_ = isRoot()
 }
 
-func TestEnsureToolDependency_NonLinux(t *testing.T) {
-	// This test is platform-dependent; on Linux it should check the strategy.
-	// We just verify it doesn't panic.
-	st := EnsureToolDependency("semgrep", realCommandRunner)
-	// We can't assert presence without knowing the environment.
-	_ = st.Binary
+func TestEnsureToolDependencyUsesManagedVenv(t *testing.T) {
+	withFakeManagedTools(t)
+	st := EnsureToolDependency("semgrep", func(string, ...string) error {
+		t.Fatal("installer should not run when the managed venv already has semgrep")
+		return nil
+	})
+	if !st.Present {
+		t.Fatal("expected managed semgrep executable to be detected")
+	}
+}
+
+func TestPlannedAcquisitionStrategies(t *testing.T) {
+	assertStrategy := func(binary string, expected interface{}) {
+		t.Helper()
+		actual := acquireStrategyFor(binary)
+		switch expected.(type) {
+		case pipStrategy:
+			if _, ok := actual.(pipStrategy); !ok {
+				t.Errorf("%s should use pip strategy, got %T", binary, actual)
+			}
+		case dotnetToolStrategy:
+			if _, ok := actual.(dotnetToolStrategy); !ok {
+				t.Errorf("%s should use dotnet tool strategy, got %T", binary, actual)
+			}
+		case githubReleaseStrategy:
+			if _, ok := actual.(githubReleaseStrategy); !ok {
+				t.Errorf("%s should use GitHub release strategy, got %T", binary, actual)
+			}
+		case packageManagerStrategy:
+			if _, ok := actual.(packageManagerStrategy); !ok {
+				t.Errorf("%s should use package manager strategy, got %T", binary, actual)
+			}
+		}
+	}
+	for _, binary := range []string{"semgrep", "jwt_tool.py", "frida"} {
+		assertStrategy(binary, pipStrategy{})
+	}
+	for _, binary := range []string{"jadx", "frida-server"} {
+		assertStrategy(binary, githubReleaseStrategy{})
+	}
+	assertStrategy("ilspycmd", dotnetToolStrategy{})
+	for _, binary := range []string{"java", "dotnet", "rizin", "zeek"} {
+		assertStrategy(binary, packageManagerStrategy{})
+	}
+}
+
+func TestHandleToolStreamStart_MissingSession(t *testing.T) {
+	m := NewSandboxManager()
+	router := mux.NewRouter()
+	m.registerToolRoutes(router)
+
+	req := httptest.NewRequest("POST", "/api/v1/sandboxes/nonexistent/tools/bpftrace/start", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusNotFound {
+		t.Errorf("expected 404 for missing session, got %d: %s", w.Code, w.Body.String())
+	}
+}
+
+func TestHandleToolStreamStart_UnknownTool(t *testing.T) {
+	m := NewSandboxManager()
+	router := mux.NewRouter()
+	m.registerToolRoutes(router)
+
+	session, err := m.CreateSession(1, SandboxLaunchConfig{
+		TargetLabel:   "stream-test",
+		TargetCommand: "sleep 60",
+	})
+	if err != nil {
+		t.Fatalf("failed to create session: %v", err)
+	}
+
+	req := httptest.NewRequest("POST", "/api/v1/sandboxes/"+session.ID+"/tools/nonexistent/start", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusNotFound {
+		t.Errorf("expected 404 for unknown tool, got %d: %s", w.Code, w.Body.String())
+	}
+}
+
+func TestHandleToolStreamStop_NoStream(t *testing.T) {
+	m := NewSandboxManager()
+	router := mux.NewRouter()
+	m.registerToolRoutes(router)
+
+	session, err := m.CreateSession(1, SandboxLaunchConfig{
+		TargetLabel:   "stream-test",
+		TargetCommand: "sleep 60",
+	})
+	if err != nil {
+		t.Fatalf("failed to create session: %v", err)
+	}
+
+	req := httptest.NewRequest("POST", "/api/v1/sandboxes/"+session.ID+"/tools/bpftrace/stop", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusNotFound {
+		t.Errorf("expected 404 when no stream exists, got %d: %s", w.Code, w.Body.String())
+	}
+}
+
+func TestHandleToolStreamWS_NoStream(t *testing.T) {
+	m := NewSandboxManager()
+	router := mux.NewRouter()
+	m.registerToolRoutes(router)
+
+	session, err := m.CreateSession(1, SandboxLaunchConfig{
+		TargetLabel:   "stream-test",
+		TargetCommand: "sleep 60",
+	})
+	if err != nil {
+		t.Fatalf("failed to create session: %v", err)
+	}
+
+	req := httptest.NewRequest("GET", "/api/v1/sandboxes/"+session.ID+"/tools/bpftrace/ws", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusNotFound {
+		t.Errorf("expected 404 when no stream exists, got %d: %s", w.Code, w.Body.String())
+	}
+}
+
+func TestHandleToolAttach_MissingSession(t *testing.T) {
+	m := NewSandboxManager()
+	router := mux.NewRouter()
+	m.registerToolRoutes(router)
+
+	body := `{"pid": 1234}`
+	req := httptest.NewRequest("POST", "/api/v1/sandboxes/nonexistent/tools/frida/attach", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusNotFound {
+		t.Errorf("expected 404 for missing session, got %d: %s", w.Code, w.Body.String())
+	}
+}
+
+func TestHandleToolAttach_UnknownTool(t *testing.T) {
+	m := NewSandboxManager()
+	router := mux.NewRouter()
+	m.registerToolRoutes(router)
+
+	session, err := m.CreateSession(1, SandboxLaunchConfig{
+		TargetLabel:   "attach-test",
+		TargetCommand: "sleep 60",
+	})
+	if err != nil {
+		t.Fatalf("failed to create session: %v", err)
+	}
+
+	body := `{"pid": 1234}`
+	req := httptest.NewRequest("POST", "/api/v1/sandboxes/"+session.ID+"/tools/nonexistent/attach", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusNotFound {
+		t.Errorf("expected 404 for unknown tool, got %d: %s", w.Code, w.Body.String())
+	}
+}
+
+func TestHandleToolDetach_NoAttach(t *testing.T) {
+	m := NewSandboxManager()
+	router := mux.NewRouter()
+	m.registerToolRoutes(router)
+
+	session, err := m.CreateSession(1, SandboxLaunchConfig{
+		TargetLabel:   "attach-test",
+		TargetCommand: "sleep 60",
+	})
+	if err != nil {
+		t.Fatalf("failed to create session: %v", err)
+	}
+
+	req := httptest.NewRequest("POST", "/api/v1/sandboxes/"+session.ID+"/tools/frida/detach", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusNotFound {
+		t.Errorf("expected 404 when no attach exists, got %d: %s", w.Code, w.Body.String())
+	}
+}
+
+func TestHandleToolNative_MissingSession(t *testing.T) {
+	m := NewSandboxManager()
+	router := mux.NewRouter()
+	m.registerToolRoutes(router)
+
+	req := httptest.NewRequest("POST", "/api/v1/sandboxes/nonexistent/tools/tree-sitter/native", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusNotFound {
+		t.Errorf("expected 404 for missing session, got %d: %s", w.Code, w.Body.String())
+	}
+}
+
+func TestHandleToolNative_UnknownTool(t *testing.T) {
+	m := NewSandboxManager()
+	router := mux.NewRouter()
+	m.registerToolRoutes(router)
+
+	session, err := m.CreateSession(1, SandboxLaunchConfig{
+		TargetLabel:   "native-test",
+		TargetCommand: "sleep 60",
+	})
+	if err != nil {
+		t.Fatalf("failed to create session: %v", err)
+	}
+
+	req := httptest.NewRequest("POST", "/api/v1/sandboxes/"+session.ID+"/tools/nonexistent/native", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusNotFound {
+		t.Errorf("expected 404 for unknown tool, got %d: %s", w.Code, w.Body.String())
+	}
+}
+
+func TestHandleToolNative_RegisteredTool(t *testing.T) {
+	registerLane6Tool("echo-native", func(s *SandboxSession, args json.RawMessage) (json.RawMessage, error) {
+		return json.Marshal(map[string]string{"echo": string(args)})
+	})
+	defer func() { delete(lane6Registry.tools, "echo-native") }()
+
+	m := NewSandboxManager()
+	router := mux.NewRouter()
+	m.registerToolRoutes(router)
+
+	session, err := m.CreateSession(1, SandboxLaunchConfig{
+		TargetLabel:   "native-test",
+		TargetCommand: "sleep 60",
+	})
+	if err != nil {
+		t.Fatalf("failed to create session: %v", err)
+	}
+
+	body := `{"message": "hello"}`
+	req := httptest.NewRequest("POST", "/api/v1/sandboxes/"+session.ID+"/tools/echo-native/native", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200 for registered native tool, got %d: %s", w.Code, w.Body.String())
+	}
+
+	var resp struct {
+		Success bool           `json:"success"`
+		Data    ToolScanResult `json:"data"`
+	}
+	if err := json.NewDecoder(w.Body).Decode(&resp); err != nil {
+		t.Fatalf("decode error: %v", err)
+	}
+	if !resp.Success {
+		t.Fatal("expected successful response")
+	}
+	if resp.Data.Tool != "echo-native" {
+		t.Errorf("expected tool echo-native, got %s", resp.Data.Tool)
+	}
+	if resp.Data.StartedAt.IsZero() {
+		t.Error("expected non-zero StartedAt")
+	}
+}
+
+func TestHandleToolHeadless_MissingSession(t *testing.T) {
+	m := NewSandboxManager()
+	router := mux.NewRouter()
+	m.registerToolRoutes(router)
+
+	body := `{"binaryPath": "/tmp/test.bin"}`
+	req := httptest.NewRequest("POST", "/api/v1/sandboxes/nonexistent/tools/cutter/analyze", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusNotFound {
+		t.Errorf("expected 404 for missing session, got %d: %s", w.Code, w.Body.String())
+	}
+}
+
+func TestHandleToolHeadless_UnknownTool(t *testing.T) {
+	m := NewSandboxManager()
+	router := mux.NewRouter()
+	m.registerToolRoutes(router)
+
+	session, err := m.CreateSession(1, SandboxLaunchConfig{
+		TargetLabel:   "headless-test",
+		TargetCommand: "sleep 60",
+	})
+	if err != nil {
+		t.Fatalf("failed to create session: %v", err)
+	}
+
+	body := `{"binaryPath": "/tmp/test.bin"}`
+	req := httptest.NewRequest("POST", "/api/v1/sandboxes/"+session.ID+"/tools/nonexistent/analyze", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusNotFound {
+		t.Errorf("expected 404 for unknown tool, got %d: %s", w.Code, w.Body.String())
+	}
+}
+
+func TestHandleToolHeadless_StartedAtIsTime(t *testing.T) {
+	registerLane5Tool("echo-headless", lane5Adapter{
+		binary: "echo",
+		analysisCmd: func(session *SandboxSession, binaryPath string, args json.RawMessage) ([]string, error) {
+			return []string{"hello"}, nil
+		},
+		parseOutput: func(stdout []byte) (*ToolHeadlessResult, error) {
+			return &ToolHeadlessResult{
+				Tool:       "echo-headless",
+				RawOutput:  string(stdout),
+				Functions:  nil,
+				Decompiled: "",
+				Listing:    string(stdout),
+				StartedAt:  time.Now(),
+				DurationMs: 0,
+			}, nil
+		},
+	})
+	defer func() { delete(lane5Adapters, "echo-headless") }()
+
+	m := NewSandboxManager()
+	router := mux.NewRouter()
+	m.registerToolRoutes(router)
+
+	session, err := m.CreateSession(1, SandboxLaunchConfig{
+		TargetLabel:   "headless-test",
+		TargetCommand: "sleep 60",
+	})
+	if err != nil {
+		t.Fatalf("failed to create session: %v", err)
+	}
+
+	body := `{"binaryPath": "/tmp/test.bin"}`
+	req := httptest.NewRequest("POST", "/api/v1/sandboxes/"+session.ID+"/tools/echo-headless/analyze", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
+	}
+
+	var resp struct {
+		Success bool             `json:"success"`
+		Data    ToolHeadlessResult `json:"data"`
+	}
+	if err := json.NewDecoder(w.Body).Decode(&resp); err != nil {
+		t.Fatalf("decode error: %v", err)
+	}
+	if !resp.Success {
+		t.Fatal("expected successful response")
+	}
+	if resp.Data.StartedAt.IsZero() {
+		t.Error("expected non-zero StartedAt time")
+	}
+}
+
+func TestResolveInnerPid_NoOuterPid(t *testing.T) {
+	session := &SandboxSession{Pid: 0}
+	if err := session.resolveInnerPid(); err == nil {
+		t.Error("expected error when outer PID is 0")
+	}
+}
+
+func TestResolveTargetPid_NoInnerPid(t *testing.T) {
+	session := &SandboxSession{Pid: 0, InnerPid: 0}
+	if _, err := session.resolveTargetPid(); err == nil {
+		t.Error("expected error when inner PID is 0")
+	}
+}
+
+func TestHandleToolProxychains_UnknownSession(t *testing.T) {
+	m := NewSandboxManager()
+	router := mux.NewRouter()
+	m.registerToolRoutes(router)
+
+	body := `{"chainType": "dynamic", "proxyList": []}`
+	req := httptest.NewRequest("POST", "/api/v1/sandboxes/nonexistent/tools/proxychains/configure", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusNotFound {
+		t.Errorf("expected 404 for missing session, got %d: %s", w.Code, w.Body.String())
+	}
+}
+
+func TestHandleToolProxychains_ValidConfig(t *testing.T) {
+	m := NewSandboxManager()
+	router := mux.NewRouter()
+	m.registerToolRoutes(router)
+
+	session, err := m.CreateSession(1, SandboxLaunchConfig{
+		TargetLabel:   "proxy-test",
+		TargetCommand: "sleep 60",
+	})
+	if err != nil {
+		t.Fatalf("failed to create session: %v", err)
+	}
+
+	body := `{
+		"chainType": "dynamic",
+		"proxyList": [
+			{"type": "socks5", "host": "127.0.0.1", "port": 9050},
+			{"type": "http", "host": "10.0.0.1", "port": 8080}
+		],
+		"quietMode": true,
+		"tcpReadTimeout": 3000
+	}`
+	req := httptest.NewRequest("POST", "/api/v1/sandboxes/"+session.ID+"/tools/proxychains/configure", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK && w.Code != http.StatusInternalServerError {
+		t.Fatalf("expected 200 or 500, got %d: %s", w.Code, w.Body.String())
+	}
+
+	if w.Code == http.StatusOK {
+		var resp struct {
+			Success bool              `json:"success"`
+			Data    map[string]string `json:"data"`
+		}
+		if err := json.NewDecoder(w.Body).Decode(&resp); err != nil {
+			t.Fatalf("decode error: %v", err)
+		}
+		if !resp.Success {
+			t.Fatal("expected successful response")
+		}
+		if resp.Data["status"] != "configured" {
+			t.Errorf("expected status configured, got %s", resp.Data["status"])
+		}
+		if resp.Data["configPath"] == "" {
+			t.Error("expected non-empty configPath")
+		}
+	}
 }
