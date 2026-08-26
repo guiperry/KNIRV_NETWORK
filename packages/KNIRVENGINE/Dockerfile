@@ -30,7 +30,13 @@ RUN apk add --no-cache \
     webkit2gtk \
     gtk+3.0 \
     curl \
-    libgcc
+    libgcc \
+    util-linux \
+    libcap
+
+# Keep the container process non-root while allowing the namespace-entry
+# helper to attach to the sandbox.
+RUN setcap cap_sys_admin,cap_sys_ptrace,cap_sys_chroot+ep /usr/bin/nsenter
 
 # Create non-root user
 RUN addgroup -g 1001 -S knirvengine && \

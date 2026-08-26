@@ -13,6 +13,7 @@ interface UseToolAttachOptions {
 
 interface UseToolAttachReturn {
   attached: boolean;
+  attaching: boolean;
   pid: number | null;
   log: string[];
   error: string | null;
@@ -29,6 +30,7 @@ interface UseToolAttachReturn {
  */
 export function useToolAttach({ sessionID, tool }: UseToolAttachOptions): UseToolAttachReturn {
   const [attached, setAttached] = useState(false);
+  const [attaching, setAttaching] = useState(false);
   const [pid, setPid] = useState<number | null>(null);
   const [log, setLog] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -47,6 +49,7 @@ export function useToolAttach({ sessionID, tool }: UseToolAttachOptions): UseToo
   }, []);
 
   const attach = useCallback(async (targetPid: number, args: Record<string, unknown> = {}) => {
+    setAttaching(true);
     setError(null);
     setLog([]);
 
@@ -92,6 +95,10 @@ export function useToolAttach({ sessionID, tool }: UseToolAttachOptions): UseToo
         setError(err instanceof Error ? err.message : String(err));
         setAttached(false);
       }
+    } finally {
+      if (mountedRef.current) {
+        setAttaching(false);
+      }
     }
   }, [sessionID, tool]);
 
@@ -124,6 +131,7 @@ export function useToolAttach({ sessionID, tool }: UseToolAttachOptions): UseToo
 
   return {
     attached,
+    attaching,
     pid,
     log,
     error,

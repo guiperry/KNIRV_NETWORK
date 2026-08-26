@@ -21,6 +21,15 @@ require (
 require github.com/tetratelabs/wazero v1.9.0
 
 require (
+	github.com/mattn/go-pointer v0.0.1 // indirect
+	github.com/tree-sitter/go-tree-sitter v0.25.0 // indirect
+	github.com/tree-sitter/tree-sitter-go v0.23.4 // indirect
+	github.com/tree-sitter/tree-sitter-javascript v0.23.1 // indirect
+	github.com/tree-sitter/tree-sitter-python v0.23.6 // indirect
+	github.com/tree-sitter/tree-sitter-typescript v0.23.2 // indirect
+)
+
+require (
 	github.com/bytedance/sonic v1.11.6 // indirect
 	github.com/bytedance/sonic/loader v0.1.1 // indirect
 	github.com/cloudwego/base64x v0.1.4 // indirect

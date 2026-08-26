@@ -3,8 +3,12 @@ package api
 import (
 	"context"
 	"encoding/json"
+	"io"
+	"net"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
+	"path/filepath"
 	"reflect"
 	"strings"
 	"testing"
@@ -21,6 +25,7 @@ func newTestManager() *SandboxManager {
 	m.bwrapBin = "sleep"
 	m.x11vncBin = "sleep"
 	m.vncPort = 15999
+	m.waitForDisplay = func(string, time.Duration) error { return nil }
 	return m
 }
 
@@ -97,6 +102,29 @@ func TestSandboxManagerMissingTargetCommand(t *testing.T) {
 	}
 }
 
+func TestNextAvailableXDisplaySkipsOccupiedDisplays(t *testing.T) {
+	// The selected range starts at :99. Existing host displays are allowed;
+	// the allocator must always return a display in range that has neither
+	// the X socket nor its lock file at the time it is selected.
+	display, err := nextAvailableXDisplay()
+	if err != nil {
+		t.Fatalf("nextAvailableXDisplay: %v", err)
+	}
+	if !strings.HasPrefix(display, ":") {
+		t.Fatalf("display = %q, want local X display", display)
+	}
+	number := strings.TrimPrefix(display, ":")
+	if pathExists(filepath.Join("/tmp/.X11-unix", "X"+number)) || pathExists(filepath.Join("/tmp", ".X"+number+"-lock")) {
+		t.Fatalf("allocated occupied display %s", display)
+	}
+}
+
+func TestWaitForXDisplayRejectsNonLocalDisplay(t *testing.T) {
+	if err := waitForXDisplay("localhost:99", time.Millisecond); err == nil {
+		t.Fatal("expected non-local display to be rejected")
+	}
+}
+
 func TestBuildBwrapArgsPreservesExplicitTargetArguments(t *testing.T) {
 	session := &SandboxSession{
 		TargetCommand: "node",
@@ -125,6 +153,44 @@ func TestExtractLoopbackFrontendURL(t *testing.T) {
 		if got := extractLoopbackFrontendURL(tc.output); got != tc.want {
 			t.Errorf("extractLoopbackFrontendURL(%q) = %q, want %q", tc.output, got, tc.want)
 		}
+	}
+}
+
+func TestSandboxFrontendProxyDialsLoopbackWithoutResolvingLocalhost(t *testing.T) {
+	var wantHost string
+	listener, err := net.Listen("tcp4", "127.0.0.1:0")
+	if err != nil {
+		if strings.Contains(err.Error(), "operation not permitted") {
+			t.Skipf("network listeners unavailable in this test sandbox: %v", err)
+		}
+		t.Fatalf("listen on IPv4 loopback: %v", err)
+	}
+	frontend := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if got := r.Host; got != wantHost {
+			t.Errorf("upstream Host = %q, want %q", got, wantHost)
+		}
+		_, _ = io.WriteString(w, "frontend reached")
+	}))
+	frontend.Listener = listener
+	frontend.Start()
+	defer frontend.Close()
+
+	target, err := url.Parse(frontend.URL)
+	if err != nil {
+		t.Fatalf("parse frontend URL: %v", err)
+	}
+	frontendURL := "http://localhost:" + target.Port()
+	wantHost = "localhost:" + target.Port()
+	session := &SandboxSession{}
+	req, err := http.NewRequest(http.MethodGet, frontendURL+"/", nil)
+	if err != nil {
+		t.Fatalf("create frontend request: %v", err)
+	}
+	req.Host = wantHost
+	w := httptest.NewRecorder()
+	session.proxyFrontendRequest(w, req, frontendURL)
+	if w.Code != http.StatusOK || w.Body.String() != "frontend reached" {
+		t.Fatalf("proxy response = %d %q, want 200 frontend reached", w.Code, w.Body.String())
 	}
 }
 

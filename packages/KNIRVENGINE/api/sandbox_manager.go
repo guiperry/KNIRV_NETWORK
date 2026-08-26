@@ -1,6 +1,7 @@
 package api
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -85,6 +86,7 @@ type SandboxSession struct {
 	bwrapCmd        *exec.Cmd
 	vncCmd          *exec.Cmd
 	frontendCmd     *exec.Cmd
+	fridaServerCmd  *exec.Cmd
 	frontendURL     string
 	frontendProfile string
 	frontendOnce    sync.Once
@@ -116,6 +118,10 @@ type SandboxProxyFlow struct {
 	Size        int64  `json:"size"`
 	DurationMs  int64  `json:"durationMs"`
 	Error       string `json:"error,omitempty"`
+	// Bodies stay server-side so security tools can inspect captured requests
+	// without broadcasting credentials or assertions to every proxy client.
+	RequestBody  string `json:"-"`
+	ResponseBody string `json:"-"`
 }
 
 // SandboxManager manages the single active sandbox session.
@@ -132,6 +138,9 @@ type SandboxManager struct {
 	vncPort   int
 	// screen geometry for the in-sandbox Xvfb display
 	screen string
+	// waitForDisplay is injectable so lifecycle tests need not start a real X
+	// server. Production always uses waitForXDisplay.
+	waitForDisplay func(string, time.Duration) error
 
 	// Cached result of EnsureSandboxDependencies so the install runs at most
 	// once per process.
@@ -144,14 +153,15 @@ type SandboxManager struct {
 // NewSandboxManager creates a new sandbox manager.
 func NewSandboxManager() *SandboxManager {
 	return &SandboxManager{
-		sessions:      make(map[string]*SandboxSession),
-		maxSessions:   1,
-		sessionExpiry: 12 * time.Hour,
-		xvfbBin:       "Xvfb",
-		bwrapBin:      "bwrap",
-		x11vncBin:     "x11vnc",
-		vncPort:       5999,
-		screen:        "1280x800x24",
+		sessions:       make(map[string]*SandboxSession),
+		maxSessions:    1,
+		sessionExpiry:  12 * time.Hour,
+		xvfbBin:        "Xvfb",
+		bwrapBin:       "bwrap",
+		x11vncBin:      "x11vnc",
+		vncPort:        5999,
+		screen:         "1280x800x24",
+		waitForDisplay: waitForXDisplay,
 	}
 }
 
@@ -188,7 +198,11 @@ func (m *SandboxManager) CreateSession(userID int64, cfg SandboxLaunchConfig) (*
 
 	display := cfg.Display
 	if display == "" {
-		display = ":99"
+		var err error
+		display, err = nextAvailableXDisplay()
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	sessionID := uuid.New().String()
@@ -223,6 +237,25 @@ func (m *SandboxManager) CreateSession(userID int64, cfg SandboxLaunchConfig) (*
 
 	m.sessions[sessionID] = session
 	return session, nil
+}
+
+// nextAvailableXDisplay avoids a fixed :99 collision after an interrupted
+// Xvfb session leaves its socket or lock file behind. Sessions receive an
+// unused local display; an explicitly requested Display is preserved.
+func nextAvailableXDisplay() (string, error) {
+	for display := 99; display < 200; display++ {
+		socket := filepath.Join("/tmp/.X11-unix", "X"+strconv.Itoa(display))
+		lock := filepath.Join("/tmp", ".X"+strconv.Itoa(display)+"-lock")
+		if !pathExists(socket) && !pathExists(lock) {
+			return ":" + strconv.Itoa(display), nil
+		}
+	}
+	return "", fmt.Errorf("no free local X display found in :99-:199")
+}
+
+func pathExists(path string) bool {
+	_, err := os.Lstat(path)
+	return err == nil || !os.IsNotExist(err)
 }
 
 // GetSession retrieves a sandbox session by ID.
@@ -357,6 +390,13 @@ func (s *SandboxSession) Start() error {
 	s.mutex.Lock()
 	s.xvfbCmd = xvfbCmd
 	s.mutex.Unlock()
+	waitForDisplay := s.manager.waitForDisplay
+	if waitForDisplay == nil {
+		waitForDisplay = waitForXDisplay
+	}
+	if err := waitForDisplay(s.Display, 5*time.Second); err != nil {
+		return s.failStart(fmt.Sprintf("Xvfb did not become ready on %s: %v", s.Display, err))
+	}
 
 	// 2. bwrap target (the actual sandboxed command)
 	bwrapArgs := buildBwrapArgs(s)
@@ -376,6 +416,13 @@ func (s *SandboxSession) Start() error {
 		log.Printf("sandbox %s: failed to resolve inner PID: %v", s.ID, err)
 		// Non-fatal: tools that don't need namespace join still work.
 	}
+	// Frida's agent must live in the target's PID namespace. It is optional for
+	// normal sandbox use; attachment retries acquisition and startup on demand.
+	if binaryExists("frida-server") {
+		if err := s.startFridaServer(); err != nil {
+			s.appendLog("[sandbox] frida-server unavailable: " + err.Error())
+		}
+	}
 
 	// 3. x11vnc bridging the framebuffer (shared so dock + standalone can both connect)
 	vncCmd, err := s.spawn(s.manager.x11vncBin,
@@ -392,6 +439,51 @@ func (s *SandboxSession) Start() error {
 
 	s.setStatus(SandboxStatusRunning, "")
 	return nil
+}
+
+// waitForXDisplay waits until Xvfb has bound its Unix-domain display socket.
+// Starting x11vnc immediately after Xvfb is racy: Xvfb may have forked
+// successfully but not yet created /tmp/.X11-unix/X<N>, which makes x11vnc
+// exit with XOpenDisplay failed.
+func waitForXDisplay(display string, timeout time.Duration) error {
+	if !strings.HasPrefix(display, ":") {
+		return fmt.Errorf("unsupported local X display %q", display)
+	}
+	displayNumber := strings.TrimPrefix(display, ":")
+	if dot := strings.IndexByte(displayNumber, '.'); dot >= 0 {
+		displayNumber = displayNumber[:dot]
+	}
+	if displayNumber == "" {
+		return fmt.Errorf("missing display number")
+	}
+	if _, err := strconv.Atoi(displayNumber); err != nil {
+		return fmt.Errorf("invalid display number: %w", err)
+	}
+	return waitForXSocket(filepath.Join("/tmp/.X11-unix", "X"+displayNumber), timeout)
+}
+
+func waitForXSocket(socketPath string, timeout time.Duration) error {
+	deadline := time.Now().Add(timeout)
+	var lastErr error
+	for time.Now().Before(deadline) {
+		info, err := os.Stat(socketPath)
+		if err == nil && info.Mode()&os.ModeSocket != 0 {
+			// Xvfb creates the socket only after it has initialized the display.
+			// Give its listener a short settling interval before x11vnc connects.
+			time.Sleep(50 * time.Millisecond)
+			return nil
+		}
+		if err != nil {
+			lastErr = err
+		} else {
+			lastErr = fmt.Errorf("%s exists but is not a socket", socketPath)
+		}
+		time.Sleep(25 * time.Millisecond)
+	}
+	if lastErr == nil {
+		lastErr = fmt.Errorf("socket was not observed")
+	}
+	return fmt.Errorf("socket %s was not ready within %s: %w", socketPath, timeout, lastErr)
 }
 
 // failStart tears down whatever started and records the error.
@@ -412,6 +504,14 @@ func (m *SandboxManager) removeSession(sessionID string) {
 // buildBwrapArgs assembles the bubblewrap argument vector from the session.
 func buildBwrapArgs(s *SandboxSession) []string {
 	args := []string{}
+	// Joined tool processes execute in this mount namespace. Expose the managed
+	// bundle read-only so Frida's bridge/server and other acquired tools resolve
+	// to the exact versions selected by the engine.
+	if toolsDir := sandboxToolsDir(); toolsDir != "" {
+		if info, err := os.Stat(toolsDir); err == nil && info.IsDir() {
+			args = append(args, "--ro-bind", toolsDir, toolsDir)
+		}
+	}
 	for _, b := range s.binds {
 		if b.Mode == "tmpfs" {
 			args = append(args, "--tmpfs", b.Dst)
@@ -539,6 +639,7 @@ func (s *SandboxSession) Close() error {
 	bwrapPid := s.Pid
 	xvfbPid := 0
 	frontendPid := 0
+	fridaServerPid := 0
 	frontendProfile := s.frontendProfile
 	proxyServer := s.proxyServer
 	if s.vncCmd != nil && s.vncCmd.Process != nil {
@@ -550,6 +651,9 @@ func (s *SandboxSession) Close() error {
 	if s.frontendCmd != nil && s.frontendCmd.Process != nil {
 		frontendPid = s.frontendCmd.Process.Pid
 	}
+	if s.fridaServerCmd != nil && s.fridaServerCmd.Process != nil {
+		fridaServerPid = s.fridaServerCmd.Process.Pid
+	}
 	s.mutex.Unlock()
 
 	// Reverse dependency order: browser -> x11vnc -> bwrap -> Xvfb
@@ -558,6 +662,7 @@ func (s *SandboxSession) Close() error {
 		_ = proxyServer.Close()
 	}
 	s.killProcess("x11vnc", vncPid)
+	s.killProcess("frida-server", fridaServerPid)
 	s.killProcess("bwrap", bwrapPid)
 	s.killProcess("Xvfb", xvfbPid)
 
@@ -786,10 +891,25 @@ func (s *SandboxSession) proxyFrontendRequest(w http.ResponseWriter, r *http.Req
 		return
 	}
 	request := r.Clone(r.Context())
-	request.URL = requestURL
+	// The sandbox target often announces localhost, but a bubblewrap namespace
+	// intentionally need not carry the host's /etc/hosts.  Dial a numeric
+	// loopback address here rather than asking the host resolver to resolve
+	// localhost (which otherwise turns a healthy frontend into a proxy 502).
+	// Keep the original Host header so virtual-host aware frontend servers see
+	// exactly the authority the browser requested.
+	upstreamURL := *requestURL
+	if isLoopbackHostname(upstreamURL.Hostname()) {
+		if port := upstreamURL.Port(); port != "" {
+			upstreamURL.Host = net.JoinHostPort("127.0.0.1", port)
+		} else {
+			upstreamURL.Host = "127.0.0.1"
+		}
+	}
+	request.URL = &upstreamURL
 	request.RequestURI = ""
 	request.Host = requestURL.Host
-	response, err := http.DefaultTransport.RoundTrip(request)
+	flow.RequestBody = captureProxyRequestBody(request)
+	response, err := sandboxFrontendTransport.RoundTrip(request)
 	if err != nil {
 		flow.Error = err.Error()
 		http.Error(w, err.Error(), http.StatusBadGateway)
@@ -803,9 +923,72 @@ func (s *SandboxSession) proxyFrontendRequest(w http.ResponseWriter, r *http.Req
 		}
 	}
 	w.WriteHeader(response.StatusCode)
-	bytes, _ := io.Copy(w, response.Body)
+	var responseCapture boundedProxyBody
+	bytes, _ := io.Copy(io.MultiWriter(w, &responseCapture), response.Body)
+	flow.ResponseBody = responseCapture.String()
 	flow.Status, flow.ContentType, flow.Size = response.StatusCode, response.Header.Get("Content-Type"), bytes
 	s.recordProxyFlow(flow, started)
+}
+
+// sandboxFrontendTransport must never inherit HTTP(S)_PROXY from the engine
+// environment. The frontend proxy is deliberately scoped to a local target;
+// forwarding that hop through an ambient proxy can produce a misleading 502
+// or leak a private loopback request outside the workstation.
+var sandboxFrontendTransport = &http.Transport{
+	Proxy:                 nil,
+	DialContext:           (&net.Dialer{Timeout: 10 * time.Second, KeepAlive: 30 * time.Second}).DialContext,
+	ForceAttemptHTTP2:     true,
+	MaxIdleConns:          100,
+	IdleConnTimeout:       90 * time.Second,
+	TLSHandshakeTimeout:   10 * time.Second,
+	ExpectContinueTimeout: time.Second,
+}
+
+func isLoopbackHostname(host string) bool {
+	return host == "localhost" || host == "127.0.0.1" || host == "::1"
+}
+
+const maxCapturedProxyBody = 1 << 20 // enough for SAML, bounded for long-lived sessions
+
+// boundedProxyBody captures only a small private copy while preserving normal
+// proxy streaming. Oversized bodies are intentionally not retained.
+type boundedProxyBody struct {
+	data     bytes.Buffer
+	overflow bool
+}
+
+func (b *boundedProxyBody) Write(p []byte) (int, error) {
+	if !b.overflow {
+		remaining := maxCapturedProxyBody - b.data.Len()
+		if len(p) > remaining {
+			b.overflow = true
+		} else {
+			_, _ = b.data.Write(p)
+		}
+	}
+	return len(p), nil
+}
+
+func (b *boundedProxyBody) String() string {
+	if b.overflow {
+		return ""
+	}
+	return b.data.String()
+}
+
+func captureProxyRequestBody(request *http.Request) string {
+	if request.Body == nil || request.Body == http.NoBody {
+		return ""
+	}
+	var capture boundedProxyBody
+	// TeeReader consumes the body once, then restores it for RoundTrip.
+	body, err := io.ReadAll(io.TeeReader(request.Body, &capture))
+	if err != nil {
+		return ""
+	}
+	_ = request.Body.Close()
+	request.Body = io.NopCloser(bytes.NewReader(body))
+	return capture.String()
 }
 
 // proxyConnect passes WebSocket/TLS CONNECT traffic through unchanged. It is

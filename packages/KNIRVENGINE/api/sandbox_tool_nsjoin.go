@@ -17,9 +17,10 @@ import (
 // Phase 0 (executed live, confirmed working): joining the inner PID via
 // `nsenter -t <InnerPid> -m -p -i -u -n -C -- <cmd>` lands a new process
 // inside every namespace the sandbox owns (mnt/pid/ipc/uts/cgroup). The join
-// runs as root (matching KNIRVSERVER's own precedent for cgroup control) —
-// unprivileged nsenter categorically fails on mnt/pid/ipc/uts/cgroup on the
-// tested kernel/util-linux combination.
+// needs CAP_SYS_ADMIN, CAP_SYS_PTRACE, and CAP_SYS_CHROOT — plain unprivileged
+// nsenter categorically fails on mnt/pid/ipc/uts/cgroup on the tested
+// kernel/util-linux combination. Packaging grants those capabilities only to
+// the bundled nsenter helper.
 func (s *SandboxSession) resolveInnerPid() error {
 	if s.Pid == 0 {
 		return fmt.Errorf("session has no outer PID yet")
@@ -67,9 +68,9 @@ func (s *SandboxSession) resolveTargetPid() (int, error) {
 // of the sandbox's namespaces (mnt, pid, ipc, uts, net, cgroup) and then
 // executes the requested command inside them.
 //
-// This is the confirmed working shape from Phase 0's live spike. The join
-// runs as root (via the same mechanism realCommandRunner uses) because
-// unprivileged setns() cannot reach namespaces beyond the user namespace.
+// This is the confirmed working shape from Phase 0's live spike. nsenter is
+// the bundled capability-carrying helper installed by the packaging step, so
+// the frequent tool-attach path does not invoke sudo or require a terminal.
 func (s *SandboxSession) spawnJoined(name string, args ...string) (*exec.Cmd, error) {
 	if s.InnerPid == 0 {
 		if err := s.resolveInnerPid(); err != nil {
@@ -81,7 +82,7 @@ func (s *SandboxSession) spawnJoined(name string, args ...string) (*exec.Cmd, er
 		[]string{"-t", strconv.Itoa(s.InnerPid), "-m", "-p", "-i", "-u", "-n", "-C", "--", name},
 		args...,
 	)
-	return s.spawnAsRoot("nsenter", nsenterArgs...)
+	return s.spawn(resolveSandboxTool("nsenter"), nsenterArgs...)
 }
 
 // startToolProcess starts a tool with direct access to its pipes. Session
@@ -96,14 +97,10 @@ func (s *SandboxSession) startToolProcess(name string, joined bool, args ...stri
 			}
 		}
 		commandArgs = append([]string{"-t", strconv.Itoa(s.InnerPid), "-m", "-p", "-i", "-u", "-n", "-C", "--", name}, args...)
-		command = "nsenter"
-		if !isRoot() {
-			commandArgs = append([]string{"nsenter"}, commandArgs...)
-			command = "sudo"
-		}
+		command = resolveSandboxTool("nsenter")
 	}
 	cmd := exec.CommandContext(s.ctx, command, commandArgs...)
-	cmd.Env = s.toolEnv(name)
+	cmd.Env = s.toolEnv(command)
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
 		return nil, nil, nil, nil, err
@@ -120,25 +117,4 @@ func (s *SandboxSession) startToolProcess(name string, joined bool, args ...stri
 		return nil, nil, nil, nil, err
 	}
 	return cmd, stdin, stdout, stderr, nil
-}
-
-// spawnAsRoot spawns a process with root escalation via sudo when the engine
-// is not already running as root. Used by namespace joins and other tool
-// operations that need CAP_SYS_ADMIN.
-func (s *SandboxSession) spawnAsRoot(name string, args ...string) (*exec.Cmd, error) {
-	if isRoot() {
-		return s.spawn(name, args...)
-	}
-	rooted := append([]string{name}, args...)
-	return s.spawn("sudo", rooted...)
-}
-
-// isRoot reports whether the current process is running as root.
-func isRoot() bool {
-	return geteuid() == 0
-}
-
-// geteuid returns the effective user ID of the current process.
-func geteuid() int {
-	return geteuidImpl()
 }

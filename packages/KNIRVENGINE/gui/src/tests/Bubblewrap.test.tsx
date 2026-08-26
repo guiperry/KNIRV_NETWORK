@@ -1,5 +1,5 @@
 import React from 'react';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import Bubblewrap from '../components/tools/sandbox/Bubblewrap';
 
@@ -29,7 +29,9 @@ describe('Bubblewrap', () => {
 
     expect(selectSandboxBinary).toHaveBeenCalledWith('/opt/demo');
     expect(await screen.findByDisplayValue('/opt/demo/target')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Launch' }));
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Launch' }));
+    });
     expect(launch).toHaveBeenCalledWith(expect.objectContaining({
       binds: expect.arrayContaining([expect.objectContaining({ mode: 'ro-bind', src: '/opt/demo', dst: '/opt/demo' })]),
     }));
@@ -46,12 +48,33 @@ describe('Bubblewrap', () => {
     fireEvent.change(screen.getByLabelText('Execution mode'), { target: { value: 'command' } });
     fireEvent.change(screen.getByLabelText('Script path'), { target: { value: '/project with spaces/app.js' } });
     fireEvent.change(screen.getByLabelText('Command arguments'), { target: { value: '--port\n3000' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Launch' }));
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Launch' }));
+    });
 
     expect(launch).toHaveBeenCalledWith(expect.objectContaining({
       targetCommand: 'node', targetArgs: ['/project with spaces/app.js', '--port', '3000'],
       binds: expect.arrayContaining([expect.objectContaining({ mode: 'ro-bind', src: '/project with spaces', dst: '/project with spaces' })]),
     }));
+  });
+
+  it('disables Launch immediately while provisioning is in progress', async () => {
+    let resolveLaunch: (() => void) | undefined;
+    const launch = jest.fn(() => new Promise<void>((resolve) => { resolveLaunch = resolve; }));
+    mockUseSandbox.mockReturnValue({
+      launch, stop: jest.fn(), status: 'idle', log: [], targetLabel: 'demo', projectPath: '',
+      error: null, deps: [], depsInstalling: false, installDeps: jest.fn(),
+    });
+    render(<Bubblewrap />);
+
+    const button = screen.getByRole('button', { name: 'Launch' });
+    fireEvent.click(button);
+    expect(launch).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole('button', { name: 'Launching…' })).toBeDisabled();
+
+    await act(async () => {
+      resolveLaunch?.();
+    });
   });
 
   it('automatically mounts the dashboard project and uses its selected file', async () => {
@@ -64,7 +87,9 @@ describe('Bubblewrap', () => {
 
     expect(await screen.findByDisplayValue('/opt/demo/bin/target')).toBeInTheDocument();
     expect(screen.getByText('/opt/demo → /opt/demo')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Launch' }));
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Launch' }));
+    });
 
     expect(launch).toHaveBeenCalledWith(expect.objectContaining({
       targetCommand: '/opt/demo/bin/target',

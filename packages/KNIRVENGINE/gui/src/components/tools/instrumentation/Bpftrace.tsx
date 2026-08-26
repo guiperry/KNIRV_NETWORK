@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { Activity, Play, Square } from 'lucide-react';
 import { useToolStream } from '../../../hooks/useToolStream';
 import { useSandboxSession } from '../../../hooks/useSandboxSession';
+import { ToolPreparationNotice } from '../ToolConsoles';
 
 interface EventRow {
   time: string;
@@ -20,7 +21,7 @@ const presets = [
 
 const Bpftrace: React.FC = () => {
   const { session } = useSandboxSession();
-  const { events, running, error, start, stop } = useToolStream({
+  const { events, starting, running, error, start, stop } = useToolStream({
     sessionID: session?.id ?? '',
     tool: 'bpftrace',
   });
@@ -81,6 +82,8 @@ const Bpftrace: React.FC = () => {
           </button>
         </div>
       </div>
+
+      <ToolPreparationNotice tool="bpftrace" active={starting} />
 
       {error && (
         <div className="mb-4 p-3 bg-red-500/10 border border-red-500/30 rounded-lg text-red-300 text-sm">

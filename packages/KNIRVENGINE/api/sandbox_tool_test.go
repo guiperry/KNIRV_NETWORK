@@ -1,6 +1,7 @@
 package api
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -10,6 +11,43 @@ import (
 
 	"github.com/gorilla/mux"
 )
+
+func TestTreeSitterParsesRealSyntax(t *testing.T) {
+	tree, err := parseWithTreeSitter("package sample\nfunc Answer() int { return 42 }\n", "go")
+	if err != nil {
+		t.Fatalf("parseWithTreeSitter: %v", err)
+	}
+	if tree.Type != "source_file" {
+		t.Fatalf("root type = %q, want source_file", tree.Type)
+	}
+	if len(tree.Children) == 0 || tree.Children[0].Type != "package_clause" {
+		t.Fatalf("expected parser-produced package clause, got %#v", tree.Children)
+	}
+}
+
+func TestFindSAMLInFlowsDecodesCapturedForm(t *testing.T) {
+	xml := `<Response ID="response-id"><Issuer>issuer</Issuer></Response>`
+	session := &SandboxSession{proxyFlows: []SandboxProxyFlow{{ID: 7, RequestBody: "SAMLResponse=" + base64.StdEncoding.EncodeToString([]byte(xml))}}}
+	if got := findSAMLInFlows(session, 7); got != xml {
+		t.Fatalf("SAML flow decode = %q, want %q", got, xml)
+	}
+	if got := findSAMLInFlows(session, 8); got != "" {
+		t.Fatalf("unexpected SAML from another flow: %q", got)
+	}
+}
+
+func TestParseCutterOutput(t *testing.T) {
+	result, err := parseCutterOutput([]byte(`[{"name":"main","addr":4198400,"size":32}][{"offset":4198400,"opcode":"ret"}]`))
+	if err != nil {
+		t.Fatalf("parseCutterOutput: %v", err)
+	}
+	if len(result.Functions) != 1 || result.Functions[0].Address != "0x401000" {
+		t.Fatalf("functions = %#v", result.Functions)
+	}
+	if !strings.Contains(result.Listing, "opcode") {
+		t.Fatalf("listing did not contain formatted disassembly: %q", result.Listing)
+	}
+}
 
 func TestHandleToolScan_MissingSession(t *testing.T) {
 	m := NewSandboxManager()
@@ -211,12 +249,6 @@ func TestProxychainsConfGeneration(t *testing.T) {
 	if !strings.Contains(conf, "tcp_read_time_out 3000") {
 		t.Errorf("expected tcp_read_time_out in config, got:\n%s", conf)
 	}
-}
-
-func TestIsRoot(t *testing.T) {
-	// On a typical dev machine we're not root. On CI we might be.
-	// Just verify the function doesn't panic.
-	_ = isRoot()
 }
 
 func TestEnsureToolDependencyUsesManagedVenv(t *testing.T) {
@@ -572,7 +604,7 @@ func TestHandleToolHeadless_StartedAtIsTime(t *testing.T) {
 	}
 
 	var resp struct {
-		Success bool             `json:"success"`
+		Success bool               `json:"success"`
 		Data    ToolHeadlessResult `json:"data"`
 	}
 	if err := json.NewDecoder(w.Body).Decode(&resp); err != nil {

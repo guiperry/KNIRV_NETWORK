@@ -13,6 +13,7 @@ interface UseToolStreamOptions {
 
 interface UseToolStreamReturn {
   events: ToolEvent[];
+  starting: boolean;
   running: boolean;
   error: string | null;
   start: (args?: Record<string, unknown>) => Promise<void>;
@@ -27,6 +28,7 @@ interface UseToolStreamReturn {
  */
 export function useToolStream({ sessionID, tool }: UseToolStreamOptions): UseToolStreamReturn {
   const [events, setEvents] = useState<ToolEvent[]>([]);
+  const [starting, setStarting] = useState(false);
   const [running, setRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
@@ -44,6 +46,7 @@ export function useToolStream({ sessionID, tool }: UseToolStreamOptions): UseToo
   }, []);
 
   const start = useCallback(async (args: Record<string, unknown> = {}) => {
+    setStarting(true);
     setRunning(true);
     setError(null);
     setEvents([]);
@@ -80,6 +83,10 @@ export function useToolStream({ sessionID, tool }: UseToolStreamOptions): UseToo
         setError(err instanceof Error ? err.message : String(err));
         setRunning(false);
       }
+    } finally {
+      if (mountedRef.current) {
+        setStarting(false);
+      }
     }
   }, [sessionID, tool]);
 
@@ -105,6 +112,7 @@ export function useToolStream({ sessionID, tool }: UseToolStreamOptions): UseToo
 
   return {
     events,
+    starting,
     running,
     error,
     start,

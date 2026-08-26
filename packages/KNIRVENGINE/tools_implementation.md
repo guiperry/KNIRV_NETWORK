@@ -134,7 +134,7 @@ Before designing backend integrations for 16 tools, each was checked against the
 - `api/sandbox_tool_scan.go` — Lane 1 generic handler (`RunScan`, one-shot spawn + JSON/text capture + REST response).
 - `api/sandbox_tool_native.go` — Lane 6 generic handler: identical REST shape to `sandbox_tool_scan.go`'s `/run` endpoint, but calls an in-process Go function instead of spawning a subprocess. Used by Tree-sitter and SAML Raider.
 - `api/sandbox_tool_stream.go` — Lane 2 generic handler (start/stop long-lived subprocess, fan out lines over a per-tool WebSocket, mirrors `handleOutput`/`broadcastToClients`).
-- `api/sandbox_tool_nsjoin.go` — Phase 0's namespace-join helper. Confirmed shape: `SandboxSession.spawnJoined(name string, args ...string)`, building `sudo nsenter -t <InnerPid> -m -p -i -u -n -C -- name args...` (see "Patterns to Follow"). Used by every Lane 2/3/4 spawn.
+- `api/sandbox_tool_nsjoin.go` — Phase 0's namespace-join helper. Confirmed shape: `SandboxSession.spawnJoined(name string, args ...string)`, building `tools/nsenter -t <InnerPid> -m -p -i -u -n -C -- name args...`; packaging grants that helper its restricted capability set. Used by every Lane 2/3/4 spawn.
 - `api/sandbox_tool_semgrep.go`, `api/sandbox_tool_jadx.go`, `api/sandbox_tool_ilspy.go`, `api/sandbox_tool_jwttool.go` — Lane 1 tools (thin: argv-building + output-shape parsing only, all logic reused from `sandbox_tool_scan.go`).
 - `api/sandbox_tool_treesitter.go`, `api/sandbox_tool_samlraider.go` — Lane 6 tools (thin: call into a Go package/cgo binding directly, all REST plumbing reused from `sandbox_tool_native.go`).
 - `api/sandbox_tool_proxychains.go` — Lane 4 (`buildBwrapArgs` wrapper).
@@ -159,14 +159,14 @@ router.HandleFunc("/api/v1/sandboxes/{id}/tools/{tool}/stop", handler).Methods("
 router.HandleFunc("/api/v1/sandboxes/{id}/tools/{tool}/ws", handler)                    // Lane 2/3 event stream
 ```
 
-**Namespace-joined spawn — CONFIRMED working shape (Phase 0, executed twice live, second run root-verified by the user).** Two fixes versus the original draft: (1) join the **inner** bwrap PID (`SandboxSession.InnerPid`, resolved once at `Start()` time via `ps --ppid s.Pid`), not `s.Pid` itself — `s.Pid` is bwrap's outer setup process and stays in the host's namespaces; (2) the join runs via `sudo`, skipping `-U`/`--user` entirely — root's `CAP_SYS_ADMIN` in the initial user namespace is sufficient to `setns()` into every namespace the sandbox owns (mnt/pid/ipc/uts/cgroup all confirmed; `net`/`time` are shared with the host anyway, joining them is a no-op). This matches the same decision already made for KNIRVSERVER (always run with `sudo` for cgroup control) — no new security posture, just reusing it here too:
+**Namespace-joined spawn — CONFIRMED working shape (Phase 0, executed twice live, second run root-verified by the user).** Two fixes versus the original draft: (1) join the **inner** bwrap PID (`SandboxSession.InnerPid`, resolved once at `Start()` time via `ps --ppid s.Pid`), not `s.Pid` itself — `s.Pid` is bwrap's outer setup process and stays in the host's namespaces; (2) run the bundled `nsenter` helper directly, skipping `-U`/`--user` entirely. Packaging grants that helper only `CAP_SYS_ADMIN`, `CAP_SYS_PTRACE`, and `CAP_SYS_CHROOT`, which is sufficient to `setns()` into every namespace the sandbox owns (mnt/pid/ipc/uts/cgroup all confirmed; `net`/`time` are shared with the host anyway, joining them is a no-op). The Electron host and long-lived engine remain the logged-in user.
 ```go
 func (s *SandboxSession) spawnJoined(name string, args ...string) (*exec.Cmd, error) {
     full := append([]string{"-t", strconv.Itoa(s.InnerPid), "-m", "-p", "-i", "-u", "-n", "-C", "--", name}, args...)
-    return s.spawn("sudo", append([]string{"nsenter"}, full...)...)
+    return s.spawn(resolveSandboxTool("nsenter"), full...)
 }
 ```
-Verified live: `sudo nsenter -t <innerPid> -m -p -i -u -n -C -- sh -c 'id; ls /; ps -ef'` returned `uid=0` (root's real identity — no `-U` means no identity confusion), `ls /` showing only the sandboxed rootfs (`bin dev lib lib64 proc tmp usr`), and `ps -ef` showing exactly the sandbox's own process tree (`bwrap` as pid 1, the target as pid 2, the joined shell itself appearing as a new pid 3 inside that same pid namespace) — including `cgroup`, which had failed even in every unprivileged attempt. **Whether the KNIRVENGINE binary should invoke `sudo` per tool-launch, or instead run entirely as root from the start (mirroring KNIRVSERVER's own choice, in which case `spawnJoined` drops the `sudo` prefix and calls `nsenter` directly, or even skips the `nsenter` CLI entirely in favor of Go's native `unix.Setns()` against `/proc/<InnerPid>/ns/*` file descriptors) is a small remaining implementation choice for Phase 2 — not a re-open of the Option A decision itself, which is settled.**
+Verified live: `sudo nsenter -t <innerPid> -m -p -i -u -n -C -- sh -c 'id; ls /; ps -ef'` returned `uid=0` (root's real identity — no `-U` means no identity confusion), `ls /` showing only the sandboxed rootfs (`bin dev lib lib64 proc tmp usr`), and `ps -ef` showing exactly the sandbox's own process tree (`bwrap` as pid 1, the target as pid 2, the joined shell itself appearing as a new pid 3 inside that same pid namespace) — including `cgroup`, which had failed even in every unprivileged attempt. **Implementation decision — settled:** KNIRVENGINE itself, including Electron and the long-lived Go backend, always runs as the logged-in user. `spawnJoined` invokes the bundled, capability-carrying `nsenter` helper directly; only package-manager acquisition uses `sudo -n --` as a rare setup operation.
 
 **Lane 6 in-process call** (Phase 2/3, used by Tree-sitter and SAML Raider instead of `spawn()`):
 ```go
@@ -249,9 +249,9 @@ UID   PID  PPID  ...  CMD
 --- hostname ---
 cloud-eq
 ```
-This is the same choice already made for KNIRVSERVER — "always run the program with sudo" to get cgroup control — applied here for the identical underlying reason (unprivileged `setns()` cannot reach namespaces it doesn't own beyond the user namespace itself). No new security posture is being introduced; this plan is following an already-established precedent in this codebase, not creating a new one.
+This requires root capability only on the namespace-entry helper, not for KNIRVENGINE as a whole. The Electron host and its backend must remain unprivileged because Electron refuses to run as root with its sandbox enabled.
 
-**Options B and C are no longer needed and are dropped from further consideration** — they were fallbacks for a scenario (root escalation unavailable or unwanted) that doesn't apply here. `spawnJoined()`'s confirmed shape is documented in "Patterns to Follow" above. The one remaining implementation detail (not a re-litigation of the decision) is *how* the engine gets root — per-call `sudo nsenter ...`, or the engine process running as root throughout (matching KNIRVSERVER), in which case the `sudo` prefix drops and `nsenter` (or Go's native `unix.Setns()`) is called directly — left for Phase 2 to settle.
+**Options B and C are no longer needed and are dropped from further consideration** — they were fallbacks for a scenario (root escalation unavailable or unwanted) that doesn't apply here. `spawnJoined()`'s confirmed shape is documented in "Patterns to Follow" above. The packaged `nsenter` capability set supplies routine attach privileges; the engine must never run entirely as root because that would make Electron refuse to start.
 
 ### Extending dependency acquisition (Phase 1)
 
@@ -344,10 +344,10 @@ Below noVNC, keeping Dashboard/Sandbox fixed. Ordered by **dependency and risk**
 
 **Tasks:**
 - ~~Launch a real `SandboxSession` in dev, run the `ps`/`nsenter` probe commands from ARCHITECTURE above against the live `bwrap` PID.~~ **Done** — executed three times, live, via `SandboxManager.CreateSession`/`Start()` directly (real `bwrap`/`Xvfb`/`x11vnc`, not stubbed), on the dev host (Kali, kernel 5.15, util-linux 2.37.2): once establishing the outer-vs-inner-PID and `--share-net` findings, once (unprivileged) proving plain `nsenter` fails on mnt/pid/ipc/uts/cgroup, and once **as root via `sudo`, which succeeded cleanly on every namespace** — user-run and pasted back with full output. See ARCHITECTURE's Phase 0 write-up for the complete evidence trail.
-- **Decision gate — RESOLVED: Option A** (`sudo`/root escalation), matching the precedent already set for KNIRVSERVER's own cgroup-control needs. Options B and C are dropped — no longer needed now that A is confirmed working end-to-end.
-- Write the confirmed mechanism into `api/sandbox_tool_nsjoin.go`'s doc comment when that file is created in Phase 2 — the shape is documented in "Patterns to Follow" above (`spawnJoined()` via `sudo nsenter -t <InnerPid> -m -p -i -u -n -C -- ...`, no `-U`).
+- **Decision gate — RESOLVED: capability-based Option A.** The live root spike proves the required kernel permissions; the packaged `nsenter` helper carries precisely those permissions, while Electron and the engine remain unprivileged.
+- Write the confirmed mechanism into `api/sandbox_tool_nsjoin.go`'s doc comment when that file is created in Phase 2 — the shape is documented in "Patterns to Follow" above (`spawnJoined()` via the capability-carrying bundled `nsenter -t <InnerPid> -m -p -i -u -n -C -- ...`, no `-U`).
 - Add `SandboxSession.InnerPid int` (resolved once, right after `bwrapCmd.Process.Pid` is captured, via `ps --ppid <s.Pid>`) — every Lane 2/3/4 tool needs this, not `s.Pid`.
-- **Still outstanding, non-blocking**: confirm on the target production distro (UBI9-minimal container, per `Containerfile`) before Phase 2 ships there — this spike ran on a dev-machine Kali install; container `nsenter`/capability posture (and whether `sudo` is even meaningful inside a container that may already run as root, or may need `--cap-add=SYS_ADMIN` at the container-runtime level instead) can differ. Re-run the same spike there before trusting the dev-host result in production. Also still outstanding: deciding whether the engine invokes `sudo` per tool-launch or runs as root throughout (see "Patterns to Follow"'s note) — an implementation detail, not a re-open of the Option A decision.
+- **Still outstanding, non-blocking**: confirm on the target production distro (UBI9-minimal container, per `Containerfile`) before Phase 2 ships there — this spike ran on a dev-machine Kali install; container `nsenter`/file-capability posture (and whether the container runtime must grant `SYS_ADMIN`/`SYS_PTRACE` in addition to the in-image file capability) can differ. Re-run the same spike there before trusting the dev-host result in production.
 
 ### Phase 1: Generalized Dependency Acquisition
 
@@ -372,7 +372,7 @@ Below noVNC, keeping Dashboard/Sandbox fixed. Ordered by **dependency and risk**
 **Depends on:** Phase 0 (for Lane 2's `spawnJoined`), Phase 1 (for dependency reporting).
 
 **Tasks:**
-- `api/sandbox_tool_nsjoin.go`: `SandboxSession.spawnJoined(name string, args ...string)` per Phase 0's confirmed answer (`sudo nsenter -t s.InnerPid -m -p -i -u -n -C -- name args...`); also add `SandboxSession.InnerPid int`, resolved once at `Start()` time via `ps --ppid s.Pid`.
+- `api/sandbox_tool_nsjoin.go`: `SandboxSession.spawnJoined(name string, args ...string)` per Phase 0's confirmed answer (capability-carrying `tools/nsenter -t s.InnerPid -m -p -i -u -n -C -- name args...`); also add `SandboxSession.InnerPid int`, resolved once at `Start()` time via `ps --ppid s.Pid`.
 - `api/sandbox_tool_scan.go`: generic Lane 1 handler — `POST /api/v1/sandboxes/{id}/tools/{tool}/run`, spawns via the existing `s.spawn()` (no namespace join needed per ARCHITECTURE), captures combined stdout, returns via `RespondWithSuccess`. Tool-specific argv building and output parsing are injected per tool (small per-file adapter, not copy-pasted plumbing).
 - `api/sandbox_tool_native.go`: generic Lane 6 handler — same `POST .../run` REST shape as Lane 1, but the per-tool adapter is a Go function call, not a spawned command. Shares response envelope and error handling with `sandbox_tool_scan.go` so the frontend truly cannot tell Lane 1 and Lane 6 apart.
 - `api/sandbox_tool_stream.go`: generic Lane 2 handler — `POST .../start` / `POST .../stop` / `GET .../ws`, using `spawnJoined()` + a per-tool-per-session `clients map[*websocket.Conn]bool` (mirror `SandboxSession`'s own client map for status WS) fanning out parsed event lines.
@@ -549,9 +549,9 @@ podman build -f packages/KNIRVENGINE/Containerfile packages/KNIRVENGINE
 
 Confirmation:
 
-- **Open, small implementation detail (not a re-open of the Option A decision)** — whether the engine invokes `sudo nsenter ...` per tool-launch, or the engine process runs as root throughout (matching KNIRVSERVER's own choice), in which case `spawnJoined()` drops the `sudo` prefix and can call `nsenter` directly or use Go's native `unix.Setns()` instead of shelling out at all. Left for Phase 2.
+- ~~**Open, small implementation detail (not a re-open of the Option A decision)** — whether the engine invokes `sudo nsenter ...` per tool-launch, or the engine process runs as root throughout.~~ **Resolved:** the engine remains unprivileged and launches the bundled capability-carrying `nsenter` helper directly.
 
-Confirmation: The engine process runs as root throughout.
+Confirmation: The engine process and Electron host run as the logged-in user; only the bundled `nsenter` helper has the required file capabilities.
 
 - **Open, blocking for Phase 5's Wireshark/Zeek — now confirmed rather than hypothetical**: Phase 0's spike directly confirmed `--share-net` (`sandbox_manager.go:412-413`) shares the host's network namespace verbatim (identical namespace inode observed on the live sandbox, twice) — there is no dedicated per-session veth today. Packet capture needs the networking redesign (a per-session veth pair) called out in Phase 5 before Wireshark/Zeek can be scoped to "this target's traffic" rather than "all host traffic." What was previously a maybe is now a confirmed requirement; the open part is scheduling/designing the veth work, not whether it's needed.
 

@@ -34,7 +34,7 @@ LIB_DIR="$OUT_DIR/lib"
 # Native Linux executables used by the sandbox and the real tool consoles.
 # Missing entries are deliberately non-fatal: the engine will show its normal
 # dependency error and can acquire the corresponding package at runtime.
-TOOLS=("bwrap" "Xvfb" "x11vnc" "java" "dotnet" "bpftrace" "tshark" "zeek" "afl-fuzz" "rizin" "proxychains4")
+TOOLS=("bwrap" "Xvfb" "x11vnc" "nsenter" "java" "dotnet" "bpftrace" "tshark" "zeek" "afl-fuzz" "rizin" "proxychains4" "frida-server")
 
 # pip-installed consoles live in the managed venv rather than the system
 # Python. If a build environment has provisioned this venv, keep it in the
@@ -46,6 +46,8 @@ DOTNET_TOOLS=("ilspycmd")
 GLIBC_CORE_RE='^(ld-linux|libc|libm|libpthread|libdl|librt|libutil|libresolv|libmvec|libnsl|libBrokenLocale|libanl|libthread_db)\.so'
 
 mkdir -p "$LIB_DIR"
+cp -f scripts/frida-bridge.py "$BIN_DIR/frida-bridge.py"
+chmod 0755 "$BIN_DIR/frida-bridge.py"
 
 # Queue of ELF files whose dependencies still need to be walked.
 declare -a QUEUE=()
@@ -131,6 +133,19 @@ if command -v patchelf >/dev/null 2>&1; then
 		patchelf --set-rpath '$ORIGIN/lib' "$BIN_DIR/$tool" 2>/dev/null || true
 	done
 	echo "[bundle-sandbox-tools] applied rpath via patchelf"
+fi
+
+# Namespace entry is the routine attach/trace path. Give only the bundled
+# helper the kernel capabilities it needs, instead of running Electron or the
+# engine under sudo. This is deliberately opt-in because setcap changes local
+# filesystem metadata; `make install-sandbox-privileges` enables it.
+if [ "${KNIRVENGINE_SET_FILE_CAPS:-0}" = "1" ] && [ -x "$BIN_DIR/nsenter" ]; then
+	if ! command -v setcap >/dev/null 2>&1; then
+		echo "[bundle-sandbox-tools] ERROR: setcap is required to grant nsenter capabilities" >&2
+		exit 1
+	fi
+	sudo setcap cap_sys_admin,cap_sys_ptrace,cap_sys_chroot+ep "$BIN_DIR/nsenter"
+	echo "[bundle-sandbox-tools] granted namespace capabilities to $BIN_DIR/nsenter"
 fi
 
 # 4. Mirror the bundle into dist/ so the cross-compiled binaries (dist/knirv-engine-*)

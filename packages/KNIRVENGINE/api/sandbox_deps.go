@@ -49,18 +49,19 @@ var packageManagers = []struct {
 // mirrors exec.Command(name, args...).
 type commandRunner func(name string, args ...string) error
 
-// realCommandRunner executes a system command, escalating via `sudo` when the
-// process is not already running as root.
+// realCommandRunner executes a system command, elevating only that package
+// operation when needed. It never changes the privilege of the Electron host
+// or the long-lived engine process.
 func realCommandRunner(name string, args ...string) error {
 	cmdArgs := args
 	if os.Geteuid() != 0 {
-		cmdArgs = append([]string{name}, args...)
+		cmdArgs = append([]string{"-n", "--", name}, args...)
 		name = "sudo"
 	}
 	cmd := exec.Command(name, cmdArgs...)
 	out, err := cmd.CombinedOutput()
 	if err != nil {
-		return fmt.Errorf("%s %v: %v (%s)", name, args, err, strings.TrimSpace(string(out)))
+		return fmt.Errorf("%s %v: %v (%s)", name, cmdArgs, err, strings.TrimSpace(string(out)))
 	}
 	return nil
 }
@@ -191,24 +192,18 @@ func installPackages(pm string, pkgs []string, runner commandRunner) error {
 	return fmt.Errorf("unsupported package manager: %s", pm)
 }
 
-// EnsureSandboxDependencies checks each required binary and, for any that are
-// missing, attempts to install the corresponding package automatically. The
-// runner is injectable (realCommandRunner in production, a stub in tests).
+// EnsureSandboxDependencies prepares only Bubble Wrap's runtime foundation.
+// Optional analysis tools are acquired by their own tool route when the user
+// selects them; installing every optional tool merely by opening Bubble Wrap
+// makes sandbox launch unpredictable and slow.
+//
+// The runner is injectable (realCommandRunner in production, a stub in tests).
 func EnsureSandboxDependencies(runner commandRunner) ([]DependencyStatus, error) {
 	if runtime.GOOS != "linux" {
 		return nil, fmt.Errorf("sandbox dependencies are only supported on Linux (current OS: %s)", runtime.GOOS)
 	}
 
-	// All subprocess dependencies use the same strategy dispatch. This keeps
-	// Bubble Wrap's existing status banner authoritative for the complete tool
-	// suite while compiled-in Lane 6 tools remain absent by design.
-	binaries := []string{
-		"bwrap", "Xvfb", "x11vnc",
-		"java", "dotnet",
-		"semgrep", "jadx", "ilspycmd", "jwt_tool.py",
-		"proxychains4", "bpftrace", "tshark", "zeek", "afl-fuzz",
-		"rizin", "frida", "frida-server",
-	}
+	binaries := []string{"bwrap", "Xvfb", "x11vnc"}
 	statuses := make([]DependencyStatus, 0, len(binaries))
 	for _, binary := range binaries {
 		statuses = append(statuses, EnsureToolDependency(binary, runner))

@@ -38,7 +38,7 @@ RELEASE_ASSETS_DIR := ./release_assets
 # Example: export GPG_KEY_ID="Your Name <your.email@example.com>" or your Key ID
 GPG_KEY_ID ?= YOUR_GPG_KEY_ID_HERE
 
-.PHONY: all clean build build-all backend-build cloud-package cloud-release desktop-release upload-release upload-release-public release-public force-release-micro force-release-micro-public upload-to-s3 trigger-s3-workflow help
+.PHONY: all clean build build-all backend-build cloud-package cloud-release desktop-release upload-release upload-release-public release-public force-release-micro force-release-micro-public upload-to-s3 trigger-s3-workflow install-sandbox-privileges configure-sandbox-sudoers help
 
 # Legacy target - defaults to cloud package for backward compatibility
 all: cloud-package
@@ -82,11 +82,23 @@ clean:
 # APPLICATION BUILD TARGETS
 # ==================================================================================== #
 
-# Bundle bwrap/Xvfb/x11vnc + their shared libs into tools/ (Linux only;
-# resolves before PATH at runtime). Safe no-op on non-Linux hosts and when the
-# tools are not installed on the build host.
-bundle-sandbox-tools:
+# Bundle the sandbox helper binaries, Frida bridge/server, and their shared
+# libraries into tools/ (Linux only; resolves before PATH at runtime).
+# Keep the bridge as an explicit prerequisite so every Make packaging route
+# has the same runtime asset set as a local build.
+bundle-sandbox-tools: scripts/bundle-sandbox-tools.sh scripts/frida-bridge.py
 	@bash ./scripts/bundle-sandbox-tools.sh
+
+# One-time Linux setup: attach the required capabilities to the app's bundled
+# nsenter helper. The GUI and engine still run as the logged-in user.
+install-sandbox-privileges: scripts/bundle-sandbox-tools.sh
+	@KNIRVENGINE_SET_FILE_CAPS=1 bash ./scripts/bundle-sandbox-tools.sh
+	@bash ./scripts/configure-sandbox-sudoers.sh
+
+# Install only the allow-listed package-manager commands used to prepare the
+# Bubble Wrap runtime. This does not grant general root access to the engine.
+configure-sandbox-sudoers: scripts/configure-sandbox-sudoers.sh
+	@bash ./scripts/configure-sandbox-sudoers.sh
 
 # Build the application for the current platform
 build: bundle-sandbox-tools

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { ScanSearch, Play } from 'lucide-react';
 import { useToolScan } from '../../../hooks/useToolScan';
 import { useSandboxSession } from '../../../hooks/useSandboxSession';
+import { ToolPreparationNotice } from '../ToolConsoles';
 
 type Severity = 'ERROR' | 'WARNING' | 'INFO';
 
@@ -63,6 +64,8 @@ const Semgrep: React.FC = () => {
           <span>{running ? 'Scanning…' : 'Run scan'}</span>
         </button>
       </div>
+
+      <ToolPreparationNotice tool="Semgrep" active={running} />
 
       {error && (
         <div className="mb-4 p-3 bg-red-500/10 border border-red-500/30 rounded-lg text-red-300 text-sm">

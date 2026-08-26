@@ -1,9 +1,11 @@
 package api
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"path/filepath"
+	"strconv"
 )
 
 // toolPathArgs is shared by file-oriented consoles. TargetDir defaults to the
@@ -84,22 +86,68 @@ func init() {
 		return []string{"-i", filepath.Join(a.TargetDir, "in"), "-o", filepath.Join(a.TargetDir, "out"), "--", a.TargetPath}, nil
 	}})
 
-	// Lane 3: Frida CLI provides the process-attached interactive bridge.
-	registerLane3Tool("frida", lane3Adapter{binary: "frida", needsJoin: true, buildArgs: func(_ *SandboxSession, pid int, raw json.RawMessage) ([]string, error) {
+	// Lane 3: the bridge owns frida-python's JSON protocol; the browser never
+	// has to parse the human-oriented frida CLI output.
+	registerLane3Tool("frida", lane3Adapter{binary: "frida-bridge.py", prerequisites: []string{"frida"}, needsJoin: true, buildArgs: func(_ *SandboxSession, pid int, raw json.RawMessage) ([]string, error) {
 		var req struct {
 			Script string `json:"script"`
 		}
 		_ = json.Unmarshal(raw, &req)
-		args := []string{"-p", fmt.Sprintf("%d", pid), "-q"}
+		args := []string{"--pid", fmt.Sprintf("%d", pid)}
 		if req.Script != "" {
-			args = append(args, "-l", req.Script)
+			args = append(args, "--script", req.Script)
 		}
 		return args, nil
 	}})
 
 	// Lane 5: Cutter's rizin engine emits the native analysis that the Cutter
 	// React console renders instead of embedding a second desktop GUI.
-	registerLane5Tool("cutter", lane5Adapter{binary: "rizin", analysisCmd: func(_ *SandboxSession, binaryPath string, _ json.RawMessage) ([]string, error) {
-		return []string{"-2", "-q", "-c", "aaa;aflj;pdgj", binaryPath}, nil
-	}})
+	registerLane5Tool("cutter", lane5Adapter{
+		binary: "rizin",
+		analysisCmd: func(_ *SandboxSession, binaryPath string, _ json.RawMessage) ([]string, error) {
+			return []string{"-2", "-q", "-c", "aaa;aflj;pdgj", binaryPath}, nil
+		},
+		parseOutput: parseCutterOutput,
+	})
+}
+
+// parseCutterOutput parses rizin's consecutive JSON documents: aflj emits the
+// function index and pdgj emits the selected disassembly graph. Keeping the
+// original output gives operators an escape hatch when a rizin version adds
+// fields we do not yet render.
+func parseCutterOutput(stdout []byte) (*ToolHeadlessResult, error) {
+	decoder := json.NewDecoder(bytes.NewReader(stdout))
+	var rawFunctions []struct {
+		Name string          `json:"name"`
+		Addr json.RawMessage `json:"addr"`
+		Size int             `json:"size"`
+	}
+	if err := decoder.Decode(&rawFunctions); err != nil {
+		return nil, fmt.Errorf("decode rizin function list: %w", err)
+	}
+	functions := make([]FunctionInfo, 0, len(rawFunctions))
+	for _, function := range rawFunctions {
+		functions = append(functions, FunctionInfo{Name: function.Name, Address: rizinAddress(function.Addr), Size: function.Size})
+	}
+	var listing json.RawMessage
+	if err := decoder.Decode(&listing); err != nil {
+		return nil, fmt.Errorf("decode rizin disassembly graph: %w", err)
+	}
+	prettyListing := &bytes.Buffer{}
+	if err := json.Indent(prettyListing, listing, "", "  "); err != nil {
+		return nil, fmt.Errorf("format rizin disassembly graph: %w", err)
+	}
+	return &ToolHeadlessResult{Tool: "cutter", RawOutput: string(stdout), Functions: functions, Decompiled: prettyListing.String(), Listing: prettyListing.String()}, nil
+}
+
+func rizinAddress(value json.RawMessage) string {
+	var number uint64
+	if err := json.Unmarshal(value, &number); err == nil {
+		return fmt.Sprintf("0x%x", number)
+	}
+	var text string
+	if err := json.Unmarshal(value, &text); err == nil {
+		return text
+	}
+	return strconv.Quote(string(value))
 }

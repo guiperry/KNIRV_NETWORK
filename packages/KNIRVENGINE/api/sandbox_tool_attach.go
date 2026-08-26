@@ -40,9 +40,10 @@ var lane3Registry = struct {
 
 // lane3Adapter configures a Lane 3 tool.
 type lane3Adapter struct {
-	binary    string
-	buildArgs func(session *SandboxSession, pid int, args json.RawMessage) ([]string, error)
-	needsJoin bool
+	binary        string
+	prerequisites []string
+	buildArgs     func(session *SandboxSession, pid int, args json.RawMessage) ([]string, error)
+	needsJoin     bool
 }
 
 // lane3Adapters maps tool names to their Lane 3 adapters.
@@ -109,6 +110,20 @@ func (m *SandboxManager) handleToolAttach(w http.ResponseWriter, r *http.Request
 		lane3Registry.Unlock()
 		RespondWithValidationError(w, err.Error())
 		return
+	}
+	for _, prerequisite := range adapter.prerequisites {
+		if err := ensureToolAvailable(prerequisite); err != nil {
+			lane3Registry.Unlock()
+			RespondWithValidationError(w, err.Error())
+			return
+		}
+	}
+	if tool == "frida" {
+		if err := session.ensureFridaServer(); err != nil {
+			lane3Registry.Unlock()
+			RespondWithValidationError(w, err.Error())
+			return
+		}
 	}
 	binary := resolveSandboxTool(adapter.binary)
 

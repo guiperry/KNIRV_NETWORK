@@ -88,6 +88,7 @@ func (m *SandboxManager) handleToolHeadless(w http.ResponseWriter, r *http.Reque
 	}
 	binary := resolveSandboxTool(adapter.binary)
 
+	startedAt := time.Now()
 	cmd := exec.CommandContext(session.ctx, binary, argv...)
 	cmd.Env = session.toolEnv(binary)
 	var stdout, stderr bytes.Buffer
@@ -105,12 +106,15 @@ func (m *SandboxManager) handleToolHeadless(w http.ResponseWriter, r *http.Reque
 		}
 	}
 
+	duration := time.Since(startedAt)
 	if adapter.parseOutput != nil {
 		result, err := adapter.parseOutput(stdout.Bytes())
 		if err != nil {
 			RespondWithInternalError(w, fmt.Sprintf("failed to parse output: %v", err))
 			return
 		}
+		result.StartedAt = startedAt
+		result.DurationMs = duration.Milliseconds()
 		RespondWithSuccess(w, result, fmt.Sprintf("%s analysis complete", tool))
 		return
 	}
@@ -119,8 +123,8 @@ func (m *SandboxManager) handleToolHeadless(w http.ResponseWriter, r *http.Reque
 		Tool:       tool,
 		RawOutput:  stdout.String(),
 		Listing:    stdout.String(),
-		StartedAt:  time.Now(),
-		DurationMs: 0,
+		StartedAt:  startedAt,
+		DurationMs: duration.Milliseconds(),
 	}, fmt.Sprintf("%s analysis complete", tool))
 }
 

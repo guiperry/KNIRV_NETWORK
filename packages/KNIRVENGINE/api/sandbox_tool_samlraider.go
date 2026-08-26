@@ -1,9 +1,11 @@
 package api
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
+	"net/url"
 	"strings"
 )
 
@@ -46,7 +48,7 @@ func init() {
 		samlContent := req.SAMLContent
 		if samlContent == "" {
 			// Try to find SAML in captured proxy flows.
-			samlContent = findSAMLInFlows(session)
+			samlContent = findSAMLInFlows(session, req.FlowID)
 		}
 		if samlContent == "" {
 			return nil, fmt.Errorf("no SAML content provided and no SAML traffic detected in proxy flows")
@@ -84,16 +86,52 @@ func init() {
 }
 
 // findSAMLInFlows searches captured proxy flows for SAML content.
-func findSAMLInFlows(session *SandboxSession) string {
+func findSAMLInFlows(session *SandboxSession, requestedFlowID ...int) string {
+	flowID := 0
+	if len(requestedFlowID) > 0 {
+		flowID = requestedFlowID[0]
+	}
 	session.mutex.RLock()
 	defer session.mutex.RUnlock()
-	for _, flow := range session.proxyFlows {
-		// SAML messages are typically in POST bodies; we can't access bodies
-		// directly from the flow struct, but we can check the path/host.
-		if strings.Contains(strings.ToLower(flow.Path), "saml") ||
-			strings.Contains(strings.ToLower(flow.Host), "saml") {
-			// In a real implementation, we'd retrieve the body from a buffer.
-			return ""
+	for i := len(session.proxyFlows) - 1; i >= 0; i-- {
+		flow := session.proxyFlows[i]
+		if flowID != 0 && flow.ID != flowID {
+			continue
+		}
+		for _, body := range []string{flow.RequestBody, flow.ResponseBody} {
+			if saml := extractSAML(body); saml != "" {
+				return saml
+			}
+		}
+	}
+	return ""
+}
+
+func extractSAML(content string) string {
+	content = strings.TrimSpace(content)
+	if content == "" {
+		return ""
+	}
+	if start := strings.Index(content, "<"); start >= 0 {
+		if candidate := content[start:]; strings.Contains(candidate, "Assertion") || strings.Contains(candidate, "AuthnRequest") || strings.Contains(candidate, "Response") {
+			return candidate
+		}
+	}
+	values, err := url.ParseQuery(content)
+	if err != nil {
+		return ""
+	}
+	for _, key := range []string{"SAMLRequest", "SAMLResponse", "saml"} {
+		for _, value := range values[key] {
+			// application/x-www-form-urlencoded represents literal '+' as a
+			// space after ParseQuery; SAML's standard base64 often contains it.
+			value = strings.ReplaceAll(value, " ", "+")
+			if decoded, err := base64.StdEncoding.DecodeString(value); err == nil {
+				return string(decoded)
+			}
+			if decoded, err := base64.RawURLEncoding.DecodeString(value); err == nil {
+				return string(decoded)
+			}
 		}
 	}
 	return ""

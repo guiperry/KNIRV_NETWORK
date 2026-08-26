@@ -707,6 +707,29 @@ func (s *SimpleAPIServer) corsMiddleware(next http.Handler) http.Handler {
 func (s *SimpleAPIServer) Start() error {
 	log.Printf("Starting Simple API server on %s", s.httpServer.Addr)
 
+	// Provision Bubble Wrap's small, shared runtime before accepting UI
+	// requests.  The target path is selected later in the UI, but bwrap/Xvfb/
+	// x11vnc are independent of it and used to make the first Launch appear to
+	// hang while packages were being checked or acquired.
+	if s.sandboxManager != nil {
+		statuses, err := s.sandboxManager.GetDependencyStatus()
+		if err != nil {
+			log.Printf("Warning: sandbox runtime preflight failed: %v", err)
+		} else {
+			var missing []string
+			for _, status := range statuses {
+				if !status.Present {
+					missing = append(missing, status.Binary)
+				}
+			}
+			if len(missing) > 0 {
+				log.Printf("Warning: sandbox runtime unavailable after preflight: %s", strings.Join(missing, ", "))
+			} else {
+				log.Printf("Sandbox runtime preflight complete (bwrap, Xvfb, x11vnc ready)")
+			}
+		}
+	}
+
 	// Agent discovery and registration is now handled automatically by unified storage
 	log.Printf("Agent discovery will be handled automatically by unified storage...")
 

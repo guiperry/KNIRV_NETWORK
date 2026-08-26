@@ -191,11 +191,29 @@ export const SandboxProvider: React.FC<{ children: React.ReactNode }> = ({ child
       setError(null);
       setLog([]);
       setProxyFlows([]);
-      const created = await createSandboxSession(config);
-      setSession(created);
-      setStatus(created.status);
-      setLog((prev) => [...prev, `[sandbox] session ${created.id} created`]);
-      connectStatusStream(created.id);
+	  // The backend intentionally allows one session at a time. Reconcile with
+	  // its current state before POSTing so a reload or a failed prior launch
+	  // cannot turn into an unexplained 409 Conflict.
+	  try {
+		  const existing = (await listSandboxSessions())[0];
+		  if (existing) {
+			setSession(existing);
+			setStatus(existing.status);
+			setError(`A sandbox session already exists (${existing.status}). Stop it before launching another target.`);
+			connectStatusStream(existing.id);
+			throw new Error('A sandbox session is already active. Stop it before launching another target.');
+		  }
+
+		  const created = await createSandboxSession(config);
+		  setSession(created);
+		  setStatus(created.status);
+		  setLog((prev) => [...prev, `[sandbox] session ${created.id} created`]);
+		  connectStatusStream(created.id);
+	  } catch (err) {
+		  const message = err instanceof Error ? err.message : String(err);
+		  setError(message);
+		  throw err;
+	  }
     },
     [connectStatusStream]
   );

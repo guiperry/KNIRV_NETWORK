@@ -14,8 +14,9 @@ type ElectronWindow = Window & {
 };
 
 const Bubblewrap: React.FC = () => {
-  const { launch, stop, status, targetLabel, projectPath, projectTargetPath, deps, depsInstalling, installDeps } = useSandbox();
+  const { launch, stop, session, status, error, targetLabel, projectPath, projectTargetPath, deps, depsInstalling, installDeps } = useSandbox();
   const running = status === 'running' || status === 'provisioning';
+  const hasSession = Boolean(session);
   const missingDeps = (deps ?? []).filter((d) => !d.present);
 
   const [binds, setBinds] = useState<Bind[]>([
@@ -36,6 +37,7 @@ const Bubblewrap: React.FC = () => {
   const [commandArguments, setCommandArguments] = useState('');
   const [selectedTargetDirectory, setSelectedTargetDirectory] = useState('');
   const [pickerMessage, setPickerMessage] = useState('');
+  const [launchPending, setLaunchPending] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const targetCommand = executionMode === 'command' ? (runtime === 'custom' ? customRuntime : runtime) : target;
@@ -76,6 +78,8 @@ const Bubblewrap: React.FC = () => {
   }, [executionMode, projectTargetPath]);
 
   const launchSandbox = async () => {
+    if (launchPending || hasSession) return;
+    setLaunchPending(true);
     try {
       await launch({
         targetLabel: targetLabel || (executionMode === 'command' ? scriptPath : target).split('/').pop() || 'sandbox-target',
@@ -89,6 +93,8 @@ const Bubblewrap: React.FC = () => {
       });
     } catch {
       // The context surfaces the backend error in the namespace log panel.
+    } finally {
+      setLaunchPending(false);
     }
   };
 
@@ -148,15 +154,22 @@ const Bubblewrap: React.FC = () => {
         <div className="flex items-center gap-2">
         <button
           onClick={launchSandbox}
-          disabled={running}
-          className="flex items-center space-x-2 px-3 py-2 rounded-lg text-sm font-medium bg-fuchsia-500/20 border border-fuchsia-500/40 text-fuchsia-300 hover:bg-fuchsia-500/30"
+          disabled={hasSession || launchPending}
+          aria-busy={launchPending}
+          className="flex items-center space-x-2 px-3 py-2 rounded-lg text-sm font-medium bg-fuchsia-500/20 border border-fuchsia-500/40 text-fuchsia-300 hover:bg-fuchsia-500/30 disabled:cursor-not-allowed disabled:opacity-60"
         >
           <Play className="w-4 h-4" />
-          <span>Launch</span>
+          <span>{launchPending ? 'Launching…' : 'Launch'}</span>
         </button>
-        {running && <button onClick={stopSandbox} className="flex items-center space-x-2 px-3 py-2 rounded-lg text-sm font-medium bg-red-500/20 border border-red-500/40 text-red-300 hover:bg-red-500/30"><Square className="w-4 h-4" /><span>Stop session</span></button>}
+        {hasSession && <button onClick={stopSandbox} className="flex items-center space-x-2 px-3 py-2 rounded-lg text-sm font-medium bg-red-500/20 border border-red-500/40 text-red-300 hover:bg-red-500/30"><Square className="w-4 h-4" /><span>Stop session</span></button>}
         </div>
       </div>
+
+      {error && (
+        <div role="alert" className="mb-4 rounded-lg border border-red-500/40 bg-red-500/10 p-3 text-sm text-red-200">
+          <span className="font-medium">Sandbox launch failed:</span> {error}
+        </div>
+      )}
 
       {missingDeps.length > 0 && (
         <div className="bg-amber-500/10 border border-amber-500/40 rounded-lg p-4 space-y-2">

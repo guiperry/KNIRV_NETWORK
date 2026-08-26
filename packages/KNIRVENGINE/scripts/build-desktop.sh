@@ -162,7 +162,10 @@ build_platform_binaries() {
     cd "$PROJECT_ROOT"
     mkdir -p dist
 
-    GOCACHE=/tmp/knirvengine-go-build CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -tags embed -o dist/knirv-engine-linux-amd64 .
+    # Tree-sitter is compiled into the Linux engine through cgo. The release
+    # host builds its native Linux target here, so retain cgo instead of
+    # silently shipping the no-cgo parser stub.
+    GOCACHE=/tmp/knirvengine-go-build CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build -tags embed -o dist/knirv-engine-linux-amd64 .
     GOCACHE=/tmp/knirvengine-go-build CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -tags embed -o dist/knirv-engine-windows-amd64.exe .
     GOCACHE=/tmp/knirvengine-go-build CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -tags embed -o dist/knirv-engine-macos-amd64 .
     GOCACHE=/tmp/knirvengine-go-build CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -tags embed -o dist/knirv-engine-macos-arm64 .

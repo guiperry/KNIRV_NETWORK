@@ -200,6 +200,16 @@ func main() {
 	var migrateDB = flag.Bool("migrate", false, "Run agent data migration")
 	flag.Parse()
 
+	// Electron deliberately refuses to run as root because doing so disables
+	// Chromium's sandbox. Keep the desktop process unprivileged: operations
+	// requiring capabilities elevate their individual child command in the
+	// sandbox tool layer instead. This makes an accidental `sudo ./knirv-engine`
+	// fail safely and explains the supported launch path.
+	if shouldRefuseRootLaunch(os.Geteuid()) {
+		log.Println("KNIRVENGINE must not be launched with sudo. Start it as your normal user; privileged sandbox operations request sudo only when needed.")
+		return
+	}
+
 	if !*browser {
 		launched, err := launchElectronDesktop()
 		if err != nil {
@@ -603,6 +613,10 @@ func main() {
 	}
 
 	log.Println("✅ Shutdown complete")
+}
+
+func shouldRefuseRootLaunch(euid int) bool {
+	return euid == 0
 }
 
 // startReactGUI starts the React development server
