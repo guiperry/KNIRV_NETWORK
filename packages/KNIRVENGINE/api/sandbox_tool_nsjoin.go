@@ -3,6 +3,7 @@ package api
 import (
 	"fmt"
 	"io"
+	"os"
 	"os/exec"
 	"strconv"
 	"strings"
@@ -63,6 +64,35 @@ func (s *SandboxSession) resolveTargetPid() (int, error) {
 	return strconv.Atoi(fields[0])
 }
 
+// resolveTargetNamespacePID returns the target PID as seen from inside the
+// sandbox PID namespace. Frida-server runs there, so it cannot attach using
+// the host PID returned by resolveTargetPid.
+func (s *SandboxSession) resolveTargetNamespacePID() (int, error) {
+	hostPID, err := s.resolveTargetPid()
+	if err != nil {
+		return 0, err
+	}
+	status, err := os.ReadFile(fmt.Sprintf("/proc/%d/status", hostPID))
+	if err != nil {
+		return 0, fmt.Errorf("read target namespace PID: %w", err)
+	}
+	for _, line := range strings.Split(string(status), "\n") {
+		if !strings.HasPrefix(line, "NSpid:") {
+			continue
+		}
+		fields := strings.Fields(strings.TrimPrefix(line, "NSpid:"))
+		if len(fields) == 0 {
+			break
+		}
+		pid, err := strconv.Atoi(fields[len(fields)-1])
+		if err != nil {
+			break
+		}
+		return pid, nil
+	}
+	return 0, fmt.Errorf("target PID %d has no namespace PID mapping", hostPID)
+}
+
 // spawnJoined spawns a process inside the sandbox's namespaces. It uses
 // `nsenter -t <InnerPid> -m -p -i -u -n -C -- <name> <args...>` to join all
 // of the sandbox's namespaces (mnt, pid, ipc, uts, net, cgroup) and then
@@ -89,6 +119,13 @@ func (s *SandboxSession) spawnJoined(name string, args ...string) (*exec.Cmd, er
 // spawn() owns pipes for namespace logs, while streaming/RPC lanes need to
 // consume stdout/stderr themselves for their own WebSocket protocols.
 func (s *SandboxSession) startToolProcess(name string, joined bool, args ...string) (*exec.Cmd, io.WriteCloser, io.ReadCloser, io.ReadCloser, error) {
+	return s.startToolProcessWithEnv(name, joined, nil, args...)
+}
+
+// startToolProcessWithEnv starts a tool with additional environment variables.
+// The variables are set on nsenter itself, so a namespace-joined process
+// inherits them just like a directly started tool does.
+func (s *SandboxSession) startToolProcessWithEnv(name string, joined bool, extraEnv []string, args ...string) (*exec.Cmd, io.WriteCloser, io.ReadCloser, io.ReadCloser, error) {
 	command, commandArgs := name, args
 	if joined {
 		if s.InnerPid == 0 {
@@ -100,7 +137,7 @@ func (s *SandboxSession) startToolProcess(name string, joined bool, args ...stri
 		command = resolveSandboxTool("nsenter")
 	}
 	cmd := exec.CommandContext(s.ctx, command, commandArgs...)
-	cmd.Env = s.toolEnv(command)
+	cmd.Env = append(s.toolEnv(command), extraEnv...)
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
 		return nil, nil, nil, nil, err

@@ -5,6 +5,7 @@ import {
   getToolAttachWebSocketUrl,
   type ToolAttachState,
 } from '../services/sandboxToolService';
+import { addToolReport } from '../services/toolReports';
 
 interface UseToolAttachOptions {
   sessionID: string;
@@ -36,6 +37,8 @@ export function useToolAttach({ sessionID, tool }: UseToolAttachOptions): UseToo
   const [error, setError] = useState<string | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
   const mountedRef = useRef(true);
+  const logRef = useRef<string[]>([]);
+  const attachRef = useRef<{ startedAt: string; startedAtMs: number; args: Record<string, unknown> } | null>(null);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -49,9 +52,11 @@ export function useToolAttach({ sessionID, tool }: UseToolAttachOptions): UseToo
   }, []);
 
   const attach = useCallback(async (targetPid: number, args: Record<string, unknown> = {}) => {
+    const attachDetails = { startedAt: new Date().toISOString(), startedAtMs: Date.now(), args: { pid: targetPid, ...args } };
     setAttaching(true);
     setError(null);
     setLog([]);
+    logRef.current = [];
 
     try {
       const state: ToolAttachState = await attachTool(sessionID, tool, targetPid, args);
@@ -60,6 +65,8 @@ export function useToolAttach({ sessionID, tool }: UseToolAttachOptions): UseToo
       setAttached(state.attached);
       setPid(state.pid ?? targetPid);
       setLog(state.log ?? []);
+      logRef.current = state.log ?? [];
+      attachRef.current = attachDetails;
 
       const wsUrl = getToolAttachWebSocketUrl(sessionID, tool);
       const ws = new WebSocket(wsUrl);
@@ -70,7 +77,8 @@ export function useToolAttach({ sessionID, tool }: UseToolAttachOptions): UseToo
           const msg = JSON.parse(event.data);
           switch (msg.type) {
             case 'attach_log':
-              setLog((prev) => [...prev, msg.line as string]);
+              logRef.current = [...logRef.current, msg.line as string];
+              setLog(logRef.current);
               break;
             case 'attach_detached':
               setAttached(false);
@@ -91,8 +99,10 @@ export function useToolAttach({ sessionID, tool }: UseToolAttachOptions): UseToo
 
       wsRef.current = ws;
     } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      addToolReport({ tool, execution: 'attach', status: 'failed', sessionID, startedAt: attachDetails.startedAt, completedAt: new Date().toISOString(), durationMs: Date.now() - attachDetails.startedAtMs, args: attachDetails.args, output: '', error: message });
       if (mountedRef.current) {
-        setError(err instanceof Error ? err.message : String(err));
+        setError(message);
         setAttached(false);
       }
     } finally {
@@ -103,15 +113,18 @@ export function useToolAttach({ sessionID, tool }: UseToolAttachOptions): UseToo
   }, [sessionID, tool]);
 
   const detach = useCallback(async () => {
+    const attachDetails = attachRef.current;
     try {
       if (wsRef.current) {
         wsRef.current.close();
         wsRef.current = null;
       }
       await detachTool(sessionID, tool);
+      if (attachDetails) addToolReport({ tool, execution: 'attach', status: 'completed', sessionID, startedAt: attachDetails.startedAt, completedAt: new Date().toISOString(), durationMs: Date.now() - attachDetails.startedAtMs, args: attachDetails.args, output: logRef.current.join('\n') || 'Detached without bridge output.' });
     } catch {
-      // Ignore detach errors.
+      if (attachDetails) addToolReport({ tool, execution: 'attach', status: 'failed', sessionID, startedAt: attachDetails.startedAt, completedAt: new Date().toISOString(), durationMs: Date.now() - attachDetails.startedAtMs, args: attachDetails.args, output: logRef.current.join('\n'), error: 'Unable to detach tool' });
     } finally {
+      attachRef.current = null;
       if (mountedRef.current) {
         setAttached(false);
         setPid(null);
@@ -126,6 +139,7 @@ export function useToolAttach({ sessionID, tool }: UseToolAttachOptions): UseToo
   }, []);
 
   const clearLog = useCallback(() => {
+    logRef.current = [];
     setLog([]);
   }, []);
 

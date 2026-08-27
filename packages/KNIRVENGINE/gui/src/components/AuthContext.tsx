@@ -197,7 +197,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   // gets network-admin.
   const toolPages = [
     'dashboard', 'proxy', 'instrumentation', 'reversing', 'fuzzing',
-    'static-analysis', 'packet-capture', 'auth-audit', 'sandbox', 'settings'
+    'static-analysis', 'packet-capture', 'auth-audit', 'sandbox', 'reports', 'settings'
   ];
   const pageAccess: Record<string, string[]> = {
     'root': [...toolPages, 'network-admin'],

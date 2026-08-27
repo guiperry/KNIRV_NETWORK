@@ -59,6 +59,24 @@ func TestResolveSandboxToolNonExecutableNotBundled(t *testing.T) {
 	}
 }
 
+func TestResolveSandboxToolRejectsIncompleteBundledDotnet(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("KNIRVENGINE_SANDBOX_TOOLS_DIR", dir)
+	dotnet := filepath.Join(dir, "dotnet")
+	if err := os.WriteFile(dotnet, []byte("#!/bin/sh\n"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if got := resolveSandboxTool("dotnet"); got != "dotnet" {
+		t.Fatalf("incomplete bundled dotnet resolved to %q, want host fallback", got)
+	}
+	if err := os.MkdirAll(filepath.Join(dir, "host", "fxr"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if got := resolveSandboxTool("dotnet"); got != dotnet {
+		t.Fatalf("complete bundled dotnet resolved to %q, want %q", got, dotnet)
+	}
+}
+
 func TestIsBundledTool(t *testing.T) {
 	dir := t.TempDir()
 	old := os.Getenv("KNIRVENGINE_SANDBOX_TOOLS_DIR")
@@ -75,6 +93,33 @@ func TestIsBundledTool(t *testing.T) {
 	}
 	if isBundledTool("/usr/bin/bwrap") {
 		t.Error("expected system path outside tools dir not to be bundled")
+	}
+}
+
+func TestToolEnvKeepsManagedRuntimeLibrariesIsolated(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("KNIRVENGINE_SANDBOX_TOOLS_DIR", dir)
+	if err := os.MkdirAll(filepath.Join(dir, "pyenv", "bin"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Mkdir(filepath.Join(dir, "lib"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	semgrep := filepath.Join(dir, "pyenv", "bin", "semgrep")
+	if err := os.WriteFile(semgrep, []byte("#!/bin/sh\n"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	native := filepath.Join(dir, "bwrap")
+	if err := os.WriteFile(native, []byte("#!/bin/sh\n"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	session := &SandboxSession{}
+	if got := environmentValue(session.toolEnv(semgrep), "LD_LIBRARY_PATH"); got != "" {
+		t.Fatalf("managed Semgrep LD_LIBRARY_PATH = %q, want empty", got)
+	}
+	if got, want := environmentValue(session.toolEnv(native), "LD_LIBRARY_PATH"), filepath.Join(dir, "lib"); got != want {
+		t.Fatalf("native tool LD_LIBRARY_PATH = %q, want %q", got, want)
 	}
 }
 

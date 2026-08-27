@@ -2,10 +2,13 @@ package api
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"os/exec"
+	"runtime/debug"
 	"strings"
 	"sync"
 	"time"
@@ -61,6 +64,18 @@ func registerLane1Tool(name string, adapter toolScanAdapter) {
 // For Lane 6 tools, the adapter's buildArgs returns empty args and the
 // handler calls a registered native function instead.
 func (m *SandboxManager) handleToolScan(w http.ResponseWriter, r *http.Request) {
+	clearToolResponseDeadline(w)
+
+	// Mirrors handleToolHeadless's recovery: an unrecovered panic here closes
+	// the connection without a response, which the GUI's dev-server proxy can
+	// only surface as an opaque EOF/502.
+	defer func() {
+		if recovered := recover(); recovered != nil {
+			log.Printf("panic while handling tool scan: %v\n%s", recovered, debug.Stack())
+			RespondWithInternalError(w, fmt.Sprintf("%s scan aborted unexpectedly; inspect the engine log for details", mux.Vars(r)["tool"]))
+		}
+	}()
+
 	vars := mux.Vars(r)
 	sessionID := vars["id"]
 	tool := vars["tool"]
@@ -112,7 +127,17 @@ func (m *SandboxManager) handleToolScan(w http.ResponseWriter, r *http.Request) 
 	binary := resolveSandboxTool(adapter.binary)
 
 	startedAt := time.Now()
-	cmd := exec.CommandContext(session.ctx, binary, argv...)
+	commandContext := session.ctx
+	if commandContext == nil {
+		commandContext = r.Context()
+	}
+	// Lane 1 covers slower batch decompilers (jadx on a large APK can
+	// legitimately run for minutes), so this is more generous than Lane 5's
+	// 60s — but still bounded, so a hang shows up as a clean timeout response
+	// instead of an indefinitely open connection.
+	commandContext, cancel := context.WithTimeout(commandContext, 5*time.Minute)
+	defer cancel()
+	cmd := exec.CommandContext(commandContext, binary, argv...)
 	cmd.Env = session.toolEnv(binary)
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout
@@ -123,6 +148,10 @@ func (m *SandboxManager) handleToolScan(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	if err := cmd.Wait(); err != nil {
+		if commandContext.Err() == context.DeadlineExceeded {
+			RespondWithError(w, http.StatusGatewayTimeout, fmt.Sprintf("%s scan exceeded the 5 minute limit", tool), ErrorCodeTimeout)
+			return
+		}
 		// Many tools exit non-zero on findings; still capture output.
 		if stdout.Len() == 0 {
 			RespondWithInternalError(w, fmt.Sprintf("%s failed: %v\nstderr: %s", tool, err, stderr.String()))
@@ -144,6 +173,16 @@ func (m *SandboxManager) handleToolScan(w http.ResponseWriter, r *http.Request) 
 	}
 
 	RespondWithSuccess(w, result, fmt.Sprintf("%s scan complete", tool))
+}
+
+// clearToolResponseDeadline lets an analysis finish after the API server's
+// ordinary 15-second write timeout. First-use dependency acquisition and
+// native-binary analysis regularly take longer; letting the deadline fire
+// closes the upstream connection and appears to the GUI as a proxy EOF/502.
+// Tool execution has its own lifecycle and cancellation controls, so this is
+// deliberately limited to tool endpoints rather than applied to the API.
+func clearToolResponseDeadline(w http.ResponseWriter) {
+	_ = http.NewResponseController(w).SetWriteDeadline(time.Time{})
 }
 
 // registerToolRoutes registers all tool-related routes on the given router.

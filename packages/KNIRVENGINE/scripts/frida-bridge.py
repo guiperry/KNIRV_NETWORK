@@ -4,6 +4,15 @@ import argparse
 import json
 import sys
 
+# Frida 17's generated type annotations import NotRequired from typing even
+# on Python 3.10, where the runtime symbol lives in typing_extensions. Keep
+# the bridge compatible with the managed Ubuntu 22.04-era interpreter.
+if not hasattr(__import__("typing"), "NotRequired"):
+    import typing
+    from typing_extensions import NotRequired
+
+    typing.NotRequired = NotRequired
+
 import frida
 
 
@@ -15,10 +24,15 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--pid", type=int, required=True)
     parser.add_argument("--script")
+    parser.add_argument("--device", default="127.0.0.1:27042")
     options = parser.parse_args()
-    device = frida.get_local_device()
+    # frida-server lives in the sandbox PID namespace. Connect to it remotely
+    # from the host-side bridge so it receives a namespace PID, not a host PID.
+    device = frida.get_device_manager().add_remote_device(options.device)
     session = device.attach(options.pid)
     current = None
+
+    current_script_path = options.script
 
     def load(source):
         nonlocal current
@@ -29,9 +43,16 @@ def main():
         current.load()
         emit({"type": "script_loaded"})
 
-    if options.script:
-        with open(options.script, encoding="utf-8") as handle:
+    def load_from_path(path):
+        nonlocal current_script_path
+        if not path:
+            raise RuntimeError("no script path provided")
+        with open(path, encoding="utf-8") as handle:
             load(handle.read())
+        current_script_path = path
+
+    if options.script:
+        load_from_path(options.script)
     emit({"type": "attached", "pid": options.pid})
     for line in sys.stdin:
         try:
@@ -40,6 +61,12 @@ def main():
             args = command.get("args") or {}
             if action == "load_script":
                 load(args["source"])
+            elif action == "reload":
+                # The GUI edits a script path, not inline source (the browser
+                # has no access to the sandbox's mounted filesystem), so
+                # "reload" re-reads the path from disk rather than taking
+                # source text directly like load_script does.
+                load_from_path(args.get("script") or current_script_path)
             elif action == "post":
                 if not current:
                     raise RuntimeError("no script loaded")

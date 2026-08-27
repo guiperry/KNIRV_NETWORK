@@ -77,27 +77,28 @@ type SandboxSession struct {
 	FrontendURL   string               `json:"frontendUrl,omitempty"`
 
 	// Private process/lifecycle state
-	manager         *SandboxManager
-	ctx             context.Context
-	cancelFunc      context.CancelFunc
-	mutex           sync.RWMutex
-	clients         map[*websocket.Conn]bool
-	xvfbCmd         *exec.Cmd
-	bwrapCmd        *exec.Cmd
-	vncCmd          *exec.Cmd
-	frontendCmd     *exec.Cmd
-	fridaServerCmd  *exec.Cmd
-	frontendURL     string
-	frontendProfile string
-	frontendOnce    sync.Once
-	proxyListener   net.Listener
-	proxyServer     *http.Server
-	proxyPort       int
-	proxyFlows      []SandboxProxyFlow
-	proxyFlowID     int
-	started         bool
-	log             []string
-	proxychainsConf string
+	manager          *SandboxManager
+	ctx              context.Context
+	cancelFunc       context.CancelFunc
+	mutex            sync.RWMutex
+	clients          map[*websocket.Conn]bool
+	xvfbCmd          *exec.Cmd
+	bwrapCmd         *exec.Cmd
+	vncCmd           *exec.Cmd
+	frontendCmd      *exec.Cmd
+	fridaServerCmd   *exec.Cmd
+	frontendURL      string
+	frontendProfile  string
+	frontendOnce     sync.Once
+	proxyListener    net.Listener
+	proxyServer      *http.Server
+	proxyPort        int
+	proxyFlows       []SandboxProxyFlow
+	proxyFlowID      int
+	started          bool
+	log              []string
+	proxychainsConf  string
+	toolWorkspaceDir string
 
 	// Launch configuration snapshot used to build the bwrap argv.
 	binds         []SandboxBind
@@ -356,6 +357,10 @@ func (s *SandboxSession) Start() error {
 	// manager still holds the default bare-name binary.
 	s.manager.resolveBins()
 
+	if err := s.prepareToolWorkspace(); err != nil {
+		return s.failStart(fmt.Sprintf("failed to prepare tool workspace: %v", err))
+	}
+
 	// Automatically verify (and, if needed, install) the required system
 	// dependencies so the end user never has to provision bubblewrap/Xvfb/
 	// x11vnc by hand.
@@ -519,6 +524,12 @@ func buildBwrapArgs(s *SandboxSession) []string {
 			args = append(args, "--"+b.Mode, b.Src, b.Dst)
 		}
 	}
+	// Kernel tracing tools execute inside this mount namespace. Expose sysfs
+	// read-only so bpftrace can read tracefs/BTF metadata without allowing the
+	// sandboxed target to modify host kernel settings.
+	if info, err := os.Stat("/sys"); err == nil && info.IsDir() {
+		args = append(args, "--ro-bind", "/sys", "/sys")
+	}
 	args = append(args, "--proc", "/proc", "--dev", "/dev")
 	if s.unshareAll {
 		args = append(args, "--unshare-all")
@@ -549,8 +560,10 @@ func buildBwrapArgs(s *SandboxSession) []string {
 }
 
 // toolEnv builds the subprocess environment for a managed tool, appending
-// LD_LIBRARY_PATH to the bundled lib/ directory when the tool is a bundled
-// binary so it finds its shipped shared-library dependencies.
+// LD_LIBRARY_PATH to the bundled lib/ directory only for native bundled
+// binaries. Managed Python and .NET tools resolve their own runtime libraries;
+// injecting the bundle-wide directory can override Semgrep's pinned Kerberos
+// libraries and make its osemgrep binary fail to load.
 func (s *SandboxSession) toolEnv(name string) []string {
 	env := os.Environ()
 	// Python tools are installed in the managed bundle venv.  Prepend it so
@@ -559,18 +572,23 @@ func (s *SandboxSession) toolEnv(name string) []string {
 		info, err := os.Stat(venvBin)
 		return err == nil && info.IsDir()
 	}() {
-		env = append(env, "PATH="+venvBin+string(os.PathListSeparator)+os.Getenv("PATH"))
+		env = environmentWithOverride(env, "PATH", venvBin+string(os.PathListSeparator)+os.Getenv("PATH"))
 	}
 	if dotnetTools := filepath.Join(sandboxToolsDir(), "dotnettools"); func() bool {
 		info, err := os.Stat(dotnetTools)
 		return err == nil && info.IsDir()
 	}() {
-		env = append(env, "PATH="+dotnetTools+string(os.PathListSeparator)+os.Getenv("PATH"))
+		env = environmentWithOverride(env, "PATH", dotnetTools+string(os.PathListSeparator)+environmentValue(env, "PATH"))
 	}
-	if isBundledTool(name) {
+	if isNativeBundledTool(name) {
 		if libDir := bundledToolsLibDir(); libDir != "" {
-			env = append(env, "LD_LIBRARY_PATH="+libDir)
+			env = environmentWithOverride(env, "LD_LIBRARY_PATH", libDir)
 		}
+	} else if isBundledTool(name) {
+		// Managed runtimes ship their own loader paths. Drop a host-level
+		// LD_LIBRARY_PATH as well: it has the same precedence problem as the
+		// bundle lib directory and can otherwise override those libraries.
+		env = environmentWithout(env, "LD_LIBRARY_PATH")
 	}
 	return env
 }
@@ -641,6 +659,7 @@ func (s *SandboxSession) Close() error {
 	frontendPid := 0
 	fridaServerPid := 0
 	frontendProfile := s.frontendProfile
+	toolWorkspaceDir := s.toolWorkspaceDir
 	proxyServer := s.proxyServer
 	if s.vncCmd != nil && s.vncCmd.Process != nil {
 		vncPid = s.vncCmd.Process.Pid
@@ -677,7 +696,40 @@ func (s *SandboxSession) Close() error {
 	if frontendProfile != "" {
 		_ = os.RemoveAll(frontendProfile)
 	}
+	if toolWorkspaceDir != "" {
+		_ = os.RemoveAll(toolWorkspaceDir)
+	}
 
+	return nil
+}
+
+const aflWorkspaceMount = "/tmp/knirvengine-afl"
+
+// prepareToolWorkspace provides AFL++ with a writable, session-owned mount.
+// Project directories are deliberately mounted read-only, so AFL's corpus and
+// findings must never be placed beside the selected target.
+func (s *SandboxSession) prepareToolWorkspace() error {
+	workspace, err := os.MkdirTemp("", "knirvengine-afl-")
+	if err != nil {
+		return err
+	}
+	inputDir := filepath.Join(workspace, "in")
+	if err := os.MkdirAll(inputDir, 0o700); err != nil {
+		_ = os.RemoveAll(workspace)
+		return err
+	}
+	// AFL++ requires at least one seed. An empty seed works for generic binary
+	// targets and lets the fuzzer discover its own mutations without changing
+	// the operator's project files.
+	if err := os.WriteFile(filepath.Join(inputDir, "seed"), nil, 0o600); err != nil {
+		_ = os.RemoveAll(workspace)
+		return err
+	}
+
+	s.mutex.Lock()
+	s.toolWorkspaceDir = workspace
+	s.binds = append(s.binds, SandboxBind{Mode: "bind", Src: workspace, Dst: aflWorkspaceMount})
+	s.mutex.Unlock()
 	return nil
 }
 
@@ -815,7 +867,7 @@ func (s *SandboxSession) openFrontend(frontendURL string) {
 	cmd := exec.CommandContext(s.ctx, browser,
 		"--no-first-run", "--no-default-browser-check", "--user-data-dir="+profile,
 		"--proxy-server=http://127.0.0.1:"+strconv.Itoa(proxyPort), "--proxy-bypass-list=<-loopback>", frontendURL)
-	cmd.Env = append(os.Environ(), "DISPLAY="+s.Display)
+	cmd.Env = environmentWithOverride(os.Environ(), "DISPLAY", s.Display)
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
 		_ = os.RemoveAll(profile)
@@ -845,6 +897,43 @@ func (s *SandboxSession) openFrontend(frontendURL string) {
 			s.appendLog("[sandbox] frontend browser exited: " + err.Error())
 		}
 	}()
+}
+
+// environmentWithOverride replaces, rather than appends, a variable. execve
+// accepts duplicate variables and most libc getenv implementations return the
+// first one; appending DISPLAY therefore left the browser on the desktop's
+// previous display when sandbox sessions began choosing a dynamic display.
+func environmentWithOverride(base []string, key, value string) []string {
+	prefix := key + "="
+	env := make([]string, 0, len(base)+1)
+	for _, entry := range base {
+		if !strings.HasPrefix(entry, prefix) {
+			env = append(env, entry)
+		}
+	}
+	return append(env, prefix+value)
+}
+
+// environmentWithout removes every occurrence of key from base.
+func environmentWithout(base []string, key string) []string {
+	prefix := key + "="
+	env := make([]string, 0, len(base))
+	for _, entry := range base {
+		if !strings.HasPrefix(entry, prefix) {
+			env = append(env, entry)
+		}
+	}
+	return env
+}
+
+func environmentValue(base []string, key string) string {
+	prefix := key + "="
+	for _, entry := range base {
+		if strings.HasPrefix(entry, prefix) {
+			return strings.TrimPrefix(entry, prefix)
+		}
+	}
+	return ""
 }
 
 func (s *SandboxSession) startFrontendProxy(frontendURL string) (int, error) {

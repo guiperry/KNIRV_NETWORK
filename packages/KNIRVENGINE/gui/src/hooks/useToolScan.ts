@@ -5,6 +5,7 @@ import {
   type ToolScanResult,
 } from '../services/sandboxToolService';
 import { isLane6Tool } from './toolCapability';
+import { addToolReport } from '../services/toolReports';
 
 interface UseToolScanOptions {
   sessionID: string;
@@ -42,6 +43,8 @@ export function useToolScan({ sessionID, tool, useNative = false }: UseToolScanO
   }, []);
 
   const run = useCallback(async (args: Record<string, unknown> = {}) => {
+    const startedAt = new Date().toISOString();
+    const startedAtMs = Date.now();
     setRunning(true);
     setError(null);
     try {
@@ -51,9 +54,22 @@ export function useToolScan({ sessionID, tool, useNative = false }: UseToolScanO
       if (mountedRef.current) {
         setResult(response);
       }
+      addToolReport({
+        tool,
+        execution: useNative || isLane6Tool(tool) ? 'analysis' : 'scan',
+        status: 'completed',
+        sessionID,
+        startedAt: response.startedAt || startedAt,
+        completedAt: new Date().toISOString(),
+        durationMs: response.durationMs ?? Date.now() - startedAtMs,
+        args,
+        output: response.rawOutput || (response.structured ? JSON.stringify(response.structured, null, 2) : 'Completed with no output.'),
+      });
     } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      addToolReport({ tool, execution: useNative || isLane6Tool(tool) ? 'analysis' : 'scan', status: 'failed', sessionID, startedAt, completedAt: new Date().toISOString(), durationMs: Date.now() - startedAtMs, args, output: '', error: message });
       if (mountedRef.current) {
-        setError(err instanceof Error ? err.message : String(err));
+        setError(message);
       }
     } finally {
       if (mountedRef.current) {

@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -46,6 +48,48 @@ func TestParseCutterOutput(t *testing.T) {
 	}
 	if !strings.Contains(result.Listing, "opcode") {
 		t.Fatalf("listing did not contain formatted disassembly: %q", result.Listing)
+	}
+}
+
+func TestParseCutterOutputWithoutDisassemblyGraph(t *testing.T) {
+	result, err := parseCutterOutput([]byte(`[{"name":"main","addr":4198400,"size":32}]`))
+	if err != nil {
+		t.Fatalf("parseCutterOutput without graph: %v", err)
+	}
+	if len(result.Functions) != 1 || result.Functions[0].Name != "main" {
+		t.Fatalf("functions = %#v", result.Functions)
+	}
+	if result.Listing != "" {
+		t.Fatalf("listing = %q, want empty when Rizin does not emit a graph", result.Listing)
+	}
+}
+
+func TestValidateCutterBinaryPath(t *testing.T) {
+	tempDir := t.TempDir()
+	binaryPath := filepath.Join(tempDir, "target")
+	if err := os.WriteFile(binaryPath, []byte("binary"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	session := &SandboxSession{TargetCommand: binaryPath, binds: []SandboxBind{{Mode: "ro-bind", Src: tempDir, Dst: "/target"}}}
+
+	got, err := validateCutterBinaryPath(session, "")
+	if err == nil || got != "" {
+		t.Fatalf("empty binary path = (%q, %v), want validation error", got, err)
+	}
+	got, err = validateCutterBinaryPath(session, binaryPath)
+	if err != nil || got != binaryPath {
+		t.Fatalf("target binary = (%q, %v), want (%q, nil)", got, err, binaryPath)
+	}
+	if _, err := validateCutterBinaryPath(session, tempDir); err == nil {
+		t.Fatal("directory was accepted as a Cutter binary")
+	}
+
+	outside := filepath.Join(t.TempDir(), "outside")
+	if err := os.WriteFile(outside, []byte("binary"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := validateCutterBinaryPath(session, outside); err == nil {
+		t.Fatal("unmounted binary was accepted")
 	}
 }
 
@@ -221,6 +265,42 @@ func TestAllPlannedToolsAreRegistered(t *testing.T) {
 	}
 }
 
+func TestAFLUsesDocumentedCorePatternFallback(t *testing.T) {
+	adapter, ok := lane2Adapters["afl-fuzz"]
+	if !ok {
+		t.Fatal("afl-fuzz adapter is not registered")
+	}
+	if !containsString(adapter.env, "AFL_I_DONT_CARE_ABOUT_MISSING_CRASHES=1") {
+		t.Fatalf("afl-fuzz environment = %v, want AFL core-pattern fallback", adapter.env)
+	}
+	if !containsString(adapter.env, "AFL_SKIP_CPUFREQ=1") {
+		t.Fatalf("afl-fuzz environment = %v, want AFL CPU-frequency fallback", adapter.env)
+	}
+}
+
+func TestAFLWritesToSessionWorkspaceRatherThanProject(t *testing.T) {
+	adapter := lane2Adapters["afl-fuzz"]
+	args, err := adapter.buildArgs(&SandboxSession{}, nil)
+	if err != nil {
+		t.Fatalf("build AFL arguments: %v", err)
+	}
+	if !containsString(args, filepath.Join(aflWorkspaceMount, "out")) {
+		t.Fatalf("AFL arguments = %v, want output under %s", args, aflWorkspaceMount)
+	}
+	if containsString(args, "out") {
+		t.Fatalf("AFL arguments = %v, must not use a relative project output directory", args)
+	}
+}
+
+func containsString(values []string, want string) bool {
+	for _, value := range values {
+		if value == want {
+			return true
+		}
+	}
+	return false
+}
+
 func TestProxychainsConfGeneration(t *testing.T) {
 	cfg := proxychainsConfig{
 		ChainType: "dynamic",
@@ -291,7 +371,13 @@ func TestPlannedAcquisitionStrategies(t *testing.T) {
 	for _, binary := range []string{"jadx", "frida-server"} {
 		assertStrategy(binary, githubReleaseStrategy{})
 	}
-	assertStrategy("ilspycmd", dotnetToolStrategy{})
+	strategy, ok := toolAcquireStrategies["ilspycmd"].(dotnetToolStrategy)
+	if !ok {
+		t.Fatalf("ilspycmd should use dotnetToolStrategy, got %T", toolAcquireStrategies["ilspycmd"])
+	}
+	if strategy.version != "9.1.0.7988" {
+		t.Fatalf("ilspycmd version = %q, want .NET 8-compatible 9.1.0.7988", strategy.version)
+	}
 	for _, binary := range []string{"java", "dotnet", "rizin", "zeek"} {
 		assertStrategy(binary, packageManagerStrategy{})
 	}
@@ -549,7 +635,6 @@ func TestHandleToolHeadless_UnknownTool(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create session: %v", err)
 	}
-
 	body := `{"binaryPath": "/tmp/test.bin"}`
 	req := httptest.NewRequest("POST", "/api/v1/sandboxes/"+session.ID+"/tools/nonexistent/analyze", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -592,6 +677,10 @@ func TestHandleToolHeadless_StartedAtIsTime(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create session: %v", err)
 	}
+	// Restored sessions may not have the process-owned context populated. The
+	// handler must fall back to the request context rather than panic and make
+	// the GUI reverse proxy report an EOF/502.
+	session.ctx = nil
 
 	body := `{"binaryPath": "/tmp/test.bin"}`
 	req := httptest.NewRequest("POST", "/api/v1/sandboxes/"+session.ID+"/tools/echo-headless/analyze", strings.NewReader(body))

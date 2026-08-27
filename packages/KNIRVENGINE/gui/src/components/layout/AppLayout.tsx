@@ -14,7 +14,15 @@ type ActiveView =
   | 'packet-capture'
   | 'auth-audit'
   | 'sandbox'
-  | 'settings';
+  | 'reports'
+  | 'settings'
+  | 'frida' | 'proxychains-ng' | 'bpftrace'
+  | 'cutter' | 'ilspy' | 'jadx'
+  | 'aflplusplus'
+  | 'semgrep' | 'tree-sitter'
+  | 'wireshark' | 'zeek'
+  | 'jwt-tool' | 'saml-raider'
+  | 'bubblewrap' | 'novnc';
 
 /**
  * Consolidated application shell. Replaces the 9x-duplicated per-route layout

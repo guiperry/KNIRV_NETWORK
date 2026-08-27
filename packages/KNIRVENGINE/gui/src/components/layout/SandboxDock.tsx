@@ -124,9 +124,12 @@ export const SandboxDock: React.FC = () => {
               {log.length ? log.map((line, index) => <div key={`${index}-${line}`} className="whitespace-pre-wrap text-green-400">{line}</div>) : <span className="text-slate-600">waiting for sandbox output</span>}
             </div>
           </section>
-          <section className="relative min-h-[10rem] bg-black" aria-label="Target application view">
+          <section
+            className="relative flex min-h-0 min-w-0 flex-col overflow-hidden bg-black"
+            aria-label="Target application view"
+          >
             <div className="absolute left-3 top-2 z-10 rounded bg-slate-950/80 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wider text-fuchsia-300">Target view</div>
-            <Suspense fallback={<div className="h-full w-full bg-black" />}>
+            <Suspense fallback={<div className="min-h-0 min-w-0 flex-1 bg-black" />}>
               <SandboxVncCanvas wsUrl={isReady && session.vncWsPath ? getWebSocketUrl(session.vncWsPath) : undefined} onStatus={onStatus} />
             </Suspense>
             {!isReady && (

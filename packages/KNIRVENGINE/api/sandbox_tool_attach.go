@@ -6,10 +6,15 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
+	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"sync"
+
+	"KNIRVENGINE/desktop-client/utils"
 
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
@@ -83,7 +88,11 @@ func (m *SandboxManager) handleToolAttach(w http.ResponseWriter, r *http.Request
 	}
 	if req.Pid == 0 {
 		var targetErr error
-		req.Pid, targetErr = session.resolveTargetPid()
+		if tool == "frida" {
+			req.Pid, targetErr = session.resolveTargetNamespacePID()
+		} else {
+			req.Pid, targetErr = session.resolveTargetPid()
+		}
 		if targetErr != nil {
 			RespondWithValidationError(w, "no target PID available — is the sandbox running?")
 			return
@@ -94,6 +103,7 @@ func (m *SandboxManager) handleToolAttach(w http.ResponseWriter, r *http.Request
 	key := sessionID + "/" + tool
 	if existing, ok := lane3Registry.sessions[key]; ok {
 		lane3Registry.Unlock()
+		log.Printf("[sandbox] %s attach for session %s replaces an existing attach session (pid %d) — killing it before starting the new one", tool, sessionID, existing.Pid)
 		stopToolAttachment(existing)
 		lane3Registry.Lock()
 		delete(lane3Registry.sessions, key)
@@ -126,6 +136,22 @@ func (m *SandboxManager) handleToolAttach(w http.ResponseWriter, r *http.Request
 		}
 	}
 	binary := resolveSandboxTool(adapter.binary)
+	if tool == "frida" {
+		// The bridge is project-owned source, embedded in the binary and
+		// extracted to utils.GetSandboxScriptsDir() at startup (see
+		// extractEmbeddedSandboxScripts in main.go) — prefer that copy, since
+		// it's always in sync with this build. resolveSandboxTool's tools/
+		// copy (populated by scripts/bundle-sandbox-tools.sh) is the fallback
+		// for installations where extraction hasn't run yet.
+		if resolved := resolveEmbeddedSandboxScript(adapter.binary); resolved != "" {
+			binary = resolved
+		}
+		// The bridge imports the frida Python module supplied by frida-tools.
+		// Execute it through the managed venv explicitly: relying on its
+		// /usr/bin/env shebang can select the host Python, which does not have
+		// that module installed.
+		binary, argv = fridaBridgeCommand(binary, argv)
+	}
 
 	cancel := context.CancelFunc(func() {})
 
@@ -152,42 +178,88 @@ func (m *SandboxManager) handleToolAttach(w http.ResponseWriter, r *http.Request
 	lane3Registry.sessions[key] = state
 	lane3Registry.Unlock()
 
-	// Read bridge output.
+	// Preserve both bridge output streams. Frida reports attach failures on
+	// stderr, which previously made the UI flash from Attach to Detach without
+	// a diagnostic.
+	go readAttachOutput(state, stdout, "")
+	go readAttachOutput(state, stderr, "stderr: ")
 	go func() {
-		scanner := bufio.NewScanner(stdout)
-		for scanner.Scan() {
-			line := scanner.Text()
-			state.mutex.Lock()
-			state.Log = append(state.Log, line)
-			clients := make([]*websocket.Conn, 0, len(state.clients))
-			for c := range state.clients {
-				clients = append(clients, c)
-			}
-			state.mutex.Unlock()
-			for _, c := range clients {
-				_ = c.WriteJSON(map[string]interface{}{
-					"type": "attach_log",
-					"line": line,
-				})
-			}
+		waitErr := cmd.Wait()
+		// stdout/stderr are already streamed to the UI via readAttachOutput; a
+		// clean exit (nil error) with no bridge output otherwise looks
+		// identical, in the log, to a killed process. Distinguish them here so
+		// "attach flashes then reverts" is diagnosable from the engine log
+		// instead of guesswork.
+		if waitErr != nil {
+			log.Printf("[sandbox] %s bridge for session %s (pid %d) exited: %v", tool, sessionID, req.Pid, waitErr)
+		} else {
+			log.Printf("[sandbox] %s bridge for session %s (pid %d) exited cleanly (stdin closed / bridge returned)", tool, sessionID, req.Pid)
 		}
-		// Bridge exited.
 		state.mutex.Lock()
 		state.Attached = false
-		state.mutex.Unlock()
+		clients := make([]*websocket.Conn, 0, len(state.clients))
 		for c := range state.clients {
+			clients = append(clients, c)
+		}
+		state.mutex.Unlock()
+		for _, c := range clients {
 			_ = c.WriteJSON(map[string]interface{}{
 				"type": "attach_detached",
 			})
 		}
 	}()
-	go func() { _, _ = io.Copy(io.Discard, stderr); _ = cmd.Wait() }()
 
 	RespondWithSuccess(w, map[string]interface{}{
 		"attached": true,
 		"pid":      req.Pid,
 		"tool":     tool,
 	}, fmt.Sprintf("%s attached to PID %d", tool, req.Pid))
+}
+
+// resolveEmbeddedSandboxScript returns the path to a project-owned sandbox
+// script that was extracted from the compiled binary into
+// utils.GetSandboxScriptsDir() at startup (see extractEmbeddedSandboxScripts
+// in main.go), or "" if that directory or file isn't available — e.g. an
+// older extraction never ran, or GetSandboxScriptsDir failed to resolve.
+// Callers fall back to resolveSandboxTool's tools/-relative lookup.
+func resolveEmbeddedSandboxScript(name string) string {
+	scriptsDir, err := utils.GetSandboxScriptsDir()
+	if err != nil {
+		return ""
+	}
+	candidate := filepath.Join(scriptsDir, name)
+	if info, err := os.Stat(candidate); err == nil && !info.IsDir() && info.Mode().Perm()&0o111 != 0 {
+		return candidate
+	}
+	return ""
+}
+
+// fridaBridgeCommand runs the bridge with the managed venv interpreter when
+// present. It retains the bridge executable fallback for installations where
+// Frida is deliberately supplied by the host Python instead of the bundle.
+func fridaBridgeCommand(bridge string, args []string) (string, []string) {
+	python := filepath.Join(sandboxToolsDir(), "pyenv", "bin", "python3")
+	if info, err := os.Stat(python); err == nil && !info.IsDir() && info.Mode().Perm()&0o111 != 0 {
+		return python, append([]string{bridge}, args...)
+	}
+	return bridge, args
+}
+
+func readAttachOutput(state *ToolAttachState, reader io.Reader, prefix string) {
+	scanner := bufio.NewScanner(reader)
+	for scanner.Scan() {
+		line := prefix + scanner.Text()
+		state.mutex.Lock()
+		state.Log = append(state.Log, line)
+		clients := make([]*websocket.Conn, 0, len(state.clients))
+		for c := range state.clients {
+			clients = append(clients, c)
+		}
+		state.mutex.Unlock()
+		for _, c := range clients {
+			_ = c.WriteJSON(map[string]interface{}{"type": "attach_log", "line": line})
+		}
+	}
 }
 
 // handleToolAttachWS handles WebSocket communication for an attached tool.

@@ -206,7 +206,7 @@ func main() {
 	// sandbox tool layer instead. This makes an accidental `sudo ./knirv-engine`
 	// fail safely and explains the supported launch path.
 	if shouldRefuseRootLaunch(os.Geteuid()) {
-		log.Println("KNIRVENGINE must not be launched with sudo. Start it as your normal user; privileged sandbox operations request sudo only when needed.")
+		log.Println("KNIRVENGINE must not be launched with sudo. Start it as your normal user; the bundled nsenter helper carries the capabilities it needs to attach tools, and only the one-time sandbox dependency install ever asks for sudo.")
 		return
 	}
 
@@ -351,6 +351,9 @@ func main() {
 	// Ensure all application data directories exist
 	if err := utils.EnsureAppDataDirs(); err != nil {
 		log.Fatalf("Failed to create application data directories: %v", err)
+	}
+	if err := extractEmbeddedSandboxScripts(); err != nil {
+		log.Printf("Warning: failed to extract embedded sandbox scripts: %v", err)
 	}
 	if pidFile, err := writeProcessPIDFile(enginePIDFile, os.Getpid()); err != nil {
 		log.Printf("Warning: failed to write engine PID file: %v", err)
@@ -704,6 +707,37 @@ func openBrowser(url string) error {
 
 //go:embed gui/dist/*
 var embeddedGUI embed.FS
+
+// Project-owned sandbox helper scripts are embedded in the binary and
+// extracted to the app data directory at startup, rather than shipped as
+// loose files a separate bundling step has to copy next to the executable
+// (that's still how third-party sandbox binaries like bwrap/frida-server are
+// handled — see scripts/bundle-sandbox-tools.sh — because they're large,
+// vendored, and need setcap applied to a persistent on-disk file; extracting
+// a fresh copy on every launch would strip that capability every time).
+//
+//go:embed scripts/frida-bridge.py
+var embeddedFridaBridge []byte
+
+// extractEmbeddedSandboxScripts writes every embedded sandbox script to
+// utils.GetSandboxScriptsDir(), overwriting any existing copy so the
+// extracted file always matches what's actually compiled into this binary.
+func extractEmbeddedSandboxScripts() error {
+	scriptsDir, err := utils.GetSandboxScriptsDir()
+	if err != nil {
+		return fmt.Errorf("resolve sandbox scripts directory: %w", err)
+	}
+	scripts := map[string][]byte{
+		"frida-bridge.py": embeddedFridaBridge,
+	}
+	for name, content := range scripts {
+		dest := filepath.Join(scriptsDir, name)
+		if err := os.WriteFile(dest, content, 0o755); err != nil {
+			return fmt.Errorf("write %s: %w", name, err)
+		}
+	}
+	return nil
+}
 
 // serveStaticGUI serves the built React GUI from embedded files
 func serveStaticGUI(port, apiPort int, serverPtr **http.Server) error {

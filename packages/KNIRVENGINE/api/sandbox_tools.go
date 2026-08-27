@@ -58,10 +58,23 @@ func resolveSandboxTool(name string) string {
 		filepath.Join(sandboxToolsDir(), "dotnettools", name),
 	} {
 		if info, err := os.Stat(candidate); err == nil && !info.IsDir() && info.Mode()&0111 != 0 {
+			// The dotnet launcher is not self-contained: it resolves host/fxr,
+			// shared frameworks, and SDKs relative to its own directory. Copying
+			// only /usr/bin/dotnet into tools/ creates a launcher that always
+			// fails with "host/fxr does not exist". Use the host installation
+			// unless a complete bundle is explicitly present.
+			if name == "dotnet" && !bundledDotnetRuntimeExists(filepath.Dir(candidate)) {
+				continue
+			}
 			return candidate
 		}
 	}
 	return name
+}
+
+func bundledDotnetRuntimeExists(bundleDir string) bool {
+	info, err := os.Stat(filepath.Join(bundleDir, "host", "fxr"))
+	return err == nil && info.IsDir()
 }
 
 // isBundledTool reports whether name refers to a binary physically located in
@@ -81,6 +94,21 @@ func isBundledTool(name string) bool {
 	return filepath.Dir(name) == cleanDir ||
 		filepath.Dir(name) == filepath.Join(cleanDir, "pyenv", "bin") ||
 		filepath.Dir(name) == filepath.Join(cleanDir, "dotnettools")
+}
+
+// isNativeBundledTool reports whether name is a native executable copied to
+// the root of the tools bundle. Managed Python and .NET entry points are also
+// bundled tools, but they own their runtime-library resolution and must not
+// inherit the bundle-wide LD_LIBRARY_PATH.
+func isNativeBundledTool(name string) bool {
+	if !isBundledTool(name) {
+		return false
+	}
+	cleanDir, err := filepath.Abs(sandboxToolsDir())
+	if err != nil {
+		return false
+	}
+	return filepath.Dir(name) == cleanDir
 }
 
 // bundledToolsLibDir returns the lib/ subdirectory of the bundled tools dir,

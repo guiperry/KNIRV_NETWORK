@@ -60,7 +60,10 @@ export const SandboxVncCanvas: React.FC<SandboxVncCanvasProps> = ({
     }
   }, [wsUrl, viewOnly, quality, onStatus]);
 
-  return <div ref={containerRef} className="h-full w-full bg-black" />;
+  // The RFB client creates a 100%-sized child. In the dock this needs to be a
+  // bounded flex item (rather than a percentage height in an auto-sized grid
+  // cell), otherwise the client can connect successfully with a 0px viewport.
+  return <div ref={containerRef} className="min-h-0 min-w-0 flex-1 overflow-hidden bg-black" />;
 };
 
 export default SandboxVncCanvas;

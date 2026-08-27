@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"path/filepath"
 	"strconv"
 )
@@ -81,10 +82,22 @@ func init() {
 		}
 		return []string{"-i", iface}, nil
 	}})
-	registerLane2Tool("afl-fuzz", lane2Adapter{binary: "afl-fuzz", needsJoin: true, buildArgs: func(s *SandboxSession, raw json.RawMessage) ([]string, error) {
-		a := decodeToolPath(s, raw)
-		return []string{"-i", filepath.Join(a.TargetDir, "in"), "-o", filepath.Join(a.TargetDir, "out"), "--", a.TargetPath}, nil
-	}})
+	registerLane2Tool("afl-fuzz", lane2Adapter{binary: "afl-fuzz", needsJoin: true,
+		// Bubblewrap sessions run without permission to alter the host-wide
+		// kernel.core_pattern. AFL++ otherwise aborts before a campaign starts
+		// when the host pipes core dumps to a crash-reporting service.
+		// This is AFL++'s documented test-mode fallback; the UI makes the
+		// possible crash-classification tradeoff explicit to the operator.
+		env: []string{
+			"AFL_I_DONT_CARE_ABOUT_MISSING_CRASHES=1",
+			// The desktop sandbox must not change the host CPU governor. AFL++
+			// documents this opt-out for systems that use ondemand/powersave.
+			"AFL_SKIP_CPUFREQ=1",
+		},
+		buildArgs: func(s *SandboxSession, raw json.RawMessage) ([]string, error) {
+			a := decodeToolPath(s, raw)
+			return []string{"-i", filepath.Join(aflWorkspaceMount, "in"), "-o", filepath.Join(aflWorkspaceMount, "out"), "--", a.TargetPath}, nil
+		}})
 
 	// Lane 3: the bridge owns frida-python's JSON protocol; the browser never
 	// has to parse the human-oriented frida CLI output.
@@ -105,7 +118,10 @@ func init() {
 	registerLane5Tool("cutter", lane5Adapter{
 		binary: "rizin",
 		analysisCmd: func(_ *SandboxSession, binaryPath string, _ json.RawMessage) ([]string, error) {
-			return []string{"-2", "-q", "-c", "aaa;aflj;pdgj", binaryPath}, nil
+			// aa builds the function index required by aflj/pdgj without the
+			// exhaustive recursive analysis done by aaa, which can take several
+			// minutes on ordinary production binaries.
+			return []string{"-2", "-q", "-c", "aa;aflj;pdgj", binaryPath}, nil
 		},
 		parseOutput: parseCutterOutput,
 	})
@@ -130,7 +146,12 @@ func parseCutterOutput(stdout []byte) (*ToolHeadlessResult, error) {
 		functions = append(functions, FunctionInfo{Name: function.Name, Address: rizinAddress(function.Addr), Size: function.Size})
 	}
 	var listing json.RawMessage
-	if err := decoder.Decode(&listing); err != nil {
+	if err := decoder.Decode(&listing); err == io.EOF {
+		// Some Rizin builds emit aflj but no pdgj document when no current
+		// function is selected. The function scan is still useful and must not
+		// be discarded merely because optional graph data is unavailable.
+		return &ToolHeadlessResult{Tool: "cutter", RawOutput: string(stdout), Functions: functions}, nil
+	} else if err != nil {
 		return nil, fmt.Errorf("decode rizin disassembly graph: %w", err)
 	}
 	prettyListing := &bytes.Buffer{}

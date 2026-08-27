@@ -28,6 +28,7 @@ const PacketCapture = lazy(() => import('./components/tools/PacketCapture').then
 const AuthAudit = lazy(() => import('./components/tools/AuthAudit').then((module) => ({ default: module.AuthAudit })));
 const Sandbox = lazy(() => import('./components/tools/Sandbox').then((module) => ({ default: module.Sandbox })));
 const Settings = lazy(() => import('./components/Settings'));
+const Reports = lazy(() => import('./components/Reports'));
 
 // Detect if we're running in Electron or web browser
 const isElectron = () => {
@@ -268,6 +269,7 @@ function App() {
             <Route path="/auth-audit/*" element={<RequireSandbox><AuthAudit /></RequireSandbox>} />
             <Route path="/sandbox/*" element={<Sandbox />} />
             <Route path="/settings" element={<Settings />} />
+            <Route path="/reports" element={<Reports />} />
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Route>
         </Routes>

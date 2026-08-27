@@ -135,25 +135,81 @@ if command -v patchelf >/dev/null 2>&1; then
 	echo "[bundle-sandbox-tools] applied rpath via patchelf"
 fi
 
-# Namespace entry is the routine attach/trace path. Give only the bundled
-# helper the kernel capabilities it needs, instead of running Electron or the
-# engine under sudo. This is deliberately opt-in because setcap changes local
-# filesystem metadata; `make install-sandbox-privileges` enables it.
-if [ "${KNIRVENGINE_SET_FILE_CAPS:-0}" = "1" ] && [ -x "$BIN_DIR/nsenter" ]; then
-	if ! command -v setcap >/dev/null 2>&1; then
-		echo "[bundle-sandbox-tools] ERROR: setcap is required to grant nsenter capabilities" >&2
-		exit 1
-	fi
-	sudo setcap cap_sys_admin,cap_sys_ptrace,cap_sys_chroot+ep "$BIN_DIR/nsenter"
-	echo "[bundle-sandbox-tools] granted namespace capabilities to $BIN_DIR/nsenter"
-fi
-
 # 4. Mirror the bundle into dist/ so the cross-compiled binaries (dist/knirv-engine-*)
 #    also find their tools directory at runtime (exeDir == dist/).
 if [ -d dist ]; then
 	rm -rf dist/tools
 	cp -a "$OUT_DIR" dist/tools
 	echo "[bundle-sandbox-tools] mirrored bundle to dist/tools"
+fi
+
+# Namespace entry, eBPF tracing, and Frida's process-attach are the only
+# runtime helpers that need kernel capabilities.
+#
+# Two things make this block more than a one-line `if`:
+#
+# 1. Every step above re-copies these binaries fresh from PATH, which drops
+#    any capability a previous `make install-sandbox-privileges` run granted.
+#    A marker file records that grant was requested so an ordinary `make
+#    build` reapplies it automatically instead of silently shipping a
+#    capability-less binary (the historic bug: `nsenter -C` failing with
+#    "Operation not permitted" after any rebuild that followed a working
+#    install-sandbox-privileges run).
+# 2. `security.capability` is a privileged xattr: an unprivileged `cp -a`
+#    (the mirror step above) cannot carry it, so dist/tools' copies need
+#    their own setcap pass rather than inheriting it from tools/.
+#
+# KNIRVENGINE_SET_FILE_CAPS=1 is the explicit, interactive first grant
+# (`make install-sandbox-privileges`); the marker makes subsequent grants
+# non-interactive and safe to skip loudly (not silently) when they fail.
+MARKER="$OUT_DIR/.setcap-enabled"
+explicit_grant=0
+if [ "${KNIRVENGINE_SET_FILE_CAPS:-0}" = "1" ]; then
+	explicit_grant=1
+fi
+
+if [ "$explicit_grant" = "1" ] || [ -f "$MARKER" ]; then
+	if ! command -v setcap >/dev/null 2>&1; then
+		echo "[bundle-sandbox-tools] ERROR: setcap is required to grant sandbox capabilities" >&2
+		exit 1
+	fi
+
+	if [ "$explicit_grant" = "1" ]; then
+		sudo_cmd=(sudo)
+	else
+		sudo_cmd=(sudo -n)
+	fi
+
+	grant_failed=0
+	grant_one() {
+		local target="$1"
+		shift
+		if [ -x "$target" ]; then
+			if "${sudo_cmd[@]}" setcap "$@" "$target"; then
+				echo "[bundle-sandbox-tools] granted capabilities to $target"
+			else
+				grant_failed=1
+			fi
+		fi
+	}
+	grant_caps() {
+		local dir="$1"
+		grant_one "$dir/nsenter" cap_sys_admin,cap_sys_ptrace,cap_sys_chroot+ep
+		grant_one "$dir/bpftrace" cap_bpf,cap_perfmon,cap_sys_admin+ep
+		grant_one "$dir/frida-server" cap_sys_ptrace+ep
+	}
+
+	grant_caps "$BIN_DIR"
+	if [ -d dist/tools ]; then
+		grant_caps "dist/tools"
+	fi
+
+	if [ "$grant_failed" = "1" ]; then
+		echo "[bundle-sandbox-tools] WARNING: could not reapply sandbox capabilities non-interactively." >&2
+		echo "[bundle-sandbox-tools] WARNING: nsenter/bpftrace/frida-server attach will fail (e.g. 'Operation not permitted') until you re-run: make install-sandbox-privileges" >&2
+	else
+		touch "$MARKER"
+	fi
 fi
 
 # 5. Report.

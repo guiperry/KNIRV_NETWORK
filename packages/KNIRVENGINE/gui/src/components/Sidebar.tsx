@@ -9,6 +9,7 @@ import {
   Waves,
   KeyRound,
   Box,
+  FileText,
   Settings,
   X,
   LogOut,
@@ -31,6 +32,7 @@ type ActiveView =
   | 'packet-capture'
   | 'auth-audit'
   | 'sandbox'
+  | 'reports'
   | 'settings'
   | 'frida' | 'proxychains-ng' | 'bpftrace'
   | 'cutter' | 'ilspy' | 'jadx'
@@ -127,6 +129,7 @@ export const Sidebar = forwardRef<HTMLDivElement, SidebarProps>(
           { id: 'saml-raider', name: 'SAML Raider', path: '/auth-audit/saml-raider' }
         ]
       },
+      { id: 'reports', name: 'Reports', icon: FileText, path: '/reports' },
       { id: 'settings', name: 'Settings', icon: Settings, path: '/settings' },
     ];
 

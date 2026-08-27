@@ -28,7 +28,9 @@ const Bubblewrap: React.FC = () => {
   const [unshareAll, setUnshareAll] = useState(true);
   const [shareNet, setShareNet] = useState(true);
   const [dieWithParent, setDieWithParent] = useState(true);
-  const [display, setDisplay] = useState(':99');
+  // Empty means "allocate a free display". A fixed :99 can remain after an
+  // interrupted Xvfb session and prevent the next sandbox from starting.
+  const [display, setDisplay] = useState('');
   const [target, setTarget] = useState('');
   const [executionMode, setExecutionMode] = useState<'binary' | 'command'>('binary');
   const [runtime, setRuntime] = useState('node');
@@ -62,7 +64,7 @@ const Bubblewrap: React.FC = () => {
     unshareAll ? '--unshare-all' : '',
     shareNet ? '--share-net' : '',
     dieWithParent ? '--die-with-parent' : '',
-    `--setenv DISPLAY ${display}`,
+    `--setenv DISPLAY ${display || '<auto>'}`,
     '--',
     targetCommand,
     ...targetArgs,
@@ -85,7 +87,7 @@ const Bubblewrap: React.FC = () => {
         targetLabel: targetLabel || (executionMode === 'command' ? scriptPath : target).split('/').pop() || 'sandbox-target',
         targetCommand,
         targetArgs,
-        display,
+        display: display.trim(),
         binds: launchBinds,
         unshareAll,
         shareNet,
@@ -277,7 +279,7 @@ const Bubblewrap: React.FC = () => {
                 <option value="command">Node / Python command</option>
               </select>
               <span className="text-slate-500">DISPLAY</span>
-              <input value={display} onChange={e => setDisplay(e.target.value)} className="w-16 rounded border border-slate-700/50 bg-slate-900/60 px-2 py-1 text-slate-300" />
+              <input value={display} onChange={e => setDisplay(e.target.value)} placeholder="auto" className="w-16 rounded border border-slate-700/50 bg-slate-900/60 px-2 py-1 text-slate-300 placeholder:text-slate-600" />
             </div>
             <div className="flex items-center space-x-2">
               {executionMode === 'binary' ? <>

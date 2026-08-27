@@ -802,6 +802,13 @@ func (w *responseWriterWrapper) WriteHeader(statusCode int) {
 	w.ResponseWriter.WriteHeader(statusCode)
 }
 
+// Unwrap exposes the server response writer to http.ResponseController. Tool
+// handlers use it to clear the API's short write deadline for long-running
+// analysis and first-use dependency acquisition.
+func (w *responseWriterWrapper) Unwrap() http.ResponseWriter {
+	return w.ResponseWriter
+}
+
 // Hijack preserves the optional http.Hijacker capability through the
 // monitoring wrapper. Gorilla WebSocket upgrades require this interface; if a
 // middleware hides it, the request reaches the handler but cannot upgrade.

@@ -125,6 +125,14 @@ func TestWaitForXDisplayRejectsNonLocalDisplay(t *testing.T) {
 	}
 }
 
+func TestEnvironmentWithOverrideReplacesExistingValue(t *testing.T) {
+	env := environmentWithOverride([]string{"DISPLAY=:99", "PATH=/bin", "DISPLAY=:98"}, "DISPLAY", ":100")
+	want := []string{"PATH=/bin", "DISPLAY=:100"}
+	if !reflect.DeepEqual(env, want) {
+		t.Fatalf("environmentWithOverride() = %#v, want %#v", env, want)
+	}
+}
+
 func TestBuildBwrapArgsPreservesExplicitTargetArguments(t *testing.T) {
 	session := &SandboxSession{
 		TargetCommand: "node",
@@ -132,7 +140,7 @@ func TestBuildBwrapArgsPreservesExplicitTargetArguments(t *testing.T) {
 		Display:       ":99",
 	}
 	args := buildBwrapArgs(session)
-	want := []string{"--proc", "/proc", "--dev", "/dev", "--setenv", "DISPLAY", ":99", "--", "node", "/project with spaces/app.js", "--port", "3000"}
+	want := []string{"--ro-bind", "/sys", "/sys", "--proc", "/proc", "--dev", "/dev", "--setenv", "DISPLAY", ":99", "--", "node", "/project with spaces/app.js", "--port", "3000"}
 	if !reflect.DeepEqual(args, want) {
 		t.Fatalf("unexpected bwrap args: got %#v, want %#v", args, want)
 	}

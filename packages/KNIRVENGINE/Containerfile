@@ -60,9 +60,10 @@ RUN microdnf install -y epel-release && \
         make && \
     microdnf clean all
 
-# The runtime remains non-root. nsenter alone carries the capabilities needed
-# to join a live Bubblewrap namespace for trace/attach operations.
-RUN setcap cap_sys_admin,cap_sys_ptrace,cap_sys_chroot+ep /usr/bin/nsenter
+# The runtime remains non-root. nsenter joins a live namespace and bpftrace
+# needs BPF/perf capabilities to load and observe kernel programs.
+RUN setcap cap_sys_admin,cap_sys_ptrace,cap_sys_chroot+ep /usr/bin/nsenter && \
+    setcap cap_bpf,cap_perfmon,cap_sys_admin+ep /usr/bin/bpftrace
 
 # Create application user
 RUN useradd -r -u 1001 -g 0 knirvengine

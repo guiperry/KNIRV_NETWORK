@@ -60,7 +60,8 @@ func registerLane2Parser(tool string, parser lane2LineParser) {
 type lane2Adapter struct {
 	binary    string
 	buildArgs func(session *SandboxSession, args json.RawMessage) ([]string, error)
-	needsJoin bool // whether to use spawnJoined (namespace join)
+	needsJoin bool     // whether to use spawnJoined (namespace join)
+	env       []string // tool-specific environment inherited through nsenter
 }
 
 // lane2Adapters maps tool names to their Lane 2 adapters.
@@ -126,7 +127,7 @@ func (m *SandboxManager) handleToolStreamStart(w http.ResponseWriter, r *http.Re
 
 	cancel := context.CancelFunc(func() {})
 
-	cmd, stdin, stdout, stderr, err := session.startToolProcess(binary, adapter.needsJoin, argv...)
+	cmd, stdin, stdout, stderr, err := session.startToolProcessWithEnv(binary, adapter.needsJoin, adapter.env, argv...)
 	if err != nil {
 		cancel()
 		lane2Registry.Unlock()

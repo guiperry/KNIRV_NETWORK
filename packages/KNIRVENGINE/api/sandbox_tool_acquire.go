@@ -71,6 +71,7 @@ type pipStrategy struct {
 // operator's global dotnet tool store.
 type dotnetToolStrategy struct {
 	packageName string
+	version     string
 }
 
 func (d dotnetToolStrategy) toolDir() string { return filepath.Join(sandboxToolsDir(), "dotnettools") }
@@ -94,11 +95,19 @@ func (d dotnetToolStrategy) install(_ string, _ commandRunner) error {
 	if err := os.MkdirAll(d.toolDir(), 0o755); err != nil {
 		return fmt.Errorf("failed to create managed dotnet tools directory: %v", err)
 	}
-	return unprivilegedCommandRunner(dotnet, "tool", "install", "--tool-path", d.toolDir(), d.packageName)
+	args := []string{"tool", "install", "--tool-path", d.toolDir(), d.packageName}
+	if d.version != "" {
+		args = append(args, "--version", d.version)
+	}
+	return unprivilegedCommandRunner(dotnet, args...)
 }
 
 func (d dotnetToolStrategy) manualCommand(_ string) string {
-	return fmt.Sprintf("dotnet tool install --tool-path %s %s", d.toolDir(), d.packageName)
+	command := fmt.Sprintf("dotnet tool install --tool-path %s %s", d.toolDir(), d.packageName)
+	if d.version != "" {
+		command += " --version " + d.version
+	}
+	return command
 }
 
 func (p pipStrategy) present(binary string) bool {
@@ -191,7 +200,10 @@ var toolAcquireStrategies = map[string]acquireStrategy{
 	"frida":        pipStrategy{module: "frida-tools"},
 	"frida-server": githubReleaseStrategy{repo: "frida/frida", assetPattern: fridaServerAssetPattern()},
 	"jadx":         githubReleaseStrategy{repo: "skylot/jadx", assetPattern: `^jadx-[0-9]+\.[0-9]+\.[0-9]+\.zip$`},
-	"ilspycmd":     dotnetToolStrategy{packageName: "ilspycmd"},
+	// ILSpy 11 uses the newer .NET tool package layout, which .NET 8 rejects
+	// because DotnetToolSettings.xml is absent. Pin the latest ILSpy release
+	// packaged for the engine's .NET 8 runtime.
+	"ilspycmd":     dotnetToolStrategy{packageName: "ilspycmd", version: "9.1.0.7988"},
 	"java":         packageManagerStrategy{},
 	"dotnet":       packageManagerStrategy{},
 	"bpftrace":     packageManagerStrategy{},

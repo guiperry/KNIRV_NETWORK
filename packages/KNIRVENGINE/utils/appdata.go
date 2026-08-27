@@ -157,6 +157,20 @@ func GetLogsDir() (string, error) {
 	return filepath.Join(appDataDir, "logs"), nil
 }
 
+// GetSandboxScriptsDir returns the directory that project-owned sandbox
+// helper scripts (e.g. the Frida RPC bridge) are extracted to at startup.
+// These are embedded in the compiled binary via go:embed rather than shipped
+// as loose files next to it, so this directory is populated at runtime, not
+// by the build. Third-party sandbox binaries (bwrap, frida-server, etc.) are
+// intentionally NOT extracted here — see sandboxToolsDir in api/sandbox_tools.go.
+func GetSandboxScriptsDir() (string, error) {
+	appDataDir, err := GetAppDataDir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(appDataDir, "sandbox-scripts"), nil
+}
+
 // GetPluginDataDir returns the directory for storing plugin-specific data
 func GetPluginDataDir() (string, error) {
 	pluginsDir, err := GetPluginsDir()
@@ -240,6 +254,7 @@ func EnsureAppDataDirs() error {
 		GetMCPDataDir,
 		GetMCPLogsDir,
 		GetMCPMonitoringDir,
+		GetSandboxScriptsDir,
 		GetPluginsDir,
 		GetPluginDataDir,
 		GetCacheDir,

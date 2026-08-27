@@ -34,9 +34,10 @@ RUN apk add --no-cache \
     util-linux \
     libcap
 
-# Keep the container process non-root while allowing the namespace-entry
-# helper to attach to the sandbox.
-RUN setcap cap_sys_admin,cap_sys_ptrace,cap_sys_chroot+ep /usr/bin/nsenter
+# Keep the container process non-root while allowing namespace entry and eBPF
+# tracing. The container runtime must also permit these capabilities.
+RUN setcap cap_sys_admin,cap_sys_ptrace,cap_sys_chroot+ep /usr/bin/nsenter && \
+    setcap cap_bpf,cap_perfmon,cap_sys_admin+ep /usr/bin/bpftrace
 
 # Create non-root user
 RUN addgroup -g 1001 -S knirvengine && \

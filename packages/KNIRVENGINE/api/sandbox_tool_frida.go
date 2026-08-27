@@ -10,7 +10,7 @@ import (
 // per attachment and can be stopped without disrupting the target process.
 func (s *SandboxSession) startFridaServer() error {
 	s.mutex.RLock()
-	alreadyStarted := s.fridaServerCmd != nil && s.fridaServerCmd.Process != nil
+	alreadyStarted := s.fridaServerCmd != nil && s.fridaServerCmd.Process != nil && s.fridaServerCmd.ProcessState == nil
 	s.mutex.RUnlock()
 	if alreadyStarted {
 		return nil
@@ -22,10 +22,21 @@ func (s *SandboxSession) startFridaServer() error {
 	}
 	_ = stdin.Close()
 	go func() { _, _ = io.Copy(io.Discard, stdout) }()
-	go func() { _, _ = io.Copy(io.Discard, stderr); _ = cmd.Wait() }()
+	go func() { _, _ = io.Copy(io.Discard, stderr) }()
 	s.mutex.Lock()
 	s.fridaServerCmd = cmd
 	s.mutex.Unlock()
+	go func() {
+		err := cmd.Wait()
+		s.mutex.Lock()
+		if s.fridaServerCmd == cmd {
+			s.fridaServerCmd = nil
+		}
+		s.mutex.Unlock()
+		if err != nil {
+			s.appendLog("[sandbox] frida-server exited: " + err.Error())
+		}
+	}()
 	return nil
 }
 

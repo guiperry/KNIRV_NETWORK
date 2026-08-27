@@ -101,7 +101,7 @@ configure-sandbox-sudoers: scripts/configure-sandbox-sudoers.sh
 	@bash ./scripts/configure-sandbox-sudoers.sh
 
 # Build the application for the current platform
-build: bundle-sandbox-tools
+build: install-sandbox-privileges
 	@echo "Building KNIRVENGINE for the current platform..."
 	@cd gui && npm run build
 	@go build -o knirv-engine .
