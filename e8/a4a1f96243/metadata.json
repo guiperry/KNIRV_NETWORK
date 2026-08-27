@@ -1,0 +1,54 @@
+{
+  "cli_version": "0.5.5",
+  "checkpoint_id": "e8a4a1f96243",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 2,
+  "files_touched": [
+    "packages/KNIRVENGINE/Containerfile",
+    "packages/KNIRVENGINE/Dockerfile",
+    "packages/KNIRVENGINE/Makefile",
+    "packages/KNIRVENGINE/api/sandbox_manager.go",
+    "packages/KNIRVENGINE/api/sandbox_manager_test.go",
+    "packages/KNIRVENGINE/api/sandbox_tool_acquire.go",
+    "packages/KNIRVENGINE/api/sandbox_tool_adapters.go",
+    "packages/KNIRVENGINE/api/sandbox_tool_attach.go",
+    "packages/KNIRVENGINE/api/sandbox_tool_frida.go",
+    "packages/KNIRVENGINE/api/sandbox_tool_headless.go",
+    "packages/KNIRVENGINE/api/sandbox_tool_nsjoin.go",
+    "packages/KNIRVENGINE/api/sandbox_tool_scan.go",
+    "packages/KNIRVENGINE/api/sandbox_tool_stream.go",
+    "packages/KNIRVENGINE/api/sandbox_tool_test.go",
+    "packages/KNIRVENGINE/api/sandbox_tools.go",
+    "packages/KNIRVENGINE/api/sandbox_tools_test.go",
+    "packages/KNIRVENGINE/api/simple_server.go",
+    "packages/KNIRVENGINE/gui/ports.config",
+    "packages/KNIRVENGINE/gui/src/components/layout/SandboxDock.tsx",
+    "packages/KNIRVENGINE/gui/src/components/tools/ToolConsoles.tsx",
+    "packages/KNIRVENGINE/gui/src/components/tools/fuzzing/AflPlusPlus.tsx",
+    "packages/KNIRVENGINE/gui/src/components/tools/sandbox/Bubblewrap.tsx",
+    "packages/KNIRVENGINE/gui/src/components/tools/sandbox/SandboxVncCanvas.tsx",
+    "packages/KNIRVENGINE/gui/src/tests/SandboxDock.test.tsx",
+    "packages/KNIRVENGINE/main.go",
+    "packages/KNIRVENGINE/scripts/__pycache__/frida-bridge.cpython-310.pyc",
+    "packages/KNIRVENGINE/scripts/bundle-sandbox-tools.sh",
+    "packages/KNIRVENGINE/scripts/configure-sandbox-sudoers.sh",
+    "packages/KNIRVENGINE/scripts/frida-bridge.py",
+    "packages/KNIRVENGINE/utils/appdata.go"
+  ],
+  "sessions": [
+    {
+      "metadata": "/e8/a4a1f96243/0/metadata.json",
+      "transcript": "/e8/a4a1f96243/0/full.jsonl",
+      "content_hash": "/e8/a4a1f96243/0/content_hash.txt",
+      "prompt": ""
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 0,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 0,
+    "output_tokens": 0,
+    "api_call_count": 1
+  }
+}

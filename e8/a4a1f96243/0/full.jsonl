@@ -1,0 +1,116 @@
+{
+  "info": {
+    "id": "ses_fbe349b5bffeR4yXGZtoIso5bP",
+    "slug": "stellar-island",
+    "projectID": "028d705092e6670c33ccdddc9b02bc447bd1a7d8",
+    "directory": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVENGINE",
+    "path": "packages/KNIRVENGINE",
+    "title": "New session - 2026-08-27T05:57:23.749Z",
+    "agent": "build",
+    "model": {
+      "id": "x-preview-f-free",
+      "providerID": "opencode"
+    },
+    "version": "1.18.23",
+    "summary": {
+      "additions": 0,
+      "deletions": 0,
+      "files": 0
+    },
+    "cost": 0,
+    "tokens": {
+      "input": 0,
+      "output": 0,
+      "reasoning": 0,
+      "cache": {
+        "read": 0,
+        "write": 0
+      }
+    },
+    "time": {
+      "created": 1787810243749,
+      "updated": 1787810246368
+    }
+  },
+  "messages": [
+    {
+      "info": {
+        "role": "user",
+        "time": {
+          "created": 1787810244151
+        },
+        "agent": "build",
+        "model": {
+          "providerID": "opencode",
+          "modelID": "x-preview-f-free"
+        },
+        "summary": {
+          "diffs": []
+        },
+        "id": "msg_041cb6637001X2T9McwfqAHykz",
+        "sessionID": "ses_fbe349b5bffeR4yXGZtoIso5bP"
+      },
+      "parts": [
+        {
+          "type": "text",
+          "text": "In the KNIRVENGINE, make a way for the application to track all reports made by the tools and then produce a full report on demand on a new reports view.",
+          "id": "prt_041cb663f001LDKNcw1venV2qh",
+          "sessionID": "ses_fbe349b5bffeR4yXGZtoIso5bP",
+          "messageID": "msg_041cb6637001X2T9McwfqAHykz"
+        }
+      ]
+    },
+    {
+      "info": {
+        "parentID": "msg_041cb6637001X2T9McwfqAHykz",
+        "role": "assistant",
+        "mode": "build",
+        "agent": "build",
+        "path": {
+          "cwd": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVENGINE",
+          "root": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK"
+        },
+        "cost": 0,
+        "tokens": {
+          "input": 0,
+          "output": 0,
+          "reasoning": 0,
+          "cache": {
+            "read": 0,
+            "write": 0
+          }
+        },
+        "modelID": "x-preview-f-free",
+        "providerID": "opencode",
+        "time": {
+          "created": 1787810244943,
+          "completed": 1787810409273
+        },
+        "error": {
+          "name": "APIError",
+          "data": {
+            "message": "Model x-preview-f-free is not supported",
+            "statusCode": 401,
+            "isRetryable": false,
+            "responseHeaders": {
+              "cf-placement": "remote-ORD",
+              "cf-ray": "a318d6d19fb92fa9-MIA",
+              "connection": "keep-alive",
+              "content-length": "98",
+              "content-type": "text/plain;charset=UTF-8",
+              "date": "Thu, 27 Aug 2026 05:57:30 GMT",
+              "server": "cloudflare"
+            },
+            "responseBody": "{\"type\":\"error\",\"error\":{\"type\":\"ModelError\",\"message\":\"Model x-preview-f-free is not supported\"}}",
+            "metadata": {
+              "url": "https://opencode.ai/zen/v1/chat/completions"
+            }
+          }
+        },
+        "id": "msg_041cb694f001ZSQYtTc3BFIk90",
+        "sessionID": "ses_fbe349b5bffeR4yXGZtoIso5bP"
+      },
+      "parts": []
+    }
+  ]
+}

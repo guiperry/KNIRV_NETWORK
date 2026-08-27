@@ -1,0 +1,82 @@
+{
+  "cli_version": "0.5.5",
+  "checkpoint_id": "e8a4a1f96243",
+  "session_id": "ses_fbe349b5bffeR4yXGZtoIso5bP",
+  "strategy": "manual-commit",
+  "created_at": "2026-08-27T07:20:42.869481087Z",
+  "branch": "main",
+  "checkpoints_count": 2,
+  "files_touched": [
+    "packages/KNIRVENGINE/Containerfile",
+    "packages/KNIRVENGINE/Dockerfile",
+    "packages/KNIRVENGINE/Makefile",
+    "packages/KNIRVENGINE/api/sandbox_manager.go",
+    "packages/KNIRVENGINE/api/sandbox_manager_test.go",
+    "packages/KNIRVENGINE/api/sandbox_tool_acquire.go",
+    "packages/KNIRVENGINE/api/sandbox_tool_adapters.go",
+    "packages/KNIRVENGINE/api/sandbox_tool_attach.go",
+    "packages/KNIRVENGINE/api/sandbox_tool_frida.go",
+    "packages/KNIRVENGINE/api/sandbox_tool_headless.go",
+    "packages/KNIRVENGINE/api/sandbox_tool_nsjoin.go",
+    "packages/KNIRVENGINE/api/sandbox_tool_scan.go",
+    "packages/KNIRVENGINE/api/sandbox_tool_stream.go",
+    "packages/KNIRVENGINE/api/sandbox_tool_test.go",
+    "packages/KNIRVENGINE/api/sandbox_tools.go",
+    "packages/KNIRVENGINE/api/sandbox_tools_test.go",
+    "packages/KNIRVENGINE/api/simple_server.go",
+    "packages/KNIRVENGINE/gui/ports.config",
+    "packages/KNIRVENGINE/gui/src/components/layout/SandboxDock.tsx",
+    "packages/KNIRVENGINE/gui/src/components/tools/ToolConsoles.tsx",
+    "packages/KNIRVENGINE/gui/src/components/tools/fuzzing/AflPlusPlus.tsx",
+    "packages/KNIRVENGINE/gui/src/components/tools/sandbox/Bubblewrap.tsx",
+    "packages/KNIRVENGINE/gui/src/components/tools/sandbox/SandboxVncCanvas.tsx",
+    "packages/KNIRVENGINE/gui/src/tests/SandboxDock.test.tsx",
+    "packages/KNIRVENGINE/main.go",
+    "packages/KNIRVENGINE/scripts/__pycache__/frida-bridge.cpython-310.pyc",
+    "packages/KNIRVENGINE/scripts/bundle-sandbox-tools.sh",
+    "packages/KNIRVENGINE/scripts/configure-sandbox-sudoers.sh",
+    "packages/KNIRVENGINE/scripts/frida-bridge.py",
+    "packages/KNIRVENGINE/utils/appdata.go"
+  ],
+  "agent": "OpenCode",
+  "model": "x-preview-f-free",
+  "turn_id": "904f31a0f79f",
+  "token_usage": {
+    "input_tokens": 0,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 0,
+    "output_tokens": 0,
+    "api_call_count": 1
+  },
+  "session_metrics": {
+    "turn_count": 2
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-08-27T07:20:42.405537349Z",
+    "agent_lines": 992,
+    "agent_removed": 113,
+    "human_added": 322,
+    "human_modified": 3,
+    "human_removed": 0,
+    "total_committed": 1317,
+    "total_lines_changed": 1439,
+    "agent_percentage": 76.78943710910355,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 2,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    }
+  ]
+}
