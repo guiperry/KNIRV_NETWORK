@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"KNIRVENGINE/desktop-client/agent"
-	"KNIRVENGINE/desktop-client/services"
+	"KNIRVENGINE/desktop-client/internal/agent"
+	"KNIRVENGINE/desktop-client/internal/services"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -156,7 +156,7 @@ func TestAgentBuilderKNIRVOracleIntegration(t *testing.T) {
 	tempDir := t.TempDir()
 
 	// Initialize agent builder
-	builder, err := agent.NewAgentBuilderWithStorage(nil, "../../agent/templates", tempDir)
+	builder, err := agent.NewAgentBuilderWithStorage(nil, "../internal/agent/templates", tempDir)
 	require.NoError(t, err, "Agent builder initialization should not fail")
 
 	t.Run("BuildAgentWithMinting", func(t *testing.T) {

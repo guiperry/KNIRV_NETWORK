@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"KNIRVENGINE/desktop-client/agent"
+	"KNIRVENGINE/desktop-client/internal/agent"
 )
 
 func TestEnhancedAgentManagement(t *testing.T) {

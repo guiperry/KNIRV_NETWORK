@@ -3,7 +3,7 @@ package test
 import (
 	"testing"
 
-	"KNIRVENGINE/desktop-client/utils"
+	"KNIRVENGINE/desktop-client/internal/utils"
 )
 
 func TestUtilityFunctions(t *testing.T) {

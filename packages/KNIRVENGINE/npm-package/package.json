@@ -1,0 +1,28 @@
+{
+  "name": "@knirv/engine",
+  "version": "0.1.0",
+  "description": "Downloads and initializes the platform-specific KNIRVENGINE Docker installer.",
+  "license": "UNLICENSED",
+  "private": false,
+  "publishConfig": {
+    "access": "public"
+  },
+  "type": "commonjs",
+  "bin": {
+    "knirvengine-install": "bin/knirvengine-install.js"
+  },
+  "scripts": {
+    "postinstall": "node scripts/install.js --postinstall",
+    "install:engine": "node scripts/install.js",
+    "test": "node --test test/*.test.js",
+    "test:installer": "node scripts/install.js --dry-run --no-start"
+  },
+  "files": [
+    "bin/knirvengine-install.js",
+    "scripts/install.js",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=18"
+  }
+}

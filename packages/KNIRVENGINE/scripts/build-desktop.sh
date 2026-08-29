@@ -73,17 +73,9 @@ build_backend() {
         linux)
             GOOS=linux GOARCH=amd64 go build -tags embed -o knirv-engine-linux .
             ;;
-        darwin|macos)
-            GOOS=darwin GOARCH=amd64 go build -tags embed -o knirv-engine-macos .
-            ;;
-        windows|win32)
-            GOOS=windows GOARCH=amd64 go build -tags embed -o knirv-engine-windows.exe .
-            ;;
         all)
-            # Build for all platforms
+            # KNIRVENGINE runs only in the Linux Alpine container.
             GOOS=linux GOARCH=amd64 go build -tags embed -o knirv-engine-linux .
-            GOOS=darwin GOARCH=amd64 go build -tags embed -o knirv-engine-macos .
-            GOOS=windows GOARCH=amd64 go build -tags embed -o knirv-engine-windows.exe .
             ;;
         *)
             # Build for current platform
@@ -155,10 +147,9 @@ create_packages() {
     print_success "Distribution packages created in dist/"
 }
 
-# Build the four native engine executables distributed alongside desktop
-# releases. macOS has separate Intel and Apple Silicon binaries.
+# Build the Linux engine executable distributed in the Alpine container.
 build_platform_binaries() {
-    print_status "Building cross-platform KNIRVENGINE executables..."
+    print_status "Building Linux KNIRVENGINE executable..."
     cd "$PROJECT_ROOT"
     mkdir -p dist
 
@@ -166,15 +157,9 @@ build_platform_binaries() {
     # host builds its native Linux target here, so retain cgo instead of
     # silently shipping the no-cgo parser stub.
     GOCACHE=/tmp/knirvengine-go-build CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build -tags embed -o dist/knirv-engine-linux-amd64 .
-    GOCACHE=/tmp/knirvengine-go-build CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -tags embed -o dist/knirv-engine-windows-amd64.exe .
-    GOCACHE=/tmp/knirvengine-go-build CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -tags embed -o dist/knirv-engine-macos-amd64 .
-    GOCACHE=/tmp/knirvengine-go-build CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -tags embed -o dist/knirv-engine-macos-arm64 .
 
-    print_success "Created cross-platform executables:"
+    print_success "Created Linux executable:"
     print_success "  dist/knirv-engine-linux-amd64"
-    print_success "  dist/knirv-engine-windows-amd64.exe"
-    print_success "  dist/knirv-engine-macos-amd64"
-    print_success "  dist/knirv-engine-macos-arm64"
 }
 
 # Development mode
@@ -253,16 +238,14 @@ main() {
             echo "  build [platform]  - Build the complete desktop application (default)"
             echo "  dev               - Start development mode with hot reload"
             echo "  backend           - Build only the Go backend"
-            echo "  binaries          - Build Linux, Windows, and macOS executables into dist/"
+            echo "  binaries          - Build the Linux KNIRVENGINE executable into dist/"
             echo "  frontend          - Build only the React frontend"
             echo "  clean             - Clean all build artifacts"
             echo "  help              - Show this help message"
             echo ""
             echo "Platforms (for build command):"
             echo "  linux             - Build for Linux"
-            echo "  darwin|macos      - Build for macOS"
-            echo "  windows|win32     - Build for Windows"
-            echo "  all               - Build for all platforms"
+            echo "  all               - Alias for the Linux container build"
             echo ""
             echo "Examples:"
             echo "  $0 build linux    - Build for Linux"

@@ -1,0 +1,33 @@
+# Opt-in privileged profile for KNIRVENGINE's eBPF instrumentation and cgroup
+# namespace joins. It is intentionally not the default application profile.
+services:
+  knirvengine:
+    image: knirvengine-alpine:latest
+    container_name: knirvengine-alpine
+    build:
+      context: ../..
+      dockerfile: cmd/os_builder/alpine/Dockerfile
+    ports:
+      - "8080:8080"
+      - "8081:8081"
+    environment:
+      KNIRV_ENV: production
+    volumes:
+      - knirvengine-data:/app/data
+      # bpftrace needs the host tracefs; cgroup control needs a writable cgroupfs.
+      - /sys/kernel/debug:/sys/kernel/debug:ro
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    cap_add:
+      - BPF
+      - PERFMON
+      - SYS_ADMIN
+      - SYS_PTRACE
+      - SYS_CHROOT
+    security_opt:
+      - seccomp=unconfined
+    cgroup: host
+    pid: host
+    privileged: true
+
+volumes:
+  knirvengine-data:

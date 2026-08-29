@@ -10,9 +10,9 @@ import (
 	"testing"
 	"time"
 
-	"KNIRVENGINE/desktop-client/agent"
-	"KNIRVENGINE/desktop-client/agentify"
-	"KNIRVENGINE/desktop-client/database"
+	"KNIRVENGINE/desktop-client/internal/agent"
+	"KNIRVENGINE/desktop-client/internal/agentify"
+	"KNIRVENGINE/desktop-client/internal/database"
 )
 
 // LoadTestMetrics tracks performance metrics during load testing
@@ -41,7 +41,7 @@ func TestAgentPluginCompilationLoad(t *testing.T) {
 	defer os.RemoveAll(tempDir)
 
 	dbPath := filepath.Join(tempDir, "test.db")
-	templatesPath := "agent/templates"
+	templatesPath := "internal/agent/templates"
 	outputPath := filepath.Join(tempDir, "plugins")
 
 	// Create agent builder

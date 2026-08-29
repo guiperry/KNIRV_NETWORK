@@ -2,6 +2,7 @@ package transactionchain
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -18,6 +19,10 @@ var (
 	instance *TransactionChain
 	once     sync.Once
 )
+
+const minimumNodeMajorVersion = 22
+
+const nvmInstallerVersion = "v0.40.7"
 
 // TransactionChain manages the embedded Node.js transaction chain service as
 // a subprocess, bound to a Unix domain socket. This is the sole owner of its
@@ -45,11 +50,176 @@ func Get() *TransactionChain {
 // under sudo/systemd do not inherit a user's interactive-shell PATH (e.g.
 // nvm's PATH export lives in ~/.bashrc, which sudo's env_reset skips), so a
 // bare exec.Command("node", ...) silently fails to find node even when it is
-// installed. KNIRV_NODE_BINARY_PATH overrides everything; otherwise this
-// checks PATH, common system install locations, then falls back to
-// scanning nvm installs across all home directories for the newest version.
+// installed. Node 22 is the minimum supported runtime. An explicit
+// KNIRV_NODE_BINARY_PATH must satisfy that requirement; otherwise a compatible
+// NVM installation is preferred over PATH so sudo's system Node cannot shadow
+// the operator's newer NVM runtime.
 func resolveNodeBinary() (string, error) {
-	return resolveNodeTool("node", "KNIRV_NODE_BINARY_PATH")
+	if override := strings.TrimSpace(os.Getenv("KNIRV_NODE_BINARY_PATH")); override != "" {
+		if info, err := os.Stat(override); err != nil || info.IsDir() {
+			return "", fmt.Errorf("KNIRV_NODE_BINARY_PATH is not an executable file: %s", override)
+		}
+		if err := requireSupportedNodeVersion(override); err != nil {
+			return "", err
+		}
+		return override, nil
+	}
+
+	var rejected []string
+	candidates := []string{latestNvmBinary("node")}
+	if path, err := exec.LookPath("node"); err == nil {
+		candidates = append(candidates, path)
+	}
+	candidates = append(candidates,
+		filepath.Join("/usr/local/bin", "node"),
+		filepath.Join("/usr/bin", "node"),
+		filepath.Join("/opt/node/bin", "node"),
+	)
+	seen := make(map[string]struct{}, len(candidates))
+	for _, candidate := range candidates {
+		if candidate == "" {
+			continue
+		}
+		if _, ok := seen[candidate]; ok {
+			continue
+		}
+		seen[candidate] = struct{}{}
+		if info, err := os.Stat(candidate); err != nil || info.IsDir() {
+			continue
+		}
+		if err := requireSupportedNodeVersion(candidate); err != nil {
+			rejected = append(rejected, err.Error())
+			continue
+		}
+		return candidate, nil
+	}
+
+	installed, installErr := installSupportedNodeWithNVM()
+	if installErr == nil {
+		return installed, nil
+	}
+
+	if len(rejected) > 0 {
+		return "", fmt.Errorf("Node.js %d or newer is required for the Transaction Chain; %s; automatic NVM provisioning failed: %w", minimumNodeMajorVersion, strings.Join(rejected, "; "), installErr)
+	}
+	return "", fmt.Errorf("Node.js %d or newer not found; automatic NVM provisioning failed: %w", minimumNodeMajorVersion, installErr)
+}
+
+// installSupportedNodeWithNVM bootstraps the pinned NVM release in the
+// current user's home, installs the supported Node line, and makes it NVM's
+// default. It is intentionally limited to root: the packaged Debian runtime
+// runs as root, while a non-root process must not unexpectedly modify a user's
+// development environment.
+func installSupportedNodeWithNVM() (string, error) {
+	if os.Geteuid() != 0 {
+		return "", fmt.Errorf("automatic Node provisioning requires root; install Node %d with NVM or run the packaged container as root", minimumNodeMajorVersion)
+	}
+
+	home, err := os.UserHomeDir()
+	if err != nil || home == "" {
+		return "", fmt.Errorf("resolve root home for NVM: %w", err)
+	}
+	nvmDir := filepath.Join(home, ".nvm")
+	nvmScript := filepath.Join(nvmDir, "nvm.sh")
+	if _, err := os.Stat(nvmScript); errors.Is(err, os.ErrNotExist) {
+		if err := installNVM(nvmDir); err != nil {
+			return "", err
+		}
+	} else if err != nil {
+		return "", fmt.Errorf("inspect NVM installation: %w", err)
+	}
+
+	// NVM is a shell function, so source its installed script in a clean bash
+	// process rather than relying on an interactive profile being loaded.
+	command := `set -eu
+export NVM_DIR="$1"
+. "$NVM_DIR/nvm.sh"
+nvm install 22
+nvm alias default 22
+nvm which 22`
+	output, err := exec.Command("bash", "-c", command, "knirv-nvm", nvmDir).CombinedOutput()
+	if err != nil {
+		return "", fmt.Errorf("install Node %d with NVM: %w: %s", minimumNodeMajorVersion, err, strings.TrimSpace(string(output)))
+	}
+
+	for _, line := range strings.Fields(string(output)) {
+		if strings.HasSuffix(line, "/bin/node") {
+			if err := requireSupportedNodeVersion(line); err == nil {
+				return line, nil
+			}
+		}
+	}
+	return "", fmt.Errorf("NVM installed Node %d but did not report its node binary", minimumNodeMajorVersion)
+}
+
+func installNVM(nvmDir string) error {
+	downloader, err := ensureNVMDownloader()
+	if err != nil {
+		return err
+	}
+	installer, err := os.CreateTemp("", "knirv-nvm-install-*.sh")
+	if err != nil {
+		return fmt.Errorf("create NVM installer file: %w", err)
+	}
+	installerPath := installer.Name()
+	defer os.Remove(installerPath)
+	if err := installer.Close(); err != nil {
+		return fmt.Errorf("close NVM installer file: %w", err)
+	}
+
+	installerURL := "https://raw.githubusercontent.com/nvm-sh/nvm/" + nvmInstallerVersion + "/install.sh"
+	var download *exec.Cmd
+	if filepath.Base(downloader) == "curl" {
+		download = exec.Command(downloader, "--fail", "--silent", "--show-error", "--location", installerURL, "--output", installerPath)
+	} else {
+		download = exec.Command(downloader, "--quiet", "--output-document", installerPath, installerURL)
+	}
+	if output, err := download.CombinedOutput(); err != nil {
+		return fmt.Errorf("download NVM %s: %w: %s", nvmInstallerVersion, err, strings.TrimSpace(string(output)))
+	}
+
+	install := exec.Command("bash", installerPath)
+	install.Env = append(os.Environ(), "NVM_DIR="+nvmDir, "PROFILE=/dev/null")
+	if output, err := install.CombinedOutput(); err != nil {
+		return fmt.Errorf("install NVM %s: %w: %s", nvmInstallerVersion, err, strings.TrimSpace(string(output)))
+	}
+	return nil
+}
+
+func ensureNVMDownloader() (string, error) {
+	for _, name := range []string{"curl", "wget"} {
+		if path, err := exec.LookPath(name); err == nil {
+			return path, nil
+		}
+	}
+
+	for _, args := range [][]string{{"update"}, {"install", "-y", "--no-install-recommends", "ca-certificates", "curl"}} {
+		output, err := exec.Command("apt-get", args...).CombinedOutput()
+		if err != nil {
+			return "", fmt.Errorf("install NVM download prerequisites with apt-get %s: %w: %s", strings.Join(args, " "), err, strings.TrimSpace(string(output)))
+		}
+	}
+	if path, err := exec.LookPath("curl"); err == nil {
+		return path, nil
+	}
+	return "", errors.New("curl was not available after apt-get installation")
+}
+
+func requireSupportedNodeVersion(nodeBin string) error {
+	output, err := exec.Command(nodeBin, "--version").Output()
+	if err != nil {
+		return fmt.Errorf("unable to determine Node.js version for %s: %w", nodeBin, err)
+	}
+	version := strings.TrimSpace(string(output))
+	majorText, _, _ := strings.Cut(strings.TrimPrefix(version, "v"), ".")
+	major, err := strconv.Atoi(majorText)
+	if err != nil {
+		return fmt.Errorf("unable to parse Node.js version %q from %s", version, nodeBin)
+	}
+	if major < minimumNodeMajorVersion {
+		return fmt.Errorf("Node.js %s at %s is unsupported; require v%d or newer", version, nodeBin, minimumNodeMajorVersion)
+	}
+	return nil
 }
 
 // resolveNpmBinary locates npm to pair with the already-resolved nodeBin.

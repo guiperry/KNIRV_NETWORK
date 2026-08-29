@@ -6,8 +6,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"KNIRVENGINE/desktop-client/database"
-	"KNIRVENGINE/desktop-client/utils"
+	"KNIRVENGINE/desktop-client/internal/database"
+	"KNIRVENGINE/desktop-client/internal/utils"
 )
 
 const defaultAgentImage = "/Agentify_logo_2.png"

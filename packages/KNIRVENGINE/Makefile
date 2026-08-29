@@ -18,14 +18,25 @@ MAIN_PACKAGE_PATH := . # Assuming your main package is in the root directory
 # CLOUD DEPLOYMENT BUILDS
 # ==================================================================================== #
 
-# Target platforms for cloud deployment (cross-compilation)
-CLOUD_TARGETS := windows/amd64 darwin/amd64 darwin/arm64 linux/amd64 linux/arm64
+# KNIRVENGINE runs in the published Linux Alpine container. Only the installer
+# is distributed across host operating systems.
+CLOUD_TARGETS := linux/amd64
+INSTALLER_TARGETS := linux/amd64 darwin/amd64 darwin/arm64 windows/amd64
 
 # Directories
 # Output dir for cloud binaries from cross-compile.sh
 CLOUD_OUTPUT_DIR := ./dist
 # Output dir for final archives, sigs, checksums
 RELEASE_ASSETS_DIR := ./release_assets
+# Cloudflare R2 distribution settings. These match the CLI's rclone-based
+# release convention; the public URL is releases.knirv.com/engine/tools/.
+R2_CMD ?= rclone
+R2_REMOTE ?= incline
+R2_ENGINE_TOOLS_PREFIX ?= knirv/engine/tools
+R2_ENGINE_INSTALLER_PREFIX ?= knirv/engine/installer
+TOOLS_DIR := ./tools
+TOOLS_ARCHIVE := $(RELEASE_ASSETS_DIR)/tools.tar.gz
+INSTALLER_RELEASE_DIR := $(RELEASE_ASSETS_DIR)/installer
 
 # ==================================================================================== #
 # DESKTOP DEPLOYMENT BUILDS
@@ -38,7 +49,7 @@ RELEASE_ASSETS_DIR := ./release_assets
 # Example: export GPG_KEY_ID="Your Name <your.email@example.com>" or your Key ID
 GPG_KEY_ID ?= YOUR_GPG_KEY_ID_HERE
 
-.PHONY: all clean build build-all backend-build cloud-package cloud-release desktop-release upload-release upload-release-public release-public force-release-micro force-release-micro-public upload-to-s3 trigger-s3-workflow install-sandbox-privileges configure-sandbox-sudoers help
+.PHONY: all clean build build-all build-engine-linux build-installer-all build-installer-linux backend-build cloud-package cloud-release desktop-release upload-release upload-release-public release-public force-release-micro force-release-micro-public upload-to-s3 upload-tools package-tools package-installers upload-installers trigger-s3-workflow install-sandbox-privileges configure-sandbox-sudoers help
 
 # Legacy target - defaults to cloud package for backward compatibility
 all: cloud-package
@@ -48,11 +59,16 @@ help:
 	@echo ""
 	@echo "APPLICATION BUILD:"
 	@echo "  build              Build KNIRVENGINE for the current platform"
-	@echo "  build-all          Build KNIRVENGINE executables for all platforms"
+	@echo "  build-all          Build the Linux KNIRVENGINE image binary and all installer binaries"
 	@echo ""
 	@echo "RELEASE PACKAGING:"
 	@echo "  cloud-package      Archive, sign, and checksum cloud binaries"
 	@echo "  cloud-release      Complete cloud release (build + package + upload)"
+	@echo "  build-installer-all Build installers for Linux, macOS, and Windows"
+	@echo "  package-tools      Create release_assets/tools.tar.gz from tools/"
+	@echo "  upload-tools       Upload tools.tar.gz to Cloudflare R2"
+	@echo "  package-installers Stage Linux, macOS, and Windows installers for release"
+	@echo "  upload-installers  Upload installers to Cloudflare R2"
 	@echo ""
 	@echo "  desktop-release    Create release with version bump"
 	@echo ""
@@ -67,6 +83,10 @@ help:
 	@echo "Configuration:"
 	@echo "  VERSION          (default: $(VERSION)) - The version to build."
 	@echo "  APP_NAME         (default: $(APP_NAME)) - The application name."
+	@echo "  R2_CMD           (default: $(R2_CMD)) - Command used for R2 uploads."
+	@echo "  R2_REMOTE        (default: $(R2_REMOTE)) - R2 remote name for uploads."
+	@echo "  R2_ENGINE_TOOLS_PREFIX (default: $(R2_ENGINE_TOOLS_PREFIX)) - R2 tools prefix."
+	@echo "  R2_ENGINE_INSTALLER_PREFIX (default: $(R2_ENGINE_INSTALLER_PREFIX)) - R2 installer prefix."
 	@echo "  GPG_KEY_ID       (default: $(GPG_KEY_ID)) - GPG Key ID for signing."
 	@echo 'Usage:'
 	@sed -n 's/^##//p' ${MAKEFILE_LIST} | column -t -s ':' |  sed -e 's/^/ /'
@@ -115,19 +135,64 @@ cloud-package: build-all
 	@echo "Packaging complete. Assets are in $(RELEASE_ASSETS_DIR)/"
 
 # Complete cloud release process
-cloud-release: cloud-package upload-to-s3
+cloud-release: cloud-package upload-to-s3 upload-tools upload-installers
 	@echo "Cloud release $(VERSION) completed successfully!"
 
 # ==================================================================================== #
 # CROSS-PLATFORM BUILD TARGETS
 # ==================================================================================== #
 
-# Build the application for all platforms
-build-all:
-	@echo "Building KNIRVENGINE executables for Linux, Windows, and macOS..."
-	@./scripts/build-desktop.sh binaries
-	@$(MAKE) bundle-sandbox-tools
-	@echo "Cross-platform executables created in dist/."
+# Build only the Linux engine that is packaged into the Alpine Docker image.
+build-engine-linux:
+	@mkdir -p "$(CLOUD_OUTPUT_DIR)"
+	@GOCACHE=/tmp/knirvengine-go-build CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build -tags embed -o "$(CLOUD_OUTPUT_DIR)/knirv-engine-linux-amd64" .
+	@echo "Linux KNIRVENGINE binary created in $(CLOUD_OUTPUT_DIR)/."
+
+build-installer-all:
+	@mkdir -p "$(CLOUD_OUTPUT_DIR)/installer/linux_amd64" "$(CLOUD_OUTPUT_DIR)/installer/darwin_amd64" "$(CLOUD_OUTPUT_DIR)/installer/darwin_arm64" "$(CLOUD_OUTPUT_DIR)/installer/windows_amd64"
+	@GOOS=linux GOARCH=amd64 go build -o "$(CLOUD_OUTPUT_DIR)/installer/linux_amd64/knirvengine-installer" ./cmd/installer
+	@GOOS=darwin GOARCH=amd64 go build -o "$(CLOUD_OUTPUT_DIR)/installer/darwin_amd64/knirvengine-installer" ./cmd/installer
+	@GOOS=darwin GOARCH=arm64 go build -o "$(CLOUD_OUTPUT_DIR)/installer/darwin_arm64/knirvengine-installer" ./cmd/installer
+	@GOOS=windows GOARCH=amd64 go build -o "$(CLOUD_OUTPUT_DIR)/installer/windows_amd64/knirvengine-installer.exe" ./cmd/installer
+	@echo "Linux, macOS, and Windows installers created in $(CLOUD_OUTPUT_DIR)/installer/."
+
+# Compatibility alias: installer releases now include all supported hosts.
+build-installer-linux: build-installer-all
+
+build-all: build-engine-linux build-installer-all
+	@echo "Linux KNIRVENGINE binary and cross-platform installers created in dist/."
+
+package-tools: bundle-sandbox-tools
+	@mkdir -p "$(RELEASE_ASSETS_DIR)"
+	@tar -C . -czf "$(TOOLS_ARCHIVE)" "$(patsubst ./%,%,$(TOOLS_DIR))"
+	@echo "Tools archive created: $(TOOLS_ARCHIVE)"
+
+# Publish a single gzipped tools archive at knirv/engine/tools/tools.tar.gz.
+upload-tools: package-tools
+	@if ! command -v "$(R2_CMD)" >/dev/null 2>&1; then \
+		echo "ERROR: $(R2_CMD) not found. Install/configure rclone or run with R2_CMD=/path/to/r2."; \
+		exit 1; \
+	fi
+	@$(R2_CMD) copy "$(TOOLS_ARCHIVE)" "$(R2_REMOTE):$(R2_ENGINE_TOOLS_PREFIX)/"
+	@echo "Tools archive uploaded to $(R2_REMOTE):$(R2_ENGINE_TOOLS_PREFIX)/tools.tar.gz"
+
+# Stage installer binaries under stable, OS/architecture-specific object names.
+package-installers: build-installer-all
+	@mkdir -p "$(INSTALLER_RELEASE_DIR)"
+	@cp "$(CLOUD_OUTPUT_DIR)/installer/linux_amd64/knirvengine-installer" "$(INSTALLER_RELEASE_DIR)/knirvengine-installer-linux-amd64"
+	@cp "$(CLOUD_OUTPUT_DIR)/installer/darwin_amd64/knirvengine-installer" "$(INSTALLER_RELEASE_DIR)/knirvengine-installer-macos-amd64"
+	@cp "$(CLOUD_OUTPUT_DIR)/installer/darwin_arm64/knirvengine-installer" "$(INSTALLER_RELEASE_DIR)/knirvengine-installer-macos-arm64"
+	@cp "$(CLOUD_OUTPUT_DIR)/installer/windows_amd64/knirvengine-installer.exe" "$(INSTALLER_RELEASE_DIR)/knirvengine-installer-windows-amd64.exe"
+	@echo "Installers staged in $(INSTALLER_RELEASE_DIR)/."
+
+# Publish all installer variants to knirv/engine/installer/ in Cloudflare R2.
+upload-installers: package-installers
+	@if ! command -v "$(R2_CMD)" >/dev/null 2>&1; then \
+		echo "ERROR: $(R2_CMD) not found. Install/configure rclone or run with R2_CMD=/path/to/r2."; \
+		exit 1; \
+	fi
+	@$(R2_CMD) copy "$(INSTALLER_RELEASE_DIR)" "$(R2_REMOTE):$(R2_ENGINE_INSTALLER_PREFIX)/"
+	@echo "Installers uploaded to $(R2_REMOTE):$(R2_ENGINE_INSTALLER_PREFIX)/"
 
 # Create desktop release with version management
 desktop-release:

@@ -112,7 +112,7 @@ KNIRVENGINE doesn't verify in isolation:
 
 ### Backend
 * **API Server** — Go, Gorilla Mux, JWT-authenticated, with a dedicated security middleware chain (CORS, rate limiting, request validation).
-* **Sandbox Manager** (`api/sandbox_manager.go`) — owns the `bubblewrap`/`Xvfb` lifecycle, a dependency-check/install path for the underlying tool binaries, and a status + VNC WebSocket pair per session.
+* **Sandbox Manager** (`internal/api/sandbox_manager.go`) — owns the `bubblewrap`/`Xvfb` lifecycle, a dependency-check/install path for the underlying tool binaries, and a status + VNC WebSocket pair per session.
 * **Inference Services** — provider-agnostic client layer over Cerebras, Gemini, and DeepSeek with fallback ordering.
 * **Database** — SQLite-backed persistence for users, sessions, and sandbox history.
 
@@ -178,7 +178,7 @@ KNIRVENGINE doesn't verify in isolation:
      npm run dev
      ```
 
-   * **Production mode:**
+* **Production mode:**
      ```bash
      go build -o knirv-engine
 
@@ -189,6 +189,28 @@ KNIRVENGINE doesn't verify in isolation:
      cd ..
      ./knirv-engine --production
      ```
+
+### Container installer
+
+The installer runs on Linux, macOS, and Windows. It provisions Docker/Docker
+Desktop when required, downloads the published verification-tool bundle inside
+the Alpine container, and starts the Linux KNIRVENGINE container:
+
+```bash
+go run ./cmd/installer
+```
+
+Release maintainers publish the archive with `make upload-tools`. This creates
+`release_assets/tools.tar.gz` and uploads it to
+`knirv/engine/tools/tools.tar.gz`, served as
+`https://releases.knirv.com/engine/tools/tools.tar.gz`.
+
+All KNIRVENGINE runtime state now uses the App Data root. On Linux this is
+`~/.config/KNIRV-Engine` by default: databases and desktop TEE state live in
+`data/`, tools in `data/bin/`, and plugins, logs, configuration, cache, and
+migration reports live in their corresponding subdirectories. KNIRVENGINE no
+longer creates runtime `data/`, `plugins/`, or migration-report files in the
+working directory.
 
 ### Port Configuration
 
@@ -300,9 +322,9 @@ make test-connectivity  # End-to-end connectivity tests
 
 ### Backend Extension
 1. Add new services implementing the appropriate interfaces.
-2. Register new API endpoints in `api/simple_server.go` (general API) or `api/sandbox_manager.go` (sandbox lifecycle).
+2. Register new API endpoints in `internal/api/simple_server.go` (general API) or `internal/api/sandbox_manager.go` (sandbox lifecycle).
 3. For new verification tools, add a lane adapter in the appropriate `sandbox_tool_*.go` file (`sandbox_tool_scan.go` for Lane 1, `sandbox_tool_stream.go` for Lane 2, `sandbox_tool_attach.go` for Lane 3, `sandbox_tool_launchmod.go` for Lane 4, `sandbox_tool_headless.go` for Lane 5, `sandbox_tool_native.go` for Lane 6).
-4. Extend database models in `database/models/`.
+4. Extend database models in `internal/database/models/`.
 
 ## License
 

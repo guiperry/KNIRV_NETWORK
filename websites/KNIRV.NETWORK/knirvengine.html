@@ -107,7 +107,7 @@
                                     <li class="menu-item"><a class="menu-link nav-link" href="Whitepapers.html">Whitepapers</a></li>
                                 </ul>
                                 <ul class="menu-btns animated" data-animate="fadeInDown" data-delay=".85">
-                                    <li><a href="https://github.com/guiperry/KNIRV-Engine" class="btn btn-rg btn-auto btn-outline btn-grad on-bg-theme btn-round"><span>GitHub</span></a></li>
+                                    <li><a href="https://github.com/guiperry/KNIRV_NETWORK" class="btn btn-rg btn-auto btn-outline btn-grad on-bg-theme btn-round"><span>GitHub</span></a></li>
                                     <li><a href="#conclusion" class="btn btn-rg btn-auto btn-outline btn-grad on-bg-theme btn-round"><span>Why It's the Solution</span></a></li>
                                 </ul>
                             </nav>
@@ -140,6 +140,7 @@
                                                 <ul class="btn-grp animated" data-animate="fadeInUp" data-delay="1.55">
                                                     <li><a href="#toolbench" class="btn btn-md btn-grad btn-round">See the Toolbench</a></li>
                                                     <li><a href="#bugs-not-solved" class="btn btn-md btn-grad btn-grad-alternet btn-round">Why Bugs Persist</a></li>
+                                                    <li><a href="#install" class="btn btn-md btn-outline btn-grad on-bg-theme btn-round">Install with npm</a></li>
                                                     <li><a href="https://github.com/guiperry/KNIRV-Engine/blob/main/KNIRV-ENGINE_Whitepaper.md" class="btn btn-md btn-outline btn-grad on-bg-theme btn-round">Read the Whitepaper</a></li>
                                                 </ul>
                                             </div>
@@ -384,17 +385,17 @@
                         <h2 class="title title-s4 animated" data-animate="fadeInUp" data-delay=".1">KNIRVENGINE Is the Solution</h2>
                         <p class="lead animated" data-animate="fadeInUp" data-delay=".2" style="max-width:760px;margin:0 auto;">Trust in software &mdash; and in the AI workflows built on top of it &mdash; should rest on evidence produced by actually running the thing, not on a submission's own account of itself. KNIRVENGINE makes sandboxed, instrumented verification the default first step rather than an optional extra, and feeds what that verification produces directly into KNIRVORACLE's registration path. It turns "this was checked" from a claim into a matter of record &mdash; the missing half of "coding is solved."</p>
                         <div class="row justify-content-center gutter-vr-30px mt-4">
-                            <div class="col-lg-5 col-md-6">
+                            <div class="col-lg-5 col-md-6" id="install">
                                 <div class="deploy-card text-start">
-                                    <h4>Desktop Platform</h4>
-                                    <p class="text-white-50 small">Go binary, embedded React/TypeScript console</p>
+                                    <h4>Install KNIRVENGINE</h4>
+                                    <p class="text-white-50 small">The npm package selects your operating system, downloads the matching installer, provisions Docker when needed, and starts KNIRVENGINE.</p>
+                                    <pre class="mb-3 p-2 rounded" style="background:rgba(0,0,0,.3);color:#3ad0ff;white-space:pre-wrap;"><code>npm install -g @knirv/engine</code></pre>
                                     <ul class="list-unstyled text-white-50 small">
-                                        <li class="mb-1">&#10003; Sandboxed by construction, not convention</li>
-                                        <li class="mb-1">&#10003; Load &rarr; Provision &rarr; Verify &rarr; Register</li>
-                                        <li class="mb-1">&#10003; Linux, macOS, Windows</li>
-                                        <li class="mb-1">&#10003; Role-gated per tool and sub-tool</li>
+                                        <li class="mb-1">&#10003; Linux, macOS, and Windows installers</li>
+                                        <li class="mb-1">&#10003; Docker-powered Alpine verification runtime</li>
+                                        <li class="mb-1">&#10003; Native administrator prompt when required</li>
                                     </ul>
-                                    <a href="https://github.com/guiperry/KNIRV-Engine" class="btn btn-md btn-grad btn-round w-100">Self-Host on GitHub</a>
+                                    <a href="https://www.npmjs.com/package/@knirv/engine" target="_blank" rel="noopener noreferrer" class="btn btn-md btn-grad btn-round w-100">Install from npm</a>
                                 </div>
                             </div>
                             <div class="col-lg-5 col-md-6">
@@ -407,7 +408,7 @@
                                         <li class="mb-1">&#10003; Integration with KNIRVORACLE &amp; KNIRVCONTROLLER</li>
                                         <li class="mb-1">&#10003; Security and isolation guarantees</li>
                                     </ul>
-                                    <a href="https://github.com/guiperry/KNIRV-Engine/blob/main/KNIRV-ENGINE_Whitepaper.md" class="btn btn-md btn-grad btn-grad-alternet btn-round w-100">Read the Whitepaper</a>
+                                    <a href="https://github.com/guiperry/KNIRV_NETWORK/blob/main/KNIRV-ENGINE_Whitepaper.md" class="btn btn-md btn-grad btn-grad-alternet btn-round w-100">Read the Whitepaper</a>
                                 </div>
                             </div>
                         </div>

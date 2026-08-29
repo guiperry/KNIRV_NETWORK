@@ -14,8 +14,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"KNIRVENGINE/desktop-client/api"
-	"KNIRVENGINE/desktop-client/database"
+	"KNIRVENGINE/desktop-client/internal/api"
+	"KNIRVENGINE/desktop-client/internal/database"
 )
 
 // TestAPIServer holds the test server and dependencies
