@@ -188,6 +188,18 @@ build-knirvhasher: ## Build KNIRVHASHER (Go, ASIC inference pipeline)
 	@cd packages/KNIRVHASHER && go build -v ./cmd/...
 	@echo "$(GREEN)✓ KNIRVHASHER built$(NC)"
 
+.PHONY: build-data-trainer
+build-data-trainer: ## Build 4_DATA_TRAINER pipeline binary
+	@echo "$(BLUE)Building data-trainer...$(NC)"
+	@cd packages/KNIRVHASHER/pipeline/4_DATA_TRAINER && go build -v ./cmd/data-trainer
+	@echo "$(GREEN)✓ data-trainer built$(NC)"
+
+.PHONY: train
+train: ## Train Gorgonite GPT on training_frames.json (run from KNIRVHASHER root)
+	@echo "$(BLUE)Training Gorgonite GPT...$(NC)"
+	@cd packages/KNIRVHASHER/pipeline/4_DATA_TRAINER && go run ./cmd/data-trainer
+	@echo "$(GREEN)✓ Training complete$(NC)"
+
 .PHONY: build-knirvagent
 build-knirvagent: ## Build KNIRVAGENT (Go)
 	@echo "$(BLUE)Building KNIRVAGENT...$(NC)"
@@ -292,6 +304,8 @@ test-knirvoracle: ## Test KNIRVORACLE
 test-knirvhasher: ## Test KNIRVHASHER
 	@echo "$(BLUE)Testing KNIRVHASHER...$(NC)"
 	@cd packages/KNIRVHASHER && go test -v ./...
+	@echo "$(BLUE)Testing 4_DATA_TRAINER...$(NC)"
+	@cd packages/KNIRVHASHER/pipeline/4_DATA_TRAINER && go test -v ./...
 
 .PHONY: test-knirvagent
 test-knirvagent: ## Test KNIRVAGENT

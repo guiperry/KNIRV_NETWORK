@@ -8,7 +8,8 @@
   "scripts": {
     "dev": "wrangler dev",
     "build": "wrangler deploy --dry-run",
-    "deploy": "wrangler deploy"
+    "deploy": "wrangler deploy",
+    "test": "vitest run"
   },
   "keywords": [
     "knirvchain",
@@ -19,6 +20,12 @@
   "author": "KNIRV Team",
   "license": "MIT",
   "devDependencies": {
+    "@cloudflare/vitest-pool-workers": "^0.22.0",
+    "@noble/hashes": "^2.4.0",
+    "vitest": "^4.1.11",
     "wrangler": "^4.33.0"
+  },
+  "dependencies": {
+    "@noble/secp256k1": "^3.1.0"
   }
 }

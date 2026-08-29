@@ -9,12 +9,13 @@ HASHER implements a recursive single-ASIC inference engine as specified in the *
 
 ### KNIRVHASHER Pipeline
 
-KNIRVHASHER extends HASHER with a complete data pipeline for training user-centric logic gate hash networks. The experimental stealth mode includes three pipeline stages that can be called non-interactively as background processes:
+KNIRVHASHER extends HASHER with a complete data pipeline for training user-centric logic gate hash networks. The experimental stealth mode includes four pipeline stages that can be called non-interactively as background processes:
 
 1. **0_DATA_CONNECTOR**: Receives gRPC streams from KNIRVSERVER, decrypts chunks, and writes raw `.md` files to KNIRVBASE
-2. **1_DATA_MINER**: Processes `.md` files through SpaCy NLP, normalizes security data, and writes `.arrow` IPC files
+2. **1_DATA_MAPPER**: Processes `.md` files through SpaCy NLP, normalizes security data, and writes `.arrow` IPC files
 3. **2_DATA_ENCODER**: Encodes `.arrow` batches into 80-byte `.nrv` Tier-3 Brackets with BGE embeddings and NRV KB lookups
 4. **3_DATA_SEEDER**: Mines proof-of-work-witnessed assertions via `EvolutionaryHarness` — a real (1+1)-style evolution strategy over candidate nonces, scored by Hamming-similarity fitness (see below) — and writes them to the seed ledger
+5. **4_DATA_TRAINER**: Trains the Gorgonite GPT (`pkg/hashing/transformer/gpt.go`) on `training_frames.json` via real gradient descent, producing model checkpoints for inference
 
 The pipeline transforms user ontology data into `.nrv` datasets for future global model updates across the KNIRV network.
 

@@ -280,23 +280,6 @@ type ChatResponse struct {
 	UsingASIC  bool    `json:"using_asic"`
 }
 
-// TrainRequest is the API request for crypto-transformer training
-type TrainRequest struct {
-	Epochs       int      `json:"epochs"`
-	LearningRate float32  `json:"learning_rate"`
-	BatchSize    int      `json:"batch_size"`
-	DataSamples  []string `json:"data_samples"`
-}
-
-// TrainResponse is the API response for crypto-transformer training
-type TrainResponse struct {
-	Epoch     int     `json:"epoch"`
-	Loss      float32 `json:"loss"`
-	Accuracy  float32 `json:"accuracy"`
-	LatencyMs float64 `json:"latency_ms"`
-	UsingASIC bool    `json:"using_asic"`
-}
-
 // RuleRequest represents a request to add a logical rule
 type RuleRequest struct {
 	Domain      string   `json:"domain"`
@@ -1171,7 +1154,6 @@ func runAPIServer(orch *Orchestrator) {
 
 		// Crypto-transformer endpoints
 		api.POST("/chat", orch.handleChat)
-		api.POST("/train", orch.handleTrain)
 		api.GET("/crypto/status", orch.handleCryptoStatus)
 
 		// Logical rules endpoints
@@ -1835,81 +1817,6 @@ func (o *Orchestrator) handleChat(c *gin.Context) {
 		Confidence: 0.8,
 		LatencyMs:  float64(latency.Milliseconds()),
 		UsingASIC:  usingASIC,
-	})
-}
-
-// handleTrain handles crypto-transformer training requests
-func (o *Orchestrator) handleTrain(c *gin.Context) {
-	if o.cryptoModel == nil {
-		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "crypto-transformer not enabled"})
-		return
-	}
-
-	var req TrainRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
-		return
-	}
-
-	start := time.Now()
-
-	// Run single epoch training (for API responsiveness)
-	var totalLoss float32
-	var correct, total int
-
-	for _, sampleStr := range req.DataSamples {
-		// Tokenize input using the tokenizer package
-		inputTokens := tokenizer.Tokenize(sampleStr, o.cryptoModel.Config.VocabSize)
-		if len(inputTokens) == 0 {
-			continue
-		}
-
-		// Create target tokens (shifted by 1 for next-token prediction)
-		var targetToken int
-		if len(inputTokens) > 1 {
-			targetToken = inputTokens[1]
-		} else {
-			targetToken = inputTokens[0]
-		}
-
-		// Forward pass
-		output := o.cryptoModel.Forward(inputTokens)
-
-		// Calculate simple loss (MSE proxy)
-		if len(output) > 0 {
-			target := float32(targetToken)
-			diff := output[0] - target
-			totalLoss += diff * diff
-		}
-
-		// Check prediction accuracy
-		predicted, _ := o.cryptoModel.GenerateToken(inputTokens, 0.0)
-		if predicted == targetToken {
-			correct++
-		}
-		total++
-
-		// Note: Backward pass removed - new simplified transformer uses seed-based weights
-		// which don't support gradient-based backpropagation. Training is done via
-		// seed regeneration or alternative optimization methods.
-	}
-
-	// Calculate metrics
-	var loss float32
-	var accuracy float32
-	if total > 0 {
-		loss = totalLoss / float32(total)
-		accuracy = float32(correct) / float32(total)
-	}
-
-	latency := time.Since(start)
-
-	c.JSON(http.StatusOK, TrainResponse{
-		Epoch:     1,
-		Loss:      loss,
-		Accuracy:  accuracy,
-		LatencyMs: float64(latency.Milliseconds()),
-		UsingASIC: o.safeIsUsingHardware(),
 	})
 }
 

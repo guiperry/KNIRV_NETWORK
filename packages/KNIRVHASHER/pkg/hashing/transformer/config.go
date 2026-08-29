@@ -27,6 +27,11 @@ type HEARTConfig struct {
 	AttestationQueueSize     int
 
 	ExternalGenerateFn ExternalGenerateFn `json:"-" yaml:"-"`
+
+	// ModelCheckpointPath is the path to a trained GPT checkpoint. When set,
+	// NewHEARTServiceWithConfig attempts to load it; if loading fails (missing
+	// file, version mismatch, etc.) it falls back to a freshly-initialized model.
+	ModelCheckpointPath string
 }
 
 func DefaultHEARTConfig(useHashNetwork, useCerebras bool) *HEARTConfig {

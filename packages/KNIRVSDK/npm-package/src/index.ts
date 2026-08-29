@@ -4,6 +4,7 @@ import { SdkClient as Client, WasmBindingTransport } from "./runtime.js";
 
 export * from "./runtime.js";
 export * from "./modules.js";
+export * from "./actuarial.js";
 
 let initialization: Promise<unknown> | undefined;
 

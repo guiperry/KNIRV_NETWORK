@@ -13,6 +13,10 @@ export declare class ActuarialClient {
     pools<T = unknown>(): Promise<T>;
     pool<T = unknown>(id: string): Promise<T>;
     submission<T = unknown>(id: string): Promise<T>;
+    submissions<T = unknown>(query?: {
+        resolver_wallet?: string;
+        status?: string;
+    }): Promise<T>;
     decision<T = unknown>(id: string): Promise<T>;
     settlement<T = unknown>(id: string): Promise<T>;
     createSubmission<T = unknown>(body: unknown): Promise<T>;

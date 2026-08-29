@@ -29,6 +29,7 @@ type Config struct {
 	STUNPort            int
 	ServerPublicHost    string
 	RelayServerPeerID   string
+	BackendSocketPath   string
 }
 
 // NewHandler creates a new tunnel handler

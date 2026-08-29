@@ -59,6 +59,18 @@ export interface PoolReport {
   }>;
 }
 
+export interface ResolverClaim {
+  id: string;
+  claimed_risk_class: string;
+  domain: BountyDomain;
+  resolver_wallet?: string;
+  status: string;
+  validation_state: string;
+  decision_id?: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface StakeRequest {
   operator_wallet: string;
   node_id: string;
@@ -139,6 +151,11 @@ export class ActuarialSyndicateService {
 
   getPoolReport(poolID: string): Promise<PoolReport> {
     return this.client.poolReport<PoolReport>(poolID);
+  }
+
+  /** Assigned work is backend-owned, distinct from capital exposure. */
+  listResolverClaims(wallet: string): Promise<ResolverClaim[]> {
+    return this.client.submissions<ResolverClaim[]>({ resolver_wallet: wallet });
   }
 
   async claim(submissionId: string, resolverWallet: string) {

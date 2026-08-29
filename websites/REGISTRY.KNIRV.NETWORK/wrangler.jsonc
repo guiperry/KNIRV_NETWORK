@@ -10,10 +10,12 @@
   },
   "migrations": [{ "tag": "v1", "new_sqlite_classes": ["RegistryStore"] }],
   "vars": {
-    "REGISTRY_VERSION": "2.0.0",
+    "REGISTRY_VERSION": "3.0.0",
     "NODE_TTL_SECONDS": "3600",
+    "HEARTBEAT_TTL_SECONDS": "45",
     "STUN_HOST": "",
     "STUN_PORT": "3478",
-    "TURN_TCP_PORT": "3479"
+    "TURN_TCP_PORT": "3479",
+    "ROOT_PUBLIC_KEY": ""
   }
 }

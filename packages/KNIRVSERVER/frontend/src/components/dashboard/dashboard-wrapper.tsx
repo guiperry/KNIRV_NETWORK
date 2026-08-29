@@ -32,6 +32,7 @@ import { PredictiveAnalyticsPanel } from '@/components/dashboard/predictive-anal
 import { GuardrailViolationsPanel, GuardrailStatisticsCard } from '@/components/dashboard/guardrail-violations-panel';
 import { BadgeLabPanel } from '@/components/dashboard/badge-lab-panel';
 import { DVENodesPanel } from '@/components/dashboard/dve-nodes-panel';
+import { ExpertAdvisorPanel } from '@/components/dashboard/expert-advisor-panel';
 import { DVECreationForm } from '@/components/dashboard/dve-creation-form';
 import { ModuleLogViewer } from '@/components/dashboard/module-log-viewer';
 import { KernelSecurityCard } from '@/components/dashboard/kernel-security-card';
@@ -76,7 +77,8 @@ import {
   Brain,
   Bell,
   Award,
-  Coins
+  Coins,
+  ChevronRight
 } from 'lucide-react';
 
 interface DashboardWrapperProps {
@@ -149,6 +151,7 @@ function DashboardWrapperInner({ children, onRentDVE }: DashboardWrapperProps) {
   const [webguiIframeOpen, setWebguiIframeOpen] = useState(false);
   const [webguiIframePage, setWebguiIframePage] = useState<string>('');
   const [processingActivities, setProcessingActivities] = useState<ProcessingActivity[]>([]);
+  const [showNodesPanel, setShowNodesPanel] = useState(false);
 
   const goToWebgui = (pageId: string) => {
     setWebguiIframePage(pageId);
@@ -806,7 +809,7 @@ function DashboardWrapperInner({ children, onRentDVE }: DashboardWrapperProps) {
                     <Tabs value={resourceTab} onValueChange={setResourceTab} className="space-y-6">
                       <TabsList className="grid w-full grid-cols-5 bg-gray-900/50 border border-gray-800">
                         <TabsTrigger value="overview" className="text-gray-400 data-[state=active]:text-indigo-400 data-[state=active]:bg-indigo-500/10">Overview</TabsTrigger>
-                        <TabsTrigger value="nodes" className="text-gray-400 data-[state=active]:text-indigo-400 data-[state=active]:bg-indigo-500/10">DVE Nodes</TabsTrigger>
+                        <TabsTrigger value="nodes" className="text-gray-400 data-[state=active]:text-indigo-400 data-[state=active]:bg-indigo-500/10">Expert Advisors</TabsTrigger>
                         <TabsTrigger value="cognitive" className="text-gray-400 data-[state=active]:text-indigo-400 data-[state=active]:bg-indigo-500/10">Cognitive Engine</TabsTrigger>
                         <TabsTrigger value="badgelab" className="text-gray-400 data-[state=active]:text-amber-400 data-[state=active]:bg-amber-500/10">Badge Lab</TabsTrigger>
                         <RoleGuard allowedRoles={['admin']} showError={false}>
@@ -1007,17 +1010,32 @@ function DashboardWrapperInner({ children, onRentDVE }: DashboardWrapperProps) {
                         </div>
                       </TabsContent>
 
-                      {/* ── DVE Nodes Tab ── */}
+                      {/* ── Expert Advisors Tab ── */}
                       <TabsContent value="nodes" className="space-y-4">
-                        <DVENodesPanel
-                          onRentClick={handleDVEManagement}
-                          onNodeConnect={handleNodeAccess}
-                          effectiveActiveNodeIdss={activeNodeIds}
-                          onActiveNodeChange={(nodeId, isActive) => {
-                            setActiveNodeId(nodeId, isActive);
-                          }}
-                          refreshKey={dveRefreshKey}
-                        />
+                        {showNodesPanel ? (
+                          <div className="space-y-4">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="border-gray-700 text-gray-400 hover:bg-indigo-500/10 hover:text-indigo-400 hover:border-indigo-400"
+                              onClick={() => setShowNodesPanel(false)}
+                            >
+                              <ChevronRight className="w-4 h-4 mr-2" />
+                              Back to Advisors
+                            </Button>
+                            <DVENodesPanel
+                              onRentClick={handleDVEManagement}
+                              onNodeConnect={handleNodeAccess}
+                              effectiveActiveNodeIdss={activeNodeIds}
+                              onActiveNodeChange={(nodeId, isActive) => {
+                                setActiveNodeId(nodeId, isActive);
+                              }}
+                              refreshKey={dveRefreshKey}
+                            />
+                          </div>
+                        ) : (
+                          <ExpertAdvisorPanel onDrillDownToNodes={() => setShowNodesPanel(true)} />
+                        )}
                       </TabsContent>
 
                       {/* ── Cognitive Engine Tab ── */}

@@ -402,6 +402,19 @@ export interface DVECreation {
   updated_at: string; // ISO 8601
   persistent: boolean;
   grace_period: number; // int64
+  policy: DVEModelPolicy;
+}
+
+export interface DVEModelPolicy {
+  mode: string;
+  allowed_providers?: string[];
+  allowed_models?: string[];
+  denied_models?: string[];
+  max_requests_per_hour: number;
+  max_token_budget_daily: number;
+  fail_open: boolean;
+  updated_at: string;
+  updated_by?: string;
 }
 
 export interface DVESession {

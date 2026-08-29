@@ -13,7 +13,6 @@ import {
   type RewardAnchor,
 } from './stores/useKnirvana';
 import { useAudio } from './stores/useAudio';
-import { getChallengeById } from '../../data/challenges';
 import { actuarialSyndicateService, type BountyPosting } from '../../services/ActuarialSyndicateService';
 import { selectCuratedChallenge } from '../../services/actuarialChallenge';
 import { DATASET_TEMPLATES, DEFAULT_TEMPLATE } from './VerifierOverlay';
@@ -212,8 +211,7 @@ export default function DVEWorkspaceModal() {
   const ringSet = isRingSet(node.id, rewardAnchors);
   const ringCommitted = isRingCommitted(node.id, rewardAnchors);
   const ringStraightened = ringCommitted && ringAnchors.length > 0 && ringAnchors.every(a => a.isHorizontal === false);
-  const localChallenge = node.challengeId ? getChallengeById(node.challengeId) : undefined;
-  const challenge = selectCuratedChallenge(backendPostings, node.challengeId) ?? localChallenge;
+  const challenge = selectCuratedChallenge(backendPostings, node.challengeId);
   const template = DATASET_TEMPLATES[node.type] ?? DEFAULT_TEMPLATE;
   const idleFieldAgent = agents.find(a => !a.staged && a.status === 'idle');
 

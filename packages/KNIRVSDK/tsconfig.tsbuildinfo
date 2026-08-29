@@ -1,0 +1,1 @@
+{"root":["./npm-package/src/actuarial.ts","./npm-package/src/index.ts","./npm-package/src/modules.ts","./npm-package/src/runtime.ts","./npm-package/src/signing.ts","./npm-package/src/slim.ts","./npm-package/src/modules/manifest.d.ts","./npm-package/src/wasm/inlined_base64.d.ts","./npm-package/src/wasm/knirv_sdk_core.d.ts"],"version":"5.9.3"}

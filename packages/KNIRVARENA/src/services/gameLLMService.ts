@@ -8,7 +8,7 @@
  * Provider cascade: OpenAI → Gemini → DeepSeek → deterministic mock
  */
 
-import type { Challenge } from '../data/challenges';
+import type { Challenge } from '../types/challenge';
 
 // ── Types ─────────────────────────────────────────────────────────────────
 

@@ -1,0 +1,6 @@
+input_path: "./training_frames.json"
+checkpoint_dir: "./checkpoints"
+num_epochs: 3
+learning_rate: 0.0003
+save_freq: 1
+resume_from: ""

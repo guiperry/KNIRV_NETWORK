@@ -7,6 +7,8 @@ import {
   type SyndicatePool,
 } from '../services/ActuarialSyndicateService';
 import { walletIntegrationService } from '../services/WalletIntegrationService';
+import { ResolverClaims } from '../components/syndicate/ResolverClaims';
+import type { ResolverClaim } from '../services/ActuarialSyndicateService';
 
 const amount = (value: number) => new Intl.NumberFormat('en-US').format(value ?? 0);
 
@@ -17,6 +19,8 @@ export default function SyndicatePortfolio() {
   const [pools, setPools] = useState<SyndicatePool[]>([]);
   const [exposure, setExposure] = useState<ExposureSummary | null>(null);
   const [reports, setReports] = useState<Record<string, PoolReport>>({});
+  const [claims, setClaims] = useState<ResolverClaim[]>([]);
+  const [claimsLoading, setClaimsLoading] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
 
@@ -49,6 +53,21 @@ export default function SyndicatePortfolio() {
     } catch (cause) {
       setExposure(null);
       setError(cause instanceof Error ? cause.message : 'Exposure could not be loaded.');
+    }
+  };
+
+  const loadClaims = async () => {
+    if (!wallet.trim()) {
+      setError('Connect a wallet or enter its address to view assigned work.');
+      return;
+    }
+    setClaimsLoading(true);
+    try {
+      setClaims(await actuarialSyndicateService.listResolverClaims(wallet.trim()));
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Assigned work could not be loaded.');
+    } finally {
+      setClaimsLoading(false);
     }
   };
 
@@ -86,12 +105,8 @@ export default function SyndicatePortfolio() {
               placeholder="KNIRV wallet address"
               className="flex-1 rounded bg-gray-950 px-3 py-2 text-sm"
             />
-            <button
-              onClick={loadExposure}
-              className="rounded bg-blue-600 px-4 py-2 font-medium hover:bg-blue-500"
-            >
-              Load exposure
-            </button>
+            <button onClick={loadExposure} className="rounded bg-blue-600 px-4 py-2 font-medium hover:bg-blue-500">Load exposure</button>
+            <button onClick={loadClaims} className="rounded bg-cyan-700 px-4 py-2 font-medium hover:bg-cyan-600">Load work</button>
           </div>
           {exposure && (
             <div className="mt-4 grid gap-3 sm:grid-cols-3 text-sm">
@@ -111,6 +126,7 @@ export default function SyndicatePortfolio() {
             </div>
           )}
         </section>
+        <ResolverClaims claims={claims} loading={claimsLoading} />
 
         {error && (
           <p role="alert" className="mt-4 text-red-300">

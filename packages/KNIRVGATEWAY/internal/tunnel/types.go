@@ -85,6 +85,7 @@ type ControlMessage struct {
 	Timestamp       int64  `json:"timestamp,omitempty"`
 	Status          string `json:"status,omitempty"`
 	Message         string `json:"message,omitempty"`
+	Token           string `json:"token,omitempty"`
 }
 
 // RelayMessage represents messages for relay setup

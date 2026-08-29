@@ -129,6 +129,13 @@ func NewHEARTService(bridge *CerebrasBridge, processor *NetworkMetricsProcessor)
 // NewHEARTServiceWithConfig creates a new HEART service with configuration (Phase 2)
 func NewHEARTServiceWithConfig(cfg *HEARTConfig) (*HEARTService, error) {
 	gpt := NewGPT(&cfg.Gorgonite)
+	if cfg.ModelCheckpointPath != "" {
+		if err := LoadModel(gpt, cfg.ModelCheckpointPath); err != nil {
+			log.Printf("no trained checkpoint at %s (%v); starting from random init", cfg.ModelCheckpointPath, err)
+		} else {
+			log.Printf("loaded trained checkpoint from %s", cfg.ModelCheckpointPath)
+		}
+	}
 
 	tok, err := NewTiktokenTokenizer("cl100k_base")
 	if err != nil {

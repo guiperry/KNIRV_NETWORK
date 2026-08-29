@@ -13,6 +13,17 @@ export const MESSAGE_SCHEMA_VERSION = 'knirv.message.v1';
 export const ACTION_TYPE_URL = '/knirv.signing.v1.Action';
 export const SECP256K1_TYPE_URL = '/cosmos.crypto.secp256k1.PubKey';
 export const SIGN_MODE_DIRECT = 1;
+export const RELAY_ENVELOPE_SCHEMA_VERSION = 'knirv.controller.relay-envelope.v1';
+export const WASM_PUBLICATION_SCHEMA_VERSION = 'knirv.wasm_publication.v1';
+export const WASM_MANIFEST_SCHEMA_VERSION = 'knirv.wasm_manifest.v1';
+export const CONTROLLER_DOMAIN = 'knirv.controller';
+export const PURPOSE_WASM_PUBLICATION = 'wasm-publication';
+export const PURPOSE_WASM_ASSIGNMENT = 'wasm-assignment';
+export const PURPOSE_WASM_DOWNLOAD_GRANT = 'wasm-download-grant';
+export const PURPOSE_RELAY_REQUEST = 'relay-request';
+export const PURPOSE_RELAY_RESPONSE = 'relay-response';
+export const RELAY_TARGET_DVE_EXPERT_ADVISOR = 'dve_expert_advisor';
+export const RELAY_TARGET_CLI_SUPERVISOR = 'cli_supervisor';
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
 const concat = (...values) => { const output = new Uint8Array(values.reduce((total, value) => total + value.length, 0)); let offset = 0; for (const value of values) {
@@ -82,6 +93,48 @@ export function marshalMessageEnvelope(envelope) {
         throw new Error('message envelope validity window is invalid');
     return concat(stringField(1, schema), stringField(2, envelope.domain), stringField(3, envelope.purpose), stringField(4, envelope.chainId), stringField(5, envelope.nonce), uintField(6, envelope.issuedAtUnix), uintField(7, envelope.expiresAtUnix), bytesField(8, envelope.payload));
 }
+const nonEmpty = (value) => value.trim().length > 0;
+const messageString = (field) => field?.bytesValue ? decoder.decode(field.bytesValue) : '';
+const messageUint = (field) => field?.uintValue ?? 0n;
+const fieldMap = (data) => { const fields = new Map(); for (const field of readFields(data)) {
+    const values = fields.get(field.number) ?? [];
+    values.push(field);
+    fields.set(field.number, values);
+} return fields; };
+const first = (fields, number) => fields.get(number)?.[0];
+const relayTarget = (value) => {
+    if (value !== RELAY_TARGET_DVE_EXPERT_ADVISOR && value !== RELAY_TARGET_CLI_SUPERVISOR)
+        throw new Error('target_type must be dve_expert_advisor or cli_supervisor');
+    return value;
+};
+export function marshalRelayEnvelope(envelope) {
+    const schema = envelope.schemaVersion || RELAY_ENVELOPE_SCHEMA_VERSION;
+    if (schema !== RELAY_ENVELOPE_SCHEMA_VERSION)
+        throw new Error(`Unsupported relay envelope schema: ${schema}`);
+    if (![envelope.requestId, envelope.userSubject, envelope.deviceId, envelope.targetId, envelope.capability, envelope.payloadDigest].every(nonEmpty))
+        throw new Error('relay envelope required fields are missing');
+    relayTarget(envelope.targetType);
+    if (BigInt(envelope.sequence) <= 0n || BigInt(envelope.issuedAtUnix) <= 0n || BigInt(envelope.expiresAtUnix) <= BigInt(envelope.issuedAtUnix))
+        throw new Error('relay sequence and validity window are invalid');
+    return concat(stringField(1, schema), stringField(2, envelope.requestId), stringField(3, envelope.userSubject), stringField(4, envelope.deviceId), stringField(5, envelope.dveId), stringField(6, envelope.targetType), stringField(7, envelope.targetId), stringField(8, envelope.capability), uintField(9, envelope.sequence), uintField(10, envelope.leaseEpoch), uintField(11, envelope.issuedAtUnix), uintField(12, envelope.expiresAtUnix), stringField(13, envelope.payloadDigest));
+}
+export function parseRelayEnvelope(data) {
+    const fields = fieldMap(data);
+    const parsed = { schemaVersion: messageString(first(fields, 1)), requestId: messageString(first(fields, 2)), userSubject: messageString(first(fields, 3)), deviceId: messageString(first(fields, 4)), dveId: messageString(first(fields, 5)), targetType: relayTarget(messageString(first(fields, 6))), targetId: messageString(first(fields, 7)), capability: messageString(first(fields, 8)), sequence: messageUint(first(fields, 9)), leaseEpoch: messageUint(first(fields, 10)), issuedAtUnix: BigInt.asIntN(64, messageUint(first(fields, 11))), expiresAtUnix: BigInt.asIntN(64, messageUint(first(fields, 12))), payloadDigest: messageString(first(fields, 13)) };
+    if (parsed.schemaVersion !== RELAY_ENVELOPE_SCHEMA_VERSION || ![parsed.requestId, parsed.userSubject, parsed.deviceId, parsed.targetId, parsed.capability, parsed.payloadDigest].every(nonEmpty) || parsed.sequence <= 0n || parsed.issuedAtUnix <= 0n || parsed.expiresAtUnix <= parsed.issuedAtUnix)
+        throw new Error('relay envelope is incomplete or invalid');
+    return parsed;
+}
+function marshalManifestModule(module) { return concat(stringField(1, module.moduleKind), stringField(2, module.artifactDigest), uintField(3, module.byteSize), uintField(4, module.abiVersion), uintField(5, module.moduleSchemaVersion), stringField(6, module.capabilitiesJson), stringField(7, module.configurationDigest), stringField(8, module.downloadPath), stringField(9, module.publisherAddress), stringField(10, module.publicationStatementDigest)); }
+function parseManifestModule(data) { const fields = fieldMap(data); return { moduleKind: messageString(first(fields, 1)), artifactDigest: messageString(first(fields, 2)), byteSize: messageUint(first(fields, 3)), abiVersion: messageUint(first(fields, 4)), moduleSchemaVersion: messageUint(first(fields, 5)), capabilitiesJson: messageString(first(fields, 6)), configurationDigest: messageString(first(fields, 7)), downloadPath: messageString(first(fields, 8)), publisherAddress: messageString(first(fields, 9)), publicationStatementDigest: messageString(first(fields, 10)) }; }
+export function marshalWasmPublicationPayload(payload) { const schema = payload.schemaVersion || WASM_PUBLICATION_SCHEMA_VERSION; if (schema !== WASM_PUBLICATION_SCHEMA_VERSION)
+    throw new Error('unsupported wasm publication schema'); if (![payload.networkId, payload.networkFingerprint, payload.artifactDigest, payload.moduleKind, payload.buildId, payload.publisherAddress].every(nonEmpty) || BigInt(payload.byteSize) <= 0n)
+    throw new Error('wasm publication required fields are missing'); return concat(stringField(1, schema), stringField(2, payload.networkId), stringField(3, payload.networkFingerprint), stringField(4, payload.artifactDigest), uintField(5, payload.byteSize), stringField(6, payload.moduleKind), uintField(7, payload.abiVersion), uintField(8, payload.moduleSchemaVersion), stringField(9, payload.buildId), stringField(10, payload.toolchainDigest), stringField(11, payload.selfTestDigest), stringField(12, payload.publisherAddress), stringField(13, payload.dveTemplateId)); }
+export function marshalWasmManifestPayload(payload) { const schema = payload.schemaVersion || WASM_MANIFEST_SCHEMA_VERSION; if (schema !== WASM_MANIFEST_SCHEMA_VERSION)
+    throw new Error('unsupported wasm manifest schema'); if (![payload.manifestId, payload.networkId, payload.chainId, payload.networkFingerprint, payload.userSubject, payload.deviceId, payload.assignmentId].every(nonEmpty) || payload.modules.length === 0)
+    throw new Error('wasm manifest required fields are missing'); return concat(stringField(1, schema), stringField(2, payload.manifestId), stringField(3, payload.networkId), stringField(4, payload.chainId), stringField(5, payload.networkFingerprint), stringField(6, payload.userSubject), stringField(7, payload.deviceId), stringField(8, payload.dveId), uintField(9, payload.leaseEpoch), ...payload.modules.map((module) => bytesField(10, marshalManifestModule(module))), stringField(11, payload.relayTargetType), stringField(12, payload.relayTargetId), stringField(13, payload.assignmentId), uintField(14, payload.assignmentVersion), stringField(15, payload.supersedesAssignmentId)); }
+export function parseWasmManifestPayload(data) { const fields = fieldMap(data); const payload = { schemaVersion: messageString(first(fields, 1)), manifestId: messageString(first(fields, 2)), networkId: messageString(first(fields, 3)), chainId: messageString(first(fields, 4)), networkFingerprint: messageString(first(fields, 5)), userSubject: messageString(first(fields, 6)), deviceId: messageString(first(fields, 7)), dveId: messageString(first(fields, 8)), leaseEpoch: messageUint(first(fields, 9)), modules: (fields.get(10) ?? []).map((field) => parseManifestModule(field.bytesValue ?? new Uint8Array())), relayTargetType: messageString(first(fields, 11)), relayTargetId: messageString(first(fields, 12)), assignmentId: messageString(first(fields, 13)), assignmentVersion: messageUint(first(fields, 14)), supersedesAssignmentId: messageString(first(fields, 15)) }; if (payload.schemaVersion !== WASM_MANIFEST_SCHEMA_VERSION || ![payload.manifestId, payload.networkId, payload.chainId, payload.networkFingerprint, payload.userSubject, payload.deviceId, payload.assignmentId].every(nonEmpty) || payload.modules.length === 0)
+    throw new Error('wasm manifest is incomplete or invalid'); return payload; }
 export async function signMessageEnvelope(privateKey, envelope) {
     if (privateKey.length !== 32)
         throw new Error('secp256k1 private key must be 32 bytes');

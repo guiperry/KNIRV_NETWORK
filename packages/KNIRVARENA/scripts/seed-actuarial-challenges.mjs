@@ -1,7 +1,7 @@
 /** One-time migration of legacy game challenges into backend-owned postings.
  * Requires an admin bearer token; it is safe to re-run because challenge IDs
  * are preserved as risk-class IDs and existing classes are skipped. */
-import { CHALLENGES } from '../src/data/challenges.ts';
+import { CHALLENGES } from './seed-data/legacy-challenges.ts';
 
 const baseURL = (process.env.KNIRV_ACTUARIAL_API || 'http://localhost:8082/api/v1/actuarial').replace(/\/$/, '');
 const token = process.env.KNIRV_ADMIN_TOKEN;

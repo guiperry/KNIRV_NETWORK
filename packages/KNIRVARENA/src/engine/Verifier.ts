@@ -1,4 +1,4 @@
-import type { Challenge } from '../data/challenges';
+import type { Challenge } from '../types/challenge';
 import type { GameLLMService, SolutionProposal, AgentPersona } from '../services/gameLLMService';
 
 export interface ScoreWeights {

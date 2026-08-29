@@ -74,6 +74,7 @@ Nothing above talks to a shared database. Coordination happens over Unix sockets
 | `KNIRVBRIDGE` | TS | Browser wallet extension for NRN tokens and dApp interaction. |
 | `KNIRVBASE` | Go + TS | Shared SDK/library other packages build on: auth, UI primitives, shared client code. |
 | `KNIRVSDK` | Go / TS / Py | Developer SDKs, plus the source for KNIRV-CLI (`@knirv/cli`). |
+| `websites/REGISTRY.KNIRV.NETWORK` | Cloudflare Workers | Network node registry and failover control plane. Stores node registrations, validator heartbeats, votes, and state transitions in a Durable Object. Consumed by KNIRVGATEWAY (DHT bootstrap) and KNIRVCHAIN (self-registration). |
 
 ## Building and Running KNIRVSERVER
 

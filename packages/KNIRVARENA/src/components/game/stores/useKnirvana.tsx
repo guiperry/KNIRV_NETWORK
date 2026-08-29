@@ -6,10 +6,22 @@ import { LoraxClient } from "../../../networking/LoraxClient";
 import { TrainingManager } from "../../../engine/TrainingManager";
 import { SabotageEngine, SabotageType } from "../../../engine/Sabotage";
 import { getGameLLMService, DEFAULT_PERSONAS, type AgentPersona, type SolutionProposal } from "../../../services/gameLLMService";
-import { CHALLENGES, getChallengeForType, type Challenge } from "../../../data/challenges";
+import type { Challenge, ErrorNodeType } from "../../../types/challenge";
 import { useAudio, type SfxName } from "./useAudio";
 
 const sfx = (name: SfxName) => useAudio.getState().playSfx(name);
+
+// The authoritative challenge content is fetched from the actuarial posting
+// API by DVEWorkspaceModal. This fallback contains no challenge catalogue and
+// only keeps legacy saved-game nodes renderable before that request completes.
+function pendingBackendChallenge(type: ErrorNodeType): Challenge {
+  return {
+    id: `backend-pending-${type.toLowerCase().replaceAll(' ', '-')}`,
+    title: 'Loading backend-owned challenge', type, difficulty: 0, bounty: 0,
+    description: 'This challenge is being loaded from KNIRVSERVER.', buggyCode: '',
+    context: 'Wait for the actuarial posting to load.', hints: [],
+  };
+}
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -40,7 +52,7 @@ export interface ErrorNode {
   isBeingSolved: boolean;
   progress: number;
   solverAgent?: string;
-  challengeId?: string; // links to challenges.ts dataset
+  challengeId?: string; // backend code_error posting / legacy migration key
 }
 
 export interface SkillNode {
@@ -375,7 +387,7 @@ const generateErrorNodes = (): ErrorNode[] => {
 
   for (let i = 0; i < 15; i++) {
     const type = types[i % types.length];
-    const challenge = getChallengeForType(type);
+    const challenge = pendingBackendChallenge(type);
     nodes.push({
       id: `error-${i}`,
       position: {
@@ -580,7 +592,7 @@ export const useKnirvana = create<KnirvanaState>()(
         });
 
         // Keep the arena populated — a fresh error surfaces elsewhere
-        const challenge = getChallengeForType(node.type as Parameters<typeof getChallengeForType>[0]);
+        const challenge = pendingBackendChallenge(node.type as ErrorNodeType);
         replacementNodes.push({
           id: `error-${Date.now()}-${i}`,
           position: {
@@ -1055,8 +1067,10 @@ export const useKnirvana = create<KnirvanaState>()(
         return;
       }
 
-      const challenge = CHALLENGES.find(c => c.id === activeErrorNode.challengeId)
-        ?? CHALLENGES[epochNumber % CHALLENGES.length];
+      // Content is never sourced from the retired local catalogue. The DVE
+      // workspace loads the matching backend posting; this neutral placeholder
+      // only preserves an old saved game's epoch state while it reconnects.
+      const challenge = pendingBackendChallenge(activeErrorNode.type as ErrorNodeType);
 
       const llm = getGameLLMService();
       const personas = state.personas;

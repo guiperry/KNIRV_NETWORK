@@ -145,6 +145,12 @@ type Config struct {
 	// CloudflareD1DatabaseID enables auto-lookup of NodeRegistrationID from D1
 	// when KNIRV_NODE_REGISTRATION_ID is not set explicitly.
 	CloudflareD1DatabaseID string // CLOUDFLARE_D1_DATABASE_ID
+
+	// CLIProxyAPIBaseURL is the private upstream for CLI model-proxy traffic.
+	// CLIProxyAPI holds the real upstream OAuth account pool; the gateway
+	// enforces per-DVECreation policy before forwarding. Leave empty to
+	// disable the model-proxy gate.
+	CLIProxyAPIBaseURL string // e.g. http://localhost:4000
 }
 
 func Load() (*Config, error) {
@@ -225,6 +231,7 @@ func Load() (*Config, error) {
 		UserIDTag:                 getEnv("KNIRV_USER_ID_TAG", ""),
 		NodeRegistrationID:        getEnv("KNIRV_NODE_REGISTRATION_ID", ""),
 		CloudflareD1DatabaseID:    getEnv("CLOUDFLARE_D1_DATABASE_ID", ""),
+		CLIProxyAPIBaseURL:        getEnv("CLIPROXY_API_BASE_URL", ""),
 	}
 
 	production := strings.EqualFold(networkMode, "production") || strings.EqualFold(networkMode, "prod") || strings.EqualFold(networkMode, "mainnet")

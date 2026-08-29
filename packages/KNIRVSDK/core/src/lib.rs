@@ -25,6 +25,13 @@ pub use bindings::{
 };
 pub use client::{ClientConfig, HttpClient, Network, NetworkInfo, RetryConfig};
 pub use actuarial::ActuarialService;
+pub use types::{
+    ActuarialRiskClass, ActuarialRiskClassLimits, ClaimSubmissionRequest,
+    CreateActuarialRiskClassRequest, CreateStakeRequest, CreateSubmissionArtifactsRequest,
+    CreateSubmissionRequest, ExposureSummary, PoolReport, RequestQuoteRequest,
+    RequestStakeExitRequest, SignedActuarialIntent, StakePosition, SyndicatePool,
+    VulnerabilitySubmission,
+};
 pub use error::{Error, Result};
 pub use gateway::GatewayClient;
 pub use governance::GovernanceClient;

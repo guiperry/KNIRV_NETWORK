@@ -29,6 +29,15 @@ export class ActuarialClient {
     pools() { return this.request("/pools"); }
     pool(id) { return this.request(`/pools/${encodeURIComponent(id)}`); }
     submission(id) { return this.request(`/submissions/${encodeURIComponent(id)}`); }
+    submissions(query = {}) {
+        const params = new URLSearchParams();
+        if (query.resolver_wallet)
+            params.set('resolver_wallet', query.resolver_wallet);
+        if (query.status)
+            params.set('status', query.status);
+        const suffix = params.size ? `?${params}` : '';
+        return this.request(`/submissions${suffix}`);
+    }
     decision(id) { return this.request(`/decisions/${encodeURIComponent(id)}`); }
     settlement(id) { return this.request(`/settlements/${encodeURIComponent(id)}`); }
     createSubmission(body) { return this.request("/submissions", { method: "POST", body: JSON.stringify(body) }); }

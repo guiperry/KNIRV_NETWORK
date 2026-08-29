@@ -9,7 +9,8 @@ import type {
   DVEAccessInfo,
   SSHSession,
   ValidationSession,
-  ErrorResolutionSession
+  ErrorResolutionSession,
+  DVEModelPolicy
 } from '@/types/api';
 import { apiRequest, API_BASE_URL } from '@/lib/api';
 import { webSocketService } from '@/lib/websocket-service';
@@ -172,6 +173,11 @@ export const useDVEManagement = () => {
     }
   }, []);
 
+  const updatePolicy = useCallback(async (creationId: string, policy: DVEModelPolicy): Promise<APIResponse> => {
+    const url = `${API_BASE_URL}/api/dve-creation/nodes/${creationId}/policy`;
+    return apiRequest(url, { method: 'PATCH', body: JSON.stringify(policy) });
+  }, []);
+
   return {
     creations,
     stats,
@@ -182,6 +188,7 @@ export const useDVEManagement = () => {
     fetchStats,
     createDVE,
     getFullAccessInfo,
+    updatePolicy,
     connectWebSocket,
     disconnectWebSocket,
   };

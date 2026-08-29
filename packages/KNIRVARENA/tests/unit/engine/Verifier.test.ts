@@ -1,6 +1,6 @@
 import { Verifier, ScoreWeights } from '../../../src/engine/Verifier';
 import type { SolutionProposal, AgentPersona } from '../../../src/services/gameLLMService';
-import type { Challenge } from '../../../src/data/challenges';
+import type { Challenge } from '../../../src/types/challenge';
 
 describe('Verifier', () => {
   let verifier: Verifier;

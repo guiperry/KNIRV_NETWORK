@@ -1,5 +1,165 @@
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use std::collections::BTreeMap;
+
+/// Typed wire models for KNIRVSERVER's actuarial syndicate API.  These are
+/// intentionally separate from the chain transaction types below: an
+/// actuarial mutation is an authenticated API operation, not a Cosmos direct
+/// transaction.
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+pub struct ActuarialRiskClass {
+    pub id: String,
+    pub domain: String,
+    pub taxonomy_version: String,
+    pub display_name: String,
+    pub description: String,
+    #[serde(default)] pub required_features: Vec<String>,
+    #[serde(default)] pub supported_runtimes: Vec<String>,
+    #[serde(default)] pub eligibility_policy: BTreeMap<String, String>,
+    pub curated_challenge: Option<CuratedCodeErrorChallenge>,
+    pub limits: ActuarialRiskClassLimits,
+    pub status: String,
+    pub min_sample_size: i64,
+    pub created_at: String,
+    pub updated_at: String,
+    pub retired_at: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+pub struct CuratedCodeErrorChallenge {
+    pub legacy_id: String,
+    pub r#type: String,
+    pub buggy_code: String,
+    pub context: String,
+    #[serde(default)] pub hints: Vec<String>,
+}
+
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+pub struct ActuarialRiskClassLimits {
+    pub max_payout_per_claim: i64,
+    pub max_aggregate_liability: i64,
+    pub max_blast_radius: i64,
+}
+
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+pub struct CreateActuarialRiskClassRequest {
+    pub id: String,
+    pub display_name: String,
+    pub description: String,
+    pub taxonomy_version: String,
+    pub domain: String,
+    pub difficulty_tier: Option<i64>,
+    pub limits: ActuarialRiskClassLimits,
+    pub curated_challenge: Option<CuratedCodeErrorChallenge>,
+}
+
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+pub struct SyndicatePool {
+    pub id: String,
+    pub risk_class_id: String,
+    pub currency: String,
+    pub rail: String,
+    pub status: String,
+    pub total_stake: i64,
+    pub liquid_balance: i64,
+    pub reserved_balance: i64,
+    pub created_at: String,
+    pub updated_at: String,
+}
+
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+pub struct CreateSyndicatePoolRequest { pub risk_class_id: String, pub currency: String, pub rail: String }
+
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+pub struct SignedActuarialIntent {
+    pub nonce: String,
+    pub canonical_payload: String,
+    /// JSON-encoded `knirv.message.v1` SignedMessage. See `actuarial.rs`.
+    pub signature: String,
+}
+
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+pub struct CreateStakeRequest {
+    pub amount: i64, pub operator_wallet: String, pub node_id: String,
+    pub credential_commitment: String, pub signed_intent: SignedActuarialIntent,
+}
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+pub struct StakePosition {
+    pub id: String, pub pool_id: String, pub operator_wallet: String,
+    pub deposited_amount: i64, pub locked_amount: i64, pub withdrawable_amount: i64,
+    pub status: String,
+}
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+pub struct RequestStakeExitRequest { pub operator_wallet: String, pub signed_intent: SignedActuarialIntent }
+
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+pub struct CreateSubmissionRequest {
+    pub researcher_credential_id: String, pub researcher_wallet: String,
+    pub claimed_risk_class: String, pub idempotency_key: String,
+    pub enterprise_credential_id: Option<String>, pub signed_intent: Option<SignedActuarialIntent>,
+}
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+pub struct ClaimSubmissionRequest { pub resolver_wallet: String, pub signed_intent: SignedActuarialIntent }
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+pub struct VulnerabilitySubmission {
+    pub id: String, pub researcher_credential_id: String, pub researcher_wallet: String,
+    pub claimed_risk_class: String, pub domain: String, pub credential_type: String,
+    pub enterprise_credential_id: Option<String>, pub resolver_wallet: Option<String>,
+    pub validation_state: String, pub validation_result_hash: Option<String>,
+    pub idempotency_key: String, pub status: String, pub decision_id: Option<String>,
+    pub created_at: String, pub updated_at: String,
+}
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+pub struct CreateSubmissionArtifactsRequest {
+    pub researcher_wallet: String, pub poc_reference: String, pub report_reference: String,
+    pub poc_hash: String, pub report_hash: String, pub scope_hash: String,
+    pub dve_id: String, pub dve_session_id: String, pub signed_intent: Option<SignedActuarialIntent>,
+}
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+pub struct ValidationResult { pub state: String, pub result_hash: Option<String>, pub reason: Option<String> }
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+pub struct RequestQuoteRequest {
+    pub model_id: String, pub snapshot_id: String, pub pool_id: String,
+    #[serde(default)] pub feature_values: BTreeMap<String, i64>, pub confidence: i64,
+    pub requester_wallet: String, pub signed_intent: Option<SignedActuarialIntent>,
+}
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+pub struct PricingDecision {
+    pub id: String, pub snapshot_id: String, pub model_id: String, pub pool_id: String,
+    pub quote_amount: i64, pub reserve_amount: i64, pub decision_hash: String,
+    #[serde(default)] pub reason_codes: Vec<String>, pub created_at: String,
+}
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+pub struct QuoteResult { pub decision: PricingDecision, pub reservation_id: Option<String> }
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+pub struct Settlement {
+    pub id: String, pub decision_id: String, pub pool_id: String, pub submission_id: String,
+    pub amount: i64, pub provider_id: String, pub provider_status: String, pub status: String,
+    pub created_at: String, pub updated_at: String,
+}
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+pub struct ReserveLedgerEntry { pub entity_type: String, pub amount: i64, pub direction: String, pub reference_id: String }
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+pub struct PoolReport {
+    pub pool: SyndicatePool, pub active_stake_count: usize,
+    #[serde(default)] pub reserve_entries: Vec<ReserveLedgerEntry>, pub available_liquidity: i64,
+}
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+pub struct StakeExposure { pub stake: StakePosition, pub gross_exposure: i64, pub realized_loss: i64 }
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+pub struct ExposureSummary { pub wallet: String, #[serde(default)] pub positions: Vec<StakeExposure>, pub gross_exposure: i64, pub realized_loss: i64 }
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+pub struct CreatePayoutDestinationRequest { pub wallet: String, pub country: String, pub email: String }
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+pub struct PayoutDestination { pub wallet: String, pub provider: String, pub provider_account_id: String }
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+pub struct CredentialChallengeRequest { pub wallet: String }
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+pub struct CredentialChallenge { pub id: String, pub wallet: String, pub nonce: String, pub expires_at: String }
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+pub struct CreateEnterpriseCredentialRequest { pub organization_id: String, pub organization_name: String, pub expires_at: Option<String> }
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+pub struct EnterpriseCredential { pub id: String, pub organization_id: String, pub organization_name: String, pub session_subject: String, pub expires_at: String }
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 pub struct Transaction {

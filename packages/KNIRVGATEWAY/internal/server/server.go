@@ -64,6 +64,7 @@ type Server struct {
 	webguiStaticDir string
 	actualPort      int
 	d1Client        *d1.Client
+	modelCallProxy  http.Handler
 }
 
 // New creates a new HTTP server
@@ -90,6 +91,7 @@ func New(cfg *config.Config, webguiStaticDir string, logger *zap.Logger, db ...*
 		STUNPort:            cfg.TunnelRegistrySTUNPort,
 		ServerPublicHost:    cfg.PublicHost,
 		RelayServerPeerID:   "",
+		BackendSocketPath:   cfg.BackendSocketPath,
 	}
 	tunnelSvc := tunnel.NewService(tunnelConfig, logger)
 	tunnelHdlr := tunnelSvc.GetHandler()
@@ -194,6 +196,13 @@ func New(cfg *config.Config, webguiStaticDir string, logger *zap.Logger, db ...*
 		logger:          logger,
 		webguiStaticDir: webguiStaticDir,
 		d1Client:        newAdminD1Client(logger),
+	}
+
+	if modelProxy, err := newModelCallProxy(cfg, logger); err != nil {
+		logger.Warn("failed to initialize model-call proxy", zap.Error(err))
+	} else if modelProxy != nil {
+		s.modelCallProxy = modelProxy
+		logger.Info("Model-call proxy registered", zap.String("target", cfg.CLIProxyAPIBaseURL))
 	}
 
 	if err := s.setupRoutes(); err != nil {
@@ -629,6 +638,15 @@ func (s *Server) setupRoutes() error {
 		s.logger.Info("Agent proxy registered", zap.String("socketDir", s.config.AgentSocketDir))
 	} else {
 		s.logger.Warn("Agent proxy not configured — /api/agent/* will not be proxied")
+	}
+
+	// Model-call proxy — CLIProxyAPI gate for Expert Advisor model traffic.
+	// Routes are provider-split so the CLI can point ANTHROPIC_BASE_URL /
+	// OPENAI_BASE_URL at the same gateway with provider known from the path.
+	if s.modelCallProxy != nil {
+		r.HandleFunc("/gateway/model-proxy/{creationId}/anthropic/{path:.*}", s.modelCallProxy.ServeHTTP).Methods("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
+		r.HandleFunc("/gateway/model-proxy/{creationId}/openai/{path:.*}", s.modelCallProxy.ServeHTTP).Methods("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
+		s.logger.Info("Model-call proxy registered", zap.String("target", s.config.CLIProxyAPIBaseURL))
 	}
 
 	// Inner Agent WebSocket tunnel — connects WebSocket clients directly to the

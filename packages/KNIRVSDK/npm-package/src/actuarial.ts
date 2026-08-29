@@ -24,6 +24,13 @@ export class ActuarialClient {
   pools<T = unknown>() { return this.request<T>("/pools"); }
   pool<T = unknown>(id: string) { return this.request<T>(`/pools/${encodeURIComponent(id)}`); }
   submission<T = unknown>(id: string) { return this.request<T>(`/submissions/${encodeURIComponent(id)}`); }
+  submissions<T = unknown>(query: { resolver_wallet?: string; status?: string } = {}) {
+    const params = new URLSearchParams();
+    if (query.resolver_wallet) params.set('resolver_wallet', query.resolver_wallet);
+    if (query.status) params.set('status', query.status);
+    const suffix = params.size ? `?${params}` : '';
+    return this.request<T>(`/submissions${suffix}`);
+  }
   decision<T = unknown>(id: string) { return this.request<T>(`/decisions/${encodeURIComponent(id)}`); }
   settlement<T = unknown>(id: string) { return this.request<T>(`/settlements/${encodeURIComponent(id)}`); }
   createSubmission<T = unknown>(body: unknown) { return this.request<T>("/submissions", { method: "POST", body: JSON.stringify(body) }); }
