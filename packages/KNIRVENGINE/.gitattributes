@@ -1,6 +1,0 @@
-# Ignore built HTML files from stats
-dist/* linguist-vendored
-public/* linguist-vendored
-build/* linguist-vendored
-static/* linguist-vendored
-*.min.html linguist-generated
