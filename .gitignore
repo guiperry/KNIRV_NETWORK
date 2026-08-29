@@ -166,3 +166,6 @@ packages/KNIRVSERVER/pkg/knirvmonitor/bin/monitor
 /packages/KNIRVSDK/rust-wasm/controller-relay/target
 .gstack/
 websites/4cb27963-c66c-52cd-b481-f93b5c4ffe5d.pdf
+
+# Generated KNIRVSERVER binary (published outside Git)
+/packages/KNIRVSERVER/bin/backend_server
