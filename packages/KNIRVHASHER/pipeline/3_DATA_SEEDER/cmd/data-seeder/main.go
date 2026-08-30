@@ -37,7 +37,15 @@ var (
 	difficultyBits = flag.Int("difficulty-bits", config.DefaultDifficultyBits, fmt.Sprintf("Number of leading bits that must match (%d-%d)", config.MinDifficultyBits, config.MaxDifficultyBits))
 	verbose        = flag.Bool("verbose", false, "Enable verbose logging")
 	sequential     = flag.Bool("sequential", false, "Process tokens sequentially (cleaner logs)")
-	hashMethod     = flag.String("hash-method", "auto", "Hash method to use: auto, software, cuda")
+	hashMethod     = flag.String("hash-method", "auto", "Hash method to use: auto, asic, software, cuda")
+)
+
+const (
+	// The checkpoint and append-only seed ledger are saved for every win. The
+	// large JSON/Arrow materializations are derived artifacts, so batching them
+	// prevents a full 300k+ record rewrite from blocking every trained token.
+	seedMaterializationBatch = 100
+	seedMaterializationEvery = 5 * time.Minute
 )
 
 type seedWriterInterface interface {
@@ -46,27 +54,29 @@ type seedWriterInterface interface {
 }
 
 type TrainingOrchestrator struct {
-	logger           *logging.Logger
-	simulator        simulator.HashSimulator
-	storage          *storage.CSVStorage
-	harness          *training.EvolutionaryHarness
-	validator        validator.Validator
-	flashManager     *deployment.FlashManager
-	checkpointMgr    *storage.CheckpointManager
-	dataIngestor     *storage.DataIngestor
-	trainingData     []*training.TrainingRecord
-	seedWriter       seedWriterInterface
-	config           *config.Config
-	dataPath         string
-	sequential       bool
-	runID            string
-	runStatusPath    string
-	trainingDataPath string
-	currentBatch     int
-	batchesDone      int
-	totalBatches     int
-	pipelineErrors   []string
-	allRecordsSeeded bool
+	logger            *logging.Logger
+	simulator         simulator.HashSimulator
+	storage           *storage.CSVStorage
+	harness           *training.EvolutionaryHarness
+	validator         validator.Validator
+	flashManager      *deployment.FlashManager
+	checkpointMgr     *storage.CheckpointManager
+	dataIngestor      *storage.DataIngestor
+	trainingData      []*training.TrainingRecord
+	seedWriter        seedWriterInterface
+	config            *config.Config
+	dataPath          string
+	sequential        bool
+	runID             string
+	runStatusPath     string
+	trainingDataPath  string
+	currentBatch      int
+	batchesDone       int
+	totalBatches      int
+	pipelineErrors    []string
+	allRecordsSeeded  bool
+	pendingSeedWrites int
+	lastSeedWriteBack time.Time
 }
 
 type TrainingRunStatus struct {
@@ -804,7 +814,9 @@ func (to *TrainingOrchestrator) saveWinningSeed(record *training.TrainingRecord,
 		return fmt.Errorf("failed to save checkpoint: %w", err)
 	}
 
-	// Immediately write best seed back to storage
+	// Persist the winner immediately to the checkpoint database and append-only
+	// ledger above. JSON/Arrow outputs are derived snapshots and are flushed in
+	// batches so a full dataset rewrite does not stall every winning token.
 	to.logger.Info("[DEBUG] saveWinningSeed: Token %d, Slot0: %d, Source: %s",
 		record.TargetToken, record.FeatureVector[0], record.SourceFile)
 
@@ -812,19 +824,37 @@ func (to *TrainingOrchestrator) saveWinningSeed(record *training.TrainingRecord,
 	if err := to.seedWriter.AddAssertionWrite(record.SourceFile, record.FeatureVector, record.TargetToken, record.TokenSequence, record.Span(), record.ContextHash, record.AssertionCommitmentTarget(), seed.Seed); err != nil {
 		return fmt.Errorf("failed to queue seed write-back for token %d: %w", record.TargetToken, err)
 	} else {
-		if err := to.seedWriter.WriteBack(); err != nil {
-			msg := fmt.Sprintf("Seed materialization incomplete for token %d: %v", record.TargetToken, err)
-			to.recordPipelineError(msg)
-			to.logger.Warn("%s", msg)
-			if statusErr := to.writeRunStatus("running", msg); statusErr != nil {
-				to.logger.Warn("Failed to write run status: %v", statusErr)
+		to.pendingSeedWrites++
+		if to.lastSeedWriteBack.IsZero() {
+			to.lastSeedWriteBack = time.Now()
+		}
+		if to.pendingSeedWrites >= seedMaterializationBatch || time.Since(to.lastSeedWriteBack) >= seedMaterializationEvery {
+			if err := to.materializeSeeds(false); err != nil {
+				msg := fmt.Sprintf("Seed materialization incomplete after token %d: %v", record.TargetToken, err)
+				to.recordPipelineError(msg)
+				to.logger.Warn("%s", msg)
 			}
-		} else {
-			to.logger.Info("Wrote best seed for token %d to storage", record.TargetToken)
 		}
 	}
 
 	to.logger.Info("Saved checkpoint for token %d (fitness=%.4f) [gen=%d]", record.TargetToken, seed.Reward, generation)
+	return nil
+}
+
+func (to *TrainingOrchestrator) materializeSeeds(final bool) error {
+	if to.pendingSeedWrites == 0 {
+		return nil
+	}
+	if err := to.seedWriter.WriteBack(); err != nil {
+		return err
+	}
+	suffix := ""
+	if final {
+		suffix = " (final flush)"
+	}
+	to.logger.Info("Materialized %d queued winning seed(s)%s", to.pendingSeedWrites, suffix)
+	to.pendingSeedWrites = 0
+	to.lastSeedWriteBack = time.Now()
 	return nil
 }
 
@@ -844,7 +874,11 @@ func (to *TrainingOrchestrator) saveProgress(epoch int) error {
 func (to *TrainingOrchestrator) finalizeTraining() error {
 	to.logger.Info("Finalizing training...")
 
-	// Seeds are written back immediately after each win, just do final checkpoint save
+	if err := to.materializeSeeds(true); err != nil {
+		to.logger.Warn("Failed to materialize final seed outputs: %v", err)
+	}
+
+	// Checkpoints are the durable source of truth for individual wins.
 	if err := to.checkpointMgr.Close(); err != nil {
 		to.logger.Warn("Failed to save final checkpoints: %v", err)
 	}
@@ -926,6 +960,9 @@ func (to *TrainingOrchestrator) writeRunStatus(status, message string) error {
 
 func (to *TrainingOrchestrator) Shutdown() {
 	to.logger.Info("Shutting down training orchestrator...")
+	if err := to.materializeSeeds(true); err != nil {
+		to.logger.Warn("Failed to materialize queued seed outputs during shutdown: %v", err)
+	}
 
 	if to.validator != nil {
 		to.validator.Close()

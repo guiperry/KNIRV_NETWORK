@@ -12,8 +12,9 @@ import { NetworkMonitorGrafana } from './network-monitor-grafana';
 import { NetworkMonitorPrometheus } from './network-monitor-prometheus';
 import { NetworkMonitorOnboarding } from './network-monitor-onboarding';
 import { NetworkMonitorAlerts } from './network-monitor-alerts';
+import { RootFailoverPanel } from './root-failover-panel';
 
-type MonitorView = 'health' | 'metrics' | 'routes' | 'grafana' | 'prometheus' | 'onboarding' | 'alerts';
+type MonitorView = 'health' | 'metrics' | 'routes' | 'grafana' | 'prometheus' | 'onboarding' | 'alerts' | 'failover';
 
 const subTabs: { value: MonitorView; label: string; icon: React.ReactNode }[] = [
   { value: 'health', label: 'Health', icon: <Activity className="w-4 h-4" /> },
@@ -23,6 +24,7 @@ const subTabs: { value: MonitorView; label: string; icon: React.ReactNode }[] = 
   { value: 'prometheus', label: 'Prometheus', icon: <Network className="w-4 h-4" /> },
   { value: 'onboarding', label: 'Onboarding', icon: <Users className="w-4 h-4" /> },
   { value: 'alerts', label: 'Alerts', icon: <AlertTriangle className="w-4 h-4" /> },
+  { value: 'failover', label: 'Root Failover', icon: <Network className="w-4 h-4" /> },
 ];
 
 export function NetworkMonitorPanel() {
@@ -45,7 +47,7 @@ export function NetworkMonitorPanel() {
       </CardHeader>
       <CardContent>
         <Tabs value={monitorView} onValueChange={(v) => setMonitorView(v as MonitorView)} className="space-y-4">
-          <TabsList className="grid w-full grid-cols-7 bg-gray-900/50 border border-gray-800">
+          <TabsList className="grid w-full grid-cols-4 lg:grid-cols-8 bg-gray-900/50 border border-gray-800">
             {subTabs.map((tab) => (
               <TabsTrigger
                 key={tab.value}
@@ -87,6 +89,9 @@ export function NetworkMonitorPanel() {
 
           <TabsContent value="alerts" className="space-y-4">
             <NetworkMonitorAlerts />
+          </TabsContent>
+          <TabsContent value="failover" className="space-y-4">
+            <RootFailoverPanel />
           </TabsContent>
         </Tabs>
       </CardContent>

@@ -25,10 +25,10 @@ type MetricsResponse struct {
 }
 
 type ServiceStatus struct {
-	Name        string `json:"name"`
-	Status      string `json:"status"`
-	LastCheck   string `json:"lastCheck"`
-	ResponseTime int64 `json:"responseTime"`
+	Name         string `json:"name"`
+	Status       string `json:"status"`
+	LastCheck    string `json:"lastCheck"`
+	ResponseTime int64  `json:"responseTime"`
 }
 
 type ProcessMetrics struct {
@@ -58,6 +58,7 @@ type ServerConfig struct {
 	KNIRVGraphURL  string
 	KNIRVOracleURL string
 	GatewayURL     string
+	RegistryURL    string
 	// BackendSocketPath is the backend_server Unix socket used for aggregate
 	// actuarial health. No additional TCP service URL is required.
 	BackendSocketPath string
@@ -108,26 +109,26 @@ type KnirvchainMetric struct {
 }
 
 type KnirvchainHealth struct {
-	URL        string    `json:"url"`
-	Status     string    `json:"status"`
-	LastCheck  time.Time `json:"last_check"`
+	URL       string    `json:"url"`
+	Status    string    `json:"status"`
+	LastCheck time.Time `json:"last_check"`
 }
 
 type GatewayRoute struct {
-	Name        string `json:"name"`
-	PathPrefix  string `json:"pathPrefix"`
-	Target      string `json:"target"`
-	Protocol    string `json:"protocol"`
-	Status      string `json:"status"`
-	LatencyMs   int64  `json:"latencyMs"`
+	Name       string `json:"name"`
+	PathPrefix string `json:"pathPrefix"`
+	Target     string `json:"target"`
+	Protocol   string `json:"protocol"`
+	Status     string `json:"status"`
+	LatencyMs  int64  `json:"latencyMs"`
 }
 
 type OnboardingApplication struct {
-	ID           string `json:"id"`
-	LegalName    string `json:"legalName"`
-	KYCStatus    string `json:"kycStatus"`
-	Status       string `json:"status"`
-	SubmittedAt  string `json:"submittedAt"`
+	ID          string `json:"id"`
+	LegalName   string `json:"legalName"`
+	KYCStatus   string `json:"kycStatus"`
+	Status      string `json:"status"`
+	SubmittedAt string `json:"submittedAt"`
 }
 
 type OnboardingUser struct {
@@ -154,12 +155,12 @@ type KnirvgraphHealth struct {
 }
 
 type KNIRVOracleEconomics struct {
-	TotalSupply    int64   `json:"total_supply"`
-	TotalStaked    int64   `json:"total_staked"`
-	TotalBurned    int64   `json:"total_burned"`
-	APY            float64 `json:"apy"`
-	FeeVolume      int64   `json:"fee_volume"`
-	RewardsIssued  int64   `json:"rewards_issued"`
+	TotalSupply   int64   `json:"total_supply"`
+	TotalStaked   int64   `json:"total_staked"`
+	TotalBurned   int64   `json:"total_burned"`
+	APY           float64 `json:"apy"`
+	FeeVolume     int64   `json:"fee_volume"`
+	RewardsIssued int64   `json:"rewards_issued"`
 }
 
 type KNIRVOracleHealth struct {

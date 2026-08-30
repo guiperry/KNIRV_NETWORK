@@ -862,7 +862,11 @@ func (eh *EvolutionaryHarness) EvaluatePopulationBatch(
 		// Calculate rewards
 		commitmentTarget := record.AssertionCommitmentTarget()
 		result.Alignment = eh.calculateAlignmentReward(goldenNonce, commitmentTarget)
-		result.Stability = eh.calculateStabilityReward(result.Seed, sim)
+		// Execute21PassLoopBatch has already measured stability across all 21
+		// passes. Re-running five individual hash operations per candidate made
+		// a population of 256 perform 1,280 redundant hardware/CPU calls per
+		// generation and was the dominant training cost.
+		result.Stability = loopRes.Stability
 		result.Format = eh.calculateFormatReward(goldenNonce, record.TargetToken, tokenMap)
 
 		// Bonus for exact target match

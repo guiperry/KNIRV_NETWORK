@@ -41,21 +41,21 @@ type Manager struct {
 }
 
 type ManagerConfig struct {
-	BinaryPath        string
-	SocketPath        string
-	GRPCSocketPath    string // backend gRPC socket the data-connector dials into
-	DataPath          string
-	SocketPerm        uint32
-	HeadlessMode      bool
-	ArxivEnabled      bool
-	PipelineType      string
-	StartTimeout      time.Duration
-	StopTimeout       time.Duration
-	Stdout            interface{}
-	Stderr            interface{}
-	EnvOverrides      map[string]string
-	KnirvserverDeployed bool     // indicates KNIRVHASHER is initialized by KNIRVSERVER
-	FormalVerifierEnabled bool   // enables formal proof verification via Lean worker
+	BinaryPath            string
+	SocketPath            string
+	GRPCSocketPath        string // backend gRPC socket the data-connector dials into
+	DataPath              string
+	SocketPerm            uint32
+	HeadlessMode          bool
+	ArxivEnabled          bool
+	PipelineType          string
+	StartTimeout          time.Duration
+	StopTimeout           time.Duration
+	Stdout                interface{}
+	Stderr                interface{}
+	EnvOverrides          map[string]string
+	KnirvserverDeployed   bool // indicates KNIRVHASHER is initialized by KNIRVSERVER
+	FormalVerifierEnabled bool // enables formal proof verification via Lean worker
 }
 
 type HasherStatus struct {
@@ -198,7 +198,7 @@ func (m *Manager) Start(ctx context.Context) error {
 	}
 
 	for k, v := range m.config.EnvOverrides {
-		env = append(env, fmt.Sprintf("%s=%s", k, v))
+		env = setEnvOverride(env, k, v)
 	}
 
 	args := []string{}
@@ -264,6 +264,22 @@ func (m *Manager) Start(ctx context.Context) error {
 		zap.String("socket", m.socketPath))
 
 	return nil
+}
+
+// setEnvOverride replaces rather than appends an environment variable. A child
+// process can receive duplicate keys when a root.key override is appended to
+// the launcher's inherited environment; libc then commonly reads the stale
+// first value. This is especially important for DEVICE_IP, which selects the
+// attached ASIC endpoint.
+func setEnvOverride(env []string, key, value string) []string {
+	prefix := key + "="
+	filtered := env[:0]
+	for _, entry := range env {
+		if !strings.HasPrefix(entry, prefix) {
+			filtered = append(filtered, entry)
+		}
+	}
+	return append(filtered, fmt.Sprintf("%s=%s", key, value))
 }
 
 func resolveBinaryPath(configured string) (string, error) {

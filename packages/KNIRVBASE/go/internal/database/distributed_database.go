@@ -127,6 +127,17 @@ func (db *DistributedDatabase) RemoveCollectionFromNetwork(collectionName string
 
 func (db *DistributedDatabase) GetNetworkManager() netpkg.Network { return db.network }
 
+// NetworkStats returns a snapshot of the distributed transport counters for a
+// network.  Keep this at the database boundary so callers do not need access
+// to the concrete network manager (and so the public package can expose it
+// without leaking internal implementation types).
+func (db *DistributedDatabase) NetworkStats(networkID string) *typ.NetworkStats {
+	if db.network == nil {
+		return nil
+	}
+	return db.network.GetNetworkStats(networkID)
+}
+
 func (db *DistributedDatabase) GetConsensusManager() *p2pconsensus.P2PConsensusManager {
 	return db.consensus
 }

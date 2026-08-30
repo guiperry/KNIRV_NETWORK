@@ -303,7 +303,8 @@ func (s *Server) setupRoutes() error {
 	r.HandleFunc("/api/network-monitor/metrics", s.handleNetworkMonitorMetrics).Methods("GET")
 	r.HandleFunc("/api/network-monitor/logs", s.handleNetworkMonitorLogs).Methods("GET")
 	r.HandleFunc("/api/network-monitor/config", s.handleNetworkMonitorConfig).Methods("GET")
-	r.HandleFunc("/api/network-monitor/routes", s.handleNetworkMonitorRoutes).Methods("GET")
+	// Route inventory exposes internal topology and upstream liveness.
+	r.HandleFunc("/api/network-monitor/routes", requireAdminJWT(s.handleNetworkMonitorRoutes)).Methods("GET")
 
 	// Admin-only D1-backed onboarding endpoints (KNIRVMONITOR's Onboarding
 	// sub-view proxies here — see internal/rootkey and internal/d1). Every
@@ -327,6 +328,8 @@ func (s *Server) setupRoutes() error {
 		} {
 			r.PathPrefix(prefix).HandlerFunc(monitorProxy.ServeHTTP)
 		}
+		r.Handle("/api/v1/network/stats", monitorProxy).Methods("GET")
+		r.Handle("/api/v1/network/interfaces", monitorProxy).Methods("GET")
 		// Stable public Prometheus exposition endpoint. It maps directly to
 		// KNIRVMONITOR's native /metrics handler, not a nonexistent /targets UI.
 		r.Handle("/api/v1/monitor/metrics", rewriteProxyPath(monitorProxy, "/metrics")).Methods("GET")
@@ -1749,35 +1752,34 @@ func (s *Server) handleNetworkMonitorConfig(w http.ResponseWriter, r *http.Reque
 	})
 }
 
-// handleNetworkMonitorRoutes returns the proxy route table.
+// handleNetworkMonitorRoutes derives the route table from the router serving
+// traffic. This prevents a hand-maintained inventory from drifting whenever a
+// proxy route is added or removed.
 func (s *Server) handleNetworkMonitorRoutes(w http.ResponseWriter, r *http.Request) {
-	routes := []map[string]interface{}{
-		{"name": "oracle", "pathPrefix": "/api/oracle/", "target": "KNIRVORACLE", "protocol": "http"},
-		{"name": "oracle-ws", "pathPrefix": "/oracle/", "target": "KNIRVORACLE", "protocol": "http"},
-		{"name": "backend", "pathPrefix": "/api/v1/", "target": "KNIRVSERVER", "protocol": "unix-socket"},
-		{"name": "auth", "pathPrefix": "/api/auth/", "target": "KNIRVSERVER", "protocol": "unix-socket"},
-		{"name": "badge", "pathPrefix": "/api/badge/", "target": "KNIRVSERVER", "protocol": "unix-socket"},
-		{"name": "dve-nodes", "pathPrefix": "/api/dve-nodes", "target": "KNIRVSERVER", "protocol": "unix-socket"},
-		{"name": "chain", "pathPrefix": "/api/chain/", "target": "KNIRVCHAIN", "protocol": "unix-socket"},
-		{"name": "chain-ws", "pathPrefix": "/chain/", "target": "KNIRVCHAIN", "protocol": "unix-socket"},
-		{"name": "graph", "pathPrefix": "/api/graph/", "target": "KNIRVGRAPH", "protocol": "unix-socket"},
-		{"name": "graph-ws", "pathPrefix": "/graph/", "target": "KNIRVGRAPH", "protocol": "unix-socket"},
-		{"name": "shell", "pathPrefix": "/api/shell/", "target": "KNIRVSERVER", "protocol": "unix-socket"},
-		{"name": "shell-v1", "pathPrefix": "/api/v1/shell/", "target": "KNIRVSERVER", "protocol": "unix-socket"},
-		{"name": "knirvshell", "pathPrefix": "/api/knirvshell/", "target": "KNIRVSERVER", "protocol": "unix-socket"},
-		{"name": "xion-rpc", "pathPrefix": "/xion/rpc/", "target": "XION", "protocol": "http"},
-		{"name": "xion-rest", "pathPrefix": "/xion/rest/", "target": "XION", "protocol": "http"},
-		{"name": "ipfs-api", "pathPrefix": "/ipfs/api/", "target": "IPFS", "protocol": "http"},
-		{"name": "ipfs-gw", "pathPrefix": "/ipfs/", "target": "IPFS", "protocol": "http"},
-		{"name": "text-embedder", "pathPrefix": "/text-embedder/", "target": "TextEmbedder", "protocol": "http"},
-		{"name": "hasher", "pathPrefix": "/api/knirvhasher/", "target": "KNIRVHASHER", "protocol": "http"},
-		{"name": "arena", "pathPrefix": "/arena/", "target": "KNIRVARENA", "protocol": "http"},
-		{"name": "agent-control", "pathPrefix": "/internal/agent-control/", "target": "KNIRVSERVER", "protocol": "http"},
-		{"name": "agent-api", "pathPrefix": "/api/agent/", "target": "KNIRVSERVER", "protocol": "http"},
-		{"name": "event-bundles-mint", "pathPrefix": "/api/v1/event-bundles/mint", "target": "KNIRVCHAIN", "protocol": "unix-socket"},
-		{"name": "event-bundles-get", "pathPrefix": "/api/v1/event-bundles/{event_id}", "target": "KNIRVCHAIN", "protocol": "unix-socket"},
-		{"name": "controller", "pathPrefix": "/controller", "target": "DynamicController", "protocol": "http"},
-	}
+	services := s.networkMonitorServices(r.Context())
+	routes := make([]map[string]interface{}, 0)
+	_ = s.router.Walk(func(route *mux.Route, _ *mux.Router, _ []*mux.Route) error {
+		path, err := route.GetPathTemplate()
+		if err != nil || !isMonitorableRoute(path) {
+			return nil
+		}
+		target, protocol, probe := monitorRouteTarget(path)
+		status, latency := "configured", int64(0)
+		if probe != "" {
+			if service, ok := services[probe]; ok {
+				status, _ = service["status"].(string)
+				latency, _ = service["responseTime"].(int64)
+			} else {
+				status = "unknown"
+			}
+		}
+		name := route.GetName()
+		if name == "" {
+			name = path
+		}
+		routes = append(routes, map[string]interface{}{"name": name, "pathPrefix": path, "target": target, "protocol": protocol, "status": status, "latencyMs": latency})
+		return nil
+	})
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
@@ -1785,6 +1787,31 @@ func (s *Server) handleNetworkMonitorRoutes(w http.ResponseWriter, r *http.Reque
 		"data":      routes,
 		"timestamp": time.Now().UTC().Format(time.RFC3339),
 	})
+}
+
+func isMonitorableRoute(path string) bool {
+	return strings.HasPrefix(path, "/api/") || strings.HasPrefix(path, "/oracle/") || strings.HasPrefix(path, "/chain/") || strings.HasPrefix(path, "/graph/") || strings.HasPrefix(path, "/ipfs/") || strings.HasPrefix(path, "/xion/") || strings.HasPrefix(path, "/controller") || strings.HasPrefix(path, "/text-embedder/")
+}
+
+func monitorRouteTarget(path string) (target, protocol, probe string) {
+	switch {
+	case strings.HasPrefix(path, "/api/chain/") || strings.HasPrefix(path, "/chain/") || strings.Contains(path, "event-bundles"):
+		return "KNIRVCHAIN", "unix-socket", "knirvchain"
+	case strings.HasPrefix(path, "/api/graph/") || strings.HasPrefix(path, "/graph/"):
+		return "KNIRVGRAPH", "unix-socket", "knirvgraph"
+	case strings.HasPrefix(path, "/xion/"):
+		return "XION", "http", "xion"
+	case strings.HasPrefix(path, "/ipfs/"):
+		return "IPFS", "http", "ipfs"
+	case strings.HasPrefix(path, "/text-embedder/"):
+		return "TextEmbedder", "http", "text-embedder"
+	case strings.HasPrefix(path, "/api/oracle/") || strings.HasPrefix(path, "/oracle/"):
+		return "KNIRVORACLE", "unix-socket", ""
+	case strings.HasPrefix(path, "/controller"):
+		return "DynamicController", "http", ""
+	default:
+		return "KNIRVSERVER", "unix-socket", "backend"
+	}
 }
 
 func (s *Server) networkMonitorServices(ctx context.Context) map[string]map[string]interface{} {

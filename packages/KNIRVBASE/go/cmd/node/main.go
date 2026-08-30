@@ -81,6 +81,26 @@ func main() {
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, map[string]any{"status": "ok", "network_id": *networkID, "flight_addr": *flightAddr})
 	})
+	// NetworkStats are deliberately JSON rather than Prometheus-only: the
+	// embedded KNIRVMONITOR needs the coherent peer/traffic snapshot, not a
+	// lossy reconstruction from counters.
+	mux.HandleFunc("/network/stats", func(w http.ResponseWriter, r *http.Request) {
+		stats := db.NetworkStats(*networkID)
+		if stats == nil {
+			http.Error(w, "network not found", http.StatusNotFound)
+			return
+		}
+		writeJSON(w, map[string]any{
+			"network_id":          stats.NetworkID,
+			"connected_peers":     stats.ConnectedPeers,
+			"total_peers":         stats.TotalPeers,
+			"collections_shared":  stats.CollectionsShared,
+			"operations_sent":     stats.OperationsSent,
+			"operations_received": stats.OperationsReceived,
+			"bytes_transferred":   stats.BytesTransferred,
+			"average_latency_ms":  stats.AverageLatency.Milliseconds(),
+		})
+	})
 	mux.Handle("/metrics", promhttp.Handler())
 	mux.HandleFunc("/append", instrumented(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "POST" {

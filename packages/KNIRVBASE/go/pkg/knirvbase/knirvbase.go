@@ -78,6 +78,15 @@ func (d *DB) LeaveNetwork(networkID string) error {
 	return d.db.LeaveNetwork(networkID)
 }
 
+// NetworkStats returns the current distributed-network transport counters.
+// A nil result means the requested network has not been joined/created.
+func (d *DB) NetworkStats(networkID string) *typ.NetworkStats {
+	if d.db == nil {
+		return nil
+	}
+	return d.db.NetworkStats(networkID)
+}
+
 func (d *DB) Collection(name string) Collection {
 	if d.db == nil {
 		panic("database not initialized")

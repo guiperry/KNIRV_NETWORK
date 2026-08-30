@@ -7,6 +7,9 @@
 #   SMTP_PASSWORD         — SMTP auth password for alerts@knirv.com
 #
 # Default values below are safe for local development.
+#
+# Prometheus must load root-alerts.yml from this directory; Alertmanager routes
+# the resulting KNIRVRootDown alert through the existing critical receiver.
 global:
   smtp_smarthost: 'localhost:587'
   smtp_from: 'alerts@knirv.com'

@@ -23,7 +23,6 @@ import (
 const (
 	DefaultChunkSize        = 1000
 	DefaultProgressInterval = 5 * time.Second
-	DefaultReadTimeout      = 30 * time.Second
 	MaxRetries              = 3
 )
 
@@ -76,7 +75,6 @@ type DataIngestor struct {
 	// Configuration
 	chunkSize        int
 	progressInterval time.Duration
-	readTimeout      time.Duration
 
 	// File list cache
 	filesCache     []string
@@ -203,7 +201,6 @@ func NewDataIngestor(basePath string) *DataIngestor {
 		logger:           &defaultLogger{},
 		chunkSize:        DefaultChunkSize,
 		progressInterval: DefaultProgressInterval,
-		readTimeout:      DefaultReadTimeout,
 		lastProgress:     time.Now(),
 		currentStats:     &IngestionStats{},
 		filesCache:       nil,
@@ -356,15 +353,10 @@ func (di *DataIngestor) GetTotalRecords() (int64, error) {
 func (di *DataIngestor) countRecordsInFile(filePath string) (int64, error) {
 	ext := strings.ToLower(filepath.Ext(filePath))
 	if ext == ".json" {
-		data, err := os.ReadFile(filePath)
-		if err != nil {
-			return 0, err
-		}
-		var records []interface{}
-		if err := json.Unmarshal(data, &records); err != nil {
-			return 0, err
-		}
-		return int64(len(records)), nil
+		// JSON frames are streamed during ingestion. Decoding a large frame file
+		// here solely to populate a progress estimate doubles startup I/O and CPU.
+		// Return an unknown total instead; progress remains available by file.
+		return 0, nil
 	} else if ext == ".arrow" {
 		file, err := os.Open(filePath)
 		if err != nil {
@@ -409,39 +401,18 @@ func (di *DataIngestor) ReadTrainingRecords(filePath string) ([]*training.Traini
 	}
 	di.logger.Debug("File size: %d bytes (%s)", fileInfo.Size(), formatBytes(fileInfo.Size()))
 
-	// Use timeout context
-	ctx, cancel := context.WithTimeout(di.ctx, di.readTimeout)
-	defer cancel()
-
-	done := make(chan struct {
-		records []*training.TrainingRecord
-		err     error
-	}, 1)
-
-	go func() {
-		var records []*training.TrainingRecord
-		var err error
-
-		if strings.HasSuffix(strings.ToLower(filePath), ".json") {
-			records, err = di.readJSONFile(filePath)
-		} else if strings.HasSuffix(strings.ToLower(filePath), ".arrow") {
-			records, err = di.readArrowFile(filePath)
-		} else {
-			records, err = di.readParquetFile(filePath)
-		}
-
-		done <- struct {
-			records []*training.TrainingRecord
-			err     error
-		}{records, err}
-	}()
-
-	select {
-	case result := <-done:
-		return result.records, result.err
-	case <-ctx.Done():
-		return nil, fmt.Errorf("timeout reading file %s after %v", filePath, di.readTimeout)
+	// Local regular-file reads cannot be cancelled by context. The former
+	// goroutine/time-limit wrapper returned after 30 seconds but left the read
+	// running, rejecting valid large training sets and leaking work. Read
+	// synchronously and let decoder errors (or explicit cancellation below) be
+	// the authoritative failure signal.
+	if strings.HasSuffix(strings.ToLower(filePath), ".json") {
+		return di.readJSONFile(filePath)
 	}
+	if strings.HasSuffix(strings.ToLower(filePath), ".arrow") {
+		return di.readArrowFile(filePath)
+	}
+	return di.readParquetFile(filePath)
 }
 
 func formatBytes(bytes int64) string {
@@ -464,18 +435,33 @@ func (di *DataIngestor) readJSONFile(filePath string) ([]*training.TrainingRecor
 	}
 	defer file.Close()
 
-	var jsonRecords []JSONTrainingRecord
 	decoder := json.NewDecoder(file)
-	if err := decoder.Decode(&jsonRecords); err != nil {
-		return nil, fmt.Errorf("failed to parse JSON: %w", err)
+	start, err := decoder.Token()
+	if err != nil {
+		return nil, fmt.Errorf("failed to read JSON array: %w", err)
+	}
+	if delimiter, ok := start.(json.Delim); !ok || delimiter != '[' {
+		return nil, fmt.Errorf("failed to parse JSON: expected an array of training records")
 	}
 
-	di.logger.Info("Successfully loaded %d JSON records from %s", len(jsonRecords), filepath.Base(filePath))
-
-	// Convert JSON records to training records
-	var records []*training.TrainingRecord
+	// Decode and convert each record as it is read. This keeps memory bounded by
+	// the useful records and lets large frame files ingest without a second full
+	// in-memory representation.
+	records := make([]*training.TrainingRecord, 0)
 	fileName := filepath.Base(filePath)
-	for _, jsonRec := range jsonRecords {
+	loaded := 0
+	for decoder.More() {
+		select {
+		case <-di.ctx.Done():
+			return nil, di.ctx.Err()
+		default:
+		}
+
+		var jsonRec JSONTrainingRecord
+		if err := decoder.Decode(&jsonRec); err != nil {
+			return nil, fmt.Errorf("failed to parse JSON record %d: %w", loaded+1, err)
+		}
+		loaded++
 		// Override record's internal source file with the actual filename on disk
 		jsonRec.SourceFile = fileName
 		record := di.convertJSONRecord(&jsonRec)
@@ -483,7 +469,11 @@ func (di *DataIngestor) readJSONFile(filePath string) ([]*training.TrainingRecor
 			records = append(records, record)
 		}
 	}
+	if _, err := decoder.Token(); err != nil {
+		return nil, fmt.Errorf("failed to finish JSON array: %w", err)
+	}
 
+	di.logger.Info("Successfully loaded %d JSON records from %s", loaded, filepath.Base(filePath))
 	di.logger.Info("Successfully converted %d JSON records to training format", len(records))
 	return records, nil
 }

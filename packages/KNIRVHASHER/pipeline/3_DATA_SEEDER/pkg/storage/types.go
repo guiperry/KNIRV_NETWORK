@@ -46,123 +46,98 @@ type JSONTrainingRecord struct {
 	BestSeed []byte
 }
 
+// jsonTrainingRecordWire accepts both the current snake_case encoder output
+// and the historical PascalCase representation without decoding every object
+// through map[string]interface{}.
+type jsonTrainingRecordWire struct {
+	SchemaVersion       int32   `json:"schema_version"`
+	LegacySchemaVersion int32   `json:"SchemaVersion"`
+	SourceFile          string  `json:"source_file"`
+	LegacySourceFile    string  `json:"SourceFile"`
+	ChunkID             int32   `json:"chunk_id"`
+	LegacyChunkID       int32   `json:"ChunkID"`
+	WindowStart         int32   `json:"window_start"`
+	LegacyWindowStart   int32   `json:"WindowStart"`
+	WindowEnd           int32   `json:"window_end"`
+	LegacyWindowEnd     int32   `json:"WindowEnd"`
+	ContextLength       int32   `json:"context_length"`
+	LegacyContextLength int32   `json:"ContextLength"`
+	FeatureVector       []int32 `json:"feature_vector"`
+	AsicSlots0          int32   `json:"asic_slot_0"`
+	AsicSlots1          int32   `json:"asic_slot_1"`
+	AsicSlots2          int32   `json:"asic_slot_2"`
+	AsicSlots3          int32   `json:"asic_slot_3"`
+	AsicSlots4          int32   `json:"asic_slot_4"`
+	AsicSlots5          int32   `json:"asic_slot_5"`
+	AsicSlots6          int32   `json:"asic_slot_6"`
+	AsicSlots7          int32   `json:"asic_slot_7"`
+	AsicSlots8          int32   `json:"asic_slot_8"`
+	AsicSlots9          int32   `json:"asic_slot_9"`
+	AsicSlots10         int32   `json:"asic_slot_10"`
+	AsicSlots11         int32   `json:"asic_slot_11"`
+	LegacyAsicSlots0    int32   `json:"AsicSlots0"`
+	LegacyAsicSlots1    int32   `json:"AsicSlots1"`
+	LegacyAsicSlots2    int32   `json:"AsicSlots2"`
+	LegacyAsicSlots3    int32   `json:"AsicSlots3"`
+	LegacyAsicSlots4    int32   `json:"AsicSlots4"`
+	LegacyAsicSlots5    int32   `json:"AsicSlots5"`
+	LegacyAsicSlots6    int32   `json:"AsicSlots6"`
+	LegacyAsicSlots7    int32   `json:"AsicSlots7"`
+	LegacyAsicSlots8    int32   `json:"AsicSlots8"`
+	LegacyAsicSlots9    int32   `json:"AsicSlots9"`
+	LegacyAsicSlots10   int32   `json:"AsicSlots10"`
+	LegacyAsicSlots11   int32   `json:"AsicSlots11"`
+	TargetToken         int32   `json:"target_token"`
+	TargetTokenID       int32   `json:"target_token_id"`
+	LegacyTargetTokenID int32   `json:"TargetTokenID"`
+	TokenSequence       []int32 `json:"token_sequence"`
+	LegacyTokenSequence []int32 `json:"TokenSequence"`
+	AssertionSpan       []int32 `json:"assertion_span"`
+	LegacyAssertionSpan []int32 `json:"AssertionSpan"`
+	BestSeed            string  `json:"best_seed"`
+	LegacyBestSeed      string  `json:"BestSeed"`
+}
+
 func (jtr *JSONTrainingRecord) UnmarshalJSON(data []byte) error {
-	var aux map[string]interface{}
-	if err := json.Unmarshal(data, &aux); err != nil {
+	var wire jsonTrainingRecordWire
+	if err := json.Unmarshal(data, &wire); err != nil {
 		return err
 	}
-
-	// Helper to get string
-	getString := func(keys ...string) string {
-		for _, k := range keys {
-			if v, ok := aux[k]; ok {
-				if s, ok := v.(string); ok {
-					return s
-				}
-			}
+	chooseInt := func(current, legacy int32) int32 {
+		if current != 0 {
+			return current
 		}
-		return ""
+		return legacy
 	}
-
-	// Helper to get int32
-	getInt32 := func(keys ...string) int32 {
-		for _, k := range keys {
-			if v, ok := aux[k]; ok {
-				switch val := v.(type) {
-				case float64:
-					return int32(val)
-				case int:
-					return int32(val)
-				}
-			}
+	chooseString := func(current, legacy string) string {
+		if current != "" {
+			return current
 		}
-		return 0
+		return legacy
 	}
-
-	// Helper to get byte slice (string base64 or raw string)
-	getBytes := func(keys ...string) []byte {
-		for _, k := range keys {
-			if v, ok := aux[k]; ok {
-				if s, ok := v.(string); ok {
-					return []byte(s)
-				}
-			}
+	chooseSlice := func(current, legacy []int32) []int32 {
+		if len(current) > 0 {
+			return current
 		}
-		return nil
+		return legacy
 	}
-
-	jtr.SourceFile = getString("source_file", "SourceFile")
-	jtr.SchemaVersion = getInt32("schema_version", "SchemaVersion")
-	jtr.ChunkID = getInt32("chunk_id", "ChunkID")
-	jtr.WindowStart = getInt32("window_start", "WindowStart")
-	jtr.WindowEnd = getInt32("window_end", "WindowEnd")
-	jtr.ContextLength = getInt32("context_length", "ContextLength")
-
-	// Try "feature_vector" array first
-	if fv, ok := aux["feature_vector"].([]interface{}); ok && len(fv) >= 12 {
-		jtr.AsicSlots0 = int32(fv[0].(float64))
-		jtr.AsicSlots1 = int32(fv[1].(float64))
-		jtr.AsicSlots2 = int32(fv[2].(float64))
-		jtr.AsicSlots3 = int32(fv[3].(float64))
-		jtr.AsicSlots4 = int32(fv[4].(float64))
-		jtr.AsicSlots5 = int32(fv[5].(float64))
-		jtr.AsicSlots6 = int32(fv[6].(float64))
-		jtr.AsicSlots7 = int32(fv[7].(float64))
-		jtr.AsicSlots8 = int32(fv[8].(float64))
-		jtr.AsicSlots9 = int32(fv[9].(float64))
-		jtr.AsicSlots10 = int32(fv[10].(float64))
-		jtr.AsicSlots11 = int32(fv[11].(float64))
-	} else {
-		// Fallback to individual slots
-		jtr.AsicSlots0 = getInt32("asic_slot_0", "AsicSlots0")
-		jtr.AsicSlots1 = getInt32("asic_slot_1", "AsicSlots1")
-		jtr.AsicSlots2 = getInt32("asic_slot_2", "AsicSlots2")
-		jtr.AsicSlots3 = getInt32("asic_slot_3", "AsicSlots3")
-		jtr.AsicSlots4 = getInt32("asic_slot_4", "AsicSlots4")
-		jtr.AsicSlots5 = getInt32("asic_slot_5", "AsicSlots5")
-		jtr.AsicSlots6 = getInt32("asic_slot_6", "AsicSlots6")
-		jtr.AsicSlots7 = getInt32("asic_slot_7", "AsicSlots7")
-		jtr.AsicSlots8 = getInt32("asic_slot_8", "AsicSlots8")
-		jtr.AsicSlots9 = getInt32("asic_slot_9", "AsicSlots9")
-		jtr.AsicSlots10 = getInt32("asic_slot_10", "AsicSlots10")
-		jtr.AsicSlots11 = getInt32("asic_slot_11", "AsicSlots11")
+	jtr.SchemaVersion = chooseInt(wire.SchemaVersion, wire.LegacySchemaVersion)
+	jtr.SourceFile = chooseString(wire.SourceFile, wire.LegacySourceFile)
+	jtr.ChunkID, jtr.WindowStart = chooseInt(wire.ChunkID, wire.LegacyChunkID), chooseInt(wire.WindowStart, wire.LegacyWindowStart)
+	jtr.WindowEnd, jtr.ContextLength = chooseInt(wire.WindowEnd, wire.LegacyWindowEnd), chooseInt(wire.ContextLength, wire.LegacyContextLength)
+	slots := [12]int32{wire.AsicSlots0, wire.AsicSlots1, wire.AsicSlots2, wire.AsicSlots3, wire.AsicSlots4, wire.AsicSlots5, wire.AsicSlots6, wire.AsicSlots7, wire.AsicSlots8, wire.AsicSlots9, wire.AsicSlots10, wire.AsicSlots11}
+	if slots == [12]int32{} {
+		slots = [12]int32{wire.LegacyAsicSlots0, wire.LegacyAsicSlots1, wire.LegacyAsicSlots2, wire.LegacyAsicSlots3, wire.LegacyAsicSlots4, wire.LegacyAsicSlots5, wire.LegacyAsicSlots6, wire.LegacyAsicSlots7, wire.LegacyAsicSlots8, wire.LegacyAsicSlots9, wire.LegacyAsicSlots10, wire.LegacyAsicSlots11}
 	}
-
-	jtr.TargetTokenID = getInt32("target_token", "target_token_id", "TargetTokenID")
-	jtr.BestSeed = getBytes("best_seed", "BestSeed")
-
-	// Unmarshal TokenSequence
-	if ts, ok := aux["token_sequence"].([]interface{}); ok {
-		jtr.TokenSequence = make([]int32, len(ts))
-		for i, v := range ts {
-			if f, ok := v.(float64); ok {
-				jtr.TokenSequence[i] = int32(f)
-			}
-		}
-	} else if ts, ok := aux["TokenSequence"].([]interface{}); ok {
-		jtr.TokenSequence = make([]int32, len(ts))
-		for i, v := range ts {
-			if f, ok := v.(float64); ok {
-				jtr.TokenSequence[i] = int32(f)
-			}
-		}
+	if len(wire.FeatureVector) >= len(slots) {
+		copy(slots[:], wire.FeatureVector)
 	}
-	if ts, ok := aux["assertion_span"].([]interface{}); ok {
-		jtr.AssertionSpan = make([]int32, len(ts))
-		for i, v := range ts {
-			if f, ok := v.(float64); ok {
-				jtr.AssertionSpan[i] = int32(f)
-			}
-		}
-	} else if ts, ok := aux["AssertionSpan"].([]interface{}); ok {
-		jtr.AssertionSpan = make([]int32, len(ts))
-		for i, v := range ts {
-			if f, ok := v.(float64); ok {
-				jtr.AssertionSpan[i] = int32(f)
-			}
-		}
-	}
-
+	jtr.AsicSlots0, jtr.AsicSlots1, jtr.AsicSlots2, jtr.AsicSlots3 = slots[0], slots[1], slots[2], slots[3]
+	jtr.AsicSlots4, jtr.AsicSlots5, jtr.AsicSlots6, jtr.AsicSlots7 = slots[4], slots[5], slots[6], slots[7]
+	jtr.AsicSlots8, jtr.AsicSlots9, jtr.AsicSlots10, jtr.AsicSlots11 = slots[8], slots[9], slots[10], slots[11]
+	jtr.TargetTokenID = chooseInt(wire.TargetToken, chooseInt(wire.TargetTokenID, wire.LegacyTargetTokenID))
+	jtr.TokenSequence, jtr.AssertionSpan = chooseSlice(wire.TokenSequence, wire.LegacyTokenSequence), chooseSlice(wire.AssertionSpan, wire.LegacyAssertionSpan)
+	jtr.BestSeed = []byte(chooseString(wire.BestSeed, wire.LegacyBestSeed))
 	return nil
 }
 

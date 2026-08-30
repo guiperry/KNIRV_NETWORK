@@ -15,6 +15,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"knirv-server/internal/monitor/aggregator"
 	"knirv-server/internal/monitor/probes"
@@ -52,6 +53,9 @@ func NewServer(cfg *ServerConfig) *Server {
 	if cfg.KNIRVOracleURL != "" {
 		srv.probes.Register(probes.NewKNIRVOracleProbe(cfg.KNIRVOracleURL))
 	}
+	if strings.TrimSpace(cfg.RegistryURL) != "" {
+		srv.registry.RootStatus.Set(0)
+	}
 	// KNIRVGATEWAY is intentionally NOT registered as a generic Prometheus
 	// probe here: /api/network-monitor/routes returns JSON, not Prometheus
 	// exposition text, so the generic line-oriented scraper in probes.go
@@ -83,6 +87,7 @@ func (s *Server) Start(ctx context.Context) error {
 	mux.HandleFunc("/health", s.handleHealthz)
 	mux.HandleFunc("/readyz", s.handleReadyz)
 	mux.Handle("/metrics", promhttp.HandlerFor(s.registry.Registry, promhttp.HandlerOpts{}))
+	mux.HandleFunc("/api/v1/monitor/root-failover", s.handleRootFailover)
 	mux.HandleFunc("/api/v1/status", s.handleStatus)
 	mux.HandleFunc("/api/v1/actuarial/metrics", s.handleActuarialMetrics)
 	mux.HandleFunc("/api/v1/knirvbase/metrics", s.handleKNIRVBaseMetrics)
@@ -90,6 +95,7 @@ func (s *Server) Start(ctx context.Context) error {
 	mux.HandleFunc("/api/v1/knirvchain/metrics", s.handleKNIRVChainMetrics)
 	mux.HandleFunc("/api/v1/knirvchain/health", s.handleKNIRVChainHealth)
 	mux.HandleFunc("/api/v1/network/interfaces", s.handleNetworkInterfaces)
+	mux.HandleFunc("/api/v1/network/stats", s.handleNetworkStats)
 	mux.HandleFunc("/api/v1/knirvgraph/scalability", s.handleKNIRVGraphScalability)
 	mux.HandleFunc("/api/v1/knirvgraph/embeddings", s.handleKNIRVGraphEmbeddings)
 	mux.HandleFunc("/api/v1/knirvgraph/health", s.handleKNIRVGraphHealth)
@@ -145,7 +151,59 @@ func (s *Server) Start(ctx context.Context) error {
 		defer cancel()
 		_ = s.Shutdown(shutdownCtx)
 	}()
+	if strings.TrimSpace(s.config.RegistryURL) != "" {
+		go s.pollRegistryRoot(ctx)
+	}
 	return nil
+}
+
+func (s *Server) pollRegistryRoot(ctx context.Context) {
+	interval := s.config.ScrapeInterval
+	if interval <= 0 {
+		interval = 30 * time.Second
+	}
+	client := &http.Client{Timeout: s.config.RequestTimeout}
+	if client.Timeout <= 0 {
+		client.Timeout = 5 * time.Second
+	}
+	poll := func() {
+		url := strings.TrimRight(s.config.RegistryURL, "/")
+		if !strings.Contains(url, "/state/") {
+			url += "/state/knirvoracle-1"
+		}
+		resp, err := client.Get(url)
+		if err != nil {
+			s.registry.RootStatus.Set(0)
+			s.registry.ScrapeErrors.Inc()
+			return
+		}
+		defer resp.Body.Close()
+		var state struct {
+			Phase         string `json:"phase"`
+			CurrentRootID string `json:"currentRootID"`
+		}
+		if resp.StatusCode != http.StatusOK || json.NewDecoder(io.LimitReader(resp.Body, 1<<20)).Decode(&state) != nil || strings.TrimSpace(state.CurrentRootID) == "" {
+			s.registry.RootStatus.Set(0)
+			return
+		}
+		switch state.Phase {
+		case "NORMAL", "CONFIRMED", "RECLAIMED":
+			s.registry.RootStatus.Set(1)
+		default:
+			s.registry.RootStatus.Set(0)
+		}
+	}
+	poll()
+	ticker := time.NewTicker(interval)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			poll()
+		}
+	}
 }
 
 // Shutdown stops the private listener and removes only its configured socket.
@@ -220,6 +278,66 @@ func (s *Server) handleStatus(w http.ResponseWriter, r *http.Request) {
 		Data:      data,
 		Timestamp: time.Now().UTC().Format(time.RFC3339),
 	})
+}
+
+// handleRootFailover provides the dashboard with a single server-proxied view
+// of registry state and the current consensus round. The browser never talks
+// to the registry directly, preserving deployment topology and future auth.
+func (s *Server) handleRootFailover(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		w.Header().Set("Allow", http.MethodGet)
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	registryURL := strings.TrimRight(strings.TrimSpace(s.config.RegistryURL), "/")
+	if registryURL == "" {
+		http.Error(w, "registry URL is not configured", http.StatusServiceUnavailable)
+		return
+	}
+	client := &http.Client{Timeout: s.config.RequestTimeout}
+	if client.Timeout <= 0 {
+		client.Timeout = 5 * time.Second
+	}
+	stateURL := registryURL
+	if !strings.Contains(stateURL, "/state/") {
+		stateURL += "/state/knirvoracle-1"
+	}
+	resp, err := client.Get(stateURL)
+	if err != nil {
+		http.Error(w, "registry state unavailable", http.StatusBadGateway)
+		return
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		http.Error(w, "registry state unavailable", http.StatusBadGateway)
+		return
+	}
+	var state struct {
+		ChainID        string `json:"chainID"`
+		Phase          string `json:"phase"`
+		CurrentRootID  string `json:"currentRootID"`
+		Since          int64  `json:"since"`
+		Round          uint64 `json:"round"`
+		PreviousRootID string `json:"previousRootID"`
+	}
+	if err := json.NewDecoder(io.LimitReader(resp.Body, 1<<20)).Decode(&state); err != nil {
+		http.Error(w, "invalid registry state", http.StatusBadGateway)
+		return
+	}
+	consensusURL := strings.TrimSuffix(stateURL, "/state/knirvoracle-1") + "/consensus/knirvoracle-1/" + fmt.Sprint(state.Round)
+	var consensus any
+	if consensusResp, err := client.Get(consensusURL); err == nil {
+		defer consensusResp.Body.Close()
+		if consensusResp.StatusCode == http.StatusOK {
+			_ = json.NewDecoder(io.LimitReader(consensusResp.Body, 1<<20)).Decode(&consensus)
+		}
+	}
+	rootStatus := 0
+	if state.CurrentRootID != "" && (state.Phase == "NORMAL" || state.Phase == "CONFIRMED" || state.Phase == "RECLAIMED") {
+		rootStatus = 1
+	}
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(map[string]any{"chainID": state.ChainID, "phase": state.Phase, "currentRootID": state.CurrentRootID, "previousRootID": state.PreviousRootID, "since": state.Since, "round": state.Round, "rootStatus": rootStatus, "consensus": consensus})
 }
 
 // handleOnboardingApplications and handleOnboardingUsers proxy to
@@ -325,7 +443,26 @@ func (s *Server) fetchGatewayRoutes() ([]GatewayRoute, error) {
 
 	reqURL := strings.TrimRight(s.config.GatewayURL, "/") + "/api/network-monitor/routes"
 	client := &http.Client{Timeout: s.requestTimeout()}
-	resp, err := client.Get(reqURL)
+	req, err := http.NewRequest(http.MethodGet, reqURL, nil)
+	if err != nil {
+		return nil, fmt.Errorf("build gateway routes request: %w", err)
+	}
+	// The gateway performs its own admin authorization.  This in-process
+	// monitor uses a short-lived service JWT, signed with the same secret the
+	// gateway validates, instead of leaving the route inventory public.
+	secret := strings.TrimSpace(os.Getenv("KNIRV_JWT_SECRET"))
+	if secret == "" {
+		return nil, fmt.Errorf("KNIRV_JWT_SECRET is required to fetch gateway routes")
+	}
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"role": "admin", "sub": "knirvmonitor", "exp": time.Now().Add(time.Minute).Unix(),
+	})
+	signed, err := token.SignedString([]byte(secret))
+	if err != nil {
+		return nil, fmt.Errorf("sign gateway monitor token: %w", err)
+	}
+	req.Header.Set("Authorization", "Bearer "+signed)
+	resp, err := client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("fetch %s: %w", reqURL, err)
 	}
@@ -342,6 +479,8 @@ func (s *Server) fetchGatewayRoutes() ([]GatewayRoute, error) {
 			PathPrefix string `json:"pathPrefix"`
 			Target     string `json:"target"`
 			Protocol   string `json:"protocol"`
+			Status     string `json:"status"`
+			LatencyMs  int64  `json:"latencyMs"`
 		} `json:"data"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&envelope); err != nil {
@@ -355,8 +494,8 @@ func (s *Server) fetchGatewayRoutes() ([]GatewayRoute, error) {
 			PathPrefix: r.PathPrefix,
 			Target:     r.Target,
 			Protocol:   r.Protocol,
-			Status:     "configured",
-			LatencyMs:  0,
+			Status:     r.Status,
+			LatencyMs:  r.LatencyMs,
 		})
 	}
 	return routes, nil
@@ -560,6 +699,39 @@ func (s *Server) handleNetworkInterfaces(w http.ResponseWriter, r *http.Request)
 		Data:      map[string]interface{}{"interfaces": []interface{}{}, "message": "NetworkMetrics implementation pending — interfaces are type-only in KNIRVCHAIN"},
 		Timestamp: time.Now().UTC().Format(time.RFC3339),
 	})
+}
+
+// handleNetworkStats forwards KNIRVBASE's authoritative network snapshot.
+// It intentionally does not manufacture zero-valued counters: an unavailable
+// KNIRVBASE must be visible to operators as an unavailable dependency.
+func (s *Server) handleNetworkStats(w http.ResponseWriter, r *http.Request) {
+	baseURL := strings.TrimRight(strings.TrimSpace(s.config.KNIRVBaseURL), "/")
+	if baseURL == "" {
+		writeMonitorError(w, http.StatusServiceUnavailable, "KNIRVBASE network stats endpoint is not configured")
+		return
+	}
+	req, err := http.NewRequestWithContext(r.Context(), http.MethodGet, baseURL+"/network/stats", nil)
+	if err != nil {
+		writeMonitorError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	resp, err := (&http.Client{Timeout: s.requestTimeout()}).Do(req)
+	if err != nil {
+		writeMonitorError(w, http.StatusBadGateway, fmt.Sprintf("fetch KNIRVBASE network stats: %v", err))
+		return
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		writeMonitorError(w, http.StatusBadGateway, fmt.Sprintf("KNIRVBASE network stats returned status %d", resp.StatusCode))
+		return
+	}
+	var stats map[string]interface{}
+	if err := json.NewDecoder(io.LimitReader(resp.Body, 1<<20)).Decode(&stats); err != nil {
+		writeMonitorError(w, http.StatusBadGateway, fmt.Sprintf("decode KNIRVBASE network stats: %v", err))
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(MetricsResponse{Success: true, Data: map[string]interface{}{"stats": stats}, Timestamp: time.Now().UTC().Format(time.RFC3339)})
 }
 
 func (s *Server) handleKNIRVGraphScalability(w http.ResponseWriter, r *http.Request) {

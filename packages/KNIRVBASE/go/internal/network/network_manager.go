@@ -384,13 +384,18 @@ func (n *NetworkManager) OnMessage(mt types.MessageType, handler MessageHandler)
 }
 
 func (n *NetworkManager) GetNetworkStats(networkID string) *types.NetworkStats {
-	n.mu.RLock()
-	defer n.mu.RUnlock()
+	n.mu.Lock()
+	defer n.mu.Unlock()
 	st := n.stats[networkID]
-	if st != nil {
-		st.ConnectedPeers = len(n.connections)
+	if st == nil {
+		return nil
 	}
-	return st
+	// Do not return the mutable internal counter object. HTTP monitoring reads
+	// concurrently with replication and must never race a sender updating it.
+	snapshot := *st
+	snapshot.ConnectedPeers = len(n.connections)
+	snapshot.TotalPeers = len(n.peers)
+	return &snapshot
 }
 
 func (n *NetworkManager) GetNetworks() []*types.NetworkConfig {

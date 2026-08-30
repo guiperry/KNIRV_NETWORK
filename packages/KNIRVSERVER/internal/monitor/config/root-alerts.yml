@@ -1,0 +1,12 @@
+groups:
+  - name: knirv-root-failover
+    rules:
+      - alert: KNIRVRootDown
+        expr: knirv_root_status == 0
+        for: 2m
+        labels:
+          severity: critical
+          service: knirv-root
+        annotations:
+          summary: KNIRV registry reports no confirmed root
+          description: The root is unavailable or the registry is in a failover phase. Inspect registry state and validator heartbeats.

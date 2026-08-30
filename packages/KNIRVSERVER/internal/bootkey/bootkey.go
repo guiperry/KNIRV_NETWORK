@@ -27,6 +27,7 @@ type Content struct {
 	DevicePassword               string // field 23
 	DeviceUsername               string // field 24
 	CloudflareTestnetTunnelToken string // field 28
+	CloudflareOracleTunnelToken  string // field 29; bootnode continuity credential
 	MasterWalletKeyHex           string // field 1 — master wallet key; used as the Validation Chain checkpoint signer identity on Bootnodes that have no root.key (see startValidationChain in main.go)
 }
 
@@ -331,6 +332,7 @@ func decrypt(path string, password []byte) (*Content, error) {
 		DevicePassword:               fields[23],
 		DeviceUsername:               fields[24],
 		CloudflareTestnetTunnelToken: fields[28],
+		CloudflareOracleTunnelToken:  fields[29],
 		MasterWalletKeyHex:           fields[1],
 	}, nil
 }

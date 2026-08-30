@@ -185,6 +185,38 @@ export class RegistryStore extends DurableObject {
     return Object.fromEntries([...entries].map(([key, value]) => [key.slice(`heartbeat:${chainID}:`.length), value]));
   }
 
+  // consensus is read-only: it turns the already signature-verified
+  // heartbeats and votes into a deterministic decision.  No Worker endpoint
+  // can promote a node merely because it can reach the Durable Object.
+  async consensus(chainID, round, env) {
+    const validators = await getValidators(this, chainID);
+    const active = (validators?.validators || []).filter(v => v.active);
+    const now = Date.now();
+    const ttlMs = positiveInt(env.HEARTBEAT_TTL_SECONDS, HEARTBEAT_TTL_MS / 1000) * 1000;
+    const heartbeats = await this.heartbeats(chainID);
+    const missing = [];
+    const healthy = [];
+    const unhealthy = [];
+    for (const validator of active) {
+      const heartbeat = heartbeats[validator.validatorID];
+      if (!heartbeat || now - heartbeat.lastSeen > ttlMs) { missing.push(validator.validatorID); continue; }
+      (heartbeat.rootObservedHealthy ? healthy : unhealthy).push(validator.validatorID);
+    }
+    const rootDown = active.length > 0 && missing.length === 0 && healthy.length === 0;
+    const votes = Number.isInteger(round) && round > 0 ? await this.votes(chainID, round) : {};
+    const count = new Map();
+    for (const id of active.map(v => v.validatorID)) {
+      const vote = votes[id];
+      if (vote?.candidateID) count.set(vote.candidateID, (count.get(vote.candidateID) || 0) + 1);
+    }
+    const ranked = [...count.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+    // All active validators participate. A tie is intentionally unresolved so
+    // the orchestrator can use its signed 50/25/25 score fallback and submit a
+    // new round rather than selecting arbitrarily at the registry layer.
+    const winner = ranked.length && ranked[0][1] === active.length && (ranked.length === 1 || ranked[0][1] > ranked[1][1]) ? ranked[0][0] : null;
+    return { chainID, round: round || 0, activeValidators: active.map(v => v.validatorID), rootDown, missing, healthy, unhealthy, votes: Object.keys(votes).length, winner };
+  }
+
   async vote(payload, env) {
     const chainID = typeof payload?.chainID === "string" ? payload.chainID.trim() : "";
     const round = typeof payload?.round === "number" ? payload.round : 0;
@@ -342,6 +374,13 @@ export default {
     if (path.startsWith("/heartbeats/") && request.method === "GET") {
       const chainID = decodeURIComponent(path.slice(12));
       return json(await store.heartbeats(chainID));
+    }
+    if (path.startsWith("/consensus/") && request.method === "GET") {
+      const parts = path.slice(11).split("/");
+      if (parts.length > 2 || !parts[0]) return json({ error: "Usage: GET /consensus/:chainID/:round" }, 400);
+      const round = parts[1] === undefined ? 0 : Number.parseInt(parts[1], 10);
+      if (!Number.isInteger(round) || round < 0) return json({ error: "round must be a non-negative integer" }, 400);
+      return json(await store.consensus(decodeURIComponent(parts[0]), round, env));
     }
     if (path === "/vote" && request.method === "POST") {
       let payload;

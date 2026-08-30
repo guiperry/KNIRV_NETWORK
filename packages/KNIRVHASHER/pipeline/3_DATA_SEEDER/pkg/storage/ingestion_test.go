@@ -135,3 +135,37 @@ func TestConvertJSONRecordPreservesAssertionSpan(t *testing.T) {
 		t.Fatalf("assertion span = %#v, want [7 8 9]", record.AssertionSpan)
 	}
 }
+
+func TestJSONTrainingRecordUnmarshalSupportsCurrentAndLegacyFormats(t *testing.T) {
+	tests := []struct {
+		name string
+		data string
+	}{
+		{
+			name: "current snake case",
+			data: `{"source_file":"current","target_token_id":17,"feature_vector":[1,2,3,4,5,6,7,8,9,10,11,12],"token_sequence":[4,5]}`,
+		},
+		{
+			name: "legacy PascalCase",
+			data: `{"SourceFile":"legacy","TargetTokenID":18,"AsicSlots0":1,"AsicSlots1":2,"AsicSlots2":3,"AsicSlots3":4,"AsicSlots4":5,"AsicSlots5":6,"AsicSlots6":7,"AsicSlots7":8,"AsicSlots8":9,"AsicSlots9":10,"AsicSlots10":11,"AsicSlots11":12,"TokenSequence":[6,7]}`,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var record JSONTrainingRecord
+			if err := json.Unmarshal([]byte(tt.data), &record); err != nil {
+				t.Fatalf("UnmarshalJSON() error = %v", err)
+			}
+			if record.SourceFile == "" || record.TargetTokenID == 0 {
+				t.Fatalf("decoded incomplete record: %#v", record)
+			}
+			if got := record.GetAsicSlots(); got[0] != 1 || got[11] != 12 {
+				t.Fatalf("ASIC slots = %#v, want [1 ... 12]", got)
+			}
+			if len(record.TokenSequence) != 2 {
+				t.Fatalf("token sequence = %#v, want two entries", record.TokenSequence)
+			}
+		})
+	}
+}

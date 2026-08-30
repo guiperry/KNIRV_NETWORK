@@ -1107,6 +1107,7 @@ var monitorAPIPrefixes = []string{
 // monitorAPIExactPaths are single, non-prefixed monitor-owned paths.
 var monitorAPIExactPaths = map[string]bool{
 	"/api/v1/network/interfaces": true,
+	"/api/v1/network/stats":      true,
 }
 
 func isMonitorAPIPath(path string) bool {
@@ -2996,6 +2997,7 @@ func (app *ServerApp) startMonitor(ctx context.Context) error {
 	cfg := &monitor.Config{
 		SocketPath:        filepath.Join(filepath.Dir(app.config.BackendSocket), "monitor.sock"),
 		GatewayURL:        gatewayBaseURL(app.config),
+		RegistryURL:       strings.TrimSpace(os.Getenv("KNIRV_REGISTRY_URL")),
 		BackendSocketPath: app.config.BackendSocket,
 		KNIRVBaseURL:      strings.TrimSpace(os.Getenv("KNIRV_MONITOR_KNIRVBASE_URL")),
 		KNIRVChainURL:     strings.TrimSpace(os.Getenv("KNIRV_MONITOR_KNIRVCHAIN_URL")),
@@ -3423,6 +3425,9 @@ func (app *ServerApp) startBackend() error {
 			}
 			if bootContent.CloudflareTestnetTunnelToken != "" {
 				env = append(env, "CLOUDFLARE_TESTNET_TUNNEL_TOKEN="+bootContent.CloudflareTestnetTunnelToken)
+			}
+			if bootContent.CloudflareOracleTunnelToken != "" {
+				env = append(env, "CLOUDFLARE_ORACLE_TUNNEL_TOKEN="+bootContent.CloudflareOracleTunnelToken)
 			}
 			log.Printf("Boot node detected: registration_id=%s", bootContent.RegistrationID)
 

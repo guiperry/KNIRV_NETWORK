@@ -21,6 +21,7 @@ type Registry struct {
 	ProcessGoroutines    prometheus.Gauge
 	ProcessUptimeSeconds prometheus.Gauge
 	ScrapeErrors         prometheus.Counter
+	RootStatus           prometheus.Gauge
 
 	remoteGauges   map[string]prometheus.Gauge
 	remoteCounters map[string]prometheus.Counter
@@ -69,6 +70,10 @@ func NewRegistry() *Registry {
 		Name: "network_monitor_scrape_errors_total",
 		Help: "Total number of errors encountered during metrics collection",
 	})
+	registry.RootStatus = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "knirv_root_status",
+		Help: "Whether the registry reports an operational root (1) or an outage/failover state (0)",
+	})
 
 	reg.MustRegister(
 		registry.ProcessCPUSeconds,
@@ -78,6 +83,7 @@ func NewRegistry() *Registry {
 		registry.ProcessGoroutines,
 		registry.ProcessUptimeSeconds,
 		registry.ScrapeErrors,
+		registry.RootStatus,
 	)
 
 	return registry

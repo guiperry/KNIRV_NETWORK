@@ -4,12 +4,15 @@ import (
 	"context"
 	"encoding/binary"
 	"fmt"
+	"net"
+	"os"
 	"os/exec"
 	"strings"
 	"sync"
 	"time"
 
 	"knirvhasher/pkg/hashing/core"
+	"knirvhasher/pkg/hashing/methods/asic"
 	"knirvhasher/pkg/hashing/methods/cuda"
 	"knirvhasher/pkg/hashing/methods/software"
 )
@@ -23,7 +26,7 @@ type HasherWrapper struct {
 	cacheMutex sync.RWMutex
 	isRunning  bool
 	mutex      sync.RWMutex
-	methodType string // "auto", "software", "cuda"
+	methodType string // "auto", "asic", "software", "cuda"
 }
 
 // NewHasherWrapper creates a new HashSimulator wrapper using hasher's HashMethod
@@ -54,17 +57,12 @@ func (h *HasherWrapper) Initialize(config *SimulatorConfig) error {
 
 	if config != nil {
 		h.config = config
-		// Check if method type is specified in DeviceType
-		if strings.Contains(config.DeviceType, "software") {
-			h.methodType = "software"
-		} else if strings.Contains(config.DeviceType, "cuda") {
-			h.methodType = "cuda"
-		} else {
-			h.methodType = "auto"
-		}
+		h.methodType = methodTypeForDevice(config.DeviceType)
 	}
 
-	// Initialize hash method based on type
+	// Initialize hash method based on type. DEVICE_IP is supplied to the
+	// KNIRVHASHER subprocess from root.key by KNIRVSERVER; auto mode must prefer
+	// that attached ASIC before considering CUDA or software.
 	if h.hashMethod == nil {
 		var err error
 		h.hashMethod, err = h.createHashMethod()
@@ -82,9 +80,26 @@ func (h *HasherWrapper) Initialize(config *SimulatorConfig) error {
 	return nil
 }
 
+func methodTypeForDevice(deviceType string) string {
+	deviceType = strings.ToLower(deviceType)
+	switch {
+	case strings.Contains(deviceType, "software"):
+		return "software"
+	case strings.Contains(deviceType, "asic"):
+		return "asic"
+	case strings.Contains(deviceType, "cuda"):
+		return "cuda"
+	default:
+		return "auto"
+	}
+}
+
 // createHashMethod creates the appropriate hash method based on configuration
 func (h *HasherWrapper) createHashMethod() (core.HashMethod, error) {
 	switch h.methodType {
+	case "asic":
+		return h.createASICMethod()
+
 	case "cuda":
 		// Directly create CUDA method
 		cudaMethod := cuda.NewCudaMethod()
@@ -98,7 +113,16 @@ func (h *HasherWrapper) createHashMethod() (core.HashMethod, error) {
 		return software.NewSoftwareMethod(), nil
 
 	case "auto":
-		// Auto-detect: try CUDA first, then software
+		if address := asicAddressFromEnv(); address != "" {
+			method, err := h.createASICMethod()
+			if err == nil && method.IsAvailable() {
+				return method, nil
+			}
+			if err != nil {
+				fmt.Printf("[SIM] ASIC at %s unavailable; falling back: %v\n", address, err)
+			}
+		}
+		// Auto-detect: ASIC first, then CUDA, then software.
 		if h.isCUDAAvailable() {
 			cudaMethod := cuda.NewCudaMethod()
 			if cudaMethod.IsAvailable() {
@@ -110,6 +134,29 @@ func (h *HasherWrapper) createHashMethod() (core.HashMethod, error) {
 	default:
 		return software.NewSoftwareMethod(), nil
 	}
+}
+
+func (h *HasherWrapper) createASICMethod() (core.HashMethod, error) {
+	address := asicAddressFromEnv()
+	if address == "" {
+		return nil, fmt.Errorf("ASIC requested but DEVICE_IP is not set")
+	}
+	method := asic.NewASICMethod(address)
+	if !method.IsAvailable() {
+		return nil, fmt.Errorf("ASIC at %s is not operational", address)
+	}
+	return method, nil
+}
+
+func asicAddressFromEnv() string {
+	address := strings.TrimSpace(os.Getenv("DEVICE_IP"))
+	if address == "" {
+		return ""
+	}
+	if _, _, err := net.SplitHostPort(address); err == nil {
+		return address
+	}
+	return net.JoinHostPort(address, "8888")
 }
 
 // isCUDAAvailable checks if CUDA is available on the system with a 5-second timeout.
@@ -133,7 +180,7 @@ func (h *HasherWrapper) SetHashMethod(method core.HashMethod) {
 	h.hashMethod = method
 }
 
-// SetMethodType sets the hash method type (auto, software, cuda)
+// SetMethodType sets the hash method type (auto, asic, software, cuda)
 func (h *HasherWrapper) SetMethodType(methodType string) {
 	h.mutex.Lock()
 	defer h.mutex.Unlock()
