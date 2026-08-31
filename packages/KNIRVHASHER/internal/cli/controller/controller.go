@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"os"
 	"os/exec"
@@ -20,6 +21,7 @@ import (
 	"knirvhasher/internal/cli/embedded"
 	"knirvhasher/internal/client"
 	"knirvhasher/internal/config"
+	"knirvhasher/pkg/hashing/methods/asic"
 	"knirvhasher/pkg/hashing/validation"
 )
 
@@ -140,7 +142,13 @@ func (c *Controller) GetPipelineLogChan() <-chan PipelineLogMsg {
 }
 
 func (c *Controller) StartDriver(ctx context.Context) error {
-	if port := findRunningHasherHost(); port > 0 {
+	// Loaded before the reuse check below so that check can confirm a
+	// candidate already-running hasher-host is actually in the requested
+	// mode, not just healthy - see findRunningHasherHost's doc comment.
+	deviceConfig, _ := config.LoadDeviceConfig()
+	wantDirect := deviceConfig != nil && deviceConfig.DirectMode
+
+	if port := findRunningHasherHost(wantDirect); port > 0 {
 		c.model.ServerReady = true
 		c.model.ServerStarting = false
 		c.apiClient = client.NewAPIClient(port)
@@ -158,7 +166,6 @@ func (c *Controller) StartDriver(ctx context.Context) error {
 	}
 
 	var args []string
-	deviceConfig, _ := config.LoadDeviceConfig()
 	if deviceConfig != nil && deviceConfig.IP != "" {
 		args = append(args, "--device="+deviceConfig.IP)
 		args = append(args, "--discover=false")
@@ -177,6 +184,10 @@ func (c *Controller) StartDriver(ctx context.Context) error {
 
 	if deviceConfig != nil && deviceConfig.CGMinerHost != "" {
 		args = append(args, "--cgminer-host="+deviceConfig.CGMinerHost)
+	}
+
+	if deviceConfig != nil && deviceConfig.DirectMode {
+		args = append(args, "--direct")
 	}
 
 	cmd := exec.Command(hostPath, args...)
@@ -270,6 +281,58 @@ func (c *Controller) waitForServerReady() {
 			}
 		}
 		time.Sleep(500 * time.Millisecond)
+	}
+}
+
+// waitForASICReadyOrFail blocks until the configured DEVICE_IP's ASIC is
+// confirmed operational via a real health-check probe - the same one
+// asic.NewASICClient/Connect performs internally (GetDeviceInfo plus a
+// genuine ComputeHash round-trip, not just "is the port open") - or a
+// generous timeout elapses. If no ASIC device is configured, it returns
+// immediately: a software/CUDA pipeline has nothing to wait on.
+func (c *Controller) waitForASICReadyOrFail(ctx context.Context) error {
+	deviceConfig, _ := config.LoadDeviceConfig()
+	if deviceConfig == nil || deviceConfig.IP == "" {
+		return nil
+	}
+
+	address := net.JoinHostPort(deviceConfig.IP, "8888")
+
+	const (
+		pollInterval = 2 * time.Second
+		statusEvery  = 5 * time.Second
+		maxWait      = 90 * time.Second
+	)
+
+	fmt.Printf("[pipeline] Waiting for ASIC at %s to come online before starting pipeline (up to %s)...\n", address, maxWait)
+
+	start := time.Now()
+	lastStatus := start
+	for {
+		asicClient, err := asic.NewASICClient(address)
+		if err == nil {
+			ready := !asicClient.IsUsingFallback()
+			asicClient.Close()
+			if ready {
+				fmt.Printf("[pipeline] ASIC at %s confirmed online after %s\n", address, time.Since(start).Round(time.Second))
+				return nil
+			}
+		}
+
+		if time.Since(start) >= maxWait {
+			return fmt.Errorf("ASIC at %s did not come online within %s", address, maxWait)
+		}
+
+		if time.Since(lastStatus) >= statusEvery {
+			fmt.Printf("[pipeline] Still waiting for ASIC at %s (%s elapsed)...\n", address, time.Since(start).Round(time.Second))
+			lastStatus = time.Now()
+		}
+
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-time.After(pollInterval):
+		}
 	}
 }
 
@@ -520,6 +583,21 @@ func (c *Controller) RunPipeline(ctx context.Context, pipelineType string) error
 	if err := c.startKNIRVBase(ctx); err != nil {
 		return err
 	}
+
+	// --- TEMPORARY DEBUG INSTRUMENTATION ---
+	// Block here until the configured ASIC is confirmed ready (or
+	// definitively fails/times out) before launching any pipeline stage.
+	// The stages below produce a lot of their own log output, and letting
+	// them run concurrently with hasher-host/hasher-server's own startup
+	// (CGMiner + real stratum pool handshake, which can legitimately take
+	// up to ~40s) buried the one thing needed to diagnose a stuck ASIC:
+	// hasher-host's own account of what happened. Remove/relax once ASIC
+	// startup is reliable and fast enough not to need this.
+	if err := c.waitForASICReadyOrFail(ctx); err != nil {
+		return err
+	}
+	// --- END TEMPORARY DEBUG INSTRUMENTATION ---
+
 	binDir, err := embedded.GetBinDir()
 	if err != nil {
 		return fmt.Errorf("failed to get binary directory: %w", err)
@@ -1048,16 +1126,42 @@ func filterEnv(env []string, keys ...string) []string {
 	return out
 }
 
-func findRunningHasherHost() int {
+// findRunningHasherHost looks for an already-running hasher-host that can be
+// reused instead of starting a new one, but only if its mode actually
+// matches wantDirect - reusing a stale instance regardless of mode used to
+// mean a hasher-host started in CGMiner mode before -direct was ever passed
+// (or vice versa) would be silently kept running forever, with the newly
+// requested mode's args never even constructed. A mode mismatch is treated
+// the same as "not found," so StartDriver falls through to launching a
+// fresh, correctly-configured instance.
+func findRunningHasherHost(wantDirect bool) int {
 	ports := []int{8080, 8081, 8082, 8083, 8084, 8085, 8008, 9000}
 	client := &http.Client{Timeout: 2 * time.Second}
 	for _, port := range ports {
 		resp, err := client.Get(fmt.Sprintf("http://localhost:%d/api/v1/health", port))
-		if err == nil {
-			resp.Body.Close()
-			if resp.StatusCode == 200 {
+		if err != nil {
+			continue
+		}
+		var health struct {
+			DirectMode bool `json:"direct_mode"`
+		}
+		decodeErr := json.NewDecoder(resp.Body).Decode(&health)
+		statusCode := resp.StatusCode
+		resp.Body.Close()
+		if statusCode != 200 {
+			continue
+		}
+		if decodeErr != nil {
+			// Older hasher-host build without direct_mode in its health
+			// response - only safe to reuse when direct mode isn't being
+			// requested, since we can't confirm what mode it's actually in.
+			if !wantDirect {
 				return port
 			}
+			continue
+		}
+		if health.DirectMode == wantDirect {
+			return port
 		}
 	}
 	return 0

@@ -22,13 +22,21 @@ import (
 // interface for per-pass hashing, plus exposes MineForGoldenNonce for ASIC
 // mining of the final 80-byte header.
 type CGMinerHashMethod struct {
-	client  *CGMinerClient
-	miner   *CGMinerMiner
-	timeout time.Duration
+	client     *CGMinerClient
+	stratumSrv *StratumServer
+	timeout    time.Duration
 }
 
 // NewCGMinerHashMethod creates a hash method backed by a CGMiner instance.
 // host and port identify the CGMiner API endpoint (e.g. "192.168.12.151", 4028).
+//
+// It also registers a real local Stratum V1 pool with that CGMiner instance
+// (see stratum_server.go) so MineForGoldenNonce submits real work to the
+// ASIC and gets back a genuine, hardware-found, independently-verified
+// nonce - the same mechanism Device.MineWork/ComputeBatch use - rather than
+// falling back to a placeholder derived from CGMiner's accepted-share
+// counter. If the pool can't be registered, construction fails rather than
+// silently returning a hash method that would use that placeholder.
 func NewCGMinerHashMethod(host string, port int, timeout time.Duration) (*CGMinerHashMethod, error) {
 	if host == "" {
 		host = CGMinerDefaultHost
@@ -45,11 +53,26 @@ func NewCGMinerHashMethod(host string, port int, timeout time.Duration) (*CGMine
 		return nil, fmt.Errorf("cgminer not reachable at %s:%d", host, port)
 	}
 
+	stratumSrv, err := startCGMinerStratumPool(client, host)
+	if err != nil {
+		return nil, fmt.Errorf("register real stratum pool with cgminer at %s:%d: %w", host, port, err)
+	}
+
 	return &CGMinerHashMethod{
-		client:  client,
-		miner:   NewCGMinerMiner(),
-		timeout: timeout,
+		client:     client,
+		stratumSrv: stratumSrv,
+		timeout:    timeout,
 	}, nil
+}
+
+// Close releases the local stratum pool server. CGMiner itself is left
+// pointed at the now-dead pool URL; it will simply fail to reconnect,
+// degrading gracefully rather than crashing.
+func (m *CGMinerHashMethod) Close() error {
+	if m.stratumSrv == nil {
+		return nil
+	}
+	return m.stratumSrv.Close()
 }
 
 // IsAvailable returns true when CGMiner is responding on the API socket.
@@ -81,14 +104,19 @@ func (m *CGMinerHashMethod) ComputeDoubleHash(data []byte) ([32]byte, error) {
 }
 
 // MineForGoldenNonce submits the 80-byte refined header to the CGMiner ASIC
-// and returns the golden nonce found by the hardware.
+// via the real local stratum pool (see stratum_server.go) and returns the
+// golden nonce actually found by the hardware.
 //
 // This is the ASIC's core contribution: it hashes the semantically refined header
 // at ~500 GH/s to find the nonce that IS the token address in the knowledge base.
 //
-// The function uses the CGMiner API to extract the current accepted-share nonce
-// as a hardware-attested value, then returns it together with the resulting hash.
-// Returns (nonce, finalHash, error).
+// Note: real Stratum mining always derives the merkleroot (header bytes
+// 36:68) from a pool-side coinbase transaction, so it cannot preserve the
+// caller-supplied merkleroot bytes verbatim - version/prevhash/ntime/nbits
+// pass through unchanged, but the returned nonce and hash are real and
+// independently verified against the header KNIRVHASHER actually mined
+// (which the caller does not otherwise observe), not against the exact
+// original 80 bytes. Returns (nonce, hash, error).
 func (m *CGMinerHashMethod) MineForGoldenNonce(header []byte) (uint32, [32]byte, error) {
 	if len(header) != 80 {
 		return 0, [32]byte{}, fmt.Errorf("header must be 80 bytes, got %d", len(header))
@@ -98,25 +126,21 @@ func (m *CGMinerHashMethod) MineForGoldenNonce(header []byte) (uint32, [32]byte,
 		return 0, [32]byte{}, fmt.Errorf("cgminer not available")
 	}
 
-	// Submit the header to CGMiner and retrieve the ASIC-found nonce.
-	nonce, err := m.miner.MineWork(header, 0, 0xFFFFFFFF, m.timeout)
-	if err != nil {
-		return 0, [32]byte{}, fmt.Errorf("cgminer MineWork: %w", err)
+	if m.stratumSrv == nil {
+		return 0, [32]byte{}, fmt.Errorf("no real work path to cgminer: local stratum pool failed to register at startup")
 	}
 
-	// Write the ASIC-found nonce into a copy of the header (bytes 76–79).
-	finalHeader := make([]byte, 80)
-	copy(finalHeader, header)
-	finalHeader[76] = byte(nonce)
-	finalHeader[77] = byte(nonce >> 8)
-	finalHeader[78] = byte(nonce >> 16)
-	finalHeader[79] = byte(nonce >> 24)
+	job := m.stratumSrv.NewJobFromHeader(header)
+	if err := m.stratumSrv.SubmitJob(job); err != nil {
+		return 0, [32]byte{}, fmt.Errorf("failed to publish stratum work: %w", err)
+	}
 
-	// Compute the canonical double-SHA256 of the nonced header.
-	first := sha256.Sum256(finalHeader)
-	result := sha256.Sum256(first[:])
+	result, err := m.stratumSrv.WaitForResult(job, m.timeout)
+	if err != nil {
+		return 0, [32]byte{}, fmt.Errorf("cgminer real-hardware mining failed: %w", err)
+	}
 
-	return nonce, result, nil
+	return result.nonce, result.hash, nil
 }
 
 // GetStats fetches live statistics from CGMiner.

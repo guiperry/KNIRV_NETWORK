@@ -43,17 +43,25 @@ func getDeviceConfig() config.DeviceConfig {
 type DeploymentConfig struct {
 	AutoDeploy     bool          // Automatically deploy hasher-server if not found
 	CleanupOnExit  bool          // Clean up deployed binaries on exit
-	ConnectTimeout time.Duration // Timeout for server connection
+	ConnectTimeout time.Duration // Overall budget for waitForServer's whole retry loop, not per-attempt
 	DeployTimeout  time.Duration // Timeout for deployment operations
 	ForceRedeploy  bool          // Force redeployment even if server is detected as running
+	DirectMode     bool          // Start hasher-server with -direct (skip CGMiner, drive ASIC directly)
 }
 
 // DefaultDeploymentConfig returns default deployment configuration
 func DefaultDeploymentConfig() *DeploymentConfig {
 	return &DeploymentConfig{
-		AutoDeploy:     true,
-		CleanupOnExit:  true,
-		ConnectTimeout: 30 * time.Second,
+		AutoDeploy:    true,
+		CleanupOnExit: true,
+		// A single asic.NewASICClient attempt can now legitimately take
+		// close to asic.ComputeHealthCheckTimeout (25s) on its own - it
+		// round-trips through CGMiner's real hardware/pool balancing, not
+		// a bare gRPC call - so this budget needs enough headroom for at
+		// least a couple of retries even if individual attempts run close
+		// to that ceiling, rather than being exhausted by one slow attempt
+		// before ever getting a second try.
+		ConnectTimeout: 90 * time.Second,
 		DeployTimeout:  120 * time.Second,
 		ForceRedeploy:  false, // Default to false
 	}
@@ -75,8 +83,8 @@ func NewDeployer(config *DeploymentConfig) (*Deployer, error) {
 
 	// Create analyzer for device operations
 	analyzerConfig := analyzer.DefaultDeployerConfig()
-	// If subnet flag is provided, override the empty default
 	analyzerConfig.Subnet = "" // Start with empty to force flag usage or auto-detection
+	analyzerConfig.DirectMode = config.DirectMode
 	analyzer, err := analyzer.NewDeployer(analyzerConfig)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create analyzer: %w", err)
@@ -287,7 +295,7 @@ func (d *Deployer) waitForServer(deviceIP string) (*asic.ASICClient, error) {
 					if !client.IsUsingFallback() {
 						return client, nil
 					}
-					log.Printf("Server responded but client is in fallback mode - server not ready yet")
+					log.Printf("Server responded but client is in fallback mode - server not ready yet: %v", client.LastConnectionError())
 				}
 				client.Close()
 			}

@@ -11,6 +11,7 @@ import (
 // ASICMethod implements the HashMethod interface for direct ASIC hardware hashing
 type ASICMethod struct {
 	client       *ASICClient
+	direct       bool
 	mutex        sync.RWMutex
 	caps         *core.Capabilities
 	jitterTable  map[uint32]uint32
@@ -35,6 +36,15 @@ func NewASICMethod(address string) *ASICMethod {
 	// Initialize capabilities
 	method.initializeCapabilities()
 
+	return method
+}
+
+// NewDirectASICMethod creates a new ASIC hashing method in direct mode,
+// which uses DirectASICHASHMethod (remote ComputeHash RPC) instead of the
+// local-software shortcut in ASICClient.ComputeHash/ComputeDoubleHash.
+func NewDirectASICMethod(address string) *ASICMethod {
+	method := NewASICMethod(address)
+	method.direct = true
 	return method
 }
 
@@ -239,7 +249,11 @@ func (m *ASICMethod) Execute21PassLoop(header []byte, targetTokenID uint32) (*co
 	jitterEngine.GetSearcher().LoadJitterTable(m.jitterTable)
 
 	// Set the hash method to use our ASIC implementation
-	jitterEngine.SetHashMethod(&ASICHASHMethod{client: m.client})
+	if m.direct {
+		jitterEngine.SetHashMethod(&DirectASICHASHMethod{client: m.client})
+	} else {
+		jitterEngine.SetHashMethod(&ASICHASHMethod{client: m.client})
+	}
 
 	// Execute the 21-pass loop
 	result, err := jitterEngine.Execute21PassLoop(header, targetTokenID)
@@ -259,7 +273,11 @@ func (m *ASICMethod) Execute21PassLoopBatch(headers [][]byte, targetTokenID uint
 	m.mutex.RLock()
 	defer m.mutex.RUnlock()
 
-	m.jitterEngine.SetHashMethod(&ASICHASHMethod{client: m.client})
+	if m.direct {
+		m.jitterEngine.SetHashMethod(&DirectASICHASHMethod{client: m.client})
+	} else {
+		m.jitterEngine.SetHashMethod(&ASICHASHMethod{client: m.client})
+	}
 
 	// Use the optimized batch processing in jitter engine
 	results, err := m.jitterEngine.Execute21PassLoopBatch(headers, targetTokenID)
@@ -314,7 +332,11 @@ func (m *ASICMethod) ExecuteRecursiveMine(header []byte, passes int) ([]byte, er
 	// Load associative memory
 	jitterEngine.GetSearcher().LoadJitterTable(m.jitterTable)
 
-	jitterEngine.SetHashMethod(&ASICHASHMethod{client: m.client})
+	if m.direct {
+		jitterEngine.SetHashMethod(&DirectASICHASHMethod{client: m.client})
+	} else {
+		jitterEngine.SetHashMethod(&ASICHASHMethod{client: m.client})
+	}
 
 	// Target doesn't matter for raw mining result
 	result, err := jitterEngine.Execute21PassLoop(header, 0)

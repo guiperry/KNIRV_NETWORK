@@ -147,6 +147,9 @@ var (
 	// Knowledge base
 	framesDir = flag.String("frames-dir", "", "directory of training frame JSON files to load into the FlashSearcher at startup (e.g. /data/hasher/frames)")
 
+	// Direct ASIC mode: skip CGMiner and drive the ASIC directly over raw USB
+	directMode = flag.Bool("direct", false, "skip CGMiner and drive the ASIC directly over raw USB (no stratum pool, no CGMiner); mutually exclusive in effect with CGMiner mode")
+
 	// CGMiner API (direct ASIC integration)
 	cgminerHost    = flag.String("cgminer-host", "", "CGMiner API host (e.g. 192.168.12.151). If set, the ASIC mines the final golden nonce for each inference token")
 	cgminerPort    = flag.Int("cgminer-port", 4028, "CGMiner API port (default 4028)")
@@ -177,6 +180,7 @@ type Orchestrator struct {
 	miningNeuron    *neural.MiningNeuron         // Mining neuron for proof-of-work attestation
 	jitterEngine    *jitterpkg.JitterEngine      // Core inference engine: 21-pass associative loop
 	cgminerMethod   *devicepkg.CGMinerHashMethod // CGMiner ASIC for final golden-nonce mining
+	directMode      bool                        // Direct ASIC mode (skip CGMiner, drive via raw USB)
 	discoveryResult *discovery.DiscoveryResult
 	startTime       time.Time
 	mu              sync.RWMutex
@@ -239,6 +243,7 @@ type HealthResponse struct {
 	Uptime            string `json:"uptime"`
 	ConnectionHealthy bool   `json:"connection_healthy"`
 	LastHealthCheck   string `json:"last_health_check,omitempty"`
+	DirectMode        bool   `json:"direct_mode"`
 }
 
 // MetricsResponse is the API response for metrics
@@ -302,6 +307,10 @@ func main() {
 	log.Printf("Hasher Host Orchestrator starting...")
 
 	// Initialize deployment module if auto-deployment is enabled
+	if *directMode {
+		log.Printf("Direct ASIC mode: %v", *directMode)
+	}
+
 	var deployer *host.Deployer
 	if *autoDeploy {
 		deployConfig := &host.DeploymentConfig{
@@ -309,7 +318,8 @@ func main() {
 			CleanupOnExit:  *cleanupOnExit,
 			ConnectTimeout: 30 * time.Second,
 			DeployTimeout:  120 * time.Second,
-			ForceRedeploy:  *forceRedeploy, // Pass the new flag
+			ForceRedeploy:  *forceRedeploy,
+			DirectMode:     *directMode,
 		}
 		var err error
 		deployer, err = host.NewDeployer(deployConfig)
@@ -335,6 +345,7 @@ func main() {
 				CleanupOnExit:  *cleanupOnExit,
 				ConnectTimeout: 30 * time.Second,
 				DeployTimeout:  120 * time.Second,
+				DirectMode:     *directMode,
 			}
 			var err error
 			deployer, err = host.NewDeployer(deployConfig)
@@ -369,11 +380,12 @@ func main() {
 
 			// Deployment is mandatory - create deployer if not already created
 			if deployer == nil {
-				deployConfig := &host.DeploymentConfig{
+					deployConfig := &host.DeploymentConfig{
 					AutoDeploy:     true,
 					CleanupOnExit:  *cleanupOnExit,
 					ConnectTimeout: 30 * time.Second,
 					DeployTimeout:  120 * time.Second,
+					DirectMode:     *directMode,
 				}
 				var createErr error
 				deployer, createErr = host.NewDeployer(deployConfig)
@@ -432,8 +444,13 @@ func main() {
 				}
 			} else {
 				log.Printf("Auto-deployment successful: hasher-server running on discovered device")
-				// Get the deployed device address
-				serverDeviceAddr = deployer.GetDeployedDevice()
+				// GetDeployedDevice returns the bare device IP, not IP:port -
+				// unlike every other assignment to serverDeviceAddr in this
+				// function, which all include the :8888 gRPC port. Without
+				// it, the later ASICMethod dial (which uses serverDeviceAddr
+				// verbatim) fails with "context deadline exceeded" trying to
+				// connect to a portless address.
+				serverDeviceAddr = fmt.Sprintf("%s:8888", deployer.GetDeployedDevice())
 			}
 		} else {
 			// Quick localhost discovery only when no deployer
@@ -492,12 +509,22 @@ func main() {
 		}
 	}
 
-	// Override with explicit flags if provided
+	// Override with explicit flags if provided.
+	//
+	// IMPORTANT: serverDeviceAddr is a host:port gRPC dial target (used
+	// directly by asic.NewASICMethod below) everywhere else in this
+	// function - every other assignment to it appends :8888. These two
+	// branches used to assign the bare flag value with no port, silently
+	// undoing whatever correct host:port the deployment logic above had
+	// just set (--device is set on essentially every real run, so this
+	// ran unconditionally and always won) - producing exactly the
+	// "context deadline exceeded" dialing a portless address that this
+	// comment used to not warn about.
 	if *serverDeviceIP != "" {
-		serverDeviceAddr = *serverDeviceIP
+		serverDeviceAddr = fmt.Sprintf("%s:8888", *serverDeviceIP)
 	} else if *device != "" {
 		// Device flag takes precedence for IP extraction
-		serverDeviceAddr = *device
+		serverDeviceAddr = fmt.Sprintf("%s:8888", *device)
 	}
 
 	if asicClient != nil {
@@ -619,8 +646,12 @@ func main() {
 	// Connect to the CGMiner API for ASIC-backed final nonce mining.
 	// When available, the ASIC mines the semantically refined header at ~500 GH/s,
 	// making the golden nonce a genuine hardware output rather than a software hash.
+	// In direct mode (-direct), CGMiner is skipped entirely; the ASIC is driven
+	// directly over raw USB via hasher-server.
 	var cgminerMethod *devicepkg.CGMinerHashMethod
-	if *cgminerHost != "" {
+	if *directMode {
+		log.Printf("Direct ASIC mode: CGMiner skipped, ASIC driven directly over raw USB")
+	} else if *cgminerHost != "" {
 		var cgminerErr error
 		cgminerMethod, cgminerErr = devicepkg.NewCGMinerHashMethod(*cgminerHost, *cgminerPort, *cgminerTimeout)
 		if cgminerErr != nil {
@@ -640,6 +671,7 @@ func main() {
 		miningNeuron:         miningNeuron,
 		jitterEngine:         inferenceJitterEngine,
 		cgminerMethod:        cgminerMethod,
+		directMode:           *directMode,
 		discoveryResult:      discoveryResult,
 		startTime:            time.Now(),
 		deployer:             deployer,
@@ -1275,6 +1307,10 @@ func runAPIServer(orch *Orchestrator) {
 		orch.asicClient.Close()
 	}
 
+	if orch.cgminerMethod != nil {
+		orch.cgminerMethod.Close()
+	}
+
 	if orch.grpcServer != nil {
 		orch.grpcServer.GracefulStop()
 	}
@@ -1442,6 +1478,7 @@ func (o *Orchestrator) handleHealth(c *gin.Context) {
 		Uptime:            time.Since(o.startTime).String(),
 		ConnectionHealthy: connectionHealthy,
 		LastHealthCheck:   lastHealthCheck.Format(time.RFC3339),
+		DirectMode:        o.directMode,
 	})
 }
 
@@ -2474,8 +2511,9 @@ func showInfo(orch *Orchestrator) {
 		fmt.Printf("Network:          [%d, %d, %d, %d]\n", *inputSize, *hidden1, *hidden2, *outputSize)
 		fmt.Printf("Passes:           %d\n", *passes)
 		fmt.Printf("Jitter:           %.3f\n", *jitter)
-		fmt.Printf("Seed Rotation:    %v\n", *seedRotation)
-		fmt.Println("\nNote: Running in software fallback mode without ASIC hardware")
+	fmt.Printf("Seed Rotation:    %v\n", *seedRotation)
+	fmt.Printf("Direct ASIC Mode: %v\n", *directMode)
+	fmt.Println("\nNote: Running in software fallback mode without ASIC hardware")
 		return
 	}
 
@@ -2500,6 +2538,7 @@ func showInfo(orch *Orchestrator) {
 	fmt.Printf("Passes:           %d\n", *passes)
 	fmt.Printf("Jitter:           %.3f\n", *jitter)
 	fmt.Printf("Seed Rotation:    %v\n", *seedRotation)
+	fmt.Printf("Direct ASIC Mode: %v\n", *directMode)
 }
 
 // findOpenPort finds an available port starting from the given port

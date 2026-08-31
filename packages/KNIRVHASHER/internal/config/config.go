@@ -12,6 +12,7 @@ type DeviceConfig struct {
 	Username    string
 	FramesDir   string // path to training frame JSON files for FlashSearcher
 	CGMinerHost string // CGMiner API host (e.g. 192.168.12.151); empty = disabled
+	DirectMode  bool   // skip CGMiner, drive ASIC directly over raw USB
 }
 
 var (
@@ -50,6 +51,9 @@ func LoadDeviceConfig() (*DeviceConfig, error) {
 	}
 	if cgminerHost := os.Getenv("CGMINER_HOST"); cgminerHost != "" {
 		cfg.CGMinerHost = cgminerHost
+	}
+	if directMode := os.Getenv("DIRECT_MODE"); directMode != "" {
+		cfg.DirectMode = strings.EqualFold(directMode, "true") || directMode == "1"
 	}
 
 	// Set default FramesDir if still empty
@@ -93,6 +97,8 @@ func parseEnvFile(content string, cfg *DeviceConfig) {
 			cfg.FramesDir = value
 		case "CGMINER_HOST":
 			cfg.CGMinerHost = value
+		case "DIRECT_MODE":
+			cfg.DirectMode = strings.EqualFold(value, "true") || value == "1"
 		}
 	}
 }

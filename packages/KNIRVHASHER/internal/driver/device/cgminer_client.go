@@ -5,6 +5,7 @@
 package device
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -67,8 +68,18 @@ func (c *CGMinerClient) SendCommand(command string, params ...interface{}) (map[
 	}
 	defer conn.Close()
 
-	// Send command (null-terminated)
-	cmdData := append(cmdJSON, 0x00)
+	// Send command newline-terminated, not null-terminated. This CGMiner
+	// build (Bitmain fork, cgminer 4.7.0 per its own API banner) rejects a
+	// null-terminated command outright with {"STATUS":"E","Code":23,
+	// "Msg":"Invalid JSON"} - on every command, including parameter-less
+	// ones like "pools", ruling out a payload-content problem. The
+	// shell-based health check ensureCGMinerRunning() uses to confirm
+	// CGMiner is up (`echo '{"command":"version"}' | nc host port`)
+	// succeeds against this exact build, and echo terminates with '\n' -
+	// so this matches a request format already proven to work here,
+	// instead of the traditionally-documented null terminator this code
+	// used to assume.
+	cmdData := append(cmdJSON, '\n')
 	if _, err := conn.Write(cmdData); err != nil {
 		return nil, fmt.Errorf("failed to send command: %w", err)
 	}
@@ -87,10 +98,19 @@ func (c *CGMinerClient) SendCommand(command string, params ...interface{}) (map[
 		}
 	}
 
-	// Parse response (remove null bytes)
-	responseStr := string(response)
+	// Parse response. CGMiner's API protocol null-terminates every response;
+	// json.Unmarshal rejects trailing bytes after the JSON value (including
+	// that trailing 0x00), so it must actually be stripped, not just
+	// round-tripped through string() and back with nothing removed.
+	response = bytes.ReplaceAll(response, []byte{0x00}, []byte{})
+	// Logged unconditionally: this only fires on the handful of one-off
+	// startup RPCs (version/addpool/pools/switchpool), never a hot path, and
+	// having the exact wire shape on hand has repeatedly been the fastest
+	// way to fix a bad assumption about this build's response format
+	// without burning another full redeploy cycle to find out.
+	log.Printf("cgminer API %q raw response: %s", command, response)
 	var result map[string]interface{}
-	if err := json.Unmarshal([]byte(responseStr), &result); err != nil {
+	if err := json.Unmarshal(response, &result); err != nil {
 		return nil, fmt.Errorf("failed to parse response: %w", err)
 	}
 

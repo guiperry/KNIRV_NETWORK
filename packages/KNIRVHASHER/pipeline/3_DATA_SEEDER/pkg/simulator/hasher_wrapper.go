@@ -83,6 +83,8 @@ func (h *HasherWrapper) Initialize(config *SimulatorConfig) error {
 func methodTypeForDevice(deviceType string) string {
 	deviceType = strings.ToLower(deviceType)
 	switch {
+	case strings.Contains(deviceType, "direct"):
+		return "direct"
 	case strings.Contains(deviceType, "software"):
 		return "software"
 	case strings.Contains(deviceType, "asic"):
@@ -97,6 +99,9 @@ func methodTypeForDevice(deviceType string) string {
 // createHashMethod creates the appropriate hash method based on configuration
 func (h *HasherWrapper) createHashMethod() (core.HashMethod, error) {
 	switch h.methodType {
+	case "direct":
+		return h.createDirectASICMethod()
+
 	case "asic":
 		return h.createASICMethod()
 
@@ -143,7 +148,29 @@ func (h *HasherWrapper) createASICMethod() (core.HashMethod, error) {
 	}
 	method := asic.NewASICMethod(address)
 	if !method.IsAvailable() {
+		if client := method.GetClient(); client != nil {
+			if err := client.LastConnectionError(); err != nil {
+				return nil, err
+			}
+		}
 		return nil, fmt.Errorf("ASIC at %s is not operational", address)
+	}
+	return method, nil
+}
+
+func (h *HasherWrapper) createDirectASICMethod() (core.HashMethod, error) {
+	address := asicAddressFromEnv()
+	if address == "" {
+		return nil, fmt.Errorf("direct ASIC requested but DEVICE_IP is not set")
+	}
+	method := asic.NewDirectASICMethod(address)
+	if !method.IsAvailable() {
+		if client := method.GetClient(); client != nil {
+			if err := client.LastConnectionError(); err != nil {
+				return nil, err
+			}
+		}
+		return nil, fmt.Errorf("direct ASIC at %s is not operational", address)
 	}
 	return method, nil
 }

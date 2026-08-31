@@ -34,11 +34,13 @@ var pipelineState struct {
 }
 
 var (
-	monitorLogs  = flag.Bool("monitor-logs", true, "enable server log monitoring")
-	headlessMode = flag.Bool("headless", false, "run in headless mode with HTTP API server over Unix socket")
-	socketPath   = flag.String("socket-path", "/var/run/knirvhasher.sock", "Unix socket path for headless API server")
-	socketPerm   = flag.String("socket-perm", "0660", "Unix socket permissions (octal)")
-	goatMode     = flag.Bool("goat", false, "Compatibility profile selector; source selection is handled by data-connector")
+	monitorLogs         = flag.Bool("monitor-logs", true, "enable server log monitoring")
+	headlessMode        = flag.Bool("headless", false, "run in headless mode with HTTP API server over Unix socket")
+	socketPath          = flag.String("socket-path", "/var/run/knirvhasher.sock", "Unix socket path for headless API server")
+	socketPerm          = flag.String("socket-perm", "0660", "Unix socket permissions (octal)")
+	goatMode            = flag.Bool("goat", false, "Compatibility profile selector; source selection is handled by data-connector")
+	knirvserverDeployed = flag.Bool("knirvserver-deployed", false, "run as the KNIRVSERVER-managed hasher service")
+	directMode          = flag.Bool("direct", false, "skip CGMiner and drive the ASIC directly over raw USB (no stratum pool, no CGMiner)")
 )
 
 func main() {
@@ -50,10 +52,23 @@ func main() {
 
 	flag.Parse()
 
+	// internal/config.LoadDeviceConfig (consumed by internal/cli/controller
+	// and internal/cli/ui, which decide whether to pass --direct on to
+	// hasher-host) reads direct mode from the DIRECT_MODE env var, not from
+	// a CLI flag - that's the existing, established mechanism (see
+	// internal/config/config.go). -direct here exists so this binary
+	// doesn't reject the flag when KNIRVSERVER's own manager forwards it
+	// (pkg/knirvhasher/manager.go); bridge it into the env var the rest of
+	// the codebase already knows how to read, before anything downstream
+	// calls LoadDeviceConfig (which caches its result on first call).
+	if *directMode {
+		os.Setenv("DIRECT_MODE", "true")
+	}
+
 	initEmbeddedBinaries()
 
 	if *headlessMode {
-		runHeadlessMode(*goatMode)
+		runHeadlessMode(*goatMode, *knirvserverDeployed)
 		return
 	}
 
@@ -202,7 +217,7 @@ func shutdownPipelineProcess(cmd *exec.Cmd) {
 	}
 }
 
-func runHeadlessMode(goat bool) {
+func runHeadlessMode(goat, managedByKNIRVSERVER bool) {
 	perm, err := strconv.ParseUint(*socketPerm, 8, 32)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Invalid socket permissions '%s': %v\n", *socketPerm, err)
@@ -211,7 +226,7 @@ func runHeadlessMode(goat bool) {
 
 	fmt.Printf("Starting headless mode with socket: %s (perm: %s)\n", *socketPath, *socketPerm)
 
-	if err := headless.RunHeadless(*socketPath, uint32(perm), goat); err != nil {
+	if err := headless.RunHeadless(*socketPath, uint32(perm), goat, managedByKNIRVSERVER); err != nil {
 		fmt.Fprintf(os.Stderr, "Headless mode error: %v\n", err)
 		os.Exit(1)
 	}

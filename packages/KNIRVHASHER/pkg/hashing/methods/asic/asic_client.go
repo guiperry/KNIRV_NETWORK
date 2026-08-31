@@ -1,6 +1,7 @@
 package asic
 
 import (
+	"bytes"
 	"context"
 	"crypto/sha256"
 	"fmt"
@@ -9,7 +10,9 @@ import (
 	"time"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/status"
 
 	pb "knirvhasher/internal/proto/hasher/v1"
 )
@@ -19,8 +22,20 @@ const (
 	DefaultASICServerAddress = "localhost:8888"
 	// ConnectionTimeout for initial gRPC connection
 	ConnectionTimeout = 5 * time.Second
+	// ComputeHealthCheckTimeout bounds the real ComputeHash probe Connect()
+	// makes below, separately from ConnectionTimeout. On a CGMiner-backed
+	// server this round-trips through actual hardware over a real Stratum
+	// pool connection (see internal/driver/device/stratum_server.go) -
+	// and, observed in practice, that can take several seconds when
+	// CGMiner is balancing hash time across multiple configured pools
+	// (e.g. an existing higher-priority pool plus KNIRVHASHER's own),
+	// not the sub-second round trip a bare gRPC call would suggest.
+	// ConnectionTimeout alone (5s, shared with GetDeviceInfo before this
+	// probe even starts) was cutting it off mid-flight.
+	ComputeHealthCheckTimeout = 25 * time.Second
 	// OperationTimeout for individual hash operations
-	OperationTimeout = 30 * time.Second
+	OperationTimeout        = 30 * time.Second
+	legacyHasherServiceName = "hasher.v1.hasherService"
 )
 
 // ASICClient provides hash computation using ASIC hardware with software fallback
@@ -32,6 +47,8 @@ type ASICClient struct {
 	allowSoftFallback bool   // if true, fall back to software on operation errors (default: false after successful connection)
 	address           string // gRPC server address
 	chipCount         int    // Number of ASIC chips (from device info)
+	lastConnectErr    error  // retained so callers can report why hardware was rejected
+	legacyProtocol    bool   // pre-2026 service name used a lowercase hasherService
 	mu                sync.RWMutex
 }
 
@@ -80,7 +97,8 @@ func (c *ASICClient) Connect() error {
 	)
 	if err != nil {
 		c.useFallback = true
-		return fmt.Errorf("failed to connect to hasher-server at %s: %w", c.address, err)
+		c.lastConnectErr = fmt.Errorf("failed to connect to hasher-server at %s: %w", c.address, err)
+		return c.lastConnectErr
 	}
 
 	c.conn = conn
@@ -91,25 +109,104 @@ func (c *ASICClient) Connect() error {
 	defer infoCancel()
 
 	info, err := c.client.GetDeviceInfo(infoCtx, &pb.GetDeviceInfoRequest{})
+	if status.Code(err) == codes.Unimplemented {
+		// Older deployed hasher-server binaries used a lowercase service name.
+		// The protobuf messages and RPC methods are compatible, so retry only the
+		// service route rather than rejecting otherwise healthy ASIC hardware.
+		c.legacyProtocol = true
+		info = new(pb.GetDeviceInfoResponse)
+		err = c.invoke(infoCtx, "GetDeviceInfo", &pb.GetDeviceInfoRequest{}, info)
+		if err == nil {
+			log.Printf("ASIC at %s uses legacy gRPC service name %s; enabling compatibility mode", c.address, legacyHasherServiceName)
+		}
+	}
 	if err != nil {
 		conn.Close()
 		c.useFallback = true
-		return fmt.Errorf("failed to get device info: %w", err)
+		c.lastConnectErr = fmt.Errorf("GetDeviceInfo RPC at %s failed: %w", c.address, err)
+		return c.lastConnectErr
 	}
 
 	// Check if the ASIC device is actually operational
 	if !info.IsOperational {
 		conn.Close()
 		c.useFallback = true
-		return fmt.Errorf("ASIC device is not operational (device path: %s)", info.DevicePath)
+		c.lastConnectErr = fmt.Errorf("hasher-server at %s reports ASIC non-operational (device=%q chips=%d firmware=%q)", c.address, info.DevicePath, info.ChipCount, info.FirmwareVersion)
+		return c.lastConnectErr
+	}
+
+	// Device metadata alone is not sufficient: a CGMiner-backed server can
+	// report healthy chips while its direct hash interface is unavailable. Verify
+	// the operation the training pipeline will actually use before accepting the
+	// device as hardware-capable.
+	probeCtx, probeCancel := context.WithTimeout(context.Background(), ComputeHealthCheckTimeout)
+	defer probeCancel()
+
+	probeInput := []byte("knirv-asic-compute-healthcheck")
+	probeResponse := new(pb.ComputeHashResponse)
+	if err := c.invoke(probeCtx, "ComputeHash", &pb.ComputeHashRequest{Data: probeInput}, probeResponse); err != nil {
+		conn.Close()
+		c.useFallback = true
+		c.lastConnectErr = fmt.Errorf("ComputeHash health check at %s failed: %w", c.address, err)
+		return c.lastConnectErr
+	}
+	probeExpected := sha256.Sum256(probeInput)
+	if !bytes.Equal(probeResponse.Hash, probeExpected[:]) {
+		conn.Close()
+		c.useFallback = true
+		c.lastConnectErr = fmt.Errorf("ComputeHash health check at %s returned an invalid digest", c.address)
+		return c.lastConnectErr
 	}
 
 	c.chipCount = int(info.ChipCount)
 	c.useFallback = false
 	c.wasConnected = true
 	c.allowSoftFallback = false // Once connected, don't allow silent fallback
+	c.lastConnectErr = nil
 
 	return nil
+}
+
+func (c *ASICClient) invoke(ctx context.Context, method string, in, out interface{}, opts ...grpc.CallOption) error {
+	if c.legacyProtocol {
+		return c.conn.Invoke(ctx, "/"+legacyHasherServiceName+"/"+method, in, out, opts...)
+	}
+	return c.conn.Invoke(ctx, "/hasher.v1.HasherService/"+method, in, out, opts...)
+}
+
+func (c *ASICClient) streamCompute(ctx context.Context, opts ...grpc.CallOption) (pb.HasherService_StreamComputeClient, error) {
+	if !c.legacyProtocol {
+		return c.client.StreamCompute(ctx, opts...)
+	}
+	stream, err := c.conn.NewStream(ctx, &pb.HasherService_ServiceDesc.Streams[0], "/"+legacyHasherServiceName+"/StreamCompute", opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &legacyStreamComputeClient{ClientStream: stream}, nil
+}
+
+type legacyStreamComputeClient struct {
+	grpc.ClientStream
+}
+
+func (c *legacyStreamComputeClient) Send(request *pb.StreamComputeRequest) error {
+	return c.ClientStream.SendMsg(request)
+}
+
+func (c *legacyStreamComputeClient) Recv() (*pb.StreamComputeResponse, error) {
+	response := new(pb.StreamComputeResponse)
+	if err := c.ClientStream.RecvMsg(response); err != nil {
+		return nil, err
+	}
+	return response, nil
+}
+
+// LastConnectionError returns the health-check failure that put this client
+// into software fallback. It is diagnostic-only and never exposes credentials.
+func (c *ASICClient) LastConnectionError() error {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return c.lastConnectErr
 }
 
 // IsUsingFallback returns true if the client is using software SHA-256 fallback
@@ -163,13 +260,41 @@ func (c *ASICClient) GetChipCount() int {
 	return c.chipCount
 }
 
-// ComputeHash computes a single SHA-256 hash using ASIC or software fallback
+// ComputeHash returns the literal SHA-256 of data - always computed
+// locally, never over the network, regardless of ASIC/fallback mode.
+//
+// This is deliberate, not a shortcut: hasher-server's own ComputeHash RPC
+// handler (internal/driver/device/controller.go's Device.ComputeHash)
+// always computes sha256.Sum256(data) in software too, for the same
+// reason - a SHA-256 ASIC can't compute an arbitrary caller-specified hash
+// on demand, only search for a nonce satisfying a target. Since the
+// server-side answer is always identical to what this client can compute
+// itself, round-tripping over the network for it never bought anything but
+// latency - and callers that iterate this thousands of times (the seeder
+// pipeline's per-candidate evolutionary search, which calls
+// ComputeDoubleHash - and therefore this - many thousands of times per
+// generation) were paying that latency thousands of times over for no
+// benefit. The real, ASIC/CGMiner-backed path is ComputeBatch, untouched
+// by this change; this method was never that path regardless of which
+// hash-method is selected client-side.
 func (c *ASICClient) ComputeHash(data []byte) ([32]byte, error) {
+	return c.computeHashSoftware(data), nil
+}
+
+// ComputeDoubleHash computes double SHA-256 - see ComputeHash's doc
+// comment for why this is always local.
+func (c *ASICClient) ComputeDoubleHash(data []byte) ([32]byte, error) {
+	first := c.computeHashSoftware(data)
+	return c.computeHashSoftware(first[:]), nil
+}
+
+// ComputeHashRemote always calls the server's ComputeHash RPC, never
+// computing locally. Used only by DirectASICHASHMethod - see its doc
+// comment for why this is a distinct method from ComputeHash rather than a
+// mode flag on it.
+func (c *ASICClient) ComputeHashRemote(data []byte) ([32]byte, error) {
 	c.mu.RLock()
 	useFallback := c.useFallback
-	allowFallback := c.allowSoftFallback
-	wasConnected := c.wasConnected
-	client := c.client
 	c.mu.RUnlock()
 
 	if useFallback {
@@ -179,38 +304,17 @@ func (c *ASICClient) ComputeHash(data []byte) ([32]byte, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), OperationTimeout)
 	defer cancel()
 
-	resp, err := client.ComputeHash(ctx, &pb.ComputeHashRequest{
-		Data: data,
-	})
-	if err != nil {
-		// Only fall back to software if allowed (initial connection failed)
-		// If we were previously connected, report the error instead of silently degrading
-		if allowFallback || !wasConnected {
+	resp := new(pb.ComputeHashResponse)
+	if err := c.invoke(ctx, "ComputeHash", &pb.ComputeHashRequest{Data: data}, resp); err != nil {
+		if c.allowSoftFallback || !c.wasConnected {
 			return c.computeHashSoftware(data), nil
 		}
-		return [32]byte{}, fmt.Errorf("ASIC hash operation failed (no fallback): %w", err)
+		return [32]byte{}, fmt.Errorf("ComputeHashRemote RPC failed (no fallback): %w", err)
 	}
 
-	var result [32]byte
-	copy(result[:], resp.Hash)
-	return result, nil
-}
-
-// ComputeDoubleHash computes double SHA-256 using ASIC or software fallback
-func (c *ASICClient) ComputeDoubleHash(data []byte) ([32]byte, error) {
-	// First hash
-	first, err := c.ComputeHash(data)
-	if err != nil {
-		return [32]byte{}, fmt.Errorf("first hash failed: %w", err)
-	}
-
-	// Second hash
-	second, err := c.ComputeHash(first[:])
-	if err != nil {
-		return [32]byte{}, fmt.Errorf("second hash failed: %w", err)
-	}
-
-	return second, nil
+	var hash [32]byte
+	copy(hash[:], resp.Hash)
+	return hash, nil
 }
 
 // ComputeBatch computes multiple SHA-256 hashes in a batch
@@ -219,7 +323,6 @@ func (c *ASICClient) ComputeBatch(data [][]byte) ([][32]byte, error) {
 	useFallback := c.useFallback
 	allowFallback := c.allowSoftFallback
 	wasConnected := c.wasConnected
-	client := c.client
 	c.mu.RUnlock()
 
 	if useFallback {
@@ -229,10 +332,11 @@ func (c *ASICClient) ComputeBatch(data [][]byte) ([][32]byte, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), OperationTimeout)
 	defer cancel()
 
-	resp, err := client.ComputeBatch(ctx, &pb.ComputeBatchRequest{
+	resp := new(pb.ComputeBatchResponse)
+	err := c.invoke(ctx, "ComputeBatch", &pb.ComputeBatchRequest{
 		Data:         data,
 		MaxBatchSize: 256,
-	})
+	}, resp)
 	if err != nil {
 		// Only fall back to software if allowed
 		if allowFallback || !wasConnected {
@@ -257,7 +361,6 @@ func (c *ASICClient) StreamCompute(data [][]byte, callback StreamComputeFunc) er
 	useFallback := c.useFallback
 	allowFallback := c.allowSoftFallback
 	wasConnected := c.wasConnected
-	client := c.client
 	c.mu.RUnlock()
 
 	if useFallback {
@@ -274,7 +377,7 @@ func (c *ASICClient) StreamCompute(data [][]byte, callback StreamComputeFunc) er
 	ctx, cancel := context.WithTimeout(context.Background(), OperationTimeout*time.Duration(len(data)))
 	defer cancel()
 
-	stream, err := client.StreamCompute(ctx)
+	stream, err := c.streamCompute(ctx)
 	if err != nil {
 		// Only fall back to software if allowed
 		if allowFallback || !wasConnected {
@@ -326,7 +429,6 @@ func (c *ASICClient) StreamCompute(data [][]byte, callback StreamComputeFunc) er
 func (c *ASICClient) GetMetrics() (*pb.GetMetricsResponse, error) {
 	c.mu.RLock()
 	useFallback := c.useFallback
-	client := c.client
 	c.mu.RUnlock()
 
 	if useFallback {
@@ -336,14 +438,17 @@ func (c *ASICClient) GetMetrics() (*pb.GetMetricsResponse, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), ConnectionTimeout)
 	defer cancel()
 
-	return client.GetMetrics(ctx, &pb.GetMetricsRequest{})
+	response := new(pb.GetMetricsResponse)
+	if err := c.invoke(ctx, "GetMetrics", &pb.GetMetricsRequest{}, response); err != nil {
+		return nil, err
+	}
+	return response, nil
 }
 
 // GetDeviceInfo returns device info from the ASIC server (nil if in fallback mode)
 func (c *ASICClient) GetDeviceInfo() (*pb.GetDeviceInfoResponse, error) {
 	c.mu.RLock()
 	useFallback := c.useFallback
-	client := c.client
 	c.mu.RUnlock()
 
 	if useFallback {
@@ -359,7 +464,11 @@ func (c *ASICClient) GetDeviceInfo() (*pb.GetDeviceInfoResponse, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), ConnectionTimeout)
 	defer cancel()
 
-	return client.GetDeviceInfo(ctx, &pb.GetDeviceInfoRequest{})
+	response := new(pb.GetDeviceInfoResponse)
+	if err := c.invoke(ctx, "GetDeviceInfo", &pb.GetDeviceInfoRequest{}, response); err != nil {
+		return nil, err
+	}
+	return response, nil
 }
 
 // Close closes the gRPC connection
@@ -406,7 +515,6 @@ func (c *ASICClient) MineHeader(header []byte, nonceStart, nonceEnd uint32) (uin
 
 	c.mu.RLock()
 	useFallback := c.useFallback
-	client := c.client // Capture client for gRPC call
 	c.mu.RUnlock()
 
 	if useFallback {
@@ -417,11 +525,12 @@ func (c *ASICClient) MineHeader(header []byte, nonceStart, nonceEnd uint32) (uin
 	ctx, cancel := context.WithTimeout(context.Background(), OperationTimeout)
 	defer cancel()
 
-	resp, err := client.MineWork(ctx, &pb.MineWorkRequest{
+	resp := new(pb.MineWorkResponse)
+	err := c.invoke(ctx, "MineWork", &pb.MineWorkRequest{
 		Header:     header,
 		NonceStart: nonceStart,
 		NonceEnd:   nonceEnd,
-	})
+	}, resp)
 	if err != nil {
 		// If ASIC fails, fall back to software if allowed by current configuration (unlikely after successful connection)
 		// Or if we were never successfully connected

@@ -100,7 +100,7 @@ is_knirv_process() {
         return 0
     fi
     case "$comm" in
-        backend_server|container_deployer|os_builder) return 0 ;;
+        backend_server|container_deployer|os_builder|hasher-host) return 0 ;;
     esac
     return 1
 }
@@ -221,12 +221,14 @@ kill_by_binary_path "$HOME/.local/share/knirvserver/bin"
 
 # Kill subprocess services individually (aggressive, with graceful SIGTERM first)
 # These are managed subprocesses launched by the backend — knirvoracle binds a
-# Unix socket, knirvgateway proxies API calls, knirvhasher handles content hashing.
+# Unix socket, knirvgateway proxies API calls, knirvhasher handles content hashing,
+# and hasher-host manages ASIC hasher-server deployment.
 echo ""
-echo "1.6. Killing KNIRV subprocess services (knirvoracle, knirvgateway, knirvhasher)..."
+echo "1.6. Killing KNIRV subprocess services (knirvoracle, knirvgateway, knirvhasher, hasher-host)..."
 kill_by_pattern "knirvoracle" "SIGTERM" "true" || true
 kill_by_pattern "knirvgateway" "SIGTERM" "true" || true
 kill_by_pattern "knirvhasher" "SIGTERM" "true" || true
+kill_by_pattern "hasher-host" "SIGTERM" "true" || true
 
 # Kill backend server
 echo ""

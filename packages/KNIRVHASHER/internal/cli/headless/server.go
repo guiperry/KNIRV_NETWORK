@@ -27,15 +27,16 @@ const (
 )
 
 type Server struct {
-	controller *controller.Controller
-	mux        *http.ServeMux
-	server     *http.Server
-	socketPath string
-	socketPerm os.FileMode
-	ln         net.Listener
-	shutdownCh chan struct{}
-	mu         sync.RWMutex
-	goatMode   bool
+	controller         *controller.Controller
+	mux                *http.ServeMux
+	server             *http.Server
+	socketPath         string
+	socketPerm         os.FileMode
+	ln                 net.Listener
+	shutdownCh         chan struct{}
+	mu                 sync.RWMutex
+	goatMode           bool
+	knirvserverManaged bool
 }
 
 func NewServer(socketPath string, socketPerm os.FileMode, goatModes ...bool) *Server {
@@ -109,7 +110,39 @@ func (s *Server) Start() error {
 		}
 	}()
 
+	// In the standalone CLI, starting the driver remains an explicit user action.
+	// KNIRVSERVER, however, owns the full service lifecycle.  When it provides an
+	// ASIC address through root.key, start hasher-host automatically; hasher-host
+	// then provisions and starts hasher-server on the ASIC.
+	if s.knirvserverManaged {
+		s.startConfiguredDriver()
+	}
+
 	return nil
+}
+
+func (s *Server) startConfiguredDriver() {
+	deviceIP := strings.TrimSpace(os.Getenv("DEVICE_IP"))
+	if deviceIP == "" {
+		log.Printf("[ASIC] No DEVICE_IP configured; hasher-host auto-start skipped")
+		return
+	}
+
+	log.Printf("[ASIC] DEVICE_IP=%s configured; starting hasher-host (driver) for hasher-server deployment", deviceIP)
+	go func() {
+		if err := s.controller.StartDriver(context.Background()); err != nil {
+			log.Printf("[ASIC] Failed to start hasher-host for %s: %v", deviceIP, err)
+			return
+		}
+		log.Printf("[ASIC] hasher-host started for %s; provisioning/health logs follow", deviceIP)
+		for output := range s.controller.GetLogChan() {
+			for _, line := range strings.Split(output, "\n") {
+				if line = strings.TrimSpace(line); line != "" {
+					log.Printf("[hasher-host] %s", line)
+				}
+			}
+		}
+	}()
 }
 
 func (s *Server) setupSocket() error {
@@ -578,13 +611,16 @@ func (s *Server) devicesToMaps(devices []analyzer.DeviceInfo) []map[string]inter
 	return result
 }
 
-func RunHeadless(socketPath string, socketPerm uint32, goatMode bool) error {
+func RunHeadless(socketPath string, socketPerm uint32, goatMode bool, knirvserverManaged ...bool) error {
 	perm := os.FileMode(socketPerm)
 	if socketPerm == 0 {
 		perm = DefaultSocketPerm
 	}
 
 	server := NewServer(socketPath, perm, goatMode)
+	if len(knirvserverManaged) > 0 {
+		server.knirvserverManaged = knirvserverManaged[0]
+	}
 
 	if err := server.Start(); err != nil {
 		return fmt.Errorf("failed to start server: %w", err)

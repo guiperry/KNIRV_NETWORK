@@ -25,8 +25,8 @@ type HasherServer struct {
 }
 
 // NewHasherServer creates a new Hasher gRPC server
-func NewHasherServer(enableTracing bool) (*HasherServer, error) {
-	device, err := OpenDevice(enableTracing)
+func NewHasherServer(enableTracing bool, directMode bool) (*HasherServer, error) {
+	device, err := OpenDevice(enableTracing, directMode)
 	if err != nil {
 		return nil, fmt.Errorf("open device: %w", err)
 	}

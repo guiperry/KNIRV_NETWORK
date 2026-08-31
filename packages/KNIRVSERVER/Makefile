@@ -555,6 +555,8 @@ hasher-deps: ## Install KNIRVHASHER dependencies
 	cd $(HASHER_SRC_DIR) && go mod download && go mod tidy
 
 hasher-build: hasher-deps ## Build KNIRVHASHER binaries into pkg/knirvhasher/bin/ (required before binary target)
+	@echo "$(BLUE)Building embedded KNIRVHASHER driver and ASIC server...$(NC)"
+	cd $(HASHER_SRC_DIR) && $(MAKE) build-driver
 	@echo "$(BLUE)Building KNIRVHASHER pipeline binaries...$(NC)"
 	cd $(HASHER_SRC_DIR) && $(MAKE) build-pipeline-all
 	@mkdir -p $(HASHER_DIR)/bin

@@ -59,6 +59,7 @@ type DeployerConfig struct {
 	WorkDir         string        // Local working directory for binaries
 	RemoteDir       string        // Remote directory for uploaded binaries
 	ConcurrentScans int           // Number of concurrent network scans
+	DirectMode      bool          // Start hasher-server with -direct (skip CGMiner)
 }
 
 // DefaultDeployerConfig returns a default configuration
@@ -851,7 +852,12 @@ lsmod | grep bitmain || echo "No bitmain modules"
 
 				// Start hasher-server with proper initialization using a subshell for BusyBox compatibility
 				d.log("Starting hasher-server using sh -c '... & '...")
-				startCmd := fmt.Sprintf("sh -c '%s --port=8888 --trace=true > %s/hasher-server.log 2>&1 &' && echo 'SERVER_START_PID:$!' && sleep 1", remoteServerPath, d.config.RemoteDir)
+				directFlag := ""
+				if d.config.DirectMode {
+					directFlag = " --direct"
+					d.log("Direct ASIC mode requested: starting hasher-server with --direct")
+				}
+				startCmd := fmt.Sprintf("sh -c '%s --port=8888 --trace=true%s > %s/hasher-server.log 2>&1 &' && echo 'SERVER_START_PID:$!' && sleep 1", remoteServerPath, directFlag, d.config.RemoteDir)
 				startOutput, _ := d.runRemoteCommand(startCmd)
 				output.WriteString("Started hasher-server: " + startOutput + "\n")
 				d.log("sh -c '... & ' command executed to start hasher-server.") // Give hasher-server more time to initialize and start listening
@@ -969,8 +975,26 @@ echo "=== STARTING CGMINER ==="
 killall -9 cgminer bmminer 2>/dev/null || true
 sleep 2
 
-# Start CGMiner in benchmark mode with API enabled
-cgminer --benchmark --bitmain-options 115200:32:8:16:250:0982 --api-listen --api-allow W:0/0 --api-port 4028 --quiet &
+# Start CGMiner with API enabled.
+#
+# IMPORTANT: no --benchmark. CGMiner's own docs describe --benchmark as
+# hashing a single fixed work item over and over and never submitting
+# shares to any pool - which would make ComputeBatch/MineWork's real
+# stratum pool (registered by hasher-server once it starts, via
+# addpool/switchpool - see internal/driver/device/stratum_server.go)
+# unreachable no matter what pools get added. The placeholder pool below
+# exists only because CGMiner requires at least one -o at startup; it's
+# expected to sit dead until hasher-server redirects CGMiner at its real
+# local pool.
+#
+# IMPORTANT: the placeholder pool is a literal loopback IP (127.0.0.1), not
+# a hostname. An unresolvable hostname like "dummy.pool" forces a real DNS
+# lookup during CGMiner's startup sequence, and on a device with no
+# working/reachable DNS server that lookup can stall for many seconds
+# before failing - blocking CGMiner from ever reaching the point where it
+# binds its API socket. A literal IP on an unused port fails instantly
+# with connection-refused, no DNS involved.
+cgminer --bitmain-options 115200:32:8:16:250:0982 --api-listen --api-allow W:0/0 --api-port 4028 --quiet -o http://127.0.0.1:1 -u dummyuser -p dummypass &
 sleep 5
 
 # Verify it's running
@@ -992,13 +1016,29 @@ echo "=== CGMINER START COMPLETE ==="
 		time.Sleep(3 * time.Second)
 	}
 
-	// Check for zombie processes that might cause issues
+	// Check for zombie (defunct) hasher-server/bmminer processes that might
+	// cause issues.
+	//
+	// IMPORTANT: this used to check `strings.Contains(zombieCheck, "Z")` as
+	// well, but the shell command's own "no zombies" fallback output is the
+	// literal string "NO_ZOMBIES" - which itself contains a capital Z. That
+	// made the check a tautology: it fired on every single deployment,
+	// zombies or not, and its cleanup command killed cgminer as collateral
+	// damage - right after CGMiner had just been confirmed healthy and
+	// responding a few lines above. That's what was actually producing
+	// hasher-server.log's "CGMiner not found, starting..." on every run: a
+	// perfectly healthy CGMiner getting killed by this step moments before
+	// hasher-server started. Real zombie/defunct processes are matched via
+	// "<defunct>" in `ps` output (portable across BusyBox and GNU ps), and
+	// cgminer is never in the kill list here - its health is independently
+	// verified above, so it should never be touched by this step.
 	d.log("Checking for zombie processes...")
-	zombieCheck, _ := d.runRemoteCommand("ps w | grep -E 'hasher-server|cgminer' | grep -i zombie || echo 'NO_ZOMBIES'")
-	if strings.Contains(zombieCheck, "zombie") || strings.Contains(zombieCheck, "Z") {
+	zombieCheck, _ := d.runRemoteCommand("ps w | grep -E 'hasher-server|bmminer' | grep -v grep | grep -i defunct || echo 'NO_ZOMBIES'")
+	if strings.Contains(zombieCheck, "defunct") {
 		d.log("WARNING: Zombie processes detected, will clean up...")
-		// Only do aggressive cleanup if zombies are present
-		d.runRemoteCommand("killall -9 hasher-server cgminer bmminer 2>/dev/null || true")
+		// Only do aggressive cleanup if zombies are present. cgminer is
+		// deliberately excluded - it was already confirmed healthy above.
+		d.runRemoteCommand("killall -9 hasher-server bmminer 2>/dev/null || true")
 		time.Sleep(2 * time.Second)
 	}
 
@@ -1105,34 +1145,64 @@ echo "=== CGMINER START COMPLETE ==="
 	startOutput, _ := d.runRemoteCommand(startCmd)
 	output.WriteString("Started hasher-server: " + startOutput + "\n")
 	d.log("sh -c '... & ' command executed to start hasher-server.")
-	// Give hasher-server more time to initialize and start listening
-	d.log("Waiting for hasher-server to initialize...")
-	d.runRemoteCommand("sleep 3") // Initial wait
 
-	// Verify the process is actually running and get its PID
-	d.log("Verifying hasher-server process...")
-	psOutput, _ := d.runRemoteCommand("ps w | grep hasher-server | grep -v grep || echo 'PROCESS_NOT_FOUND'")
-	if strings.Contains(psOutput, "PROCESS_NOT_FOUND") {
-		output.WriteString("WARNING: hasher-server process not found after startup\n")
-		d.log("WARNING: hasher-server process not found after startup.")
-	} else {
-		output.WriteString("hasher-server process confirmed running:\n" + psOutput + "\n")
-		d.log("hasher-server process confirmed running.")
+	// --- TEMPORARY DEBUG INSTRUMENTATION ---
+	// Block here, polling, until hasher-server is confirmed listening on
+	// 8888 or has definitively crashed/timed out - instead of racing ahead
+	// on fixed sleeps. OpenDevice's CGMiner/stratum-pool setup can
+	// legitimately take up to ~40s (CGMiner startup retry + stratum
+	// subscribe wait), and letting the rest of provisioning run
+	// concurrently with that flooded the terminal with unrelated log lines,
+	// burying the one thing actually needed to diagnose a stuck ASIC:
+	// hasher-server.log's own account of what happened. Remove/relax this
+	// once CGMiner/stratum startup is reliable and this budget can shrink.
+	const (
+		asicPollInterval = 2 * time.Second
+		asicMaxWait      = 90 * time.Second
+	)
+	d.log("Waiting for hasher-server to come fully online (or fail) - up to %s...", asicMaxWait)
 
-		// Additional wait to ensure server is fully initialized
-		d.log("Giving hasher-server additional time to bind to port...")
-		d.runRemoteCommand("sleep 2")
-
-		// Check if port 8888 is listening
-		portOutput, _ := d.runRemoteCommand("netstat -ln | grep :8888 || echo 'PORT_NOT_BOUND'")
-		if strings.Contains(portOutput, "PORT_NOT_BOUND") {
-			output.WriteString("WARNING: hasher-server not listening on port 8888 yet\n")
-			d.log("WARNING: hasher-server not listening on port 8888 yet.")
-		} else {
-			output.WriteString("hasher-server confirmed listening on port 8888\n" + portOutput + "\n")
-			d.log("hasher-server confirmed listening on port 8888.")
+	waitStart := time.Now()
+	outcome := "TIMEOUT"
+	var psOutput, portOutput string
+	for time.Since(waitStart) < asicMaxWait {
+		psOutput, _ = d.runRemoteCommand("ps w | grep hasher-server | grep -v grep || echo 'PROCESS_NOT_FOUND'")
+		if strings.Contains(psOutput, "PROCESS_NOT_FOUND") {
+			outcome = "CRASHED"
+			break
 		}
+
+		portOutput, _ = d.runRemoteCommand("netstat -ln | grep :8888 || echo 'PORT_NOT_BOUND'")
+		if !strings.Contains(portOutput, "PORT_NOT_BOUND") {
+			outcome = "READY"
+			break
+		}
+
+		time.Sleep(asicPollInterval)
 	}
+	elapsed := time.Since(waitStart).Round(time.Second)
+
+	switch outcome {
+	case "READY":
+		output.WriteString(fmt.Sprintf("hasher-server confirmed listening on port 8888 after %s\n%s\n", elapsed, portOutput))
+		d.log("hasher-server confirmed listening on port 8888 after %s.", elapsed)
+	case "CRASHED":
+		output.WriteString(fmt.Sprintf("ERROR: hasher-server process exited before binding port 8888 (after %s)\n", elapsed))
+		d.log("ERROR: hasher-server process exited before binding port 8888 after %s.", elapsed)
+	default: // TIMEOUT
+		output.WriteString(fmt.Sprintf("WARNING: hasher-server still not listening on port 8888 after %s (gave up waiting)\n", elapsed))
+		d.log("WARNING: hasher-server still not listening on port 8888 after %s (gave up waiting).", elapsed)
+	}
+
+	// Surface hasher-server's own log unconditionally, whatever the
+	// outcome: this is where OpenDevice's CGMiner/stratum-pool setup
+	// actually logs what happened (or a startup crash), and external
+	// black-box checks above (process alive? port bound?) can't show that.
+	d.log("Fetching hasher-server.log tail...")
+	logTail, _ := d.runRemoteCommand(fmt.Sprintf("tail -n 120 %s/hasher-server.log 2>/dev/null || echo 'LOG_NOT_FOUND'", d.config.RemoteDir))
+	output.WriteString("\nhasher-server.log (last 120 lines):\n" + strings.Repeat("-", 30) + "\n" + logTail + "\n")
+	d.log("hasher-server.log tail:\n%s", logTail)
+	// --- END TEMPORARY DEBUG INSTRUMENTATION ---
 
 	// Step 4: Verify provisioning
 	d.log("Verifying provisioning...")

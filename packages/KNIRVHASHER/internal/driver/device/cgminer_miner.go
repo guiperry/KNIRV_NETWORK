@@ -8,7 +8,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"log"
 	"net"
 	"time"
 )
@@ -63,8 +62,12 @@ func (c *CGMinerMiner) sendCommand(command string, params ...interface{}) (map[s
 	}
 	defer conn.Close()
 
-	// Send command with null terminator
-	cmdData := append(cmdJSON, 0x00)
+	// Send command newline-terminated, not null-terminated - see the
+	// matching comment in CGMinerClient.SendCommand (cgminer_client.go) for
+	// why: this build's API rejects a null-terminated command as invalid
+	// JSON, but the shell-based `echo ... | nc` health check (which
+	// terminates with '\n') works against it.
+	cmdData := append(cmdJSON, '\n')
 	if _, err := conn.Write(cmdData); err != nil {
 		return nil, fmt.Errorf("failed to send command: %w", err)
 	}
@@ -119,49 +122,13 @@ func (c *CGMinerMiner) GetStats() (map[string]interface{}, error) {
 	return c.sendCommand("summary")
 }
 
-// MineWork submits work to CGMiner and waits for a nonce
-// For deterministic nonces, we use CGMiner's work submission
-func (c *CGMinerMiner) MineWork(header []byte, nonceStart, nonceEnd uint32, timeout time.Duration) (uint32, error) {
-	// In a full implementation, we would:
-	// 1. Add a pool with our custom work via CGMiner API
-	// 2. Wait for CGMiner to find a nonce
-	// 3. Extract the nonce from share submissions
-
-	// For the PoC, we'll use the fact that CGMiner in benchmark mode
-	// continuously finds nonces. We query the stats and use the
-	// accepted shares count as a source of entropy.
-
-	// Get current stats
-	stats, err := c.GetStats()
-	if err != nil {
-		return 0, fmt.Errorf("failed to get stats: %w", err)
-	}
-
-	// Extract accepted shares count
-	var acceptedShares uint32 = 0
-	if summary, ok := stats["SUMMARY"].([]interface{}); ok && len(summary) > 0 {
-		if s, ok := summary[0].(map[string]interface{}); ok {
-			if accepted, ok := s["Accepted"].(float64); ok {
-				acceptedShares = uint32(accepted)
-			}
-		}
-	}
-
-	// Use accepted shares count as the nonce (deterministic based on mining activity)
-	// Combine with work ID for uniqueness
-	nonce := acceptedShares + nonceStart
-
-	log.Printf("CGMiner mining: accepted shares=%d, nonce=%d", acceptedShares, nonce)
-
-	return nonce, nil
-}
-
 // GetChipCount returns the number of chips
 func (c *CGMinerMiner) GetChipCount() int {
 	return c.chipCount
 }
 
-// StartCGMiner starts CGMiner in benchmark mode
+// StartCGMiner starts the CGMiner process (assumed already running by the
+// caller today - see ensureCGMinerRunning in cmd/driver/hasher-server).
 func StartCGMiner() error {
 	// This would start cgminer process
 	// For now, assume it's already running

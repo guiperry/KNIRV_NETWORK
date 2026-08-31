@@ -55,6 +55,7 @@ type ManagerConfig struct {
 	Stderr                interface{}
 	EnvOverrides          map[string]string
 	KnirvserverDeployed   bool // indicates KNIRVHASHER is initialized by KNIRVSERVER
+	DirectMode            bool // skip CGMiner, drive ASIC directly over raw USB
 	FormalVerifierEnabled bool // enables formal proof verification via Lean worker
 }
 
@@ -170,7 +171,9 @@ func (m *Manager) Start(ctx context.Context) error {
 
 	m.logger.Info("Starting KNIRVHASHER",
 		zap.String("binary", m.config.BinaryPath),
-		zap.String("socket", m.socketPath))
+		zap.String("socket", m.socketPath),
+		zap.Bool("knirvserver_managed", m.config.KnirvserverDeployed),
+		zap.Bool("asic_driver_autostart", m.config.KnirvserverDeployed && strings.TrimSpace(m.config.EnvOverrides["DEVICE_IP"]) != ""))
 
 	env := os.Environ()
 	env = append(env,
@@ -218,6 +221,9 @@ func (m *Manager) Start(ctx context.Context) error {
 
 	if m.config.KnirvserverDeployed {
 		args = append(args, "--knirvserver-deployed")
+	}
+	if m.config.DirectMode {
+		args = append(args, "--direct")
 	}
 	if m.config.FormalVerifierEnabled {
 		args = append(args, "--formal-verifier")

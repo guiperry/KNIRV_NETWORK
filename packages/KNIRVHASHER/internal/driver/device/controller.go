@@ -43,6 +43,15 @@ const (
 	InitDelay      = 1 * time.Second
 	PollInterval   = 40 * time.Millisecond
 	StatusInterval = 5 * time.Second
+
+	// Direct-mode timing constants. The direct ASIC path polls for the
+	// RxNonce response far more aggressively than ComputeBatch's 40 ms
+	// interval because each ComputeHash call maps to a single header - we
+	// want to return as soon as the hardware responds, not wait a full
+	// PollInterval tick. These are scoped to the direct-mode path only;
+	// the existing PollInterval constant is untouched for ComputeBatch.
+	directPollInterval = 2 * time.Millisecond
+	directPollTimeout  = 500 * time.Millisecond
 )
 
 // Device represents an ASIC device with eBPF tracing
@@ -75,6 +84,18 @@ type Device struct {
 	cgMinerClient *CGMinerClient
 	useCGMiner    bool
 	cgMinerMiner  *CGMinerMiner
+	stratumSrv    *StratumServer
+
+	// Direct ASIC mode: drive the Bitmain ASIC over raw USB without CGMiner.
+	// When true, Device.ComputeHash routes 80-byte headers through the
+	// hardware directly instead of the local-software sha256 shortcut.
+	useDirectASIC bool
+
+	// workIDCounter is a rolling uint8 that gives each TxTask packet a
+	// distinct work_id byte so RxNonce responses can be correlated back
+	// to their request. Safe because the direct-mode path is strictly
+	// sequential (one in-flight request at a time from a single seeder).
+	workIDCounter uint8
 
 	// Kernel device-based communication (simple and reliable)
 	kernelDevice *KernelDevice
@@ -165,31 +186,51 @@ func CheckDeviceState() (map[string]string, error) {
 	return state, nil
 }
 
-// OpenDevice opens the ASIC device with eBPF tracing
-// Priority: CGMiner API > Simple Kernel Device > USB Direct
-func OpenDevice(enableTracing bool) (*Device, error) {
+// OpenDevice opens the ASIC device with eBPF tracing.
+// If directMode is true, CGMiner (Strategy 0) is skipped entirely and the
+// method jumps straight to kernel-device (Strategy 1) and raw-USB (Strategy 2)
+// fallbacks, ensuring CGMiner is never probed or started by this process.
+func OpenDevice(enableTracing bool, directMode bool) (*Device, error) {
 	dev := &Device{
 		chipCount:       32,
 		stats:           &DeviceStats{},
 		devicePath:      DevicePath,
 		firmwareVersion: "1.0.0",
 		isOperational:   false,
+		useDirectASIC:   directMode,
 	}
 
-	// Strategy 0: Try CGMiner API (most reliable - already proven working)
-	log.Printf("Strategy 0: Checking for CGMiner API...")
-	miner := NewCGMinerMiner()
-	if miner.IsAvailable() {
-		log.Printf("✓ CGMiner is available and mining")
-		dev.cgMinerClient = &CGMinerClient{host: cgminerHost, port: cgminerPort}
-		dev.cgMinerMiner = miner
-		dev.useCGMiner = true
-		dev.isOperational = true
-		dev.chipCount = 32
-		log.Printf("Successfully connected to CGMiner API")
-		return dev.initDevice(enableTracing)
+	if directMode {
+		log.Printf("Direct ASIC mode: skipping CGMiner (Strategy 0) - driving hardware directly")
 	}
-	log.Printf("CGMiner not available")
+
+	if !directMode {
+		// Strategy 0: Try CGMiner API (most reliable - already proven working)
+		log.Printf("Strategy 0: Checking for CGMiner API...")
+		miner := NewCGMinerMiner()
+		if miner.IsAvailable() {
+			log.Printf("✓ CGMiner is available and mining")
+			dev.cgMinerClient = &CGMinerClient{host: cgminerHost, port: cgminerPort}
+			dev.cgMinerMiner = miner
+			dev.useCGMiner = true
+			dev.isOperational = true
+			dev.chipCount = 32
+
+			// Register a real local stratum pool so ComputeBatch/MineWork can
+			// submit real work to the ASIC instead of inferring a result from
+			// CGMiner's accepted-share counter. See stratum_server.go.
+			if srv, err := startCGMinerStratumPool(dev.cgMinerClient, cgminerHost); err != nil {
+				log.Printf("Warning: failed to register real stratum pool with CGMiner: %v - ComputeBatch/MineWork will error until this succeeds", err)
+			} else {
+				dev.stratumSrv = srv
+				log.Printf("Registered local stratum pool with CGMiner on 127.0.0.1:%d", srv.Port())
+			}
+
+			log.Printf("Successfully connected to CGMiner API")
+			return dev.initDevice(enableTracing)
+		}
+		log.Printf("CGMiner not available")
+	}
 
 	// Strategy 1: Try simple kernel device
 	log.Printf("Strategy 1: Opening kernel device...")
@@ -597,28 +638,128 @@ func (d *Device) parseRxStatusResponse(data []byte) error {
 	return nil
 }
 
-// ComputeHash computes a single SHA-256 hash
+// ComputeHash returns the literal, verifiable SHA-256 of data.
+//
+// When directMode was requested at OpenDevice time (d.useDirectASIC) AND the
+// caller passes an exactly 80-byte Bitcoin-style header, this method instead
+// performs a genuine hardware-backed ASIC nonce search on that header and
+// returns its sha256d (double-SHA-256). The len(data)==80 guard is
+// load-bearing: non-jitter callers - the gRPC health-check probe in
+// pkg/hashing/methods/asic/asic_client.go's Connect(), and any other caller of
+// the plain ComputeHash RPC that isn't the jitter engine - pass arbitrary-
+// length data and must keep getting a literal sha256(data). Only the jitter
+// engine's own 80-byte headers should ever take the hardware path.
+//
+// In all other cases (non-direct mode, or non-80-byte input) this falls through
+// to the always-local sha256.Sum256 path below, which is deliberate: callers of
+// ComputeHash depend on it being deterministic and exactly equal to
+// crypto/sha256's own output for the same input. Real ASIC hardware can never
+// produce that - a SHA-256 ASIC doesn't compute an arbitrary caller-specified
+// function on demand - it searches a mining header for a nonce that makes the
+// resulting hash satisfy a target, and returns that nonce/hash pair, which is
+// never equal to plain sha256(data).
 func (d *Device) ComputeHash(data []byte) ([32]byte, error) {
-	// Trace start
-	if d.tracer != nil {
-		tracer_compute_start()
-		defer tracer_compute_end()
-	}
-
 	start := time.Now()
-	defer func() {
+	if d.useDirectASIC && len(data) == 80 {
+		hash, err := d.computeHashDirectASIC(data)
+		if err != nil {
+			return [32]byte{}, err
+		}
 		d.updateStats(1, uint64(len(data)), uint64(time.Since(start).Nanoseconds()))
-	}()
+		return hash, nil
+	}
+	hash := sha256.Sum256(data)
+	d.updateStats(1, uint64(len(data)), uint64(time.Since(start).Nanoseconds()))
+	return hash, nil
+}
 
-	result, err := d.ComputeBatch([][]byte{data})
-	if err != nil {
-		d.stats.mu.Lock()
-		d.stats.ErrorCount++
-		d.stats.mu.Unlock()
-		return [32]byte{}, err
+// computeHashDirectASIC drives the Bitmain ASIC directly over raw USB for a
+// single 80-byte header. It builds a protocol-correct TxTask packet (using the
+// real computed midstate over header[0:64]), sends it to the device, polls for
+// the RxNonce response, and then independently recomputes sha256d from the real
+// header with the hardware-found nonce substituted in. RxNonce never returns a
+// hash - only a nonce - so this local recomputation is the only way to obtain a
+// hash value at all, not a correctness shortcut.
+func (d *Device) computeHashDirectASIC(header []byte) ([32]byte, error) {
+	if d.usbDevice == nil {
+		return [32]byte{}, fmt.Errorf("direct ASIC mode active but no raw USB device is open")
 	}
 
-	return result[0], nil
+	workID := d.directASICWorkID()
+	txTask := BuildTxTaskFromHeader(header, workID)
+
+	d.mu.Lock()
+	writeErr := d.usbDevice.SendPacket(txTask)
+	d.mu.Unlock()
+	if writeErr != nil {
+		return [32]byte{}, fmt.Errorf("direct ASIC: send TxTask: %w", writeErr)
+	}
+
+	nonce, err := d.pollForDirectNonce(directPollTimeout)
+	if err != nil {
+		return [32]byte{}, fmt.Errorf("direct ASIC: %w", err)
+	}
+
+	var mined [80]byte
+	copy(mined[:], header)
+	binary.LittleEndian.PutUint32(mined[76:80], nonce)
+	return sha256d(mined[:]), nil
+}
+
+// directASICWorkID returns a rolling uint8 work_id for TxTask packets and
+// advances the counter. Safe for the strictly-sequential direct-mode path.
+func (d *Device) directASICWorkID() uint8 {
+	d.mu.Lock()
+	id := d.workIDCounter
+	d.workIDCounter++
+	d.mu.Unlock()
+	return id
+}
+
+// pollForDirectNonce polls the USB device for an RxNonce response, using a
+// short interval and overall timeout tuned for the direct-mode path. Unlike
+// pollForNonce, it does not need the originalInput/software-recompute detour:
+// ParseRxNonce already returns a bare nonce, which is all that's needed.
+func (d *Device) pollForDirectNonce(timeout time.Duration) (uint32, error) {
+	deadline := time.Now().Add(timeout)
+	response := make([]byte, 64)
+
+	for time.Now().Before(deadline) {
+		time.Sleep(directPollInterval)
+
+		var n int
+		var err error
+
+		d.mu.Lock()
+		if d.useUSB && d.usbDevice != nil {
+			n, err = d.usbDevice.ReadPacket(response, directPollInterval)
+		} else if d.file != nil {
+			d.file.SetReadDeadline(time.Now().Add(directPollInterval))
+			n, err = d.file.Read(response)
+		} else {
+			d.mu.Unlock()
+			return 0, fmt.Errorf("no device interface available")
+		}
+		d.mu.Unlock()
+
+		if err != nil {
+			continue
+		}
+
+		if n < 16 {
+			continue
+		}
+
+		if response[0] != DataTypeRxNonce {
+			continue
+		}
+
+		if _, nonce, _, ok := ParseRxNonce(response[:n]); ok {
+			return nonce, nil
+		}
+	}
+
+	return 0, fmt.Errorf("timeout waiting for nonce in direct mode")
 }
 
 // ComputeBatch computes multiple SHA-256 hashes using Bitmain ASIC mining protocol
@@ -647,6 +788,28 @@ func (d *Device) ComputeBatch(inputs [][]byte) ([][32]byte, error) {
 	}
 
 	start := time.Now()
+
+	// CGMiner mode has no d.file/d.usbDevice interface to write TxTask
+	// packets to - route the batch through the live CGMiner ASIC instead,
+	// mirroring the branch MineWork already takes below.
+	if d.useCGMiner && d.cgMinerMiner != nil {
+		results, err := d.computeBatchCGMiner(inputs)
+		if err != nil {
+			d.stats.mu.Lock()
+			d.stats.ErrorCount++
+			d.stats.mu.Unlock()
+			return nil, err
+		}
+
+		totalBytes := uint64(0)
+		for _, input := range inputs {
+			totalBytes += uint64(len(input))
+		}
+		d.updateStats(uint64(len(results)), totalBytes, uint64(time.Since(start).Nanoseconds()))
+
+		return results, nil
+	}
+
 	results := make([][32]byte, len(inputs))
 	completed := 0
 
@@ -703,6 +866,38 @@ func (d *Device) ComputeBatch(inputs [][]byte) ([][32]byte, error) {
 	return results, nil
 }
 
+// computeBatchCGMiner computes a batch of hashes by submitting real work to
+// the live CGMiner ASIC over a local stratum pool connection (see
+// stratum_server.go) and waiting for the hardware to find and submit a
+// genuine nonce, independently reverified before being trusted. This is the
+// CGMiner-mode counterpart to the TxTask/RxNonce polling loop above.
+func (d *Device) computeBatchCGMiner(inputs [][]byte) ([][32]byte, error) {
+	if d.stratumSrv == nil {
+		return nil, fmt.Errorf("no real work path to cgminer: local stratum pool failed to register at startup")
+	}
+
+	results := make([][32]byte, len(inputs))
+
+	for i, input := range inputs {
+		job := d.stratumSrv.NewJob(input, i)
+
+		if err := d.stratumSrv.SubmitJob(job); err != nil {
+			log.Printf("computeBatchCGMiner: SubmitJob failed for input %d: %v", i, err)
+			return nil, fmt.Errorf("failed to publish stratum work for input %d: %w", i, err)
+		}
+
+		result, err := d.stratumSrv.WaitForResult(job, cgMinerBatchItemTimeout)
+		if err != nil {
+			log.Printf("computeBatchCGMiner: WaitForResult failed for input %d: %v", i, err)
+			return nil, fmt.Errorf("cgminer real-hardware mining failed for input %d: %w", i, err)
+		}
+
+		results[i] = result.hash
+	}
+
+	return results, nil
+}
+
 // MineWork performs mining on an 80-byte Bitcoin-style header to find the first valid nonce.
 // It uses the configured device (USB, kernel, or CGMiner) to find nonces.
 func (d *Device) MineWork(header []byte, nonceStart, nonceEnd uint32, workID uint8, timeout time.Duration) (uint32, error) {
@@ -714,9 +909,31 @@ func (d *Device) MineWork(header []byte, nonceStart, nonceEnd uint32, workID uin
 		return 0, fmt.Errorf("ASIC device is not operational")
 	}
 
-	// Use CGMiner if available (most reliable)
-	if d.useCGMiner && d.cgMinerMiner != nil {
-		return d.cgMinerMiner.MineWork(header, nonceStart, nonceEnd, timeout)
+	// Use CGMiner if available (most reliable) - mines the header for real
+	// via the local stratum pool (see stratum_server.go). Note: Stratum
+	// always derives the merkleroot (header bytes 36:68) from a pool-side
+	// coinbase transaction, so it cannot preserve the caller's merkleroot
+	// bytes verbatim - only version/prevhash/ntime/nbits pass through
+	// unchanged. The returned nonce is real and hash-verified against the
+	// header KNIRVHASHER actually mined. Callers that need the exact
+	// supplied header hashed verbatim should use the direct USB/kernel
+	// device path instead.
+	if d.useCGMiner && d.stratumSrv != nil {
+		if nonceStart != 0 || nonceEnd != 0xFFFFFFFF {
+			log.Printf("Warning: CGMiner/stratum mode always searches the full 32-bit nonce space; nonceStart=%d nonceEnd=%d bounds are not enforced", nonceStart, nonceEnd)
+		}
+
+		job := d.stratumSrv.NewJobFromHeader(header)
+		if err := d.stratumSrv.SubmitJob(job); err != nil {
+			return 0, fmt.Errorf("failed to publish stratum work: %w", err)
+		}
+
+		result, err := d.stratumSrv.WaitForResult(job, timeout)
+		if err != nil {
+			return 0, fmt.Errorf("cgminer real-hardware mining failed: %w", err)
+		}
+
+		return result.nonce, nil
 	}
 
 	start := time.Now()
@@ -1051,6 +1268,10 @@ func (d *Device) GetInfo() DeviceInfo {
 func (d *Device) Close() error {
 	if d.tracer != nil {
 		d.tracer.Close()
+	}
+
+	if d.stratumSrv != nil {
+		d.stratumSrv.Close()
 	}
 
 	var fileErr error

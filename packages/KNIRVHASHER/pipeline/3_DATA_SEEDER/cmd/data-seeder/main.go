@@ -37,7 +37,7 @@ var (
 	difficultyBits = flag.Int("difficulty-bits", config.DefaultDifficultyBits, fmt.Sprintf("Number of leading bits that must match (%d-%d)", config.MinDifficultyBits, config.MaxDifficultyBits))
 	verbose        = flag.Bool("verbose", false, "Enable verbose logging")
 	sequential     = flag.Bool("sequential", false, "Process tokens sequentially (cleaner logs)")
-	hashMethod     = flag.String("hash-method", "auto", "Hash method to use: auto, asic, software, cuda")
+	hashMethod     = flag.String("hash-method", "auto", "Hash method to use: auto, asic, direct, software, cuda")
 )
 
 const (

@@ -233,6 +233,29 @@ make build-host-darwin-amd64
 make build-host-darwin-arm64
 ```
 
+### Direct ASIC Mode
+
+`hasher-server` accepts a `-direct` flag that skips CGMiner entirely and drives the ASIC directly over raw USB:
+
+```bash
+# On the ASIC device, launch hasher-server in direct mode (no CGMiner)
+hasher-server -direct -port=8888 -trace=true
+
+# On the host, select direct mode via the hash method
+DEVICE_IP=<device_ip>:8888 ./data-seeder -hash-method=direct
+
+# Benchmark with seed-bench
+./bin/seed-bench --hash-method=direct --device-addr=<device_ip>:8888 --generations=10
+```
+
+When `-direct` is active:
+- CGMiner is never started or probed (Strategy 0 is skipped)
+- `Device.ComputeHash` routes 80-byte Bitcoin headers through the real ASIC (TxTask/RxNonce protocol)
+- The nonce found by the hardware is used with an independent local `sha256d` recomputation (RxNonce never returns a hash, only a nonce)
+- Non-80-byte inputs (e.g. health-check probes) still use the local-software path
+
+Deployment wiring: `DeploymentConfig.DirectMode` (in `internal/host/deployment.go`) threads the flag through the provisioning start command automatically when set.
+
 ### Quick Start
 
 1. **Build the CLI and Host**

@@ -94,9 +94,24 @@ type Config struct {
 	ProofValidatorID      string   `mapstructure:"proof_validator_id"`
 	ProofChainSocket      string   `mapstructure:"proof_chain_socket"`
 	// AutoStartHasher is command-line only. When -hasher is set, the wrapper
-	// forwards the flag to the embedded backend so it starts the training
-	// pipeline during initialization.
+	// forwards the flag to the embedded backend so it starts the KNIRVHASHER
+	// ASIC driver (hasher-host, which deploys/manages hasher-server) during
+	// initialization. This is independent of AutoStartPipeline: the driver
+	// can run without the data pipeline, and (given an already-running
+	// driver) the pipeline can be started without this flag.
 	AutoStartHasher bool
+	// AutoStartPipeline is command-line only. When -pipeline is set, the
+	// wrapper forwards the flag to the embedded backend so it starts the
+	// KNIRVHASHER data pipeline (data-connector through data-trainer) during
+	// initialization. The pipeline needs a running ASIC driver to use real
+	// hardware - pair this with -hasher, or rely on a driver started some
+	// other way - but starting it is a decision independent of AutoStartHasher.
+	AutoStartPipeline bool
+	// AutoStartDirect is command-line only. When -direct is set alongside
+	// -hasher, the wrapper forwards it to the embedded backend so that
+	// knirvhasher starts in direct ASIC mode (skips CGMiner, drives the ASIC
+	// directly over raw USB). Requires -hasher to take effect.
+	AutoStartDirect bool
 	// NetworkMode is "testnet" (default), "production", "development", or
 	// "enterprise" — set from the -prod / -dev / -ent flags (or environment),
 	// not sourced from the config YAML itself.
@@ -3229,12 +3244,18 @@ func (app *ServerApp) startBackend() error {
 	// Pass the config file path used by the wrapper to the backend.
 	// This ensures the backend uses the same configuration.
 	configFile := viper.ConfigFileUsed()
-	backendArgs := backendCommandArgs(configFile, app.config.AutoStartHasher)
+	backendArgs := backendCommandArgs(configFile, app.config.AutoStartHasher, app.config.AutoStartPipeline, app.config.AutoStartDirect)
 	if configFile != "" {
 		log.Printf("Passing config file to backend: %s", configFile)
 	}
 	if app.config.AutoStartHasher {
-		log.Println("Hasher auto-start requested; forwarding -hasher to backend")
+		log.Println("Hasher driver auto-start requested; forwarding -hasher to backend")
+	}
+	if app.config.AutoStartPipeline {
+		log.Println("Hasher pipeline auto-start requested; forwarding -pipeline to backend")
+	}
+	if app.config.AutoStartDirect {
+		log.Println("Direct ASIC mode requested; forwarding -direct to backend")
 	}
 	app.backendCmd = exec.Command(app.backendPath, backendArgs...)
 
@@ -3518,13 +3539,19 @@ func (app *ServerApp) startBackend() error {
 	return fmt.Errorf("unified backend did not become healthy within %s", backendHealthTimeout)
 }
 
-func backendCommandArgs(configFile string, autoStartHasher bool) []string {
-	args := make([]string, 0, 3)
+func backendCommandArgs(configFile string, autoStartHasher, autoStartPipeline, autoStartDirect bool) []string {
+	args := make([]string, 0, 4)
 	if configFile != "" {
 		args = append(args, "--config", configFile)
 	}
 	if autoStartHasher {
 		args = append(args, "-hasher")
+	}
+	if autoStartPipeline {
+		args = append(args, "-pipeline")
+	}
+	if autoStartDirect {
+		args = append(args, "-direct")
 	}
 	return args
 }
@@ -3819,14 +3846,16 @@ func loadConfig() (*Config, error) {
 
 	// Parse command line flags
 	var (
-		configFile = flag.String("config", "", "Path to configuration file")
-		prodFlag   = flag.Bool("prod", false, "Run in production mode")
-		devFlag    = flag.Bool("dev", false, "Run in development mode")
-		entFlag    = flag.Bool("ent", false, "Run as an enterprise node (uses enterprise-{UserIDTag}.knirv.network)")
-		userIDTag  = flag.String("user-id-tag", "", "User identity tag for devnet or enterprise public hostname")
-		hasherFlag = flag.Bool("hasher", false, "Start the KNIRVHASHER training pipeline during server initialization")
-		port       = flag.Int("port", 0, "Server port (overrides config)")
-		host       = flag.String("host", "", "Server host (overrides config)")
+		configFile   = flag.String("config", "", "Path to configuration file")
+		prodFlag     = flag.Bool("prod", false, "Run in production mode")
+		devFlag      = flag.Bool("dev", false, "Run in development mode")
+		entFlag      = flag.Bool("ent", false, "Run as an enterprise node (uses enterprise-{UserIDTag}.knirv.network)")
+		userIDTag    = flag.String("user-id-tag", "", "User identity tag for devnet or enterprise public hostname")
+		hasherFlag   = flag.Bool("hasher", false, "Start the KNIRVHASHER ASIC driver (hasher-host/hasher-server deployment) during server initialization")
+		pipelineFlag = flag.Bool("pipeline", false, "Start the KNIRVHASHER data pipeline during server initialization")
+		directFlag   = flag.Bool("direct", false, "Skip CGMiner and drive the ASIC directly over raw USB (requires -hasher)")
+		port         = flag.Int("port", 0, "Server port (overrides config)")
+		host         = flag.String("host", "", "Server host (overrides config)")
 	)
 	flag.Parse()
 
@@ -3951,6 +3980,8 @@ func loadConfig() (*Config, error) {
 	config.NetworkMode = networkMode
 	config.Testnet = networkMode == "testnet"
 	config.AutoStartHasher = *hasherFlag
+	config.AutoStartPipeline = *pipelineFlag
+	config.AutoStartDirect = *directFlag
 	config.Enterprise = networkMode == "enterprise"
 	config.UserIDTag = strings.TrimSpace(*userIDTag)
 	if config.UserIDTag == "" {

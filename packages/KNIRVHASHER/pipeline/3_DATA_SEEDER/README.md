@@ -57,6 +57,9 @@ make run
 
 # With configuration file
 ./bin/data-seeder -config config.json
+
+# Direct ASIC mode (drive hardware directly, skipping CGMiner)
+DEVICE_IP=192.168.1.50 ./bin/data-seeder -hash-method=direct -generations 100 -population 256
 ```
 
 ## Configuration
@@ -122,8 +125,47 @@ Flags:
   -config string   Path to configuration file (default: "")
   -data string     Path to data directory (default: "data")
   -epochs int      Maximum number of training epochs (default: 10)
-  -population int  Population size for evolution (default: 32)
+  -population int  Population size for evolution (default: 256)
+  -generations int Maximum generations per token (default: 2000)
+  -difficulty-bits int  Leading bits that must match (default: 12)
+  -hash-method string    Hash method: auto, asic, direct, software, cuda (default: "auto")
   -verbose         Enable verbose logging (default: false)
+  -sequential      Process tokens sequentially (default: false)
+```
+
+### Hash Methods
+
+The `-hash-method` flag controls how SHA-256 operations are performed during training:
+
+| Method     | Description                                                                 |
+|------------|-----------------------------------------------------------------------------|
+| `auto`     | Auto-detect: prefer attached ASIC (via `DEVICE_IP`), then CUDA, then software |
+| `asic`     | Connect to hasher-server running CGMiner/stratum mode                       |
+| `direct`   | Connect to hasher-server running with `-direct` flag (direct USB, no CGMiner) |
+| `software` | Local software SHA-256 (no hardware, no network)                         |
+| `cuda`     | GPU-accelerated via CUDA bridge                                              |
+
+The `direct` method requires `hasher-server` to be launched with `--direct` on the device, and `DEVICE_IP` set to the server's address.
+
+### seed-bench: Standalone Seeding Benchmark
+
+`seed-bench` is a standalone tool that exercises only the seeding pipeline's hash computation path, avoiding corpus loading, checkpoint DB, and KNIRVBASE submission. Use it to compare hash method performance:
+
+```bash
+# Software baseline (no hardware needed)
+./bin/seed-bench --hash-method=software --generations=50
+
+# Direct ASIC mode (requires hasher-server -direct)
+./bin/seed-bench --hash-method=direct --device-addr=192.168.1.50:8888 --generations=10 --population=256
+
+Flags:
+  --device-addr string    hasher-server gRPC address (required unless --hash-method=software)
+  --hash-method string    auto | asic | direct | software (default "software")
+  --population int        Population size (default 256)
+  --generations int       Generations to run (default 50)
+  --difficulty-bits int   Leading bits that must match (default 12)
+  --target-token int      Target token ID (default 42)
+  --verbose               Enable verbose logging
 ```
 
 ## Training Process
@@ -181,7 +223,8 @@ Training progress is automatically checkpointed using:
 
 ```
 ├── cmd/
-│   └── data-seeder/           # Main application
+│   ├── data-seeder/           # Main application
+│   └── seed-bench/            # Standalone seeding benchmark
 ├── pkg/
 │   ├── training/          # Evolutionary algorithms
 │   ├── simulator/         # vHasher simulation
