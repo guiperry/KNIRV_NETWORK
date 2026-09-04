@@ -52,6 +52,14 @@ const (
 	// the existing PollInterval constant is untouched for ComputeBatch.
 	directPollInterval = 2 * time.Millisecond
 	directPollTimeout  = 500 * time.Millisecond
+
+	// Direct ASIC thermal control is deliberately limited to the raw-USB
+	// direct-mode path. Keep the established 0x60 operating PWM rather than
+	// changing the miner's known-good cooling configuration. A short idle
+	// window avoids repeatedly spinning the fans up and down between the
+	// consecutive headers in a seeder run.
+	directASICFanPWM      = 0x60
+	directASICFanIdleTime = 15 * time.Second
 )
 
 // Device represents an ASIC device with eBPF tracing
@@ -96,6 +104,14 @@ type Device struct {
 	// to their request. Safe because the direct-mode path is strictly
 	// sequential (one in-flight request at a time from a single seeder).
 	workIDCounter uint8
+
+	// Direct-mode fan state is separate from mu because the idle timer must not
+	// hold the USB I/O lock while it waits. thermalMu serializes fan transitions
+	// and prevents an idle callback from turning the fans off while new work is
+	// beginning.
+	thermalMu sync.Mutex
+	fansOn    bool
+	fanTimer  *time.Timer
 
 	// Kernel device-based communication (simple and reliable)
 	kernelDevice *KernelDevice
@@ -255,7 +271,14 @@ func OpenDevice(enableTracing bool, directMode bool) (*Device, error) {
 		usbDev, usbErr := OpenUSBDevice()
 		if usbErr == nil {
 			// Initialize the USB device
-			if initErr := usbDev.Initialize(); initErr == nil {
+			// Preserve the historic always-on fan configuration for the existing
+			// raw-USB fallback. Direct mode owns fan state per unit of work, so it
+			// starts with cooling disabled until the first header is submitted.
+			initialFanPWM := byte(directASICFanPWM)
+			if directMode {
+				initialFanPWM = 0
+			}
+			if initErr := usbDev.Initialize(initialFanPWM); initErr == nil {
 				log.Printf("Successfully using USB-based device access")
 				dev.usbDevice = usbDev
 				dev.useUSB = true
@@ -684,6 +707,10 @@ func (d *Device) computeHashDirectASIC(header []byte) ([32]byte, error) {
 	if d.usbDevice == nil {
 		return [32]byte{}, fmt.Errorf("direct ASIC mode active but no raw USB device is open")
 	}
+	if err := d.beginDirectASICWork(); err != nil {
+		return [32]byte{}, err
+	}
+	defer d.finishDirectASICWork()
 
 	workID := d.directASICWorkID()
 	txTask := BuildTxTaskFromHeader(header, workID)
@@ -704,6 +731,75 @@ func (d *Device) computeHashDirectASIC(header []byte) ([32]byte, error) {
 	copy(mined[:], header)
 	binary.LittleEndian.PutUint32(mined[76:80], nonce)
 	return sha256d(mined[:]), nil
+}
+
+// beginDirectASICWork enables cooling before submitting direct ASIC work. It
+// is intentionally a no-op for all non-USB paths, so CGMiner and existing
+// kernel-device operation retain their current thermal management.
+func (d *Device) beginDirectASICWork() error {
+	d.thermalMu.Lock()
+	defer d.thermalMu.Unlock()
+
+	if d.fanTimer != nil {
+		d.fanTimer.Stop()
+		d.fanTimer = nil
+	}
+	if d.fansOn {
+		return nil
+	}
+	if err := d.setDirectASICFanPWM(directASICFanPWM); err != nil {
+		return fmt.Errorf("direct ASIC: enable cooling fans: %w", err)
+	}
+	d.fansOn = true
+	log.Printf("Direct ASIC cooling fans enabled (PWM 0x%02x)", directASICFanPWM)
+	return nil
+}
+
+// finishDirectASICWork schedules the fans to stop only after the ASIC has
+// been idle for a while. A direct seeder pass makes many closely-spaced hash
+// calls, so shutting down after every call would provide poor cooling and add
+// needless configuration traffic.
+func (d *Device) finishDirectASICWork() {
+	d.thermalMu.Lock()
+	defer d.thermalMu.Unlock()
+
+	if !d.fansOn {
+		return
+	}
+	if d.fanTimer != nil {
+		d.fanTimer.Stop()
+	}
+	d.fanTimer = time.AfterFunc(directASICFanIdleTime, d.stopDirectASICFans)
+}
+
+func (d *Device) stopDirectASICFans() {
+	d.thermalMu.Lock()
+	defer d.thermalMu.Unlock()
+
+	if !d.fansOn {
+		return
+	}
+	if err := d.setDirectASICFanPWM(0); err != nil {
+		// Keep fansOn true so a later work item retries the transition instead
+		// of incorrectly assuming the device has stopped cooling.
+		log.Printf("Warning: failed to stop direct ASIC cooling fans: %v", err)
+		return
+	}
+	d.fansOn = false
+	d.fanTimer = nil
+	log.Printf("Direct ASIC cooling fans disabled after idle period")
+}
+
+// setDirectASICFanPWM sends a TxConfig update over the raw USB interface.
+// USBDevice owns the packet layout, keeping this lifecycle code independent
+// of the host and MIPS USB implementations.
+func (d *Device) setDirectASICFanPWM(pwm byte) error {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	if !d.useUSB || d.usbDevice == nil {
+		return fmt.Errorf("raw USB device is not open")
+	}
+	return d.usbDevice.SetFanPWM(pwm)
 }
 
 // directASICWorkID returns a rolling uint8 work_id for TxTask packets and
@@ -1266,6 +1362,22 @@ func (d *Device) GetInfo() DeviceInfo {
 // Close closes the device and cleanup resources
 // Reloads kernel module if it was unloaded during initialization
 func (d *Device) Close() error {
+	// A direct-mode server can be stopped while its idle timer is pending. Stop
+	// that timer and explicitly disable the fans before releasing USB ownership.
+	d.thermalMu.Lock()
+	if d.fanTimer != nil {
+		d.fanTimer.Stop()
+		d.fanTimer = nil
+	}
+	if d.fansOn {
+		if err := d.setDirectASICFanPWM(0); err != nil {
+			log.Printf("Warning: failed to stop direct ASIC cooling fans on close: %v", err)
+		} else {
+			d.fansOn = false
+		}
+	}
+	d.thermalMu.Unlock()
+
 	if d.tracer != nil {
 		d.tracer.Close()
 	}
@@ -1277,6 +1389,11 @@ func (d *Device) Close() error {
 	var fileErr error
 	if d.file != nil {
 		fileErr = d.file.Close()
+	}
+	if d.usbDevice != nil {
+		if err := d.usbDevice.Close(); err != nil && fileErr == nil {
+			fileErr = err
+		}
 	}
 
 	// Reload kernel module if we unloaded it

@@ -42,9 +42,6 @@ impl ResultPool {
         self.pool.get(handle)
     }
 
-    fn clear(&mut self) {
-        self.pool.clear();
-    }
 }
 
 thread_local! { static RESULT_POOL: RefCell<ResultPool> = RefCell::new(ResultPool::new()); }
@@ -162,8 +159,6 @@ fn __validate_envelope(ptr: *const u8, len: usize) -> i32 {
     let mut target_id = String::new();
     let mut capability = String::new();
     let mut sequence: i32 = 0;
-    let mut issued_at_unix: i32 = 0;
-    let mut expires_at_unix: i32 = 0;
     let mut payload_digest = String::new();
 
     for (key, value) in json_key_value_pairs(&json) {
@@ -176,8 +171,6 @@ fn __validate_envelope(ptr: *const u8, len: usize) -> i32 {
             "target_id" => target_id = value,
             "capability" => capability = value,
             "sequence" => sequence = value.parse().unwrap_or(0),
-            "issued_at_unix" => issued_at_unix = value.parse().unwrap_or(0),
-            "expires_at_unix" => expires_at_unix = value.parse().unwrap_or(0),
             "payload_digest" => payload_digest = value,
             _ => {}
         }

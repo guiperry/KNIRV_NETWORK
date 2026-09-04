@@ -42,14 +42,18 @@ const (
 type ASICClient struct {
 	client            pb.HasherServiceClient
 	conn              *grpc.ClientConn
-	useFallback       bool   // true = use software SHA-256 instead of ASIC
-	wasConnected      bool   // true if we ever successfully connected (prevents silent fallback after connection)
-	allowSoftFallback bool   // if true, fall back to software on operation errors (default: false after successful connection)
-	address           string // gRPC server address
-	chipCount         int    // Number of ASIC chips (from device info)
-	lastConnectErr    error  // retained so callers can report why hardware was rejected
-	legacyProtocol    bool   // pre-2026 service name used a lowercase hasherService
-	mu                sync.RWMutex
+	useFallback       bool // true = use software SHA-256 instead of ASIC
+	wasConnected      bool // true if we ever successfully connected (prevents silent fallback after connection)
+	allowSoftFallback bool // if true, fall back to software on operation errors (default: false after successful connection)
+	// fallbackOnConnectionLoss is enabled by direct mode. A direct-mode RPC is
+	// the ASIC itself, so a transport failure means the simulator must continue
+	// in software rather than leaving the caller with a dead hash method.
+	fallbackOnConnectionLoss bool
+	address                  string // gRPC server address
+	chipCount                int    // Number of ASIC chips (from device info)
+	lastConnectErr           error  // retained so callers can report why hardware was rejected
+	legacyProtocol           bool   // pre-2026 service name used a lowercase hasherService
+	mu                       sync.RWMutex
 }
 
 // NewASICClient creates a new ASICClient with the specified server address
@@ -238,6 +242,44 @@ func (c *ASICClient) SetAllowSoftFallback(allow bool) {
 	c.allowSoftFallback = allow
 }
 
+// SetFallbackOnConnectionLoss controls whether an RPC transport failure moves
+// this client permanently into software simulation mode. It is intended for
+// direct ASIC mode; non-direct callers preserve their existing error behavior.
+func (c *ASICClient) SetFallbackOnConnectionLoss(enable bool) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.fallbackOnConnectionLoss = enable
+}
+
+// fallBackToSoftware atomically retires a failed hardware connection. Closing
+// the connection also stops gRPC from retrying a dead transport in the
+// background while the simulator is using its local SHA-256 implementation.
+func (c *ASICClient) fallBackToSoftware(operation string, cause error) {
+	c.mu.Lock()
+	if c.useFallback {
+		c.mu.Unlock()
+		return
+	}
+	conn := c.conn
+	c.conn = nil
+	c.client = nil
+	c.useFallback = true
+	c.allowSoftFallback = true
+	c.lastConnectErr = fmt.Errorf("ASIC %s failed; switched to software simulation: %w", operation, cause)
+	c.mu.Unlock()
+
+	if conn != nil {
+		_ = conn.Close()
+	}
+	log.Printf("ASIC %s failed: %v; switching to SOFTWARE SIMULATION mode", operation, cause)
+}
+
+// FallbackToSoftware explicitly retires the hardware connection and switches
+// subsequent work to local software simulation.
+func (c *ASICClient) FallbackToSoftware(operation string, cause error) {
+	c.fallBackToSoftware(operation, cause)
+}
+
 // Reconnect attempts to reconnect to the ASIC server
 // Returns error if reconnection fails
 func (c *ASICClient) Reconnect() error {
@@ -295,6 +337,7 @@ func (c *ASICClient) ComputeDoubleHash(data []byte) ([32]byte, error) {
 func (c *ASICClient) ComputeHashRemote(data []byte) ([32]byte, error) {
 	c.mu.RLock()
 	useFallback := c.useFallback
+	fallbackOnConnectionLoss := c.fallbackOnConnectionLoss
 	c.mu.RUnlock()
 
 	if useFallback {
@@ -306,6 +349,10 @@ func (c *ASICClient) ComputeHashRemote(data []byte) ([32]byte, error) {
 
 	resp := new(pb.ComputeHashResponse)
 	if err := c.invoke(ctx, "ComputeHash", &pb.ComputeHashRequest{Data: data}, resp); err != nil {
+		if fallbackOnConnectionLoss {
+			c.fallBackToSoftware("ComputeHash RPC", err)
+			return c.computeHashSoftware(data), nil
+		}
 		if c.allowSoftFallback || !c.wasConnected {
 			return c.computeHashSoftware(data), nil
 		}

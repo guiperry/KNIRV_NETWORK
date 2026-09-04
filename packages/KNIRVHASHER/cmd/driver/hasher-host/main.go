@@ -555,10 +555,19 @@ func main() {
 		if address == "" {
 			address = "localhost:8888"
 		}
-		hashMethod = asic.NewASICMethod(address)
+		if *directMode {
+			hashMethod = asic.NewDirectASICMethod(address)
+		} else {
+			hashMethod = asic.NewASICMethod(address)
+		}
 		if err := hashMethod.Initialize(); err != nil {
 			log.Printf("Warning: Failed to initialize ASICMethod: %v", err)
 			hashMethod = nil
+		} else if *directMode {
+			// Monitor the same direct client used by inference. Previously the
+			// monitor watched a separate connection, so it could not switch the
+			// active direct simulator to fallback mode after a disconnect.
+			asicClient = hashMethod.GetClient()
 		}
 	}
 
@@ -1540,6 +1549,19 @@ func (o *Orchestrator) checkConnectionHealth() {
 		return
 	}
 
+	// A direct client switches itself to software simulation as soon as a hash
+	// RPC loses its transport. Do not treat its synthetic software device info
+	// as a recovered ASIC connection or attempt to reconnect it in a loop.
+	if o.directMode && o.asicClient.IsUsingFallback() {
+		o.mu.Lock()
+		if o.connectionHealthy {
+			log.Printf("ASIC connection lost; direct mode is now using SOFTWARE SIMULATION")
+		}
+		o.connectionHealthy = false
+		o.mu.Unlock()
+		return
+	}
+
 	// Try to get device info as a health check
 	_, err := o.asicClient.GetDeviceInfo()
 
@@ -1551,6 +1573,12 @@ func (o *Orchestrator) checkConnectionHealth() {
 		if o.connectionHealthy {
 			log.Printf("ASIC connection lost: %v", err)
 			o.connectionHealthy = false
+		}
+		if o.directMode {
+			o.asicClient.SetFallbackOnConnectionLoss(true)
+			o.asicClient.FallbackToSoftware("health check", err)
+			log.Printf("Direct ASIC connection failed; switching to SOFTWARE SIMULATION mode")
+			return
 		}
 
 		// Attempt reconnection with exponential backoff

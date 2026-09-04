@@ -479,13 +479,15 @@ func (d *USBDevice) GetChipCount() int {
 	return d.chipCount
 }
 
-// Initialize performs USB-based ASIC initialization
+// Initialize performs USB-based ASIC initialization using the requested fan
+// PWM. Non-direct callers continue to pass the historic operating PWM, while
+// direct mode starts idle and enables cooling immediately before work.
 // Follows the Bitmain protocol sequence:
 //  1. Send TxConfig to initialize ASICs
 //  2. Wait for initialization to complete
 //  3. Send RxStatus to query device state
 //  4. Read RxStatus response
-func (d *USBDevice) Initialize() error {
+func (d *USBDevice) Initialize(initialFanPWM byte) error {
 	log.Printf("Initializing ASIC via USB...")
 
 	// Note: SetConfiguration should be called BEFORE claiming interface
@@ -494,7 +496,7 @@ func (d *USBDevice) Initialize() error {
 
 	// Step 1: Send TxConfig packet to initialize ASICs (MUST be first!)
 	log.Printf("Step 1: Sending TxConfig packet (28 bytes)...")
-	txConfigPacket := d.buildTxConfigPacket()
+	txConfigPacket := d.buildTxConfigPacket(initialFanPWM)
 	log.Printf("TxConfig packet: %x", txConfigPacket)
 	if err := d.SendPacket(txConfigPacket); err != nil {
 		return fmt.Errorf("failed to send TxConfig: %w", err)
@@ -578,7 +580,7 @@ func (d *USBDevice) Initialize() error {
 // buildTxConfigPacket builds configuration packet for ASIC initialization
 // Note: CRC calculation uses calculateCRC16 from controller.go
 // Based on Antminer S3 defaults: 8 chains, 32 ASICs/chain, 250MHz, 0.982V
-func (d *USBDevice) buildTxConfigPacket() []byte {
+func (d *USBDevice) buildTxConfigPacket(fanPWM byte) []byte {
 	// TxConfig packet is 28 bytes total
 	packet := make([]byte, 28)
 
@@ -595,10 +597,10 @@ func (d *USBDevice) buildTxConfigPacket() []byte {
 	packet[7] = 0x00 // reserved
 
 	// ASIC configuration
-	packet[8] = 8     // chain_num (8 chains for S3)
-	packet[9] = 32    // asic_num (32 ASICs per chain)
-	packet[10] = 0x60 // fan_pwm_data (96%)
-	packet[11] = 0x0C // timeout_data (12)
+	packet[8] = 8       // chain_num (8 chains for S3)
+	packet[9] = 32      // asic_num (32 ASICs per chain)
+	packet[10] = fanPWM // fan_pwm_data
+	packet[11] = 0x0C   // timeout_data (12)
 
 	// Frequency: 250 MHz in little-endian
 	binary.LittleEndian.PutUint16(packet[12:14], 250)
@@ -628,6 +630,15 @@ func (d *USBDevice) buildTxConfigPacket() []byte {
 	binary.LittleEndian.PutUint16(packet[26:28], crc)
 
 	return packet
+}
+
+// SetFanPWM updates the Bitmain fan PWM without changing the known-good ASIC
+// frequency, voltage, timeout, or chain settings used during initialization.
+func (d *USBDevice) SetFanPWM(pwm byte) error {
+	if err := d.SendPacket(d.buildTxConfigPacket(pwm)); err != nil {
+		return fmt.Errorf("failed to send fan TxConfig: %w", err)
+	}
+	return nil
 }
 
 // buildRxStatusPacket builds a status query packet for Bitmain ASIC

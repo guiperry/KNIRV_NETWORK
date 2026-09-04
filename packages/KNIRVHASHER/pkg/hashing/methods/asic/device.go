@@ -45,6 +45,10 @@ func NewASICMethod(address string) *ASICMethod {
 func NewDirectASICMethod(address string) *ASICMethod {
 	method := NewASICMethod(address)
 	method.direct = true
+	// Direct mode depends on a remote ASIC RPC for every hash. If that link
+	// disappears, retain a working simulator instead of propagating transport
+	// failures through the training pipeline.
+	method.client.SetFallbackOnConnectionLoss(true)
 	return method
 }
 

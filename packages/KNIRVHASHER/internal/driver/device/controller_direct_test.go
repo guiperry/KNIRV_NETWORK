@@ -121,3 +121,36 @@ func TestPollForDirectNonceNoDeviceInterface(t *testing.T) {
 		t.Fatal("expected error when no device interface is available, got nil")
 	}
 }
+
+func TestUSBTxConfigFanPWMOnlyChangesFanFieldAndCRC(t *testing.T) {
+	usb := &USBDevice{}
+	off := usb.buildTxConfigPacket(0)
+	on := usb.buildTxConfigPacket(directASICFanPWM)
+
+	if len(off) != 28 || len(on) != 28 {
+		t.Fatalf("TxConfig length = off:%d on:%d, want 28", len(off), len(on))
+	}
+	if off[10] != 0 {
+		t.Errorf("off TxConfig fan PWM = 0x%02x, want 0", off[10])
+	}
+	if on[10] != directASICFanPWM {
+		t.Errorf("on TxConfig fan PWM = 0x%02x, want 0x%02x", on[10], directASICFanPWM)
+	}
+	if on[4]&0x02 == 0 {
+		t.Errorf("on TxConfig must retain the fan-control-effective flag: 0x%02x", on[4])
+	}
+	for i := range on {
+		if i == 10 || i == 26 || i == 27 {
+			continue
+		}
+		if off[i] != on[i] {
+			t.Errorf("TxConfig byte %d changed from 0x%02x to 0x%02x", i, off[i], on[i])
+		}
+	}
+	if got, want := CalculateCRC16(on[:26]), uint16(on[26])|uint16(on[27])<<8; got != want {
+		t.Errorf("on TxConfig CRC = 0x%04x, want 0x%04x", want, got)
+	}
+	if got, want := CalculateCRC16(off[:26]), uint16(off[26])|uint16(off[27])<<8; got != want {
+		t.Errorf("off TxConfig CRC = 0x%04x, want 0x%04x", want, got)
+	}
+}

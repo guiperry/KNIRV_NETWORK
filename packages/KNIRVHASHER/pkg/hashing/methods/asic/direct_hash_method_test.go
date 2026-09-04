@@ -2,6 +2,7 @@ package asic
 
 import (
 	"crypto/sha256"
+	"errors"
 	"testing"
 
 	"knirvhasher/pkg/hashing/jitter"
@@ -15,6 +16,35 @@ func TestDirectASICHASHMethodComputeHashNilClient(t *testing.T) {
 	_, err := m.ComputeHash([]byte("test"))
 	if err == nil {
 		t.Fatal("expected error when client is nil, got nil")
+	}
+}
+
+func TestDirectASICClientFallbackToSoftwareAfterConnectionLoss(t *testing.T) {
+	client := &ASICClient{
+		useFallback:              false,
+		wasConnected:             true,
+		fallbackOnConnectionLoss: true,
+	}
+	client.FallbackToSoftware("test connection", errors.New("connection dropped"))
+
+	if !client.IsUsingFallback() {
+		t.Fatal("expected connection loss to enable software fallback")
+	}
+	if client.IsConnected() {
+		t.Fatal("fallback client must not report an ASIC connection")
+	}
+	if client.LastConnectionError() == nil {
+		t.Fatal("expected fallback reason to be retained")
+	}
+
+	data := []byte("continue simulation after disconnect")
+	got, err := (&DirectASICHASHMethod{client: client}).ComputeHash(data)
+	if err != nil {
+		t.Fatalf("direct hash should continue in software fallback: %v", err)
+	}
+	want := sha256.Sum256(data)
+	if got != want {
+		t.Errorf("software fallback hash = %x, want %x", got, want)
 	}
 }
 
@@ -33,6 +63,9 @@ func TestNewDirectASICMethodSetsDirect(t *testing.T) {
 	}
 	if method.client == nil {
 		t.Fatal("expected non-nil client")
+	}
+	if !method.client.fallbackOnConnectionLoss {
+		t.Fatal("expected direct mode to enable fallback after a connection loss")
 	}
 }
 
