@@ -962,6 +962,77 @@ func (d *Device) ComputeBatch(inputs [][]byte) ([][32]byte, error) {
 	return results, nil
 }
 
+// ComputeBatchWitness is the replayable direct-ASIC variant of ComputeBatch.
+// It keeps the nonce returned by the device aligned with its submitted header.
+// A bounded window prevents overflowing the S3's small work FIFO while avoiding
+// one USB round trip per header.
+func (d *Device) ComputeBatchWitness(inputs [][]byte) ([][32]byte, []uint32, error) {
+	if !d.useDirectASIC {
+		h, err := d.ComputeBatch(inputs)
+		return h, nil, err
+	}
+	if len(inputs) == 0 || len(inputs) > 32 {
+		return nil, nil, fmt.Errorf("direct work window must contain 1-32 headers")
+	}
+	for _, header := range inputs {
+		if len(header) != 80 {
+			return nil, nil, fmt.Errorf("direct work requires 80-byte headers")
+		}
+	}
+	if d.usbDevice == nil {
+		return nil, nil, fmt.Errorf("direct ASIC mode active but no raw USB device is open")
+	}
+	if err := d.beginDirectASICWork(); err != nil {
+		return nil, nil, err
+	}
+	defer d.finishDirectASICWork()
+	work := make(map[uint8]int, len(inputs))
+	ids := make([]uint8, len(inputs))
+	d.mu.Lock()
+	for i, header := range inputs {
+		id := d.workIDCounter
+		d.workIDCounter++
+		ids[i] = id
+		work[id] = i
+		if err := d.usbDevice.SendPacket(BuildTxTaskFromHeader(header, id)); err != nil {
+			d.mu.Unlock()
+			return nil, nil, err
+		}
+	}
+	d.mu.Unlock()
+	hashes := make([][32]byte, len(inputs))
+	nonces := make([]uint32, len(inputs))
+	done := 0
+	deadline := time.Now().Add(directPollTimeout * 4)
+	buf := make([]byte, 64)
+	for done < len(inputs) && time.Now().Before(deadline) {
+		d.mu.Lock()
+		n, err := d.usbDevice.ReadPacket(buf, directPollInterval)
+		d.mu.Unlock()
+		if err != nil || n < 16 || buf[0] != DataTypeRxNonce {
+			continue
+		}
+		id, nonce, _, ok := ParseRxNonce(buf[:n])
+		if !ok {
+			continue
+		}
+		i, ok := work[id]
+		if !ok {
+			continue
+		}
+		var mined [80]byte
+		copy(mined[:], inputs[i])
+		binary.LittleEndian.PutUint32(mined[76:80], nonce)
+		hashes[i], nonces[i] = sha256d(mined[:]), nonce
+		delete(work, id)
+		done++
+	}
+	if done != len(inputs) {
+		return nil, nil, fmt.Errorf("timeout waiting for direct ASIC work window (%d/%d complete)", done, len(inputs))
+	}
+	return hashes, nonces, nil
+}
+
 // computeBatchCGMiner computes a batch of hashes by submitting real work to
 // the live CGMiner ASIC over a local stratum pool connection (see
 // stratum_server.go) and waiting for the hardware to find and submit a

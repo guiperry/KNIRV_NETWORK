@@ -1,6 +1,7 @@
 package governance
 
 import (
+	"context"
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
@@ -36,6 +37,12 @@ type GovernanceSystem struct {
 	logger     *zap.Logger
 	chainID    string
 	mu         sync.RWMutex
+
+	// registrySync pushes validator-set changes to registry.knirv.network's
+	// POST /validators (§6.6) — nil on a node with no registry identity
+	// configured (e.g. governance running without SetSigningIdentity ever
+	// having been called), in which case syncRegistryLocked is a no-op.
+	registrySync *RegistrySync
 }
 
 // NewGovernanceSystem creates a new governance system
@@ -58,6 +65,40 @@ func (gs *GovernanceSystem) SetChainID(chainID string) error {
 	defer gs.mu.Unlock()
 	gs.chainID = chainID
 	return nil
+}
+
+// SetRegistrySync wires the §6.6 validator-set-sync hook. Every subsequent
+// enrollment, removal, jailing, unjailing, or (de)activation pushes the full
+// current set to the registry.
+func (gs *GovernanceSystem) SetRegistrySync(rs *RegistrySync) {
+	gs.mu.Lock()
+	defer gs.mu.Unlock()
+	gs.registrySync = rs
+}
+
+// buildRegistryEntriesLocked must be called with gs.mu already held.
+func (gs *GovernanceSystem) buildRegistryEntriesLocked() []RegistryValidatorEntry {
+	entries := make([]RegistryValidatorEntry, 0, len(gs.validators))
+	for addr, v := range gs.validators {
+		entries = append(entries, RegistryValidatorEntry{
+			ValidatorID: addr.String(),
+			PublicKey:   hex.EncodeToString(v.PubKey),
+			Active:      v.Active && !v.Jailed,
+		})
+	}
+	return entries
+}
+
+// syncRegistryLocked must be called with gs.mu already held. The network
+// push itself runs on its own goroutine — building the entries snapshot is
+// cheap and safe to do under the lock, but a slow or unreachable registry
+// must never block a governance mutation.
+func (gs *GovernanceSystem) syncRegistryLocked() {
+	if gs.registrySync == nil {
+		return
+	}
+	entries := gs.buildRegistryEntriesLocked()
+	go gs.registrySync.Push(context.Background(), entries)
 }
 
 // CreateProposal creates a new governance proposal

@@ -43,4 +43,8 @@ func (a *DirectASICHASHMethod) ComputeDoubleHash(data []byte) ([32]byte, error) 
 	return a.client.ComputeHashRemote(data)
 }
 
+func (a *DirectASICHASHMethod) ComputeDoubleHashBatch(data [][]byte) ([][32]byte, []uint32, error) {
+	return a.client.ComputeBatchWitness(data)
+}
+
 var _ jitter.HashMethod = (*DirectASICHASHMethod)(nil)

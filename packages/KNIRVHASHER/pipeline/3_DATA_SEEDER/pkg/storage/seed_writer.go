@@ -93,6 +93,7 @@ func ledgerSeedsByKey(dataPath string) map[string][]byte {
 // material in the ledger entry for auditability.
 func assertionKey(contextTokens, assertionSpan []int32) string {
 	h := sha256.New()
+	h.Write([]byte("KNIRV-ASSERTION-V2\x00"))
 	writeTokens := func(tokens []int32) {
 		var length [4]byte
 		binary.BigEndian.PutUint32(length[:], uint32(len(tokens)))

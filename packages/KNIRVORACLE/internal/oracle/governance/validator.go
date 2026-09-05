@@ -49,6 +49,7 @@ func (gs *GovernanceSystem) RegisterValidator(reg *ValidatorRegistration) (*Vali
 	}
 
 	gs.validators[reg.Address] = validator
+	gs.syncRegistryLocked()
 
 	gs.logger.Info("Validator registered",
 		zap.String("address", validator.Address.String()),
@@ -146,6 +147,7 @@ func (gs *GovernanceSystem) ActivateValidator(address types.Address) error {
 
 	validator.Active = true
 	validator.LastActiveAt = time.Now()
+	gs.syncRegistryLocked()
 
 	gs.logger.Info("Validator activated",
 		zap.String("address", address.String()),
@@ -165,6 +167,7 @@ func (gs *GovernanceSystem) DeactivateValidator(address types.Address) error {
 	}
 
 	validator.Active = false
+	gs.syncRegistryLocked()
 
 	gs.logger.Info("Validator deactivated",
 		zap.String("address", address.String()),
@@ -187,6 +190,7 @@ func (gs *GovernanceSystem) JailValidator(address types.Address, reason string) 
 	validator.Jailed = true
 	validator.Active = false
 	validator.JailTime = &now
+	gs.syncRegistryLocked()
 
 	gs.logger.Warn("Validator jailed",
 		zap.String("address", address.String()),
@@ -221,6 +225,7 @@ func (gs *GovernanceSystem) UnjailValidator(address types.Address) error {
 	validator.Jailed = false
 	validator.JailTime = nil
 	// Note: validator remains inactive until explicitly activated
+	gs.syncRegistryLocked()
 
 	gs.logger.Info("Validator unjailed",
 		zap.String("address", address.String()),
@@ -268,6 +273,7 @@ func (gs *GovernanceSystem) RemoveValidator(address types.Address) error {
 	}
 
 	delete(gs.validators, address)
+	gs.syncRegistryLocked()
 
 	gs.logger.Info("Validator removed",
 		zap.String("address", address.String()),

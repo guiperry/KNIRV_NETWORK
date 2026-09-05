@@ -4,11 +4,13 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/binary"
+	"encoding/hex"
 	"fmt"
 	"math"
 	"math/bits"
 	mathrand "math/rand"
 	"sort"
+	"strings"
 	"time"
 
 	"knirvhasher/pkg/hashing/core"
@@ -58,22 +60,11 @@ func (tr *TrainingRecord) Span() []int32 {
 // actual context and asserted span. It is intentionally domain-separated and
 // length-delimited so context/claim concatenations cannot be ambiguous.
 func (tr *TrainingRecord) AssertionCommitmentTarget() uint32 {
-	h := sha256.New()
-	h.Write([]byte("KNIRV-ASSERTION-V2\x00"))
-	writeTokens := func(tokens []int32) {
-		var length [4]byte
-		binary.BigEndian.PutUint32(length[:], uint32(len(tokens)))
-		h.Write(length[:])
-		for _, token := range tokens {
-			var encoded [4]byte
-			binary.BigEndian.PutUint32(encoded[:], uint32(token))
-			h.Write(encoded[:])
-		}
+	decoded := strings.TrimPrefix(tr.AssertionKey(), "assertion-v2:")
+	digest, err := hex.DecodeString(decoded)
+	if err != nil || len(digest) < 4 {
+		panic("invalid internal assertion key")
 	}
-	writeTokens(tr.TokenSequence)
-	writeTokens(tr.Span())
-	var digest [32]byte
-	copy(digest[:], h.Sum(nil))
 	return binary.BigEndian.Uint32(digest[:4])
 }
 
@@ -202,11 +193,35 @@ type WeightRecord struct {
 }
 
 type CheckpointEntry struct {
+	// AssertionKey is the durable identity of a context/span witness. TokenID is
+	// retained only for legacy reporting and compatibility.
+	AssertionKey string  `json:"assertion_key,omitempty"`
 	TokenID      int32   `json:"token_id"`
 	SeedHash     []byte  `json:"seed_hash"`
 	BestSeed     []byte  `json:"best_seed"`
 	FitnessScore float64 `json:"fitness_score"`
 	LastUpdated  int64   `json:"last_updated"`
+}
+
+// AssertionKey returns the canonical, context-sensitive identity used by the
+// checkpoint and seed ledger. Keep this in training so storage never needs to
+// reconstruct semantic identity from lossy slot/token fields.
+func (tr *TrainingRecord) AssertionKey() string {
+	h := sha256.New()
+	h.Write([]byte("KNIRV-ASSERTION-V2\x00"))
+	writeTokens := func(tokens []int32) {
+		var length [4]byte
+		binary.BigEndian.PutUint32(length[:], uint32(len(tokens)))
+		h.Write(length[:])
+		for _, token := range tokens {
+			var encoded [4]byte
+			binary.BigEndian.PutUint32(encoded[:], uint32(token))
+			h.Write(encoded[:])
+		}
+	}
+	writeTokens(tr.TokenSequence)
+	writeTokens(tr.Span())
+	return fmt.Sprintf("assertion-v2:%x", h.Sum(nil))
 }
 
 type TrainingConfig struct {
@@ -808,7 +823,7 @@ func (eh *EvolutionaryHarness) EvaluatePopulationBatch(
 	var batchErr error
 
 	if hWrap, ok := sim.(*simulator.HasherWrapper); ok {
-		// Debug logging for the first batch of the first generation
+		// Debug logging for the first batch of the first generation.
 		if population.Generation == 0 {
 			if cMethod, ok := hWrap.GetHashMethod().(*cuda.CudaMethod); ok {
 				fmt.Printf("[DEBUG] %s\n", cMethod.GetBridge().DebugHeaders(headers))
@@ -852,8 +867,8 @@ func (eh *EvolutionaryHarness) EvaluatePopulationBatch(
 		goldenNonce := binary.BigEndian.Uint32(finalHash[:4])
 
 		if i == 0 && population.Generation == 0 {
-			fmt.Printf("[DEBUG] Token %d: Target=0x%08X Hash[0]=0x%08X Mask=0x%08X\n",
-				record.TargetToken, uint32(record.TargetToken), goldenNonce, eh.DifficultyMask)
+			fmt.Printf("[DEBUG] Token %d: CommitmentTarget=0x%08X Hash[0]=0x%08X Mask=0x%08X\n",
+				record.TargetToken, record.AssertionCommitmentTarget(), goldenNonce, eh.DifficultyMask)
 		}
 
 		// Store hash output for bit-matching

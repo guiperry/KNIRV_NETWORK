@@ -399,6 +399,34 @@ func (c *ASICClient) ComputeBatch(data [][]byte) ([][32]byte, error) {
 	return results, nil
 }
 
+// ComputeBatchWitness returns hashes plus hardware nonces when the server is
+// direct ASIC capable. Empty nonces identify legacy/software responses.
+func (c *ASICClient) ComputeBatchWitness(data [][]byte) ([][32]byte, []uint32, error) {
+	if c.IsUsingFallback() {
+		// DirectASICHASHMethod implements a *double* hash contract. Preserve it
+		// when a direct device is unavailable; ComputeBatch's single-SHA fallback
+		// would otherwise make identical headers produce different temporal
+		// states solely because hardware was disconnected.
+		hashes := make([][32]byte, len(data))
+		for i, input := range data {
+			first := c.computeHashSoftware(input)
+			hashes[i] = c.computeHashSoftware(first[:])
+		}
+		return hashes, nil, nil
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), OperationTimeout)
+	defer cancel()
+	resp := new(pb.ComputeBatchResponse)
+	if err := c.invoke(ctx, "ComputeBatch", &pb.ComputeBatchRequest{Data: data, MaxBatchSize: uint32(len(data))}, resp); err != nil {
+		return nil, nil, err
+	}
+	h := make([][32]byte, len(resp.Hashes))
+	for i, v := range resp.Hashes {
+		copy(h[i][:], v)
+	}
+	return h, resp.Nonces, nil
+}
+
 // StreamComputeFunc is a callback function for streaming results
 type StreamComputeFunc func(requestID uint64, hash [32]byte, latencyUs uint64)
 

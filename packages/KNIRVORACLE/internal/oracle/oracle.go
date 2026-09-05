@@ -211,6 +211,19 @@ func NewOracle(config *OracleConfig, logger *zap.Logger) (*Oracle, error) {
 	if err := governanceSystem.SetChainID(config.ChainID); err != nil {
 		return nil, err
 	}
+	// Wire the §6.6 validator-set-sync hook. KNIRVORACLE only ever runs with
+	// root.key's own key already loaded as OwnerPrivateKey (see
+	// cmd/oracle/rootkey.go), which is exactly the identity §6.6's genesis
+	// trust model expects to publish the first (and, until a takeover
+	// confirms, every subsequent) validator set.
+	if config.OwnerPrivateKey != "" {
+		registrySync := governance.NewRegistrySync(config.ChainID, logger)
+		if err := registrySync.SetSigningIdentity(config.OwnerPrivateKey); err != nil {
+			logger.Warn("registry validator-set sync disabled: invalid signing identity", zap.Error(err))
+		} else {
+			governanceSystem.SetRegistrySync(registrySync)
+		}
+	}
 
 	// Initialize economics engine
 	economicsEngine := economics.NewEconomicsEngine(nrnToken, logger)

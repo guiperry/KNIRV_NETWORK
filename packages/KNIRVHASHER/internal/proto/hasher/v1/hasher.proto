@@ -81,6 +81,9 @@ message ComputeBatchResponse {
   
   // Number of hashes successfully processed
   uint32 processed_count = 3;
+
+  // Hardware-found nonces, aligned with hashes. Empty for software paths.
+  repeated uint32 nonces = 4;
 }
 
 // StreamComputeRequest is sent by client in streaming mode

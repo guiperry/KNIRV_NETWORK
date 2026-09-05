@@ -634,7 +634,7 @@ func (to *TrainingOrchestrator) trainBatch(ctx context.Context, records []*train
 		}
 
 		// Check if we already have a winning seed for this token
-		hasCheckpoint, err := to.checkpointMgr.HasCheckpoint(record.TargetToken)
+		hasCheckpoint, err := to.checkpointMgr.HasAssertionCheckpoint(record.AssertionKey(), record.TargetToken)
 		if err == nil && hasCheckpoint {
 			continue
 		}
@@ -803,6 +803,7 @@ func (to *TrainingOrchestrator) trainToken(ctx context.Context, targetToken int3
 func (to *TrainingOrchestrator) saveWinningSeed(record *training.TrainingRecord, seed training.SeedResult, generation int) error {
 
 	checkpointEntry := training.CheckpointEntry{
+		AssertionKey: record.AssertionKey(),
 		TokenID:      record.TargetToken,
 		SeedHash:     storage.ComputeSeedHash(seed.Seed),
 		BestSeed:     seed.Seed,

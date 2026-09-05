@@ -107,15 +107,14 @@ func (cm *CheckpointManager) SaveCheckpoint(entry training.CheckpointEntry) erro
 	cm.mutex.Lock()
 	defer cm.mutex.Unlock()
 
-	tokenKey := make([]byte, 4)
-	binary.LittleEndian.PutUint32(tokenKey, uint32(entry.TokenID))
+	key := checkpointKey(entry.AssertionKey, entry.TokenID)
 
 	data, err := json.Marshal(entry)
 	if err != nil {
 		return fmt.Errorf("failed to marshal checkpoint entry: %w", err)
 	}
 
-	cm.db[string(tokenKey)] = data
+	cm.db[key] = data
 	cm.dirty = true
 
 	// Immediately persist to disk for durability
@@ -124,6 +123,23 @@ func (cm *CheckpointManager) SaveCheckpoint(entry training.CheckpointEntry) erro
 	}
 
 	return nil
+}
+
+func checkpointKey(assertionKey string, tokenID int32) string {
+	if assertionKey != "" {
+		return assertionKey
+	}
+	// Preserve lookup of legacy token-only checkpoint databases.
+	tokenKey := make([]byte, 4)
+	binary.LittleEndian.PutUint32(tokenKey, uint32(tokenID))
+	return string(tokenKey)
+}
+
+func (cm *CheckpointManager) HasAssertionCheckpoint(assertionKey string, tokenID int32) (bool, error) {
+	cm.mutex.RLock()
+	defer cm.mutex.RUnlock()
+	_, exists := cm.db[checkpointKey(assertionKey, tokenID)]
+	return exists, nil
 }
 
 func (cm *CheckpointManager) LoadCheckpoint(tokenID int32) (*training.CheckpointEntry, error) {

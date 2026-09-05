@@ -80,7 +80,7 @@ func (s *HasherServer) ComputeBatch(ctx context.Context, req *pb.ComputeBatchReq
 
 	start := time.Now()
 
-	hashes, err := s.device.ComputeBatch(req.Data)
+	hashes, nonces, err := s.device.ComputeBatchWitness(req.Data)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "batch compute failed: %v", err)
 	}
@@ -97,6 +97,7 @@ func (s *HasherServer) ComputeBatch(ctx context.Context, req *pb.ComputeBatchReq
 		Hashes:         hashBytes,
 		TotalLatencyUs: uint64(latency.Microseconds()),
 		ProcessedCount: uint32(len(hashes)),
+		Nonces:         nonces,
 	}, nil
 }
 

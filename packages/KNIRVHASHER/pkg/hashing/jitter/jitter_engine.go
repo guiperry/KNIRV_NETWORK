@@ -37,6 +37,13 @@ type HashMethod interface {
 	ComputeDoubleHash(data []byte) ([32]byte, error)
 }
 
+// BatchHashMethod is optional. Hardware implementations use it to submit one
+// bounded work window per temporal pass, rather than serializing a USB round
+// trip for every candidate.
+type BatchHashMethod interface {
+	ComputeDoubleHashBatch(data [][]byte) ([][32]byte, []uint32, error)
+}
+
 // SoftwareHashMethod implements canonical byte-for-byte SHA-256 in pure Go.
 // It is the development and hardware-equivalence reference, not evidence of a
 // production hardware-backed proof-of-work attestation.
@@ -52,6 +59,24 @@ func (s *SoftwareHashMethod) ComputeDoubleHash(data []byte) ([32]byte, error) {
 	first := sha256.Sum256(data)
 	second := sha256.Sum256(first[:])
 	return second, nil
+}
+
+// ComputeDoubleHashBatch is intentionally the same canonical SHA-256d
+// operation as ComputeDoubleHash. It makes the optimized pass-phased engine a
+// drop-in replacement for the sequential software reference path.
+func (s *SoftwareHashMethod) ComputeDoubleHashBatch(data [][]byte) ([][32]byte, []uint32, error) {
+	hashes := make([][32]byte, len(data))
+	nonces := make([]uint32, len(data))
+	for i, input := range data {
+		if len(input) == 80 {
+			nonces[i] = binary.BigEndian.Uint32(input[76:80])
+		}
+		var err error
+		if hashes[i], err = s.ComputeDoubleHash(input); err != nil {
+			return nil, nil, err
+		}
+	}
+	return hashes, nonces, nil
 }
 
 // NewJitterEngine creates a new jitter engine with the given configuration
@@ -252,6 +277,59 @@ func (je *JitterEngine) getJitterRPC(conn net.Conn, slots [12]uint32, hash uint3
 // Execute21PassLoopBatch processes multiple headers in batch
 // Optimized for GPU acceleration and persistent connections
 func (je *JitterEngine) Execute21PassLoopBatch(headers [][]byte, targetTokenID uint32) ([]*GoldenNonceResult, error) {
+	if batch, ok := je.hashMethod.(BatchHashMethod); ok {
+		states := make([]*HashState, len(headers))
+		jitters := make([][]JitterVector, len(headers))
+		for i, header := range headers {
+			if len(header) != 80 {
+				return nil, fmt.Errorf("invalid header length at %d", i)
+			}
+			states[i] = NewHashState(header, targetTokenID)
+			jitters[i] = make([]JitterVector, 0, je.config.PassCount)
+		}
+		for pass := 0; pass < je.config.PassCount; pass++ {
+			in := make([][]byte, len(states))
+			for i := range states {
+				in[i] = states[i].Header
+			}
+			hashes, _, err := batch.ComputeDoubleHashBatch(in)
+			if err != nil {
+				return nil, fmt.Errorf("pass %d batch hash: %w", pass, err)
+			}
+			for i, hash := range hashes {
+				key := ExtractLookupKey(hash)
+				slots := [12]uint32{}
+				for s := 0; s < 8; s++ {
+					slots[s] = binary.BigEndian.Uint32(states[i].Header[4+s*4:])
+				}
+				for s := 0; s < 4; s++ {
+					slots[s+8] = binary.BigEndian.Uint32(states[i].Header[36+s*4:])
+				}
+				j, found := je.searcher.Search(slots, key, pass)
+				if !found {
+					j = je.searcher.GenerateDefaultJitter(key)
+				}
+				if err := XORJitterIntoHeader(states[i].Header, j); err != nil {
+					return nil, err
+				}
+				jitters[i] = append(jitters[i], j)
+			}
+		}
+		in := make([][]byte, len(states))
+		for i := range states {
+			in[i] = states[i].Header
+		}
+		hashes, nonces, err := batch.ComputeDoubleHashBatch(in)
+		if err != nil {
+			return nil, err
+		}
+		out := make([]*GoldenNonceResult, len(states))
+		for i, h := range hashes {
+			n := ExtractLookupKey(h)
+			out[i] = &GoldenNonceResult{Nonce: n, Found: ComputeAlignment(h, targetTokenID) >= .95, FinalHash: h, FullSeed: h[:], PassesCompleted: je.config.PassCount, Stability: ComputeStability(jitters[i]), Alignment: ComputeAlignment(h, targetTokenID), JitterVectors: jitters[i], Metadata: map[string]interface{}{"target_token_id": targetTokenID, "asic_nonce": nonces[i]}}
+		}
+		return out, nil
+	}
 	results := make([]*GoldenNonceResult, len(headers))
 
 	// Establish persistent connection for the batch
