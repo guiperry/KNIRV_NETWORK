@@ -8,8 +8,11 @@ replace github.com/KNIRV/KNIRV_NETWORK/KNIRVSERVER/pkg/knirvgateway => ./pkg/kni
 
 replace hasher => ./pkg/knirvhasher
 
+replace knirvllama => ./pkg/knirvllama
+
 require (
 	github.com/KNIRV/KNIRV_NETWORK/KNIRVAGENT v0.0.0
+	knirvllama v0.0.0
 	github.com/ethereum/go-ethereum v1.13.15
 	github.com/gin-gonic/gin v1.10.1
 	github.com/golang-jwt/jwt/v5 v5.3.1

@@ -48,6 +48,7 @@ import (
 	"knirv-server/pkg/embedded"
 	"knirv-server/pkg/embedded/validationchain"
 	"knirv-server/pkg/embedded/validationchain/checkpoint"
+	"knirvllama"
 )
 
 // Assets are embedded by the executable and injected into the launcher. Keeping
@@ -112,6 +113,10 @@ type Config struct {
 	// knirvhasher starts in direct ASIC mode (skips CGMiner, drives the ASIC
 	// directly over raw USB). Requires -hasher to take effect.
 	AutoStartDirect bool
+	// AutoStartLlama is command-line only. When -llama is set, the wrapper
+	// extracts and starts the embedded local llama.cpp inference provider
+	// at the top of the initialization sequence, before startAgentControl.
+	AutoStartLlama bool
 	// NetworkMode is "testnet" (default), "production", "development", or
 	// "enterprise" — set from the -prod / -dev / -ent flags (or environment),
 	// not sourced from the config YAML itself.
@@ -311,6 +316,7 @@ type ServerApp struct {
 	tempDir                  string
 	upd                      *updater.Updater
 	monitor                  *monitor.Service
+	llamaManager             *knirvllama.Manager
 }
 
 func (app *ServerApp) startIPFS(ctx context.Context) error {
@@ -740,6 +746,50 @@ func (app *ServerApp) stopAgentControl() {
 		log.Printf("Error stopping KNIRVAGENT control server: %v", err)
 	}
 	app.agentControl = nil
+}
+
+func (app *ServerApp) startLlama() error {
+	if app.llamaManager != nil {
+		return nil
+	}
+
+	appDataDir, err := getAppDataDir()
+	if err != nil {
+		return fmt.Errorf("failed to resolve app data directory: %w", err)
+	}
+
+	binDir := filepath.Join(appDataDir, "bin")
+	llamaBinaryPath, err := knirvllama.ExtractEmbeddedBinary(binDir)
+	if err != nil {
+		return fmt.Errorf("failed to extract KNIRVLLAMA binary: %w", err)
+	}
+
+	managerCfg := knirvllama.DefaultManagerConfig()
+	managerCfg.BinaryPath = llamaBinaryPath
+	managerCfg.DataDir = filepath.Join(appDataDir, "knirvllama")
+
+	manager := knirvllama.NewManager(managerCfg, zap.NewNop())
+	if err := manager.Start(context.Background()); err != nil {
+		return fmt.Errorf("failed to start KNIRVLLAMA: %w", err)
+	}
+
+	app.llamaManager = manager
+	log.Printf("KNIRVLLAMA started on %s", manager.GetListenAddr())
+	return nil
+}
+
+func (app *ServerApp) stopLlama() {
+	if app.llamaManager == nil {
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	if err := app.llamaManager.Stop(ctx); err != nil {
+		log.Printf("Error stopping KNIRVLLAMA: %v", err)
+	}
+	app.llamaManager = nil
 }
 
 func collectAgentExtraEnv() []string {
@@ -3244,7 +3294,11 @@ func (app *ServerApp) startBackend() error {
 	// Pass the config file path used by the wrapper to the backend.
 	// This ensures the backend uses the same configuration.
 	configFile := viper.ConfigFileUsed()
-	backendArgs := backendCommandArgs(configFile, app.config.AutoStartHasher, app.config.AutoStartPipeline, app.config.AutoStartDirect)
+	llamaAddr := ""
+	if app.llamaManager != nil {
+		llamaAddr = app.llamaManager.GetListenAddr()
+	}
+	backendArgs := backendCommandArgs(configFile, app.config.AutoStartHasher, app.config.AutoStartPipeline, app.config.AutoStartDirect, app.config.AutoStartLlama, llamaAddr)
 	if configFile != "" {
 		log.Printf("Passing config file to backend: %s", configFile)
 	}
@@ -3539,8 +3593,8 @@ func (app *ServerApp) startBackend() error {
 	return fmt.Errorf("unified backend did not become healthy within %s", backendHealthTimeout)
 }
 
-func backendCommandArgs(configFile string, autoStartHasher, autoStartPipeline, autoStartDirect bool) []string {
-	args := make([]string, 0, 4)
+func backendCommandArgs(configFile string, autoStartHasher, autoStartPipeline, autoStartDirect, autoStartLlama bool, llamaAddr string) []string {
+	args := make([]string, 0, 6)
 	if configFile != "" {
 		args = append(args, "--config", configFile)
 	}
@@ -3552,6 +3606,9 @@ func backendCommandArgs(configFile string, autoStartHasher, autoStartPipeline, a
 	}
 	if autoStartDirect {
 		args = append(args, "-direct")
+	}
+	if autoStartLlama {
+		args = append(args, "-llama", "-llama-address", llamaAddr)
 	}
 	return args
 }
@@ -3693,6 +3750,12 @@ func (app *ServerApp) Start() error {
 		return err
 	}
 
+	if app.config.AutoStartLlama {
+		if err := app.startLlama(); err != nil {
+			return fmt.Errorf("failed to start embedded llama provider: %w", err)
+		}
+	}
+
 	if err := app.startAgentControl(); err != nil {
 		return err
 	}
@@ -3828,6 +3891,9 @@ func (app *ServerApp) Stop() error {
 	// Stop agent control plane and all running agents.
 	app.stopAgentControl()
 
+	// Stop the embedded KNIRVLLAMA subprocess.
+	app.stopLlama()
+
 	// Clean up temp directory
 	if app.tempDir != "" {
 		os.RemoveAll(app.tempDir)
@@ -3854,6 +3920,7 @@ func loadConfig() (*Config, error) {
 		hasherFlag   = flag.Bool("hasher", false, "Start the KNIRVHASHER ASIC driver (hasher-host/hasher-server deployment) during server initialization")
 		pipelineFlag = flag.Bool("pipeline", false, "Start the KNIRVHASHER data pipeline during server initialization")
 		directFlag   = flag.Bool("direct", false, "Skip CGMiner and drive the ASIC directly over raw USB (requires -hasher)")
+		llamaFlag    = flag.Bool("llama", false, "Start the embedded local llama.cpp inference provider during server initialization")
 		port         = flag.Int("port", 0, "Server port (overrides config)")
 		host         = flag.String("host", "", "Server host (overrides config)")
 	)
@@ -3982,6 +4049,7 @@ func loadConfig() (*Config, error) {
 	config.AutoStartHasher = *hasherFlag
 	config.AutoStartPipeline = *pipelineFlag
 	config.AutoStartDirect = *directFlag
+	config.AutoStartLlama = *llamaFlag
 	config.Enterprise = networkMode == "enterprise"
 	config.UserIDTag = strings.TrimSpace(*userIDTag)
 	if config.UserIDTag == "" {

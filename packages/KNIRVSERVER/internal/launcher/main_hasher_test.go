@@ -12,6 +12,8 @@ func TestBackendCommandArgs(t *testing.T) {
 		autoStartHasher   bool
 		autoStartPipeline bool
 		autoStartDirect   bool
+		autoStartLlama    bool
+		llamaAddr         string
 		want              []string
 	}{
 		{name: "no options", want: []string{}},
@@ -23,11 +25,12 @@ func TestBackendCommandArgs(t *testing.T) {
 		{name: "hasher, pipeline, and direct", autoStartHasher: true, autoStartPipeline: true, autoStartDirect: true, want: []string{"-hasher", "-pipeline", "-direct"}},
 		{name: "config and hasher", configFile: "/tmp/testnet.yaml", autoStartHasher: true, want: []string{"--config", "/tmp/testnet.yaml", "-hasher"}},
 		{name: "config, hasher, pipeline, and direct", configFile: "/tmp/testnet.yaml", autoStartHasher: true, autoStartPipeline: true, autoStartDirect: true, want: []string{"--config", "/tmp/testnet.yaml", "-hasher", "-pipeline", "-direct"}},
+		{name: "llama only", autoStartLlama: true, llamaAddr: "127.0.0.1:8081", want: []string{"-llama", "-llama-address", "127.0.0.1:8081"}},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := backendCommandArgs(tt.configFile, tt.autoStartHasher, tt.autoStartPipeline, tt.autoStartDirect); !reflect.DeepEqual(got, tt.want) {
+			if got := backendCommandArgs(tt.configFile, tt.autoStartHasher, tt.autoStartPipeline, tt.autoStartDirect, tt.autoStartLlama, tt.llamaAddr); !reflect.DeepEqual(got, tt.want) {
 				t.Fatalf("backendCommandArgs() = %v, want %v", got, tt.want)
 			}
 		})
