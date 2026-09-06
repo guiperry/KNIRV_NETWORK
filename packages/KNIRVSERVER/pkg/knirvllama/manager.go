@@ -64,6 +64,12 @@ type LlamaStatus struct {
 const (
 	DefaultListenAddr   = "127.0.0.1:8081"
 	DefaultLlamaAddress = "127.0.0.1:8000"
+	// DefaultStartTimeout must accommodate a first run. The embedded llama
+	// program can clone and build llama.cpp and download a GGUF model before it
+	// starts its chat API; its provisioning context permits up to 30 minutes.
+	// A short, service-style health timeout would kill that work partway through
+	// and make every subsequent launch start again from scratch.
+	DefaultStartTimeout = 35 * time.Minute
 )
 
 func DefaultManagerConfig() *ManagerConfig {
@@ -72,7 +78,7 @@ func DefaultManagerConfig() *ManagerConfig {
 		ListenAddr:   DefaultListenAddr,
 		LlamaAddress: DefaultLlamaAddress,
 		DataDir:      filepath.Join(appDataDir, "knirvllama"),
-		StartTimeout: 60 * time.Second,
+		StartTimeout: DefaultStartTimeout,
 		StopTimeout:  10 * time.Second,
 	}
 }
@@ -95,7 +101,7 @@ func NewManager(cfg *ManagerConfig, logger *zap.Logger) *Manager {
 		cfg = DefaultManagerConfig()
 	}
 	if cfg.StartTimeout == 0 {
-		cfg.StartTimeout = 60 * time.Second
+		cfg.StartTimeout = DefaultStartTimeout
 	}
 	if cfg.StopTimeout == 0 {
 		cfg.StopTimeout = 10 * time.Second
@@ -144,6 +150,11 @@ func (m *Manager) Start(ctx context.Context) error {
 
 	if err := os.MkdirAll(m.config.DataDir, 0755); err != nil {
 		return fmt.Errorf("failed to create data directory: %w", err)
+	}
+	if m.config.SocketPath != "" {
+		if err := os.MkdirAll(filepath.Dir(m.config.SocketPath), 0750); err != nil {
+			return fmt.Errorf("failed to create llama socket directory: %w", err)
+		}
 	}
 
 	m.logger.Info("Starting KNIRVLLAMA",

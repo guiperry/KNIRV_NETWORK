@@ -317,6 +317,9 @@ type ServerApp struct {
 	upd                      *updater.Updater
 	monitor                  *monitor.Service
 	llamaManager             *knirvllama.Manager
+	llamaMu                  sync.Mutex
+	llamaStartCancel         context.CancelFunc
+	llamaStopRequested       bool
 }
 
 func (app *ServerApp) startIPFS(ctx context.Context) error {
@@ -748,10 +751,20 @@ func (app *ServerApp) stopAgentControl() {
 	app.agentControl = nil
 }
 
-func (app *ServerApp) startLlama() error {
+// startLlama starts the local provider after the rest of KNIRVSERVER is
+// available. ctx is cancelled during shutdown so a first-run provision does
+// not outlive the server that requested it.
+func (app *ServerApp) startLlama(ctx context.Context) error {
+	app.llamaMu.Lock()
+	if app.llamaStopRequested {
+		app.llamaMu.Unlock()
+		return context.Canceled
+	}
 	if app.llamaManager != nil {
+		app.llamaMu.Unlock()
 		return nil
 	}
+	app.llamaMu.Unlock()
 
 	appDataDir, err := getAppDataDir()
 	if err != nil {
@@ -767,29 +780,68 @@ func (app *ServerApp) startLlama() error {
 	managerCfg := knirvllama.DefaultManagerConfig()
 	managerCfg.BinaryPath = llamaBinaryPath
 	managerCfg.DataDir = filepath.Join(appDataDir, "knirvllama")
+	managerCfg.SocketPath = filepath.Join(appDataDir, "sockets", "llama.sock")
 
 	manager := knirvllama.NewManager(managerCfg, zap.NewNop())
-	if err := manager.Start(context.Background()); err != nil {
+	if err := manager.Start(ctx); err != nil {
 		return fmt.Errorf("failed to start KNIRVLLAMA: %w", err)
 	}
 
+	app.llamaMu.Lock()
+	if app.llamaStopRequested {
+		app.llamaMu.Unlock()
+		stopCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		_ = manager.Stop(stopCtx)
+		return context.Canceled
+	}
 	app.llamaManager = manager
+	app.llamaMu.Unlock()
 	log.Printf("KNIRVLLAMA started on %s", manager.GetListenAddr())
 	return nil
 }
 
-func (app *ServerApp) stopLlama() {
-	if app.llamaManager == nil {
+// startLlamaAsync schedules llama last so first-run provisioning never delays
+// HTTP, backend, chain, monitor, or any other KNIRVSERVER initialization.
+func (app *ServerApp) startLlamaAsync() {
+	app.llamaMu.Lock()
+	if app.llamaStopRequested || app.llamaStartCancel != nil || app.llamaManager != nil {
+		app.llamaMu.Unlock()
 		return
 	}
+	ctx, cancel := context.WithCancel(context.Background())
+	app.llamaStartCancel = cancel
+	app.llamaMu.Unlock()
+
+	go func() {
+		log.Printf("KNIRVLLAMA initialization started in the background; provisioning logs follow")
+		if err := app.startLlama(ctx); err != nil && !errors.Is(err, context.Canceled) {
+			log.Printf("Warning: KNIRVLLAMA initialization failed: %v", err)
+		}
+	}()
+}
+
+func (app *ServerApp) stopLlama() {
+	app.llamaMu.Lock()
+	app.llamaStopRequested = true
+	if app.llamaStartCancel != nil {
+		app.llamaStartCancel()
+		app.llamaStartCancel = nil
+	}
+	if app.llamaManager == nil {
+		app.llamaMu.Unlock()
+		return
+	}
+	manager := app.llamaManager
+	app.llamaManager = nil
+	app.llamaMu.Unlock()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	if err := app.llamaManager.Stop(ctx); err != nil {
+	if err := manager.Stop(ctx); err != nil {
 		log.Printf("Error stopping KNIRVLLAMA: %v", err)
 	}
-	app.llamaManager = nil
 }
 
 func collectAgentExtraEnv() []string {
@@ -3294,11 +3346,13 @@ func (app *ServerApp) startBackend() error {
 	// Pass the config file path used by the wrapper to the backend.
 	// This ensures the backend uses the same configuration.
 	configFile := viper.ConfigFileUsed()
-	llamaAddr := ""
-	if app.llamaManager != nil {
-		llamaAddr = app.llamaManager.GetListenAddr()
+	llamaSocket := filepath.Join(mustAppDataDir(), "sockets", "llama.sock")
+	app.llamaMu.Lock()
+	if app.llamaManager != nil && app.llamaManager.GetSocketPath() != "" {
+		llamaSocket = app.llamaManager.GetSocketPath()
 	}
-	backendArgs := backendCommandArgs(configFile, app.config.AutoStartHasher, app.config.AutoStartPipeline, app.config.AutoStartDirect, app.config.AutoStartLlama, llamaAddr)
+	app.llamaMu.Unlock()
+	backendArgs := backendCommandArgs(configFile, app.config.AutoStartHasher, app.config.AutoStartPipeline, app.config.AutoStartDirect, app.config.AutoStartLlama, llamaSocket)
 	if configFile != "" {
 		log.Printf("Passing config file to backend: %s", configFile)
 	}
@@ -3593,7 +3647,7 @@ func (app *ServerApp) startBackend() error {
 	return fmt.Errorf("unified backend did not become healthy within %s", backendHealthTimeout)
 }
 
-func backendCommandArgs(configFile string, autoStartHasher, autoStartPipeline, autoStartDirect, autoStartLlama bool, llamaAddr string) []string {
+func backendCommandArgs(configFile string, autoStartHasher, autoStartPipeline, autoStartDirect, autoStartLlama bool, llamaSocket string) []string {
 	args := make([]string, 0, 6)
 	if configFile != "" {
 		args = append(args, "--config", configFile)
@@ -3608,7 +3662,7 @@ func backendCommandArgs(configFile string, autoStartHasher, autoStartPipeline, a
 		args = append(args, "-direct")
 	}
 	if autoStartLlama {
-		args = append(args, "-llama", "-llama-address", llamaAddr)
+		args = append(args, "-llama", "-llama-socket", llamaSocket)
 	}
 	return args
 }
@@ -3750,12 +3804,6 @@ func (app *ServerApp) Start() error {
 		return err
 	}
 
-	if app.config.AutoStartLlama {
-		if err := app.startLlama(); err != nil {
-			return fmt.Errorf("failed to start embedded llama provider: %w", err)
-		}
-	}
-
 	if err := app.startAgentControl(); err != nil {
 		return err
 	}
@@ -3858,6 +3906,13 @@ func (app *ServerApp) Start() error {
 
 	// Wait for server to be ready
 	time.Sleep(2 * time.Second)
+
+	// Llama can spend several minutes provisioning llama.cpp and its model on
+	// first run. It is deliberately scheduled after every required service and
+	// the HTTP server are ready, and its failure is isolated from KNIRVSERVER.
+	if app.config.AutoStartLlama {
+		app.startLlamaAsync()
+	}
 
 	return nil
 }

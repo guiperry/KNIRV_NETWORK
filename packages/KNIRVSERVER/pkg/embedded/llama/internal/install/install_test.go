@@ -1,6 +1,8 @@
 package install
 
 import (
+	"bytes"
+	"compress/gzip"
 	"context"
 	"io"
 	"net/http"
@@ -8,6 +10,35 @@ import (
 	"strings"
 	"testing"
 )
+
+func TestDownloadServerExtractsGzipArtifact(t *testing.T) {
+	var compressed bytes.Buffer
+	writer := gzip.NewWriter(&compressed)
+	if _, err := writer.Write([]byte("server-binary")); err != nil {
+		t.Fatal(err)
+	}
+	if err := writer.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	i := New()
+	i.Get = func(string) (*http.Response, error) {
+		return &http.Response{StatusCode: http.StatusOK, Status: "200 OK", Body: io.NopCloser(bytes.NewReader(compressed.Bytes()))}, nil
+	}
+	i.Run = func(context.Context, string, ...string) error { return nil }
+	path, err := i.downloadServer(context.Background(), t.TempDir(), "https://releases.knirv.com/knirv/llama/linux-amd64/llama-server.gz")
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, err := os.ReadFile(path)
+	if err != nil || string(got) != "server-binary" {
+		t.Fatalf("server = %q, %v", got, err)
+	}
+	info, err := os.Stat(path)
+	if err != nil || info.Mode()&0111 == 0 {
+		t.Fatalf("server is not executable: %v, %v", info, err)
+	}
+}
 
 func TestEnsureUsesProvidedFilesWithoutInstalling(t *testing.T) {
 	dir := t.TempDir()

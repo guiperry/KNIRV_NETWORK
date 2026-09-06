@@ -49,6 +49,12 @@ listenAddr := manager.GetListenAddr()
 | `KNIRV_LLAMA_BINARY_DIR` | Override extraction directory for the vendored binary |
 | `KNIRV_LLAMA_BINARY_PATH` | Use an existing binary instead of the embedded one |
 | `KNIRV_APP_DATA_DIR` | Root data directory (defaults to `/var/lib/knirvserver`) |
+| `KNIRV_LLAMA_SERVER_URL` | Override the prebuilt Linux `llama-server` artifact URL; defaults to `https://releases.knirv.com/knirv/llama/linux-amd64/llama-server.gz` |
+
+On first run, the embedded launcher downloads and caches the Linux `llama-server`
+release. If that artifact cannot be downloaded or used, it falls back to a native
+llama.cpp build and installs only missing `git`, `cmake`, and build-tool packages
+through `apt-get`. Existing cached binaries and installed packages are not replaced.
 
 ## Configuration
 

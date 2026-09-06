@@ -48,7 +48,14 @@ func main() {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Minute)
 	defer cancel()
-	result, err := install.New().Ensure(ctx, install.Options{DataDir: dataDir, ServerPath: serverPath, ModelPath: modelPath, ModelURL: modelURL, NoInstall: noInstall})
+	result, err := install.New().Ensure(ctx, install.Options{
+		DataDir:    dataDir,
+		ServerPath: serverPath,
+		ServerURL:  os.Getenv("KNIRV_LLAMA_SERVER_URL"),
+		ModelPath:  modelPath,
+		ModelURL:   modelURL,
+		NoInstall:  noInstall,
+	})
 	if err != nil {
 		log.Fatal(err)
 	}

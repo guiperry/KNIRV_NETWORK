@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"os"
 	"os/exec"
 	"time"
 )
@@ -32,6 +33,10 @@ func Start(path, model, address string) (*Server, error) {
 		return nil, fmt.Errorf("invalid llama address %q: %w", address, err)
 	}
 	cmd := exec.Command(path, "-m", model, "--host", "127.0.0.1", "--port", port)
+	// Keep llama-server diagnostics in the KNIRVSERVER log stream. These logs
+	// explain model-load failures and make first-run progress observable.
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
 	if err := cmd.Start(); err != nil {
 		return nil, fmt.Errorf("start llama-server: %w", err)
 	}
