@@ -47,6 +47,19 @@ func (s *Server) Stop() {
 	if s == nil || s.Command == nil || s.Command.Process == nil {
 		return
 	}
-	_ = s.Command.Process.Kill()
-	_ = s.Command.Wait()
+	// llama-server receives SIGINT when KNIRVLLAMA is asked to stop, matching
+	// an operator interrupt and allowing it to finish its own shutdown path.
+	if err := s.Command.Process.Signal(os.Interrupt); err != nil {
+		_ = s.Command.Process.Kill()
+		_ = s.Command.Wait()
+		return
+	}
+	done := make(chan error, 1)
+	go func() { done <- s.Command.Wait() }()
+	select {
+	case <-done:
+	case <-time.After(10 * time.Second):
+		_ = s.Command.Process.Kill()
+		<-done
+	}
 }

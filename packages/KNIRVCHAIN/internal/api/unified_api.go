@@ -1,11 +1,16 @@
 package api
 
 import (
+	"archive/tar"
+	"compress/gzip"
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -14,6 +19,7 @@ import (
 
 	"KNIRVCHAIN/config"
 	"KNIRVCHAIN/internal/auth"
+	ulorastore "KNIRVCHAIN/internal/ulora"
 )
 
 // UnifiedAPI provides a single interface for all Oracle operations
@@ -113,8 +119,78 @@ func (api *UnifiedAPI) setupRoutes() {
 	api.router.HandleFunc("/api/mining/propose", api.authMiddleware(api.handleMiningProposal)).Methods("POST")
 	api.router.HandleFunc("/api/mining/validate", api.authMiddleware(api.handleMiningValidation)).Methods("POST")
 
+	// Content-addressed universal adapter bundles. Bundle hashes are validated
+	// before touching the filesystem, so this route cannot escape the store.
+	api.router.HandleFunc("/api/ulora/{hash}", api.handleULoRABundle).Methods("GET")
+
 	// Static file serving for Web GUI
 	api.router.PathPrefix("/").Handler(http.FileServer(http.Dir("./webGUI/build/")))
+}
+
+func (api *UnifiedAPI) uloraStore() (*ulorastore.Store, error) {
+	if dir := strings.TrimSpace(os.Getenv("KNIRV_APP_DATA_DIR")); dir != "" {
+		return ulorastore.NewStore(dir)
+	}
+	if api.config != nil && strings.TrimSpace(api.config.BlockchainDatabasePath) != "" {
+		return ulorastore.NewStore(filepath.Dir(api.config.BlockchainDatabasePath))
+	}
+	return ulorastore.NewStore(filepath.Join(os.TempDir(), "knirvchain"))
+}
+
+func (api *UnifiedAPI) handleULoRABundle(w http.ResponseWriter, r *http.Request) {
+	store, err := api.uloraStore()
+	if err != nil {
+		http.Error(w, "bundle store unavailable", http.StatusInternalServerError)
+		return
+	}
+	f, err := store.Open(mux.Vars(r)["hash"])
+	if err != nil {
+		if os.IsNotExist(err) {
+			http.NotFound(w, r)
+		} else {
+			http.Error(w, "invalid bundle hash", http.StatusBadRequest)
+		}
+		return
+	}
+	defer f.Close()
+	if r.URL.Query().Get("manifest") == "1" {
+		manifest, err := manifestFromBundle(f)
+		if err != nil {
+			http.Error(w, "bundle manifest unavailable", http.StatusUnprocessableEntity)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write(manifest)
+		return
+	}
+	w.Header().Set("Content-Type", "application/vnd.ulora+gzip")
+	_, _ = io.Copy(w, f)
+}
+
+func manifestFromBundle(f *os.File) ([]byte, error) {
+	if _, err := f.Seek(0, 0); err != nil {
+		return nil, err
+	}
+	var reader io.Reader = f
+	if gz, err := gzip.NewReader(f); err == nil {
+		defer gz.Close()
+		reader = gz
+	} else if _, err := f.Seek(0, 0); err != nil {
+		return nil, err
+	}
+	tr := tar.NewReader(reader)
+	for {
+		h, err := tr.Next()
+		if err == io.EOF {
+			return nil, fmt.Errorf("manifest.json not found")
+		}
+		if err != nil {
+			return nil, err
+		}
+		if h.Name == "manifest.json" {
+			return io.ReadAll(io.LimitReader(tr, 4<<20))
+		}
+	}
 }
 
 // authMiddleware wraps handlers with JWT authentication

@@ -141,6 +141,7 @@ packages/KNIRVSERVER/pkg/knirvhasher/bin/knirvhasher
 packages/KNIRVSERVER/pkg/knirvgraph/bin/knirvgraph
 packages/KNIRVSERVER/pkg/knirvchain/bin/knirvchain
 packages/KNIRVSERVER/pkg/knirvagent/bin/knirvagent
+packages/KNIRVSERVER/pkg/knirvulora/bin/ulorad
 packages/KNIRVAGENT/knirvagent
 packages/KNIRVHASHER/hasher-cli
 packages/KNIRVSERVER/pkg/embedded/validationchain/bin/validationchain

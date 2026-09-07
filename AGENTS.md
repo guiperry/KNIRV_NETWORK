@@ -8,15 +8,11 @@ KNIRV Network — Decentralized Trusted Execution Network (D-TEN). Transforms AI
 
 | Package | Tech | Module file |
 |---------|------|-------------|
-| `packages/KNIRVCHAIN` | Go 1.21+ | `packages/KNIRVCHAIN/go.mod` |
-| `packages/KNIRVSERVER` | Go 1.21+ | `packages/KNIRVSERVER/go.mod` (backend_server binary is vendored via `//go:embed bin/backend_server`; its source lives in the separate `KNIRV_CORP` repo at `KNIRV_CORP/packages/server/backend`, not under `packages/KNIRVSERVER/backend`) |
+| `packages/KNIRVCHAIN` | Go | `packages/KNIRVCHAIN/go.mod` |
+| `packages/KNIRVSERVER` | Go 1.25+ | `packages/KNIRVSERVER/go.mod` (backend_server binary is vendored via `//go:embed bin/backend_server`; its source lives in the separate `KNIRV_CORP` repo at `KNIRV_CORP/packages/server/backend_server`, not under `packages/KNIRVSERVER/backend`) |
 | `packages/KNIRVGATEWAY` | Go | `packages/KNIRVGATEWAY/go.mod` |
 | `packages/KNIRVBASE/ts` | Node 18+ | `packages/KNIRVBASE/ts/package-lock.json` |
-| `packages/KNIRVARENA` | TS/React/Three.js | `packages/KNIRVARENA/packages/ts_client_2/` |
-| `packages/KNIRVHEART` | Python/Go | `packages/KNIRVHEART/HEART/` |
-| `devtools/KNIRVTESTNET` | Node.js | `devtools/KNIRVTESTNET/Makefile` |
-| `devtools/KNIRVSYNC` | Go | `devtools/KNIRVSYNC/go.mod` |
-| `devtools/network-monitor` | Go | `devtools/network-monitor/go.mod` |
+| `packages/KNIRVARENA` | TS/React/Three.js | `packages/KNIRVARENA/src/` |
 | `integration-tests` | Go | `integration-tests/go.mod` |
 | `modp` | P language | `modp/KnirvNetwork.pproj` |
 | Merkle checkpoint protocol | Go + P | `packages/KNIRVCHAIN/internal/checkpoint/`, `packages/KNIRVORACLE/internal/oracle/{mmr,registry}`, `modp/components/oracle/checkpoint_machine.p` |
@@ -43,7 +39,7 @@ UnifiedMemorySystem — All knowledge representation in one module.
 **KNIRVCHAIN internals:** `internal/mining/` · `internal/validation/` · `internal/auth/` · `internal/cache/` · `internal/database/` · `internal/agent/` · `internal/pricing/` · `internal/classifier/` · `internal/resilience/` · `internal/security/` · `internal/tracing/`
 
 **Node Transformation Flows:**
-- `ErrorNode → SkillNode` mining → LoRA Adapter Pointer
+- `ErrorNode → SkillNode` mining → `skill.md`; the separate mining path still has a live `LoRAAdapterPointer` type, so do not treat it as globally deprecated.
 - `ContextNode → CapabilityNode` minting → MCP Server Pointer
 - `IdeaNode → PropertyNode` making → Inference NFT Pointer
 
@@ -108,7 +104,7 @@ Scripts: `scripts/run-full-demo.sh` · `scripts/validate-testnet-complete.sh` ·
 
 ## KNIRVARENA (3D RTS)
 
-TS client: `packages/KNIRVARENA/packages/ts_client_2/src/`
+Source is flat: `packages/KNIRVARENA/src/`
 
 Key: `src/components/KNIRVANAGameVisualization.tsx` · `src/components/game/GameScene.tsx` · `src/engine/TrainingManager.ts` · `src/networking/ArenaClient.ts` · `src/core/api/knirvbase.ts` · `src/core/storage/BrowserDB.ts`
 

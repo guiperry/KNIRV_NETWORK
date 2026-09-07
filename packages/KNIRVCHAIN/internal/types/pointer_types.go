@@ -7,16 +7,56 @@ import (
 	"fmt"
 	"time"
 )
+
 // LoRAAdapterPointer points to the fine-tuned model weights
 type LoRAAdapterPointer struct {
-	AdapterID       string   `json:"adapter_id"`
-	IPFSCID         string   `json:"ipfs_cid"`         // content address of LoRA weights
-	CMU             string   `json:"cmu"`              // knirv://network/adapter_hash
-	BaseModelRef    string   `json:"base_model_ref"`   // which base LLM this adapts
-	Rank            int      `json:"rank"`             // LoRA rank parameter
-	Alpha           float64  `json:"alpha"`            // LoRA alpha scaling
-	TargetModules   []string `json:"target_modules"`   // q_proj, v_proj, etc.
+	AdapterID     string   `json:"adapter_id"`
+	IPFSCID       string   `json:"ipfs_cid"`       // content address of LoRA weights
+	CMU           string   `json:"cmu"`            // knirv://network/adapter_hash
+	BaseModelRef  string   `json:"base_model_ref"` // which base LLM this adapts
+	Rank          int      `json:"rank"`           // LoRA rank parameter
+	Alpha         float64  `json:"alpha"`          // LoRA alpha scaling
+	TargetModules []string `json:"target_modules"` // q_proj, v_proj, etc.
+	CreatedAt     int64    `json:"created_at"`
+}
+
+// ULoRABundlePointer references a cluster-derived, portable adapter bundle.
+// ContentHash is the SHA-256 digest of the actual stored bundle bytes.
+type ULoRABundlePointer struct {
+	BundleID        string   `json:"bundle_id"`
+	ContentHash     string   `json:"content_hash"`
+	CMU             string   `json:"cmu"`
+	SourceClusterID string   `json:"source_cluster_id"`
+	SourceSkillIDs  []string `json:"source_skill_ids"`
+	TargetModels    []string `json:"target_models"`
+	ManifestVersion string   `json:"manifest_version"`
 	CreatedAt       int64    `json:"created_at"`
+}
+
+func NewULoRABundlePointer(bundleID, contentHash, sourceClusterID string, sourceSkillIDs, targetModels []string, manifestVersion string) (*ULoRABundlePointer, error) {
+	if bundleID == "" || contentHash == "" || sourceClusterID == "" || manifestVersion == "" {
+		return nil, errors.NewValidationError("bundle_id, content_hash, source_cluster_id, and manifest_version cannot be empty")
+	}
+	if len(sourceSkillIDs) == 0 || len(targetModels) == 0 {
+		return nil, errors.NewValidationError("source_skill_ids and target_models cannot be empty")
+	}
+	if len(contentHash) != sha256.Size*2 {
+		return nil, errors.NewValidationError("content_hash must be a sha256 hex digest")
+	}
+	if _, err := hex.DecodeString(contentHash); err != nil {
+		return nil, errors.NewValidationError("content_hash must be a sha256 hex digest")
+	}
+	return &ULoRABundlePointer{
+		BundleID: bundleID, ContentHash: contentHash,
+		CMU:             fmt.Sprintf("knirv://network/ulora_%s", contentHash),
+		SourceClusterID: sourceClusterID, SourceSkillIDs: sourceSkillIDs,
+		TargetModels: targetModels, ManifestVersion: manifestVersion, CreatedAt: time.Now().Unix(),
+	}, nil
+}
+
+func (p *ULoRABundlePointer) Validate() error {
+	_, err := NewULoRABundlePointer(p.BundleID, p.ContentHash, p.SourceClusterID, p.SourceSkillIDs, p.TargetModels, p.ManifestVersion)
+	return err
 }
 
 // NewLoRAAdapterPointer creates a new LoRA adapter pointer with validation
@@ -87,14 +127,14 @@ func (lap *LoRAAdapterPointer) Validate() error {
 
 // MCPServerPointer references the MCP server implementation
 type MCPServerPointer struct {
-	ServerID        string            `json:"server_id"`
-	EndpointURI     string            `json:"endpoint_uri"`     // wss://server/mcp
-	CMU             string            `json:"cmu"`              // knirv://network/mcp_hash
-	ProtocolVersion string            `json:"protocol_version"` // MCP protocol version
-	Capabilities    []string          `json:"capabilities"`     // tools, resources, prompts
-	AuthMethod      string            `json:"auth_method"`      // none, api_key, oauth, udc
-	MetadataCID     string            `json:"metadata_cid"`     // IPFS pointer to full spec
-	CreatedAt       int64             `json:"created_at"`
+	ServerID        string   `json:"server_id"`
+	EndpointURI     string   `json:"endpoint_uri"`     // wss://server/mcp
+	CMU             string   `json:"cmu"`              // knirv://network/mcp_hash
+	ProtocolVersion string   `json:"protocol_version"` // MCP protocol version
+	Capabilities    []string `json:"capabilities"`     // tools, resources, prompts
+	AuthMethod      string   `json:"auth_method"`      // none, api_key, oauth, udc
+	MetadataCID     string   `json:"metadata_cid"`     // IPFS pointer to full spec
+	CreatedAt       int64    `json:"created_at"`
 }
 
 // NewMCPServerPointer creates a new MCP server pointer with validation
@@ -165,13 +205,13 @@ func (msp *MCPServerPointer) Validate() error {
 
 // InferenceNFTPointer references the on-chain NFT
 type InferenceNFTPointer struct {
-	TokenID         string            `json:"token_id"`
-	ContractAddress string            `json:"contract_address"`
-	CMU             string            `json:"cmu"`              // knirv://network/nft_hash
-	MetadataURI     string            `json:"metadata_uri"`     // IPFS/Arweave pointer
-	ProvenanceChain []string          `json:"provenance_chain"` // history of ownership
-	LicenseTerms    string            `json:"license_terms"`    // usage rights
-	CreatedAt       int64             `json:"created_at"`
+	TokenID         string   `json:"token_id"`
+	ContractAddress string   `json:"contract_address"`
+	CMU             string   `json:"cmu"`              // knirv://network/nft_hash
+	MetadataURI     string   `json:"metadata_uri"`     // IPFS/Arweave pointer
+	ProvenanceChain []string `json:"provenance_chain"` // history of ownership
+	LicenseTerms    string   `json:"license_terms"`    // usage rights
+	CreatedAt       int64    `json:"created_at"`
 }
 
 // NewInferenceNFTPointer creates a new inference NFT pointer with validation
@@ -238,9 +278,9 @@ func (infp *InferenceNFTPointer) AddToProvenanceChain(address string) error {
 
 // RoyaltyStructure defines payment distribution
 type RoyaltyStructure struct {
-	OriginNIMShare    uint8             `json:"origin_nim_share"`    // percentage to creator
-	NetworkShare      uint8             `json:"network_share"`       // percentage to network
-	DependencyShares  map[string]uint8 `json:"dependency_shares"` // to referenced ideas
+	OriginNIMShare   uint8            `json:"origin_nim_share"`  // percentage to creator
+	NetworkShare     uint8            `json:"network_share"`     // percentage to network
+	DependencyShares map[string]uint8 `json:"dependency_shares"` // to referenced ideas
 }
 
 // NewRoyaltyStructure creates a new royalty structure with validation

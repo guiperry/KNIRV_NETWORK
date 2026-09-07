@@ -48,7 +48,9 @@ func main() {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Minute)
 	defer cancel()
-	result, err := install.New().Ensure(ctx, install.Options{
+	installer := install.New()
+	installer.Prog = install.NewProgress(os.Stderr)
+	result, err := installer.Ensure(ctx, install.Options{
 		DataDir:    dataDir,
 		ServerPath: serverPath,
 		ServerURL:  os.Getenv("KNIRV_LLAMA_SERVER_URL"),

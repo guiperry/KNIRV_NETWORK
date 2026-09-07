@@ -92,16 +92,13 @@ describe('KNIRVSERVERClient', () => {
       });
     });
 
-    it('should handle DVE validation error gracefully', async () => {
+    it('should throw on DVE validation error', async () => {
       (mockAxiosInstance.post as any).mockRejectedValue(new Error('Network error'));
 
-      const result = await client.validateWithDVE({
+      await expect(client.validateWithDVE({
         skillCode: 'test',
         failureContext: 'context',
-      });
-
-      expect(result.success).toBe(false);
-      expect(result.score).toBe(0.5);
+      })).rejects.toThrow('DVE validation failed');
     });
 
     it('should get DVE tasks', async () => {
@@ -253,16 +250,13 @@ describe('KNIRVSERVERClient', () => {
       expect(result).toEqual(mockResult);
     });
 
-    it('should handle CDE validation error gracefully', async () => {
+    it('should throw on CDE validation error', async () => {
       (mockAxiosInstance.post as any).mockRejectedValue(new Error('Network error'));
 
-      const result = await client.validateWithCDE({
+      await expect(client.validateWithCDE({
         code: 'test',
         language: 'javascript',
-      });
-
-      expect(result.success).toBe(true);
-      expect(result.constraintsSatisfied).toBe(true);
+      })).rejects.toThrow('CDE validation failed');
     });
   });
 

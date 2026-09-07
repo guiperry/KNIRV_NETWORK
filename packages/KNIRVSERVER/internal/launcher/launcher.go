@@ -48,6 +48,7 @@ import (
 	"knirv-server/pkg/embedded"
 	"knirv-server/pkg/embedded/validationchain"
 	"knirv-server/pkg/embedded/validationchain/checkpoint"
+	"knirv-server/pkg/progress"
 	"knirvllama"
 )
 
@@ -57,6 +58,7 @@ import (
 type Assets struct {
 	Frontend      fs.FS
 	BackendBinary []byte
+	ULoRABinary   []byte
 	ConfigFiles   fs.FS
 	Version       string
 	BuildTime     string
@@ -66,6 +68,7 @@ type Assets struct {
 var (
 	embeddedFiles fs.FS
 	backendBinary []byte
+	uloraBinary   []byte
 	configFiles   fs.FS
 	Version       = "dev"
 	BuildTime     = "unknown"
@@ -313,6 +316,8 @@ type ServerApp struct {
 	xionCmd                  *exec.Cmd
 	textEmbedderCmd          *exec.Cmd
 	backendPath              string
+	uloraPath                string
+	uloraCmd                 *exec.Cmd
 	tempDir                  string
 	upd                      *updater.Updater
 	monitor                  *monitor.Service
@@ -797,7 +802,7 @@ func (app *ServerApp) startLlama(ctx context.Context) error {
 	}
 	app.llamaManager = manager
 	app.llamaMu.Unlock()
-	log.Printf("KNIRVLLAMA started on %s", manager.GetListenAddr())
+	log.Printf("KNIRVLLAMA started on unix://%s", manager.GetSocketPath())
 	return nil
 }
 
@@ -1607,8 +1612,16 @@ func extractBinaries() (string, error) {
 		return "", fmt.Errorf("failed to create bin directory: %w", err)
 	}
 
+	// Decompressing the embedded (gzip) backend_server is one of the first
+	// multi-second holds a fresh install pays, so surface it as progress rather
+	// than a silent wait. Degrades to rolling log lines when stderr is not a
+	// terminal.
+	sp := progress.New(os.Stderr)
+	sp.Start("Extracting backend runtime", "decompressing backend archive...", "installing backend binary...", "verifying executable...")
+
 	decompressed, err := decompressBinary(backendBinary)
 	if err != nil {
+		sp.Stop("Warning: failed to decompress backend binary")
 		return "", fmt.Errorf("failed to decompress backend binary: %w", err)
 	}
 
@@ -1618,19 +1631,24 @@ func extractBinaries() (string, error) {
 	}
 	bins := []entry{
 		{"backend_server", decompressed},
+		{"ulorad", uloraBinary},
 	}
 
 	for _, b := range bins {
+		sp.Log(fmt.Sprintf("Extracting %s...", b.name))
 		dest := filepath.Join(binDir, b.name)
 		if err := os.RemoveAll(dest); err != nil {
+			sp.Stop("")
 			return "", fmt.Errorf("failed to remove existing %s: %w", b.name, err)
 		}
 		if err := writeFileAtomically(dest, b.data, 0755); err != nil {
+			sp.Stop("")
 			return "", fmt.Errorf("failed to extract %s: %w", b.name, err)
 		}
 		log.Printf("Extracted %s to %s", b.name, dest)
 	}
 
+	sp.Stop("")
 	return binDir, nil
 }
 
@@ -1654,6 +1672,7 @@ func (app *ServerApp) extractBackend() error {
 	}
 
 	app.backendPath = filepath.Join(binDir, "backend_server")
+	app.uloraPath = filepath.Join(binDir, "ulorad")
 	return nil
 }
 
@@ -3083,7 +3102,7 @@ func (app *ServerApp) startValidationChain(ctx context.Context) error {
 		oracleURL = gatewayURL
 	}
 
-	if !waitForOracleHealth(ctx, 60*time.Second, oracleURL) {
+	if !waitForOracleHealth(ctx, 60*time.Second, oracleURL, oracleWaitSpinner("Waiting for KNIRVORACLE (checkpoint registration)")) {
 		log.Printf("Warning: KNIRVORACLE did not become healthy in time; Validation Chain checkpoint registration will retry in the background")
 	}
 
@@ -3166,16 +3185,28 @@ func oracleGatewayURL(cfg *Config) string {
 // waitForOracleHealth polls KNIRVORACLE's health endpoint through the
 // public gateway with a bounded retry. Non-fatal: Transaction Chain still
 // starts if Oracle never comes up, it just skips the funding step (which
-// requires Oracle's Faucet).
-func waitForOracleHealth(ctx context.Context, timeout time.Duration, oracleURL string) bool {
+// requires Oracle's Faucet). sp, when non-nil, renders determinate progress
+// across the full polling budget so the (up to) timeout-long hold shows an
+// active loading bar instead of silence.
+func waitForOracleHealth(ctx context.Context, timeout time.Duration, oracleURL string, sp *progress.Spinner) bool {
+	if sp == nil {
+		sp = progress.New(io.Discard)
+		sp.StartWithTimeout("Waiting for KNIRVORACLE", timeout, "probing oracle health...")
+	}
+	// Always retire the spinner before returning so the bar is cleared and the
+	// caller's own Warning / success line lands on a clean terminal row.
+	defer sp.Stop("")
+
 	client := &http.Client{Timeout: 3 * time.Second}
 	deadline := time.Now().Add(timeout)
+	attempt := 0
 	for time.Now().Before(deadline) {
 		select {
 		case <-ctx.Done():
 			return false
 		default:
 		}
+		sp.SetStats(fmt.Sprintf("attempt %d", attempt+1))
 		req, err := http.NewRequestWithContext(ctx, http.MethodGet, oracleURL+"/oracle/v3/health", nil)
 		if err == nil {
 			if resp, err := client.Do(req); err == nil {
@@ -3185,9 +3216,28 @@ func waitForOracleHealth(ctx context.Context, timeout time.Duration, oracleURL s
 				}
 			}
 		}
+		attempt++
 		time.Sleep(2 * time.Second)
 	}
 	return false
+}
+
+// oracleWaitSpinner builds a determinate progress bar for a KNIRVORACLE health
+// wait. The status labels mirror the stages KNIRVORACLE walks through on
+// startup, so the rolling text reads as real work even when every poll fails.
+func oracleWaitSpinner(title string) *progress.Spinner {
+	sp := progress.New(os.Stderr)
+	sp.StartWithTimeout(title, 60*time.Second,
+		"loading genesis block and root.key signers",
+		"installing audit MMR checkpoint ledger",
+		"starting economics engine",
+		"starting consensus engine",
+		"starting IBC handler",
+		"starting P2P manager",
+		"opening oracle tunnel socket",
+		"awaiting first health check",
+	)
+	return sp
 }
 
 // startTransactionChain starts the Transaction Chain subprocess bound to a
@@ -3204,7 +3254,7 @@ func (app *ServerApp) startTransactionChain(ctx context.Context) error {
 	log.Printf("Transaction Chain started on socket %s", socketPath)
 
 	oracleURL := oracleGatewayURL(app.config)
-	if !waitForOracleHealth(ctx, 60*time.Second, oracleURL) {
+	if !waitForOracleHealth(ctx, 60*time.Second, oracleURL, oracleWaitSpinner("Waiting for KNIRVORACLE (Transaction Chain funding)")) {
 		log.Printf("Warning: KNIRVORACLE did not become healthy in time; skipping Transaction Chain wallet funding")
 		return nil
 	}
@@ -3430,6 +3480,12 @@ func (app *ServerApp) startBackend() error {
 			fmt.Sprintf("KNIRV_ORACLE_BINARY_DIR=%s", binDir),
 			fmt.Sprintf("KNIRV_KNIRVCLI_PATH=%s", filepath.Join(binDir, "knirvshell")),
 			fmt.Sprintf("KNIRV_ARENA_SOCKET_PATH=%s", filepath.Join(appDataDir, "sockets", "arena.sock")),
+			// ulorad is standalone: only this outer launcher translates the
+			// platform token and paths into its generic service contract.
+			fmt.Sprintf("ULORA_AUTH_TOKEN=%s", app.internalAuthToken),
+			fmt.Sprintf("ULORA_SOCKET_PATH=%s", filepath.Join(appDataDir, "sockets", "ulora.sock")),
+			fmt.Sprintf("ULORA_DATA_DIR=%s", filepath.Join(appDataDir, "ulora")),
+			fmt.Sprintf("ULORA_BINARY_PATH=%s", filepath.Join(binDir, "ulorad")),
 		)
 	}
 	if configDir, err := getConfigDir(); err == nil {
@@ -3629,6 +3685,8 @@ func (app *ServerApp) startBackend() error {
 	// chain, hasher, arena, and inference-provider setup that follows it.
 	const backendHealthTimeout = 150 * time.Second
 	deadline := time.Now().Add(backendHealthTimeout)
+	started := time.Now()
+	lastStageLog := time.Time{}
 	for time.Now().Before(deadline) {
 		resp, err := client.Get(healthURL)
 		if err == nil {
@@ -3642,9 +3700,48 @@ func (app *ServerApp) startBackend() error {
 				return nil
 			}
 		}
+		// The backend spawns KNIRVARENA, KNIRVORACLE, KNIRVGRAPH, KNIRVCHAIN,
+		// KNIRVGATEWAY and its Cloudflare tunnel before its own /health comes
+		// up — often 30s+ with no output at all. Emit rolling boot-stage stats
+		// (once the hold is meaningful) so the gap reads as work in progress
+		// instead of a hang. Line-based on purpose: the backend streams its own
+		// logs to this same terminal, and an in-place bar would corrupt them.
+		elapsed := time.Since(started)
+		if elapsed > 3*time.Second && time.Since(lastStageLog) >= 4*time.Second {
+			log.Printf("  ⏳ KNIRV backend still starting — %s (%s elapsed)", backendBootStage(elapsed), formatElapsedStat(elapsed))
+			lastStageLog = time.Now()
+		}
 		time.Sleep(500 * time.Millisecond)
 	}
 	return fmt.Errorf("unified backend did not become healthy within %s", backendHealthTimeout)
+}
+
+// backendBootStage maps elapsed backend-boot time onto the subsystem startup
+// sequence the backend performs before its own /health endpoint responds. The
+// windows mirror observed KNIRVSERVER start timings (see KNIRVSERVER startup
+// logs): services come up in a predictable order but the exact delays vary.
+func backendBootStage(elapsed time.Duration) string {
+	switch {
+	case elapsed < 5*time.Second:
+		return "configuring runtime environment"
+	case elapsed < 20*time.Second:
+		return "extracting services (KNIRVARENA, KNIRVORACLE)"
+	case elapsed < 35*time.Second:
+		return "starting KNIRVGRAPH / KNIRVCHAIN"
+	case elapsed < 55*time.Second:
+		return "establishing Cloudflare tunnel via KNIRVGATEWAY"
+	case elapsed < 90*time.Second:
+		return "registering API routes and arena bundle"
+	case elapsed < 120*time.Second:
+		return "warming chain/checkpoint infrastructure"
+	default:
+		return "still booting (slow network or first-run provisioning)"
+	}
+}
+
+// formatElapsedStat renders elapsed seconds compactly for status lines.
+func formatElapsedStat(d time.Duration) string {
+	return fmt.Sprintf("%.0fs", d.Seconds())
 }
 
 func backendCommandArgs(configFile string, autoStartHasher, autoStartPipeline, autoStartDirect, autoStartLlama bool, llamaSocket string) []string {
@@ -3711,6 +3808,40 @@ func (app *ServerApp) stopBackend() {
 			log.Printf("Backend PID %d force killed", pid)
 		}
 	}
+}
+
+// startULoRA starts the standalone adapter compiler before backend_server so
+// downstream services can use its socket from their first request.
+func (app *ServerApp) startULoRA() error {
+	if len(uloraBinary) == 0 || app.uloraPath == "" {
+		return fmt.Errorf("embedded ulorad binary is unavailable")
+	}
+	appDataDir, err := getAppDataDir()
+	if err != nil {
+		return fmt.Errorf("resolve ulora app data directory: %w", err)
+	}
+	socketPath := filepath.Join(appDataDir, "sockets", "ulora.sock")
+	dataDir := filepath.Join(appDataDir, "ulora")
+	if err := os.MkdirAll(filepath.Dir(socketPath), 0755); err != nil {
+		return err
+	}
+	if err := os.MkdirAll(dataDir, 0755); err != nil {
+		return err
+	}
+	_ = os.Remove(socketPath)
+	app.uloraCmd = exec.Command(app.uloraPath)
+	app.uloraCmd.Env = append(os.Environ(),
+		"ULORA_AUTH_TOKEN="+app.internalAuthToken,
+		"ULORA_SOCKET_PATH="+socketPath,
+		"ULORA_DATA_DIR="+dataDir,
+	)
+	app.uloraCmd.Stdout = os.Stdout
+	app.uloraCmd.Stderr = os.Stderr
+	if err := app.uloraCmd.Start(); err != nil {
+		return fmt.Errorf("start ulorad: %w", err)
+	}
+	log.Printf("ulorad started (PID: %d)", app.uloraCmd.Process.Pid)
+	return nil
 }
 
 // validateProductionCredentials ensures that either root.key (root node) or
@@ -3858,6 +3989,10 @@ func (app *ServerApp) Start() error {
 		}
 	}
 
+	if err := app.startULoRA(); err != nil {
+		return err
+	}
+
 	// Start backend (spawns KNIRVORACLE among other services)
 	if err := app.startBackend(); err != nil {
 		return err
@@ -3931,6 +4066,7 @@ func (app *ServerApp) Stop() error {
 
 	// Stop backend
 	app.stopBackend()
+	stopManagedProcess("ulorad", app.uloraCmd)
 	stopManagedProcess("Xion", app.xionCmd)
 	stopManagedProcess("IPFS", app.ipfsCmd)
 	stopManagedProcess("text-embedder", app.textEmbedderCmd)
@@ -4127,6 +4263,7 @@ func loadConfig() (*Config, error) {
 func Run(assets Assets) {
 	embeddedFiles = assets.Frontend
 	backendBinary = assets.BackendBinary
+	uloraBinary = assets.ULoRABinary
 	configFiles = assets.ConfigFiles
 	Version = assets.Version
 	BuildTime = assets.BuildTime

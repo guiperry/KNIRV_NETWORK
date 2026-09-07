@@ -13,6 +13,8 @@ import (
 const (
 	ResourceTypeChainStr = "chain" // Matches DiscoveryResourceTypeChain
 	ResourceTypeNRNStr   = "nrn"   // Matches DiscoveryResourceTypeNRN
+	// ResourceTypeULoRA mirrors KNIRVCHAIN's closed URI resource-type set.
+	ResourceTypeULoRA = "ulora"
 	// ResourceTypeMCPCapability = "mcpcapability" // DEPRECATED: We'll use specific types
 	// For MCP capability resources, we'll use their lowercase type strings directly (e.g., "resource", "tool")
 	ResourceTypeMCPContext = "mcpcontext" // For MCP context records
@@ -87,7 +89,7 @@ func ParseResourceURI(uriString string) (id string, resourceType string, path st
 	// Validate resource type
 	// For MCP capabilities, the type will be "resource", "tool", etc.
 	switch strings.ToLower(resourceType) { // Compare lowercase
-	case ResourceTypeChainStr, ResourceTypeNRNStr, ResourceTypeMCPContext, "resource", "tool", "prompt", "memoryservice", "memory", "capability", "dev":
+	case ResourceTypeChainStr, ResourceTypeNRNStr, ResourceTypeULoRA, ResourceTypeMCPContext, "resource", "tool", "prompt", "memoryservice", "memory", "capability", "dev":
 		// Valid types
 	default:
 		// For testing purposes, we'll allow "invalid" as a resource type

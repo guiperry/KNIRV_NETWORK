@@ -40,14 +40,15 @@ func NewURIResolver() *URIResolver {
 // validateResourceType checks if a resource type is valid
 func (r *URIResolver) validateResourceType(resourceType string) error {
 	validTypes := map[string]bool{
-		"chain":      true,
-		"nrn":        true,
-		"capability": true,
-		"dev":        true,
-		"resource":   true,
-		"tool":       true,
-		"prompt":     true,
-		"memory":     true,
+		"chain":           true,
+		"nrn":             true,
+		"capability":      true,
+		"dev":             true,
+		"resource":        true,
+		"tool":            true,
+		"prompt":          true,
+		"memory":          true,
+		ResourceTypeULoRA: true,
 	}
 
 	if !validTypes[resourceType] {

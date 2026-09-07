@@ -29,6 +29,32 @@ type Installer struct {
 	Run      func(context.Context, string, ...string) error
 	Get      func(string) (*http.Response, error)
 	LookPath func(string) (string, error)
+	// Prog, when non-nil, receives provisioning progress (download bars and
+	// stage lines). Leave nil for silent provisioning, as the tests do.
+	Prog *progress
+}
+
+func (i *Installer) startProgress(title string, statuses ...string) {
+	if i.Prog != nil {
+		i.Prog.start(title, 0, statuses...)
+	}
+}
+
+func (i *Installer) stopProgress(summary string) {
+	if i.Prog != nil {
+		i.Prog.stop(summary)
+	}
+}
+
+func (i *Installer) logProgress(format string, args ...any) {
+	if i.Prog != nil {
+		i.Prog.logf(format, args...)
+		return
+	}
+	fmt.Printf(format, args...)
+	if !strings.HasSuffix(format, "\n") {
+		fmt.Println()
+	}
 }
 
 func New() *Installer {
@@ -68,10 +94,13 @@ func (i *Installer) Ensure(ctx context.Context, o Options) (Result, error) {
 		if serverURL == "" {
 			serverURL = DefaultServerURL
 		}
-		fmt.Printf("[KNIRVLLAMA] Downloading prebuilt llama-server from %s\n", serverURL)
+		i.logProgress("[KNIRVLLAMA] Downloading prebuilt llama-server from %s\n", serverURL)
 		var downloadErr error
 		server, downloadErr = i.downloadServer(ctx, o.DataDir, serverURL)
 		if downloadErr != nil {
+			// The native build streams large amounts of CMake output straight to
+			// the terminal, so retire any in-place bar before it starts.
+			i.stopProgress("")
 			// A prebuilt CPU binary is portable across the supported Debian/Kali
 			// image. Keep a native build as a fallback for incompatible libc/CPU
 			// combinations and for deployments that require host-native tuning.
@@ -164,22 +193,27 @@ func (i *Installer) ensureCommands(ctx context.Context, packages map[string]stri
 }
 
 func (i *Installer) downloadServer(ctx context.Context, dataDir, url string) (string, error) {
+	i.startProgress("Provisioning KNIRVLLAMA", "downloading prebuilt llama-server...", "decompressing release archive...", "verifying executable...")
 	dir := filepath.Join(dataDir, "bin")
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		return "", fmt.Errorf("create server directory: %w", err)
 	}
 	resp, err := i.Get(url)
 	if err != nil {
+		i.stopProgress("")
 		return "", fmt.Errorf("download prebuilt llama-server: %w", err)
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		i.stopProgress("")
 		return "", fmt.Errorf("download prebuilt llama-server: unexpected HTTP status %s", resp.Status)
 	}
-	var reader io.Reader = resp.Body
+	cr := &countingReader{r: resp.Body, prog: i.Prog}
+	reader := io.Reader(cr)
 	if strings.HasSuffix(strings.ToLower(url), ".gz") {
 		gz, err := gzip.NewReader(resp.Body)
 		if err != nil {
+			i.stopProgress("")
 			return "", fmt.Errorf("read prebuilt llama-server archive: %w", err)
 		}
 		defer gz.Close()
@@ -189,22 +223,27 @@ func (i *Installer) downloadServer(ctx context.Context, dataDir, url string) (st
 	tmp := path + ".part"
 	f, err := os.OpenFile(tmp, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0755)
 	if err != nil {
+		i.stopProgress("")
 		return "", err
 	}
 	_, copyErr := io.Copy(f, reader)
 	closeErr := f.Close()
 	if copyErr != nil {
+		i.stopProgress("")
 		return "", fmt.Errorf("write prebuilt llama-server: %w", copyErr)
 	}
 	if closeErr != nil {
+		i.stopProgress("")
 		return "", closeErr
 	}
 	if err := os.Rename(tmp, path); err != nil {
+		i.stopProgress("")
 		return "", fmt.Errorf("finalize prebuilt llama-server: %w", err)
 	}
 	// Verify the artifact before caching it permanently. This catches a release
 	// built against an incompatible glibc or CPU feature set and lets Ensure
 	// continue into the native-build fallback on the same first run.
+	i.stopProgress(fmt.Sprintf("[KNIRVLLAMA] Installed prebuilt llama-server (%s)", fmtBytes(cr.total)))
 	if err := i.Run(ctx, path, "--version"); err != nil {
 		_ = os.Remove(path)
 		return "", fmt.Errorf("verify prebuilt llama-server: %w", err)
@@ -213,6 +252,7 @@ func (i *Installer) downloadServer(ctx context.Context, dataDir, url string) (st
 }
 
 func (i *Installer) downloadModel(dataDir, name, url string) (string, error) {
+	i.startProgress("Provisioning model weights", "downloading model weights...", "verifying download...")
 	dir := filepath.Join(dataDir, "models")
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		return "", fmt.Errorf("create models directory: %w", err)
@@ -221,27 +261,35 @@ func (i *Installer) downloadModel(dataDir, name, url string) (string, error) {
 	tmp := path + ".part"
 	resp, err := i.Get(url)
 	if err != nil {
+		i.stopProgress("")
 		return "", fmt.Errorf("download model: %w", err)
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		i.stopProgress("")
 		return "", fmt.Errorf("download model: unexpected HTTP status %s", resp.Status)
 	}
 	f, err := os.OpenFile(tmp, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0600)
 	if err != nil {
+		i.stopProgress("")
 		return "", err
 	}
-	_, copyErr := io.Copy(f, resp.Body)
+	cr := &countingReader{r: resp.Body, prog: i.Prog}
+	_, copyErr := io.Copy(f, cr)
 	closeErr := f.Close()
 	if copyErr != nil {
+		i.stopProgress("")
 		return "", fmt.Errorf("write model: %w", copyErr)
 	}
 	if closeErr != nil {
+		i.stopProgress("")
 		return "", closeErr
 	}
 	if err := os.Rename(tmp, path); err != nil {
+		i.stopProgress("")
 		return "", fmt.Errorf("finalize model download: %w", err)
 	}
+	i.stopProgress(fmt.Sprintf("[KNIRVLLAMA] Model ready (%s)", fmtBytes(cr.total)))
 	return path, nil
 }
 

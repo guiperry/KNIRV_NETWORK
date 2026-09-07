@@ -15,6 +15,7 @@ export class ArenaClient {
   private lobbyChannel: Channel;
   private resolutionChannels: Map<string, Channel> = new Map();
   private userToken: string;
+  private resolutionCallbacks: Map<string, { onComplete?: (payload: any) => void; onDecision?: (payload: any) => void }> = new Map();
 
   constructor(userToken: string, endpoint: string = "/socket") {
     this.userToken = userToken;
@@ -53,8 +54,37 @@ export class ArenaClient {
       })
       .receive("error", (resp: any) => console.error("Access Denied", resp));
 
+    channel.on("resolution_complete", (payload: any) => {
+      console.log(`Resolution complete for ${errorId}:`, payload);
+      const callbacks = this.resolutionCallbacks.get(errorId);
+      if (callbacks?.onComplete) {
+        callbacks.onComplete(payload);
+      }
+    });
+
+    channel.on("cluster_decision", (payload: any) => {
+      console.log(`Cluster decision for ${errorId}:`, payload);
+      const callbacks = this.resolutionCallbacks.get(errorId);
+      if (callbacks?.onDecision) {
+        callbacks.onDecision(payload);
+      }
+    });
+
     this.resolutionChannels.set(errorId, channel);
+    this.resolutionCallbacks.set(errorId, {});
     return channel;
+  }
+
+  public onResolutionComplete(errorId: string, callback: (payload: any) => void): void {
+    const callbacks = this.resolutionCallbacks.get(errorId) || {};
+    callbacks.onComplete = callback;
+    this.resolutionCallbacks.set(errorId, callbacks);
+  }
+
+  public onClusterDecision(errorId: string, callback: (payload: any) => void): void {
+    const callbacks = this.resolutionCallbacks.get(errorId) || {};
+    callbacks.onDecision = callback;
+    this.resolutionCallbacks.set(errorId, callbacks);
   }
 
   public submitSolution(errorId: string, userId: string, trajectory: any): Promise<any> {

@@ -12,6 +12,9 @@ var embeddedFiles embed.FS
 //go:embed bin/backend_server
 var backendBinary []byte
 
+//go:embed pkg/knirvulora/bin/ulorad
+var uloraBinary []byte
+
 //go:embed all:config/*
 var configFiles embed.FS
 
@@ -26,6 +29,7 @@ func main() {
 	launcher.Run(launcher.Assets{
 		Frontend:      embeddedFiles,
 		BackendBinary: backendBinary,
+		ULoRABinary:   uloraBinary,
 		ConfigFiles:   configFiles,
 		Version:       Version,
 		BuildTime:     BuildTime,

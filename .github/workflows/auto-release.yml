@@ -17,12 +17,16 @@ jobs:
 
       - uses: actions/setup-go@v5
         with:
-          go-version: '1.21'
+          go-version: '1.25.0'
 
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
           node-version: '18'
+
+      - name: Build KNIRVULORA daemon
+        working-directory: packages/KNIRVSERVER
+        run: make ulora-build
 
       - name: Build unified binary
         working-directory: packages/KNIRVSERVER
@@ -32,7 +36,9 @@ jobs:
 
       - name: Checksum
         working-directory: packages/KNIRVSERVER/dist
-        run: sha256sum knirv-server > knirv-server.sha256
+        run: |
+          sha256sum knirv-server > knirv-server.sha256
+          sha256sum ../pkg/knirvulora/bin/ulorad > ../pkg/knirvulora/bin/ulorad.sha256
 
       - name: Create / update release
         env:
@@ -45,4 +51,6 @@ jobs:
             --notes "Automated build from commit ${{ github.sha }}" \
             --prerelease \
             packages/KNIRVSERVER/dist/knirv-server \
-            packages/KNIRVSERVER/dist/knirv-server.sha256
+            packages/KNIRVSERVER/dist/knirv-server.sha256 \
+            packages/KNIRVSERVER/pkg/knirvulora/bin/ulorad \
+            packages/KNIRVSERVER/pkg/knirvulora/bin/ulorad.sha256

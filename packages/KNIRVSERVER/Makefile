@@ -43,6 +43,9 @@ AGENT_PKG_BIN := $(AGENT_DIR)/bin/knirvagent
 ARENA_DIR := $(ROOT_DIR)/pkg/knirvarena
 ARENA_SRC_DIR := $(ROOT_DIR)/../KNIRVARENA
 ARENA_PKG_BUNDLE := $(ARENA_DIR)/bin/knirvarena.tar.gz
+ULORA_DIR := $(ROOT_DIR)/pkg/knirvulora
+ULORA_SRC_DIR := $(ROOT_DIR)/../KNIRVULORA
+ULORA_PKG_BIN := $(ULORA_DIR)/bin/ulorad
 SCRIPTS_DIR := $(shell if [ -d "$(SERVER_WORKSPACE_DIR)/scripts" ]; then printf '%s' "$(SERVER_WORKSPACE_DIR)/scripts"; else printf '%s' "$(ROOT_DIR)/scripts"; fi)
 BUILD_DIR := $(ROOT_DIR)/build
 DIST_DIR := $(ROOT_DIR)/dist
@@ -107,7 +110,7 @@ YELLOW := \033[1;33m
 BLUE := \033[0;34m
 NC := \033[0m # No Color
 
-.PHONY: help all clean build test deploy install deps frontend backend binary relink docker os deployer key-encryptor deploy-dev-local ebpf-generate proto kali-docker-image gateway-build gateway-deps gateway-clean graph-build graph-deps graph-clean chain-build chain-deps chain-clean oracle-build oracle-deps oracle-clean hasher-build hasher-deps hasher-clean agent-build agent-deps agent-clean arena-build arena-deps arena-clean build-full
+.PHONY: help all clean build test deploy install deps frontend backend binary relink docker os deployer key-encryptor deploy-dev-local ebpf-generate proto kali-docker-image gateway-build gateway-deps gateway-clean graph-build graph-deps graph-clean chain-build chain-deps chain-clean oracle-build oracle-deps oracle-clean hasher-build hasher-deps hasher-clean agent-build agent-deps agent-clean arena-build arena-deps arena-clean ulora-build ulora-mlc-build build-full
 
 # Default target
 all: proto frontend backend binary
@@ -178,7 +181,7 @@ frontend-dev: deps-node ## Start frontend development server
 	cd $(FRONTEND_DIR) && $(NPM_CMD) run dev
 
 # Backend Build (cmd/backend_server only)
-backend: deps-go gateway-build graph-build chain-build oracle-build hasher-build agent-build arena-build embedded-build ## Build complete Go backend service package
+backend: deps-go gateway-build graph-build chain-build oracle-build hasher-build agent-build arena-build ulora-build embedded-build ## Build complete Go backend service package
 	@echo "$(BLUE)Building complete backend package binary...$(NC)"
 	@rm -f $(BACKEND_DIR)/backend_server bin/backend_server
 	cd $(BACKEND_DIR) && go build -ldflags "$(LDFLAGS)" -o backend_server ./cmd/backend_server
@@ -216,8 +219,9 @@ key-encryptor: ## Build root_key_encryptor binary
 # Unified Binary (Frontend + Desktop + Backend + embedded pkg modules)
 # main.go embeds: bin/backend_server, config/*, desktop/dist/*, frontend/out/*
 # Module-owned binaries like KNIRVGATEWAY, KNIRVGRAPH, KNIRVCHAIN, KNIRVORACLE, KNIRVHASHER, and KNIRVAGENT
-# are embedded and extracted by their pkg modules.
-binary: proto ebpf-generate frontend backend arena-build ## Build unified binary embedding frontend, desktop, backend, KNIRVGATEWAY, KNIRVGRAPH, KNIRVCHAIN, KNIRVORACLE, KNIRVHASHER, KNIRVAGENT, and KNIRVARENA
+# are embedded and extracted by their pkg modules. KNIRVULORA is staged beside
+# them for the launcher; its optional MLC runtime remains an explicit build.
+binary: proto ebpf-generate frontend backend arena-build ulora-build ## Build unified binary and KNIRVULORA daemon
 	@echo "$(BLUE)Creating unified binary (embeds frontend, desktop, backend, KNIRVGATEWAY, KNIRVGRAPH, KNIRVCHAIN, KNIRVORACLE, KNIRVHASHER)...$(NC)"
 	@mkdir -p $(DIST_DIR)
 	@rm -f $(DIST_DIR)/knirv-server
@@ -231,6 +235,15 @@ binary: proto ebpf-generate frontend backend arena-build ## Build unified binary
 	chmod +x $(CONTAINER_DEPLOYER_SOURCE_DIR)/knirv-server
 	@echo "$(GREEN)Binary copied to $(CONTAINER_DEPLOYER_SOURCE_DIR)$(NC)"
 	@echo "$(GREEN)Good Build!$(NC)"
+
+ulora-build: ## Build the standalone ulorad daemon for KNIRVSERVER staging
+	@echo "$(BLUE)Building ulorad...$(NC)"
+	@mkdir -p $(ULORA_DIR)/bin
+	cd $(ULORA_SRC_DIR) && go build -ldflags "-s -w" -o $(ULORA_PKG_BIN) ./cmd/ulorad
+	@echo "$(GREEN)ulorad built: $(ULORA_PKG_BIN)$(NC)"
+
+ulora-mlc-build: ## Build the optional CPU-only MLC runtime (requires LLVM/CMake and network)
+	cd $(ULORA_SRC_DIR) && ./scripts/build-mlc-cpu.sh
 
 # Quick Binary Relink (fast path, assumes all components already built)
 # Use this after making changes to frontend, desktop, backend, or embedded binaries to quickly relink without rebuilding everything

@@ -232,37 +232,15 @@ export class KNIRVSERVERClient {
       console.error('DVE validation error:', error.message);
 
       if (error.response?.status === 401) {
-        return {
-          success: false,
-          score: 0,
-          passed: false,
-          output: '',
-          executionTime: 0,
-          error: 'Authentication required',
-        };
+        throw new Error('Authentication required for DVE validation');
       }
 
       if (error.response?.status === 503) {
-        return {
-          success: false,
-          score: 0,
-          passed: false,
-          output: '',
-          executionTime: 0,
-          error: 'DVE service unavailable',
-          warnings: ['No DVE nodes available, using local validation'],
-        };
+        throw new Error('DVE service unavailable — no DVE nodes available');
       }
     }
 
-    return {
-      success: false,
-      score: 0.5,
-      passed: true,
-      output: 'Local validation fallback',
-      executionTime: 0,
-      warnings: ['DVE validation failed, using local simulation'],
-    };
+    throw new Error(`DVE validation failed: ${error instanceof Error ? error.message : 'unknown error'}`);
   }
 
   public async submitValidationResult(taskId: string, result: DVEResult): Promise<boolean> {
@@ -426,55 +404,15 @@ export class KNIRVSERVERClient {
       console.error('CDE validation error:', error.message);
 
       if (error.response?.status === 401) {
-        return {
-          success: false,
-          output: '',
-          errors: ['Authentication required'],
-          executionTime: 0,
-          constraintsSatisfied: false,
-          violations: ['Authentication required'],
-        };
+        throw new Error('Authentication required for CDE validation');
       }
 
       if (error.response?.status === 503) {
-        return {
-          success: false,
-          output: '',
-          errors: ['CDE service unavailable'],
-          executionTime: 0,
-          constraintsSatisfied: false,
-          violations: ['CDE service unavailable, using local simulation'],
-        };
+        throw new Error('CDE service unavailable');
       }
     }
 
-    return this.simulateLocalCDERun(request);
-  }
-
-  private simulateLocalCDERun(request: CDESandboxRequest): CDESandboxResult {
-    const startTime = performance.now();
-
-    const result: CDESandboxResult = {
-      success: true,
-      output: `Simulated output for ${request.language} code`,
-      executionTime: performance.now() - startTime,
-      constraintsSatisfied: true,
-      testResults: [],
-    };
-
-    if (request.testCases) {
-      for (const testCase of request.testCases) {
-        result.testResults?.push({
-          testCaseId: testCase.description || 'test',
-          passed: true,
-          actualOutput: 'Simulated output',
-          expectedOutput: testCase.expectedOutput,
-          executionTime: result.executionTime,
-        });
-      }
-    }
-
-    return result;
+    throw new Error(`CDE validation failed: ${error instanceof Error ? error.message : 'unknown error'}`);
   }
 
   // Cognitive Engine Integration
