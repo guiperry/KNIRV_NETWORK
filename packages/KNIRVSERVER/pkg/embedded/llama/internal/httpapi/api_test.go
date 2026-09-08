@@ -16,6 +16,9 @@ func (f roundTripperFunc) RoundTrip(r *http.Request) (*http.Response, error) { r
 func TestEndpoints(t *testing.T) {
 	originalTransport := http.DefaultTransport
 	http.DefaultTransport = roundTripperFunc(func(r *http.Request) (*http.Response, error) {
+		if got, want := r.Header.Get("Authorization"), "Bearer wrapper-secret"; got != want {
+			t.Errorf("Authorization = %q, want %q", got, want)
+		}
 		if r.URL.Path == "/health" {
 			return &http.Response{StatusCode: http.StatusOK, Body: io.NopCloser(strings.NewReader("ok")), Header: make(http.Header)}, nil
 		}
@@ -26,7 +29,7 @@ func TestEndpoints(t *testing.T) {
 		return &http.Response{StatusCode: http.StatusCreated, Body: io.NopCloser(bytes.NewReader(body)), Header: make(http.Header)}, nil
 	})
 	t.Cleanup(func() { http.DefaultTransport = originalTransport })
-	h, err := New("127.0.0.1:8000", "test-model")
+	h, err := New("127.0.0.1:8000", "test-model", "wrapper-secret")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -35,6 +38,7 @@ func TestEndpoints(t *testing.T) {
 		want               int
 	}{{"GET", "/health", "", 200}, {"GET", "/v1/models", "", 200}, {"POST", "/v1/chat/completions", `{"messages":[]}`, 201}} {
 		r := httptest.NewRequest(tc.method, tc.path, strings.NewReader(tc.body))
+		r.Header.Set("Authorization", "Bearer client-supplied-token")
 		w := httptest.NewRecorder()
 		h.ServeHTTP(w, r)
 		if w.Code != tc.want {

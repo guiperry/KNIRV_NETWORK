@@ -40,6 +40,9 @@ TRAINER_PKG_BIN := $(HASHER_DIR)/internal/cli/embedded/bin/data-seeder
 AGENT_DIR := $(ROOT_DIR)/pkg/knirvagent
 AGENT_SRC_DIR := $(ROOT_DIR)/../KNIRVAGENT
 AGENT_PKG_BIN := $(AGENT_DIR)/bin/knirvagent
+LLAMA_DIR := $(ROOT_DIR)/pkg/embedded/llama
+LLAMA_PKG_DIR := $(ROOT_DIR)/pkg/knirvllama
+LLAMA_PKG_BIN := $(LLAMA_PKG_DIR)/bin/knirvllama
 ARENA_DIR := $(ROOT_DIR)/pkg/knirvarena
 ARENA_SRC_DIR := $(ROOT_DIR)/../KNIRVARENA
 ARENA_PKG_BUNDLE := $(ARENA_DIR)/bin/knirvarena.tar.gz
@@ -110,7 +113,7 @@ YELLOW := \033[1;33m
 BLUE := \033[0;34m
 NC := \033[0m # No Color
 
-.PHONY: help all clean build test deploy install deps frontend backend binary relink docker os deployer key-encryptor deploy-dev-local ebpf-generate proto kali-docker-image gateway-build gateway-deps gateway-clean graph-build graph-deps graph-clean chain-build chain-deps chain-clean oracle-build oracle-deps oracle-clean hasher-build hasher-deps hasher-clean agent-build agent-deps agent-clean arena-build arena-deps arena-clean ulora-build ulora-mlc-build build-full
+.PHONY: help all clean build test deploy install deps frontend backend binary relink docker os deployer key-encryptor deploy-dev-local ebpf-generate proto kali-docker-image gateway-build gateway-deps gateway-clean graph-build graph-deps graph-clean chain-build chain-deps chain-clean oracle-build oracle-deps oracle-clean hasher-build hasher-deps hasher-clean agent-build agent-deps agent-clean llama-build llama-clean arena-build arena-deps arena-clean ulora-build ulora-mlc-build build-full
 
 # Default target
 all: proto frontend backend binary
@@ -181,7 +184,7 @@ frontend-dev: deps-node ## Start frontend development server
 	cd $(FRONTEND_DIR) && $(NPM_CMD) run dev
 
 # Backend Build (cmd/backend_server only)
-backend: deps-go gateway-build graph-build chain-build oracle-build hasher-build agent-build arena-build ulora-build embedded-build ## Build complete Go backend service package
+backend: deps-go gateway-build graph-build chain-build oracle-build hasher-build agent-build llama-build arena-build ulora-build embedded-build ## Build complete Go backend service package
 	@echo "$(BLUE)Building complete backend package binary...$(NC)"
 	@rm -f $(BACKEND_DIR)/backend_server bin/backend_server
 	cd $(BACKEND_DIR) && go build -ldflags "$(LDFLAGS)" -o backend_server ./cmd/backend_server
@@ -221,7 +224,7 @@ key-encryptor: ## Build root_key_encryptor binary
 # Module-owned binaries like KNIRVGATEWAY, KNIRVGRAPH, KNIRVCHAIN, KNIRVORACLE, KNIRVHASHER, and KNIRVAGENT
 # are embedded and extracted by their pkg modules. KNIRVULORA is staged beside
 # them for the launcher; its optional MLC runtime remains an explicit build.
-binary: proto ebpf-generate frontend backend arena-build ulora-build ## Build unified binary and KNIRVULORA daemon
+binary: proto ebpf-generate frontend backend llama-build arena-build ulora-build ## Build unified binary and KNIRVULORA daemon
 	@echo "$(BLUE)Creating unified binary (embeds frontend, desktop, backend, KNIRVGATEWAY, KNIRVGRAPH, KNIRVCHAIN, KNIRVORACLE, KNIRVHASHER)...$(NC)"
 	@mkdir -p $(DIST_DIR)
 	@rm -f $(DIST_DIR)/knirv-server
@@ -247,7 +250,7 @@ ulora-mlc-build: ## Build the optional CPU-only MLC runtime (requires LLVM/CMake
 
 # Quick Binary Relink (fast path, assumes all components already built)
 # Use this after making changes to frontend, desktop, backend, or embedded binaries to quickly relink without rebuilding everything
-relink: ## Quickly relink the unified binary (assumes all components already built)
+relink: llama-build ## Quickly relink the unified binary (assumes all components already built)
 	@echo "$(BLUE)Relinking unified binary (fast path)...$(NC)"
 	@mkdir -p $(DIST_DIR)
 	@rm -f $(DIST_DIR)/knirv-server
@@ -636,6 +639,21 @@ agent-clean: ## Clean KNIRVAGENT build artifacts
 	@echo "$(BLUE)Cleaning KNIRVAGENT artifacts...$(NC)"
 	rm -f $(AGENT_PKG_BIN)
 	cd $(AGENT_SRC_DIR) && make clean
+
+# KNIRVLLAMA (Embedded) targets
+llama-build: ## Build KNIRVLLAMA and compress it for go:embed
+	@echo "$(BLUE)Building KNIRVLLAMA binary...$(NC)"
+	@mkdir -p $(LLAMA_PKG_DIR)/bin
+	@rm -f $(LLAMA_PKG_BIN)
+	cd $(LLAMA_DIR) && go build -ldflags "-s -w" -o $(LLAMA_PKG_BIN) ./cmd/llama
+	@echo "$(BLUE)Compressing KNIRVLLAMA binary with gzip...$(NC)"
+	@gzip -n -cf $(LLAMA_PKG_BIN) > $(LLAMA_PKG_BIN).tmp && mv $(LLAMA_PKG_BIN).tmp $(LLAMA_PKG_BIN)
+	@echo "$(GREEN)KNIRVLLAMA binary built: $(LLAMA_PKG_BIN)$(NC)"
+
+llama-clean: ## Clean KNIRVLLAMA build artifacts
+	@echo "$(BLUE)Cleaning KNIRVLLAMA artifacts...$(NC)"
+	rm -f $(LLAMA_PKG_BIN)
+	cd $(LLAMA_DIR) && go clean
 
 # KNIRVARENA (Embedded static bundle) targets
 arena-deps: ## Install KNIRVARENA dependencies

@@ -91,7 +91,7 @@ func main() {
 			log.Fatal("llama-server did not become healthy")
 		}
 	}
-	handler, err := httpapi.New(llamaAddress, result.ModelName)
+	handler, err := httpapi.New(llamaAddress, result.ModelName, apiKey)
 	if err != nil {
 		log.Fatal(err)
 	}

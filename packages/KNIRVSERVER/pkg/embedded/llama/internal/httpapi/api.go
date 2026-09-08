@@ -52,12 +52,22 @@ func (b *completionLogBody) logCompletion() {
 	}
 }
 
-func New(upstream, model string) (http.Handler, error) {
+// New creates a facade for llama-server. apiKey, when configured, is the
+// wrapper-to-server credential; it deliberately replaces any client-supplied
+// authorization header before proxying to the private upstream.
+func New(upstream, model, apiKey string) (http.Handler, error) {
 	target, err := url.Parse("http://" + upstream)
 	if err != nil {
 		return nil, err
 	}
 	proxy := httputil.NewSingleHostReverseProxy(target)
+	director := proxy.Director
+	proxy.Director = func(req *http.Request) {
+		director(req)
+		if apiKey != "" {
+			req.Header.Set("Authorization", "Bearer "+apiKey)
+		}
+	}
 	proxy.ModifyResponse = func(resp *http.Response) error {
 		if resp.Request != nil && (resp.Request.URL.Path == "/v1/chat/completions" || resp.Request.URL.Path == "/v1/completions") {
 			resp.Body = &completionLogBody{ReadCloser: resp.Body}
@@ -73,6 +83,9 @@ func New(upstream, model string) (http.Handler, error) {
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadGateway)
 			return
+		}
+		if apiKey != "" {
+			req.Header.Set("Authorization", "Bearer "+apiKey)
 		}
 		resp, err := http.DefaultClient.Do(req)
 		if err != nil {
