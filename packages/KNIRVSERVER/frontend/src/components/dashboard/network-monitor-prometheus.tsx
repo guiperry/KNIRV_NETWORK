@@ -1,17 +1,32 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { getAuthHeaders } from '@/lib/api';
 import { ExternalLink } from 'lucide-react';
 
 export function NetworkMonitorPrometheus() {
-  const [loaded, setLoaded] = useState(false);
+  const [metricsURL, setMetricsURL] = useState<string | null>(null);
+  const loaded = metricsURL !== null;
   const [error, setError] = useState(false);
 
   useEffect(() => {
-    const timer = setTimeout(() => setLoaded(true), 100);
-    return () => clearTimeout(timer);
+    const controller = new AbortController();
+    let objectURL: string | undefined;
+    fetch('/api/v1/monitor/metrics', { headers: getAuthHeaders(), signal: controller.signal })
+      .then(async (response) => {
+        if (!response.ok) throw new Error(`Metrics request failed: ${response.status}`);
+        const text = await response.text();
+        if (controller.signal.aborted) return;
+        objectURL = URL.createObjectURL(new Blob([text], { type: 'text/plain' }));
+        setMetricsURL(objectURL);
+      })
+      .catch(() => { if (!controller.signal.aborted) setError(true); });
+    return () => {
+      controller.abort();
+      if (objectURL) URL.revokeObjectURL(objectURL);
+    };
   }, []);
 
   return (
@@ -27,7 +42,8 @@ export function NetworkMonitorPrometheus() {
           variant="outline"
           size="sm"
           className="border-gray-700 text-gray-400 hover:bg-cyan-500/10 hover:text-cyan-400"
-          onClick={() => window.open('/api/v1/monitor/metrics', '_blank')}
+          disabled={!metricsURL}
+          onClick={() => metricsURL && window.open(metricsURL, '_blank', 'noopener,noreferrer')}
         >
           <ExternalLink className="w-4 h-4 mr-2" />
           Open in new tab
@@ -46,20 +62,20 @@ export function NetworkMonitorPrometheus() {
               <p className="mb-4">Prometheus metrics are not reachable through KNIRVGATEWAY.</p>
               <Button
                 variant="outline"
-                onClick={() => window.open('/api/v1/monitor/metrics', '_blank')}
+                disabled={!metricsURL}
+          onClick={() => metricsURL && window.open(metricsURL, '_blank', 'noopener,noreferrer')}
               >
                 <ExternalLink className="w-4 h-4 mr-2" />
                 Open Prometheus in new tab
               </Button>
             </div>
           )}
-          <iframe
-            src="/api/v1/monitor/metrics"
+          {metricsURL && <iframe
+            src={metricsURL}
             className="w-full h-[600px] border-0"
-            onLoad={() => setLoaded(true)}
             onError={() => setError(true)}
             title="KNIRVMONITOR Prometheus Metrics"
-          />
+          />}
         </CardContent>
       </Card>
     </div>

@@ -201,6 +201,12 @@ func TestStartAndShutdownOwnsSocketLifecycle(t *testing.T) {
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
 	}
 
+	metricsResp, metricsErr := client.Get("http://knirvmonitor/api/v1/monitor/metrics")
+	assert.NoError(t, metricsErr)
+	if metricsResp != nil {
+		metricsResp.Body.Close()
+		assert.Equal(t, http.StatusOK, metricsResp.StatusCode)
+	}
 	assert.NoError(t, server.Shutdown(context.Background()))
 	_, err = net.Dial("unix", socketPath)
 	assert.Error(t, err)

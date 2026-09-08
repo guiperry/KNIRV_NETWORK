@@ -43,6 +43,8 @@ type ProcessMetrics struct {
 }
 
 type ServerConfig struct {
+	ProbeSockets     map[string]string
+	GatewayJWTSecret string
 	// Port is retained only for source compatibility with older callers. The
 	// monitor no longer binds it; SocketPath is the sole listener.
 	Port string
@@ -180,17 +182,17 @@ type GatewayHealth struct {
 // cleared the confidence + evidence checks, so the values exposed here are
 // suitable for surfacing in the KNIRVSERVER dashboard directly.
 type DreamFinding struct {
-	ID          string    `json:"id"`
-	PolicyName  string    `json:"policyName"`
-	NodeID      string    `json:"nodeId"`
-	Action      string    `json:"action"`
-	Confidence  float64   `json:"confidence"`
-	Threshold   float64   `json:"threshold"`
-	Evidence    []string  `json:"evidence,omitempty"`
-	Summary     string    `json:"summary"`
-	Anomaly     string    `json:"anomaly,omitempty"`
-	TaskKind    string    `json:"taskKind"`
-	DetectedAt  time.Time `json:"detectedAt"`
+	ID         string    `json:"id"`
+	PolicyName string    `json:"policyName"`
+	NodeID     string    `json:"nodeId"`
+	Action     string    `json:"action"`
+	Confidence float64   `json:"confidence"`
+	Threshold  float64   `json:"threshold"`
+	Evidence   []string  `json:"evidence,omitempty"`
+	Summary    string    `json:"summary"`
+	Anomaly    string    `json:"anomaly,omitempty"`
+	TaskKind   string    `json:"taskKind"`
+	DetectedAt time.Time `json:"detectedAt"`
 }
 
 // DreamFindingIngestRequest is the JSON body the cognitive engine POSTs to
@@ -199,4 +201,3 @@ type DreamFinding struct {
 type DreamFindingIngestRequest struct {
 	Finding DreamFinding `json:"finding"`
 }
-

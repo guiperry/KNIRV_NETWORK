@@ -9,6 +9,8 @@ export interface KnirvchainHealthData {
   lastCheck: string;
 }
 
+type RawKnirvchainHealthData = Omit<KnirvchainHealthData, 'lastCheck'> & { last_check?: string };
+
 async function unwrap<T>(response: Response): Promise<T> {
   if (!response.ok) {
     throw new Error(`request failed: ${response.status}`);
@@ -20,7 +22,10 @@ async function unwrap<T>(response: Response): Promise<T> {
 export function useKnirvchainHealth() {
   return useQuery<{ health: KnirvchainHealthData }>({
     queryKey: ['knirvchain', 'health'],
-    queryFn: async () => unwrap<{ health: KnirvchainHealthData }>(await fetch('/api/v1/knirvchain/health', { headers: getAuthHeaders() })),
+    queryFn: async () => {
+      const payload = await unwrap<{ health: RawKnirvchainHealthData }>(await fetch('/api/v1/knirvchain/health', { headers: getAuthHeaders() }));
+      return { health: { ...payload.health, lastCheck: payload.health.last_check ?? '' } };
+    },
     refetchInterval: 15000,
     staleTime: 10000,
     retry: 1,

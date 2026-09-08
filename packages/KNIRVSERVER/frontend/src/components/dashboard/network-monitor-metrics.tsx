@@ -11,6 +11,7 @@ import { useKnirvgraphScalability, useKnirvgraphEmbeddings } from '@/hooks/use-k
 import { useKNIRVOracleEconomics } from '@/hooks/use-knirvoracle-economics';
 
 function MetricTile({ name, value, help }: { name: string; value: number; help: string }) {
+  const displayValue = Number.isFinite(value) ? value.toLocaleString() : 'unavailable';
   return (
     <Card className="aether-bevel-dark rounded-xl">
       <CardHeader className="pb-2">
@@ -23,7 +24,7 @@ function MetricTile({ name, value, help }: { name: string; value: number; help: 
       </CardHeader>
       <CardContent>
         <div className="text-xl font-bold text-gray-200">
-          {typeof value === 'number' ? value.toLocaleString() : value}
+          {displayValue}
         </div>
       </CardContent>
     </Card>
@@ -60,14 +61,6 @@ export function NetworkMonitorMetrics() {
     );
   }
 
-  if (error) {
-    return (
-      <div className="rounded-lg border border-amber-500/20 bg-amber-500/10 p-4 text-amber-300">
-        Metrics endpoint not yet available. This will be populated when KNIRVBASE/KNIRVCHAIN/KNIRVGRAPH nodes expose /metrics.
-      </div>
-    );
-  }
-
   const baseMetrics: KnirvbaseMetric[] = knirvbase.data?.metrics ?? [];
   const chainMetrics: KnirvchainMetric[] = knirvchain.data?.metrics ?? [];
   const graphMetrics = knirvgraph.data?.metrics ?? [];
@@ -83,6 +76,7 @@ export function NetworkMonitorMetrics() {
 
   return (
     <div className="space-y-6">
+      {error && <p className="text-sm text-amber-300">Some metric sources are unavailable. Available service metrics are shown below.</p>}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Card className="aether-bevel-dark rounded-xl">
           <CardHeader className="pb-2">
@@ -135,7 +129,7 @@ export function NetworkMonitorMetrics() {
             </div>
             {knirvchainHealth.data && (
               <div className="mt-2 grid grid-cols-2 gap-2 text-xs text-gray-400">
-                <div>Last check: {new Date(knirvchainHealth.data.health.lastCheck).toLocaleTimeString()}</div>
+                <div>Last check: {knirvchainHealth.data.health.lastCheck ? new Date(knirvchainHealth.data.health.lastCheck).toLocaleTimeString() : 'unavailable'}</div>
               </div>
             )}
           </CardContent>

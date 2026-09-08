@@ -25,6 +25,16 @@ host: "0.0.0.0"
 serve_frontend: true
 log_level: "info"
 
+# Embedded local cognitive-inference model. Model selection is normal
+# operational configuration, intentionally separate from root.key secrets.
+llama:
+  enabled: false
+  model_url: "https://huggingface.co/Qwen/Qwen2.5-7B-Instruct-GGUF/resolve/main/qwen2.5-7b-instruct-q3_k_m.gguf"
+  model_name: "qwen2.5-7b-instruct-q3_k_m.gguf"
+  parallel: 1
+  ctx_size: 2048
+  threads: 4
+
 # Service Configuration (wrapper frontend)
 service:
   host: "0.0.0.0"

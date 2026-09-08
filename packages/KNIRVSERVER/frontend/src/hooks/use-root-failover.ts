@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { apiRequest } from '@/lib/api';
+import { apiRequest, getAuthHeaders } from '@/lib/api';
 
 export type RootFailoverPhase = 'NORMAL' | 'VOTING' | 'ACTING_ROOT' | 'CONFIRMED' | 'RECLAIMED' | 'UNKNOWN';
 
@@ -26,9 +26,10 @@ export interface RootFailoverState {
 }
 
 async function fetchFailover(): Promise<RootFailoverState> {
-  const response = await fetch('/api/v1/monitor/root-failover');
+  const response = await fetch('/api/v1/monitor/root-failover', { headers: getAuthHeaders() });
   if (!response.ok) throw new Error(`root failover request failed: ${response.status}`);
   const payload = await response.json();
+  if (payload.data?.available === false) throw new Error(payload.data.error);
   return (payload.data ?? payload) as RootFailoverState;
 }
 

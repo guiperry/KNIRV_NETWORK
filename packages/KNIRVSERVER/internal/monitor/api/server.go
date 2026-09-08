@@ -46,6 +46,9 @@ func NewServer(cfg *ServerConfig) *Server {
 		probes:    probes.NewProbeManager(),
 	}
 
+	for name, socket := range cfg.ProbeSockets {
+		srv.probes.Register(probes.NewSocketProbe(name, socket))
+	}
 	if cfg.KNIRVBaseURL != "" {
 		srv.probes.Register(probes.NewKNIRVBaseProbe(cfg.KNIRVBaseURL))
 	}
@@ -91,6 +94,7 @@ func (s *Server) Start(ctx context.Context) error {
 	// for consistency with the other embedded services.
 	mux.HandleFunc("/health", s.handleHealthz)
 	mux.HandleFunc("/readyz", s.handleReadyz)
+	mux.Handle("/api/v1/monitor/metrics", promhttp.HandlerFor(s.registry.Registry, promhttp.HandlerOpts{}))
 	mux.Handle("/metrics", promhttp.HandlerFor(s.registry.Registry, promhttp.HandlerOpts{}))
 	mux.HandleFunc("/api/v1/monitor/root-failover", s.handleRootFailover)
 	mux.HandleFunc("/api/v1/status", s.handleStatus)
@@ -108,6 +112,7 @@ func (s *Server) Start(ctx context.Context) error {
 	mux.HandleFunc("/api/v1/knirvoracle/health", s.handleKNIRVOracleHealth)
 	mux.HandleFunc("/api/v1/gateway/routes", s.handleGatewayRoutes)
 	mux.HandleFunc("/api/v1/gateway/health", s.handleGatewayHealth)
+	mux.HandleFunc("/api/v1/monitor/grafana", s.handleGrafanaStatus)
 	mux.HandleFunc("/api/v1/dream-findings", s.handleDreamFindings)
 	mux.HandleFunc("/api/v1/dream-findings/list", s.handleDreamFindingsList)
 	mux.HandleFunc("/api/v1/onboarding/applications", s.handleOnboardingApplications)
@@ -162,6 +167,26 @@ func (s *Server) Start(ctx context.Context) error {
 		go s.pollRegistryRoot(ctx)
 	}
 	return nil
+}
+
+// handleGrafanaStatus exposes only the configured public Grafana URL. Grafana
+// is an optional external service, not an embedded KNIRVSERVER component.
+func (s *Server) handleGrafanaStatus(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		w.Header().Set("Allow", http.MethodGet)
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	url := strings.TrimRight(strings.TrimSpace(s.config.GrafanaURL), "/")
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(MetricsResponse{
+		Success: true,
+		Data: map[string]interface{}{
+			"configured": url != "",
+			"url":        url,
+		},
+		Timestamp: time.Now().UTC().Format(time.RFC3339),
+	})
 }
 
 func (s *Server) pollRegistryRoot(ctx context.Context) {
@@ -298,7 +323,8 @@ func (s *Server) handleRootFailover(w http.ResponseWriter, r *http.Request) {
 	}
 	registryURL := strings.TrimRight(strings.TrimSpace(s.config.RegistryURL), "/")
 	if registryURL == "" {
-		http.Error(w, "registry URL is not configured", http.StatusServiceUnavailable)
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(MetricsResponse{Success: true, Data: map[string]interface{}{"available": false, "error": "Root failover registry is not configured"}})
 		return
 	}
 	client := &http.Client{Timeout: s.config.RequestTimeout}
@@ -412,6 +438,17 @@ func (s *Server) proxyToOnboarding(w http.ResponseWriter, r *http.Request, path 
 			req.Header.Add(key, value)
 		}
 	}
+	serviceToken, err := s.gatewayAdminToken()
+	if err != nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusServiceUnavailable)
+		_ = json.NewEncoder(w).Encode(MetricsResponse{Success: false, Data: map[string]interface{}{"error": err.Error()}, Timestamp: time.Now().UTC().Format(time.RFC3339)})
+		return
+	}
+	// The dashboard may use an opaque backend session. Gateway only accepts a
+	// signed JWT, so use the monitor's short-lived service credential after the
+	// wrapper has already enforced the caller's admin role.
+	req.Header.Set("Authorization", "Bearer "+serviceToken)
 	req.Header.Set("Host", "")
 
 	client := &http.Client{Timeout: 10 * time.Second}
@@ -437,6 +474,20 @@ func (s *Server) proxyToOnboarding(w http.ResponseWriter, r *http.Request, path 
 	_, _ = io.Copy(w, resp.Body)
 }
 
+func (s *Server) gatewayAdminToken() (string, error) {
+	secret := strings.TrimSpace(s.config.GatewayJWTSecret)
+	if secret == "" {
+		secret = strings.TrimSpace(os.Getenv("KNIRV_JWT_SECRET"))
+	}
+	if secret == "" {
+		return "", fmt.Errorf("gateway JWT secret is not configured")
+	}
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"role": "admin", "sub": "knirvmonitor", "exp": time.Now().Add(time.Minute).Unix(),
+	})
+	return token.SignedString([]byte(secret))
+}
+
 // fetchGatewayRoutes calls KNIRVGATEWAY's native /api/network-monitor/routes
 // handler directly (JSON, not Prometheus exposition format) and reshapes its
 // statically-registered route table into GatewayRoute entries. Status is
@@ -457,16 +508,9 @@ func (s *Server) fetchGatewayRoutes() ([]GatewayRoute, error) {
 	// The gateway performs its own admin authorization.  This in-process
 	// monitor uses a short-lived service JWT, signed with the same secret the
 	// gateway validates, instead of leaving the route inventory public.
-	secret := strings.TrimSpace(os.Getenv("KNIRV_JWT_SECRET"))
-	if secret == "" {
-		return nil, fmt.Errorf("KNIRV_JWT_SECRET is required to fetch gateway routes")
-	}
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"role": "admin", "sub": "knirvmonitor", "exp": time.Now().Add(time.Minute).Unix(),
-	})
-	signed, err := token.SignedString([]byte(secret))
+	signed, err := s.gatewayAdminToken()
 	if err != nil {
-		return nil, fmt.Errorf("sign gateway monitor token: %w", err)
+		return nil, err
 	}
 	req.Header.Set("Authorization", "Bearer "+signed)
 	resp, err := client.Do(req)
@@ -565,10 +609,9 @@ func (s *Server) handleKNIRVBaseMetrics(w http.ResponseWriter, r *http.Request) 
 	result, ok := s.probes.GetResult("knirvbase")
 	if !ok {
 		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusServiceUnavailable)
 		json.NewEncoder(w).Encode(MetricsResponse{
-			Success:   false,
-			Data:      map[string]interface{}{"error": "probe not registered"},
+			Success:   true,
+			Data:      map[string]interface{}{"available": false, "error": "metric source is not configured, unreachable, or awaiting its first scrape", "metrics": []interface{}{}},
 			Timestamp: time.Now().UTC().Format(time.RFC3339),
 		})
 		return
@@ -638,10 +681,9 @@ func (s *Server) handleKNIRVChainMetrics(w http.ResponseWriter, r *http.Request)
 	result, ok := s.probes.GetResult("knirvchain")
 	if !ok {
 		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusServiceUnavailable)
 		json.NewEncoder(w).Encode(MetricsResponse{
-			Success:   false,
-			Data:      map[string]interface{}{"error": "probe not registered"},
+			Success:   true,
+			Data:      map[string]interface{}{"available": false, "error": "metric source is not configured, unreachable, or awaiting its first scrape", "metrics": []interface{}{}},
 			Timestamp: time.Now().UTC().Format(time.RFC3339),
 		})
 		return
@@ -745,10 +787,9 @@ func (s *Server) handleKNIRVGraphScalability(w http.ResponseWriter, r *http.Requ
 	result, ok := s.probes.GetResult("knirvgraph")
 	if !ok {
 		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusServiceUnavailable)
 		json.NewEncoder(w).Encode(MetricsResponse{
-			Success:   false,
-			Data:      map[string]interface{}{"error": "probe not registered"},
+			Success:   true,
+			Data:      map[string]interface{}{"available": false, "error": "metric source is not configured, unreachable, or awaiting its first scrape", "metrics": []interface{}{}},
 			Timestamp: time.Now().UTC().Format(time.RFC3339),
 		})
 		return
@@ -777,10 +818,9 @@ func (s *Server) handleKNIRVGraphEmbeddings(w http.ResponseWriter, r *http.Reque
 	result, ok := s.probes.GetResult("knirvgraph")
 	if !ok {
 		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusServiceUnavailable)
 		json.NewEncoder(w).Encode(MetricsResponse{
-			Success:   false,
-			Data:      map[string]interface{}{"error": "probe not registered"},
+			Success:   true,
+			Data:      map[string]interface{}{"available": false, "error": "metric source is not configured, unreachable, or awaiting its first scrape", "metrics": []interface{}{}},
 			Timestamp: time.Now().UTC().Format(time.RFC3339),
 		})
 		return
@@ -788,7 +828,7 @@ func (s *Server) handleKNIRVGraphEmbeddings(w http.ResponseWriter, r *http.Reque
 
 	metrics := make([]KnirvgraphMetric, 0)
 	for name, m := range result.Metrics {
-		if len(name) >= 18 && name[:18] == "knirvgraph_rag_" {
+		if strings.HasPrefix(name, "knirvgraph_rag_") {
 			metrics = append(metrics, KnirvgraphMetric{
 				Name:   m.Name,
 				Help:   "",
@@ -832,10 +872,9 @@ func (s *Server) handleKNIRVOracleEconomics(w http.ResponseWriter, r *http.Reque
 	result, ok := s.probes.GetResult("knirvoracle")
 	if !ok {
 		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusServiceUnavailable)
 		json.NewEncoder(w).Encode(MetricsResponse{
-			Success:   false,
-			Data:      map[string]interface{}{"error": "probe not registered"},
+			Success:   true,
+			Data:      map[string]interface{}{"available": false, "error": "metric source is not configured, unreachable, or awaiting its first scrape", "metrics": map[string]interface{}{}},
 			Timestamp: time.Now().UTC().Format(time.RFC3339),
 		})
 		return
@@ -961,4 +1000,3 @@ func (s *Server) handleDreamFindingsList(w http.ResponseWriter, r *http.Request)
 		Timestamp: time.Now().UTC().Format(time.RFC3339),
 	})
 }
-

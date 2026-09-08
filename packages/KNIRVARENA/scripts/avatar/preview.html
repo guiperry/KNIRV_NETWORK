@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en"><meta charset="utf-8"><title>Explorer animation preview</title>
+<style>body{margin:0;background:#10191d;color:#e5ffed;font:16px system-ui}canvas{display:block}aside{position:absolute;top:28px;left:32px}h1{font-size:25px;margin:0 0 8px}p{color:#a4c6b7}button{padding:10px 20px;margin:4px;border:1px solid #456658;border-radius:6px;background:#19382c;color:white;cursor:pointer}button[aria-pressed=true]{background:#337a50}#status{color:#7fffa5}</style>
+<aside><h1>Green Bot Explorer</h1><p>Rigged GLB · idle, run and repair</p><div id="controls"></div><p id="status">Loading…</p></aside>
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { clone } from 'three/examples/jsm/utils/SkeletonUtils.js';
+const renderer = new THREE.WebGLRenderer({antialias:true});
+renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio,2));document.body.append(renderer.domElement);
+const scene=new THREE.Scene();scene.background=new THREE.Color('#10191d');
+const camera=new THREE.PerspectiveCamera(40,innerWidth/innerHeight,.1,100);camera.position.set(4,2.7,6);
+const controls=new OrbitControls(camera,renderer.domElement);controls.target.set(0,.95,0);controls.update();
+scene.add(new THREE.HemisphereLight(0xd9ffed,0x344b58,3));const light=new THREE.DirectionalLight(0xffffff,4);light.position.set(2,5,4);scene.add(light);
+scene.add(new THREE.GridHelper(30,60,0x437963,0x243b33));
+const node=new THREE.Mesh(new THREE.IcosahedronGeometry(.34,1),new THREE.MeshStandardMaterial({color:0xff5544,emissive:0xaa2211,emissiveIntensity:.5,wireframe:true}));node.position.set(0,.9,1.1);scene.add(node);
+const gltf=await new GLTFLoader().loadAsync(`${import.meta.env.BASE_URL}assets/avatar/Green_Bot_Explorer.glb`);
+const bot=clone(gltf.scene);bot.position.y=1;scene.add(bot);
+const mixer=new THREE.AnimationMixer(bot);const actions=Object.fromEntries(gltf.animations.map(c=>[c.name,mixer.clipAction(c)]));
+let current;let demo=false;let elapsed=0;
+function play(name){if(current===name)return;actions[current]?.fadeOut(.18);actions[name].reset().fadeIn(.18).play();current=name;document.querySelector('#status').textContent=name;document.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',String(b.textContent===name)));}
+for(const name of ['Idle','Run','Work','Approach node']){const b=document.createElement('button');b.textContent=name;b.onclick=()=>{demo=name==='Approach node';elapsed=0;bot.position.set(0,1,demo?-5:0);play(demo?'Run':name);};document.querySelector('#controls').append(b);}
+play('Idle');
+window.avatarPreview={gltf,bot,mixer,actions,play,scene,clone};
+const clock=new THREE.Clock();renderer.setAnimationLoop(()=>{const dt=Math.min(clock.getDelta(),.05);elapsed+=dt;if(demo){bot.position.z=Math.min(0,-5+elapsed*2.8);if(bot.position.z===0)play('Work');}mixer.update(dt);renderer.render(scene,camera);});
+addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});
+</script></html>

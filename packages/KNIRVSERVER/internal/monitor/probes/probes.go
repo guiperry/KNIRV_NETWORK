@@ -2,7 +2,9 @@ package probes
 
 import (
 	"bufio"
+	"context"
 	"fmt"
+	"net"
 	"net/http"
 	"strconv"
 	"strings"
@@ -17,6 +19,7 @@ type Metric struct {
 }
 
 type ProbeResult struct {
+	Error   string
 	Metrics map[string]Metric
 	Scraped time.Time
 }
@@ -29,7 +32,11 @@ type Probe interface {
 var httpClient = &http.Client{Timeout: 10 * time.Second}
 
 func scrapeURL(url string) (*ProbeResult, error) {
-	resp, err := httpClient.Get(url)
+	return scrapeClientURL(httpClient, url)
+}
+
+func scrapeClientURL(client *http.Client, url string) (*ProbeResult, error) {
+	resp, err := client.Get(url)
 	if err != nil {
 		return nil, fmt.Errorf("fetch %s: %w", url, err)
 	}
@@ -120,11 +127,11 @@ func parseMetricLine(line string) (string, float64, map[string]string, error) {
 		labelStr := line[idx+1 : closeIdx]
 		labels := parseLabels(labelStr)
 		rest := strings.TrimSpace(line[closeIdx+1:])
-		parts := strings.SplitN(rest, " ", 2)
-		if len(parts) != 2 {
+		parts := strings.Fields(rest)
+		if len(parts) < 1 {
 			return "", 0, nil, fmt.Errorf("malformed value")
 		}
-		val, err := strconv.ParseFloat(parts[1], 64)
+		val, err := strconv.ParseFloat(parts[0], 64)
 		if err != nil {
 			return "", 0, nil, err
 		}
@@ -223,6 +230,7 @@ func (pm *ProbeManager) ScrapeAll() map[string]*ProbeResult {
 		result, err := probe.Scrape()
 		if err != nil {
 			result = &ProbeResult{
+				Error:   err.Error(),
 				Metrics: make(map[string]Metric),
 				Scraped: time.Now(),
 			}
@@ -237,5 +245,20 @@ func (pm *ProbeManager) GetResult(name string) (*ProbeResult, bool) {
 	pm.mu.RLock()
 	defer pm.mu.RUnlock()
 	r, ok := pm.results[name]
-	return r, ok
+	return r, ok && r.Error == ""
+}
+
+// SocketProbe scrapes the embedded service without exposing a TCP listener.
+type SocketProbe struct{ name, socket string }
+
+func NewSocketProbe(name, socket string) *SocketProbe {
+	return &SocketProbe{name: name, socket: socket}
+}
+func (p *SocketProbe) Name() string { return p.name }
+func (p *SocketProbe) Scrape() (*ProbeResult, error) {
+	transport := &http.Transport{DialContext: func(ctx context.Context, _, _ string) (net.Conn, error) {
+		return (&net.Dialer{}).DialContext(ctx, "unix", p.socket)
+	}}
+	defer transport.CloseIdleConnections()
+	return scrapeClientURL(&http.Client{Transport: transport, Timeout: 5 * time.Second}, "http://localhost/metrics")
 }

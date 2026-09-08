@@ -17,6 +17,17 @@ host: "0.0.0.0"
 serve_frontend: true
 log_level: "info"
 
+# Embedded local cognitive-inference model. This is ordinary deployment
+# configuration (not root.key data). It downloads on first `-llama`/enabled
+# start and is then cached under /var/lib/knirvserver/knirvllama/models.
+llama:
+  enabled: true
+  model_url: "https://huggingface.co/Qwen/Qwen2.5-7B-Instruct-GGUF/resolve/main/qwen2.5-7b-instruct-q3_k_m.gguf"
+  model_name: "qwen2.5-7b-instruct-q3_k_m.gguf"
+  parallel: 1
+  ctx_size: 2048
+  threads: 4
+
 # Service Configuration (wrapper frontend)
 service:
   host: "0.0.0.0"

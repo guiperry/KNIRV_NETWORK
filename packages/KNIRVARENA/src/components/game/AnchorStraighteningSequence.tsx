@@ -1,9 +1,10 @@
 /* eslint-disable react/no-unknown-property */
 
-import { useRef, useEffect, useMemo, useState } from "react";
+import React, { useRef, useEffect, useMemo, useState } from "react";
 import { useFrame } from "@react-three/fiber";
 import { useGLTF, useAnimations } from "@react-three/drei";
 import * as THREE from "three";
+import { clone } from "three/examples/jsm/utils/SkeletonUtils.js";
 import { useKnirvana, getStagingPosition } from "./stores/useKnirvana";
 
 // ── Proxy agent ───────────────────────────────────────────────────────────
@@ -19,7 +20,7 @@ function ProxyAgent({ startPos, targetPos, index, timeRef }: ProxyAgentProps) {
   const groupRef = useRef<THREE.Group>(null);
   const { scene, animations } = useGLTF(`${import.meta.env.BASE_URL}assets/avatar/Green_Bot_Explorer.glb`);
   const { actions, names } = useAnimations(animations, groupRef);
-  const clonedScene = useMemo(() => scene.clone(), [scene]);
+  const clonedScene = useMemo(() => clone(scene), [scene]);
 
   const MOVE_TO_DUR  = 2.5;
   const WORK_DUR     = 3.0;
@@ -36,7 +37,7 @@ function ProxyAgent({ startPos, targetPos, index, timeRef }: ProxyAgentProps) {
     return () => names.forEach(n => actions[n]?.stop());
   }, [actions, names]);
 
-  useFrame((state, delta) => {
+  useFrame((state) => {
     if (!groupRef.current) return;
 
     const t = Math.max(0, timeRef.current - staggerOffset);
@@ -64,9 +65,9 @@ function ProxyAgent({ startPos, targetPos, index, timeRef }: ProxyAgentProps) {
       // ── Working at anchor ─────────────────────────────────────────────
       const bounce = Math.abs(Math.sin(clock * 8)) * 0.12;
       groupRef.current.position.set(targetPos.x, 1 + bounce, targetPos.z);
-      groupRef.current.rotation.y += delta * 3;
+      // Hold the approach heading while repairing the anchor.
 
-      const workAnim = names.find(n => /work|dance|idle|stand/i.test(n));
+      const workAnim = names.find(n => /work/i.test(n));
       const fallback = names.find(n => /walk|run/i.test(n)) ?? names[0];
       const chosen = workAnim ?? fallback;
       if (chosen && !actions[chosen]?.isRunning()) {

@@ -3,14 +3,22 @@ package api
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net"
 	"net/http"
 	"time"
 )
 
+var errActuarialUnavailable = errors.New("actuarial service is not enabled")
+
 func (s *Server) handleActuarialMetrics(w http.ResponseWriter, r *http.Request) {
 	metrics, err := s.RefreshActuarialMetrics(r.Context())
+	if errors.Is(err, errActuarialUnavailable) {
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(MetricsResponse{Success: true, Data: map[string]interface{}{"available": false, "metrics": nil}})
+		return
+	}
 	if err != nil {
 		writeMonitorError(w, http.StatusBadGateway, err.Error())
 		return
@@ -42,6 +50,9 @@ func (s *Server) RefreshActuarialMetrics(ctx context.Context) (*ActuarialMetrics
 		return nil, fmt.Errorf("fetch actuarial metrics: %w", err)
 	}
 	defer response.Body.Close()
+	if response.StatusCode == http.StatusNotFound {
+		return nil, errActuarialUnavailable
+	}
 	if response.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("actuarial metrics upstream returned %s", response.Status)
 	}

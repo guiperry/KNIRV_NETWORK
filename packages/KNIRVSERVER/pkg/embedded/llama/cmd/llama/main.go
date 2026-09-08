@@ -9,8 +9,10 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 	"time"
 
@@ -21,7 +23,7 @@ import (
 )
 
 func main() {
-	var dataDir, listen, llamaAddress, serverPath, modelPath, modelURL string
+	var dataDir, listen, llamaAddress, serverPath, modelPath, modelURL, modelName string
 	var noInstall bool
 	var unixSocket string
 	var parallel, ctxSize, threads int
@@ -33,12 +35,24 @@ func main() {
 	flag.StringVar(&serverPath, "server-path", "", "path to llama-server")
 	flag.StringVar(&modelPath, "model-path", "", "path to a GGUF model")
 	flag.StringVar(&modelURL, "model-url", "", "URL for the model downloaded on first run")
+	flag.StringVar(&modelName, "model-name", "", "file name used when caching a model URL")
 	flag.IntVar(&parallel, "parallel", 1, "number of parallel llama-server slots (1 keeps the embedded CPU model uncontended)")
 	flag.IntVar(&ctxSize, "ctx-size", 0, "context window in tokens (0 = llama-server default)")
 	flag.IntVar(&threads, "threads", 0, "CPU threads for llama-server (0 = llama-server default)")
 	flag.StringVar(&apiKey, "api-key", "", "shared-secret token required from API clients (defense-in-depth; bind address already restricts access)")
 	flag.BoolVar(&noInstall, "no-install", false, "fail instead of installing missing dependencies")
 	flag.Parse()
+	// Environment overrides make a model upgrade operational rather than a
+	// binary rebuild. CLI flags still win for one-off operator overrides.
+	if modelPath == "" {
+		modelPath = os.Getenv("KNIRV_LLAMA_MODEL_PATH")
+	}
+	if modelURL == "" {
+		modelURL = os.Getenv("KNIRV_LLAMA_MODEL_URL")
+	}
+	if modelName == "" {
+		modelName = os.Getenv("KNIRV_LLAMA_MODEL_NAME")
+	}
 
 	dataDir, configPath, err := config.Paths(dataDir)
 	if err != nil {
@@ -48,9 +62,19 @@ func main() {
 		if serverPath == "" {
 			serverPath = saved.ServerPath
 		}
-		if modelPath == "" {
+		// A requested URL is an explicit upgrade/downgrade request; never let a
+		// previously cached model silently win over it.
+		if modelPath == "" && modelURL == "" {
 			modelPath = saved.ModelPath
 		}
+	}
+	if modelName == "" && modelURL != "" {
+		if u, err := url.Parse(modelURL); err == nil {
+			modelName = filepath.Base(u.Path)
+		}
+	}
+	if modelName == "" && modelPath != "" {
+		modelName = filepath.Base(modelPath)
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Minute)
 	defer cancel()
@@ -62,6 +86,7 @@ func main() {
 		ServerURL:  os.Getenv("KNIRV_LLAMA_SERVER_URL"),
 		ModelPath:  modelPath,
 		ModelURL:   modelURL,
+		ModelName:  modelName,
 		NoInstall:  noInstall,
 	})
 	if err != nil {

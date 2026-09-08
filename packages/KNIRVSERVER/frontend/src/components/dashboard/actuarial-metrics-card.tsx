@@ -1,21 +1,25 @@
 'use client';
 
+import { getAuthHeaders } from '@/lib/api';
 import { useQuery } from '@tanstack/react-query';
 import { Activity, CircleDollarSign, ShieldAlert } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
 type ActuarialMetrics = { enabled: number; paused: number; risk_classes_active: number; risk_classes_observation_only: number; reports_total: number; snapshots_finalized: number; pools_active: number; pools_capacity_restricted: number; liquid_balance: number; reserved_balance: number; settlements_pending: number; settlements_failed: number; outbox_pending: number };
 
-async function loadMetrics(): Promise<ActuarialMetrics> {
-  const response = await fetch('/api/v1/actuarial/metrics');
+async function loadMetrics(): Promise<ActuarialMetrics | null> {
+  const response = await fetch('/api/v1/actuarial/metrics', { headers: getAuthHeaders() });
+  if (response.status === 404) return null;
   if (!response.ok) throw new Error(`Actuarial metrics unavailable (${response.status})`);
-  const payload = await response.json() as { metrics?: ActuarialMetrics };
+  const responseBody = await response.json();
+  const payload = (responseBody.data ?? responseBody) as { metrics?: ActuarialMetrics; available?: boolean };
+  if (payload.available === false) return null;
   if (!payload.metrics) throw new Error('Actuarial metrics response is malformed');
   return payload.metrics;
 }
 
 export function ActuarialMetricsCard() {
-  const query = useQuery({ queryKey: ['actuarial', 'metrics'], queryFn: loadMetrics, refetchInterval: 15_000, staleTime: 10_000, retry: 1 });
+  const query = useQuery({ queryKey: ['actuarial', 'metrics'], queryFn: loadMetrics, refetchInterval: (query) => query.state.data === null ? false : 15_000, staleTime: (query) => query.state.data === null ? Infinity : 10_000, retry: 1 });
   const metrics = query.data;
   const available = metrics ? metrics.liquid_balance - metrics.reserved_balance : 0;
 

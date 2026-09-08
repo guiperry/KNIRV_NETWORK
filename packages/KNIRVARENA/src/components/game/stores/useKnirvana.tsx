@@ -917,7 +917,7 @@ export const useKnirvana = create<KnirvanaState>()(
         set((state) => ({
           agents: state.agents.map(agent =>
             agent.id === agentId
-              ? { ...agent, target: nodeId, status: 'working' as const }
+              ? { ...agent, staged: false, target: nodeId, status: 'moving' as const }
               : agent
           ),
           errorNodes: state.errorNodes.map(node =>

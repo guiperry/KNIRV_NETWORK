@@ -120,6 +120,9 @@ type Config struct {
 	// extracts and starts the embedded local llama.cpp inference provider
 	// at the top of the initialization sequence, before startAgentControl.
 	AutoStartLlama bool
+	// Llama is ordinary operational configuration. Model locations are not
+	// secrets and must never be sourced from root.key.
+	Llama LlamaConfig `mapstructure:"llama"`
 	// NetworkMode is "testnet" (default), "production", "development", or
 	// "enterprise" — set from the -prod / -dev / -ent flags (or environment),
 	// not sourced from the config YAML itself.
@@ -129,6 +132,18 @@ type Config struct {
 	Enterprise bool
 	// UserIDTag is the DNS-safe user identity suffix used by devnet and enterprise.
 	UserIDTag string
+}
+
+// LlamaConfig controls the embedded local inference service through the same
+// YAML configuration mechanism as the rest of KNIRVSERVER.
+type LlamaConfig struct {
+	Enabled   bool   `mapstructure:"enabled"`
+	ModelURL  string `mapstructure:"model_url"`
+	ModelName string `mapstructure:"model_name"`
+	ModelPath string `mapstructure:"model_path"`
+	Parallel  int    `mapstructure:"parallel"`
+	CtxSize   int    `mapstructure:"ctx_size"`
+	Threads   int    `mapstructure:"threads"`
 }
 
 func normalizeUserIDTag(value string) string {
@@ -786,6 +801,25 @@ func (app *ServerApp) startLlama(ctx context.Context) error {
 	managerCfg.BinaryPath = llamaBinaryPath
 	managerCfg.DataDir = filepath.Join(appDataDir, "knirvllama")
 	managerCfg.SocketPath = filepath.Join(appDataDir, "sockets", "llama.sock")
+	if app.config.Llama.Parallel > 0 {
+		managerCfg.Parallel = app.config.Llama.Parallel
+	}
+	if app.config.Llama.CtxSize > 0 {
+		managerCfg.CtxSize = app.config.Llama.CtxSize
+	}
+	if app.config.Llama.Threads > 0 {
+		managerCfg.Threads = app.config.Llama.Threads
+	}
+	managerCfg.EnvOverrides = make(map[string]string)
+	if app.config.Llama.ModelURL != "" {
+		managerCfg.EnvOverrides["KNIRV_LLAMA_MODEL_URL"] = app.config.Llama.ModelURL
+	}
+	if app.config.Llama.ModelName != "" {
+		managerCfg.EnvOverrides["KNIRV_LLAMA_MODEL_NAME"] = app.config.Llama.ModelName
+	}
+	if app.config.Llama.ModelPath != "" {
+		managerCfg.EnvOverrides["KNIRV_LLAMA_MODEL_PATH"] = app.config.Llama.ModelPath
+	}
 
 	manager := knirvllama.NewManager(managerCfg, zap.NewNop())
 	if err := manager.Start(ctx); err != nil {
@@ -1228,6 +1262,7 @@ var monitorAPIPrefixes = []string{
 
 // monitorAPIExactPaths are single, non-prefixed monitor-owned paths.
 var monitorAPIExactPaths = map[string]bool{
+	"/api/v1/actuarial/metrics":  true,
 	"/api/v1/network/interfaces": true,
 	"/api/v1/network/stats":      true,
 }
@@ -1325,6 +1360,43 @@ func isAdminRequest(r *http.Request) bool {
 
 func isTestnetEnvironment() bool {
 	return viper.GetBool("testnet") || strings.EqualFold(strings.TrimSpace(viper.GetString("environment")), "testnet")
+}
+
+// Authorize backend-managed credentials through the same identity endpoint as
+// dashboard login. Session tokens are opaque and cannot be verified as JWTs.
+func (app *ServerApp) isMonitorAdminRequest(r *http.Request) bool {
+	if isAdminRequest(r) {
+		return true
+	}
+	if strings.TrimSpace(r.Header.Get("Authorization")) == "" {
+		return false
+	}
+	req, err := http.NewRequestWithContext(r.Context(), http.MethodGet, backendBaseURL(app.config)+"/api/auth/me", nil)
+	if err != nil {
+		return false
+	}
+	req.Header.Set("Authorization", r.Header.Get("Authorization"))
+	client := &http.Client{
+		Timeout:       5 * time.Second,
+		CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse },
+	}
+	if app.config.BackendSocket != "" {
+		transport := unixSocketTransport(app.config.BackendSocket)
+		defer transport.CloseIdleConnections()
+		client.Transport = transport
+	}
+	response, err := client.Do(req)
+	if err != nil {
+		return false
+	}
+	defer response.Body.Close()
+	if response.StatusCode != http.StatusOK {
+		return false
+	}
+	var identity struct {
+		Role string `json:"role"`
+	}
+	return json.NewDecoder(io.LimitReader(response.Body, 64<<10)).Decode(&identity) == nil && identity.Role == "admin"
 }
 
 func gatewayBaseURL(cfg *Config) string {
@@ -2073,7 +2145,7 @@ func (app *ServerApp) setupRoutes() error {
 			// KNIRVGATEWAY's /api/v1/* proxies point at backend_server, which
 			// has no handlers for them at all).
 			if isMonitorAPIPath(c.Request.URL.Path) {
-				if !isAdminRequest(c.Request) {
+				if !app.isMonitorAdminRequest(c.Request) {
 					c.JSON(http.StatusForbidden, gin.H{"error": "admin role required"})
 					return
 				}
@@ -3119,18 +3191,15 @@ func (app *ServerApp) startValidationChain(ctx context.Context) error {
 // knirvoracle/prometheus/grafana via env overrides below) — nothing else
 // depends on monitor being up, so a failure here is logged but never fatal.
 //
-// Only KNIRVGATEWAY is wired as a default probe target: it's the one
-// upstream guaranteed to be reachable over plain TCP in every deployment.
-// KNIRVCHAIN/KNIRVGRAPH run over Unix sockets under KNIRVSERVER (see
-// CLAUDE.md), which KNIRVMONITOR's generic HTTP probe client cannot dial, so
-// wiring a default URL for them would just probe a socket-shaped hole in the
-// TCP namespace and always fail — leave them unset (no probe registered)
-// unless an operator explicitly points KNIRV_MONITOR_KNIRVCHAIN_URL /
-// KNIRV_MONITOR_KNIRVGRAPH_URL / KNIRV_MONITOR_KNIRVBASE_URL /
-// KNIRV_MONITOR_KNIRVORACLE_URL / KNIRV_MONITOR_PROMETHEUS_URL /
-// KNIRV_MONITOR_GRAFANA_URL at a real TCP endpoint.
+// Embedded graph and chain metrics are scraped over their private Unix sockets.
+// Explicit monitor URL overrides take precedence.
 func (app *ServerApp) startMonitor(ctx context.Context) error {
 	cfg := &monitor.Config{
+		GatewayJWTSecret: jwtSigningSecret(),
+		ProbeSockets: map[string]string{
+			"knirvgraph": filepath.Join(mustAppDataDir(), "sockets", "graph.sock"),
+			"knirvchain": filepath.Join(mustAppDataDir(), "sockets", "chain.sock"),
+		},
 		SocketPath:        filepath.Join(filepath.Dir(app.config.BackendSocket), "monitor.sock"),
 		GatewayURL:        gatewayBaseURL(app.config),
 		RegistryURL:       strings.TrimSpace(os.Getenv("KNIRV_REGISTRY_URL")),
@@ -4181,6 +4250,8 @@ func loadConfig() (*Config, error) {
 	}
 	viper.SetDefault("gateway_port", 8080)
 	viper.SetDefault("log_level", "info")
+	viper.SetDefault("llama.enabled", false)
+	viper.SetDefault("llama.parallel", 1)
 	viper.SetDefault("testnet", networkMode == "testnet")
 	viper.SetDefault("proof_max_object_bytes", int64(64<<20))
 	viper.SetDefault("proof_validator_id", "")
@@ -4240,7 +4311,7 @@ func loadConfig() (*Config, error) {
 	config.AutoStartHasher = *hasherFlag
 	config.AutoStartPipeline = *pipelineFlag
 	config.AutoStartDirect = *directFlag
-	config.AutoStartLlama = *llamaFlag
+	config.AutoStartLlama = *llamaFlag || config.Llama.Enabled
 	config.Enterprise = networkMode == "enterprise"
 	config.UserIDTag = strings.TrimSpace(*userIDTag)
 	if config.UserIDTag == "" {
