@@ -30,6 +30,11 @@ type Server struct {
 	mu        sync.Mutex
 	http      *http.Server
 	listener  net.Listener
+
+	// dreamFindings is the bounded buffer of accepted Cognitive Engine
+	// findings (Phase G).  Reads via /api/v1/dream-findings/list return the
+	// most recent first.
+	dreamFindings []DreamFinding
 }
 
 func NewServer(cfg *ServerConfig) *Server {
@@ -103,6 +108,8 @@ func (s *Server) Start(ctx context.Context) error {
 	mux.HandleFunc("/api/v1/knirvoracle/health", s.handleKNIRVOracleHealth)
 	mux.HandleFunc("/api/v1/gateway/routes", s.handleGatewayRoutes)
 	mux.HandleFunc("/api/v1/gateway/health", s.handleGatewayHealth)
+	mux.HandleFunc("/api/v1/dream-findings", s.handleDreamFindings)
+	mux.HandleFunc("/api/v1/dream-findings/list", s.handleDreamFindingsList)
 	mux.HandleFunc("/api/v1/onboarding/applications", s.handleOnboardingApplications)
 	// Subtree pattern (trailing "/") — coexists with the exact match above in
 	// stdlib ServeMux, matches e.g. "/api/v1/onboarding/applications/{id}/review".
@@ -862,3 +869,96 @@ func (s *Server) handleKNIRVOracleHealth(w http.ResponseWriter, r *http.Request)
 		Timestamp: time.Now().UTC().Format(time.RFC3339),
 	})
 }
+
+// ─── Dream findings (Phase G) ───────────────────────────────────────────────
+//
+// The Cognitive Engine POSTs an accepted Phase E finding here.  We expose the
+// buffer over /api/v1/dream-findings/list so the KNIRVSERVER dashboard can
+// render it without any new backend plumbing, and we also publish scalar
+// fields (confidence, count) into the existing Prometheus registry so they
+// flow through the same alerting path as probe metrics.
+
+const maxDreamFindings = 256
+
+func (s *Server) appendDreamFinding(f DreamFinding) {
+	if f.DetectedAt.IsZero() {
+		f.DetectedAt = time.Now()
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.dreamFindings == nil {
+		s.dreamFindings = make([]DreamFinding, 0, maxDreamFindings)
+	}
+	s.dreamFindings = append(s.dreamFindings, f)
+	if len(s.dreamFindings) > maxDreamFindings {
+		// Drop the oldest — the buffer is bounded on purpose.
+		s.dreamFindings = s.dreamFindings[len(s.dreamFindings)-maxDreamFindings:]
+	}
+	if s.registry != nil {
+		gauge := s.registry.RegisterRemoteGauge(
+			"knirv_cognitive_dream_finding_confidence",
+			"Confidence of the most recent Cognitive Engine dream-task finding")
+		gauge.Set(f.Confidence)
+	}
+}
+
+func (s *Server) handleDreamFindings(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		w.Header().Set("Allow", http.MethodPost)
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	defer r.Body.Close()
+	var req DreamFindingIngestRequest
+	if err := json.NewDecoder(io.LimitReader(r.Body, 1<<20)).Decode(&req); err != nil {
+		writeMonitorError(w, http.StatusBadRequest, fmt.Sprintf("invalid dream-finding body: %v", err))
+		return
+	}
+	if req.Finding.Confidence < req.Finding.Threshold {
+		writeMonitorError(w, http.StatusUnprocessableEntity,
+			fmt.Sprintf("confidence %.2f below threshold %.2f — finding rejected by Phase G gate",
+				req.Finding.Confidence, req.Finding.Threshold))
+		return
+	}
+	if req.Finding.Action == "" || req.Finding.PolicyName == "" {
+		writeMonitorError(w, http.StatusUnprocessableEntity, "finding requires action and policyName")
+		return
+	}
+	s.appendDreamFinding(req.Finding)
+	if s.registry != nil {
+		s.registry.AddRemoteCounter(
+			"knirv_cognitive_dream_finding_accepted_total",
+			1)
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusAccepted)
+	json.NewEncoder(w).Encode(MetricsResponse{
+		Success:   true,
+		Data:      map[string]interface{}{"accepted": true, "id": req.Finding.ID},
+		Timestamp: time.Now().UTC().Format(time.RFC3339),
+	})
+}
+
+func (s *Server) handleDreamFindingsList(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		w.Header().Set("Allow", http.MethodGet)
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	s.mu.Lock()
+	findings := make([]DreamFinding, len(s.dreamFindings))
+	copy(findings, s.dreamFindings)
+	s.mu.Unlock()
+
+	// Reverse so the newest is first — the dashboard renders the top entry.
+	for i, j := 0, len(findings)-1; i < j; i, j = i+1, j-1 {
+		findings[i], findings[j] = findings[j], findings[i]
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(MetricsResponse{
+		Success:   true,
+		Data:      map[string]interface{}{"findings": findings, "count": len(findings)},
+		Timestamp: time.Now().UTC().Format(time.RFC3339),
+	})
+}
+

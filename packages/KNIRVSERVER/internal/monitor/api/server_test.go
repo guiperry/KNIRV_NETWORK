@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
+	"strings"
 	"syscall"
 	"testing"
 	"time"
@@ -203,4 +204,91 @@ func TestStartAndShutdownOwnsSocketLifecycle(t *testing.T) {
 	assert.NoError(t, server.Shutdown(context.Background()))
 	_, err = net.Dial("unix", socketPath)
 	assert.Error(t, err)
+}
+
+// TestDreamFindingsEndpointAcceptsValidFinding verifies the Phase G write
+// route accepts a properly formed finding and exposes it via the list route.
+func TestDreamFindingsEndpointAcceptsValidFinding(t *testing.T) {
+	server := NewServer(&ServerConfig{Port: "9091"})
+
+	body := `{"finding":{"id":"f1","policyName":"dream_task_proposed_action","nodeId":"learning","action":"scale_up","confidence":0.9,"threshold":0.7,"summary":"node-1 saturated","taskKind":"learning","evidence":["node-1 success_rate=0.4"]}}`
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/dream-findings", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	server.handleDreamFindings(w, req)
+	assert.Equal(t, http.StatusAccepted, w.Code)
+
+	listReq := httptest.NewRequest(http.MethodGet, "/api/v1/dream-findings/list", nil)
+	listW := httptest.NewRecorder()
+	server.handleDreamFindingsList(listW, listReq)
+	assert.Equal(t, http.StatusOK, listW.Code)
+
+	var envelope MetricsResponse
+	assert.NoError(t, json.NewDecoder(listW.Body).Decode(&envelope))
+	findings, ok := envelope.Data["findings"].([]DreamFinding)
+	if !ok {
+		// json decoder may decode as []interface{} — handle both.
+		raw, _ := envelope.Data["findings"].([]interface{})
+		findings = make([]DreamFinding, 0, len(raw))
+		for _, r := range raw {
+			b, _ := json.Marshal(r)
+			var f DreamFinding
+			assert.NoError(t, json.Unmarshal(b, &f))
+			findings = append(findings, f)
+		}
+	}
+	if len(findings) != 1 {
+		t.Fatalf("findings count = %d, want 1", len(findings))
+	}
+	if findings[0].Action != "scale_up" || findings[0].ID != "f1" {
+		t.Fatalf("finding mismatch: %+v", findings[0])
+	}
+}
+
+// TestDreamFindingsEndpointRejectsBelowThreshold verifies the Phase G gate:
+// a finding whose confidence is below threshold must be rejected.
+func TestDreamFindingsEndpointRejectsBelowThreshold(t *testing.T) {
+	server := NewServer(&ServerConfig{Port: "9091"})
+
+	body := `{"finding":{"id":"f1","policyName":"dream_task_proposed_action","nodeId":"learning","action":"scale_up","confidence":0.3,"threshold":0.7,"summary":"x","taskKind":"learning"}}`
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/dream-findings", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	server.handleDreamFindings(w, req)
+	assert.Equal(t, http.StatusUnprocessableEntity, w.Code)
+}
+
+// TestDreamFindingsEndpointRejectsMissingFields verifies the validator rejects
+// incomplete findings rather than silently inserting garbage.
+func TestDreamFindingsEndpointRejectsMissingFields(t *testing.T) {
+	server := NewServer(&ServerConfig{Port: "9091"})
+
+	cases := []string{
+		`{"finding":{"id":"f1","policyName":"dream_task_proposed_action","confidence":0.9,"threshold":0.7}}`,
+		`{"finding":{"id":"f1","action":"scale_up","confidence":0.9,"threshold":0.7}}`,
+	}
+	for _, body := range cases {
+		req := httptest.NewRequest(http.MethodPost, "/api/v1/dream-findings", strings.NewReader(body))
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+		server.handleDreamFindings(w, req)
+		assert.Equal(t, http.StatusUnprocessableEntity, w.Code, body)
+	}
+}
+
+// TestDreamFindingsBufferIsBounded confirms the buffer evicts old entries.
+func TestDreamFindingsBufferIsBounded(t *testing.T) {
+	server := NewServer(&ServerConfig{Port: "9091"})
+	for i := 0; i < maxDreamFindings+10; i++ {
+		server.appendDreamFinding(DreamFinding{
+			ID:         "f",
+			PolicyName: "p",
+			Action:     "a",
+			Confidence: 0.9,
+			Threshold:  0.7,
+		})
+	}
+	if got := len(server.dreamFindings); got != maxDreamFindings {
+		t.Fatalf("buffer size = %d, want %d", got, maxDreamFindings)
+	}
 }

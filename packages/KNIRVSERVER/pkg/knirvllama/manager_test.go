@@ -99,3 +99,35 @@ func TestManagerGetStatus(t *testing.T) {
 		t.Errorf("expected ListenAddr '%s', got '%s'", DefaultListenAddr, status.ListenAddr)
 	}
 }
+
+func TestDefaultManagerConfigLlamaServerTunables(t *testing.T) {
+	cfg := DefaultManagerConfig()
+	if cfg.Parallel != 1 {
+		t.Errorf("DefaultManagerConfig Parallel = %d, want 1 (Phase A: keep the embedded CPU model uncontended)", cfg.Parallel)
+	}
+}
+
+func TestNewManagerGeneratesAPIKeyWhenUnset(t *testing.T) {
+	m := NewManager(nil, nil)
+	if m.APIKey() == "" {
+		t.Fatal("APIKey() = \"\", want a generated shared-secret token")
+	}
+	if len(m.APIKey()) < 16 {
+		t.Fatalf("APIKey() = %q, want >=16 chars of entropy", m.APIKey())
+	}
+}
+
+func TestNewManagerPreservesExplicitAPIKey(t *testing.T) {
+	const explicit = "operator-supplied-token"
+	m := NewManager(&ManagerConfig{APIKey: explicit}, nil)
+	if m.APIKey() != explicit {
+		t.Fatalf("APIKey() = %q, want %q", m.APIKey(), explicit)
+	}
+}
+
+func TestNewManagerDefaultsParallelToOne(t *testing.T) {
+	m := NewManager(&ManagerConfig{}, nil)
+	if m.config.Parallel != 1 {
+		t.Fatalf("NewManager Parallel = %d, want 1", m.config.Parallel)
+	}
+}

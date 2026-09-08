@@ -8,10 +8,50 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"strconv"
 	"time"
 )
 
 type Server struct{ Command *exec.Cmd }
+
+// Options controls the deterministic tunables passed to llama-server.
+// Zero values are treated as "let llama-server choose" (except Parallel, which
+// defaults to 1 to keep the embedded CPU model uncontended — see the llama
+// cognitive-engine plan §2.1, §4 Phase A).
+type Options struct {
+	Parallel int
+	CtxSize  int
+	Threads  int
+	APIKey   string
+}
+
+func (o Options) args(model, port string) []string {
+	args := []string{"-m", model, "--host", "127.0.0.1", "--port", port}
+	if o.Parallel > 0 {
+		args = append(args, "--parallel", strconv.Itoa(o.Parallel))
+	}
+	if o.CtxSize > 0 {
+		args = append(args, "--ctx-size", strconv.Itoa(o.CtxSize))
+	}
+	if o.Threads > 0 {
+		args = append(args, "--threads", strconv.Itoa(o.Threads))
+	}
+	if o.APIKey != "" {
+		args = append(args, "--api-key", o.APIKey)
+	}
+	return args
+}
+
+// Args returns the fully-resolved llama-server command line for the supplied
+// model + port, applying any non-zero Options. Exported so the manager layer
+// (and tests) can assert the exact flag set without spawning a process.
+func Args(path, model, address string, opts Options) []string {
+	_, port, err := net.SplitHostPort(address)
+	if err != nil {
+		port = address
+	}
+	return append([]string{path}, opts.args(model, port)...)
+}
 
 func Healthy(ctx context.Context, address string) bool {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, "http://"+address+"/health", nil)
@@ -27,12 +67,16 @@ func Healthy(ctx context.Context, address string) bool {
 	return resp.StatusCode >= 200 && resp.StatusCode < 300
 }
 
-func Start(path, model, address string) (*Server, error) {
+// Start launches llama-server with the supplied tunables. Pass Options{} to
+// preserve the previous default behaviour; the caller is responsible for
+// deciding whether to override Parallel/CtxSize/Threads/APIKey (the manager
+// does this from ManagerConfig).
+func Start(path, model, address string, opts Options) (*Server, error) {
 	_, port, err := net.SplitHostPort(address)
 	if err != nil {
 		return nil, fmt.Errorf("invalid llama address %q: %w", address, err)
 	}
-	cmd := exec.Command(path, "-m", model, "--host", "127.0.0.1", "--port", port)
+	cmd := exec.Command(path, opts.args(model, port)...)
 	// Keep llama-server diagnostics in the KNIRVSERVER log stream. These logs
 	// explain model-load failures and make first-run progress observable.
 	cmd.Stdout = os.Stdout

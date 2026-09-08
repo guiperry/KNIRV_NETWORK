@@ -1,4 +1,11 @@
 import { Socket, Channel } from "phoenix";
+import type {
+  DVENode,
+  DVERequest,
+  DVEResult,
+  DVETask,
+  DVEValidationResponse,
+} from "../services/KNIRVSERVERClient";
 
 export interface DVEClientConfig {
   baseUrl: string;
@@ -99,7 +106,7 @@ export class DVEClient {
   getDVENodes(): Promise<DVENode[]> {
     return new Promise((resolve, reject) => {
       const channel = this.getOrCreateChannel("dve:lobby");
-      channel.push("list_nodes")
+      channel.push("list_nodes", {})
         .receive("ok", (msg: { nodes: DVENode[] }) => resolve(msg.nodes))
         .receive("error", (err: any) => reject(err));
     });
@@ -108,7 +115,7 @@ export class DVEClient {
   getDVENodeMetrics(nodeId: string): Promise<Record<string, unknown> | null> {
     return new Promise((resolve, reject) => {
       const channel = this.getOrCreateChannel(`dve:${nodeId}`);
-      channel.push("get_metrics")
+      channel.push("get_metrics", {})
         .receive("ok", (msg: { metrics: Record<string, unknown> }) => resolve(msg.metrics))
         .receive("error", () => resolve(null));
     });
@@ -152,4 +159,3 @@ export class DVEClient {
 
 export const createDVEClient = (config: Partial<DVEClientConfig> = {}): DVEClient =>
   new DVEClient(config);
-

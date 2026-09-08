@@ -24,6 +24,8 @@ func main() {
 	var dataDir, listen, llamaAddress, serverPath, modelPath, modelURL string
 	var noInstall bool
 	var unixSocket string
+	var parallel, ctxSize, threads int
+	var apiKey string
 	flag.StringVar(&dataDir, "data-dir", "", "directory for llama.cpp and models")
 	flag.StringVar(&listen, "listen", "127.0.0.1:8080", "address for chat API")
 	flag.StringVar(&unixSocket, "unix-socket", "", "path for chat API Unix socket (overrides -listen)")
@@ -31,6 +33,10 @@ func main() {
 	flag.StringVar(&serverPath, "server-path", "", "path to llama-server")
 	flag.StringVar(&modelPath, "model-path", "", "path to a GGUF model")
 	flag.StringVar(&modelURL, "model-url", "", "URL for the model downloaded on first run")
+	flag.IntVar(&parallel, "parallel", 1, "number of parallel llama-server slots (1 keeps the embedded CPU model uncontended)")
+	flag.IntVar(&ctxSize, "ctx-size", 0, "context window in tokens (0 = llama-server default)")
+	flag.IntVar(&threads, "threads", 0, "CPU threads for llama-server (0 = llama-server default)")
+	flag.StringVar(&apiKey, "api-key", "", "shared-secret token required from API clients (defense-in-depth; bind address already restricts access)")
 	flag.BoolVar(&noInstall, "no-install", false, "fail instead of installing missing dependencies")
 	flag.Parse()
 
@@ -67,7 +73,12 @@ func main() {
 
 	var child *runtime.Server
 	if !runtime.Healthy(context.Background(), llamaAddress) {
-		child, err = runtime.Start(result.ServerPath, result.ModelPath, llamaAddress)
+		child, err = runtime.Start(result.ServerPath, result.ModelPath, llamaAddress, runtime.Options{
+			Parallel: parallel,
+			CtxSize:  ctxSize,
+			Threads:  threads,
+			APIKey:   apiKey,
+		})
 		if err != nil {
 			log.Fatal(err)
 		}

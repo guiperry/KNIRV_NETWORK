@@ -2,12 +2,15 @@ package knirvllama
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"fmt"
 	"net"
 	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"syscall"
@@ -51,6 +54,19 @@ type ManagerConfig struct {
 	StartTimeout time.Duration
 	StopTimeout  time.Duration
 	EnvOverrides map[string]string
+
+	// Deterministic llama-server tunables (Phase A). See
+	// llama_cognitive_engine.md §2.1, §4 Phase A.
+	// Parallel defaults to 1 in DefaultManagerConfig so the embedded CPU
+	// model never sees four concurrent slots competing for context + compute.
+	Parallel int
+	CtxSize  int
+	Threads  int
+	// APIKey is the shared-secret token forwarded to llama-server as
+	// `--api-key`.  Treat as defense-in-depth only — the wrapper's
+	// listen-address already restricts network access and traffic reaches
+	// the model over a private Unix socket.
+	APIKey string
 }
 
 type LlamaStatus struct {
@@ -80,6 +96,7 @@ func DefaultManagerConfig() *ManagerConfig {
 		DataDir:      filepath.Join(appDataDir, "knirvllama"),
 		StartTimeout: DefaultStartTimeout,
 		StopTimeout:  10 * time.Second,
+		Parallel:     1,
 	}
 }
 
@@ -116,6 +133,19 @@ func NewManager(cfg *ManagerConfig, logger *zap.Logger) *Manager {
 		defaults := DefaultManagerConfig()
 		cfg.DataDir = defaults.DataDir
 	}
+	if cfg.Parallel == 0 {
+		cfg.Parallel = 1
+	}
+	if cfg.APIKey == "" {
+		// Operators may supply their own token via env, but a fresh install
+		// still needs *something* to put behind --api-key so the CORS-wildcard
+		// warning llama-server emits at start-up isn't a defense-in-depth gap.
+		if envKey := os.Getenv("KNIRV_LLAMA_API_KEY"); envKey != "" {
+			cfg.APIKey = envKey
+		} else {
+			cfg.APIKey = generateAPIKey()
+		}
+	}
 	if logger == nil {
 		logger = zap.NewNop()
 	}
@@ -125,6 +155,29 @@ func NewManager(cfg *ManagerConfig, logger *zap.Logger) *Manager {
 		logger:     logger,
 		listenAddr: cfg.ListenAddr,
 	}
+}
+
+// APIKey returns the shared-secret token this manager will forward to
+// llama-server. Callers wiring LlamaProvider must read this and set it on the
+// provider so requests carry `Authorization: Bearer <token>`.
+func (m *Manager) APIKey() string {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	if m.config == nil {
+		return ""
+	}
+	return m.config.APIKey
+}
+
+// generateAPIKey returns a 32-byte hex token.  Good enough for the
+// "defense-in-depth, bind to 127.0.0.1, only reachable via Unix socket"
+// posture llama-server has today; not a substitute for end-user auth.
+func generateAPIKey() string {
+	buf := make([]byte, 32)
+	if _, err := rand.Read(buf); err != nil {
+		return fmt.Sprintf("knirv-llama-%d", time.Now().UnixNano())
+	}
+	return hex.EncodeToString(buf)
 }
 
 func (m *Manager) Start(ctx context.Context) error {
@@ -175,6 +228,16 @@ func (m *Manager) Start(ctx context.Context) error {
 		"-listen", m.listenAddr,
 		"-llama-address", m.config.LlamaAddress,
 		"-data-dir", m.config.DataDir,
+		"-parallel", strconv.Itoa(m.config.Parallel),
+	}
+	if m.config.CtxSize > 0 {
+		args = append(args, "-ctx-size", strconv.Itoa(m.config.CtxSize))
+	}
+	if m.config.Threads > 0 {
+		args = append(args, "-threads", strconv.Itoa(m.config.Threads))
+	}
+	if m.config.APIKey != "" {
+		args = append(args, "-api-key", m.config.APIKey)
 	}
 	if m.config.SocketPath != "" {
 		args = append(args, "-unix-socket", m.config.SocketPath)

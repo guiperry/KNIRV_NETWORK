@@ -174,3 +174,29 @@ type GatewayHealth struct {
 	Status    string    `json:"status"`
 	LastCheck time.Time `json:"last_check"`
 }
+
+// DreamFinding is the write-side payload from the Cognitive Engine's
+// Phase E gate.  It is accepted only after the model's ProposedAction has
+// cleared the confidence + evidence checks, so the values exposed here are
+// suitable for surfacing in the KNIRVSERVER dashboard directly.
+type DreamFinding struct {
+	ID          string    `json:"id"`
+	PolicyName  string    `json:"policyName"`
+	NodeID      string    `json:"nodeId"`
+	Action      string    `json:"action"`
+	Confidence  float64   `json:"confidence"`
+	Threshold   float64   `json:"threshold"`
+	Evidence    []string  `json:"evidence,omitempty"`
+	Summary     string    `json:"summary"`
+	Anomaly     string    `json:"anomaly,omitempty"`
+	TaskKind    string    `json:"taskKind"`
+	DetectedAt  time.Time `json:"detectedAt"`
+}
+
+// DreamFindingIngestRequest is the JSON body the cognitive engine POSTs to
+// /api/v1/dream-findings.  Confidence < Threshold entries are rejected so the
+// monitor never publishes a finding the engine's own gate would discard.
+type DreamFindingIngestRequest struct {
+	Finding DreamFinding `json:"finding"`
+}
+
