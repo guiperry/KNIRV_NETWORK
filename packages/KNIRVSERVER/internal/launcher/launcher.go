@@ -188,14 +188,14 @@ func resolvePublicURL(cfg *Config) (string, error) {
 
 	switch strings.ToLower(strings.TrimSpace(cfg.NetworkMode)) {
 	case "production", "prod", "mainnet":
-		return "https://gateway.knirv.network", nil
+		return "https://gateway.knirv.com", nil
 	case "development", "dev", "devnet":
 		if tag == "" {
 			return "", fmt.Errorf("development mode requires -user-id-tag or KNIRV_USER_ID_TAG")
 		}
 		return fmt.Sprintf("https://devnet-%s.knirv.network", tag), nil
 	default:
-		return "https://testnet-gateway.knirv.network", nil
+		return "https://testnet-gateway.knirv.com", nil
 	}
 }
 
@@ -3237,7 +3237,7 @@ func (app *ServerApp) stopMonitor() {
 // runs on the root node — every instance (root or not) must reach it
 // through the public KNIRVGATEWAY, never a local socket, so this always
 // reuses resolvePublicURL()'s network-mode-aware resolution (testnet →
-// testnet-gateway.knirv.network, production → gateway.knirv.network, devnet
+// testnet-gateway.knirv.com, production → gateway.knirv.com, devnet
 // → devnet-<tag>.knirv.network, enterprise → enterprise-<tag>.knirv.network)
 // instead of assuming co-location. KNIRV_ORACLE_URL overrides everything,
 // for whatever exceptional deployment needs it.

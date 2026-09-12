@@ -375,7 +375,7 @@ export class DesktopConnectionService {
 		expiresAtUnix: envelope.expiresAtUnix, payload: this.bytesToBase64(envelope.payload),
 	  },
 	};
-	const gateways = ['https://gateway.knirv.network', 'https://testnet-gateway.knirv.network', 'http://localhost:8080'];
+	const gateways = ['https://gateway.knirv.com', 'https://testnet-gateway.knirv.com', 'http://localhost:8080'];
 	let selected = '';
 	let created: { request_id: string; approval_uri: string; expires_at?: string } | undefined;
 	for (const gateway of gateways) {

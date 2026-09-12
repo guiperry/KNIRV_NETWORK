@@ -41,31 +41,31 @@ impl NetworkInfo {
             Network::PublicProduction => (
                 "knirv-1",
                 "KNIRV Production Network",
-                "https://gateway.knirv.network/rpc",
+                "https://gateway.knirv.com/rpc",
                 Services {
-                    controller: "https://gateway.knirv.network".into(),
-                    router: "https://gateway.knirv.network".into(),
-                    graph: "https://gateway.knirv.network".into(),
-                    chain: "https://gateway.knirv.network".into(),
-                    oracle: "https://gateway.knirv.network".into(),
-                    nexus: "https://gateway.knirv.network".into(),
-                    gateway: "https://gateway.knirv.network".into(),
-                    backend: "https://gateway.knirv.network".into(),
+                    controller: "https://gateway.knirv.com".into(),
+                    router: "https://gateway.knirv.com".into(),
+                    graph: "https://gateway.knirv.com".into(),
+                    chain: "https://gateway.knirv.com".into(),
+                    oracle: "https://gateway.knirv.com".into(),
+                    nexus: "https://gateway.knirv.com".into(),
+                    gateway: "https://gateway.knirv.com".into(),
+                    backend: "https://gateway.knirv.com".into(),
                 },
             ),
             Network::PublicTestnet => (
                 "knirv-testnet-1",
                 "KNIRV Testnet",
-                "https://testnet-gateway.knirv.network/rpc",
+                "https://testnet-gateway.knirv.com/rpc",
                 Services {
-                    controller: "https://testnet-gateway.knirv.network".into(),
-                    router: "https://testnet-gateway.knirv.network".into(),
-                    graph: "https://testnet-gateway.knirv.network".into(),
-                    chain: "https://testnet-gateway.knirv.network".into(),
-                    oracle: "https://testnet-gateway.knirv.network".into(),
-                    nexus: "https://testnet-gateway.knirv.network".into(),
-                    gateway: "https://testnet-gateway.knirv.network".into(),
-                    backend: "https://testnet-gateway.knirv.network".into(),
+                    controller: "https://testnet-gateway.knirv.com".into(),
+                    router: "https://testnet-gateway.knirv.com".into(),
+                    graph: "https://testnet-gateway.knirv.com".into(),
+                    chain: "https://testnet-gateway.knirv.com".into(),
+                    oracle: "https://testnet-gateway.knirv.com".into(),
+                    nexus: "https://testnet-gateway.knirv.com".into(),
+                    gateway: "https://testnet-gateway.knirv.com".into(),
+                    backend: "https://testnet-gateway.knirv.com".into(),
                 },
             ),
             Network::LocalTestnet => (
@@ -307,8 +307,8 @@ impl HttpClient {
 }
 
 const CANONICAL_GATEWAYS: [&str; 3] = [
-    "https://gateway.knirv.network",
-    "https://testnet-gateway.knirv.network",
+    "https://gateway.knirv.com",
+    "https://testnet-gateway.knirv.com",
     "http://localhost:8080",
 ];
 
@@ -350,13 +350,13 @@ mod tests {
     #[test]
     fn canonical_gateways_receive_ordered_failover_candidates() {
         let client =
-            HttpClient::new("https://gateway.knirv.network", ClientConfig::default()).unwrap();
+            HttpClient::new("https://gateway.knirv.com", ClientConfig::default()).unwrap();
         let urls: Vec<_> = client.base_urls().iter().map(Url::as_str).collect();
         assert_eq!(
             urls,
             [
-                "https://gateway.knirv.network/",
-                "https://testnet-gateway.knirv.network/",
+                "https://gateway.knirv.com/",
+                "https://testnet-gateway.knirv.com/",
                 "http://localhost:8080/",
             ]
         );
@@ -373,10 +373,10 @@ mod tests {
     fn public_networks_use_their_canonical_gateway() {
         let production = NetworkInfo::for_network(Network::PublicProduction);
         let testnet = NetworkInfo::for_network(Network::PublicTestnet);
-        assert_eq!(production.services.gateway, "https://gateway.knirv.network");
+        assert_eq!(production.services.gateway, "https://gateway.knirv.com");
         assert_eq!(
             testnet.services.gateway,
-            "https://testnet-gateway.knirv.network"
+            "https://testnet-gateway.knirv.com"
         );
     }
 }

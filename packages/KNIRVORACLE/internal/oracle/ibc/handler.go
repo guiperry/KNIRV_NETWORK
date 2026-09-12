@@ -554,7 +554,7 @@ func (h *Handler) transmitWebSocket(endpoint string, data []byte) error {
 	h.logger.Debug("Transmitting via WebSocket", zap.String("endpoint", endpoint))
 	ctx, cancel := context.WithTimeout(h.ctx, 15*time.Second)
 	defer cancel()
-	connection, response, err := websocket.DefaultDialer.DialContext(ctx, endpoint, http.Header{"Origin": []string{"https://gateway.knirv.network"}})
+	connection, response, err := websocket.DefaultDialer.DialContext(ctx, endpoint, http.Header{"Origin": []string{"https://gateway.knirv.com"}})
 	if err != nil {
 		if response != nil {
 			response.Body.Close()

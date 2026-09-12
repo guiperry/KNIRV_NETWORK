@@ -51,7 +51,7 @@ info:
 servers:
   - url: http://localhost:8080
     description: Local development server
-  - url: https://gateway.knirv.network
+  - url: https://gateway.knirv.com
     description: Production gateway
 
 tags:

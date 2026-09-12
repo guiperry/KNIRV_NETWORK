@@ -583,11 +583,11 @@ For production use, access KNIRV-NEXUS through KNIRVGATEWAY:
 
 ```bash
 # Via KNIRVGATEWAY (Production)
-curl -X GET https://gateway.knirv.network/api/nexus/nodes
-curl -X POST https://gateway.knirv.network/api/nexus/tasks
+curl -X GET https://gateway.knirv.com/api/nexus/nodes
+curl -X POST https://gateway.knirv.com/api/nexus/tasks
 
 # Real-time updates via SSE
-const eventSource = new EventSource('https://gateway.knirv.network/api/nexus/sse');
+const eventSource = new EventSource('https://gateway.knirv.com/api/nexus/sse');
 eventSource.addEventListener('nexus-nodes', function(event) {
   const data = JSON.parse(event.data);
   console.log('Node update:', data);

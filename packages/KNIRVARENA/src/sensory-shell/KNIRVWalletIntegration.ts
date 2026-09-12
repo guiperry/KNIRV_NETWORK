@@ -76,9 +76,9 @@ export class KNIRVWalletIntegration extends EventEmitter {
     super();
     
     this.config = {
-      apiBaseUrl: `${(import.meta.env.VITE_KNIRV_GATEWAY_URL || 'https://gateway.knirv.network').replace(/\/$/, '')}/api`,
+      apiBaseUrl: `${(import.meta.env.VITE_KNIRV_GATEWAY_URL || 'https://gateway.knirv.com').replace(/\/$/, '')}/api`,
       chainId: 'knirv-1',
-      rpcUrl: `${(import.meta.env.VITE_KNIRV_GATEWAY_URL || 'https://gateway.knirv.network').replace(/\/$/, '')}/api/chain`,
+      rpcUrl: `${(import.meta.env.VITE_KNIRV_GATEWAY_URL || 'https://gateway.knirv.com').replace(/\/$/, '')}/api/chain`,
       enableCrossPlatform: true,
       autoConnectMobile: false,
       qrCodeTimeout: 300000, // 5 minutes

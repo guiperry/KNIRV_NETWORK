@@ -581,7 +581,7 @@ NRV_REPORTING_ENABLE=true
 NRV_NETWORK=testnet
 
 # Override the gateway base URL entirely (takes precedence over NRV_NETWORK)
-# NRV_GATEWAY_URL=https://testnet-gateway.knirv.network
+# NRV_GATEWAY_URL=https://testnet-gateway.knirv.com
 
 # Override the KNIRVSDK signing chain ID entirely (takes precedence over NRV_NETWORK)
 # NRV_CHAIN_ID=knirv-testnet-1

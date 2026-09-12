@@ -23,7 +23,7 @@ type Client struct {
 }
 
 // NewClient creates a Client targeting baseURL (e.g.
-// "https://testnet-gateway.knirv.network").
+// "https://testnet-gateway.knirv.com").
 func NewClient(baseURL string) *Client {
 	return &Client{
 		httpClient: &http.Client{Timeout: 15 * time.Second},

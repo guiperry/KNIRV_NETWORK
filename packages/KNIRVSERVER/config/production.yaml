@@ -55,7 +55,7 @@ api:
     - "http://localhost:8082"
     - "http://localhost:8081"
     - "http://localhost:8080"
-    - "https://gateway.knirv.network"
+    - "https://gateway.knirv.com"
   jwt_secret: "${KNIRV_JWT_SECRET:your-jwt-secret-key-change-this-in-production}"
   rate_limit_rps: 100
   request_timeout: "30s"

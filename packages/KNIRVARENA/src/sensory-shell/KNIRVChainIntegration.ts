@@ -153,7 +153,7 @@ export class KNIRVChainIntegration extends EventEmitter {
     super();
 
     this.config = {
-      rpcUrl: `${(import.meta.env.VITE_KNIRV_GATEWAY_URL || 'https://gateway.knirv.network').replace(/\/$/, '')}/api/chain`,
+      rpcUrl: `${(import.meta.env.VITE_KNIRV_GATEWAY_URL || 'https://gateway.knirv.com').replace(/\/$/, '')}/api/chain`,
       chainId: 'knirv-1',
       networkName: 'KNIRV Network',
       contractAddresses: {

@@ -141,7 +141,7 @@ func (r *OracleRoutes) RegisterRoutes(mux *http.ServeMux) {
 
 	// Subscription-plan checkout (KNIRV.COM Pro plan). Public: reached by
 	// onboarding.knirv.com's browser-side JS through KNIRVGATEWAY's public
-	// hostnames (gateway.knirv.network / testnet-gateway.knirv.network),
+	// hostnames (gateway.knirv.com / testnet-gateway.knirv.com),
 	// which proxy this path verbatim. Distinct from the disbursement webhook
 	// above — this creates the Stripe Checkout Session; the webhook above
 	// confirms it once Stripe redirects back.

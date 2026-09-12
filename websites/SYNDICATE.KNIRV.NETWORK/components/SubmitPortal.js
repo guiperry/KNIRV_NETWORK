@@ -1,4 +1,4 @@
 function SubmitPortal() {
-    const webguiURL = window.KNIRV_WEBGUI_URL || 'https://gateway.knirv.network/webgui/submit';
+    const webguiURL = window.KNIRV_WEBGUI_URL || 'https://gateway.knirv.com/webgui/submit';
     return <section className="py-20 bg-[var(--bg-black)]"><div className="container mx-auto px-6 max-w-3xl text-center"><h1 className="text-4xl font-bold font-mono text-white">Submit a vulnerability</h1><p className="mt-5 text-[var(--text-gray)]">Enterprise vulnerability submission, deterministic quoting, and settlement tracking are performed inside the authenticated KNIRV WebGUI. No estimate is shown here because every real quote is generated from pinned backend inputs.</p><a className="btn-primary inline-flex mt-8" href={webguiURL}>Open WebGUI submission</a><p className="mt-6 text-sm text-gray-500">Developers who want to stake or resolve a posting should join KNIRVARENA instead.</p></div></section>;
 }

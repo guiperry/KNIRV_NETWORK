@@ -60,16 +60,16 @@ func TestResolvePublicEndpointDeploymentClasses(t *testing.T) {
 		wantTunnel string
 		wantErr    bool
 	}{
-		{name: "testnet", config: config.Config{NetworkMode: "testnet"}, wantURL: "https://testnet-gateway.knirv.network"},
-		{name: "production", config: config.Config{NetworkMode: "production"}, wantURL: "https://gateway.knirv.network"},
+		{name: "testnet", config: config.Config{NetworkMode: "testnet"}, wantURL: "https://testnet-gateway.knirv.com"},
+		{name: "production", config: config.Config{NetworkMode: "production"}, wantURL: "https://gateway.knirv.com"},
 		{name: "devnet pro", config: config.Config{NetworkMode: "development", UserIDTag: "User 42"}, wantURL: "https://devnet-user-42.knirv.network"},
 		{name: "enterprise", config: config.Config{NetworkMode: "enterprise", EnterpriseMode: true, UserIDTag: "Acme_Admin"}, wantURL: "https://enterprise-acme-admin.knirv.network"},
 		{name: "devnet tag required", config: config.Config{NetworkMode: "development"}, wantErr: true},
 		{name: "enterprise tag required", config: config.Config{NetworkMode: "enterprise", EnterpriseMode: true}, wantErr: true},
-		{name: "root testnet", config: config.Config{NetworkMode: "testnet", ChainNodeRole: "Root"}, wantURL: "https://testnet-gateway.knirv.network", wantTunnel: "knirv-testnet-gateway"},
-		{name: "root production", config: config.Config{NetworkMode: "production", ChainNodeRole: "Root"}, wantURL: "https://gateway.knirv.network", wantTunnel: "knirv-gateway"},
-		{name: "bootnode testnet", config: config.Config{NetworkMode: "testnet", ChainNodeRole: "Bootnode", UserIDTag: "User 42"}, wantURL: "https://testnet-user-42-gateway.knirv.network", wantTunnel: "knirv-testnet-user-42-gateway"},
-		{name: "bootnode devnet", config: config.Config{NetworkMode: "development", ChainNodeRole: "Bootnode", UserIDTag: "User 42"}, wantURL: "https://devnet-user-42-gateway.knirv.network", wantTunnel: "knirv-devnet-user-42-gateway"},
+		{name: "root testnet", config: config.Config{NetworkMode: "testnet", ChainNodeRole: "Root"}, wantURL: "https://testnet-gateway.knirv.com", wantTunnel: "knirv-testnet-gateway"},
+		{name: "root production", config: config.Config{NetworkMode: "production", ChainNodeRole: "Root"}, wantURL: "https://gateway.knirv.com", wantTunnel: "knirv-gateway"},
+		{name: "bootnode testnet", config: config.Config{NetworkMode: "testnet", ChainNodeRole: "Bootnode", UserIDTag: "User 42"}, wantURL: "https://testnet-user-42-gateway.knirv.com", wantTunnel: "knirv-testnet-user-42-gateway"},
+		{name: "bootnode devnet", config: config.Config{NetworkMode: "development", ChainNodeRole: "Bootnode", UserIDTag: "User 42"}, wantURL: "https://devnet-user-42-gateway.knirv.com", wantTunnel: "knirv-devnet-user-42-gateway"},
 		{name: "bootnode tag required", config: config.Config{NetworkMode: "testnet", ChainNodeRole: "Bootnode"}, wantErr: true},
 	}
 

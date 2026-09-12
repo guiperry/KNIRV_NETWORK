@@ -20,7 +20,7 @@ import (
 // does. Callers should prefer passing KNIRVSERVER's own resolvePublicURL()
 // result (network-mode-aware: testnet/production/devnet/enterprise) instead
 // of relying on this default where possible.
-const DefaultOracleGatewayURL = "https://gateway.knirv.network"
+const DefaultOracleGatewayURL = "https://gateway.knirv.com"
 
 // DefaultOracleFailoverURL is tried if the primary gateway URL fails. There is
 // no built-in default: KNIRVORACLE has no standalone public domain of its
@@ -29,11 +29,11 @@ const DefaultOracleGatewayURL = "https://gateway.knirv.network"
 // just be a permanent, unresolvable DNS lookup masking the real failure from
 // the primary gateway attempt. Set KNIRV_ORACLE_FAILOVER_URL explicitly if a
 // deployment genuinely has a secondary gateway to fail over to.
-const DefaultOracleFailoverURL = "https://testnet-gateway.knirv.network"
+const DefaultOracleFailoverURL = "https://testnet-gateway.knirv.com"
 const DefaultOracleLocalURL = "http://localhost:8080"
 
 // Poster delivers signed checkpoints and chain registration to KNIRVORACLE
-// via the public KNIRVGATEWAY (gateway.knirv.network / testnet-gateway.knirv.network
+// via the public KNIRVGATEWAY (gateway.knirv.com / testnet-gateway.knirv.com
 // / devnet-<tag>.knirv.network, depending on network mode) — never a local
 // socket. The registry/checkpoint endpoints are themselves authenticated by
 // the registered-author signature quorum carried in the request body, so

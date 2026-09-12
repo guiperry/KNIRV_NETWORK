@@ -111,9 +111,9 @@ The server serves static assets and also supports the interactive routes needed 
   origin used by CLI device authorization; local wrapper runs default it to
   `http://127.0.0.1:<server-port>`.
 - Tunnel ownership follows the key-derived node role. `root.key` owns
-  `gateway.knirv.network` in production and `testnet-gateway.knirv.network` in
-  testnet. `boot.key` owns `testnet-{UserIDTag}-gateway.knirv.network` in testnet
-  and `devnet-{UserIDTag}-gateway.knirv.network` in devnet. Client roles and
+  `gateway.knirv.com` in production and `testnet-gateway.knirv.com` in
+  testnet. `boot.key` owns `testnet-{UserIDTag}-gateway.knirv.com` in testnet
+  and `devnet-{UserIDTag}-gateway.knirv.com` in devnet. Client roles and
   unsupported role/network combinations cannot start Cloudflare tunnels.
 
 The main file to inspect when changing behavior is `main.go`.

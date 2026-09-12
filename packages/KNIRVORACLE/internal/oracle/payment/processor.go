@@ -309,7 +309,7 @@ func (p *Processor) calculateTokenAmount(amountReceived float64, currency string
 
 // CheckoutSessionRequest is a public request to start a plan checkout,
 // submitted by onboarding.knirv.com through the public KNIRVGATEWAY
-// hostnames (gateway.knirv.network / testnet-gateway.knirv.network).
+// hostnames (gateway.knirv.com / testnet-gateway.knirv.com).
 type CheckoutSessionRequest struct {
 	Plan          string `json:"plan"`
 	SessionID     string `json:"sessionId"`

@@ -334,9 +334,9 @@ export class CognitiveEngine extends EventEmitter {
     // Initialize KNIRV Wallet Integration
     if (this._config.walletIntegrationEnabled) {
       this.walletIntegration = new KNIRVWalletIntegration({
-        apiBaseUrl: `${(import.meta.env.VITE_KNIRV_GATEWAY_URL || 'https://gateway.knirv.network').replace(/\/$/, '')}/api`,
+        apiBaseUrl: `${(import.meta.env.VITE_KNIRV_GATEWAY_URL || 'https://gateway.knirv.com').replace(/\/$/, '')}/api`,
         chainId: 'knirv-1',
-        rpcUrl: `${(import.meta.env.VITE_KNIRV_GATEWAY_URL || 'https://gateway.knirv.network').replace(/\/$/, '')}/api/chain`,
+        rpcUrl: `${(import.meta.env.VITE_KNIRV_GATEWAY_URL || 'https://gateway.knirv.com').replace(/\/$/, '')}/api/chain`,
         enableCrossPlatform: true,
         autoConnectMobile: false,
         qrCodeTimeout: 300000,
@@ -346,7 +346,7 @@ export class CognitiveEngine extends EventEmitter {
     // Initialize KNIRV Chain Integration
     if (this._config.chainIntegrationEnabled) {
       this.chainIntegration = new KNIRVChainIntegration({
-        rpcUrl: `${(import.meta.env.VITE_KNIRV_GATEWAY_URL || 'https://gateway.knirv.network').replace(/\/$/, '')}/api/chain`,
+        rpcUrl: `${(import.meta.env.VITE_KNIRV_GATEWAY_URL || 'https://gateway.knirv.com').replace(/\/$/, '')}/api/chain`,
         chainId: 'knirv-1',
         networkName: 'KNIRV Network',
         contractAddresses: {

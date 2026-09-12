@@ -38,8 +38,8 @@ class ErrorBoundary extends React.Component {
 function App() {
   try {
     const gateways = {
-      testnet: 'https://testnet-gateway.knirv.network',
-      mainnet: 'https://gateway.knirv.network',
+      testnet: 'https://testnet-gateway.knirv.com',
+      mainnet: 'https://gateway.knirv.com',
     };
     const [selectedGateway, setSelectedGateway] = React.useState('testnet');
     const syndicateURL = `${gateways[selectedGateway]}/arena/?arena=1`;

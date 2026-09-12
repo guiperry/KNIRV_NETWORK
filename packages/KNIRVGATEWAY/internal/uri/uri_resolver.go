@@ -137,8 +137,8 @@ func (r *URIResolver) ResolveURI(uri string) (*ResolvedURI, error) {
 	// authority over cleartext or assume an obsolete port; use the canonical
 	// mainnet/testnet/local discovery order.
 	resolverBases := []string{
-		"https://gateway.knirv.network",
-		"https://testnet-gateway.knirv.network",
+		"https://gateway.knirv.com",
+		"https://testnet-gateway.knirv.com",
 		"http://localhost:8080",
 	}
 	var body []byte

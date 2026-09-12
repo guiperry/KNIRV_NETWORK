@@ -68,7 +68,7 @@ type Config struct {
 	// from NetworkMode. When set (e.g. ORACLE_GATEWAY_URL), it takes
 	// precedence over the production/testnet hardcoded defaults so
 	// operators can point at a staging mainnet gateway before
-	// gateway.knirv.network DNS exists.
+	// gateway.knirv.com DNS exists.
 	OracleGatewayURL string
 
 	// TURN Server configuration

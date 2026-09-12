@@ -12,7 +12,7 @@ interface AbstraxionWalletProviderProps {
 
 export const AbstraxionWalletProvider: React.FC<AbstraxionWalletProviderProps> = ({ children }) => {
 
-  const gateway = ((import.meta as ImportMeta & { env?: Record<string, string> }).env?.VITE_KNIRV_GATEWAY_URL || 'https://gateway.knirv.network').replace(/\/$/, '');
+  const gateway = ((import.meta as ImportMeta & { env?: Record<string, string> }).env?.VITE_KNIRV_GATEWAY_URL || 'https://gateway.knirv.com').replace(/\/$/, '');
   // Abstraxion configuration
   const abstraxionConfig = {
     chainId: "xion-testnet-2",

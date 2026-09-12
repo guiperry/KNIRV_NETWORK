@@ -86,9 +86,9 @@ export class AbstraxionWalletService {
       treasuryContract: import.meta.env.VITE_XION_TREASURY_CONTRACT || '',
     },
     endpoints: {
-      rpc: `${(import.meta.env.VITE_KNIRV_GATEWAY_URL || 'https://gateway.knirv.network').replace(/\/$/, '')}/xion/rpc`,
-      rest: `${(import.meta.env.VITE_KNIRV_GATEWAY_URL || 'https://gateway.knirv.network').replace(/\/$/, '')}/xion/rest`,
-      knirvOracle: (import.meta.env.VITE_KNIRV_GATEWAY_URL || 'https://gateway.knirv.network').replace(/\/$/, ''),
+      rpc: `${(import.meta.env.VITE_KNIRV_GATEWAY_URL || 'https://gateway.knirv.com').replace(/\/$/, '')}/xion/rpc`,
+      rest: `${(import.meta.env.VITE_KNIRV_GATEWAY_URL || 'https://gateway.knirv.com').replace(/\/$/, '')}/xion/rest`,
+      knirvOracle: (import.meta.env.VITE_KNIRV_GATEWAY_URL || 'https://gateway.knirv.com').replace(/\/$/, ''),
     },
     paymentGateway: {
       enabled: true,

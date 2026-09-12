@@ -18,8 +18,8 @@ import (
 // try mainnet, then testnet, then the co-located development gateway.
 // Non-root KNIRVCHAIN deployments post here; co-located root nodes may instead set
 // SocketPath to talk to the Oracle over its unix socket (no bearer token needed).
-const DefaultOracleBaseURL = "https://gateway.knirv.network"
-const DefaultOracleFailoverURL = "https://testnet-gateway.knirv.network"
+const DefaultOracleBaseURL = "https://gateway.knirv.com"
+const DefaultOracleFailoverURL = "https://testnet-gateway.knirv.com"
 const DefaultOracleLocalURL = "http://localhost:8080"
 
 // SubmitStatus is the persisted posting state of a checkpoint.

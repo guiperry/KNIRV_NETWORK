@@ -861,7 +861,7 @@ func GetMultiaddrFromURI(uri string) (string, error) {
 	if !strings.HasPrefix(uri, "knirv://") {
 		return "", fmt.Errorf("unsupported URI format: %s", uri)
 	}
-	gateways := []string{"https://gateway.knirv.network", "https://testnet-gateway.knirv.network", "http://localhost:8080"}
+	gateways := []string{"https://gateway.knirv.com", "https://testnet-gateway.knirv.com", "http://localhost:8080"}
 	client := &http.Client{Timeout: 15 * time.Second}
 	var failures []string
 	for _, gateway := range gateways {

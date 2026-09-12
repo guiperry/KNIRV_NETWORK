@@ -5,8 +5,8 @@ import "fmt"
 // FailoverClient tries each candidate Client's SubmitSettlementPayout in
 // order, returning the first success. This is how a non-root node reaches
 // KNIRVORACLE at all: it has no local oracle subprocess of its own, only
-// KNIRVGATEWAY's public "/oracle/*" proxy (gateway.knirv.network for
-// mainnet, testnet-gateway.knirv.network for testnet — see
+// KNIRVGATEWAY's public "/oracle/*" proxy (gateway.knirv.com for
+// mainnet, testnet-gateway.knirv.com for testnet — see
 // packages/KNIRVGATEWAY/internal/server/server.go's oracle proxy wiring).
 // A root node's own local Client (from Manager.GetClient()) should be
 // listed first — it's a direct in-process Unix-socket call, strictly

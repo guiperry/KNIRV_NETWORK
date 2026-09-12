@@ -21,7 +21,7 @@ type Client struct {
 
 // NewHTTPClient builds a Client that talks to KNIRVORACLE over a regular
 // HTTP(S) base URL — for reaching it through KNIRVGATEWAY's public
-// "/oracle/*" proxy (gateway.knirv.network / testnet-gateway.knirv.network)
+// "/oracle/*" proxy (gateway.knirv.com / testnet-gateway.knirv.com)
 // rather than a local Unix socket. See FailoverClient.
 func NewHTTPClient(baseURL string) *Client {
 	return &Client{

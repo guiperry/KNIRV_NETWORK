@@ -208,7 +208,7 @@ This project is part of the KNIRV Network ecosystem. See individual client direc
 
 - [KNIRV Network](https://knirv.network)
 - [KNIRV Documentation](https://docs.knirv.network)
-- [KNIRV Gateway](https://gateway.knirv.network)
+- [KNIRV Gateway](https://gateway.knirv.com)
 - [Community Discord](https://discord.gg/knirv)
 
 ---

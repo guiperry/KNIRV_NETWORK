@@ -38,8 +38,8 @@ message RootKeyFileContentProto {
   string cloudflare_account_id = 26;
 
   // Pre-provisioned cloudflared tunnel tokens (skip API provisioning).
-  // mainnet token → gateway.knirv.network (production); testnet token →
-  // testnet-gateway.knirv.network; oracle token → oracle.knirv.network
+  // mainnet token → gateway.knirv.com (production); testnet token →
+  // testnet-gateway.knirv.com; oracle token → oracle.knirv.network
   // (root nodes only). KNIRVGATEWAY picks mainnet vs testnet at runtime from
   // its resolved network mode — see resolvePublicEndpoint in
   // packages/KNIRVGATEWAY/cmd/gateway/main.go.

@@ -38,7 +38,7 @@ type TunnelRunnerConfig struct {
 	ZoneID      string // Cloudflare zone ID for DNS
 	AccountID   string // Cloudflare account ID (empty = auto-discover from token)
 	TunnelName  string // tunnel name (e.g. "knirv-gateway")
-	Hostname    string // public subdomain (e.g. "gateway.knirv.network")
+	Hostname    string // public subdomain (e.g. "gateway.knirv.com")
 	ServicePort int    // local port the gateway listens on
 	TunnelToken string // pre-provisioned tunnel token (skips API provisioning)
 	Protocol    string // cloudflared transport protocol; defaults to http2

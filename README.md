@@ -17,7 +17,7 @@ go build -o dist/knirv-server .
 sudo ORACLE_KEY_PASSWORD=<your-oracle-key-password> ./dist/knirv-server -hasher
 ```
 
-That is the same command that runs the public testnet at `testnet-gateway.knirv.network`. Full explanation, including how to run it locally without `sudo`, is in [Building and Running KNIRVSERVER](#building-and-running-knirvserver).
+That is the same command that runs the public testnet at `testnet-gateway.knirv.com`. Full explanation, including how to run it locally without `sudo`, is in [Building and Running KNIRVSERVER](#building-and-running-knirvserver).
 
 Don't want to run your own node? Install the CLI instead:
 
@@ -140,7 +140,7 @@ make testnet-stop    # stop it
 
 ## Deployment
 
-Everything in [Building and Running KNIRVSERVER](#building-and-running-knirvserver) above covers running the binary directly on a host you already have. Production and containerized rollout (including the box behind `testnet-gateway.knirv.network`) goes through three purpose-built tools that live in the private `KNIRV_CORP` repo, at `packages/server/{os_builder,container_deployer,image_installer}`. This repo doesn't automate that pipeline; this section documents how it works.
+Everything in [Building and Running KNIRVSERVER](#building-and-running-knirvserver) above covers running the binary directly on a host you already have. Production and containerized rollout (including the box behind `testnet-gateway.knirv.com`) goes through three purpose-built tools that live in the private `KNIRV_CORP` repo, at `packages/server/{os_builder,container_deployer,image_installer}`. This repo doesn't automate that pipeline; this section documents how it works.
 
 ### 1. Build an eBPF-capable OS image (`os_builder`)
 
@@ -196,7 +196,7 @@ docker run -d \
 
 ## Public Testnet and the CLI
 
-You don't need to run your own node to try the network. The public testnet is live at `testnet-gateway.knirv.network`, and **KNIRV-CLI is the flagship way to reach it**, or any node you run yourself:
+You don't need to run your own node to try the network. The public testnet is live at `testnet-gateway.knirv.com`, and **KNIRV-CLI is the flagship way to reach it**, or any node you run yourself:
 
 ```bash
 npm install -g @knirv/cli

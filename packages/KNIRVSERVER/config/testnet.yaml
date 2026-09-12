@@ -46,7 +46,7 @@ api:
     - "http://localhost:8090"
     - "http://localhost:8082"
     - "http://localhost:8080"  # KNIRVGATEWAY
-    - "http://testnet-gateway.knirv.network"
+    - "http://testnet-gateway.knirv.com"
   jwt_secret: "${KNIRV_JWT_SECRET:testnet-jwt-secret-change-this-in-production}"
   rate_limit_rps: 50
   request_timeout: "15s"

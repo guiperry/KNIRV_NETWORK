@@ -10,8 +10,8 @@ func TestResolvePublicURLDeploymentClasses(t *testing.T) {
 		want    string
 		wantErr bool
 	}{
-		{name: "testnet default", config: Config{NetworkMode: "testnet"}, want: "https://testnet-gateway.knirv.network"},
-		{name: "production mainnet", config: Config{NetworkMode: "production"}, want: "https://gateway.knirv.network"},
+		{name: "testnet default", config: Config{NetworkMode: "testnet"}, want: "https://testnet-gateway.knirv.com"},
+		{name: "production mainnet", config: Config{NetworkMode: "production"}, want: "https://gateway.knirv.com"},
 		{name: "pro devnet", config: Config{NetworkMode: "development", UserIDTag: "User 42"}, want: "https://devnet-user-42.knirv.network"},
 		{name: "enterprise", config: Config{NetworkMode: "enterprise", Enterprise: true, UserIDTag: "Acme_Admin"}, want: "https://enterprise-acme-admin.knirv.network"},
 		{name: "devnet tag required", config: Config{NetworkMode: "development"}, wantErr: true},

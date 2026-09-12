@@ -79,20 +79,20 @@ func resolvePublicEndpoint(cfg *config.Config) (publicEndpoint, error) {
 	// sole key reader: root.key produces Root and boot.key produces Bootnode.
 	switch {
 	case isRoot && (mode == "production" || mode == "prod" || mode == "mainnet"):
-		return publicEndpoint{"https://gateway.knirv.network", "gateway.knirv.network", "knirv-gateway"}, nil
+		return publicEndpoint{"https://gateway.knirv.com", "gateway.knirv.com", "knirv-gateway"}, nil
 	case isRoot && (mode == "" || mode == "testnet"):
-		return publicEndpoint{"https://testnet-gateway.knirv.network", "testnet-gateway.knirv.network", "knirv-testnet-gateway"}, nil
+		return publicEndpoint{"https://testnet-gateway.knirv.com", "testnet-gateway.knirv.com", "knirv-testnet-gateway"}, nil
 	case isBootnode && (mode == "" || mode == "testnet"):
 		if tag == "" {
 			return publicEndpoint{}, fmt.Errorf("testnet bootnode requires KNIRV_USER_ID_TAG")
 		}
-		host := fmt.Sprintf("testnet-%s-gateway.knirv.network", tag)
+		host := fmt.Sprintf("testnet-%s-gateway.knirv.com", tag)
 		return publicEndpoint{"https://" + host, host, "knirv-testnet-" + tag + "-gateway"}, nil
 	case isBootnode && (mode == "development" || mode == "dev" || mode == "devnet"):
 		if tag == "" {
 			return publicEndpoint{}, fmt.Errorf("devnet bootnode requires KNIRV_USER_ID_TAG")
 		}
-		host := fmt.Sprintf("devnet-%s-gateway.knirv.network", tag)
+		host := fmt.Sprintf("devnet-%s-gateway.knirv.com", tag)
 		return publicEndpoint{"https://" + host, host, "knirv-devnet-" + tag + "-gateway"}, nil
 	}
 
@@ -122,9 +122,9 @@ func resolvePublicEndpoint(cfg *config.Config) (publicEndpoint, error) {
 		host := fmt.Sprintf("devnet-%s.knirv.network", tag)
 		return publicEndpoint{"https://" + host, host, "knirv-devnet-" + tag}, nil
 	case mode == "production" || mode == "prod" || mode == "mainnet":
-		return publicEndpoint{"https://gateway.knirv.network", "gateway.knirv.network", "knirv-gateway"}, nil
+		return publicEndpoint{"https://gateway.knirv.com", "gateway.knirv.com", "knirv-gateway"}, nil
 	default:
-		return publicEndpoint{"https://testnet-gateway.knirv.network", "testnet-gateway.knirv.network", "knirv-testnet-gateway"}, nil
+		return publicEndpoint{"https://testnet-gateway.knirv.com", "testnet-gateway.knirv.com", "knirv-testnet-gateway"}, nil
 	}
 }
 

@@ -414,8 +414,8 @@ func (s *Server) setupRoutes() error {
 	// initOracleManager). Every other node — which is the common case — must
 	// never dial that local socket path; it never exists there. Instead it
 	// proxies oracle traffic upstream to the canonical public KNIRVGATEWAY for
-	// the current network mode (testnet-gateway.knirv.network / production ->
-	// gateway.knirv.network), which is the instance actually fronting the
+	// the current network mode (testnet-gateway.knirv.com / production ->
+	// gateway.knirv.com), which is the instance actually fronting the
 	// root node's local oracle.sock. Without this fallback, every non-root
 	// gateway permanently 502s on oracle routes with "no such file or
 	// directory" since nothing ever listens on that socket there.
@@ -1191,20 +1191,20 @@ func newSocketProxy(socketPath, targetBase string) *httputil.ReverseProxy {
 // that fronts the root node's KNIRVORACLE socket, keyed off network mode —
 // the same production/testnet split KNIRVSERVER's own resolvePublicURL uses.
 // oracleGatewayURL takes precedence over the network-mode-derived default so
-// operators can point at a staging mainnet gateway before gateway.knirv.network
+// operators can point at a staging mainnet gateway before gateway.knirv.com
 // DNS exists.
 func defaultOracleGatewayURL(networkMode, oracleGatewayURL string) string {
 	if override := strings.TrimSpace(oracleGatewayURL); override != "" {
 		return override
 	}
-	return "https://gateway.knirv.network"
+	return "https://gateway.knirv.com"
 }
 
 func oracleGatewayCandidates(override string) []string {
 	if override = strings.TrimRight(strings.TrimSpace(override), "/"); override != "" {
 		return []string{override}
 	}
-	return []string{"https://gateway.knirv.network", "https://testnet-gateway.knirv.network"}
+	return []string{"https://gateway.knirv.com", "https://testnet-gateway.knirv.com"}
 }
 
 type failoverRoundTripper struct {

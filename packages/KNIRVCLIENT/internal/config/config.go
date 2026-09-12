@@ -37,10 +37,10 @@ type NRVConfig struct {
 }
 
 const (
-	testnetGatewayURL = "https://testnet-gateway.knirv.network"
-	// mainnetGatewayURL is wired ahead of mainnet launch — gateway.knirv.network
+	testnetGatewayURL = "https://testnet-gateway.knirv.com"
+	// mainnetGatewayURL is wired ahead of mainnet launch — gateway.knirv.com
 	// is not live yet, but NRV_NETWORK=mainnet will resolve to it once it is.
-	mainnetGatewayURL = "https://gateway.knirv.network"
+	mainnetGatewayURL = "https://gateway.knirv.com"
 
 	testnetChainID = "knirv-testnet-1"
 	mainnetChainID = "knirv-1"

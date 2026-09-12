@@ -363,9 +363,9 @@ curl -X GET http://validation-core:8081/api/v1/tasks</p><p><h1>Get validation re
 curl -X GET http://validation-core:8081/api/v1/results
 <code></code>`</p><p><h3>Gateway Integration</h3></p><p>For production use, access KNIRV-SERVER through KNIRVGATEWAY:</p><p><code></code>`bash
 <h1>Via KNIRVGATEWAY (Production)</h1>
-curl -X GET https://gateway.knirv.network/api/nexus/nodes
-curl -X POST https://gateway.knirv.network/api/nexus/tasks</p><p><h1>Real-time updates via SSE</h1>
-const eventSource = new EventSource('https://gateway.knirv.network/api/nexus/sse');
+curl -X GET https://gateway.knirv.com/api/nexus/nodes
+curl -X POST https://gateway.knirv.com/api/nexus/tasks</p><p><h1>Real-time updates via SSE</h1>
+const eventSource = new EventSource('https://gateway.knirv.com/api/nexus/sse');
 eventSource.addEventListener('nexus-nodes', function(event) {
   const data = JSON.parse(event.data);
   console.log('Node update:', data);

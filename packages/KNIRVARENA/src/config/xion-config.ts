@@ -11,7 +11,7 @@ export interface XionConfig {
   explorerUrl?: string;
 }
 
-const gatewayOrigin = ((import.meta as ImportMeta & { env?: Record<string, string> }).env?.VITE_KNIRV_GATEWAY_URL || 'https://gateway.knirv.network').replace(/\/$/, '');
+const gatewayOrigin = ((import.meta as ImportMeta & { env?: Record<string, string> }).env?.VITE_KNIRV_GATEWAY_URL || 'https://gateway.knirv.com').replace(/\/$/, '');
 
 export const XION_TESTNET_CONFIG: XionConfig = {
   chainId: 'xion-testnet-2',
