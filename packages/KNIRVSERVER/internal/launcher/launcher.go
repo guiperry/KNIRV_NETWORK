@@ -1279,6 +1279,38 @@ func isMonitorAPIPath(path string) bool {
 	return false
 }
 
+// isDVEEvidenceAPIPath identifies the small evidence-ingest surface owned by
+// the wrapper.  The backend also exposes DVE workspace APIs under /api/dve/
+// (including SSH and supervisor-agent endpoints), so routing the entire
+// prefix here would subject those requests to evidence authorization and make
+// a newly created DVE unusable.
+func isDVEEvidenceAPIPath(path string) bool {
+	const sessionPrefix = "/api/dve/"
+	if !strings.HasPrefix(path, sessionPrefix) {
+		return false
+	}
+
+	parts := strings.Split(strings.TrimPrefix(path, sessionPrefix), "/")
+	if len(parts) < 3 || parts[0] == "" || parts[1] != "sessions" || parts[2] == "" {
+		return false
+	}
+	if len(parts) == 3 {
+		// POST .../sessions/ingest creates evidence and GET
+		// .../sessions/{session} reads a stored session.
+		return true
+	}
+	if len(parts) != 4 {
+		return false
+	}
+
+	switch parts[3] {
+	case "evidence", "proof", "report":
+		return true
+	default:
+		return false
+	}
+}
+
 // monitorJWTClaims mirrors backend_server's UserClaims shape (KNIRV_CORP
 // packages/server/backend_server/internal/web/middleware/auth.go) closely
 // enough to decode the same tokens it issues — just the Role field, since
@@ -2156,9 +2188,10 @@ func (app *ServerApp) setupRoutes() error {
 				c.JSON(http.StatusServiceUnavailable, gin.H{"error": "monitor proxy unavailable"})
 				return
 			}
-			// DVE evidence ingest API: /api/dve/... — served locally by the
-			// dveevidence sub-router (same catch-all constraint as below).
-			if strings.HasPrefix(c.Request.URL.Path, "/api/dve/") && app.dveRoutes != nil {
+			// DVE evidence ingest API is served locally by the dveevidence
+			// sub-router. Other /api/dve/ workspace routes belong to
+			// backend_server and must fall through to its proxy below.
+			if isDVEEvidenceAPIPath(c.Request.URL.Path) && app.dveRoutes != nil {
 				app.dveRoutes.ServeHTTP(c.Writer, c.Request)
 				return
 			}

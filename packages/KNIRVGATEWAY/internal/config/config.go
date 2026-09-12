@@ -85,7 +85,7 @@ type Config struct {
 	ChainP2PPort          int    // libp2p listening port
 	ChainClientOnly       bool   // skip self-announce / mDNS
 	ChainIsBootnode       bool
-	ChainBootnodeRegistry string // e.g. "https://registry.knirv.network"
+	ChainBootnodeRegistry string // e.g. "https://registry.knirv.com"
 	ChainCallbackSocket   string // unix socket path for KNIRVCHAIN P2P callbacks
 
 	// Socket paths for internal service reverse proxies
@@ -203,7 +203,7 @@ func Load() (*Config, error) {
 		ChainP2PPort:              getEnvInt("CHAIN_P2P_PORT", 4001),
 		ChainClientOnly:           getEnvBool("CHAIN_CLIENT_ONLY", true),
 		ChainIsBootnode:           getEnvBool("CHAIN_IS_BOOTNODE", false),
-		ChainBootnodeRegistry:     getEnv("CHAIN_BOOTNODE_REGISTRY", "https://registry.knirv.network"),
+		ChainBootnodeRegistry:     getEnv("CHAIN_BOOTNODE_REGISTRY", "https://registry.knirv.com"),
 		ChainCallbackSocket:       getEnv("CHAIN_CALLBACK_SOCKET", ""),
 		BackendSocketPath:         getEnv("BACKEND_SOCKET_PATH", ""),
 		MonitorSocketPath:         getEnv("MONITOR_SOCKET_PATH", ""),

@@ -53,3 +53,25 @@ func TestDVEIngestAuthBindsPrincipalAndProject(t *testing.T) {
 		t.Fatalf("missing principal binding status = %d", response.Code)
 	}
 }
+
+func TestIsDVEEvidenceAPIPath(t *testing.T) {
+	for _, tc := range []struct {
+		path string
+		want bool
+	}{
+		{"/api/dve/dve-1/sessions/ingest", true},
+		{"/api/dve/dve-1/sessions/session-1", true},
+		{"/api/dve/dve-1/sessions/session-1/evidence", true},
+		{"/api/dve/dve-1/sessions/session-1/proof", true},
+		{"/api/dve/dve-1/sessions/session-1/report", true},
+		{"/api/dve/dve-1/supervisor-agent/status", false},
+		{"/api/dve/dve-1/supervisor-agent/session", false},
+		{"/api/dve/dve-1/ssh-session", false},
+		{"/api/dve/dve-1/sessions/session-1/unknown", false},
+		{"/api/dve/dve-1/sessions", false},
+	} {
+		if got := isDVEEvidenceAPIPath(tc.path); got != tc.want {
+			t.Errorf("isDVEEvidenceAPIPath(%q) = %t, want %t", tc.path, got, tc.want)
+		}
+	}
+}
