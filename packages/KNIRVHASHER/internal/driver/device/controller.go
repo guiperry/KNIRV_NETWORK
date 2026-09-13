@@ -872,6 +872,16 @@ func (d *Device) ComputeBatch(inputs [][]byte) ([][32]byte, error) {
 	if len(inputs) > MaxBatchSize {
 		return nil, fmt.Errorf("batch size %d exceeds maximum %d", len(inputs), MaxBatchSize)
 	}
+	// A SHA-256 mining ASIC is a nonce-search device, not a generic hash
+	// accelerator. Refuse arbitrary byte slices rather than silently encoding
+	// them into an easy-target pseudo-job. Callers that need SHA-256 of arbitrary
+	// data must use the software method; callers needing ASIC PoW submit a real
+	// 80-byte header whose nBits field carries the KNIRV-selected target.
+	for i, header := range inputs {
+		if len(header) != 80 {
+			return nil, fmt.Errorf("input %d is %d bytes; ASIC batch work requires an 80-byte mining header", i, len(header))
+		}
+	}
 
 	if !d.isOperational {
 		return nil, fmt.Errorf("ASIC device is not operational")
@@ -912,7 +922,7 @@ func (d *Device) ComputeBatch(inputs [][]byte) ([][32]byte, error) {
 	// Process each input through mining loop
 	for i, input := range inputs {
 		// 1. Send TxTask with work
-		txTask := d.buildTxTaskPacket(input, i)
+		txTask := BuildTxTaskFromHeader(input, uint8(i))
 
 		var writeErr error
 		d.mu.Lock()
@@ -1150,77 +1160,6 @@ func (d *Device) MineWork(header []byte, nonceStart, nonceEnd uint32, workID uin
 	return nonce, nil
 }
 
-// EasyTarget is the nBits value for minimum difficulty (any hash is valid)
-// Format: 0x207FFFFF means target = 0x7FFFFF × 2^(8×(0x20-3)) ≈ maximum
-// This ensures the ASIC finds a nonce on the first try
-const EasyTarget = 0x207FFFFF
-
-// buildTxTaskPacket builds a TxTask packet with SHA-256 mining work
-// Total size: 51 bytes for single work item (header 4 + work_num 1 + ASIC_TASK 45 + crc 2)
-// Based on bitmain_txtask_token from official driver
-// ASIC_TASK: [work_id(1)][midstate(32)][data(12)] = 45 bytes
-//
-// For crypto-transformer use, we set an easy difficulty target so the ASIC
-// finds a nonce quickly. The nonce becomes temporal entropy for the hash.
-func (d *Device) buildTxTaskPacket(input []byte, workID int) []byte {
-	// Ensure input fits in midstate+data (44 bytes total)
-	// For SHA-256, we use midstate for first 32 bytes, data for remaining
-	const taskSize = 45 // ASIC_TASK size: work_id(1) + midstate(32) + data(12)
-
-	packet := make([]byte, 4+1+taskSize+2) // 51 bytes total
-
-	// Header (4 bytes)
-	packet[0] = TokenTxTask // 0x52
-	packet[1] = 0x00        // Version
-	// Length = work_num(1) + ASIC_TASK(45) = 46
-	binary.LittleEndian.PutUint16(packet[2:4], 46)
-
-	// work_num (1 byte) - number of work items
-	packet[4] = 0x01
-
-	// ASIC_TASK (45 bytes)
-	// work_id (1 byte)
-	packet[5] = uint8(workID & 0xFF)
-
-	// midstate[32] - first 32 bytes of input or padded with zeros
-	// For crypto-transformer: this is the input || seed data
-	midstateOffset := 6
-	if len(input) >= 32 {
-		copy(packet[midstateOffset:midstateOffset+32], input[:32])
-	} else {
-		copy(packet[midstateOffset:midstateOffset+len(input)], input)
-		// Remaining bytes already zero from make()
-	}
-
-	// data[12] - Format as mining work tail with easy target
-	// Structure: [timestamp(4)][nBits(4)][nonce_start(4)]
-	// The ASIC will iterate the nonce starting from nonce_start
-	dataOffset := midstateOffset + 32
-
-	// Use input bytes as "timestamp" for uniqueness if available
-	if len(input) > 32 {
-		remaining := len(input) - 32
-		if remaining > 4 {
-			remaining = 4
-		}
-		copy(packet[dataOffset:dataOffset+remaining], input[32:32+remaining])
-	}
-
-	// Set easy nBits target at offset +4 (bytes 4-7 of data field)
-	// This makes any hash valid, so ASIC finds nonce immediately
-	binary.LittleEndian.PutUint32(packet[dataOffset+4:dataOffset+8], EasyTarget)
-
-	// Starting nonce at offset +8 (bytes 8-11 of data field)
-	// Use workID as starting point for variety
-	binary.LittleEndian.PutUint32(packet[dataOffset+8:dataOffset+12], uint32(workID))
-
-	// Calculate and append CRC (covers bytes 0-49)
-	crc := CalculateCRC16(packet[:50])
-	binary.LittleEndian.PutUint16(packet[50:52], crc)
-
-	return packet
-}
-
 // pollForNonce polls for RxNonce response from ASIC and computes the actual SHA-256 hash
 func (d *Device) pollForNonce(workID int, interval time.Duration, maxPolls int, originalInput []byte) ([32]byte, error) {
 	response := make([]byte, 64)
@@ -1340,33 +1279,14 @@ func (d *Device) parseRxNonceResponse(data []byte, expectedWorkID int, originalI
 	return [32]byte{}, fmt.Errorf("work ID %d not found in response", expectedWorkID)
 }
 
-// computeHashFromNonce computes the final SHA-256 hash using ASIC-found nonce as temporal entropy
-//
-// CRYPTO-TRANSFORMER ARCHITECTURE:
-// The ASIC serves as a "temporal nonce oracle" - it finds nonces quickly with easy difficulty.
-// Each nonce becomes temporal entropy that creates unique hash outputs per inference pass.
-//
-// For temporal ensemble (21 passes):
-//   - Each pass sends work to ASIC with the same input || seed
-//   - ASIC returns a different nonce each time (based on internal iteration state)
-//   - final_hash = SHA256(input || seed || nonce)
-//   - The nonce variation creates the ensemble diversity
-//   - Consensus aggregation produces robust final prediction
-//
-// This approach:
-//   - Uses ASIC hardware for its designed purpose (nonce finding)
-//   - Leverages nonce non-determinism as feature, not bug
-//   - Maintains quantum-resistant SHA-256 foundation
-//   - Produces unique temporal signatures for each pass
+// computeHashFromNonce reconstructs the submitted mining header and computes
+// its double SHA-256 locally. This verifies the ASIC's nonce witness against
+// the exact header and its caller-selected nBits target.
 func (d *Device) computeHashFromNonce(originalInput []byte, nonce uint32) [32]byte {
-	// Build the data to hash: original_input || nonce_bytes
-	// The nonce adds temporal entropy to create unique hash per work item
-	data := make([]byte, len(originalInput)+4)
-	copy(data, originalInput)
-	binary.LittleEndian.PutUint32(data[len(originalInput):], nonce)
-
-	// Compute SHA-256 hash with temporal nonce
-	return sha256.Sum256(data)
+	header := append([]byte(nil), originalInput...)
+	binary.LittleEndian.PutUint32(header[76:80], nonce)
+	first := sha256.Sum256(header)
+	return sha256.Sum256(first[:])
 }
 
 // checkDeviceHealth sends RxStatus and verifies device is operational

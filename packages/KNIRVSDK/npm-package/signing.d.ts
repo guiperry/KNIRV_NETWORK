@@ -103,6 +103,17 @@ export interface ParsedRelayEnvelope {
     expiresAtUnix: bigint;
     payloadDigest: string;
 }
+export interface CLISupervisorRelayParams {
+    requestId: string;
+    userSubject: string;
+    deviceId: string;
+    targetId: string;
+    capability: string;
+    sequence: Uint64;
+    leaseEpoch: Uint64;
+    payload: Uint8Array;
+    ttlSeconds: number;
+}
 export interface WasmPublicationPayload {
     schemaVersion?: string;
     networkId: string;
@@ -159,6 +170,10 @@ export declare function signDirectTransaction(privateKey: Uint8Array, request: D
 export declare function marshalMessageEnvelope(envelope: MessageEnvelope): Uint8Array;
 export declare function marshalRelayEnvelope(envelope: RelayEnvelope): Uint8Array;
 export declare function parseRelayEnvelope(data: Uint8Array): ParsedRelayEnvelope;
+/** Creates a CLI-supervisor relay envelope with a SHA-256 payload binding. */
+export declare function newCLISupervisorRelay(params: CLISupervisorRelayParams): RelayEnvelope;
+/** Signs the canonical relay-response message derived from a relay envelope. */
+export declare function signCLISupervisorRelayResponse(privateKey: Uint8Array, envelope: RelayEnvelope, chainId: string): Promise<SignedMessageEnvelope>;
 export declare function marshalWasmPublicationPayload(payload: WasmPublicationPayload): Uint8Array;
 export declare function marshalWasmManifestPayload(payload: WasmManifestPayload): Uint8Array;
 export declare function parseWasmManifestPayload(data: Uint8Array): WasmManifestPayload;

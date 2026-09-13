@@ -1,5 +1,17 @@
 # KNIRVAGENT
 
+## Local knirvllama
+
+Use the launcher-managed local runtime through the existing OpenAI-compatible
+provider path. No API key is required for a local server:
+
+```json
+{
+  "agents": { "defaults": { "provider": "knirvllama", "model": "knirv-local" } },
+  "providers": { "knirvllama": { "api_base": "http://127.0.0.1:8080/v1" } }
+}
+```
+
 KNIRVAGENT is the Go-based AI agent runtime used by KNIRV. It provides a
 workspace-aware tool-using agent for interactive CLI sessions, messaging
 channels, and managed per-DVE processes. The agent exchanges messages through

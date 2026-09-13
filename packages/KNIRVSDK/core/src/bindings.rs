@@ -222,6 +222,8 @@ impl BindingEngine {
                 signing::marshal_relay_envelope,
             ),
             "relay.parse" => parse_relay(&request.payload),
+            "relay.new_cli_supervisor" => new_cli_supervisor_relay(&request.payload),
+            "relay.sign_cli_supervisor_response" => sign_cli_supervisor_response(&request.payload),
             "wasm.publication.marshal" => marshal_value::<signing::WasmPublicationPayload>(
                 &request.payload,
                 signing::marshal_wasm_publication_payload,
@@ -426,6 +428,23 @@ fn sign_message_envelope(payload: &Value) -> Result<Value, BindingError> {
     signing::sign_message_envelope(&private_key(payload)?, &payload_as(envelope)?)
         .map_err(BindingError::from_sdk)
         .and_then(to_value)
+}
+fn new_cli_supervisor_relay(payload: &Value) -> Result<Value, BindingError> {
+    signing::new_cli_supervisor_relay(&payload_as(payload)?)
+        .map_err(BindingError::from_sdk)
+        .and_then(to_value)
+}
+fn sign_cli_supervisor_response(payload: &Value) -> Result<Value, BindingError> {
+    let envelope = payload
+        .get("envelope")
+        .ok_or_else(|| BindingError::invalid("envelope is required"))?;
+    signing::sign_cli_supervisor_relay_response(
+        &private_key(payload)?,
+        &payload_as(envelope)?,
+        required_string(payload, "chain_id")?,
+    )
+    .map_err(BindingError::from_sdk)
+    .and_then(to_value)
 }
 fn verify_message(payload: &Value) -> Result<Value, BindingError> {
     let signed = payload

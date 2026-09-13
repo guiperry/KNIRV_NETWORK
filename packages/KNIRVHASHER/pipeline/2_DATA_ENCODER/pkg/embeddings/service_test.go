@@ -2,9 +2,45 @@ package embeddings
 
 import (
 	"encoding/json"
+	"net"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 	"time"
 )
+
+func TestLlamaEmbeddingsUseOpenAICompatibleAPI(t *testing.T) {
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Skipf("local TCP listeners unavailable: %v", err)
+	}
+	server := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v1/embeddings" {
+			t.Fatalf("path = %s", r.URL.Path)
+		}
+		var request OpenAIEmbeddingsRequest
+		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+			t.Fatal(err)
+		}
+		if request.Model != "local-model" || len(request.Input) != 2 {
+			t.Fatalf("unexpected request: %#v", request)
+		}
+		_ = json.NewEncoder(w).Encode(OpenAIEmbeddingsResponse{Data: []OpenAIEmbedding{{Index: 1, Embedding: []float32{2}}, {Index: 0, Embedding: []float32{1}}}})
+	}))
+	server.Listener = listener
+	server.Start()
+	defer server.Close()
+	t.Setenv("EMBEDDING_BACKEND", "llama")
+	t.Setenv("KNIRVLLAMA_URL", server.URL+"/v1/embeddings")
+	t.Setenv("KNIRVLLAMA_EMBEDDING_MODEL", "local-model")
+	embeddings, err := New().GetBatchEmbeddings([]string{"one", "two"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(embeddings) != 2 || embeddings[0][0] != 1 || embeddings[1][0] != 2 {
+		t.Fatalf("unexpected embeddings: %#v", embeddings)
+	}
+}
 
 func TestNew_WithOllamaBackend(t *testing.T) {
 	t.Setenv("EMBEDDING_BACKEND", "ollama")

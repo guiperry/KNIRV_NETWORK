@@ -68,8 +68,8 @@ type AgentDefaults struct {
 	MaxToolIterations   int     `json:"max_tool_iterations" env:"KNIRV_AGENTS_DEFAULTS_MAX_TOOL_ITERATIONS"`
 
 	// Budget limits
-	SessionTokenBudget int `json:"session_token_budget" env:"KNIRV_AGENTS_DEFAULTS_SESSION_TOKEN_BUDGET"`
-	TurnTokenBudget    int `json:"turn_token_budget" env:"KNIRV_AGENTS_DEFAULTS_TURN_TOKEN_BUDGET"`
+	SessionTokenBudget     int     `json:"session_token_budget" env:"KNIRV_AGENTS_DEFAULTS_SESSION_TOKEN_BUDGET"`
+	TurnTokenBudget        int     `json:"turn_token_budget" env:"KNIRV_AGENTS_DEFAULTS_TURN_TOKEN_BUDGET"`
 	BudgetWarningThreshold float64 `json:"budget_warning_threshold" env:"KNIRV_AGENTS_DEFAULTS_BUDGET_WARNING_THRESHOLD"`
 }
 
@@ -179,6 +179,7 @@ type ProvidersConfig struct {
 	OpenRouter    ProviderConfig `json:"openrouter"`
 	Groq          ProviderConfig `json:"groq"`
 	VLLM          ProviderConfig `json:"vllm"`
+	KNIRVLlama    ProviderConfig `json:"knirvllama"`
 	Gemini        ProviderConfig `json:"gemini"`
 	Nvidia        ProviderConfig `json:"nvidia"`
 	Moonshot      ProviderConfig `json:"moonshot"`
@@ -223,19 +224,19 @@ type ToolsConfig struct {
 func DefaultConfig() *Config {
 	return &Config{
 		Agents: AgentsConfig{
-		Defaults: AgentDefaults{
-		Workspace:           "~/.knirvagent/workspace",
-		RestrictToWorkspace: true,
-		Provider:            "gemini",
-		Model:               "gemini-2.0-flash",
-		MaxTokens:           8192,
-		Temperature:         0.7,
-		MaxToolIterations:   20,
-		 SessionTokenBudget:  128000,
-		  TurnTokenBudget:     32000,
-					BudgetWarningThreshold: 0.75,
-				},
+			Defaults: AgentDefaults{
+				Workspace:              "~/.knirvagent/workspace",
+				RestrictToWorkspace:    true,
+				Provider:               "gemini",
+				Model:                  "gemini-2.0-flash",
+				MaxTokens:              8192,
+				Temperature:            0.7,
+				MaxToolIterations:      20,
+				SessionTokenBudget:     128000,
+				TurnTokenBudget:        32000,
+				BudgetWarningThreshold: 0.75,
 			},
+		},
 		Channels: ChannelsConfig{
 			WhatsApp: WhatsAppConfig{
 				Enabled:   false,
@@ -276,6 +277,7 @@ func DefaultConfig() *Config {
 			OpenRouter:   ProviderConfig{},
 			Groq:         ProviderConfig{},
 			VLLM:         ProviderConfig{},
+			KNIRVLlama:   ProviderConfig{},
 			Gemini:       ProviderConfig{},
 			Nvidia:       ProviderConfig{},
 			Moonshot:     ProviderConfig{},

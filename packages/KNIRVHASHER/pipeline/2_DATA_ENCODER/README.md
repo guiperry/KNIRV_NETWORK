@@ -2,6 +2,20 @@
 
 A high-throughput Go utility that transforms raw embeddings from the Data Miner into hardware-ready "Neural Frames" for the Antminer S3 ASIC training pipeline.
 
+### Local `knirvllama` embeddings
+
+For production local inference, configure the encoder to use the launcher-managed
+OpenAI-compatible llama runtime rather than Cloudflare Workers AI:
+
+```bash
+export EMBEDDING_BACKEND=llama
+export KNIRVLLAMA_URL=http://127.0.0.1:8080/v1/embeddings
+export KNIRVLLAMA_EMBEDDING_MODEL=knirv-embed
+```
+
+The endpoint accepts the standard `POST /v1/embeddings` request format. The
+deterministic backend remains the default for reproducible offline tests.
+
 ## Overview
 
 The Data Encoder serves as Stage 2 in the ML training pipeline, bridging the gap between the Data Miner (Stage 1) and the Data Trainer (Stage 3). It performs the critical translation between human-readable text and the Antminer S3's specific SHA-256 requirements.

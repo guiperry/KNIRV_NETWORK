@@ -30,8 +30,25 @@ func TestSoftwareMethodHashesExactInputBytes(t *testing.T) {
 			t.Fatalf("input %d: got %x, want %x", i, got[i], want)
 		}
 	}
-	if m.GetCapabilities().ProductionReady {
-		t.Fatal("software fallback must not advertise production PoW readiness")
+	if !m.GetCapabilities().ProductionReady {
+		t.Fatal("software PoW must advertise production readiness")
+	}
+}
+
+func TestSoftwareMiningUsesKNIRVOwnedPayloadAndDifficulty(t *testing.T) {
+	m := NewSoftwareMethodWithDifficulty(8)
+	if err := m.Initialize(); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = m.Shutdown() })
+	payload := []byte("assertion payload, not a Bitcoin header")
+	nonce, err := m.MineHeader(payload, 0, 4096)
+	if err != nil {
+		t.Fatalf("MineHeader: %v", err)
+	}
+	canonical := core.NewCanonicalSHA256WithDifficulty(8)
+	if !canonical.IsValidProofOfWork(canonical.ComputeProofOfWork(payload, nonce)) {
+		t.Fatal("nonce is not a valid KNIRV PoW witness")
 	}
 }
 

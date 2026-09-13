@@ -125,6 +125,20 @@ export function parseRelayEnvelope(data) {
         throw new Error('relay envelope is incomplete or invalid');
     return parsed;
 }
+/** Creates a CLI-supervisor relay envelope with a SHA-256 payload binding. */
+export function newCLISupervisorRelay(params) {
+    if (!Number.isSafeInteger(params.ttlSeconds))
+        throw new Error('ttlSeconds must be a safe integer');
+    const issuedAtUnix = Math.floor(Date.now() / 1000), expiresAtUnix = issuedAtUnix + (params.ttlSeconds > 0 ? params.ttlSeconds : 60);
+    const payloadDigest = `sha256:${Array.from(sha256(params.payload), (byte) => byte.toString(16).padStart(2, '0')).join('')}`;
+    const envelope = { schemaVersion: RELAY_ENVELOPE_SCHEMA_VERSION, requestId: params.requestId, userSubject: params.userSubject, deviceId: params.deviceId, targetType: RELAY_TARGET_CLI_SUPERVISOR, targetId: params.targetId, capability: params.capability, sequence: params.sequence, leaseEpoch: params.leaseEpoch, issuedAtUnix, expiresAtUnix, payloadDigest };
+    marshalRelayEnvelope(envelope);
+    return envelope;
+}
+/** Signs the canonical relay-response message derived from a relay envelope. */
+export function signCLISupervisorRelayResponse(privateKey, envelope, chainId) {
+    return signMessageEnvelope(privateKey, { schemaVersion: MESSAGE_SCHEMA_VERSION, domain: CONTROLLER_DOMAIN, purpose: PURPOSE_RELAY_RESPONSE, chainId, nonce: envelope.requestId, issuedAtUnix: envelope.issuedAtUnix, expiresAtUnix: envelope.expiresAtUnix, payload: new Uint8Array() });
+}
 function marshalManifestModule(module) { return concat(stringField(1, module.moduleKind), stringField(2, module.artifactDigest), uintField(3, module.byteSize), uintField(4, module.abiVersion), uintField(5, module.moduleSchemaVersion), stringField(6, module.capabilitiesJson), stringField(7, module.configurationDigest), stringField(8, module.downloadPath), stringField(9, module.publisherAddress), stringField(10, module.publicationStatementDigest)); }
 function parseManifestModule(data) { const fields = fieldMap(data); return { moduleKind: messageString(first(fields, 1)), artifactDigest: messageString(first(fields, 2)), byteSize: messageUint(first(fields, 3)), abiVersion: messageUint(first(fields, 4)), moduleSchemaVersion: messageUint(first(fields, 5)), capabilitiesJson: messageString(first(fields, 6)), configurationDigest: messageString(first(fields, 7)), downloadPath: messageString(first(fields, 8)), publisherAddress: messageString(first(fields, 9)), publicationStatementDigest: messageString(first(fields, 10)) }; }
 export function marshalWasmPublicationPayload(payload) { const schema = payload.schemaVersion || WASM_PUBLICATION_SCHEMA_VERSION; if (schema !== WASM_PUBLICATION_SCHEMA_VERSION)

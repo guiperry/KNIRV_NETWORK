@@ -352,15 +352,17 @@ type RewardCalculator struct {
 }
 
 type EvolutionaryHarness struct {
-	PopulationSize int
-	EliteRatio     float64
-	MutationRate   float64
-	RewardCalc     *RewardCalculator
-	rand           *mathrand.Rand
-	DifficultyMask uint32 // For partial difficulty validation (e.g., 0xFFFF0000 for 16-bit match)
-	StaticMidstate bool   // Freeze jitter for first N generations
-	Generation     int    // Track current generation for midstate logic
-	Epoch          int    // Track current epoch for DDS
+	PopulationSize       int
+	EliteRatio           float64
+	MutationRate         float64
+	RewardCalc           *RewardCalculator
+	rand                 *mathrand.Rand
+	DifficultyMask       uint32 // For partial difficulty validation (e.g., 0xFFFF0000 for 16-bit match)
+	StaticMidstate       bool   // Freeze jitter for first N generations
+	Generation           int    // Track current generation for midstate logic
+	Epoch                int    // Track current epoch for DDS
+	candidateScorer      CandidateScorer
+	candidateScoreWeight float64
 }
 
 func NewEvolutionaryHarness(populationSize int) *EvolutionaryHarness {
@@ -891,6 +893,14 @@ func (eh *EvolutionaryHarness) EvaluatePopulationBatch(
 		}
 
 		result.Reward = result.Alignment + result.Stability + result.Format + exactMatchBonus
+		// LLM scoring may guide search direction only. It is bounded and applied
+		// after deterministic reward computation; IsWinningSeed remains the sole
+		// acceptance boundary used by the harness.
+		if eh.candidateScorer != nil && eh.candidateScoreWeight > 0 {
+			if score, err := eh.candidateScorer.Score(result.Seed, record); err == nil {
+				result.Reward += eh.candidateScoreWeight * score
+			}
+		}
 		results[i] = *result
 	}
 

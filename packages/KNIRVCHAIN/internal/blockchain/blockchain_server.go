@@ -927,6 +927,18 @@ func (bcs *BlockchainServer) HandleReceiveTransaction(w http.ResponseWriter, r *
 		// of authority. Dispatch must never imply financial finality.
 		log.Printf("Validated %s commitment entity=%s hash=%s", tx.Type, commitment.EntityID, commitment.CommitmentHash)
 
+	case TransactionTypeAssertionAttestation:
+		var attestation AssertionAttestation
+		if err := json.Unmarshal(tx.Data, &attestation); err != nil {
+			http.Error(w, fmt.Sprintf("Invalid assertion attestation: %v", err), http.StatusBadRequest)
+			return
+		}
+		if err := ValidateAssertionAttestation(attestation); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		log.Printf("Validated assertion attestation %s", tx.TransactionHash)
+
 	//case TransactionTypeStandard:
 	//log.Printf("Processing STANDARD_TRANSFER transaction: %s", tx.TransactionHash)
 	//if err := bcs.BlockchainPtr.ProcessStandardTransfer(&tx); err != nil {

@@ -2,11 +2,12 @@
 use crate::error::{Error, Result};
 use base64::{engine::general_purpose::STANDARD as BASE64, Engine};
 use bech32::{encode, Bech32, Hrp};
-use k256::ecdsa::signature::Verifier;
+use k256::ecdsa::signature::hazmat::PrehashVerifier;
 use k256::ecdsa::{signature::hazmat::PrehashSigner, Signature, SigningKey, VerifyingKey};
 use ripemd::Ripemd160;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
+use std::time::{SystemTime, UNIX_EPOCH};
 
 pub const ACTION_SCHEMA_VERSION: &str = "knirv.action.v1";
 pub const MESSAGE_SCHEMA_VERSION: &str = "knirv.message.v1";
@@ -15,6 +16,9 @@ pub const WASM_PUBLICATION_SCHEMA_VERSION: &str = "knirv.wasm_publication.v1";
 pub const WASM_MANIFEST_SCHEMA_VERSION: &str = "knirv.wasm_manifest.v1";
 pub const ACTION_TYPE_URL: &str = "/knirv.signing.v1.Action";
 pub const SECP256K1_TYPE_URL: &str = "/cosmos.crypto.secp256k1.PubKey";
+pub const CONTROLLER_DOMAIN: &str = "knirv.controller";
+pub const PURPOSE_RELAY_RESPONSE: &str = "relay-response";
+pub const RELAY_TARGET_CLI_SUPERVISOR: &str = "cli_supervisor";
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Action {
@@ -69,6 +73,20 @@ pub struct RelayEnvelope {
     pub issued_at_unix: u64,
     pub expires_at_unix: u64,
     pub payload_digest: String,
+}
+
+/// Parameters used to create a canonical CLI-supervisor relay envelope.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct CLISupervisorRelayParams {
+    pub request_id: String,
+    pub user_subject: String,
+    pub device_id: String,
+    pub target_id: String,
+    pub capability: String,
+    pub sequence: u64,
+    pub lease_epoch: u64,
+    pub payload: Vec<u8>,
+    pub ttl_seconds: i64,
 }
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct MessageEnvelope {
@@ -628,6 +646,61 @@ pub fn marshal_relay_envelope(envelope: &RelayEnvelope) -> Result<Vec<u8>> {
         int64_field(12, Some(envelope.expires_at_unix as i64)),
         string_field(13, Some(&envelope.payload_digest)),
     ]))
+}
+
+/// Creates a CLI-supervisor relay envelope with the payload bound by SHA-256.
+/// A non-positive TTL uses the protocol default of 60 seconds.
+pub fn new_cli_supervisor_relay(params: &CLISupervisorRelayParams) -> Result<RelayEnvelope> {
+    let issued_at_unix = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map_err(|e| Error::Validation(format!("system clock is before Unix epoch: {e}")))?
+        .as_secs();
+    let ttl_seconds = if params.ttl_seconds > 0 {
+        params.ttl_seconds as u64
+    } else {
+        60
+    };
+    let expires_at_unix = issued_at_unix
+        .checked_add(ttl_seconds)
+        .ok_or_else(|| Error::Validation("relay expiration overflows Unix timestamp".into()))?;
+    let envelope = RelayEnvelope {
+        schema_version: RELAY_ENVELOPE_SCHEMA_VERSION.into(),
+        request_id: params.request_id.clone(),
+        user_subject: params.user_subject.clone(),
+        device_id: params.device_id.clone(),
+        dve_id: None,
+        target_type: RELAY_TARGET_CLI_SUPERVISOR.into(),
+        target_id: params.target_id.clone(),
+        capability: params.capability.clone(),
+        sequence: params.sequence,
+        lease_epoch: Some(params.lease_epoch),
+        issued_at_unix,
+        expires_at_unix,
+        payload_digest: format!("sha256:{}", hex::encode(Sha256::digest(&params.payload))),
+    };
+    marshal_relay_envelope(&envelope)?;
+    Ok(envelope)
+}
+
+/// Signs the canonical relay-response message derived from a relay envelope.
+pub fn sign_cli_supervisor_relay_response(
+    private_key: &[u8; 32],
+    envelope: &RelayEnvelope,
+    chain_id: &str,
+) -> Result<SignedMessageEnvelope> {
+    sign_message_envelope(
+        private_key,
+        &MessageEnvelope {
+            schema_version: Some(MESSAGE_SCHEMA_VERSION.into()),
+            domain: CONTROLLER_DOMAIN.into(),
+            purpose: PURPOSE_RELAY_RESPONSE.into(),
+            chain_id: chain_id.into(),
+            nonce: envelope.request_id.clone(),
+            issued_at_unix: envelope.issued_at_unix,
+            expires_at_unix: envelope.expires_at_unix,
+            payload: Some(Vec::new()),
+        },
+    )
 }
 
 pub fn marshal_message_envelope(envelope: &MessageEnvelope) -> Result<Vec<u8>> {
@@ -1245,7 +1318,7 @@ fn verify_digest(public_key: &[u8], signature: &[u8], digest: &[u8]) -> Result<(
     let sig = k256::ecdsa::Signature::from_bytes(signature.into())
         .map_err(|e| Error::Crypto(e.to_string()))?;
     verifying_key
-        .verify(digest, &sig)
+        .verify_prehash(digest, &sig)
         .map_err(|_| Error::Validation("signature verification failed".into()))?;
     Ok(())
 }
@@ -1378,5 +1451,37 @@ mod tests {
         assert_eq!(parsed.request_id, "req-1");
         assert_eq!(parsed.target_type, "dve_expert_advisor");
         assert_eq!(parsed.sequence, 1);
+    }
+    #[test]
+    fn cli_supervisor_relay_binds_payload_and_signs_response() {
+        let relay = new_cli_supervisor_relay(&CLISupervisorRelayParams {
+            request_id: "req-1".into(),
+            user_subject: "user-1".into(),
+            device_id: "device-1".into(),
+            target_id: "supervisor-1".into(),
+            capability: "execute".into(),
+            sequence: 1,
+            lease_epoch: 2,
+            payload: b"payload".to_vec(),
+            ttl_seconds: 0,
+        })
+        .unwrap();
+        assert_eq!(relay.target_type, RELAY_TARGET_CLI_SUPERVISOR);
+        assert_eq!(
+            relay.payload_digest,
+            "sha256:239f59ed55e737c77147cf55ad0c1b030b6d7ee748a7426952f9b852d5a935e5"
+        );
+        assert_eq!(relay.expires_at_unix - relay.issued_at_unix, 60);
+        let signed =
+            sign_cli_supervisor_relay_response(&[7; 32], &relay, "knirv-testnet-1").unwrap();
+        verify_message(
+            &signed,
+            CONTROLLER_DOMAIN,
+            PURPOSE_RELAY_RESPONSE,
+            "knirv-testnet-1",
+            "req-1",
+            relay.issued_at_unix,
+        )
+        .unwrap();
     }
 }

@@ -33,11 +33,29 @@ type EmbeddingService interface {
 // Service handles embedding generation via Cloudflare Workers AI API or Ollama
 type Service struct {
 	baseURL     string
+	backend     string
 	httpClient  *http.Client
 	batchSize   int
 	model       string
 	ollamaHost  string
 	ollamaModel string
+}
+
+// OpenAIEmbeddingsRequest/Response match llama.cpp's OpenAI-compatible
+// /v1/embeddings endpoint. Keeping this wire format here makes knirvllama a
+// local runtime dependency rather than another bespoke integration.
+type OpenAIEmbeddingsRequest struct {
+	Input []string `json:"input"`
+	Model string   `json:"model,omitempty"`
+}
+
+type OpenAIEmbedding struct {
+	Embedding []float32 `json:"embedding"`
+	Index     int       `json:"index"`
+}
+
+type OpenAIEmbeddingsResponse struct {
+	Data []OpenAIEmbedding `json:"data"`
 }
 
 // CloudflareWorkersRequest represents the Cloudflare Workers AI API request structure
@@ -69,6 +87,9 @@ func New() EmbeddingService {
 	case "ollama":
 		log.Println("Using Ollama embeddings")
 		return newOllamaService()
+	case "llama", "knirvllama":
+		log.Println("Using local knirvllama embeddings")
+		return newLlamaService(DefaultBatchSize)
 	default:
 		log.Printf("Unknown EMBEDDING_BACKEND: %s, defaulting to deterministic", backend)
 		return NewDeterministicService()
@@ -89,6 +110,8 @@ func NewWithBatchSize(batchSize int) EmbeddingService {
 		return newCloudflareServiceWithBatchSize(batchSize)
 	case "ollama":
 		return newOllamaServiceWithBatchSize(batchSize)
+	case "llama", "knirvllama":
+		return newLlamaService(batchSize)
 	default:
 		svc := NewDeterministicService()
 		svc.batchSize = batchSize
@@ -160,6 +183,16 @@ func newOllamaServiceWithBatchSize(batchSize int) *Service {
 	}
 }
 
+func newLlamaService(batchSize int) *Service {
+	return &Service{
+		baseURL:    config.GetLlamaEndpoint(),
+		backend:    "llama",
+		httpClient: &http.Client{Timeout: 120 * time.Second},
+		batchSize:  batchSize,
+		model:      config.GetLlamaEmbeddingModel(),
+	}
+}
+
 // GetEmbedding returns embedding for a single text
 func (s *Service) GetEmbedding(text string) ([]float32, error) {
 	embeddings, err := s.GetBatchEmbeddings([]string{text})
@@ -176,6 +209,10 @@ func (s *Service) GetEmbedding(text string) ([]float32, error) {
 func (s *Service) GetBatchEmbeddings(texts []string) ([][]float32, error) {
 	if len(texts) == 0 {
 		return nil, nil
+	}
+
+	if s.backend == "llama" {
+		return s.getLlamaBatchEmbeddings(texts)
 	}
 
 	if s.baseURL != "" {
@@ -209,6 +246,58 @@ func (s *Service) GetBatchEmbeddings(texts []string) ([][]float32, error) {
 		allEmbeddings = append(allEmbeddings, embedding)
 	}
 	return allEmbeddings, nil
+}
+
+func (s *Service) getLlamaBatchEmbeddings(texts []string) ([][]float32, error) {
+	var allEmbeddings [][]float32
+	for i := 0; i < len(texts); i += s.batchSize {
+		end := i + s.batchSize
+		if end > len(texts) {
+			end = len(texts)
+		}
+		chunk, err := s.getLlamaBatchChunk(texts[i:end])
+		if err != nil {
+			return nil, fmt.Errorf("knirvllama chunk %d-%d failed: %w", i, end, err)
+		}
+		allEmbeddings = append(allEmbeddings, chunk...)
+	}
+	return allEmbeddings, nil
+}
+
+func (s *Service) getLlamaBatchChunk(texts []string) ([][]float32, error) {
+	body, err := json.Marshal(OpenAIEmbeddingsRequest{Input: texts, Model: s.model})
+	if err != nil {
+		return nil, fmt.Errorf("marshal knirvllama request: %w", err)
+	}
+	req, err := http.NewRequest(http.MethodPost, s.baseURL, bytes.NewReader(body))
+	if err != nil {
+		return nil, fmt.Errorf("create knirvllama request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := s.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("knirvllama request: %w", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("knirvllama status %d: %s", resp.StatusCode, body)
+	}
+	var decoded OpenAIEmbeddingsResponse
+	if err := json.NewDecoder(resp.Body).Decode(&decoded); err != nil {
+		return nil, fmt.Errorf("decode knirvllama response: %w", err)
+	}
+	if len(decoded.Data) != len(texts) {
+		return nil, fmt.Errorf("expected %d embeddings, got %d", len(texts), len(decoded.Data))
+	}
+	result := make([][]float32, len(texts))
+	for _, item := range decoded.Data {
+		if item.Index < 0 || item.Index >= len(texts) || len(item.Embedding) == 0 {
+			return nil, fmt.Errorf("invalid knirvllama embedding response")
+		}
+		result[item.Index] = item.Embedding
+	}
+	return result, nil
 }
 
 // getBatchChunk processes a single chunk of texts using Cloudflare Workers AI public endpoint

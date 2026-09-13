@@ -283,6 +283,12 @@ func CreateProvider(cfg *config.Config) (LLMProvider, error) {
 				apiKey = cfg.Providers.VLLM.APIKey
 				apiBase = cfg.Providers.VLLM.APIBase
 			}
+		case "knirvllama", "llama":
+			apiKey = cfg.Providers.KNIRVLlama.APIKey
+			apiBase = cfg.Providers.KNIRVLlama.APIBase
+			if apiBase == "" {
+				apiBase = "http://127.0.0.1:8080/v1"
+			}
 		case "shengsuanyun":
 			if cfg.Providers.ShengSuanYun.APIKey != "" {
 				apiKey = cfg.Providers.ShengSuanYun.APIKey

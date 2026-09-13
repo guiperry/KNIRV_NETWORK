@@ -22,10 +22,12 @@ type HashMethod interface {
 	// ComputeBatch computes canonical SHA-256 over each supplied byte slice.
 	ComputeBatch(data [][]byte) ([][32]byte, error)
 
-	// MineHeader performs Bitcoin-style mining on an 80-byte header
+	// MineHeader searches a nonce range for a proof-of-work witness. Hardware
+	// implementations require an 80-byte mining header; software treats the
+	// supplied bytes as an opaque KNIRV assertion payload.
 	MineHeader(header []byte, nonceStart, nonceEnd uint32) (uint32, error)
 
-	// MineHeaderBatch performs mining on multiple headers
+	// MineHeaderBatch performs nonce searches for multiple payloads/headers.
 	MineHeaderBatch(headers [][]byte, nonceStart, nonceEnd uint32) ([]uint32, error)
 
 	// GetCapabilities returns the capabilities and performance characteristics

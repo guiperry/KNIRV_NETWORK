@@ -342,6 +342,17 @@ func (t Transaction) VerifyTxn() bool {
 			}
 			// Fall through to signature verification
 
+		case TransactionTypeAssertionAttestation:
+			var attestation AssertionAttestation
+			if err := json.Unmarshal(t.Data, &attestation); err != nil {
+				log.Printf("[ERROR] VerifyTxn: invalid assertion attestation: %v", err)
+				return false
+			}
+			if err := ValidateAssertionAttestation(attestation); err != nil {
+				log.Printf("[ERROR] VerifyTxn: %v", err)
+				return false
+			}
+
 		default:
 			// Invalid transaction type
 			log.Printf("[ERROR] VerifyTxn: unknown transaction type: %s", t.Type)
@@ -738,6 +749,7 @@ const (
 	// ... existing transaction types ...
 	TransactionTypeNFTCapabilityAttachment = "NFT_CAPABILITY_ATTACHMENT"
 	TransactionTypeLLMRooting              = "llm_rooting"
+	TransactionTypeAssertionAttestation    = "assertion_attestation"
 
 	// KNIRVCHAIN ErrorNode → SkillNode Mining Flow
 	TransactionTypeErrorNodeSubmit     = "error_node_submit"

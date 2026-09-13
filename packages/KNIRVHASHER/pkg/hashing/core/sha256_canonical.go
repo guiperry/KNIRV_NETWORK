@@ -5,14 +5,26 @@ import (
 	"encoding/binary"
 )
 
+const DefaultKNIRVDifficultyBits uint8 = 12
+
 // CanonicalSHA256 provides the canonical Double SHA-256 implementation
 // This is the reference implementation used across all hashing methods
-type CanonicalSHA256 struct{}
+type CanonicalSHA256 struct {
+	difficultyBits uint8
+}
 
 // NewCanonicalSHA256 creates a new canonical SHA-256 instance
 func NewCanonicalSHA256() *CanonicalSHA256 {
-	return &CanonicalSHA256{}
+	return NewCanonicalSHA256WithDifficulty(DefaultKNIRVDifficultyBits)
 }
+
+// NewCanonicalSHA256WithDifficulty constructs a KNIRV PoW verifier. The
+// target is a KNIRV protocol parameter, not Bitcoin's difficulty-one target.
+func NewCanonicalSHA256WithDifficulty(bits uint8) *CanonicalSHA256 {
+	return &CanonicalSHA256{difficultyBits: bits}
+}
+
+func (c *CanonicalSHA256) DifficultyBits() uint8 { return c.difficultyBits }
 
 // ComputeSHA256 computes a single SHA-256 hash
 func (c *CanonicalSHA256) ComputeSHA256(data []byte) [32]byte {
@@ -53,43 +65,49 @@ func (c *CanonicalSHA256) ComputeDoubleSHA256WithNonce(header []byte, nonce uint
 	return c.ComputeDoubleSHA256(workHeader), nil
 }
 
-// IsValidDifficulty1 checks if a hash meets Bitcoin Difficulty 1 target
-// For Difficulty 1, hash must be less than:
-// 0x00000000FFFF0000000000000000000000000000000000000000000000000000
-func (c *CanonicalSHA256) IsValidDifficulty1(hash [32]byte) bool {
-	// Simplified check: first 4 bytes should have sufficient leading zeros
-	// For Difficulty 1: first 3 bytes must be 0, 4th byte < 0x10
-	return hash[0] == 0 && hash[1] == 0 && hash[2] == 0 && hash[3] < 0x10
+// IsValidProofOfWork checks the KNIRV-owned leading-zero-bit target.
+func (c *CanonicalSHA256) IsValidProofOfWork(hash [32]byte) bool {
+	fullBytes := int(c.difficultyBits / 8)
+	for i := 0; i < fullBytes; i++ {
+		if hash[i] != 0 {
+			return false
+		}
+	}
+	remainingBits := c.difficultyBits % 8
+	return remainingBits == 0 || hash[fullBytes]>>(8-remainingBits) == 0
 }
 
-// MineForNonce performs mining to find the first nonce that produces a valid Difficulty 1 hash
-// This is the reference mining algorithm that all methods should implement
-func (c *CanonicalSHA256) MineForNonce(header []byte, nonceStart, nonceEnd uint32) (uint32, error) {
-	if len(header) != 80 {
-		return 0, &HashError{
-			Type:    ErrorInvalidInput,
-			Message: "header must be exactly 80 bytes",
-			Context: map[string]interface{}{
-				"header_length": len(header),
-				"nonce_start":   nonceStart,
-				"nonce_end":     nonceEnd,
-			},
-		}
+// ComputeProofOfWork binds arbitrary assertion bytes and an explicit nonce.
+// Payload shape and nonce placement are KNIRV-owned, not inherited from a
+// Bitcoin header.
+func (c *CanonicalSHA256) ComputeProofOfWork(payload []byte, nonce uint32) [32]byte {
+	h := sha256.New()
+	h.Write([]byte("KNIRV-POW-V1\x00"))
+	h.Write(payload)
+	var encodedNonce [4]byte
+	binary.BigEndian.PutUint32(encodedNonce[:], nonce)
+	h.Write(encodedNonce[:])
+	return sha256.Sum256(h.Sum(nil))
+}
+
+// MineForNonce searches a caller-controlled nonce interval against the KNIRV
+// target. It returns an error rather than a non-witness when no nonce matches.
+func (c *CanonicalSHA256) MineForNonce(payload []byte, nonceStart, nonceEnd uint32) (uint32, error) {
+	if len(payload) == 0 {
+		return 0, &HashError{Type: ErrorInvalidInput, Message: "proof payload must not be empty"}
 	}
-
-	for nonce := nonceStart; nonce <= nonceEnd; nonce++ {
-		hash, err := c.ComputeDoubleSHA256WithNonce(header, nonce)
-		if err != nil {
-			continue // Shouldn't happen with our implementation
-		}
-
-		if c.IsValidDifficulty1(hash) {
+	if nonceEnd < nonceStart {
+		return 0, &HashError{Type: ErrorInvalidInput, Message: "nonce end precedes nonce start"}
+	}
+	for nonce := nonceStart; ; nonce++ {
+		if c.IsValidProofOfWork(c.ComputeProofOfWork(payload, nonce)) {
 			return nonce, nil
 		}
+		if nonce == nonceEnd {
+			break
+		}
 	}
-
-	// No valid nonce found, return the last one attempted
-	return nonceEnd, nil
+	return 0, &HashError{Type: ErrorOperationFailed, Message: "no valid nonce in search interval"}
 }
 
 // ExtractNonce extracts nonce from an 80-byte Bitcoin header

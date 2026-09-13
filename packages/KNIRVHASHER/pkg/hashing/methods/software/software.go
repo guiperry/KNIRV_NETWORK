@@ -9,9 +9,8 @@ import (
 	"knirvhasher/pkg/hashing/jitter"
 )
 
-// SoftwareMethod is the canonical pure-Go SHA-256 reference implementation.
-// It is intended for development and hardware-equivalence tests, not for
-// production proof-of-work attestations.
+// SoftwareMethod is the canonical pure-Go SHA-256 implementation and a
+// production-capable KNIRV assertion PoW backend.
 type SoftwareMethod struct {
 	initialized  bool
 	mutex        sync.RWMutex
@@ -23,9 +22,15 @@ type SoftwareMethod struct {
 
 // NewSoftwareMethod creates a new software hashing method
 func NewSoftwareMethod() *SoftwareMethod {
+	return NewSoftwareMethodWithDifficulty(core.DefaultKNIRVDifficultyBits)
+}
+
+// NewSoftwareMethodWithDifficulty keeps the assertion target under KNIRV's
+// control instead of borrowing Bitcoin's global difficulty-one target.
+func NewSoftwareMethodWithDifficulty(bits uint8) *SoftwareMethod {
 	jitterConfig := jitter.DefaultJitterConfig()
 	return &SoftwareMethod{
-		canon:        core.NewCanonicalSHA256(),
+		canon:        core.NewCanonicalSHA256WithDifficulty(bits),
 		jitterTable:  make(map[uint32]uint32),
 		jitterEngine: jitter.NewJitterEngine(jitterConfig),
 	}
@@ -97,7 +102,8 @@ func (m *SoftwareMethod) ComputeBatch(data [][]byte) ([][32]byte, error) {
 	return results, nil
 }
 
-// MineHeader performs Bitcoin-style mining on an 80-byte header
+// MineHeader retains its historical interface but treats header as an opaque
+// assertion payload. Software PoW has no Bitcoin 80-byte-header requirement.
 func (m *SoftwareMethod) MineHeader(header []byte, nonceStart, nonceEnd uint32) (uint32, error) {
 	if !m.initialized {
 		return 0, fmt.Errorf("software method not initialized")
@@ -131,12 +137,10 @@ func (m *SoftwareMethod) GetCapabilities() *core.Capabilities {
 
 	if m.caps == nil {
 		m.caps = &core.Capabilities{
-			Name:       "Software Fallback",
-			IsHardware: false,
-			HashRate:   1000000, // 1 MH/s
-			// Matching a hardware hash is useful for tests, but does not supply
-			// the hardware-backed proof-of-work guarantee required in production.
-			ProductionReady:   false,
+			Name:              "Software Fallback",
+			IsHardware:        false,
+			HashRate:          1000000, // 1 MH/s
+			ProductionReady:   true,
 			TrainingOptimized: false,
 			JitterSupported:   true,
 			MaxBatchSize:      100,
