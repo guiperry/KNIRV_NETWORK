@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"net"
 	"net/http"
 	"os"
 	"os/exec"
@@ -21,7 +20,6 @@ import (
 	"knirvhasher/internal/cli/embedded"
 	"knirvhasher/internal/client"
 	"knirvhasher/internal/config"
-	"knirvhasher/pkg/hashing/methods/asic"
 	"knirvhasher/pkg/hashing/validation"
 )
 
@@ -284,58 +282,6 @@ func (c *Controller) waitForServerReady() {
 	}
 }
 
-// waitForASICReadyOrFail blocks until the configured DEVICE_IP's ASIC is
-// confirmed operational via a real health-check probe - the same one
-// asic.NewASICClient/Connect performs internally (GetDeviceInfo plus a
-// genuine ComputeHash round-trip, not just "is the port open") - or a
-// generous timeout elapses. If no ASIC device is configured, it returns
-// immediately: a software/CUDA pipeline has nothing to wait on.
-func (c *Controller) waitForASICReadyOrFail(ctx context.Context) error {
-	deviceConfig, _ := config.LoadDeviceConfig()
-	if deviceConfig == nil || deviceConfig.IP == "" {
-		return nil
-	}
-
-	address := net.JoinHostPort(deviceConfig.IP, "8888")
-
-	const (
-		pollInterval = 2 * time.Second
-		statusEvery  = 5 * time.Second
-		maxWait      = 90 * time.Second
-	)
-
-	fmt.Printf("[pipeline] Waiting for ASIC at %s to come online before starting pipeline (up to %s)...\n", address, maxWait)
-
-	start := time.Now()
-	lastStatus := start
-	for {
-		asicClient, err := asic.NewASICClient(address)
-		if err == nil {
-			ready := !asicClient.IsUsingFallback()
-			asicClient.Close()
-			if ready {
-				fmt.Printf("[pipeline] ASIC at %s confirmed online after %s\n", address, time.Since(start).Round(time.Second))
-				return nil
-			}
-		}
-
-		if time.Since(start) >= maxWait {
-			return fmt.Errorf("ASIC at %s did not come online within %s", address, maxWait)
-		}
-
-		if time.Since(lastStatus) >= statusEvery {
-			fmt.Printf("[pipeline] Still waiting for ASIC at %s (%s elapsed)...\n", address, time.Since(start).Round(time.Second))
-			lastStatus = time.Now()
-		}
-
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		case <-time.After(pollInterval):
-		}
-	}
-}
-
 func (c *Controller) StopDriver(ctx context.Context) error {
 	if c.serverCmd == nil || c.serverCmd.Process == nil {
 		return nil
@@ -583,20 +529,10 @@ func (c *Controller) RunPipeline(ctx context.Context, pipelineType string) error
 	if err := c.startKNIRVBase(ctx); err != nil {
 		return err
 	}
-
-	// --- TEMPORARY DEBUG INSTRUMENTATION ---
-	// Block here until the configured ASIC is confirmed ready (or
-	// definitively fails/times out) before launching any pipeline stage.
-	// The stages below produce a lot of their own log output, and letting
-	// them run concurrently with hasher-host/hasher-server's own startup
-	// (CGMiner + real stratum pool handshake, which can legitimately take
-	// up to ~40s) buried the one thing needed to diagnose a stuck ASIC:
-	// hasher-host's own account of what happened. Remove/relax once ASIC
-	// startup is reliable and fast enough not to need this.
-	if err := c.waitForASICReadyOrFail(ctx); err != nil {
-		return err
-	}
-	// --- END TEMPORARY DEBUG INSTRUMENTATION ---
+	// Do not block pipeline startup on DEVICE_IP. The hashing client probes the
+	// configured ASIC when a stage uses it and transparently selects software
+	// hashing when the device is unavailable. A stale or powered-off ASIC must
+	// therefore never prevent the software pipeline from starting.
 
 	binDir, err := embedded.GetBinDir()
 	if err != nil {
