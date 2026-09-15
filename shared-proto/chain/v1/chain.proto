@@ -59,7 +59,11 @@ message SkillMetadata {
 
 message SkillTrainingData {
   repeated Solution solutions = 1;
-  repeated ErrorNode errors = 2;
+  // The canonical error node lives in graph/v1 (knirv.graph.v1.ErrorNode),
+  // which KNIRVGRAPH authors and KNIRVCHAIN consumes. chain/v1 previously
+  // carried its own divergent 5-field ErrorNode; it was removed so there is
+  // exactly one definition.
+  repeated string error_ids = 2;
 }
 
 message Solution {
@@ -67,14 +71,6 @@ message Solution {
   string solution = 2;
   float confidence = 3;
   string agent_id = 4;
-  int64 timestamp = 5;
-}
-
-message ErrorNode {
-  string error_id = 1;
-  string description = 2;
-  string context = 3;
-  string cluster_id = 4;
   int64 timestamp = 5;
 }
 

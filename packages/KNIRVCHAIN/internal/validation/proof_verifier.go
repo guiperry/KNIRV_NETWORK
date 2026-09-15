@@ -43,7 +43,7 @@ func NewKNIRVNexusClient(endpoint string) *KNIRVNexusClient {
 
 // ValidationRequest represents a request to validate a skill
 type ValidationRequest struct {
-	ErrorNode   *types.ErrorNode          `json:"error_node"`
+	ErrorNode   *types.ErrorNodeRecord    `json:"error_node"`
 	LoRAAdapter *types.LoRAAdapterPointer `json:"lora_adapter"`
 	TestCases   []TestCase                `json:"test_cases"`
 	RequestID   string                    `json:"request_id"`
@@ -79,7 +79,7 @@ type TestResult struct {
 }
 
 // ValidateSkill sends a validation request to KNIRVSERVER DVE
-func (pv *ProofVerifier) ValidateSkill(ctx context.Context, errorNode *types.ErrorNode, loraAdapter *types.LoRAAdapterPointer) (*ValidationResponse, error) {
+func (pv *ProofVerifier) ValidateSkill(ctx context.Context, errorNode *types.ErrorNodeRecord, loraAdapter *types.LoRAAdapterPointer) (*ValidationResponse, error) {
 	// Generate test cases from the error node
 	testCases, err := pv.generateTestCases(errorNode)
 	if err != nil {
@@ -110,7 +110,7 @@ func (pv *ProofVerifier) ValidateSkill(ctx context.Context, errorNode *types.Err
 }
 
 // generateTestCases creates test cases from an error node
-func (pv *ProofVerifier) generateTestCases(errorNode *types.ErrorNode) ([]TestCase, error) {
+func (pv *ProofVerifier) generateTestCases(errorNode *types.ErrorNodeRecord) ([]TestCase, error) {
 	// This is a simplified implementation
 	// In a real system, this would analyze the error pattern and generate
 	// relevant test cases to validate the skill

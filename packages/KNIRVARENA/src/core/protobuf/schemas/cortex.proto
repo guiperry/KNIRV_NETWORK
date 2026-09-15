@@ -188,19 +188,16 @@ message SkillCompilationRequest {
 
 message SkillData {
   repeated Solution solutions = 1;
-  repeated ErrorContext errors = 2;
+  // Error ids only: the canonical node is knirv.graph.v1.ErrorNode in graph/v1.
+  // cortex/v1 previously carried its own 3-field ErrorContext; it was removed so
+  // there is exactly one error definition across the proto tree.
+  repeated string error_ids = 2;
 }
 
 message Solution {
   string error_id = 1;
   string solution = 2;
   float confidence = 3;
-}
-
-message ErrorContext {
-  string error_id = 1;
-  string description = 2;
-  string context = 3;
 }
 
 message SkillMetadata {

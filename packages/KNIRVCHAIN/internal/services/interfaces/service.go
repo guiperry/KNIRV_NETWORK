@@ -9,16 +9,16 @@ import (
 type Service interface {
 	// Start starts the service
 	Start(ctx context.Context) error
-	
+
 	// Stop stops the service
 	Stop(ctx context.Context) error
-	
+
 	// IsRunning returns true if the service is currently running
 	IsRunning() bool
-	
+
 	// Name returns the service name
 	Name() string
-	
+
 	// Status returns the current service status
 	Status() ServiceStatus
 }
@@ -26,13 +26,13 @@ type Service interface {
 // EmbeddedService represents an embedded service (Node.js or binary)
 type EmbeddedService interface {
 	Service
-	
+
 	// GetPort returns the port the service is running on
 	GetPort() uint64
-	
+
 	// GetPID returns the process ID if applicable
 	GetPID() int
-	
+
 	// Restart restarts the service
 	Restart(ctx context.Context) error
 }
@@ -41,28 +41,28 @@ type EmbeddedService interface {
 type ServiceManager interface {
 	// RegisterService registers a service with the manager
 	RegisterService(service Service) error
-	
+
 	// UnregisterService unregisters a service from the manager
 	UnregisterService(name string) error
-	
+
 	// StartService starts a specific service
 	StartService(name string) error
-	
+
 	// StopService stops a specific service
 	StopService(name string) error
-	
+
 	// StartAllServices starts all registered services
 	StartAllServices() error
-	
+
 	// StopAllServices stops all registered services
 	StopAllServices() error
-	
+
 	// GetService returns a service by name
 	GetService(name string) (Service, error)
-	
+
 	// ListServices returns all registered services
 	ListServices() []Service
-	
+
 	// GetRunningServices returns all currently running services
 	GetRunningServices() []Service
 }
@@ -89,7 +89,6 @@ type ServiceConfig struct {
 
 // NodeJSServiceConfig represents configuration for Node.js services
 // NodeJSServiceConfig removed; node.js services no longer managed here.
-
 
 // BinaryServiceConfig represents configuration for binary services
 type BinaryServiceConfig struct {

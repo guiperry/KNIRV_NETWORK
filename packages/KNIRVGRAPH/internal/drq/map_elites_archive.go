@@ -7,23 +7,23 @@ import (
 
 // MAPElitesArchive maintains behavioral diversity
 type MAPElitesArchive struct {
-	grid            map[BehaviorCell]*Solution
-	behaviorDims    []BehaviorDimension
-	gridResolution  []int
+	grid           map[BehaviorCell]*Solution
+	behaviorDims   []BehaviorDimension
+	gridResolution []int
 }
 
 // BehaviorCell represents a discrete cell in the behavior space
 type BehaviorCell struct {
-	SpawnedBin  int
-	MemoryBin   int
+	SpawnedBin int
+	MemoryBin  int
 }
 
 // BehaviorDimension defines a single dimension of the behavior space
 type BehaviorDimension struct {
-	Name      string
-	MinValue  float64
-	MaxValue  float64
-	LogScale  bool
+	Name     string
+	MinValue float64
+	MaxValue float64
+	LogScale bool
 }
 
 // NewMAPElitesArchive is a stub for creating a new MAPElitesArchive
@@ -54,10 +54,10 @@ func (mae *MAPElitesArchive) Update(
 ) bool {
 	// Discretize behavior into cell
 	cell := mae.discretize(behavior)
-	
+
 	// Check if cell occupied
 	existing, exists := mae.grid[cell]
-	
+
 	if !exists || fitness > existing.FitnessValue {
 		// Update/insert
 		solution.FitnessValue = fitness
@@ -65,7 +65,7 @@ func (mae *MAPElitesArchive) Update(
 		mae.grid[cell] = solution
 		return true
 	}
-	
+
 	return false
 }
 
@@ -84,13 +84,13 @@ func (mae *MAPElitesArchive) discretize(
 		mae.behaviorDims[0],
 		mae.gridResolution[0],
 	)
-	
+
 	memBin := mae.binValue(
 		float64(behavior.MemoryCoverage),
 		mae.behaviorDims[1],
 		mae.gridResolution[1],
 	)
-	
+
 	return BehaviorCell{
 		SpawnedBin: spawnBin,
 		MemoryBin:  memBin,
@@ -108,10 +108,10 @@ func (mae *MAPElitesArchive) binValue(
 		dim.MinValue = math.Log10(dim.MinValue + 1)
 		dim.MaxValue = math.Log10(dim.MaxValue + 1)
 	}
-	
+
 	normalized := (value - dim.MinValue) / (dim.MaxValue - dim.MinValue)
 	bin := int(normalized * float64(resolution))
-	
+
 	return clamp(bin, 0, resolution-1)
 }
 
@@ -130,5 +130,5 @@ func clamp(val, min, max int) int {
 func (mae *MAPElitesArchive) GetBest() *ErrorCluster {
 	// TODO: Implement actual best solution retrieval
 	// For now, return a dummy cluster
-	return &ErrorCluster{} 
+	return &ErrorCluster{}
 }

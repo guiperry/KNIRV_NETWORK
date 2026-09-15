@@ -1813,6 +1813,36 @@ func (bc *BlockchainStruct) addTransactionToTransactionPoolInternal(transaction 
 		}
 	}
 
+	// Enforce CMU uniqueness for LLM rooting transactions: a given model may be
+	// rooted only once, whether the rooting is still pending in the pool or has
+	// already been committed in a mined block.
+	if transaction.Type == TransactionTypeLLMRooting {
+		cmu, err := llmRootingCMU(transaction)
+		if err != nil {
+			return fmt.Errorf("invalid LLM rooting data: %w", err)
+		}
+		for _, txn := range bc.TransactionPool {
+			if txn.Type != TransactionTypeLLMRooting {
+				continue
+			}
+			if poolCMU, poolErr := llmRootingCMU(txn); poolErr == nil && poolCMU == cmu {
+				agentlog.LogWarning(fmt.Sprintf("LLM rooting with CMU %s already pending in pool", cmu))
+				return fmt.Errorf("CMU already exists: %s", cmu)
+			}
+		}
+		for _, block := range bc.Blocks {
+			for _, blockTxn := range block.Transactions {
+				if blockTxn.Type != TransactionTypeLLMRooting {
+					continue
+				}
+				if blockCMU, blockErr := llmRootingCMU(blockTxn); blockErr == nil && blockCMU == cmu {
+					agentlog.LogWarning(fmt.Sprintf("LLM rooting with CMU %s already mined in block %d", cmu, block.BlockNumber))
+					return fmt.Errorf("CMU already exists: %s", cmu)
+				}
+			}
+		}
+	}
+
 	// Check sender balance
 	if !bc.simulatedBalanceCheck(transaction) {
 		agentlog.LogError(fmt.Sprintf("Transaction %s failed balance check", transaction.TransactionHash), nil)
@@ -2018,6 +2048,19 @@ func (bc *BlockchainStruct) GetLLMTransactionByCMU(cmu string) (*Transaction, er
 		}
 	}
 	return nil, fmt.Errorf("LLM transaction with CMU %s not found", cmu)
+}
+
+// llmRootingCMU returns the CMU of an LLM rooting transaction.
+// It assumes the caller holds the necessary lock if required for concurrent access.
+func llmRootingCMU(tx *Transaction) (string, error) {
+	var protoData pb.LLMRootingDataProto
+	if err := proto.Unmarshal(tx.Data, &protoData); err != nil {
+		return "", fmt.Errorf("failed to unmarshal LLM rooting data: %w", err)
+	}
+	if protoData.Cmu == "" {
+		return "", fmt.Errorf("LLM rooting data has empty CMU")
+	}
+	return protoData.Cmu, nil
 }
 
 // GetLLMTransactionsByModelHash returns all LLM rooting transactions for a model hash

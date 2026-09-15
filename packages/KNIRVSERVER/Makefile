@@ -49,6 +49,9 @@ ARENA_PKG_BUNDLE := $(ARENA_DIR)/bin/knirvarena.tar.gz
 ULORA_DIR := $(ROOT_DIR)/pkg/knirvulora
 ULORA_SRC_DIR := $(ROOT_DIR)/../KNIRVULORA
 ULORA_PKG_BIN := $(ULORA_DIR)/bin/ulorad
+INFERENCER_DIR := $(ROOT_DIR)/pkg/knirvinferencer
+INFERENCER_SRC_DIR := $(ROOT_DIR)/../KNIRVINFERENCER
+INFERENCER_BUILD_STAMP := $(INFERENCER_DIR)/build/stamp
 SCRIPTS_DIR := $(shell if [ -d "$(SERVER_WORKSPACE_DIR)/scripts" ]; then printf '%s' "$(SERVER_WORKSPACE_DIR)/scripts"; else printf '%s' "$(ROOT_DIR)/scripts"; fi)
 BUILD_DIR := $(ROOT_DIR)/build
 DIST_DIR := $(ROOT_DIR)/dist
@@ -113,7 +116,7 @@ YELLOW := \033[1;33m
 BLUE := \033[0;34m
 NC := \033[0m # No Color
 
-.PHONY: help all clean build test deploy install deps frontend backend binary relink docker os deployer key-encryptor deploy-dev-local ebpf-generate proto kali-docker-image gateway-build gateway-deps gateway-clean graph-build graph-deps graph-clean chain-build chain-deps chain-clean oracle-build oracle-deps oracle-clean hasher-build hasher-deps hasher-clean agent-build agent-deps agent-clean llama-build llama-clean arena-build arena-deps arena-clean ulora-build ulora-mlc-build build-full
+.PHONY: help all clean build test deploy install deps frontend backend binary relink docker os deployer key-encryptor deploy-dev-local ebpf-generate proto kali-docker-image gateway-build gateway-deps gateway-clean graph-build graph-deps graph-clean chain-build chain-deps chain-clean oracle-build oracle-deps oracle-clean hasher-build hasher-deps hasher-clean agent-build agent-deps agent-clean llama-build llama-clean arena-build arena-deps arena-clean ulora-build ulora-mlc-build inferencer-deps inferencer-build build-full
 
 # Default target
 all: proto frontend backend binary
@@ -164,6 +167,8 @@ deps-go: arena-deps ## Install Go dependencies (backend and standalone submodule
 	cd $(HASHER_SRC_DIR) && go mod tidy
 	cd $(AGENT_SRC_DIR) && go mod download
 	cd $(AGENT_SRC_DIR) && go mod tidy
+	cd $(INFERENCER_SRC_DIR) && go mod download
+	cd $(INFERENCER_SRC_DIR) && go mod tidy
 
 deps-node: ## Install Node.js dependencies
 	@echo "$(BLUE)Installing Node.js dependencies...$(NC)"
@@ -184,7 +189,7 @@ frontend-dev: deps-node ## Start frontend development server
 	cd $(FRONTEND_DIR) && $(NPM_CMD) run dev
 
 # Backend Build (cmd/backend_server only)
-backend: deps-go gateway-build graph-build chain-build oracle-build hasher-build agent-build llama-build arena-build ulora-build embedded-build ## Build complete Go backend service package
+backend: deps-go gateway-build graph-build chain-build oracle-build hasher-build agent-build llama-build arena-build ulora-build inferencer-build embedded-build ## Build complete Go backend service package
 	@echo "$(BLUE)Building complete backend package binary...$(NC)"
 	@rm -f $(BACKEND_DIR)/backend_server bin/backend_server
 	cd $(BACKEND_DIR) && go build -ldflags "$(LDFLAGS)" -o backend_server ./cmd/backend_server
@@ -247,6 +252,20 @@ ulora-build: ## Build the standalone ulorad daemon for KNIRVSERVER staging
 
 ulora-mlc-build: ## Build the optional CPU-only MLC runtime (requires LLVM/CMake and network)
 	cd $(ULORA_SRC_DIR) && ./scripts/build-mlc-cpu.sh
+
+# KNIRVINFERENCER (Shared library) targets
+inferencer-deps: ## Install KNIRVINFERENCER dependencies
+	@echo "$(BLUE)Installing KNIRVINFERENCER dependencies...$(NC)"
+	cd $(INFERENCER_SRC_DIR) && go mod download && go mod tidy
+
+inferencer-build: inferencer-deps ## Build/test KNIRVINFERENCER shared library and stamp it into pkg/knirvinferencer/ (required before binary target)
+	@echo "$(BLUE)Building KNIRVINFERENCER shared library...$(NC)"
+	cd $(INFERENCER_SRC_DIR) && go build ./...
+	cd $(INFERENCER_SRC_DIR) && go vet ./...
+	@mkdir -p $(INFERENCER_DIR)/build
+	@rm -f $(INFERENCER_BUILD_STAMP)
+	@date -u +"%Y-%m-%dT%H:%M:%SZ" > $(INFERENCER_BUILD_STAMP)
+	@echo "$(GREEN)KNIRVINFERENCER build completed: $(INFERENCER_BUILD_STAMP)$(NC)"
 
 # Quick Binary Relink (fast path, assumes all components already built)
 # Use this after making changes to frontend, desktop, backend, or embedded binaries to quickly relink without rebuilding everything
@@ -398,6 +417,7 @@ clean: ## Clean build outputs (preserves node_modules and Go module cache)
 	cd $(HASHER_DIR) && go clean
 	cd $(AGENT_DIR) && go clean
 	rm -rf $(ARENA_DIR)/bin
+	rm -rf $(INFERENCER_DIR)/build
 
 install: binary ## Install binary to system
 	@echo "$(BLUE)Installing binary...$(NC)"

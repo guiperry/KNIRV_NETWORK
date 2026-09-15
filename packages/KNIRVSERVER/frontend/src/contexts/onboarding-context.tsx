@@ -4,7 +4,8 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { API_BASE_URL } from '@/lib/api';
 import type { APIKeyEntry } from '@/components/onboarding/modals/APIKeysModal';
 import type { MCPServerEntry } from '@/components/onboarding/modals/MCPServersModal';
-import type { PolicyCert, CustomRule } from '@/components/onboarding/modals/PolicyCertsModal';
+import type { PolicyCert } from '@/components/onboarding/modals/PolicyCertsModal';
+import type { CustomRule } from '@/components/onboarding/modals/CustomRulesModal';
 import type { DatabaseConfig } from '@/components/onboarding/modals/DatabaseConfigModal';
 
 // New simplified onboarding flow

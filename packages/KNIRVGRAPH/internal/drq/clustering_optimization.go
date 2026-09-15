@@ -28,11 +28,11 @@ func (si *SpatialIndex) ClusterBatch(
 	errors []*ErrorNode, // Use ErrorNode
 ) map[string][]*ErrorNode { // Use ErrorNode
 	clusters := make(map[string][]*ErrorNode)
-	
+
 	// Parallel embedding generation
 	embeddings := make([][]float64, len(errors))
 	var wg sync.WaitGroup
-	
+
 	for i, err := range errors {
 		wg.Add(1)
 		go func(idx int, e *ErrorNode) {
@@ -41,12 +41,12 @@ func (si *SpatialIndex) ClusterBatch(
 		}(i, err)
 	}
 	wg.Wait()
-	
+
 	// Batch k-NN lookup
 	for i, embedding := range embeddings {
 		clusterID := si.kdTree.NearestCluster(embedding)
 		clusters[clusterID] = append(clusters[clusterID], errors[i])
 	}
-	
+
 	return clusters
 }

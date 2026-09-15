@@ -9,10 +9,26 @@ import (
 	"os"
 	"os/exec"
 	"strconv"
+	"strings"
 	"time"
 )
 
 type Server struct{ Command *exec.Cmd }
+
+// LoRAAdapter is an adapter to load alongside the base model.
+//
+// This is what lets a DVE actually execute a minted uLoRA: the bundle's
+// projected weights are projected onto the target architecture by KNIRVULORA's
+// binder and written as a llama.cpp-compatible adapter, which llama-server can
+// then load at startup. Without this the adapter exists on chain but there is no
+// way to run a model with it applied.
+type LoRAAdapter struct {
+	// Path is the adapter file on disk.
+	Path string
+	// Scale overrides the adapter's scale. Zero means "use llama-server's
+	// default", passed as a plain --lora rather than --lora-scaled.
+	Scale float64
+}
 
 // Options controls the deterministic tunables passed to llama-server.
 // Zero values are treated as "let llama-server choose" (except Parallel, which
@@ -23,6 +39,8 @@ type Options struct {
 	CtxSize  int
 	Threads  int
 	APIKey   string
+	// LoRA lists adapters to apply, in order.
+	LoRA []LoRAAdapter
 }
 
 func (o Options) args(model, port string) []string {
@@ -38,6 +56,21 @@ func (o Options) args(model, port string) []string {
 	}
 	if o.APIKey != "" {
 		args = append(args, "--api-key", o.APIKey)
+	}
+	// Adapters last so the base-model flags above stay stable in the argv the
+	// manager asserts against.
+	for _, adapter := range o.LoRA {
+		path := strings.TrimSpace(adapter.Path)
+		if path == "" {
+			// An empty path must be skipped, not emitted: llama-server would
+			// consume the following flag as the filename.
+			continue
+		}
+		if adapter.Scale > 0 {
+			args = append(args, "--lora-scaled", path, strconv.FormatFloat(adapter.Scale, 'g', -1, 64))
+			continue
+		}
+		args = append(args, "--lora", path)
 	}
 	return args
 }

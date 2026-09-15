@@ -24,7 +24,7 @@ func NewLoRAManager(nodeStore *graph.NodeStore) *LoRAManager {
 }
 
 // GenerateLoRAAdapter generates a LoRA adapter for solving an error
-func (lm *LoRAManager) GenerateLoRAAdapter(errorNode *types.ErrorNode, minerAddress string) (*types.LoRAAdapterPointer, error) {
+func (lm *LoRAManager) GenerateLoRAAdapter(errorNode *types.ErrorNodeRecord, minerAddress string) (*types.LoRAAdapterPointer, error) {
 	// Analyze the error to determine optimal LoRA parameters
 	rank, alpha, targetModules := lm.analyzeErrorForLoRAParams(errorNode)
 
@@ -56,12 +56,12 @@ func (lm *LoRAManager) GenerateLoRAAdapter(errorNode *types.ErrorNode, minerAddr
 }
 
 // analyzeErrorForLoRAParams analyzes an error to determine optimal LoRA parameters
-func (lm *LoRAManager) analyzeErrorForLoRAParams(errorNode *types.ErrorNode) (int, float64, []string) {
+func (lm *LoRAManager) analyzeErrorForLoRAParams(errorNode *types.ErrorNodeRecord) (int, float64, []string) {
 	// This is a simplified analysis
 	// In a real system, this would use ML to analyze the error pattern
 
-	rank := 8 // Default rank
-	alpha := 16.0 // Default alpha
+	rank := 8                                     // Default rank
+	alpha := 16.0                                 // Default alpha
 	targetModules := []string{"q_proj", "v_proj"} // Default modules
 
 	// Adjust based on error type
@@ -115,10 +115,10 @@ func (lm *LoRAManager) generateIPFSCID(adapterID string, rank int, alpha float64
 func (lm *LoRAManager) determineBaseModel(modelOrigin string) string {
 	// Map model origins to base model references
 	modelMap := map[string]string{
-		"gpt-4":      "openai/gpt-4",
-		"gpt-3.5":    "openai/gpt-3.5-turbo",
-		"claude-3":   "anthropic/claude-3",
-		"llama-2-7b": "meta/llama-2-7b",
+		"gpt-4":       "openai/gpt-4",
+		"gpt-3.5":     "openai/gpt-3.5-turbo",
+		"claude-3":    "anthropic/claude-3",
+		"llama-2-7b":  "meta/llama-2-7b",
 		"llama-2-13b": "meta/llama-2-13b",
 	}
 
@@ -184,10 +184,10 @@ func (lm *LoRAManager) DeleteLoRAAdapter(adapterID string) error {
 func (lm *LoRAManager) GetLoRAStatistics() (*LoRAStatistics, error) {
 	// This would aggregate statistics from skill nodes
 	stats := &LoRAStatistics{
-		TotalAdapters: 0,
-		RankDistribution: map[int]int{},
+		TotalAdapters:     0,
+		RankDistribution:  map[int]int{},
 		TargetModuleUsage: map[string]int{},
-		BaseModelUsage: map[string]int{},
+		BaseModelUsage:    map[string]int{},
 	}
 
 	return stats, nil
@@ -202,16 +202,16 @@ type LoRAStatistics struct {
 }
 
 // OptimizeLoRAParams suggests optimal LoRA parameters based on error analysis
-func (lm *LoRAManager) OptimizeLoRAParams(errorNode *types.ErrorNode) (*LoRAOptimizationResult, error) {
+func (lm *LoRAManager) OptimizeLoRAParams(errorNode *types.ErrorNodeRecord) (*LoRAOptimizationResult, error) {
 	// Analyze the error and suggest parameters
 	rank, alpha, modules := lm.analyzeErrorForLoRAParams(errorNode)
 
 	result := &LoRAOptimizationResult{
-		SuggestedRank:         rank,
-		SuggestedAlpha:        alpha,
+		SuggestedRank:          rank,
+		SuggestedAlpha:         alpha,
 		SuggestedTargetModules: modules,
-		Confidence:           0.8,
-		Reasoning:            "Based on error type and frequency analysis",
+		Confidence:             0.8,
+		Reasoning:              "Based on error type and frequency analysis",
 	}
 
 	return result, nil
@@ -219,11 +219,11 @@ func (lm *LoRAManager) OptimizeLoRAParams(errorNode *types.ErrorNode) (*LoRAOpti
 
 // LoRAOptimizationResult represents the result of LoRA parameter optimization
 type LoRAOptimizationResult struct {
-	SuggestedRank         int       `json:"suggested_rank"`
-	SuggestedAlpha        float64   `json:"suggested_alpha"`
-	SuggestedTargetModules []string  `json:"suggested_target_modules"`
-	Confidence           float64   `json:"confidence"`
-	Reasoning            string    `json:"reasoning"`
+	SuggestedRank          int      `json:"suggested_rank"`
+	SuggestedAlpha         float64  `json:"suggested_alpha"`
+	SuggestedTargetModules []string `json:"suggested_target_modules"`
+	Confidence             float64  `json:"confidence"`
+	Reasoning              string   `json:"reasoning"`
 }
 
 // ValidateLoRACompatibility checks if a LoRA adapter is compatible with a base model

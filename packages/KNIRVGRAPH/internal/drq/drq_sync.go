@@ -9,9 +9,11 @@ import (
 	"sync"
 	"time"
 )
+
 const (
 	QValueTopic = "q-value-updates"
 )
+
 // QValueUpdate represents a message for gossiping Q-value updates.
 type QValueUpdate struct {
 	NodeID    string  `json:"node_id"`
@@ -19,18 +21,20 @@ type QValueUpdate struct {
 	ActionKey string  `json:"action_key"`
 	NewQ      float64 `json:"new_q"`
 }
+
 // DRQSyncProtocol handles distributed Q-value propagation
 type DRQSyncProtocol struct {
 	nodeID          string
 	dhtManager      dht.DHTManagerInterface
-	localQTable     map[string]map[string]float64              // state → action → Q-value
+	localQTable     map[string]map[string]float64            // state → action → Q-value
 	neighborQTables map[string]map[string]map[string]float64 // neighborID → state → action → Q-value
-	neighborWeights map[string]float64                         // nodeID → weight
+	neighborWeights map[string]float64                       // nodeID → weight
 	learningRate    float64
 	discountFactor  float64
 	syncInterval    time.Duration
 	mutex           sync.RWMutex
 }
+
 // NewDRQSyncProtocol creates a new DRQSyncProtocol.
 func NewDRQSyncProtocol(nodeID string, dhtManager dht.DHTManagerInterface, learningRate, discountFactor float64, syncInterval time.Duration) *DRQSyncProtocol {
 	return &DRQSyncProtocol{
@@ -44,6 +48,7 @@ func NewDRQSyncProtocol(nodeID string, dhtManager dht.DHTManagerInterface, learn
 		syncInterval:    syncInterval,
 	}
 }
+
 // Start subscribes to the Q-value topic and starts the gossip handler.
 func (d *DRQSyncProtocol) Start(ctx context.Context) error {
 	ch, err := d.dhtManager.Subscribe(QValueTopic)
@@ -53,6 +58,7 @@ func (d *DRQSyncProtocol) Start(ctx context.Context) error {
 	go d.handleGossip(ctx, ch)
 	return nil
 }
+
 // handleGossip processes incoming Q-value updates from the network.
 func (d *DRQSyncProtocol) handleGossip(ctx context.Context, ch <-chan []byte) {
 	for {
@@ -86,6 +92,7 @@ func (d *DRQSyncProtocol) handleGossip(ctx context.Context, ch <-chan []byte) {
 		}
 	}
 }
+
 // SynchronizeQValues aggregates Q-values from network neighbors
 func (d *DRQSyncProtocol) SynchronizeQValues(
 	state ErrorClusterState,
@@ -129,6 +136,7 @@ func (d *DRQSyncProtocol) SynchronizeQValues(
 	// Gossip updated Q-value to neighbors
 	return d.gossipQUpdate(stateKey, actionKey, newQ)
 }
+
 // fetchNeighborQValues fetches Q-values from the local cache of neighbor Q-tables.
 func (d *DRQSyncProtocol) fetchNeighborQValues(nextState ErrorClusterState) map[string]map[string]float64 {
 	d.mutex.RLock()
@@ -142,6 +150,7 @@ func (d *DRQSyncProtocol) fetchNeighborQValues(nextState ErrorClusterState) map[
 	}
 	return result
 }
+
 // getMaxQ gets the maximum Q-value for a given state from a Q-table map.
 func (d *DRQSyncProtocol) getMaxQ(qMap map[string]float64, nextState ErrorClusterState) float64 {
 	// In a more sophisticated implementation, this could depend on the nextState.
@@ -159,6 +168,7 @@ func (d *DRQSyncProtocol) getMaxQ(qMap map[string]float64, nextState ErrorCluste
 	}
 	return maxQ
 }
+
 // gossipQUpdate gossips the updated Q-value to the network.
 func (d *DRQSyncProtocol) gossipQUpdate(stateKey, actionKey string, newQ float64) error {
 	update := QValueUpdate{
@@ -173,6 +183,7 @@ func (d *DRQSyncProtocol) gossipQUpdate(stateKey, actionKey string, newQ float64
 	}
 	return d.dhtManager.Publish(QValueTopic, data)
 }
+
 // GetQValue retrieves a Q-value for a given state and action.
 func (d *DRQSyncProtocol) GetQValue(state ErrorClusterState, action DRQAction) float64 {
 	d.mutex.RLock()

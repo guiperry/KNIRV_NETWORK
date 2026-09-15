@@ -47,6 +47,7 @@ var agentError = AppError{Message: "agent error"}
 // Blockchain specific errors
 var ErrBlockNotFound = AppError{Message: "block not found"}
 var ErrInvalidSignature = AppError{Message: "invalid signature"}
+
 // ValidationError represents a validation error
 type ValidationError struct {
 	Message string
@@ -69,5 +70,6 @@ func NewValidationError(message string) ValidationError {
 func NewFieldValidationError(field, message string) ValidationError {
 	return ValidationError{Field: field, Message: message}
 }
+
 var ErrInvalidBlock = AppError{Message: "invalid block"}
 var ErrInvalidTransaction = AppError{Message: "invalid transaction"}

@@ -6,50 +6,50 @@ const (
 
 // DRQRoundProtocol orchestrates multi-round evolution
 type DRQRoundProtocol struct {
-	currentRound    int
-	historyLength   int              // K parameter
-	champions       []*ErrorCluster  // Historical winners
-	drqSync         *DRQSyncProtocol
-	topology        NetworkTopologyInterface // Use the interface
+	currentRound  int
+	historyLength int             // K parameter
+	champions     []*ErrorCluster // Historical winners
+	drqSync       *DRQSyncProtocol
+	topology      NetworkTopologyInterface // Use the interface
 }
 
 // ExecuteRound runs one DRQ optimization round
 func (drp *DRQRoundProtocol) ExecuteRound() (*ErrorCluster, error) {
 	// Select K previous champions as environment (stub)
 	environment := drp.selectEnvironment(drp.historyLength)
-	
+
 	// Initialize MAP-Elites archive with champions
 	archive := NewMAPElitesArchive()
 	for _, champion := range environment {
 		archive.Seed(champion)
 	}
-	
+
 	// Evolution loop
 	for iter := 0; iter < MAX_ITERATIONS; iter++ {
 		// Sample elite
 		parent := archive.Sample()
-		
+
 		// LLM-guided mutation (stub)
 		offspring := drp.mutateSolution(parent)
-		
+
 		// Evaluate fitness in multi-agent environment (stub)
 		fitness := drp.evaluateFitness(offspring, environment)
-		
+
 		// Compute behavior descriptor (stub)
 		behavior := drp.computeBehavior(offspring)
-		
+
 		// Update archive
 		archive.Update(offspring, fitness, behavior)
 	}
-	
+
 	// Select champion
 	champion := archive.GetBest()
 	drp.champions = append(drp.champions, champion)
 	drp.currentRound++
-	
+
 	// Update DRQ Q-values (stub)
 	drp.updateDRQValues(champion, environment)
-	
+
 	return champion, nil
 }
 

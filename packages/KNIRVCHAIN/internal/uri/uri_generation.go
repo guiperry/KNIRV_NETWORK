@@ -73,9 +73,10 @@ func ParseResourceURI(uriString string) (id string, resourceType string, path st
 		return "", "", "", nil, fmt.Errorf("invalid URI: %w", err)
 	}
 
-	// Check scheme
-	if u.Scheme != "agent" {
-		return "", "", "", nil, fmt.Errorf("invalid scheme: expected 'agent'")
+	// Check scheme (URIs are emitted as knirv:// today; "agent" is accepted
+	// for backward compatibility with earlier tooling)
+	if u.Scheme != "knirv" && u.Scheme != "agent" {
+		return "", "", "", nil, fmt.Errorf("invalid scheme: expected 'knirv'")
 	}
 
 	// Extract ID and ResourceType from authority

@@ -14,7 +14,7 @@ import (
 func TestProofVerifier_ValidateSkill(t *testing.T) {
 	pv := NewProofVerifier("http://localhost:8080")
 
-	errorNode := &types.ErrorNode{
+	errorNode := &types.ErrorNodeRecord{
 		ID:             "test_error_001",
 		ErrorType:      "RuntimeError",
 		ErrorSignature: "sig_001",
@@ -56,7 +56,7 @@ func TestProofVerifier_ValidateSkill(t *testing.T) {
 func TestProofVerifier_GenerateTestCases(t *testing.T) {
 	pv := NewProofVerifier("http://localhost:8080")
 
-	errorNode := &types.ErrorNode{
+	errorNode := &types.ErrorNodeRecord{
 		ID:             "test_error_002",
 		ErrorType:      "TypeError",
 		ErrorSignature: "sig_002",
@@ -87,7 +87,7 @@ func TestProofVerifier_VerifyValidationResponse(t *testing.T) {
 	pv := NewProofVerifier("http://localhost:8080")
 
 	request := &ValidationRequest{
-		ErrorNode: &types.ErrorNode{
+		ErrorNode: &types.ErrorNodeRecord{
 			ID: "test_error_003",
 		},
 		LoRAAdapter: &types.LoRAAdapterPointer{

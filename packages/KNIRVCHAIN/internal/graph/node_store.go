@@ -26,7 +26,7 @@ func NewNodeStore(db database.LevelDBManager, chroma database.ChromemDBManager) 
 }
 
 // StoreErrorNode stores an ErrorNode
-func (ns *NodeStore) StoreErrorNode(node *types.ErrorNode) error {
+func (ns *NodeStore) StoreErrorNode(node *types.ErrorNodeRecord) error {
 	ns.mutex.Lock()
 	defer ns.mutex.Unlock()
 
@@ -53,12 +53,12 @@ func (ns *NodeStore) StoreErrorNode(node *types.ErrorNode) error {
 			ID:      node.ID,
 			Content: content,
 			Metadata: map[string]interface{}{
-				"type":           "error_node",
-				"error_type":     node.ErrorType,
-				"model_origin":   node.ModelOrigin,
-				"failure_count":  node.FailureCount,
-				"created_at":     node.CreatedAt,
-				"status":         node.Status,
+				"type":          "error_node",
+				"error_type":    node.ErrorType,
+				"model_origin":  node.ModelOrigin,
+				"failure_count": node.FailureCount,
+				"created_at":    node.CreatedAt,
+				"status":        node.Status,
 			},
 		}
 
@@ -73,7 +73,7 @@ func (ns *NodeStore) StoreErrorNode(node *types.ErrorNode) error {
 }
 
 // GetErrorNode retrieves an ErrorNode by ID
-func (ns *NodeStore) GetErrorNode(id string) (*types.ErrorNode, error) {
+func (ns *NodeStore) GetErrorNode(id string) (*types.ErrorNodeRecord, error) {
 	ns.mutex.RLock()
 	defer ns.mutex.RUnlock()
 
@@ -83,7 +83,7 @@ func (ns *NodeStore) GetErrorNode(id string) (*types.ErrorNode, error) {
 		return nil, fmt.Errorf("failed to get error node: %w", err)
 	}
 
-	var node types.ErrorNode
+	var node types.ErrorNodeRecord
 	if err := json.Unmarshal(data, &node); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal error node: %w", err)
 	}
@@ -119,14 +119,14 @@ func (ns *NodeStore) StoreSkillNode(node *types.SkillNode) error {
 			ID:      node.ID,
 			Content: content,
 			Metadata: map[string]interface{}{
-				"type":           "skill_node",
-				"name":           node.Name,
-				"error_node_id":  node.ErrorNodeID,
-				"miner_address":  node.MinerAddress,
-				"nrn_reward":     node.NRNReward,
-				"created_at":     node.CreatedAt,
-				"accuracy":       node.Performance.Accuracy,
-				"f1_score":       node.Performance.F1Score,
+				"type":          "skill_node",
+				"name":          node.Name,
+				"error_node_id": node.ErrorNodeID,
+				"miner_address": node.MinerAddress,
+				"nrn_reward":    node.NRNReward,
+				"created_at":    node.CreatedAt,
+				"accuracy":      node.Performance.Accuracy,
+				"f1_score":      node.Performance.F1Score,
 			},
 		}
 
@@ -186,10 +186,10 @@ func (ns *NodeStore) StoreContextNode(node *types.ContextNode) error {
 			ID:      node.ID,
 			Content: content,
 			Metadata: map[string]interface{}{
-				"type":             "context_node",
-				"context_type":     node.ContextType,
-				"usage_frequency":  node.UsageFrequency,
-				"created_at":       node.CreatedAt,
+				"type":            "context_node",
+				"context_type":    node.ContextType,
+				"usage_frequency": node.UsageFrequency,
+				"created_at":      node.CreatedAt,
 			},
 		}
 
@@ -378,11 +378,11 @@ func (ns *NodeStore) StorePropertyNode(node *types.PropertyNode) error {
 			ID:      node.ID,
 			Content: content,
 			Metadata: map[string]interface{}{
-				"type":           "property_node",
-				"idea_node_id":   node.IdeaNodeID,
-				"maker_address":  node.MakerAddress,
-				"ip_type":        node.IPType,
-				"created_at":     node.CreatedAt,
+				"type":          "property_node",
+				"idea_node_id":  node.IdeaNodeID,
+				"maker_address": node.MakerAddress,
+				"ip_type":       node.IPType,
+				"created_at":    node.CreatedAt,
 			},
 		}
 

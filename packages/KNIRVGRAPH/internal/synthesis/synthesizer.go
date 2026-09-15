@@ -34,11 +34,11 @@ func (s *Synthesizer) Synthesize(ctx context.Context, req types.SynthesisRequest
 	contextText := s.buildContextText(req.Contexts)
 	prompt := s.buildPrompt(req.Query, contextText, req.MaxTokens)
 	reqBody := map[string]interface{}{
-		"model":       s.model,
-		"prompt":      prompt,
-		"stream":      false,
-		"options":     map[string]interface{}{"temperature": req.Temperature},
-		"max_tokens":  req.MaxTokens,
+		"model":      s.model,
+		"prompt":     prompt,
+		"stream":     false,
+		"options":    map[string]interface{}{"temperature": req.Temperature},
+		"max_tokens": req.MaxTokens,
 	}
 	if req.LLMEndpoint != "" {
 		reqBody["model"] = req.LLMModel

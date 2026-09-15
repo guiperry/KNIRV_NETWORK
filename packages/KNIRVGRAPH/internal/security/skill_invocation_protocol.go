@@ -28,12 +28,11 @@ func (koc *KNIRVORACLEClient) BurnNRN(amount uint64) error {
 	return nil
 }
 
-
 // SkillInvocationProtocol manages fee collection
 type SkillInvocationProtocol struct {
-	ownershipRegistry map[string]string  // SkillID → OwnerAgentID
-	feeStructure      map[string]uint64  // SkillID → Fee (NRN)
-	knirvOracle       *KNIRVORACLEClient 
+	ownershipRegistry map[string]string // SkillID → OwnerAgentID
+	feeStructure      map[string]uint64 // SkillID → Fee (NRN)
+	knirvOracle       *KNIRVORACLEClient
 }
 
 // InvokeSkill charges fee to owner
@@ -46,28 +45,28 @@ func (sip *SkillInvocationProtocol) InvokeSkill(
 	if !exists {
 		return errors.New("skill not found")
 	}
-	
+
 	// Calculate fee
 	baseFee := sip.feeStructure[skillID]
-	
+
 	// Self-invocation discount (50%)
 	fee := baseFee
 	if invokerID == owner {
 		fee = baseFee / 2
 	}
-	
+
 	// Transfer NRN from invoker to owner
 	err := sip.knirvOracle.TransferNRN(invokerID, owner, fee)
 	if err != nil {
 		return err
 	}
-	
+
 	// Burn portion for deflation (10%)
 	burnAmount := fee / 10
 	err = sip.knirvOracle.BurnNRN(burnAmount)
 	if err != nil {
 		return err
 	}
-	
+
 	return nil
 }

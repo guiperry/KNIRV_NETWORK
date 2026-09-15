@@ -7,8 +7,8 @@ import (
 	"math"
 	"time"
 
-	knirvsigning "github.com/guiperry/knirv-sdk-go/signing"
 	"github.com/ethereum/go-ethereum/crypto"
+	knirvsigning "github.com/guiperry/knirv-sdk-go/signing"
 )
 
 // SchemaVersion is the wire/schema tag for KNIRVCHAIN checkpoints.

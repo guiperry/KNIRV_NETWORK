@@ -17,46 +17,46 @@ func (ar *AgentRouter) RouteAgent(
 	agentID string,
 ) (string, error) {
 	agent := ar.availableAgents[agentID]
-	
+
 	// Get all active clusters (stub)
-	clusters := ar.clusterMgr.GetActiveClusters() 
-	
+	clusters := ar.clusterMgr.GetActiveClusters()
+
 	var bestCluster string
 	var bestQValue float64 = math.Inf(-1)
-	
+
 	for clusterID, cluster := range clusters {
 		// Construct state
 		state := ErrorClusterState{
-			ClusterID:       clusterID,
-			ClusterDensity:  float64(len(cluster.Errors)),
-			ComplexityScore: cluster.AvgComplexity,
+			ClusterID:        clusterID,
+			ClusterDensity:   float64(len(cluster.Errors)),
+			ComplexityScore:  cluster.AvgComplexity,
 			AgentAssignments: cluster.AgentCounts,
 		}
-		
+
 		// Construct action
 		action := DRQAction{
 			Type:          ASSIGN_NEW_AGENT,
 			AgentID:       agentID,
 			TargetCluster: clusterID,
 		}
-		
+
 		// Retrieve Q-value
 		qValue := ar.drqSync.GetQValue(state, action)
-		
+
 		// Apply specialization bonus (stub)
-		if ar.matchesSpecialization(agent, cluster) { 
+		if ar.matchesSpecialization(agent, cluster) {
 			qValue += 50.0
 		}
-		
+
 		// Apply reputation scaling
 		qValue *= agent.ReputationScore
-		
+
 		if qValue > bestQValue {
 			bestQValue = qValue
 			bestCluster = clusterID
 		}
 	}
-	
+
 	// Assign agent
 	agent.CurrentCluster = bestCluster
 	cluster := clusters[bestCluster]
@@ -64,8 +64,8 @@ func (ar *AgentRouter) RouteAgent(
 	if cluster.AgentCounts == nil {
 		cluster.AgentCounts = make(map[string]int)
 	}
-	cluster.AgentCounts[agentID]++ 
-	
+	cluster.AgentCounts[agentID]++
+
 	return bestCluster, nil
 }
 

@@ -29,12 +29,12 @@ func NewRoyaltyEngine(graphQueries *graph.GraphQueries, bc *blockchain.Blockchai
 
 // RoyaltyDistribution represents a royalty distribution event
 type RoyaltyDistribution struct {
-	PropertyNodeID string                    `json:"property_node_id"`
-	UsageAmount    uint64                    `json:"usage_amount"`
-	TotalRoyalties uint64                    `json:"total_royalties"`
-	Distributions  map[string]*RoyaltyShare  `json:"distributions"`
-	DistributedAt  int64                     `json:"distributed_at"`
-	TransactionID  string                    `json:"transaction_id,omitempty"`
+	PropertyNodeID string                   `json:"property_node_id"`
+	UsageAmount    uint64                   `json:"usage_amount"`
+	TotalRoyalties uint64                   `json:"total_royalties"`
+	Distributions  map[string]*RoyaltyShare `json:"distributions"`
+	DistributedAt  int64                    `json:"distributed_at"`
+	TransactionID  string                   `json:"transaction_id,omitempty"`
 }
 
 // RoyaltyShare represents a share of royalties for a specific recipient
@@ -327,10 +327,10 @@ func (re *RoyaltyEngine) GetRoyaltyEarnings(address string) (*RoyaltyEarnings, e
 
 // RoyaltyEarnings represents royalty earnings for an address
 type RoyaltyEarnings struct {
-	Address         string                    `json:"address"`
-	TotalEarned     uint64                    `json:"total_earned"`
-	PendingEarnings uint64                    `json:"pending_earnings"`
-	Claims          map[string]*RoyaltyClaim  `json:"claims"`
+	Address         string                   `json:"address"`
+	TotalEarned     uint64                   `json:"total_earned"`
+	PendingEarnings uint64                   `json:"pending_earnings"`
+	Claims          map[string]*RoyaltyClaim `json:"claims"`
 }
 
 // RoyaltyClaim represents a claimable royalty amount
@@ -388,11 +388,11 @@ func (re *RoyaltyEngine) GetRoyaltyAnalytics(timeRange string) (*RoyaltyAnalytic
 	defer re.mutex.RUnlock()
 
 	analytics := &RoyaltyAnalytics{
-		TimeRange:       timeRange,
+		TimeRange:        timeRange,
 		TotalDistributed: 0,
-		TotalEarned:     0,
-		TopEarners:      make([]*EarnerStats, 0),
-		PropertyStats:   make(map[string]*PropertyRoyaltyStats),
+		TotalEarned:      0,
+		TopEarners:       make([]*EarnerStats, 0),
+		PropertyStats:    make(map[string]*PropertyRoyaltyStats),
 	}
 
 	// This would aggregate analytics from royalty distribution history
@@ -406,18 +406,18 @@ func (re *RoyaltyEngine) GetRoyaltyAnalytics(timeRange string) (*RoyaltyAnalytic
 
 // RoyaltyAnalytics represents royalty distribution analytics
 type RoyaltyAnalytics struct {
-	TimeRange       string                            `json:"time_range"`
+	TimeRange        string                           `json:"time_range"`
 	TotalDistributed uint64                           `json:"total_distributed"`
-	TotalEarned     uint64                           `json:"total_earned"`
-	TopEarners      []*EarnerStats                    `json:"top_earners"`
-	PropertyStats   map[string]*PropertyRoyaltyStats `json:"property_stats"`
+	TotalEarned      uint64                           `json:"total_earned"`
+	TopEarners       []*EarnerStats                   `json:"top_earners"`
+	PropertyStats    map[string]*PropertyRoyaltyStats `json:"property_stats"`
 }
 
 // EarnerStats represents statistics for a royalty earner
 type EarnerStats struct {
-	Address    string `json:"address"`
+	Address     string `json:"address"`
 	TotalEarned uint64 `json:"total_earned"`
-	Properties int    `json:"properties"`
+	Properties  int    `json:"properties"`
 }
 
 // PropertyRoyaltyStats represents royalty statistics for a property

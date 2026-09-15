@@ -9,6 +9,7 @@ import { WebSocketServer } from 'ws';
 import { createServer } from 'http';
 import crypto from 'crypto';
 import { apiKeyService, ApiKey } from '../services/ApiKeyService';
+import { knirvbaseService } from '../services/KNIRVBASEService';
 
 const app = express();
 const server = createServer(app);
@@ -173,40 +174,74 @@ app.post('/public/qr/complete', async (req: express.Request, res: express.Respon
 
 app.use('/api', authenticateApiKey);
 
-// --- Vault: Skills, Capabilities & Properties (user-scoped placeholders) ---
-// These endpoints return mock data for the authenticated key owner until real storage is wired.
+// --- Vault: Skills, Capabilities & Properties (SEC-6 owner-filtered) ---
+// Resources are stored per-owner in KNIRVBASE and filtered on read so one
+// key owner never sees another's vault rows. First access for an owner seeds
+// the baseline examples; subsequent reads return whatever is persisted.
 const ownerScopedId = (owner: string, resource: string, sequence: number): string => {
   const ownerDigest = crypto.createHash('sha256').update(owner).digest('hex').slice(0, 16);
   return `${resource}_${ownerDigest}_${sequence}`;
 };
 
-app.get('/api/skills', requirePermission('read:skills'), (req: express.Request, res: express.Response) => {
+async function vaultResourcesFor<const C extends 'skills' | 'capabilities' | 'properties'>(
+  collection: C,
+  owner: string,
+  seed: Array<Record<string, unknown>>
+): Promise<Record<string, unknown>[]> {
+  try {
+    await knirvbaseService.initialize().catch(() => undefined);
+    const owned = await knirvbaseService.getResourcesByOwner(collection, owner);
+    if (owned.length > 0) return owned.filter(r => r.ownerId === owner);
+
+    // Seed baseline rows for this owner on first access.
+    const seeded: Record<string, unknown>[] = [];
+    for (const row of seed) {
+      const id = row.id as string;
+      const inserted = await knirvbaseService.seedResource(collection, {
+        ...row,
+        id,
+        ownerId: owner
+      });
+      seeded.push(inserted);
+    }
+    return seeded;
+  } catch (error) {
+    console.error(`Failed to load ${collection} for ${owner}:`, error);
+    return [];
+  }
+}
+
+const seedSkills = (owner: string) => [
+  { id: ownerScopedId(owner, 'skill', 1), name: 'LoRA Adapter: Vision-Base', type: 'lora-adapter', metadata: { baseModel: 'ResNet50', rankDim: 8, version: '1.0.0' } },
+  { id: ownerScopedId(owner, 'skill', 2), name: 'LoRA Adapter: LLM-Summarize', type: 'lora-adapter', metadata: { baseModel: 'Llama-3-8B', rankDim: 16, version: '0.9.2' } }
+];
+
+const seedCapabilities = (owner: string) => [
+  { id: ownerScopedId(owner, 'cap', 1), name: 'Image Classifier', type: 'ml-model', descriptor: { version: '1.0.0' } },
+  { id: ownerScopedId(owner, 'cap', 2), name: 'Text Summarizer', type: 'ml-model', descriptor: { version: '2.1.0' } }
+];
+
+const seedProperties = (owner: string) => [
+  { id: ownerScopedId(owner, 'prop', 1), name: 'Training Dataset #1', type: 'Data', size: '2.4 GB', value: '150 NRN', createdAt: '2024-01-05' },
+  { id: ownerScopedId(owner, 'prop', 2), name: 'Model Weights #1', type: 'Model', size: '1.8 GB', value: '300 NRN', createdAt: '2024-02-10' }
+];
+
+app.get('/api/skills', requirePermission('read:skills'), async (req: express.Request, res: express.Response) => {
   const owner = (req as express.Request & { apiKey: ApiKey }).apiKey.ownerId;
-  res.json({
-    skills: [
-      { id: ownerScopedId(owner, 'skill', 1), name: 'LoRA Adapter: Vision-Base', type: 'lora-adapter', owner, metadata: { baseModel: 'ResNet50', rankDim: 8, version: '1.0.0' } },
-      { id: ownerScopedId(owner, 'skill', 2), name: 'LoRA Adapter: LLM-Summarize', type: 'lora-adapter', owner, metadata: { baseModel: 'Llama-3-8B', rankDim: 16, version: '0.9.2' } }
-    ]
-  });
-});
-app.get('/api/capabilities', requirePermission('read:capabilities'), (req, res) => {
-  const owner = (req as express.Request & { apiKey: ApiKey }).apiKey.ownerId;
-  res.json({
-    capabilities: [
-      { id: ownerScopedId(owner, 'cap', 1), name: 'Image Classifier', type: 'ml-model', owner, descriptor: { version: '1.0.0' } },
-      { id: ownerScopedId(owner, 'cap', 2), name: 'Text Summarizer', type: 'ml-model', owner, descriptor: { version: '2.1.0' } }
-    ]
-  });
+  const skills = await vaultResourcesFor('skills', owner, seedSkills(owner));
+  res.json({ skills: skills.map(s => ({ ...s, owner })) });
 });
 
-app.get('/api/properties', requirePermission('read:properties'), (req, res) => {
+app.get('/api/capabilities', requirePermission('read:capabilities'), async (req: express.Request, res: express.Response) => {
   const owner = (req as express.Request & { apiKey: ApiKey }).apiKey.ownerId;
-  res.json({
-    properties: [
-      { id: ownerScopedId(owner, 'prop', 1), name: 'Training Dataset #1', type: 'Data', size: '2.4 GB', value: '150 NRN', owner, createdAt: '2024-01-05' },
-      { id: ownerScopedId(owner, 'prop', 2), name: 'Model Weights #1', type: 'Model', size: '1.8 GB', value: '300 NRN', owner, createdAt: '2024-02-10' }
-    ]
-  });
+  const capabilities = await vaultResourcesFor('capabilities', owner, seedCapabilities(owner));
+  res.json({ capabilities: capabilities.map(c => ({ ...c, owner })) });
+});
+
+app.get('/api/properties', requirePermission('read:properties'), async (req: express.Request, res: express.Response) => {
+  const owner = (req as express.Request & { apiKey: ApiKey }).apiKey.ownerId;
+  const properties = await vaultResourcesFor('properties', owner, seedProperties(owner));
+  res.json({ properties: properties.map(p => ({ ...p, owner })) });
 });
 
 // In-memory storage for demo (replace with real database in production)

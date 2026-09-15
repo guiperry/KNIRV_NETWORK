@@ -17,6 +17,11 @@ import (
 )
 
 func TestURIGeneratorHandler_Integration(t *testing.T) {
+	// Spawns a real node binary and a live HTTP server; enable only when
+	// KNIRV_INTEGRATION=1 is set in the environment.
+	if os.Getenv("KNIRV_INTEGRATION") != "1" {
+		t.Skip("requires a running node binary; set KNIRV_INTEGRATION=1 to enable")
+	}
 	// Setup: Start a real node
 	tempDir, err := os.MkdirTemp("", "uri-test-node-*")
 	if err != nil {
@@ -31,7 +36,7 @@ func TestURIGeneratorHandler_Integration(t *testing.T) {
 
 	// Build the main executable
 	tempBinPath := filepath.Join(tempDir, "_test_app")
-	buildCmd := exec.Command("go", "build", "-o", tempBinPath, "../")
+	buildCmd := exec.Command("go", "build", "-o", tempBinPath, "../../cmd/knirvchain")
 	buildOutput, err := buildCmd.CombinedOutput()
 	if err != nil {
 		t.Fatalf("Failed to build main executable: %v, output: %s", err, string(buildOutput))

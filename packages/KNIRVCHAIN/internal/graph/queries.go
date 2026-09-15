@@ -11,9 +11,9 @@ import (
 
 // GraphQueries provides high-level query operations on the knowledge graph
 type GraphQueries struct {
-	nodeStore    *NodeStore
-	relManager   *RelationshipManager
-	chromaDB     database.ChromemDBManager
+	nodeStore  *NodeStore
+	relManager *RelationshipManager
+	chromaDB   database.ChromemDBManager
 }
 
 // NewGraphQueries creates a new graph queries instance
@@ -31,13 +31,13 @@ func (gq *GraphQueries) GetNodeStore() *NodeStore {
 }
 
 // FindErrorNodesByType finds error nodes by error type
-func (gq *GraphQueries) FindErrorNodesByType(errorType string, limit int) ([]*types.ErrorNode, error) {
+func (gq *GraphQueries) FindErrorNodesByType(errorType string, limit int) ([]*types.ErrorNodeRecord, error) {
 	nodeIDs, err := gq.nodeStore.ListNodesByType("error_node")
 	if err != nil {
 		return nil, fmt.Errorf("failed to list error nodes: %w", err)
 	}
 
-	var errorNodes []*types.ErrorNode
+	var errorNodes []*types.ErrorNodeRecord
 	for _, id := range nodeIDs {
 		node, err := gq.nodeStore.GetErrorNode(id)
 		if err != nil {
@@ -441,10 +441,10 @@ func (gq *GraphQueries) GetGraphStatistics() (*GraphStatistics, error) {
 	dependencyCount, _ := gq.relManager.GetRelationshipCount(RelationshipTypeDependency)
 
 	stats.RelationshipCounts = map[string]int{
-		"error_to_skill":       errorToSkillCount,
+		"error_to_skill":        errorToSkillCount,
 		"context_to_capability": contextToCapabilityCount,
-		"idea_to_property":     ideaToPropertyCount,
-		"dependency":           dependencyCount,
+		"idea_to_property":      ideaToPropertyCount,
+		"dependency":            dependencyCount,
 	}
 
 	// Calculate total nodes and relationships
@@ -486,7 +486,7 @@ func (gq *GraphQueries) GetRecentNodes(hours int, limit int) ([]*RecentNodeResul
 			// Extract creation time (this is a simplified approach)
 			var createdAt int64
 			switch n := node.(type) {
-			case *types.ErrorNode:
+			case *types.ErrorNodeRecord:
 				createdAt = n.CreatedAt
 			case *types.SkillNode:
 				createdAt = n.CreatedAt
@@ -502,9 +502,9 @@ func (gq *GraphQueries) GetRecentNodes(hours int, limit int) ([]*RecentNodeResul
 
 			if createdAt >= cutoffTime {
 				results = append(results, &RecentNodeResult{
-					NodeType: nodeType,
-					NodeID:   id,
-					Node:     node,
+					NodeType:  nodeType,
+					NodeID:    id,
+					Node:      node,
 					CreatedAt: createdAt,
 				})
 			}

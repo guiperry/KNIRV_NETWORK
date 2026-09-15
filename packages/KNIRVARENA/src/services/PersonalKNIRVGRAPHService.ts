@@ -158,31 +158,25 @@ export class PersonalKNIRVGRAPHService {
     try {
       if (!this.isInitialized) await this.initialize();
 
-      // Try to find an existing graph for the user from cache
+      // Fast path: in-memory cache
       const cacheKey = `graph_${userId}`;
-      const existing = this.graphCache.get(cacheKey);
-      if (existing) {
-        try {
-          const parsedNodes = (existing.nodes || []) as GraphNode[];
-          const parsedEdges = (existing.edges || []) as GraphEdge[];
-          const graph: PersonalGraph = {
-            id: existing.id,
-            userId: existing.userId,
-            nodes: parsedNodes,
-            edges: parsedEdges,
-            metadata: existing.metadata || {
-              createdAt: Date.now(),
-              lastModified: Date.now(),
-              version: 1,
-              complexity: 0
-            }
-          };
+      const cached = this.graphCache.get(cacheKey);
+      if (cached) {
+        this.currentGraph = cached;
+        return cached;
+      }
 
-          this.currentGraph = graph;
-          return graph;
-        } catch (err) {
-          console.error('Failed parsing existing graph, creating new one:', err);
+      // CLEAN-11: hydrate from KNIRVBASE before falling back to a fresh graph.
+      const stored = await knirvbaseService.getPersonalGraph(userId);
+      if (stored) {
+        const graph: PersonalGraph = stored as unknown as PersonalGraph;
+        // The stored doc's top-level id is the user key; restore the graph's own id.
+        if (stored.graphId) {
+          graph.id = stored.graphId as string;
         }
+        this.currentGraph = graph;
+        this.graphCache.set(cacheKey, graph);
+        return graph;
       }
 
       // Create a new graph if none exists
@@ -499,10 +493,13 @@ export class PersonalKNIRVGRAPHService {
     await this.saveGraphToDatabase(this.currentGraph);
   }
 
-  // Save graph to in-memory cache (TODO: persist to KNIRVBASE when collections are set up)
+  // Persist graph to KNIRVBASE (CLEAN-11: replaces the in-memory-only stash).
   private async saveGraphToDatabase(graph: PersonalGraph): Promise<void> {
     try {
-      // Store in in-memory cache
+      await knirvbaseService.savePersonalGraph(graph as unknown as Record<string, unknown>);
+
+      // Keep the in-memory cache as a fast read-through; KNIRVBASE is now the
+      // source of truth for reloads across sessions.
       const cacheKey = `graph_${graph.userId}`;
       this.graphCache.set(cacheKey, {
         ...graph,
@@ -512,9 +509,9 @@ export class PersonalKNIRVGRAPHService {
         }
       });
 
-      console.log('Graph saved to in-memory cache');
+      console.log(`Graph saved to KNIRVBASE (user ${graph.userId})`);
     } catch (error) {
-      console.error('Failed to save graph:', error);
+      console.error('Failed to save graph to KNIRVBASE:', error);
     }
   }
 

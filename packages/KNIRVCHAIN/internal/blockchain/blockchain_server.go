@@ -340,6 +340,10 @@ func (bcs *BlockchainServer) Prepare() (uint64, error) {
 	mux.HandleFunc("/transaction", bcs.HandleReceiveTransaction)
 	mux.HandleFunc("/api/v1/validation-proofs/mint", bcs.handleValidationProofMint)
 	mux.HandleFunc("/api/v1/event-bundles/mint", bcs.handleEventBundleMint)
+	// Cluster-derived `.ulora` adapter bundles are registered here; the matching
+	// reader is GET /api/ulora/{hash} on the unified API, backed by the same
+	// content-addressed store (internal/ulora).
+	mux.HandleFunc("/api/v1/ulora-bundles/mint", bcs.handleULoRABundleMint)
 	mux.HandleFunc("/api/v1/event-bundles/{event_id}", bcs.handleEventBundleGet).Methods(http.MethodGet)
 	mux.HandleFunc("/txn_pool", bcs.handleGetTransactionPool)
 	mux.HandleFunc("/proof/tx/", bcs.handleTxAccumProof)

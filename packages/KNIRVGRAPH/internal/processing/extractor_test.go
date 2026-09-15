@@ -33,9 +33,9 @@ func TestExtractorEntities(t *testing.T) {
 
 func TestExtractorRelationships(t *testing.T) {
 	extractor := NewExtractor(types.ExtractionConfig{
-		EnableEntities:     true,
+		EnableEntities:      true,
 		EnableRelationships: true,
-		MinConfidence:      0.5,
+		MinConfidence:       0.5,
 	})
 	text := "Alice works for Acme Corp. Bob owns Acme Corp. Acme Corp is located in New York."
 	_, relationships, err := extractor.Extract("doc2", text)

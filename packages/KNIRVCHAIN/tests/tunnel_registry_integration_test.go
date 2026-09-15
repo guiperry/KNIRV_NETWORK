@@ -179,7 +179,10 @@ func TestTunnelRegistryUnitTests(t *testing.T) {
 	// Test the URI resolver
 	testURIResolver(t)
 
-	// Test the internal API endpoints
+	// Test the internal API endpoints (requires a live node on :8080)
+	if os.Getenv("KNIRV_INTEGRATION") != "1" {
+		t.Skip("requires a running node; set KNIRV_INTEGRATION=1 to enable")
+	}
 	testInternalAPIEndpoints(t)
 }
 

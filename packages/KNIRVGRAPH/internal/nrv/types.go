@@ -2,6 +2,10 @@ package nrv
 
 import (
 	"time"
+
+	"KNIRVGRAPH/internal/protocol/proto"
+
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 // NetworkResolutionVector represents a vector in the NRV system
@@ -29,17 +33,14 @@ type VectorUpdate struct {
 	Operation string                   `json:"operation"` // "create", "update", "validate"
 }
 
-// ErrorNode represents an error in the system that needs resolution
-type ErrorNode struct {
-	ID          string                 `json:"id"`
-	ErrorType   string                 `json:"error_type"`
-	Description string                 `json:"description"`
-	Context     map[string]interface{} `json:"context"`
-	Resolution  *ResolutionPath        `json:"resolution,omitempty"`
-	Severity    int                    `json:"severity"`
-	NRNBounty   string                 `json:"nrn_bounty,omitempty"`
-	Timestamp   time.Time              `json:"timestamp"`
-}
+// ErrorNode is the canonical error node, generated from
+// shared-proto/graph/v1/graph.proto into internal/protocol/proto.
+//
+// This package previously declared its own ErrorNode (and its own
+// ResolutionPath/ResolutionStep), as did KNIRVCHAIN's types and three proto
+// files — four divergent shapes for one concept. There is now exactly one
+// definition, and these are aliases to it.
+type ErrorNode = proto.ErrorNode
 
 // SkillNode represents a skill that can resolve errors.
 //
@@ -60,19 +61,48 @@ type SkillNode struct {
 	Timestamp    time.Time              `json:"timestamp"`
 }
 
-// ResolutionPath represents a path to resolve an error
-type ResolutionPath struct {
-	Steps         []ResolutionStep `json:"steps"`
-	Confidence    float64          `json:"confidence"`
-	EstimatedCost float64          `json:"estimated_cost"`
+// ResolutionPath and ResolutionStep are the canonical definitions from the
+// shared proto, aliased for the same reason as ErrorNode.
+type ResolutionPath = proto.ResolutionPath
+
+type ResolutionStep = proto.ResolutionStep
+
+// NewErrorContextStruct converts a Go map into the protobuf Struct the shared
+// contract carries. A nil or empty map yields a nil Struct, so an absent
+// context stays absent rather than becoming an empty object.
+func NewErrorContextStruct(values map[string]interface{}) (*structpb.Struct, error) {
+	if len(values) == 0 {
+		return nil, nil
+	}
+	return structpb.NewStruct(values)
 }
 
-// ResolutionStep represents a single step in error resolution
-type ResolutionStep struct {
-	Action     string                 `json:"action"`
-	Parameters map[string]interface{} `json:"parameters"`
-	SkillID    string                 `json:"skill_id,omitempty"`
-	Confidence float64                `json:"confidence"`
+// ErrorContextMap returns a node's structured context as a Go map, tolerating a
+// nil node or an absent context.
+func ErrorContextMap(node *ErrorNode) map[string]interface{} {
+	if node == nil {
+		return nil
+	}
+	fields := node.GetContext()
+	if fields == nil {
+		return nil
+	}
+	return fields.AsMap()
+}
+
+// NewResolutionStep builds a canonical resolution step, converting the
+// parameters map into the protobuf Struct the contract uses.
+func NewResolutionStep(action string, parameters map[string]interface{}, skillID string, confidence float64) (ResolutionStep, error) {
+	params, err := NewErrorContextStruct(parameters)
+	if err != nil {
+		return ResolutionStep{}, err
+	}
+	return ResolutionStep{
+		Action:     action,
+		Parameters: params,
+		SkillId:    skillID,
+		Confidence: float32(confidence),
+	}, nil
 }
 
 // PerformanceMetrics tracks skill performance
@@ -93,14 +123,14 @@ type ValidationStatus struct {
 
 // ContextNode represents context data (MCP servers) that becomes capabilities
 type ContextNode struct {
-	ID           string                 `json:"id"`
-	ContextType  string                 `json:"context_type"` // "mcp_server", "api_endpoint", "tool"
-	Description  string                 `json:"description"`
-	Schema       map[string]interface{} `json:"schema"`
-	LocationHints []string              `json:"location_hints"`
-	GasFeeNRN    uint64                 `json:"gas_fee_nrn,omitempty"`
-	Timestamp    time.Time              `json:"timestamp"`
-	Status       string                 `json:"status"` // "pending", "processing", "capability_created"
+	ID            string                 `json:"id"`
+	ContextType   string                 `json:"context_type"` // "mcp_server", "api_endpoint", "tool"
+	Description   string                 `json:"description"`
+	Schema        map[string]interface{} `json:"schema"`
+	LocationHints []string               `json:"location_hints"`
+	GasFeeNRN     uint64                 `json:"gas_fee_nrn,omitempty"`
+	Timestamp     time.Time              `json:"timestamp"`
+	Status        string                 `json:"status"` // "pending", "processing", "capability_created"
 }
 
 // IdeaNode represents ideas that become properties through collaboration
@@ -118,15 +148,15 @@ type IdeaNode struct {
 
 // CapabilityNode represents capabilities created from context nodes
 type CapabilityNode struct {
-	ID            string                 `json:"id"`
-	SourceContext string                 `json:"source_context"` // ContextNode ID
-	Name          string                 `json:"name"`
-	CapabilityType string                `json:"capability_type"`
-	Schema        map[string]interface{} `json:"schema"`
-	LocationHints []string               `json:"location_hints"`
-	GasFeeNRN     uint64                 `json:"gas_fee_nrn"`
-	Performance   *PerformanceMetrics    `json:"performance"`
-	Timestamp     time.Time              `json:"timestamp"`
+	ID             string                 `json:"id"`
+	SourceContext  string                 `json:"source_context"` // ContextNode ID
+	Name           string                 `json:"name"`
+	CapabilityType string                 `json:"capability_type"`
+	Schema         map[string]interface{} `json:"schema"`
+	LocationHints  []string               `json:"location_hints"`
+	GasFeeNRN      uint64                 `json:"gas_fee_nrn"`
+	Performance    *PerformanceMetrics    `json:"performance"`
+	Timestamp      time.Time              `json:"timestamp"`
 }
 
 // PropertyNode represents properties created from idea nodes
@@ -145,11 +175,11 @@ type PropertyNode struct {
 
 // ExistenceReport tracks whether an idea already exists
 type ExistenceReport struct {
-	Exists        bool                   `json:"exists"`
-	ExistingRefs  []string               `json:"existing_refs,omitempty"`
-	Similarity    float64                `json:"similarity"`
-	Analysis      map[string]interface{} `json:"analysis"`
-	CheckedAt     time.Time              `json:"checked_at"`
+	Exists       bool                   `json:"exists"`
+	ExistingRefs []string               `json:"existing_refs,omitempty"`
+	Similarity   float64                `json:"similarity"`
+	Analysis     map[string]interface{} `json:"analysis"`
+	CheckedAt    time.Time              `json:"checked_at"`
 }
 
 // NRVConfig holds configuration for the NRV system

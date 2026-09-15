@@ -10,7 +10,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"path/filepath"
 	"strings"
 	"time"
 
@@ -128,13 +127,13 @@ func (api *UnifiedAPI) setupRoutes() {
 }
 
 func (api *UnifiedAPI) uloraStore() (*ulorastore.Store, error) {
-	if dir := strings.TrimSpace(os.Getenv("KNIRV_APP_DATA_DIR")); dir != "" {
-		return ulorastore.NewStore(dir)
+	// Resolve through the shared helper so this reader and the mint route's
+	// writer cannot diverge on the blob directory.
+	dbPath := ""
+	if api.config != nil {
+		dbPath = api.config.BlockchainDatabasePath
 	}
-	if api.config != nil && strings.TrimSpace(api.config.BlockchainDatabasePath) != "" {
-		return ulorastore.NewStore(filepath.Dir(api.config.BlockchainDatabasePath))
-	}
-	return ulorastore.NewStore(filepath.Join(os.TempDir(), "knirvchain"))
+	return ulorastore.OpenDefault(dbPath)
 }
 
 func (api *UnifiedAPI) handleULoRABundle(w http.ResponseWriter, r *http.Request) {
@@ -246,14 +245,41 @@ func (api *UnifiedAPI) handleGenerateToken(w http.ResponseWriter, r *http.Reques
 	json.NewEncoder(w).Encode(map[string]string{"token": token})
 }
 
-// handleMiningProposal handles mining proposal submissions (placeholder)
+// handleMiningProposal reports that the heavyweight mining pipeline is not
+// served by this API.
+//
+// It previously returned {"status":"ok"} without doing anything at all — a
+// fabricated success for a route whose backing pipeline (internal/mining)
+// cannot run on this node: SkillMiner.SubmitMiningProposal resolves an
+// ErrorNode and CapabilityMinter.SubmitMintingProposal resolves a ContextNode
+// from the chain's graph, and nothing on KNIRVCHAIN ever ingests those node
+// types (they are produced by KNIRVGRAPH's NRV system, a separate process).
+//
+// The chain's actual minting entry point is POST /api/v1/event-bundles/mint on
+// the blockchain server (internal/blockchain/eventbundle.go), which is what
+// KNIRVGRAPH's DRQ client calls. This route stays as an explicit 501 so a
+// client gets a truthful answer instead of a silent no-op.
 func (api *UnifiedAPI) handleMiningProposal(w http.ResponseWriter, r *http.Request) {
-	json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusNotImplemented)
+	json.NewEncoder(w).Encode(map[string]string{
+		"status":  "unavailable",
+		"message": "the heavyweight mining pipeline is not served by the unified API; mint via POST /api/v1/event-bundles/mint",
+		"reason":  "internal/mining requires graph-resident ErrorNode/ContextNode/IdeaNode, which KNIRVCHAIN does not ingest",
+	})
 }
 
-// handleMiningValidation handles mining validation (placeholder)
+// handleMiningValidation reports that skill-proposal validation is not served
+// by this API. See handleMiningProposal for why: validation operates on the
+// same MiningProposal whose backing pipeline has no ingest path here.
 func (api *UnifiedAPI) handleMiningValidation(w http.ResponseWriter, r *http.Request) {
-	json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusNotImplemented)
+	json.NewEncoder(w).Encode(map[string]string{
+		"status":  "unavailable",
+		"message": "mining-proposal validation is not served by the unified API",
+		"reason":  "internal/mining requires graph-resident ErrorNode/ContextNode/IdeaNode, which KNIRVCHAIN does not ingest",
+	})
 }
 
 // Start starts the unified API server

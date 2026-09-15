@@ -18,6 +18,11 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import type { CustomRule } from "./CustomRulesModal";
+
+// CustomRule is defined once, in CustomRulesModal, and re-exported here for
+// backwards compatibility. New code should import it from CustomRulesModal.
+export type { CustomRule };
 
 export interface PolicyCert {
   id: string;
@@ -26,14 +31,6 @@ export interface PolicyCert {
   value: string | number | boolean;
   description: string;
   enabled: boolean;
-}
-
-export interface CustomRule {
-  id: string;
-  name: string;
-  description: string;
-  ruleType: 'instruction' | 'code' | 'constraint';
-  priority: 'low' | 'medium' | 'high' | 'critical';
 }
 
 interface PolicyCertsModalProps {

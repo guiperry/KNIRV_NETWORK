@@ -8,10 +8,10 @@ import (
 
 // TopologyManager maintains scale-free network
 type TopologyManager struct {
-	topology        *NetworkTopology
-	attachmentRate  float64           // α parameter
-	rewireProb      float64           // β parameter for small-world
-	syncInterval    time.Duration
+	topology       *NetworkTopology
+	attachmentRate float64 // α parameter
+	rewireProb     float64 // β parameter for small-world
+	syncInterval   time.Duration
 }
 
 // UpdateTopology evolves network structure
@@ -21,32 +21,29 @@ func (tm *TopologyManager) UpdateTopology() error {
 	for i := 0; i < newNodeCount; i++ {
 		nodeID := tm.generateNodeID()
 		edgeCount := tm.topology.minDegree
-		
+
 		err := tm.topology.AttachNewNode(nodeID, edgeCount)
 		if err != nil {
 			return err
 		}
 	}
-	
+
 	// Rewire edges for small-world properties (stub)
 	if rand.Float64() < tm.rewireProb {
 		tm.rewireRandomEdges(10)
 	}
-	
+
 	// Update PageRank
-	tm.topology.ComputePageRank(100)  // 100 iterations
-	
+	tm.topology.ComputePageRank(100) // 100 iterations
+
 	// Identify new hub nodes
 	hubs := tm.topology.IdentifyHubs(0.90)
-	
+
 	// Rebalance cluster assignments (stub)
 	tm.rebalanceClusters(hubs)
-	
+
 	return nil
 }
-
-
-
 
 // calculateNewNodes is a stub for determining how many new nodes to add
 func (tm *TopologyManager) calculateNewNodes() int {

@@ -297,7 +297,9 @@ class CortexTrainingService {
     return totalLoss / trainingData.inputs.length;
   }
 
-  // In-memory storage for models (TODO: persist to KNIRVBASE)
+  // Saved models are persisted in KNIRVBASE (CLEAN-11: replaces the
+  // in-memory-only array). Float32Array weights are stored as plain number
+  // arrays and restored on load, since the DB store is JSON-based.
   private savedModelsCache: CortexModel[] = [];
 
   /**
@@ -305,6 +307,13 @@ class CortexTrainingService {
    */
   async getSavedModels(): Promise<CortexModel[]> {
     try {
+      await knirvbaseService.initialize().catch(() => undefined);
+      const stored = await knirvbaseService.getAllCortexModels();
+      if (stored && stored.length > 0) {
+        const models = stored.map(doc => this.deserializeModel(doc as unknown as Record<string, unknown>));
+        this.savedModelsCache = models;
+        return models;
+      }
       return this.savedModelsCache;
     } catch (error) {
       console.error('Failed to load saved models:', error);
@@ -313,16 +322,35 @@ class CortexTrainingService {
   }
 
   /**
-   * Save model to in-memory cache
+   * Save model — persisted to KNIRVBASE (CLEAN-11)
    */
   private async saveModel(model: CortexModel): Promise<void> {
     try {
+      await knirvbaseService.initialize().catch(() => undefined);
+      await knirvbaseService.saveCortexModel(this.serializeModel(model) as unknown as Record<string, unknown>);
       this.savedModelsCache.push(model);
-      console.log('Model saved to in-memory cache');
+      console.log(`Model saved to KNIRVBASE (${model.id})`);
     } catch (error) {
-      console.error('Failed to save model:', error);
+      console.error('Failed to save model to KNIRVBASE:', error);
       throw error;
     }
+  }
+
+  private serializeModel(model: CortexModel): Record<string, unknown> {
+    return {
+      ...model,
+      createdAt: model.createdAt.toISOString?.(),
+      modelWeights: Array.from(model.modelWeights as unknown as Float32Array)
+    };
+  }
+
+  private deserializeModel(doc: Record<string, unknown>): CortexModel {
+    const weightsArray = (doc.modelWeights as number[]) || [];
+    return {
+      ...(doc as unknown as CortexModel),
+      createdAt: new Date(doc.createdAt as string),
+      modelWeights: Float32Array.from(weightsArray)
+    };
   }
 
   /**

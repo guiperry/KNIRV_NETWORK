@@ -220,20 +220,41 @@ const OnboardingGuide = ({ onComplete, onReset }: OnboardingGuideProps) => {
 
   const submitGuardrailsToBackend = async (walletName: string, certs: PolicyCert[], rules: CustomRule[]) => {
     try {
+      // Custom behavioural rules captured by CustomRulesModal are mapped into
+      // the same policy document the endpoint already accepts (as `ontology`
+      // rules) so the user's input is transmitted rather than silently dropped.
+      const customRuleEntries = rules.map(rule => ({
+        id: rule.id,
+        type: 'ontology',
+        action: 'warn',
+        condition: {
+          rule_type: rule.ruleType,
+          priority: rule.priority,
+        },
+        parameters: {
+          name: rule.name,
+          description: rule.description,
+          dveId: walletName,
+        },
+      }));
+
       const policy = {
         name: `onboarding-${walletName}-${Date.now()}`,
-        rules: certs.map(cert => ({
-          id: cert.id,
-          description: cert.description,
-          dveId: walletName,
-          metric: cert.category.toLowerCase().replace(' ', '_'),
-          operator: 'eq',
-          threshold: String(cert.value),
-          severity: cert.enabled ? 'high' : 'low',
-          remediationAction: 'notify',
-          enabled: cert.enabled,
-          triggerCount: 0,
-        })),
+        rules: [
+          ...certs.map(cert => ({
+            id: cert.id,
+            description: cert.description,
+            dveId: walletName,
+            metric: cert.category.toLowerCase().replace(' ', '_'),
+            operator: 'eq',
+            threshold: String(cert.value),
+            severity: cert.enabled ? 'high' : 'low',
+            remediationAction: 'notify',
+            enabled: cert.enabled,
+            triggerCount: 0,
+          })),
+          ...customRuleEntries,
+        ],
         priority: 1,
         enabled: true,
         targetDVE: walletName,

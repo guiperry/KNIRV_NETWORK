@@ -173,13 +173,13 @@ type eventBundleMintRequest struct {
 }
 
 type eventBundleRecord struct {
-	EventID       string    `json:"event_id"`
-	ProjectID     string    `json:"project_id"`
-	SessionID     string    `json:"session_id"`
-	BundleHash    string    `json:"bundle_hash"`
-	TransactionID string    `json:"transaction_id"`
+	EventID       string         `json:"event_id"`
+	ProjectID     string         `json:"project_id"`
+	SessionID     string         `json:"session_id"`
+	BundleHash    string         `json:"bundle_hash"`
+	TransactionID string         `json:"transaction_id"`
 	Bundle        EventBundleNFT `json:"bundle"`
-	AcceptedAt    time.Time `json:"accepted_at"`
+	AcceptedAt    time.Time      `json:"accepted_at"`
 }
 
 type eventBundleReceipt struct {

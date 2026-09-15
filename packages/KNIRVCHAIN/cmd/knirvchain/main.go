@@ -18,14 +18,14 @@ import (
 	"syscall"
 	"time"
 
+	"KNIRVCHAIN/internal/agentify"
 	"KNIRVCHAIN/internal/blockchain"
 	"KNIRVCHAIN/internal/dataengine"
-	"KNIRVCHAIN/internal/inference"
-	"KNIRVCHAIN/internal/inference/agentify"
 	"KNIRVCHAIN/internal/installation"
 	"KNIRVCHAIN/internal/network"
 	"KNIRVCHAIN/internal/p2p"
 	"KNIRVCHAIN/internal/tracing"
+	inference "github.com/guiperry/knirv-inference-go"
 
 	"github.com/joho/godotenv"
 
@@ -2009,6 +2009,16 @@ func (adapter *LevelDBAdapter) GetValue(key string) (string, error) {
 // SetValue implements the DatabaseAccessor interface
 func (adapter *LevelDBAdapter) SetValue(key, value string) error {
 	return adapter.db.PutBytes(key, []byte(value))
+}
+
+// StoreJSON implements the DatabaseAccessor interface by marshaling the value
+// to JSON and storing it under the given key.
+func (adapter *LevelDBAdapter) StoreJSON(key string, data interface{}) error {
+	encoded, err := json.Marshal(data)
+	if err != nil {
+		return err
+	}
+	return adapter.db.PutBytes(key, encoded)
 }
 
 // initializeInferenceServiceWithDB initializes the inference service with the database

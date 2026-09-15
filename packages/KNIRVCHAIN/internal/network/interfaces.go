@@ -13,16 +13,16 @@ type TunnelManager interface {
 	DestroyTunnel(tunnelID string) error
 	GetTunnel(tunnelID string) (*Tunnel, error)
 	ListTunnels() ([]*Tunnel, error)
-	
+
 	// Tunnel operations
 	OpenTunnel(tunnelID string) error
 	CloseTunnel(tunnelID string) error
 	IsTunnelOpen(tunnelID string) bool
-	
+
 	// Data transmission
 	SendData(tunnelID string, data []byte) error
 	ReceiveData(tunnelID string) ([]byte, error)
-	
+
 	// Lifecycle
 	Start(ctx context.Context) error
 	Stop() error
@@ -34,19 +34,19 @@ type TunnelClient interface {
 	Connect(address string, config *ClientConfig) error
 	Disconnect() error
 	IsConnected() bool
-	
+
 	// Communication
 	Send(data []byte) error
 	Receive() ([]byte, error)
 	SendMessage(message *TunnelMessage) error
 	ReceiveMessage() (*TunnelMessage, error)
-	
+
 	// Event handling
 	OnConnected(handler ConnectionHandler) error
 	OnDisconnected(handler DisconnectionHandler) error
 	OnDataReceived(handler DataHandler) error
 	OnError(handler ErrorHandler) error
-	
+
 	// Health monitoring
 	Ping() error
 	GetConnectionStatus() *ConnectionStatus
@@ -58,17 +58,17 @@ type NetworkMonitor interface {
 	StartMonitoring(ctx context.Context) error
 	StopMonitoring() error
 	IsMonitoring() bool
-	
+
 	// Metrics collection
 	GetNetworkMetrics() (*NetworkMetrics, error)
 	GetInterfaceMetrics(interfaceName string) (*InterfaceMetrics, error)
 	GetConnectionMetrics() (*ConnectionMetrics, error)
-	
+
 	// Health checking
 	CheckConnectivity(target string) (*ConnectivityResult, error)
 	CheckLatency(target string) (time.Duration, error)
 	CheckBandwidth(target string) (*BandwidthResult, error)
-	
+
 	// Event handling
 	OnNetworkChange(handler NetworkChangeHandler) error
 	OnConnectivityLoss(handler ConnectivityHandler) error
@@ -77,17 +77,17 @@ type NetworkMonitor interface {
 
 // Tunnel represents a network tunnel
 type Tunnel struct {
-	ID          string                 `json:"id"`
-	Name        string                 `json:"name"`
-	Type        string                 `json:"type"`
-	LocalAddr   string                 `json:"local_addr"`
-	RemoteAddr  string                 `json:"remote_addr"`
-	Status      string                 `json:"status"`
-	CreatedAt   time.Time              `json:"created_at"`
-	LastUsed    time.Time              `json:"last_used"`
-	BytesSent   uint64                 `json:"bytes_sent"`
-	BytesRecv   uint64                 `json:"bytes_recv"`
-	Metadata    map[string]interface{} `json:"metadata,omitempty"`
+	ID         string                 `json:"id"`
+	Name       string                 `json:"name"`
+	Type       string                 `json:"type"`
+	LocalAddr  string                 `json:"local_addr"`
+	RemoteAddr string                 `json:"remote_addr"`
+	Status     string                 `json:"status"`
+	CreatedAt  time.Time              `json:"created_at"`
+	LastUsed   time.Time              `json:"last_used"`
+	BytesSent  uint64                 `json:"bytes_sent"`
+	BytesRecv  uint64                 `json:"bytes_recv"`
+	Metadata   map[string]interface{} `json:"metadata,omitempty"`
 }
 
 // TunnelConfig represents tunnel configuration
@@ -139,37 +139,37 @@ type ConnectionStatus struct {
 
 // NetworkMetrics represents overall network metrics
 type NetworkMetrics struct {
-	Interfaces      []*InterfaceMetrics `json:"interfaces"`
-	TotalConnections int                `json:"total_connections"`
-	ActiveTunnels   int                 `json:"active_tunnels"`
-	TotalBandwidth  *BandwidthMetrics   `json:"total_bandwidth"`
-	PacketLoss      float64             `json:"packet_loss"`
-	AverageLatency  time.Duration       `json:"average_latency"`
-	LastUpdated     time.Time           `json:"last_updated"`
+	Interfaces       []*InterfaceMetrics `json:"interfaces"`
+	TotalConnections int                 `json:"total_connections"`
+	ActiveTunnels    int                 `json:"active_tunnels"`
+	TotalBandwidth   *BandwidthMetrics   `json:"total_bandwidth"`
+	PacketLoss       float64             `json:"packet_loss"`
+	AverageLatency   time.Duration       `json:"average_latency"`
+	LastUpdated      time.Time           `json:"last_updated"`
 }
 
 // InterfaceMetrics represents metrics for a network interface
 type InterfaceMetrics struct {
-	Name         string            `json:"name"`
-	Type         string            `json:"type"`
-	Status       string            `json:"status"`
-	MTU          int               `json:"mtu"`
-	Speed        uint64            `json:"speed"`
-	Bandwidth    *BandwidthMetrics `json:"bandwidth"`
-	PacketStats  *PacketStats      `json:"packet_stats"`
-	ErrorStats   *ErrorStats       `json:"error_stats"`
-	LastUpdated  time.Time         `json:"last_updated"`
+	Name        string            `json:"name"`
+	Type        string            `json:"type"`
+	Status      string            `json:"status"`
+	MTU         int               `json:"mtu"`
+	Speed       uint64            `json:"speed"`
+	Bandwidth   *BandwidthMetrics `json:"bandwidth"`
+	PacketStats *PacketStats      `json:"packet_stats"`
+	ErrorStats  *ErrorStats       `json:"error_stats"`
+	LastUpdated time.Time         `json:"last_updated"`
 }
 
 // ConnectionMetrics represents connection-related metrics
 type ConnectionMetrics struct {
-	ActiveConnections int                    `json:"active_connections"`
-	TotalConnections  int64                  `json:"total_connections"`
-	FailedConnections int64                  `json:"failed_connections"`
-	ConnectionsByType map[string]int         `json:"connections_by_type"`
-	AverageLatency    time.Duration          `json:"average_latency"`
-	Throughput        *BandwidthMetrics      `json:"throughput"`
-	LastUpdated       time.Time              `json:"last_updated"`
+	ActiveConnections int               `json:"active_connections"`
+	TotalConnections  int64             `json:"total_connections"`
+	FailedConnections int64             `json:"failed_connections"`
+	ConnectionsByType map[string]int    `json:"connections_by_type"`
+	AverageLatency    time.Duration     `json:"average_latency"`
+	Throughput        *BandwidthMetrics `json:"throughput"`
+	LastUpdated       time.Time         `json:"last_updated"`
 }
 
 // BandwidthMetrics represents bandwidth metrics
@@ -190,32 +190,32 @@ type PacketStats struct {
 
 // ErrorStats represents error statistics
 type ErrorStats struct {
-	TotalErrors    uint64 `json:"total_errors"`
-	TimeoutErrors  uint64 `json:"timeout_errors"`
-	NetworkErrors  uint64 `json:"network_errors"`
-	ProtocolErrors uint64 `json:"protocol_errors"`
-	LastError      string `json:"last_error,omitempty"`
+	TotalErrors    uint64    `json:"total_errors"`
+	TimeoutErrors  uint64    `json:"timeout_errors"`
+	NetworkErrors  uint64    `json:"network_errors"`
+	ProtocolErrors uint64    `json:"protocol_errors"`
+	LastError      string    `json:"last_error,omitempty"`
 	LastErrorTime  time.Time `json:"last_error_time"`
 }
 
 // ConnectivityResult represents the result of a connectivity check
 type ConnectivityResult struct {
-	Target      string        `json:"target"`
-	Reachable   bool          `json:"reachable"`
-	Latency     time.Duration `json:"latency"`
-	PacketLoss  float64       `json:"packet_loss"`
-	Error       string        `json:"error,omitempty"`
-	Timestamp   time.Time     `json:"timestamp"`
+	Target     string        `json:"target"`
+	Reachable  bool          `json:"reachable"`
+	Latency    time.Duration `json:"latency"`
+	PacketLoss float64       `json:"packet_loss"`
+	Error      string        `json:"error,omitempty"`
+	Timestamp  time.Time     `json:"timestamp"`
 }
 
 // BandwidthResult represents the result of a bandwidth test
 type BandwidthResult struct {
-	Target      string            `json:"target"`
-	Upload      uint64            `json:"upload"`
-	Download    uint64            `json:"download"`
-	Duration    time.Duration     `json:"duration"`
-	Error       string            `json:"error,omitempty"`
-	Timestamp   time.Time         `json:"timestamp"`
+	Target    string        `json:"target"`
+	Upload    uint64        `json:"upload"`
+	Download  uint64        `json:"download"`
+	Duration  time.Duration `json:"duration"`
+	Error     string        `json:"error,omitempty"`
+	Timestamp time.Time     `json:"timestamp"`
 }
 
 // NetworkEvent represents network events
@@ -261,12 +261,12 @@ type TunnelRegistry interface {
 	UnregisterTunnel(tunnelID string) error
 	GetTunnelInfo(tunnelID string) (*TunnelInfo, error)
 	ListTunnels() ([]*TunnelInfo, error)
-	
+
 	// Discovery operations
 	DiscoverTunnels(criteria *DiscoveryCriteria) ([]*TunnelInfo, error)
 	FindTunnelsByType(tunnelType string) ([]*TunnelInfo, error)
 	FindTunnelsByLocation(location string) ([]*TunnelInfo, error)
-	
+
 	// Health monitoring
 	UpdateTunnelHealth(tunnelID string, health *HealthStatus) error
 	GetTunnelHealth(tunnelID string) (*HealthStatus, error)
@@ -275,14 +275,14 @@ type TunnelRegistry interface {
 
 // TunnelRegistration represents tunnel registration information
 type TunnelRegistration struct {
-	ID          string                 `json:"id"`
-	Name        string                 `json:"name"`
-	Type        string                 `json:"type"`
-	Endpoint    string                 `json:"endpoint"`
-	Capabilities []string              `json:"capabilities"`
-	Location    string                 `json:"location,omitempty"`
-	Metadata    map[string]interface{} `json:"metadata,omitempty"`
-	RegisteredAt time.Time             `json:"registered_at"`
+	ID           string                 `json:"id"`
+	Name         string                 `json:"name"`
+	Type         string                 `json:"type"`
+	Endpoint     string                 `json:"endpoint"`
+	Capabilities []string               `json:"capabilities"`
+	Location     string                 `json:"location,omitempty"`
+	Metadata     map[string]interface{} `json:"metadata,omitempty"`
+	RegisteredAt time.Time              `json:"registered_at"`
 }
 
 // TunnelInfo represents information about a registered tunnel

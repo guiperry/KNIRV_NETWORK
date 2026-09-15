@@ -6,10 +6,10 @@ import (
 
 // CachedQTable reduces network queries
 type CachedQTable struct {
-	localCache      map[string]map[string]float64
-	cacheHitRate    float64
-	ttl             time.Duration
-	lastSync        time.Time
+	localCache   map[string]map[string]float64
+	cacheHitRate float64
+	ttl          time.Duration
+	lastSync     time.Time
 }
 
 // GetQValue retrieves with caching
@@ -19,7 +19,7 @@ func (cqt *CachedQTable) GetQValue(
 ) float64 {
 	stateKey := state.ClusterID
 	actionKey := action.Type.String()
-	
+
 	// Check cache
 	if qMap, exists := cqt.localCache[stateKey]; exists {
 		if qValue, found := qMap[actionKey]; found {
@@ -28,16 +28,16 @@ func (cqt *CachedQTable) GetQValue(
 			}
 		}
 	}
-	
+
 	// Fetch from DHT (stub)
 	qValue := cqt.fetchFromDHT(stateKey, actionKey)
-	
+
 	// Update cache
 	if _, exists := cqt.localCache[stateKey]; !exists {
 		cqt.localCache[stateKey] = make(map[string]float64)
 	}
 	cqt.localCache[stateKey][actionKey] = qValue
-	
+
 	return qValue
 }
 

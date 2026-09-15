@@ -10,38 +10,38 @@ import (
 // MetricsCollector exports Prometheus metrics
 type MetricsCollector struct {
 	// Clustering metrics
-	ClusteringLatency    prometheus.Histogram
-	ClusterCount         prometheus.Gauge
-	ErrorQueueSize       prometheus.Gauge
-	
+	ClusteringLatency prometheus.Histogram
+	ClusterCount      prometheus.Gauge
+	ErrorQueueSize    prometheus.Gauge
+
 	// DRQ metrics
-	QValueSyncLatency    prometheus.Histogram
-	ConvergenceRate      prometheus.Gauge
-	PhenotypeDrift       prometheus.Gauge
-	RoundNumber          prometheus.Counter
-	
+	QValueSyncLatency prometheus.Histogram
+	ConvergenceRate   prometheus.Gauge
+	PhenotypeDrift    prometheus.Gauge
+	RoundNumber       prometheus.Counter
+
 	// Network metrics
-	NodeCount            prometheus.Gauge
-	HubNodeCount         prometheus.Gauge
-	AvgPathLength        prometheus.Gauge
-	
+	NodeCount     prometheus.Gauge
+	HubNodeCount  prometheus.Gauge
+	AvgPathLength prometheus.Gauge
+
 	// Training metrics
-	LoRATrainingTime     prometheus.Histogram
-	SkillsMinted         prometheus.Counter
-	ValidationSuccess    prometheus.Counter
-	
+	LoRATrainingTime  prometheus.Histogram
+	SkillsMinted      prometheus.Counter
+	ValidationSuccess prometheus.Counter
+
 	// Consensus performance
-	BlockTime            prometheus.Histogram
-	TxThroughput         prometheus.Gauge
-	ValidatorCount       prometheus.Gauge
+	BlockTime      prometheus.Histogram
+	TxThroughput   prometheus.Gauge
+	ValidatorCount prometheus.Gauge
 }
 
 // NewMetricsCollector initializes and registers Prometheus metrics
 func NewMetricsCollector() *MetricsCollector {
 	mc := &MetricsCollector{
 		ClusteringLatency: prometheus.NewHistogram(prometheus.HistogramOpts{
-			Name: "knirvgraph_clustering_latency_seconds",
-			Help: "Latency of error clustering operations.",
+			Name:    "knirvgraph_clustering_latency_seconds",
+			Help:    "Latency of error clustering operations.",
 			Buckets: prometheus.DefBuckets,
 		}),
 		ClusterCount: prometheus.NewGauge(prometheus.GaugeOpts{
@@ -53,8 +53,8 @@ func NewMetricsCollector() *MetricsCollector {
 			Help: "Current size of the error queue.",
 		}),
 		QValueSyncLatency: prometheus.NewHistogram(prometheus.HistogramOpts{
-			Name: "knirvgraph_qvalue_sync_latency_seconds",
-			Help: "Latency of DRQ Q-value synchronization.",
+			Name:    "knirvgraph_qvalue_sync_latency_seconds",
+			Help:    "Latency of DRQ Q-value synchronization.",
 			Buckets: prometheus.DefBuckets,
 		}),
 		ConvergenceRate: prometheus.NewGauge(prometheus.GaugeOpts{
@@ -82,8 +82,8 @@ func NewMetricsCollector() *MetricsCollector {
 			Help: "Average path length in the network.",
 		}),
 		LoRATrainingTime: prometheus.NewHistogram(prometheus.HistogramOpts{
-			Name: "knirvgraph_lora_training_time_seconds",
-			Help: "Time taken for LoRA adapter training.",
+			Name:    "knirvgraph_lora_training_time_seconds",
+			Help:    "Time taken for LoRA adapter training.",
 			Buckets: prometheus.DefBuckets,
 		}),
 		SkillsMinted: prometheus.NewCounter(prometheus.CounterOpts{
@@ -95,8 +95,8 @@ func NewMetricsCollector() *MetricsCollector {
 			Help: "Total number of successful validations.",
 		}),
 		BlockTime: prometheus.NewHistogram(prometheus.HistogramOpts{
-			Name: "knirvgraph_consensus_block_time_seconds",
-			Help: "Time taken for block production.",
+			Name:    "knirvgraph_consensus_block_time_seconds",
+			Help:    "Time taken for block production.",
 			Buckets: prometheus.DefBuckets,
 		}),
 		TxThroughput: prometheus.NewGauge(prometheus.GaugeOpts{

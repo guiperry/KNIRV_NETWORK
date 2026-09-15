@@ -259,6 +259,14 @@ type App struct {
 	queryProcessor    *query.QueryProcessor
 	indexManager      *indexing.IndexManager
 	reranker          *retrieval.Reranker
+
+	// drq drives the knowledge-mining loop (clustering -> convergence ->
+	// training -> validation -> minting -> rewards). Nil when the loop could
+	// not be constructed, in which case DRQStatus() reports it disabled rather
+	// than the loop silently not running.
+	drq *drqRuntime
+	// drqDisabledReason explains why drq is nil, surfaced through DRQStatus().
+	drqDisabledReason string
 }
 
 // NewApp creates a new GraphChain application instance
@@ -390,6 +398,10 @@ func NewApp(homeDir string, rpcPort int, enableAutoRelay bool) (*App, error) {
 	app.rpc = rpc
 
 	app.initProcessingServices()
+
+	// Wire the DRQ knowledge-mining loop after processing services, since it
+	// depends on the embedding service they construct.
+	app.initDRQ()
 
 	return app, nil
 }
@@ -634,6 +646,10 @@ func NewAppWithConfig(homeDir string, rpcPort int, appConfig *Config, enableAuto
 
 	app.initProcessingServices()
 
+	// Wire the DRQ knowledge-mining loop after processing services, since it
+	// depends on the embedding service they construct.
+	app.initDRQ()
+
 	// Pre-populate test data if testnet mode is enabled
 	if config != nil && config.Testnet.Enabled && config.Testnet.PrePopulate {
 		if err := app.prePopulateTestData(); err != nil {
@@ -768,6 +784,16 @@ func (app *App) Start(ctx context.Context) error {
 	defer maintenanceCancel()
 	go app.runMaintenance(maintenanceCtx)
 
+	// Start the DRQ knowledge-mining loop: cluster ingested errors, evaluate
+	// convergence, and drive the lifecycle. It reports its own blocked stages
+	// via /drq/status rather than failing the whole node, since the graph
+	// serves query/index traffic independently of mining.
+	if app.drq != nil {
+		go app.drq.run(maintenanceCtx)
+	} else if app.drqDisabledReason != "" {
+		app.logger.Warn("DRQ loop is disabled", zap.String("reason", app.drqDisabledReason))
+	}
+
 	// Start NRV system
 	if err := app.nrvSystem.Start(); err != nil {
 		return fmt.Errorf("failed to start NRV system: %w", err)
@@ -807,6 +833,16 @@ func (app *App) Start(ctx context.Context) error {
 
 func (app *App) Stop(ctx context.Context) error {
 	app.logger.Info("Stopping GraphChain application")
+
+	// Report the DRQ loop's final state: a stopped loop that never got past a
+	// blocked stage should say so at shutdown, not just in a periodic log.
+	if app.drq != nil {
+		status := app.drq.Status()
+		app.logger.Info("DRQ loop final state",
+			zap.Uint64("ticks", status.Ticks),
+			zap.Int("clusters", status.Clusters),
+			zap.Int("ingested_errors", status.IngestedErrors))
+	}
 
 	// Stop RPC server
 	if err := app.rpc.Stop(ctx); err != nil {

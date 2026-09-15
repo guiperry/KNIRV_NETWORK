@@ -246,7 +246,7 @@ type ValidationResult struct {
 
 // validateWithKNIRVNEXUS simulates validation with KNIRVSERVER DVE
 // In a real implementation, this would make an actual call to KNIRVSERVER
-func (sm *SkillMiner) validateWithKNIRVNEXUS(errorNode *types.ErrorNode, loraAdapter *types.LoRAAdapterPointer) (*ValidationResult, error) {
+func (sm *SkillMiner) validateWithKNIRVNEXUS(errorNode *types.ErrorNodeRecord, loraAdapter *types.LoRAAdapterPointer) (*ValidationResult, error) {
 	// This is a placeholder implementation
 	// In the real system, this would:
 	// 1. Send the error node and LoRA adapter to KNIRVSERVER DVE
@@ -293,7 +293,7 @@ func (sm *SkillMiner) validateWithKNIRVNEXUS(errorNode *types.ErrorNode, loraAda
 }
 
 // createValidatedSkillNode creates a skill node from a validated proposal
-func (sm *SkillMiner) createValidatedSkillNode(errorNode *types.ErrorNode, proposal *MiningProposal, validationResult *ValidationResult) (*types.SkillNode, error) {
+func (sm *SkillMiner) createValidatedSkillNode(errorNode *types.ErrorNodeRecord, proposal *MiningProposal, validationResult *ValidationResult) (*types.SkillNode, error) {
 	skillNode, err := types.NewSkillNode(
 		proposal.ProposedSkillID,
 		fmt.Sprintf("Skill for %s error", errorNode.ErrorType),

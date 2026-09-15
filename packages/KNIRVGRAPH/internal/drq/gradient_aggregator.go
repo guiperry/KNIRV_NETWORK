@@ -17,9 +17,9 @@ const (
 
 // GradientAggregator for distributed training
 type GradientAggregator struct {
-	aggregationType AggregationType
+	aggregationType    AggregationType
 	byzantineTolerance bool
-	clippingThreshold float64
+	clippingThreshold  float64
 }
 
 // Aggregate combines gradients from DVE nodes
@@ -29,13 +29,13 @@ func (ga *GradientAggregator) Aggregate(
 	if len(gradients) == 0 {
 		return nil
 	}
-	
+
 	// Clip gradients for stability (stub)
 	clipped := make([][]float64, len(gradients))
 	for i, grad := range gradients {
 		clipped[i] = ga.clipGradient(grad)
 	}
-	
+
 	switch ga.aggregationType {
 	case AGGREGATE_MEAN:
 		return ga.meanAggregate(clipped)
@@ -43,8 +43,8 @@ func (ga *GradientAggregator) Aggregate(
 		return ga.medianAggregate(clipped)
 	case AGGREGATE_KRUM:
 		// Need at least K+1 gradients for Krum
-		k := 2*len(gradients)/3
-		if len(gradients) < k + 1 { // Ensure enough gradients
+		k := 2 * len(gradients) / 3
+		if len(gradients) < k+1 { // Ensure enough gradients
 			return ga.meanAggregate(clipped) // Fallback
 		}
 		return ga.krumAggregate(clipped, k)
@@ -113,7 +113,7 @@ func (ga *GradientAggregator) krumAggregate(
 ) []float64 {
 	n := len(gradients)
 	scores := make([]float64, n)
-	
+
 	// Compute pairwise distances
 	for i := 0; i < n; i++ {
 		distances := make([]float64, n)
@@ -122,7 +122,7 @@ func (ga *GradientAggregator) krumAggregate(
 				distances[j] = euclideanDistance(gradients[i], gradients[j])
 			}
 		}
-		
+
 		// Sort distances and sum the k-1 smallest (excluding self)
 		sort.Float64s(distances)
 		// Assuming k is the number of gradients to select for consistency,
@@ -133,7 +133,7 @@ func (ga *GradientAggregator) krumAggregate(
 			scores[i] += distances[j]
 		}
 	}
-	
+
 	// Select gradient with minimum score
 	minIdx := 0
 	for i := 1; i < n; i++ {
@@ -141,7 +141,7 @@ func (ga *GradientAggregator) krumAggregate(
 			minIdx = i
 		}
 	}
-	
+
 	return gradients[minIdx]
 }
 

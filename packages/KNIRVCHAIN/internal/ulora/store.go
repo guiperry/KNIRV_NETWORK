@@ -11,6 +11,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strings"
 )
 
 var sha256Hex = regexp.MustCompile(`^[a-f0-9]{64}$`)
@@ -55,6 +56,29 @@ func (s *Store) Put(r io.Reader) (string, error) {
 	return hash, nil
 }
 
+// OpenDefault resolves and opens the blob store the way KNIRVCHAIN's other
+// components do: KNIRV_APP_DATA_DIR when set, otherwise the blockchain
+// database's parent directory, otherwise a temp directory.
+//
+// This exists so the bundle *writer* (the mint route in internal/blockchain)
+// and the bundle *reader* (GET /api/ulora/{hash} in internal/api) resolve the
+// same directory by construction. They previously each had their own inline
+// derivation, which is exactly how a store ends up written in one place and
+// read from another.
+//
+// blockchainDBPath is the live database path when the caller has one; pass ""
+// to fall back to the environment.
+func OpenDefault(blockchainDBPath string) (*Store, error) {
+	if dir := strings.TrimSpace(os.Getenv("KNIRV_APP_DATA_DIR")); dir != "" {
+		return NewStore(dir)
+	}
+	if path := strings.TrimSpace(blockchainDBPath); path != "" {
+		return NewStore(filepath.Dir(path))
+	}
+	return NewStore(filepath.Join(os.TempDir(), "knirvchain"))
+}
+
+// Open streams the stored bundle under hash.
 func (s *Store) Open(hash string) (*os.File, error) {
 	if !sha256Hex.MatchString(hash) {
 		return nil, fmt.Errorf("invalid bundle hash")

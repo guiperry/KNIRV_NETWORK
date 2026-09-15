@@ -11,7 +11,7 @@ func TestNewErrorNode(t *testing.T) {
 		"task_type":     "classification",
 	}
 
-	node, err := NewErrorNode("test-error-1", "classification", "hash123", "gpt-4", context)
+	node, err := NewErrorNodeRecord("test-error-1", "classification", "hash123", "gpt-4", context)
 	if err != nil {
 		t.Fatalf("Failed to create error node: %v", err)
 	}
@@ -34,9 +34,9 @@ func TestNewErrorNode(t *testing.T) {
 }
 
 func TestErrorNodeIncrementFailureCount(t *testing.T) {
-	node := &ErrorNode{
-		ID:            "test-error-1",
-		FailureCount:  1,
+	node := &ErrorNodeRecord{
+		ID:           "test-error-1",
+		FailureCount: 1,
 	}
 
 	node.IncrementFailureCount()
@@ -47,7 +47,7 @@ func TestErrorNodeIncrementFailureCount(t *testing.T) {
 }
 
 func TestErrorNodeUpdateStatus(t *testing.T) {
-	node := &ErrorNode{
+	node := &ErrorNodeRecord{
 		ID:     "test-error-1",
 		Status: NodeStatusOpen,
 	}
@@ -71,12 +71,12 @@ func TestErrorNodeUpdateStatus(t *testing.T) {
 func TestNewSkillNode(t *testing.T) {
 	loraPointer, _ := NewLoRAAdapterPointer("adapter1", "ipfs123", "gpt-4", 8, 16.0, []string{"q_proj"})
 	performance := SkillPerformance{
-		Accuracy:       0.85,
-		Precision:      0.82,
-		Recall:         0.80,
-		F1Score:        0.81,
-		TestCasesRun:   100,
-		TestCasesPass:  85,
+		Accuracy:        0.85,
+		Precision:       0.82,
+		Recall:          0.80,
+		F1Score:         0.81,
+		TestCasesRun:    100,
+		TestCasesPass:   85,
 		AvgResponseTime: 120,
 	}
 
@@ -97,12 +97,12 @@ func TestNewSkillNode(t *testing.T) {
 func TestSkillPerformanceValidate(t *testing.T) {
 	// Valid performance
 	perf := &SkillPerformance{
-		Accuracy:       0.85,
-		Precision:      0.82,
-		Recall:         0.80,
-		F1Score:        0.81,
-		TestCasesRun:   100,
-		TestCasesPass:  85,
+		Accuracy:        0.85,
+		Precision:       0.82,
+		Recall:          0.80,
+		F1Score:         0.81,
+		TestCasesRun:    100,
+		TestCasesPass:   85,
 		AvgResponseTime: 120,
 	}
 
@@ -184,11 +184,11 @@ func TestNewCapabilityNode(t *testing.T) {
 
 func TestNewIdeaNode(t *testing.T) {
 	novelty := NoveltyScore{
-		Score:         0.8,
-		SimilarIdeas:  2,
-		Uniqueness:    0.7,
-		AssessmentBy:  "assessor1",
-		AssessedAt:    time.Now().Unix(),
+		Score:        0.8,
+		SimilarIdeas: 2,
+		Uniqueness:   0.7,
+		AssessmentBy: "assessor1",
+		AssessedAt:   time.Now().Unix(),
 	}
 
 	node, err := NewIdeaNode("idea1", "insight", "hash123", "nim1", novelty, []string{"dep1"})
@@ -207,11 +207,11 @@ func TestNewIdeaNode(t *testing.T) {
 
 func TestNoveltyScoreValidate(t *testing.T) {
 	novelty := &NoveltyScore{
-		Score:         0.8,
-		SimilarIdeas:  2,
-		Uniqueness:    0.7,
-		AssessmentBy:  "assessor1",
-		AssessedAt:    time.Now().Unix(),
+		Score:        0.8,
+		SimilarIdeas: 2,
+		Uniqueness:   0.7,
+		AssessmentBy: "assessor1",
+		AssessedAt:   time.Now().Unix(),
 	}
 
 	err := novelty.Validate()

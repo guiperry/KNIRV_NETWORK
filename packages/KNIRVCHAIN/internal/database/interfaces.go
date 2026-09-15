@@ -12,16 +12,16 @@ type DatabaseManager interface {
 	Connect(ctx context.Context) error
 	Disconnect() error
 	IsConnected() bool
-	
+
 	// Database operations
 	CreateDatabase(name string) error
 	DropDatabase(name string) error
 	ListDatabases() ([]string, error)
-	
+
 	// Health and monitoring
 	Ping() error
 	GetStats() (*DatabaseStats, error)
-	
+
 	// Backup and restore
 	Backup(path string) error
 	Restore(path string) error
@@ -34,14 +34,14 @@ type LevelDBManager interface {
 	Get(key []byte) ([]byte, error)
 	Delete(key []byte) error
 	Has(key []byte) (bool, error)
-	
+
 	// Batch operations
 	NewBatch() Batch
 	WriteBatch(batch Batch) error
-	
+
 	// Iteration
 	NewIterator(prefix []byte) Iterator
-	
+
 	// Database management
 	Close() error
 	CompactRange(start, limit []byte) error
@@ -55,19 +55,19 @@ type ChromemDBManager interface {
 	DeleteCollection(name string) error
 	GetCollection(name string) (Collection, error)
 	ListCollections() ([]string, error)
-	
+
 	// Document operations
 	AddDocuments(collectionName string, documents []Document) error
 	UpdateDocuments(collectionName string, documents []Document) error
 	DeleteDocuments(collectionName string, ids []string) error
-	
+
 	// Query operations
 	Query(collectionName string, query QueryRequest) (*QueryResult, error)
 	Search(collectionName string, searchText string, nResults int) ([]*SearchResult, error)
-	
+
 	// Embedding operations
 	GenerateEmbeddings(texts []string) ([][]float32, error)
-	
+
 	// Lifecycle
 	Start(ctx context.Context) error
 	Stop() error
@@ -80,15 +80,15 @@ type ReflectionManager interface {
 	GetReflection(id string) (*Reflection, error)
 	GetReflectionsByAgent(agentID string) ([]*Reflection, error)
 	DeleteReflection(id string) error
-	
+
 	// Query operations
 	SearchReflections(query *ReflectionQuery) ([]*Reflection, error)
 	GetReflectionHistory(agentID string, limit int) ([]*Reflection, error)
-	
+
 	// Analysis operations
 	AnalyzeReflections(agentID string) (*ReflectionAnalysis, error)
 	GetReflectionTrends(agentID string, timeRange TimeRange) (*ReflectionTrends, error)
-	
+
 	// Lifecycle
 	Start(ctx context.Context) error
 	Stop() error
@@ -99,11 +99,11 @@ type ConversionManager interface {
 	// Conversion operations
 	ConvertToChromem(sourceDB string, targetCollection string) error
 	ConvertFromChromem(sourceCollection string, targetDB string) error
-	
+
 	// Migration operations
 	MigrateData(source, target DatabaseConfig) error
 	ValidateMigration(source, target DatabaseConfig) error
-	
+
 	// Schema operations
 	ConvertSchema(sourceSchema, targetSchema interface{}) error
 	ValidateSchema(schema interface{}) error
@@ -140,28 +140,28 @@ type Collection interface {
 
 // Document represents a document in ChromemDB
 type Document struct {
-	ID       string                 `json:"id"`
-	Content  string                 `json:"content"`
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
-	Embedding []float32             `json:"embedding,omitempty"`
+	ID        string                 `json:"id"`
+	Content   string                 `json:"content"`
+	Metadata  map[string]interface{} `json:"metadata,omitempty"`
+	Embedding []float32              `json:"embedding,omitempty"`
 }
 
 // QueryRequest represents a query request
 type QueryRequest struct {
-	QueryTexts   []string               `json:"query_texts"`
-	NResults     int                    `json:"n_results"`
-	Where        map[string]interface{} `json:"where,omitempty"`
+	QueryTexts    []string               `json:"query_texts"`
+	NResults      int                    `json:"n_results"`
+	Where         map[string]interface{} `json:"where,omitempty"`
 	WhereDocument map[string]interface{} `json:"where_document,omitempty"`
-	Include      []string               `json:"include,omitempty"`
+	Include       []string               `json:"include,omitempty"`
 }
 
 // QueryResult represents a query result
 type QueryResult struct {
-	IDs       [][]string               `json:"ids"`
-	Documents [][]string               `json:"documents"`
-	Metadatas [][]map[string]interface{} `json:"metadatas"`
-	Distances [][]float32              `json:"distances"`
-	Embeddings [][]float32             `json:"embeddings,omitempty"`
+	IDs        [][]string                 `json:"ids"`
+	Documents  [][]string                 `json:"documents"`
+	Metadatas  [][]map[string]interface{} `json:"metadatas"`
+	Distances  [][]float32                `json:"distances"`
+	Embeddings [][]float32                `json:"embeddings,omitempty"`
 }
 
 // SearchResult represents a search result
@@ -197,14 +197,14 @@ type ReflectionQuery struct {
 
 // ReflectionAnalysis represents analysis of reflections
 type ReflectionAnalysis struct {
-	AgentID       string                 `json:"agent_id"`
-	TotalCount    int                    `json:"total_count"`
-	TypeCounts    map[string]int         `json:"type_counts"`
-	TagCounts     map[string]int         `json:"tag_counts"`
-	TimeRange     TimeRange              `json:"time_range"`
-	Insights      []string               `json:"insights"`
-	Patterns      []Pattern              `json:"patterns"`
-	Metadata      map[string]interface{} `json:"metadata,omitempty"`
+	AgentID    string                 `json:"agent_id"`
+	TotalCount int                    `json:"total_count"`
+	TypeCounts map[string]int         `json:"type_counts"`
+	TagCounts  map[string]int         `json:"tag_counts"`
+	TimeRange  TimeRange              `json:"time_range"`
+	Insights   []string               `json:"insights"`
+	Patterns   []Pattern              `json:"patterns"`
+	Metadata   map[string]interface{} `json:"metadata,omitempty"`
 }
 
 // ReflectionTrends represents trends in reflections
@@ -248,13 +248,13 @@ type Trend struct {
 
 // DatabaseStats represents database statistics
 type DatabaseStats struct {
-	Size          int64     `json:"size"`
-	RecordCount   int64     `json:"record_count"`
-	LastBackup    time.Time `json:"last_backup"`
+	Size           int64     `json:"size"`
+	RecordCount    int64     `json:"record_count"`
+	LastBackup     time.Time `json:"last_backup"`
 	LastCompaction time.Time `json:"last_compaction"`
-	ReadOps       int64     `json:"read_ops"`
-	WriteOps      int64     `json:"write_ops"`
-	ErrorCount    int64     `json:"error_count"`
+	ReadOps        int64     `json:"read_ops"`
+	WriteOps       int64     `json:"write_ops"`
+	ErrorCount     int64     `json:"error_count"`
 }
 
 // DatabaseConfig represents database configuration
@@ -274,19 +274,19 @@ type DatabaseConfig struct {
 
 // BackupConfig represents backup configuration
 type BackupConfig struct {
-	Enabled      bool          `json:"enabled"`
-	Interval     time.Duration `json:"interval"`
-	RetentionDays int          `json:"retention_days"`
-	Path         string        `json:"path"`
-	Compression  bool          `json:"compression"`
+	Enabled       bool          `json:"enabled"`
+	Interval      time.Duration `json:"interval"`
+	RetentionDays int           `json:"retention_days"`
+	Path          string        `json:"path"`
+	Compression   bool          `json:"compression"`
 }
 
 // IndexConfig represents index configuration
 type IndexConfig struct {
-	Name    string   `json:"name"`
-	Fields  []string `json:"fields"`
-	Unique  bool     `json:"unique"`
-	Sparse  bool     `json:"sparse"`
+	Name    string                 `json:"name"`
+	Fields  []string               `json:"fields"`
+	Unique  bool                   `json:"unique"`
+	Sparse  bool                   `json:"sparse"`
 	Options map[string]interface{} `json:"options,omitempty"`
 }
 
@@ -313,13 +313,13 @@ type EventHandler func(event *DatabaseEvent) error
 
 // DatabaseMetrics represents database performance metrics
 type DatabaseMetrics struct {
-	ReadLatency    time.Duration `json:"read_latency"`
-	WriteLatency   time.Duration `json:"write_latency"`
-	Throughput     float64       `json:"throughput"`
-	CacheHitRatio  float64       `json:"cache_hit_ratio"`
-	DiskUsage      int64         `json:"disk_usage"`
-	MemoryUsage    int64         `json:"memory_usage"`
-	ConnectionCount int          `json:"connection_count"`
+	ReadLatency     time.Duration `json:"read_latency"`
+	WriteLatency    time.Duration `json:"write_latency"`
+	Throughput      float64       `json:"throughput"`
+	CacheHitRatio   float64       `json:"cache_hit_ratio"`
+	DiskUsage       int64         `json:"disk_usage"`
+	MemoryUsage     int64         `json:"memory_usage"`
+	ConnectionCount int           `json:"connection_count"`
 }
 
 // Error types for database operations

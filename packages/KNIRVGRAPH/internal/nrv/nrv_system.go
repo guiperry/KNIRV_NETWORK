@@ -8,8 +8,11 @@ import (
 	"fmt"
 	"log"
 	"math"
+	"strings"
 	"sync"
 	"time"
+
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 // EmbeddingProvider generates vector embeddings for text.
@@ -20,27 +23,27 @@ type EmbeddingProvider interface {
 
 // NRVSystem manages Network Resolution Vectors
 type NRVSystem struct {
-	localPeerID      string
-	vectors          map[string]*NetworkResolutionVector
-	errorNodes       map[string]*ErrorNode
-	skillNodes       map[string]*SkillNode
-	contextNodes     map[string]*ContextNode
-	ideaNodes        map[string]*IdeaNode
-	capabilityNodes  map[string]*CapabilityNode
-	propertyNodes    map[string]*PropertyNode
-	vectorsMutex     sync.RWMutex
-	errorsMutex      sync.RWMutex
-	skillsMutex      sync.RWMutex
-	contextMutex     sync.RWMutex
-	ideaMutex        sync.RWMutex
-	capabilityMutex  sync.RWMutex
-	propertyMutex    sync.RWMutex
-	updateChannel    chan VectorUpdate
-	config           *NRVConfig
-	embedding        EmbeddingProvider
-	ctx              context.Context
-	cancel           context.CancelFunc
-	stopOnce         sync.Once
+	localPeerID     string
+	vectors         map[string]*NetworkResolutionVector
+	errorNodes      map[string]*ErrorNode
+	skillNodes      map[string]*SkillNode
+	contextNodes    map[string]*ContextNode
+	ideaNodes       map[string]*IdeaNode
+	capabilityNodes map[string]*CapabilityNode
+	propertyNodes   map[string]*PropertyNode
+	vectorsMutex    sync.RWMutex
+	errorsMutex     sync.RWMutex
+	skillsMutex     sync.RWMutex
+	contextMutex    sync.RWMutex
+	ideaMutex       sync.RWMutex
+	capabilityMutex sync.RWMutex
+	propertyMutex   sync.RWMutex
+	updateChannel   chan VectorUpdate
+	config          *NRVConfig
+	embedding       EmbeddingProvider
+	ctx             context.Context
+	cancel          context.CancelFunc
+	stopOnce        sync.Once
 }
 
 // NewNRVSystem creates a new NRV system instance
@@ -164,13 +167,18 @@ func (nrv *NRVSystem) ResolveTarget(targetHash string) ([]*NetworkResolutionVect
 func (nrv *NRVSystem) CreateErrorNode(errorType, description string, context map[string]interface{}, severity int) (*ErrorNode, error) {
 	errorID := nrv.generateErrorID(errorType, description)
 
+	errorContext, err := NewErrorContextStruct(context)
+	if err != nil {
+		return nil, fmt.Errorf("encode error context for %s: %w", errorID, err)
+	}
+
 	errorNode := &ErrorNode{
-		ID:          errorID,
+		Id:          errorID,
 		ErrorType:   errorType,
 		Description: description,
-		Context:     context,
-		Severity:    severity,
-		Timestamp:   time.Now(),
+		Context:     errorContext,
+		Severity:    int32(severity),
+		Timestamp:   timestamppb.New(time.Now()),
 	}
 
 	// Attempt to find resolution path
@@ -206,25 +214,7 @@ func (nrv *NRVSystem) CreateErrorNode(errorType, description string, context map
 func (nrv *NRVSystem) CreateSkillNode(skillType string, capabilities []string, requirements map[string]interface{}) (*SkillNode, error) {
 	skillID := nrv.generateSkillID(skillType, capabilities)
 
-	skillNode := &SkillNode{
-		ID:           skillID,
-		SkillType:    skillType,
-		Capabilities: capabilities,
-		Requirements: requirements,
-		Performance: &PerformanceMetrics{
-			SuccessRate:      0.0,
-			AverageLatency:   0.0,
-			TotalInvocations: 0,
-			LastUpdated:      time.Now(),
-		},
-		Validation: &ValidationStatus{
-			IsValidated:     false,
-			ValidatedBy:     []string{},
-			ValidationScore: 0.0,
-			LastValidated:   time.Time{},
-		},
-		Timestamp: time.Now(),
-	}
+	skillNode := newSkillNode(skillID, skillType, capabilities, requirements)
 
 	// Store skill node
 	nrv.skillsMutex.Lock()
@@ -246,6 +236,105 @@ func (nrv *NRVSystem) CreateSkillNode(skillType string, capabilities []string, r
 	}
 
 	return skillNode, nil
+}
+
+// newSkillNode builds the zero-value-plus-defaults SkillNode record shared by
+// CreateSkillNode and CreateSkillNodeWithID.
+func newSkillNode(skillID, skillType string, capabilities []string, requirements map[string]interface{}) *SkillNode {
+	return &SkillNode{
+		ID:           skillID,
+		SkillType:    skillType,
+		Capabilities: capabilities,
+		Requirements: requirements,
+		Performance: &PerformanceMetrics{
+			SuccessRate:      0.0,
+			AverageLatency:   0.0,
+			TotalInvocations: 0,
+			LastUpdated:      time.Now(),
+		},
+		Validation: &ValidationStatus{
+			IsValidated:     false,
+			ValidatedBy:     []string{},
+			ValidationScore: 0.0,
+			LastValidated:   time.Time{},
+		},
+		Timestamp: time.Now(),
+	}
+}
+
+// CreateSkillNodeWithID creates a skill node under a caller-supplied ID.
+//
+// KNIRVGRAPH's /nrv/skills route derives a skill ID from the skill type and
+// capabilities, which is fine for interactive registrations but discards the
+// identity of a DRQ-mined skill: a mined skill's ID is derived from its
+// resolved cluster and must stay stable so that the KNIRVGRAPH-side mint can
+// be addressed (and rolled back) by ID after a failed on-chain mint. This
+// variant preserves the caller's ID while sharing CreateSkillNode's storage
+// and NRV bookkeeping. Creating the same ID twice is an explicit conflict
+// rather than a silent overwrite.
+func (nrv *NRVSystem) CreateSkillNodeWithID(skillID, skillType string, capabilities []string, requirements map[string]interface{}) (*SkillNode, error) {
+	if strings.TrimSpace(skillID) == "" {
+		return nil, fmt.Errorf("skill id is required")
+	}
+	nrv.skillsMutex.RLock()
+	_, exists := nrv.skillNodes[skillID]
+	nrv.skillsMutex.RUnlock()
+	if exists {
+		return nil, fmt.Errorf("skill %s already exists", skillID)
+	}
+
+	skillNode := newSkillNode(skillID, skillType, capabilities, requirements)
+
+	nrv.skillsMutex.Lock()
+	nrv.skillNodes[skillID] = skillNode
+	nrv.skillsMutex.Unlock()
+
+	coordinates := nrv.calculateSkillCoordinates(skillNode)
+	metadata := map[string]interface{}{
+		"node_type":    "skill",
+		"skill_id":     skillID,
+		"skill_type":   skillType,
+		"capabilities": capabilities,
+	}
+	if _, err := nrv.CreateVector(skillID, coordinates, metadata); err != nil {
+		log.Printf("Warning: Failed to create NRV for skill node: %v", err)
+	}
+
+	return skillNode, nil
+}
+
+// GetSkillNode returns the skill node recorded under skillID.
+func (nrv *NRVSystem) GetSkillNode(skillID string) (*SkillNode, error) {
+	nrv.skillsMutex.RLock()
+	defer nrv.skillsMutex.RUnlock()
+	node, ok := nrv.skillNodes[skillID]
+	if !ok {
+		return nil, fmt.Errorf("skill %s not found", skillID)
+	}
+	return node, nil
+}
+
+// HasSkillNode reports whether a skill node is currently recorded under skillID.
+func (nrv *NRVSystem) HasSkillNode(skillID string) bool {
+	nrv.skillsMutex.RLock()
+	defer nrv.skillsMutex.RUnlock()
+	_, ok := nrv.skillNodes[skillID]
+	return ok
+}
+
+// DeleteSkillNode removes a skill node from the store.
+//
+// It exists so an in-flight DRQ mint can be genuinely rolled back when a later
+// step of the mint chain (KNIRVORACLE verification, KNIRVCHAIN canonical mint)
+// fails; before this, "revert" had nothing real to revert.
+func (nrv *NRVSystem) DeleteSkillNode(skillID string) error {
+	nrv.skillsMutex.Lock()
+	defer nrv.skillsMutex.Unlock()
+	if _, ok := nrv.skillNodes[skillID]; !ok {
+		return fmt.Errorf("skill %s not found", skillID)
+	}
+	delete(nrv.skillNodes, skillID)
+	return nil
 }
 
 // CreateContextNode creates a new context node (MCP server data → capability)
@@ -450,22 +539,20 @@ func (nrv *NRVSystem) findResolutionPath(errorNode *ErrorNode) (*ResolutionPath,
 	}
 
 	// Calculate resolution path
-	var steps []ResolutionStep
+	var steps []*ResolutionStep
 	totalConfidence := 0.0
 	totalCost := 0.0
 
 	for _, skill := range skills {
-		step := ResolutionStep{
-			Action: "invoke_skill",
-			Parameters: map[string]interface{}{
-				"skill_id": skill.ID,
-				"context":  errorNode.Context,
-			},
-			SkillID:    skill.ID,
-			Confidence: skill.Validation.ValidationScore,
+		step, err := NewResolutionStep("invoke_skill", map[string]interface{}{
+			"skill_id": skill.ID,
+			"context":  ErrorContextMap(errorNode),
+		}, skill.ID, skill.Validation.ValidationScore)
+		if err != nil {
+			return nil, fmt.Errorf("build resolution step for skill %s: %w", skill.ID, err)
 		}
 
-		steps = append(steps, step)
+		steps = append(steps, &step)
 		totalConfidence += skill.Validation.ValidationScore
 		totalCost += nrv.estimateSkillCost(skill)
 	}
@@ -474,8 +561,8 @@ func (nrv *NRVSystem) findResolutionPath(errorNode *ErrorNode) (*ResolutionPath,
 
 	return &ResolutionPath{
 		Steps:         steps,
-		Confidence:    avgConfidence,
-		EstimatedCost: totalCost,
+		Confidence:    float32(avgConfidence),
+		EstimatedCost: float32(totalCost),
 	}, nil
 }
 

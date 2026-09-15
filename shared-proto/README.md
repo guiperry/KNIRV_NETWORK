@@ -35,7 +35,7 @@ shared-proto/
 | `knirv.lora.v1` | `pkg/gen/knirv/lora/v1` | KNIRVARENA (TS), agent/v1 |
 | `knirv.memory.v1` | `pkg/gen/knirv/memory/v1` | KNIRVARENA (TS), KNIRVSERVER |
 | `knirv.agent.v1` | `pkg/gen/knirv/agent/v1` | KNIRVARENA (TS) |
-| `knirv.graph.v1` | `pkg/gen/knirv/graph/v1` | KNIRVARENA (TS), KNIRVSERVER |
+| `knirv.graph.v1` | `pkg/gen/knirv/graph/v1` | KNIRVARENA (TS), KNIRVSERVER, KNIRVGRAPH, KNIRVCHAIN — owns the canonical `ErrorNode` |
 | `knirv.chain.v1` | `pkg/gen/knirv/chain/v1` | KNIRVARENA (TS), KNIRVCHAIN |
 | `knirv.blockchain.v1` | `backend_server/internal/proto/blockchain` | KNIRVSERVER → KNIRVCHAIN |
 | `hasher.v1` | `knirvhasher/proto/hasher/v1` | KNIRVHASHER, KNIRVSERVER |
@@ -85,18 +85,40 @@ Agent lifecycle management (imports `lora/v1`):
 - **AgentValidationRequest/Result / ValidationTest** — testing and validation
 
 ### `graph/v1/graph.proto`
-KNIRVGRAPH error context and cluster management:
+KNIRVGRAPH error context, cluster management, and the canonical node types:
 - **ErrorContext** — rich error payload (agent info, environment, stack trace, task context)
 - **ErrorClusterQueryRequest/Response / SkillNodeResult** — find skills for an error type
 - **ErrorCluster** — grouped error set with bounty amount
 - **ErrorNodeSubmissionRequest/Response** — submit new error nodes to the graph
+- **ErrorNode** — **the** canonical error node, shared by KNIRVGRAPH (drq/nrv), KNIRVCHAIN (types)
+  and KNIRVARENA. Carries identity, classification, provenance (`model_origin`), clustering id,
+  payload (`failure_context` + structured `context`), lifecycle `status`, resolution path, bounty
+  and timestamps. Deliberately excludes embedding vectors, queue position and scheduler priority —
+  those are local DRQ clustering/scheduling state, not cross-service contract.
+- **ContextNode** — a node attached to an `ErrorNode` carrying execution context; this context is
+  the input half of what a uLoRA compile transmutes into adapter weights
+- **ResolutionPath / ResolutionStep** — how an error was resolved
+- **NodeStatus** — OPEN / IN_PROGRESS / RESOLVED / VALIDATED / REJECTED
+
+#### One definition per concept
+
+`ErrorNode` previously existed in four divergent places: this file's `ErrorContext`,
+`chain/v1.ErrorNode` (5 fields), `lora/v1.ErrorContext` (3 fields) and `cortex/v1.ErrorContext`
+(3 fields). The three duplicates were **removed**, not deprecated, and the `SkillData`/
+`SkillTrainingData` messages that embedded them now carry `repeated string error_ids`. Nothing
+consumed them: no Go code was ever generated for `knirv.chain.v1`, `knirv.lora.v1` or
+`knirv.cortex.v1`, and KNIRVARENA's live code uses its own hand-written interfaces
+(`core/protobuf/ErrorContextHandler.ts`), not these messages. `ErrorContext` in *this* file is
+retained — it is the inbound submission payload, a different concept from the persisted node.
 
 ### `chain/v1/chain.proto`
 On-chain skill operations via KNIRVCHAIN:
 - **LoRaAdapterSkill** — on-chain skill with packed byte weights
 - **SkillInvocationRequest/Response** — invoke a skill by ID
 - **SkillCompilationRequest / SkillMetadata / SkillTrainingData** — compile skill from errors+solutions
-- **Solution / ErrorNode** — training data primitives
+  (`SkillTrainingData` carries `repeated string error_ids`; the nodes themselves are
+  `knirv.graph.v1.ErrorNode`, not a chain-local duplicate)
+- **Solution** — training data primitive
 
 ### `blockchain/v1/blockchain.proto`
 gRPC service contract between KNIRVSERVER and KNIRVCHAIN (`BlockchainService`):

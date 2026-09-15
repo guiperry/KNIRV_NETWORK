@@ -14,8 +14,8 @@ import (
 	"strings"
 	"time"
 
-	knirvsigning "github.com/guiperry/knirv-sdk-go/signing"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
+	knirvsigning "github.com/guiperry/knirv-sdk-go/signing"
 )
 
 // WalletImpl stores private and public keys

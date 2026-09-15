@@ -7,6 +7,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { PanelLoading } from '@/components/ui/panel-loading';
+import { PanelEmpty } from '@/components/ui/panel-empty';
 import { useDVENodes } from '@/hooks/use-dve-nodes';
 import { useDVEManagement } from '@/hooks/use-dve-management';
 import { useAuth } from '@/lib/auth-context';
@@ -280,14 +282,13 @@ export const DVENodesPanel = React.memo<DVENodesPanelProps>(({ className, onRent
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <div className="flex items-center justify-center py-8">
-              <Activity className="w-6 h-6 animate-spin mr-2" />
-              <span>Loading DVE nodes...</span>
-            </div>
+            <PanelLoading message="Loading DVE nodes..." />
           ) : filteredNodes.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              No DVE nodes found
-            </div>
+            <PanelEmpty
+              icon={<Server className="w-8 h-8" />}
+              title="No DVE nodes found"
+              description="No Deterministic Validation Environments match the current filters."
+            />
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {filteredNodes.map((node) => (

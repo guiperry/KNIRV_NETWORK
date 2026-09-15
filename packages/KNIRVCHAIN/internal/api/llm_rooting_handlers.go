@@ -6,10 +6,10 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/gorilla/mux"
-	"google.golang.org/protobuf/proto"
 	"KNIRVCHAIN/internal/blockchain"
 	pb "KNIRVCHAIN/internal/protocol/proto"
+	"github.com/gorilla/mux"
+	"google.golang.org/protobuf/proto"
 )
 
 // LLMRootingAPI provides API endpoints for LLM rooting functionality
@@ -82,10 +82,10 @@ func (api *LLMRootingAPI) handleSubmitLLMRooting(w http.ResponseWriter, r *http.
 
 	// Return success response
 	response := map[string]interface{}{
-		"status":        "success",
+		"status":         "success",
 		"transaction_id": tx.TransactionHash,
-		"cmu":           llmData.CMU,
-		"message":       "LLM rooting transaction submitted successfully",
+		"cmu":            llmData.CMU,
+		"message":        "LLM rooting transaction submitted successfully",
 	}
 
 	w.Header().Set("Content-Type", "application/json")

@@ -82,9 +82,9 @@ func (ni *NRNIntegration) SetEnabled(enabled bool) {
 
 // Bounty tracks a reward associated with an ErrorNode
 type Bounty struct {
-	ErrorNodeID string   `json:"error_node_id"`
-	Amount      *big.Int `json:"amount"`
-	Reason      string   `json:"reason"`
+	ErrorNodeID string    `json:"error_node_id"`
+	Amount      *big.Int  `json:"amount"`
+	Reason      string    `json:"reason"`
 	Timestamp   time.Time `json:"timestamp"`
 }
 

@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
+import { PanelLoading } from '@/components/ui/panel-loading';
 import { useToast } from '@/hooks/use-toast';
 import {
   Shield,
@@ -127,10 +128,7 @@ export function ExpertAdvisorPanel({ className, onDrillDownToNodes }: ExpertAdvi
   if (isLoading && creations.length === 0) {
     return (
       <div className={`space-y-4 ${className || ''}`}>
-        <div className="text-center py-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-400 mx-auto"></div>
-          <p className="text-gray-500 mt-2">Loading Expert Advisors...</p>
-        </div>
+        <PanelLoading message="Loading Expert Advisors..." />
       </div>
     );
   }

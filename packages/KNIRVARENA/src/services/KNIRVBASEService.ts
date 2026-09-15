@@ -124,6 +124,28 @@ export class KNIRVBASEService {
     // Cortex State collection
     const cortexState = this.db.collection('cortexstate');
     this.collections.set('cortexstate', cortexState);
+
+    // Personal graph collection (CLEAN-11: persisted personal KNIRVGRAPHs)
+    const personalGraphs = this.db.collection('personalgraphs');
+    this.collections.set('personalgraphs', personalGraphs);
+
+    // CORTEX model collection (CLEAN-11: persisted trained models)
+    const cortexModels = this.db.collection('cortexmodels');
+    this.collections.set('cortexmodels', cortexModels);
+
+    // USDC→NRN conversion collection (CLEAN-11: persisted conversion records)
+    const conversions = this.db.collection('conversions');
+    this.collections.set('conversions', conversions);
+
+    // Owner-scoped resource collections (SEC-6: DB-backed skills/capabilities/properties)
+    const skills = this.db.collection('skills');
+    this.collections.set('skills', skills);
+
+    const capabilities = this.db.collection('capabilities');
+    this.collections.set('capabilities', capabilities);
+
+    const properties = this.db.collection('properties');
+    this.collections.set('properties', properties);
   }
 
   getCollection(name: string): Collection {
@@ -216,6 +238,73 @@ export class KNIRVBASEService {
   async updateCortexState(id: string, update: Document): Promise<number> {
     const collection = this.getCollection('cortexstate');
     return await collection.update(id, update);
+  }
+
+  // Personal graph operations (CLEAN-11)
+  // Each user owns exactly one resume-able graph; the doc is keyed by
+  // `graph_${userId}` so loadPersonalGraph can find it deterministically.
+  // The graph's own id is preserved inside the doc as `graphId`.
+  async savePersonalGraph(graph: Document): Promise<Document> {
+    const collection = this.getCollection('personalgraphs');
+    const userId = graph.userId as string;
+    const key = userId ? `graph_${userId}` : (graph.id as string);
+    const existing = await collection.find(key);
+
+    const doc = { ...graph, id: key, graphId: graph.id };
+    if (existing) {
+      await collection.update(key, doc);
+      return doc;
+    }
+    return await collection.insert(doc);
+  }
+
+  async getPersonalGraph(userId: string): Promise<Document | null> {
+    const collection = this.getCollection('personalgraphs');
+    return await collection.find(`graph_${userId}`);
+  }
+
+  async getAllPersonalGraphs(): Promise<Document[]> {
+    const collection = this.getCollection('personalgraphs');
+    return await collection.findAll();
+  }
+
+  // CORTEX model operations (CLEAN-11)
+  async saveCortexModel(model: Document): Promise<Document> {
+    const collection = this.getCollection('cortexmodels');
+    return await collection.insert(model);
+  }
+
+  async getAllCortexModels(): Promise<Document[]> {
+    const collection = this.getCollection('cortexmodels');
+    return await collection.findAll();
+  }
+
+  // USDC→NRN conversion operations (CLEAN-11)
+  async saveConversion(record: Document): Promise<Document> {
+    const collection = this.getCollection('conversions');
+    return await collection.insert(record);
+  }
+
+  async getAllConversions(): Promise<Document[]> {
+    const collection = this.getCollection('conversions');
+    return await collection.findAll();
+  }
+
+  // Owner-scoped resource operations (SEC-6 DB-backed filtering)
+  async getResourcesByOwner(collectionName: 'skills' | 'capabilities' | 'properties', ownerId: string): Promise<Document[]> {
+    const collection = this.getCollection(collectionName);
+    const all = await collection.findAll();
+    return all.filter(doc => doc.ownerId === ownerId);
+  }
+
+  async seedResource(collectionName: 'skills' | 'capabilities' | 'properties', doc: Document): Promise<Document> {
+    const collection = this.getCollection(collectionName);
+    return await collection.insert(doc);
+  }
+
+  async getResource(collectionName: 'skills' | 'capabilities' | 'properties', id: string): Promise<Document | null> {
+    const collection = this.getCollection(collectionName);
+    return await collection.find(id);
   }
 
   async shutdown(): Promise<void> {

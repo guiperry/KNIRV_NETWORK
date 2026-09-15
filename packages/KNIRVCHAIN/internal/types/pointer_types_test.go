@@ -272,9 +272,9 @@ func TestRoyaltyStructureCalculateDistribution(t *testing.T) {
 
 	distribution := rs.CalculateDistribution(1000)
 
-	expectedOrigin := uint64(500) // 50% of 1000
+	expectedOrigin := uint64(500)  // 50% of 1000
 	expectedNetwork := uint64(200) // 20% of 1000
-	expectedDep1 := uint64(300)   // 30% of 1000
+	expectedDep1 := uint64(300)    // 30% of 1000
 
 	if distribution["origin_nim"] != expectedOrigin {
 		t.Errorf("Expected origin_nim %d, got %d", expectedOrigin, distribution["origin_nim"])

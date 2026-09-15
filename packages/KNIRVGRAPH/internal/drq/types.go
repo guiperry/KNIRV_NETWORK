@@ -3,32 +3,19 @@ package drq
 import (
 	"fmt"
 	"time"
+
+	"KNIRVGRAPH/internal/protocol/proto"
 )
 
-// ErrorNode with DRQ-enhanced fields
-type ErrorNode struct {
-	// Core fields from whitepaper
-	ID             string
-	NRVSource      string
-	Description    string
-	FailureContext []byte
-	Domain         string
-	Complexity     int
-	ResolvedBy     string
-	Timestamp      time.Time
-	Metadata       map[string]interface{}
-
-	// DRQ-specific fields
-	Embedding     []float64 // 768-dim semantic vector
-	ClusterID     string    // Assigned error cluster
-	Priority      float64   // Queue priority score
-	QueuePosition int       // Position in distributed queue
-
-	// Red Queen dynamics tracking
-	AdaptationRound int       // Which DRQ round created this
-	GenerationScore float64   // Generality against held-out set
-	PhenotypeDrift  []float64 // Phenotype change over rounds
-}
+// ErrorNode is the canonical error node, generated from
+// shared-proto/graph/v1/graph.proto into internal/protocol/proto.
+//
+// DRQ previously declared its own ErrorNode right here — the third divergent
+// shape for one concept, alongside nrv's copy and KNIRVCHAIN's types. The
+// canonical definition carries everything DRQ needs: the Clustering group
+// (cluster_id, embedding, priority, queue_position) and the Red Queen dynamics
+// group (adaptation_round, generation_score, phenotype_drift).
+type ErrorNode = proto.ErrorNode
 
 // TrainingExample is used for LoRA training
 type TrainingExample struct {
@@ -52,16 +39,16 @@ type Solution struct {
 	DVEAttestation  []byte  // Cryptographic proof
 
 	// DRQ metrics
-	FitnessValue   float64 // Performance in multi-agent sim
-	BehaviorDesc   BehaviorDescriptor
-	GenotypeDist   float64 // Distance from cluster centroid
+	FitnessValue    float64 // Performance in multi-agent sim
+	BehaviorDesc    BehaviorDescriptor
+	GenotypeDist    float64 // Distance from cluster centroid
 	ContributedData TrainingExample
 }
 
 // BehaviorDescriptor characterizes a solution's behavior
 type BehaviorDescriptor struct {
-	SpawnedProcesses int             // Thread spawning behavior
-	MemoryCoverage   int             // Spatial footprint
+	SpawnedProcesses int // Thread spawning behavior
+	MemoryCoverage   int // Spatial footprint
 	ExecutionTime    time.Duration
 	ResourceUsage    ResourceProfile
 }
@@ -76,24 +63,42 @@ type ResourceProfile struct {
 
 // ErrorCluster with competitive dynamics
 type ErrorCluster struct {
-	ClusterID    string
-	Errors       []*ErrorNode
-	Centroid     []float64
-	AgentCounts  map[string]int // Agent -> solution count
-	Solutions    map[string][]*Solution
-	Status       ClusterStatus
-	CreatedAt    time.Time
+	ClusterID     string
+	Errors        []*ErrorNode
+	Centroid      []float64
+	AgentCounts   map[string]int // Agent -> solution count
+	Solutions     map[string][]*Solution
+	Status        ClusterStatus
+	CreatedAt     time.Time
 	AvgComplexity float64
 	// DRQ state tracking
-	RoundCreated   int     // Which DRQ round
-	CurrentFitness float64 // Cluster performance
-	HistoricalBest float64 // Best fitness achieved
+	RoundCreated    int     // Which DRQ round
+	CurrentFitness  float64 // Cluster performance
+	HistoricalBest  float64 // Best fitness achieved
 	GeneralityScore float64 // Generality against held-out set
 
 	// Training state
 	LoRAInProgress  bool
 	TrainingJobID   string
 	ValidationProof []byte
+
+	// Validation state. ValidationTaskID is the platform DVE validation
+	// task created for this cluster by ClusterManager.submitForValidation;
+	// ValidationProof holds the platform's validation certificate for it.
+	ValidationTaskID string
+	// ValidationDegraded records that the validation service answered from a
+	// fallback rather than a real model. A degraded result is never treated as
+	// validation.
+	ValidationDegraded bool
+
+	// Minting result. Set by ClusterManager.mintSkill once
+	// SkillMintingProtocol.MintSkillFromCluster succeeds.
+	MintedSkillID string
+	MintedSkill   *SkillNode
+
+	// RewardsDistributed guards the resolved-state payout so a cluster that
+	// stays CLUSTER_RESOLVED across ticks is only paid once.
+	RewardsDistributed bool
 
 	// Ownership and rewards
 	OwnerAgent  string // Most solutions
@@ -209,24 +214,24 @@ const (
 
 // ErrorClusterState represents the RL state for DRQ
 type ErrorClusterState struct {
-    ClusterID          string
-    ErrorFingerprints  []string          // Error hashes in cluster
-    AgentAssignments   map[string]int    // Agent -> solution count
-    ClusterCentroid    []float64         // Embedding centroid (768-dim)
-    ClusterDensity     float64           // Node count in cluster radius
-    ComplexityScore    float64           // Average error complexity
-    SolutionVelocity   float64           // Solutions/hour
-    TopologicalRank    float64           // PageRank in error graph
+	ClusterID         string
+	ErrorFingerprints []string       // Error hashes in cluster
+	AgentAssignments  map[string]int // Agent -> solution count
+	ClusterCentroid   []float64      // Embedding centroid (768-dim)
+	ClusterDensity    float64        // Node count in cluster radius
+	ComplexityScore   float64        // Average error complexity
+	SolutionVelocity  float64        // Solutions/hour
+	TopologicalRank   float64        // PageRank in error graph
 }
 
 // ActionOutcome defines the result of a DRQ action
 type ActionOutcome struct {
-    SolutionValidated   bool
-    ValidationScore     float64
-    SolutionsGenerated  int
-    AgentHours          float64
-    SkillMinted         bool
-    DependencyCount     float64
-    DownstreamResolutions float64
-    WastedDVEHours      float64
+	SolutionValidated     bool
+	ValidationScore       float64
+	SolutionsGenerated    int
+	AgentHours            float64
+	SkillMinted           bool
+	DependencyCount       float64
+	DownstreamResolutions float64
+	WastedDVEHours        float64
 }

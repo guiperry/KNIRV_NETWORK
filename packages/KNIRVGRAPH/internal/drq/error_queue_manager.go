@@ -25,20 +25,20 @@ func (kdh *KademliaDHT) AnnounceErrorToDHT(err *QueuedError) error {
 
 // ErrorQueueManager implements distributed priority queue
 type ErrorQueueManager struct {
-	localQueue      *PriorityQueue
-	dhtClient       *KademliaDHT
-	topology        NetworkTopologyInterface // Use the interface
-	clusterMgr      *DRQClusterManager
-	syncInterval    time.Duration
+	localQueue   *PriorityQueue
+	dhtClient    *KademliaDHT
+	topology     NetworkTopologyInterface // Use the interface
+	clusterMgr   *DRQClusterManager
+	syncInterval time.Duration
 }
 
 // QueuedError represents an error in the distributed queue
 type QueuedError struct {
-	ErrorNode    *ErrorNode
-	Priority     float64
-	Timestamp    time.Time
-	ClusterID    string
-	Embedding    []float64
+	ErrorNode *ErrorNode
+	Priority  float64
+	Timestamp time.Time
+	ClusterID string
+	Embedding []float64
 }
 
 // EnqueueError adds error to distributed queue
@@ -50,16 +50,16 @@ func (eqm *ErrorQueueManager) EnqueueError(
 	embedding := eqm.clusterMgr.embeddingModel.Encode(
 		errorNode.FailureContext,
 	)
-	
+
 	// Calculate priority
 	priority := eqm.calculatePriority(errorNode, bounty)
-	
+
 	// Cluster assignment via DRQ
 	clusterID, err := eqm.clusterMgr.ClusterError(errorNode)
 	if err != nil {
 		return err
 	}
-	
+
 	queuedErr := &QueuedError{
 		ErrorNode: errorNode,
 		Priority:  priority,
@@ -67,10 +67,10 @@ func (eqm *ErrorQueueManager) EnqueueError(
 		ClusterID: clusterID,
 		Embedding: embedding,
 	}
-	
+
 	// Add to local queue
 	eqm.localQueue.Push(queuedErr)
-	
+
 	// Announce to DHT
 	return eqm.dhtClient.AnnounceErrorToDHT(queuedErr)
 }
@@ -81,20 +81,20 @@ func (eqm *ErrorQueueManager) calculatePriority(
 	bounty uint64,
 ) float64 {
 	priority := 0.0
-	
+
 	// Bounty component (normalized)
 	priority += float64(bounty) / 1000.0
-	
+
 	// Complexity component
 	priority += float64(errorNode.Complexity) * 2.0
-	
+
 	// Age component (older = higher priority)
-	age := time.Since(errorNode.Timestamp).Hours()
+	age := time.Since(errorNode.GetTimestamp().AsTime()).Hours()
 	priority += age * 0.1
-	
+
 	// Network demand component
 	clusterLoad := eqm.topology.GetClusterLoad(errorNode.Domain) // Use the interface method
 	priority += (1.0 - clusterLoad) * 10.0
-	
+
 	return priority
 }

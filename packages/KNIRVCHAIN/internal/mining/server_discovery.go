@@ -30,8 +30,8 @@ type RegisteredServer struct {
 type ServerStatus string
 
 const (
-	ServerStatusActive   ServerStatus = "active"
-	ServerStatusInactive ServerStatus = "inactive"
+	ServerStatusActive    ServerStatus = "active"
+	ServerStatusInactive  ServerStatus = "inactive"
 	ServerStatusUnhealthy ServerStatus = "unhealthy"
 )
 
@@ -100,7 +100,7 @@ func (sds *ServerDiscoveryService) DiscoverServers(capabilityType types.Capabili
 
 	for _, registered := range sds.registeredServers {
 		if registered.CapabilityNode.CapabilityType == capabilityType &&
-		   registered.Status == ServerStatusActive {
+			registered.Status == ServerStatusActive {
 
 			results = append(results, &DiscoveryResult{
 				CapabilityNode: registered.CapabilityNode,
@@ -196,9 +196,9 @@ func (sds *ServerDiscoveryService) GetServerStatistics() (*ServerStatistics, err
 	defer sds.mutex.RUnlock()
 
 	stats := &ServerStatistics{
-		TotalServers:      len(sds.registeredServers),
-		ServersByType:     make(map[string]int),
-		ServersByStatus:   make(map[string]int),
+		TotalServers:       len(sds.registeredServers),
+		ServersByType:      make(map[string]int),
+		ServersByStatus:    make(map[string]int),
 		AverageHealthScore: 0.0,
 	}
 
@@ -226,10 +226,10 @@ func (sds *ServerDiscoveryService) GetServerStatistics() (*ServerStatistics, err
 
 // ServerStatistics represents statistics about registered servers
 type ServerStatistics struct {
-	TotalServers       int                `json:"total_servers"`
-	ServersByType      map[string]int     `json:"servers_by_type"`
-	ServersByStatus    map[string]int     `json:"servers_by_status"`
-	AverageHealthScore float64            `json:"average_health_score"`
+	TotalServers       int            `json:"total_servers"`
+	ServersByType      map[string]int `json:"servers_by_type"`
+	ServersByStatus    map[string]int `json:"servers_by_status"`
+	AverageHealthScore float64        `json:"average_health_score"`
 }
 
 // StartHealthMonitoring starts background health monitoring
@@ -277,7 +277,7 @@ func (sds *ServerDiscoveryService) checkServerHealth(ctx context.Context, server
 
 	// Simulate some servers being unhealthy
 	// In reality, this would test the MCP endpoint
-	if len(serverID) % 3 == 0 { // Every third server is "unhealthy"
+	if len(serverID)%3 == 0 { // Every third server is "unhealthy"
 		return 0.3
 	}
 

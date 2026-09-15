@@ -227,14 +227,14 @@ func (c *Chunker) chunkBySize(documentID, text string) []types.Chunk {
 		}
 		chunkText := string(runes[start:end])
 		chunks = append(chunks, types.Chunk{
-			ID:         generateChunkID(documentID, idx),
-			DocumentID: documentID,
-			Text:       chunkText,
-			Index:      idx,
+			ID:          generateChunkID(documentID, idx),
+			DocumentID:  documentID,
+			Text:        chunkText,
+			Index:       idx,
 			StartOffset: start,
 			EndOffset:   end,
-			Metadata:   map[string]interface{}{"strategy": string(c.config.Strategy)},
-			CreatedAt:  time.Now(),
+			Metadata:    map[string]interface{}{"strategy": string(c.config.Strategy)},
+			CreatedAt:   time.Now(),
 		})
 		idx++
 		if end == len(runes) {

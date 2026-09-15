@@ -67,4 +67,3 @@ func (api *UnifiedAPI) handleNetworkPeers(w http.ResponseWriter, r *http.Request
 		"message":      "Network monitoring services moved to separate components",
 	})
 }
-

@@ -52,7 +52,7 @@ type P2PConsensusManager struct {
 	gatewaySocket string
 	gatewayClient *http.Client
 
-	enabled       bool
+	enabled        bool
 	miningLocked   bool
 	isSyncing      bool
 	networkPaused  bool
@@ -317,7 +317,6 @@ func (pcm *P2PConsensusManager) runForkResolution() {
 		}
 	}
 }
-
 
 func (pcm *P2PConsensusManager) lockMining() {
 	pcm.mu.Lock()

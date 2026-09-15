@@ -1,7 +1,5 @@
 package drq
 
-
-
 // CalculateReward computes immediate reward for DRQ update
 func CalculateReward(action DRQAction, outcome ActionOutcome) float64 {
 	baseReward := 0.0

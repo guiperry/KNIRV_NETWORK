@@ -30,27 +30,27 @@ type RewardRates struct {
 
 // SolutionProof represents a cryptographic proof of solution
 type SolutionProof struct {
-	ID               string                 `json:"id"`
-	NRVID            string                 `json:"nrv_id"`
-	SkillID          string                 `json:"skill_id"`
-	SolverID         string                 `json:"solver_id"`
-	SolutionHash     string                 `json:"solution_hash"`
-	ValidationProof  string                 `json:"validation_proof"`
-	Timestamp        time.Time              `json:"timestamp"`
-	RewardAmount     *big.Int               `json:"reward_amount"`
-	Verified         bool                   `json:"verified"`
-	Metadata         map[string]interface{} `json:"metadata"`
+	ID              string                 `json:"id"`
+	NRVID           string                 `json:"nrv_id"`
+	SkillID         string                 `json:"skill_id"`
+	SolverID        string                 `json:"solver_id"`
+	SolutionHash    string                 `json:"solution_hash"`
+	ValidationProof string                 `json:"validation_proof"`
+	Timestamp       time.Time              `json:"timestamp"`
+	RewardAmount    *big.Int               `json:"reward_amount"`
+	Verified        bool                   `json:"verified"`
+	Metadata        map[string]interface{} `json:"metadata"`
 }
 
 // ResolutionEvent represents a successful error resolution
 type ResolutionEvent struct {
-	ErrorNodeID      string    `json:"error_node_id"`
-	SkillNodeID      string    `json:"skill_node_id"`
-	SolverID         string    `json:"solver_id"`
-	ResolutionTime   time.Time `json:"resolution_time"`
-	EfficiencyScore  float64   `json:"efficiency_score"`
-	QualityScore     float64   `json:"quality_score"`
-	RewardEarned     *big.Int  `json:"reward_earned"`
+	ErrorNodeID     string    `json:"error_node_id"`
+	SkillNodeID     string    `json:"skill_node_id"`
+	SolverID        string    `json:"solver_id"`
+	ResolutionTime  time.Time `json:"resolution_time"`
+	EfficiencyScore float64   `json:"efficiency_score"`
+	QualityScore    float64   `json:"quality_score"`
+	RewardEarned    *big.Int  `json:"reward_earned"`
 }
 
 // NewProofOfSolution creates a new Proof-of-Solution instance
@@ -72,7 +72,7 @@ func NewProofOfSolution(nrnIntegration *NRNIntegration, nrvSystem *nrv.NRVSystem
 // The bounty is tracked locally on the graph and redeemed when the skill is committed
 // to KNIRVCHAIN via CommitSkill.
 func (pos *ProofOfSolution) ProcessErrorNodeCreation(errorNode *nrv.ErrorNode, observerID string) error {
-	log.Printf("Processing error node creation: %s by observer %s", errorNode.ID, observerID)
+	log.Printf("Processing error node creation: %s by observer %s", errorNode.Id, observerID)
 
 	// Validate the error node
 	if err := pos.validateErrorNode(errorNode); err != nil {
@@ -87,14 +87,14 @@ func (pos *ProofOfSolution) ProcessErrorNodeCreation(errorNode *nrv.ErrorNode, o
 	finalBounty := new(big.Int).Mul(baseBounty, big.NewInt(int64(complexityMultiplier*100)))
 	finalBounty.Mul(finalBounty, big.NewInt(int64(demandMultiplier*100)))
 	finalBounty.Div(finalBounty, big.NewInt(10000)) // Normalize
-	
+
 	// Attach NRN bounty to the error node
-	errorNode.NRNBounty = finalBounty.String()
+	errorNode.NrnBounty = finalBounty.String()
 
 	// Record the bounty locally
-	pos.nrnIntegration.AddBounty(errorNode.ID, finalBounty, "error_node_creation")
+	pos.nrnIntegration.AddBounty(errorNode.Id, finalBounty, "error_node_creation")
 
-	log.Printf("NRN bounty %s attached to error node %s", finalBounty.String(), errorNode.ID)
+	log.Printf("NRN bounty %s attached to error node %s", finalBounty.String(), errorNode.Id)
 	return nil
 }
 
@@ -226,7 +226,7 @@ func (pos *ProofOfSolution) verifySolutionProof(proof *SolutionProof) error {
 
 // validateErrorNode validates an error node
 func (pos *ProofOfSolution) validateErrorNode(errorNode *nrv.ErrorNode) error {
-	if errorNode.ID == "" {
+	if errorNode.Id == "" {
 		return fmt.Errorf("missing error node ID")
 	}
 
@@ -234,7 +234,7 @@ func (pos *ProofOfSolution) validateErrorNode(errorNode *nrv.ErrorNode) error {
 		return fmt.Errorf("missing error type")
 	}
 
-	if len(errorNode.Context) == 0 {
+	if len(nrv.ErrorContextMap(errorNode)) == 0 {
 		return fmt.Errorf("missing error context")
 	}
 
@@ -261,7 +261,7 @@ func (pos *ProofOfSolution) validateSkillNode(skillNode *nrv.SkillNode) error {
 // calculateComplexityMultiplier calculates a multiplier based on error complexity
 func (pos *ProofOfSolution) calculateComplexityMultiplier(errorNode *nrv.ErrorNode) float64 {
 	baseComplexity := 1.0
-	contextComplexity := float64(len(errorNode.Context)) / 100.0
+	contextComplexity := float64(len(nrv.ErrorContextMap(errorNode))) / 100.0
 	if contextComplexity > 2.0 {
 		contextComplexity = 2.0
 	}

@@ -119,7 +119,7 @@ func TestNRVSystemCreateErrorNode(t *testing.T) {
 		t.Errorf("Expected description %s, got %s", description, errorNode.Description)
 	}
 
-	if errorNode.Severity != severity {
+	if int(errorNode.Severity) != severity {
 		t.Errorf("Expected severity %d, got %d", severity, errorNode.Severity)
 	}
 }
@@ -303,14 +303,14 @@ func TestNRVSystemGetAllErrorNodes(t *testing.T) {
 	// Verify error nodes are present
 	errorIDs := make(map[string]bool)
 	for _, errorNode := range errorNodes {
-		errorIDs[errorNode.ID] = true
+		errorIDs[errorNode.Id] = true
 	}
 
-	if !errorIDs[error1.ID] {
+	if !errorIDs[error1.Id] {
 		t.Error("Expected error1 to be in all error nodes list")
 	}
 
-	if !errorIDs[error2.ID] {
+	if !errorIDs[error2.Id] {
 		t.Error("Expected error2 to be in all error nodes list")
 	}
 }

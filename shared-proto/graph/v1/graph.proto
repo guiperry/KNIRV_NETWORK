@@ -112,3 +112,118 @@ enum ErrorPriority {
   HIGH = 3;
   CRITICAL = 4;
 }
+
+// ---------------------------------------------------------------------------
+// Canonical node types
+//
+// ErrorNode is THE canonical error node, shared by every package that records,
+// clusters, validates, or mints from errors (KNIRVGRAPH's drq/nrv, KNIRVCHAIN's
+// types, KNIRVARENA). It exists to end the divergence that previously left three
+// incompatible Go structs and three overlapping proto messages
+// (chain/v1.ErrorNode, lora/v1.ErrorContext, graph/v1.ErrorContext) describing
+// the same thing — both of which were removed when this definition landed.
+//
+// Relationship to ErrorContext above: ErrorContext is the inbound *rich payload*
+// an agent submits when it hits an error. ErrorNode is what the graph persists
+// from that payload and what flows onward through clustering, validation and
+// uLoRA minting. Nodes are created from a context, not equal to one.
+//
+// Everything DRQ needs is carried on the node itself: identity, classification,
+// provenance, the Clustering group (cluster_id, embedding, priority,
+// queue_position), payload, lifecycle, resolution, Red Queen dynamics and
+// timestamps. A consumer can therefore reproduce or extend DRQ's clustering,
+// scheduling and evolutionary state without reaching back into the graph.
+message ErrorNode {
+  // Identity
+  string id = 1;
+  string nrv_source = 2;
+
+  // Classification
+  string error_type = 3;
+  string error_signature = 4;
+  string description = 5;
+  string domain = 6;
+  int32 complexity = 7;
+  int32 severity = 8;
+
+  // Provenance
+  string model_origin = 9;
+  string resolved_by = 10;
+
+  // Clustering. embedding is the semantic vector the node was clustered by,
+  // priority is the DRQ queue priority score, and queue_position is the node's
+  // place in the distributed queue. These travel with the node so a consumer
+  // can reproduce or extend the clustering and scheduling state rather than
+  // recomputing it from scratch.
+  string cluster_id = 11;
+  repeated double embedding = 12;
+  double priority = 13;
+  int32 queue_position = 14;
+
+  // Payload. failure_context carries the raw bytes the node was derived from;
+  // context carries the structured execution context, and is the input half of
+  // what a uLoRA compile transmutes into adapter weights.
+  bytes failure_context = 15;
+  google.protobuf.Struct context = 16;
+  google.protobuf.Struct metadata = 17;
+
+  // Lifecycle. status is a string, not an enum, because that is the wire
+  // format KNIRVCHAIN already persists: internal/graph/node_store.go stores
+  // nodes with plain json.Marshal into LevelDB, and KNIRVCHAIN's NodeStatus is
+  // a string type whose values are "Open", "InProgress", "Resolved",
+  // "Validated", "Rejected". A proto enum here would serialise as an integer
+  // and silently break every previously stored row. Allowed values are exactly
+  // those five strings.
+  string status = 18;
+  uint64 failure_count = 19;
+  string nrn_bounty = 20;
+
+  // Resolution
+  ResolutionPath resolution = 21;
+
+  // Red Queen dynamics tracking. These record how the node evolved across DRQ
+  // rounds: which round produced it, how general it proved against a held-out
+  // set, and how far its phenotype drifted from the cluster centroid. They ride
+  // on the node so a consumer can audit or resume the evolutionary state.
+  int32 adaptation_round = 22;
+  double generation_score = 23;
+  repeated double phenotype_drift = 24;
+
+  // Timestamps. created_at is unix seconds for wire compatibility with the
+  // existing chain-side field; timestamp is the authoritative event time.
+  int64 created_at = 25;
+  google.protobuf.Timestamp timestamp = 26;
+}
+
+// ContextNode is a node attached to an ErrorNode carrying one piece of the
+// execution context the error occurred in. A node's context data is the input
+// half of what a uLoRA compile transmutes into adapter weights.
+message ContextNode {
+  string id = 1;
+  string error_id = 2;
+  string node_type = 3;
+  google.protobuf.Struct payload = 4;
+  float confidence = 5;
+  google.protobuf.Timestamp timestamp = 6;
+}
+
+// ResolutionPath records how an error was resolved.
+message ResolutionPath {
+  repeated ResolutionStep steps = 1;
+  float confidence = 2;
+  float estimated_cost = 3;
+}
+
+// ResolutionStep is a single step within a ResolutionPath.
+message ResolutionStep {
+  string action = 1;
+  google.protobuf.Struct parameters = 2;
+  string skill_id = 3;
+  float confidence = 4;
+}
+
+// NodeStatus is deliberately NOT defined as an enum here. KNIRVCHAIN persists
+// nodes as JSON with a string status ("Open", "InProgress", "Resolved",
+// "Validated", "Rejected"), so the canonical node carries `string status` and
+// these five values are the contract. Declaring a proto enum would change the
+// serialised form to an integer and break stored data.

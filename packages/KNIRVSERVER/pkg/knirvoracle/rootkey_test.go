@@ -110,3 +110,142 @@ func TestResolveAndValidateRootKeyRejectsInvalidCanonicalFile(t *testing.T) {
 		t.Fatalf("ResolveAndValidateRootKey() succeeded with an invalid canonical file; want error")
 	}
 }
+
+// validEnvelope returns a minimal binary protobuf payload that passes
+// validateEncryptedRootKeyEnvelope: field 1 (encrypted content) and
+// field 2 (salt), both length-delimited and non-empty.
+func validEnvelope() []byte {
+	return []byte{0x0A, 0x04, 't', 'e', 's', 't', 0x12, 0x04, 's', 'a', 'l', 't'}
+}
+
+func TestValidateRootKeyFileHappyPath(t *testing.T) {
+	f := filepath.Join(t.TempDir(), "root.key")
+	if err := os.WriteFile(f, validEnvelope(), 0o600); err != nil {
+		t.Fatalf("WriteFile: %v", err)
+	}
+	if err := ValidateRootKeyFile(f); err != nil {
+		t.Fatalf("ValidateRootKeyFile() = %v, want nil", err)
+	}
+}
+
+func TestValidateRootKeyFileEmptyFile(t *testing.T) {
+	f := filepath.Join(t.TempDir(), "root.key")
+	if err := os.WriteFile(f, []byte{}, 0o600); err != nil {
+		t.Fatalf("WriteFile: %v", err)
+	}
+	if err := ValidateRootKeyFile(f); err == nil || err.Error() != "root.key is empty" {
+		t.Fatalf("ValidateRootKeyFile() = %v, want 'root.key is empty'", err)
+	}
+}
+
+func TestValidateRootKeyFileMissingEncryptedContent(t *testing.T) {
+	// Field 2 (salt) only — field 1 (encrypted content) absent.
+	f := filepath.Join(t.TempDir(), "root.key")
+	if err := os.WriteFile(f, []byte{0x12, 0x04, 's', 'a', 'l', 't'}, 0o600); err != nil {
+		t.Fatalf("WriteFile: %v", err)
+	}
+	if err := ValidateRootKeyFile(f); err == nil || err.Error() != "root.key is missing encrypted content" {
+		t.Fatalf("ValidateRootKeyFile() = %v, want missing encrypted content", err)
+	}
+}
+
+func TestValidateRootKeyFileMissingSalt(t *testing.T) {
+	// Field 1 (encrypted content) only — field 2 (salt) absent.
+	f := filepath.Join(t.TempDir(), "root.key")
+	if err := os.WriteFile(f, []byte{0x0A, 0x04, 't', 'e', 's', 't'}, 0o600); err != nil {
+		t.Fatalf("WriteFile: %v", err)
+	}
+	if err := ValidateRootKeyFile(f); err == nil || err.Error() != "root.key is missing salt" {
+		t.Fatalf("ValidateRootKeyFile() = %v, want missing salt", err)
+	}
+}
+
+func TestResolveAndValidateRootKeySkipsInvalidCanonicalPicksValidDotless(t *testing.T) {
+	configHome := t.TempDir()
+	t.Setenv("XDG_CONFIG_HOME", configHome)
+
+	canonicalDir := filepath.Join(configHome, "knirv-server", ".key")
+	if err := os.MkdirAll(canonicalDir, 0o700); err != nil {
+		t.Fatalf("MkdirAll: %v", err)
+	}
+	canonicalPath := filepath.Join(canonicalDir, "root.key")
+	// Place an invalid file at the canonical .key/ location.
+	if err := os.WriteFile(canonicalPath, []byte("invalid"), 0o600); err != nil {
+		t.Fatalf("WriteFile(canonical): %v", err)
+	}
+
+	// Place a valid envelope at the non-dotkey sibling location.
+	dotlessPath := filepath.Join(configHome, "knirv-server", "root.key")
+	if err := os.WriteFile(dotlessPath, validEnvelope(), 0o600); err != nil {
+		t.Fatalf("WriteFile(dotless): %v", err)
+	}
+
+	got, err := ResolveAndValidateRootKey("")
+	if err != nil {
+		t.Fatalf("ResolveAndValidateRootKey() error = %v", err)
+	}
+	if got != dotlessPath {
+		t.Fatalf("ResolveAndValidateRootKey() = %q, want dotless path %q", got, dotlessPath)
+	}
+}
+
+func TestResolveAndValidateRootKeyPrefersCanonicalOverDotless(t *testing.T) {
+	configHome := t.TempDir()
+	t.Setenv("XDG_CONFIG_HOME", configHome)
+
+	canonicalPath := filepath.Join(configHome, "knirv-server", ".key", "root.key")
+	if err := os.MkdirAll(filepath.Dir(canonicalPath), 0o700); err != nil {
+		t.Fatalf("MkdirAll: %v", err)
+	}
+	if err := os.WriteFile(canonicalPath, validEnvelope(), 0o600); err != nil {
+		t.Fatalf("WriteFile(canonical): %v", err)
+	}
+
+	dotlessPath := filepath.Join(configHome, "knirv-server", "root.key")
+	if err := os.WriteFile(dotlessPath, validEnvelope(), 0o600); err != nil {
+		t.Fatalf("WriteFile(dotless): %v", err)
+	}
+
+	got, err := ResolveAndValidateRootKey("")
+	if err != nil {
+		t.Fatalf("ResolveAndValidateRootKey() error = %v", err)
+	}
+	if got != canonicalPath {
+		t.Fatalf("ResolveAndValidateRootKey() = %q, want canonical path %q", got, canonicalPath)
+	}
+}
+
+func TestValidateRootKeyFileTruncatedVarint(t *testing.T) {
+	// A length-delimited tag followed by a varint length with the high bit
+	// set and no continuation byte (truncated varint).
+	f := filepath.Join(t.TempDir(), "root.key")
+	if err := os.WriteFile(f, []byte{0x0A, 0x80}, 0o600); err != nil {
+		t.Fatalf("WriteFile: %v", err)
+	}
+	if err := ValidateRootKeyFile(f); err == nil {
+		t.Fatalf("ValidateRootKeyFile() = nil, want error for truncated varint")
+	}
+}
+
+func TestValidateRootKeyFileUnsupportedWireType(t *testing.T) {
+	// Tag with wire type 3 (start group) — not supported by the parser.
+	// field 1, wire type 3: tag = (1 << 3) | 3 = 0x0B.
+	f := filepath.Join(t.TempDir(), "root.key")
+	if err := os.WriteFile(f, []byte{0x0B, 0x00}, 0o600); err != nil {
+		t.Fatalf("WriteFile: %v", err)
+	}
+	if err := ValidateRootKeyFile(f); err == nil {
+		t.Fatalf("ValidateRootKeyFile() = nil, want error for unsupported wire type")
+	}
+}
+
+func TestValidateRootKeyFileTruncatedLengthDelimitedField(t *testing.T) {
+	// Field 1 claims 10 bytes but only 2 are present.
+	f := filepath.Join(t.TempDir(), "root.key")
+	if err := os.WriteFile(f, []byte{0x0A, 0x0A, 0x01, 0x02}, 0o600); err != nil {
+		t.Fatalf("WriteFile: %v", err)
+	}
+	if err := ValidateRootKeyFile(f); err == nil {
+		t.Fatalf("ValidateRootKeyFile() = nil, want error for truncated length-delimited field")
+	}
+}

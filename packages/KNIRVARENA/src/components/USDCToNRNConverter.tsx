@@ -6,6 +6,7 @@
 import React, { useState, useEffect } from 'react';
 import { DollarSign, Coins, ArrowRight, CheckCircle, AlertCircle, Loader } from 'lucide-react';
 import { useAbstraxionWallet, ConversionResult } from '../services/AbstraxionWalletService';
+import { knirvbaseService } from '../services/KNIRVBASEService';
 
 interface ConversionRequest {
   usdcAmount: string;
@@ -101,11 +102,11 @@ export default function USDCToNRNConverter() {
     }
   };
 
-  // Store conversion record (in-memory for now, TODO: persist to KNIRVBASE)
+  // Persist conversion record to KNIRVBASE (CLEAN-11: replaces the log-only stub)
   const storeConversionInDatabase = async (result: ConversionResult) => {
     try {
-      // Log conversion record
-      console.log('Conversion recorded:', {
+      await knirvbaseService.initialize().catch(() => undefined);
+      await knirvbaseService.saveConversion({
         id: result.transactionId,
         type: 'conversion',
         walletId: account?.id || 'default',

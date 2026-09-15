@@ -3,21 +3,23 @@ package drq
 import (
 	"testing"
 	"time"
+
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 func TestErrorNodeInstantiation(t *testing.T) {
 	node := ErrorNode{
-		ID:              "test-id",
-		NRVSource:       "nrv-source",
+		Id:              "test-id",
+		NrvSource:       "nrv-source",
 		Description:     "test error",
 		FailureContext:  []byte("context"),
 		Domain:          "testing",
 		Complexity:      50,
 		ResolvedBy:      "skill-id",
-		Timestamp:       time.Now(),
-		Metadata:        make(map[string]interface{}),
+		Timestamp:       timestamppb.New(time.Now()),
+		Metadata:        nil, // *structpb.Struct; nil is a valid absent value
 		Embedding:       make([]float64, 768),
-		ClusterID:       "cluster-1",
+		ClusterId:       "cluster-1",
 		Priority:        0.9,
 		QueuePosition:   1,
 		AdaptationRound: 1,
@@ -25,7 +27,7 @@ func TestErrorNodeInstantiation(t *testing.T) {
 		PhenotypeDrift:  make([]float64, 10),
 	}
 	// Dummy reads to satisfy unusedwrite analyzer
-	_ = node.NRVSource
+	_ = node.NrvSource
 	_ = node.Description
 	_ = node.FailureContext
 	_ = node.Domain
@@ -34,14 +36,14 @@ func TestErrorNodeInstantiation(t *testing.T) {
 	_ = node.Timestamp
 	_ = node.Metadata
 	_ = node.Embedding
-	_ = node.ClusterID
+	_ = node.ClusterId
 	_ = node.Priority
 	_ = node.QueuePosition
 	_ = node.AdaptationRound
 	_ = node.GenerationScore
 	_ = node.PhenotypeDrift
-	if node.ID != "test-id" {
-		t.Errorf("Expected ID to be 'test-id', got %s", node.ID)
+	if node.Id != "test-id" {
+		t.Errorf("Expected ID to be 'test-id', got %s", node.Id)
 	}
 }
 

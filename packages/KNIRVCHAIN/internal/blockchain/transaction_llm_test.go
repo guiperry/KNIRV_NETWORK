@@ -70,10 +70,8 @@ func TestNewLLMRootingTransaction(t *testing.T) {
 	assert.NotEmpty(t, tx.TransactionHash)
 	assert.True(t, tx.Timestamp > 0)
 
-	// Verify data was serialized correctly
-	var deserializedData LLMRootingData
-	err = json.Unmarshal(tx.Data, &deserializedData)
-	require.NoError(t, err)
+	// Verify data was serialized correctly (LLM rooting payload uses protobuf)
+	deserializedData := llmRootingDataFromTx(t, tx)
 	assert.Equal(t, llmData.ModelName, deserializedData.ModelName)
 	assert.Equal(t, llmData.ModelOwner, deserializedData.ModelOwner)
 	assert.Equal(t, llmData.APIEndpoint, deserializedData.APIEndpoint)
@@ -157,6 +155,19 @@ func TestLLMRootingTransactionValidation(t *testing.T) {
 			tx, err := NewLLMRootingTransaction(tt.from, tt.llmData, 100)
 			require.NoError(t, err)
 
+			// The valid case must carry a real signature: the hardened code
+			// rejects unsigned transactions with "signature is nil or empty".
+			// Use a fresh signer whose address is both sender and model owner.
+			var signer *testSigner
+			if !tt.expectError {
+				signer = newTestSigner(t)
+				llmData := tt.llmData
+				llmData.ModelOwner = signer.address
+				tx, err = NewLLMRootingTransaction(signer.address, llmData, 100)
+				require.NoError(t, err)
+				tx = signer.signTransaction(t, tx)
+			}
+
 			valid := tx.VerifyTxn()
 			if tt.expectError {
 				assert.False(t, valid)
@@ -182,13 +193,11 @@ func TestCMUConsistency(t *testing.T) {
 	// Should be identical
 	assert.Equal(t, cmu1, cmu2)
 
-	// Create transaction and verify CMU matches
+	// Create transaction and verify CMU matches (payload is protobuf)
 	tx, err := NewLLMRootingTransaction(llmData.ModelOwner, llmData, 100)
 	require.NoError(t, err)
 
-	var txData LLMRootingData
-	err = json.Unmarshal(tx.Data, &txData)
-	require.NoError(t, err)
+	txData := llmRootingDataFromTx(t, tx)
 
 	assert.Equal(t, cmu1, txData.CMU)
 }
@@ -223,6 +232,8 @@ func TestLLMRootingDataSerialization(t *testing.T) {
 		APIEndpoint: "https://api.openai.com/v1/chat/completions",
 		MetadataCID: "Qm123456789abcdef",
 	}
+	// CMU is generated for a rooted model, so it should survive serialization
+	original.CMU = GenerateCMU(original, "mainnet")
 
 	// Serialize
 	data, err := json.Marshal(original)

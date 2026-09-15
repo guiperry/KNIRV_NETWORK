@@ -302,7 +302,21 @@ func (db *LevelDB) Close() error {
 	return db.Client.Close()
 }
 
-// Path returns the filesystem path of the database
+// CompactRange compacts the given key range.
+//
+// It exists so *LevelDB satisfies database.LevelDBManager, which the graph
+// layer (internal/graph) and therefore the mining pipelines
+// (internal/mining) are built against. Without it those packages can only be
+// constructed from a different LevelDB wrapper, which is why they had no
+// callers in the chain binary.
+func (db *LevelDB) CompactRange(start, limit []byte) error {
+	if db == nil || db.Client == nil {
+		return fmt.Errorf("leveldb is not open")
+	}
+	return db.Client.CompactRange(util.Range{Start: start, Limit: limit})
+}
+
+// Path returns the database's filesystem path.
 func (db *LevelDB) Path() string {
 	return db.path
 }

@@ -1,6 +1,7 @@
 package network
 
 import (
+	"KNIRVGRAPH/internal/drq"
 	"KNIRVGRAPH/internal/economics"
 	"KNIRVGRAPH/internal/indexing"
 	graphmetrics "KNIRVGRAPH/internal/metrics"
@@ -60,6 +61,23 @@ type AppInterface interface {
 	GetIndexManager() *indexing.IndexManager
 	GetQueryProcessor() *query.QueryProcessor
 	SubsystemHealth(context.Context) map[string]error
+	// DRQStatus reports the knowledge-mining loop's state. It is part of the
+	// interface so the loop's health is served over the API rather than being
+	// inspectable only from logs.
+	DRQStatus() drq.Status
+}
+
+// getDRQStatus serves the DRQ knowledge-mining loop's state.
+func (rpc *RPCServer) getDRQStatus(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	if rpc.app == nil {
+		json.NewEncoder(w).Encode(drq.Status{
+			Enabled:        false,
+			DisabledReason: "no application reference on this RPC server",
+		})
+		return
+	}
+	json.NewEncoder(w).Encode(rpc.app.DRQStatus())
 }
 
 func NewRPCServer(gc GraphChainInterface, logger *zap.Logger, port int) *RPCServer {
@@ -115,6 +133,7 @@ func NewRPCServerWithNRV(gc GraphChainInterface, nrvSys *nrv.NRVSystem, logger *
 	router.HandleFunc("/nrv/errors/commit", rpc.createErrorCommit).Methods("POST", "OPTIONS")
 	router.HandleFunc("/nrv/skills", rpc.getAllSkills).Methods("GET", "OPTIONS")
 	router.HandleFunc("/nrv/skills", rpc.createSkill).Methods("POST", "OPTIONS")
+	router.HandleFunc("/nrv/skills/{skillID}", rpc.deleteSkill).Methods("DELETE", "OPTIONS")
 	router.HandleFunc("/nrv/skills/for-error/{errorType}", rpc.getSkillsForError).Methods("GET", "OPTIONS")
 
 	rpc.server = &http.Server{
@@ -183,6 +202,12 @@ func NewRPCServerWithEconomics(gc GraphChainInterface, nrvSys *nrv.NRVSystem, nr
 	router.HandleFunc("/kb/indexes", rpc.listKBIndexes).Methods("GET", "OPTIONS")
 	router.HandleFunc("/kb/index/{kbID}", rpc.deleteKBIndex).Methods("DELETE", "OPTIONS")
 
+	// Register DRQ knowledge-mining status. This is how the mining loop is
+	// observable in a running node: it reports whether the loop is enabled,
+	// which stage each cluster is at, and the current blocker for any cluster
+	// that cannot advance.
+	router.HandleFunc("/drq/status", rpc.getDRQStatus).Methods("GET", "OPTIONS")
+
 	// Register NRV routes (always — returns demo data when NRV system is unavailable)
 	router.HandleFunc("/nrv/vectors", rpc.getAllVectors).Methods("GET", "OPTIONS")
 	router.HandleFunc("/nrv/vectors", rpc.createVector).Methods("POST", "OPTIONS")
@@ -192,6 +217,7 @@ func NewRPCServerWithEconomics(gc GraphChainInterface, nrvSys *nrv.NRVSystem, nr
 	router.HandleFunc("/nrv/errors/commit", rpc.createErrorCommit).Methods("POST", "OPTIONS")
 	router.HandleFunc("/nrv/skills", rpc.getAllSkills).Methods("GET", "OPTIONS")
 	router.HandleFunc("/nrv/skills", rpc.createSkill).Methods("POST", "OPTIONS")
+	router.HandleFunc("/nrv/skills/{skillID}", rpc.deleteSkill).Methods("DELETE", "OPTIONS")
 	router.HandleFunc("/nrv/skills/for-error/{errorType}", rpc.getSkillsForError).Methods("GET", "OPTIONS")
 
 	// Register existing NRV routes (from original implementation)
@@ -722,7 +748,7 @@ func (rpc *RPCServer) createErrorCommit(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	rpc.logger.Info("ErrorNode committed via validation-proof-style envelope",
-		zap.String("error_id", errorNode.ID), zap.String("error_root", commit.ErrorRoot),
+		zap.String("error_id", errorNode.Id), zap.String("error_root", commit.ErrorRoot),
 		zap.String("signer_id", commit.SignerID), zap.String("project_id", commit.ProjectID),
 		zap.String("session_id", commit.SessionID),
 	)
@@ -757,6 +783,7 @@ func (rpc *RPCServer) createSkill(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("X-KNIRV-Deprecated", "KNIRVGRAPH SkillNode is deprecated; register skills on KNIRVCHAIN instead")
 
 	var req struct {
+		SkillID      string                 `json:"skill_id"`
 		SkillType    string                 `json:"skill_type"`
 		Capabilities []string               `json:"capabilities"`
 		Requirements map[string]interface{} `json:"requirements"`
@@ -772,12 +799,45 @@ func (rpc *RPCServer) createSkill(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(map[string]interface{}{"status": "created", "skill_id": "skill_demo_" + req.SkillType, "skill_type": req.SkillType, "message": "demo skill created"})
 		return
 	}
-	skillNode, err := rpc.nrvSystem.CreateSkillNode(req.SkillType, req.Capabilities, req.Requirements)
+	// A caller-supplied skill_id preserves the identity of a DRQ-mined skill
+	// (whose ID is derived from its resolved cluster) so the KNIRVGRAPH-side
+	// mint can later be addressed and rolled back by ID. Absent an explicit
+	// ID, the derived-ID path is used, exactly as before.
+	var (
+		skillNode *nrv.SkillNode
+		err       error
+	)
+	if req.SkillID != "" {
+		skillNode, err = rpc.nrvSystem.CreateSkillNodeWithID(req.SkillID, req.SkillType, req.Capabilities, req.Requirements)
+	} else {
+		skillNode, err = rpc.nrvSystem.CreateSkillNode(req.SkillType, req.Capabilities, req.Requirements)
+	}
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	json.NewEncoder(w).Encode(skillNode)
+}
+
+// deleteSkill rolls back a KNIRVGRAPH-registered skill record by ID. DRQ uses
+// it (via KNIRVGRAPHClient.RevertSkillMinting) when a later step of the
+// cross-chain mint chain fails and the in-flight mint has to be undone.
+func (rpc *RPCServer) deleteSkill(w http.ResponseWriter, r *http.Request) {
+	skillID := mux.Vars(r)["skillID"]
+	if strings.TrimSpace(skillID) == "" {
+		http.Error(w, "skill id is required", http.StatusBadRequest)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if rpc.nrvSystem == nil {
+		json.NewEncoder(w).Encode(map[string]interface{}{"status": "reverted", "skill_id": skillID})
+		return
+	}
+	if err := rpc.nrvSystem.DeleteSkillNode(skillID); err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
+	json.NewEncoder(w).Encode(map[string]interface{}{"status": "reverted", "skill_id": skillID})
 }
 
 func (rpc *RPCServer) getSkillsForError(w http.ResponseWriter, r *http.Request) {

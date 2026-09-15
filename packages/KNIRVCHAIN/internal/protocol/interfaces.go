@@ -11,15 +11,15 @@ type ProtocolAdapter interface {
 	// Protocol operations
 	AdaptRequest(request *ProtocolRequest) (*AdaptedRequest, error)
 	AdaptResponse(response *ProtocolResponse) (*AdaptedResponse, error)
-	
+
 	// Protocol conversion
 	ConvertToProtocol(data interface{}, targetProtocol string) (interface{}, error)
 	ConvertFromProtocol(data interface{}, sourceProtocol string) (interface{}, error)
-	
+
 	// Protocol validation
 	ValidateProtocol(data interface{}, protocol string) error
 	GetSupportedProtocols() []string
-	
+
 	// Lifecycle
 	Start(ctx context.Context) error
 	Stop() error
@@ -30,13 +30,13 @@ type ProtocolConverter interface {
 	// Conversion operations
 	Convert(input *ConversionInput) (*ConversionOutput, error)
 	ConvertBatch(inputs []*ConversionInput) ([]*ConversionOutput, error)
-	
+
 	// Format operations
 	RegisterFormat(format *ProtocolFormat) error
 	UnregisterFormat(formatName string) error
 	GetFormat(formatName string) (*ProtocolFormat, error)
 	ListFormats() ([]*ProtocolFormat, error)
-	
+
 	// Validation
 	ValidateFormat(data interface{}, formatName string) error
 	DetectFormat(data interface{}) (string, error)
@@ -47,21 +47,21 @@ type RelayManager interface {
 	// Relay operations
 	RelayMessage(message *RelayMessage) error
 	RelayBatch(messages []*RelayMessage) error
-	
+
 	// Route management
 	AddRoute(route *RelayRoute) error
 	RemoveRoute(routeID string) error
 	GetRoute(routeID string) (*RelayRoute, error)
 	ListRoutes() ([]*RelayRoute, error)
-	
+
 	// Relay monitoring
 	GetRelayStats() (*RelayStats, error)
 	GetRouteStats(routeID string) (*RouteStats, error)
-	
+
 	// Event handling
 	OnMessageRelayed(handler RelayHandler) error
 	OnRelayError(handler ErrorHandler) error
-	
+
 	// Lifecycle
 	Start(ctx context.Context) error
 	Stop() error
@@ -71,25 +71,25 @@ type RelayManager interface {
 type ProxyManager interface {
 	// Proxy operations
 	HandleRequest(request *http.Request) (*http.Response, error)
-	
+
 	// Target management
 	AddTarget(target *ProxyTarget) error
 	RemoveTarget(targetID string) error
 	GetTarget(targetID string) (*ProxyTarget, error)
 	ListTargets() ([]*ProxyTarget, error)
-	
+
 	// Load balancing
 	SetLoadBalancer(balancer LoadBalancer) error
 	GetLoadBalancer() LoadBalancer
-	
+
 	// Health checking
 	CheckTargetHealth(targetID string) (*HealthStatus, error)
 	GetHealthyTargets() ([]*ProxyTarget, error)
-	
+
 	// Middleware
 	AddMiddleware(middleware Middleware) error
 	RemoveMiddleware(middlewareID string) error
-	
+
 	// Lifecycle
 	Start(ctx context.Context) error
 	Stop() error
@@ -139,11 +139,11 @@ type AdaptedResponse struct {
 
 // ConversionInput represents input for protocol conversion
 type ConversionInput struct {
-	Data           interface{}            `json:"data"`
-	SourceFormat   string                 `json:"source_format"`
-	TargetFormat   string                 `json:"target_format"`
-	Options        map[string]interface{} `json:"options,omitempty"`
-	Metadata       map[string]interface{} `json:"metadata,omitempty"`
+	Data         interface{}            `json:"data"`
+	SourceFormat string                 `json:"source_format"`
+	TargetFormat string                 `json:"target_format"`
+	Options      map[string]interface{} `json:"options,omitempty"`
+	Metadata     map[string]interface{} `json:"metadata,omitempty"`
 }
 
 // ConversionOutput represents output from protocol conversion
@@ -220,33 +220,33 @@ type RelayStats struct {
 
 // RouteStats represents statistics for a specific route
 type RouteStats struct {
-	RouteID         string        `json:"route_id"`
-	MessageCount    int64         `json:"message_count"`
-	SuccessCount    int64         `json:"success_count"`
-	ErrorCount      int64         `json:"error_count"`
-	AverageLatency  time.Duration `json:"average_latency"`
-	LastMessage     time.Time     `json:"last_message"`
+	RouteID        string        `json:"route_id"`
+	MessageCount   int64         `json:"message_count"`
+	SuccessCount   int64         `json:"success_count"`
+	ErrorCount     int64         `json:"error_count"`
+	AverageLatency time.Duration `json:"average_latency"`
+	LastMessage    time.Time     `json:"last_message"`
 }
 
 // ProxyTarget represents a proxy target
 type ProxyTarget struct {
-	ID       string            `json:"id"`
-	Name     string            `json:"name"`
-	URL      string            `json:"url"`
-	Weight   int               `json:"weight"`
-	Enabled  bool              `json:"enabled"`
-	Headers  map[string]string `json:"headers,omitempty"`
-	Timeout  time.Duration     `json:"timeout"`
+	ID       string                 `json:"id"`
+	Name     string                 `json:"name"`
+	URL      string                 `json:"url"`
+	Weight   int                    `json:"weight"`
+	Enabled  bool                   `json:"enabled"`
+	Headers  map[string]string      `json:"headers,omitempty"`
+	Timeout  time.Duration          `json:"timeout"`
 	Metadata map[string]interface{} `json:"metadata,omitempty"`
 }
 
 // HealthStatus represents the health status of a target
 type HealthStatus struct {
-	TargetID    string        `json:"target_id"`
-	Healthy     bool          `json:"healthy"`
-	LastCheck   time.Time     `json:"last_check"`
+	TargetID     string        `json:"target_id"`
+	Healthy      bool          `json:"healthy"`
+	LastCheck    time.Time     `json:"last_check"`
 	ResponseTime time.Duration `json:"response_time"`
-	Error       string        `json:"error,omitempty"`
+	Error        string        `json:"error,omitempty"`
 }
 
 // LoadBalancer defines the interface for load balancing
@@ -287,27 +287,27 @@ type ProtocolEvent struct {
 
 // ProtocolMetrics represents protocol metrics
 type ProtocolMetrics struct {
-	RequestCount      int64         `json:"request_count"`
-	ResponseCount     int64         `json:"response_count"`
-	ErrorCount        int64         `json:"error_count"`
-	AverageLatency    time.Duration `json:"average_latency"`
-	ConversionCount   int64         `json:"conversion_count"`
-	RelayCount        int64         `json:"relay_count"`
-	ProxyCount        int64         `json:"proxy_count"`
-	LastActivity      time.Time     `json:"last_activity"`
+	RequestCount    int64         `json:"request_count"`
+	ResponseCount   int64         `json:"response_count"`
+	ErrorCount      int64         `json:"error_count"`
+	AverageLatency  time.Duration `json:"average_latency"`
+	ConversionCount int64         `json:"conversion_count"`
+	RelayCount      int64         `json:"relay_count"`
+	ProxyCount      int64         `json:"proxy_count"`
+	LastActivity    time.Time     `json:"last_activity"`
 }
 
 // ProtocolConfig represents protocol configuration
 type ProtocolConfig struct {
-	DefaultProtocol   string                 `json:"default_protocol"`
-	SupportedProtocols []string              `json:"supported_protocols"`
-	ConversionEnabled bool                   `json:"conversion_enabled"`
-	RelayEnabled      bool                   `json:"relay_enabled"`
-	ProxyEnabled      bool                   `json:"proxy_enabled"`
-	MaxMessageSize    int64                  `json:"max_message_size"`
-	Timeout           time.Duration          `json:"timeout"`
-	RetryAttempts     int                    `json:"retry_attempts"`
-	Options           map[string]interface{} `json:"options,omitempty"`
+	DefaultProtocol    string                 `json:"default_protocol"`
+	SupportedProtocols []string               `json:"supported_protocols"`
+	ConversionEnabled  bool                   `json:"conversion_enabled"`
+	RelayEnabled       bool                   `json:"relay_enabled"`
+	ProxyEnabled       bool                   `json:"proxy_enabled"`
+	MaxMessageSize     int64                  `json:"max_message_size"`
+	Timeout            time.Duration          `json:"timeout"`
+	RetryAttempts      int                    `json:"retry_attempts"`
+	Options            map[string]interface{} `json:"options,omitempty"`
 }
 
 // Event handler function types

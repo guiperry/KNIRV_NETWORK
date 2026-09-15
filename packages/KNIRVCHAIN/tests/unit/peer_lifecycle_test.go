@@ -1,5 +1,5 @@
 // node_lifecycle_test.go
-package main
+package unit
 
 import (
 	"KNIRVCHAIN/config" // Adjust import path

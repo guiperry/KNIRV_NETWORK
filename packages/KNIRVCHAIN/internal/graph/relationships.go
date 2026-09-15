@@ -13,24 +13,24 @@ import (
 type RelationshipType string
 
 const (
-	RelationshipTypeErrorToSkill     RelationshipType = "error_to_skill"
+	RelationshipTypeErrorToSkill        RelationshipType = "error_to_skill"
 	RelationshipTypeContextToCapability RelationshipType = "context_to_capability"
-	RelationshipTypeIdeaToProperty    RelationshipType = "idea_to_property"
-	RelationshipTypeDependency        RelationshipType = "dependency"
-	RelationshipTypeReference         RelationshipType = "reference"
-	RelationshipTypeDerivedFrom       RelationshipType = "derived_from"
+	RelationshipTypeIdeaToProperty      RelationshipType = "idea_to_property"
+	RelationshipTypeDependency          RelationshipType = "dependency"
+	RelationshipTypeReference           RelationshipType = "reference"
+	RelationshipTypeDerivedFrom         RelationshipType = "derived_from"
 )
 
 // Relationship represents a relationship between two nodes
 type Relationship struct {
-	ID             string           `json:"id"`
-	FromNodeID     string           `json:"from_node_id"`
-	FromNodeType   string           `json:"from_node_type"`
-	ToNodeID       string           `json:"to_node_id"`
-	ToNodeType     string           `json:"to_node_type"`
-	RelationshipType RelationshipType `json:"relationship_type"`
-	Metadata       map[string]interface{} `json:"metadata,omitempty"`
-	CreatedAt      int64            `json:"created_at"`
+	ID               string                 `json:"id"`
+	FromNodeID       string                 `json:"from_node_id"`
+	FromNodeType     string                 `json:"from_node_type"`
+	ToNodeID         string                 `json:"to_node_id"`
+	ToNodeType       string                 `json:"to_node_type"`
+	RelationshipType RelationshipType       `json:"relationship_type"`
+	Metadata         map[string]interface{} `json:"metadata,omitempty"`
+	CreatedAt        int64                  `json:"created_at"`
 }
 
 // RelationshipManager manages node relationships
@@ -301,10 +301,10 @@ func (rm *RelationshipManager) TraverseFromNode(nodeType, nodeID string, maxDept
 
 		// Add current node to results
 		results = append(results, &TraversalResult{
-			NodeType:   current.NodeType,
-			NodeID:     current.NodeID,
-			Depth:      current.Depth,
-			Path:       append([]string{}, current.Path...),
+			NodeType: current.NodeType,
+			NodeID:   current.NodeID,
+			Depth:    current.Depth,
+			Path:     append([]string{}, current.Path...),
 		})
 
 		// Stop if we've reached max depth
