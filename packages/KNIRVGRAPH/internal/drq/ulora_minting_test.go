@@ -103,7 +103,7 @@ func TestGatherClusterDatasetsSkipsUnresolvedAndFailsWhenEmpty(t *testing.T) {
 }
 
 func TestTargetModelsForCorpus(t *testing.T) {
-	spec := ULoRATargetModel{Family: "llama", ParamCount: "8b", HiddenSize: 4096, NumLayers: 32}
+	spec := ULoRATargetModel{Family: "llama", ParamCount: "8b", HiddenSize: 4096, IntermediateSize: 11008, NumLayers: 32, AttentionMechanism: "gqa", ActivationFunc: "silu"}
 	dataset := []ULoRADatasetRecord{
 		{TargetModel: "llama-3-8b"},
 		{TargetModel: "llama-3-8b"},
@@ -124,7 +124,7 @@ func TestTargetModelsForCorpus(t *testing.T) {
 	}
 
 	// An incomplete spec is equally unusable.
-	if _, err := targetModelsForCorpus(dataset, map[string]ULoRATargetModel{"llama-3-8b": {Family: "llama"}}); err == nil {
+	if _, err := targetModelsForCorpus(dataset, map[string]ULoRATargetModel{"llama-3-8b": {Family: "llama", AttentionMechanism: "gqa", ActivationFunc: "silu"}}); err == nil {
 		t.Fatal("incomplete architecture spec must error")
 	}
 }
@@ -170,7 +170,7 @@ func TestKNIRVULORAClientCompile(t *testing.T) {
 	client := NewKNIRVULORAClient(socketPath)
 	result, err := client.CompileCluster(context.Background(), "cluster-1",
 		[]ULoRADatasetRecord{{Context: "ctx", CorrectedCompletion: "fix", TargetModel: "llama-3-8b"}},
-		[]ULoRATargetModel{{Family: "llama", HiddenSize: 4096, NumLayers: 32}},
+		[]ULoRATargetModel{{Family: "llama", HiddenSize: 4096, NumLayers: 32, AttentionMechanism: "gqa", ActivationFunc: "silu"}},
 		ULoRAProvenance{SourceID: "cluster-1", SourceDatasetIDs: []string{"e1"}})
 	if err != nil {
 		t.Fatalf("compile: %v", err)
@@ -198,7 +198,7 @@ func TestKNIRVULORAClientRejectsIncompleteResult(t *testing.T) {
 	client := NewKNIRVULORAClient(socketPath)
 	_, err := client.CompileCluster(context.Background(), "cluster-1",
 		[]ULoRADatasetRecord{{Context: "c", CorrectedCompletion: "f", TargetModel: "m"}},
-		[]ULoRATargetModel{{Family: "llama", HiddenSize: 4096, NumLayers: 32}},
+		[]ULoRATargetModel{{Family: "llama", HiddenSize: 4096, NumLayers: 32, AttentionMechanism: "gqa", ActivationFunc: "silu"}},
 		ULoRAProvenance{})
 	if err == nil {
 		t.Fatal("a result with no content hash must be rejected")

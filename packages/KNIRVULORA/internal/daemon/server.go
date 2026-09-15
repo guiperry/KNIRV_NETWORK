@@ -49,6 +49,13 @@ func NewServer(cfg *config.Config) (*Server, error) {
 	mux.Handle("/ulora/v1/validate-manifest", s.authMiddleware(http.HandlerFunc(s.handleValidateManifest)))
 	mux.Handle("/ulora/v1/compile-cluster", s.authMiddleware(http.HandlerFunc(s.handleCompileCluster)))
 	mux.Handle("/ulora/v1/transfer", s.authMiddleware(http.HandlerFunc(s.handleTransfer)))
+	// Per-request adapter projection: a caller names a bundle and a target model
+	// and gets the LoRA A/B matrices. Authenticated like the other routes that
+	// do real work.
+	mux.Handle("/ulora/v1/bind", s.authMiddleware(http.HandlerFunc(s.handleBind)))
+	// Connectors are derived once per model and cached, so a skill binds to any
+	// model the cache can serve without the bundle knowing the model existed.
+	mux.Handle("/ulora/v1/connectors/derive", s.authMiddleware(http.HandlerFunc(s.handleDeriveConnector)))
 
 	return s, nil
 }
@@ -156,7 +163,12 @@ func (s *Server) handleCompileCluster(w http.ResponseWriter, r *http.Request) {
 		clusterID = fmt.Sprintf("cluster-%d", time.Now().UnixNano())
 	}
 
-	resp, err := s.compiler.CompileCluster(clusterID, req.Dataset, req.TargetModels, provenance)
+	resp, err := s.compiler.CompileCluster(clusterID, req.Dataset, req.TargetModels, provenance, compiler.CompileParams{
+		Rank:         rank,
+		Alpha:        alpha,
+		LearningRate: lr,
+		Epochs:       epochs,
+	})
 	if err != nil {
 		http.Error(w, fmt.Sprintf("compile failed: %v", err), http.StatusInternalServerError)
 		return

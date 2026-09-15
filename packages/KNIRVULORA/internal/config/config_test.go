@@ -154,11 +154,11 @@ func TestLoadVenvDirDefaults(t *testing.T) {
 
 func TestConfigFields(t *testing.T) {
 	c := &Config{
-		SocketPath:    "/tmp/test.sock",
-		AuthToken:     "token",
-		DataDir:       "/tmp/data",
-		PythonBin:     "python3",
-		VenvDir:       "/tmp/venv",
+		SocketPath:     "/tmp/test.sock",
+		AuthToken:      "token",
+		DataDir:        "/tmp/data",
+		PythonBin:      "python3",
+		VenvDir:        "/tmp/venv",
 		RequestTimeout: 60 * time.Second,
 	}
 

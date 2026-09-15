@@ -15,11 +15,12 @@ const (
 )
 
 type Config struct {
-	SocketPath   string
-	AuthToken    string
-	DataDir      string
-	PythonBin    string
-	VenvDir      string
+	SocketPath     string
+	AuthToken      string
+	DataDir        string
+	PythonBin      string
+	VenvDir        string
+	ConnectorDir   string
 	RequestTimeout time.Duration
 }
 
@@ -37,6 +38,14 @@ func Load() (*Config, error) {
 	dataDir := strings.TrimSpace(os.Getenv("ULORA_DATA_DIR"))
 	if dataDir == "" {
 		dataDir = defaultDataDir
+	}
+
+	// Connectors are cached per model rather than carried in bundles, so the
+	// directory is separate from bundles/ and survives them: rebuilding every
+	// skill should not re-derive the same projections.
+	connectorDir := strings.TrimSpace(os.Getenv("ULORA_CONNECTOR_DIR"))
+	if connectorDir == "" {
+		connectorDir = filepath.Join(dataDir, "connectors")
 	}
 
 	pythonBin := strings.TrimSpace(os.Getenv("ULORA_PYTHON_BIN"))
@@ -58,11 +67,12 @@ func Load() (*Config, error) {
 	}
 
 	return &Config{
-		SocketPath:    socketPath,
-		AuthToken:     authToken,
-		DataDir:       dataDir,
-		PythonBin:     pythonBin,
-		VenvDir:       venvDir,
+		SocketPath:     socketPath,
+		AuthToken:      authToken,
+		DataDir:        dataDir,
+		PythonBin:      pythonBin,
+		VenvDir:        venvDir,
+		ConnectorDir:   connectorDir,
 		RequestTimeout: timeout,
 	}, nil
 }

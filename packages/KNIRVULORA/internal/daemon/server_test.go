@@ -19,11 +19,11 @@ func newTestConfig(t *testing.T) *config.Config {
 	tmpDir := t.TempDir()
 	socketPath := filepath.Join(tmpDir, "test.sock")
 	return &config.Config{
-		SocketPath:    socketPath,
-		AuthToken:     "test-token-123",
-		DataDir:       tmpDir,
-		PythonBin:     "python3",
-		VenvDir:       "",
+		SocketPath:     socketPath,
+		AuthToken:      "test-token-123",
+		DataDir:        tmpDir,
+		PythonBin:      "python3",
+		VenvDir:        "",
 		RequestTimeout: 30,
 	}
 }

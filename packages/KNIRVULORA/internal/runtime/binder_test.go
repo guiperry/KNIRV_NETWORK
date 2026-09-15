@@ -4,10 +4,12 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"ulora/internal/api"
 	"ulora/internal/bundling"
+	"ulora/internal/safetensors"
 )
 
 func validManifestForTest() api.Manifest {
@@ -34,7 +36,7 @@ func validManifestForTest() api.Manifest {
 		CanonicalCore: api.CanonicalCore{
 			AdapterRank:        16,
 			ScalingFactorAlpha: 32.0,
-			TargetModules:      []string{"q_proj", "v_proj"},
+			CanonicalDim:       1024, TargetModules: []string{"q_proj", "v_proj"},
 		},
 		RoutingPolicy: api.RoutingPolicy{
 			SimilarityThreshold:  0.82,
@@ -197,98 +199,68 @@ func TestBinderBindMismatchTopology(t *testing.T) {
 	}
 }
 
-func TestDeterminePrefix(t *testing.T) {
-	target := api.BaseModelSpec{
-		Family:     "Llama-2",
-		ParamCount: "7B",
+// tensorMatrix reads real binary safetensors, which is what the compiler writes
+// (safetensors.numpy.save_file). The previous extractTensor took a
+// map[string]interface{} of [][]float32, a shape JSON decoding never produces —
+// so its assertion always failed and the caller silently fell back to a
+// fabricated zero matrix.
+func TestTensorMatrixFromSafetensors(t *testing.T) {
+	raw, err := safetensors.Write(map[string][][]float32{
+		"src/lora_A": {{1, 2}, {3, 4}},
+		"src/lora_B": {{5}, {6}},
+	}, nil)
+	if err != nil {
+		t.Fatalf("write weights: %v", err)
 	}
-	prefix := determinePrefix("q_proj", target)
-	expected := "Llama-2-7B"
-	if prefix != expected {
-		t.Fatalf("expected prefix '%s', got '%s'", expected, prefix)
+	file, err := safetensors.Parse(raw)
+	if err != nil {
+		t.Fatalf("parse weights: %v", err)
+	}
+
+	a, err := tensorMatrix(file, "src/lora_A")
+	if err != nil {
+		t.Fatalf("lora_A: %v", err)
+	}
+	if len(a) != 2 || len(a[0]) != 2 || a[0][0] != 1 || a[1][1] != 4 {
+		t.Fatalf("lora_A = %v", a)
+	}
+
+	b, err := tensorMatrix(file, "src/lora_B")
+	if err != nil {
+		t.Fatalf("lora_B: %v", err)
+	}
+	if len(b) != 2 || b[1][0] != 6 {
+		t.Fatalf("lora_B = %v", b)
 	}
 }
 
-func TestExtractTensor(t *testing.T) {
-	tensors := map[string]interface{}{
-		"prefix/lora_A": [][]float32{{1.0, 2.0}, {3.0, 4.0}},
-		"prefix/lora_B": [][]float32{{5.0}, {6.0}},
+// A missing tensor must be an error. It previously produced a zero matrix of
+// the right shape, which made an unbound adapter indistinguishable from a
+// working one — the failure mode the validation gate exists to catch.
+func TestTensorMatrixFailsLoudlyWhenAbsent(t *testing.T) {
+	raw, err := safetensors.Write(map[string][][]float32{"present": {{1}}}, nil)
+	if err != nil {
+		t.Fatalf("write weights: %v", err)
+	}
+	file, err := safetensors.Parse(raw)
+	if err != nil {
+		t.Fatalf("parse weights: %v", err)
 	}
 
-	a, b := extractTensor(tensors, "prefix/lora_A", "prefix/lora_B")
-	if len(a) != 2 {
-		t.Fatalf("expected 2 rows in lora_A, got %d", len(a))
-	}
-	if a[0][0] != 1.0 {
-		t.Fatalf("expected a[0][0]=1.0, got %f", a[0][0])
-	}
-	if len(b) != 2 {
-		t.Fatalf("expected 2 rows in lora_B, got %d", len(b))
-	}
-
-	a, b = extractTensor(tensors, "nonexistent_A", "nonexistent_B")
-	if len(a) != 0 {
-		t.Fatal("expected nil for nonexistent A")
-	}
-	if len(b) != 0 {
-		t.Fatal("expected nil for nonexistent B")
-	}
-}
-
-func TestProjectMatrixIdentity(t *testing.T) {
-	mat := [][]float32{
-		{1.0, 2.0, 3.0},
-		{4.0, 5.0, 6.0},
-	}
-	result := projectMatrix(mat, 2, "input")
-	if len(result) != 2 {
-		t.Fatalf("expected 2 rows, got %d", len(result))
-	}
-}
-
-func TestProjectMatrixExpand(t *testing.T) {
-	mat := [][]float32{{1.0, 2.0}}
-	result := projectMatrix(mat, 4, "output")
-	if len(result) != 4 {
-		t.Fatalf("expected 4 rows after expansion, got %d", len(result))
-	}
-	if len(result[0]) != 2 {
-		t.Fatalf("expected 2 cols, got %d", len(result[0]))
-	}
-	for i := 1; i < 4; i++ {
-		if len(result[i]) != 2 {
-			t.Fatalf("expected 2 cols for padding row %d, got %d", i, len(result[i]))
-		}
-	}
-}
-
-func TestProjectMatrixShrink(t *testing.T) {
-	mat := [][]float32{
-		{1.0, 2.0},
-		{3.0, 4.0},
-		{5.0, 6.0},
-		{7.0, 8.0},
-	}
-	result := projectMatrix(mat, 2, "input")
-	if len(result) != 2 {
-		t.Fatalf("expected 2 rows after shrink, got %d", len(result))
-	}
-}
-
-func TestProjectMatrixEmpty(t *testing.T) {
-	result := projectMatrix([][]float32{}, 4, "input")
-	if len(result) != 0 {
-		t.Fatalf("expected 0 rows for empty matrix, got %d", len(result))
+	if _, err := tensorMatrix(file, "absent/lora_A"); err == nil {
+		t.Fatal("a missing tensor must error, never fabricate zeros")
+	} else if !strings.Contains(err.Error(), "present") {
+		t.Fatalf("the error should list the tensors that are present, got: %v", err)
 	}
 }
 
 func TestBindResultToJSON(t *testing.T) {
 	br := &BindResult{
 		TargetModel: api.BaseModelSpec{
-			Family:            "llama2",
-			ParamCount:        "7B",
-			HiddenSize:        4096,
-			NumLayers:         32,
+			Family:             "llama2",
+			ParamCount:         "7B",
+			HiddenSize:         4096,
+			NumLayers:          32,
 			AttentionMechanism: "gqa",
 			ActivationFunc:     "silu",
 		},

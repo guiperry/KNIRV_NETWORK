@@ -41,6 +41,11 @@ type Options struct {
 	APIKey   string
 	// LoRA lists adapters to apply, in order.
 	LoRA []LoRAAdapter
+	// LoRAInitWithoutApply loads the adapters without applying them, so their
+	// scales start at 0 and are chosen per request (or via POST
+	// /lora-adapters). Without this, every loaded adapter is active on every
+	// request, which is the opposite of per-request switching.
+	LoRAInitWithoutApply bool
 }
 
 func (o Options) args(model, port string) []string {
@@ -59,6 +64,7 @@ func (o Options) args(model, port string) []string {
 	}
 	// Adapters last so the base-model flags above stay stable in the argv the
 	// manager asserts against.
+	hasAdapter := false
 	for _, adapter := range o.LoRA {
 		path := strings.TrimSpace(adapter.Path)
 		if path == "" {
@@ -66,11 +72,17 @@ func (o Options) args(model, port string) []string {
 			// consume the following flag as the filename.
 			continue
 		}
+		hasAdapter = true
 		if adapter.Scale > 0 {
 			args = append(args, "--lora-scaled", path, strconv.FormatFloat(adapter.Scale, 'g', -1, 64))
 			continue
 		}
 		args = append(args, "--lora", path)
+	}
+	// Only meaningful alongside at least one adapter; emitting it alone would
+	// imply an intent the command line cannot express.
+	if o.LoRAInitWithoutApply && hasAdapter {
+		args = append(args, "--lora-init-without-apply")
 	}
 	return args
 }

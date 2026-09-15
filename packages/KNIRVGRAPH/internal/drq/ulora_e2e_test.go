@@ -311,7 +311,7 @@ func TestULoRAMintingEndToEnd(t *testing.T) {
 			Client: &http.Client{Transport: unixTransport(validationSocket)},
 		},
 		TargetModels: map[string]ULoRATargetModel{
-			"llama-3-8b": {Family: "llama", ParamCount: "8b", HiddenSize: 4096, NumLayers: 32},
+			"llama-3-8b": {Family: "llama", ParamCount: "8b", HiddenSize: 4096, IntermediateSize: 11008, NumLayers: 32, AttentionMechanism: "gqa", ActivationFunc: "silu"},
 		},
 		ManifestVersion: "1.0.0",
 	})
@@ -387,7 +387,7 @@ func TestULoRAMintingEndToEndGateBlocksRegistration(t *testing.T) {
 		SkillDocs:       &fakeSkillDocs{docs: map[string]string{"e1": "fix", "e2": "fix"}},
 		Compiler:        NewKNIRVULORAClient(""),
 		Validator:       stubValidator{err: ErrDVEValidationUnavailable},
-		TargetModels:    map[string]ULoRATargetModel{"llama-3-8b": {Family: "llama", HiddenSize: 4096, NumLayers: 32}},
+		TargetModels:    map[string]ULoRATargetModel{"llama-3-8b": {Family: "llama", HiddenSize: 4096, IntermediateSize: 11008, NumLayers: 32, AttentionMechanism: "gqa", ActivationFunc: "silu"}},
 		ManifestVersion: "1.0.0",
 	})
 

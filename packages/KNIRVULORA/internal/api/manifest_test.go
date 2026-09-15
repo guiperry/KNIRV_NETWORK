@@ -8,16 +8,16 @@ import (
 
 func baseModelSpec(family string) BaseModelSpec {
 	return BaseModelSpec{
-		Family:            family,
-		ParamCount:        "7B",
-		HiddenSize:        4096,
-		IntermediateSize:  11008,
-		NumAttentionHeads: 32,
-		NumKeyValueHeads:  32,
-		HeadDim:           128,
-		NumLayers:         32,
+		Family:             family,
+		ParamCount:         "7B",
+		HiddenSize:         4096,
+		IntermediateSize:   11008,
+		NumAttentionHeads:  32,
+		NumKeyValueHeads:   32,
+		HeadDim:            128,
+		NumLayers:          32,
 		AttentionMechanism: "gqa",
-		ActivationFunc:    "silu",
+		ActivationFunc:     "silu",
 	}
 }
 
@@ -34,7 +34,7 @@ func validManifest() Manifest {
 		CanonicalCore: CanonicalCore{
 			AdapterRank:        16,
 			ScalingFactorAlpha: 32.0,
-			TargetModules:      []string{"q_proj", "k_proj", "v_proj"},
+			CanonicalDim:       1024, TargetModules: []string{"q_proj", "k_proj", "v_proj"},
 		},
 		RoutingPolicy: RoutingPolicy{
 			SimilarityThreshold:  0.82,
@@ -240,7 +240,7 @@ func TestValidTransferPaths(t *testing.T) {
 
 func TestBaseModelSpecValidateAllFields(t *testing.T) {
 	tests := []struct {
-		name    string
+		name     string
 		setField func(*BaseModelSpec)
 	}{
 		{"empty_family", func(b *BaseModelSpec) { b.Family = "" }},
@@ -267,7 +267,7 @@ func TestBaseModelSpecValidateAllFields(t *testing.T) {
 
 func TestCanonicalCoreValidateAllFields(t *testing.T) {
 	tests := []struct {
-		name    string
+		name     string
 		setField func(*CanonicalCore)
 	}{
 		{"zero_adapter_rank", func(c *CanonicalCore) { c.AdapterRank = 0 }},
@@ -281,7 +281,7 @@ func TestCanonicalCoreValidateAllFields(t *testing.T) {
 			c := CanonicalCore{
 				AdapterRank:        16,
 				ScalingFactorAlpha: 32.0,
-				TargetModules:      []string{"q_proj", "v_proj"},
+				CanonicalDim:       1024, TargetModules: []string{"q_proj", "v_proj"},
 			}
 			tt.setField(&c)
 			if err := c.Validate(); err == nil {

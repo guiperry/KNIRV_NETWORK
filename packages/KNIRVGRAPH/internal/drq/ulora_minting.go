@@ -58,19 +58,53 @@ type ULoRADatasetRecord struct {
 	Context             string `json:"context"`
 	CorrectedCompletion string `json:"corrected_completion"`
 	TargetModel         string `json:"target_model"`
+	// TargetModule names the semantic layer role this correction applies to, so
+	// the compiler can fit a core per module rather than one shared delta. Left
+	// empty when the corpus cannot say which layer a fix belongs to — the
+	// compiler then refuses to spread a shared core across every module unless
+	// shared-core use is explicitly allowed.
+	TargetModule string `json:"target_module,omitempty"`
 }
 
 // ULoRATargetModel mirrors ulora's BaseModelSpec: the architecture the adapter
 // is being projected onto, which compilation needs in full.
+//
+// AttentionMechanism and ActivationFunc are required by BaseModelSpec.Validate,
+// which ManifestFromJSON runs when a bundle is opened. Without them the compiled
+// manifest is rejected at bind time — so a compile can appear to succeed and the
+// resulting bundle still be unusable. There is deliberately no default: a
+// guessed attention mechanism projects the adapter onto the wrong topology,
+// which is worse than refusing.
 type ULoRATargetModel struct {
-	Family            string `json:"family"`
-	ParamCount        string `json:"param_count"`
-	HiddenSize        int    `json:"hidden_size"`
-	IntermediateSize  int    `json:"intermediate_size"`
-	NumAttentionHeads int    `json:"num_attention_heads"`
-	NumKeyValueHeads  int    `json:"num_key_value_heads"`
-	HeadDim           int    `json:"head_dim"`
-	NumLayers         int    `json:"num_layers"`
+	Family             string `json:"family"`
+	ParamCount         string `json:"param_count"`
+	HiddenSize         int    `json:"hidden_size"`
+	IntermediateSize   int    `json:"intermediate_size"`
+	NumAttentionHeads  int    `json:"num_attention_heads"`
+	NumKeyValueHeads   int    `json:"num_key_value_heads"`
+	HeadDim            int    `json:"head_dim"`
+	NumLayers          int    `json:"num_layers"`
+	AttentionMechanism string `json:"attention_mechanism"`
+	ActivationFunc     string `json:"activation_func"`
+}
+
+// validate rejects a spec that would compile into an unbindable manifest.
+func (m ULoRATargetModel) validate() error {
+	switch {
+	case strings.TrimSpace(m.Family) == "":
+		return errors.New("family is required")
+	case strings.TrimSpace(m.AttentionMechanism) == "":
+		return errors.New("attention_mechanism is required (ulora validates it; a bundle without it cannot be bound)")
+	case strings.TrimSpace(m.ActivationFunc) == "":
+		return errors.New("activation_func is required (ulora validates it; a bundle without it cannot be bound)")
+	case m.HiddenSize <= 0:
+		return fmt.Errorf("hidden_size must be positive, got %d", m.HiddenSize)
+	case m.IntermediateSize <= 0:
+		return fmt.Errorf("intermediate_size must be positive, got %d", m.IntermediateSize)
+	case m.NumLayers <= 0:
+		return fmt.Errorf("num_layers must be positive, got %d", m.NumLayers)
+	}
+	return nil
 }
 
 type ULoRAProvenance struct {
@@ -329,8 +363,12 @@ func targetModelsForCorpus(dataset []ULoRADatasetRecord, specs map[string]ULoRAT
 			missing = append(missing, name)
 			continue
 		}
-		if spec.Family == "" || spec.HiddenSize <= 0 || spec.NumLayers <= 0 {
-			return nil, fmt.Errorf("target model %q has an incomplete architecture spec", name)
+		if err := spec.validate(); err != nil {
+			// Fail here rather than at bind: ulora validates the manifest when a
+			// bundle is opened, so an incomplete spec compiles into a bundle that
+			// can never be bound — the compile reports success and the artifact
+			// is dead on arrival.
+			return nil, fmt.Errorf("target model %q has an invalid architecture spec: %w", name, err)
 		}
 		models = append(models, spec)
 	}

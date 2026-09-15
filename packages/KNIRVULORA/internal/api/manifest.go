@@ -8,9 +8,9 @@ import (
 )
 
 const (
-	SchemaURL = "https://ulora.org/schema/v1/manifest.json"
+	SchemaURL   = "https://ulora.org/schema/v1/manifest.json"
 	SpecVersion = "1.0.0"
-	DefaultTau = 0.82
+	DefaultTau  = 0.82
 )
 
 var ValidTransferPaths = map[string]bool{
@@ -19,16 +19,16 @@ var ValidTransferPaths = map[string]bool{
 }
 
 type BaseModelSpec struct {
-	Family            string `json:"family"`
-	ParamCount        string `json:"param_count"`
-	HiddenSize        int    `json:"hidden_size"`
+	Family             string `json:"family"`
+	ParamCount         string `json:"param_count"`
+	HiddenSize         int    `json:"hidden_size"`
 	IntermediateSize   int    `json:"intermediate_size"`
 	NumAttentionHeads  int    `json:"num_attention_heads"`
 	NumKeyValueHeads   int    `json:"num_key_value_heads"`
-	HeadDim           int    `json:"head_dim"`
-	NumLayers         int    `json:"num_layers"`
+	HeadDim            int    `json:"head_dim"`
+	NumLayers          int    `json:"num_layers"`
 	AttentionMechanism string `json:"attention_mechanism"`
-	ActivationFunc    string `json:"activation_func"`
+	ActivationFunc     string `json:"activation_func"`
 }
 
 func (b *BaseModelSpec) Validate() error {
@@ -62,10 +62,30 @@ func (b *BaseModelSpec) Validate() error {
 	return nil
 }
 
+// CanonicalCore is the model-agnostic half of a uLoRA artifact: the skill or
+// behaviour tuning, held in a shared latent space rather than in any one model's
+// native coordinate frame.
+//
+// This is the shape change from the original single projected A/B pair. Standard
+// LoRA couples ΔW directly to a base model's (d_in, d_out) and basis, so a raw
+// delta pair cannot travel between architectures. Keeping the core in a fixed
+// canonical space of dimension K, and pairing it with per-family connector
+// matrices (see ModelConnector), makes the artifact portable: a consumer maps it
+// into a concrete model's frame with A_tgt = A_canonical · P_in and
+// B_tgt = P_out · B_canonical.
 type CanonicalCore struct {
-	AdapterRank      int      `json:"adapter_rank"`
+	AdapterRank        int     `json:"adapter_rank"`
 	ScalingFactorAlpha float64 `json:"scaling_factor_alpha"`
-	TargetModules    []string `json:"target_modules"`
+	// CanonicalDim is K: the dimension of the shared, architecture-agnostic
+	// space the core tensors live in. Every core tensor is shaped against it
+	// (lora_A is r × K, lora_B is K × r), which is what lets one artifact bind
+	// to models of differing hidden sizes.
+	CanonicalDim int `json:"canonical_dim"`
+	// TargetModules are semantic layer roles (e.g. "self_attn.q_proj"), not
+	// indices: binding a role to a physical layer is the connector's job, since
+	// layer counts and naming differ between architectures, and a bundle cannot
+	// know which physical layer a role maps to until it is bound.
+	TargetModules []string `json:"target_modules"`
 }
 
 func (c *CanonicalCore) Validate() error {
@@ -74,6 +94,13 @@ func (c *CanonicalCore) Validate() error {
 	}
 	if c.ScalingFactorAlpha <= 0 {
 		return fmt.Errorf("canonical_core.scaling_factor_alpha must be positive")
+	}
+	// Without K there is no canonical space, so the core tensors have no defined
+	// shape and the artifact cannot be bound to any model. This is required
+	// rather than defaulted: guessing K would silently reinterpret every tensor
+	// in the file.
+	if c.CanonicalDim <= 0 {
+		return fmt.Errorf("canonical_core.canonical_dim must be positive")
 	}
 	if len(c.TargetModules) == 0 {
 		return fmt.Errorf("canonical_core.target_modules cannot be empty")
@@ -87,8 +114,8 @@ func (c *CanonicalCore) Validate() error {
 }
 
 type RoutingPolicy struct {
-	SimilarityThreshold float64  `json:"similarity_threshold"`
-	AllowedTransferPaths []string `json:"allowed_transfer_paths"`
+	SimilarityThreshold     float64  `json:"similarity_threshold"`
+	AllowedTransferPaths    []string `json:"allowed_transfer_paths"`
 	DistillationAnchorSeeds []string `json:"distillation_anchor_seeds,omitempty"`
 }
 
@@ -111,9 +138,9 @@ func (r *RoutingPolicy) Validate() error {
 }
 
 type Provenance struct {
-	SourceID    string            `json:"source_id"`
-	SourceDatasetIDs []string    `json:"source_dataset_ids"`
-	Extensions  map[string]any    `json:"extensions,omitempty"`
+	SourceID         string         `json:"source_id"`
+	SourceDatasetIDs []string       `json:"source_dataset_ids"`
+	Extensions       map[string]any `json:"extensions,omitempty"`
 }
 
 func (p *Provenance) Validate() error {
@@ -167,48 +194,54 @@ func (m *Manifest) Validate() error {
 }
 
 type DatasetRecord struct {
-	Context            string `json:"context"`
+	Context             string `json:"context"`
 	CorrectedCompletion string `json:"corrected_completion"`
-	TargetModel        string `json:"target_model"`
+	TargetModel         string `json:"target_model"`
+	// TargetModule names the semantic layer role this correction applies to
+	// (e.g. "self_attn.q_proj"), which is what lets the compiler fit a core per
+	// module instead of one shared delta. Optional: a record without it cannot be
+	// attributed to a layer, and the compiler refuses to spread a single shared
+	// core across every module unless the caller explicitly opts in.
+	TargetModule string `json:"target_module,omitempty"`
 }
 
 type CompileRequest struct {
-	Provenance     CompileProvenance `json:"provenance"`
-	Dataset        []DatasetRecord   `json:"dataset"`
-	TargetModels   []BaseModelSpec   `json:"target_models"`
-	Alpha          float64           `json:"alpha,omitempty"`
-	Rank           int               `json:"rank,omitempty"`
-	NumEpochs      int               `json:"num_epochs,omitempty"`
-	LearningRate   float64           `json:"learning_rate,omitempty"`
+	Provenance   CompileProvenance `json:"provenance"`
+	Dataset      []DatasetRecord   `json:"dataset"`
+	TargetModels []BaseModelSpec   `json:"target_models"`
+	Alpha        float64           `json:"alpha,omitempty"`
+	Rank         int               `json:"rank,omitempty"`
+	NumEpochs    int               `json:"num_epochs,omitempty"`
+	LearningRate float64           `json:"learning_rate,omitempty"`
 }
 
 type CompileProvenance struct {
-	SourceID        string   `json:"source_id"`
-	SourceDatasetIDs []string `json:"source_dataset_ids"`
-	Extensions      map[string]any `json:"extensions,omitempty"`
+	SourceID         string         `json:"source_id"`
+	SourceDatasetIDs []string       `json:"source_dataset_ids"`
+	Extensions       map[string]any `json:"extensions,omitempty"`
 }
 
 type CompileResponse struct {
-	BundleID   string `json:"bundle_id"`
-	ContentHash string `json:"content_hash"`
-	ManifestPath string `json:"manifest_path"`
-	WeightsPath  string `json:"weights_path"`
-	AnchorsPath  string `json:"anchors_path,omitempty"`
-	PathUsed     string `json:"path_used"`
+	BundleID     string   `json:"bundle_id"`
+	ContentHash  string   `json:"content_hash"`
+	ManifestPath string   `json:"manifest_path"`
+	WeightsPath  string   `json:"weights_path"`
+	AnchorsPath  string   `json:"anchors_path,omitempty"`
+	PathUsed     string   `json:"path_used"`
 	TargetModels []string `json:"target_models"`
 }
 
 type TransferRequest struct {
-	SourceBundlePath string         `json:"source_bundle_path"`
+	SourceBundlePath string          `json:"source_bundle_path"`
 	TargetModels     []BaseModelSpec `json:"target_models"`
 }
 
 type TransferResponse struct {
-	BundleID   string `json:"bundle_id"`
-	ContentHash string `json:"content_hash"`
-	ManifestPath string `json:"manifest_path"`
-	WeightsPath  string `json:"weights_path"`
-	PathUsed     string `json:"path_used"`
+	BundleID     string   `json:"bundle_id"`
+	ContentHash  string   `json:"content_hash"`
+	ManifestPath string   `json:"manifest_path"`
+	WeightsPath  string   `json:"weights_path"`
+	PathUsed     string   `json:"path_used"`
 	TargetModels []string `json:"target_models"`
 }
 
