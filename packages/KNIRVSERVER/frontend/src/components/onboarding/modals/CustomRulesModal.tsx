@@ -287,7 +287,7 @@ export function CustomRulesModal({ isOpen, onClose, onSave, initialRules = [] }:
                           key={option.value}
                           onClick={() => setNewRule({ ...newRule, priority: option.value as CustomRule['priority'] })}
 className={`p-3 rounded-lg border text-left transition-interactive ${
-                            priority === option.value
+                            newRule.priority === option.value
                               ? 'bg-blue-500/10 border-blue-500'
                               : 'bg-black/40 border-white/10 hover:border-white/20'
                           }`}

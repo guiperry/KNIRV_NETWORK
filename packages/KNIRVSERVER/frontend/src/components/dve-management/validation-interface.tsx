@@ -7,8 +7,10 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { AlertCircle, CheckCircle, Clock, FileText, Zap, Brain, Calculator, MessageSquare } from 'lucide-react';
+import { AlertCircle, CheckCircle, Clock, FileText, Zap, Brain, Calculator, MessageSquare, ShieldCheck, ShieldAlert, Award } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { apiRequest } from '@/lib/api';
+import type { CertificateOfCorrectness, FactualityCheckRequest, FactualityCheckResponse, NRVTrailSummary } from '@/types/api';
 
 interface ValidationInterfaceProps {
   sessionId: string;
@@ -24,6 +26,10 @@ interface ValidationResult {
   issues: ValidationIssue[];
   suggestions: string[];
   timestamp: string;
+  proof?: string;
+  degraded?: boolean;
+  nrvTrail?: NRVTrailSummary;
+  certificate?: CertificateOfCorrectness;
 }
 
 interface ValidationIssue {
@@ -68,87 +74,111 @@ export const ValidationInterface: React.FC<ValidationInterfaceProps> = ({
     setProgress(0);
     setResult(null);
 
+    // UI-only progress feedback while the real request is in flight.
+    const progressInterval = setInterval(() => {
+      setProgress(prev => (prev >= 90 ? 90 : prev + 10));
+    }, 200);
+
     try {
-      // Simulate validation progress
-      const progressInterval = setInterval(() => {
-        setProgress(prev => {
-          if (prev >= 90) {
-            clearInterval(progressInterval);
-            return 90;
-          }
-          return prev + 10;
-        });
-      }, 200);
-
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
-
-      clearInterval(progressInterval);
-      setProgress(100);
-
-      // Generate mock validation result
-      const mockResult: ValidationResult = {
-        id: `validation_${Date.now()}`,
-        status: Math.random() > 0.3 ? 'success' : Math.random() > 0.5 ? 'warning' : 'error',
-        confidence: Math.floor(Math.random() * 40) + 60, // 60-100%
-        issues: generateMockIssues(selectedValidationType),
-        suggestions: generateMockSuggestions(selectedValidationType),
-        timestamp: new Date().toISOString(),
+      const request: FactualityCheckRequest = {
+        prompt: content,
+        response: content,
+        agent_id: 'validation-interface',
+        dve_id: sessionId,
+        ontology_domains: [selectedValidationType],
+        objective_name: selectedValidationType,
+        preference_weights: {},
       };
 
-      setResult(mockResult);
-      setValidationHistory(prev => [mockResult, ...prev.slice(0, 4)]); // Keep last 5
+      const response = await apiRequest<FactualityCheckResponse>('/api/validation/factuality', {
+        method: 'POST',
+        body: JSON.stringify(request),
+      });
+
+      if (!response.success || !response.data) {
+        throw new Error(response.error || 'Validation failed');
+      }
+
+      const factuality = response.data;
+      setProgress(100);
+
+      const realResult = mapFactualityResult(factuality);
+
+      setResult(realResult);
+      setValidationHistory(prev => [realResult, ...prev.slice(0, 4)]); // Keep last 5
 
       if (onValidationComplete) {
-        onValidationComplete(mockResult);
+        onValidationComplete(realResult);
       }
 
       toast({
         title: "Validation Complete",
-        description: `Content validated with ${mockResult.confidence}% confidence.`,
+        description: `Content validated with ${realResult.confidence}% confidence${realResult.proof ? ' · proof attached' : ''}${realResult.certificate ? ' · certified' : ''}.`,
       });
 
     } catch (error) {
       toast({
         title: "Validation Failed",
-        description: "An error occurred during validation. Please try again.",
+        description: error instanceof Error && error.message ? error.message : "An error occurred during validation. Please try again.",
         variant: "destructive",
       });
     } finally {
+      clearInterval(progressInterval);
       setIsValidating(false);
       setTimeout(() => setProgress(0), 1000);
     }
   };
 
-  const generateMockIssues = (type: string): ValidationIssue[] => {
+  const mapFactualityResult = (resp: FactualityCheckResponse): ValidationResult => {
     const issues: ValidationIssue[] = [];
-    const issueCount = Math.floor(Math.random() * 3);
 
-    for (let i = 0; i < issueCount; i++) {
-      const types = ['factual', 'logical', 'mathematical', 'consistency'];
-      const severities: ('low' | 'medium' | 'high')[] = ['low', 'medium', 'high'];
-
+    if (resp.degraded) {
       issues.push({
-        type: types[Math.floor(Math.random() * types.length)] as any,
-        severity: severities[Math.floor(Math.random() * severities.length)],
-        description: `Sample ${type} validation issue ${i + 1}`,
-        location: `Line ${Math.floor(Math.random() * 10) + 1}`,
+        type: 'factual',
+        severity: 'medium',
+        description: 'Validator is operating in degraded mode; the result was produced by fallback logic.',
       });
     }
 
-    return issues;
-  };
+    if (!resp.is_accurate) {
+      issues.push({
+        type: 'factual',
+        severity: 'high',
+        description: resp.explanation || 'The response could not be confirmed as factually accurate.',
+      });
+    } else if (resp.citations.length > 0) {
+      issues.push({
+        type: 'factual',
+        severity: 'low',
+        description: `Cross-checked against ${resp.citations.length} evidence chunk${resp.citations.length === 1 ? '' : 's'}.`,
+      });
+    }
 
-  const generateMockSuggestions = (type: string): string[] => {
-    const suggestions = [
-      "Consider providing more context for better validation",
-      "Review the logical flow of your arguments",
-      "Verify all factual claims with reliable sources",
-      "Check mathematical calculations for accuracy",
-      "Ensure consistent terminology throughout",
-    ];
+    const suggestions: string[] = [];
+    if (resp.explanation && resp.explanation !== 'All validation checks passed') {
+      suggestions.push(resp.explanation);
+    }
+    if (resp.domain_scores) {
+      const highestDomain = Object.entries(resp.domain_scores).sort((a, b) => b[1] - a[1])[0];
+      if (highestDomain) {
+        suggestions.push(`Highest-confidence domain: ${highestDomain[0]} (${Math.round(highestDomain[1] * 100)}%)`);
+      }
+    }
 
-    return suggestions.slice(0, Math.floor(Math.random() * 3) + 1);
+    const status: ValidationResult['status'] = resp.degraded ? 'warning' : resp.is_accurate ? 'success' : 'error';
+
+    return {
+      id: `validation_${Date.now()}`,
+      status,
+      confidence: Math.round(resp.confidence * 100),
+      issues,
+      suggestions,
+      timestamp: new Date().toISOString(),
+      proof: resp.proof,
+      degraded: resp.degraded,
+      nrvTrail: resp.nrv_trail,
+      certificate: resp.certificate_of_correctness,
+    };
   };
 
   const getStatusIcon = (status: string) => {
@@ -174,6 +204,17 @@ export const ValidationInterface: React.FC<ValidationInterfaceProps> = ({
         return 'bg-red-500';
       default:
         return 'bg-gray-500';
+    }
+  };
+
+  const getCertBadge = (status: string) => {
+    switch (status) {
+      case 'COMPLIANT':
+        return { className: 'bg-green-600 text-white', label: 'Compliant', color: 'text-green-400', bg: 'bg-green-900/10 border-green-700/40' };
+      case 'PROVISIONAL':
+        return { className: 'bg-yellow-600 text-white', label: 'Provisional', color: 'text-yellow-400', bg: 'bg-yellow-900/10 border-yellow-700/40' };
+      default:
+        return { className: 'bg-red-600 text-white', label: 'Non-Compliant', color: 'text-red-400', bg: 'bg-red-900/10 border-red-700/40' };
     }
   };
 
@@ -286,6 +327,76 @@ export const ValidationInterface: React.FC<ValidationInterfaceProps> = ({
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
+            {/* Degraded mode warning */}
+            {result.degraded && (
+              <div className="flex items-start space-x-3 p-3 bg-amber-900/20 border border-amber-700/50 rounded-lg text-amber-200 text-sm">
+                <ShieldAlert className="w-5 h-5 mt-0.5 text-amber-400 flex-shrink-0" />
+                <div>
+                  <p className="font-medium text-amber-300">Validator Degraded</p>
+                  <p className="mt-1">
+                    The factuality endpoint returned a degraded result. The response was produced by fallback logic and
+                    should be treated with caution.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Proof + verified badge */}
+            {result.proof ? (
+              <div className="flex items-start space-x-3 p-3 bg-green-900/10 border border-green-700/40 rounded-lg">
+                <ShieldCheck className="w-5 h-5 mt-0.5 text-green-500 flex-shrink-0" />
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center space-x-2 mb-1">
+                    <Badge className="bg-green-600 text-white">Verified</Badge>
+                    <span className="text-xs text-slate-400">1 NRN consumed · proof sealed</span>
+                  </div>
+                  <code className="block bg-slate-800/70 px-3 py-2 rounded text-xs text-green-300 break-all font-mono leading-relaxed mt-1">
+                    {result.proof}
+                  </code>
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-center space-x-2 p-3 bg-slate-800/30 rounded-lg text-sm text-slate-400">
+                <Clock className="w-4 h-4" />
+                <span>No cryptographic proof attached — check may not have been billed.</span>
+              </div>
+            )}
+
+            {/* Certificate of Correctness (FINTECH-3) */}
+            {result.certificate && (
+              (() => {
+                const cert = result.certificate;
+                const certBadge = getCertBadge(cert.status);
+                return (
+                  <div className={`flex items-start space-x-3 p-3 rounded-lg border ${certBadge.bg}`}>
+                    <Award className={`w-5 h-5 mt-0.5 flex-shrink-0 ${certBadge.color}`} />
+                    <div className="min-w-0 flex-1 space-y-1">
+                      <div className="flex items-center space-x-2">
+                        <Badge className={certBadge.className}>Certificate of Correctness</Badge>
+                        {cert.signed ? (
+                          <span className="text-xs text-green-400">PQC-signed</span>
+                        ) : (
+                          <span className="text-xs text-slate-400">unsigned</span>
+                        )}
+                      </div>
+                      <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-slate-300">
+                        <span>Status: <span className={certBadge.color}>{certBadge.label}</span></span>
+                        <span>Level: {cert.compliance_level}</span>
+                        <span>Score: {Math.round(cert.overall_score)}</span>
+                        <span>Issuer: {cert.issuer_node_id}</span>
+                      </div>
+                      <div className="text-xs text-slate-500">
+                        {cert.id}
+                        {result.nrvTrail && (
+                          <span className="ml-2 text-slate-400">· trace {result.nrvTrail.trace_id} · {result.nrvTrail.step_count} steps</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()
+            )}
+
             {/* Issues */}
             {result.issues.length > 0 && (
               <div>
@@ -317,7 +428,7 @@ export const ValidationInterface: React.FC<ValidationInterfaceProps> = ({
             {/* Suggestions */}
             {result.suggestions.length > 0 && (
               <div>
-                <h4 className="text-sm font-medium text-slate-300 mb-2">Suggestions</h4>
+                <h4 className="text-sm font-medium text-slate-300 mb-2">Details</h4>
                 <ul className="space-y-1">
                   {result.suggestions.map((suggestion, index) => (
                     <li key={index} className="flex items-start space-x-2 text-sm">

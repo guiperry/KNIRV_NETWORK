@@ -375,43 +375,31 @@ loginForm.addEventListener('submit', async (e) => {
                 return;
             }
 
-            // Testnet tokens are validated locally — no network call needed
-            // (mirrors auth-context.tsx validateToken behaviour)
-            const testnetMap = {
-                'TESTNET_ADMIN_TOKEN':    { role: 'admin',     user: 'testnet-admin' },
-                'TESTNET_VALIDATOR_TOKEN':{ role: 'validator', user: 'testnet-validator' },
-                'TESTNET_OBSERVER_TOKEN': { role: 'observer',  user: 'testnet-observer' },
-            };
-
-            if (testnetMap[rawToken]) {
-                token = rawToken;
-                role  = testnetMap[rawToken].role;
-            } else {
-                // For JWT tokens, check expiry client-side before hitting the backend
-                if (rawToken.startsWith('ey')) {
-                    try {
-                        const payload = JSON.parse(atob(rawToken.split('.')[1]));
-                        if (payload.exp && payload.exp * 1000 < Date.now()) {
-                            showLoginError('Token has expired.');
-                            setLoginBusy(false);
-                            return;
-                        }
-                    } catch { /* malformed — let backend reject it */ }
-                }
-
-                // Validate unknown tokens via /api/auth/me
-                const res = await fetch(`${serverUrl}/api/auth/me`, {
-                    headers: { 'Authorization': `Bearer ${rawToken}` },
-                });
-                const body = await res.json().catch(() => ({}));
-                if (!res.ok) {
-                    showLoginError(body.error || body.message || 'Invalid or expired token.');
-                    setLoginBusy(false);
-                    return;
-                }
-                token = rawToken;
-                role  = body.role || '';
+            // For JWT tokens, check expiry client-side before hitting the backend.
+            if (rawToken.startsWith('ey')) {
+                try {
+                    const payload = JSON.parse(atob(rawToken.split('.')[1]));
+                    if (payload.exp && payload.exp * 1000 < Date.now()) {
+                        showLoginError('Token has expired.');
+                        setLoginBusy(false);
+                        return;
+                    }
+                } catch { /* malformed — let backend reject it */ }
             }
+
+            // Every token, including development credentials, must be verified
+            // by the server before the desktop shell persists an authenticated role.
+            const res = await fetch(`${serverUrl}/api/auth/me`, {
+                headers: { 'Authorization': `Bearer ${rawToken}` },
+            });
+            const body = await res.json().catch(() => ({}));
+            if (!res.ok) {
+                showLoginError(body.error || body.message || 'Invalid or expired token.');
+                setLoginBusy(false);
+                return;
+            }
+            token = rawToken;
+            role  = body.role || '';
         }
 
         // Persist so the frontend iframe can pick it up

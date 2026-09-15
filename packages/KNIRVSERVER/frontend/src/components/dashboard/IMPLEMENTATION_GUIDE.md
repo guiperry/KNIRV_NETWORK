@@ -292,8 +292,8 @@ const ConsolePanel = React.memo(({ isOpen, onClose }) => {
 - Card details extracted to separate modal
 
 ### Backwards Compatibility
-- `dve_dual_dashboard.tsx` still exists for reference
-- Can be removed after full migration
+- `dve_dual_dashboard.tsx` was removed — the modular DVE workspace (`dve-workspace-panel.tsx`) is the sole dashboard
+- `dve-solver-modal.tsx` was removed — use `dve-solver-panel.tsx` (rendered inside the workspace) instead
 - No breaking changes to existing DVE data structure
 
 ## Future Roadmap

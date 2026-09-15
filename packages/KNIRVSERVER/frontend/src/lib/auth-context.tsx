@@ -117,38 +117,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }, []);
 
   const validateToken = async (token: string) => {
-    // Handle testnet tokens without a backend round-trip
-    const testnetTokens: Record<string, AuthUser> = {
-      'TESTNET_ADMIN_TOKEN': {
-        user: 'testnet-admin',
-        role: 'admin',
-        permissions: ROLES.admin.permissions,
-        nexus_access: ROLES.admin.nexus_access,
-        authenticated: true
-      },
-      'TESTNET_VALIDATOR_TOKEN': {
-        user: 'testnet-validator',
-        role: 'validator',
-        permissions: ROLES.validator.permissions,
-        nexus_access: ROLES.validator.nexus_access,
-        node_id: 'validator-node-001',
-        authenticated: true
-      },
-      'TESTNET_OBSERVER_TOKEN': {
-        user: 'testnet-observer',
-        role: 'observer',
-        permissions: ROLES.observer.permissions,
-        nexus_access: ROLES.observer.nexus_access,
-        authenticated: true
-      }
-    };
-
-    if (testnetTokens[token]) {
-      setUser(testnetTokens[token]);
-      setIsLoading(false);
-      return;
-    }
-
     // For JWTs, check expiry client-side before hitting the backend
     if (typeof token === 'string' && token.startsWith('ey')) {
       try {
@@ -256,39 +224,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const login = async (token: string): Promise<boolean> => {
     try {
       setIsLoading(true);
-
-      // For testnet mode, use predefined tokens
-      const testnetTokens: Record<string, AuthUser> = {
-        'TESTNET_ADMIN_TOKEN': {
-          user: 'testnet-admin',
-          role: 'admin',
-          permissions: ROLES.admin.permissions,
-          nexus_access: ROLES.admin.nexus_access,
-          authenticated: true
-        },
-        'TESTNET_VALIDATOR_TOKEN': {
-          user: 'testnet-validator',
-          role: 'validator',
-          permissions: ROLES.validator.permissions,
-          nexus_access: ROLES.validator.nexus_access,
-          node_id: 'validator-node-001',
-          authenticated: true
-        },
-        'TESTNET_OBSERVER_TOKEN': {
-          user: 'testnet-observer',
-          role: 'observer',
-          permissions: ROLES.observer.permissions,
-          nexus_access: ROLES.observer.nexus_access,
-          authenticated: true
-        }
-      };
-
-      // Check if it's a testnet token
-      if (testnetTokens[token]) {
-        setUser(testnetTokens[token]);
-        persistStoredAuth(token);
-        return true;
-      }
 
       // Validate with backend
       const response = await fetch(`${API_BASE_URL}/api/auth/me`, {

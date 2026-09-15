@@ -1350,8 +1350,7 @@ func jwtSigningSecret() string {
 // internal/web/middleware/rbac.go) — duplicated here rather than imported
 // because backend_server is a separate Go module in a separate repo and this
 // codebase's convention is no cross-package Go imports between services
-// (see CLAUDE.md). Apart from the configured-testnet development credential,
-// it intentionally does NOT grant a bypass for any role other than "admin".
+// (see CLAUDE.md). It intentionally does NOT grant a bypass for any role.
 func isAdminRequest(r *http.Request) bool {
 	authHeader := strings.TrimSpace(r.Header.Get("Authorization"))
 	if authHeader == "" {
@@ -1365,13 +1364,6 @@ func isAdminRequest(r *http.Request) bool {
 	if tokenString == "" {
 		return false
 	}
-	// The dashboard deliberately supports this development-only credential
-	// without a JWT round trip. Keep its server-side meaning equally narrow:
-	// it is an admin credential only for a configured testnet instance.
-	if isTestnetEnvironment() && tokenString == "TESTNET_ADMIN_TOKEN" {
-		return true
-	}
-
 	secret := jwtSigningSecret()
 	if secret == "" {
 		return false
@@ -1388,10 +1380,6 @@ func isAdminRequest(r *http.Request) bool {
 		return false
 	}
 	return strings.EqualFold(claims.Role, "admin")
-}
-
-func isTestnetEnvironment() bool {
-	return viper.GetBool("testnet") || strings.EqualFold(strings.TrimSpace(viper.GetString("environment")), "testnet")
 }
 
 // Authorize backend-managed credentials through the same identity endpoint as

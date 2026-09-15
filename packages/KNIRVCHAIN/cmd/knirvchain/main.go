@@ -25,6 +25,7 @@ import (
 	"KNIRVCHAIN/internal/installation"
 	"KNIRVCHAIN/internal/network"
 	"KNIRVCHAIN/internal/p2p"
+	"KNIRVCHAIN/internal/tracing"
 
 	"github.com/joho/godotenv"
 
@@ -378,6 +379,9 @@ func main() {
 	err := godotenv.Load(".key") // Loads .key file from the current directory
 	if err != nil {
 		log.Println("Info: .key file not found or could not be loaded. Using system environment variables or config files.")
+	}
+	if err := tracing.InitTracer("knirvchain", strings.TrimSpace(os.Getenv("OTEL_JAEGER_ENDPOINT"))); err != nil {
+		log.Printf("Warning: OpenTelemetry initialization failed: %v", err)
 	}
 
 	// --- Setup Application Logging to File and Console ---

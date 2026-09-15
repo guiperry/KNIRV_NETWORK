@@ -13,18 +13,24 @@ import (
 )
 
 func InitTracer(serviceName, jaegerEndpoint string) (*sdktrace.TracerProvider, error) {
-	exporter, err := jaeger.New(jaeger.WithCollectorEndpoint(jaeger.WithEndpoint(jaegerEndpoint)))
-	if err != nil {
-		return nil, err
-	}
-
-	tp := sdktrace.NewTracerProvider(
-		sdktrace.WithBatcher(exporter),
+	options := []sdktrace.TracerProviderOption{
 		sdktrace.WithResource(resource.NewWithAttributes(
 			semconv.SchemaURL,
 			semconv.ServiceNameKey.String(serviceName),
 		)),
-	)
+	}
+
+	// Local development and tests must not silently attempt to export to an
+	// unspecified collector. Spans remain available to in-process providers.
+	if jaegerEndpoint != "" {
+		exporter, err := jaeger.New(jaeger.WithCollectorEndpoint(jaeger.WithEndpoint(jaegerEndpoint)))
+		if err != nil {
+			return nil, err
+		}
+		options = append(options, sdktrace.WithBatcher(exporter))
+	}
+
+	tp := sdktrace.NewTracerProvider(options...)
 
 	otel.SetTracerProvider(tp)
 	return tp, nil

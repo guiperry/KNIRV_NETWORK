@@ -50,6 +50,7 @@ import PaymentGatewayModal from './payment-gateway-modal';
 import { WebguiIframeModal } from './webgui-iframe-modal';
 import type { DVENode } from '@/types/api';
 import { useDashboardStore } from '@/lib/store';
+import { PanelErrorBoundary } from '@/components/ui/panel-error-boundary';
 import {
   Shield,
   Server,
@@ -1004,11 +1005,21 @@ function DashboardWrapperInner({ children, onRentDVE }: DashboardWrapperProps) {
                         </div>
 
                         <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
-                          <KernelSecurityCard />
-                          <NetworkMonitorCard />
-                          <RootFailoverCard onOpen={() => setResourceTab('network-monitor')} />
-                          <ActuarialMetricsCard />
-                          <SystemTelemetryCard className="aether-bevel-dark rounded-2xl" />
+                          <PanelErrorBoundary>
+                            <KernelSecurityCard />
+                          </PanelErrorBoundary>
+                          <PanelErrorBoundary>
+                            <NetworkMonitorCard />
+                          </PanelErrorBoundary>
+                          <PanelErrorBoundary>
+                            <RootFailoverCard onOpen={() => setResourceTab('network-monitor')} />
+                          </PanelErrorBoundary>
+                          <PanelErrorBoundary>
+                            <ActuarialMetricsCard />
+                          </PanelErrorBoundary>
+                          <PanelErrorBoundary>
+                            <SystemTelemetryCard className="aether-bevel-dark rounded-2xl" />
+                          </PanelErrorBoundary>
                         </div>
                       </TabsContent>
 
@@ -1025,6 +1036,7 @@ function DashboardWrapperInner({ children, onRentDVE }: DashboardWrapperProps) {
                               <ChevronRight className="w-4 h-4 mr-2" />
                               Back to Advisors
                             </Button>
+                            <PanelErrorBoundary>
                             <DVENodesPanel
                               onRentClick={handleDVEManagement}
                               onNodeConnect={handleNodeAccess}
@@ -1034,48 +1046,67 @@ function DashboardWrapperInner({ children, onRentDVE }: DashboardWrapperProps) {
                               }}
                               refreshKey={dveRefreshKey}
                             />
+                          </PanelErrorBoundary>
                           </div>
                         ) : (
-                          <ExpertAdvisorPanel onDrillDownToNodes={() => setShowNodesPanel(true)} />
+                          <PanelErrorBoundary>
+                            <ExpertAdvisorPanel onDrillDownToNodes={() => setShowNodesPanel(true)} />
+                          </PanelErrorBoundary>
                         )}
                       </TabsContent>
 
                       {/* ── Cognitive Engine Tab ── */}
                       <TabsContent value="cognitive" className="space-y-4">
                         {/* Engine Controls - Full Width */}
+                        <PanelErrorBoundary>
                         <CognitiveEnginePanel onProcessingActivities={handleProcessingActivities} />
+                      </PanelErrorBoundary>
 
                         {/* Neural Desktop + Cognitive Engine Status - same row */}
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                           <div className="space-y-4">
-                            <NeuralDesktopPanel processingActivities={processingActivities} />
+                            <PanelErrorBoundary>
+                              <NeuralDesktopPanel processingActivities={processingActivities} />
+                            </PanelErrorBoundary>
                           </div>
                           <div className="space-y-4">
-                            <CognitiveEngineStatusCard />
+                            <PanelErrorBoundary>
+                              <CognitiveEngineStatusCard />
+                            </PanelErrorBoundary>
                           </div>
                         </div>
 
                         {/* Predictive Analytics + Guardrails - bottom row */}
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                           <div className="space-y-4">
-                            <PredictiveAnalyticsPanel />
+                            <PanelErrorBoundary>
+                              <PredictiveAnalyticsPanel />
+                            </PanelErrorBoundary>
                           </div>
                           <div className="space-y-4">
-                            <GuardrailStatisticsCard />
-                            <GuardrailViolationsPanel />
+                            <PanelErrorBoundary>
+                              <GuardrailStatisticsCard />
+                            </PanelErrorBoundary>
+                            <PanelErrorBoundary>
+                              <GuardrailViolationsPanel />
+                            </PanelErrorBoundary>
                           </div>
                         </div>
                       </TabsContent>
 
                       {/* ── Badge Lab Tab ── */}
                       <TabsContent value="badgelab" className="space-y-4">
-                        <BadgeLabPanel />
+                        <PanelErrorBoundary>
+                          <BadgeLabPanel />
+                        </PanelErrorBoundary>
                       </TabsContent>
 
                       {/* ── Network Monitor Tab ── */}
                       <TabsContent value="network-monitor" className="space-y-4">
                         <RoleGuard allowedRoles={['admin']}>
-                          <NetworkMonitorPanel />
+                          <PanelErrorBoundary>
+                            <NetworkMonitorPanel />
+                          </PanelErrorBoundary>
                         </RoleGuard>
                       </TabsContent>
                     </Tabs>
@@ -1460,11 +1491,13 @@ function DashboardWrapperInner({ children, onRentDVE }: DashboardWrapperProps) {
 
       {/* DVE Workspace Access Modal / Panel */}
       {selectedNode && (
-        <DVEWorkspacePanel
-          isOpen={dveWorkspaceModalOpen}
-          onClose={() => setDveWorkspaceModalOpen(false)}
-          node={selectedNode}
-        />
+        <PanelErrorBoundary>
+          <DVEWorkspacePanel
+            isOpen={dveWorkspaceModalOpen}
+            onClose={() => setDveWorkspaceModalOpen(false)}
+            node={selectedNode}
+          />
+        </PanelErrorBoundary>
       )}
 
       {/* KNIRVENGINE Modal */}
@@ -1488,12 +1521,14 @@ function DashboardWrapperInner({ children, onRentDVE }: DashboardWrapperProps) {
       />
 
       {/* DVE Sovereign Creation & Management Modal */}
-      <DVECreationManagement
-        isOpen={dveCreationModalOpen}
-        onClose={() => setDveCreationModalOpen(false)}
-        onCreated={handleDVECreated}
-        defaultTab="create"
-      />
+      <PanelErrorBoundary>
+        <DVECreationManagement
+          isOpen={dveCreationModalOpen}
+          onClose={() => setDveCreationModalOpen(false)}
+          onCreated={handleDVECreated}
+          defaultTab="create"
+        />
+      </PanelErrorBoundary>
 
       {/* WebGUI Iframe Modal */}
       <WebguiIframeModal

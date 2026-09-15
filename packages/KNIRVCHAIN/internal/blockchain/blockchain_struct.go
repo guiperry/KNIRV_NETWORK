@@ -22,6 +22,7 @@ import (
 	"KNIRVCHAIN/internal/p2p"
 	"KNIRVCHAIN/internal/protocol"
 	pb "KNIRVCHAIN/internal/protocol/proto"
+	"KNIRVCHAIN/internal/tracing"
 	"KNIRVCHAIN/internal/types"
 	"KNIRVCHAIN/internal/uri"
 	"KNIRVCHAIN/internal/utils"
@@ -843,6 +844,9 @@ func (bc *BlockchainStruct) SetTransactionPool(txs interface{}) {
 
 // AddBlock accepts interface{} and delegates to addBlockInternal for p2p.Blockchain interface compliance
 func (bc *BlockchainStruct) AddBlock(blk interface{}) error {
+	_, span := tracing.StartSpan(context.Background(), "blockchain.add_block")
+	defer span.End()
+
 	if b, ok := blk.(*Block); ok {
 		return bc.addBlockInternal(b)
 	}

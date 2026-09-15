@@ -33,12 +33,17 @@ import {
 } from 'lucide-react';
 import { useFabricManagement, FabricFilter } from '@/hooks/use-fabric-management';
 import { useNexusEvents } from '@/hooks/use-server-events';
-import type { Fabric, FabricAction } from '@/types/api';
+import type { Fabric } from '@/types/api';
 
 interface FabricManagementProps {
   isOpen: boolean;
   onClose: () => void;
 }
+
+// Feature flag: start/stop lifecycle actions have no backend endpoint yet
+// (only POST /api/v1/knowledge-base/objects/{id}/deploy exists). Gate the
+// buttons rather than showing a dead action.
+const FABRIC_LIFECYCLE_ACTIONS_ENABLED = false;
 
 export default function FabricManagement({ isOpen, onClose }: FabricManagementProps) {
   const { toast } = useToast();
@@ -52,6 +57,9 @@ export default function FabricManagement({ isOpen, onClose }: FabricManagementPr
     isLoading,
     error,
     deleteFabric,
+    deployFabric,
+    startFabric,
+    stopFabric,
     refreshAll
   } = useFabricManagement();
 
@@ -61,13 +69,21 @@ export default function FabricManagement({ isOpen, onClose }: FabricManagementPr
     error: nexusError
   } = useNexusEvents();
 
-  const handleFabricAction = async (fabricId: string, action: FabricAction['action']) => {
-    // TODO: Implement fabric actions when backend API is available
-    toast({
-      title: "Fabric Action",
-      description: `${action} action for fabric item ${fabricId} - Feature coming soon`,
-      variant: "default",
-    });
+  const handleDeployFabric = async (fabricId: string) => {
+    const success = await deployFabric(fabricId);
+    if (success) {
+      toast({
+        title: "Fabric Deployed",
+        description: `Deployment started for fabric item ${fabricId}`,
+        variant: "default",
+      });
+    } else {
+      toast({
+        title: "Deploy Failed",
+        description: error || "Could not deploy fabric item",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleDeleteFabric = async (fabricId: string, fabricName: string) => {
@@ -321,27 +337,27 @@ export default function FabricManagement({ isOpen, onClose }: FabricManagementPr
                                 <Button 
                                   variant="outline" 
                                   size="sm" 
-                                  onClick={() => handleFabricAction(fabric.id, 'deploy')}
+                                  onClick={() => handleDeployFabric(fabric.id)}
                                   disabled={isLoading}
                                 >
                                   <Zap className="w-3 h-3" />
                                 </Button>
                               )}
-                              {(fabric.status === 'deployed' || fabric.status === 'stopped') && (
+                              {FABRIC_LIFECYCLE_ACTIONS_ENABLED && (fabric.status === 'deployed' || fabric.status === 'stopped') && (
                                 <Button 
                                   variant="outline" 
                                   size="sm" 
-                                  onClick={() => handleFabricAction(fabric.id, 'start')}
+                                  onClick={() => startFabric(fabric.id)}
                                   disabled={isLoading}
                                 >
                                   <Play className="w-3 h-3" />
                                 </Button>
                               )}
-                              {fabric.status === 'running' && (
+                              {FABRIC_LIFECYCLE_ACTIONS_ENABLED && fabric.status === 'running' && (
                                 <Button 
                                   variant="outline" 
                                   size="sm" 
-                                  onClick={() => handleFabricAction(fabric.id, 'stop')}
+                                  onClick={() => stopFabric(fabric.id)}
                                   disabled={isLoading}
                                 >
                                   <Square className="w-3 h-3" />

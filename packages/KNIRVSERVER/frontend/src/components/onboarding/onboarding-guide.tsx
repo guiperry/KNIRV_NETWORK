@@ -9,6 +9,7 @@ import {
   Key,
   Database,
   Terminal,
+  FileText,
   ChevronRight,
   ChevronLeft,
   CheckCircle2,
@@ -22,7 +23,8 @@ import {
 } from "lucide-react";
 import { APIKeysModal, type APIKeyEntry } from "./modals/APIKeysModal";
 import { MCPServersModal, type MCPServerEntry } from "./modals/MCPServersModal";
-import { PolicyCertsModal, type PolicyCert, type CustomRule } from "./modals/PolicyCertsModal";
+import { PolicyCertsModal, type PolicyCert } from "./modals/PolicyCertsModal";
+import { CustomRulesModal, type CustomRule } from "./modals/CustomRulesModal";
 import { PreferencesModal, type PrivacySettings } from "./modals/PreferencesModal";
 import { CloudPricingModal } from "./modals/CloudPricingModal";
 import { DatabaseConfigModal, type DatabaseConfig } from "./modals/DatabaseConfigModal";
@@ -87,7 +89,8 @@ type ConfigCard = {
 type DownloadPlatform = 'android' | 'ios';
 
 const governanceCards: ConfigCard[] = [
-  { id: 'policy-certs', icon: Database, label: 'Policy Certs', desc: 'Kernel Guardrails & Custom Rules', modalId: 'policy-certs' },
+  { id: 'policy-certs', icon: Database, label: 'Policy Certs', desc: 'Kernel Guardrail Certificates', modalId: 'policy-certs' },
+  { id: 'custom-rules', icon: FileText, label: 'Custom Rules', desc: 'Behavioral rules, code guidelines & constraints', modalId: 'custom-rules' },
   { id: 'preferences', icon: SlidersHorizontal, label: 'Preferences', desc: 'Data Management & Privacy Settings', modalId: 'preferences' }
 ];
 
@@ -369,7 +372,9 @@ const OnboardingGuide = ({ onComplete, onReset }: OnboardingGuideProps) => {
       case 'mcp-servers':
         return formData.connectionData.mcpServers.length > 0;
       case 'policy-certs':
-        return formData.connectionData.policyCerts.length > 0 || formData.connectionData.customRules.length > 0;
+        return formData.connectionData.policyCerts.length > 0;
+      case 'custom-rules':
+        return formData.connectionData.customRules.length > 0;
       case 'preferences':
         return formData.completedConnections.includes('preferences');
       case 'knowledge-ingest':
@@ -419,6 +424,19 @@ const OnboardingGuide = ({ onComplete, onReset }: OnboardingGuideProps) => {
       completedConnections: prev.completedConnections.includes('policy-certs')
         ? prev.completedConnections
         : [...prev.completedConnections, 'policy-certs']
+    }));
+  };
+
+  const handleSaveCustomRules = (customRules: CustomRule[]) => {
+    setFormData(prev => ({
+      ...prev,
+      connectionData: { ...prev.connectionData, customRules },
+      selectedInputs: prev.selectedInputs.includes('custom-rules')
+        ? prev.selectedInputs
+        : [...prev.selectedInputs, 'custom-rules'],
+      completedConnections: prev.completedConnections.includes('custom-rules')
+        ? prev.completedConnections
+        : [...prev.completedConnections, 'custom-rules']
     }));
   };
 
@@ -822,6 +840,12 @@ const OnboardingGuide = ({ onComplete, onReset }: OnboardingGuideProps) => {
         onClose={closeModal}
         onSave={handleSavePolicyCerts}
         initialCerts={formData.connectionData.policyCerts}
+        initialRules={formData.connectionData.customRules}
+      />
+      <CustomRulesModal
+        isOpen={activeModal === 'custom-rules'}
+        onClose={closeModal}
+        onSave={handleSaveCustomRules}
         initialRules={formData.connectionData.customRules}
       />
       <PreferencesModal

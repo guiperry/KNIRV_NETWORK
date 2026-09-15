@@ -9,6 +9,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Shield, Server, Cpu, HardDrive, Key, CheckCircle, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { API_BASE_URL } from '@/lib/api';
+import { useAuth } from '@/lib/auth-context';
+import { useOnboarding } from '@/contexts/onboarding-context';
+import { MIN_NRN_STAKE, isValidStakeAmount, stakeAmountError, resolveOwnerWallet } from '@/lib/wallet';
 
 interface DVECreationFormProps {
   onClose: () => void;
@@ -17,6 +20,8 @@ interface DVECreationFormProps {
 
 export const DVECreationForm: React.FC<DVECreationFormProps> = ({ onClose, onCreated }) => {
   const { toast } = useToast();
+  const { user } = useAuth();
+  const { state: onboardingState } = useOnboarding();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     dveName: '',
@@ -25,7 +30,15 @@ export const DVECreationForm: React.FC<DVECreationFormProps> = ({ onClose, onCre
     memoryGB: '8',
     storageGB: '50',
     walletName: '',
+    stakeAmount: '',
   });
+
+  const connectedWalletAddress = resolveOwnerWallet({
+    walletName: formData.walletName || onboardingState.dataWalletConfig?.walletName,
+  });
+
+  const stakeValue = formData.stakeAmount === '' ? NaN : parseInt(formData.stakeAmount, 10);
+  const stakeError = formData.stakeAmount === '' ? null : stakeAmountError(stakeValue);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,6 +47,33 @@ export const DVECreationForm: React.FC<DVECreationFormProps> = ({ onClose, onCre
       toast({
         title: "Validation Error",
         description: "Please enter a DVE name",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!user) {
+      toast({
+        title: "Wallet Required",
+        description: "Sign in and connect a wallet before creating a DVE.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!connectedWalletAddress) {
+      toast({
+        title: "Wallet Required",
+        description: "A connected data fabric wallet is required to create a DVE. Configure one in onboarding or enter its name above.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (formData.stakeAmount === '' || !isValidStakeAmount(stakeValue)) {
+      toast({
+        title: "Stake Required",
+        description: `Please enter a stake of at least ${MIN_NRN_STAKE} NRN.`,
         variant: "destructive",
       });
       return;
@@ -52,7 +92,7 @@ export const DVECreationForm: React.FC<DVECreationFormProps> = ({ onClose, onCre
         body: JSON.stringify({
           name: formData.dveName,
           tee_type: formData.teeType,
-          stake_amount: 10000, // Default stake for creation
+          stake_amount: stakeValue,
           persistent: true,
           resource_limits: {
             cpu_cores: parseInt(formData.cpuCores),
@@ -60,7 +100,7 @@ export const DVECreationForm: React.FC<DVECreationFormProps> = ({ onClose, onCre
             disk_gb: parseInt(formData.storageGB),
             bandwidth_mbps: 100
           },
-          owner_address: '0x...', // Placeholder for wallet address
+          owner_address: connectedWalletAddress,
         }),
       });
 
@@ -211,14 +251,37 @@ export const DVECreationForm: React.FC<DVECreationFormProps> = ({ onClose, onCre
         <Input
           id="walletName"
           type="text"
-          placeholder="Same as DVE name if empty"
+          placeholder={onboardingState.dataWalletConfig?.walletName || "Same as DVE name if empty"}
           value={formData.walletName}
           onChange={(e) => setFormData(prev => ({ ...prev, walletName: e.target.value.toUpperCase() }))}
           disabled={isSubmitting}
           className="bg-slate-800 border-slate-600 text-slate-100 placeholder:text-slate-500"
         />
         <p className="text-xs text-slate-500">
-          This will be used as the identifier for the DVE's data fabric
+          {connectedWalletAddress
+            ? `Owner address: ${connectedWalletAddress}`
+            : 'This will be used as the owner address for the DVE. Configure a data fabric wallet in onboarding first.'}
+        </p>
+      </div>
+
+      {/* NRN Stake */}
+      <div className="space-y-2">
+        <Label htmlFor="stakeAmount" className="text-slate-300">NRN Stake Amount</Label>
+        <Input
+          id="stakeAmount"
+          type="number"
+          min={MIN_NRN_STAKE}
+          placeholder={`Minimum ${MIN_NRN_STAKE} NRN`}
+          value={formData.stakeAmount}
+          onChange={(e) => setFormData(prev => ({ ...prev, stakeAmount: e.target.value }))}
+          disabled={isSubmitting}
+          className="bg-slate-800 border-slate-600 text-slate-100 placeholder:text-slate-500"
+        />
+        {stakeError && formData.stakeAmount !== '' && (
+          <p className="text-xs text-red-400">{stakeError}</p>
+        )}
+        <p className="text-xs text-slate-500">
+          Staking NRN secures your Deterministic Validation Environment. The minimum is {MIN_NRN_STAKE} NRN.
         </p>
       </div>
 

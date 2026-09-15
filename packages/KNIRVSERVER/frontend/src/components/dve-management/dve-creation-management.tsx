@@ -35,6 +35,8 @@ import {
 import { useDVEManagement } from '@/hooks/use-dve-management';
 import type { DVECreation, DVECreationRequest, DVEAccessInfo, ResourceLimits } from '@/types/api';
 import { useAuth } from '@/lib/auth-context';
+import { useOnboarding } from '@/contexts/onboarding-context';
+import { MIN_NRN_STAKE, isValidStakeAmount, resolveOwnerWallet } from '@/lib/wallet';
 import DVEAccessFlow from './dve-access-flow';
 
 interface DVECreationManagementProps {
@@ -47,6 +49,7 @@ interface DVECreationManagementProps {
 export default function DVECreationManagement({ isOpen, onClose, onCreated, defaultTab = 'creations' }: DVECreationManagementProps) {
   const { toast } = useToast();
   const { user } = useAuth();
+  const { state: onboardingState } = useOnboarding();
   const [mounted, setMounted] = useState(false);
   const [showCreateForm, setShowCreateForm] = useState(false);
 
@@ -55,6 +58,8 @@ export default function DVECreationManagement({ isOpen, onClose, onCreated, defa
   const [stakeAmount, setStakeAmount] = useState(10000);
   const [teeType, setTeeType] = useState('software');
   const [persistent, setPersistent] = useState(true);
+  
+  const connectedWalletAddress = resolveOwnerWallet({ walletName: onboardingState.dataWalletConfig?.walletName });
   
   const [showAccessModal, setShowAccessModal] = useState(false);
   const [selectedCreation, setSelectedCreation] = useState<DVECreation | null>(null);
@@ -81,6 +86,24 @@ export default function DVECreationManagement({ isOpen, onClose, onCreated, defa
       return;
     }
 
+    if (!connectedWalletAddress) {
+      toast({
+        title: "Wallet Required",
+        description: "Connect a data fabric wallet in onboarding before creating a DVE.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!isValidStakeAmount(stakeAmount)) {
+      toast({
+        title: "Stake Required",
+        description: `Please enter a stake of at least ${MIN_NRN_STAKE} NRN.`,
+        variant: "destructive",
+      });
+      return;
+    }
+
     const resourceLimits: ResourceLimits = {
       cpu_cores: 2,
       memory_gb: 4,
@@ -91,7 +114,7 @@ export default function DVECreationManagement({ isOpen, onClose, onCreated, defa
     const request: DVECreationRequest = {
       name: name.trim(),
       owner_id: user?.user || 'anonymous',
-      owner_address: '0x...', // Would come from wallet
+      owner_address: connectedWalletAddress,
       tee_type: teeType,
       tee_attestation: 'direct-attestation-stub',
       stake_amount: stakeAmount,
@@ -281,10 +304,30 @@ export default function DVECreationManagement({ isOpen, onClose, onCreated, defa
                       <Label>NRN Stake Amount</Label>
                       <Input 
                         type="number" 
+                        min={MIN_NRN_STAKE}
                         value={stakeAmount}
                         onChange={(e) => setStakeAmount(parseInt(e.target.value) || 0)}
                       />
+                      {!isValidStakeAmount(stakeAmount) && (
+                        <p className="text-xs text-red-400">Minimum stake is {MIN_NRN_STAKE} NRN.</p>
+                      )}
                     </div>
+                  </div>
+
+                  <div className="flex items-center space-x-2 bg-slate-900/50 p-3 rounded border border-slate-800 text-xs text-slate-400">
+                    {connectedWalletAddress ? (
+                      <>
+                        <CheckCircle className="w-4 h-4 text-green-500" />
+                        <span>
+                          Owner wallet: <span className="font-mono text-green-300">{connectedWalletAddress}</span>
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        <AlertTriangle className="w-4 h-4 text-amber-400" />
+                        <span>No data fabric wallet connected — configure one in onboarding before creating a DVE.</span>
+                      </>
+                    )}
                   </div>
 
                   <div className="p-4 bg-blue-900/10 border border-blue-500/20 rounded-lg space-y-3">

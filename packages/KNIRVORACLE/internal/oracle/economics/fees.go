@@ -22,7 +22,33 @@ const (
 	FeeTypeSkillInvoke     FeeType = "skill_invoke"
 	FeeTypeModelTransition FeeType = "model_transition"
 	FeeTypeValidatorReward FeeType = "validator_reward"
+	// FeeTypeFactualityQA is the Truth-as-a-Service factuality check
+	// (NRN_Consumption_Report.md §3.1, 0.25 NRN).
+	FeeTypeFactualityQA FeeType = "factuality_qa"
+	// FeeTypeDVERentalHour is one hour of DVE compute rental
+	// (NRN_Consumption_Report.md §2.1).
+	FeeTypeDVERentalHour FeeType = "dve_rental_hour"
 )
+
+// MeteredFeeType maps the platform's consumption-event names (see the
+// backend's nrnmeter package) onto this package's fee labels. CollectFee uses
+// the explicitly supplied amount rather than a per-type FeeConfig, so an
+// unrecognised label is not an error — but metering callers should always send
+// a label that exists here so the Oracle's fee history stays auditable.
+func MeteredFeeType(event string) (FeeType, bool) {
+	switch FeeType(event) {
+	case FeeTypeFactualityQA:
+		return FeeTypeFactualityQA, true
+	case FeeTypeSkillInvoke:
+		return FeeTypeSkillInvoke, true
+	case FeeTypeModelTransition:
+		return FeeTypeModelTransition, true
+	case FeeTypeDVERentalHour:
+		return FeeTypeDVERentalHour, true
+	default:
+		return "", false
+	}
+}
 
 // FeeConfig represents fee configuration
 type FeeConfig struct {

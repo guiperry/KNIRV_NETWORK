@@ -86,8 +86,10 @@ type Block struct {
 }
 
 func (b *Block) VerifyBlock() bool {
-	// Placeholder implementation
-	return true
+	// Agent-local blocks are legacy compatibility data and do not carry the
+	// canonical blockchain verification material. Never admit one as valid;
+	// consensus must use internal/blockchain.Block.VerifyBlock instead.
+	return false
 }
 
 // BlockchainStruct type definition

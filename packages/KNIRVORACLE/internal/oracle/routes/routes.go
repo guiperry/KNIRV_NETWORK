@@ -73,6 +73,13 @@ func (r *OracleRoutes) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/oracle/v3/economics/staking", r.handleStaking)
 	mux.HandleFunc("/oracle/v3/economics/burns", r.handleBurns)
 
+	// Metered consumption settlement: the backend's nrnmeter service charges
+	// every billable event (factuality QA, skill invocation, model
+	// transition, DVE rental) through this route, which delegates straight to
+	// economics.FeeCollector.CollectFee so the burn/reward split has exactly
+	// one implementation.
+	mux.HandleFunc("/oracle/v3/token/fee/internal", r.handleInternalFeeCollect)
+
 	// Skill economics endpoints (internal-service-token gated): used by
 	// KNIRVGRAPH's DRQ skill-minting pipeline, not signed end users.
 	mux.HandleFunc("/oracle/v3/skills/burn", r.handleSkillBurn)

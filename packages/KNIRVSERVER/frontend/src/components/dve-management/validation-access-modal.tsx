@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { useValidationSession } from '@/hooks/use-validation-session';
 import ValidationInterface from './validation-interface';
+import { PanelErrorBoundary } from '@/components/ui/panel-error-boundary';
 import type { ValidationSession } from '@/types/api';
 
 interface ValidationAccessModalProps {
@@ -161,10 +162,12 @@ export const ValidationAccessModal: React.FC<ValidationAccessModalProps> = ({
                 </TabsList>
 
                 <TabsContent value="interface" className="space-y-4">
-                  <ValidationInterface
-                    sessionId={session.id}
-                    validationType={session.validation_type}
-                  />
+                  <PanelErrorBoundary>
+                    <ValidationInterface
+                      sessionId={session.id}
+                      validationType={session.validation_type}
+                    />
+                  </PanelErrorBoundary>
                 </TabsContent>
 
                 <TabsContent value="details" className="space-y-4">

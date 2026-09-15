@@ -662,6 +662,54 @@ export interface TestResult {
   error_message?: string;
 }
 
+// Factuality check types (TRUST-1/2/3) — mirrors objects.FactualityRequest /
+// objects.FactualityResponse in backend_server.
+export interface FactualityCheckRequest {
+  prompt: string;
+  response: string;
+  agent_id?: string;
+  dve_id?: string;
+  ontology_domains?: string[];
+  objective_name?: string;
+  preference_weights?: Record<string, number>;
+}
+
+export interface FactualityCheckResponse {
+  is_accurate: boolean;
+  confidence: number; // 0.0 - 1.0
+  citations: number[];
+  refused: boolean;
+  explanation: string;
+  domain_scores: Record<string, number>;
+  proof?: string; // present only when the check was charged and sealed
+  degraded: boolean; // true when the validator fell back to a synthetic path
+  nrv_trail?: NRVTrailSummary;
+  certificate_of_correctness?: CertificateOfCorrectness;
+}
+
+// FINTECH-1/3: the compact NRV trail summary and PQC-signed Certificate of
+// Correctness that now accompany proof-bearing factuality responses.
+export interface NRVTrailSummary {
+  trace_id: string;
+  status: string;
+  step_count: number;
+  fidelity_score?: number;
+}
+
+export interface CertificateOfCorrectness {
+  id: string;
+  status: "COMPLIANT" | "PROVISIONAL" | "NON_COMPLIANT";
+  compliance_level: string;
+  overall_score: number;
+  trace_id?: string;
+  subject_id: string;
+  subject_name?: string;
+  issuer_node_id: string;
+  issued_at: string; // ISO 8601
+  expires_at: string; // ISO 8601
+  signed: boolean;
+}
+
 export interface ValidationTaskFilter {
   status?: string;
   type?: string;

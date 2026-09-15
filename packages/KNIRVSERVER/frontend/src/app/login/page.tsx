@@ -40,13 +40,6 @@ export default function LoginPage() {
   const [regConfirm, setRegConfirm] = useState('');
   const [registerSuccess, setRegisterSuccess] = useState('');
 
-  const isTestnet = process.env.NEXT_PUBLIC_TESTNET === 'true';
-  const testnetTokens = {
-    'TESTNET_ADMIN_TOKEN': { role: 'admin', user: 'testnet-admin' },
-    'TESTNET_VALIDATOR_TOKEN': { role: 'validator', user: 'testnet-validator' },
-    'TESTNET_OBSERVER_TOKEN': { role: 'observer', user: 'testnet-observer' },
-  };
-
   // OAuth-style device authorization: a CLI opens this page with a
   // high-entropy device code. If this browser already has a valid server
   // login, approve it immediately; otherwise the normal login form remains
@@ -112,35 +105,30 @@ export default function LoginPage() {
           return;
         }
 
-        if (testnetTokens[rawToken as keyof typeof testnetTokens]) {
-          authToken = rawToken;
-          role = testnetTokens[rawToken as keyof typeof testnetTokens].role;
-        } else {
-          if (typeof rawToken === 'string' && rawToken.startsWith('ey')) {
-            try {
-              const payload = JSON.parse(atob(rawToken.split('.')[1]));
-              if (payload.exp && payload.exp * 1000 < Date.now()) {
-                setError('Token has expired.');
-                setLoading(false);
-                return;
-              }
-            } catch {}
-          }
-
-          const res = await fetch(`${serverUrl}/api/auth/me`, {
-            headers: { 'Authorization': `Bearer ${rawToken}` },
-          });
-
-          const body = await res.json().catch(() => ({}));
-          if (!res.ok) {
-            setError(body.error || body.message || 'Invalid or expired token.');
-            setLoading(false);
-            return;
-          }
-
-          authToken = rawToken;
-          role = body.role || '';
+        if (typeof rawToken === 'string' && rawToken.startsWith('ey')) {
+          try {
+            const payload = JSON.parse(atob(rawToken.split('.')[1]));
+            if (payload.exp && payload.exp * 1000 < Date.now()) {
+              setError('Token has expired.');
+              setLoading(false);
+              return;
+            }
+          } catch {}
         }
+
+        const res = await fetch(`${serverUrl}/api/auth/me`, {
+          headers: { 'Authorization': `Bearer ${rawToken}` },
+        });
+
+        const body = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          setError(body.error || body.message || 'Invalid or expired token.');
+          setLoading(false);
+          return;
+        }
+
+        authToken = rawToken;
+        role = body.role || '';
       }
 
       if (authToken) {
@@ -312,29 +300,6 @@ export default function LoginPage() {
                     />
                   </div>
 
-                  {isTestnet && (
-                  <div className="testnet-section bg-gray-900/50 rounded p-3 mt-4">
-                    <div className="testnet-title text-xs text-gray-400 tracking-wider mb-3">TESTNET TOKENS <span className="testnet-badge text-blue-400">DEVELOPMENT</span></div>
-
-                    {Object.entries(testnetTokens).map(([tokenValue, info]) => (
-                      <div key={tokenValue} className="testnet-row flex justify-between items-center py-2 border-b border-gray-800 last:border-0">
-                        <div className="testnet-info">
-                          <span className="testnet-role text-sm">{info.role.charAt(0).toUpperCase() + info.role.slice(1)}</span>
-                          <span className={`testnet-access ml-2 text-xs ${info.role === 'admin' ? 'access-full text-green-400' : info.role === 'validator' ? 'access-scoped text-yellow-400' : 'access-read text-blue-400'}`}>
-                            {info.role === 'admin' ? 'Full Access' : info.role === 'validator' ? 'Scoped' : 'Read Only'}
-                          </span>
-                        </div>
-                        <button
-                          type="button"
-                          className="testnet-btn text-xs px-3 py-1 border border-gray-600 rounded hover:border-blue-500 hover:text-blue-400 transition-colors"
-                          onClick={() => setToken(tokenValue)}
-                        >
-                          USE
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                  )}
                 </div>
               )}
 

@@ -146,7 +146,7 @@ packages/KNIRVAGENT/knirvagent
 packages/KNIRVHASHER/hasher-cli
 packages/KNIRVSERVER/pkg/embedded/validationchain/bin/validationchain
 packages/KNIRVSERVER/pkg/knirvarena/bin/knirvarena.tar.gz
-.claude/worktrees/agent-aa1753e6bd1c5eb7d/
+.claude/worktrees/
 packages/KNIRVSERVER/backend/cmd/container_deployer/container_deployer
 /packages/KNIRVSERVER/unsloth_compiled_cache
 /packages/KNIRVSERVER/test-results

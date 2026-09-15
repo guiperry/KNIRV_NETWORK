@@ -76,7 +76,7 @@ Complete refactoring of the DVE Dashboard infrastructure, separating the Enterpr
 - **Theme**: Black and blue gradient with blue borders
 - **Styling**: Modal overlay with blur backdrop, shadow effects
 
-### 7. **DVE Solver Modal** (`dve-solver-modal.tsx`)
+### 7. **DVE Solver Panel** (`dve-solver-panel.tsx` — replaced the removed `dve-solver-modal.tsx`)
 - **Purpose**: Distributed Validation Engine interface
 - **Trigger**: "DVE Solver" button on DVE cards
 - **Features**:
@@ -190,8 +190,8 @@ Complete refactoring of the DVE Dashboard infrastructure, separating the Enterpr
   ├── monitor-panel.tsx (new)
   ├── connections-panel.tsx (new)
   ├── dve-card-modal.tsx (new)
-  ├── dve-solver-modal.tsx (new)
-  ├── dve_dual_dashboard.tsx (kept for reference)
+  ├── dve-solver-panel.tsx (new, renders inside the workspace)
+  ├── dve_dual_dashboard.tsx (removed — modular workspace is the sole dashboard)
   └── REFACTORING_SUMMARY.md (this file)
 ```
 

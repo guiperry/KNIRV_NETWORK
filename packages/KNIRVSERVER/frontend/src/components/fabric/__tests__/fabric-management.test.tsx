@@ -338,23 +338,66 @@ describe('FabricManagement Component', () => {
     expect(screen.getByText('4')).toBeInTheDocument();  // Stopped
   });
 
-  it('handles fabric actions', async () => {
+  it('does not render lifecycle actions while feature flag is disabled', () => {
     const mockHook = {
       ...mockUseFabricManagement,
       fabrics: mockFabrics,
     };
-    
+
     jest.mocked(useFabricManagement).mockReturnValue(mockHook);
-    
+
     render(<FabricManagement {...defaultProps} />);
-    
-    const playButton = screen.getAllByTestId('Play-icon')[0];
-    fireEvent.click(playButton);
-    
+
+    const buttons = screen.getAllByTestId('button');
+    const lifecycleButtons = buttons.filter((btn) =>
+      btn.querySelector('[data-testid="Play-icon"], [data-testid="Square-icon"]')
+    );
+    expect(lifecycleButtons).toHaveLength(0);
+  });
+
+  it('deploys an uploaded fabric', async () => {
+    const uploadedFabrics: Fabric[] = [
+      ...mockFabrics,
+      {
+        id: 'fabric-3',
+        name: 'Test Fabric 3',
+        description: 'An uploaded fabric',
+        version: '3.0.0',
+        author: 'test-author-3',
+        type: 'WASM',
+        status: 'uploaded',
+        file_path: '/fabrics/fabric-3.wasm',
+        file_size: 512000,
+        file_hash: 'ghi789',
+        capabilities: ['compute'],
+        dependencies: [],
+        configuration: {},
+        metadata: {},
+        tags: ['demo'],
+        uploaded_at: '2024-01-03T00:00:00Z',
+        last_modified: '2024-01-03T00:00:00Z',
+        uploaded_by: 'test-user-3'
+      }
+    ];
+
+    const mockHook = {
+      ...mockUseFabricManagement,
+      fabrics: uploadedFabrics,
+      deployFabric: jest.fn().mockResolvedValue(true),
+    };
+
+    jest.mocked(useFabricManagement).mockReturnValue(mockHook);
+
+    render(<FabricManagement {...defaultProps} />);
+
+    const deployButton = screen.getAllByTestId('Zap-icon')[0];
+    fireEvent.click(deployButton);
+
     await waitFor(() => {
+      expect(mockHook.deployFabric).toHaveBeenCalledWith('fabric-3');
       expect(mockToast).toHaveBeenCalledWith({
-        title: "Fabric Action",
-        description: expect.stringContaining("Feature coming soon"),
+        title: "Fabric Deployed",
+        description: expect.stringContaining("fabric-3"),
         variant: "default",
       });
     });

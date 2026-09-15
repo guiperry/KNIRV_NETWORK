@@ -29,6 +29,7 @@ const browserCrypto = {
 
 export interface ApiKey {
   id: string;
+  ownerId: string;
   key: string;
   name: string;
   description: string;
@@ -58,6 +59,7 @@ export interface ApiKeyUsage {
 }
 
 export interface CreateApiKeyRequest {
+  ownerId: string;
   name: string;
   description: string;
   permissions: string[];
@@ -97,11 +99,15 @@ class ApiKeyService {
    * Generate a new API key
    */
   async createApiKey(request: CreateApiKeyRequest): Promise<ApiKey> {
+    if (!request.ownerId.trim()) {
+      throw new Error('API key ownerId is required');
+    }
     const keyId = this.generateId();
     const apiKey = this.generateApiKey();
 
     const newKey: ApiKey = {
       id: keyId,
+      ownerId: request.ownerId,
       key: apiKey,
       name: request.name,
       description: request.description,
@@ -130,6 +136,12 @@ class ApiKeyService {
       const apiKey = apiKeys.find(k => k.key === key);
 
       if (!apiKey) {
+        return null;
+      }
+
+      // Keys created before owner scoping cannot authorize access to tenant data.
+      // Fail closed instead of allowing an unowned key to select a default view.
+      if (!apiKey.ownerId || !apiKey.ownerId.trim()) {
         return null;
       }
 

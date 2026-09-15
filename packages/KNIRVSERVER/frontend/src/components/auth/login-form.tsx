@@ -7,9 +7,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Shield, Key, User, Eye, Loader2 } from 'lucide-react';
+import { Shield, User, Loader2 } from 'lucide-react';
 import { API_BASE_URL } from '@/lib/api';
 
 export function LoginForm() {
@@ -67,11 +66,6 @@ export function LoginForm() {
     } finally {
       setIsSubmitting(false);
     }
-  };
-
-  const setTestnetToken = (testToken: string) => {
-    setToken(testToken);
-    setError('');
   };
 
   const handleRegister = async (e: React.FormEvent) => {
@@ -234,63 +228,6 @@ export function LoginForm() {
               </Button>
             </form>
 
-            {/* Testnet tokens for development - only show in testnet builds */}
-            {loginMode === 'token' && process.env.NEXT_PUBLIC_TESTNET === 'true' && (
-              <div className="mt-6 pt-6 border-t">
-                <h3 className="text-sm font-medium mb-3 text-center text-muted-foreground">
-                  Testnet Tokens (Development)
-                </h3>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between p-2 rounded-lg bg-muted/50">
-                  <div className="flex items-center space-x-2">
-                    <User className="w-4 h-4" />
-                    <span className="text-sm">Admin</span>
-                    <Badge variant="destructive" className="text-xs">Full Access</Badge>
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setTestnetToken('TESTNET_ADMIN_TOKEN')}
-                    disabled={isSubmitting}
-                  >
-                    Use
-                  </Button>
-                </div>
-
-                <div className="flex items-center justify-between p-2 rounded-lg bg-muted/50">
-                  <div className="flex items-center space-x-2">
-                    <Shield className="w-4 h-4" />
-                    <span className="text-sm">Validator</span>
-                    <Badge variant="secondary" className="text-xs">Scoped</Badge>
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setTestnetToken('TESTNET_VALIDATOR_TOKEN')}
-                    disabled={isSubmitting}
-                  >
-                    Use
-                  </Button>
-                </div>
-
-                <div className="flex items-center justify-between p-2 rounded-lg bg-muted/50">
-                  <div className="flex items-center space-x-2">
-                    <Eye className="w-4 h-4" />
-                    <span className="text-sm">Observer</span>
-                    <Badge variant="outline" className="text-xs">Read Only</Badge>
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setTestnetToken('TESTNET_OBSERVER_TOKEN')}
-                    disabled={isSubmitting}
-                  >
-                    Use
-                  </Button>
-                </div>
-              </div>
-              </div>
-            )}
           </CardContent>
         </Card>
 

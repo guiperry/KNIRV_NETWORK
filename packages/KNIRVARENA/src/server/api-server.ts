@@ -149,6 +149,7 @@ app.post('/public/qr/complete', async (req: express.Request, res: express.Respon
     // Issue limited, temporary key
     const expiresAt = new Date(Date.now() + QR_TEMP_KEY_TTL_MS);
     const key = await apiKeyService.createApiKey({
+      ownerId: `qr:${nonce}`,
       name: `qr-temp-${nonce.slice(0, 6)}`,
       description: 'Temporary QR-issued key (read-only)',
       permissions: ['read:skills', 'read:capabilities', 'read:properties'],
@@ -174,34 +175,36 @@ app.use('/api', authenticateApiKey);
 
 // --- Vault: Skills, Capabilities & Properties (user-scoped placeholders) ---
 // These endpoints return mock data for the authenticated key owner until real storage is wired.
+const ownerScopedId = (owner: string, resource: string, sequence: number): string => {
+  const ownerDigest = crypto.createHash('sha256').update(owner).digest('hex').slice(0, 16);
+  return `${resource}_${ownerDigest}_${sequence}`;
+};
+
 app.get('/api/skills', requirePermission('read:skills'), (req: express.Request, res: express.Response) => {
-  const owner = (req.query.owner as string) || 'me';
-  // TODO: replace with DB queries filtered by req.apiKey/owner
+  const owner = (req as express.Request & { apiKey: ApiKey }).apiKey.ownerId;
   res.json({
     skills: [
-      { id: 'skill_001', name: 'LoRA Adapter: Vision-Base', type: 'lora-adapter', owner, metadata: { baseModel: 'ResNet50', rankDim: 8, version: '1.0.0' } },
-      { id: 'skill_002', name: 'LoRA Adapter: LLM-Summarize', type: 'lora-adapter', owner, metadata: { baseModel: 'Llama-3-8B', rankDim: 16, version: '0.9.2' } }
+      { id: ownerScopedId(owner, 'skill', 1), name: 'LoRA Adapter: Vision-Base', type: 'lora-adapter', owner, metadata: { baseModel: 'ResNet50', rankDim: 8, version: '1.0.0' } },
+      { id: ownerScopedId(owner, 'skill', 2), name: 'LoRA Adapter: LLM-Summarize', type: 'lora-adapter', owner, metadata: { baseModel: 'Llama-3-8B', rankDim: 16, version: '0.9.2' } }
     ]
   });
 });
 app.get('/api/capabilities', requirePermission('read:capabilities'), (req, res) => {
-  const owner = (req.query.owner as string) || 'me';
-  // TODO: replace with DB queries filtered by req.apiKey/owner
+  const owner = (req as express.Request & { apiKey: ApiKey }).apiKey.ownerId;
   res.json({
     capabilities: [
-      { id: 'cap_001', name: 'Image Classifier', type: 'ml-model', owner, descriptor: { version: '1.0.0' } },
-      { id: 'cap_002', name: 'Text Summarizer', type: 'ml-model', owner, descriptor: { version: '2.1.0' } }
+      { id: ownerScopedId(owner, 'cap', 1), name: 'Image Classifier', type: 'ml-model', owner, descriptor: { version: '1.0.0' } },
+      { id: ownerScopedId(owner, 'cap', 2), name: 'Text Summarizer', type: 'ml-model', owner, descriptor: { version: '2.1.0' } }
     ]
   });
 });
 
 app.get('/api/properties', requirePermission('read:properties'), (req, res) => {
-  const owner = (req.query.owner as string) || 'me';
-  // TODO: replace with DB queries filtered by req.apiKey/owner
+  const owner = (req as express.Request & { apiKey: ApiKey }).apiKey.ownerId;
   res.json({
     properties: [
-      { id: 'prop_001', name: 'Training Dataset #1', type: 'Data', size: '2.4 GB', value: '150 NRN', owner, createdAt: '2024-01-05' },
-      { id: 'prop_002', name: 'Model Weights #1', type: 'Model', size: '1.8 GB', value: '300 NRN', owner, createdAt: '2024-02-10' }
+      { id: ownerScopedId(owner, 'prop', 1), name: 'Training Dataset #1', type: 'Data', size: '2.4 GB', value: '150 NRN', owner, createdAt: '2024-01-05' },
+      { id: ownerScopedId(owner, 'prop', 2), name: 'Model Weights #1', type: 'Model', size: '1.8 GB', value: '300 NRN', owner, createdAt: '2024-02-10' }
     ]
   });
 });
@@ -233,16 +236,17 @@ app.get('/health', (req, res) => {
 // API Key Management Endpoints
 app.post('/api/keys', requirePermission('admin:all'), async (req, res) => {
   try {
-    const { name, description, permissions, expiresAt, rateLimit } = req.body;
+    const { name, description, permissions, ownerId, expiresAt, rateLimit } = req.body;
 
-    if (!name || !description || !permissions) {
+    if (!name || !description || !permissions || !ownerId) {
       return res.status(400).json({
         error: 'Missing required fields',
-        required: ['name', 'description', 'permissions']
+        required: ['name', 'description', 'permissions', 'ownerId']
       });
     }
 
     const apiKey = await apiKeyService.createApiKey({
+      ownerId,
       name,
       description,
       permissions,

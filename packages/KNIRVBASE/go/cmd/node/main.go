@@ -13,6 +13,7 @@ import (
 
 	"github.com/apache/arrow/go/v15/arrow/flight"
 	"github.com/knirvcorp/knirvbase/internal/monitoring"
+	"github.com/knirvcorp/knirvbase/internal/tracing"
 	"github.com/knirvcorp/knirvbase/pkg/knirvbase"
 	"github.com/knirvcorp/knirvbase/pkg/nrv"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -35,6 +36,9 @@ func main() {
 	bootstrap := flag.String("bootstrap-peers", envOr("KNIRVBASE_BOOTSTRAP_PEERS", ""), "comma-separated bootstrap peers")
 	flightAddr := flag.String("flight-addr", envOr("KNIRVBASE_FLIGHT_ADDR", ":8815"), "Arrow Flight address (reserved for Flight adapter)")
 	flag.Parse()
+	if _, err := tracing.InitTracer("knirvbase", strings.TrimSpace(os.Getenv("OTEL_JAEGER_ENDPOINT"))); err != nil {
+		log.Printf("OpenTelemetry initialization failed: %v", err)
+	}
 	if err := os.MkdirAll(*dataDir, 0755); err != nil {
 		log.Fatal(err)
 	}
