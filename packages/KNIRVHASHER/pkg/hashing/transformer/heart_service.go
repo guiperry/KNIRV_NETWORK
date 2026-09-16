@@ -12,12 +12,15 @@ import (
 	"sync"
 	"time"
 
+	"github.com/guiperry/text-embedder/pkg/embed"
 	"knirvhasher/pkg/embeddings"
+	"knirvhasher/pkg/hashing/semanticmemory"
 )
 
 // HEARTService provides HTTP endpoints for KNIRVCORTEX to query HEART
 type HEARTService struct {
 	gpt               *GPT
+	semanticMemory    *semanticmemory.Model
 	bridge            *CerebrasBridge
 	processor         *NetworkMetricsProcessor
 	tokenizer         Tokenizer
@@ -128,8 +131,27 @@ func NewHEARTService(bridge *CerebrasBridge, processor *NetworkMetricsProcessor)
 
 // NewHEARTServiceWithConfig creates a new HEART service with configuration (Phase 2)
 func NewHEARTServiceWithConfig(cfg *HEARTConfig) (*HEARTService, error) {
-	gpt := NewGPT(&cfg.Gorgonite)
-	if cfg.ModelCheckpointPath != "" {
+	var semanticMemory *semanticmemory.Model
+	if cfg.SemanticMemoryPath != "" {
+		memory, err := semanticmemory.Load(cfg.SemanticMemoryPath)
+		if err != nil {
+			log.Printf("semantic memory unavailable at %s (%v); falling back to GPT", cfg.SemanticMemoryPath, err)
+		} else if memory.Embedder != embed.ModelID || memory.Dimensions != embed.Dims {
+			log.Printf("semantic memory at %s is incompatible with %s; falling back to GPT", cfg.SemanticMemoryPath, embed.ModelID)
+		} else {
+			semanticMemory = memory
+			log.Printf("loaded semantic memory from %s (%d prototypes, %d indexed frames)", cfg.SemanticMemoryPath, len(memory.Prototypes), memory.FramesIndexed)
+		}
+	}
+
+	var gpt *GPT
+	// Do not allocate an untrained default GPT as a fallback: its default
+	// vocabulary and 768-dimensional weights can exhaust a normal server.
+	// A configured checkpoint is an explicit opt-in to that legacy path.
+	if semanticMemory == nil && cfg.ModelCheckpointPath != "" {
+		gpt = NewGPT(&cfg.Gorgonite)
+	}
+	if gpt != nil && cfg.ModelCheckpointPath != "" {
 		if err := LoadModel(gpt, cfg.ModelCheckpointPath); err != nil {
 			log.Printf("no trained checkpoint at %s (%v); starting from random init", cfg.ModelCheckpointPath, err)
 		} else {
@@ -171,17 +193,18 @@ func NewHEARTServiceWithConfig(cfg *HEARTConfig) (*HEARTService, error) {
 	}
 
 	svc := &HEARTService{
-		gpt:           gpt,
-		bridge:        cfg.getBridge(),
-		tokenizer:     tokIface,
-		embedder:      embedder,
-		compiler:      NewWASMCompiler(cfg.TinyGoPath, cfg.WASMOutDir),
-		verifier:      NewBidirectionalVerifier(),
-		auditor:       NewAuditor(cfg.AuditLogDir),
-		hashNet:       hashNet,
-		config:        cfg,
-		unifiedEngine: unifiedEngine,
-		attestation:   attestation,
+		gpt:            gpt,
+		semanticMemory: semanticMemory,
+		bridge:         cfg.getBridge(),
+		tokenizer:      tokIface,
+		embedder:       embedder,
+		compiler:       NewWASMCompiler(cfg.TinyGoPath, cfg.WASMOutDir),
+		verifier:       NewBidirectionalVerifier(),
+		auditor:        NewAuditor(cfg.AuditLogDir),
+		hashNet:        hashNet,
+		config:         cfg,
+		unifiedEngine:  unifiedEngine,
+		attestation:    attestation,
 		stats: &HEARTServiceStats{
 			ErrorTypeCounts:   make(map[string]uint64),
 			HeuristicUsage:    make(map[string]uint64),
@@ -266,15 +289,30 @@ func classifyInquiry(path string) WASMType {
 // runGorgoniteInference runs the Gorgonite GPT forward pass and returns logits.
 // Instruments per-token entropy and routes spikes to gap queues (Phase 13).
 //
-// GPT (real, backprop-trained — see Phase 4) is the default and only path
-// when available; it is no longer gated behind an InferenceMode == "legacy"
-// flag, and the flag's polarity was backwards from what its name implied
-// either way (the hash-seed UnifiedHasherEngine ran by default; GPT — the
-// actual LM per D1/D9 in docs/hasher_validation_patch.md — was what "legacy"
-// mode opted into). unifiedEngine is now only a fallback for when GPT itself
-// isn't initialized or its forward pass errors, not a mode selectable via
-// config.
+// The bounded semantic memory is the default when its checkpoint exists.
+// The legacy GPT is constructed only when a checkpoint explicitly opts into
+// it; UnifiedHasherEngine remains the safe fallback when neither is present.
 func (hs *HEARTService) runGorgoniteInference(tokens []int) ([]float32, error) {
+	if hs.semanticMemory != nil && hs.tokenizer != nil {
+		text := hs.tokenizer.Decode(tokens)
+		if target, score, ok := hs.semanticMemory.Query(embed.Embed(text)); ok {
+			vocabSize := hs.config.Gorgonite.VocabSize
+			if vocabSize <= 0 {
+				return nil, fmt.Errorf("semantic inference: invalid vocabulary size")
+			}
+			idx := int(target) % vocabSize
+			if idx < 0 {
+				idx += vocabSize
+			}
+			// A zero baseline leaves the learned token as the clear argmax even
+			// for a low but valid cosine match.
+			logits := make([]float32, vocabSize)
+			logits[idx] = 1 + score
+			hs.reportEntropy(logits)
+			return logits, nil
+		}
+	}
+
 	if hs.gpt != nil {
 		data, err := hs.gpt.Forward(tokens)
 		if err == nil {
@@ -941,10 +979,11 @@ func (hs *HEARTService) generateAnalysisSummary(inquiry *HEARTErrorInquiry, aler
 }
 
 // generateRecommendedActions creates actionable recommendations.
-// When a Gorgonite GPT and tokenizer are available it uses inference to select
-// actions; otherwise it falls back to heuristic rules (Phase 2.4).
+// When semantic memory or an explicit Gorgonite GPT and tokenizer are
+// available it uses inference to select actions; otherwise it falls back to
+// heuristic rules (Phase 2.4).
 func (hs *HEARTService) generateRecommendedActions(inquiry *HEARTErrorInquiry, heuristicID uint32) []string {
-	if hs.gpt != nil && hs.tokenizer != nil {
+	if (hs.gpt != nil || hs.semanticMemory != nil) && hs.tokenizer != nil {
 		prompt := fmt.Sprintf("error_type:%s message:%s", inquiry.ErrorType, inquiry.ErrorMessage)
 		tokens := hs.tokenizer.Encode(prompt)
 		logits, err := hs.runGorgoniteInference(tokens)

@@ -1500,7 +1500,7 @@ func buildPipelineStages(pipelineType string) []PipelineStage {
 		Name:    "data-trainer",
 		BinName: "data-trainer",
 		Args:    []string{"-input", framesPath, "-checkpoint-dir", checkpointDir, "-epochs", "1"},
-		Desc:    "Data Trainer - Gorgonite model training",
+		Desc:    "Data Trainer - bounded semantic embedding memory",
 	}
 	seederStage := PipelineStage{
 		Name:    "data-seeder",
@@ -1655,7 +1655,7 @@ func (m Model) renderPipelineView() string {
 	}{
 		{"data-mapper", "Document structuring and PDF processing", "⛏️"},
 		{"data-encoder", "Tokenization and embedding generation", "🔐"},
-		{"data-trainer", "Gorgonite model training", "🧠"},
+		{"data-trainer", "bounded semantic embedding memory", "🧠"},
 		{"data-seeder", "Proof-of-work seed mining", "🌱"},
 	}
 

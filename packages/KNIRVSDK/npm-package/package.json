@@ -1,6 +1,6 @@
 {
   "name": "@knirv/sdk",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Browser and edge WebAssembly SDK core for KNIRV Network",
   "type": "module",
   "main": "./index.js",

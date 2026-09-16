@@ -52,6 +52,7 @@ func TestRun_TrainsAndSavesCheckpoint(t *testing.T) {
 		NumEpochs:     2,
 		LearningRate:  0.05,
 		SaveFreq:      1,
+		Mode:          "gpt",
 		ModelConfig:   tinyModelConfig(),
 	}
 
@@ -83,6 +84,7 @@ func TestRun_ResumeFromCheckpoint(t *testing.T) {
 		NumEpochs:     1,
 		LearningRate:  0.05,
 		SaveFreq:      1,
+		Mode:          "gpt",
 		ModelConfig:   tinyModelConfig(),
 	}
 	if err := Run(cfg1); err != nil {
@@ -96,11 +98,41 @@ func TestRun_ResumeFromCheckpoint(t *testing.T) {
 		NumEpochs:     1,
 		LearningRate:  0.05,
 		SaveFreq:      1,
+		Mode:          "gpt",
 		ResumeFrom:    filepath.Join(cfg1.CheckpointDir, "model_latest.bin"),
 		ModelConfig:   tinyModelConfig(),
 	}
 	if err := Run(cfg2); err != nil {
 		t.Fatalf("resume Run: %v", err)
+	}
+}
+
+func TestRun_SemanticStreamsAndSavesMemory(t *testing.T) {
+	oldDecoder := newTokenContextDecoder
+	newTokenContextDecoder = func() (func([]int32) string, error) {
+		return func(tokens []int32) string { return "semantic training test context" }, nil
+	}
+	t.Cleanup(func() { newTokenContextDecoder = oldDecoder })
+
+	dir := t.TempDir()
+	frames := []schema.TrainingFrame{
+		{SourceFile: "a.txt", TokenSequence: []int32{9906, 1917}, TargetTokenID: 374},
+		{SourceFile: "b.txt", TokenSequence: []int32{374, 701}, TargetTokenID: 836},
+	}
+	cfg := &Config{
+		InputPath:     writeTestFrames(t, dir, frames),
+		CheckpointDir: filepath.Join(dir, "semantic"),
+		NumEpochs:     1,
+		LearningRate:  0.01,
+		SaveFreq:      1,
+		Mode:          "semantic",
+		MaxPrototypes: 8,
+	}
+	if err := Run(cfg); err != nil {
+		t.Fatalf("Run semantic: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(cfg.CheckpointDir, "semantic_memory.json")); err != nil {
+		t.Fatalf("expected semantic memory checkpoint: %v", err)
 	}
 }
 
@@ -113,6 +145,7 @@ func TestRun_NoFrames(t *testing.T) {
 		CheckpointDir: filepath.Join(dir, "ckpt"),
 		NumEpochs:     1,
 		LearningRate:  0.01,
+		Mode:          "gpt",
 	}
 	if err := Run(cfg); err == nil {
 		t.Fatal("expected error when no frames are loaded")
@@ -125,6 +158,7 @@ func TestRun_MissingInput(t *testing.T) {
 		CheckpointDir: filepath.Join(t.TempDir(), "ckpt"),
 		NumEpochs:     1,
 		LearningRate:  0.01,
+		Mode:          "gpt",
 	}
 	if err := Run(cfg); err == nil {
 		t.Fatal("expected error for missing input file")

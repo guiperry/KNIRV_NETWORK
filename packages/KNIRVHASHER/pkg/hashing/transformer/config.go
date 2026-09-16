@@ -1,5 +1,7 @@
 package transformer
 
+import "path/filepath"
+
 type HEARTConfig struct {
 	Gorgonite GorgoniteConfig
 
@@ -28,10 +30,14 @@ type HEARTConfig struct {
 
 	ExternalGenerateFn ExternalGenerateFn `json:"-" yaml:"-"`
 
-	// ModelCheckpointPath is the path to a trained GPT checkpoint. When set,
-	// NewHEARTServiceWithConfig attempts to load it; if loading fails (missing
-	// file, version mismatch, etc.) it falls back to a freshly-initialized model.
+	// ModelCheckpointPath explicitly opts into the legacy, memory-intensive GPT
+	// path. It is considered only when no compatible semantic memory is found.
 	ModelCheckpointPath string
+
+	// SemanticMemoryPath is the bounded embedding memory produced by the
+	// semantic data-trainer. When present, HEART uses it before the legacy GPT
+	// path and does not allocate a transformer model.
+	SemanticMemoryPath string
 }
 
 func DefaultHEARTConfig(useHashNetwork, useCerebras bool) *HEARTConfig {
@@ -48,5 +54,6 @@ func DefaultHEARTConfig(useHashNetwork, useCerebras bool) *HEARTConfig {
 		AttestationLedgerDir:           DefaultFramesDir,
 		AttestationSignalIndices:       []int{0, 1, 2, 3},
 		AttestationQueueSize:           128,
+		SemanticMemoryPath:             filepath.Join(filepath.Dir(DefaultFramesDir), "trainer-checkpoints", "semantic_memory.json"),
 	}
 }

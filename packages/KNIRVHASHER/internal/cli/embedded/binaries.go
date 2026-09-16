@@ -66,7 +66,7 @@ var AvailableBinaries = []BinaryInfo{
 	},
 	{
 		Name:        "data-trainer",
-		Description: "Data Trainer - Gorgonite model training pipeline",
+		Description: "Data Trainer - bounded semantic embedding memory pipeline",
 		TargetOS:    "linux",
 		TargetArch:  "amd64",
 	},

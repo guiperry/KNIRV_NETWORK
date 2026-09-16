@@ -970,7 +970,7 @@ func buildPipelineStages(pipelineType string) []PipelineStage {
 		// The mapper's single batch is approximately 100 records. Train exactly
 		// that batch once before independent seed mining begins.
 		Args: []string{"-input", framesPath, "-checkpoint-dir", checkpointDir, "-epochs", "1"},
-		Desc: "Data Trainer - Gorgonite model training",
+		Desc: "Data Trainer - bounded semantic embedding memory",
 	}
 	seederStage := PipelineStage{
 		Name:    "data-seeder",
