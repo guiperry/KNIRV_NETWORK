@@ -9,10 +9,13 @@ interface ApiKeyManagerProps {
   onClose: () => void;
 }
 
+const LOCAL_OWNER_ID = 'local-user';
+
 export const ApiKeyManager: React.FC<ApiKeyManagerProps> = ({ isOpen, onClose }) => {
   const [apiKeys, setApiKeys] = useState<ApiKey[]>([]);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [newKeyData, setNewKeyData] = useState<CreateApiKeyRequest>({
+    ownerId: LOCAL_OWNER_ID,
     name: '',
     description: '',
     permissions: [],
@@ -58,6 +61,7 @@ export const ApiKeyManager: React.FC<ApiKeyManagerProps> = ({ isOpen, onClose })
       setCreatedKey(apiKey.key);
       setShowCreateForm(false);
       setNewKeyData({
+        ownerId: LOCAL_OWNER_ID,
         name: '',
         description: '',
         permissions: [],

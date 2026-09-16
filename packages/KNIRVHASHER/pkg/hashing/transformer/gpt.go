@@ -282,8 +282,7 @@ func (gpt *GPT) buildGraph(tokenIDs []int, targetIDs []int) (*graphBuild, error)
 // (sum_j exp(q.k_j) * decay(j,i) * v_j, unnormalized) for a differentiable,
 // numerically-stable port: raw unnormalized exp(scores) can overflow before
 // the decay multiply ever gets a chance to shrink it back down, so this
-// computes softmax(scores) (Gorgonia's SoftMax is already numerically
-// stable — subtracts the row max internally) and multiplies that by the
+// computes softmax(scores) and multiplies that by the
 // decay matrix afterward, rather than exponentiating raw scores directly.
 // The result no longer sums to exactly 1 per row (decay attenuates it
 // further), which is the intended behavior: distant positions are
@@ -333,7 +332,19 @@ func foxMultiHeadAttention(g *gorgonia.ExprGraph, x, decay *gorgonia.Node, lp *l
 			return nil, err
 		}
 
-		weights, err := gorgonia.SoftMax(scores)
+		// Gorgonia v0.9.18's last-axis SoftMax starts every matrix row with
+		// scores[0], rather than that row's first score. Transposing lets us
+		// normalize original rows along axis 0, whose implementation uses the
+		// correct per-column offset; transpose back to retain [query, key].
+		scoresT, err := gorgonia.Transpose(scores)
+		if err != nil {
+			return nil, err
+		}
+		weightsT, err := gorgonia.SoftMax(scoresT, 0)
+		if err != nil {
+			return nil, err
+		}
+		weights, err := gorgonia.Transpose(weightsT)
 		if err != nil {
 			return nil, err
 		}
@@ -421,48 +432,56 @@ func sinusoidalPositionalEncoding(g *gorgonia.ExprGraph, seqLen, embedDim int) *
 }
 
 // crossEntropyLoss computes mean over positions of -log(softmax(logits)[i,
-// target[i]]), the standard next-token-prediction loss. Built the same way
-// embedding lookup is (one-hot times the value, so the constant one-hot
-// target vector selects out the right column), rather than requiring a
-// gather op.
+// target[i]]), the standard next-token-prediction loss.
 func crossEntropyLoss(g *gorgonia.ExprGraph, logits *gorgonia.Node, targetIDs []int, vocabSize int) (*gorgonia.Node, error) {
 	seqLen := len(targetIDs)
-	// LogSoftMax (not SoftMax followed by a separate Log) is required here,
-	// not just a style preference: computing log(softmax(x)) as two steps
-	// evaluates log(0) = -Inf whenever a probability underflows to exactly
-	// zero, and HadamardProd against the one-hot target vector then hits
-	// 0 * -Inf = NaN at every OTHER (non-target) vocab position — which
-	// contaminates the sum even though those positions "shouldn't" matter.
-	// LogSoftMax computes x - max(x) - logsumexp(x) directly and never
-	// produces -Inf for finite input.
-	logProbs, err := gorgonia.LogSoftMax(logits)
+	if seqLen == 0 {
+		return nil, fmt.Errorf("crossEntropyLoss: empty target sequence")
+	}
+
+	// Gorgonia v0.9.18's last-axis matrix LogSoftMax starts every row with
+	// logits[0], rather than that row's first logit. If a later row has much
+	// smaller values, its exponential sum underflows to zero and contaminates
+	// the loss with NaN. Normalize the transposed matrix along axis 0 instead:
+	// that code path tracks each original row's maximum correctly.
+	logitsT, err := gorgonia.Transpose(logits)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("transpose logits: %w", err)
+	}
+	logProbsT, err := gorgonia.LogSoftMax(logitsT, 0)
+	if err != nil {
+		return nil, fmt.Errorf("log softmax: %w", err)
+	}
+	logProbs, err := gorgonia.Transpose(logProbsT)
+	if err != nil {
+		return nil, fmt.Errorf("transpose log probabilities: %w", err)
 	}
 
 	oneHot := make([]float32, seqLen*vocabSize)
-	for i, tgt := range targetIDs {
-		idx := tgt % vocabSize
-		if idx < 0 {
-			idx += vocabSize
+	for i, targetID := range targetIDs {
+		target := targetID % vocabSize
+		if target < 0 {
+			target += vocabSize
 		}
-		oneHot[i*vocabSize+idx] = 1
+		oneHot[i*vocabSize+target] = 1
 	}
-	oneHotTensor := tensor.New(tensor.WithBacking(oneHot), tensor.WithShape(seqLen, vocabSize))
-	oneHotNode := gorgonia.NewConstant(oneHotTensor, gorgonia.WithName("target_one_hot"))
-
-	picked, err := gorgonia.HadamardProd(logProbs, oneHotNode)
+	targetNode := gorgonia.NewConstant(
+		tensor.New(tensor.WithBacking(oneHot), tensor.WithShape(seqLen, vocabSize)),
+		gorgonia.WithName("target_one_hot"),
+	)
+	picked, err := gorgonia.HadamardProd(logProbs, targetNode)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("select target probabilities: %w", err)
 	}
-	summed, err := gorgonia.Sum(picked) // sum over the one nonzero entry per row = sum of picked log-probs
+	summed, err := gorgonia.Sum(picked)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("sum selected target probabilities: %w", err)
 	}
 	negSummed, err := gorgonia.Neg(summed)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("negate summed target probabilities: %w", err)
 	}
+
 	n := gorgonia.NewScalar(g, tensor.Float32, gorgonia.WithValue(float32(seqLen)))
 	return gorgonia.HadamardDiv(negSummed, n)
 }
@@ -515,6 +534,16 @@ func (gpt *GPT) TrainStep(tokenIDs, targetIDs []int, learningRate float32) (floa
 	if err := vm.RunAll(); err != nil {
 		return 0, fmt.Errorf("forward+backward VM run: %w", err)
 	}
+	lossVal, ok := build.loss.Value().Data().(float32)
+	if !ok {
+		return 0, fmt.Errorf("unexpected loss value type")
+	}
+	// Do not let a non-finite forward pass reach the solver. Apart from being
+	// invalid training data, applying its gradients would poison the persisted
+	// model weights and make every later frame fail as well.
+	if math.IsNaN(float64(lossVal)) || math.IsInf(float64(lossVal), 0) {
+		return 0, fmt.Errorf("non-finite loss: %v", lossVal)
+	}
 
 	// Gradient clipping (norm 1.0, matching GetPretrainingConfig's default)
 	// is not optional here: an unclipped step on a freshly-initialized
@@ -537,10 +566,6 @@ func (gpt *GPT) TrainStep(tokenIDs, targetIDs []int, learningRate float32) (floa
 		copy(values[i].Data().([]float32), updated)
 	}
 
-	lossVal, ok := build.loss.Value().Data().(float32)
-	if !ok {
-		return 0, fmt.Errorf("unexpected loss value type")
-	}
 	return lossVal, nil
 }
 
@@ -991,7 +1016,6 @@ func RunPretraining(cfg *GorgoniteConfig) error {
 	return TrainModel(model, dataset, trainCfg)
 }
 
-
 // ---- HasherTransformer: hash-seed-based transformer (hardware-accelerated path) ----
 
 // HasherTransformerConfig defines architecture for the hash-seed transformer.
@@ -1406,4 +1430,3 @@ func NewUnifiedHasherEngineFromHasherTransformer(ht *HasherTransformer) (*Unifie
 	seeds := hasherTransformerToSeedStore(ht)
 	return NewUnifiedHasherEngineWithConfig(cfg, seeds, ht.hashMethod, ModeTransformer), nil
 }
-

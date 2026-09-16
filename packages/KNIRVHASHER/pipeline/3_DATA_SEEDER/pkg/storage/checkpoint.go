@@ -15,6 +15,8 @@ import (
 type CheckpointManager struct {
 	dbPath           string
 	db               map[string][]byte
+	processedPath    string
+	processed        map[string]bool
 	mutex            sync.RWMutex
 	batchSize        int
 	dirty            bool
@@ -40,9 +42,15 @@ type CheckpointSummary struct {
 }
 
 func NewCheckpointManager(dbPath string) *CheckpointManager {
+	processedPath := ""
+	if dbPath != "" {
+		processedPath = dbPath + ".processed"
+	}
 	return &CheckpointManager{
 		dbPath:           dbPath,
 		db:               make(map[string][]byte),
+		processedPath:    processedPath,
+		processed:        make(map[string]bool),
 		batchSize:        100,
 		autoSaveInterval: 30 * time.Second,
 	}
@@ -63,6 +71,20 @@ func (cm *CheckpointManager) Initialize() error {
 			}
 		} else if !os.IsNotExist(err) {
 			fmt.Printf("[CHECKPOINT] Warning: could not load checkpoints: %v\n", err)
+		}
+	}
+
+	// A completed assertion is not necessarily a winning assertion. Keep this
+	// separate from seed checkpoints so an exhausted record is not mined again
+	// on every pipeline pass merely because it did not produce a winning seed.
+	if cm.processedPath != "" {
+		data, err := os.ReadFile(cm.processedPath)
+		if err == nil {
+			if err := json.Unmarshal(data, &cm.processed); err != nil {
+				return fmt.Errorf("load processed assertions: %w", err)
+			}
+		} else if !os.IsNotExist(err) {
+			return fmt.Errorf("load processed assertions: %w", err)
 		}
 	}
 
@@ -140,6 +162,46 @@ func (cm *CheckpointManager) HasAssertionCheckpoint(assertionKey string, tokenID
 	defer cm.mutex.RUnlock()
 	_, exists := cm.db[checkpointKey(assertionKey, tokenID)]
 	return exists, nil
+}
+
+// HasAssertionProcessed reports whether an assertion has already completed a
+// seeder attempt. Existing winning checkpoints also count as processed so
+// installations upgrading to this format do not repeat prior successful work.
+func (cm *CheckpointManager) HasAssertionProcessed(assertionKey string, tokenID int32) (bool, error) {
+	cm.mutex.RLock()
+	defer cm.mutex.RUnlock()
+
+	key := checkpointKey(assertionKey, tokenID)
+	if cm.processed[key] {
+		return true, nil
+	}
+	_, hasCheckpoint := cm.db[key]
+	return hasCheckpoint, nil
+}
+
+// MarkAssertionProcessed durably records a completed seeder attempt. It is
+// deliberately independent of SaveCheckpoint: unsuccessful attempts have no
+// seed to checkpoint but still must not be retried on the next pipeline batch.
+func (cm *CheckpointManager) MarkAssertionProcessed(assertionKey string, tokenID int32) error {
+	cm.mutex.Lock()
+	defer cm.mutex.Unlock()
+
+	cm.processed[checkpointKey(assertionKey, tokenID)] = true
+	if cm.processedPath == "" {
+		return fmt.Errorf("processed assertion path is not configured")
+	}
+	data, err := json.Marshal(cm.processed)
+	if err != nil {
+		return fmt.Errorf("marshal processed assertions: %w", err)
+	}
+	tmpPath := cm.processedPath + ".tmp"
+	if err := os.WriteFile(tmpPath, data, 0644); err != nil {
+		return fmt.Errorf("write processed assertions: %w", err)
+	}
+	if err := os.Rename(tmpPath, cm.processedPath); err != nil {
+		return fmt.Errorf("save processed assertions: %w", err)
+	}
+	return nil
 }
 
 func (cm *CheckpointManager) LoadCheckpoint(tokenID int32) (*training.CheckpointEntry, error) {

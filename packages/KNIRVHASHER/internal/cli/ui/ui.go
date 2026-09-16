@@ -554,10 +554,16 @@ func NewModel() Model {
 				Desc:    "Data Encoder - Tokenization and embeddings",
 			},
 			{
+				Name:    "data-trainer",
+				BinName: "data-trainer",
+				Args:    []string{"-epochs", "1"},
+				Desc:    "Data Trainer - Gorgonite model training",
+			},
+			{
 				Name:    "data-seeder",
 				BinName: "data-seeder",
-				Args:    []string{"-verbose", "-epochs", "5", "-sequential", "-hash-method", "cuda"},
-				Desc:    "Data Trainer - Neural network training",
+				Args:    []string{"-verbose", "-epochs", "1", "-sequential", "-hash-method", "auto"},
+				Desc:    "Data Seeder - proof-of-work seed mining",
 			},
 		},
 
@@ -1484,11 +1490,23 @@ func dataVerificationModeFromTitle(title string) string {
 
 // buildPipelineStages returns the pipeline stages for the given type.
 func buildPipelineStages(pipelineType string) []PipelineStage {
+	framesPath := "training_frames.json"
+	checkpointDir := "trainer-checkpoints"
+	if deviceConfig, err := config.LoadDeviceConfig(); err == nil && deviceConfig.FramesDir != "" {
+		framesPath = filepath.Join(deviceConfig.FramesDir, "training_frames.json")
+		checkpointDir = filepath.Join(filepath.Dir(deviceConfig.FramesDir), "trainer-checkpoints")
+	}
 	trainerStage := PipelineStage{
+		Name:    "data-trainer",
+		BinName: "data-trainer",
+		Args:    []string{"-input", framesPath, "-checkpoint-dir", checkpointDir, "-epochs", "1"},
+		Desc:    "Data Trainer - Gorgonite model training",
+	}
+	seederStage := PipelineStage{
 		Name:    "data-seeder",
 		BinName: "data-seeder",
-		Args:    []string{"-verbose", "-epochs", "5", "-sequential", "-hash-method", "cuda"},
-		Desc:    "Data Trainer - Neural network training",
+		Args:    []string{"-verbose", "-epochs", "1", "-sequential", "-hash-method", "auto"},
+		Desc:    "Data Seeder - proof-of-work seed mining",
 	}
 	dataConnectorStage := PipelineStage{
 		Name:    "data-connector",
@@ -1505,6 +1523,7 @@ func buildPipelineStages(pipelineType string) []PipelineStage {
 			{Name: "data-encoder", BinName: "data-encoder",
 				Args: []string{"-workers", "2"}, Desc: "Data Encoder - Tokenization and embeddings"},
 			trainerStage,
+			seederStage,
 		}
 	case "demo":
 		// Demo generates trainer-compatible JSON directly; skip the encoder.
@@ -1513,6 +1532,7 @@ func buildPipelineStages(pipelineType string) []PipelineStage {
 			{Name: "data-mapper", BinName: "data-mapper",
 				Args: []string{"-demo"}, Desc: "Data Mapper - staged source records"},
 			trainerStage,
+			seederStage,
 		}
 	default: // "goat"
 		return []PipelineStage{
@@ -1522,6 +1542,7 @@ func buildPipelineStages(pipelineType string) []PipelineStage {
 			{Name: "data-encoder", BinName: "data-encoder",
 				Args: []string{"-workers", "2"}, Desc: "Data Encoder - Tokenization and embeddings"},
 			trainerStage,
+			seederStage,
 		}
 	}
 }
@@ -1634,7 +1655,8 @@ func (m Model) renderPipelineView() string {
 	}{
 		{"data-mapper", "Document structuring and PDF processing", "⛏️"},
 		{"data-encoder", "Tokenization and embedding generation", "🔐"},
-		{"data-seeder", "Neural network training and optimization", "🧠"},
+		{"data-trainer", "Gorgonite model training", "🧠"},
+		{"data-seeder", "Proof-of-work seed mining", "🌱"},
 	}
 
 	for i, stage := range stages {

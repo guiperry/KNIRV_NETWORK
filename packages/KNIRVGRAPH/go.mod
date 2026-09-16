@@ -5,7 +5,6 @@ go 1.24.6
 require (
 	github.com/dgraph-io/badger/v3 v3.2103.5
 	github.com/gorilla/mux v1.8.0
-	github.com/gorilla/websocket v1.5.3
 	github.com/guiperry/knirv-sdk-go v0.1.1
 	github.com/libp2p/go-libp2p v0.39.1
 	github.com/libp2p/go-libp2p-pubsub v0.13.1

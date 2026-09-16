@@ -3,6 +3,9 @@ package transformer
 import (
 	"math"
 	"testing"
+
+	"gorgonia.org/gorgonia"
+	"gorgonia.org/tensor"
 )
 
 // tinyGorgoniteConfig keeps graphs small enough for a fast, deterministic
@@ -78,6 +81,47 @@ func TestGPTForward_VariesByPosition(t *testing.T) {
 	}
 	if same {
 		t.Fatal("expected different logits at different positions for a repeated token (positional encoding / causal context should matter)")
+	}
+}
+
+// TestCrossEntropyLoss_HandlesRowsWithDifferentLogitRanges reproduces the
+// production failure where a later row was normalized using the first value
+// from the entire logits matrix. Its exponentials underflowed, then the
+// one-hot selection produced 0 * -Inf = NaN. The loss must stay finite when
+// rows naturally have very different logit ranges.
+func TestCrossEntropyLoss_HandlesRowsWithDifferentLogitRanges(t *testing.T) {
+	g := gorgonia.NewGraph()
+	logits := tensor.New(
+		tensor.WithBacking([]float32{
+			100, 0, 0, 0, // row 0: a confident prediction
+			0, 0, 0, 0, // row 1: a uniform prediction
+		}),
+		tensor.WithShape(2, 4),
+	)
+	logitsNode := gorgonia.NewMatrix(g, tensor.Float32,
+		gorgonia.WithShape(2, 4),
+		gorgonia.WithValue(logits),
+	)
+	loss, err := crossEntropyLoss(g, logitsNode, []int{0, 0}, 4)
+	if err != nil {
+		t.Fatalf("crossEntropyLoss: %v", err)
+	}
+
+	vm := gorgonia.NewTapeMachine(g)
+	defer vm.Close()
+	if err := vm.RunAll(); err != nil {
+		t.Fatalf("run loss graph: %v", err)
+	}
+	got, ok := loss.Value().Data().(float32)
+	if !ok {
+		t.Fatalf("unexpected loss type %T", loss.Value().Data())
+	}
+	if math.IsNaN(float64(got)) || math.IsInf(float64(got), 0) {
+		t.Fatalf("loss must be finite, got %v", got)
+	}
+	want := float32(math.Log(4) / 2)
+	if math.Abs(float64(got-want)) > 1e-5 {
+		t.Fatalf("loss = %v, want %v", got, want)
 	}
 }
 

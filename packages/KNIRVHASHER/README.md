@@ -14,8 +14,8 @@ KNIRVHASHER extends HASHER with a complete data pipeline for training user-centr
 1. **0_DATA_CONNECTOR**: Receives gRPC streams from KNIRVSERVER, decrypts chunks, and writes raw `.md` files to KNIRVBASE
 2. **1_DATA_MAPPER**: Processes `.md` files through SpaCy NLP, normalizes security data, and writes `.arrow` IPC files
 3. **2_DATA_ENCODER**: Encodes `.arrow` batches into 80-byte `.nrv` Tier-3 Brackets with BGE embeddings and NRV KB lookups
-4. **3_DATA_SEEDER**: Mines proof-of-work-witnessed assertions via `EvolutionaryHarness` — a real (1+1)-style evolution strategy over candidate nonces, scored by Hamming-similarity fitness (see below) — and writes them to the seed ledger
-5. **4_DATA_TRAINER**: Trains the Gorgonite GPT (`pkg/hashing/transformer/gpt.go`) on `training_frames.json` via real gradient descent, producing model checkpoints for inference
+4. **3_DATA_TRAINER**: Trains the Gorgonite GPT (`pkg/hashing/transformer/gpt.go`) on each encoded batch in `training_frames.json` via real gradient descent, producing model checkpoints for inference
+5. **4_DATA_SEEDER**: Mines proof-of-work-witnessed assertions via `EvolutionaryHarness` — a real (1+1)-style evolution strategy over candidate nonces, scored by Hamming-similarity fitness (see below) — and writes them to the seed ledger. Completed assertions are durably tracked, including non-winning attempts, so they are not mined again on later pipeline passes.
 
 The pipeline transforms user ontology data into `.nrv` datasets for future global model updates across the KNIRV network.
 

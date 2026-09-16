@@ -48,7 +48,7 @@ import (
 	"knirv-server/pkg/embedded"
 	"knirv-server/pkg/embedded/validationchain"
 	"knirv-server/pkg/embedded/validationchain/checkpoint"
-	"knirv-server/pkg/progress"
+	"knirv-server/internal/progress"
 	"knirvllama"
 )
 

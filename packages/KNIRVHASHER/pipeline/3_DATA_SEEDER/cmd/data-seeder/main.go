@@ -394,6 +394,30 @@ func (to *TrainingOrchestrator) initializeComponents() error {
 		return fmt.Errorf("no training records found in %s - file may be empty or corrupted", trainingDataPath)
 	}
 
+	// A source frame remains in training_frames.json after a non-winning
+	// attempt, so filter against the durable attempt ledger before scheduling
+	// work. Without this, each pipeline restart would mine the same records
+	// forever unless every record happened to produce a winning seed.
+	unprocessed := trainingRecords[:0]
+	for _, record := range trainingRecords {
+		processed, err := to.checkpointMgr.HasAssertionProcessed(record.AssertionKey(), record.TargetToken)
+		if err != nil {
+			return fmt.Errorf("check processed assertion: %w", err)
+		}
+		if !processed {
+			unprocessed = append(unprocessed, record)
+		}
+	}
+	trainingRecords = unprocessed
+	if len(trainingRecords) == 0 {
+		to.allRecordsSeeded = true
+		to.logger.Info("All training records have already completed a seeder attempt; nothing to repeat")
+		if err := to.writeRunStatus("completed", "all records already processed"); err != nil {
+			to.logger.Warn("Failed to write run status: %v", err)
+		}
+		return nil
+	}
+
 	to.trainingData = trainingRecords
 	to.logger.Info("Successfully ingested %d training records", len(trainingRecords))
 	if err := to.writeRunStatus("running", "training records ingested"); err != nil {
@@ -481,7 +505,7 @@ func (to *TrainingOrchestrator) Run(ctx context.Context, maxEpochs, populationSi
 	}
 
 	if to.allRecordsSeeded {
-		to.logger.Info("All training records already have seeds. Nothing to train.")
+		to.logger.Info("All training records have already been processed. Nothing to train.")
 		return to.finalizeTraining()
 	}
 
@@ -633,15 +657,20 @@ func (to *TrainingOrchestrator) trainBatch(ctx context.Context, records []*train
 		default:
 		}
 
-		// Check if we already have a winning seed for this token
-		hasCheckpoint, err := to.checkpointMgr.HasAssertionCheckpoint(record.AssertionKey(), record.TargetToken)
-		if err == nil && hasCheckpoint {
+		processed, err := to.checkpointMgr.HasAssertionProcessed(record.AssertionKey(), record.TargetToken)
+		if err != nil {
+			return trainedCount, fmt.Errorf("check processed assertion: %w", err)
+		}
+		if processed {
 			continue
 		}
 
 		if err := to.trainRecord(ctx, record); err != nil {
 			to.logger.Warn("Failed to train record for token %d: %v", record.TargetToken, err)
 			continue
+		}
+		if err := to.checkpointMgr.MarkAssertionProcessed(record.AssertionKey(), record.TargetToken); err != nil {
+			return trainedCount, fmt.Errorf("mark processed assertion: %w", err)
 		}
 		trainedCount++
 	}

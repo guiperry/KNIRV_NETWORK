@@ -60,7 +60,13 @@ var AvailableBinaries = []BinaryInfo{
 	},
 	{
 		Name:        "data-seeder",
-		Description: "Data Trainer - Model training and neural network optimization pipeline",
+		Description: "Data Seeder - proof-of-work seed mining pipeline",
+		TargetOS:    "linux",
+		TargetArch:  "amd64",
+	},
+	{
+		Name:        "data-trainer",
+		Description: "Data Trainer - Gorgonite model training pipeline",
 		TargetOS:    "linux",
 		TargetArch:  "amd64",
 	},
