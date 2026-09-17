@@ -9,13 +9,15 @@ HASHER implements a recursive single-ASIC inference engine as specified in the *
 
 ### KNIRVHASHER Pipeline
 
-KNIRVHASHER extends HASHER with a complete data pipeline for training user-centric logic gate hash networks. The experimental stealth mode includes four pipeline stages that can be called non-interactively as background processes:
+KNIRVHASHER extends HASHER with a complete data pipeline for training user-centric logic gate hash networks. The experimental stealth mode includes five pipeline stages that can be called non-interactively as background processes:
 
 1. **0_DATA_CONNECTOR**: Receives gRPC streams from KNIRVSERVER, decrypts chunks, and writes raw `.md` files to KNIRVBASE
 2. **1_DATA_MAPPER**: Processes `.md` files through SpaCy NLP, normalizes security data, and writes `.arrow` IPC files
 3. **2_DATA_ENCODER**: Encodes `.arrow` batches into 80-byte `.nrv` Tier-3 Brackets with BGE embeddings and NRV KB lookups
-4. **3_DATA_TRAINER**: Trains the Gorgonite GPT (`pkg/hashing/transformer/gpt.go`) on each encoded batch in `training_frames.json` via real gradient descent, producing model checkpoints for inference
-5. **4_DATA_SEEDER**: Mines proof-of-work-witnessed assertions via `EvolutionaryHarness` — a real (1+1)-style evolution strategy over candidate nonces, scored by Hamming-similarity fitness (see below) — and writes them to the seed ledger. Completed assertions are durably tracked, including non-winning attempts, so they are not mined again on later pipeline passes.
+4. **4_DATA_TRAINER**: Trains the Gorgonite GPT (`pkg/hashing/transformer/gpt.go`) on each encoded batch in `training_frames.json` via real gradient descent, producing model checkpoints for inference
+5. **3_DATA_SEEDER**: Mines proof-of-work-witnessed assertions via `EvolutionaryHarness` — a real (1+1)-style evolution strategy over candidate nonces, scored by Hamming-similarity fitness (see below) — and writes them to the seed ledger. Completed assertions are durably tracked, including non-winning attempts, so they are not mined again on later pipeline passes.
+
+`4_DATA_TRAINER` and `3_DATA_SEEDER` are independent consumers of `2_DATA_ENCODER`'s output, not sequential stages — the trainer produces the LM's own weights (backprop), the seeder produces a separate PoW-witnessed attestation ledger that the LM's `AttestationBridge` (`pkg/hashing/transformer/attestation_bridge.go`) queries at inference time to ground/flag-confidence on the LM's output. The CLI runs the trainer's bounded batch before the (potentially long-running) seeder purely so training progress is observable early; neither stage reads the other's output.
 
 The pipeline transforms user ontology data into `.nrv` datasets for future global model updates across the KNIRV network.
 

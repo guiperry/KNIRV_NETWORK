@@ -1,27 +1,31 @@
-# HASHER Data Trainer
+# HASHER Data Seeder — Attestation Mining
 
 ## Overview
 
-The HASHER Data Trainer is a sophisticated machine learning system that transforms obsolete Bitcoin mining hardware into a novel neural inference system. This implementation focuses on the **Evolutionary Training Harness** that optimizes SHA-256 "seeds" (weights) for the HASHER architecture using Group Relative Policy Optimization (GRPO) logic implemented through Evolutionary Strategies (ES).
+`3_DATA_SEEDER` mines proof-of-work-witnessed **assertions**: span-level `(context → fact)` claims that ground the language model's output. It is **not** a weight trainer — that job belongs to [`4_DATA_TRAINER`](../4_DATA_TRAINER), which runs ordinary backprop over `pkg/hashing/transformer/gpt.go` (the Heart Service LM). The two stages both consume `2_DATA_ENCODER`'s output but are independent: the seeder doesn't read the trainer's checkpoints, and the trainer doesn't read the seeder's ledger.
+
+Mechanically, seeding is proof-of-work-shaped, not gradient-shaped: for each `(context, span)` record, an **Evolutionary Strategy Harness** (`EvolutionaryHarness` in `pkg/training/evolutionary.go`) searches a population of candidate 32-byte nonces via mutate/select, scoring each against a PoW commitment target derived from the real context and the asserted span (`TrainingRecord.AssertionCommitmentTarget()`). A winning nonce is a cryptographic witness that this `(context, span)` pair was mined and proven — SHA-256's avalanche effect makes this kind of discrete search a fit for evolution strategies in a way it never was for gradient descent, which is exactly why weight training was split out into `4_DATA_TRAINER`.
+
+The resulting ledger (`frames/seed_writes.jsonl`) is consumed at inference time by `pkg/hashing/transformer/attestation_bridge.go`: after the Heart Service LM proposes a candidate next-token span, the bridge looks up whether that `(context, span)` pair has a prior PoW witness. A hit attaches a confidence/proof signal to the LM's output; a miss flags low confidence and enqueues the pair for mining, without blocking generation. Treat this as an attestation/grounding cache — "has this claim been proven and seen before" — not as logical or semantic reasoning.
 
 ## Architecture
 
 ### Core Components
 
-1. **Evolutionary GRPO Harness** - Implements Group Relative Policy Optimization without traditional backpropagation
+1. **Evolutionary Harness** - Population → mutate → fitness → select search over candidate nonces, scored against the real `(context, span)` PoW commitment target (no backpropagation involved)
 2. **vHasher Simulator** - GPU-accelerated SHA-256 simulation for rapid evaluation
-3. **CSV Storage Layer** - Efficient weight persistence with metadata
-4. **Checkpoint Manager** - Resilient training state management
+3. **CSV Storage Layer** - Legacy per-layer weight format; no longer written by the training loop (kept for `FlashManager`'s in-mining jitter lookup and for reading pre-split historical data)
+4. **Checkpoint Manager** - Resilient mining state management
 5. **Cross-Hardware Validator** - Consistency validation between GPU and ASIC
 6. **Flash Deployment** - Production deployment with rollback capability
 
 ### Key Features
 
-- **Quantum-Resistant Training**: High-velocity salt rotation ensures resistance to quantum attacks
-- **Evolutionary Optimization**: GRPO-based selection eliminates need for gradients
+- **Quantum-Resistant Mining**: High-velocity salt rotation ensures resistance to quantum attacks
+- **Evolutionary Search**: Population-based nonce mining, not gradient-based — see [`4_DATA_TRAINER`](../4_DATA_TRAINER) for the LM's actual backprop training
 - **Hardware Abstraction**: Works with both GPU simulation and physical ASICs
 - **Fault Tolerance**: Comprehensive checkpointing and validation systems
-- **Durable Seed Ledger**: Appends every winning seed to `frames/seed_writes.jsonl` before best-effort JSON/Arrow frame materialization
+- **Durable Seed Ledger**: Appends every winning seed to `frames/seed_writes.jsonl` before best-effort JSON/Arrow frame materialization — this ledger is the canonical attestation record consumed by the Heart Service's `AttestationBridge`
 - **Production Ready**: Full deployment pipeline with monitoring
 
 ## Quick Start
@@ -46,7 +50,7 @@ make deps
 make build
 ```
 
-### Running the Trainer
+### Running the Seeder
 
 ```bash
 # Basic training with default settings
@@ -168,28 +172,33 @@ Flags:
   --verbose               Enable verbose logging
 ```
 
-## Training Process
+## Mining Process
 
 ### 1. Data Pipeline
 
-The system ingests processed PDF data through the Data Structuring Engine:
+The system ingests `training_frames.json` produced by `2_DATA_ENCODER`, one `TrainingRecord` per assertion candidate:
 
 ```go
 type TrainingRecord struct {
-    TokenSequence []int32     // Generated via Tiktoken/BPE
-    FeatureVector [12]uint32  // Normalized semantic embeddings
-    TargetToken   int32       // The "Label" (next token)
-    ContextHash   uint32      // Rolling hash of previous 5 tokens
+    SchemaVersion int32      // 2 = span-level assertion schema
+    TokenSequence []int32    // Real multi-token context, via Tiktoken/BPE
+    AssertionSpan []int32    // The fact claimed by this record (v2; falls back to TargetToken for pre-v2 frames)
+    FeatureVector [12]uint32 // Normalized semantic embeddings
+    TargetToken   int32      // Legacy single-token target (pre-v2 compatibility)
+    ContextHash   uint32     // Rolling hash of the real context window
+    BestSeed      []byte     // Winning nonce, once mined
 }
 ```
 
-### 2. Evolutionary Training
+`AssertionCommitmentTarget()` derives the four-byte PoW target from the real context and the asserted span (domain-separated and length-delimited so concatenation is unambiguous) — this, not the raw token ID, is what mining actually searches against.
 
-For each target token, the system:
+### 2. Evolutionary Search
+
+For each `(context, span)` record, the system:
 
 1. **Group Sampling**: Creates population of candidate seeds (64-256)
 2. **Parallel Evaluation**: Executes 21-pass SHA-256 recursion on GPU or via optimized software fallback
-3. **Reward Calculation**: Evaluates alignment (Hamming-based), stability, and format
+3. **Reward Calculation**: Evaluates alignment (Hamming-based, against the span's commitment target), stability, and format
 4. **Advantage Computation**: Calculates relative performance using **Hamming Similarity Gradient** (total matching bits) instead of just leading zeros
 5. **Selection & Mutation**: Keeps elite 25% and generates **Bitcoin-Aware** mutated offspring focusing on the nonce field
 
@@ -197,7 +206,7 @@ For each target token, the system:
 
 The reward system combines three components:
 
-- **Alignment Reward**: Uses **Hamming Similarity** (count of all 32 matching bits) to provide a continuous gradient for evolution. A prefix-match bonus is applied when the difficulty threshold is met.
+- **Alignment Reward**: Uses **Hamming Similarity** against `AssertionCommitmentTarget()` (count of all 32 matching bits) to provide a continuous gradient for evolution. A prefix-match bonus is applied when the difficulty threshold is met.
 - **Stability Reward**: Measure of convergence consistency across the final passes of the 21-pass temporal loop.
 - **Format Reward**: Nonce resolves to a valid entry in the token map.
 
@@ -424,7 +433,7 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 ## Acknowledgments
 
 - Based on the Evolutionary Training Specification (ETS) v1.0
-- Built for the HASHER quantum-resistant neural architecture
+- Built as the attestation-mining half of the HASHER Assertion-Layer & LM Split (see `pkg/hashing/transformer/attestation_bridge.go` for the retrieval side)
 - Inspired by Bitcoin mining hardware repurposing research
 
 ## Support

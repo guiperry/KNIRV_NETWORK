@@ -172,3 +172,4 @@ websites/4cb27963-c66c-52cd-b481-f93b5c4ffe5d.pdf
 /packages/KNIRVSERVER/bin/backend_server
 packages/KNIRVSERVER/bin/backend_server
 packages/KNIRVSERVER/pkg/knirvllama/bin/knirvllama
+packages/KNIRVSERVER/pkg/knirvinferencer/build/stamp

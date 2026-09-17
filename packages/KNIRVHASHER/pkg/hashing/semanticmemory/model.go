@@ -15,7 +15,9 @@ import (
 
 const (
 	FormatVersion        = 1
-	DefaultMaxPrototypes = 4096
+	// DefaultMaxPrototypes retains enough of the observed next-token long tail
+	// for high coverage while keeping the 768-dimension centroid table small.
+	DefaultMaxPrototypes = 16384
 )
 
 // Prototype is the online mean embedding for one next-token target. Count is

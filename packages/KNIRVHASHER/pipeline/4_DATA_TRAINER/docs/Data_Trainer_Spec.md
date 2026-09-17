@@ -2,13 +2,13 @@
 
 ## Purpose
 
-`3_DATA_TRAINER` is the gradient-descent training stage of the KNIRVHASHER pipeline. It consumes `training_frames.json` produced by `2_DATA_ENCODER` and trains the Gorgonite GPT (`pkg/hashing/transformer/gpt.go`) to produce model checkpoints for the HEART inference service.
+`4_DATA_TRAINER` is the gradient-descent training stage of the KNIRVHASHER pipeline. It consumes `training_frames.json` produced by `2_DATA_ENCODER` and trains the Gorgonite GPT (`pkg/hashing/transformer/gpt.go`) to produce model checkpoints for the HEART inference service.
 
 ## Position in Pipeline
 
 ```
-2_DATA_ENCODER → 3_DATA_TRAINER  (base LM weights, backprop-trained)
-               → 4_DATA_SEEDER   (PoW-witnessed assertions, ES-mined nonces)
+2_DATA_ENCODER → 4_DATA_TRAINER  (base LM weights, backprop-trained)
+               → 3_DATA_SEEDER   (PoW-witnessed assertions, ES-mined nonces)
 ```
 
 The CLI executes the trainer's bounded encoded batch before the independent seeder, so model training is observable even when seed mining is long-running. The seeder does not consume trainer output.
