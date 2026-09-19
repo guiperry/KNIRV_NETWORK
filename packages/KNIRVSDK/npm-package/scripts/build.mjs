@@ -24,7 +24,7 @@ const moduleDetails = {
   "cognitive-shell": { module_kind: "cognitive", capabilities: ["cognitive.process"] },
   "controller-relay": { module_kind: "relay", capabilities: ["relay.envelope"] },
   "crypto-core": { module_kind: "crypto", capabilities: ["crypto.policy"] },
-  "dve-verifier": { module_kind: "verifier", capabilities: ["dve.verify"] }
+  "proof-verifier": { module_kind: "verifier", capabilities: ["proof.verify"] }
 };
 rmSync(modulesOutput, { recursive: true, force: true });
 mkdirSync(modulesOutput, { recursive: true });

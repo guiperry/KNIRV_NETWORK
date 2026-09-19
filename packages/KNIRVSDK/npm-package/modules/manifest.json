@@ -35,14 +35,14 @@
       ]
     },
     {
-      "id": "dve-verifier",
+      "id": "proof-verifier",
       "artifact_version": "1.0.0",
       "abi_version": 1,
-      "byte_length": 271402,
-      "sha256": "6ace987570191c350d390ba64074d7d44678245982f56188c9261cf1de828eee",
+      "byte_length": 268566,
+      "sha256": "015515f404d4272c46047700bcf9b9ca934e12195d77ff62679dcaae0d663293",
       "module_kind": "verifier",
       "capabilities": [
-        "dve.verify"
+        "proof.verify"
       ]
     }
   ]

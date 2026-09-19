@@ -54,7 +54,7 @@ testnet gateway, then local testnet. Custom base URLs never fail over unexpected
 ## Embedded WASM modules
 
 The SDK embeds `cognitive-shell`, `controller-relay`, `crypto-core`, and
-`dve-verifier` from `wasm-modules/assets`. A Rust host can use their bytes
+`proof-verifier` from `wasm-modules/assets`. A Rust host can use their bytes
 directly with no file or allocation overhead:
 
 ```rust

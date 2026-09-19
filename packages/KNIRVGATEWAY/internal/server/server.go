@@ -28,9 +28,9 @@ import (
 	"github.com/KNIRV/KNIRV_NETWORK/KNIRVGATEWAY/internal/config"
 	"github.com/KNIRV/KNIRV_NETWORK/KNIRVGATEWAY/internal/d1"
 	"github.com/KNIRV/KNIRV_NETWORK/KNIRVGATEWAY/internal/dht"
-	"github.com/KNIRV/KNIRV_NETWORK/KNIRVGATEWAY/internal/dveviewer"
 	"github.com/KNIRV/KNIRV_NETWORK/KNIRVGATEWAY/internal/operator"
 	"github.com/KNIRV/KNIRV_NETWORK/KNIRVGATEWAY/internal/payment"
+	"github.com/KNIRV/KNIRV_NETWORK/KNIRVGATEWAY/internal/proofviewer"
 	"github.com/KNIRV/KNIRV_NETWORK/KNIRVGATEWAY/internal/proxy"
 	"github.com/KNIRV/KNIRV_NETWORK/KNIRVGATEWAY/internal/session"
 	"github.com/KNIRV/KNIRV_NETWORK/KNIRVGATEWAY/internal/tunnel"
@@ -845,20 +845,19 @@ func (s *Server) setupRoutes() error {
 	}
 
 	// The immutable evidence viewer and its wasm verifier are served directly by
-	// KNIRVGATEWAY on the public origin. More specialized legacy DVE workspace
+	// KNIRVGATEWAY on the public origin, at /proof/ — deliberately off the /dve/
+	// prefix (see below) so it can never collide with the DVE project API or the
+	// legacy DVE workspace page proxy. More specialized legacy DVE workspace
 	// pages continue to proxy to backend_server below.
-	// Keep the DVE project API ahead of the parameterized viewer route below:
-	// without this explicit match, /dve/projects is interpreted as a viewer page
-	// for a DVE named "projects" and the CLI receives HTML instead of JSON.
 	if s.config.BackendSocketPath != "" {
 		dveAPIProxy := newSocketProxy(s.config.BackendSocketPath, "http://knirvserver")
 		r.Path("/dve/projects").Handler(dveAPIProxy).Methods(http.MethodGet, http.MethodPost, http.MethodOptions)
 		s.logger.Info("DVE project API proxy registered", zap.String("socket", s.config.BackendSocketPath))
 	}
-	viewer := dveviewer.New()
-	r.HandleFunc("/dve/_assets/{asset}", viewer.Asset).Methods(http.MethodGet, http.MethodHead)
-	r.HandleFunc("/dve/{dve}", viewer.Page).Methods(http.MethodGet, http.MethodHead)
-	r.HandleFunc("/dve/{dve}/", viewer.Page).Methods(http.MethodGet, http.MethodHead)
+	viewer := proofviewer.New()
+	r.HandleFunc("/proof/_assets/{asset}", viewer.Asset).Methods(http.MethodGet, http.MethodHead)
+	r.HandleFunc("/proof/{dveID}", viewer.Page).Methods(http.MethodGet, http.MethodHead)
+	r.HandleFunc("/proof/{dveID}/", viewer.Page).Methods(http.MethodGet, http.MethodHead)
 
 	// Legacy DVE workspace pages and metrics remain backend-owned.
 	if s.config.BackendSocketPath != "" {

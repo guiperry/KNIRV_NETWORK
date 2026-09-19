@@ -1,5 +1,5 @@
 //! Raw WASM ABI v1 (KNIRV_CORP/packages/controller/stateless_pwa_controller.md
-//! section 6.2) for the dve_verifier module. No wasm-bindgen/js-sys: every
+//! section 6.2) for the proof_verifier module. No wasm-bindgen/js-sys: every
 //! export is a plain `extern "C"` function operating on linear-memory
 //! pointer/length pairs, matching the pattern already proven live for
 //! controller_relay (KNIRV_CORP/packages/controller/wasm-modules/controller_relay).
@@ -20,9 +20,9 @@ use std::collections::HashMap;
 use serde::Deserialize;
 
 // module_kind values shared with controller_wasm_artifacts.module_kind
-// ('crypto', 'dve_verifier', 'relay') and with controller_relay's
-// moduleKindRelay = 3 convention — 2 = dve_verifier.
-const MODULE_KIND_DVE_VERIFIER: i32 = 2;
+// ('crypto', 'proof_verifier', 'relay') and with controller_relay's
+// moduleKindRelay = 3 convention — 2 = proof_verifier.
+const MODULE_KIND_PROOF_VERIFIER: i32 = 2;
 const ABI_VERSION: i32 = 1;
 
 // invoke() operation codes.
@@ -78,7 +78,7 @@ pub extern "C" fn abi_version() -> i32 {
 
 #[no_mangle]
 pub extern "C" fn module_kind() -> i32 {
-    MODULE_KIND_DVE_VERIFIER
+    MODULE_KIND_PROOF_VERIFIER
 }
 
 #[no_mangle]
@@ -189,7 +189,7 @@ pub extern "C" fn self_test(_input_ptr: i32, _input_len: i32) -> i32 {
             2,
         );
     let payload = if ok {
-        serde_json::json!({ "self_test": "pass", "abi_version": ABI_VERSION, "module_kind": "dve_verifier" })
+        serde_json::json!({ "self_test": "pass", "abi_version": ABI_VERSION, "module_kind": "proof_verifier" })
     } else {
         serde_json::json!({ "self_test": "fail", "error": "hash/proof round trip mismatch" })
     };

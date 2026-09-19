@@ -10,12 +10,12 @@ import (
 	"github.com/KNIRV/KNIRV_NETWORK/KNIRVGATEWAY/internal/config"
 )
 
-func TestGatewayServesDVEVerifierWithoutBackendPageProxy(t *testing.T) {
+func TestGatewayServesProofVerifierWithoutBackendPageProxy(t *testing.T) {
 	gateway := testServer(&config.Config{Port: 8888})
 	server := httptest.NewServer(gateway.router)
 	defer server.Close()
 
-	response, err := http.Get(server.URL + "/dve/sha256:test/?session=session-1")
+	response, err := http.Get(server.URL + "/proof/dve_local/?session=session-1")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -28,7 +28,7 @@ func TestGatewayServesDVEVerifierWithoutBackendPageProxy(t *testing.T) {
 		t.Fatal("viewer is missing a content security policy")
 	}
 
-	asset, err := http.Get(server.URL + "/dve/_assets/verifier_bg.wasm")
+	asset, err := http.Get(server.URL + "/proof/_assets/verifier_bg.wasm")
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -27,7 +27,7 @@ pub enum WasmModule {
     CognitiveShell,
     ControllerRelay,
     CryptoCore,
-    DveVerifier,
+    ProofVerifier,
 }
 
 impl WasmModule {
@@ -35,7 +35,7 @@ impl WasmModule {
         Self::CognitiveShell,
         Self::ControllerRelay,
         Self::CryptoCore,
-        Self::DveVerifier,
+        Self::ProofVerifier,
     ];
 
     /// Stable module identifier for configuration, CLI, and host integrations.
@@ -44,7 +44,7 @@ impl WasmModule {
             Self::CognitiveShell => "cognitive-shell",
             Self::ControllerRelay => "controller-relay",
             Self::CryptoCore => "crypto-core",
-            Self::DveVerifier => "dve-verifier",
+            Self::ProofVerifier => "proof-verifier",
         }
     }
 
@@ -53,7 +53,7 @@ impl WasmModule {
             Self::CognitiveShell => "KNIRV Cortex cognitive processing module",
             Self::ControllerRelay => "KNIRV controller relay envelope module",
             Self::CryptoCore => "KNIRV SDK crypto policy module",
-            Self::DveVerifier => "KNIRV DVE event-log verifier module",
+            Self::ProofVerifier => "KNIRV proof event-log verifier module",
         }
     }
 
@@ -72,9 +72,9 @@ impl WasmModule {
                 env!("CARGO_MANIFEST_DIR"),
                 "/wasm-modules/assets/crypto-core.wasm"
             )),
-            Self::DveVerifier => include_bytes!(concat!(
+            Self::ProofVerifier => include_bytes!(concat!(
                 env!("CARGO_MANIFEST_DIR"),
-                "/wasm-modules/assets/dve-verifier.wasm"
+                "/wasm-modules/assets/proof-verifier.wasm"
             )),
         }
     }
@@ -89,7 +89,7 @@ impl WasmModule {
                 "7164752c846f88039690351ca56949c8c8c6ff47eb5ac34574081a62210f9ba3"
             }
             Self::CryptoCore => "9da085719be6a515b5188bf1295d52153a685c2853ad7e46d42d118f1b716f86",
-            Self::DveVerifier => "6ace987570191c350d390ba64074d7d44678245982f56188c9261cf1de828eee",
+            Self::ProofVerifier => "015515f404d4272c46047700bcf9b9ca934e12195d77ff62679dcaae0d663293",
         }
     }
 
@@ -99,7 +99,7 @@ impl WasmModule {
             Self::CognitiveShell => ("cognitive", &["cognitive.process"] as &[_]),
             Self::ControllerRelay => ("relay", &["relay.envelope"] as &[_]),
             Self::CryptoCore => ("crypto", &["crypto.policy"] as &[_]),
-            Self::DveVerifier => ("verifier", &["dve.verify"] as &[_]),
+            Self::ProofVerifier => ("verifier", &["proof.verify"] as &[_]),
         };
         WasmModuleMetadata {
             id: self.id(),
@@ -142,7 +142,7 @@ impl WasmModule {
             Self::CognitiveShell => &["hrmcognitive_process_cognitive_input"],
             Self::ControllerRelay => &["abi_version", "module_kind", "invoke"],
             Self::CryptoCore => &["abi_version", "module_kind", "crypto_protocol_version"],
-            Self::DveVerifier => &["abi_version", "module_kind", "invoke"],
+            Self::ProofVerifier => &["abi_version", "module_kind", "invoke"],
         }
     }
 

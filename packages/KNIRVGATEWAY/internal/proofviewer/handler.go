@@ -1,4 +1,4 @@
-package dveviewer
+package proofviewer
 
 import (
 	"embed"

@@ -30,7 +30,7 @@ or Rust error types as public language-level APIs.
   Rust structs in C, Go, Python, or JavaScript memory layouts.
 - Treat the four WebAssembly modules as versioned SDK artifacts. The core embeds
   immutable bytes for `cognitive-shell`, `controller-relay`, `crypto-core`, and
-  `dve-verifier`; it provides a zero-copy registry and a digest-pinned manifest.
+  `proof-verifier`; it provides a zero-copy registry and a digest-pinned manifest.
   The SDK never executes a module merely because it is embedded.
 - Start with the stable service operations that already exist in `KnirvClient`.
   Add new bindings only after Rust tests establish their behavior.
