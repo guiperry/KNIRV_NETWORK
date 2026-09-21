@@ -1,9 +1,12 @@
 package main
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/lab/hasher/data-seeder/internal/logging"
 )
 
 func TestSelectTrainingDataPathPrefersBaseFramesOverSeededOutput(t *testing.T) {
@@ -55,5 +58,32 @@ func TestSelectTrainingDataPathAllowsSeededOutputOnlyAsCompleteInput(t *testing.
 	}
 	if !seededOnly {
 		t.Fatal("seededOnly = false, want true when only seeded output exists")
+	}
+}
+
+func TestFinalizeTrainingHandlesCompletedRecordShortCircuit(t *testing.T) {
+	logger, err := logging.NewLogger(&logging.LoggingConfig{
+		Level:  "error",
+		Format: "text",
+		Output: "stdout",
+	})
+	if err != nil {
+		t.Fatalf("create logger: %v", err)
+	}
+	defer logger.Close()
+
+	statusPath := filepath.Join(t.TempDir(), "runs", "latest_training_run.json")
+	orchestrator := &TrainingOrchestrator{
+		logger:           logger,
+		allRecordsSeeded: true,
+		runID:            "completed-records",
+		runStatusPath:    statusPath,
+	}
+
+	if err := orchestrator.Run(context.Background(), 1, 1); err != nil {
+		t.Fatalf("run completed-record short-circuit: %v", err)
+	}
+	if _, err := os.Stat(statusPath); err != nil {
+		t.Fatalf("completed run status was not written: %v", err)
 	}
 }

@@ -908,24 +908,33 @@ func (to *TrainingOrchestrator) finalizeTraining() error {
 		to.logger.Warn("Failed to materialize final seed outputs: %v", err)
 	}
 
-	// Checkpoints are the durable source of truth for individual wins.
-	if err := to.checkpointMgr.Close(); err != nil {
-		to.logger.Warn("Failed to save final checkpoints: %v", err)
+	// The completed-record short-circuit occurs before the harness and validator
+	// are initialized. Finalization must therefore tolerate components that were
+	// deliberately not needed for this run.
+	if to.checkpointMgr != nil {
+		// Checkpoints are the durable source of truth for individual wins.
+		if err := to.checkpointMgr.Close(); err != nil {
+			to.logger.Warn("Failed to save final checkpoints: %v", err)
+		}
 	}
 
-	layers, err := to.storage.ListLayers()
-	if err != nil {
-		to.logger.Warn("Failed to list layers: %v", err)
-	} else {
-		to.logger.Info("Created %d weight layers", len(layers))
+	if to.storage != nil {
+		layers, err := to.storage.ListLayers()
+		if err != nil {
+			to.logger.Warn("Failed to list layers: %v", err)
+		} else {
+			to.logger.Info("Created %d weight layers", len(layers))
+		}
 	}
 
-	stats, err := to.validator.GetValidatorStats()
-	if err != nil {
-		to.logger.Warn("Failed to get validator stats: %v", err)
-	} else {
-		to.logger.Info("Validator stats: consistency=%.2f%%, validations=%d",
-			stats.ConsistencyRate*100, stats.TotalValidations)
+	if to.validator != nil {
+		stats, err := to.validator.GetValidatorStats()
+		if err != nil {
+			to.logger.Warn("Failed to get validator stats: %v", err)
+		} else {
+			to.logger.Info("Validator stats: consistency=%.2f%%, validations=%d",
+				stats.ConsistencyRate*100, stats.TotalValidations)
+		}
 	}
 
 	if err := to.writeRunStatus("completed", "finalized training artifacts"); err != nil {
