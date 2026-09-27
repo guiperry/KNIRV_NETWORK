@@ -11,7 +11,9 @@ export default function RoleProtectedRoute({ children }) {
 
   const getLoginUrl = () => {
     const gateway = encodeURIComponent(window.location.origin);
-    return `https://knirv.network/login?gateway=${gateway}`;
+    // The network hub recognises the gateway callback and opens its login
+    // modal before returning the authenticated user to this gateway.
+    return `https://network.knirv.com/?gateway=${gateway}`;
   };
 
   useEffect(() => {

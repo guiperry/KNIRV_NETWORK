@@ -1308,7 +1308,7 @@ func (hs *HEARTService) handleReloadSeeds(w http.ResponseWriter, r *http.Request
 	// crypto/rand noise. Previously this always called BuildDefaultSeedStore
 	// directly, so a bare reload silently discarded any mined data and
 	// re-randomized the whole engine.
-	newStore, stats := LoadOrBuildSeedStore(DefaultFramesDir, DefaultUnifiedConfig())
+	newStore, stats := LoadOrBuildSeedStore(ResolveFramesDir(), DefaultUnifiedConfig())
 	hs.unifiedEngine.SetSeeds(newStore)
 	seedSource := "default"
 	resp := map[string]interface{}{

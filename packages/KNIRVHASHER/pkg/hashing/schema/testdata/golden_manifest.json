@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "manifest_id": "sha256:manifest000",
+  "episodes_path": "/data/gold/episodes.jsonl",
+  "episode_count": 150,
+  "source_hash": "sha256:sourcehash",
+  "policy_bundle_hash": "sha256:policybundlehash",
+  "embedding_model": "text-embedder-v1",
+  "embedding_version": "1.2.0",
+  "embedding_dims": 768,
+  "redaction_version": "v1.0.0",
+  "trainer_commit": "abc123def456",
+  "splits": {
+    "train": 120,
+    "validation": 15,
+    "test": 15
+  },
+  "contrast_set_ids": ["sha256:contrastset456"],
+  "created_at": "2026-09-20T12:00:00Z"
+}

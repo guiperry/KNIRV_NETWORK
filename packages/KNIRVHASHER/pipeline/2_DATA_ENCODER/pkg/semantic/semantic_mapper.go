@@ -31,7 +31,7 @@ func NewSemanticMapper(seed int64) *SemanticMapper {
 }
 
 func (m *SemanticMapper) MapToBracket(embedding []float32, meta RecordMetadata) nrvio.Bracket {
-	b := nrvio.Bracket{SubSecondUS: meta.SubSecondUS, POSTag: meta.POSTag, Tense: meta.Tense, Plurality: meta.Plurality, DepHead: meta.DepHead, LSHSalt: deriveSalt(meta.DatasetID, meta.ChunkID), IntentFlags: detectIntent(meta.Text), DomainSig: classifyDomain(meta.Text)}
+	b := nrvio.Bracket{SubSecondUS: meta.SubSecondUS, Syntactic: nrvio.PackSyntactic(meta.POSTag, meta.Tense, meta.Plurality), DepHead: int8(meta.DepHead), LSHSalt: deriveSalt(meta.DatasetID, meta.ChunkID), IntentFlags: detectIntent(meta.Text), DomainSig: classifyDomain(meta.Text)}
 	var values [16]float32
 	for i := range values {
 		for j := 0; j < len(embedding) && j < 768; j++ {

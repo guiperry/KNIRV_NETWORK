@@ -11,10 +11,11 @@ import (
 	"fmt"
 	"math"
 	"os"
+	"path/filepath"
 )
 
 const (
-	FormatVersion        = 1
+	FormatVersion = 2
 	// DefaultMaxPrototypes retains enough of the observed next-token long tail
 	// for high coverage while keeping the 768-dimension centroid table small.
 	DefaultMaxPrototypes = 16384
@@ -41,6 +42,9 @@ type Model struct {
 	FramesIndexed uint64       `json:"frames_indexed"`
 	Evictions     uint64       `json:"evictions"`
 	Prototypes    []*Prototype `json:"prototypes"`
+	// AppliedBatches makes the memory checkpoint an idempotent transaction:
+	// a batch's learned state and its completion marker are persisted together.
+	AppliedBatches []string `json:"applied_batches,omitempty"`
 
 	byTarget map[int32]int
 	minHeap  prototypeHeap
@@ -137,6 +141,21 @@ func (m *Model) Query(vector []float32) (targetTokenID int32, similarity float32
 	return targetTokenID, best, ok
 }
 
+func (m *Model) HasAppliedBatch(batchID string) bool {
+	for _, applied := range m.AppliedBatches {
+		if applied == batchID {
+			return true
+		}
+	}
+	return false
+}
+
+func (m *Model) MarkAppliedBatch(batchID string) {
+	if batchID != "" && !m.HasAppliedBatch(batchID) {
+		m.AppliedBatches = append(m.AppliedBatches, batchID)
+	}
+}
+
 func (m *Model) Save(path string) error {
 	if m.Version == 0 {
 		m.Version = FormatVersion
@@ -145,8 +164,26 @@ func (m *Model) Save(path string) error {
 	if err != nil {
 		return fmt.Errorf("marshal semantic memory: %w", err)
 	}
-	if err := os.WriteFile(path, data, 0644); err != nil {
+	dir := filepath.Dir(path)
+	tmp, err := os.CreateTemp(dir, ".semantic-memory-*.tmp")
+	if err != nil {
+		return fmt.Errorf("create semantic memory temp file: %w", err)
+	}
+	tmpPath := tmp.Name()
+	defer os.Remove(tmpPath)
+	if err := tmp.Chmod(0644); err != nil {
+		tmp.Close()
+		return fmt.Errorf("set semantic memory permissions: %w", err)
+	}
+	if _, err := tmp.Write(data); err != nil {
+		tmp.Close()
 		return fmt.Errorf("write semantic memory: %w", err)
+	}
+	if err := tmp.Close(); err != nil {
+		return fmt.Errorf("close semantic memory: %w", err)
+	}
+	if err := os.Rename(tmpPath, path); err != nil {
+		return fmt.Errorf("publish semantic memory: %w", err)
 	}
 	return nil
 }
@@ -160,9 +197,12 @@ func Load(path string) (*Model, error) {
 	if err := json.Unmarshal(data, &m); err != nil {
 		return nil, fmt.Errorf("decode semantic memory: %w", err)
 	}
-	if m.Version != FormatVersion || m.Dimensions <= 0 || m.MaxPrototypes <= 0 {
+	if (m.Version != 1 && m.Version != FormatVersion) || m.Dimensions <= 0 || m.MaxPrototypes <= 0 {
 		return nil, fmt.Errorf("unsupported semantic memory format")
 	}
+	// Version 1 had no batch receipt field. It remains a valid cumulative
+	// checkpoint and becomes version 2 on its next atomic save.
+	m.Version = FormatVersion
 	if len(m.Prototypes) > m.MaxPrototypes {
 		return nil, fmt.Errorf("semantic memory has %d prototypes, maximum is %d", len(m.Prototypes), m.MaxPrototypes)
 	}

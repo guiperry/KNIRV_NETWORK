@@ -38,7 +38,7 @@ func TestNRVWriterWriteBracket(t *testing.T) {
 
 	bracket := &nrvio.Bracket{
 		Projections: [32]byte{1, 2, 3},
-		POSTag:      0x42,
+		Syntactic:   0x42,
 		DepHead:     5,
 		IntentFlags: 0x01,
 		DomainSig:   0x2000,

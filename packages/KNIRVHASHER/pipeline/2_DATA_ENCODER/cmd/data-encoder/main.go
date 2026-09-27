@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"context"
+	"crypto/sha256"
 	"encoding/binary"
 	"encoding/json"
 	"flag"
@@ -15,6 +16,7 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"syscall"
 	"time"
 
@@ -49,6 +51,18 @@ type Config struct {
 	EnableCheckpoint bool // Enable checkpoint/resume functionality
 }
 
+// batchManifest is the durable hand-off contract between encoder, trainer,
+// seeder and hasher. Artifact names are relative to the batch directory so a
+// manifest can never direct a consumer outside the frames store.
+type batchManifest struct {
+	Version    int               `json:"version"`
+	BatchID    string            `json:"batch_id"`
+	CreatedAt  time.Time         `json:"created_at"`
+	FrameCount int               `json:"frame_count"`
+	Artifacts  map[string]string `json:"artifacts"`
+	SHA256     map[string]string `json:"sha256"`
+}
+
 type varianceRecord struct {
 	FileName    string      `json:"file_name"`
 	ChunkID     int         `json:"chunk_id"`
@@ -59,6 +73,18 @@ type varianceRecord struct {
 	Output      string      `json:"output"`
 	Embedding   interface{} `json:"embedding"`
 }
+
+// nrvLatestManifest is the durable hand-off from the encoder to consumers
+// such as data-seeder.  Artifacts are immutable; this manifest is the only
+// mutable pointer and is atomically replaced after an artifact is complete.
+type nrvLatestManifest struct {
+	Version      int       `json:"version"`
+	Artifact     string    `json:"artifact"`
+	CreatedAt    time.Time `json:"created_at"`
+	BracketCount int       `json:"bracket_count"`
+}
+
+var nrvArtifactSequence uint64
 
 func main() {
 	// Parse command line flags
@@ -603,25 +629,11 @@ func runEncoder(config *Config) error {
 		return fmt.Errorf("encoder generated 0 training frames from %s; refusing to overwrite %s with empty output", config.InputFile, config.OutputFile)
 	}
 
-	// Write JSON output
-	log.Printf("💾 Writing JSON output...")
-	if err := writeJSONOutput(config.OutputFile, frames); err != nil {
-		return fmt.Errorf("failed to write JSON output: %w", err)
+	manifest, err := writeBatchArtifacts(config.OutputFile, frames)
+	if err != nil {
+		return fmt.Errorf("write immutable batch artifacts: %w", err)
 	}
-	log.Printf("💾 JSON output written successfully")
-
-	// Write Arrow IPC stream output
-	arrowPath := replaceFileExtension(config.OutputFile, ".arrow")
-	log.Printf("💾 Writing Arrow IPC stream output...")
-	if err := schema.WriteTrainingFramesToArrowIPC(arrowPath, frames); err != nil {
-		return fmt.Errorf("failed to write Arrow IPC stream output: %w", err)
-	}
-	log.Printf("💾 Arrow IPC stream output written successfully: %s", arrowPath)
-	nrvPath := replaceFileExtension(config.OutputFile, ".nrv")
-	if err := writeNRV(nrvPath, frames); err != nil {
-		return fmt.Errorf("failed to write NRV output: %w", err)
-	}
-	log.Printf("💾 NRV output written successfully: %s", nrvPath)
+	log.Printf("💾 Published immutable batch %s (%d frames)", manifest.BatchID, manifest.FrameCount)
 
 	// Check for processing errors
 	mu.Lock()
@@ -632,14 +644,85 @@ func runEncoder(config *Config) error {
 	}
 
 	// Verify the output file exists and has content
-	fileInfo, err := os.Stat(config.OutputFile)
+	fileInfo, err := os.Stat(filepath.Join(filepath.Dir(config.OutputFile), "batches", manifest.BatchID, manifest.Artifacts["json"]))
 	if err != nil {
 		return fmt.Errorf("failed to stat output file: %w", err)
 	}
-	log.Printf("✅ Output file created: %s (%d bytes)", config.OutputFile, fileInfo.Size())
+	log.Printf("✅ Batch JSON created: %s (%d bytes)", manifest.BatchID, fileInfo.Size())
 
 	log.Printf("📈 Total: %d training frames generated", frameCount)
 	return nil
+}
+
+// writeBatchArtifacts creates a complete batch privately, then atomically
+// replaces frames/latest.json. No completed batch file is ever overwritten.
+func writeBatchArtifacts(outputFile string, frames []schema.TrainingFrame) (batchManifest, error) {
+	framesDir := filepath.Dir(outputFile)
+	createdAt := time.Now().UTC()
+	id := fmt.Sprintf("batch-%s-%d-%d", createdAt.Format("20060102T150405.000000000Z"), os.Getpid(), atomic.AddUint64(&nrvArtifactSequence, 1))
+	batchDir := filepath.Join(framesDir, "batches", id)
+	if err := os.MkdirAll(batchDir, 0755); err != nil {
+		return batchManifest{}, fmt.Errorf("create batch directory: %w", err)
+	}
+	jsonName, arrowName, nrvName := "training_frames.json", "training_frames.arrow", "training_frames.nrv"
+	jsonPath := filepath.Join(batchDir, jsonName)
+	arrowPath := filepath.Join(batchDir, arrowName)
+	nrvPath := filepath.Join(batchDir, nrvName)
+	if err := writeJSONOutput(jsonPath, frames); err != nil {
+		return batchManifest{}, err
+	}
+	if err := schema.WriteTrainingFramesToArrowIPC(arrowPath, frames); err != nil {
+		return batchManifest{}, err
+	}
+	if err := writeNRV(nrvPath, frames); err != nil {
+		return batchManifest{}, err
+	}
+	manifest := batchManifest{
+		Version: 1, BatchID: id, CreatedAt: createdAt, FrameCount: len(frames),
+		Artifacts: map[string]string{"json": jsonName, "arrow": arrowName, "nrv": nrvName},
+		SHA256:    make(map[string]string, 3),
+	}
+	for kind, name := range manifest.Artifacts {
+		digest, err := sha256File(filepath.Join(batchDir, name))
+		if err != nil {
+			return batchManifest{}, err
+		}
+		manifest.SHA256[kind] = digest
+	}
+	if err := writeLatestBatchManifest(framesDir, manifest); err != nil {
+		return batchManifest{}, err
+	}
+	return manifest, nil
+}
+
+func sha256File(path string) (string, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return "", err
+	}
+	sum := sha256.Sum256(data)
+	return fmt.Sprintf("%x", sum), nil
+}
+
+func writeLatestBatchManifest(framesDir string, manifest batchManifest) error {
+	data, err := json.MarshalIndent(manifest, "", "  ")
+	if err != nil {
+		return err
+	}
+	tmp, err := os.CreateTemp(framesDir, ".latest-*.tmp")
+	if err != nil {
+		return err
+	}
+	tmpName := tmp.Name()
+	defer os.Remove(tmpName)
+	if _, err := tmp.Write(data); err != nil {
+		tmp.Close()
+		return err
+	}
+	if err := tmp.Close(); err != nil {
+		return err
+	}
+	return os.Rename(tmpName, filepath.Join(framesDir, "latest.json"))
 }
 
 func writeNRV(path string, frames []schema.TrainingFrame) error {
@@ -652,8 +735,8 @@ func writeNRV(path string, frames []schema.TrainingFrame) error {
 		slots := frame.GetAsicSlots()
 		var b nrvio.Bracket
 		copy(b.Projections[:], internal.SlotsToProjections(slots[:4]))
-		b.POSTag = uint8(slots[4])
-		b.DepHead = uint8(slots[5])
+		b.Syntactic = nrvio.PackSyntactic(uint8(slots[4]), 0, 0)
+		b.DepHead = int8(slots[5])
 		b.IntentFlags = uint8(slots[9])
 		b.DomainSig = uint16(slots[10])
 		b.GoldenSeed = uint32(frame.TargetTokenID)
@@ -670,6 +753,59 @@ func writeNRV(path string, frames []schema.TrainingFrame) error {
 		return err
 	}
 	return w.Close()
+}
+
+// writeNRVArtifact creates an immutable, per-encoder-run NRV file and then
+// atomically publishes it as the latest artifact.  The JSON and Arrow files
+// remain current-batch hand-offs for existing trainer/seeder consumers; NRV
+// artifacts are retained as the durable binary batch history.
+func writeNRVArtifact(latestPath string, frames []schema.TrainingFrame) (string, error) {
+	artifactPath := newNRVArtifactPath(latestPath, time.Now().UTC(), os.Getpid(), atomic.AddUint64(&nrvArtifactSequence, 1))
+	if err := writeNRV(artifactPath, frames); err != nil {
+		return "", err
+	}
+	if err := writeNRVLatestManifest(latestPath, artifactPath, len(frames)); err != nil {
+		return "", err
+	}
+	return artifactPath, nil
+}
+
+func newNRVArtifactPath(latestPath string, createdAt time.Time, pid int, sequence uint64) string {
+	base := strings.TrimSuffix(filepath.Base(latestPath), filepath.Ext(latestPath))
+	name := fmt.Sprintf("%s-%s-%d-%d.nrv", base, createdAt.UTC().Format("20060102T150405.000000000Z"), pid, sequence)
+	return filepath.Join(filepath.Dir(latestPath), name)
+}
+
+func writeNRVLatestManifest(latestPath, artifactPath string, bracketCount int) error {
+	manifest := nrvLatestManifest{
+		Version:      1,
+		Artifact:     filepath.Base(artifactPath),
+		CreatedAt:    time.Now().UTC(),
+		BracketCount: bracketCount,
+	}
+	data, err := json.MarshalIndent(manifest, "", "  ")
+	if err != nil {
+		return fmt.Errorf("marshal NRV latest manifest: %w", err)
+	}
+
+	dir := filepath.Dir(latestPath)
+	tmp, err := os.CreateTemp(dir, ".nrv-latest-*.tmp")
+	if err != nil {
+		return fmt.Errorf("create NRV latest manifest temp file: %w", err)
+	}
+	tmpPath := tmp.Name()
+	defer os.Remove(tmpPath)
+	if _, err := tmp.Write(data); err != nil {
+		tmp.Close()
+		return fmt.Errorf("write NRV latest manifest: %w", err)
+	}
+	if err := tmp.Close(); err != nil {
+		return fmt.Errorf("close NRV latest manifest: %w", err)
+	}
+	if err := os.Rename(tmpPath, latestPath+".latest.json"); err != nil {
+		return fmt.Errorf("publish NRV latest manifest: %w", err)
+	}
+	return nil
 }
 
 func varianceFallbackIndices(inputFile string) []int {

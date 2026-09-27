@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "contrast_set_id": "sha256:contrastset456",
+  "anchor_episode_id": "sha256:anchor789",
+  "variant_episode_id": "sha256:variant012",
+  "relation": "must_change",
+  "intervention": {
+    "field": "evidence.diff_present",
+    "before": false,
+    "after": true,
+    "semantic_delta": "one required artifact was supplied"
+  },
+  "expected": {
+    "anchor_action": "request_evidence",
+    "variant_action": "request_review",
+    "invariant_fields": ["task.intent", "policy_bundle_hash", "risk"]
+  },
+  "label_source": "deterministic_gate",
+  "review": {
+    "status": "approved",
+    "reviewer": "operator-alias",
+    "rubric_version": "v1"
+  }
+}

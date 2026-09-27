@@ -107,8 +107,8 @@ func (e *NRVEncoder) Run(ctx context.Context) error {
 
 			bracket := &nrvio.Bracket{
 				Projections: proj,
-				POSTag:      uint8(slots[4] & 0xFF),
-				DepHead:     uint8(slots[5]),
+				Syntactic:   nrvio.PackSyntactic(uint8(slots[4]&0xFF), 0, 0),
+				DepHead:     int8(slots[5]),
 				IntentFlags: uint8(slots[9]),
 				DomainSig:   uint16(slots[10]),
 				Memory:      mem,

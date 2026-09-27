@@ -41,6 +41,7 @@ type HEARTConfig struct {
 }
 
 func DefaultHEARTConfig(useHashNetwork, useCerebras bool) *HEARTConfig {
+	framesDir := ResolveFramesDir()
 	return &HEARTConfig{
 		Gorgonite:                      *DefaultGorgoniteConfig(),
 		UseHashNetwork:                 useHashNetwork,
@@ -51,9 +52,9 @@ func DefaultHEARTConfig(useHashNetwork, useCerebras bool) *HEARTConfig {
 		HashNetworkConfidenceThreshold: 0.85,
 		EntropySpikethreshold:          3.0,
 		MaxTurns:                       3,
-		AttestationLedgerDir:           DefaultFramesDir,
+		AttestationLedgerDir:           framesDir,
 		AttestationSignalIndices:       []int{0, 1, 2, 3},
 		AttestationQueueSize:           128,
-		SemanticMemoryPath:             filepath.Join(filepath.Dir(DefaultFramesDir), "trainer-checkpoints", "semantic_memory.json"),
+		SemanticMemoryPath:             filepath.Join(filepath.Dir(framesDir), "trainer-checkpoints", "semantic_memory.json"),
 	}
 }

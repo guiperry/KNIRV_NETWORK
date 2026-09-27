@@ -87,7 +87,7 @@ func NewAttestationBridge(framesDir string, signalIndices []int, queueSize int, 
 // before the first mining run has produced a ledger.
 func NewEmptyAttestationBridge(framesDir string, signalIndices []int, queueSize int, proofLedgerPath string) *AttestationBridge {
 	if framesDir == "" {
-		framesDir = DefaultFramesDir
+		framesDir = ResolveFramesDir()
 	}
 	if queueSize < 1 {
 		queueSize = 128

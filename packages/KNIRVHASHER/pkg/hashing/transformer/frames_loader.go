@@ -25,6 +25,20 @@ import (
 // frames directory.
 const DefaultFramesDir = "/var/lib/knirvserver/knirvhasher/data/frames"
 
+// ResolveFramesDir is the shared runtime storage policy for pipeline and
+// inference. FRAMES_DIR is an explicit frames directory; KNIRV_APP_DATA_DIR
+// is the parent selected by KNIRVSERVER. The constant above is only the
+// backwards-compatible production fallback.
+func ResolveFramesDir() string {
+	if dir := os.Getenv("FRAMES_DIR"); dir != "" {
+		return dir
+	}
+	if dataDir := os.Getenv("KNIRV_APP_DATA_DIR"); dataDir != "" {
+		return filepath.Join(dataDir, "frames")
+	}
+	return DefaultFramesDir
+}
+
 // seedWritesFile is the append-only ledger written by
 // pipeline/3_DATA_SEEDER's DualSeedWriter. It is authoritative for "every
 // winning seed ever found," per the comment on ledgerSeedsByKey in that

@@ -252,8 +252,10 @@ func main() {
 	_ = orchestrator.writeRunStatus("completed", "Training completed successfully")
 	if addr := os.Getenv("KNIRVBASE_ADDR"); addr != "" {
 		path := knirvbaseclient.ResolveNRV(effectiveDataPath)
-		if count, submitErr := knirvbaseclient.New(addr).SubmitNRV(path); submitErr != nil {
+		if count, already, submitErr := knirvbaseclient.New(addr).SubmitNRVOnce(path); submitErr != nil {
 			logger.Warn("KNIRVBASE submission failed: %v", submitErr)
+		} else if already {
+			logger.Info("NRV artifact already submitted to KNIRVBASE; skipping duplicate append")
 		} else {
 			logger.Info("Submitted %d brackets to KNIRVBASE", count)
 		}
@@ -280,6 +282,9 @@ func NewTrainingOrchestrator(logger *logging.Logger, cfg *config.Config, dataPat
 
 func selectTrainingDataPath(dataPath string) (path string, seededOutputOnly bool, err error) {
 	framesDir := filepath.Join(dataPath, "frames")
+	if path, ok := knirvbaseclient.ResolveTrainingFrames(dataPath); ok {
+		return path, false, nil
+	}
 	candidates := []string{
 		filepath.Join(framesDir, "training_frames.json"),
 		filepath.Join(framesDir, "training_frames.arrow"),

@@ -160,6 +160,52 @@ The primary bottleneck is no longer SHA-256 computation, but the **USB Bulk Tran
 
 ---
 
+## Supervision Model
+
+KNIRVHASHER implements a local, evidence-aware advisory model for the KNIRV CLI supervisor. See the full plan in `supervisor_model.md` at the repository root.
+
+### Architecture
+
+The supervision model is split across two independent Go modules:
+
+- **knirvhasher** (`pkg/hashing/supervision/` and `pkg/hashing/schema/`) owns the shared schemas, data pipeline, retrieval, and attestation.
+- **knirvcli** (`internal/supervisor/`) owns CLI-side collection and advisory integration.
+
+Modules communicate via HTTP at runtime — no cross-package Go imports.
+
+### Data Flow
+
+```
+CLI traces  →  Bronze (JSONL, redacted)  →  Silver (validated, deduped)
+     →  Gold (outcome-verified episodes)  →  Contrast sets  →  Retrieval index
+     →  Advisory (CLI-side, non-authoritative)
+```
+
+### Components
+
+| Package | Description |
+|---------|-------------|
+| `pkg/hashing/schema/supervision.go` | Versioned `SupervisionEpisode`, `EvidenceRef`, `PolicyRef`, `DatasetManifest` types with canonical SHA-256 fingerprinting |
+| `pkg/hashing/supervision/retriever.go` | Top-k semantic retrieval with confidence scoring and conservative abstention |
+| `pkg/hashing/supervision/pipeline/` | Silver/Gold pipeline: `NormalizeBronze`, `DedupSilver`, `ProvenanceValidator`, `SplitGenerator`, contrast-set curation |
+| `pkg/hashing/supervision/attestation.go` | PoW/ASIC attestation binding model, dataset, policy, and evidence hashes; append-only ledger with replay protection |
+
+### Safety Rules
+
+1. The model may recommend; deterministic policy/evidence validation makes final decisions.
+2. Low similarity, conflicting precedents, incomplete state, or unavailable policy context produces abstention.
+3. Attestation proves data linkage, not factual or policy correctness.
+4. Contrast sets use single-field interventions with deterministic labels.
+
+### Testing
+
+```bash
+cd packages/KNIRVHASHER
+go test ./pkg/hashing/schema/... ./pkg/hashing/supervision/...
+```
+
+---
+
 ## 🔧 Usage
 
 ### Current Working Make Commands

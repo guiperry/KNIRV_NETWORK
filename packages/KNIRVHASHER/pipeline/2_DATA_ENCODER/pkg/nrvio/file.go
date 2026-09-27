@@ -9,7 +9,7 @@ import (
 	"os"
 )
 
-var magic = [4]byte{'N', 'R', 'V', '2'}
+var magic = [4]byte{'N', 'R', 'V', '3'}
 
 type FrameEntry struct {
 	ID            string                `json:"id"`
@@ -56,7 +56,7 @@ func NewWriter(path string) (*Writer, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Writer{file: f, registry: Registry{Version: "2.0"}}, nil
+	return &Writer{file: f, registry: Registry{Version: "3.0"}}, nil
 }
 func (w *Writer) Append(b Bracket) { w.brackets = append(w.brackets, b) }
 func (w *Writer) Close() error {
@@ -103,7 +103,10 @@ func Open(path string) (*Reader, error) {
 	if _, err := io.ReadFull(f, header); err != nil {
 		return nil, err
 	}
-	if string(header[:4]) != "NRV2" {
+	if string(header[:4]) != "NRV3" {
+		if string(header[:4]) == "NRV2" {
+			return nil, fmt.Errorf("legacy NRV2 layout is not safe to decode as canonical; migrate it through the seeder")
+		}
 		return nil, fmt.Errorf("invalid nrv magic")
 	}
 	n := binary.LittleEndian.Uint32(header[4:])

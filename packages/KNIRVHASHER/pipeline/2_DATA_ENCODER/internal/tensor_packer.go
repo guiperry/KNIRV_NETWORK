@@ -103,8 +103,8 @@ func (tp *TensorPacker) SaveTrainingFrames(frames []*NeuralFrame, w *writer.NRVW
 
 		bracket := &nrvio.Bracket{
 			Projections: proj,
-			POSTag:      uint8(frame.Slots[4] & 0xFF),
-			DepHead:     uint8(frame.Slots[5]),
+			Syntactic:   nrvio.PackSyntactic(uint8(frame.Slots[4]&0xFF), 0, 0),
+			DepHead:     int8(frame.Slots[5]),
 			IntentFlags: uint8(frame.Slots[9]),
 			DomainSig:   uint16(frame.Slots[10]),
 			Memory:      mem,

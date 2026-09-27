@@ -55,3 +55,23 @@ func TestModelBoundedAndRoundTrips(t *testing.T) {
 		t.Fatalf("loaded model mismatch: %#v", loaded)
 	}
 }
+
+func TestAppliedBatchReceiptRoundTripsAtomically(t *testing.T) {
+	m, err := New(2, 2, "test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	m.MarkAppliedBatch("batch-001")
+	m.MarkAppliedBatch("batch-001")
+	path := filepath.Join(t.TempDir(), "semantic_memory.json")
+	if err := m.Save(path); err != nil {
+		t.Fatal(err)
+	}
+	loaded, err := Load(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !loaded.HasAppliedBatch("batch-001") || len(loaded.AppliedBatches) != 1 {
+		t.Fatalf("batch receipt did not round trip: %#v", loaded.AppliedBatches)
+	}
+}

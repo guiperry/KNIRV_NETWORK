@@ -958,10 +958,10 @@ func envOrDefault(key, fallback string) string {
 }
 
 func buildPipelineStages(pipelineType string) []PipelineStage {
-	framesPath := "training_frames.json"
+	framesPath := "latest.json"
 	checkpointDir := "trainer-checkpoints"
 	if deviceConfig, err := config.LoadDeviceConfig(); err == nil && deviceConfig.FramesDir != "" {
-		framesPath = filepath.Join(deviceConfig.FramesDir, "training_frames.json")
+		framesPath = filepath.Join(deviceConfig.FramesDir, "latest.json")
 		checkpointDir = filepath.Join(filepath.Dir(deviceConfig.FramesDir), "trainer-checkpoints")
 	}
 	trainerStage := PipelineStage{
@@ -1033,17 +1033,34 @@ func encoderOutputIsEmpty() (bool, error) {
 		return false, fmt.Errorf("failed to resolve frames directory: %w", err)
 	}
 
-	path := filepath.Join(cfg.FramesDir, "training_frames.json")
-	data, err := os.ReadFile(path)
+	manifestPath := filepath.Join(cfg.FramesDir, "latest.json")
+	manifestData, err := os.ReadFile(manifestPath)
 	if err != nil {
-		return false, fmt.Errorf("failed to read encoder output %s: %w", path, err)
+		return false, fmt.Errorf("failed to read encoder batch manifest %s: %w", manifestPath, err)
 	}
-
+	var manifest struct {
+		Version   int               `json:"version"`
+		BatchID   string            `json:"batch_id"`
+		Artifacts map[string]string `json:"artifacts"`
+	}
+	if err := json.Unmarshal(manifestData, &manifest); err != nil || manifest.Version != 1 || manifest.BatchID == "" {
+		if err == nil {
+			err = fmt.Errorf("invalid manifest")
+		}
+		return false, fmt.Errorf("failed to parse encoder batch manifest %s: %w", manifestPath, err)
+	}
+	name := manifest.Artifacts["json"]
+	if name == "" || filepath.Base(name) != name {
+		return false, fmt.Errorf("invalid JSON artifact in %s", manifestPath)
+	}
+	data, err := os.ReadFile(filepath.Join(cfg.FramesDir, "batches", manifest.BatchID, name))
+	if err != nil {
+		return false, fmt.Errorf("failed to read encoder batch JSON: %w", err)
+	}
 	var frames []json.RawMessage
 	if err := json.Unmarshal(data, &frames); err != nil {
-		return false, fmt.Errorf("failed to parse encoder output %s: %w", path, err)
+		return false, fmt.Errorf("failed to parse encoder batch JSON: %w", err)
 	}
-
 	return len(frames) == 0, nil
 }
 

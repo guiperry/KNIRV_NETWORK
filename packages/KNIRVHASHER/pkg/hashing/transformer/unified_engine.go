@@ -1063,7 +1063,7 @@ func NewUnifiedHasherEngineFromConfig(cfg *UnifiedConfig) (*UnifiedHasherEngine,
 	if cfg == nil {
 		cfg = DefaultUnifiedConfig()
 	}
-	seeds, _ := LoadOrBuildSeedStore(DefaultFramesDir, cfg)
+	seeds, _ := LoadOrBuildSeedStore(ResolveFramesDir(), cfg)
 	engine := NewUnifiedHasherEngineWithConfig(cfg, seeds, nil, ModeTransformer)
 	return engine, nil
 }

@@ -116,7 +116,7 @@ func (e *RecursiveEngine) inferTransformer(input []byte) (*hashing.RecursiveResu
 		Jitter:       e.Jitter,
 		SeedRotation: e.SeedRotation,
 	}
-	seeds, _ := transformer.LoadOrBuildSeedStore(transformer.DefaultFramesDir, cfg)
+	seeds, _ := transformer.LoadOrBuildSeedStore(transformer.ResolveFramesDir(), cfg)
 	engine := transformer.NewUnifiedHasherEngineWithConfig(cfg, seeds, e.hashMethod, transformer.ModeTransformer)
 	hidden := engine.Forward(tokenIDs)
 	logits := transformer.HashToVocab(hidden, seeds.OutputSeed, cfg.VocabSize)
@@ -422,4 +422,3 @@ func aggregateResults(passes []*hashing.InferencePass) *hashing.ConsensusResult 
 		Mode:              mode,
 	}
 }
-

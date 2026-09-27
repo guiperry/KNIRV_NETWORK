@@ -159,7 +159,7 @@ func TestRunEncoderRebuildsWhenCheckpointSkipsAllRecords(t *testing.T) {
 	}
 
 	var frames []schema.TrainingFrame
-	outputBytes, err := os.ReadFile(outputFile)
+	outputBytes, err := readLatestBatchJSON(outputFile)
 	if err != nil {
 		t.Fatalf("read output: %v", err)
 	}
@@ -222,13 +222,8 @@ func TestEndToEndEncoding(t *testing.T) {
 		t.Fatalf("encoding failed: %v", err)
 	}
 
-	// Verify output file exists
-	if _, err := os.Stat(outputFile); os.IsNotExist(err) {
-		t.Fatal("output file was not created")
-	}
-
-	// Read and verify JSON file
-	data, err := os.ReadFile(outputFile)
+	// Read the immutable JSON artifact selected by the latest manifest.
+	data, err := readLatestBatchJSON(outputFile)
 	if err != nil {
 		t.Fatalf("failed to read JSON file: %v", err)
 	}
@@ -267,6 +262,21 @@ func TestEndToEndEncoding(t *testing.T) {
 			t.Errorf("frame %d: WindowEnd is negative", i)
 		}
 	}
+}
+
+func readLatestBatchJSON(outputFile string) ([]byte, error) {
+	data, err := os.ReadFile(filepath.Join(filepath.Dir(outputFile), "latest.json"))
+	if err != nil {
+		return nil, err
+	}
+	var manifest struct {
+		BatchID   string            `json:"batch_id"`
+		Artifacts map[string]string `json:"artifacts"`
+	}
+	if err := json.Unmarshal(data, &manifest); err != nil {
+		return nil, err
+	}
+	return os.ReadFile(filepath.Join(filepath.Dir(outputFile), "batches", manifest.BatchID, manifest.Artifacts["json"]))
 }
 
 func TestComponentIntegration(t *testing.T) {

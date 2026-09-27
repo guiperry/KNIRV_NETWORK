@@ -27,7 +27,7 @@ func (w *NRVWriter) WriteBracket(bracket *nrvio.Bracket) error {
 	_, err := w.collection.Insert(context.Background(), map[string]interface{}{
 		"id":          fmt.Sprintf("bracket_%d", w.counter),
 		"Projections": proj,
-		"Syntactic":   bracket.POSTag,
+		"Syntactic":   bracket.Syntactic,
 		"DepHead":     bracket.DepHead,
 		"IntentFlags": bracket.IntentFlags,
 		"DomainSig":   bracket.DomainSig,

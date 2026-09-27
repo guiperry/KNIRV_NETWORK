@@ -32,6 +32,9 @@ type Config struct {
 	// ModelConfig overrides the default Gorgonite config. When nil,
 	// DefaultGorgoniteConfig is used. Exposed for testing with small models.
 	ModelConfig *transformer.GorgoniteConfig
+	// BatchID is populated from frames/latest.json at runtime. It is not a CLI
+	// flag because the immutable manifest is the source of truth.
+	BatchID string
 }
 
 func loadConfig() (*Config, error) {
@@ -105,12 +108,21 @@ func main() {
 
 // Run executes the training pipeline for the given config. Exposed for testing.
 func Run(cfg *Config) error {
+	// Resolution adds runtime-only fields; keep the caller's config reusable for
+	// retries of the same published batch.
+	copyCfg := *cfg
+	cfg = &copyCfg
 	if cfg.Mode == "" {
 		cfg.Mode = "semantic"
 	}
 	if cfg.MaxPrototypes == 0 {
 		cfg.MaxPrototypes = semanticmemory.DefaultMaxPrototypes
 	}
+	resolved, err := loader.ResolveFramesInput(cfg.InputPath)
+	if err != nil {
+		return fmt.Errorf("resolve training batch: %w", err)
+	}
+	cfg.InputPath, cfg.BatchID = resolved.Path, resolved.BatchID
 	if cfg.Mode == "semantic" {
 		return runSemantic(cfg)
 	}
@@ -240,15 +252,25 @@ func runSemantic(cfg *Config) error {
 	if err != nil {
 		return fmt.Errorf("create semantic memory: %w", err)
 	}
-	if cfg.ResumeFrom != "" {
-		model, err = semanticmemory.Load(cfg.ResumeFrom)
+	resumePath := cfg.ResumeFrom
+	if resumePath == "" {
+		if _, statErr := os.Stat(memoryPath); statErr == nil {
+			resumePath = memoryPath
+		}
+	}
+	if resumePath != "" {
+		model, err = semanticmemory.Load(resumePath)
 		if err != nil {
 			return fmt.Errorf("resume semantic memory: %w", err)
 		}
 		if model.Dimensions != embed.Dims || model.Embedder != embed.ModelID {
 			return fmt.Errorf("resume semantic memory is incompatible with %s", embed.ModelID)
 		}
-		log.Printf("resumed semantic memory from %s", cfg.ResumeFrom)
+		log.Printf("resumed semantic memory from %s", resumePath)
+	}
+	if cfg.BatchID != "" && model.HasAppliedBatch(cfg.BatchID) {
+		log.Printf("semantic trainer: batch %s is already included in %s; skipping", cfg.BatchID, memoryPath)
+		return nil
 	}
 
 	start := time.Now()
@@ -282,13 +304,8 @@ func runSemantic(cfg *Config) error {
 		log.Printf("semantic epoch %d/%d complete: %d steps, %d skipped, %d prototypes (%d evictions)",
 			epoch+1, cfg.NumEpochs, steps, skipped, len(model.Prototypes), model.Evictions)
 
-		if cfg.SaveFreq > 0 && (epoch+1)%cfg.SaveFreq == 0 {
-			if err := model.Save(memoryPath); err != nil {
-				return fmt.Errorf("save semantic memory: %w", err)
-			}
-			log.Printf("saved semantic memory: %s", memoryPath)
-		}
 	}
+	model.MarkAppliedBatch(cfg.BatchID)
 	if err := model.Save(memoryPath); err != nil {
 		return fmt.Errorf("save semantic memory: %w", err)
 	}

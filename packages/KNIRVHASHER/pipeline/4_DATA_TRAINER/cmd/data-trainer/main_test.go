@@ -1,12 +1,15 @@
 package main
 
 import (
+	"crypto/sha256"
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
 
 	"knirvhasher/pkg/hashing/schema"
+	"knirvhasher/pkg/hashing/semanticmemory"
 	"knirvhasher/pkg/hashing/transformer"
 )
 
@@ -133,6 +136,43 @@ func TestRun_SemanticStreamsAndSavesMemory(t *testing.T) {
 	}
 	if _, err := os.Stat(filepath.Join(cfg.CheckpointDir, "semantic_memory.json")); err != nil {
 		t.Fatalf("expected semantic memory checkpoint: %v", err)
+	}
+}
+
+func TestRun_SemanticDoesNotApplyPublishedBatchTwice(t *testing.T) {
+	oldDecoder := newTokenContextDecoder
+	newTokenContextDecoder = func() (func([]int32) string, error) { return func([]int32) string { return "idempotent batch" }, nil }
+	t.Cleanup(func() { newTokenContextDecoder = oldDecoder })
+
+	framesDir := t.TempDir()
+	batchID := "batch-idempotent"
+	batchDir := filepath.Join(framesDir, "batches", batchID)
+	if err := os.MkdirAll(batchDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+	framesPath := writeTestFrames(t, batchDir, []schema.TrainingFrame{{SourceFile: "a", TokenSequence: []int32{1, 2}, TargetTokenID: 3}})
+	data, err := os.ReadFile(framesPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	sum := sha256.Sum256(data)
+	manifest := fmt.Sprintf(`{"version":1,"batch_id":%q,"artifacts":{"json":"training_frames.json"},"sha256":{"json":%q}}`, batchID, fmt.Sprintf("%x", sum))
+	if err := os.WriteFile(filepath.Join(framesDir, "latest.json"), []byte(manifest), 0644); err != nil {
+		t.Fatal(err)
+	}
+	cfg := &Config{InputPath: filepath.Join(framesDir, "latest.json"), CheckpointDir: filepath.Join(framesDir, "trainer-checkpoints"), NumEpochs: 1, LearningRate: 0.01, Mode: "semantic", MaxPrototypes: 8}
+	if err := Run(cfg); err != nil {
+		t.Fatalf("first run: %v", err)
+	}
+	if err := Run(cfg); err != nil {
+		t.Fatalf("second run: %v", err)
+	}
+	model, err := semanticmemory.Load(filepath.Join(cfg.CheckpointDir, "semantic_memory.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if model.FramesSeen != 1 || !model.HasAppliedBatch(batchID) {
+		t.Fatalf("batch was applied more than once: frames=%d batches=%v", model.FramesSeen, model.AppliedBatches)
 	}
 }
 

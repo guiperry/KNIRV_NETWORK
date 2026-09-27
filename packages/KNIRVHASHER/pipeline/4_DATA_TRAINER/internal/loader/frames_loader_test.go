@@ -1,11 +1,38 @@
 package loader
 
 import (
+	"crypto/sha256"
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
 )
+
+func TestResolveFramesInputUsesVerifiedLatestBatch(t *testing.T) {
+	dir := t.TempDir()
+	batchID := "batch-test"
+	batchDir := filepath.Join(dir, "batches", batchID)
+	if err := os.MkdirAll(batchDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+	data := []byte(`[{"source_file":"a","token_sequence":[1],"target_token_id":2}]`)
+	if err := os.WriteFile(filepath.Join(batchDir, "training_frames.json"), data, 0644); err != nil {
+		t.Fatal(err)
+	}
+	sum := sha256.Sum256(data)
+	manifest := `{"version":1,"batch_id":"batch-test","artifacts":{"json":"training_frames.json"},"sha256":{"json":"` + fmt.Sprintf("%x", sum) + `"}}`
+	if err := os.WriteFile(filepath.Join(dir, "latest.json"), []byte(manifest), 0644); err != nil {
+		t.Fatal(err)
+	}
+	resolved, err := ResolveFramesInput(filepath.Join(dir, "training_frames.json"))
+	if err != nil {
+		t.Fatalf("resolve: %v", err)
+	}
+	if resolved.BatchID != batchID || resolved.Path != filepath.Join(batchDir, "training_frames.json") {
+		t.Fatalf("unexpected resolution: %#v", resolved)
+	}
+}
 
 func writeTestFrames(t *testing.T, dir string, frames []map[string]interface{}) string {
 	t.Helper()
