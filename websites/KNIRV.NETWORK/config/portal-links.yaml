@@ -3,7 +3,7 @@
 
 # Main Navigation Links
 navigation:
-  main_site: "https://knirv.network"
+  main_site: "https://network.knirv.com"
   documentation: "documentation/static/"
   graphchain_explorer: "graphchain-explorer/"
   nexus_portal: "nexus-portal/"

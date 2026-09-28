@@ -10,7 +10,7 @@ Oracle service runs inside `packages/KNIRVSERVER` (root nodes only, via encrypte
 
 ## Component Map
 
-12 packages under `packages/`, each independent (own `go.mod`/`package.json`, no cross-package Go imports):
+10 packages under `packages/`, each independent (own `go.mod`/`package.json`, no cross-package Go imports):
 
 | Package | Tech | Module / entry |
 |---------|------|-----------------|
@@ -22,14 +22,12 @@ Oracle service runs inside `packages/KNIRVSERVER` (root nodes only, via encrypte
 | `packages/KNIRVHASHER` | Go | Repurposed ASIC mining hardware doing neural-network inference. Pipeline stages: `pipeline/0_DATA_CONNECTOR`, `pipeline/1_DATA_MAPPER`, `pipeline/2_DATA_ENCODER`, `pipeline/3_DATA_SEEDER`, `pipeline/4_DATA_TRAINER` — each its own `go.mod` (module names `data-connector`, `data-mapper`, `data-encoder`, `data-seeder`, `data-trainer`), built/tested from inside its own subdirectory only. `3_DATA_SEEDER` (renamed from `3_DATA_TRAINER`) mines PoW-witnessed assertions, it does not train weights. `4_DATA_TRAINER` runs gradient descent on the real corpus to produce GPT checkpoints. |
 | `packages/KNIRVAGENT` | Go | Autonomous agent runtime, `module github.com/knirvcorp/knirvagent`. Its README is currently stale upstream boilerplate — trust the code, not that file. |
 | `packages/KNIRVARENA` | TS/React/Three.js | 3D client where Human Architects submit training data against live error nodes. Flat layout — source is directly under `packages/KNIRVARENA/src/` (no nested `packages/ts_client_2/`). |
-| `packages/KNIRVCONTROLLER` | React/TS + Vite | End-user app: vault, DVE identities, voice/text chat. Ships as PWA + native Android/iOS via Capacitor. |
-| `packages/KNIRVBRIDGE` | TS | Browser wallet extension for NRN tokens / dApp interaction. |
 | `packages/KNIRVBASE` | Go + Rust + TS | Shared SDK/library. **Three parallel implementations** (`go/`, `rust/`, `ts/`) with no top-level README reconciling them — per `packages/KNIRVSERVER/CALIBER_LEARNINGS.md`, `go/` is treated as source-of-truth; Rust/TS are expected to conform to it. TS dist consumed at `packages/KNIRVBASE/ts/dist/lib/index.js`. |
 | `packages/KNIRVSDK` | Go / TS / Py | Developer SDKs, plus KNIRV-CLI (`@knirv/cli`) source. |
 
 Other top-level dirs actually present: `integration-tests/` (Go, real services, no mocks), `modp/` (P-language formal verification), `shared-proto/`, `scripts/`, `websites/KNIRV.NETWORK/` (only site currently in `websites/`).
 
-**Not real — do not go looking for these:** `devtools/` (no such directory anywhere in this repo), `packages/KNIRVHEART`, `websites/KNIRVHUB`, `websites/KNIRVRAMP`. If you find yourself about to reference any of these, stop and re-check against the actual directory tree — this file has drifted this way before.
+**Not real — do not go looking for these:** `devtools/` (no such directory anywhere in this repo), `packages/KNIRVHEART`, `packages/KNIRVCONTROLLER` (removed from this repo — the end-user app now lives only in the **separate `KNIRV_CORP` repo** at `KNIRV_CORP/packages/controller`, a Cloudflare Worker-backed React app, not the React/TS+Vite Capacitor app that used to live here), `packages/KNIRVBRIDGE` (the browser wallet extension package no longer exists in this repo), `websites/KNIRVHUB`, `websites/KNIRVRAMP`. If you find yourself about to reference any of these, stop and re-check against the actual directory tree — this file has drifted this way before.
 
 **KNIRVSHELL is mid-migration, not a package yet.** `KNIRVSHELL`/`knirvshell` is referenced in live code (`packages/KNIRVGATEWAY/internal/server/server.go`'s `shellProxy`/`ShellSocketPath` at `/api/knirvshell/`; `packages/KNIRVSERVER/main.go` expects a `knirvshell` binary in its bin dir), but there is no `packages/KNIRVSHELL` and no `packages/KNIRVSERVER/pkg/knirvshell/` on disk yet. `packages/KNIRVSERVER/docs/CLI_Migration.md` describes the plan: move the CLI service out of `backend_server` and into a new embedded `pkg/knirvshell/` package following the `knirvoracle`/`knirvgateway` pattern. Until that lands, don't assume a `knirvshell` package exists — check `packages/KNIRVSERVER/pkg/` first.
 

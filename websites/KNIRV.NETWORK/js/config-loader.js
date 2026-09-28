@@ -223,7 +223,7 @@ class KNIRVConfigLoader {
     _getFallbackConfig() {
         return {
             navigation: {
-                main_site: "https://knirv.com",
+                main_site: "https://network.knirv.com",
                 documentation: "documentation/static/",
                 graphchain_explorer: "graphchain-explorer/",
                 nexus_portal: "nexus-portal/",
