@@ -181,6 +181,12 @@ func (lt *LoRATrainer) TrainLoRAAdapter(cluster *ErrorCluster) (*TrainingJob, er
 	}
 
 	lt.mu.Lock()
+	// Re-check: a concurrent call may have started this cluster's job while
+	// the training data was being prepared unlocked.
+	if existing, ok := lt.trainingQueue[cluster.ClusterID]; ok {
+		lt.mu.Unlock()
+		return existing, nil
+	}
 	lt.trainingQueue[cluster.ClusterID] = job
 	lt.mu.Unlock()
 
@@ -232,9 +238,10 @@ func (lt *LoRATrainer) IsComplete(cluster *ErrorCluster) (bool, error) {
 		return false, errors.New("cluster id is required")
 	}
 
+	// The job's status is written by runJob under mu, so it is read under mu.
 	lt.mu.Lock()
+	defer lt.mu.Unlock()
 	job, ok := lt.trainingQueue[cluster.ClusterID]
-	lt.mu.Unlock()
 	if !ok {
 		return false, fmt.Errorf("cluster %s has no training job", cluster.ClusterID)
 	}

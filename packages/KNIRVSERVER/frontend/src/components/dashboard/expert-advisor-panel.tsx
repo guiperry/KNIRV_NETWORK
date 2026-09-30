@@ -149,7 +149,7 @@ export function ExpertAdvisorPanel({ className, onDrillDownToNodes }: ExpertAdvi
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold text-gray-200">Expert Advisors</h2>
-          <p className="text-gray-500">Manage your sovereign AI advisors and their policies</p>
+          <p className="text-gray-500">Manage the organization policies that govern every request your Supervisors act on</p>
         </div>
         <div className="flex items-center gap-2">
           {onDrillDownToNodes && (
@@ -243,7 +243,7 @@ export function ExpertAdvisorPanel({ className, onDrillDownToNodes }: ExpertAdvi
                       <div className="space-y-3">
                         <div className="flex items-center gap-2">
                           <Settings className="w-4 h-4 text-indigo-400" />
-                          <span className="text-sm font-medium text-gray-300">Advisor Policy</span>
+                          <span className="text-sm font-medium text-gray-300">Organization Policy</span>
                         </div>
 
                         <div className="grid grid-cols-2 gap-3">

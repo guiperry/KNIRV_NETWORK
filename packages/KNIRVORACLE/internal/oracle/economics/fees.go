@@ -28,6 +28,10 @@ const (
 	// FeeTypeDVERentalHour is one hour of DVE compute rental
 	// (NRN_Consumption_Report.md §2.1).
 	FeeTypeDVERentalHour FeeType = "dve_rental_hour"
+	// FeeTypeBadgePurchase is buying a skill badge credential outright rather
+	// than earning it through the error node's benchmark. A purchased badge's
+	// skill is executed by the KNIRV foundation model, not the buyer's agent.
+	FeeTypeBadgePurchase FeeType = "badge_purchase"
 )
 
 // MeteredFeeType maps the platform's consumption-event names (see the
@@ -45,6 +49,8 @@ func MeteredFeeType(event string) (FeeType, bool) {
 		return FeeTypeModelTransition, true
 	case FeeTypeDVERentalHour:
 		return FeeTypeDVERentalHour, true
+	case FeeTypeBadgePurchase:
+		return FeeTypeBadgePurchase, true
 	default:
 		return "", false
 	}

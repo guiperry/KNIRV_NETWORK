@@ -438,6 +438,14 @@ func (t *Transaction) isValidProtocolTransaction() bool {
 		return t.Value == 0 && len(t.Data) > 0
 	case "protocol_uri_mint":
 		return t.Value == 0 && len(t.Data) > 0
+	// Badge credential NFTs (badge_credential.go): issued by KNIRVSERVER over
+	// the internal service token and attested by the network, not self-signed.
+	case txTypeBadgeCredentialMint, txTypeBadgeCredentialRevoke:
+		return t.Value == 0 && len(t.Data) > 0
+	// EventBundleNFT mints (eventbundle.go): paid for by the minter's NRN
+	// burn, submitted by the chain over the internal service token.
+	case TransactionTypeEventBundleMint:
+		return t.Value == 0 && len(t.Data) > 0
 	case "demo_faucet":
 		return strings.EqualFold(strings.TrimSpace(os.Getenv("KNIRV_ENABLE_DEMO")), "true") && t.Value > 0
 	default:

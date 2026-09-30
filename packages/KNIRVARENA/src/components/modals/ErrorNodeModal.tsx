@@ -2,6 +2,7 @@ import React from 'react';
 import { useState, useEffect } from 'react';
 import { AlertTriangle, Activity, Zap, Target, Clock, TrendingUp, CheckCircle, AlertCircle } from 'lucide-react';
 import { NRV } from '../../App';
+import { getKNIRVSERVERClient, type ErrorNodeTestSuite } from '../../services/KNIRVSERVERClient';
 
 interface ErrorNodeModalProps {
   isOpen: boolean;
@@ -25,6 +26,8 @@ interface ErrorNode {
   requiredSkills: string[];
   progress?: number;
   lastActivity?: string;
+  /** Network KNIRVGRAPH id; tests attach only to this, never the local id. */
+  networkErrorNodeId?: string;
 }
 
 export const ErrorNodeModal: React.FC<ErrorNodeModalProps> = ({
@@ -37,12 +40,20 @@ export const ErrorNodeModal: React.FC<ErrorNodeModalProps> = ({
 }) => {
   const [errorNodes, setErrorNodes] = useState<ErrorNode[]>([]);
   const [selectedErrorNode, setSelectedErrorNode] = useState<ErrorNode | null>(null);
+  const [testSuite, setTestSuite] = useState<ErrorNodeTestSuite | null>(null);
+  const [isLoadingTests, setIsLoadingTests] = useState(false);
+  const [isSavingTest, setIsSavingTest] = useState(false);
+  const [testError, setTestError] = useState<string | null>(null);
+  const [testInput, setTestInput] = useState('');
+  const [expectedOutput, setExpectedOutput] = useState('');
+  const [testDescription, setTestDescription] = useState('');
 
   // Generate mock error nodes from NRVs
   useEffect(() => {
     const generateErrorNodes = (): ErrorNode[] => {
       return nrvs.map((nrv, index) => ({
         id: nrv.id,
+        networkErrorNodeId: nrv.networkErrorNodeId,
         title: `Error ${index + 1}: ${nrv.problemDescription.split(' ').slice(0, 3).join(' ')}...`,
         description: nrv.problemDescription,
         severity: nrv.severity as 'low' | 'medium' | 'high' | 'critical',
@@ -61,6 +72,43 @@ export const ErrorNodeModal: React.FC<ErrorNodeModalProps> = ({
       setErrorNodes(generateErrorNodes());
     }
   }, [nrvs, isOpen]);
+
+  const selectErrorNode = async (node: ErrorNode) => {
+    setSelectedErrorNode(node);
+    setTestSuite(null);
+    setTestError(null);
+    if (!node.networkErrorNodeId) return;
+    setIsLoadingTests(true);
+    try {
+      setTestSuite(await getKNIRVSERVERClient().getErrorNodeTests(node.networkErrorNodeId));
+    } catch (error) {
+      setTestError(error instanceof Error ? error.message : 'Could not load this error node\'s tests.');
+    } finally {
+      setIsLoadingTests(false);
+    }
+  };
+
+  const contributeTest = async () => {
+    if (!selectedErrorNode?.networkErrorNodeId || !testInput.trim() || !expectedOutput.trim()) return;
+    setIsSavingTest(true);
+    setTestError(null);
+    try {
+      const suite = await getKNIRVSERVERClient().contributeErrorNodeTest(selectedErrorNode.networkErrorNodeId, {
+        id: `arena-${Date.now()}`,
+        input: testInput.trim(),
+        expected: expectedOutput.trim(),
+        description: testDescription.trim() || undefined,
+      });
+      setTestSuite(suite);
+      setTestInput('');
+      setExpectedOutput('');
+      setTestDescription('');
+    } catch (error) {
+      setTestError(error instanceof Error ? error.message : 'Could not contribute the test.');
+    } finally {
+      setIsSavingTest(false);
+    }
+  };
 
   const getSeverityColor = (severity: string) => {
     switch (severity) {
@@ -181,7 +229,7 @@ export const ErrorNodeModal: React.FC<ErrorNodeModalProps> = ({
                       <div
                         key={errorNode.id}
                         className="p-4 rounded-xl border border-slate-800 bg-slate-900/60 hover:border-slate-700 transition-all cursor-pointer"
-                        onClick={() => setSelectedErrorNode(errorNode)}
+                        onClick={() => void selectErrorNode(errorNode)}
                       >
                         <div className="flex items-start justify-between mb-2">
                           <div className="flex-1">
@@ -267,6 +315,61 @@ export const ErrorNodeModal: React.FC<ErrorNodeModalProps> = ({
                       <div>
                         <div className="text-xs text-slate-400 mb-1">Description</div>
                         <p className="text-sm text-slate-300">{selectedErrorNode.description}</p>
+                      </div>
+
+                      <div className="rounded-lg border border-slate-800 bg-slate-950/50 p-3 space-y-3">
+                        <div className="flex items-center justify-between gap-2">
+                          <div>
+                            <div className="text-xs font-medium text-slate-200">Shared error-node tests</div>
+                            <p className="text-xs text-slate-500">The first 8 tests seal the same suite used for swarm grading and badge exams.</p>
+                          </div>
+                          <span className="shrink-0 text-xs font-medium text-cyan-300">
+                            {isLoadingTests ? 'Loading…' : `${testSuite?.tests.length ?? 0}/${testSuite?.required ?? 8}`}
+                          </span>
+                        </div>
+                        {!selectedErrorNode.networkErrorNodeId ? (
+                          <p className="text-xs text-amber-300">
+                            This error only exists in this client, so tests can&apos;t attach to it yet. Errors submitted
+                            while connected to KNIRVSERVER are registered on the network KNIRVGRAPH and take tests there.
+                          </p>
+                        ) : testSuite?.status === 'sealed' ? (
+                          <p className="text-xs text-emerald-300">Suite sealed. Its inputs are now the shared evaluation bar.</p>
+                        ) : (
+                          <>
+                            <input
+                              aria-label="Test description"
+                              value={testDescription}
+                              onChange={(event) => setTestDescription(event.target.value)}
+                              placeholder="What does this test cover? (optional)"
+                              className="w-full rounded-md border border-slate-700 bg-slate-900 px-2 py-1.5 text-xs text-slate-100 placeholder:text-slate-600"
+                            />
+                            <textarea
+                              aria-label="Test input"
+                              value={testInput}
+                              onChange={(event) => setTestInput(event.target.value)}
+                              placeholder="Input sent to a candidate solution"
+                              rows={2}
+                              className="w-full rounded-md border border-slate-700 bg-slate-900 px-2 py-1.5 text-xs text-slate-100 placeholder:text-slate-600"
+                            />
+                            <textarea
+                              aria-label="Expected output"
+                              value={expectedOutput}
+                              onChange={(event) => setExpectedOutput(event.target.value)}
+                              placeholder="Expected output (kept private by KNIRVGRAPH)"
+                              rows={2}
+                              className="w-full rounded-md border border-slate-700 bg-slate-900 px-2 py-1.5 text-xs text-slate-100 placeholder:text-slate-600"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => void contributeTest()}
+                              disabled={isSavingTest || !testInput.trim() || !expectedOutput.trim()}
+                              className="w-full rounded-md bg-cyan-700 px-2 py-1.5 text-xs font-medium text-white disabled:cursor-not-allowed disabled:opacity-50 hover:bg-cyan-600"
+                            >
+                              {isSavingTest ? 'Saving test…' : 'Add test to this error node'}
+                            </button>
+                          </>
+                        )}
+                        {testError && <p role="alert" className="text-xs text-rose-300">{testError}</p>}
                       </div>
                       
                       <div>

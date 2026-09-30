@@ -13,7 +13,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"math/big"
 	"net"
 	"net/http"
 	"os"
@@ -41,6 +40,7 @@ type RPCServer struct {
 	socketPath      string
 	txMu            sync.Mutex
 	ragMetrics      *graphmetrics.RAGMetrics
+	errorTests      *nrv.ErrorTestSuiteStore
 }
 
 type GraphChainInterface interface {
@@ -131,6 +131,7 @@ func NewRPCServerWithNRV(gc GraphChainInterface, nrvSys *nrv.NRVSystem, logger *
 	router.HandleFunc("/nrv/errors", rpc.getAllErrors).Methods("GET", "OPTIONS")
 	router.HandleFunc("/nrv/errors", rpc.createError).Methods("POST", "OPTIONS")
 	router.HandleFunc("/nrv/errors/commit", rpc.createErrorCommit).Methods("POST", "OPTIONS")
+	rpc.registerErrorTestRoutes(router)
 	router.HandleFunc("/nrv/skills", rpc.getAllSkills).Methods("GET", "OPTIONS")
 	router.HandleFunc("/nrv/skills", rpc.createSkill).Methods("POST", "OPTIONS")
 	router.HandleFunc("/nrv/skills/{skillID}", rpc.deleteSkill).Methods("DELETE", "OPTIONS")
@@ -215,6 +216,7 @@ func NewRPCServerWithEconomics(gc GraphChainInterface, nrvSys *nrv.NRVSystem, nr
 	router.HandleFunc("/nrv/errors", rpc.getAllErrors).Methods("GET", "OPTIONS")
 	router.HandleFunc("/nrv/errors", rpc.createError).Methods("POST", "OPTIONS")
 	router.HandleFunc("/nrv/errors/commit", rpc.createErrorCommit).Methods("POST", "OPTIONS")
+	rpc.registerErrorTestRoutes(router)
 	router.HandleFunc("/nrv/skills", rpc.getAllSkills).Methods("GET", "OPTIONS")
 	router.HandleFunc("/nrv/skills", rpc.createSkill).Methods("POST", "OPTIONS")
 	router.HandleFunc("/nrv/skills/{skillID}", rpc.deleteSkill).Methods("DELETE", "OPTIONS")
@@ -617,7 +619,15 @@ func (rpc *RPCServer) getAllErrors(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(errors)
 }
 
+// createError serves POST /nrv/errors. It is internal-only: KNIRVSERVER
+// registers errors here on behalf of a signed-in user. Resolver attribution
+// keys are stripped from the context regardless of caller, since whoever they
+// name owns the error's DRQ cluster and its bounty. Unauthenticated reporters
+// (the CLI) use /nrv/errors/commit.
 func (rpc *RPCServer) createError(w http.ResponseWriter, r *http.Request) {
+	if !requireInternalToken(w, r) {
+		return
+	}
 	// Check if network is paused
 	if rpc.app != nil && rpc.app.IsNetworkPaused() {
 		http.Error(w, "network is paused, error creation not allowed", http.StatusServiceUnavailable)
@@ -641,7 +651,11 @@ func (rpc *RPCServer) createError(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(map[string]interface{}{"status": "created", "error_id": "error_demo_" + req.ErrorType, "severity": req.Severity, "message": "demo error created"})
 		return
 	}
-	errorNode, err := rpc.nrvSystem.CreateErrorNode(req.ErrorType, req.Description, req.Context, req.Severity)
+	errContext, stripped := nrv.StripResolverClaims(req.Context)
+	if len(stripped) > 0 {
+		rpc.logger.Warn("Stripped resolver claims from submitted error context", zap.Strings("keys", stripped))
+	}
+	errorNode, err := rpc.nrvSystem.CreateErrorNode(req.ErrorType, req.Description, errContext, req.Severity)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -742,7 +756,14 @@ func (rpc *RPCServer) createErrorCommit(w http.ResponseWriter, r *http.Request) 
 		})
 		return
 	}
-	errorNode, err := rpc.nrvSystem.CreateErrorNode(commit.ErrorType, commit.Description, commit.Context, commit.Severity)
+	// The root binds what the reporter submitted; the stored node drops any
+	// resolver attribution, which this public route cannot authorise.
+	errContext, stripped := nrv.StripResolverClaims(commit.Context)
+	if len(stripped) > 0 {
+		rpc.logger.Warn("Stripped resolver claims from committed error context",
+			zap.Strings("keys", stripped), zap.String("signer_id", commit.SignerID))
+	}
+	errorNode, err := rpc.nrvSystem.CreateErrorNode(commit.ErrorType, commit.Description, errContext, commit.Severity)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -920,62 +941,6 @@ func (rpc *RPCServer) commitSkill(w http.ResponseWriter, r *http.Request) {
 		"nrv_id":    req.NRVID,
 		"owner_id":  req.OwnerID,
 		"wallet_id": req.WalletID,
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
-}
-
-func (rpc *RPCServer) submitSolutionProof(w http.ResponseWriter, r *http.Request) {
-	if rpc.proofOfSolution == nil {
-		http.Error(w, "Proof-of-Solution not available", http.StatusServiceUnavailable)
-		return
-	}
-
-	var req struct {
-		ErrorNodeID     string  `json:"error_node_id"`
-		SkillNodeID     string  `json:"skill_node_id"`
-		SolverID        string  `json:"solver_id"`
-		EfficiencyScore float64 `json:"efficiency_score"`
-		QualityScore    float64 `json:"quality_score"`
-	}
-
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "invalid request format", http.StatusBadRequest)
-		return
-	}
-
-	// Calculate reward based on scores
-	baseReward := big.NewInt(10000000) // 0.01 NRN base
-	efficiencyBonus := big.NewInt(int64(req.EfficiencyScore * 100))
-	qualityBonus := big.NewInt(int64(req.QualityScore * 100))
-
-	totalReward := new(big.Int).Add(baseReward, efficiencyBonus)
-	totalReward.Add(totalReward, qualityBonus)
-
-	// Create resolution event
-	event := economics.ResolutionEvent{
-		ErrorNodeID:     req.ErrorNodeID,
-		SkillNodeID:     req.SkillNodeID,
-		SolverID:        req.SolverID,
-		EfficiencyScore: req.EfficiencyScore,
-		QualityScore:    req.QualityScore,
-		RewardEarned:    totalReward,
-	}
-
-	// Process successful resolution
-	if err := rpc.proofOfSolution.ProcessSuccessfulResolution(event); err != nil {
-		http.Error(w, fmt.Sprintf("solution proof processing failed: %v", err), http.StatusInternalServerError)
-		return
-	}
-
-	response := map[string]interface{}{
-		"success":       true,
-		"message":       "Solution proof processed successfully",
-		"error_node_id": req.ErrorNodeID,
-		"skill_node_id": req.SkillNodeID,
-		"solver_id":     req.SolverID,
-		"reward_earned": totalReward.String(),
 	}
 
 	w.Header().Set("Content-Type", "application/json")

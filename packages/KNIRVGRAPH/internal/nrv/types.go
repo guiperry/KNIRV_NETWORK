@@ -77,6 +77,32 @@ func NewErrorContextStruct(values map[string]interface{}) (*structpb.Struct, err
 	return structpb.NewStruct(values)
 }
 
+// ResolverContextKeys are the Context keys that attribute an error's fix to an
+// agent. DRQ computes cluster ownership and bounty shares from them, so they
+// are a reward claim: error-creation routes strip them from submitted context
+// (attribution comes from graded solutions, never from the error report).
+var ResolverContextKeys = []string{"resolved_by", "resolver", "agent_id", "owner_agent"}
+
+// StripResolverClaims returns a copy of context without ResolverContextKeys,
+// and the keys it removed.
+func StripResolverClaims(context map[string]interface{}) (map[string]interface{}, []string) {
+	if context == nil {
+		return nil, nil
+	}
+	clean := make(map[string]interface{}, len(context))
+	for k, v := range context {
+		clean[k] = v
+	}
+	var removed []string
+	for _, k := range ResolverContextKeys {
+		if _, ok := clean[k]; ok {
+			delete(clean, k)
+			removed = append(removed, k)
+		}
+	}
+	return clean, removed
+}
+
 // ErrorContextMap returns a node's structured context as a Go map, tolerating a
 // nil node or an absent context.
 func ErrorContextMap(node *ErrorNode) map[string]interface{} {

@@ -26,6 +26,7 @@ type NRVSystem struct {
 	localPeerID     string
 	vectors         map[string]*NetworkResolutionVector
 	errorNodes      map[string]*ErrorNode
+	errorStore      ErrorNodeKV // nil: error nodes are memory-only
 	skillNodes      map[string]*SkillNode
 	contextNodes    map[string]*ContextNode
 	ideaNodes       map[string]*IdeaNode
@@ -189,8 +190,13 @@ func (nrv *NRVSystem) CreateErrorNode(errorType, description string, context map
 		errorNode.Resolution = resolutionPath
 	}
 
-	// Store error node
+	// Store error node, durably first when a store is set: a node that is
+	// not persisted would vanish on restart while its test suite survived.
 	nrv.errorsMutex.Lock()
+	if err := nrv.persistErrorNodeLocked(errorNode); err != nil {
+		nrv.errorsMutex.Unlock()
+		return nil, fmt.Errorf("persist error node %s: %w", errorID, err)
+	}
 	nrv.errorNodes[errorID] = errorNode
 	nrv.errorsMutex.Unlock()
 

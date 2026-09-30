@@ -152,6 +152,24 @@ module.exports = {
       setupFilesAfterEnv: ['<rootDir>/src/setupTests.ts', '<rootDir>/tests/test-setup.ts', '<rootDir>/tests/setup-safety-checks.ts']
     },
     {
+      // Service-layer unit tests colocated with src/services. The Actuarial
+      // test needs its own setup and runs in its own project below.
+      displayName: 'Service Tests',
+      rootDir: projectRoot,
+      testMatch: ['<rootDir>/src/services/**/__tests__/**/*.test.(ts|tsx|js|jsx)'],
+      testPathIgnorePatterns: ['<rootDir>/node_modules/', '<rootDir>/src/services/__tests__/ActuarialSyndicateService.test.ts'],
+      transform: {
+        '^.+\\.(ts|tsx)$': 'ts-jest'
+      },
+      testEnvironment: 'jsdom',
+      testEnvironmentOptions: {
+        html: '<html><body><div id="root"></div></body></html>',
+        url: 'http://localhost:3000'
+      },
+      setupFiles: ['<rootDir>/tests/polyfills.ts', '<rootDir>/config/jest.setup.js'],
+      setupFilesAfterEnv: ['<rootDir>/src/setupTests.ts', '<rootDir>/tests/test-setup.ts', '<rootDir>/tests/setup-safety-checks.ts']
+    },
+    {
       displayName: 'Actuarial Arena Tests',
       rootDir: projectRoot,
       testMatch: ['<rootDir>/src/services/__tests__/ActuarialSyndicateService.test.ts'],

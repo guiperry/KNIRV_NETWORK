@@ -63,3 +63,53 @@ func TestEventBundleMintRouteContract(t *testing.T) {
 		}
 	})
 }
+
+// A paid mint must reach the pool as a transaction the chain accepts. The
+// handler burns the minter's NRN first, so a transaction the pool then
+// rejected (it was once minter-addressed and unsigned) charged for nothing.
+func TestEventBundleMintSubmitsAVerifiableProtocolTransaction(t *testing.T) {
+	burns := 0
+	txChain := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/transfer" {
+			burns++
+		}
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer txChain.Close()
+	t.Setenv("KNIRV_TRANSACTION_CHAIN_URL", txChain.URL)
+	t.Setenv("KNIRV_INTERNAL_AUTH_TOKEN", "secret")
+
+	bcs := newBadgeCredentialServer(t)
+	body := map[string]any{
+		"schema_version": eventBundleMintSchema, "event_id": "evt-1", "session_id": "sess-1",
+		"project_id": "proj-1", "event_kind": "decision", "minter_address": "knirv1minter",
+		"skills": []map[string]string{{"id": "skill-1"}},
+	}
+	rec := post(t, http.HandlerFunc(bcs.handleEventBundleMint), "/api/v1/event-bundles/mint", "secret", body)
+	if rec.Code/100 != 2 {
+		t.Fatalf("mint: %d %s", rec.Code, rec.Body.String())
+	}
+	if burns != 1 {
+		t.Fatalf("expected one NRN burn, got %d", burns)
+	}
+	pool := bcs.BlockchainPtr.TransactionPool
+	if len(pool) != 1 || pool[0].Type != TransactionTypeEventBundleMint {
+		t.Fatalf("expected one event bundle mint in the pool: %+v", pool)
+	}
+	if ok, err := pool[0].VerifySignature(); !ok || err != nil {
+		t.Fatalf("mint transaction must pass verification: %v %v", ok, err)
+	}
+	if !pool[0].VerifyTxn() {
+		t.Fatal("mint transaction must pass VerifyTxn")
+	}
+	bundle, ok := decodeEventBundleMint(pool[0].Data)
+	if !ok || bundle.MinterAddress != "knirv1minter" {
+		t.Fatalf("the bundle must keep its minter on record: %+v", bundle)
+	}
+
+	// Replaying the same event neither burns again nor resubmits.
+	post(t, http.HandlerFunc(bcs.handleEventBundleMint), "/api/v1/event-bundles/mint", "secret", body)
+	if burns != 1 || len(bcs.BlockchainPtr.TransactionPool) != 1 {
+		t.Fatalf("replay must not charge or resubmit: burns=%d pool=%d", burns, len(bcs.BlockchainPtr.TransactionPool))
+	}
+}

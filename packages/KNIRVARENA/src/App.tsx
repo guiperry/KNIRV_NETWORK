@@ -43,6 +43,7 @@ const SyndicatePortfolio = lazy(() => import('./pages/SyndicatePortfolio'));
 // Types
 import { Agent } from './types/common';
 import { useKnirvana } from './components/game/stores/useKnirvana';
+import { getKNIRVSERVERClient } from './services/KNIRVSERVERClient';
 
 // Window interface for global modal functions
 declare global {
@@ -96,6 +97,12 @@ export interface NRV {
   severity: 'Low' | 'Medium' | 'High' | 'Critical';
   suggestedSolutionType: string;
   status: 'Identified' | 'Mapped' | 'Assigned' | 'Resolved';
+  /**
+   * The error's id on the network KNIRVGRAPH — the id DRQ clusters, badges and
+   * error-node test suites key on. `id` above is local to this client; tests
+   * can only be contributed to an NRV that has this.
+   */
+  networkErrorNodeId?: string;
 }
 
 // Note: convertAgentToLegacy function removed - not currently needed but can be added back if LegacyAgent compatibility is required
@@ -418,6 +425,21 @@ const ReceiverInterface = () => {
         }),
       });
 
+      // Also register the error on the network KNIRVGRAPH and keep its real id,
+      // so tests written for it reach the same error node DRQ and badges use.
+      // A failure keeps the local NRV; it just can't take tests until registered.
+      let networkErrorNodeId: string | undefined;
+      try {
+        networkErrorNodeId = await getKNIRVSERVERClient().registerNetworkErrorNode({
+          error_type: 'user-submitted',
+          description: 'User-submitted error for SkillNode training',
+          context: { source: 'KNIRV-CONTROLLER-user', submissionType: 'manual', localErrorId: errorId },
+          severity: 3,
+        });
+      } catch (registerError) {
+        console.warn('Error kept locally; network KNIRVGRAPH registration failed:', registerError);
+      }
+
       const newNRV: NRV = {
         id: `nrv-${Date.now()}`,
         problemDescription: 'User-submitted error for SkillNode training',
@@ -427,6 +449,7 @@ const ReceiverInterface = () => {
         severity: 'High',
         suggestedSolutionType: 'skill-training',
         status: 'Identified',
+        networkErrorNodeId,
       };
       setCurrentNRVs(prev => [...prev, newNRV]);
       setShellStatus('idle');

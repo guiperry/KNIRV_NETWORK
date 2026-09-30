@@ -345,6 +345,11 @@ func (bcs *BlockchainServer) Prepare() (uint64, error) {
 	// content-addressed store (internal/ulora).
 	mux.HandleFunc("/api/v1/ulora-bundles/mint", bcs.handleULoRABundleMint)
 	mux.HandleFunc("/api/v1/event-bundles/{event_id}", bcs.handleEventBundleGet).Methods(http.MethodGet)
+	// Skill-badge credential NFTs (badge_credential.go). Mint/revoke are
+	// internal-token gated; the read is public.
+	mux.HandleFunc("/api/v1/badge-credentials/mint", bcs.handleBadgeCredentialMint)
+	mux.HandleFunc("/api/v1/badge-credentials/revoke", bcs.handleBadgeCredentialRevoke)
+	mux.HandleFunc("/api/v1/badge-credentials/{credential_id}", bcs.handleBadgeCredentialGet).Methods(http.MethodGet)
 	mux.HandleFunc("/txn_pool", bcs.handleGetTransactionPool)
 	mux.HandleFunc("/proof/tx/", bcs.handleTxAccumProof)
 	mux.HandleFunc("/checkpoint/status", bcs.handleCheckpointStatus).Methods(http.MethodGet)

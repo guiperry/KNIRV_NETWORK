@@ -39,6 +39,10 @@ type ClusterManager struct {
 
 	criteria ConvergenceCriteria
 	now      func() time.Time
+
+	// pendingSolutions holds graded solutions for errors not yet clustered,
+	// keyed by error node id; Track attaches them. Guarded by mu.
+	pendingSolutions map[string][]*Solution
 }
 
 // ClusterDeps are the collaborators and settings a ClusterManager needs.
@@ -89,6 +93,76 @@ func (cm *ClusterManager) Track(cluster *ErrorCluster) error {
 	return nil
 }
 
+// maxPendingSolutionsPerError bounds queued solutions per error node.
+const maxPendingSolutionsPerError = 64
+
+// RecordSolution queues a solution graded against its error node's sealed
+// 8-test suite (the same suite that gates the skill's badge) for the cluster
+// holding that error. Only a solution that passed all 8 is Validated, and only
+// a validated solution credits its agent — so cluster ownership, bounty
+// shares and the MinValidatedSolutions convergence gate are all earned against
+// the shared bar.
+//
+// It only queues: cluster Solutions/AgentCounts are read without locks
+// throughout the lifecycle (convergence, training, minting, rewards), all on
+// the DRQ loop goroutine, so ProcessCluster attaches queued solutions on that
+// same goroutine. Reports the cluster currently holding the error, or "" if
+// the error is not clustered yet (it attaches once it is).
+func (cm *ClusterManager) RecordSolution(sol *Solution) (string, error) {
+	if sol == nil || strings.TrimSpace(sol.ErrorID) == "" || strings.TrimSpace(sol.AgentID) == "" {
+		return "", errors.New("solution needs an error id and an agent id")
+	}
+	cm.mu.Lock()
+	defer cm.mu.Unlock()
+	if cm.pendingSolutions == nil {
+		cm.pendingSolutions = make(map[string][]*Solution)
+	}
+	pending := cm.pendingSolutions[sol.ErrorID]
+	if len(pending) >= maxPendingSolutionsPerError {
+		pending = pending[1:]
+	}
+	cm.pendingSolutions[sol.ErrorID] = append(pending, sol)
+	for id, cluster := range cm.clusters {
+		for _, member := range cluster.Errors {
+			if member != nil && member.Id == sol.ErrorID {
+				return id, nil
+			}
+		}
+	}
+	return "", nil
+}
+
+// takePendingSolutions removes and returns the queued solutions for the
+// cluster's errors.
+func (cm *ClusterManager) takePendingSolutions(cluster *ErrorCluster) []*Solution {
+	cm.mu.Lock()
+	defer cm.mu.Unlock()
+	var out []*Solution
+	for _, member := range cluster.Errors {
+		if member == nil {
+			continue
+		}
+		out = append(out, cm.pendingSolutions[member.Id]...)
+		delete(cm.pendingSolutions, member.Id)
+	}
+	return out
+}
+
+// attachSolution records sol on cluster. Called on the DRQ loop goroutine.
+func attachSolution(cluster *ErrorCluster, sol *Solution) {
+	sol.ClusterID = cluster.ClusterID
+	if cluster.Solutions == nil {
+		cluster.Solutions = make(map[string][]*Solution)
+	}
+	cluster.Solutions[sol.AgentID] = append(cluster.Solutions[sol.AgentID], sol)
+	if sol.Validated {
+		if cluster.AgentCounts == nil {
+			cluster.AgentCounts = make(map[string]int)
+		}
+		cluster.AgentCounts[sol.AgentID]++
+	}
+}
+
 // Cluster returns a tracked cluster by id.
 func (cm *ClusterManager) Cluster(clusterID string) (*ErrorCluster, bool) {
 	cm.mu.Lock()
@@ -130,6 +204,9 @@ func (cm *ClusterManager) ProcessCluster(ctx context.Context, clusterID string) 
 	}
 	if cluster == nil {
 		return fmt.Errorf("cluster %s is nil", clusterID)
+	}
+	for _, sol := range cm.takePendingSolutions(cluster) {
+		attachSolution(cluster, sol)
 	}
 
 	switch cluster.Status {

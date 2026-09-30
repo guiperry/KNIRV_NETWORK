@@ -448,6 +448,73 @@ export class KNIRVSERVERClient {
       return false;
     }
   }
+
+  /**
+   * Contribute one test to the error node a developer (or their agent) is
+   * resolving. An error node's first 8 contributed tests seal into its suite:
+   * the same tests grade the swarm's solutions and gate the skill's badge
+   * (an agent earns the badge by passing all 8). The author is the signed-in
+   * KNIRVSERVER user; `expected` is never shown back to test-takers.
+   */
+  public async contributeErrorNodeTest(
+    errorNodeId: string,
+    test: ErrorNodeTestContribution
+  ): Promise<ErrorNodeTestSuite> {
+    const response = await this.client.post<{ success: boolean; data: ErrorNodeTestSuite; error?: string }>(
+      `/api/error-node-tests/${encodeURIComponent(errorNodeId)}`,
+      test
+    );
+    return response.data.data;
+  }
+
+  /**
+   * Register an error on the network KNIRVGRAPH (via KNIRVSERVER) and return
+   * its canonical error-node id. Resolver attribution keys in `context` are
+   * stripped server-side; the signed-in user is recorded as the submitter.
+   */
+  public async registerNetworkErrorNode(error: {
+    error_type: string;
+    description: string;
+    context?: Record<string, unknown>;
+    severity?: number;
+  }): Promise<string> {
+    const response = await this.client.post<{ success: boolean; data: { error_node_id: string } }>('/api/error-nodes', error);
+    return response.data.data.error_node_id;
+  }
+
+  /** The error node's suite as test-takers see it (no expected values). */
+  public async getErrorNodeTests(errorNodeId: string): Promise<ErrorNodeTestSuite | null> {
+    try {
+      const response = await this.client.get<{ success: boolean; data: ErrorNodeTestSuite }>(
+        `/api/error-node-tests/${encodeURIComponent(errorNodeId)}`
+      );
+      return response.data.data;
+    } catch (error) {
+      if ((error as AxiosError).response?.status === 404) return null;
+      throw error;
+    }
+  }
+}
+
+/** One KNIRVARENA-authored test for an error node (input → expected). */
+export interface ErrorNodeTestContribution {
+  id: string;
+  name?: string;
+  description?: string;
+  input: string;
+  expected: string;
+  /** How expected is compared; defaults to 'exact'. */
+  assertion?: 'exact' | 'contains' | 'not_contains' | 'regex';
+  case_sensitive?: boolean;
+}
+
+export interface ErrorNodeTestSuite {
+  error_node_id: string;
+  tests: Array<{ id: string; name: string; description?: string; input: string; author_id: string }>;
+  status: 'collecting' | 'sealed';
+  required: number;
+  version: number;
+  suite_hash?: string;
 }
 
 let knirvServerClientInstance: KNIRVSERVERClient | null = null;

@@ -13,6 +13,8 @@ import (
 	"strings"
 	"time"
 
+	"KNIRVCHAIN/internal/utils"
+
 	"github.com/gorilla/mux"
 )
 
@@ -325,12 +327,14 @@ func (bcs *BlockchainServer) handleEventBundleMint(w http.ResponseWriter, r *htt
 		return
 	}
 
-	transaction := NewTransaction(request.MinterAddress, hash, 0, data)
+	// A protocol transaction (From = BLOCKCHAIN_ADDRESS), the same submission
+	// path as badge credential mints: the service holds no minter key to sign
+	// with, so a minter-addressed transaction was unsigned and the pool
+	// rejected it after the NRN had already been burned. The minter stays on
+	// record in the bundle itself (MinterAddress).
+	transaction := NewTransaction(utils.BLOCKCHAIN_ADDRESS, hash, 0, data)
 	transaction.Type = TransactionTypeEventBundleMint
-	if err := bcs.BlockchainPtr.AddTransactionToTransactionPool(transaction); err != nil {
-		http.Error(w, "add event bundle transaction: "+err.Error(), http.StatusServiceUnavailable)
-		return
-	}
+	bcs.BlockchainPtr.addVerifiedTxnToPoolAndSignal(transaction)
 	record := &eventBundleRecord{
 		EventID: request.EventID, ProjectID: request.ProjectID, SessionID: request.SessionID,
 		BundleHash: hash, TransactionID: transaction.TransactionHash, Bundle: bundle,

@@ -434,6 +434,17 @@ func (app *App) DRQStatus() drqStatus {
 	return app.drq.Status()
 }
 
+// RecordGradedSolution hands a solution graded against its error node's
+// sealed 8-test suite to the running DRQ loop (see
+// drq.ClusterManager.RecordSolution). Implements the network package's
+// solutionRecorder.
+func (app *App) RecordGradedSolution(sol *drq.Solution) (string, error) {
+	if app == nil || app.drq == nil {
+		return "", fmt.Errorf("DRQ loop is not running on this node")
+	}
+	return app.drq.clusterManager.RecordSolution(sol)
+}
+
 // NewDRQRuntimeForTest exposes the loop constructor for tests in other packages.
 // It exists only so tests can drive the loop without an App.
 func NewDRQRuntimeForTest(nrvSystem *nrv.NRVSystem, embeddingService *embeddings.EmbeddingService, logger *zap.Logger) (*drqRuntime, error) {
@@ -479,8 +490,9 @@ func drqEmbeddingService(config *Config, logger *zap.Logger) (*embeddings.Embedd
 // resolverContextKeys are the Context keys an ingested error may use to
 // attribute the fix to an agent. Ownership and bounty are computed from this
 // attribution, so a cluster whose errors carry none cannot mint: there would be
-// no address to pay.
-var resolverContextKeys = []string{"resolved_by", "resolver", "agent_id", "owner_agent"}
+// no address to pay. The RPC error-creation routes strip them from submitted
+// context (nrv.StripResolverClaims).
+var resolverContextKeys = nrv.ResolverContextKeys
 
 // toDRQErrorNode converts an NRV error node into DRQ's clustering node.
 func toDRQErrorNode(node *nrv.ErrorNode) *drq.ErrorNode {

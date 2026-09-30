@@ -396,6 +396,15 @@ func NewApp(homeDir string, rpcPort int, enableAutoRelay bool) (*App, error) {
 	// Initialize RPC server with app reference
 	rpc = network.NewRPCServerWithEconomics(gc, nrvSystem, nrnIntegration, proofOfSolution, app, logger, config.Network.RPCPort, config.Network.SocketPath)
 	app.rpc = rpc
+	// Error-node test suites: the tests KNIRVARENA contributors write for each
+	// error, sealed at nrv.ErrorTestSuiteSize and shared by swarm-solution
+	// grading and KNIRVSERVER's badge-credential benchmark.
+	rpc.SetErrorTestSuiteStore(nrv.NewErrorTestSuiteStore(storageInstance))
+	// Error nodes persist in the same store as their test suites, so neither
+	// outlives the other across a restart.
+	if err := nrvSystem.SetErrorNodeStore(storageInstance); err != nil {
+		return nil, fmt.Errorf("failed to load persisted error nodes: %w", err)
+	}
 
 	app.initProcessingServices()
 
@@ -643,6 +652,15 @@ func NewAppWithConfig(homeDir string, rpcPort int, appConfig *Config, enableAuto
 	// Initialize RPC server with app reference
 	rpc = network.NewRPCServerWithEconomics(gc, nrvSystem, nrnIntegration, proofOfSolution, app, logger, config.Network.RPCPort, config.Network.SocketPath)
 	app.rpc = rpc
+	// Error-node test suites: the tests KNIRVARENA contributors write for each
+	// error, sealed at nrv.ErrorTestSuiteSize and shared by swarm-solution
+	// grading and KNIRVSERVER's badge-credential benchmark.
+	rpc.SetErrorTestSuiteStore(nrv.NewErrorTestSuiteStore(storageInstance))
+	// Error nodes persist in the same store as their test suites, so neither
+	// outlives the other across a restart.
+	if err := nrvSystem.SetErrorNodeStore(storageInstance); err != nil {
+		return nil, fmt.Errorf("failed to load persisted error nodes: %w", err)
+	}
 
 	app.initProcessingServices()
 

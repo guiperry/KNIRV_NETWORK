@@ -1550,6 +1550,10 @@ func (bc *BlockchainStruct) addBlockInternal(b *Block) error {
 		bc.Unlock()
 		return err
 	}
+	if err := bc.validateBadgeCredentialsInBlock(b); err != nil {
+		bc.Unlock()
+		return err
+	}
 
 	if err := bc.verifyBlockContext(b); err != nil {
 		agentlog.LogError(fmt.Sprintf("Block %d context verification failed: %v", b.BlockNumber, err), err)
