@@ -336,12 +336,36 @@ func main() {
 		}
 	}()
 
+	// ---- Omnichannel messaging bridge (Phase 4) ----
+	//
+	// Built deliberately last in KNIRVGATEWAY's initialization sequence —
+	// after runtime setup, public-endpoint resolution, nginx provisioning,
+	// Cloudflare Tunnel setup, and the HTTP server itself are all already
+	// underway. It is new, additive infrastructure (per
+	// product_packaging_alignment.md Phase 4) that nothing else in this
+	// startup sequence depends on, and a failure here must never prevent the
+	// gateway's core routing, tunnels, or HTTP listener from coming up —
+	// hence it starts after everything above, not interleaved with it, and
+	// a failure is logged, not fatal.
+	bridgeCtx, bridgeCancel := context.WithCancel(context.Background())
+	if err := srv.StartBridge(bridgeCtx); err != nil {
+		logger.Warn("Messaging bridge failed to start — continuing without it", zap.Error(err))
+	}
+
 	// Wait for interrupt signal
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
 
 	logger.Info("Shutting down KNIRVGATEWAY")
+
+	// Stop the messaging bridge before the rest of shutdown.
+	bridgeStopCtx, bridgeStopCancel := context.WithTimeout(context.Background(), 15*time.Second)
+	if err := srv.StopBridge(bridgeStopCtx); err != nil {
+		logger.Warn("Error stopping messaging bridge", zap.Error(err))
+	}
+	bridgeStopCancel()
+	bridgeCancel()
 
 	// Stop all Cloudflare Tunnels.
 	if len(tunnelRunners) > 0 {

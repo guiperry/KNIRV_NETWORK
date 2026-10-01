@@ -25,6 +25,7 @@ import (
 	"github.com/ipfs/go-cid"
 	"github.com/multiformats/go-multihash"
 
+	"github.com/KNIRV/KNIRV_NETWORK/KNIRVGATEWAY/internal/bridge"
 	"github.com/KNIRV/KNIRV_NETWORK/KNIRVGATEWAY/internal/config"
 	"github.com/KNIRV/KNIRV_NETWORK/KNIRVGATEWAY/internal/d1"
 	"github.com/KNIRV/KNIRV_NETWORK/KNIRVGATEWAY/internal/dht"
@@ -65,6 +66,7 @@ type Server struct {
 	actualPort      int
 	d1Client        *d1.Client
 	modelCallProxy  http.Handler
+	bridgeService   *bridge.Service
 }
 
 // New creates a new HTTP server
@@ -204,6 +206,33 @@ func New(cfg *config.Config, webguiStaticDir string, logger *zap.Logger, db ...*
 		s.modelCallProxy = modelProxy
 		logger.Info("Model-call proxy registered", zap.String("target", cfg.CLIProxyAPIBaseURL))
 	}
+
+	// Omnichannel messaging bridge (Phase 4 — product_packaging_alignment.md).
+	// Constructing the Service only builds in-process objects (appservice,
+	// WhatsApp manager, DB handles) so its routes can be registered below;
+	// the Tuwunel subprocess and every network connection are deferred to
+	// StartBridge, called deliberately last in cmd/gateway/main.go's startup
+	// sequence, after everything else the gateway does at boot.
+	bridgeDomain := cfg.BridgeHomeserverDomain
+	if bridgeDomain == "" {
+		bridgeDomain = cfg.PublicHost
+	}
+	bridgeSvc, err := bridge.NewService(bridge.Config{
+		Enabled:              cfg.BridgeEnabled,
+		DataDir:              cfg.BridgeDataDir,
+		HomeserverDomain:     bridgeDomain,
+		HomeserverBinaryPath: cfg.BridgeHomeserverBinaryPath,
+		BackendSocketPath:    cfg.BackendSocketPath,
+		InternalAuthToken:    cfg.InternalAuthToken,
+	}, logger)
+	if err != nil {
+		logger.Warn("Messaging bridge failed to initialize — continuing without it", zap.Error(err))
+		// bridge.NewService with Enabled:false never errors, so this always
+		// succeeds — s.bridgeService is never nil, keeping every call site
+		// below (routes, StartBridge, StopBridge) unconditional.
+		bridgeSvc, _ = bridge.NewService(bridge.Config{Enabled: false}, logger)
+	}
+	s.bridgeService = bridgeSvc
 
 	if err := s.setupRoutes(); err != nil {
 		return nil, fmt.Errorf("failed to setup routes: %w", err)
@@ -643,6 +672,12 @@ func (s *Server) setupRoutes() error {
 		s.logger.Warn("Agent proxy not configured — /api/agent/* will not be proxied")
 	}
 
+	// Omnichannel messaging bridge management API (Phase 4). Never the
+	// appservice's own Matrix transaction endpoint — Tuwunel calls that
+	// directly over a private Unix socket (internal/bridge/appservice.go),
+	// never through the public gateway router.
+	r.PathPrefix("/api/bridge/").Handler(s.bridgeService.Handler())
+
 	// Model-call proxy — CLIProxyAPI gate for Expert Advisor model traffic.
 	// Routes are provider-split so the CLI can point ANTHROPIC_BASE_URL /
 	// OPENAI_BASE_URL at the same gateway with provider known from the path.
@@ -1064,6 +1099,23 @@ func (s *Server) Start() error {
 	}
 
 	return nil
+}
+
+// StartBridge brings the omnichannel messaging bridge (Phase 4) fully
+// online: the Tuwunel homeserver subprocess, the appservice's HTTP
+// listener, and every previously-paired WhatsApp session. Deliberately
+// separate from Start so callers (cmd/gateway/main.go) can sequence it after
+// every other gateway subsystem — tunnels, nginx, the HTTP listener itself —
+// has already come up, since the bridge is additive infra nothing else in
+// the gateway depends on at startup.
+func (s *Server) StartBridge(ctx context.Context) error {
+	return s.bridgeService.Start(ctx)
+}
+
+// StopBridge tears down the messaging bridge. Safe to call even when the
+// bridge was never started or is disabled.
+func (s *Server) StopBridge(ctx context.Context) error {
+	return s.bridgeService.Stop(ctx)
 }
 
 // Stop gracefully stops the HTTP server

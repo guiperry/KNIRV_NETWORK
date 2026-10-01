@@ -160,9 +160,20 @@ build-knirvchain: ## Build KNIRVCHAIN (Go)
 
 .PHONY: build-knirvgateway
 build-knirvgateway: ## Build KNIRVGATEWAY (Go)
+	@if grep -q "KNIRV_TUWUNEL_PLACEHOLDER_BINARY" packages/KNIRVGATEWAY/internal/bridge/bin/tuwunel 2>/dev/null; then \
+		echo "$(YELLOW)⚠ internal/bridge/bin/tuwunel is still the build placeholder$(NC)"; \
+		echo "$(YELLOW)  the omnichannel bridge (Phase 4) will start without its Matrix homeserver until you run:$(NC)"; \
+		echo "$(YELLOW)    make vendor-tuwunel$(NC)"; \
+	fi
 	@echo "$(BLUE)Building KNIRVGATEWAY...$(NC)"
 	@cd packages/KNIRVGATEWAY && go build -v ./cmd/gateway
 	@echo "$(GREEN)✓ KNIRVGATEWAY built$(NC)"
+
+.PHONY: vendor-tuwunel
+vendor-tuwunel: ## Build matrix-construct/tuwunel from source and vendor it into KNIRVGATEWAY's embedded bridge binary (slow — Rust release build; see packages/KNIRVGATEWAY/scripts/vendor-tuwunel.sh)
+	@echo "$(BLUE)Building and vendoring the Tuwunel Matrix homeserver for KNIRVGATEWAY's messaging bridge...$(NC)"
+	@packages/KNIRVGATEWAY/scripts/vendor-tuwunel.sh
+	@echo "$(GREEN)✓ Tuwunel vendored into packages/KNIRVGATEWAY/internal/bridge/bin/tuwunel$(NC)"
 
 .PHONY: build-knirvgraph
 build-knirvgraph: ## Build KNIRVGRAPH (Go node + CLI)
