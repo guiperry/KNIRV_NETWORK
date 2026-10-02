@@ -61,6 +61,20 @@ That UI includes pages and API helpers for:
 
 The portal is shipped as part of the repo, not as a separate application.
 
+## Omnichannel Messaging Bridge
+
+`internal/bridge/` runs a self-hosted, non-federating Matrix homeserver (vendored [Tuwunel](https://github.com/matrix-construct/tuwunel) binary at `internal/bridge/bin/tuwunel`) fronted by a Matrix appservice and a WhatsApp bridge (`whatsmeow`). It stores its own state in the same SQLite database whatsmeow already requires — no separate bridge database. Inbound customer messages are relayed, signed, to a connected CLI Supervisor session; when more than one team member is active, routing between them is decided by KNIRVSERVER's `supervisorrouting` package, not a hardcoded default.
+
+The bridge starts last in `cmd/gateway/main.go`'s init sequence, after every other gateway service. It is configured through the `Bridge*` fields in `internal/config/`.
+
+To rebuild the vendored Tuwunel binary from source:
+
+```bash
+make vendor-tuwunel
+```
+
+See `internal/bridge/bin/README.md` for the vendoring details.
+
 ## Configuration And Runtime
 
 The gateway is configured through `internal/config/` and related env/config files.
@@ -83,6 +97,7 @@ Start here when changing gateway behavior:
 - `internal/proxy/handlers.go`
 - `internal/dht/`
 - `internal/turnserver/`
+- `internal/bridge/`
 - `internal/payment/`
 - `internal/uri/`
 - `internal/webgui/`

@@ -65,11 +65,18 @@ func NewBackendRelay(socketPath, internalAuthToken string) *BackendRelay {
 }
 
 // relayAck is backend_server's response body: whether the message was
-// persisted and whether a live CLI Supervisor session existed for the
-// customer at that moment (visibility only — see relayMessage's doc comment).
+// persisted, whether a live CLI Supervisor session existed for the customer,
+// whether the backend's signed cli_supervisor relay
+// (bridge_message_handlers.go's dispatchAndCapture) actually delivered the
+// text as PTY input, and — when it did — whatever the agent streamed back
+// during the capture window (ReplyText, already ANSI-stripped backend-side;
+// empty if nothing arrived before the capture window closed).
 type relayAck struct {
-	Stored              bool `json:"stored"`
-	SupervisorConnected bool `json:"supervisor_connected"`
+	Stored              bool   `json:"stored"`
+	SupervisorConnected bool   `json:"supervisor_connected"`
+	Delivered           bool   `json:"delivered"`
+	SupervisorMessage   string `json:"supervisor_message"`
+	ReplyText           string `json:"reply_text"`
 }
 
 // PostInbound forwards one bridged message to the backend. A non-2xx

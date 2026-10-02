@@ -162,12 +162,32 @@ func (s *Service) handleInbound(ctx context.Context, msg InboundMessage) {
 		s.logger.Warn("Failed to mirror inbound message into Matrix room", zap.Error(err))
 	}
 
-	if ack, err := s.relay.PostInbound(ctx, msg); err != nil {
+	ack, err := s.relay.PostInbound(ctx, msg)
+	switch {
+	case err != nil:
 		s.logger.Warn("Failed to relay inbound bridged message to backend",
 			zap.String("customerID", msg.CustomerID), zap.Error(err))
-	} else if !ack.SupervisorConnected {
+		return
+	case !ack.SupervisorConnected:
 		s.logger.Debug("Backend recorded bridged message — no live Supervisor session for this customer yet",
 			zap.String("customerID", msg.CustomerID))
+		return
+	case !ack.Delivered:
+		s.logger.Warn("Backend could not dispatch bridged message into the live Supervisor session",
+			zap.String("customerID", msg.CustomerID), zap.String("reason", ack.SupervisorMessage))
+		return
+	}
+
+	s.logger.Info("Bridged message delivered to live Supervisor session",
+		zap.String("customerID", msg.CustomerID), zap.String("supervisorMessage", ack.SupervisorMessage))
+	if ack.ReplyText == "" {
+		s.logger.Debug("No agent reply captured within the backend's capture window",
+			zap.String("customerID", msg.CustomerID))
+		return
+	}
+	if err := s.deliverOutbound(ctx, msg.Channel, msg.CustomerID, msg.ChatID, ack.ReplyText); err != nil {
+		s.logger.Warn("Failed to deliver the agent's reply back out over the bridge",
+			zap.String("customerID", msg.CustomerID), zap.Error(err))
 	}
 }
 

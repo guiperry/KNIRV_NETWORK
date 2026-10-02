@@ -65,8 +65,8 @@ WASI_WASM_PATH=$(BUILD_DIR)/$(WASI_WASM_NAME)
 BROWSER_WASM_PATH=$(BUILD_DIR)/$(BROWSER_WASM_NAME)
 CLI_BIN_DIR?=$(CURDIR)/../../../KNIRV_CORP/packages/cli/bin
 CLI_WASM_PATH=$(CLI_BIN_DIR)/$(BINARY_NAME).wasm
-BRIDGE_BIN_DIR?=$(CURDIR)/../../../KNIRV_CORP/packages/bridge/bin
-BRIDGE_WASM_PATH=$(BRIDGE_BIN_DIR)/$(BINARY_NAME).wasm
+CLIENT_BIN_DIR?=$(CURDIR)/../../../KNIRV_CORP/packages/client/bin
+CLIENT_WASM_PATH=$(CLIENT_BIN_DIR)/$(BINARY_NAME).wasm
 
 # Default target
 all: build
@@ -87,7 +87,7 @@ build: generate
 	@ln -sf $(BINARY_NAME)-$(PLATFORM)-$(ARCH) $(BUILD_DIR)/$(BINARY_NAME)
 	@$(MAKE) build-wasm
 
-## build-wasm: Build both WASI and browser WebAssembly artifacts
+## build-wasm: Build WASI and browser WebAssembly artifacts for their consumers
 build-wasm: build-wasi-wasm build-browser-wasm
 
 ## build-wasi-wasm: Build knirvagent as WASI WebAssembly and copy it into the KNIRV CLI package
@@ -99,14 +99,14 @@ build-wasi-wasm:
 	@echo "WASI WASM build complete: $(WASI_WASM_PATH)"
 	@echo "Copied WASI WASM to: $(CLI_WASM_PATH)"
 
-## build-browser-wasm: Build knirvagent as browser WebAssembly and copy it into the bridge package
+## build-browser-wasm: Build knirvagent as browser WebAssembly and copy it into the client package
 build-browser-wasm:
 	@echo "Building $(BINARY_NAME) for js/wasm..."
-	@mkdir -p $(BUILD_DIR) $(BRIDGE_BIN_DIR)
+	@mkdir -p $(BUILD_DIR) $(CLIENT_BIN_DIR)
 	@GOOS=js GOARCH=wasm $(GO) build $(GOFLAGS) $(LDFLAGS) -o $(BROWSER_WASM_PATH) ./$(CMD_DIR)
-	@cp $(BROWSER_WASM_PATH) $(BRIDGE_WASM_PATH)
+	@cp $(BROWSER_WASM_PATH) $(CLIENT_WASM_PATH)
 	@echo "Browser WASM build complete: $(BROWSER_WASM_PATH)"
-	@echo "Copied browser WASM to: $(BRIDGE_WASM_PATH)"
+	@echo "Copied browser WASM to: $(CLIENT_WASM_PATH)"
 
 ## build-all: Build knirvagent for all platforms
 build-all: generate
@@ -182,9 +182,9 @@ help:
 	@echo ""
 	@echo "Examples:"
 	@echo "  make build              # Build for current platform"
-	@echo "  make build-wasm         # Build WASI/browser WebAssembly and copy artifacts"
+	@echo "  make build-wasm         # Build WASI/browser WebAssembly and copy artifacts to their consumers"
 	@echo "  make build-wasi-wasm    # Build WASI WebAssembly and copy it to KNIRV CLI"
-	@echo "  make build-browser-wasm # Build browser WebAssembly and copy it to the bridge package"
+	@echo "  make build-browser-wasm # Build browser WebAssembly and copy it to the client package"
 	@echo "  make install            # Install to ~/.local/bin"
 	@echo "  make uninstall          # Remove from /usr/local/bin"
 	@echo "  make install-skills     # Install skills to workspace"
@@ -200,4 +200,4 @@ help:
 	@echo "  Install Prefix: $(INSTALL_PREFIX)"
 	@echo "  Workspace: $(WORKSPACE_DIR)"
 	@echo "  CLI WASI WASM Path: $(CLI_WASM_PATH)"
-	@echo "  Bridge Browser WASM Path: $(BRIDGE_WASM_PATH)"
+	@echo "  Client Browser WASM Path: $(CLIENT_WASM_PATH)"
