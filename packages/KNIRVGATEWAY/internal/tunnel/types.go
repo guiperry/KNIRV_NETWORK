@@ -86,11 +86,26 @@ type ControlMessage struct {
 	Status          string `json:"status,omitempty"`
 	Message         string `json:"message,omitempty"`
 	Token           string `json:"token,omitempty"`
+	// RelaySessionToken is set on a RELAY_REQUEST message pushed to a dev's
+	// control channel. It is a one-time token the dev must present (via
+	// RelayBindMessage) on a *second*, dedicated TCP connection to the public
+	// relay port. The control connection itself is never used to carry relay
+	// bytes — see RelayBindMessage and TunnelManager.RequestRelayDataConn.
+	RelaySessionToken string `json:"relaySessionToken,omitempty"`
 }
 
-// RelayMessage represents messages for relay setup
+// RelayMessage represents messages for relay setup from an external caller:
+// the first line an external client sends to the public relay port to reach
+// an internal dev by its devId.
 type RelayMessage struct {
 	TargetPeerID string `json:"targetPeerId"`
+}
+
+// RelayBindMessage is the first line a dev's second, dedicated connection to
+// the public relay port sends in response to a RELAY_REQUEST, binding that
+// connection to the pending relay session instead of opening a new one.
+type RelayBindMessage struct {
+	RelaySessionToken string `json:"relaySessionToken"`
 }
 
 // StatusResponse represents the status endpoint response

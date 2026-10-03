@@ -10,6 +10,19 @@ import (
 	"go.uber.org/zap"
 )
 
+// bufferedConn wraps a net.Conn whose first line has already been consumed
+// through a bufio.Reader, so any bytes the reader buffered past that line
+// (common when a sender pipelines its first line and body in one write) are
+// served before falling through to the raw connection. Without this, handing
+// the raw net.Conn to io.Copy after reading a line through bufio would
+// silently drop whatever the reader had already buffered.
+type bufferedConn struct {
+	net.Conn
+	reader *bufio.Reader
+}
+
+func (c *bufferedConn) Read(p []byte) (int, error) { return c.reader.Read(p) }
+
 // PublicRelayListener handles TCP connections from external clients
 type PublicRelayListener struct {
 	port          int
@@ -68,7 +81,16 @@ func (prl *PublicRelayListener) acceptConnections() {
 }
 
 func (prl *PublicRelayListener) handleConnection(externalClientConn net.Conn) {
-	defer externalClientConn.Close()
+	// ownConn is cleared when this connection's ownership transfers elsewhere
+	// (bound as a dev's dedicated relay data connection, or handed to
+	// TunnelManager.Relay as the external leg of an active relay) so this
+	// deferred Close doesn't yank a connection out from under its new owner.
+	ownConn := true
+	defer func() {
+		if ownConn {
+			externalClientConn.Close()
+		}
+	}()
 
 	tcpAddr, ok := externalClientConn.RemoteAddr().(*net.TCPAddr)
 	if !ok {
@@ -81,11 +103,17 @@ func (prl *PublicRelayListener) handleConnection(externalClientConn net.Conn) {
 
 	var targetPeerId string
 
-	scanner := bufio.NewScanner(externalClientConn)
+	// Use bufio.Reader (not Scanner) and wrap the connection with it below
+	// before handing off to Relay/BindRelayDataConn — otherwise any bytes a
+	// sender pipelines immediately after its first line would already be
+	// consumed into the reader's internal buffer and silently lost to
+	// whatever reads the raw net.Conn next.
+	reader := bufio.NewReader(externalClientConn)
+	wrapped := &bufferedConn{Conn: externalClientConn, reader: reader}
 
 	// Read first line to get target peer ID
-	if scanner.Scan() {
-		dataStr := strings.TrimSpace(scanner.Text())
+	if line, err := reader.ReadString('\n'); err == nil || len(line) > 0 {
+		dataStr := strings.TrimSpace(line)
 
 		// Check if this is an HTTP request
 		if strings.HasPrefix(dataStr, "GET ") || strings.HasPrefix(dataStr, "POST ") ||
@@ -106,6 +134,25 @@ Example: {"targetPeerId": "Qm..."} or QmExamplePeerId
 `, prl.port, prl.config.HTTPAPIPort)
 
 			externalClientConn.Write([]byte(httpResponse))
+			return
+		}
+
+		// A dev's dedicated second connection, opened in response to a
+		// RELAY_REQUEST pushed down its control channel, identifies itself by
+		// session token rather than target peer ID. Try that shape first:
+		// once bound, ownership of the connection transfers to the tunnel
+		// manager and this listener must not touch it again.
+		var bindMessage RelayBindMessage
+		if err := json.Unmarshal([]byte(dataStr), &bindMessage); err == nil && bindMessage.RelaySessionToken != "" {
+			if !prl.tunnelManager.BindRelayDataConn(bindMessage.RelaySessionToken, wrapped) {
+				prl.logger.Warn("Unknown or expired relay session token",
+					zap.String("token", bindMessage.RelaySessionToken))
+				externalClientConn.Write([]byte("ERROR: Unknown or expired relay session token.\n"))
+				return
+			}
+			// Bound: the tunnel manager now owns this connection's
+			// lifecycle (it is one leg of an active or pending relay).
+			ownConn = false
 			return
 		}
 
@@ -130,15 +177,15 @@ Example: {"targetPeerId": "Qm..."} or QmExamplePeerId
 			zap.String("targetPeerId", targetPeerId))
 
 		// Attempt to establish relay
-		if !prl.tunnelManager.Relay(externalClientConn, targetPeerId) {
+		if !prl.tunnelManager.Relay(wrapped, targetPeerId) {
 			externalClientConn.Write([]byte(fmt.Sprintf("ERROR: Could not establish relay to %s.\n", targetPeerId)))
 			return
 		}
-		// Relay established, connection will be handled by tunnel manager
-	}
-
-	if err := scanner.Err(); err != nil {
-		prl.logger.Error("Scanner error", zap.Error(err))
+		// Relay established: TunnelManager.Relay has already taken ownership
+		// of externalClientConn (it is one leg of the active relay) and will
+		// close it when the relay ends. Returning here must not also close it.
+		ownConn = false
+		return
 	}
 
 	prl.logger.Info("External client connection closed")
