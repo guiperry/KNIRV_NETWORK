@@ -271,7 +271,7 @@ describe('Services Integration Tests', () => {
         status: 'pending' as const,
         priority: 'medium' as const,
         schedule: { type: 'once' as const, startTime: new Date() },
-        action: { type: 'agent_invoke' as const, target: 'cognitive-agent', parameters: {} },
+        action: { type: 'api_call' as const, target: 'cognitive-agent', parameters: {} },
         metadata: {}
       });
 
@@ -334,7 +334,7 @@ describe('Services Integration Tests', () => {
         status: 'pending' as const,
         priority: 'medium' as const,
         schedule: { type: 'once' as const, startTime: new Date() },
-        action: { type: 'agent_invoke' as const, target: 'integration-agent', parameters: {} },
+        action: { type: 'api_call' as const, target: 'integration-agent', parameters: {} },
         metadata: { udcId: udc.id }
       });
 

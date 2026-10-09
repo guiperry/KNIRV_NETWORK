@@ -329,7 +329,7 @@ const TaskCreateForm: React.FC<TaskCreateFormProps> = ({ onSubmit, onCancel, isS
     scheduleType: 'once' as 'once' | 'recurring' | 'cron',
     startTime: new Date().toISOString().slice(0, 16),
     interval: 3600000, // 1 hour in ms
-    actionType: 'api_call' as 'api_call' | 'agent_invoke' | 'system_command',
+    actionType: 'api_call' as 'api_call',
     target: '',
     parameters: '{}'
   });
@@ -449,12 +449,10 @@ const TaskCreateForm: React.FC<TaskCreateFormProps> = ({ onSubmit, onCancel, isS
           <select
             id="action-type"
             value={formData.actionType}
-            onChange={(e) => setFormData({ ...formData, actionType: e.target.value as 'api_call' | 'agent_invoke' | 'system_command' })}
+            onChange={(e) => setFormData({ ...formData, actionType: e.target.value as 'api_call' })}
             className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:border-purple-400 focus:outline-none"
           >
             <option value="api_call">API Call</option>
-            <option value="agent_invoke">Agent Invoke</option>
-            <option value="system_command">System Command</option>
           </select>
         </div>
 

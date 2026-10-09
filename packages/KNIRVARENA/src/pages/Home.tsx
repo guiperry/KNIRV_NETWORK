@@ -1,10 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Bot, Shield, Activity, TrendingUp, QrCode, Mic, Eye, Calendar, Send, User, BookmarkPlus, Image as ImageIcon } from 'lucide-react';
+import { Bot, Shield, Activity, TrendingUp, QrCode, Eye, Calendar, Send, User, BookmarkPlus, Image as ImageIcon } from 'lucide-react';
 import ManagerLayout from '../components/ManagerLayout';
 import StatsCard from '../components/StatsCard';
 import AgentCard from '../components/AgentCard';
 import QRScanner from '../components/QRScanner';
-import VoiceProcessor from '../components/VoiceProcessor';
 import AnalyticsDashboard from '../components/AnalyticsDashboard';
 import TaskScheduler from '../components/TaskScheduler';
 import UDCManager from '../components/UDCManager';
@@ -29,7 +28,6 @@ function HomeContent() {
   const { messages, sendMessage, isLoading, saveNote } = useChatBrain();
   const [input, setInput] = useState('');
   const [showInputOptions, setShowInputOptions] = useState(false);
-  const [voiceActive, setVoiceActive] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -63,16 +61,6 @@ function HomeContent() {
     } catch (error) {
       console.error('Failed to save note:', error);
     }
-  };
-
-  const handleVoiceCommand = async (command: string, confidence: number) => {
-    console.log('Voice command:', command, 'Confidence:', confidence);
-    await sendMessage(`Voice input: ${command} (confidence: ${confidence})`);
-    setVoiceActive(false);
-  };
-
-  const handleAudioData = (_audioData: Float32Array) => {
-    console.log('Audio data received');
   };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -193,14 +181,6 @@ function HomeContent() {
         <div className="border-t border-gray-700 p-4 bg-gray-800/50">
           <div className="flex items-center justify-around mb-4">
             <button
-              onClick={() => setVoiceActive(!voiceActive)}
-              className={`p-3 rounded-lg transition-colors ${
-                voiceActive ? 'bg-green-600 text-white' : 'bg-gray-700 hover:bg-gray-600 text-gray-300'
-              }`}
-            >
-              <Mic size={24} />
-            </button>
-            <button
               onClick={() => setShowInputOptions(false)}
               className="p-3 rounded-lg bg-gray-700 hover:bg-gray-600 text-gray-300 transition-colors"
             >
@@ -256,16 +236,6 @@ function HomeContent() {
           </button>
         </div>
       )}
-
-      {/* Voice Processor */}
-      {voiceActive && (
-        <VoiceProcessor
-          onVoiceCommand={handleVoiceCommand}
-          onAudioData={handleAudioData}
-          isActive={voiceActive}
-        />
-      )}
-
 
     </div>
   );
@@ -323,35 +293,6 @@ export default function Home() {
       }
     } catch (error) {
       console.error('Failed to connect:', error);
-    }
-  };
-
-  const handleDeployAgent = async () => {
-    try {
-      const agents = await agentManagementService.getAgents();
-      const availableAgent = agents.find(agent => agent.status === 'Available');
-
-      if (!availableAgent) {
-        alert('No available agents found');
-        return;
-      }
-
-      const deploymentId = await agentManagementService.deployAgent({
-        agentId: availableAgent.agentId,
-        targetNRV: undefined,
-        configuration: {},
-        resources: {
-          memory: availableAgent.metadata.requirements.memory,
-          cpu: availableAgent.metadata.requirements.cpu,
-          timeout: 300000
-        }
-      });
-
-      console.log('Agent deployed successfully:', deploymentId);
-      alert(`Agent ${availableAgent.name} deployed successfully!`);
-    } catch (error) {
-      console.error('Failed to deploy agent:', error);
-      alert(`Failed to deploy agent: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
 
@@ -537,12 +478,6 @@ export default function Home() {
           <div>
             <h3 className="text-lg font-semibold text-white mb-4">Quick Actions</h3>
             <div className="grid grid-cols-2 gap-3">
-              <ActionButton
-                icon={Bot}
-                title="Deploy Agent"
-                description="Launch new AI agent"
-                onClick={handleDeployAgent}
-              />
               <ActionButton
                 icon={TrendingUp}
                 title="View Analytics"

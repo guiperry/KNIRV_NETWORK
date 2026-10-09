@@ -1,4 +1,5 @@
 import axios, { AxiosInstance, AxiosError } from 'axios';
+import { getKnirvServerUrl } from '../config/runtimeConfig';
 
 export interface DVERequest {
   skillCode: string;
@@ -134,14 +135,8 @@ export interface KNIRVSERVERConfig {
   retryAttempts: number;
 }
 
-const getDefaultBaseUrl = (): string => {
-  try {
-    const importMeta = eval('import.meta');
-    return importMeta?.env?.VITE_KNIRVSERVER_URL || 'http://localhost:8082';
-  } catch {
-    return 'http://localhost:8082';
-  }
-};
+// Testnet unless KNIRVSERVER runs with -prod; see config/runtimeConfig.
+const getDefaultBaseUrl = (): string => getKnirvServerUrl();
 
 const DEFAULT_KNIRV_SERVER_CONFIG: KNIRVSERVERConfig = {
   baseUrl: getDefaultBaseUrl(),
@@ -190,7 +185,7 @@ export class KNIRVSERVERClient {
       const response = await this.client.get('/api/dve-nodes/health');
       this.isConnected = true;
       return response.status === 200;
-    } catch (error) {
+    } catch {
       this.isConnected = false;
       return false;
     }
@@ -227,7 +222,7 @@ export class KNIRVSERVERClient {
     }
   }
 
-  private async handleDVEError(error: unknown, request: DVERequest): Promise<DVEResult> {
+  private async handleDVEError(error: unknown, _request: DVERequest): Promise<DVEResult> {
     if (axios.isAxiosError(error)) {
       console.error('DVE validation error:', error.message);
 
@@ -399,7 +394,7 @@ export class KNIRVSERVERClient {
     }
   }
 
-  private handleCDEError(error: unknown, request: CDESandboxRequest): CDESandboxResult {
+  private handleCDEError(error: unknown, _request: CDESandboxRequest): CDESandboxResult {
     if (axios.isAxiosError(error)) {
       console.error('CDE validation error:', error.message);
 
@@ -482,6 +477,54 @@ export class KNIRVSERVERClient {
     return response.data.data.error_node_id;
   }
 
+  /** Context node on the network KNIRVGRAPH (§3.6). */
+  public async registerNetworkContextNode(context: {
+    context_type: 'mcp_server' | 'api_endpoint' | 'tool';
+    description: string;
+    mcp_server_info?: Record<string, unknown>;
+    category?: string;
+    capability_slice?: unknown;
+  }): Promise<string> {
+    const response = await this.client.post<{ success: boolean; data: { context_node_id: string } }>(
+      '/api/context-nodes',
+      context
+    );
+    return response.data.data.context_node_id;
+  }
+
+  /** Idea node on the network KNIRVGRAPH (§3.6). */
+  public async registerNetworkIdeaNode(idea: {
+    idea_type: 'asset' | 'characteristic' | 'attribute' | 'innovation' | 'improvement' | 'feature';
+    description: string;
+    feasibility_data?: unknown;
+  }): Promise<string> {
+    const response = await this.client.post<{ success: boolean; data: { idea_node_id: string } }>(
+      '/api/idea-nodes',
+      idea
+    );
+    return response.data.data.idea_node_id;
+  }
+
+  /**
+   * Submit TRL dataset records for a network error node (§3.2). The server
+   * encodes them to NRV brackets in KNIRVBASE and returns what was added.
+   */
+  public async submitErrorNodeDataset(errorNodeId: string, format: ArenaDatasetFormat, records: unknown[]): Promise<ArenaDatasetSubmission> {
+    const response = await this.client.post<{ success: boolean; data: ArenaDatasetSubmission }>(
+      `/api/error-nodes/${encodeURIComponent(errorNodeId)}/datasets`,
+      { format, records }
+    );
+    return response.data.data;
+  }
+
+  /** Datasets stored for a network error node (manifests only). */
+  public async listErrorNodeDatasets(errorNodeId: string): Promise<ArenaDatasetInfo[]> {
+    const response = await this.client.get<{ success: boolean; data: ArenaDatasetInfo[] }>(
+      `/api/error-nodes/${encodeURIComponent(errorNodeId)}/datasets`
+    );
+    return response.data.data;
+  }
+
   /** The error node's suite as test-takers see it (no expected values). */
   public async getErrorNodeTests(errorNodeId: string): Promise<ErrorNodeTestSuite | null> {
     try {
@@ -494,6 +537,31 @@ export class KNIRVSERVERClient {
       throw error;
     }
   }
+}
+
+export type ArenaDatasetFormat =
+  | 'language-modeling'
+  | 'prompt-only'
+  | 'prompt-completion'
+  | 'preference'
+  | 'conversational-preference';
+
+export interface ArenaDatasetSubmission {
+  error_node_id: string;
+  format: ArenaDatasetFormat;
+  records: number;
+  names: string[];
+  datasets: Array<{ frame_ids: string[]; submitted_by: string; submitted_at: string; records: number; brackets: number }>;
+}
+
+export interface ArenaDatasetInfo {
+  error_node_id: string;
+  name: string;
+  format: ArenaDatasetFormat;
+  embedder: string;
+  records: number;
+  brackets: number;
+  updated_at: string;
 }
 
 /** One KNIRVARENA-authored test for an error node (input → expected). */

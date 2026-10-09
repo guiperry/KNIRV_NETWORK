@@ -1,7 +1,8 @@
 import QRCode from 'qrcode';
 import type { MutationAuthorizer } from './ActuarialSyndicateService';
+import { getKnirvServerUrl } from '../config/runtimeConfig';
 
-function baseURL() { return import.meta.env.VITE_KNIRVSERVER_URL ? new URL(import.meta.env.VITE_KNIRVSERVER_URL).origin : window.location.origin; }
+function baseURL() { return new URL(getKnirvServerUrl()).origin; }
 function canonical(value: Record<string, unknown>): string {
   const sort = (v: unknown): unknown => Array.isArray(v) ? v.map(sort) : v && typeof v === 'object' ? Object.fromEntries(Object.entries(v as Record<string, unknown>).sort(([a], [b]) => a.localeCompare(b)).map(([k, x]) => [k, sort(x)])) : v;
   return JSON.stringify(sort(value));

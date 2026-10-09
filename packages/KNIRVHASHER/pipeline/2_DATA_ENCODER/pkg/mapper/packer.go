@@ -1,6 +1,6 @@
 package mapper
 
-import "strings"
+import "data-encoder/pkg/slotpack"
 
 // TensorPacker orchestrates bit-level placement of metadata into the 12-slot format.
 // When a SlotSchema is provided via NewSchemaAwarePacker, Slot 10 is taken directly
@@ -34,114 +34,16 @@ func (p *TensorPacker) PackFrame(
 	instruction string,
 	input string,
 ) [12]uint32 {
-	var slots [12]uint32
-
-	// Zone 1: Identity (Slots 0–3)
-	for i := 0; i < 4 && i < len(p.signalIndices); i++ {
-		dimIdx := p.signalIndices[i]
-		slots[i] = quantizeFloatToUint32(embedding[dimIdx])
-	}
-
-	// Slot 4: Grammar (POS Tag ID | Tense/Mood ID)
-	slots[4] = uint32(pos) | (uint32(tense) << 8)
-
-	// Slot 5: Syntax (Dependency Link Hash)
-	slots[5] = depHash
-
-	// Slots 6–8: Memory (Recursive Summary — last headers XORed)
-	for i := 0; i < 3 && i < len(lastHeaders); i++ {
-		slots[6+i] = lastHeaders[i]
-	}
-
-	// Slot 9: Intent flags
-	if isQuestion(instruction) {
-		slots[9] |= 0x1
-	}
-	if isCode(input) || isCode(instruction) {
-		slots[9] |= 0x2
-	}
-
-	// Slot 10: Domain Signature — schema-driven when available, keyword fallback otherwise
+	var domain *uint32
 	if p.schema != nil {
-		slots[10] = p.schema.Domain.Slot10Base
-	} else {
-		slots[10] = detectDomain(instruction, input)
+		base := p.schema.Domain.Slot10Base
+		domain = &base
 	}
-
-	// Slot 11: Lock (Token Position Index)
-	slots[11] = uint32(tokenPos)
-
-	return slots
-}
-
-func quantizeFloatToUint32(val float32) uint32 {
-	if val < -1.0 {
-		val = -1.0
-	}
-	if val > 1.0 {
-		val = 1.0
-	}
-	scaled := (float64(val) + 1.0) / 2.0 * 4294967295.0
-	return uint32(scaled + 0.5)
-}
-
-func isQuestion(s string) bool {
-	s = strings.ToLower(s)
-	return strings.Contains(s, "?") ||
-		strings.HasPrefix(s, "what") ||
-		strings.HasPrefix(s, "how") ||
-		strings.HasPrefix(s, "why") ||
-		strings.HasPrefix(s, "can you")
-}
-
-func isCode(s string) bool {
-	s = strings.ToLower(s)
-	for _, ind := range []string{"func ", "var ", "import ", "{", "}", "[]", "const ", "def ", "class "} {
-		if strings.Contains(s, ind) {
-			return true
-		}
-	}
-	return false
+	return slotpack.PackFrame(p.signalIndices, domain, embedding, pos, tense, depHash, lastHeaders, tokenPos, instruction, input)
 }
 
 // detectDomain is the legacy keyword-based fallback used when no schema is loaded.
-// Prefer NewSchemaAwarePacker for explicit domain control.
-func detectDomain(instr, input string) uint32 {
-	instr = strings.ToLower(instr)
-	input = strings.ToLower(input)
-
-	for _, ind := range []string{
-		"calculate", "math", "equation", "solve", "sum", "multiply", "divide",
-		"algebra", "geometry", "theorem", "calculus", "topology", "number theory",
-		"+", "-", "*", "/",
-	} {
-		if strings.Contains(instr, ind) || strings.Contains(input, ind) {
-			return 0x2000 // DOMAIN_MATH
-		}
-	}
-
-	if isCode(input) || containsAny(instr, "code", "program", "function", "compiler", "software", "source code") {
-		return 0x3000 // DOMAIN_CODE
-	}
-
-	if containsAny(instr,
-		"arxiv", "paper", "research", "neural", "learning", "model",
-		"quantum", "physics", "biology", "chemistry", "language",
-	) {
-		return 0x4000 // DOMAIN_ACADEMIC
-	}
-
-	return 0x1000 // DOMAIN_PROSE
-}
-
-func containsAny(text string, values ...string) bool {
-	for _, value := range values {
-		if strings.Contains(text, value) {
-			return true
-		}
-	}
-	return false
-}
+func detectDomain(instr, input string) uint32 { return slotpack.DetectDomain(instr, input) }
 
 func quantizeFloatToUint16(val float32) uint16 {
 	if val < -1.0 {

@@ -303,20 +303,75 @@ func (s *NRVStorage) Update(ctx context.Context, collection, id string, update m
 	return s.Insert(ctx, collection, doc)
 }
 
+// GetFrame and StreamBrackets open a fresh reader per call: a reader maps the
+// file at its size when opened, so a cached one never sees frames flushed
+// after it. Decoded brackets are copies, so the mapping can be released as
+// soon as the read ends.
 func (s *NRVStorage) GetFrame(ctx context.Context, collection, frameID string) (*nrv.FrameEntry, []*nrv.Bracket, error) {
-	reader, err := s.getOrCreateReader(collection)
+	reader, err := NewNRVReader(s.getNRVPath(collection))
 	if err != nil {
 		return nil, nil, err
 	}
+	defer reader.Close()
 	return reader.GetFrame(frameID)
 }
 
+// StreamBrackets streams every bracket of the collection as of the call. The
+// stream ends early, releasing the file, when ctx is cancelled.
 func (s *NRVStorage) StreamBrackets(ctx context.Context, collection string, goldOnly bool) (<-chan *nrv.Bracket, error) {
-	reader, err := s.getOrCreateReader(collection)
+	reader, err := NewNRVReader(s.getNRVPath(collection))
 	if err != nil {
 		return nil, err
 	}
-	return reader.StreamBrackets(goldOnly), nil
+	out := make(chan *nrv.Bracket, 256)
+	go func() {
+		defer close(out)
+		defer reader.Close()
+		for _, entry := range reader.registry.Frames {
+			if entry.Tombstone != nil || (goldOnly && entry.Z3.Status != "VALID") {
+				continue
+			}
+			for _, b := range reader.decodeBrackets(entry) {
+				if b == nil {
+					continue
+				}
+				select {
+				case out <- b:
+				case <-ctx.Done():
+					return
+				}
+			}
+		}
+	}()
+	return out, nil
+}
+
+// Flush writes the collection's pending brackets as a frame now instead of
+// at the next tick, and reports the write error, if any.
+func (s *NRVStorage) Flush(collection string) error {
+	s.mu.RLock()
+	t, ok := s.tickers[collection]
+	s.mu.RUnlock()
+	if !ok {
+		return nil
+	}
+	return t.Flush()
+}
+
+// Frames lists the collection's live frame entries (registry metadata only).
+func (s *NRVStorage) Frames(collection string) ([]nrv.FrameEntry, error) {
+	reader, err := NewNRVReader(s.getNRVPath(collection))
+	if err != nil {
+		return nil, err
+	}
+	defer reader.Close()
+	out := make([]nrv.FrameEntry, 0, len(reader.registry.Frames))
+	for _, e := range reader.registry.Frames {
+		if e.Tombstone == nil {
+			out = append(out, e)
+		}
+	}
+	return out, nil
 }
 
 func (s *NRVStorage) SetLinguistic(collection, token, unit string) error {

@@ -1,14 +1,11 @@
 import { EventEmitter } from './EventEmitter';
 import { SEALFramework } from './SEALFramework';
 import { FabricAlgorithm } from './FabricAlgorithm';
-import { VoiceProcessor } from './VoiceProcessor';
 import { VisualProcessor } from './VisualProcessor';
 import { LoRAAdapter } from './LoRAAdapter';
 import { EnhancedLoRAAdapter } from './EnhancedLoRAAdapter';
 import { HRMBridge, HRMConfig } from './HRMBridge';
 import { HRMLoRABridge } from './HRMLoRABridge';
-import { WASMAgentManager, AgentMetadata } from './WASMAgentManager';
-import { TypeScriptCompiler, SkillCompilationConfig, CompilationResult } from './TypeScriptCompiler';
 import { AdaptiveLearningPipeline } from './AdaptiveLearningPipeline';
 import { KNIRVWalletIntegration } from './KNIRVWalletIntegration';
 import { KNIRVChainIntegration } from './KNIRVChainIntegration';
@@ -19,6 +16,7 @@ import { AnchorDatasetManager, AnchorCategory, ErrorContextForAnchor } from './A
 import { DenoisingService } from './DenoisingService';
 import { getKNIRVSERVERClient, KNIRVSERVERClient, DVERequest, DVEResult, CDESandboxRequest, CDESandboxResult } from '../services/KNIRVSERVERClient';
 import type { LLMProvider } from '../types/chatBrain';
+import { getKnirvGatewayUrl } from '../config/runtimeConfig';
 
 // Define comprehensive type system for cognitive processing
 export type CognitiveInput = string | ArrayBuffer | Record<string, unknown> | unknown[];
@@ -53,21 +51,6 @@ export interface CognitiveConfig {
   enhancedLoraEnabled: boolean;
   hrmEnabled: boolean;
   hrmConfig?: HRMConfig;
-  wasmAgentsEnabled: boolean;
-  wasmAgentConfig?: {
-    maxMemoryMB: number;
-    enableLoRAAdapters: boolean;
-    maxConcurrentSkills: number;
-    timeoutMs: number;
-  };
-  typeScriptCompilerEnabled: boolean;
-  typeScriptCompilerConfig?: {
-    templateDir: string;
-    outputDir: string;
-    enableWASM: boolean;
-    enableOptimization: boolean;
-    targetEnvironment: 'browser' | 'node' | 'webworker';
-  };
   adaptiveLearningEnabled: boolean;
   walletIntegrationEnabled: boolean;
   chainIntegrationEnabled: boolean;
@@ -109,14 +92,11 @@ export class CognitiveEngine extends EventEmitter {
   private _config: CognitiveConfig;
   private sealFramework!: SEALFramework;
   private fabricAlgorithm!: FabricAlgorithm;
-  private voiceProcessor!: VoiceProcessor;
   private visualProcessor!: VisualProcessor;
   private loraAdapter!: LoRAAdapter;
   private enhancedLoRAAdapter!: EnhancedLoRAAdapter;
   private hrmBridge!: HRMBridge;
   private hrmLoraBridge!: HRMLoRABridge;
-  private wasmAgentManager: WASMAgentManager | null = null;
-  private typeScriptCompiler: TypeScriptCompiler | null = null;
   private adaptiveLearningPipeline!: AdaptiveLearningPipeline;
   private walletIntegration!: KNIRVWalletIntegration;
   private chainIntegration!: KNIRVChainIntegration;
@@ -169,19 +149,6 @@ export class CognitiveEngine extends EventEmitter {
 
     // Skip hardware-dependent processors in test environment
     if (!isTestEnvironment) {
-      // Initialize input processors
-      if (this._config.voiceEnabled) {
-        this.voiceProcessor = new VoiceProcessor({
-          sampleRate: 16000,
-          channels: 1,
-          bufferSize: 4096,
-          language: 'en-US',
-          enableWakeWord: true,
-          wakeWord: 'knirv',
-          noiseReduction: true,
-        });
-      }
-
       if (this._config.visualEnabled) {
         this.visualProcessor = new VisualProcessor({
         resolution: '1920x1080',
@@ -250,64 +217,6 @@ export class CognitiveEngine extends EventEmitter {
       this.hrmBridge = new HRMBridge(hrmConfig);
     }
 
-    // Initialize WASM Agent Manager (Revolutionary Feature)
-    if (this._config.wasmAgentsEnabled) {
-      const wasmConfig = this._config.wasmAgentConfig || {
-        maxMemoryMB: 256,
-        enableLoRAAdapters: true,
-        maxConcurrentSkills: 10,
-        timeoutMs: 30000,
-      };
-
-      this.wasmAgentManager = new WASMAgentManager(wasmConfig);
-
-      // Set up event listeners for WASM agent events
-      this.wasmAgentManager.on('agent_uploaded', (data) => {
-        this.emit('wasm_agent_uploaded', data);
-      });
-
-      this.wasmAgentManager.on('lora_loaded', (data) => {
-        this.emit('wasm_lora_loaded', data);
-      });
-
-      this.wasmAgentManager.on('processing_completed', (data) => {
-        this.emit('wasm_processing_completed', data);
-      });
-    }
-
-    // Initialize TypeScript Compiler (Revolutionary Feature)
-    if (this._config.typeScriptCompilerEnabled) {
-      const tsConfig = this._config.typeScriptCompilerConfig || {
-        templateDir: './templates',
-        outputDir: './compiled-skills',
-        enableWASM: true,
-        enableOptimization: true,
-        targetEnvironment: 'browser' as const
-      };
-
-      this.typeScriptCompiler = new TypeScriptCompiler(tsConfig);
-
-      // Set up event listeners for TypeScript compiler events
-      this.typeScriptCompiler.on('compilation_started', (data) => {
-        this.emit('skill_compilation_started', data);
-      });
-
-      this.typeScriptCompiler.on('compilation_completed', (data) => {
-        this.emit('skill_compilation_completed', data);
-      });
-
-      this.typeScriptCompiler.on('compilation_failed', (data) => {
-        this.emit('skill_compilation_failed', data);
-      });
-
-      // Initialize the compiler
-      try {
-        await this.typeScriptCompiler.initialize();
-      } catch (error) {
-        console.error('Failed to initialize TypeScript compiler:', error);
-      }
-    }
-
     // Initialize HRM-LoRA Bridge if both HRM and Enhanced LoRA are enabled
     if (this._config.hrmEnabled && this._config.enhancedLoraEnabled) {
       this.hrmLoraBridge = new HRMLoRABridge({
@@ -334,9 +243,9 @@ export class CognitiveEngine extends EventEmitter {
     // Initialize KNIRV Wallet Integration
     if (this._config.walletIntegrationEnabled) {
       this.walletIntegration = new KNIRVWalletIntegration({
-        apiBaseUrl: `${(import.meta.env.VITE_KNIRV_GATEWAY_URL || 'https://gateway.knirv.com').replace(/\/$/, '')}/api`,
+        apiBaseUrl: `${getKnirvGatewayUrl()}/api`,
         chainId: 'knirv-1',
-        rpcUrl: `${(import.meta.env.VITE_KNIRV_GATEWAY_URL || 'https://gateway.knirv.com').replace(/\/$/, '')}/api/chain`,
+        rpcUrl: `${getKnirvGatewayUrl()}/api/chain`,
         enableCrossPlatform: true,
         autoConnectMobile: false,
         qrCodeTimeout: 300000,
@@ -346,7 +255,7 @@ export class CognitiveEngine extends EventEmitter {
     // Initialize KNIRV Chain Integration
     if (this._config.chainIntegrationEnabled) {
       this.chainIntegration = new KNIRVChainIntegration({
-        rpcUrl: `${(import.meta.env.VITE_KNIRV_GATEWAY_URL || 'https://gateway.knirv.com').replace(/\/$/, '')}/api/chain`,
+        rpcUrl: `${getKnirvGatewayUrl()}/api/chain`,
         chainId: 'knirv-1',
         networkName: 'KNIRV Network',
         contractAddresses: {
@@ -440,17 +349,6 @@ export class CognitiveEngine extends EventEmitter {
   }
 
   private setupEventHandlers(): void {
-    // Voice input events
-    if (this.voiceProcessor) {
-      this.voiceProcessor.on('speechDetected', (speech) => {
-        this.processVoiceInput(String(speech));
-      });
-
-      this.voiceProcessor.on('commandRecognized', (command) => {
-        this.executeVoiceCommand(String(command));
-      });
-    }
-
     // Visual input events
     if (this.visualProcessor) {
       this.visualProcessor.on('objectDetected', (objects) => {
@@ -755,10 +653,6 @@ export class CognitiveEngine extends EventEmitter {
     await this.sealFramework.start();
     await this.fabricAlgorithm.start();
 
-    if (this.voiceProcessor) {
-      await this.voiceProcessor.start();
-    }
-
     if (this.visualProcessor) {
       await this.visualProcessor.start();
     }
@@ -840,10 +734,6 @@ export class CognitiveEngine extends EventEmitter {
     await this.sealFramework.stop();
     await this.fabricAlgorithm.stop();
 
-    if (this.voiceProcessor) {
-      await this.voiceProcessor.stop();
-    }
-
     if (this.visualProcessor) {
       await this.visualProcessor.stop();
     }
@@ -894,11 +784,8 @@ export class CognitiveEngine extends EventEmitter {
 
       let response: unknown;
 
-      // Use WASM Agent for cognitive processing if available (Revolutionary Feature)
-      if (this.wasmAgentManager && this.wasmAgentManager.isReady()) {
-        response = await this.processWithWASMAgent(input, inputType);
-      } else if (this.hrmBridge && this.hrmBridge.isReady()) {
-        // Fallback to HRM for cognitive processing
+      // Use HRM for cognitive processing if available
+      if (this.hrmBridge && this.hrmBridge.isReady()) {
         response = await this.processWithHRM(input, inputType);
       } else {
         // Fallback to original processing pipeline
@@ -1034,110 +921,6 @@ export class CognitiveEngine extends EventEmitter {
       console.error('Error processing with HRM:', error);
       // Fallback to original processing
       throw error;
-    }
-  }
-
-  /**
-   * Revolutionary WASM Agent Processing Method
-   * Processes input through uploaded agent.wasm with LoRA adapter integration
-   */
-  private async processWithWASMAgent(input: unknown, inputType: string): Promise<unknown> {
-    console.log('Processing with WASM Agent:', inputType);
-
-    try {
-      if (!this.wasmAgentManager) {
-        throw new Error('WASM Agent Manager not initialized');
-      }
-
-      // Prepare input for WASM agent
-      const inputData = this.prepareInputForWASMAgent(input, inputType);
-
-      // Process through WASM agent
-      const agentOutput = await this.wasmAgentManager.processInput(inputData, {
-        inputType,
-        context: Object.fromEntries(this.state.currentContext),
-        confidenceLevel: this.state.confidenceLevel,
-        timestamp: Date.now()
-      });
-
-      // Parse agent output
-      let parsedOutput;
-      try {
-        parsedOutput = JSON.parse(agentOutput);
-      } catch {
-        // If output is not JSON, treat as plain text
-        parsedOutput = {
-          result: agentOutput,
-          confidence: 0.8,
-          processing_time: Date.now()
-        };
-      }
-
-      const response = {
-        result: parsedOutput.result || agentOutput,
-        confidence: parsedOutput.confidence || 0.8,
-        processingTime: parsedOutput.processing_time || Date.now(),
-        source: 'wasm_agent',
-        metadata: {
-          agent: this.wasmAgentManager.getAgentInfo(),
-          loadedAdapters: this.wasmAgentManager.getLoadedAdapters().map(a => ({
-            skillId: a.skillId,
-            skillName: a.skillName
-          })),
-          inputType,
-          ...parsedOutput.metadata
-        },
-        shouldSpeak: inputType === 'voice' && (parsedOutput.confidence || 0.8) > 0.7,
-      };
-
-      // Update confidence level based on agent output
-      this.state.confidenceLevel = (this.state.confidenceLevel + (parsedOutput.confidence || 0.8)) / 2;
-
-      // Emit WASM processing event
-      this.emit('wasmProcessingCompleted', {
-        inputType,
-        confidence: parsedOutput.confidence || 0.8,
-        processingTime: parsedOutput.processing_time || Date.now()
-      });
-
-      return response;
-
-    } catch (error) {
-      console.error('Error processing with WASM Agent:', error);
-      this.emit('wasmProcessingError', {
-        inputType,
-        error: error instanceof Error ? error.message : 'Unknown error'
-      });
-      throw error;
-    }
-  }
-
-  private prepareInputForWASMAgent(input: unknown, inputType: string): string {
-    // Convert various input types to string format for WASM agent
-    switch (inputType) {
-      case 'voice':
-        if (typeof input === 'object' && input !== null && 'text' in input) {
-          return (input as { text: string }).text;
-        }
-        return typeof input === 'string' ? input : JSON.stringify(input);
-
-      case 'visual':
-        if (Array.isArray(input)) {
-          return JSON.stringify({
-            type: 'visual_objects',
-            objects: input,
-            timestamp: Date.now()
-          });
-        }
-        return JSON.stringify({
-          type: 'visual_data',
-          data: input,
-          timestamp: Date.now()
-        });
-
-      case 'text':
-      default:
-        return typeof input === 'string' ? input : JSON.stringify(input);
     }
   }
 
@@ -1403,10 +1186,6 @@ export class CognitiveEngine extends EventEmitter {
 
   public getLoRAAdapter(): unknown {
     return this.loraAdapter;
-  }
-
-  public getVoiceProcessor(): unknown {
-    return this.voiceProcessor;
   }
 
   public getFabricAlgorithm(): unknown {
@@ -2162,13 +1941,7 @@ export class CognitiveEngine extends EventEmitter {
     console.log('Processing voice input:', voiceInput);
 
     try {
-      if (this.voiceProcessor) {
-        // Process through voice processor - just use the standard pipeline
-        return await this.processInput(voiceInput, 'voice');
-      } else {
-        // Fallback to text processing
-        return await this.processInput(voiceInput, 'voice');
-      }
+      return await this.processInput(voiceInput, 'voice');
     } catch (error) {
       console.error('Error processing voice input:', error);
       throw error;
@@ -3273,324 +3046,6 @@ export class CognitiveEngine extends EventEmitter {
     };
   }
 
-  // ===== REVOLUTIONARY WASM AGENT MANAGEMENT METHODS =====
-
-  /**
-   * Upload a new WASM agent to replace the default cognitive processing
-   */
-  public async uploadWASMAgent(wasmBytes: Uint8Array, metadata: Partial<AgentMetadata>): Promise<boolean> {
-    if (!this.wasmAgentManager) {
-      throw new Error('WASM Agent Manager not enabled. Set wasmAgentsEnabled: true in config.');
-    }
-
-    try {
-      const success = await this.wasmAgentManager.uploadAgent(wasmBytes, metadata);
-
-      if (success) {
-        this.emit('wasmAgentUploaded', {
-          metadata: this.wasmAgentManager.getAgentInfo(),
-          timestamp: Date.now()
-        });
-      }
-
-      return success;
-    } catch (error) {
-      this.emit('wasmAgentUploadFailed', { error: error instanceof Error ? error.message : 'Unknown error' });
-      throw error;
-    }
-  }
-
-  /**
-   * Load a LoRA adapter into the current WASM agent
-   */
-  public async loadLoRAAdapterToWASMAgent(adapter: LoRAAdapter): Promise<boolean> {
-    if (!this.wasmAgentManager) {
-      throw new Error('WASM Agent Manager not enabled.');
-    }
-
-    try {
-      const success = await this.wasmAgentManager.loadLoRAAdapter(adapter as any);
-
-      if (success) {
-        this.emit('wasmLoRAAdapterLoaded', {
-          skillId: (adapter as { skillId?: string }).skillId,
-          skillName: (adapter as { skillName?: string }).skillName,
-          timestamp: Date.now()
-        });
-      }
-
-      return success;
-    } catch (error) {
-      this.emit('wasmLoRAAdapterLoadFailed', {
-        skillId: (adapter as { skillId?: string }).skillId,
-        error: error instanceof Error ? error.message : 'Unknown error'
-      });
-      throw error;
-    }
-  }
-
-  /**
-   * Get information about the current WASM agent
-   */
-  public getWASMAgentInfo(): AgentMetadata | null {
-    return this.wasmAgentManager?.getAgentInfo() || null;
-  }
-
-  /**
-   * Get loaded LoRA adapters in the WASM agent
-   */
-  public getWASMAgentAdapters(): LoRAAdapter[] {
-    return (this.wasmAgentManager?.getLoadedAdapters() || []) as unknown as LoRAAdapter[];
-  }
-
-  /**
-   * Remove a LoRA adapter from the WASM agent
-   */
-  public removeWASMAgentAdapter(skillId: string): boolean {
-    return this.wasmAgentManager?.removeLoRAAdapter(skillId) || false;
-  }
-
-  /**
-   * Set the current WASM agent as the primary agent
-   */
-  public setPrimaryWASMAgent(): void {
-    if (!this.wasmAgentManager) {
-      throw new Error('WASM Agent Manager not enabled.');
-    }
-
-    this.wasmAgentManager.setPrimaryAgent();
-    this.emit('primaryWASMAgentSet', {
-      agent: this.wasmAgentManager.getAgentInfo(),
-      timestamp: Date.now()
-    });
-  }
-
-  /**
-   * Export the current WASM agent as agent.wasm
-   */
-  public async exportWASMAgent(): Promise<Uint8Array> {
-    if (!this.wasmAgentManager) {
-      throw new Error('WASM Agent Manager not enabled.');
-    }
-
-    return await this.wasmAgentManager.exportAgent();
-  }
-
-  /**
-   * Check if WASM agent is ready for processing
-   */
-  public isWASMAgentReady(): boolean {
-    return this.wasmAgentManager?.isReady() || false;
-  }
-
-  /**
-   * Enable/disable WASM agent processing
-   */
-  public setWASMAgentEnabled(enabled: boolean): void {
-    this._config.wasmAgentsEnabled = enabled;
-
-    if (enabled && !this.wasmAgentManager) {
-      // Initialize WASM agent manager if not already done
-      const wasmConfig = this._config.wasmAgentConfig || {
-        maxMemoryMB: 256,
-        enableLoRAAdapters: true,
-        maxConcurrentSkills: 10,
-        timeoutMs: 30000,
-      };
-
-      this.wasmAgentManager = new WASMAgentManager(wasmConfig);
-    }
-
-    this.emit('wasmAgentEnabledChanged', { enabled, timestamp: Date.now() });
-  }
-
-  // ===== REVOLUTIONARY TYPESCRIPT SKILL COMPILATION METHODS =====
-
-  /**
-   * Compile a skill from TypeScript templates
-   */
-  public async compileSkillFromTemplate(_config: SkillCompilationConfig): Promise<CompilationResult> {
-    if (!this.typeScriptCompiler) {
-      throw new Error('TypeScript Compiler not enabled. Set typeScriptCompilerEnabled: true in config.');
-    }
-
-    try {
-      const result = await this.typeScriptCompiler.compileSkill(_config);
-
-      if (result.success) {
-        this.emit('skillCompiledFromTemplate', {
-          skillId: _config.skillId,
-          skillName: _config.skillName,
-          compilationTime: result.metadata.compilationTime,
-          timestamp: Date.now()
-        });
-      }
-
-      return result;
-    } catch (error) {
-      this.emit('skillCompilationFromTemplateFailed', {
-        skillId: _config.skillId,
-        error: error instanceof Error ? error.message : 'Unknown error'
-      });
-      throw error;
-    }
-  }
-
-  /**
-   * Compile a skill from solutions and errors (integrates with KNIRVGRAPH)
-   */
-  public async compileSkillFromSolutions(
-    skillName: string,
-    solutions: Array<{ errorId: string; solution: string; confidence: number }>,
-    errors: Array<{ errorId: string; description: string; context: string }>
-  ): Promise<CompilationResult> {
-    if (!this.typeScriptCompiler) {
-      throw new Error('TypeScript Compiler not enabled.');
-    }
-
-    try {
-      // Convert solutions and errors to TypeScript skill configuration
-      const config = this.convertSolutionsToSkillConfig(skillName, solutions, errors);
-
-      // Compile the skill
-      const result = await this.typeScriptCompiler.compileSkill(config as any);
-
-      if (result.success) {
-        this.emit('skillCompiledFromSolutions', {
-          skillId: config.skillId,
-          skillName: config.skillName,
-          solutionCount: solutions.length,
-          errorCount: errors.length,
-          compilationTime: result.metadata.compilationTime,
-          timestamp: Date.now()
-        });
-      }
-
-      return result;
-    } catch (error) {
-      this.emit('skillCompilationFromSolutionsFailed', {
-        skillName,
-        error: error instanceof Error ? error.message : 'Unknown error'
-      });
-      throw error;
-    }
-  }
-
-  private convertSolutionsToSkillConfig(
-    skillName: string,
-    solutions: Array<{ errorId: string; solution: string; confidence: number }>,
-    errors: Array<{ errorId: string; description: string; context: string }>
-  ): SkillCompilationConfig {
-    // Generate tools from solutions
-    const tools = solutions.map((solution, index) => {
-      const correspondingError = errors.find(e => e.errorId === solution.errorId);
-
-      return {
-        name: `solution${index + 1}`,
-        description: correspondingError?.description || `Solution for error ${solution.errorId}`,
-        parameters: [
-          {
-            name: 'input',
-            type: 'string',
-            required: true,
-            description: 'Input data for processing'
-          },
-          {
-            name: 'context',
-            type: 'any',
-            required: false,
-            description: 'Additional context information'
-          }
-        ],
-        implementation: this.generateToolImplementation(solution.solution, correspondingError?.context),
-        sourceType: 'inline' as const
-      };
-    });
-
-    return {
-      skillId: `skill-${skillName.toLowerCase().replace(/[^a-z0-9]/g, '-')}-${Date.now()}`,
-      skillName,
-      description: `Auto-generated skill from ${solutions.length} solutions`,
-      version: '1.0.0',
-      author: 'KNIRV Cognitive Engine',
-      tools,
-      parameters: {},
-      buildTarget: 'typescript',
-      optimizationLevel: 'basic'
-    };
-  }
-
-  private generateToolImplementation(solution: string, context?: string): string {
-    // Convert solution text to TypeScript implementation
-    // This is a simplified version - in practice, this would use AI to generate proper code
-    return `
-    // Auto-generated from solution
-    // Context: ${context || 'No context provided'}
-
-    try {
-      // Solution implementation
-      const solutionText = solution.replace(/\\\`/g, '\\\`');
-
-      // Process the input based on the solution
-      if (typeof params.input === 'string') {
-        // Apply solution logic to string input
-        const result = solutionText + ' - Applied to: ' + params.input;
-        return {
-          result,
-          confidence: 0.8,
-          source: 'auto-generated',
-          timestamp: Date.now()
-        };
-      } else {
-        // Handle other input types
-        return {
-          result: solutionText,
-          confidence: 0.6,
-          source: 'auto-generated',
-          timestamp: Date.now()
-        };
-      }
-    } catch (error) {
-      throw new Error('Solution execution failed: ' + (error as Error).message);
-    }`;
-  }
-
-  /**
-   * Get TypeScript compiler status
-   */
-  public getTypeScriptCompilerStatus(): unknown {
-    return {
-      enabled: this._config.typeScriptCompilerEnabled,
-      ready: this.typeScriptCompiler?.isReady() || false,
-      _config: this._config.typeScriptCompilerConfig
-    };
-  }
-
-  /**
-   * Enable/disable TypeScript compiler
-   */
-  public setTypeScriptCompilerEnabled(enabled: boolean): void {
-    this._config.typeScriptCompilerEnabled = enabled;
-
-    if (enabled && !this.typeScriptCompiler) {
-      // Initialize TypeScript compiler if not already done
-      const tsConfig = this._config.typeScriptCompilerConfig || {
-        templateDir: './templates',
-        outputDir: './compiled-skills',
-        enableWASM: true,
-        enableOptimization: true,
-        targetEnvironment: 'browser' as const
-      };
-
-      this.typeScriptCompiler = new TypeScriptCompiler(tsConfig);
-      this.typeScriptCompiler.initialize().catch(error => {
-        console.error('Failed to initialize TypeScript compiler:', error);
-      });
-    }
-
-    this.emit('typeScriptCompilerEnabledChanged', { enabled, timestamp: Date.now() });
-  }
-
   /**
    * Dispose of the cognitive engine and cleanup resources
    */
@@ -3613,15 +3068,6 @@ export class CognitiveEngine extends EventEmitter {
           this.visualProcessor.dispose();
         } catch (error) {
           console.error('Error disposing visual processor:', error);
-        }
-      }
-
-      // Dispose of voice processor if it exists
-      if (this.voiceProcessor && typeof this.voiceProcessor.dispose === 'function') {
-        try {
-          this.voiceProcessor.dispose();
-        } catch (error) {
-          console.error('Error disposing voice processor:', error);
         }
       }
 
@@ -3649,24 +3095,6 @@ export class CognitiveEngine extends EventEmitter {
           (this.hrmBridge as unknown as { dispose: () => void }).dispose();
         } catch (error) {
           console.error('Error disposing HRM Bridge:', error);
-        }
-      }
-
-      // Dispose of WASM Agent Manager if it exists
-      if (this.wasmAgentManager) {
-        try {
-          this.wasmAgentManager.cleanup();
-        } catch (error) {
-          console.error('Error disposing WASM Agent Manager:', error);
-        }
-      }
-
-      // Dispose of TypeScript Compiler if it exists
-      if (this.typeScriptCompiler) {
-        try {
-          await this.typeScriptCompiler.dispose();
-        } catch (error) {
-          console.error('Error disposing TypeScript Compiler:', error);
         }
       }
 

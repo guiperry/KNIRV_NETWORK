@@ -1,4 +1,5 @@
 import { EventEmitter } from './EventEmitter';
+import { getKnirvGatewayUrl, getKnirvServerUrl } from '../config/runtimeConfig';
 
 export interface EcosystemConfig {
   enableWalletIntegration: boolean;
@@ -176,7 +177,7 @@ export class EcosystemCommunicationLayer extends EventEmitter {
       this.registerEndpoint({
         id: 'knirv-chain',
         name: 'KNIRV-CHAIN',
-        url: `${(import.meta.env.VITE_KNIRV_GATEWAY_URL || 'https://gateway.knirv.com').replace(/\/$/, '')}/api/chain`,
+        url: `${getKnirvGatewayUrl()}/api/chain`,
         protocol: 'http',
         authentication: { type: 'none' },
         healthCheckPath: '/status',
@@ -215,7 +216,7 @@ export class EcosystemCommunicationLayer extends EventEmitter {
       this.registerEndpoint({
         id: 'knirv-shell',
         name: 'KNIRV-CLI',
-        url: 'http://localhost:8082',
+        url: getKnirvServerUrl(),
         protocol: 'http',
         authentication: { type: 'none' },
         healthCheckPath: '/health',

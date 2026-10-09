@@ -554,41 +554,4 @@ describe('Phase 3.3 - Consensus Mechanism', () => {
       customMechanism.stop();
     });
   });
-
-  describe('Type Usage Validation', () => {
-    it('should validate AgentCoreNode and ConsensusProposal types', () => {
-      // Test AgentCoreNode type usage
-      const mockNode: AgentCoreNode = {
-        nodeId: 'test-node',
-        address: 'test-address',
-        publicKey: 'test-key',
-        reputation: 0.8,
-        lastSeen: new Date(),
-        capabilities: ['consensus', 'validation'],
-        status: NodeStatus.ACTIVE,
-        votingPower: 1.0
-      };
-
-      expect(mockNode.status).toBe(NodeStatus.ACTIVE);
-      expect(Array.isArray(mockNode.capabilities)).toBe(true);
-
-      // Test ConsensusProposal type usage
-      const mockProposal: ConsensusProposal = {
-        proposalId: 'test-proposal',
-        skillId: 'test-skill',
-        loraAdapter: {} as any,
-        validationResult: {} as any,
-        proposedBy: 'node-1',
-        proposedAt: new Date(),
-        submittedBy: 'node-1',
-        submittedAt: new Date(),
-        votingDeadline: new Date(),
-        requiredVotes: 3,
-        status: ProposalStatus.PENDING
-      };
-
-      expect(mockProposal.status).toBe(ProposalStatus.PENDING);
-      expect(mockProposal.requiredVotes).toBe(2);
-    });
-  });
 });

@@ -167,7 +167,7 @@ export const GameMenu: React.FC<GameMenuProps> = ({ onStart, usingMockLLM }) => 
               <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-3 mb-6 flex items-start gap-3">
                 <AlertTriangle className="text-yellow-500 w-4 h-4 mt-0.5 flex-shrink-0" />
                 <p className="text-[10px] text-yellow-500/80 leading-tight">
-                  MOCK MODE ACTIVE. No API keys detected. Configure VITE_OPENAI_API_KEY for live LLM gameplay.
+                  MOCK MODE ACTIVE. Sign in to KNIRV for live LLM gameplay (local model, or your own keys in menu → Provider Keys).
                 </p>
               </div>
             )}

@@ -138,7 +138,9 @@ Object.assign(globalThis, timers);
 // Polyfill for window object in Node.js environment with event handling
 const eventListeners = new Map<string, EventListener[]>();
 
-Object.defineProperty(global, 'window', {
+// Only for node-environment suites: under jsdom, replacing the real window
+// breaks React DOM (its `instanceof window.HTMLIFrameElement` checks).
+if (typeof document === 'undefined') Object.defineProperty(global, 'window', {
   value: {
     performance: (global as any).performance,
     gc: (global as any).gc,
@@ -205,7 +207,10 @@ Object.defineProperty(global, 'sessionStorage', {
   configurable: true
 });
 
-// Polyfill for WebAssembly
+// Polyfill for WebAssembly. The real runtime is kept as __nodeWebAssembly so
+// suites that need genuine WASM (e.g. libsodium inside @cosmjs/crypto for
+// secp256k1 signing) can restore it for their own duration.
+(global as any).__nodeWebAssembly = (global as any).WebAssembly;
 Object.defineProperty(global, 'WebAssembly', {
   value: {
     instantiate: jest.fn(() => Promise.resolve({

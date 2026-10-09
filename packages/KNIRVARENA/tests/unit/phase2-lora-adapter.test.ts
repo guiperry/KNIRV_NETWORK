@@ -8,7 +8,6 @@
 import { describe, test, expect, beforeEach, afterEach, jest } from '@jest/globals';
 import { AgentCoreInterface, LoRAAdapter } from '../../src/sensory-shell/AgentCoreInterface';
 import { LoRAAdapterEngine, LoRAAdapterSkill } from '../../src/core/lora/LoRAAdapterEngine';
-import { WASMCompiler } from '../../src/core/wasm/WASMCompiler';
 
 // Import real ProtobufHandler instead of mocking
 import ProtobufHandler from '../../src/core/protobuf/ProtobufHandler';
@@ -27,89 +26,6 @@ describe('Phase 2 LoRA Adapter Tests', () => {
 
   beforeEach(async () => {
     agentCoreInterface = new AgentCoreInterface();
-
-    // Create mock dependencies for LoRAAdapterEngine
-    // Create a proper mock that satisfies the WASMCompiler interface
-    const mockWasmCompiler = {
-      ready: true,
-      rustWasmPath: '/mock/path',
-      tempDir: '/mock/temp',
-      initialize: jest.fn().mockResolvedValue(undefined as never),
-      compile: jest.fn().mockResolvedValue({
-        wasmBytes: new Uint8Array([0x00, 0x61, 0x73, 0x6d]),
-        jsBindings: 'mock js bindings',
-        typeDefinitions: 'mock type definitions',
-        metadata: {
-          size: 4,
-          compilationTime: 0,
-          features: [],
-          target: 'web'
-        }
-      } as never),
-      compileAgentCore: jest.fn().mockResolvedValue({
-        wasmBytes: new Uint8Array([0x00, 0x61, 0x73, 0x6d]),
-        jsBindings: 'mock js bindings',
-        typeDefinitions: 'mock type definitions',
-        metadata: {
-          size: 4,
-          compilationTime: 0,
-          features: [],
-          target: 'web'
-        }
-      } as never),
-      compileLoRAAdapter: jest.fn().mockResolvedValue({
-        wasmBytes: new Uint8Array([0x00, 0x61, 0x73, 0x6d]),
-        jsBindings: 'mock js bindings',
-        typeDefinitions: 'mock type definitions',
-        metadata: {
-          size: 4,
-          compilationTime: 0,
-          features: [],
-          target: 'web'
-        },
-        adapterId: 'mock-adapter',
-        adapterName: 'Mock Adapter',
-        applyWeights: jest.fn().mockResolvedValue(new Float32Array() as never),
-        getAdapterInfo: jest.fn().mockReturnValue({})
-      } as never),
-      buildExistingProject: jest.fn().mockResolvedValue({
-        wasmBytes: new Uint8Array([0x00, 0x61, 0x73, 0x6d]),
-        jsBindings: 'mock js bindings',
-        typeDefinitions: 'mock type definitions',
-        metadata: {
-          size: 4,
-          compilationTime: 0,
-          features: [],
-          target: 'web'
-        }
-      } as never),
-      establishEmbeddedChainCommunication: jest.fn().mockResolvedValue(undefined as never),
-      deployLoRAAdapterToEmbeddedChain: jest.fn().mockResolvedValue(undefined as never),
-      compileAndDeployLoRAAdapter: jest.fn().mockResolvedValue({
-        wasmBytes: new Uint8Array([0x00, 0x61, 0x73, 0x6d]),
-        jsBindings: 'mock js bindings',
-        typeDefinitions: 'mock type definitions',
-        metadata: {
-          size: 4,
-          compilationTime: 0,
-          features: [],
-          target: 'web'
-        },
-        adapterId: 'mock-adapter',
-        adapterName: 'Mock Adapter',
-        applyWeights: jest.fn().mockResolvedValue(new Float32Array() as never),
-        getAdapterInfo: jest.fn().mockReturnValue({})
-      } as never),
-      getCompilationMetrics: jest.fn().mockReturnValue({
-        isReady: true,
-        tempDir: '/mock/temp',
-        rustWasmPath: '/mock/path',
-        capabilities: [],
-        timestamp: Date.now()
-      } as never),
-      isReady: jest.fn().mockReturnValue(true),
-      cleanup: jest.fn().mockResolvedValue(undefined as never)
-    };
 
     const mockProtobufHandler = {
       initialize: jest.fn().mockResolvedValue(true as never),
@@ -133,7 +49,7 @@ describe('Phase 2 LoRA Adapter Tests', () => {
       cleanup: jest.fn().mockResolvedValue(true as never)
     };
 
-    loraEngine = new LoRAAdapterEngine(mockWasmCompiler as unknown as WASMCompiler, mockProtobufHandler as unknown as ProtobufHandler);
+    loraEngine = new LoRAAdapterEngine(mockProtobufHandler as unknown as ProtobufHandler);
 
     // Create a realistic in-memory agent-core implementation
     inMemoryAgentCore = {

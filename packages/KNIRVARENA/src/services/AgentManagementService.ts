@@ -3,7 +3,7 @@
  * Handles agent upload, compilation, deployment, and lifecycle management
  */
 
-import { databaseService } from '../core/services/databaseService';
+import { arenaStore } from '../storage/arenaStore';
 import { Agent, AgentMetadata } from '../types/common';
 
 // Re-export types for convenience
@@ -67,45 +67,11 @@ export interface AgentUploadRequest {
   type: 'wasm' | 'lora' | 'hybrid';
 }
 
-export interface AgentDeploymentRequest {
-  agentId: string;
-  targetNRV?: string;
-  configuration?: Record<string, unknown>;
-  resources?: {
-    memory?: number;
-    cpu?: number;
-    timeout?: number;
-  };
-}
-
-export interface AgentExecutionResult {
-  success: boolean;
-  output?: unknown;
-  error?: string;
-  executionTime: number;
-  resourceUsage: {
-    memory: number;
-    cpu: number;
-  };
-}
-
 export class AgentManagementService {
-  private wasmCompiler: WebAssembly.Module | null = null;
   private baseUrl: string;
 
   constructor(baseUrl: string = 'http://localhost:3001') {
     this.baseUrl = baseUrl;
-    this.initializeWASMCompiler();
-  }
-
-  private async initializeWASMCompiler(): Promise<void> {
-    try {
-      // Initialize WASM compilation capabilities
-      console.log('Initializing WASM compiler...');
-      // This would load the WASM compiler module
-    } catch (error) {
-      console.error('Failed to initialize WASM compiler:', error);
-    }
   }
 
   /**
@@ -145,7 +111,7 @@ export class AgentManagementService {
       };
 
       // Save to database
-      const agent = await databaseService.createAgent(agentData as Partial<Agent>);
+      const agent = await arenaStore.createAgent(agentData as Partial<Agent>);
 
       // Process the uploaded file based on type
       const convertedAgent = convertDbAgentToAgent(agent as any);
@@ -158,7 +124,7 @@ export class AgentManagementService {
       }
 
       // Update status to Available after successful compilation
-      const updatedAgent = await databaseService.updateAgent(agentId, {
+      const updatedAgent = await arenaStore.updateAgent(agentId, {
         status: 'Available',
         lastActivity: new Date().toISOString()
       });
@@ -171,111 +137,10 @@ export class AgentManagementService {
   }
 
   /**
-   * Deploy an agent to a target environment
-   */
-  async deployAgent(request: AgentDeploymentRequest): Promise<string> {
-    const agent = await databaseService.getAgent(request.agentId);
-    if (!agent) {
-      throw new Error(`Agent ${request.agentId} not found`);
-    }
-
-    if (agent.status !== 'Available') {
-      throw new Error(`Agent ${request.agentId} is not available for deployment`);
-    }
-
-    try {
-      // Update agent status in database
-      await databaseService.updateAgent(request.agentId, {
-        status: 'Deployed',
-        lastActivity: new Date().toISOString()
-      });
-
-      // Send deployment request to backend
-      const response = await fetch(`${this.baseUrl}/api/agents/deploy`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          agentId: request.agentId,
-          targetNRV: request.targetNRV,
-          configuration: request.configuration,
-          resources: request.resources
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error(`Deployment failed: ${response.statusText}`);
-      }
-
-      const result = await response.json();
-      return result.deploymentId;
-    } catch (error) {
-      // Revert status on failure
-      await databaseService.updateAgent(request.agentId, {
-        status: 'Available'
-      });
-      throw error;
-    }
-  }
-
-  /**
-   * Execute a skill on a deployed agent
-   */
-  async executeSkill(agentId: string, skillId: string, parameters: Record<string, unknown>): Promise<AgentExecutionResult> {
-    const agent = await databaseService.getAgent(agentId);
-    if (!agent || agent.status !== 'Deployed') {
-      throw new Error(`Agent ${agentId} is not deployed`);
-    }
-
-    const startTime = Date.now();
-
-    try {
-      const response = await fetch(`${this.baseUrl}/api/agents/${agentId}/execute`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          skillId,
-          parameters
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error(`Skill execution failed: ${response.statusText}`);
-      }
-
-      const result = await response.json();
-      const executionTime = Date.now() - startTime;
-
-      // Note: agent is read-only from database, update via database service
-      await databaseService.updateAgent(agent.agentId, {
-        lastActivity: new Date().toISOString()
-      });
-
-      return {
-        success: true,
-        output: result.output,
-        executionTime,
-        resourceUsage: result.resourceUsage || { memory: 0, cpu: 0 }
-      };
-    } catch (error) {
-      const executionTime = Date.now() - startTime;
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
-        executionTime,
-        resourceUsage: { memory: 0, cpu: 0 }
-      };
-    }
-  }
-
-  /**
    * Get all available agents
    */
   async getAgents(): Promise<Agent[]> {
-    const dbAgents = await databaseService.listAgents();
+    const dbAgents = await arenaStore.listAgents();
     return dbAgents.map(agent => convertDbAgentToAgent(agent as any));
   }
 
@@ -283,7 +148,7 @@ export class AgentManagementService {
    * Get deployed agents
    */
   async getDeployedAgents(): Promise<Agent[]> {
-    const allAgents = await databaseService.listAgents();
+    const allAgents = await arenaStore.listAgents();
     return allAgents
       .filter(agent => agent.status === 'Deployed')
       .map(agent => convertDbAgentToAgent(agent as any));
@@ -293,7 +158,7 @@ export class AgentManagementService {
    * Get agent by ID
    */
   async getAgent(agentId: string): Promise<Agent | null> {
-    const dbAgent = await databaseService.getAgent(agentId);
+    const dbAgent = await arenaStore.getAgent(agentId);
     return dbAgent ? convertDbAgentToAgent(dbAgent as any) : null;
   }
 
@@ -301,42 +166,19 @@ export class AgentManagementService {
    * Remove an agent
    */
   async removeAgent(agentId: string): Promise<void> {
-    const agent = await databaseService.getAgent(agentId);
+    const agent = await arenaStore.getAgent(agentId);
     if (!agent) {
       throw new Error(`Agent ${agentId} not found`);
     }
 
-    // Undeploy if deployed
+    // Deployment runs on the paired CLI (§2); a deployed agent is recalled
+    // there before it can be removed.
     if (agent.status === 'Deployed') {
-      await this.undeployAgent(agentId);
+      throw new Error(`Agent ${agentId} is deployed; recall it from its error node first`);
     }
 
     // Remove from database
-    await databaseService.deleteAgent(agentId);
-  }
-
-  /**
-   * Undeploy an agent
-   */
-  async undeployAgent(agentId: string): Promise<void> {
-    const agent = await databaseService.getAgent(agentId);
-    if (!agent || agent.status !== 'Deployed') {
-      throw new Error(`Agent ${agentId} is not deployed`);
-    }
-
-    try {
-      await fetch(`${this.baseUrl}/api/agents/${agentId}/undeploy`, {
-        method: 'POST'
-      });
-
-      await databaseService.updateAgent(agentId, {
-        status: 'Available',
-        lastActivity: new Date().toISOString()
-      });
-    } catch (error) {
-      console.error('Failed to undeploy agent:', error);
-      throw error;
-    }
+    await arenaStore.deleteAgent(agentId);
   }
 
   private async compileWASMAgent(agent: Agent, file: File): Promise<void> {
@@ -357,7 +199,7 @@ export class AgentManagementService {
     const wasmBytes = new Uint8Array(arrayBuffer);
     const wasmBase64 = btoa(String.fromCharCode.apply(null, Array.from(wasmBytes)));
 
-    await databaseService.updateAgent(agent.agentId, {
+    await arenaStore.updateAgent(agent.agentId, {
       wasmModule: wasmBase64
     });
   }
@@ -368,7 +210,7 @@ export class AgentManagementService {
     agent.loraAdapter = text;
 
     // Save LoRA adapter to database
-    await databaseService.updateAgent(agent.agentId, {
+    await arenaStore.updateAgent(agent.agentId, {
       loraAdapter: text
     });
   }

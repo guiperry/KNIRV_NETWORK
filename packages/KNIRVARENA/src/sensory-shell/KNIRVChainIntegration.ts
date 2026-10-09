@@ -1,5 +1,6 @@
 import { EventEmitter } from './EventEmitter';
 import { KNIRVRouterIntegration } from './KNIRVRouterIntegration';
+import { getKnirvGatewayUrl } from '../config/runtimeConfig';
 
 export interface ChainConfig {
   rpcUrl: string;
@@ -153,7 +154,7 @@ export class KNIRVChainIntegration extends EventEmitter {
     super();
 
     this.config = {
-      rpcUrl: `${(import.meta.env.VITE_KNIRV_GATEWAY_URL || 'https://gateway.knirv.com').replace(/\/$/, '')}/api/chain`,
+      rpcUrl: `${getKnirvGatewayUrl()}/api/chain`,
       chainId: 'knirv-1',
       networkName: 'KNIRV Network',
       contractAddresses: {

@@ -4,7 +4,7 @@
  */
 
 import { personalKNIRVGRAPHService, GraphNode, PersonalGraph } from './PersonalKNIRVGRAPHService';
-import { knirvbaseService } from './KNIRVBASEService';
+import { arenaStore } from '../storage/arenaStore';
 
 export interface TrainingConfig {
   learningRate: number;
@@ -307,8 +307,8 @@ class CortexTrainingService {
    */
   async getSavedModels(): Promise<CortexModel[]> {
     try {
-      await knirvbaseService.initialize().catch(() => undefined);
-      const stored = await knirvbaseService.getAllCortexModels();
+      await arenaStore.initialize().catch(() => undefined);
+      const stored = await arenaStore.getAllCortexModels();
       if (stored && stored.length > 0) {
         const models = stored.map(doc => this.deserializeModel(doc as unknown as Record<string, unknown>));
         this.savedModelsCache = models;
@@ -322,16 +322,16 @@ class CortexTrainingService {
   }
 
   /**
-   * Save model — persisted to KNIRVBASE (CLEAN-11)
+   * Save model — persisted to the browser store (CLEAN-11)
    */
   private async saveModel(model: CortexModel): Promise<void> {
     try {
-      await knirvbaseService.initialize().catch(() => undefined);
-      await knirvbaseService.saveCortexModel(this.serializeModel(model) as unknown as Record<string, unknown>);
+      await arenaStore.initialize().catch(() => undefined);
+      await arenaStore.saveCortexModel(this.serializeModel(model) as unknown as Record<string, unknown>);
       this.savedModelsCache.push(model);
-      console.log(`Model saved to KNIRVBASE (${model.id})`);
+      console.log(`Model saved to arenaStore (${model.id})`);
     } catch (error) {
-      console.error('Failed to save model to KNIRVBASE:', error);
+      console.error('Failed to save model to arenaStore:', error);
       throw error;
     }
   }

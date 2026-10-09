@@ -178,6 +178,12 @@ func writeHistoryToMemory(dst *[14]byte, hx [3]uint32) {
 	}
 }
 
+// Flush writes pending brackets as a frame now and returns that write's error.
+func (ft *FrameTicker) Flush() error {
+	ft.flush()
+	return ft.LastFlushError()
+}
+
 func (ft *FrameTicker) flush() {
 	ft.mu.Lock()
 	pending := ft.pending

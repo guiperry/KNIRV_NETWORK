@@ -573,7 +573,6 @@ export const getKNIRVGraphService = (): KNIRVGraphService => {
     const config: KNIRVGraphConfig = {
       nodeEndpoint: import.meta.env.VITE_KNIRVGRAPH_ENDPOINT || 'http://localhost:26657',
       chainId: import.meta.env.VITE_KNIRVGRAPH_CHAIN_ID || 'knirvgraph-1',
-      apiKey: import.meta.env.VITE_KNIRVGRAPH_API_KEY,
     };
     knirvGraphServiceInstance = new KNIRVGraphService(config);
   }

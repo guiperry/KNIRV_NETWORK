@@ -132,6 +132,16 @@ func (ds *NRVDataset) GetFrame(ctx context.Context, frameID string) (*nrv.FrameE
 	return ds.storage.GetFrame(ctx, ds.name, frameID)
 }
 
+// Flush writes the dataset's pending brackets as a frame immediately.
+func (ds *NRVDataset) Flush() error {
+	return ds.storage.Flush(ds.name)
+}
+
+// Frames lists the dataset's live frames (metadata only).
+func (ds *NRVDataset) Frames() ([]nrv.FrameEntry, error) {
+	return ds.storage.Frames(ds.name)
+}
+
 func (ds *NRVDataset) SetLinguistic(token, unit string) error {
 	return ds.storage.SetLinguistic(ds.name, token, unit)
 }

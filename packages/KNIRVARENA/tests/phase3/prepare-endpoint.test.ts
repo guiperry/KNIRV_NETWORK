@@ -82,11 +82,6 @@ class MockLoRAAdapterEngine {
   }
 }
 
-class MockWASMCompiler {
-  async initialize(): Promise<void> {}
-  async cleanup(): Promise<void> {}
-}
-
 class MockProtobufHandler {
   async initialize(): Promise<void> {}
 }
@@ -94,7 +89,7 @@ class MockProtobufHandler {
 class MockCortexAPI {
   private loraEngine: MockLoRAAdapterEngine;
 
-  constructor(loraEngine: MockLoRAAdapterEngine, _wasmCompiler: MockWASMCompiler, _protobufHandler: MockProtobufHandler) {
+  constructor(loraEngine: MockLoRAAdapterEngine, _protobufHandler: MockProtobufHandler) {
     this.loraEngine = loraEngine;
   }
 
@@ -236,7 +231,6 @@ class MockCortexAPI {
 
 const CortexAPI = MockCortexAPI;
 const LoRAAdapterEngine = MockLoRAAdapterEngine;
-const WASMCompiler = MockWASMCompiler;
 const ProtobufHandler = MockProtobufHandler;
 
 // Mock fetch for testing
@@ -253,20 +247,17 @@ global.fetch = mockFetch as any;
 describe('Phase 3.4: /prepare Endpoint Integration', () => {
   let cortexAPI: MockCortexAPI;
   let loraEngine: MockLoRAAdapterEngine;
-  let wasmCompiler: MockWASMCompiler;
   let protobufHandler: MockProtobufHandler;
 
   beforeEach(async () => {
     // Initialize components
     loraEngine = new LoRAAdapterEngine();
-    wasmCompiler = new WASMCompiler();
     protobufHandler = new ProtobufHandler();
 
     await loraEngine.initialize();
-    await wasmCompiler.initialize();
     await protobufHandler.initialize();
 
-    cortexAPI = new CortexAPI(loraEngine, wasmCompiler, protobufHandler);
+    cortexAPI = new CortexAPI(loraEngine, protobufHandler);
 
     // Register test LoRA adapter
     await loraEngine.compileAdapter({
@@ -291,7 +282,6 @@ describe('Phase 3.4: /prepare Endpoint Integration', () => {
 
   afterEach(async () => {
     await loraEngine.cleanup();
-    await wasmCompiler.cleanup();
     jest.clearAllMocks();
   });
 

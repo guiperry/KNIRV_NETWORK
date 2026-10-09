@@ -107,7 +107,13 @@ class ErrorHandler {
           // Log the authentication error for debugging
           console.warn('Authentication error occurred:', error.message, error.context);
 
-          // Attempt to refresh authentication token
+          // Attempt to refresh authentication token. §3.1: the endpoint
+          // expects {"token": "<jwt>"} — the stale request shape made
+          // every refresh fail. Send the current JWT and store the
+          // returned token.
+          const currentToken = typeof window !== 'undefined' && window.localStorage
+            ? localStorage.getItem('knirv_auth_token')
+            : null;
           const response = await fetch('/api/auth/refresh', {
             method: 'POST',
             credentials: 'include',
@@ -115,10 +121,20 @@ class ErrorHandler {
               'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-              errorContext: error.context,
-              timestamp: error.context.timestamp
+              token: currentToken
             })
           });
+          if (response.ok) {
+            try {
+              const body = await response.json();
+              const refreshed = (body as { token?: string }).token;
+              if (refreshed && typeof window !== 'undefined' && window.localStorage) {
+                localStorage.setItem('knirv_auth_token', refreshed);
+              }
+            } catch {
+              // Token storage is best-effort; the refresh itself succeeded.
+            }
+          }
           return response.ok;
         } catch {
           return false;

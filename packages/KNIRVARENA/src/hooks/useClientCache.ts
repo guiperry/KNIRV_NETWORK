@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { arenaStore } from '../storage/arenaStore';
 
 // Mock UserProfiles for now - replace with actual implementation
 const UserProfiles = {
@@ -43,7 +44,10 @@ export function useClientCache(userId: string) {
 
       if (isStale || forceRefresh) {
         try {
-          const response = await fetch(`/api/users/${userId}`);
+          // §3.1: GET /api/users/:id never existed on KNIRVSERVER —
+          // the authenticated /api/auth/me returns the bearer token's
+          // own user.
+          const response = await fetch('/api/auth/me', { credentials: 'include' });
           if (response.ok) {
             const serverProfile = await response.json();
 
@@ -111,20 +115,23 @@ export function useAgentCache() {
 
       if (isStale || forceRefresh) {
         try {
-          const response = await fetch('/api/agents');
-          if (response.ok) {
-            const { agents: serverAgents } = await response.json();
-
+          // §3.1: GET /api/agents never existed on KNIRVSERVER. Agents
+          // arrive from the paired KNIRVCLI via the arena relay
+          // (§2.4, arena.status over the CLI tunnel); until the relay
+          // lands, the browser-side agent store (arenaStore) is the
+          // source and no server fetch is made.
+          const serverAgents = await arenaStore.listAgents();
+          if (serverAgents.length > 0) {
             // Clear old cache and update with fresh data
             await AgentCache.deleteMany({});
 
             for (const agent of serverAgents) {
               await AgentCache.insertOne({
-                agentId: agent.agentId || agent.id,
-                name: agent.name,
-                type: agent.type,
-                status: agent.status,
-                metadata: agent.metadata,
+                agentId: (agent as { agentId?: string }).agentId || (agent as { id?: string }).id,
+                name: (agent as { name?: string }).name,
+                type: (agent as { type?: string }).type,
+                status: (agent as { status?: string }).status,
+                metadata: (agent as { metadata?: unknown }).metadata,
                 lastFetched: new Date()
               });
             }
@@ -185,9 +192,23 @@ export function useSkillCache() {
 
       if (isStale || forceRefresh) {
         try {
-          const response = await fetch('/api/skills');
+          // §3.1: GET /api/skills never existed on KNIRVSERVER. Badge
+          // credentials cover owned skills: /api/badge-credentials
+          // lists the caller's issued badges (skills they hold).
+          const response = await fetch('/api/badge-credentials', { credentials: 'include' });
           if (response.ok) {
-            const { skills: serverSkills } = await response.json();
+            const body = await response.json();
+            const credentials = Array.isArray(body)
+              ? body
+              : ((body as { badges?: unknown[]; credentials?: unknown[] }).badges
+                  ?? (body as { credentials?: unknown[] }).credentials
+                  ?? []);
+            const serverSkills = credentials.map((badge: Record<string, unknown>) => ({
+              skillId: String(badge.id ?? badge.badgeId ?? badge.credentialId ?? ''),
+              name: String(badge.name ?? badge.badgeName ?? badge.skill ?? ''),
+              description: String(badge.description ?? ''),
+              version: String(badge.version ?? '1')
+            }));
 
             // Clear old cache and update with fresh data
             await SkillCache.deleteMany({});

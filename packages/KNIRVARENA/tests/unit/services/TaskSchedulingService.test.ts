@@ -350,7 +350,7 @@ describe('TaskSchedulingService', () => {
         status: 'running' as const,
         priority: 'medium' as const,
         schedule: { type: 'once' as const, startTime: new Date() },
-        action: { type: 'agent_invoke' as const, target: 'agent-123', parameters: {} },
+        action: { type: 'api_call' as const, target: 'agent-123', parameters: {} },
         metadata: {}
       });
     });

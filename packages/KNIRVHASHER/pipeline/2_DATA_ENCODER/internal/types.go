@@ -1,5 +1,7 @@
 package internal
 
+import "data-encoder/pkg/slotpack"
+
 // FlashSearchHelper provides fast search functionality for slot vectors.
 type FlashSearchHelper struct {
 	// For future implementation
@@ -50,29 +52,7 @@ func (sr *SecurityRecord) ToSlotVector() *SlotVector {
 }
 
 // SlotsToProjections converts Slots 0-3 to a 32-byte projection array.
-func SlotsToProjections(slots []uint32) []byte {
-	if len(slots) < 4 {
-		// Pad with zeros if insufficient slots
-		padded := make([]uint32, 4)
-		copy(padded, slots)
-		slots = padded
-	}
-
-	// Convert 4 uint32 slots (16 bytes) to 32 bytes by expanding each 4-byte value
-	// into 8 bytes using a simple transformation: [a b c d] -> [a a b b c c d d]
-	result := make([]byte, 32)
-	for i := 0; i < 4; i++ {
-		val := slots[i]
-		// Write each byte twice to expand 4 bytes to 8 bytes
-		for j := 0; j < 4; j++ {
-			byteVal := byte((val >> (8 * j)) & 0xFF)
-			pos := i*8 + j*2
-			result[pos] = byteVal
-			result[pos+1] = byteVal
-		}
-	}
-	return result
-}
+func SlotsToProjections(slots []uint32) []byte { return slotpack.SlotsToProjections(slots) }
 
 // Slots6to8 extracts Slots 6-8 and converts them to an 18-byte context memory.
 func Slots6to8(slots []uint32) []byte {

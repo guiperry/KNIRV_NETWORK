@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useCognitiveEngine, useQualityMode, BackgroundTask } from '@/hooks/use-cognitive-engine';
-import { API_BASE_URL } from '@/lib/api';
+import { API_BASE_URL, getAuthHeaders } from '@/lib/api';
 import {
   createLogKey,
   createProcessingActivity,
@@ -139,7 +139,6 @@ function HasherTrainingControlsInner({ onProcessingActivities }: HasherTrainingC
   const [trainingLogs, setTrainingLogsState] = useState<TrainingLog[]>(hasherTrainingViewState.logs);
   const [trainingStatus, setTrainingStatusState] = useState<TrainingRunStatus | null>(hasherTrainingViewState.trainingStatus);
   const [logHeight, setLogHeightState] = useState(hasherTrainingViewState.logHeight);
-  const sseRef = useRef<EventSource | null>(null);
   const consoleRef = useRef<HTMLDivElement>(null);
   const logIdRef = useRef(hasherTrainingViewState.nextLogId);
   const seenProcessingLogKeysRef = useRef(new Set<string>());
@@ -225,7 +224,8 @@ function HasherTrainingControlsInner({ onProcessingActivities }: HasherTrainingC
 
   const fetchTrainingLogHistory = async () => {
     try {
-      const resp = await fetch(`${API_BASE_URL}/api/logs/history?module=knirvhasher&limit=100`);
+      // Admin-only endpoint: send the operator's token.
+      const resp = await fetch(`${API_BASE_URL}/api/logs/history?module=knirvhasher&limit=100`, { headers: getAuthHeaders() });
       if (!resp.ok) {
         return;
       }
@@ -270,47 +270,16 @@ function HasherTrainingControlsInner({ onProcessingActivities }: HasherTrainingC
 
   const logStreamingEnabled = trainingActive || hasherStatus === 'available';
 
-  // Connect to KNIRVHASHER SSE log stream when training starts
+  // Poll KNIRVHASHER logs while training is possible. Logs are admin-only
+  // and EventSource cannot send the bearer token, so this polls history
+  // (2 s) instead of holding an SSE stream.
   useEffect(() => {
     if (!logStreamingEnabled) {
-      if (sseRef.current) {
-        sseRef.current.close();
-        sseRef.current = null;
-      }
       return;
     }
-
-    // Close any previous connection
-    if (sseRef.current) {
-      sseRef.current.close();
-    }
-
-    // 1. Pre-fill from history to get recent knirvhasher logs
     fetchTrainingLogHistory();
     const historyInterval = setInterval(fetchTrainingLogHistory, 2000);
-
-    // 2. Open SSE stream for live updates
-    const es = new EventSource(`${API_BASE_URL}/api/logs/module/knirvhasher`);
-    sseRef.current = es;
-
-    es.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        routeLogEntries([data]);
-      } catch {
-        // ignore malformed events
-      }
-    };
-
-    es.onerror = () => {
-      // SSE will auto-reconnect
-    };
-
-    return () => {
-      clearInterval(historyInterval);
-      es.close();
-      sseRef.current = null;
-    };
+    return () => clearInterval(historyInterval);
   }, [logStreamingEnabled, onProcessingActivities]);
 
   // Auto-scroll console to bottom when new logs arrive

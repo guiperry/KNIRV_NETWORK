@@ -181,8 +181,6 @@ describe('Type Safety Improvements', () => {
         loraEnabled: true,
         enhancedLoraEnabled: true,
         hrmEnabled: true,
-        wasmAgentsEnabled: true,
-        typeScriptCompilerEnabled: true,
         adaptiveLearningEnabled: true
       };
 
@@ -192,8 +190,6 @@ describe('Type Safety Improvements', () => {
       expect(typeof config.loraEnabled).toBe('boolean');
       expect(typeof config.enhancedLoraEnabled).toBe('boolean');
       expect(typeof config.hrmEnabled).toBe('boolean');
-      expect(typeof config.wasmAgentsEnabled).toBe('boolean');
-      expect(typeof config.typeScriptCompilerEnabled).toBe('boolean');
       expect(typeof config.adaptiveLearningEnabled).toBe('boolean');
 
       // Validate numeric properties

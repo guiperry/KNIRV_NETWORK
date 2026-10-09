@@ -17,7 +17,6 @@ const MockApp = () => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div data-testid="cognitive-shell-interface" tabIndex={0}>Cognitive Shell Interface</div>
           <div data-testid="agent-manager">Agent Manager</div>
-          <div data-testid="voice-control">Voice Control</div>
           <div data-testid="network-status">Network Status</div>
           <div data-testid="nrv-visualization">NRV Visualization</div>
         </div>
@@ -39,12 +38,6 @@ jest.mock('../components/CognitiveShellInterface', () => {
 jest.mock('../components/AgentManager', () => {
   return function MockAgentManager() {
     return <div data-testid="agent-manager">Agent Manager</div>;
-  };
-});
-
-jest.mock('../components/VoiceControl', () => {
-  return function MockVoiceControl() {
-    return <div data-testid="voice-control">Voice Control</div>;
   };
 });
 
@@ -110,7 +103,6 @@ describe('App Component', () => {
       
       expect(screen.getByTestId('cognitive-shell-interface')).toBeInTheDocument();
       expect(screen.getByTestId('agent-manager')).toBeInTheDocument();
-      expect(screen.getByTestId('voice-control')).toBeInTheDocument();
       expect(screen.getByTestId('network-status')).toBeInTheDocument();
       expect(screen.getByTestId('nrv-visualization')).toBeInTheDocument();
     });
@@ -231,7 +223,6 @@ describe('App Component', () => {
       // Verify that components are rendered (mocked components should appear)
       expect(screen.getByTestId('cognitive-shell-interface')).toBeInTheDocument();
       expect(screen.getByTestId('agent-manager')).toBeInTheDocument();
-      expect(screen.getByTestId('voice-control')).toBeInTheDocument();
     });
 
     it('should handle component communication', async () => {

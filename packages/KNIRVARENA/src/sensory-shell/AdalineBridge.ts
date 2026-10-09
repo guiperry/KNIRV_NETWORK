@@ -436,8 +436,7 @@ export class AdalineBridge extends EventEmitter {
 
       const score = this.calculateDVEValidationScore(output, simulationResults);
 
-      const importMeta = eval('import.meta');
-      const dveThreshold = importMeta?.env?.VITE_DVE_VALIDATION_THRESHOLD || '0.7';
+      const dveThreshold = import.meta.env.VITE_DVE_VALIDATION_THRESHOLD || '0.7';
       const passed = score >= parseFloat(dveThreshold);
 
       const result: DVEValidationResult = {

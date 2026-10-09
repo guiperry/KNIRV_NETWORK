@@ -33,7 +33,7 @@ export interface TaskSchedule {
 }
 
 export interface TaskAction {
-  type: 'api_call' | 'agent_invoke' | 'system_command' | 'workflow';
+  type: 'api_call' | 'workflow';
   target: string;
   parameters: Record<string, unknown>;
   timeout?: number;
@@ -508,10 +508,6 @@ export class TaskSchedulingService {
     switch (action.type) {
       case 'api_call':
         return await this.executeApiCall(action);
-      case 'agent_invoke':
-        return await this.executeAgentInvoke(action);
-      case 'system_command':
-        return await this.executeSystemCommand(action);
       case 'workflow':
         return await this.executeWorkflowAction(action);
       
@@ -535,43 +531,6 @@ export class TaskSchedulingService {
 
     if (!response.ok) {
       throw new Error(`API call failed: ${response.statusText}`);
-    }
-
-    return await response.json();
-  }
-
-  private async executeAgentInvoke(action: TaskAction): Promise<unknown> {
-    // Integrate with AgentManagementService
-    const response = await fetch(`${this.baseUrl}/api/agents/${action.target}/invoke`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(action.parameters)
-    });
-
-    if (!response.ok) {
-      throw new Error(`Agent invocation failed: ${response.statusText}`);
-    }
-
-    return await response.json();
-  }
-
-  private async executeSystemCommand(action: TaskAction): Promise<unknown> {
-    // Integrate with TerminalCommandService
-    const response = await fetch(`${this.baseUrl}/api/terminal/execute`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        command: action.target,
-        args: action.parameters.args || []
-      })
-    });
-
-    if (!response.ok) {
-      throw new Error(`System command failed: ${response.statusText}`);
     }
 
     return await response.json();

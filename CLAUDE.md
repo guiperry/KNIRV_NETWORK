@@ -2,47 +2,52 @@
 
 ## Project Overview
 
-KNIRV Network is a multi-package platform for guarded AI agent execution. Policies and guardrails wrap agent actions before they run, executions get recorded in audit trails, and failures get mined into reusable `skill.md` knowledge instead of disappearing into a log file nobody rereads. `KNIRVSERVER` is the single entry point: it embeds compiled binaries for every other backend package (chain, gateway, graph, oracle, hasher, agent) and extracts/launches each as a subprocess at runtime. No shared database — services coordinate over Unix sockets and a handful of TCP ports.
+KNIRV Network is a multi-package platform for guarded AI agent execution. Policies and guardrails wrap agent actions before they run, executions get recorded in audit trails, and failures get mined into reusable `skill.md` knowledge instead of disappearing into a log file nobody rereads. `KNIRVSERVER` is the single entry point. Embedding is two-level: the KNIRVSERVER launcher embeds and runs `backend_server`, `ulorad` (KNIRVULORA), `knirvagent`, and `knirvllama`; `backend_server` (source in the sibling `KNIRV_CORP` repo) embeds and runs KNIRVGATEWAY, KNIRVCHAIN, KNIRVGRAPH, KNIRVORACLE, KNIRVHASHER, and KNIRVARENA via the `packages/KNIRVSERVER/pkg/knirv*` wrapper modules. KNIRVMONITOR is compiled into KNIRVSERVER itself (`internal/monitor`). No shared database — services coordinate over Unix sockets and a handful of TCP ports.
 
 The repo's own `README.md` flags this explicitly, and it applies here too: **treat "sovereign layers," "IBC," "D-TEN," and similar long-range framing as roadmap language, not a description of the current codebase**, unless a specific file or endpoint backs it up.
 
-Oracle service runs inside `packages/KNIRVSERVER` (root nodes only, via encrypted `packages/KNIRVSERVER/bin/root.key`). KNIRVGATEWAY does not launch or manage the oracle process — KNIRVSERVER does that — but on root nodes KNIRVGATEWAY does proxy `/oracle/*` traffic to it over `oracle.sock` (`packages/KNIRVGATEWAY/internal/server/server.go`); on non-root nodes it forwards oracle requests to a public upstream gateway instead (`defaultOracleGatewayURL`).
+Oracle service runs under KNIRVSERVER (root nodes only, via an encrypted `root.key` loaded from `~/.config/knirv-server/.key/root.key`, falling back to `~/.config/knirv-server/root.key`; under `sudo` the invoking user's home is checked too — see `packages/KNIRVSERVER/pkg/knirvoracle/rootkey.go`). KNIRVGATEWAY does not launch or manage the oracle process — `backend_server` does that via `pkg/knirvoracle` — but on root nodes KNIRVGATEWAY does proxy `/oracle/*` traffic to it over `oracle.sock` (`packages/KNIRVGATEWAY/internal/server/server.go`); on non-root nodes it forwards oracle requests to a public upstream gateway instead (`defaultOracleGatewayURL`).
 
 ## Component Map
 
-10 packages under `packages/`, each independent (own `go.mod`/`package.json`, no cross-package Go imports):
+12 packages under `packages/`, each independent (own `go.mod`/`Cargo.toml`/`package.json`, no cross-package Go imports between services):
 
 | Package | Tech | Module / entry |
 |---------|------|-----------------|
-| `packages/KNIRVSERVER` | Go | `go.mod` module `knirv-server`. Entry point — router, guardrails, DVE/agent execution, embedded frontend. Embeds every package below as a subprocess binary. |
-| `packages/KNIRVCHAIN` | Go | `go.mod`. Node/agent registries, P2P discovery, mining, validation, wallet, data engine. |
-| `packages/KNIRVGATEWAY` | Go | `go.mod`. Public portal, DHT/TURN, auth, payments, operator/URI routing. Embedded inside KNIRVSERVER at runtime. |
-| `packages/KNIRVGRAPH` | Go + TS | Knowledge graph — NRV, ErrorNodes/SkillNodes, Proof-of-Solution, NRN economics, React graph explorer. |
-| `packages/KNIRVORACLE` | Go | Root-node governance/checkpoints. Routes mount only when `bin/root.key` is present. |
+| `packages/KNIRVSERVER` | Go + Next.js | `go.mod` module `knirv-server`. Entry point — launcher (`internal/launcher`), router/proxy, TLS, updater, agent control plane, Transaction/Validation chains, KNIRVMONITOR, embedded frontend. Hosts the `pkg/knirv*` wrapper modules (each carries a compiled binary in `pkg/<name>/bin/`). |
+| `packages/KNIRVCHAIN` | Go | `go.mod`. Node/agent registries, P2P discovery, mining, validation, wallet, data engine, `SYNDICATE_*` tx types. Entry `cmd/knirvchain`. |
+| `packages/KNIRVGATEWAY` | Go 1.26 | `go.mod`. Public portal, DHT/TURN, tunnel registry, auth, payments, operator/URI routing, omnichannel Matrix bridge (`internal/bridge`, vendored Tuwunel via `make vendor-tuwunel`). Entry `cmd/gateway`. |
+| `packages/KNIRVGRAPH` | Go + TS | Knowledge graph — NRV, ErrorNodes/SkillNodes, Proof-of-Solution, NRN economics, React graph explorer. Entries `cmd/node`, `cmd/cli`. |
+| `packages/KNIRVORACLE` | Go | Root-node governance/checkpoints/payouts. Entry `cmd/oracle`. Routes mount only when an encrypted `root.key` is present. |
 | `packages/KNIRVHASHER` | Go | Repurposed ASIC mining hardware doing neural-network inference. Pipeline stages: `pipeline/0_DATA_CONNECTOR`, `pipeline/1_DATA_MAPPER`, `pipeline/2_DATA_ENCODER`, `pipeline/3_DATA_SEEDER`, `pipeline/4_DATA_TRAINER` — each its own `go.mod` (module names `data-connector`, `data-mapper`, `data-encoder`, `data-seeder`, `data-trainer`), built/tested from inside its own subdirectory only. `3_DATA_SEEDER` (renamed from `3_DATA_TRAINER`) mines PoW-witnessed assertions, it does not train weights. `4_DATA_TRAINER` runs gradient descent on the real corpus to produce GPT checkpoints. |
-| `packages/KNIRVAGENT` | Go | Autonomous agent runtime, `module github.com/knirvcorp/knirvagent`. Its README is currently stale upstream boilerplate — trust the code, not that file. |
-| `packages/KNIRVARENA` | TS/React/Three.js | 3D client where Human Architects submit training data against live error nodes. Flat layout — source is directly under `packages/KNIRVARENA/src/` (no nested `packages/ts_client_2/`). |
-| `packages/KNIRVBASE` | Go + Rust + TS | Shared SDK/library. **Three parallel implementations** (`go/`, `rust/`, `ts/`) with no top-level README reconciling them — per `packages/KNIRVSERVER/CALIBER_LEARNINGS.md`, `go/` is treated as source-of-truth; Rust/TS are expected to conform to it. TS dist consumed at `packages/KNIRVBASE/ts/dist/lib/index.js`. |
-| `packages/KNIRVSDK` | Go / TS / Py | Developer SDKs, plus KNIRV-CLI (`@knirv/cli`) source. |
+| `packages/KNIRVAGENT` | Go | Workspace-aware tool-using agent runtime, `module github.com/knirvcorp/knirvagent`. Forked from PicoClaw; some templates/comments keep that naming. Can use the local `knirvllama` provider. |
+| `packages/KNIRVULORA` | Go (+ Python engines) | Module `ulora`. `cmd/ulorad` adapter-compiler daemon (served on `ulora.sock`, started by the launcher before `backend_server`) and `cmd/ulora` CLI. |
+| `packages/KNIRVINFERENCER` | Go library | Module `github.com/guiperry/knirv-inference-go`. Shared LLM provider layer (Anthropic, Cerebras, DeepSeek, Gemini, llama). Imported by `backend_server` via `replace`; not a running service. |
+| `packages/KNIRVARENA` | TS/React/Three.js | ERGO — 3D client where Human Architects submit training data against live error nodes. Flat layout — source is directly under `packages/KNIRVARENA/src/` (no nested `packages/ts_client_2/`). |
+| `packages/KNIRVBASE` | Go + Rust + TS | Local-first database/sync layer (collections, CRDTs, vector clocks, peer sync, NRV streaming). **Three parallel implementations** (`go/`, `rust/`, `ts/`); `go/` is the source of truth (see `packages/KNIRVBASE/README.md`). TS dist consumed at `packages/KNIRVBASE/ts/dist/lib/index.js`. |
+| `packages/KNIRVSDK` | Rust core + C ABI / Go / Py / npm | Developer SDKs, canonical signing, verified WASM modules. **Does not contain the CLI** — KNIRV-CLI (`@knirv/cli`) source is `KNIRV_CORP/packages/cli`. |
 
-Other top-level dirs actually present: `integration-tests/` (Go, real services, no mocks), `modp/` (P-language formal verification), `shared-proto/`, `scripts/`, `websites/KNIRV.NETWORK/` (only site currently in `websites/`).
+KNIRVLLAMA has no source package: `packages/KNIRVSERVER/pkg/knirvllama` wraps a llama.cpp server binary built by KNIRVSERVER's `make llama-build`.
 
-**Not real — do not go looking for these:** `devtools/` (no such directory anywhere in this repo), `packages/KNIRVHEART`, `packages/KNIRVCONTROLLER` (removed from this repo — the end-user app now lives only in the **separate `KNIRV_CORP` repo** at `KNIRV_CORP/packages/controller`, a Cloudflare Worker-backed React app, not the React/TS+Vite Capacitor app that used to live here), `packages/KNIRVBRIDGE` (the browser wallet extension package no longer exists in this repo), `websites/KNIRVHUB`, `websites/KNIRVRAMP`. If you find yourself about to reference any of these, stop and re-check against the actual directory tree — this file has drifted this way before.
+Other top-level dirs actually present: `integration-tests/` (Go, real services, no mocks), `modp/` (P-language formal verification), `shared-proto/`, `scripts/`, `docs/`, `test-reports/`, and `websites/` (`KNIRV.NETWORK/`, `REGISTRY.KNIRV.NETWORK/` Cloudflare Worker, `SYNDICATE.KNIRV.NETWORK/` static bounty-network site).
 
-**KNIRVSHELL is mid-migration, not a package yet.** `KNIRVSHELL`/`knirvshell` is referenced in live code (`packages/KNIRVGATEWAY/internal/server/server.go`'s `shellProxy`/`ShellSocketPath` at `/api/knirvshell/`; `packages/KNIRVSERVER/main.go` expects a `knirvshell` binary in its bin dir), but there is no `packages/KNIRVSHELL` and no `packages/KNIRVSERVER/pkg/knirvshell/` on disk yet. `packages/KNIRVSERVER/docs/CLI_Migration.md` describes the plan: move the CLI service out of `backend_server` and into a new embedded `pkg/knirvshell/` package following the `knirvoracle`/`knirvgateway` pattern. Until that lands, don't assume a `knirvshell` package exists — check `packages/KNIRVSERVER/pkg/` first.
+**Not real — do not go looking for these:** `devtools/` (no such directory anywhere in this repo), `packages/KNIRVHEART`, `packages/KNIRVMONITOR` (now `packages/KNIRVSERVER/internal/monitor`), `packages/KNIRVSERVER/desktop` (no Electron desktop here; the desktop app is `KNIRV_CORP/packages/client`, Go/Fyne), `packages/KNIRVSERVER/bin/root.key`, `packages/KNIRVCONTROLLER` (removed from this repo — the end-user app now lives only in the **separate `KNIRV_CORP` repo** at `KNIRV_CORP/packages/controller`, a React/TS + Vite app with a Cloudflare Worker API and Capacitor Android/iOS wrappers), `packages/KNIRVBRIDGE` (the browser wallet extension package no longer exists in this repo), `websites/KNIRVHUB`, `websites/KNIRVRAMP`. If you find yourself about to reference any of these, stop and re-check against the actual directory tree — this file has drifted this way before.
+
+**KNIRVSHELL is referenced but not a package.** `knirvshell` still appears in live code (`packages/KNIRVGATEWAY/internal/server/server.go`'s `shellProxy`/`ShellSocketPath` at `/api/knirvshell/`; `packages/KNIRVSERVER/internal/launcher/launcher.go` sets `KNIRV_KNIRVCLI_PATH` to `<binDir>/knirvshell`), but there is no `packages/KNIRVSHELL`, no `packages/KNIRVSERVER/pkg/knirvshell/`, and the old `CLI_Migration.md` plan doc is gone. Don't assume a `knirvshell` package exists — check `packages/KNIRVSERVER/pkg/` first.
 
 ## Architecture
 
 **Entry points:**
-- KNIRVSERVER: `packages/KNIRVSERVER/main.go` (launcher — spawns the embedded `backend_server` binary as a subprocess). Real backend source is in the **separate `KNIRV_CORP` repo**: `KNIRV_CORP/packages/server/backend_server/cmd/backend_server/main.go` (note: directory is `backend_server`, not `backend`). `packages/KNIRVSERVER/backend` does not exist in this repo — the backend ships here only as a vendored compiled binary via `//go:embed bin/backend_server`.
+- KNIRVSERVER: `packages/KNIRVSERVER/main.go` → `internal/launcher/launcher.go` (embeds `bin/backend_server`, `pkg/knirvulora/bin/ulorad`, `config/*`, `frontend/out/*`; agent and llama binaries come via `pkg/knirvagent` / `pkg/knirvllama`). Start order: agent control → prod credential/TLS check → text-embedder/IPFS/Xion (non-fatal) → ulorad → backend_server → Transaction Chain → Validation Chain → KNIRVMONITOR → HTTP server → llama (async). Real backend source is in the **separate `KNIRV_CORP` repo**: `KNIRV_CORP/packages/server/backend_server/cmd/backend_server/main.go` (note: directory is `backend_server`, not `backend`). `packages/KNIRVSERVER/backend` does not exist in this repo — the backend ships here only as a vendored compiled binary via `//go:embed bin/backend_server`.
 - KNIRVGATEWAY: `packages/KNIRVGATEWAY/cmd/gateway/main.go` → `packages/KNIRVGATEWAY/internal/server/`
 - KNIRVCHAIN: `packages/KNIRVCHAIN/cmd/knirvchain/` → `packages/KNIRVCHAIN/internal/`
+- `backend_server`'s `go.mod` `replace`s point into this repo: `packages/KNIRVSERVER/pkg/{knirvgateway,knirvchain,knirvgraph,knirvoracle,knirvhasher,knirvarena}` and `packages/KNIRVINFERENCER`. Changing those modules' APIs can break the KNIRV_CORP build.
 
-**KNIRVSERVER internals (in `KNIRV_CORP/packages/server/backend_server`, NOT in this repo):** cognitive engine, onboarding, plugin server, guardrail handlers, oracle (root-node only), embedded config, keyfile (root.key/boot.key decryption). To inspect or change this logic you need the sibling `KNIRV_CORP` checkout — it is not present in `KNIRV_NETWORK`.
+**KNIRVSERVER internals (in `KNIRV_CORP/packages/server/backend_server`, NOT in this repo):** cognitive engine, onboarding, plugin server, guardrail handlers, DVE creation/evidence, CLI-supervisor relay, badges, actuarial syndicate, eBPF, embedded-service startup (gateway/chain/graph/oracle/hasher/arena), keyfile (root.key/boot.key decryption). To inspect or change this logic you need the sibling `KNIRV_CORP` checkout — it is not present in `KNIRV_NETWORK`.
 
 **KNIRVCHAIN internals:** `internal/mining/` · `internal/validation/` · `internal/auth/` · `internal/cache/` · `internal/database/` · `internal/agent/` · `internal/pricing/` · `internal/classifier/` · `internal/resilience/` · `internal/security/` · `internal/tracing/`
 
-**KNIRVGATEWAY internals:** `internal/server/` · `internal/config/` · `internal/turnserver/` · `internal/embedded/`
+**KNIRVGATEWAY internals:** `internal/server/` · `internal/config/` · `internal/turnserver/` · `internal/tunnel/` · `internal/bridge/` · `internal/dht/` · `internal/session/` · `internal/payment/` · `internal/embedded/`
 
 **Node Transformation Flows (KNIRVGRAPH):**
 - `ErrorNode → SkillNode` mining → `skill.md` file
@@ -51,7 +56,7 @@ Other top-level dirs actually present: `integration-tests/` (Go, real services, 
 
 **KNIRVARENA (Dataset Forge):** Human Architects craft datasets for active error nodes; submitted datasets + `skill.md` files drive error resolution and reward distribution. Knowledge is stored as `skill.md` markdown files, not LoRA adapters.
 
-**Oracle (KNIRVSERVER root nodes only):** Loads `packages/KNIRVSERVER/bin/root.key` (AES-encrypted). Password via `ORACLE_KEY_PASSWORD` env or stdin prompt. Routes mounted at `/oracle/` only when key present. Missing key = normal operation, no oracle.
+**Oracle (KNIRVSERVER root nodes only):** Loads the AES-encrypted `root.key` from `~/.config/knirv-server/.key/` (see above). Password via `ORACLE_KEY_PASSWORD` env or stdin prompt. Routes mounted at `/oracle/` only when key present. Missing key = normal operation, no oracle.
 
 ## Common Commands
 
@@ -63,15 +68,16 @@ make testnet-stop                       # stop the local testnet instance
 make testnet-status                     # show KNIRVSERVER health/status
 make testnet-tests                      # start testnet + run integration tests
 make health-check                       # check KNIRVSERVER health
-make build-all                          # build every package in packages/
+make build-all                          # build every package in packages/ (incl. KNIRVULORA, KNIRVINFERENCER)
+make -C packages/KNIRVSERVER binary    # full from-source rebuild (needs ../KNIRV_CORP for backend_server)
 make test-modp                          # run ModP formal-verification tests
 ```
 
 Run `make help` for the full target list — it's long (build-/test- targets per package, ModP variants, protobuf/binary sync). `make docs` and `make deploy-full` do **not** exist; don't invoke them.
 
-**Testnet entry point:** there is no separate `--testnet` binary invocation — KNIRVSERVER defaults to testnet mode unless you pass `-prod`, `-dev`, or `-ent`.
+**Testnet entry point:** there is no separate `--testnet` binary invocation — KNIRVSERVER defaults to testnet mode unless you pass `-prod`, `-dev`, or `-ent`. Other launcher flags: `-config`, `-user-id-tag`, `-port`, `-host`, `-hasher` (ASIC driver), `-pipeline`, `-direct`, `-llama`.
 **Testnet config:** `packages/KNIRVSERVER/config/testnet.yaml`
-**Confirmed service ports:** KNIRVSERVER wrapper `:8090` · embedded backend API `:8082` · KNIRVGATEWAY `:8080` by default, `:8888` in `.env.testnet`/`.env.production`. KNIRVCHAIN and KNIRVGRAPH mostly communicate over Unix sockets rather than fixed TCP ports when run under KNIRVSERVER — don't assume a port for them without checking `packages/KNIRVSERVER/config/*.yaml` first.
+**Confirmed service ports:** KNIRVSERVER wrapper `:8090` · embedded backend API `:8082` · KNIRVGATEWAY `:8080` by default, `:8888` in `packages/KNIRVGATEWAY/.env.testnet` · P2P `:4001` · metrics `:9090`. KNIRVCHAIN, KNIRVGRAPH, ULoRA, and KNIRVMONITOR mostly communicate over Unix sockets rather than fixed TCP ports when run under KNIRVSERVER — don't assume a port for them without checking `packages/KNIRVSERVER/config/*.yaml` first.
 **Health check:** `curl http://localhost:8090/health`
 
 ## Go Tests (Per Package)
@@ -82,6 +88,8 @@ cd packages/KNIRVCHAIN && go test -v ./tests/unit/...
 cd packages/KNIRVGATEWAY && go test -v ./...
 cd packages/KNIRVGRAPH && go test -v ./...
 cd packages/KNIRVORACLE && go test -v ./...
+cd packages/KNIRVULORA && go test -v ./...
+cd packages/KNIRVINFERENCER && go test -v ./...
 cd integration-tests && go test -v ./...
 ```
 
@@ -128,6 +136,8 @@ Key files: `src/components/KNIRVANAGameVisualization.tsx` · `src/components/gam
 ## Websites
 
 - `websites/KNIRV.NETWORK/` — KNIRV network hub (`health-monitor.html`, `index.html`, `developer-portal/`, `documentation/`, `forum/`)
+- `websites/REGISTRY.KNIRV.NETWORK/` — Cloudflare Worker + Durable Object node registry / failover control plane (used by KNIRVGATEWAY DHT bootstrap and KNIRVCHAIN self-registration)
+- `websites/SYNDICATE.KNIRV.NETWORK/` — static KNIRV Syndicate bounty-network front end
 
 ## KNIRVSERVER Frontend
 
@@ -135,21 +145,19 @@ Next.js: `packages/KNIRVSERVER/frontend/` · built to `packages/KNIRVSERVER/fron
 
 Key components: `src/components/dashboard/badge-lab-panel.tsx` · `src/components/dashboard/policy-editor.tsx` · `src/components/onboarding/onboarding-guide.tsx`
 
-Desktop app: `packages/KNIRVSERVER/desktop/` (Electron — `renderer.js`, `index.html`)
-
 ## Conventions
 
 - Each `packages/KNIRV*` is independent: `go mod tidy` and builds run inside the package, not root
-- No cross-package Go imports — inter-service communication via HTTP/gRPC/Unix sockets only
+- No cross-package Go imports between services — inter-service communication via HTTP/gRPC/Unix sockets only (exception: `backend_server`'s deliberate `replace`s into `KNIRVSERVER/pkg/*` and `KNIRVINFERENCER`)
 - TypeScript: `unknown` over `any`; imports from `packages/KNIRVBASE/ts/dist/`
 - Integration tests hit real services — no mock DB/network (see `integration-tests/`)
 - New async protocols require corresponding P machine in `modp/components/`
-- Oracle routes only when `packages/KNIRVSERVER/bin/root.key` present
+- Oracle routes only when an encrypted `root.key` is present in `~/.config/knirv-server/.key/`
 - KNIRVGATEWAY does not launch/manage the oracle process (KNIRVSERVER does) — but it does proxy `/oracle/*` when a root node's socket is present, or forward to a public upstream gateway otherwise
 
 ## Production / Docs
 
-`packages/KNIRVSERVER/config/production.yaml` · `packages/KNIRVSERVER/docs/SYSTEMD_SERVICE.md` · `packages/KNIRVSERVER/docs/Production_Deployment_Architecture.md` · `packages/KNIRVSERVER/docs/TESTING_PRIVILEGED.md` · `packages/KNIRVSERVER/docs/eBPF_Integration_Guide.md`
+`packages/KNIRVSERVER/config/production.yaml` · `packages/KNIRVSERVER/docs/Container_Privileges_Guide.md` · `packages/KNIRVSERVER/docs/EBPF_DEPLOYMENT_GUIDE.md` · `packages/KNIRVSERVER/docs/eBPF_Integration_Guide.md` · `packages/KNIRVSERVER/docs/Gateway_Proxy_Strategy.md`. Container/image deployment is in KNIRV_CORP (`packages/server/{os_builder,container_deployer}`, `packages/client` → `knirv-client install`); see README "Deployment".
 
 Note: `production.yaml` has historically shipped with eBPF monitoring, Cognitive Engine, and blockchain integration **disabled by default via feature flags**, even though the underlying subsystems are implemented in code. If a "missing" production feature turns out to be implemented but inert, check feature flags here before assuming it's unbuilt.
 
@@ -186,7 +194,7 @@ This project uses [Caliber](https://github.com/caliber-ai-org/ai-setup) to keep 
 Configs update automatically before each commit via `caliber refresh`.
 If the pre-commit hook is not set up, run `/setup-caliber` to configure everything automatically.
 
-**Caveat observed 2026-07-28:** this file (`CLAUDE.md`) was found significantly out of sync with the actual repo (phantom `devtools/` paths, a removed `KNIRVHEART` package, wrong service ports, a wrong KNIRVARENA source layout) despite the pre-commit hook being active (`caliber refresh` runs, `caliber` binary present). If this file drifts again, don't assume the hook is catching it — spot-check a few concrete claims (do the referenced paths exist?) before trusting it wholesale.
+**Last manual sync: 2026-10-03** (12 packages; KNIRVMONITOR/CONTROLLER/BRIDGE references removed from Makefile). **Caveat observed 2026-07-28:** this file (`CLAUDE.md`) was found significantly out of sync with the actual repo (phantom `devtools/` paths, a removed `KNIRVHEART` package, wrong service ports, a wrong KNIRVARENA source layout) despite the pre-commit hook being active (`caliber refresh` runs, `caliber` binary present). If this file drifts again, don't assume the hook is catching it — spot-check a few concrete claims (do the referenced paths exist?) before trusting it wholesale.
 <!-- /caliber:managed:sync -->
 
 ## Codebase Search (SocratiCode)

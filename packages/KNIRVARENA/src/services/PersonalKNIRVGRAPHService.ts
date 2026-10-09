@@ -5,6 +5,7 @@
 
 import { FactualitySlice } from '../slices/factualitySlice';
 import { FeasibilityReport } from '../slices/feasibilitySlice';
+import { arenaStore } from '../storage/arenaStore';
 
 interface ErrorNodeData {
   errorId: string;
@@ -71,8 +72,6 @@ interface EdgeData {
   metadata?: Record<string, unknown>;
 }
 
-import { knirvbaseService } from './KNIRVBASEService';
-
 export interface GraphNode {
   id: string;
   type: 'error' | 'skill' | 'capability' | 'property' | 'connection' | 'agent';
@@ -118,9 +117,9 @@ export class PersonalKNIRVGRAPHService {
     if (this.isInitialized) return;
 
     try {
-      // Initialize KNIRVBASE if not already done
-      if (!knirvbaseService.isInitialized()) {
-        await knirvbaseService.initialize();
+      // Initialize the browser store if not already done
+      if (!arenaStore.isInitialized()) {
+        await arenaStore.initialize();
       }
 
       this.isInitialized = true;
@@ -166,8 +165,9 @@ export class PersonalKNIRVGRAPHService {
         return cached;
       }
 
-      // CLEAN-11: hydrate from KNIRVBASE before falling back to a fresh graph.
-      const stored = await knirvbaseService.getPersonalGraph(userId);
+      // CLEAN-11: hydrate from the browser store before falling back to a
+      // fresh graph.
+      const stored = await arenaStore.getPersonalGraph(userId);
       if (stored) {
         const graph: PersonalGraph = stored as unknown as PersonalGraph;
         // The stored doc's top-level id is the user key; restore the graph's own id.
@@ -493,13 +493,13 @@ export class PersonalKNIRVGRAPHService {
     await this.saveGraphToDatabase(this.currentGraph);
   }
 
-  // Persist graph to KNIRVBASE (CLEAN-11: replaces the in-memory-only stash).
+  // Persist graph to the browser store (CLEAN-11: replaces the in-memory-only stash).
   private async saveGraphToDatabase(graph: PersonalGraph): Promise<void> {
     try {
-      await knirvbaseService.savePersonalGraph(graph as unknown as Record<string, unknown>);
+      await arenaStore.savePersonalGraph(graph as unknown as Record<string, unknown>);
 
-      // Keep the in-memory cache as a fast read-through; KNIRVBASE is now the
-      // source of truth for reloads across sessions.
+      // Keep the in-memory cache as a fast read-through; the browser
+      // store is the source of truth for reloads across sessions.
       const cacheKey = `graph_${graph.userId}`;
       this.graphCache.set(cacheKey, {
         ...graph,
@@ -509,9 +509,9 @@ export class PersonalKNIRVGRAPHService {
         }
       });
 
-      console.log(`Graph saved to KNIRVBASE (user ${graph.userId})`);
+      console.log(`Graph saved to arenaStore (user ${graph.userId})`);
     } catch (error) {
-      console.error('Failed to save graph to KNIRVBASE:', error);
+      console.error('Failed to save graph to arenaStore:', error);
     }
   }
 

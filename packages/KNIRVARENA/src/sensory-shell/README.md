@@ -64,26 +64,6 @@ Advanced processing algorithm with attention mechanisms and adaptive strategies.
 - Static: Fixed processing approach
 - Dynamic: Real-time strategy adjustment
 
-### 4. VoiceProcessor.ts
-Comprehensive voice processing system with speech recognition and synthesis.
-
-**Key Features:**
-- Web Speech API integration
-- Wake word detection ("knirv")
-- Command pattern recognition
-- Real-time speech synthesis
-- Noise reduction and echo cancellation
-
-**Supported Commands:**
-- "invoke skill [skillId]"
-- "start learning"
-- "save adaptation"
-- "show [interface]"
-- "help with [topic]"
-- "analyze [target]"
-- "capture screen"
-- "toggle network"
-
 ### 5. VisualProcessor.ts
 Advanced visual processing with object detection and gesture recognition.
 
@@ -128,15 +108,6 @@ Main React component providing the cognitive shell UI.
 - Configuration panel
 - Metrics visualization
 
-### Enhanced VoiceControl.tsx
-Updated voice control component with cognitive mode support.
-
-**Features:**
-- Cognitive mode indicator
-- Real voice processing integration
-- Enhanced command recognition
-- Browser compatibility checks
-
 ## Event System
 
 The cognitive shell uses a comprehensive event system for component communication:
@@ -148,12 +119,6 @@ The cognitive shell uses a comprehensive event system for component communicatio
 - `adaptationTriggered`
 - `learningModeStarted`
 - `cognitiveEvent`
-
-### Voice Events
-- `speechDetected`
-- `commandRecognized`
-- `recognitionStarted` / `recognitionEnded`
-- `speechStarted` / `speechEnded`
 
 ### Visual Events
 - `objectDetected`

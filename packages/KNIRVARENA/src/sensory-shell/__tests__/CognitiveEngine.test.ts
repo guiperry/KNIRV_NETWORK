@@ -34,7 +34,6 @@ jest.mock('../FabricAlgorithm', () => ({
     emit: jest.fn(),
   })),
 }));
-jest.mock('../VoiceProcessor');
 jest.mock('../VisualProcessor');
 jest.mock('../LoRAAdapter');
 jest.mock('../EnhancedLoRAAdapter');
@@ -70,8 +69,6 @@ describe('CognitiveEngine', () => {
       walletIntegrationEnabled: true,
       chainIntegrationEnabled: true,
       ecosystemCommunicationEnabled: true,
-      wasmAgentsEnabled: true,
-      typeScriptCompilerEnabled: true,
       errorContextEnabled: true,
     };
 
@@ -239,16 +236,6 @@ describe('CognitiveEngine', () => {
   });
 
   describe('Integration Components', () => {
-    it('should provide access to voice processor', () => {
-      const voiceProcessor = cognitiveEngine.getVoiceProcessor();
-      // In test environment, processors are not initialized to avoid hardware dependencies
-      if (process.env.NODE_ENV === 'test') {
-        expect(voiceProcessor).toBeUndefined();
-      } else {
-        expect(voiceProcessor).toBeDefined();
-      }
-    });
-
     it('should provide access to visual processor', () => {
       const visualProcessor = cognitiveEngine.getVisualProcessor();
       // In test environment, processors are not initialized to avoid hardware dependencies

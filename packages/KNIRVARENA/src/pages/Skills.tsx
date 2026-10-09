@@ -337,10 +337,8 @@ export default function Skills() {
             <div className="bg-yellow-900/30 border border-yellow-500/40 rounded-lg p-4 text-sm">
               <span className="text-yellow-400 font-semibold">Mock Mode Active</span>
               <span className="text-yellow-200/80 ml-2">
-                No LLM API keys detected. Tournament runs with deterministic mock scores.
-                Set <code className="bg-black/30 px-1 rounded">VITE_OPENAI_API_KEY</code>,{' '}
-                <code className="bg-black/30 px-1 rounded">VITE_GOOGLE_API_KEY</code>, or{' '}
-                <code className="bg-black/30 px-1 rounded">VITE_DEEPSEEK_API_KEY</code> for real gameplay.
+                Not signed in. Tournament runs with deterministic mock scores.
+                Sign in to KNIRV and add provider keys in menu → Provider Keys (or use the local model) for real gameplay.
               </span>
             </div>
           )}

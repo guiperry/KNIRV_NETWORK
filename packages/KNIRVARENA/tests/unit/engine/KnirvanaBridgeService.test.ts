@@ -5,25 +5,28 @@
 
 import { knirvanaBridgeService } from '../../../src/services/KnirvanaBridgeService';
 import { personalKNIRVGRAPHService } from '../../../src/services/PersonalKNIRVGRAPHService';
-import { knirvbaseService } from '../../../src/services/KNIRVBASEService';
 import { KnirvanaAgent } from '../../../src/services/KnirvanaBridgeService';
 import { ErrorNode } from '../../../src/components/game/stores/useKnirvana';
 
-// Mock the KNIRVBASE service
-jest.mock('../../../src/services/KNIRVBASEService', () => ({
-  knirvbaseService: {
-    isInitialized: jest.fn(),
+// Mock the browser store (replaced KNIRVBASE — §3.3)
+jest.mock('../../../src/storage/arenaStore', () => ({
+  arenaStore: {
+    isInitialized: jest.fn(() => true),
     initialize: jest.fn(),
-    getDatabase: jest.fn(() => ({
-      settings: {
-        insert: jest.fn()
-      }
-    }))
+    getPersonalGraph: jest.fn(),
+    savePersonalGraph: jest.fn(),
+    getAllCortexModels: jest.fn(),
+    saveCortexModel: jest.fn(),
+    listAgents: jest.fn(),
+    getAgent: jest.fn(),
+    createAgent: jest.fn(),
+    updateAgent: jest.fn(),
+    deleteAgent: jest.fn()
   }
 }));
 
 // Mock the PersonalKNIRVGRAPHService
-jest.mock('../services/PersonalKNIRVGRAPHService', () => ({
+jest.mock('../../../src/services/PersonalKNIRVGRAPHService', () => ({
   personalKNIRVGRAPHService: {
     loadPersonalGraph: jest.fn(),
     addSkillNode: jest.fn(),
@@ -32,25 +35,28 @@ jest.mock('../services/PersonalKNIRVGRAPHService', () => ({
   }
 }));
 
-// Mock rxdbService
-const rxdbService = {
-  isDatabaseInitialized: jest.fn(),
-  initialize: jest.fn(),
-  getCollection: jest.fn(),
-  insert: jest.fn(),
-  find: jest.fn(),
-  update: jest.fn(),
-  delete: jest.fn()
-};
-
 describe('KnirvanaBridgeService', () => {
+  // The service returns game state as a copy, so tests that need a
+  // deterministic NRN balance reset the live state directly — the
+  // same pattern this file already uses for awardNRN/spendNRN.
+  const setNRNBalance = (balance: number): void => {
+    (knirvanaBridgeService as unknown as { gameState: { nrnBalance: number } }).gameState.nrnBalance = balance;
+  };
+
+  let mockPersonalGraph: {
+    id: string;
+    userId: string;
+    nodes: Array<{ id: string; type: 'error'; label: string; position: { x: number; y: number; z: number }; data: Record<string, unknown>; connections: unknown[] }>;
+    edges: unknown[];
+    metadata: Record<string, unknown>;
+  };
+
   beforeEach(async () => {
     // Reset mocks
     jest.clearAllMocks();
 
     // Setup mock implementations
-    (rxdbService.isDatabaseInitialized as jest.Mock).mockReturnValue(true);
-    (personalKNIRVGRAPHService.loadPersonalGraph as jest.Mock).mockResolvedValue({
+    mockPersonalGraph = {
       id: 'test_graph',
       userId: 'test_user',
       nodes: [
@@ -76,14 +82,26 @@ describe('KnirvanaBridgeService', () => {
         version: 1,
         complexity: 1
       }
-    });
+    };
+    (personalKNIRVGRAPHService.loadPersonalGraph as jest.Mock).mockResolvedValue(mockPersonalGraph);
+
+    // Each test starts from the default balance.
+    setNRNBalance(500);
+
+    // The service is a singleton and initialize() early-returns once
+    // initialized, so reset its internal state to ensure each test
+    // re-initializes against the freshly created mockPersonalGraph.
+    (knirvanaBridgeService as unknown as {
+      isInitialized: boolean;
+      personalGraph: unknown;
+    }).isInitialized = false;
+    (knirvanaBridgeService as unknown as { personalGraph: unknown }).personalGraph = null;
   });
 
   describe('Initialization', () => {
-    test('should initialize successfully with RxDB and personal graph', async () => {
+    test('should initialize with personal graph', async () => {
       await knirvanaBridgeService.initialize();
 
-      expect(rxdbService.isDatabaseInitialized).toHaveBeenCalled();
       expect(personalKNIRVGRAPHService.loadPersonalGraph).toHaveBeenCalledWith('current_user');
     });
 
@@ -165,13 +183,14 @@ describe('KnirvanaBridgeService', () => {
     });
 
     test('should not create agent with insufficient NRN', async () => {
-      // Simulate low balance by directly setting it
-      const gameState = knirvanaBridgeService.getGameState();
-      Object.assign(gameState, { nrnBalance: 10 });
+      // Simulate low balance
+      setNRNBalance(10);
 
       const success = await knirvanaBridgeService.createAgent('Debugger');
 
       expect(success).toBe(false);
+
+      const gameState = knirvanaBridgeService.getGameState();
       expect(gameState.agents).toHaveLength(2); // No new agent added
     });
   });
@@ -207,12 +226,13 @@ describe('KnirvanaBridgeService', () => {
 
     test('should not deploy agent with insufficient NRN', async () => {
       // Simulate low balance
-      const gameState = knirvanaBridgeService.getGameState();
-      Object.assign(gameState, { nrnBalance: 5 });
+      setNRNBalance(5);
 
       const success = await knirvanaBridgeService.deployAgent(agentId, errorNodeId);
 
       expect(success).toBe(false);
+
+      const gameState = knirvanaBridgeService.getGameState();
       expect(gameState.nrnBalance).toBe(5); // Unchanged
     });
 
@@ -272,10 +292,11 @@ describe('KnirvanaBridgeService', () => {
       // Verify that collective insights were added to personal graph
       expect(personalKNIRVGRAPHService.addSkillNode).toHaveBeenCalledTimes(2);
 
-      // Check that the first insight was added
+      // Check that the first insight was added (insights carry no
+      // display name, so the merge labels them `Insight <id>`)
       expect(personalKNIRVGRAPHService.addSkillNode).toHaveBeenCalledWith({
         skillId: 'collective_advanced_error_patterns',
-        skillName: 'Advanced Error Pattern Recognition',
+        skillName: 'Insight advanced_error_patterns',
         description: 'Recognize complex error patterns learned from collective experiences',
         category: 'collective',
         proficiency: 0.8
@@ -337,7 +358,8 @@ describe('KnirvanaBridgeService', () => {
       await knirvanaBridgeService.createAgent('Analyzer');
 
       const gameState = knirvanaBridgeService.getGameState();
-      const analyzerAgent = gameState.agents.find((a: KnirvanaAgent) => a.type === 'Analyzer');
+      const analyzerAgents = gameState.agents.filter((a: KnirvanaAgent) => a.type === 'Analyzer');
+      const analyzerAgent = analyzerAgents[analyzerAgents.length - 1];
 
       expect(analyzerAgent?.capabilities).toEqual([
         'error_analysis',
@@ -350,7 +372,8 @@ describe('KnirvanaBridgeService', () => {
       await knirvanaBridgeService.createAgent('Optimizer');
 
       const gameState = knirvanaBridgeService.getGameState();
-      const optimizerAgent = gameState.agents.find((a: KnirvanaAgent) => a.type === 'Optimizer');
+      const optimizerAgents = gameState.agents.filter((a: KnirvanaAgent) => a.type === 'Optimizer');
+      const optimizerAgent = optimizerAgents[optimizerAgents.length - 1];
 
       expect(optimizerAgent?.capabilities).toEqual([
         'code_optimization',
@@ -387,8 +410,11 @@ describe('KnirvanaBridgeService', () => {
       const bridgeInstance = knirvanaBridgeService as unknown as { syncErrorNodeToPersonalGraph: (node: unknown) => Promise<void> };
       await bridgeInstance.syncErrorNodeToPersonalGraph(errorNode);
 
-      // Verify personal graph was updated
-      expect(personalKNIRVGRAPHService.getCurrentGraph).toHaveBeenCalled();
+      // Verify the personal graph node was updated in place
+      const syncedData = mockPersonalGraph.nodes[0].data as { progress?: number; isBeingSolved?: boolean; solverAgent?: string };
+      expect(syncedData.progress).toBe(0.5);
+      expect(syncedData.isBeingSolved).toBe(true);
+      expect(syncedData.solverAgent).toBe('test_agent');
     });
 
     test('should sync new agent to personal graph', async () => {
@@ -417,13 +443,6 @@ describe('KnirvanaBridgeService', () => {
   });
 
   describe('Error Handling', () => {
-    test('should handle RxDB initialization failure', async () => {
-      (rxdbService.isDatabaseInitialized as jest.Mock).mockReturnValue(false);
-      (rxdbService.initialize as jest.Mock).mockRejectedValue(new Error('DB init failed'));
-
-      await expect(knirvanaBridgeService.initialize()).resolves.not.toThrow();
-    });
-
     test('should handle personal graph load failure', async () => {
       (personalKNIRVGRAPHService.loadPersonalGraph as jest.Mock).mockRejectedValue(new Error('Graph load failed'));
 

@@ -5,6 +5,7 @@ import { HasherTrainingControls } from '../cognitive-engine-panel';
 
 jest.mock('@/lib/api', () => ({
   API_BASE_URL: '',
+  getAuthHeaders: () => ({ Authorization: 'Bearer operator-token' }),
   apiRequest: jest.fn(),
 }));
 
@@ -119,24 +120,28 @@ describe('HasherTrainingControls', () => {
     });
   });
 
-  it('rehydrates active training state and reconnects logs after remount', async () => {
+  // Logs are admin-only; EventSource cannot send the bearer token, so the
+  // panel polls /api/logs/history with the operator's token instead.
+  it('rehydrates active training state and polls logs with the operator token after remount', async () => {
+    const historyCalls = () =>
+      (global.fetch as jest.Mock).mock.calls.filter(([url]) => String(url).includes('/api/logs/history'));
     const { unmount } = render(<HasherTrainingControls />);
 
     await waitFor(() => {
       expect(screen.getByText('Training pipeline active')).toBeInTheDocument();
-      expect(MockEventSource.instances).toHaveLength(1);
+      expect(historyCalls().length).toBeGreaterThan(0);
     });
+    expect(historyCalls()[0][1]).toEqual({ headers: { Authorization: 'Bearer operator-token' } });
+    expect(MockEventSource.instances).toHaveLength(0);
 
     unmount();
-    expect(MockEventSource.instances[0].close).toHaveBeenCalled();
-
     render(<HasherTrainingControls />);
 
     await waitFor(() => {
       expect(screen.getByText('Training pipeline active')).toBeInTheDocument();
       expect(screen.getByText('pipeline still running')).toBeInTheDocument();
-      expect(MockEventSource.instances).toHaveLength(2);
     });
+    expect(MockEventSource.instances).toHaveLength(0);
   });
 
   it('renders training batch metadata and pipeline errors', async () => {

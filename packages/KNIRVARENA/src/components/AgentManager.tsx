@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { Bot, Coins, Activity, Upload, Zap } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { NRV } from '../App';
-import { agentManagementService, Agent, AgentUploadRequest, AgentDeploymentRequest } from '../services/AgentManagementService';
+import { agentManagementService, Agent, AgentUploadRequest } from '../services/AgentManagementService';
 import { walletIntegrationService } from '../services/WalletIntegrationService';
 import { CognitiveEngine } from '../sensory-shell/CognitiveEngine';
 
@@ -118,25 +118,13 @@ export const AgentManager: React.FC<AgentManagerProps> = ({
         return;
       }
 
-      const deploymentRequest: AgentDeploymentRequest = {
-        agentId: agent.agentId,
-        targetNRV: targetNRV?.id,
-        configuration: {},
-        resources: {
-          memory: agent.metadata.requirements.memory,
-          cpu: agent.metadata.requirements.cpu,
-          timeout: 300000 // 5 minutes
-        }
-      };
-
-      const deploymentId = await agentManagementService.deployAgent(deploymentRequest);
-
-      console.log('Agent deployed successfully:', deploymentId);
-
-      // Call the parent callback for UI updates
-      if (targetNRV) {
-        onAgentAssignment(targetNRV, agent);
+      // Deployment runs on the paired CLI through the parent's relay flow
+      // (App.handleAgentAssignment): there is no server-side agent runtime.
+      if (!targetNRV) {
+        alert('Select an error node to deploy this agent to');
+        return;
       }
+      onAgentAssignment(targetNRV, agent);
     } catch (error) {
       console.error('Agent deployment failed:', error);
       alert(`Agent deployment failed: ${error instanceof Error ? error.message : 'Unknown error'}`);

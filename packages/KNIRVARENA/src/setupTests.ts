@@ -117,18 +117,15 @@ Object.defineProperty(global, 'crypto', {
   }
 });
 
-// Mock window.open for wallet interface tests
-Object.defineProperty(global, 'window', {
-  value: {
-    ...global.window,
-    open: jest.fn(),
-    location: {
-      hostname: 'localhost',
-      href: 'http://localhost:3000'
-    }
-  },
-  writable: true
-});
+// Mock window.open for wallet interface tests. Patched in place: replacing
+// jsdom's window with a spread copy drops its DOM constructors and breaks
+// React DOM. jsdom's location is already http://localhost:3000.
+window.open = jest.fn();
+
+// jsdom doesn't implement scrolling; chat views scroll to their newest message.
+if (typeof Element !== 'undefined' && !Element.prototype.scrollIntoView) {
+  Element.prototype.scrollIntoView = jest.fn();
+}
 
 // Mock console methods to reduce noise in tests
 const originalConsole = global.console;

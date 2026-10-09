@@ -2,10 +2,7 @@ import React from 'react';
 
 import { ReactNode } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Cpu, Shield, Wallet, Mic, Brain } from 'lucide-react';
-import { EdgeColoring } from './EdgeColoring';
-import { VoiceControl } from './VoiceControl';
-import { useVoiceIntegration } from '../hooks/useVoiceIntegration';
+import { Cpu, Shield, Wallet, Brain } from 'lucide-react';
 
 interface LayoutProps {
   children: ReactNode;
@@ -13,21 +10,9 @@ interface LayoutProps {
 
 export default function Layout({ children }: LayoutProps) {
   const location = useLocation();
-  const {
-    isVoiceActive,
-    voiceStatus,
-    cognitiveMode,
-    edgeColor,
-    edgeIntensity,
-    handleVoiceCommand,
-    toggleVoice
-  } = useVoiceIntegration();
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 relative">
-      {/* Edge Coloring for Voice Status */}
-      <EdgeColoring color={edgeColor} intensity={edgeIntensity} />
-
       {/* Background Effects */}
       <div className="fixed inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-400/20 via-transparent to-transparent"></div>
       <div className="fixed inset-0 bg-[linear-gradient(45deg,transparent_25%,rgba(68,68,68,.2)_50%,transparent_75%,transparent_100%)] bg-[length:20px_20px] opacity-20"></div>
@@ -50,21 +35,6 @@ export default function Layout({ children }: LayoutProps) {
             </div>
             
             <div className="flex items-center space-x-2">
-              {/* Voice Status Indicator */}
-              {isVoiceActive && (
-                <div className="px-2 py-1 rounded-full bg-blue-500/20 border border-blue-500/30">
-                  <div className="flex items-center space-x-1">
-                    <Mic className="w-3 h-3 text-blue-400" />
-                    <span className="text-xs text-blue-400 font-medium">
-                      {voiceStatus === 'listening' ? 'Listening' :
-                       voiceStatus === 'processing' ? 'Processing' :
-                       voiceStatus === 'speaking' ? 'Speaking' : 'Voice'}
-                    </span>
-                    {cognitiveMode && <Brain className="w-3 h-3 text-cyan-400" />}
-                  </div>
-                </div>
-              )}
-
               <div className="px-2 py-1 rounded-full bg-green-500/20 border border-green-500/30">
                 <div className="flex items-center space-x-1">
                   <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
@@ -80,14 +50,6 @@ export default function Layout({ children }: LayoutProps) {
       <main className="relative z-10">
         {children}
       </main>
-
-      {/* Voice Control */}
-      <VoiceControl
-        isActive={isVoiceActive}
-        onVoiceCommand={handleVoiceCommand}
-        onToggle={toggleVoice}
-        cognitiveMode={cognitiveMode}
-      />
 
       {/* Bottom Navigation */}
       <nav className="fixed bottom-0 left-0 right-0 z-20 border-t border-blue-500/20 backdrop-blur-xl bg-slate-900/80">

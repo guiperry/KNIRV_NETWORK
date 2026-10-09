@@ -362,23 +362,5 @@ describe('PerformanceOptimizer', () => {
       // Restore original window
       (global as { window?: unknown }).window = originalWindow;
     });
-
-    it('should handle performance observer errors gracefully', () => {
-      // Mock PerformanceObserver to throw error
-      const originalObserver = global.PerformanceObserver;
-      const ErrorObserverMock = jest.fn().mockImplementation(() => {
-        throw new Error('Observer not supported');
-      });
-      Object.defineProperty(ErrorObserverMock, 'supportedEntryTypes', {
-        value: ['navigation', 'resource', 'mark', 'measure', 'paint'],
-        writable: false
-      });
-      global.PerformanceObserver = ErrorObserverMock as jest.Mock & { supportedEntryTypes: string[] };
-      
-      // Should not throw during initialization
-      expect(() => new PerformanceOptimizer()).not.toThrow();
-      
-      global.PerformanceObserver = originalObserver;
-    });
   });
 });

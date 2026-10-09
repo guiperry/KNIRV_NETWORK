@@ -1,8 +1,9 @@
 import React from 'react';
 import { useState, useEffect } from 'react';
-import { AlertTriangle, Activity, Zap, Target, Clock, TrendingUp, CheckCircle, AlertCircle } from 'lucide-react';
+import { AlertTriangle, Activity, Zap, Target, Clock, TrendingUp, CheckCircle, AlertCircle, ExternalLink } from 'lucide-react';
 import { NRV } from '../../App';
 import { getKNIRVSERVERClient, type ErrorNodeTestSuite } from '../../services/KNIRVSERVERClient';
+import { knirvEngineBrowserLink, openInKnirvEngine } from '../../services/knirvEngineLink';
 
 interface ErrorNodeModalProps {
   isOpen: boolean;
@@ -47,6 +48,7 @@ export const ErrorNodeModal: React.FC<ErrorNodeModalProps> = ({
   const [testInput, setTestInput] = useState('');
   const [expectedOutput, setExpectedOutput] = useState('');
   const [testDescription, setTestDescription] = useState('');
+  const [engineState, setEngineState] = useState<'idle' | 'opening' | 'opened' | 'unhandled'>('idle');
 
   // Generate mock error nodes from NRVs
   useEffect(() => {
@@ -75,6 +77,7 @@ export const ErrorNodeModal: React.FC<ErrorNodeModalProps> = ({
 
   const selectErrorNode = async (node: ErrorNode) => {
     setSelectedErrorNode(node);
+    setEngineState('idle');
     setTestSuite(null);
     setTestError(null);
     if (!node.networkErrorNodeId) return;
@@ -108,6 +111,14 @@ export const ErrorNodeModal: React.FC<ErrorNodeModalProps> = ({
     } finally {
       setIsSavingTest(false);
     }
+  };
+
+  // Hands the node to KNIRVENGINE's error-node analysis: the desktop engine
+  // via knirvengine://, or a browser-launched engine when none answers.
+  const openInEngine = async (node: ErrorNode) => {
+    if (!node.networkErrorNodeId) return;
+    setEngineState('opening');
+    setEngineState((await openInKnirvEngine(node.networkErrorNodeId)) ? 'opened' : 'unhandled');
   };
 
   const getSeverityColor = (severity: string) => {
@@ -315,6 +326,35 @@ export const ErrorNodeModal: React.FC<ErrorNodeModalProps> = ({
                       <div>
                         <div className="text-xs text-slate-400 mb-1">Description</div>
                         <p className="text-sm text-slate-300">{selectedErrorNode.description}</p>
+                      </div>
+
+                      <div className="space-y-2">
+                        <button
+                          type="button"
+                          onClick={() => void openInEngine(selectedErrorNode)}
+                          disabled={!selectedErrorNode.networkErrorNodeId || engineState === 'opening'}
+                          title={selectedErrorNode.networkErrorNodeId ? 'Analyze this error node, its files and tests in KNIRVENGINE' : 'Only errors registered on the network KNIRVGRAPH can be opened in KNIRVENGINE'}
+                          className="w-full inline-flex items-center justify-center gap-2 rounded-md border border-rose-500/50 bg-rose-500/10 px-2 py-1.5 text-xs font-medium text-rose-100 hover:bg-rose-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          <ExternalLink className="w-3.5 h-3.5" />
+                          {engineState === 'opening' ? 'Opening KNIRVENGINE…' : 'Open in KNIRVENGINE'}
+                        </button>
+                        {engineState === 'opened' && (
+                          <p className="text-xs text-emerald-300">Opened in KNIRVENGINE&apos;s error-node analysis.</p>
+                        )}
+                        {engineState === 'unhandled' && selectedErrorNode.networkErrorNodeId && (
+                          <p className="text-xs text-amber-300">
+                            The KNIRVENGINE desktop app didn&apos;t respond.{' '}
+                            <a
+                              href={knirvEngineBrowserLink(selectedErrorNode.networkErrorNodeId)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="underline text-cyan-300 hover:text-cyan-200"
+                            >
+                              Open it in the browser engine instead
+                            </a>
+                          </p>
+                        )}
                       </div>
 
                       <div className="rounded-lg border border-slate-800 bg-slate-950/50 p-3 space-y-3">

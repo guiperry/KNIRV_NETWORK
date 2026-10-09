@@ -1,10 +1,12 @@
 import React from 'react';
-import { useState, useEffect, useRef, Suspense, lazy } from 'react';
-import { BrowserRouter as Router, Routes, Route, useNavigate, useParams } from 'react-router-dom';
+import { useState, useEffect, useRef, Suspense, lazy, useCallback } from 'react';
+import { BrowserRouter as Router, Routes, Route, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { QrCode, X } from 'lucide-react';
 import { initSentry } from './utils/sentry';
 import { actuarialSyndicateService } from './services/ActuarialSyndicateService';
 import { controllerActuarialAuthorizer } from './services/ControllerActuarialHandoff';
+import { getKnirvGatewayUrl } from './config/runtimeConfig';
+import { useArenaRelay, type ArenaEvent, RELAY_CAPABILITY_CHAT_INVOKE, RELAY_CAPABILITY_ARENA_AGENT_DEPLOY } from './relay';
 
 // Receiver components
 import { KnirvShell } from './components/KnirvShell';
@@ -17,9 +19,10 @@ import { FabricAlgorithm } from './components/FabricAlgorithm';
 import { CognitiveShellInterface } from './components/CognitiveShellInterface';
 import { ChatBrainProvider } from './contexts/ChatBrainContext';
 import { CortexBuilder } from './components/CortexBuilder';
-import { ApiKeyManager } from './components/ApiKeyManager';
-import USDCToNRNPurchase from './components/USDCToNRNPurchase';
 import { SlideDownModal } from './components/SlideDownModal';
+import { ProviderKeysPanel } from './components/ProviderKeysPanel';
+import { NodeSubmissionForm, type NodeKind, type NodeSubmission } from './components/NodeSubmissionForm';
+import { DatasetSubmissionForm } from './components/DatasetSubmissionForm';
 import { SkillsModalContent } from './components/modals/SkillsModalContent';
 import { UDCModalContent } from './components/modals/UDCModalContent';
 import { WalletModalContent } from './components/modals/WalletModalContent';
@@ -33,6 +36,13 @@ interface CognitiveState {
 import NetworkSelector, { NetworkType } from './components/NetworkSelector';
 
 // Manager components - lazy loaded
+/** The server's error text when there is one (axios), else the message. */
+const errorMessage = (error: unknown): string => {
+  const data = (error as { response?: { data?: { error?: unknown } } })?.response?.data;
+  if (typeof data?.error === 'string') return data.error;
+  return error instanceof Error ? error.message : String(error);
+};
+
 const Skills = lazy(() => import('./pages/Skills'));
 const UDC = lazy(() => import('./pages/UDC'));
 const WalletPage = lazy(() => import('./pages/Wallet'));
@@ -103,6 +113,10 @@ export interface NRV {
    * can only be contributed to an NRV that has this.
    */
   networkErrorNodeId?: string;
+  /** The context's id on the network KNIRVGRAPH (§3.6). */
+  networkContextNodeId?: string;
+  /** The idea's id on the network KNIRVGRAPH (§3.6). */
+  networkIdeaNodeId?: string;
 }
 
 // Note: convertAgentToLegacy function removed - not currently needed but can be added back if LegacyAgent compatibility is required
@@ -196,36 +210,110 @@ const MenuItem: React.FC<MenuItemProps> = ({ onClick, children, icon, className 
 };
 
 // Receiver Interface Component
-const ReceiverInterface = () => {
-  const gameStore = useKnirvana();
-  const nrnBalance = gameStore.nrnBalance;
-  const gamePhase = gameStore.gamePhase;
-  const [shellStatus, setShellStatus] = useState<'idle' | 'processing' | 'listening' | 'error'>(
-    'idle'
-  );
-  const [isVoiceActive, setIsVoiceActive] = useState(false);
-  const [currentNRVs, setCurrentNRVs] = useState<NRV[]>([]);
-  const [selectedNRV, setSelectedNRV] = useState<NRV | null>(null);
-  const [availableAgents, setAvailableAgents] = useState<Agent[]>([]);
-  const [activePanels, setActivePanels] = useState<string[]>([]);
-  const [cognitiveMode, setCognitiveMode] = useState(false);
-  const [isCortexBuilderOpen, setIsCortexBuilderOpen] = useState(false);
-  const [isApiKeyManagerOpen, setIsApiKeyManagerOpen] = useState(false);
-  const [isUSDCPurchaseOpen, setIsUSDCPurchaseOpen] = useState(false);
-  const [activeModal, setActiveModal] = useState<'skills' | 'udc' | 'wallet' | null>(null);
-  const [isAgentManagementOpen, setIsAgentManagementOpen] = useState(false);
-  const [isErrorNodeOpen, setIsErrorNodeOpen] = useState(false);
-  const [isTraverseClustersOpen, setIsTraverseClustersOpen] = useState(false);
-  const [networkConnections] = useState<{
-    [key: string]: 'connected' | 'disconnected' | 'connecting';
-  }>({
-    knirvChain: 'connected',
-    knirvGraph: 'connected',
-    knirvWallet: 'connected',
-    knirvRouters: 'connected',
-    knirvana: 'connected',
-    knirvNexus: 'connected',
-  });
+  const ReceiverInterface = () => {
+    const [searchParams] = useSearchParams();
+    const pairingId = searchParams.get('pair') ?? '';
+    const gameStore = useKnirvana();
+    const nrnBalance = gameStore.nrnBalance;
+    const gamePhase = gameStore.gamePhase;
+    const [shellStatus, setShellStatus] = useState<'idle' | 'processing' | 'listening' | 'error'>(
+      'idle'
+    );
+    const [isVoiceActive, setIsVoiceActive] = useState(false);
+    const [currentNRVs, setCurrentNRVs] = useState<NRV[]>([]);
+    const [selectedNRV, setSelectedNRV] = useState<NRV | null>(null);
+    const [availableAgents, setAvailableAgents] = useState<Agent[]>([]);
+    const [activePanels, setActivePanels] = useState<string[]>([]);
+    const [cognitiveMode, setCognitiveMode] = useState(false);
+    const [isCortexBuilderOpen, setIsCortexBuilderOpen] = useState(false);
+    const [activeModal, setActiveModal] = useState<'skills' | 'udc' | 'wallet' | null>(null);
+    const [nodeForm, setNodeForm] = useState<NodeKind | null>(null);
+    const [datasetFormOpen, setDatasetFormOpen] = useState(false);
+    const [isAgentManagementOpen, setIsAgentManagementOpen] = useState(false);
+    const [isErrorNodeOpen, setIsErrorNodeOpen] = useState(false);
+    const [isTraverseClustersOpen, setIsTraverseClustersOpen] = useState(false);
+    const [networkConnections] = useState<{
+      [key: string]: 'connected' | 'disconnected' | 'connecting';
+    }>({
+      knirvChain: 'connected',
+      knirvGraph: 'connected',
+      knirvWallet: 'connected',
+      knirvRouters: 'connected',
+      knirvana: 'connected',
+      knirvNexus: 'connected',
+    });
+
+    // Arena relay integration
+    const [userSubject, setUserSubject] = useState<string>('');
+    const [deviceId, setDeviceId] = useState<string>('');
+
+    // Initialize user identity from localStorage or generate new
+    useEffect(() => {
+      let subject = localStorage.getItem('arena_user_subject');
+      if (!subject) {
+        subject = `arena_user_${crypto.randomUUID()}`;
+        localStorage.setItem('arena_user_subject', subject);
+      }
+      setUserSubject(subject);
+
+      let device = localStorage.getItem('arena_device_id');
+      if (!device) {
+        device = `arena_device_${crypto.randomUUID()}`;
+        localStorage.setItem('arena_device_id', device);
+      }
+      setDeviceId(device);
+    }, []);
+
+    // Arena relay hook
+    // Pairing link: {gateway}/arena/?pair={pairingId}&lease={leaseEpoch}
+    const leaseParam = Number(searchParams.get('lease'));
+    const relay = useArenaRelay({
+      userSubject,
+      deviceId,
+      pairingId,
+      leaseEpoch: Number.isSafeInteger(leaseParam) && leaseParam > 0 ? leaseParam : undefined,
+      onEvent: (event) => {
+        console.log('[arena] Received arena event:', event.type, event.data);
+        handleArenaEvent(event);
+      },
+      onError: (err) => console.error('[arena] Relay error:', err),
+      onConnect: () => console.log('[arena] Relay connected to CLI'),
+      onDisconnect: (code, reason) => console.log('[arena] Relay disconnected:', code, reason),
+    });
+
+    // CLI sub-agent id → the arena agent and NRV it was deployed for.
+    const arenaDeploymentsRef = useRef(new Map<string, { agentId: string; nrvId: string }>());
+
+    // Handle signed arena events from the paired CLI (deploy progress and
+    // grading; see the CLI's orchestrator/arena.go).
+    const handleArenaEvent = useCallback((event: ArenaEvent) => {
+      const data = (event.data ?? {}) as { agent_id?: string; recalled?: boolean; error?: string; grade?: { all_passed?: boolean; passed?: number; total?: number } };
+      const deployment = data.agent_id ? arenaDeploymentsRef.current.get(data.agent_id) : undefined;
+      const settle = (agentStatus: Agent['status'], nrvStatus?: NRV['status']) => {
+        if (!deployment) return;
+        arenaDeploymentsRef.current.delete(data.agent_id as string);
+        setAvailableAgents(prev => prev.map(a => (a.agentId === deployment.agentId ? { ...a, status: agentStatus } : a)));
+        if (nrvStatus) setCurrentNRVs(prev => prev.map(n => (n.id === deployment.nrvId ? { ...n, status: nrvStatus } : n)));
+      };
+      switch (event.type) {
+        case 'arena.agent.spawned':
+          gameStore.setShowAgentManagementModal(true);
+          break;
+        case 'arena.agent.exited':
+          // Graded runs settle on arena.test.result; a recall ends here.
+          if (data.recalled) settle('Available', 'Identified');
+          break;
+        case 'arena.test.result':
+          if (data.error) {
+            console.warn('[arena] Agent run was not graded:', data.error);
+            settle('Error', 'Identified');
+          } else {
+            console.log(`[arena] Agent passed ${data.grade?.passed ?? 0}/${data.grade?.total ?? 0} tests`);
+            settle('Available', data.grade?.all_passed ? 'Resolved' : 'Identified');
+          }
+          break;
+      }
+    }, [gameStore]);
 
   const shellRef = useRef<HTMLDivElement>(null);
 
@@ -400,158 +488,59 @@ const ReceiverInterface = () => {
     }, 1500);
   };
 
-  const handleSubmitError = async () => {
+  // Registers a user-described node on the network KNIRVGRAPH (§3.1, §3.6)
+  // and shows it only once registered, with its real id: an unregistered node
+  // can't take tests, mint or be promoted, so a failure is reported to the
+  // form instead of kept as a local-only stand-in.
+  const handleNodeSubmission = async (submission: NodeSubmission) => {
     setShellStatus('processing');
-
     try {
-      // Generate factuality slice and POST to server endpoint
-      const { createFactualitySlice } = await import('./slices/factualitySlice');
-      const errorId = `error-${Date.now()}`;
-      const factuality = createFactualitySlice('User-submitted error for SkillNode training', {
-        source: 'KNIRV-CONTROLLER-user',
-      });
-
-      await fetch('/api/graph/error', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId: 'local-user',
-          errorId,
-          errorType: 'user-submitted',
-          description: 'User-submitted error for SkillNode training',
+      const client = getKNIRVSERVERClient();
+      const base = {
+        id: `nrv-${Date.now()}`,
+        problemDescription: submission.description,
+        sourceID: 'KNIRV-CONTROLLER-user',
+        temporalContext: new Date(),
+        status: 'Identified' as const,
+      };
+      let nrv: NRV;
+      if (submission.kind === 'error') {
+        const networkErrorNodeId = await client.registerNetworkErrorNode({
+          error_type: submission.errorType,
+          description: submission.description,
           context: { source: 'KNIRV-CONTROLLER-user', submissionType: 'manual' },
-          timestamp: Date.now(),
-          factualitySlice: factuality,
-        }),
-      });
-
-      // Also register the error on the network KNIRVGRAPH and keep its real id,
-      // so tests written for it reach the same error node DRQ and badges use.
-      // A failure keeps the local NRV; it just can't take tests until registered.
-      let networkErrorNodeId: string | undefined;
-      try {
-        networkErrorNodeId = await getKNIRVSERVERClient().registerNetworkErrorNode({
-          error_type: 'user-submitted',
-          description: 'User-submitted error for SkillNode training',
-          context: { source: 'KNIRV-CONTROLLER-user', submissionType: 'manual', localErrorId: errorId },
-          severity: 3,
+          severity: submission.severity,
         });
-      } catch (registerError) {
-        console.warn('Error kept locally; network KNIRVGRAPH registration failed:', registerError);
+        nrv = {
+          ...base,
+          inputType: 'Error',
+          severity: submission.severity >= 4 ? 'High' : submission.severity >= 2 ? 'Medium' : 'Low',
+          suggestedSolutionType: 'skill-training',
+          networkErrorNodeId,
+        };
+      } else if (submission.kind === 'context') {
+        const { createFactualitySlice } = await import('./slices/factualitySlice');
+        const networkContextNodeId = await client.registerNetworkContextNode({
+          context_type: submission.contextType,
+          description: submission.description,
+          capability_slice: createFactualitySlice(submission.description, { serverType: submission.contextType }),
+        });
+        nrv = { ...base, inputType: 'Context', severity: 'Medium', suggestedSolutionType: 'capability-mapping', networkContextNodeId };
+      } else {
+        const { createFeasibilitySlice } = await import('./slices/feasibilitySlice');
+        const networkIdeaNodeId = await client.registerNetworkIdeaNode({
+          idea_type: submission.ideaType,
+          description: submission.description,
+          feasibility_data: createFeasibilitySlice(submission.ideaType, submission.description, []),
+        });
+        nrv = { ...base, inputType: 'Idea', severity: 'Low', suggestedSolutionType: 'property-development', networkIdeaNodeId };
       }
-
-      const newNRV: NRV = {
-        id: `nrv-${Date.now()}`,
-        problemDescription: 'User-submitted error for SkillNode training',
-        sourceID: 'KNIRV-CONTROLLER-user',
-        inputType: 'Error',
-        temporalContext: new Date(),
-        severity: 'High',
-        suggestedSolutionType: 'skill-training',
-        status: 'Identified',
-        networkErrorNodeId,
-      };
-      setCurrentNRVs(prev => [...prev, newNRV]);
+      setCurrentNRVs(prev => [...prev, nrv]);
       setShellStatus('idle');
     } catch (error) {
-      console.error('Failed to submit error:', error);
       setShellStatus('error');
       setTimeout(() => setShellStatus('idle'), 2000);
-    }
-  };
-
-  const handleSubmitContext = async () => {
-    setShellStatus('processing');
-
-    try {
-      // Generate a simple capability slice and POST to server
-      const { createFactualitySlice } = await import('./slices/factualitySlice');
-      const contextId = `context-${Date.now()}`;
-      const capabilitySlice = createFactualitySlice(
-        'MCP server context for CapabilityNode creation',
-        { serverType: 'user-submitted' }
-      );
-
-      await fetch('/api/graph/context', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId: 'local-user',
-          contextId,
-          contextName: 'MCP Server Context',
-          description: 'MCP server context for CapabilityNode creation',
-          mcpServerInfo: {
-            serverType: 'user-submitted',
-            capabilities: ['data-processing', 'api-integration'],
-            version: '1.0.0',
-          },
-          category: 'integration',
-          timestamp: Date.now(),
-          capabilitySlice,
-        }),
-      });
-
-      const newNRV: NRV = {
-        id: `nrv-${Date.now()}`,
-        problemDescription: 'MCP server context for CapabilityNode creation',
-        sourceID: 'KNIRV-CONTROLLER-user',
-        inputType: 'Context',
-        temporalContext: new Date(),
-        severity: 'Medium',
-        suggestedSolutionType: 'capability-mapping',
-        status: 'Identified',
-      };
-      setCurrentNRVs(prev => [...prev, newNRV]);
-      setShellStatus('idle');
-    } catch (error) {
-      console.error('Failed to submit context:', error);
-      setShellStatus('error');
-      setTimeout(() => setShellStatus('idle'), 2000);
-    }
-  };
-
-  const handleSubmitIdea = async () => {
-    setShellStatus('processing');
-
-    try {
-      // Generate feasibility slice and POST to server
-      const { createFeasibilitySlice } = await import('./slices/feasibilitySlice');
-      const ideaId = `idea-${Date.now()}`;
-      const feasibility = createFeasibilitySlice(
-        'User Innovation Concept',
-        'User idea for PropertyNode development',
-        []
-      );
-
-      await fetch('/api/graph/idea', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId: 'local-user',
-          ideaId,
-          ideaName: 'User Innovation Concept',
-          description: 'User idea for PropertyNode development',
-          timestamp: Date.now(),
-          feasibilitySlice: feasibility,
-        }),
-      });
-
-      const newNRV: NRV = {
-        id: `nrv-${Date.now()}`,
-        problemDescription: 'User idea for PropertyNode development',
-        sourceID: 'KNIRV-CONTROLLER-user',
-        inputType: 'Idea',
-        temporalContext: new Date(),
-        severity: 'Low',
-        suggestedSolutionType: 'property-development',
-        status: 'Identified',
-      };
-      setCurrentNRVs(prev => [...prev, newNRV]);
-      setShellStatus('idle');
-    } catch (error) {
-      console.error('Failed to submit idea:', error);
-      setShellStatus('error');
-      setTimeout(() => setShellStatus('idle'), 2000);
+      throw new Error(`Could not register on KNIRVGRAPH: ${errorMessage(error)}`);
     }
   };
 
@@ -615,19 +604,37 @@ const ReceiverInterface = () => {
     }, 1000);
   };
 
-  const handleAgentAssignment = (nrv: NRV, agent: Agent) => {
-    if (gameStore.spendNRN(agent.nrnCost)) {
-      setCurrentNRVs(prev => prev.map(n => (n.id === nrv.id ? { ...n, status: 'Assigned' } : n)));
-      setAvailableAgents(prev =>
-        prev.map(a => (a.agentId === agent.agentId ? { ...a, status: 'Deployed' } : a))
-      );
+  // Sub-agents the paired CLI's Zot supervisor can run.
+  const CLI_AGENT_TOOLS = ['claude', 'codex', 'opencode', 'hermes'];
 
-      setTimeout(() => {
-        setCurrentNRVs(prev => prev.map(n => (n.id === nrv.id ? { ...n, status: 'Resolved' } : n)));
+  const handleAgentAssignment = async (nrv: NRV, agent: Agent) => {
+    if (!nrv.networkErrorNodeId) {
+      console.warn('Cannot deploy agent: this error is not registered on the network KNIRVGRAPH');
+      return;
+    }
+    if (!pairingId) {
+      console.warn('Cannot deploy agent: pair the arena with your KNIRV CLI first (knirv arena pair)');
+      return;
+    }
+    const tool = agent.baseModelId && CLI_AGENT_TOOLS.includes(agent.baseModelId) ? agent.baseModelId : 'claude';
+    try {
+      // The CLI asks for local approval, then emits arena.agent.spawned /
+      // .status / .exited and arena.test.result (handled by handleArenaEvent).
+      const result = (await relay.deployAgent(nrv.networkErrorNodeId, tool)) as { data?: { agent_id?: string } } | undefined;
+      const cliAgentId = result?.data?.agent_id;
+      if (cliAgentId) arenaDeploymentsRef.current.set(cliAgentId, { agentId: agent.agentId, nrvId: nrv.id });
+      if (gameStore.spendNRN(agent.nrnCost)) {
+        setCurrentNRVs(prev => prev.map(n => (n.id === nrv.id ? { ...n, status: 'Assigned' } : n)));
         setAvailableAgents(prev =>
-          prev.map(a => (a.agentId === agent.agentId ? { ...a, status: 'Available' } : a))
+          prev.map(a => (a.agentId === agent.agentId ? { ...a, status: 'Deployed' } : a))
         );
-      }, 5000);
+      }
+    } catch (err) {
+      // No local fallback: an agent is only shown as deployed when the CLI accepted it.
+      console.error('Failed to deploy agent via your CLI:', err);
+      setAvailableAgents(prev =>
+        prev.map(a => (a.agentId === agent.agentId ? { ...a, status: 'Error' } : a))
+      );
     }
   };
 
@@ -703,12 +710,10 @@ const ReceiverInterface = () => {
     setIsCortexBuilderOpen(true);
   };
 
-  const openApiKeyManager = () => {
-    setIsApiKeyManagerOpen(true);
-  };
-
   const openUSDCPurchase = () => {
-    setIsUSDCPurchaseOpen(true);
+    // Xion wallet was ported to the Controller (§5.2):
+    // "Buy NRN" deep-links to the Controller's Wallet page.
+    window.open(`${getKnirvGatewayUrl()}/wallet`, '_blank');
   };
 
   const handleSkillsOpen = () => {
@@ -795,9 +800,6 @@ const ReceiverInterface = () => {
           <MenuItem onClick={handleQRScan} icon="📱">
             QR Scanner
           </MenuItem>
-          <MenuItem onClick={openApiKeyManager} icon="🔑">
-            API Keys
-          </MenuItem>
           <MenuItem onClick={openUSDCPurchase} icon="💰">
             Buy NRN Tokens
           </MenuItem>
@@ -819,6 +821,27 @@ const ReceiverInterface = () => {
           <MenuItem onClick={() => toggleKeyAgentPanel()} icon="🤖">
             Key Agent Status
           </MenuItem>
+          <MenuItem onClick={() => { setNodeForm('error'); setMenuOpen(false); }} icon="🐞">
+            Submit Error
+          </MenuItem>
+          <MenuItem onClick={() => { setNodeForm('context'); setMenuOpen(false); }} icon="🧩">
+            Submit Context
+          </MenuItem>
+          <MenuItem onClick={() => { setNodeForm('idea'); setMenuOpen(false); }} icon="💡">
+            Submit Idea
+          </MenuItem>
+          <MenuItem onClick={() => { setDatasetFormOpen(true); setMenuOpen(false); }} icon="🗂️">
+            Submit Dataset
+          </MenuItem>
+          <MenuItem
+            onClick={() => {
+              setActivePanels(prev => (prev.includes('provider-keys') ? prev : [...prev, 'provider-keys']));
+              setMenuOpen(false);
+            }}
+            icon="🔑"
+          >
+            Provider Keys
+          </MenuItem>
         </BurgerMenu>
       </div>
 
@@ -829,9 +852,9 @@ const ReceiverInterface = () => {
           onScreenshotCapture={handleScreenshotCapture}
           cognitiveMode={cognitiveMode}
           isVoiceActive={isVoiceActive}
-          onSubmitError={handleSubmitError}
-          onSubmitContext={handleSubmitContext}
-          onSubmitIdea={handleSubmitIdea}
+          onSubmitError={() => setNodeForm('error')}
+          onSubmitContext={() => setNodeForm('context')}
+          onSubmitIdea={() => setNodeForm('idea')}
           onSubmitDemo={handleSubmitDemo}
           onSkillsOpen={handleSkillsOpen}
           onUDCOpen={handleUDCOpen}
@@ -855,6 +878,16 @@ const ReceiverInterface = () => {
           side="right"
         >
           <NetworkStatus connections={networkConnections} />
+        </SlidingPanel>
+
+        <SlidingPanel
+          id="provider-keys"
+          isOpen={activePanels.includes('provider-keys')}
+          onClose={() => closePanel('provider-keys')}
+          title="Provider Keys"
+          side="right"
+        >
+          {activePanels.includes('provider-keys') && <ProviderKeysPanel />}
         </SlidingPanel>
 
         <SlidingPanel
@@ -970,33 +1003,6 @@ const ReceiverInterface = () => {
         <CortexBuilder isOpen={isCortexBuilderOpen} onClose={() => setIsCortexBuilderOpen(false)} />
 
         {/* API Key Manager Modal */}
-        <ApiKeyManager isOpen={isApiKeyManagerOpen} onClose={() => setIsApiKeyManagerOpen(false)} />
-
-        {/* USDC to NRN Purchase Modal */}
-        {isUSDCPurchaseOpen && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="relative">
-              <button
-                onClick={() => setIsUSDCPurchaseOpen(false)}
-                className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm hover:bg-red-600 z-10"
-              >
-                ×
-              </button>
-              <USDCToNRNPurchase
-                onPurchaseComplete={result => {
-                  console.log('Purchase completed:', result);
-                  // Update NRN balance if needed
-                  gameStore.addNRN(parseFloat(result.nrnAmount));
-                }}
-                onError={error => {
-                  console.error('Purchase error:', error);
-                  // Could show a toast notification here
-                }}
-              />
-            </div>
-          </div>
-        )}
-
         {/* Auto Demo Status Indicator */}
         {isVoiceActive && (
           <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-50">
@@ -1038,6 +1044,27 @@ const ReceiverInterface = () => {
       </main>
 
       {/* Slide-Down Modals */}
+      <SlideDownModal
+        isOpen={nodeForm !== null}
+        onClose={() => setNodeForm(null)}
+        title={nodeForm === 'context' ? 'Submit Context' : nodeForm === 'idea' ? 'Submit Idea' : 'Submit Error'}
+      >
+        {nodeForm && (
+          <NodeSubmissionForm key={nodeForm} kind={nodeForm} onSubmit={handleNodeSubmission} onDone={() => setNodeForm(null)} />
+        )}
+      </SlideDownModal>
+
+      <SlideDownModal isOpen={datasetFormOpen} onClose={() => setDatasetFormOpen(false)} title="Submit Dataset">
+        {datasetFormOpen && (
+          <DatasetSubmissionForm
+            targets={currentNRVs
+              .filter(n => n.inputType === 'Error' && n.networkErrorNodeId)
+              .map(n => ({ errorNodeId: n.networkErrorNodeId as string, label: n.problemDescription.slice(0, 80) }))}
+            onSubmit={(errorNodeId, format, records) => getKNIRVSERVERClient().submitErrorNodeDataset(errorNodeId, format, records)}
+          />
+        )}
+      </SlideDownModal>
+
       <SlideDownModal isOpen={activeModal === 'skills'} onClose={handleModalClose} title="Skills">
         <SkillsModalContent nrnBalance={nrnBalance} />
       </SlideDownModal>

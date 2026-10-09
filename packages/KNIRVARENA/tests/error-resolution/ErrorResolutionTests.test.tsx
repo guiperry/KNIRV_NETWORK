@@ -1,3 +1,4 @@
+import '../utils/realWebAssembly'; // must stay first: App pulls in @cosmjs/crypto (libsodium WASM)
 import * as React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
@@ -6,8 +7,8 @@ import '@testing-library/jest-dom';
 // Import components that were fixed
 import { SlidingPanel } from '../../src/components/SlidingPanel';
 import { CognitiveShellInterface } from '../../src/components/CognitiveShellInterface';
+import { ChatBrainProvider } from '../../src/contexts/ChatBrainContext';
 import VisualProcessor from '../../src/components/VisualProcessor';
-import VoiceProcessor from '../../src/components/VoiceProcessor';
 import { MetaAccountDashboard } from '../../src/components/MetaAccountDashboard';
 import UnifiedInterface from '../../src/components/UnifiedInterface';
 import App, { SkillResult, Adaptation } from '../../src/App';
@@ -21,7 +22,10 @@ jest.mock('../../src/services/AgentManagementService');
 jest.mock('../../src/shared/ComponentBridge');
 
 // Mock lucide-react icons
+// Real icons for everything the rendered tree uses; test ids only where the
+// assertions need them.
 jest.mock('lucide-react', () => ({
+  ...jest.requireActual('lucide-react'),
   X: () => <div data-testid="x-icon">X</div>,
   Brain: () => <div data-testid="brain-icon">Brain</div>,
   Activity: () => <div data-testid="activity-icon">Activity</div>,
@@ -187,23 +191,6 @@ describe('Error Resolution Tests', () => {
     });
   });
 
-  describe('Voice Processor Fixes', () => {
-    it('should initialize without function hoisting errors', () => {
-      const mockOnVoiceCommand = jest.fn();
-      const mockOnAudioData = jest.fn();
-
-      render(
-        <VoiceProcessor
-          onVoiceCommand={mockOnVoiceCommand}
-          onAudioData={mockOnAudioData}
-          isActive={false}
-        />
-      );
-
-      expect(screen.getByText('Voice Control')).toBeInTheDocument();
-    });
-  });
-
   describe('Transaction Type Fixes', () => {
     it('should handle Transaction interface with type property', () => {
       const mockTransaction = {
@@ -234,8 +221,6 @@ describe('Error Resolution Tests', () => {
         loraEnabled: true,
         enhancedLoraEnabled: false,
         hrmEnabled: true,
-        wasmAgentsEnabled: true,
-        typeScriptCompilerEnabled: false,
         adaptiveLearningEnabled: true
       };
 
@@ -278,7 +263,9 @@ describe('Error Resolution Tests', () => {
       // Test CognitiveShellInterface
       const { unmount: unmountCognitive } = render(
         <BrowserRouter>
-          <CognitiveShellInterface onStateChange={() => {}} />
+          <ChatBrainProvider>
+            <CognitiveShellInterface onStateChange={() => {}} />
+          </ChatBrainProvider>
         </BrowserRouter>
       );
       unmountCognitive();
@@ -302,6 +289,13 @@ describe('Error Resolution Tests', () => {
         endpoints: {},
         features: {}
       });
+      // ComponentBridge is auto-mocked, so getState would return undefined.
+      mockBridge.getState = jest.fn(() => ({
+        components: { receiver: 'running', cli: 'stopped' },
+        cognitive: { hrmActive: false, loraAdapters: [], learningMode: false, confidence: 0 },
+        wallet: { connected: false, balance: 0, transactions: [] },
+        network: { connected: true, peers: 0, blockHeight: 0 },
+      }));
 
       const { unmount: unmountUnified } = render(
         <BrowserRouter>
@@ -311,11 +305,8 @@ describe('Error Resolution Tests', () => {
       unmountUnified();
 
       // Test App component
-      const { unmount: unmountApp } = render(
-        <BrowserRouter>
-          <App />
-        </BrowserRouter>
-      );
+      // App provides its own router.
+      const { unmount: unmountApp } = render(<App />);
 
       await waitFor(() => {
         expect(document.body).toBeInTheDocument();

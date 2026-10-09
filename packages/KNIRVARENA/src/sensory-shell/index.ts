@@ -27,14 +27,6 @@ export type {
   AttentionMechanism 
 } from './FabricAlgorithm';
 
-// Voice Processing
-export { VoiceProcessor } from './VoiceProcessor';
-export type { 
-  VoiceConfig, 
-  SpeechRecognitionResult, 
-  VoiceCommand 
-} from './VoiceProcessor';
-
 // Visual Processing
 export { VisualProcessor } from './VisualProcessor';
 export type { 

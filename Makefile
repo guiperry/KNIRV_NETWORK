@@ -1,8 +1,10 @@
 # KNIRV Network Root Makefile
 #
-# KNIRVSERVER is the entry point for the entire network: it embeds and
-# launches backend_server, KNIRVGATEWAY, KNIRVCHAIN, KNIRVGRAPH, KNIRVORACLE,
-# KNIRVHASHER, and KNIRVAGENT as subprocesses. See "make testnet-start" below.
+# KNIRVSERVER is the entry point for the entire network. Its launcher embeds
+# and runs backend_server, ulorad (KNIRVULORA), KNIRVAGENT, and KNIRVLLAMA;
+# backend_server in turn runs KNIRVGATEWAY, KNIRVCHAIN, KNIRVGRAPH,
+# KNIRVORACLE, KNIRVHASHER, and KNIRVARENA. KNIRVMONITOR is built into
+# KNIRVSERVER itself. See "make testnet-start" below.
 #
 # Every package under packages/ is independent (its own go.mod or
 # package.json, no cross-package Go imports). Build and test each one from
@@ -10,8 +12,9 @@
 #
 # Production/container deployment (eBPF-enabled OS image, Docker packaging,
 # key bridging) is documented in README.md under "Deployment" and lives in
-# the private KNIRV_CORP repo (os_builder, container_deployer,
-# image_installer). It is intentionally not automated from this Makefile.
+# the private KNIRV_CORP repo (os_builder, container_deployer, and the
+# desktop client's `knirv-client install`). It is intentionally not automated
+# from this Makefile. The KNIRVCONTROLLER app also lives in KNIRV_CORP.
 
 # =============================================================================
 # CONFIGURATION
@@ -55,16 +58,19 @@ help: ## Show this help message
 	@echo "  make test-modp                 # formal verification (P language)"
 	@echo ""
 	@echo "$(YELLOW)Production deployment:$(NC) see README.md — built via KNIRV_CORP's"
-	@echo "  os_builder / container_deployer / image_installer, not this Makefile."
+	@echo "  os_builder / container_deployer / knirv-client install, not this Makefile."
 
 # =============================================================================
 # KNIRVSERVER — the entry point for the entire network
 #
-# KNIRVSERVER embeds the compiled binaries for backend_server, KNIRVGATEWAY,
-# KNIRVCHAIN, KNIRVGRAPH, KNIRVORACLE, KNIRVHASHER, and KNIRVAGENT, and
-# extracts + launches each one as a subprocess on startup. Building it does
-# NOT require rebuilding any of those packages; their binaries already ship
-# vendored inside packages/KNIRVSERVER.
+# KNIRVSERVER embeds the compiled backend_server, ulorad, knirvagent, and
+# knirvllama binaries; backend_server carries KNIRVGATEWAY, KNIRVCHAIN,
+# KNIRVGRAPH, KNIRVORACLE, KNIRVHASHER, and KNIRVARENA via the
+# packages/KNIRVSERVER/pkg/knirv* modules. Each is extracted and launched as a
+# subprocess on startup. Building it does NOT require rebuilding any of those
+# packages; their binaries already ship vendored inside packages/KNIRVSERVER.
+# For a full from-source rebuild use `make -C packages/KNIRVSERVER binary`
+# (requires the sibling KNIRV_CORP checkout for backend_server).
 # =============================================================================
 
 KNIRVSERVER_TESTNET_PID ?= /tmp/knirvserver-testnet.pid
@@ -134,7 +140,7 @@ health-check: ## Check KNIRVSERVER health (the network's single entry point)
 # =============================================================================
 
 .PHONY: build-all
-build-all: ## Build every package in packages/
+build-all: ## Build every package in packages/ (KNIRVMONITOR is built as part of KNIRVSERVER)
 	@echo "$(BLUE)🚀 Building all KNIRV Network packages...$(NC)"
 	@echo "=========================================="
 	@$(MAKE) testnet-build
@@ -142,13 +148,12 @@ build-all: ## Build every package in packages/
 	@$(MAKE) build-knirvgateway
 	@$(MAKE) build-knirvgraph
 	@$(MAKE) build-knirvoracle
-	@$(MAKE) build-knirvmonitor
 	@$(MAKE) build-knirvhasher
 	@$(MAKE) build-knirvagent
+	@$(MAKE) build-knirvulora
+	@$(MAKE) build-knirvinferencer
 	@$(MAKE) build-knirvbase
 	@$(MAKE) build-knirvarena
-	@$(MAKE) build-knirvcontroller
-	@$(MAKE) build-knirvbridge
 	@echo ""
 	@echo "$(GREEN)🎉 All KNIRV Network packages built!$(NC)"
 
@@ -187,11 +192,6 @@ build-knirvoracle: ## Build KNIRVORACLE (Go)
 	@cd packages/KNIRVORACLE && go build -v ./cmd/oracle
 	@echo "$(GREEN)✓ KNIRVORACLE built$(NC)"
 
-.PHONY: build-knirvmonitor
-build-knirvmonitor: ## Build KNIRVMONITOR (Go, network monitor aggregation service)
-	@echo "$(BLUE)Building KNIRVMONITOR...$(NC)"
-	@cd packages/KNIRVMONITOR && go build -v ./cmd/server
-	@echo "$(GREEN)✓ KNIRVMONITOR built$(NC)"
 
 .PHONY: build-knirvhasher
 build-knirvhasher: ## Build KNIRVHASHER (Go, ASIC inference pipeline)
@@ -230,17 +230,17 @@ build-knirvarena: ## Build KNIRVARENA (TypeScript/React/Three.js)
 	@cd packages/KNIRVARENA && npm install && npm run build
 	@echo "$(GREEN)✓ KNIRVARENA built$(NC)"
 
-.PHONY: build-knirvcontroller
-build-knirvcontroller: ## Build KNIRVCONTROLLER (React/Vite end-user app)
-	@echo "$(BLUE)Building KNIRVCONTROLLER...$(NC)"
-	@cd packages/KNIRVCONTROLLER && npm install && npm run build
-	@echo "$(GREEN)✓ KNIRVCONTROLLER built$(NC)"
+.PHONY: build-knirvulora
+build-knirvulora: ## Build KNIRVULORA (Go, ulorad adapter-compiler daemon + ulora CLI)
+	@echo "$(BLUE)Building KNIRVULORA...$(NC)"
+	@cd packages/KNIRVULORA && go build -v ./cmd/...
+	@echo "$(GREEN)✓ KNIRVULORA built$(NC)"
 
-.PHONY: build-knirvbridge
-build-knirvbridge: ## Build KNIRVBRIDGE (browser wallet extension)
-	@echo "$(BLUE)Building KNIRVBRIDGE...$(NC)"
-	@cd packages/KNIRVBRIDGE && npm install && npm run build
-	@echo "$(GREEN)✓ KNIRVBRIDGE built$(NC)"
+.PHONY: build-knirvinferencer
+build-knirvinferencer: ## Build KNIRVINFERENCER (Go library, shared LLM provider layer)
+	@echo "$(BLUE)Building KNIRVINFERENCER...$(NC)"
+	@cd packages/KNIRVINFERENCER && go build -v ./...
+	@echo "$(GREEN)✓ KNIRVINFERENCER built$(NC)"
 
 .PHONY: build-modp
 build-modp: ## Compile ModP (P language) formal verification modules
@@ -270,8 +270,8 @@ tests: test-setup ## Run the full test suite for every package
 	@$(MAKE) test-knirvbase
 	@$(MAKE) test-knirvsdk
 	@$(MAKE) test-knirvarena
-	@$(MAKE) test-knirvcontroller
-	@$(MAKE) test-knirvbridge
+	@$(MAKE) test-knirvulora
+	@$(MAKE) test-knirvinferencer
 	@$(MAKE) test-integration
 	@$(MAKE) test-reports
 	@echo ""
@@ -339,15 +339,15 @@ test-knirvarena: ## Test KNIRVARENA
 	@echo "$(BLUE)Testing KNIRVARENA...$(NC)"
 	@cd packages/KNIRVARENA && npm test --if-present -- --watchAll=false
 
-.PHONY: test-knirvcontroller
-test-knirvcontroller: ## Test KNIRVCONTROLLER (no test script defined yet — lints instead)
-	@echo "$(BLUE)Testing KNIRVCONTROLLER...$(NC)"
-	@cd packages/KNIRVCONTROLLER && npm run lint --if-present
+.PHONY: test-knirvulora
+test-knirvulora: ## Test KNIRVULORA
+	@echo "$(BLUE)Testing KNIRVULORA...$(NC)"
+	@cd packages/KNIRVULORA && go test -v ./...
 
-.PHONY: test-knirvbridge
-test-knirvbridge: ## Test KNIRVBRIDGE
-	@echo "$(BLUE)Testing KNIRVBRIDGE...$(NC)"
-	@cd packages/KNIRVBRIDGE && npm run test:ci --if-present
+.PHONY: test-knirvinferencer
+test-knirvinferencer: ## Test KNIRVINFERENCER
+	@echo "$(BLUE)Testing KNIRVINFERENCER...$(NC)"
+	@cd packages/KNIRVINFERENCER && go test -v ./...
 
 .PHONY: test-integration
 test-integration: ## Run cross-service integration tests (real services, no mocks)
@@ -364,7 +364,7 @@ test-reports: ## Generate a summary test report
 		echo ""; \
 		echo "## Packages"; \
 		echo "- KNIRVSERVER, KNIRVCHAIN, KNIRVGATEWAY, KNIRVGRAPH, KNIRVORACLE: ✓"; \
-		echo "- KNIRVBASE, KNIRVSDK, KNIRVARENA, KNIRVCONTROLLER, KNIRVBRIDGE: ✓"; \
+		echo "- KNIRVBASE, KNIRVSDK, KNIRVARENA, KNIRVULORA, KNIRVINFERENCER: ✓"; \
 		echo "- Integration tests: ✓"; \
 	} > $(TEST_REPORTS_DIR)/summary_$(TIMESTAMP).md
 	@echo "$(GREEN)✓ Test report: $(TEST_REPORTS_DIR)/summary_$(TIMESTAMP).md$(NC)"

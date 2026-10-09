@@ -1,4 +1,5 @@
 import { Socket, Channel } from "phoenix";
+import { getKnirvServerUrl } from '../config/runtimeConfig';
 import type {
   DVENode,
   DVERequest,
@@ -24,7 +25,7 @@ export class DVEClient {
 
   constructor(config: Partial<DVEClientConfig> = {}) {
     this.config = {
-      baseUrl: config.baseUrl || "http://localhost:8082",
+      baseUrl: config.baseUrl || getKnirvServerUrl(),
       apiKey: config.apiKey,
       timeout: config.timeout || 30000,
       retryAttempts: config.retryAttempts || 3,

@@ -9,6 +9,7 @@
  */
 
 import type { Challenge } from '../types/challenge';
+import { authToken, completeOnServer, ServerLLMError, type ServerLLMProvider } from './serverLLM';
 
 // ── Types ─────────────────────────────────────────────────────────────────
 
@@ -218,98 +219,29 @@ function mockEvaluate(
   };
 }
 
-// ── Provider implementations ──────────────────────────────────────────────
+// ── Provider calls (through KNIRVSERVER; no keys in the browser) ─────────
 
-async function callOpenAI(systemPrompt: string, userPrompt: string): Promise<string> {
-  const key = import.meta.env.VITE_OPENAI_API_KEY;
-  if (!key) throw new Error('No OpenAI key');
-
-  const res = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${key}`,
-    },
-    body: JSON.stringify({
-      model: 'gpt-4o-mini',
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: userPrompt },
-      ],
-      temperature: 0.3,
-      max_tokens: 1024,
-    }),
-  });
-
-  if (!res.ok) throw new Error(`OpenAI ${res.status}`);
-  const data = await res.json();
-  return data.choices[0]?.message?.content ?? '';
-}
-
-async function callGemini(systemPrompt: string, userPrompt: string): Promise<string> {
-  // Support both VITE_GOOGLE_API_KEY and the legacy VITE_PUBLIC_GOOGLE_API_KEY name
-  const key = import.meta.env.VITE_GOOGLE_API_KEY || import.meta.env.VITE_PUBLIC_GOOGLE_API_KEY;
-  if (!key) throw new Error('No Gemini key');
-
-  const combinedPrompt = `${systemPrompt}\n\n${userPrompt}`;
-
-  const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: combinedPrompt }] }],
-        generationConfig: { temperature: 0.3, maxOutputTokens: 1024 },
-      }),
-    }
-  );
-
-  if (!res.ok) throw new Error(`Gemini ${res.status}`);
-  const data = await res.json();
-  return data.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
-}
-
-async function callDeepSeek(systemPrompt: string, userPrompt: string): Promise<string> {
-  // Support both VITE_DEEPSEEK_API_KEY and the server-side DEEPSEEK_API_KEY
-  const key = import.meta.env.VITE_DEEPSEEK_API_KEY || import.meta.env.DEEPSEEK_API_KEY;
-  if (!key) throw new Error('No DeepSeek key');
-
-  const res = await fetch('https://api.deepseek.com/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${key}`,
-    },
-    body: JSON.stringify({
-      model: 'deepseek-chat',
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: userPrompt },
-      ],
-      temperature: 0.3,
-      max_tokens: 1024,
-    }),
-  });
-
-  if (!res.ok) throw new Error(`DeepSeek ${res.status}`);
-  const data = await res.json();
-  return data.choices[0]?.message?.content ?? '';
-}
+const PROVIDER_ORDER: ServerLLMProvider[] = ['llama', 'openai', 'anthropic', 'gemini', 'deepseek'];
 
 async function callLLM(systemPrompt: string, userPrompt: string): Promise<string> {
   const errors: string[] = [];
-
-  try { return await callOpenAI(systemPrompt, userPrompt); }
-  catch (e) { errors.push(`OpenAI: ${(e as Error).message}`); }
-
-  try { return await callGemini(systemPrompt, userPrompt); }
-  catch (e) { errors.push(`Gemini: ${(e as Error).message}`); }
-
-  try { return await callDeepSeek(systemPrompt, userPrompt); }
-  catch (e) { errors.push(`DeepSeek: ${(e as Error).message}`); }
-
-  throw new Error(`All LLM providers failed: ${errors.join('; ')}`);
+  for (const provider of PROVIDER_ORDER) {
+    try {
+      return await completeOnServer({
+        provider,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt },
+        ],
+        maxTokens: 1024,
+      });
+    } catch (e) {
+      // Missing keys and an unavailable local model just move on to the next provider.
+      errors.push(`${provider}: ${(e as Error).message}`);
+      if (e instanceof ServerLLMError && e.code === 'UNAUTHENTICATED') break;
+    }
+  }
+  throw new Error(`No language model is available: ${errors.join('; ')}`);
 }
 
 // ── Public API ────────────────────────────────────────────────────────────
@@ -318,19 +250,11 @@ export class GameLLMService {
   private useMock: boolean;
 
   constructor() {
-    // Use mock only if no keys are configured at all
-    this.useMock =
-      !import.meta.env.VITE_OPENAI_API_KEY &&
-      !import.meta.env.VITE_GOOGLE_API_KEY &&
-      !import.meta.env.VITE_PUBLIC_GOOGLE_API_KEY &&
-      !import.meta.env.VITE_DEEPSEEK_API_KEY &&
-      !import.meta.env.DEEPSEEK_API_KEY;
-
+    // The deterministic mock is only for signed-out play; signed-in users get
+    // real models through KNIRVSERVER (local llama.cpp, or their own keys).
+    this.useMock = !authToken();
     if (this.useMock) {
-      console.warn(
-        '[GameLLMService] No LLM API keys found. Using deterministic mock. ' +
-        'Set VITE_OPENAI_API_KEY, VITE_GOOGLE_API_KEY, or VITE_DEEPSEEK_API_KEY for real gameplay.'
-      );
+      console.warn('[GameLLMService] Not signed in to KNIRV: using the deterministic mock. Sign in for real gameplay.');
     }
   }
 

@@ -25,8 +25,6 @@ export class CognitiveShellDemo {
       loraEnabled: true,
       enhancedLoraEnabled: true,
       hrmEnabled: false,
-      wasmAgentsEnabled: false,
-      typeScriptCompilerEnabled: false,
       ecosystemCommunicationEnabled: false,
       sealFrameworkEnabled: false,
       fabricAlgorithmEnabled: false,

@@ -8,6 +8,7 @@ import { SabotageEngine, SabotageType } from "../../../engine/Sabotage";
 import { getGameLLMService, DEFAULT_PERSONAS, type AgentPersona, type SolutionProposal } from "../../../services/gameLLMService";
 import type { Challenge, ErrorNodeType } from "../../../types/challenge";
 import { useAudio, type SfxName } from "./useAudio";
+import { getKnirvGatewayUrl } from '../../../config/runtimeConfig';
 
 const sfx = (name: SfxName) => useAudio.getState().playSfx(name);
 
@@ -469,7 +470,7 @@ const generateInitialAgents = (personas: AgentPersona[]): Agent[] => {
 // ── Engine initialization ─────────────────────────────────────────────────
 
 const verifier = new Verifier();
-const loraxClient = new LoraxClient(`${(import.meta.env.VITE_KNIRV_GATEWAY_URL || 'https://gateway.knirv.com').replace(/\/$/, '')}/api`);
+const loraxClient = new LoraxClient(`${getKnirvGatewayUrl()}/api`);
 const tournament = new Tournament(verifier, loraxClient);
 const trainingManager = new TrainingManager();
 

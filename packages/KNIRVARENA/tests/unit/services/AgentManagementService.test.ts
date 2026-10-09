@@ -2,11 +2,11 @@
  * Tests for AgentManagementService using real WASM files
  */
 
-// Mock the database service to avoid RxDB issues in tests
+// Mock the browser store (replaced the KNIRVBASE databaseService — §3.3)
 const mockAgentData = new Map();
 
-jest.mock('../../../src/core/services/databaseService', () => ({
-  databaseService: {
+jest.mock('../../../src/storage/arenaStore', () => ({
+  arenaStore: {
     createAgent: jest.fn().mockImplementation(async (agentData) => {
       const agent = {
         ...agentData,
@@ -42,7 +42,7 @@ jest.mock('../../../src/core/services/databaseService', () => ({
   }
 }));
 
-import { agentManagementService, Agent, AgentUploadRequest, AgentDeploymentRequest } from '../../../src/services/AgentManagementService';
+import { agentManagementService, AgentUploadRequest } from '../../../src/services/AgentManagementService';
 import { loadWasmAsFile, createFileFromTestWasm, validateWasmFile } from '../../../test-utils/wasm-test-utils';
 
 // Mock fetch globally
@@ -124,158 +124,6 @@ describe('AgentManagementService', () => {
     });
   });
 
-  describe('deployAgent', () => {
-    let testAgent: Agent;
-
-    beforeEach(async () => {
-      const mockFile = new File(['test'], 'test.wasm');
-      const uploadRequest: AgentUploadRequest = {
-        file: mockFile,
-        metadata: { name: 'Test Agent' },
-        type: 'wasm'
-      };
-      testAgent = await agentManagementService.uploadAgent(uploadRequest);
-    });
-
-    it('should deploy an available agent successfully', async () => {
-      (fetch as jest.Mock).mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ deploymentId: 'test-deployment-123' })
-      });
-
-      const deploymentRequest: AgentDeploymentRequest = {
-        agentId: testAgent.agentId,
-        targetNRV: 'test-nrv',
-        configuration: { param1: 'value1' },
-        resources: { memory: 64, cpu: 1, timeout: 30000 }
-      };
-
-      const deploymentId = await agentManagementService.deployAgent(deploymentRequest);
-
-      expect(deploymentId).toBe('test-deployment-123');
-
-      // Get the updated agent from the service
-      const deployedAgents = await agentManagementService.getDeployedAgents();
-      const deployedAgent = deployedAgents.find(a => a.agentId === testAgent.agentId);
-
-      expect(deployedAgent).toBeDefined();
-      expect(deployedAgent!.status).toBe('Deployed');
-    });
-
-    it('should fail to deploy non-existent agent', async () => {
-      const deploymentRequest: AgentDeploymentRequest = {
-        agentId: 'non-existent-id'
-      };
-
-      await expect(agentManagementService.deployAgent(deploymentRequest))
-        .rejects.toThrow('Agent non-existent-id not found');
-    });
-
-    it('should fail to deploy already deployed agent', async () => {
-      // First deployment
-      (fetch as jest.Mock).mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ deploymentId: 'test-deployment-123' })
-      });
-
-      await agentManagementService.deployAgent({ agentId: testAgent.agentId });
-
-      // Second deployment attempt
-      await expect(agentManagementService.deployAgent({ agentId: testAgent.agentId }))
-        .rejects.toThrow(`Agent ${testAgent.agentId} is not available for deployment`);
-    });
-
-    it('should handle deployment API failure', async () => {
-      (fetch as jest.Mock).mockResolvedValueOnce({
-        ok: false,
-        statusText: 'Internal Server Error'
-      });
-
-      const deploymentRequest: AgentDeploymentRequest = {
-        agentId: testAgent.agentId
-      };
-
-      await expect(agentManagementService.deployAgent(deploymentRequest))
-        .rejects.toThrow('Deployment failed: Internal Server Error');
-
-      // Agent should remain available
-      expect(testAgent.status).toBe('Available');
-    });
-  });
-
-  describe('executeSkill', () => {
-    let deployedAgent: Agent;
-
-    beforeEach(async () => {
-      const mockFile = new File(['test'], 'test.wasm');
-      const uploadRequest: AgentUploadRequest = {
-        file: mockFile,
-        metadata: { name: 'Test Agent' },
-        type: 'wasm'
-      };
-      deployedAgent = await agentManagementService.uploadAgent(uploadRequest);
-
-      // Deploy the agent
-      (fetch as jest.Mock).mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ deploymentId: 'test-deployment' })
-      });
-      await agentManagementService.deployAgent({ agentId: deployedAgent.agentId });
-    });
-
-    it('should execute skill on deployed agent successfully', async () => {
-      (fetch as jest.Mock).mockImplementationOnce(() =>
-        new Promise(resolve =>
-          setTimeout(() => resolve({
-            ok: true,
-            json: async () => ({
-              output: { result: 'skill executed successfully' },
-              resourceUsage: { memory: 32, cpu: 0.5 }
-            })
-          }), 10) // 10ms delay to ensure execution time > 0
-        )
-      );
-
-      const result = await agentManagementService.executeSkill(
-        deployedAgent.agentId,
-        'test-skill',
-        { param1: 'value1' }
-      );
-
-      expect(result.success).toBe(true);
-      expect(result.output).toEqual({ result: 'skill executed successfully' });
-      expect(result.resourceUsage).toEqual({ memory: 32, cpu: 0.5 });
-      expect(result.executionTime).toBeGreaterThan(0);
-    });
-
-    it('should fail to execute skill on non-deployed agent', async () => {
-      const nonDeployedAgent = await agentManagementService.uploadAgent({
-        file: new File(['test'], 'test2.wasm'),
-        metadata: { name: 'Non-deployed Agent' },
-        type: 'wasm'
-      });
-
-      await expect(agentManagementService.executeSkill(nonDeployedAgent.agentId, 'test-skill', {}))
-        .rejects.toThrow(`Agent ${nonDeployedAgent.agentId} is not deployed`);
-    });
-
-    it('should handle skill execution API failure', async () => {
-      (fetch as jest.Mock).mockResolvedValueOnce({
-        ok: false,
-        statusText: 'Skill Not Found'
-      });
-
-      const result = await agentManagementService.executeSkill(
-        deployedAgent.agentId,
-        'non-existent-skill',
-        {}
-      );
-
-      expect(result.success).toBe(false);
-      expect(result.error).toContain('Skill execution failed');
-    });
-  });
-
   describe('removeAgent', () => {
     it('should remove an available agent', async () => {
       const mockFile = new File(['test'], 'test.wasm');
@@ -290,28 +138,19 @@ describe('AgentManagementService', () => {
       expect(await agentManagementService.getAgent(agent.agentId)).toBeNull();
     });
 
-    it('should undeploy and remove a deployed agent', async () => {
-      const mockFile = new File(['test'], 'test.wasm');
+    // Agents run on the paired CLI (§2); the arena cannot undeploy them, so a
+    // deployed agent must be recalled there first.
+    it('refuses to remove a deployed agent', async () => {
       const agent = await agentManagementService.uploadAgent({
-        file: mockFile,
+        file: new File(['test'], 'test.wasm'),
         metadata: { name: 'Test Agent' },
         type: 'wasm'
       });
+      mockAgentData.set(agent.agentId, { ...mockAgentData.get(agent.agentId), status: 'Deployed' });
 
-      // Deploy agent
-      (fetch as jest.Mock).mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ deploymentId: 'test' })
-      });
-      await agentManagementService.deployAgent({ agentId: agent.agentId });
-
-      // Mock undeploy
-      (fetch as jest.Mock).mockResolvedValueOnce({ ok: true });
-
-      await agentManagementService.removeAgent(agent.agentId);
-
-      expect(await agentManagementService.getAgent(agent.agentId)).toBeNull();
-      expect(agentManagementService.getDeployedAgents()).not.toContain(agent);
+      await expect(agentManagementService.removeAgent(agent.agentId)).rejects.toThrow(/recall it from its error node first/);
+      expect(await agentManagementService.getAgent(agent.agentId)).not.toBeNull();
+      expect(fetch).not.toHaveBeenCalled();
     });
   });
 
@@ -348,12 +187,7 @@ describe('AgentManagementService', () => {
 
       expect(await agentManagementService.getDeployedAgents()).toHaveLength(0);
 
-      // Deploy agent
-      (fetch as jest.Mock).mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ deploymentId: 'test' })
-      });
-      await agentManagementService.deployAgent({ agentId: agent.agentId });
+      mockAgentData.set(agent.agentId, { ...mockAgentData.get(agent.agentId), status: 'Deployed' });
 
       const deployedAgents = await agentManagementService.getDeployedAgents();
       expect(deployedAgents).toHaveLength(1);

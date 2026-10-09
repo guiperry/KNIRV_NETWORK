@@ -6,7 +6,6 @@ import { Brain, Activity, Settings, Trash2 } from 'lucide-react';
 import { cognitiveEngineService } from '../services/CognitiveEngineService';
 import { CognitiveEngine, CognitiveConfig, CognitiveState } from '../sensory-shell/CognitiveEngine';
 import { HRMBridge } from '../sensory-shell/HRMBridge';
-import { WASMOrchestrator } from '../sensory-shell/WASMOrchestrator';
 import { ChatInterface } from './chat-brain/ChatInterface';
 import { NotesPanel } from './chat-brain/NotesPanel';
 import { LLMSelector } from './chat-brain/LLMSelector';
@@ -39,7 +38,6 @@ export const CognitiveShellInterface: React.FC<CognitiveShellInterfaceProps> = (
   preloadedPrompt,
 }) => {
   const [cognitiveEngine, setCognitiveEngine] = useState<CognitiveEngine | null>(null);
-  const [wasmOrchestrator, setWasmOrchestrator] = useState<WASMOrchestrator | null>(null);
   const [isRunning, setIsRunning] = useState(false);
   const [metrics, setMetrics] = useState<Record<string, unknown> | null>(null);
   const [learningMode, setLearningMode] = useState(false);
@@ -53,17 +51,11 @@ export const CognitiveShellInterface: React.FC<CognitiveShellInterfaceProps> = (
       if (cognitiveEngine) {
         const engineMetrics = await cognitiveEngine.getMetrics();
         setMetrics(engineMetrics as Record<string, unknown>);
-
-        // Initialize WASM orchestrator if not already done
-        if (!wasmOrchestrator && cognitiveEngine.isWASMAgentReady()) {
-          const orchestrator = new WASMOrchestrator();
-          setWasmOrchestrator(orchestrator);
-        }
       }
     } catch (error) {
       console.error('Failed to load engine metrics:', error);
     }
-  }, [cognitiveEngine, wasmOrchestrator]);
+  }, [cognitiveEngine]);
   const [hrmBridge, setHrmBridge] = useState<HRMBridge | null>(null);
   const [config] = useState<CognitiveConfig>({
     maxContextSize: 100,
@@ -75,8 +67,6 @@ export const CognitiveShellInterface: React.FC<CognitiveShellInterfaceProps> = (
     loraEnabled: true,
     enhancedLoraEnabled: false,
     hrmEnabled: true,
-    wasmAgentsEnabled: true,
-    typeScriptCompilerEnabled: false,
     adaptiveLearningEnabled: true,
     walletIntegrationEnabled: true,
     chainIntegrationEnabled: true,
@@ -85,6 +75,11 @@ export const CognitiveShellInterface: React.FC<CognitiveShellInterfaceProps> = (
   });
 
   const engineRef = useRef<CognitiveEngine | null>(null);
+  // Each subsystem is created once per mount. The init effect re-runs when
+  // its callbacks change, and those depend on the state these initializers
+  // set; without the guards every run created a new bridge and engine,
+  // which re-ran the effect again without end.
+  const hrmBridgeRef = useRef<HRMBridge | null>(null);
 
   // Track cleanup function to ensure proper disposal
   const cleanupRef = useRef<(() => void) | null>(null);
@@ -101,6 +96,7 @@ export const CognitiveShellInterface: React.FC<CognitiveShellInterfaceProps> = (
   }, []);
 
   const initializeHRMBridge = useCallback(async () => {
+    if (hrmBridgeRef.current) return;
     try {
       const bridge = new HRMBridge({
         l_module_count: 8,
@@ -109,6 +105,7 @@ export const CognitiveShellInterface: React.FC<CognitiveShellInterfaceProps> = (
         processing_timeout: 5000
       });
 
+      hrmBridgeRef.current = bridge;
       await bridge.initialize();
       setHrmBridge(bridge);
       console.log('HRM Bridge initialized successfully:', bridge);
@@ -116,18 +113,6 @@ export const CognitiveShellInterface: React.FC<CognitiveShellInterfaceProps> = (
       console.error('Failed to initialize HRM Bridge:', error);
     }
   }, []);
-
-  const initializeWASMOrchestrator = useCallback(async () => {
-    try {
-      const orchestrator = new WASMOrchestrator();
-      await orchestrator.initialize();
-      setWasmOrchestrator(orchestrator);
-      console.log('WASM Orchestrator initialized successfully:', orchestrator);
-    } catch (error) {
-      console.error('Failed to initialize WASM Orchestrator:', error);
-    }
-  }, []);
-
 
   const updateMetrics = useCallback(() => {
     if (cognitiveEngine) {
@@ -137,6 +122,7 @@ export const CognitiveShellInterface: React.FC<CognitiveShellInterfaceProps> = (
   }, [cognitiveEngine]);
 
   const initializeCognitiveEngine = useCallback(async () => {
+    if (engineRef.current) return cleanupRef.current ?? (() => {});
     try {
       const engine = new CognitiveEngine(config);
       engineRef.current = engine;
@@ -273,7 +259,6 @@ export const CognitiveShellInterface: React.FC<CognitiveShellInterfaceProps> = (
   useEffect(() => {
     initializeCognitiveEngine();
     initializeHRMBridge();
-    initializeWASMOrchestrator();
     loadEngineStatus();
 
     // Auto-start cognitive engine after initialization
@@ -343,7 +328,7 @@ export const CognitiveShellInterface: React.FC<CognitiveShellInterfaceProps> = (
       // Only cleanup if we're actually unmounting
       console.log('CognitiveShellInterface cleanup called (but engine preserved)');
     };
-  }, [initializeCognitiveEngine, initializeHRMBridge, initializeWASMOrchestrator, loadEngineStatus, loadEngineMetrics, updateMetrics, isRunning]);
+  }, [initializeCognitiveEngine, initializeHRMBridge, loadEngineStatus, loadEngineMetrics, updateMetrics, isRunning]);
 
 
 

@@ -4,7 +4,7 @@ import (
 	"bufio"
 	"context"
 	"crypto/sha256"
-	"encoding/binary"
+
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -28,6 +28,7 @@ import (
 	"data-encoder/pkg/nrvio"
 	"data-encoder/pkg/schema"
 	"data-encoder/pkg/sliding"
+	"data-encoder/pkg/slotpack"
 	"data-encoder/pkg/tokenizer"
 )
 
@@ -732,19 +733,7 @@ func writeNRV(path string, frames []schema.TrainingFrame) error {
 	}
 	ticker := nrvio.NewFrameTicker(w, time.Second)
 	for _, frame := range frames {
-		slots := frame.GetAsicSlots()
-		var b nrvio.Bracket
-		copy(b.Projections[:], internal.SlotsToProjections(slots[:4]))
-		b.Syntactic = nrvio.PackSyntactic(uint8(slots[4]), 0, 0)
-		b.DepHead = int8(slots[5])
-		b.IntentFlags = uint8(slots[9])
-		b.DomainSig = uint16(slots[10])
-		b.GoldenSeed = uint32(frame.TargetTokenID)
-		b.LSHSalt = uint32(slots[11])
-		for i := 0; i < 3; i++ {
-			binary.LittleEndian.PutUint32(b.Memory[i*4:], slots[6+i])
-		}
-		b.SubSecondUS = uint32(frame.WindowStart)
+		b := slotpack.Bracket(frame.GetAsicSlots(), frame.TargetTokenID, frame.WindowStart)
 		if err := ticker.Append(b); err != nil {
 			return err
 		}

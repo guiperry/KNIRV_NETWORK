@@ -186,16 +186,6 @@ jest.mock('../../../src/components/MetaAccountDashboard', () => ({
   MetaAccountDashboard: ({ config }: { config: { chainId: string } }) => `MetaAccountDashboard with config: ${config.chainId}`
 }));
 
-jest.mock('../../../src/config/xion-config', () => ({
-  getXionConfig: jest.fn().mockReturnValue({
-    chainId: 'xion-testnet-1',
-    rpcEndpoint: 'https://rpc.xion-testnet-1.burnt.com:443',
-    gasPrice: '0.025uxion',
-    nrnTokenAddress: 'xion1nrn_contract_test_address',
-    faucetAddress: 'xion1faucet_contract_test_address'
-  })
-}));
-
 describe('WalletScreen Component', () => {
   describe('Component Rendering', () => {
     it('should render wallet screen with default tab', () => {

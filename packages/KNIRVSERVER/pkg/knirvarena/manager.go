@@ -127,6 +127,7 @@ func (m *Manager) Start() error {
 	})
 
 	mux.HandleFunc("/ws", m.handleWebSocket)
+	mux.HandleFunc("/runtime-config.json", handleRuntimeConfig)
 
 	fileServer := http.FileServer(http.Dir(m.extractPath))
 	mux.Handle("/", fileServer)

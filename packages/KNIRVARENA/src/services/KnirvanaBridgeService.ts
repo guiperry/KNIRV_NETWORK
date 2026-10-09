@@ -5,7 +5,6 @@
  */
 
 import { personalKNIRVGRAPHService, GraphNode, PersonalGraph } from './PersonalKNIRVGRAPHService';
-import { knirvbaseService } from './KNIRVBASEService';
 import * as flatbuffers from 'flatbuffers';
 import { Player } from '../flatbuffers/knirv/schema/player';
 import { Agent } from '../flatbuffers/knirv/schema/agent';
@@ -116,11 +115,6 @@ export class KnirvanaBridgeService {
     if (this.isInitialized) return;
 
     try {
-      // Initialize KNIRVBASE
-      if (!knirvbaseService.isInitialized()) {
-        await knirvbaseService.initialize();
-      }
-
       // Load or create personal graph
       this.personalGraph = await personalKNIRVGRAPHService.loadPersonalGraph('current_user');
 

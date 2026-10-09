@@ -59,58 +59,6 @@ describe('Phase 1: Basic Implementation Tests', () => {
     });
   });
 
-  describe('AgentCoreCompiler Basic Tests', () => {
-    it('should be able to import AgentCoreCompiler', async () => {
-      try {
-        const { default: AgentCoreCompiler } = await import('../../src/core/agent-core-compiler/src/AgentCoreCompiler');
-        expect(AgentCoreCompiler).toBeDefined();
-        expect(typeof AgentCoreCompiler).toBe('function');
-      } catch (error) {
-        console.error('Failed to import AgentCoreCompiler:', error);
-        throw error;
-      }
-    });
-
-    it('should create AgentCoreCompiler instance', async () => {
-      try {
-        const { default: AgentCoreCompiler } = await import('../../src/core/agent-core-compiler/src/AgentCoreCompiler');
-        const compiler = new AgentCoreCompiler();
-        expect(compiler).toBeDefined();
-        expect(typeof compiler.initialize).toBe('function');
-        expect(typeof compiler.compileAgentCore).toBe('function');
-      } catch (error) {
-        console.error('Failed to create AgentCoreCompiler:', error);
-        throw error;
-      }
-    });
-  });
-
-  describe('WASMOrchestrator Basic Tests', () => {
-    it('should be able to import WASMOrchestrator', async () => {
-      try {
-        const { WASMOrchestrator } = await import('../../src/sensory-shell/WASMOrchestrator');
-        expect(WASMOrchestrator).toBeDefined();
-        expect(typeof WASMOrchestrator).toBe('function');
-      } catch (error) {
-        console.error('Failed to import WASMOrchestrator:', error);
-        throw error;
-      }
-    });
-
-    it('should create WASMOrchestrator instance', async () => {
-      try {
-        const { WASMOrchestrator } = await import('../../src/sensory-shell/WASMOrchestrator');
-        const orchestrator = new WASMOrchestrator();
-        expect(orchestrator).toBeDefined();
-        expect(typeof orchestrator.start).toBe('function');
-        expect(typeof orchestrator.stop).toBe('function');
-      } catch (error) {
-        console.error('Failed to create WASMOrchestrator:', error);
-        throw error;
-      }
-    });
-  });
-
   describe('ModelManager Basic Tests', () => {
     it('should be able to import ModelManager', async () => {
       try {

@@ -1,4 +1,6 @@
 export type BountyDomain = 'security_exploit' | 'code_error';
+import { ActuarialClient } from '@knirv/sdk/actuarial';
+import { getKnirvServerUrl } from '../config/runtimeConfig';
 
 export interface BountyPosting {
   id: string;
@@ -232,12 +234,7 @@ export class ActuarialSyndicateService {
 }
 
 function getBackendUrl(): string {
-  try {
-    return eval('import.meta').env?.VITE_KNIRVSERVER_URL ?? 'http://localhost:8082';
-  } catch {
-    return 'http://localhost:8082';
-  }
+  return getKnirvServerUrl();
 }
 
 export const actuarialSyndicateService = new ActuarialSyndicateService();
-import { ActuarialClient } from '@knirv/sdk/actuarial';

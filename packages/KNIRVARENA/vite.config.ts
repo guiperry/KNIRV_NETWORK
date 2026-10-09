@@ -1,4 +1,4 @@
-import { defineConfig } from 'vite';
+import { defineConfig, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
 import { resolve } from 'path';
 import topLevelAwait from 'vite-plugin-top-level-await';
@@ -6,15 +6,38 @@ import wasm from 'vite-plugin-wasm';
 import { visualizer } from 'rollup-plugin-visualizer';
 import glsl from 'vite-plugin-glsl';
 
+// Build guard (§3.5): provider keys must never be compiled into the
+// browser bundle. Vite inlines VITE_* values, so a key in the environment or
+// in a .env file would ship to every visitor. `config.env` is what Vite
+// actually loaded (process env and .env files), so check that.
+const SECRET_NAME = /KEY|SECRET|TOKEN|PASSWORD/i;
+const refuseSecretEnv = (): Plugin => ({
+  name: 'knirv-refuse-secret-env',
+  configResolved(config) {
+    if (config.command !== 'build') return;
+    const offending = Object.entries(config.env)
+      .filter(([name, value]) => name.startsWith('VITE_') && SECRET_NAME.test(name) && value)
+      .map(([name]) => name);
+    if (offending.length > 0) {
+      throw new Error(
+        `Refusing to build: ${offending.join(', ')} ${offending.length === 1 ? 'is' : 'are'} set. ` +
+        'Provider keys and secrets must live in KNIRVSERVER secret storage (POST /api/secrets) ' +
+        'and be used server-side via POST /api/llm/complete. Remove them from the environment and .env files.'
+      );
+    }
+  },
+});
+
 export default defineConfig({
   plugins: [
+    refuseSecretEnv(),
     react(),
     wasm(),
     glsl(),
-    topLevelAwait({
-      promiseExportName: '__tla',
-      promiseImportName: i => `__tla_${i}`
-    }),
+    // topLevelAwait({
+    //   promiseExportName: '__tla',
+    //   promiseImportName: i => `__tla_${i}`
+    // }),
     ...(process.env.ANALYZE === 'true' ? [visualizer()] : [])
   ],
 
@@ -41,8 +64,6 @@ export default defineConfig({
           // Vendor chunks for better caching
           vendor: ['react', 'react-dom', 'react-router-dom'],
           ui: ['lucide-react', '@react-three/fiber', '@react-three/drei', 'three'],
-          blockchain: ['@cosmjs/stargate', '@gnolang/tm2-js-client', '@burnt-labs/abstraxion'],
-          database: ['lokijs'],
           utils: ['uuid', 'bech32', 'qrcode', 'qr-scanner']
         }
       }
@@ -134,7 +155,7 @@ export default defineConfig({
   // WASM support
   worker: {
     format: 'es',
-    plugins: () => [wasm(), topLevelAwait()]
+    plugins: () => [wasm()]
   },
   
   // Asset handling for 3D models and textures

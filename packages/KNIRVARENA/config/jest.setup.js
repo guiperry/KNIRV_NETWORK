@@ -23,43 +23,6 @@ global.WebAssembly = {
   RuntimeError: Error
 };
 
-// Mock MediaRecorder for VoiceProcessor tests
-global.MediaRecorder = jest.fn().mockImplementation(() => ({
-  start: jest.fn(),
-  stop: jest.fn(),
-  pause: jest.fn(),
-  resume: jest.fn(),
-  addEventListener: jest.fn(),
-  removeEventListener: jest.fn(),
-  state: 'inactive',
-  mimeType: 'audio/webm',
-  ondataavailable: null,
-  onerror: null,
-  onpause: null,
-  onresume: null,
-  onstart: null,
-  onstop: null
-}));
-
-// Mock navigator.mediaDevices for VoiceProcessor tests
-Object.defineProperty(global, 'navigator', {
-  value: {
-    ...global.navigator,
-    mediaDevices: {
-      getUserMedia: jest.fn().mockResolvedValue({
-        getTracks: jest.fn().mockReturnValue([
-          {
-            stop: jest.fn(),
-            kind: 'audio',
-            enabled: true
-          }
-        ])
-      })
-    }
-  },
-  writable: true
-});
-
 // Mock WebSocket for integration tests
 global.WebSocket = jest.fn().mockImplementation(() => ({
   addEventListener: jest.fn(),
@@ -174,16 +137,6 @@ global.console = {
 jest.mock('react-native-safe-area-context', () => ({
   SafeAreaView: ({ children }) => children,
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 })
-}));
-
-jest.mock('@cosmjs/cosmwasm-stargate', () => ({
-  SigningCosmWasmClient: {
-    connectWithSigner: jest.fn().mockResolvedValue({
-      getBalance: jest.fn().mockResolvedValue({ amount: '1000000', denom: 'uxion' }),
-      execute: jest.fn().mockResolvedValue({ transactionHash: 'mock-hash' }),
-      queryContractSmart: jest.fn().mockResolvedValue({ result: 'mock-result' })
-    })
-  }
 }));
 
 jest.mock('react-native', () => ({

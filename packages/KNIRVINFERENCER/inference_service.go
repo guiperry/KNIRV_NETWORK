@@ -9,6 +9,7 @@ import (
 	"log"
 	"os"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -17,7 +18,6 @@ import (
 	"github.com/guiperry/gollm_cerebras/llm"
 	"github.com/guiperry/text-embedder/pkg/embed"
 )
-
 
 var promptSimilarityThreshold = func() float32 {
 	if v := os.Getenv("KNIRV_PROMPT_CACHE_THRESHOLD"); v != "" {
@@ -905,4 +905,42 @@ func (s *InferenceService) storeCache(prompt, response string) {
 	s.responseCacheMu.Lock()
 	defer s.responseCacheMu.Unlock()
 	s.responseCache = append(s.responseCache, cachedResponse{vec: vec, response: response})
+}
+
+// userKeyProviders are the hosted providers a user may call with their own key
+// (arena_fixes.md §3.5). The local "llama" provider needs no key and is served
+// through GenerateTextWithProvider instead.
+var userKeyProviders = map[string]bool{"openai": true, "anthropic": true, "gemini": true, "deepseek": true, "cerebras": true}
+
+// IsUserKeyProvider reports whether providerName accepts a caller-supplied key.
+func IsUserKeyProvider(providerName string) bool { return userKeyProviders[providerName] }
+
+// GenerateWithUserKey runs one completion against a hosted provider using a key
+// supplied for this call only (a user's key from KNIRVSERVER secret storage).
+// The key and the client built from it are never stored, cached or shared with
+// other requests, and responses are not written to the shared prompt cache.
+func (s *InferenceService) GenerateWithUserKey(ctx context.Context, providerName, model, apiKey, promptText string, maxTokens int) (string, error) {
+	if !IsUserKeyProvider(providerName) {
+		return "", fmt.Errorf("provider %q does not accept a user key", providerName)
+	}
+	if strings.TrimSpace(apiKey) == "" {
+		return "", errors.New("an API key is required for this provider")
+	}
+	if strings.TrimSpace(model) == "" {
+		return "", errors.New("a model is required for this provider")
+	}
+	if maxTokens <= 0 || maxTokens > 8192 {
+		maxTokens = 1024
+	}
+	instance, err := gollm.NewLLM(
+		config.SetProvider(providerName),
+		config.SetAPIKey(apiKey),
+		config.SetModel(model),
+		config.SetMaxTokens(maxTokens),
+		config.SetTimeout(90*time.Second),
+	)
+	if err != nil {
+		return "", fmt.Errorf("create %s client: %w", providerName, err)
+	}
+	return instance.Generate(ctx, llm.NewPrompt(promptText))
 }

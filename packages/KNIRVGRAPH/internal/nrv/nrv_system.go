@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"log"
 	"math"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -676,4 +677,44 @@ func (nrv *NRVSystem) updateVectorConfidences() {
 		// Apply confidence decay over time
 		vector.Confidence *= nrv.config.ConfidenceDecay
 	}
+}
+
+// GetContextNode returns a context node by ID.
+func (nrv *NRVSystem) GetContextNode(id string) (*ContextNode, bool) {
+	nrv.contextMutex.RLock()
+	defer nrv.contextMutex.RUnlock()
+	node, ok := nrv.contextNodes[id]
+	return node, ok
+}
+
+// GetAllContextNodes returns every context node, newest first.
+func (nrv *NRVSystem) GetAllContextNodes() []*ContextNode {
+	nrv.contextMutex.RLock()
+	out := make([]*ContextNode, 0, len(nrv.contextNodes))
+	for _, node := range nrv.contextNodes {
+		out = append(out, node)
+	}
+	nrv.contextMutex.RUnlock()
+	sort.Slice(out, func(i, j int) bool { return out[i].Timestamp.After(out[j].Timestamp) })
+	return out
+}
+
+// GetIdeaNode returns an idea node by ID.
+func (nrv *NRVSystem) GetIdeaNode(id string) (*IdeaNode, bool) {
+	nrv.ideaMutex.RLock()
+	defer nrv.ideaMutex.RUnlock()
+	node, ok := nrv.ideaNodes[id]
+	return node, ok
+}
+
+// GetAllIdeaNodes returns every idea node, newest first.
+func (nrv *NRVSystem) GetAllIdeaNodes() []*IdeaNode {
+	nrv.ideaMutex.RLock()
+	out := make([]*IdeaNode, 0, len(nrv.ideaNodes))
+	for _, node := range nrv.ideaNodes {
+		out = append(out, node)
+	}
+	nrv.ideaMutex.RUnlock()
+	sort.Slice(out, func(i, j int) bool { return out[i].Timestamp.After(out[j].Timestamp) })
+	return out
 }

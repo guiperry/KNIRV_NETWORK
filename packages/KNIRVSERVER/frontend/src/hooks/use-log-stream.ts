@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
+import { getAuthHeaders } from '@/lib/api';
 
 export interface ModuleLog {
   type: string;
@@ -63,7 +64,8 @@ export function useLogStream(options: UseLogStreamOptions = {}) {
 
   const pollLogs = useCallback(async () => {
     try {
-      const response = await fetch(buildHistoryUrl());
+      // Admin-only endpoint: send the operator's token.
+      const response = await fetch(buildHistoryUrl(), { headers: getAuthHeaders() });
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}`);
       }

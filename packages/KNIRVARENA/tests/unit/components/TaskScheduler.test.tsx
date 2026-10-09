@@ -46,8 +46,8 @@ describe.skip('TaskScheduler', () => {
         interval: 86400000 // 24 hours
       },
       action: {
-        type: 'system_command' as const,
-        target: 'backup.sh',
+        type: 'api_call' as const,
+        target: 'https://example.com/backup',
         parameters: { destination: '/backup' }
       },
       runCount: 15,

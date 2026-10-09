@@ -1,7 +1,17 @@
 const path = require('path');
 const projectRoot = path.resolve(__dirname, '..');
 
-module.exports = {
+// Projects don't inherit the root `transform`; without it the TypeScript
+// setup file (tests/polyfills.ts) can't be parsed and every suite fails.
+const tsJest = ['ts-jest', { astTransformers: { before: ['<rootDir>/config/jest-import-meta-transformer.cjs'] } }];
+// The Babel config lives in config/, where babel-jest wouldn't find it.
+const babelJest = ['babel-jest', { configFile: path.join(projectRoot, 'config', 'babel.config.cjs') }];
+const projectTransform = {
+  '^.+\\.(ts|tsx)$': tsJest,
+  '^.+\\.(js|jsx)$': babelJest
+};
+
+const config = {
   rootDir: '../',
   preset: 'ts-jest',
   testEnvironment: 'jsdom',
@@ -13,6 +23,9 @@ module.exports = {
   setupFilesAfterEnv: ['<rootDir>/src/setupTests.ts', '<rootDir>/tests/test-setup.ts', '<rootDir>/tests/setup-safety-checks.ts'],
   clearMocks: true,
   moduleNameMapper: {
+    // TypeScript ESM sources import with .js extensions; map them
+    // back to the .ts/.tsx sources Jest actually resolves.
+    '^(\\.{1,2}/.*)\\.js$': '$1',
     '^@/(.*)$': '<rootDir>/src/$1',
     '^@components/(.*)$': '<rootDir>/src/components/$1',
     '^@pages/(.*)$': '<rootDir>/src/pages/$1',
@@ -35,6 +48,12 @@ module.exports = {
     '^../../../../KNIRVWALLET/browser-bridge/packages/knirvwallet-module/src/wallet/wallet-crypto-util$': '<rootDir>/tests/mocks/knirvwallet.js',
     '^../../../../KNIRVWALLET/browser-bridge/packages/knirvwallet-module/src/test-utils/mock-ledgerconnector$': '<rootDir>/tests/mocks/knirvwallet.js',
     '^../../../../KNIRVWALLET/(.*)$': '<rootDir>/tests/mocks/knirvwallet.js',
+    // Babel's transform-runtime injects these into the symlinked KNIRVBASE
+    // dist, whose own node_modules doesn't carry @babel/runtime.
+    '^@babel/runtime/(.*)$': '<rootDir>/node_modules/@babel/runtime/$1',
+    '^react-markdown$': '<rootDir>/tests/mocks/react-markdown.tsx',
+    '^\\./libs/MeshoptDecoder\\.cjs$': '<rootDir>/tests/mocks/meshoptDecoder.js',
+    '^react-syntax-highlighter/dist/esm/(.*)$': '<rootDir>/node_modules/react-syntax-highlighter/dist/cjs/$1',
     '\\.(css|less|scss|sass)$': 'identity-obj-proxy',
     '\\.(jpg|jpeg|png|gif|eot|otf|webp|svg|ttf|woff|woff2|mp4|webm|wav|mp3|m4a|aac|oga)$': 'jest-transform-stub'
   },
@@ -44,7 +63,7 @@ module.exports = {
     'node_modules/react-native/.+\\.(js)$': 'babel-jest'
   },
   transformIgnorePatterns: [
-    'node_modules/(?!(@react-native|@expo|expo|@burnt-labs|@paralleldrive|@noble|formidable|superagent|supertest)/)'
+    'node_modules/(?!(@react-native|@expo|expo|@paralleldrive|@noble|formidable|superagent|three/examples/jsm)/)'
   ],
   testMatch: [
     '<rootDir>/tests/**/*.test.(ts|tsx|js|jsx)',
@@ -93,6 +112,7 @@ module.exports = {
     {
       displayName: 'Unit Tests',
       rootDir: projectRoot,
+      transform: projectTransform,
       testMatch: ['<rootDir>/tests/unit/**/*.test.(ts|tsx|js|jsx)'],
       testEnvironment: 'jsdom',
       testEnvironmentOptions: {
@@ -105,6 +125,7 @@ module.exports = {
     {
       displayName: 'Integration Tests',
       rootDir: projectRoot,
+      transform: projectTransform,
       testMatch: ['<rootDir>/tests/integration/**/*.test.(ts|tsx|js|jsx)'],
       testEnvironment: 'jsdom',
       testEnvironmentOptions: {
@@ -117,6 +138,7 @@ module.exports = {
     {
       displayName: 'Sensory Shell Tests',
       rootDir: projectRoot,
+      transform: projectTransform,
       testMatch: ['<rootDir>/src/sensory-shell/**/__tests__/**/*.test.(ts|tsx|js|jsx)'],
       testEnvironment: 'jsdom',
       testEnvironmentOptions: {
@@ -129,6 +151,7 @@ module.exports = {
     {
       displayName: 'Phase 3 Tests',
       rootDir: projectRoot,
+      transform: projectTransform,
       testMatch: ['<rootDir>/tests/phase3/**/*.test.(ts|tsx|js|jsx)'],
       testEnvironment: 'jsdom',
       testEnvironmentOptions: {
@@ -142,6 +165,7 @@ module.exports = {
     {
       displayName: 'Error Resolution Tests',
       rootDir: projectRoot,
+      transform: projectTransform,
       testMatch: ['<rootDir>/tests/error-resolution/**/*.test.(ts|tsx|js|jsx)'],
       testEnvironment: 'jsdom',
       testEnvironmentOptions: {
@@ -158,9 +182,7 @@ module.exports = {
       rootDir: projectRoot,
       testMatch: ['<rootDir>/src/services/**/__tests__/**/*.test.(ts|tsx|js|jsx)'],
       testPathIgnorePatterns: ['<rootDir>/node_modules/', '<rootDir>/src/services/__tests__/ActuarialSyndicateService.test.ts'],
-      transform: {
-        '^.+\\.(ts|tsx)$': 'ts-jest'
-      },
+      transform: { '^.+\\.(ts|tsx)$': tsJest, '^.+\\.(js|jsx)$': babelJest },
       testEnvironment: 'jsdom',
       testEnvironmentOptions: {
         html: '<html><body><div id="root"></div></body></html>',
@@ -174,9 +196,7 @@ module.exports = {
       rootDir: projectRoot,
       testMatch: ['<rootDir>/src/services/__tests__/ActuarialSyndicateService.test.ts'],
       testEnvironment: 'jsdom',
-      transform: {
-        '^.+\\.(ts|tsx)$': 'ts-jest'
-      },
+      transform: { '^.+\\.(ts|tsx)$': tsJest, '^.+\\.(js|jsx)$': babelJest },
       setupFiles: ['<rootDir>/config/jest.actuarial.setup.cjs'],
       setupFilesAfterEnv: []
     }
@@ -194,3 +214,21 @@ module.exports = {
     }]
   ]
 };
+
+// Projects inherit none of the root resolution settings; share them so path
+// aliases (@services/…) and module stubs resolve the same in every project.
+// The unanchored 'react-native' key would also capture
+// @testing-library/react-native; the anchored entries cover react-native.
+const { 'react-native': _unanchoredReactNative, ...sharedModuleNameMapper } = config.moduleNameMapper;
+const shared = {
+  moduleNameMapper: sharedModuleNameMapper,
+  transformIgnorePatterns: config.transformIgnorePatterns,
+  moduleFileExtensions: config.moduleFileExtensions,
+};
+for (const project of config.projects) {
+  for (const [key, value] of Object.entries(shared)) {
+    if (!(key in project)) project[key] = value;
+  }
+}
+
+module.exports = config;

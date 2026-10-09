@@ -5,7 +5,6 @@
  * weights and biases that directly modify agent-core neural network behavior.
  */
 
-import { WASMCompiler } from '../wasm/WASMCompiler.js';
 import { ProtobufHandler } from '../protobuf/ProtobufHandler.js';
 import pino from 'pino';
 
@@ -67,7 +66,6 @@ export class LoRAAdapterEngine {
   private ready = false;
 
   constructor(
-    private wasmCompiler: WASMCompiler,
     private protobufHandler: ProtobufHandler
   ) {}
 
@@ -90,17 +88,10 @@ export class LoRAAdapterEngine {
   }
 
   private async initializeTrainingPipeline(): Promise<void> {
-    // Initialize the WASM-based neural network training pipeline
+    // Initialize the neural network training pipeline
     // This would compile the Rust code for LoRA training
     logger.info('Initializing neural network training pipeline...');
-    
 
-      // Rust code for LoRA training would go here
-      // This implements the core algorithm that converts solutions+errors to weights and biases
-    
-    // Compile the training pipeline to WASM
-    // await this.wasmCompiler.compile(trainingCode, { target: 'lora-training' });
-    
     logger.info('Training pipeline initialized');
   }
 

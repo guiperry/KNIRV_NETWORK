@@ -4,7 +4,9 @@
  */
 
 import * as React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import {render as rtlRender, screen, fireEvent, waitFor} from '@testing-library/react';
+import type { RenderOptions } from '@testing-library/react';
+import { ChatBrainProvider } from '../../src/contexts/ChatBrainContext';
 import { BrowserRouter } from 'react-router-dom';
 import '@testing-library/jest-dom';
 
@@ -21,7 +23,6 @@ jest.mock('../../src/services/WalletIntegrationService');
 jest.mock('../../src/shared/ComponentBridge');
 jest.mock('../../src/sensory-shell/CognitiveEngine');
 jest.mock('../../src/sensory-shell/HRMBridge');
-jest.mock('../../src/sensory-shell/WASMOrchestrator');
 
 // Mock lucide-react icons
 jest.mock('lucide-react', () => ({
@@ -38,6 +39,11 @@ jest.mock('lucide-react', () => ({
   Cpu: () => <div data-testid="cpu-icon">💻</div>,
   MessageSquare: () => <div data-testid="message-square-icon">💬</div>,
   Send: () => <div data-testid="send-icon">📤</div>,
+  Trash2: () => <div data-testid="trash-icon">🗑</div>,
+  QrCode: () => <div data-testid="qr-icon">▦</div>,
+  Terminal: () => <div data-testid="terminal-icon">⌨</div>,
+  Wallet: () => <div data-testid="wallet-icon">👛</div>,
+  Menu: () => <div data-testid="menu-icon">☰</div>,
 }));
 
 // Create a proper ComponentBridge mock that implements all required methods
@@ -45,6 +51,14 @@ class MockComponentBridge extends ComponentBridge {
   public sendMessage = jest.fn();
   public onMessage = jest.fn();
   public disconnect = jest.fn();
+  // ComponentBridge is auto-mocked above, so the base getState returns
+  // undefined; UnifiedInterface renders from a real state shape.
+  public getState = jest.fn(() => ({
+    components: { receiver: 'running' as const, cli: 'stopped' as const },
+    cognitive: { hrmActive: false, loraAdapters: [], learningMode: false, confidence: 0 },
+    wallet: { connected: false, balance: 0, transactions: [] },
+    network: { connected: true, peers: 0, blockHeight: 0 },
+  }));
 
   constructor() {
     // Create a mock config to satisfy the constructor
@@ -63,6 +77,10 @@ class MockComponentBridge extends ComponentBridge {
 }
 
 const mockComponentBridge = new MockComponentBridge();
+
+// The shell and unified interface read chat state from ChatBrainProvider,
+// as they do inside App.
+const render = (ui: React.ReactElement, options?: Omit<RenderOptions, 'wrapper'>) => rtlRender(ui, { wrapper: ChatBrainProvider, ...options });
 
 describe('Component Integration Fixes', () => {
   describe('SlidingPanel Integration', () => {
@@ -354,8 +372,6 @@ describe('Component Integration Fixes', () => {
           loraEnabled: true,
           enhancedLoraEnabled: false,
           hrmEnabled: true,
-          wasmAgentsEnabled: true,
-          typeScriptCompilerEnabled: false,
           adaptiveLearningEnabled: true
         };
 
