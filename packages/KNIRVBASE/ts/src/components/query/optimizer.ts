@@ -213,8 +213,9 @@ export class QueryOptimizer {
 
   // canUseBTreeIndex checks if a B-Tree index can be used for a filter
   private canUseBTreeIndex(idx: Index, filter: Filter): boolean {
-    // Check if the filter field is indexed
-    return idx.fields.includes(filter.key);
+    // Same rule as Go: the index is probed with one exact value, so only
+    // equality on a single-field index is pushable.
+    return filter.operator === '=' && idx.fields.length === 1 && idx.fields[0] === filter.key;
   }
 
   // canUseGINIndex checks if a GIN index can be used for a filter

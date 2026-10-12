@@ -100,7 +100,11 @@ func (qo *QueryOptimizer) Optimize(query *Query) (*QueryPlan, error) {
 
 	// If no filters, always do full scan
 	if len(query.Filters) == 0 {
-		plan.EstimatedCost = float64(qo.stats.TotalDocuments)
+		plan.EstimatedRows = qo.stats.TotalDocuments
+		if query.Limit > 0 && query.Limit < plan.EstimatedRows {
+			plan.EstimatedRows = query.Limit
+		}
+		plan.EstimatedCost = float64(plan.EstimatedRows)
 		return plan, nil
 	}
 
@@ -128,6 +132,11 @@ func (qo *QueryOptimizer) Optimize(query *Query) (*QueryPlan, error) {
 		// Full scan
 		plan.EstimatedCost = float64(qo.stats.TotalDocuments)
 		plan.PostFilters = query.Filters
+	}
+
+	// A LIMIT caps the rows the plan is expected to produce.
+	if plan.Limit > 0 && plan.EstimatedRows > plan.Limit {
+		plan.EstimatedRows = plan.Limit
 	}
 
 	return plan, nil
@@ -215,13 +224,10 @@ func (qo *QueryOptimizer) canUseIndex(idx *stor.Index, filter Filter) bool {
 
 // canUseBTreeIndex checks if a B-Tree index can be used for a filter
 func (qo *QueryOptimizer) canUseBTreeIndex(idx *stor.Index, filter Filter) bool {
-	// Check if the filter field is indexed
-	for _, field := range idx.Fields {
-		if filter.Key == field {
-			return true
-		}
-	}
-	return false
+	// The index is probed with a single exact value, so only equality on a
+	// single-field index is pushable. Range and composite lookups fall back to
+	// a scan with the filter applied afterwards.
+	return filter.Operator == "=" && len(idx.Fields) == 1 && idx.Fields[0] == filter.Key
 }
 
 // canUseGINIndex checks if a GIN index can be used for a filter

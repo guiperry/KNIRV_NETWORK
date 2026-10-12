@@ -12,6 +12,7 @@ import {
 } from '../types/types';
 import { ToDistributed, ToRegular, ApplyOperation } from '../resolver/crdt_resolver';
 import { ModalityType } from '../storage/nrv/spec';
+import type { ConsensusManager } from '../p2pconsensus/types';
 
 export interface Frame {
   id: string;
@@ -101,6 +102,7 @@ export class DistributedCollection {
   private operationLog: CRDTOperation[] = [];
   private maxLogSize: number = 10000;
   private local: LocalCollection;
+  private consensus?: ConsensusManager;
 
   constructor(name: string, network: Network, store: Storage) {
     this.name = name;
@@ -135,6 +137,11 @@ export class DistributedCollection {
       if (coll !== this.name) return;
       this.handleSyncResponse(msg);
     });
+  }
+
+  /** Route outbound operations through the P2P consensus layer instead of the legacy network. */
+  setConsensus(consensus: ConsensusManager | undefined): void {
+    this.consensus = consensus;
   }
 
   async attachToNetwork(networkID: string): Promise<void> {
@@ -275,10 +282,29 @@ export class DistributedCollection {
   private broadcastOperation(op: CRDTOperation): void {
     if (this.networkID === '') return;
 
-    this.operationLog.push(op);
-    this.pruneOperationLog();
+    // Count this operation first, then stamp it with the resulting clock (see Go:
+    // a pre-increment stamp meant a peer's first operation could never be synced).
     const syncState = this.syncStates.get(this.networkID)!;
     syncState.localVector = increment(syncState.localVector, this.network.getPeerID());
+    op.vector = { ...syncState.localVector };
+    this.operationLog.push(op);
+    this.pruneOperationLog();
+
+    if (this.consensus?.enabled()) {
+      // Same envelope as Go: Data is the JSON CRDTOperation (base64 on the wire).
+      void this.consensus
+        .publishOperation({
+          network_id: this.networkID,
+          collection: this.name,
+          document_id: op.documentId,
+          data: Buffer.from(JSON.stringify(op), 'utf8').toString('base64'),
+          vector_clock: op.vector,
+          timestamp: Date.now(),
+          peer_id: this.network.getPeerID(),
+        })
+        .catch(() => undefined);
+      return;
+    }
 
     this.network.broadcastMessage(this.networkID, {
       type: MessageType.Operation,
@@ -331,15 +357,18 @@ export class DistributedCollection {
       payload: { collection: this.name, vector: syncState.localVector }
     });
 
+    // Reset the in-progress flag after 10s; unref so this timer never keeps the process alive.
     setTimeout(() => {
       syncState.syncInProgress = false;
-    }, 10000);
+    }, 10000).unref?.();
   }
 
-  private handleSyncRequest(msg: ProtocolMessage): void {
-    const payload = msg.payload as Record<string, any>;
-    const remoteVector = payload.vector as VectorClock;
-
+  /**
+   * Operations in the log that a requester with `remoteVector` is missing
+   * (Go: computeSyncResponse). Shared by the legacy network path and the
+   * consensus EventHandler.
+   */
+  computeSyncResponse(remoteVector: VectorClock): CRDTOperation[] {
     const missing: CRDTOperation[] = [];
     for (const op of this.operationLog) {
       const remoteClock = remoteVector[op.peerId] || 0;
@@ -348,6 +377,22 @@ export class DistributedCollection {
         missing.push(op);
       }
     }
+    return missing;
+  }
+
+  /** Apply an operation received from a peer through the consensus layer. */
+  async applyRemoteOperation(op: CRDTOperation): Promise<void> {
+    await this.handleRemoteOperation(op);
+  }
+
+  /** Network this collection is attached to ('' when detached). */
+  attachedNetworkID(): string {
+    return this.networkID;
+  }
+
+  private handleSyncRequest(msg: ProtocolMessage): void {
+    const payload = msg.payload as Record<string, any>;
+    const missing = this.computeSyncResponse(payload.vector as VectorClock);
 
     this.network.sendToPeer(msg.senderId, this.networkID, {
       type: MessageType.SyncResponse,

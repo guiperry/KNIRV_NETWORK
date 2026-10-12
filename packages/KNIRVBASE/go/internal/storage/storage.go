@@ -132,7 +132,7 @@ func (fs *FileStorage) Insert(ctx context.Context, collection string, doc map[st
 		return err
 	}
 
-	// Sign the write operation for integrity (Dilithium-3)
+	// Sign the write operation for integrity (ML-DSA-65)
 	if fs.encryptionMgr.GetMasterKey() != nil {
 		signature, err := fs.encryptionMgr.GetMasterKey().Sign(data)
 		if err == nil {
@@ -213,7 +213,7 @@ func (fs *FileStorage) Find(ctx context.Context, collection, id string) (map[str
 	// Unwrap and verify signature if present
 	if signedData, ok := doc["data"].(map[string]interface{}); ok {
 		if signatureStr, ok := doc["signature"].(string); ok && fs.encryptionMgr.GetMasterKey() != nil {
-			// Verify signature (Dilithium-3)
+			// Verify signature (ML-DSA-65)
 			originalBytes, _ := json.Marshal(signedData)
 			signature, err := base64.StdEncoding.DecodeString(signatureStr)
 			if err != nil {

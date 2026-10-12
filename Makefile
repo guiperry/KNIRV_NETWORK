@@ -327,7 +327,7 @@ test-knirvagent: ## Test KNIRVAGENT
 test-knirvbase: ## Test KNIRVBASE (Go + TypeScript)
 	@echo "$(BLUE)Testing KNIRVBASE...$(NC)"
 	@cd packages/KNIRVBASE/go && go test -v ./...
-	@cd packages/KNIRVBASE/ts && npm test --if-present
+	@cd packages/KNIRVBASE/ts && NRVCONFORM_REQUIRED=1 npm test --if-present
 
 .PHONY: test-knirvsdk
 test-knirvsdk: ## Test KNIRVSDK

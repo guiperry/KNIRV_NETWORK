@@ -223,24 +223,26 @@ export function applyProjectionDelta(delta: Uint8Array, anchor: Uint8Array): Uin
   return result;
 }
 
-export function encodeSyntactic(sp: SyntacticProfile): uint8 {
-  return sp.syntactic;
+// Wire-adjacent layout shared with Go (pkg/nrv EncodeSyntactic):
+// bits 0-7 Syntactic, bits 16-31 DepHead as a sign-extended int16.
+export function encodeSyntactic(sp: SyntacticProfile): uint32 {
+  return (((sp.depHead & 0xFFFF) << 16) | (sp.syntactic & 0xFF)) >>> 0;
 }
 
-export function decodeSyntactic(val: uint8): SyntacticProfile {
+export function decodeSyntactic(val: uint32): SyntacticProfile {
   return {
-    syntactic: val,
-    depHead: 0,
+    syntactic: val & 0xFF,
+    depHead: ((val >>> 16) << 24) >> 24,
   };
 }
 
 export function encodeIntentDomain(id: IntentDomain): uint32 {
-  return (id.intentFlags & 0xFF) | (id.domainSig << 16);
+  return ((id.intentFlags & 0xFF) | (id.domainSig << 16)) >>> 0;
 }
 
 export function decodeIntentDomain(val: uint32): IntentDomain {
   return {
     intentFlags: val & 0xFF,
-    domainSig: (val >> 16) & 0xFFFF,
+    domainSig: (val >>> 16) & 0xFFFF,
   };
 }

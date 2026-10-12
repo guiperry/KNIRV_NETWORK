@@ -465,7 +465,11 @@ export class IndexManager {
   private buildCompositeKey(fields: string[], doc: Record<string, any>): string {
     const parts: string[] = [];
     for (const field of fields) {
-      const val = doc[field];
+      let val = doc[field];
+      if (val === undefined && doc.payload && typeof doc.payload === 'object') {
+        // Documents keep their fields under "payload"; queries filter there too.
+        val = doc.payload[field];
+      }
       if (val !== undefined) {
         parts.push(String(val));
       }

@@ -1,0 +1,59 @@
+{
+  "plan_tokens": [
+    0,
+    0,
+    1,
+    18,
+    20,
+    21,
+    19,
+    21
+  ],
+  "halting_steps": 3,
+  "max_steps": 3,
+  "halt_probability": 0.3927618,
+  "confidence": 0.08512612,
+  "decisions": [
+    {
+      "name": "action",
+      "kind": "choice",
+      "options": [
+        "allow",
+        "request_review",
+        "ask_operator"
+      ],
+      "probabilities": [
+        0.23791063,
+        0.3069102,
+        0.4551792
+      ],
+      "selected": "ask_operator",
+      "value": null,
+      "confidence": 0.4551792,
+      "abstain": false
+    },
+    {
+      "name": "risk",
+      "kind": "score",
+      "options": [],
+      "probabilities": [],
+      "selected": null,
+      "value": 0.7834431,
+      "confidence": 0.7834431,
+      "abstain": false
+    }
+  ],
+  "l_module_activations": [
+    3.2999084,
+    11.211326,
+    40.50785
+  ],
+  "h_module_activations": [
+    2.9654489,
+    13.688104,
+    53.77628
+  ],
+  "model_version": "test-1",
+  "dataset_manifest_hash": "m",
+  "policy_bundle_hash": "p"
+}

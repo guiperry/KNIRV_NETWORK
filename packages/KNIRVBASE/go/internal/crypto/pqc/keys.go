@@ -10,8 +10,22 @@ import (
 	"github.com/cloudflare/circl/sign"
 )
 
-// PQCKeyPair represents a complete PQC key pair with both Kyber and Dilithium keys
+// Algorithm identifiers. The suite is NIST FIPS 203 (ML-KEM-768) + FIPS 204
+// (ML-DSA-65). Keys, ciphertexts and signatures are interoperable with the
+// TypeScript implementation (ts/src/components/crypto/pqc).
+const (
+	AlgorithmKEM      = "ML-KEM-768"
+	AlgorithmSig      = "ML-DSA-65"
+	AlgorithmSuite    = AlgorithmKEM + "+" + AlgorithmSig
+	EnvelopeAlgorithm = AlgorithmKEM + "+AES-256-GCM"
+	// KeyFormat versions the serialised key pair. v1 (round-3 Kyber-768 +
+	// Dilithium-3) keys are not loadable; generate a new key pair.
+	KeyFormat = "knirv-pqc-key/v2"
+)
+
+// PQCKeyPair represents a complete PQC key pair with both ML-KEM (Kyber-named fields) and ML-DSA (Dilithium-named fields) keys
 type PQCKeyPair struct {
+	Format    string     `json:"format"`
 	ID        string     `json:"id"`
 	Name      string     `json:"name"`
 	Purpose   string     `json:"purpose"` // encryption, signature, kex
@@ -78,10 +92,11 @@ func GeneratePQCKeyPair(name, purpose string) (*PQCKeyPair, error) {
 	}
 
 	return &PQCKeyPair{
+		Format:                   KeyFormat,
 		ID:                       id,
 		Name:                     name,
 		Purpose:                  purpose,
-		Algorithm:                "Kyber-768+Dilithium-3",
+		Algorithm:                AlgorithmSuite,
 		CreatedAt:                time.Now(),
 		Status:                   "active",
 		KyberPublicKey:           kyberPair.PublicKey,
@@ -102,7 +117,12 @@ func LoadPQCKeyPair(data []byte) (*PQCKeyPair, error) {
 		return nil, fmt.Errorf("failed to unmarshal key pair: %w", err)
 	}
 
-	// Unmarshal Kyber keys
+	if kp.Format != KeyFormat || kp.Algorithm != AlgorithmSuite {
+		return nil, fmt.Errorf("unsupported key format %q / algorithm %q (want %s / %s): generate a new key pair",
+			kp.Format, kp.Algorithm, KeyFormat, AlgorithmSuite)
+	}
+
+	// Unmarshal ML-KEM keys
 	if len(kp.KyberPublicKeyBytes) > 0 {
 		pubKey, err := UnmarshalKyberPublicKey(kp.KyberPublicKeyBytes)
 		if err != nil {

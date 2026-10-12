@@ -542,6 +542,11 @@ func (im *IndexManager) buildCompositeKey(fields []string, doc map[string]interf
 	for _, field := range fields {
 		if val, ok := doc[field]; ok {
 			parts = append(parts, fmt.Sprintf("%v", val))
+		} else if payload, ok := doc["payload"].(map[string]interface{}); ok {
+			// Documents keep their fields under "payload"; queries filter there too.
+			if val, ok := payload[field]; ok {
+				parts = append(parts, fmt.Sprintf("%v", val))
+			}
 		}
 	}
 	return strings.Join(parts, "|")

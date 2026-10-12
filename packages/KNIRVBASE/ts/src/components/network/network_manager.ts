@@ -227,70 +227,95 @@ export class NetworkManager implements Network {
     this.initialized = false;
   }
 
-  private handleConnection(socket: net.Socket): void {
-    let peerID = '';
-    const scanner = new net.Socket();
+  /** TCP port the legacy transport listens on (0 before initialize()). */
+  listenPort(): number {
+    const addr = this.server?.address();
+    return addr && typeof addr === 'object' ? addr.port : 0;
+  }
 
-    // Simple handshake
-    socket.on('data', (data) => {
-      const lines = data.toString().split('\n');
-      for (const line of lines) {
-        if (line.trim() === '') continue;
-        if (line.startsWith('KNIRV:')) {
-          peerID = line.split(':')[1];
-          socket.write(`KNIRV:${this.peerID}\n`);
-          this.connections.set(peerID, socket);
-          this.peers.set(peerID, {
-            peerId: peerID,
-            addrs: [socket.remoteAddress!],
-            protocols: [],
-            latency: 0,
-            lastSeen: new Date(),
-            collections: []
-          });
-        } else {
-          try {
-            const msg: ProtocolMessage = JSON.parse(line);
-            this.handleMessage(msg);
-          } catch {}
-        }
-      }
-    });
-
-    socket.on('close', () => {
-      if (peerID) {
-        this.connections.delete(peerID);
+  /**
+   * Newline-delimited framing. TCP delivers arbitrary chunks, so a line may
+   * arrive in pieces or several lines in one chunk; only complete lines are
+   * dispatched (Go uses bufio.Scanner for the same reason).
+   */
+  private onLines(socket: net.Socket, onLine: (line: string) => void): void {
+    let buf = '';
+    socket.setEncoding('utf8');
+    socket.on('data', (chunk: string) => {
+      buf += chunk;
+      let nl: number;
+      while ((nl = buf.indexOf('\n')) >= 0) {
+        const line = buf.slice(0, nl).trim();
+        buf = buf.slice(nl + 1);
+        if (line !== '') onLine(line);
       }
     });
   }
 
+  private registerPeer(peerID: string, socket: net.Socket, addr: string): void {
+    this.connections.set(peerID, socket);
+    this.peers.set(peerID, {
+      peerId: peerID,
+      addrs: [addr],
+      protocols: [],
+      latency: 0,
+      lastSeen: new Date(),
+      collections: [],
+    });
+    socket.on('close', () => {
+      if (this.connections.get(peerID) === socket) this.connections.delete(peerID);
+    });
+  }
+
+  private dispatchLine(line: string): void {
+    try {
+      this.handleMessage(JSON.parse(line) as ProtocolMessage);
+    } catch {
+      // not a protocol message
+    }
+  }
+
+  // Handshake (shared with Go's legacy_tcp transport): each side sends "KNIRV:<peerID>\n".
+  private handleConnection(socket: net.Socket): void {
+    let shaken = false;
+    socket.on('error', () => undefined);
+    this.onLines(socket, (line) => {
+      if (!shaken) {
+        const parts = line.split(':');
+        if (parts.length !== 2 || parts[0] !== 'KNIRV') {
+          socket.destroy();
+          return;
+        }
+        shaken = true;
+        socket.write(`KNIRV:${this.peerID}\n`);
+        this.registerPeer(parts[1], socket, `${socket.remoteAddress}:${socket.remotePort}`);
+        return;
+      }
+      this.dispatchLine(line);
+    });
+  }
+
   private connectToPeer(address: string): void {
-    const [host, port] = address.split(':');
-    const socket = net.createConnection({ host, port: parseInt(port) }, () => {
+    const idx = address.lastIndexOf(':');
+    const host = address.slice(0, idx);
+    const port = parseInt(address.slice(idx + 1), 10);
+    const socket = net.createConnection({ host, port }, () => {
       socket.write(`KNIRV:${this.peerID}\n`);
     });
-
-    socket.on('data', (data) => {
-      const lines = data.toString().split('\n');
-      for (const line of lines) {
-        if (line.startsWith('KNIRV:')) {
-          const peerID = line.split(':')[1];
-          this.connections.set(peerID, socket);
-          this.peers.set(peerID, {
-            peerId: peerID,
-            addrs: [address],
-            protocols: [],
-            latency: 0,
-            lastSeen: new Date(),
-            collections: []
-          });
-        } else {
-          try {
-            const msg: ProtocolMessage = JSON.parse(line);
-            this.handleMessage(msg);
-          } catch {}
+    socket.on('error', () => undefined);
+    let shaken = false;
+    this.onLines(socket, (line) => {
+      if (!shaken) {
+        const parts = line.split(':');
+        if (parts.length !== 2 || parts[0] !== 'KNIRV') {
+          socket.destroy();
+          return;
         }
+        shaken = true;
+        this.registerPeer(parts[1], socket, address);
+        return;
       }
+      this.dispatchLine(line);
     });
   }
 

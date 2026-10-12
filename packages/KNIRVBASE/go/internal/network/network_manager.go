@@ -116,7 +116,14 @@ func (n *NetworkManager) PutDHT(key string, value interface{}, ttl time.Duration
 		Timestamp: time.Now().Unix(),
 	}
 	n.kvStore[key] = append(n.kvStore[key], entry)
+	initialized := n.initialized
 	n.mu.Unlock()
+
+	// Before the network is initialised the DHT is local-only (the TypeScript
+	// DB behaves the same): the value is stored, there is just nobody to tell.
+	if !initialized {
+		return nil
+	}
 
 	// In a real DHT, we would find the closest nodes to the key and store it there.
 	// For this implementation, we broadcast a DHT announcement.

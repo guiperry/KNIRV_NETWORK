@@ -196,7 +196,7 @@ func (w *NRVWriter) initFile() error {
 		GlobalMetrics:  nrv.GlobalMetrics{},
 		Frames:         []nrv.FrameEntry{},
 		PQCManifest: nrv.PQCManifest{
-			Algorithm:       "Dilithium-3",
+			Algorithm:       pqc.AlgorithmSig,
 			FrameSignatures: make(map[string]string),
 		},
 	}

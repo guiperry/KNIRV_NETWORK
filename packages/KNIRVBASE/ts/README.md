@@ -238,6 +238,44 @@ npm run bench:profile
 
 The repository includes `docs/Distributed_Database_Implementation_ts.md` which documents architecture, rationale, and design decisions in depth — consult it for more detail on synchronization heuristics, CRDT rules, and future extensions.
 
+### Canonical API facade (E10)
+
+Go (`pkg/knirvbase`) is the reference. The TypeScript `DB` (and the lower-level
+`DistributedDatabase`) expose the same surface, with TypeScript naming:
+
+| Area | Go `DB` | TS `DB` |
+|---|---|---|
+| Collections | `Collection(name)` → `Insert/Find/Update/Delete/FindAll`, `AttachToNetwork`, `ForceSync` | `collection(name)` → same, camelCase |
+| Key-value | `Put`, `Get`, `DeleteKey` | `put`, `get`, `deleteKey` |
+| Objects | `StoreObject`, `GetObject` | `storeObject`, `getObject` |
+| Indexes | `CreateIndex`, `DropIndex`, `GetIndex`, `GetIndexesForCollection`, `QueryIndex` | same, camelCase |
+| DHT | `PutDHT`, `GetDHT` (local-only until a network is initialised) | `putDHT`, `getDHT` |
+| Markdown | `ProjectToMarkdown` | `projectToMarkdown` |
+| Encryption | `SetMasterKey` | `setMasterKey` |
+| Networks | `CreateNetwork`, `JoinNetwork`, `LeaveNetwork`, `AddCollectionToNetwork`, `GetNetworkManager` | same, camelCase |
+| Consensus | `Options.Consensus`, `GetConsensusManager()` | `Options.consensus`, `getConsensusManager()` |
+
+Consensus is **opt-in** in both: it only starts when the config has `enabled: true`
+(TypeScript: `consensus: { ...defaultConsensusConfig(), enabled: true }`, started by
+`await db.initialize()`; for `DistributedDatabase`, `await ddb.ready()`). The database routes inbound
+operations and sync requests to the collection named in the message and publishes local writes
+through the manager. `consensusFactory` replaces the default manager (tests, embedding).
+
+### Dataset signing (E18)
+
+New datasets are signed with ML-DSA-65. Give the writer a key pair
+(`NewNRV(ctx, opts, keyPair)` in Go, `NRVWriter.create(path, pqcSigner(kp))` in TS) and every
+frame's signature is stored in the registry's `pqc_manifest.frame_signatures`. Verify with
+`NRVReader.verifyFrame(id, keyPair)` (TS) / `VerifyFrame` (Go); a signed file made by one
+implementation verifies in the other.
+
+`knirvbase.LoadOrCreateKeyPair(path, name)` manages the key file (mode 0600, created on first use,
+legacy-format files rejected, never overwritten). Keep it outside the data directory. The arena
+dataset service (KNIRVSERVER) does this and fails closed if the key is unusable; its
+`GET /api/error-nodes/{id}/datasets` lists the key (`signing.public_key`) and
+`GET …/frames/{frameId}` returns the frame's `signature`. See `go/docs/NRV_Container_Formats.md`
+for the formats and the NRV3 → KNIRVBASE converter.
+
 Additional documentation:
 - `docs/PRODUCTION_READINESS_ASSESSMENT.md` — Security audit and production readiness report
 - `coverage/` — Full test coverage reports

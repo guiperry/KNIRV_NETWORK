@@ -191,9 +191,9 @@ func TestDefaultOptionsIncludeConsensus(t *testing.T) {
 func TestOptionsBackwardCompat(t *testing.T) {
 	tmpDir := t.TempDir()
 	opts := Options{
-		DataDir:              tmpDir,
-		DistributedEnabled:   true,
-		DistributedNetworkID: "legacy-net",
+		DataDir:                   tmpDir,
+		DistributedEnabled:        true,
+		DistributedNetworkID:      "legacy-net",
 		DistributedBootstrapPeers: []string{"/ip4/1.2.3.4/tcp/4001"},
 	}
 	ctx := context.Background()

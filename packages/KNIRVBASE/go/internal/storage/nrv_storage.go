@@ -346,6 +346,32 @@ func (s *NRVStorage) StreamBrackets(ctx context.Context, collection string, gold
 	return out, nil
 }
 
+// FrameSignature returns the base64 ML-DSA-65 signature recorded for a frame,
+// or "" when the dataset was written without a key.
+func (s *NRVStorage) FrameSignature(collection, frameID string) (string, error) {
+	reader, err := NewNRVReader(s.getNRVPath(collection))
+	if err != nil {
+		return "", err
+	}
+	defer reader.Close()
+	for _, e := range reader.registry.Frames {
+		if e.ID == frameID && e.Tombstone == nil {
+			return reader.registry.PQCManifest.FrameSignatures[frameID], nil
+		}
+	}
+	return "", fmt.Errorf("nrv: frame not found: %s", frameID)
+}
+
+// VerifyFrame checks a frame's recorded signature against keyPair's public key.
+func (s *NRVStorage) VerifyFrame(collection, frameID string, keyPair *pqc.PQCKeyPair) (bool, error) {
+	reader, err := NewNRVReader(s.getNRVPath(collection))
+	if err != nil {
+		return false, err
+	}
+	defer reader.Close()
+	return reader.VerifyFrame(frameID, keyPair)
+}
+
 // Flush writes the collection's pending brackets as a frame now instead of
 // at the next tick, and reports the write error, if any.
 func (s *NRVStorage) Flush(collection string) error {

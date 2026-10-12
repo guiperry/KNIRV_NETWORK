@@ -116,7 +116,7 @@ YELLOW := \033[1;33m
 BLUE := \033[0;34m
 NC := \033[0m # No Color
 
-.PHONY: help all clean build test deploy install deps frontend backend binary relink docker os deployer key-encryptor deploy-dev-local ebpf-generate proto kali-docker-image gateway-build gateway-deps gateway-clean graph-build graph-deps graph-clean chain-build chain-deps chain-clean oracle-build oracle-deps oracle-clean hasher-build hasher-deps hasher-clean agent-build agent-deps agent-clean llama-build llama-clean arena-build arena-deps arena-clean ulora-build ulora-mlc-build inferencer-deps inferencer-build build-full
+.PHONY: help all clean build test deploy install deps frontend backend binary relink docker os deployer key-encryptor deploy-dev-local ebpf-generate proto kali-docker-image gateway-build gateway-deps gateway-clean graph-build graph-deps graph-clean chain-build chain-deps chain-clean oracle-build oracle-deps oracle-clean hasher-build hrm-preflight hasher-deps hasher-clean agent-build agent-deps agent-clean llama-build llama-clean arena-build arena-deps arena-clean ulora-build ulora-mlc-build inferencer-deps inferencer-build build-full
 
 # Default target
 all: proto frontend backend binary
@@ -590,7 +590,13 @@ hasher-deps: ## Install KNIRVHASHER dependencies
 	@echo "$(BLUE)Installing KNIRVHASHER dependencies...$(NC)"
 	cd $(HASHER_SRC_DIR) && go mod download && go mod tidy
 
-hasher-build: hasher-deps ## Build KNIRVHASHER binaries into pkg/knirvhasher/bin/ (required before binary target)
+hrm-preflight: ## Fail early, with a clear message, if the HRM toolchain (rust + wasm targets) is missing
+	@command -v cargo >/dev/null || { echo "$(RED)cargo not found: the HRM trainer and WASM modules need a Rust toolchain$(NC)"; exit 1; }
+	@rustup target list --installed 2>/dev/null | grep -qx wasm32-wasip1 || { echo "$(RED)missing rust target: run 'rustup target add wasm32-wasip1 wasm32-unknown-unknown'$(NC)"; exit 1; }
+	@rustup target list --installed 2>/dev/null | grep -qx wasm32-unknown-unknown || { echo "$(RED)missing rust target: run 'rustup target add wasm32-unknown-unknown'$(NC)"; exit 1; }
+	@command -v wasm-bindgen >/dev/null || { echo "$(RED)wasm-bindgen CLI not found: 'cargo install wasm-bindgen-cli' (version must match the crate)$(NC)"; exit 1; }
+
+hasher-build: hrm-preflight hasher-deps ## Build KNIRVHASHER binaries into pkg/knirvhasher/bin/ (required before binary target)
 	@echo "$(BLUE)Building embedded KNIRVHASHER driver and ASIC server...$(NC)"
 	cd $(HASHER_SRC_DIR) && $(MAKE) build-driver
 	@echo "$(BLUE)Building KNIRVHASHER pipeline binaries...$(NC)"
@@ -680,7 +686,7 @@ arena-deps: ## Install KNIRVARENA dependencies
 	@echo "$(BLUE)Installing KNIRVARENA dependencies...$(NC)"
 	cd $(ARENA_SRC_DIR) && $(NPM_CMD) install
 
-arena-build: arena-deps ## Build KNIRVARENA dist and bundle into pkg/knirvarena/bin/ (required before binary target)
+arena-build: hrm-preflight arena-deps ## Build KNIRVARENA dist and bundle into pkg/knirvarena/bin/ (required before binary target)
 	@echo "$(BLUE)Building KNIRVARENA static bundle...$(NC)"
 	cd $(ARENA_SRC_DIR) && $(NPM_CMD) run build
 	@mkdir -p $(ARENA_DIR)/bin

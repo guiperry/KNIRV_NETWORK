@@ -1,0 +1,40 @@
+{
+  "_note": "Live Workers AI response envelope, captured for regression testing.",
+  "_question_type": "noul",
+  "_state_sent": {
+    "request": "How do I locate my card?"
+  },
+  "_request_body": {
+    "model": "clef-flash",
+    "state": {
+      "request": "How do I locate my card?"
+    },
+    "questions": {
+      "evidence_present": {
+        "type": "noul",
+        "instructions": "Is a verified test_report artifact present for this task?",
+        "criteria": {
+          "true": "A verified test_report artifact is present",
+          "false": "No verified test_report artifact is present"
+        }
+      }
+    }
+  },
+  "_usage": {
+    "input_tokens": 155,
+    "output_tokens": 0
+  },
+  "result": {
+    "model": "clef-flash",
+    "answers": {
+      "evidence_present": {
+        "type": "noul",
+        "noul": 0.0182
+      }
+    },
+    "usage": {
+      "input_tokens": 155,
+      "output_tokens": 0
+    }
+  }
+}

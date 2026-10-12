@@ -66,7 +66,7 @@ func (em *EncryptionManager) EncryptData(plaintext []byte, keyID string) (string
 	// Create encrypted payload with metadata
 	payload := map[string]interface{}{
 		"key_id":     keyID,
-		"algorithm":  "Kyber-768+AES-256-GCM",
+		"algorithm":  EnvelopeAlgorithm,
 		"ciphertext": base64.StdEncoding.EncodeToString(ciphertext),
 	}
 

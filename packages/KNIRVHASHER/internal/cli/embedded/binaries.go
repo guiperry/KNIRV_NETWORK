@@ -71,6 +71,12 @@ var AvailableBinaries = []BinaryInfo{
 		TargetArch:  "amd64",
 	},
 	{
+		Name:        "hrm-trainer",
+		Description: "HRM Trainer - trains and gate-promotes the Hierarchical Reasoning Model",
+		TargetOS:    "linux",
+		TargetArch:  "amd64",
+	},
+	{
 		Name:        "knirvbase",
 		Description: "Standalone KNIRVBASE NRV store and network service",
 		TargetOS:    "linux",

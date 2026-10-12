@@ -24,7 +24,7 @@ CLANG=clang
 LLVM_STRIP=llvm-strip
 
 
-.PHONY: all build clean test proto ebpf deps help build-asic-test build-probe build-probe build-probe-v2 build-protocol-discover build-monitor build-diagnostics deploy deploy-probe deploy-probe-v2 deploy-protocol-discover deploy-monitor build-pipeline-all build-data-connector build-data-mapper build-data-encoder build-data-seeder build-data-trainer build-knirvbase
+.PHONY: all build clean test proto ebpf deps help build-asic-test build-probe build-probe build-probe-v2 build-protocol-discover build-monitor build-diagnostics deploy deploy-probe deploy-probe-v2 deploy-protocol-discover deploy-monitor build-pipeline-all build-data-connector build-data-mapper build-data-encoder build-data-seeder build-data-trainer build-hrm-trainer build-hrm-wasi build-knirvbase
 
 ANTMINER_IP ?= $(shell [ -f .env ] && source .env && echo $$DEVICE_IP || echo 192.168.12.151)
 ANTMINER_USER ?= root
@@ -368,6 +368,24 @@ build-data-trainer:
 	cd $(PIPELINE_DIR)/4_DATA_TRAINER && go build -ldflags "-s -w" -o ../../$(EMBED_DIR)/data-trainer ./cmd/data-trainer
 	@echo "✅ Built: $(EMBED_DIR)/data-trainer"
 
+## build-hrm-trainer: Build the HRM trainer (Rust, stage 5; shares the knirv-hrm crate with the arena)
+build-hrm-trainer:
+	@echo "🔨 Building hrm-trainer from 5_HRM_TRAINER..."
+	cd $(PIPELINE_DIR)/5_HRM_TRAINER && cargo build --release
+	@mkdir -p $(EMBED_DIR)
+	cp $(PIPELINE_DIR)/5_HRM_TRAINER/target/release/hrm-trainer $(EMBED_DIR)/hrm-trainer
+	@chmod 755 $(EMBED_DIR)/hrm-trainer
+	@echo "✅ Built: $(EMBED_DIR)/hrm-trainer"
+
+## build-hrm-wasi: Rebuild the embedded WASI module HEART runs under wazero (needs the wasm32-wasip1 rust target)
+build-hrm-wasi:
+	cd ../KNIRVINFERENCER/hrm && cargo build --release --bin hrm-wasi --target wasm32-wasip1
+	cp ../KNIRVINFERENCER/hrm/target/wasm32-wasip1/release/hrm-wasi.wasm pkg/hashing/hrm/hrm-wasi.wasm
+
+## test-hrm-trainer: Test the HRM trainer
+test-hrm-trainer:
+	cd $(PIPELINE_DIR)/5_HRM_TRAINER && cargo test --release
+
 ## build-knirvbase: Build the standalone embedded KNIRVBASE service
 build-knirvbase:
 	@echo "🔨 Building standalone knirvbase service..."
@@ -376,7 +394,7 @@ build-knirvbase:
 	@echo "✅ Built: $(EMBED_DIR)/knirvbase"
 
 ## build-pipeline-all: Build all pipeline binaries
-build-pipeline-all: build-data-connector build-data-mapper build-data-encoder build-data-seeder build-data-trainer build-knirvbase
+build-pipeline-all: build-data-connector build-data-mapper build-data-encoder build-data-seeder build-data-trainer build-hrm-wasi build-hrm-trainer build-knirvbase
 	@echo "✅ All pipeline binaries built"
 	@echo "📦 Pipeline binaries in: $(EMBED_DIR)"
 	@ls -lh $(EMBED_DIR)/

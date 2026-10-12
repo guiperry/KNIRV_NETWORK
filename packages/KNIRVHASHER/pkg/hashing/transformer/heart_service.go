@@ -14,6 +14,7 @@ import (
 
 	"github.com/guiperry/text-embedder/pkg/embed"
 	"knirvhasher/pkg/embeddings"
+	"knirvhasher/pkg/hashing/hrm"
 	"knirvhasher/pkg/hashing/semanticmemory"
 )
 
@@ -35,6 +36,8 @@ type HEARTService struct {
 	generatorSwitcher *GeneratorSwitcher
 	unifiedEngine     *UnifiedHasherEngine
 	attestation       *AttestationBridge
+	hrmOnce           sync.Once
+	hrmSvc            *hrm.Service
 	mu                sync.RWMutex
 }
 
@@ -251,6 +254,7 @@ func (hs *HEARTService) Start(port int) error {
 	http.HandleFunc("/heart/generate", hs.handleGenerate)
 	http.HandleFunc("/heart/health", hs.handleHealth)
 	http.HandleFunc("/heart/stats", hs.handleStats)
+	hs.registerHRM(http.DefaultServeMux)
 
 	addr := fmt.Sprintf(":%d", port)
 	log.Printf("Starting HEART service on %s", addr)
@@ -267,6 +271,7 @@ func (hs *HEARTService) ListenAndServe(addr string) error {
 	mux.HandleFunc("/heart/health", hs.handleHealth)
 	mux.HandleFunc("/heart/stats", hs.handleStats)
 	mux.HandleFunc("/heart/reload-seeds", hs.handleReloadSeeds)
+	hs.registerHRM(mux)
 
 	log.Printf("Starting HEART service on %s", addr)
 	return http.ListenAndServe(addr, mux)
@@ -1243,6 +1248,7 @@ func (hs *HEARTService) handleHealth(w http.ResponseWriter, r *http.Request) {
 		"avg_latency_ms": hs.getAvgLatency(),
 		"total_queries":  hs.stats.TotalInquiries,
 		"success_rate":   hs.getSuccessRate(),
+		"hrm":            hs.hrmService().Status(),
 	}
 
 	json.NewEncoder(w).Encode(health)

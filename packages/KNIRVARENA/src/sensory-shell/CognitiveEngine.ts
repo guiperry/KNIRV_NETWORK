@@ -220,10 +220,7 @@ export class CognitiveEngine extends EventEmitter {
     // Initialize HRM-LoRA Bridge if both HRM and Enhanced LoRA are enabled
     if (this._config.hrmEnabled && this._config.enhancedLoraEnabled) {
       this.hrmLoraBridge = new HRMLoRABridge({
-        syncFrequency: 3000, // 3 seconds
-        adaptationThreshold: 0.1,
-        maxWeightChange: 0.3,
-        enableBidirectional: true,
+        syncFrequency: 30_000, // re-check that the applied adapter matches the loaded model
       });
     }
 
@@ -1405,6 +1402,12 @@ export class CognitiveEngine extends EventEmitter {
       return null;
     }
     return Object.fromEntries(this.hrmLoraBridge.getMappings());
+  }
+
+  /** Chooses the KNIRVULORA bundle merged into the in-browser HRM (null removes it). */
+  public async setHRMLoRABundle(bundleId: string | null): Promise<void> {
+    if (!this.hrmLoraBridge) throw new Error('HRM-LoRA Bridge not initialized');
+    await this.hrmLoraBridge.setBundle(bundleId);
   }
 
   public async forceHRMLoRASync(): Promise<void> {

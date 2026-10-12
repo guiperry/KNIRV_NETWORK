@@ -2,6 +2,7 @@ package storage
 
 import (
 	"bufio"
+	"bytes"
 	"encoding/json"
 	"os"
 	"sync"
@@ -103,6 +104,9 @@ func (w *WAL) Truncate() error {
 	return os.Remove(w.path)
 }
 
+// readEntries parses the log line by line, skipping malformed lines. A crash
+// can leave a torn final line; skipping it keeps every earlier (possibly
+// uncommitted) entry visible to Recover.
 func (w *WAL) readEntries() ([]WALEntry, error) {
 	f, err := os.Open(w.path)
 	if os.IsNotExist(err) {
@@ -114,16 +118,18 @@ func (w *WAL) readEntries() ([]WALEntry, error) {
 	defer f.Close()
 
 	var entries []WALEntry
-	decoder := json.NewDecoder(f)
-	for {
+	scanner := bufio.NewScanner(f)
+	scanner.Buffer(make([]byte, 0, 64*1024), 1024*1024)
+	for scanner.Scan() {
+		line := bytes.TrimSpace(scanner.Bytes())
+		if len(line) == 0 {
+			continue
+		}
 		var entry WALEntry
-		if err := decoder.Decode(&entry); err != nil {
-			if err.Error() == "EOF" {
-				break
-			}
+		if err := json.Unmarshal(line, &entry); err != nil {
 			continue
 		}
 		entries = append(entries, entry)
 	}
-	return entries, nil
+	return entries, scanner.Err()
 }

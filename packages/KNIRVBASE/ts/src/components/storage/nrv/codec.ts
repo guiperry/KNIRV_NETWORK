@@ -47,6 +47,12 @@ export interface FrameIndexEntry {
   verified: boolean;
   ergoRank: number;
   modalities: ModalityMap;
+  // Go-schema fields (pkg/nrv FrameEntry); optional so legacy callers still compile.
+  timestampUnix?: number;
+  linguistic?: LinguisticMapping;
+  thermo?: ThermoAtmosphere;
+  bracketCount?: number;
+  bracketIndex?: BracketMeta[];
 }
 
 export type GlobalMetrics = NRVGlobalMetrics;

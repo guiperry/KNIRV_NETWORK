@@ -4,24 +4,23 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
-	"crypto/sha256"
 	"errors"
 	"fmt"
 
 	"github.com/cloudflare/circl/kem"
-	"github.com/cloudflare/circl/kem/kyber/kyber768"
+	"github.com/cloudflare/circl/kem/mlkem/mlkem768"
 )
 
-// KyberKeyPair represents a Kyber-768 key pair
+// KyberKeyPair represents an ML-KEM-768 key pair
 type KyberKeyPair struct {
 	PublicKey  kem.PublicKey
 	PrivateKey kem.PrivateKey
 	Scheme     kem.Scheme
 }
 
-// GenerateKyberKeyPair generates a new Kyber-768 key pair
+// GenerateKyberKeyPair generates a new ML-KEM-768 key pair
 func GenerateKyberKeyPair() (*KyberKeyPair, error) {
-	scheme := kyber768.Scheme()
+	scheme := mlkem768.Scheme()
 	publicKey, privateKey, err := scheme.GenerateKeyPair()
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate Kyber key pair: %w", err)
@@ -34,9 +33,9 @@ func GenerateKyberKeyPair() (*KyberKeyPair, error) {
 	}, nil
 }
 
-// KyberEncrypt encrypts plaintext using Kyber-768 KEM and AES-256-GCM
+// KyberEncrypt encrypts plaintext using ML-KEM-768 (FIPS 203) KEM and AES-256-GCM
 func KyberEncrypt(publicKey kem.PublicKey, plaintext []byte) ([]byte, error) {
-	scheme := kyber768.Scheme()
+	scheme := mlkem768.Scheme()
 
 	// Generate shared secret using Kyber KEM
 	ciphertext, sharedSecret, err := scheme.Encapsulate(publicKey)
@@ -58,9 +57,9 @@ func KyberEncrypt(publicKey kem.PublicKey, plaintext []byte) ([]byte, error) {
 	return result, nil
 }
 
-// KyberDecrypt decrypts ciphertext using Kyber-768 KEM and AES-256-GCM
+// KyberDecrypt decrypts ciphertext using ML-KEM-768 (FIPS 203) KEM and AES-256-GCM
 func KyberDecrypt(privateKey kem.PrivateKey, ciphertext []byte) ([]byte, error) {
-	scheme := kyber768.Scheme()
+	scheme := mlkem768.Scheme()
 
 	if len(ciphertext) < scheme.CiphertextSize() {
 		return nil, errors.New("ciphertext too short")
@@ -97,28 +96,25 @@ func (kp *KyberKeyPair) MarshalPrivateKey() ([]byte, error) {
 
 // UnmarshalPublicKey converts bytes to a public key
 func UnmarshalKyberPublicKey(data []byte) (kem.PublicKey, error) {
-	scheme := kyber768.Scheme()
+	scheme := mlkem768.Scheme()
 	return scheme.UnmarshalBinaryPublicKey(data)
 }
 
 // UnmarshalPrivateKey converts bytes to a private key
 func UnmarshalKyberPrivateKey(data []byte) (kem.PrivateKey, error) {
-	scheme := kyber768.Scheme()
+	scheme := mlkem768.Scheme()
 	return scheme.UnmarshalBinaryPrivateKey(data)
 }
 
 // aesEncrypt encrypts data using AES-256-GCM with the provided key
 func aesEncrypt(key []byte, plaintext []byte) ([]byte, error) {
-	// Derive a 32-byte key using SHA-256 if the key is not exactly 32 bytes
-	var aesKey []byte
-	if len(key) == 32 {
-		aesKey = key
-	} else {
-		hash := sha256.Sum256(key)
-		aesKey = hash[:]
+	// The ML-KEM-768 shared secret is 32 uniform bytes and is used directly
+	// as the AES-256 key. The TypeScript implementation does the same.
+	if len(key) != 32 {
+		return nil, fmt.Errorf("aes-256 key must be 32 bytes, got %d", len(key))
 	}
 
-	block, err := aes.NewCipher(aesKey)
+	block, err := aes.NewCipher(key)
 	if err != nil {
 		return nil, err
 	}
@@ -139,16 +135,11 @@ func aesEncrypt(key []byte, plaintext []byte) ([]byte, error) {
 
 // aesDecrypt decrypts data using AES-256-GCM with the provided key
 func aesDecrypt(key []byte, ciphertext []byte) ([]byte, error) {
-	// Derive a 32-byte key using SHA-256 if the key is not exactly 32 bytes
-	var aesKey []byte
-	if len(key) == 32 {
-		aesKey = key
-	} else {
-		hash := sha256.Sum256(key)
-		aesKey = hash[:]
+	if len(key) != 32 {
+		return nil, fmt.Errorf("aes-256 key must be 32 bytes, got %d", len(key))
 	}
 
-	block, err := aes.NewCipher(aesKey)
+	block, err := aes.NewCipher(key)
 	if err != nil {
 		return nil, err
 	}

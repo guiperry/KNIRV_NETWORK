@@ -280,11 +280,15 @@ func (dc *DistributedCollection) broadcastOperation(op typ.CRDTOperation) {
 	}
 
 	dc.mu.Lock()
-	dc.operationLog = append(dc.operationLog, op)
-	dc.pruneOperationLog()
-	// increment local vector
+	// Count this operation first, then stamp it with the resulting clock. The
+	// sync protocol ships an op only when op.Vector[peer] exceeds the
+	// requester's clock for that peer, so a pre-increment stamp meant the first
+	// operation of every peer could never be synced.
 	syncState := dc.syncStates[dc.networkID]
 	syncState.LocalVector = clock.Increment(syncState.LocalVector, dc.network.GetPeerID())
+	op.Vector = clock.Clone(syncState.LocalVector)
+	dc.operationLog = append(dc.operationLog, op)
+	dc.pruneOperationLog()
 	dc.mu.Unlock()
 
 	// Route through p2pconsensus if available

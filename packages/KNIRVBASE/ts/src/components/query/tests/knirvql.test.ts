@@ -114,19 +114,19 @@ describe('KNIRVQLParser', () => {
 
   describe('error handling', () => {
     it('should throw error for unknown command', () => {
-      expect(() => parser.parse('UNKNOWN command')).toThrow('Unknown command: UNKNOWN');
+      expect(() => parser.parse('UNKNOWN command')).toThrow('unknown command: UNKNOWN');
     });
 
     it('should throw error for invalid GET query', () => {
-      expect(() => parser.parse('GET')).toThrow('Invalid GET query');
+      expect(() => parser.parse('GET')).toThrow('invalid GET query');
     });
 
     it('should throw error for invalid SET query', () => {
-      expect(() => parser.parse('SET key')).toThrow('Invalid SET query');
+      expect(() => parser.parse('SET key')).toThrow('invalid SET query');
     });
 
     it('should throw error for invalid DELETE query', () => {
-      expect(() => parser.parse('DELETE id = "123"')).toThrow('Invalid DELETE query');
+      expect(() => parser.parse('DELETE id = "123"')).toThrow('invalid DELETE query');
     });
   });
 

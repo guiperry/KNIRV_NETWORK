@@ -5,7 +5,7 @@ import { IndexManager, Index, IndexType } from '../index';
 import { EncryptionManager, PQCKeyPair } from '../../crypto/pqc';
 import { EntryType } from '../../types/types';
 import { NRVReader } from './reader';
-import { NRVWriter } from './writer';
+import { NRVWriter, pqcSigner } from './writer';
 import { Compactor } from './compactor';
 import { WAL } from './wal';
 import * as nrv from './spec';
@@ -47,13 +47,7 @@ export class NRVStorage implements Storage {
   private async getWriter(collection: string): Promise<NRVWriter> {
     if (!this.writers.has(collection)) {
       const filePath = this.getCollectionPath(collection);
-      // Convert PQCKeyPair to Signer if needed
-      const signer = this.keyPair ? {
-        sign: async (data: Uint8Array) => {
-          // Simplified signing - in real implementation, use actual PQC signing
-          return Buffer.from(data).toString('base64');
-        }
-      } : undefined;
+      const signer = this.keyPair ? pqcSigner(this.keyPair) : undefined;
       const writer = await NRVWriter.create(filePath, signer);
       this.writers.set(collection, writer);
     }
@@ -329,9 +323,7 @@ export class NRVStorage implements Storage {
 
   async compact(collection: string): Promise<void> {
     const filePath = this.getCollectionPath(collection);
-    const signer = this.keyPair ? {
-      sign: async (data: Uint8Array) => Buffer.from(data).toString('base64')
-    } : undefined;
+    const signer = this.keyPair ? pqcSigner(this.keyPair) : undefined;
     const compactor = new Compactor(filePath, signer);
     
     const reader = await this.getReader(collection);
@@ -346,22 +338,37 @@ export class NRVStorage implements Storage {
   async appendBracket(collection: string, bracket: Bracket, thermo: ThermoAtmosphere): Promise<void> {
     const writer = await this.getWriter(collection);
     const registry = writer.getRegistry();
-    
-    const bracketData = encodeBracket(bracket);
-    const timestamp = Date.now();
-    
-    const meta = bracket.meta;
-    if (meta) {
-      registry.globalMetrics.totalBracketCount++;
-    }
-    
-    registry.globalMetrics.avgTempCMean = (registry.globalMetrics.avgTempCMean * (registry.globalMetrics.validFrameCount) + thermo.avgTempC) / (registry.globalMetrics.validFrameCount + 1);
-    if (thermo.avgTempC > registry.globalMetrics.avgTempCMax) {
-      registry.globalMetrics.avgTempCMax = thermo.avgTempC;
-    }
-    registry.globalMetrics.peakVoltVMean = (registry.globalMetrics.peakVoltVMean * (registry.globalMetrics.validFrameCount) + thermo.peakVoltV) / (registry.globalMetrics.validFrameCount + 1);
-    registry.globalMetrics.clockMHzMean = (registry.globalMetrics.clockMHzMean * (registry.globalMetrics.validFrameCount) + thermo.clockMHz) / (registry.globalMetrics.validFrameCount + 1);
+    const m = registry.globalMetrics;
 
-    await writer.saveRegistry();
+    // Running means over the frames already counted (Go's ticker does the same per flush).
+    const n = m.validFrameCount;
+    m.avgTempCMean = (m.avgTempCMean * n + thermo.avgTempC) / (n + 1);
+    m.peakVoltVMean = (m.peakVoltVMean * n + thermo.peakVoltV) / (n + 1);
+    m.clockMHzMean = (m.clockMHzMean * n + thermo.clockMHz) / (n + 1);
+    if (thermo.avgTempC > m.avgTempCMax) {
+      m.avgTempCMax = thermo.avgTempC;
+    }
+
+    const frameId = bracket.frameId || bracket.id || `frame-${Date.now()}`;
+    const meta: BracketMeta = bracket.meta ?? {
+      id: bracket.id || frameId,
+      type: 'I',
+      offset: 0,
+      driftScore: 0,
+    };
+    await writer.appendBrackets(frameId, encodeBracket(bracket), [meta], thermo, { token: '', unit: '' });
+    // The cached reader holds a snapshot of the file; drop it so reads see this frame.
+    this.readers.delete(collection);
+  }
+
+  /** Brackets of a collection; `goldOnly` keeps verified frames (Go: StreamBrackets). */
+  async *streamBrackets(collection: string, goldOnly: boolean): AsyncGenerator<Bracket> {
+    const reader = await this.getReader(collection);
+    if (!reader) return;
+    for (const entry of reader.getRegistry().frames) {
+      if (entry.tombstone !== undefined) continue;
+      if (goldOnly && !entry.verified) continue;
+      yield* reader.getBrackets(entry.id) ?? [];
+    }
   }
 }

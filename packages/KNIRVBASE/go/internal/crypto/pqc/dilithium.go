@@ -4,19 +4,19 @@ import (
 	"fmt"
 
 	"github.com/cloudflare/circl/sign"
-	"github.com/cloudflare/circl/sign/dilithium/mode3"
+	"github.com/cloudflare/circl/sign/mldsa/mldsa65"
 )
 
-// DilithiumKeyPair represents a Dilithium-3 key pair
+// DilithiumKeyPair represents a ML-DSA-65 (FIPS 204; formerly Dilithium-3) key pair
 type DilithiumKeyPair struct {
 	PublicKey  sign.PublicKey
 	PrivateKey sign.PrivateKey
 	Scheme     sign.Scheme
 }
 
-// GenerateDilithiumKeyPair generates a new Dilithium-3 key pair
+// GenerateDilithiumKeyPair generates a new ML-DSA-65 (FIPS 204; formerly Dilithium-3) key pair
 func GenerateDilithiumKeyPair() (*DilithiumKeyPair, error) {
-	scheme := mode3.Scheme()
+	scheme := mldsa65.Scheme()
 	publicKey, privateKey, err := scheme.GenerateKey()
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate Dilithium key pair: %w", err)
@@ -29,16 +29,16 @@ func GenerateDilithiumKeyPair() (*DilithiumKeyPair, error) {
 	}, nil
 }
 
-// DilithiumSign signs a message using Dilithium-3
+// DilithiumSign signs a message using ML-DSA-65 (FIPS 204; formerly Dilithium-3)
 func DilithiumSign(privateKey sign.PrivateKey, message []byte) ([]byte, error) {
-	scheme := mode3.Scheme()
+	scheme := mldsa65.Scheme()
 	signature := scheme.Sign(privateKey, message, nil)
 	return signature, nil
 }
 
-// DilithiumVerify verifies a signature using Dilithium-3
+// DilithiumVerify verifies a signature using ML-DSA-65 (FIPS 204; formerly Dilithium-3)
 func DilithiumVerify(publicKey sign.PublicKey, message []byte, signature []byte) bool {
-	scheme := mode3.Scheme()
+	scheme := mldsa65.Scheme()
 	return scheme.Verify(publicKey, message, signature, nil)
 }
 
@@ -54,12 +54,12 @@ func (kp *DilithiumKeyPair) MarshalPrivateKey() ([]byte, error) {
 
 // UnmarshalPublicKey converts bytes to a public key
 func UnmarshalDilithiumPublicKey(data []byte) (sign.PublicKey, error) {
-	scheme := mode3.Scheme()
+	scheme := mldsa65.Scheme()
 	return scheme.UnmarshalBinaryPublicKey(data)
 }
 
 // UnmarshalPrivateKey converts bytes to a private key
 func UnmarshalDilithiumPrivateKey(data []byte) (sign.PrivateKey, error) {
-	scheme := mode3.Scheme()
+	scheme := mldsa65.Scheme()
 	return scheme.UnmarshalBinaryPrivateKey(data)
 }

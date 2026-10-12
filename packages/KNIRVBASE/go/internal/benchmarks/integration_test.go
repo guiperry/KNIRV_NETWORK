@@ -53,7 +53,7 @@ func TestEndToEnd_ASICPipeline(t *testing.T) {
 	require.Equal(t, 1000, registry.GlobalMetrics.TotalBracketCount)
 	require.Equal(t, 3, registry.GlobalMetrics.ValidFrameCount)
 	require.NotEmpty(t, registry.PQCManifest.FrameSignatures)
-	require.Equal(t, "Dilithium-3", registry.PQCManifest.Algorithm)
+	require.Equal(t, "ML-DSA-65", registry.PQCManifest.Algorithm)
 
 	totalBrackets := 0
 	for _, frame := range registry.Frames {

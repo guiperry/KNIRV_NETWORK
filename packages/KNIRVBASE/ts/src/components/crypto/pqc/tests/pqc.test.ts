@@ -15,7 +15,7 @@ describe('PQC Key Management', () => {
       expect(keyPair.id).toBeDefined();
       expect(keyPair.name).toBe('test-key');
       expect(keyPair.purpose).toBe('encryption');
-      expect(keyPair.algorithm).toBe('Kyber-768+Dilithium-3');
+      expect(keyPair.algorithm).toBe('ML-KEM-768+ML-DSA-65');
       expect(keyPair.status).toBe('active');
       expect(keyPair.createdAt).toBeInstanceOf(Date);
 
@@ -53,6 +53,13 @@ describe('PQC Key Management', () => {
     });
   });
 
+  describe('legacy keys', () => {
+    it('rejects round-3 Kyber/Dilithium key files with an actionable error', () => {
+      const legacy = JSON.stringify({ id: 'x', algorithm: 'Kyber-768+Dilithium-3' });
+      expect(() => loadPQCKeyPair(legacy)).toThrow(/generate a new key pair/);
+    });
+  });
+
   describe('marshalPublic', () => {
     it('should marshal only public keys', () => {
       const marshaled = marshalPublic(keyPair);
@@ -60,12 +67,13 @@ describe('PQC Key Management', () => {
 
       expect(parsed.id).toBe(keyPair.id);
       expect(parsed.name).toBe(keyPair.name);
-      expect(parsed.kyberPublicKeyBytes).toBeDefined();
-      expect(parsed.dilithiumPublicKeyBytes).toBeDefined();
+      expect(parsed.format).toBe('knirv-pqc-key/v2');
+      expect(parsed.kyber_public_key).toBeDefined();
+      expect(parsed.dilithium_public_key).toBeDefined();
 
       // Private keys should not be present
-      expect(parsed.kyberPrivateKeyBytes).toBeUndefined();
-      expect(parsed.dilithiumPrivateKeyBytes).toBeUndefined();
+      expect(parsed.kyber_private_key).toBeUndefined();
+      expect(parsed.dilithium_private_key).toBeUndefined();
     });
   });
 

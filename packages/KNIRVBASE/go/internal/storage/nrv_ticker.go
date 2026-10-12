@@ -3,7 +3,6 @@ package storage
 import (
 	"context"
 	"encoding/binary"
-	"math"
 	"sync"
 	"time"
 
@@ -12,8 +11,8 @@ import (
 )
 
 const (
-	iFrameInterval = 50
-	driftThreshold = 0.25
+	iFrameInterval = nrv.IFrameInterval
+	driftThreshold = nrv.DriftThreshold
 )
 
 type MemoryZone struct {
@@ -223,16 +222,7 @@ func (ft *FrameTicker) flush() {
 	ft.flushMu.Unlock()
 }
 
-func euclideanDrift(a, b [32]byte) float64 {
-	var sum float64
-	for i := 0; i < 16; i++ {
-		av := float64(uint16(a[i*2])|uint16(a[i*2+1])<<8) / 65535.0
-		bv := float64(uint16(b[i*2])|uint16(b[i*2+1])<<8) / 65535.0
-		diff := av - bv
-		sum += diff * diff
-	}
-	return math.Sqrt(sum)
-}
+func euclideanDrift(a, b [32]byte) float64 { return nrv.EuclideanDrift(a, b) }
 
 func aggregateThermo(samples []nrv.ThermoAtmosphere) nrv.ThermoAtmosphere {
 	if len(samples) == 0 {

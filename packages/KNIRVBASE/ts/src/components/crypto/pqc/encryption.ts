@@ -1,4 +1,4 @@
-import { PQCKeyPair, encrypt, decrypt, sign, verify, isActive, generatePQCKeyPair } from './keys';
+import { PQCKeyPair, ENVELOPE_ALGORITHM, encrypt, decrypt, sign, verify, isActive, generatePQCKeyPair } from './keys';
 
 // EncryptionManager manages PQC encryption for sensitive data
 export class EncryptionManager {
@@ -27,11 +27,12 @@ export class EncryptionManager {
     // Encrypt the data
     const ciphertext = await encrypt(keyPair, plaintext);
 
-    // Create encrypted payload with metadata
+    // Payload keys are in alphabetical order: that is what Go's json.Marshal of a
+    // map produces, and the signature covers these exact bytes in both languages.
     const payload = {
-      key_id: keyID,
-      algorithm: 'Kyber-768+AES-256-GCM',
+      algorithm: ENVELOPE_ALGORITHM,
       ciphertext: Buffer.from(ciphertext).toString('base64'),
+      key_id: keyID,
     };
 
     // Sign the payload for integrity
@@ -60,11 +61,15 @@ export class EncryptionManager {
     const signatureB64 = encrypted.signature;
     const signature = Buffer.from(signatureB64, 'base64');
 
-    // Extract payload
-    const payloadBytes = Buffer.from(JSON.stringify(payload));
-
+    // Re-canonicalise (sorted keys), as Go does by re-marshalling the parsed map.
     const keyID = payload.key_id;
     const ciphertextB64 = payload.ciphertext;
+    const payloadBytes = Buffer.from(
+      JSON.stringify({ algorithm: payload.algorithm, ciphertext: ciphertextB64, key_id: keyID })
+    );
+    if (payload.algorithm !== ENVELOPE_ALGORITHM) {
+      throw new Error(`unsupported envelope algorithm ${JSON.stringify(payload.algorithm)}`);
+    }
     const ciphertext = Buffer.from(ciphertextB64, 'base64');
 
     // Get the key pair

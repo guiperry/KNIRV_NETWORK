@@ -19,6 +19,7 @@ import (
 
 	"knirvhasher/internal/analyzer"
 	"knirvhasher/internal/cli/controller"
+	"knirvhasher/pkg/hashing/hrm"
 )
 
 const (
@@ -75,6 +76,15 @@ func (s *Server) registerRoutes() {
 	s.mux.HandleFunc("/api/v1/pipeline/run", s.handleRunPipeline)
 	s.mux.HandleFunc("/api/v1/pipeline/status", s.handleGetPipelineStatus)
 	s.mux.HandleFunc("/api/v1/pipeline/logs", s.handlePipelineLogs)
+	s.mux.HandleFunc("/api/v1/hrm/train", s.handleHRMTrain)
+	s.mux.HandleFunc("/api/v1/hrm/status", s.handleHRMStatus)
+	// The served HRM: backend_server reaches these over this socket (it authenticates callers).
+	if dir, err := controller.HRMDir(); err != nil {
+		log.Printf("HRM serving disabled: %v", err)
+	} else {
+		hrm.Routes(hrm.NewService(dir), s.mux)
+		log.Printf("HRM served from %s (/heart/hrm/*)", dir)
+	}
 
 	s.mux.HandleFunc("/api/v1/verify", s.handleVerify)
 
@@ -618,6 +628,9 @@ func RunHeadless(socketPath string, socketPerm uint32, goatMode bool, knirvserve
 	}
 
 	server := NewServer(socketPath, perm, goatMode)
+	schedCtx, stopSched := context.WithCancel(context.Background())
+	defer stopSched()
+	go server.controller.RunHRMScheduler(schedCtx, hrmCheckInterval())
 	if len(knirvserverManaged) > 0 {
 		server.knirvserverManaged = knirvserverManaged[0]
 	}
@@ -722,4 +735,44 @@ func pipeOutput(reader *bufio.Reader, label string) (<-chan string, func()) {
 
 	stop := func() { close(done) }
 	return ch, stop
+}
+
+// handleHRMTrain starts a stage-5 HRM cycle in the background. {"force":true}
+// skips the new-data and spacing checks; the promotion gate still applies.
+func (s *Server) handleHRMTrain(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var req struct {
+		Force bool `json:"force"`
+	}
+	_ = json.NewDecoder(r.Body).Decode(&req)
+	go func() {
+		defer func() {
+			if rec := recover(); rec != nil {
+				log.Printf("HRM cycle panic recovered: %v", rec)
+			}
+		}()
+		_, _ = s.controller.RunHRMCycle(context.Background(), req.Force)
+	}()
+	s.sendSuccess(w, "HRM cycle started", map[string]bool{"force": req.Force})
+}
+
+func (s *Server) handleHRMStatus(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(s.controller.HRMStatus())
+}
+
+// hrmCheckInterval is how often the daemon looks for enough new Bronze to train on
+// (KNIRV_HRM_CHECK_MINUTES, default 30).
+func hrmCheckInterval() time.Duration {
+	if n, err := strconv.Atoi(os.Getenv("KNIRV_HRM_CHECK_MINUTES")); err == nil && n > 0 {
+		return time.Duration(n) * time.Minute
+	}
+	return 30 * time.Minute
 }

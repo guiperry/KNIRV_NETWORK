@@ -38,6 +38,41 @@ func (p *KNIRVQLParser) Parse(query string) (*Query, error) {
 	}
 }
 
+// kw normalises a keyword token for case-insensitive comparison.
+func kw(s string) string { return strings.ToUpper(s) }
+
+// parseFilterValue types a WHERE value token. Shared grammar with the TypeScript
+// parser (ts/src/components/query/knirvql.ts): true/false, decimal numbers
+// (always float64), 0x-prefixed hex (uint64), otherwise the string.
+func parseFilterValue(raw string) interface{} {
+	valueStr := strings.Trim(raw, "\"")
+	if valueStr == "true" {
+		return true
+	}
+	if valueStr == "false" {
+		return false
+	}
+	if f, err := strconv.ParseFloat(valueStr, 64); err == nil {
+		return f
+	}
+	if ls := strings.ToLower(valueStr); strings.HasPrefix(ls, "0x") {
+		if u, err := strconv.ParseUint(ls[2:], 16, 64); err == nil {
+			return u
+		}
+	}
+	return valueStr
+}
+
+func parseVector(s string) []float64 {
+	var out []float64
+	for _, vp := range strings.Split(strings.Trim(s, "[]"), ",") {
+		if v, err := strconv.ParseFloat(strings.TrimSpace(vp), 64); err == nil {
+			out = append(out, v)
+		}
+	}
+	return out
+}
+
 func (p *KNIRVQLParser) parseGet(parts []string) (*Query, error) {
 	if len(parts) < 1 {
 		return nil, fmt.Errorf("invalid GET query")
@@ -52,93 +87,79 @@ func (p *KNIRVQLParser) parseGet(parts []string) (*Query, error) {
 	var modalityType string
 	var bracketField string
 
-	if strings.HasPrefix(entryTypeOriginal, "MEMORY.MODALITY(") && strings.HasSuffix(entryTypeOriginal, ")") {
-		modalityName := entryTypeOriginal[len("MEMORY.MODALITY(") : len(entryTypeOriginal)-1]
-		modalityType = modalityName
+	if strings.HasPrefix(strings.ToUpper(entryTypeOriginal), "MEMORY.MODALITY(") && strings.HasSuffix(entryTypeOriginal, ")") {
+		modalityType = entryTypeOriginal[len("MEMORY.MODALITY(") : len(entryTypeOriginal)-1]
 		entryType = "MEMORY"
 	}
-
-	if strings.HasPrefix(entryTypeOriginal, "MEMORY.BRACKET(") && strings.HasSuffix(entryTypeOriginal, ")") {
+	if strings.HasPrefix(strings.ToUpper(entryTypeOriginal), "MEMORY.BRACKET(") && strings.HasSuffix(entryTypeOriginal, ")") {
 		bracketField = entryTypeOriginal[len("MEMORY.BRACKET(") : len(entryTypeOriginal)-1]
 		entryType = "MEMORY"
 	}
+	if entryType != "MEMORY" && entryType != "AUTH" {
+		return nil, fmt.Errorf("invalid entry type: %s", entryType)
+	}
 
-	var queryType QueryType
+	queryType := QueryGet
 	if bracketField != "" {
 		queryType = QueryGetBracketField
 	} else if modalityType != "" {
 		queryType = QueryGetModality
-	} else {
-		queryType = QueryGet
 	}
 
 	i := 1
-	if i < len(parts) && parts[i] == "WHERE" {
+	if i < len(parts) && kw(parts[i]) == "FROM" {
 		i++
-		for i < len(parts) {
-			if parts[i] == "SIMILAR" && i+1 < len(parts) && parts[i+1] == "TO" {
-				i += 2
-				if i < len(parts) {
-					vecStr := parts[i]
-					vecStr = strings.Trim(vecStr, "[]")
-					vecParts := strings.Split(vecStr, ",")
-					for _, vp := range vecParts {
-						if v, err := strconv.ParseFloat(strings.TrimSpace(vp), 64); err == nil {
-							similarTo = append(similarTo, v)
-						}
-					}
-				}
-				break
-			} else if parts[i] == "WITH" && i+1 < len(parts) && parts[i+1] == "TAGS" {
-				i += 2
-				if i < len(parts) && strings.HasPrefix(parts[i], "(") {
-					tagStr := strings.Trim(parts[i], "()")
-					tagParts := strings.Split(tagStr, ",")
-					for _, t := range tagParts {
-						filters = append(filters, Filter{Key: "tags", Operator: "CONTAINS", Value: strings.TrimSpace(t)})
-					}
-					i++
-				}
-			} else if parts[i] == "LIMIT" {
+		if i < len(parts) {
+			collection = parts[i]
+			i++
+		}
+	}
+
+	inWhere := false
+	for i < len(parts) {
+		tok := kw(parts[i])
+		switch {
+		case tok == "WHERE":
+			inWhere = true
+			i++
+		case tok == "SIMILAR" && i+1 < len(parts) && kw(parts[i+1]) == "TO":
+			i += 2
+			if i < len(parts) {
+				similarTo = parseVector(parts[i])
 				i++
-				if i < len(parts) {
-					if l, err := strconv.Atoi(parts[i]); err == nil {
-						limit = l
-					}
-				}
-				break
-			} else if parts[i] == "AND" || parts[i] == "OR" {
-				i++
-				continue
-			} else {
-				if i+2 < len(parts) {
-					key := parts[i]
-					operator := parts[i+1]
-					valueStr := strings.Trim(parts[i+2], "\"")
-					var value interface{}
-					if valueStr == "true" {
-						value = true
-					} else if valueStr == "false" {
-						value = false
-					} else if f, err := strconv.ParseFloat(valueStr, 64); err == nil {
-						value = f
-					} else if val, err := strconv.ParseInt(valueStr, 10, 64); err == nil {
-						value = val
-					} else if ls := strings.ToLower(valueStr); strings.HasPrefix(ls, "0x") {
-						if u, err := strconv.ParseUint(ls[2:], 16, 64); err == nil {
-							value = u
-						} else {
-							value = valueStr
-						}
-					} else {
-						value = valueStr
-					}
-					filters = append(filters, Filter{Key: key, Operator: operator, Value: value})
-					i += 3
-				} else {
-					break
-				}
 			}
+			inWhere = false
+		case tok == "LIMIT":
+			i++
+			if i < len(parts) {
+				if l, err := strconv.Atoi(parts[i]); err == nil {
+					limit = l
+				}
+				i++
+			}
+			inWhere = false
+		case inWhere && tok == "WITH" && i+1 < len(parts) && kw(parts[i+1]) == "TAGS":
+			i += 2
+			if i < len(parts) && strings.HasPrefix(parts[i], "(") {
+				for _, t := range strings.Split(strings.Trim(parts[i], "()"), ",") {
+					filters = append(filters, Filter{Key: "tags", Operator: "CONTAINS", Value: strings.TrimSpace(t)})
+				}
+				i++
+			}
+		case inWhere && (tok == "AND" || tok == "OR"):
+			// Compound filters are conjunctive: OR is accepted but evaluated as AND.
+			i++
+		case inWhere && i+2 < len(parts) && kw(parts[i+1]) == "SIMILAR" && kw(parts[i+2]) == "TO":
+			i++ // "key SIMILAR TO [..]": the key is informational
+		case inWhere && i+2 < len(parts):
+			op := parts[i+1]
+			if up := strings.ToUpper(op); up == "CONTAINS" || up == "STARTS_WITH" {
+				op = up
+			}
+			filters = append(filters, Filter{Key: parts[i], Operator: op, Value: parseFilterValue(parts[i+2])})
+			i += 3
+		default:
+			i++
 		}
 	}
 
@@ -172,11 +193,11 @@ func (p *KNIRVQLParser) parseSet(parts []string) (*Query, error) {
 }
 
 func (p *KNIRVQLParser) parseDelete(parts []string) (*Query, error) {
-	if len(parts) < 2 || parts[0] != "WHERE" || parts[1] != "id" || parts[2] != "=" {
+	if len(parts) < 4 || kw(parts[0]) != "WHERE" || parts[1] != "id" || parts[2] != "=" {
 		return nil, fmt.Errorf("invalid DELETE query")
 	}
 
-	id := parts[3]
+	id := strings.Trim(parts[3], "\"")
 
 	return &Query{
 		Type: QueryDelete,
@@ -213,7 +234,7 @@ func (p *KNIRVQLParser) parseCreateIndex(parts []string) (*Query, error) {
 	collection := indexParts[0]
 	indexName := indexParts[1]
 
-	if parts[1] != "ON" {
+	if kw(parts[1]) != "ON" {
 		return nil, fmt.Errorf("expected ON after index name")
 	}
 
@@ -410,17 +431,21 @@ func (q *Query) executeGet(db *db.DistributedDatabase, collection *coll.Distribu
 		return nil, fmt.Errorf("failed to optimize query: %w", err)
 	}
 
-	return q.executePlan(plan, db, collection)
+	return q.executePlan(plan, collectionName, db, collection)
 }
 
-func (q *Query) executePlan(plan *QueryPlan, db *db.DistributedDatabase, collection *coll.DistributedCollection) (interface{}, error) {
+func (q *Query) executePlan(plan *QueryPlan, collectionName string, db *db.DistributedDatabase, collection *coll.DistributedCollection) (interface{}, error) {
 	switch plan.ScanType {
 	case FullScan:
 		return q.executeFullScan(plan, collection)
 	case IndexScan:
-		return q.executeIndexScan(plan, db, collection)
+		return q.executeIndexScan(plan, collectionName, db, collection)
 	case IndexOnlyScan:
-		return q.executeIndexOnlyScan(plan, db)
+		if len(plan.IndexFilters) > 1 {
+			// An id list cannot re-check the extra index filters.
+			return q.executeIndexScan(plan, collectionName, db, collection)
+		}
+		return q.executeIndexOnlyScan(plan, collectionName, db)
 	default:
 		return q.executeFullScan(plan, collection)
 	}
@@ -447,9 +472,9 @@ func (q *Query) executeFullScan(plan *QueryPlan, collection *coll.DistributedCol
 	return q.shapeMemoryResults(results)
 }
 
-func (q *Query) executeIndexScan(plan *QueryPlan, db *db.DistributedDatabase, collection *coll.DistributedCollection) (interface{}, error) {
+func (q *Query) executeIndexScan(plan *QueryPlan, collectionName string, db *db.DistributedDatabase, collection *coll.DistributedCollection) (interface{}, error) {
 	ctx := context.TODO()
-	docIDs, err := db.QueryIndex(ctx, plan.IndexName, plan.IndexName, map[string]interface{}{
+	docIDs, err := db.QueryIndex(ctx, collectionName, plan.IndexName, map[string]interface{}{
 		"value": plan.IndexFilters[0].Value,
 	})
 	if err != nil {
@@ -462,7 +487,8 @@ func (q *Query) executeIndexScan(plan *QueryPlan, db *db.DistributedDatabase, co
 		if err != nil {
 			continue
 		}
-		if doc != nil && q.matchesFiltersWithPlan(doc, plan.PostFilters) {
+		// Re-check every filter: the index narrows candidates, it does not prove a match.
+		if doc != nil && q.matchesFiltersWithPlan(doc, plan.Filters) {
 			results = append(results, doc)
 		}
 	}
@@ -474,8 +500,8 @@ func (q *Query) executeIndexScan(plan *QueryPlan, db *db.DistributedDatabase, co
 	return q.shapeMemoryResults(results)
 }
 
-func (q *Query) executeIndexOnlyScan(plan *QueryPlan, db *db.DistributedDatabase) (interface{}, error) {
-	docIDs, err := db.QueryIndex(context.TODO(), plan.IndexName, plan.IndexName, map[string]interface{}{
+func (q *Query) executeIndexOnlyScan(plan *QueryPlan, collectionName string, db *db.DistributedDatabase) (interface{}, error) {
+	docIDs, err := db.QueryIndex(context.TODO(), collectionName, plan.IndexName, map[string]interface{}{
 		"value": plan.IndexFilters[0].Value,
 	})
 	if err != nil {

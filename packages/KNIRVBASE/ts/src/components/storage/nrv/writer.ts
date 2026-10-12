@@ -11,12 +11,25 @@ import {
   encodeFrame,
   createDefaultRegistry,
 } from './codec';
-import { NRV_HEADER_SIZE, NRV_REGISTRY_PADDING } from './spec';
+import { NRV_HEADER_SIZE, NRV_REGISTRY_PADDING, createModalityMap } from './spec';
+import { registryToPaddedBuffer, registryFromPaddedBuffer } from './registry_json';
 import { WAL, WALEntry } from './wal';
-import { createDefaultGlobalMetrics } from './bracket';
+import { PQCKeyPair, sign as pqcSign } from '../../crypto/pqc/keys';
+import { BracketMeta, LinguisticMapping, ThermoAtmosphere } from './bracket';
 
 export interface Signer {
+  /** Key identifier recorded in the registry's pqc_manifest. */
+  keyId?: string;
+  /** Returns the base64 signature (ML-DSA-65) over `data`. */
   sign(data: Uint8Array): Promise<string>;
+}
+
+/** Signer backed by a PQC key pair, matching Go's base64(Dilithium/ML-DSA signature). */
+export function pqcSigner(kp: PQCKeyPair): Signer {
+  return {
+    keyId: kp.id,
+    sign: async (data) => Buffer.from(pqcSign(kp, data)).toString('base64'),
+  };
 }
 
 export class NRVWriter {
@@ -62,17 +75,15 @@ export class NRVWriter {
         // Initialize new file
         file = await fs.promises.open(path, 'r+');
         const id = crypto.randomUUID();
-        registry = createDefaultRegistry(id, keyPair ? 'key' : undefined);
+        registry = createDefaultRegistry(id, keyPair?.keyId);
         
         // Write header
         const header = encodeHeader(NRV_HEADER_SIZE + NRV_REGISTRY_PADDING);
         await file.write(Buffer.from(header), 0, header.length, 0);
 
         // Write registry
-        const registryJson = JSON.stringify(registry, null, 2);
-        const padding = Buffer.alloc(NRV_REGISTRY_PADDING - registryJson.length);
-        await file.write(Buffer.from(registryJson), 0, registryJson.length, NRV_HEADER_SIZE);
-        await file.write(padding, 0, padding.length, NRV_HEADER_SIZE + registryJson.length);
+        const regBuf = registryToPaddedBuffer(registry);
+        await file.write(regBuf, 0, regBuf.length, NRV_HEADER_SIZE);
         
         position = NRV_HEADER_SIZE + NRV_REGISTRY_PADDING;
 
@@ -100,36 +111,22 @@ export class NRVWriter {
         // Load registry
         const registryBuf = Buffer.alloc(NRV_REGISTRY_PADDING);
         await file.read(registryBuf, 0, NRV_REGISTRY_PADDING, NRV_HEADER_SIZE);
-        const end = findEndOfJson(registryBuf);
-        if (end === 0) {
-          throw new Error('empty registry');
-        }
-        const registryJson = registryBuf.slice(0, end).toString('utf8');
-        registry = JSON.parse(registryJson);
-        // Handle backwards compatibility: if old schema with featureMin, migrate to new
-        if ((registry.globalMetrics as any).featureMin !== undefined) {
-          const old = registry.globalMetrics as any;
-          const newMetrics = createDefaultGlobalMetrics();
-          newMetrics.validFrameCount = old.verifiedFrameCount ?? 0;
-          registry.globalMetrics = newMetrics;
-        }
+        registry = registryFromPaddedBuffer(registryBuf);
       }
     } catch (err: any) {
       if (err.code === 'ENOENT') {
         // Create new file
         file = await fs.promises.open(path, 'w+');
         const id = crypto.randomUUID();
-        registry = createDefaultRegistry(id, keyPair ? 'key' : undefined);
+        registry = createDefaultRegistry(id, keyPair?.keyId);
         
         // Write header
         const header = encodeHeader(NRV_HEADER_SIZE + NRV_REGISTRY_PADDING);
         await file.write(Buffer.from(header), 0, header.length, 0);
 
         // Write registry
-        const registryJson = JSON.stringify(registry, null, 2);
-        const padding = Buffer.alloc(NRV_REGISTRY_PADDING - registryJson.length);
-        await file.write(Buffer.from(registryJson), 0, registryJson.length, NRV_HEADER_SIZE);
-        await file.write(padding, 0, padding.length, NRV_HEADER_SIZE + registryJson.length);
+        const regBuf = registryToPaddedBuffer(registry);
+        await file.write(regBuf, 0, regBuf.length, NRV_HEADER_SIZE);
         
         position = NRV_HEADER_SIZE + NRV_REGISTRY_PADDING;
         await file.sync();
@@ -186,12 +183,51 @@ export class NRVWriter {
     await this.wal.commit(frame.id);
   }
 
+  /**
+   * Append a frame of pre-encoded 80-byte brackets (Go's AppendFrame). This is
+   * the canonical write path: the file layout and registry entry are identical
+   * to what the Go writer produces.
+   */
+  async appendBrackets(
+    frameId: string,
+    bracketBuf: Uint8Array,
+    bracketIndex: BracketMeta[],
+    thermo: ThermoAtmosphere,
+    linguistic: LinguisticMapping
+  ): Promise<void> {
+    await this.wal.begin({ frameId, lastGoodLength: this.position, committed: false });
+
+    const offset = this.position;
+    if (this.keyPair) {
+      this.registry.pqcManifest.frameSignatures[frameId] = await this.keyPair.sign(bracketBuf);
+    }
+    await this.file.write(bracketBuf, 0, bracketBuf.length, offset);
+    this.position += bracketBuf.length;
+
+    this.registry.frames.push({
+      id: frameId,
+      offset,
+      length: bracketBuf.length,
+      verified: true,
+      ergoRank: 1.0,
+      modalities: createModalityMap(0),
+      timestampUnix: Math.floor(Date.now() / 1000),
+      linguistic,
+      thermo,
+      bracketCount: bracketIndex.length,
+      bracketIndex,
+    });
+    this.registry.frameCount++;
+    this.registry.globalMetrics.validFrameCount++;
+    this.registry.globalMetrics.totalBracketCount += bracketIndex.length;
+
+    await this.saveRegistry();
+    await this.wal.commit(frameId);
+  }
+
   async saveRegistry(): Promise<void> {
-    const registryJson = JSON.stringify(this.registry, null, 2);
-    const padding = Buffer.alloc(NRV_REGISTRY_PADDING - registryJson.length);
-    
-    await this.file.write(Buffer.from(registryJson), 0, registryJson.length, NRV_HEADER_SIZE);
-    await this.file.write(padding, 0, padding.length, NRV_HEADER_SIZE + registryJson.length);
+    const regBuf = registryToPaddedBuffer(this.registry);
+    await this.file.write(regBuf, 0, regBuf.length, NRV_HEADER_SIZE);
 
     // Update header with new total length
     const header = encodeHeader(this.position);
@@ -220,27 +256,4 @@ export class NRVWriter {
   async close(): Promise<void> {
     await this.file.close();
   }
-}
-
-function findEndOfJson(buf: Buffer): number {
-  let end = buf.length;
-  for (let i = buf.length - 1; i >= 0; i--) {
-    const byte = buf[i];
-    if (byte !== 0 && byte !== 0x20 && byte !== 0x0a && byte !== 0x0d && byte !== 0x09) {
-      end = i + 1;
-      break;
-    }
-  }
-  if (end > 0) {
-    const lastChar = buf[end - 1];
-    if (lastChar !== 0x7d) {
-      for (let i = end - 2; i >= 0; i--) {
-        if (buf[i] === 0x7d) {
-          end = i + 1;
-          break;
-        }
-      }
-    }
-  }
-  return end;
 }

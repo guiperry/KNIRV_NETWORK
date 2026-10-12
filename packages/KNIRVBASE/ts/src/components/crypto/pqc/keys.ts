@@ -2,17 +2,23 @@ import * as crypto from 'crypto';
 import { ml_kem768 } from '@noble/post-quantum/ml-kem';
 import { ml_dsa65 } from '@noble/post-quantum/ml-dsa';
 
-// PQCKeyPair represents a complete PQC key pair with both ML-KEM-768 (Kyber-768) and
-// ML-DSA-65 (Dilithium-3) keys. Mirrors Go's PQCKeyPair in internal/crypto/pqc/keys.go.
+// PQCKeyPair is a complete PQC key pair: ML-KEM-768 (FIPS 203) for encryption and
+// ML-DSA-65 (FIPS 204) for signatures. Interoperable with Go's PQCKeyPair in
+// internal/crypto/pqc/keys.go: same algorithms, same serialised key format
+// (`knirv-pqc-key/v2`), same ciphertext layout.
 //
-// Key sizes:
-//   ML-KEM-768 public key:  1184 bytes
-//   ML-KEM-768 secret key:  2400 bytes
-//   ML-KEM-768 ciphertext:  1088 bytes
-//   ML-KEM-768 shared secret: 32 bytes
-//   ML-DSA-65  public key:  1952 bytes
-//   ML-DSA-65  secret key:  4032 bytes
-//   ML-DSA-65  signature:   3309 bytes
+// Sizes: ML-KEM-768 pk 1184 / sk 2400 / ct 1088 / ss 32;
+//        ML-DSA-65  pk 1952 / sk 4032 / sig 3309.
+export const ALGORITHM_KEM = 'ML-KEM-768';
+export const ALGORITHM_SIG = 'ML-DSA-65';
+export const ALGORITHM_SUITE = `${ALGORITHM_KEM}+${ALGORITHM_SIG}`;
+export const ENVELOPE_ALGORITHM = `${ALGORITHM_KEM}+AES-256-GCM`;
+export const KEY_FORMAT = 'knirv-pqc-key/v2';
+
+const KEM_CT_LEN = 1088;
+const GCM_NONCE_LEN = 12;
+const GCM_TAG_LEN = 16;
+
 export interface PQCKeyPair {
   id: string;
   name: string;
@@ -49,7 +55,7 @@ export function generatePQCKeyPair(name: string, purpose: string): PQCKeyPair {
     id,
     name,
     purpose,
-    algorithm: 'Kyber-768+Dilithium-3',
+    algorithm: ALGORITHM_SUITE,
     createdAt: new Date(),
     status: 'active',
     kyberPublicKeyBytes: kemKeys.publicKey,
@@ -59,97 +65,102 @@ export function generatePQCKeyPair(name: string, purpose: string): PQCKeyPair {
   };
 }
 
-// LoadPQCKeyPair deserializes a key pair from a JSON string.
+const b64 = (u?: Uint8Array): string | undefined =>
+  u && u.length ? Buffer.from(u).toString('base64') : undefined;
+
+function toGoJSON(kp: PQCKeyPair, withPrivate: boolean): string {
+  // Key order matches Go's struct field order (json.Marshal).
+  return JSON.stringify({
+    format: KEY_FORMAT,
+    id: kp.id,
+    name: kp.name,
+    purpose: kp.purpose,
+    algorithm: kp.algorithm,
+    created_at: kp.createdAt.toISOString(),
+    expires_at: kp.expiresAt ? kp.expiresAt.toISOString() : undefined,
+    status: kp.status,
+    kyber_public_key: b64(kp.kyberPublicKeyBytes),
+    kyber_private_key: withPrivate ? b64(kp.kyberPrivateKeyBytes) : undefined,
+    dilithium_public_key: b64(kp.dilithiumPublicKeyBytes),
+    dilithium_private_key: withPrivate ? b64(kp.dilithiumPrivateKeyBytes) : undefined,
+  });
+}
+
+// LoadPQCKeyPair deserializes a key pair from the Go-compatible JSON format.
+// Legacy (round-3 Kyber/Dilithium) keys are rejected: generate a new key pair.
 export function loadPQCKeyPair(data: string): PQCKeyPair {
-  const parsed = JSON.parse(data);
+  const j = JSON.parse(data);
+  if (j.format !== KEY_FORMAT || j.algorithm !== ALGORITHM_SUITE) {
+    throw new Error(
+      `unsupported key format ${JSON.stringify(j.format)} / algorithm ${JSON.stringify(j.algorithm)} ` +
+        `(want ${KEY_FORMAT} / ${ALGORITHM_SUITE}): generate a new key pair`
+    );
+  }
   return {
-    ...parsed,
-    createdAt: new Date(parsed.createdAt),
-    expiresAt: parsed.expiresAt ? new Date(parsed.expiresAt) : undefined,
-    kyberPublicKeyBytes: bufferFromField(parsed.kyberPublicKeyBytes),
-    kyberPrivateKeyBytes: parsed.kyberPrivateKeyBytes ? bufferFromField(parsed.kyberPrivateKeyBytes) : undefined,
-    dilithiumPublicKeyBytes: bufferFromField(parsed.dilithiumPublicKeyBytes),
-    dilithiumPrivateKeyBytes: parsed.dilithiumPrivateKeyBytes ? bufferFromField(parsed.dilithiumPrivateKeyBytes) : undefined,
+    id: j.id,
+    name: j.name,
+    purpose: j.purpose,
+    algorithm: j.algorithm,
+    createdAt: new Date(j.created_at),
+    expiresAt: j.expires_at ? new Date(j.expires_at) : undefined,
+    status: j.status,
+    kyberPublicKeyBytes: bufferFromField(j.kyber_public_key),
+    kyberPrivateKeyBytes: j.kyber_private_key ? bufferFromField(j.kyber_private_key) : undefined,
+    dilithiumPublicKeyBytes: bufferFromField(j.dilithium_public_key),
+    dilithiumPrivateKeyBytes: j.dilithium_private_key ? bufferFromField(j.dilithium_private_key) : undefined,
   };
 }
 
-// Marshal serializes the key pair to JSON without private keys (for public storage).
+// Marshal serializes the key pair without private keys (for public storage).
 export function marshalPublic(kp: PQCKeyPair): string {
-  const { kyberPrivateKeyBytes, dilithiumPrivateKeyBytes, ...pub } = kp;
-  return JSON.stringify({
-    ...pub,
-    kyberPublicKeyBytes: Array.from(kp.kyberPublicKeyBytes),
-    dilithiumPublicKeyBytes: Array.from(kp.dilithiumPublicKeyBytes),
-  });
+  return toGoJSON(kp, false);
 }
 
-// MarshalWithPrivateKeys serializes the key pair to JSON including private keys.
+// MarshalWithPrivateKeys serializes the key pair including private keys.
 // WARNING: only use for encrypted storage.
 export function marshalWithPrivateKeys(kp: PQCKeyPair): string {
-  return JSON.stringify({
-    ...kp,
-    kyberPublicKeyBytes: Array.from(kp.kyberPublicKeyBytes),
-    kyberPrivateKeyBytes: kp.kyberPrivateKeyBytes ? Array.from(kp.kyberPrivateKeyBytes) : undefined,
-    dilithiumPublicKeyBytes: Array.from(kp.dilithiumPublicKeyBytes),
-    dilithiumPrivateKeyBytes: kp.dilithiumPrivateKeyBytes ? Array.from(kp.dilithiumPrivateKeyBytes) : undefined,
-  });
+  return toGoJSON(kp, true);
 }
 
 // Encrypt encrypts plaintext using ML-KEM-768 + AES-256-GCM.
-// Output format: kem_ciphertext (1088 bytes) || nonce (12 bytes) || aes_ciphertext
-// Mirrors Go's KyberEncrypt.
+// Output: kem_ciphertext (1088) || nonce (12) || aes_ciphertext || gcm_tag (16),
+// identical to Go's KyberEncrypt. The 32-byte KEM shared secret is the AES key.
 export function encrypt(kp: PQCKeyPair, plaintext: Uint8Array): Uint8Array {
-  // Encapsulate: generates a shared secret and a KEM ciphertext
   const { cipherText: kemCt, sharedSecret } = ml_kem768.encapsulate(kp.kyberPublicKeyBytes);
 
-  // Derive AES-256 key from the 32-byte shared secret via SHA-256
-  const aesKey = crypto.createHash('sha256').update(sharedSecret).digest();
-
-  // AES-256-GCM encrypt
-  const nonce = crypto.randomBytes(12);
-  const cipher = crypto.createCipheriv('aes-256-gcm', aesKey, nonce);
+  const nonce = crypto.randomBytes(GCM_NONCE_LEN);
+  const cipher = crypto.createCipheriv('aes-256-gcm', sharedSecret, nonce);
   const encrypted = Buffer.concat([cipher.update(plaintext), cipher.final()]);
   const authTag = cipher.getAuthTag();
 
-  // Concatenate: kemCt || nonce || authTag || encrypted
-  const result = new Uint8Array(kemCt.length + 12 + 16 + encrypted.length);
+  const result = new Uint8Array(kemCt.length + GCM_NONCE_LEN + encrypted.length + GCM_TAG_LEN);
   result.set(kemCt, 0);
   result.set(nonce, kemCt.length);
-  result.set(authTag, kemCt.length + 12);
-  result.set(encrypted, kemCt.length + 12 + 16);
-
+  result.set(encrypted, kemCt.length + GCM_NONCE_LEN);
+  result.set(authTag, kemCt.length + GCM_NONCE_LEN + encrypted.length);
   return result;
 }
 
-// Decrypt decrypts ciphertext using ML-KEM-768 + AES-256-GCM.
-// Mirrors Go's KyberDecrypt.
+// Decrypt decrypts ciphertext produced by encrypt() or Go's KyberEncrypt.
 export function decrypt(kp: PQCKeyPair, ciphertext: Uint8Array): Uint8Array {
   if (!kp.kyberPrivateKeyBytes) {
     throw new Error('no Kyber private key available');
   }
-
-  const kemCtLen = 1088; // ML-KEM-768 ciphertext size
-  if (ciphertext.length < kemCtLen + 12 + 16) {
+  if (ciphertext.length < KEM_CT_LEN + GCM_NONCE_LEN + GCM_TAG_LEN) {
     throw new Error('ciphertext too short');
   }
 
-  const kemCt = ciphertext.slice(0, kemCtLen);
-  const nonce = ciphertext.slice(kemCtLen, kemCtLen + 12);
-  const authTag = ciphertext.slice(kemCtLen + 12, kemCtLen + 12 + 16);
-  const encryptedData = ciphertext.slice(kemCtLen + 12 + 16);
+  const kemCt = ciphertext.subarray(0, KEM_CT_LEN);
+  const nonce = ciphertext.subarray(KEM_CT_LEN, KEM_CT_LEN + GCM_NONCE_LEN);
+  const sealed = ciphertext.subarray(KEM_CT_LEN + GCM_NONCE_LEN);
+  const authTag = sealed.subarray(sealed.length - GCM_TAG_LEN);
+  const encryptedData = sealed.subarray(0, sealed.length - GCM_TAG_LEN);
 
-  // Decapsulate: recover the shared secret
   const sharedSecret = ml_kem768.decapsulate(kemCt, kp.kyberPrivateKeyBytes);
 
-  // Derive AES-256 key
-  const aesKey = crypto.createHash('sha256').update(sharedSecret).digest();
-
-  // AES-256-GCM decrypt
-  const decipher = crypto.createDecipheriv('aes-256-gcm', aesKey, nonce);
+  const decipher = crypto.createDecipheriv('aes-256-gcm', sharedSecret, nonce);
   decipher.setAuthTag(authTag);
-  const decrypted = Buffer.concat([decipher.update(encryptedData), decipher.final()]);
-
-  return new Uint8Array(decrypted);
+  return new Uint8Array(Buffer.concat([decipher.update(encryptedData), decipher.final()]));
 }
 
 // Sign signs a message using ML-DSA-65 (Dilithium-3).
@@ -179,6 +190,6 @@ export function isActive(kp: PQCKeyPair): boolean {
 function bufferFromField(field: unknown): Uint8Array {
   if (field instanceof Uint8Array) return field;
   if (Array.isArray(field)) return new Uint8Array(field);
-  if (typeof field === 'string') return Buffer.from(field, 'base64');
+  if (typeof field === 'string') return new Uint8Array(Buffer.from(field, 'base64'));
   return new Uint8Array();
 }
