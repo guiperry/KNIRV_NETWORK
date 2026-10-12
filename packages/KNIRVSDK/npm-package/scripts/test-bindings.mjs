@@ -20,7 +20,7 @@ for (const fixture of fixtures.requests) {
   if (fixture.response) assert.deepEqual(response.payload, fixture.response, fixture.operation);
   if (fixture.operation === "wasm.manifest") {
     assert.ok(Array.isArray(response.payload.modules));
-    assert.equal(response.payload.modules.length, 4);
+    assert.equal(response.payload.modules.length, 3);
   }
 }
 

@@ -20,8 +20,8 @@ The maintained packages in this directory are listed below.
   signing, KNIRV bech32 addresses, and relay-envelope encoding.
 - A stable binding envelope (`version: 1`) for local cryptography, signing,
   address, WASM, and selected network operations.
-- Four digest-pinned WASM assets: `cognitive-shell`, `controller-relay`,
-  `crypto-core`, and `proof-verifier`.
+- Three digest-pinned WASM assets: `controller-relay`, `crypto-core`, and
+  `proof-verifier`.
 
 The browser/edge WASM transport currently implements local `crypto.sha256` and
 `wasm.manifest`; use a supplied `BindingTransport` when an application needs a

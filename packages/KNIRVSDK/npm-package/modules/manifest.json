@@ -2,17 +2,6 @@
   "version": 1,
   "modules": [
     {
-      "id": "cognitive-shell",
-      "artifact_version": "1.0.0",
-      "abi_version": 1,
-      "byte_length": 382108,
-      "sha256": "ecea193f876691b91544f0820d153882640057c572bad5ad73d0dfb31d73a05e",
-      "module_kind": "cognitive",
-      "capabilities": [
-        "cognitive.process"
-      ]
-    },
-    {
       "id": "controller-relay",
       "artifact_version": "1.0.0",
       "abi_version": 1,

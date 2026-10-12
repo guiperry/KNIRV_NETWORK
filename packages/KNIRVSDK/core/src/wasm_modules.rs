@@ -24,15 +24,13 @@ pub struct WasmModuleMetadata {
 /// A WebAssembly module packaged with the KNIRV SDK.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub enum WasmModule {
-    CognitiveShell,
     ControllerRelay,
     CryptoCore,
     ProofVerifier,
 }
 
 impl WasmModule {
-    pub const ALL: [Self; 4] = [
-        Self::CognitiveShell,
+    pub const ALL: [Self; 3] = [
         Self::ControllerRelay,
         Self::CryptoCore,
         Self::ProofVerifier,
@@ -41,7 +39,6 @@ impl WasmModule {
     /// Stable module identifier for configuration, CLI, and host integrations.
     pub const fn id(self) -> &'static str {
         match self {
-            Self::CognitiveShell => "cognitive-shell",
             Self::ControllerRelay => "controller-relay",
             Self::CryptoCore => "crypto-core",
             Self::ProofVerifier => "proof-verifier",
@@ -50,7 +47,6 @@ impl WasmModule {
 
     pub const fn description(self) -> &'static str {
         match self {
-            Self::CognitiveShell => "KNIRV Cortex cognitive processing module",
             Self::ControllerRelay => "KNIRV controller relay envelope module",
             Self::CryptoCore => "KNIRV SDK crypto policy module",
             Self::ProofVerifier => "KNIRV proof event-log verifier module",
@@ -60,10 +56,6 @@ impl WasmModule {
     /// Embedded, immutable module bytes. This is zero-copy.
     pub const fn bytes(self) -> &'static [u8] {
         match self {
-            Self::CognitiveShell => include_bytes!(concat!(
-                env!("CARGO_MANIFEST_DIR"),
-                "/wasm-modules/assets/cognitive-shell.wasm"
-            )),
             Self::ControllerRelay => include_bytes!(concat!(
                 env!("CARGO_MANIFEST_DIR"),
                 "/wasm-modules/assets/controller-relay.wasm"
@@ -82,9 +74,6 @@ impl WasmModule {
     /// SHA-256 of the exact embedded artifact, used to pin host-side loading.
     pub const fn sha256(self) -> &'static str {
         match self {
-            Self::CognitiveShell => {
-                "ecea193f876691b91544f0820d153882640057c572bad5ad73d0dfb31d73a05e"
-            }
             Self::ControllerRelay => {
                 "7164752c846f88039690351ca56949c8c8c6ff47eb5ac34574081a62210f9ba3"
             }
@@ -96,7 +85,6 @@ impl WasmModule {
     /// Versioned metadata for safe consumption outside this crate.
     pub fn metadata(self) -> WasmModuleMetadata {
         let (module_kind, capabilities) = match self {
-            Self::CognitiveShell => ("cognitive", &["cognitive.process"] as &[_]),
             Self::ControllerRelay => ("relay", &["relay.envelope"] as &[_]),
             Self::CryptoCore => ("crypto", &["crypto.policy"] as &[_]),
             Self::ProofVerifier => ("verifier", &["proof.verify"] as &[_]),
@@ -139,7 +127,6 @@ impl WasmModule {
     /// to the digest, making an accidental manifest/module mismatch visible.
     pub const fn required_exports(self) -> &'static [&'static str] {
         match self {
-            Self::CognitiveShell => &["hrmcognitive_process_cognitive_input"],
             Self::ControllerRelay => &["abi_version", "module_kind", "invoke"],
             Self::CryptoCore => &["abi_version", "module_kind", "crypto_protocol_version"],
             Self::ProofVerifier => &["abi_version", "module_kind", "invoke"],
