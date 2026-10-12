@@ -7,23 +7,32 @@ import (
 	"os"
 	"strings"
 	"time"
+
+	sdk "github.com/guiperry/knirv-sdk-go/models"
 )
 
-// Routes mounts the model's HTTP surface on mux:
+// Routes mounts the model's HTTP surface on mux under sdk.HeadPrefix
+// (/models/head) and, for one release, the previous prefix /heart/head:
 //
-//	POST /heart/head/reason          {"tokens":[...]} -> Reasoning
-//	GET  /heart/head/models          -> Manifest
-//	GET  /heart/head/weights/{ver}   safetensors, ETag = sha256, range requests
-//	GET  /heart/head/matrix          a d×d attention projection (KNIRVULORA connectors)
+//	POST {prefix}/reason          {"tokens":[...]} -> Reasoning
+//	GET  {prefix}/models          -> Manifest
+//	GET  {prefix}/weights/{ver}   safetensors, ETag = sha256, range requests
+//	GET  {prefix}/matrix          a d×d attention projection (KNIRVULORA connectors)
 //
 // The routes carry no CORS headers and no authentication: they are meant to be
-// reached only through backend_server, over the HASHER unix socket or loopback.
-// The path prefix is historical (HEART); the handlers need nothing but the Service.
+// reached only through backend_server, over the models unix socket or loopback.
 func Routes(svc *Service, mux *http.ServeMux) {
-	mux.HandleFunc("/heart/head/reason", func(w http.ResponseWriter, r *http.Request) { reason(svc, w, r) })
-	mux.HandleFunc("/heart/head/models", func(w http.ResponseWriter, r *http.Request) { models(svc, w, r) })
-	mux.HandleFunc("/heart/head/weights/", func(w http.ResponseWriter, r *http.Request) { weights(svc, w, r) })
-	mux.HandleFunc("/heart/head/matrix", func(w http.ResponseWriter, r *http.Request) { matrix(svc, w, r) })
+	for _, prefix := range []string{sdk.HeadPrefix, sdk.LegacyHeadPrefix} {
+		RoutesAt(svc, mux, prefix)
+	}
+}
+
+// RoutesAt mounts the HEAD surface under one prefix.
+func RoutesAt(svc *Service, mux *http.ServeMux, prefix string) {
+	mux.HandleFunc(prefix+"/reason", func(w http.ResponseWriter, r *http.Request) { reason(svc, w, r) })
+	mux.HandleFunc(prefix+"/models", func(w http.ResponseWriter, r *http.Request) { models(svc, w, r) })
+	mux.HandleFunc(prefix+"/weights/", func(w http.ResponseWriter, r *http.Request) { weights(svc, prefix, w, r) })
+	mux.HandleFunc(prefix+"/matrix", func(w http.ResponseWriter, r *http.Request) { matrix(svc, w, r) })
 }
 
 func writeJSON(w http.ResponseWriter, status int, v any) {
@@ -83,8 +92,8 @@ func models(svc *Service, w http.ResponseWriter, _ *http.Request) {
 	writeJSON(w, http.StatusOK, m)
 }
 
-func weights(svc *Service, w http.ResponseWriter, r *http.Request) {
-	version := strings.TrimPrefix(r.URL.Path, "/heart/head/weights/")
+func weights(svc *Service, prefix string, w http.ResponseWriter, r *http.Request) {
+	version := strings.TrimPrefix(r.URL.Path, prefix+"/weights/")
 	path, err := svc.WeightsPath(version)
 	if err != nil {
 		writeJSON(w, http.StatusNotFound, map[string]string{"error": "unknown version"})

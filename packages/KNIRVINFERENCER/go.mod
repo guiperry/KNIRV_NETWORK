@@ -32,3 +32,9 @@ require (
 	golang.org/x/text v0.23.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
+
+require github.com/guiperry/knirv-sdk-go/models v0.0.0
+
+// The models contract lives in KNIRVSDK (nested module, no dependencies). Consumers
+// use a local replace until the SDK is published with the nested module tagged.
+replace github.com/guiperry/knirv-sdk-go/models => ../KNIRVSDK/go-package/models

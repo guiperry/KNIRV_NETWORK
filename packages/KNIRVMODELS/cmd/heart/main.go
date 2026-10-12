@@ -8,7 +8,9 @@ import (
 )
 
 func main() {
-	addr := flag.String("addr", ":8090", "HEARTService listen address")
+	// Dev tool only: the daemon serves HEART at /models/heart on its unix socket. The
+	// default is loopback and not 8090, which is KNIRVSERVER's port.
+	addr := flag.String("addr", "127.0.0.1:8097", "HEARTService listen address")
 	useHashNetwork := flag.Bool("hashnetwork", false, "Enable optional HashNetwork fast path")
 	useCerebras := flag.Bool("cerebras", false, "Enable optional Cerebras WSE2 path")
 	externalGenURL := flag.String("external-generator-url", "",

@@ -4,8 +4,49 @@
  * drift silently.
  */
 
-/** Where the daemon serves the HEAD (moves to /models/head with the registry). */
-export const HEAD_PREFIX = "/heart/head";
+/** Where the daemon serves each model. One namespace for all three. */
+export const HEAD_PREFIX = "/models/head";
+/** The previous release's HEAD prefix; the daemon still answers there (removed in P9). */
+export const LEGACY_HEAD_PREFIX = "/heart/head";
+export const REGISTRY_PATH = "/models/registry";
+export const HEALTH_PATH = "/models/health";
+export const HEART_PREFIX = "/models/heart";
+export const HASHER_PREFIX = "/models/hasher";
+
+export type ModelRole = "validator" | "generator" | "reasoner";
+
+/** One registry row. `loaded` is false for a model not built yet (HEART is lazy). */
+export interface ModelStatus {
+  name: string;
+  role: ModelRole;
+  version: string;
+  ready: boolean;
+  loaded: boolean;
+  trained: boolean;
+  backend: string;
+  since?: string;
+  error?: string;
+  detail?: unknown;
+}
+
+export interface Health { status: string; time: string; models: number }
+export interface HeartHealth { available: boolean; status: string; loaded: boolean; ready: boolean; progress: number }
+export interface HasherValidateRequest { prediction: number; domain: string; context?: Record<string, unknown> }
+export interface HasherValidateResult {
+  prediction: number; valid: boolean; domain: string; rules_applied: number; errors?: string[]; latency_ms: number;
+}
+export interface HasherInferResult {
+  prediction: number; confidence: number; mode: string; valid_passes: number; total_passes: number; latency_ms: number;
+}
+export interface HasherStatus {
+  loaded: boolean; mode?: string; hardware_tier?: string; using_hardware?: boolean;
+  total_inferences: number; hardware_inferences: number; software_fallbacks: number;
+}
+
+/** The model is up but cannot answer yet (HTTP 503). */
+export class NotReadyError extends Error {
+  constructor() { super("model not ready"); this.name = "NotReadyError"; }
+}
 
 export interface Decision {
   name: string;
@@ -170,6 +211,29 @@ export class ModelsClient {
     if (!res.ok) throw new Error(`head: HTTP ${res.status}`);
     return (await res.json()) as T;
   }
+
+  registry(): Promise<ModelStatus[]> { return this.json<ModelStatus[]>(REGISTRY_PATH); }
+  health(): Promise<Health> { return this.json<Health>(HEALTH_PATH); }
+  heartHealth(): Promise<HeartHealth> { return this.json<HeartHealth>(`${HEART_PREFIX}/health`); }
+  hasherStatus(): Promise<HasherStatus> { return this.json<HasherStatus>(`${HASHER_PREFIX}/status`); }
+
+  private async post<T>(path: string, body: unknown): Promise<T> {
+    const res = await this.fetchImpl(this.baseUrl + path, {
+      method: "POST", headers: { ...this.headers, "Content-Type": "application/json" }, body: JSON.stringify(body),
+    });
+    if (res.status === 503) throw new NotReadyError();
+    if (!res.ok) throw new Error(`models: HTTP ${res.status}`);
+    return (await res.json()) as T;
+  }
+
+  /** HEART text; NotReadyError until HEART has a trained generator. */
+  async heartGenerate(prompt: string): Promise<string> {
+    const out = await this.post<{ text?: string; error?: string }>(`${HEART_PREFIX}/generate`, { prompt });
+    if (out.error) throw new Error(`heart: ${out.error}`);
+    return out.text ?? "";
+  }
+  hasherValidate(req: HasherValidateRequest): Promise<HasherValidateResult> { return this.post(`${HASHER_PREFIX}/validate`, req); }
+  hasherInfer(text: string): Promise<HasherInferResult> { return this.post(`${HASHER_PREFIX}/infer`, { text }); }
 
   manifest(): Promise<Manifest> { return this.json<Manifest>(`${HEAD_PREFIX}/models`); }
 

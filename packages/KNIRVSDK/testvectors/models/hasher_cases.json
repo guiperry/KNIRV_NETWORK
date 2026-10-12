@@ -1,0 +1,5 @@
+{"validate":{"request":{"prediction":3,"domain":"general","context":{"k":"v"}},
+             "response":{"prediction":3,"valid":true,"domain":"general","rules_applied":0,"latency_ms":0.01}},
+ "infer":{"response":{"prediction":7,"confidence":0.5,"mode":"transformer","valid_passes":1,"total_passes":1,"latency_ms":1.5}},
+ "status":{"idle":{"loaded":false,"total_inferences":0,"hardware_inferences":0,"software_fallbacks":0},
+           "loaded":{"loaded":true,"mode":"transformer","hardware_tier":"software","total_inferences":4,"hardware_inferences":0,"software_fallbacks":4}}}

@@ -607,6 +607,8 @@ models-build: models-preflight models-deps ## Build KNIRVMODELS binaries into pk
 	@echo "$(BLUE)Compressing KNIRVMODELS binary with gzip...$(NC)"
 	@rm -f $(MODELS_PKG_BIN).tmp
 	@gzip -cf $(MODELS_PKG_BIN) > $(MODELS_PKG_BIN).tmp && mv $(MODELS_PKG_BIN).tmp $(MODELS_PKG_BIN)
+	@echo "$(BLUE)Smoke-testing the built daemon (/models/* over a unix socket)...$(NC)"
+	cd $(MODELS_SRC_DIR) && $(MAKE) smoke-models BIN=$(abspath $(MODELS_PKG_BIN)) GZ=1
 	@echo "$(GREEN)KNIRVMODELS binaries built: $(MODELS_PKG_BIN) and pipeline artifacts$(NC)"
 
 models-clean: ## Clean KNIRVMODELS build artifacts

@@ -181,7 +181,9 @@ func NewHEARTServiceWithConfig(cfg *HEARTConfig) (*HEARTService, error) {
 	}
 
 	var unifiedEngine *UnifiedHasherEngine
-	if cfg.InferenceMode == "" || cfg.InferenceMode == "unified" {
+	if cfg.Engine != nil {
+		unifiedEngine = cfg.Engine
+	} else if cfg.InferenceMode == "" || cfg.InferenceMode == "unified" {
 		engine, err := NewUnifiedHasherEngineFromConfig(nil)
 		if err != nil {
 			log.Printf("unified engine init failed: %v (proceeding without unified engine)", err)
@@ -261,16 +263,23 @@ func (hs *HEARTService) Start(port int) error {
 	return http.ListenAndServe(addr, nil)
 }
 
+// Mount registers HEART's routes under prefix ("/heart" standalone,
+// "/models/heart" in the daemon).
+func (hs *HEARTService) Mount(mux *http.ServeMux, prefix string) {
+	mux.HandleFunc(prefix+"/analyze", hs.handleAnalyze)
+	mux.HandleFunc(prefix+"/advise", hs.handleAdvise)
+	mux.HandleFunc(prefix+"/resolve", hs.handleResolve)
+	mux.HandleFunc(prefix+"/patch", hs.handlePatch)
+	mux.HandleFunc(prefix+"/generate", hs.handleGenerate)
+	mux.HandleFunc(prefix+"/health", hs.handleHealth)
+	mux.HandleFunc(prefix+"/stats", hs.handleStats)
+	mux.HandleFunc(prefix+"/reload-seeds", hs.handleReloadSeeds)
+}
+
 // ListenAndServe starts the HEART HTTP service on given address (Phase 3)
 func (hs *HEARTService) ListenAndServe(addr string) error {
 	mux := http.NewServeMux()
-	mux.HandleFunc("/heart/advise", hs.handleAdvise)
-	mux.HandleFunc("/heart/resolve", hs.handleResolve)
-	mux.HandleFunc("/heart/patch", hs.handlePatch)
-	mux.HandleFunc("/heart/generate", hs.handleGenerate)
-	mux.HandleFunc("/heart/health", hs.handleHealth)
-	mux.HandleFunc("/heart/stats", hs.handleStats)
-	mux.HandleFunc("/heart/reload-seeds", hs.handleReloadSeeds)
+	hs.Mount(mux, "/heart")
 	hs.registerHEAD(mux)
 
 	log.Printf("Starting HEART service on %s", addr)
@@ -1243,6 +1252,7 @@ func (hs *HEARTService) handleHealth(w http.ResponseWriter, r *http.Request) {
 	health := map[string]interface{}{
 		"available":      true,
 		"status":         "online",
+		"loaded":         true,
 		"ready":          ready,
 		"progress":       progress,
 		"avg_latency_ms": hs.getAvgLatency(),

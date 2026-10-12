@@ -3,8 +3,18 @@
  * go-package/models). Both are tested against testvectors/models so they cannot
  * drift silently.
  */
-/** Where the daemon serves the HEAD (moves to /models/head with the registry). */
-export const HEAD_PREFIX = "/heart/head";
+/** Where the daemon serves each model. One namespace for all three. */
+export const HEAD_PREFIX = "/models/head";
+/** The previous release's HEAD prefix; the daemon still answers there (removed in P9). */
+export const LEGACY_HEAD_PREFIX = "/heart/head";
+export const REGISTRY_PATH = "/models/registry";
+export const HEALTH_PATH = "/models/health";
+export const HEART_PREFIX = "/models/heart";
+export const HASHER_PREFIX = "/models/hasher";
+/** The model is up but cannot answer yet (HTTP 503). */
+export class NotReadyError extends Error {
+    constructor() { super("model not ready"); this.name = "NotReadyError"; }
+}
 export const BYTE_V1 = { EOS: 259, PAD: 256, BOS: 257 };
 export function findDecision(r, name) {
     return r.decisions.find((d) => d.name === name);
@@ -113,6 +123,29 @@ export class ModelsClient {
             throw new Error(`head: HTTP ${res.status}`);
         return (await res.json());
     }
+    registry() { return this.json(REGISTRY_PATH); }
+    health() { return this.json(HEALTH_PATH); }
+    heartHealth() { return this.json(`${HEART_PREFIX}/health`); }
+    hasherStatus() { return this.json(`${HASHER_PREFIX}/status`); }
+    async post(path, body) {
+        const res = await this.fetchImpl(this.baseUrl + path, {
+            method: "POST", headers: { ...this.headers, "Content-Type": "application/json" }, body: JSON.stringify(body),
+        });
+        if (res.status === 503)
+            throw new NotReadyError();
+        if (!res.ok)
+            throw new Error(`models: HTTP ${res.status}`);
+        return (await res.json());
+    }
+    /** HEART text; NotReadyError until HEART has a trained generator. */
+    async heartGenerate(prompt) {
+        const out = await this.post(`${HEART_PREFIX}/generate`, { prompt });
+        if (out.error)
+            throw new Error(`heart: ${out.error}`);
+        return out.text ?? "";
+    }
+    hasherValidate(req) { return this.post(`${HASHER_PREFIX}/validate`, req); }
+    hasherInfer(text) { return this.post(`${HASHER_PREFIX}/infer`, { text }); }
     manifest() { return this.json(`${HEAD_PREFIX}/models`); }
     reason(tokens) {
         return this.json(`${HEAD_PREFIX}/reason`, {

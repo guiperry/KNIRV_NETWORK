@@ -24,7 +24,7 @@ CLANG=clang
 LLVM_STRIP=llvm-strip
 
 
-.PHONY: all build clean test proto ebpf deps help build-asic-test build-probe build-probe build-probe-v2 build-protocol-discover build-monitor build-diagnostics deploy deploy-probe deploy-probe-v2 deploy-protocol-discover deploy-monitor build-pipeline-all build-data-connector build-data-mapper build-data-encoder build-data-seeder build-data-trainer build-head-trainer build-head-wasi test-head build-knirvbase
+.PHONY: all build clean test proto ebpf deps help build-asic-test build-probe build-probe build-probe-v2 build-protocol-discover build-monitor build-diagnostics deploy deploy-probe deploy-probe-v2 deploy-protocol-discover deploy-monitor build-pipeline-all build-data-connector build-data-mapper build-data-encoder build-data-seeder build-data-trainer build-head-trainer build-head-wasi test-head smoke-models build-knirvbase
 
 ANTMINER_IP ?= $(shell [ -f .env ] && source .env && echo $$DEVICE_IP || echo 192.168.12.151)
 ANTMINER_USER ?= root
@@ -386,6 +386,10 @@ build-head-wasi:
 test-head:
 	cd head && cargo test --release
 	./head/scripts/golden-wasm.sh
+
+## smoke-models: start a built daemon (BIN=path [GZ=1 if gzipped]) and check the /models/* surface
+smoke-models:
+	./scripts/smoke-models.sh $(BIN) $(if $(GZ),--gz,)
 
 ## test-head-trainer: Test the HEAD trainer
 test-head-trainer:

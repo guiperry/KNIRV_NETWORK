@@ -1,0 +1,5 @@
+[
+  {"name":"hasher","role":"validator","version":"unified-transformer","ready":true,"loaded":false,"trained":false,"backend":"software"},
+  {"name":"heart","role":"generator","version":"gorgonite","ready":false,"loaded":false,"trained":false,"backend":"software"},
+  {"name":"head","role":"reasoner","version":"v1-aaaaaaaa","ready":true,"loaded":true,"trained":true,"backend":"wazero","since":"2026-10-12T10:00:00Z","detail":{"ready":true,"version":"v1-aaaaaaaa","loaded":true}}
+]

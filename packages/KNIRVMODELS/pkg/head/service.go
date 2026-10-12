@@ -158,7 +158,7 @@ func (s *Service) Reason(ctx context.Context, tokens []uint32) (json.RawMessage,
 	return runner.Reason(tokens)
 }
 
-// Status is reported by /heart/health.
+// Status is reported by the registry (/models/registry) and HEART's health.
 func (s *Service) Status() map[string]any {
 	s.mu.Lock()
 	defer s.mu.Unlock()

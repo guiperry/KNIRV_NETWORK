@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 import {
-  BYTE_V1, ModelsClient, abstainAdvice, adviceFromReasoning, buildAdvisePrompt, encodeByteV1, inputWidth, planText,
+  BYTE_V1, HEAD_PREFIX, ModelsClient, NotReadyError, abstainAdvice, adviceFromReasoning, buildAdvisePrompt, encodeByteV1, inputWidth, planText,
 } from "../models/index.js";
 
 const vec = async (name) => JSON.parse(await readFile(new URL(`../../testvectors/models/${name}`, import.meta.url), "utf8"));
@@ -74,4 +74,35 @@ test("client advise abstains on every failure and advises on success", async () 
   assert.ok((await broken.advise({})).abstain);
   const down = new ModelsClient("http://x", async () => { throw new Error("ECONNREFUSED"); });
   assert.ok((await down.advise({})).abstain);
+});
+
+test("registry, HEART and HASHER fixtures round-trip through the client", async () => {
+  const ok = (body, status = 200) => ({ ok: status < 400, status, json: async () => body });
+  const reg = await vec("registry.json");
+  const hh = await vec("heart_health.json");
+  const hc = await vec("hasher_cases.json");
+  assert.equal(HEAD_PREFIX, "/models/head");
+  const c = new ModelsClient("http://x", async (url, init) => {
+    if (url.endsWith("/models/registry")) return ok(reg);
+    if (url.endsWith("/models/health")) return ok({ status: "ok", time: "t", models: 3 });
+    if (url.endsWith("/models/heart/health")) return ok(hh.idle);
+    if (url.endsWith("/models/heart/generate")) {
+      const p = JSON.parse(init.body).prompt;
+      return p === "cold" ? ok({ error: "model not trained", ready: false }, 503) : ok({ text: `echo ${p}`, ready: true });
+    }
+    if (url.endsWith("/models/hasher/validate")) return ok(hc.validate.response);
+    if (url.endsWith("/models/hasher/infer")) return ok(hc.infer.response);
+    if (url.endsWith("/models/hasher/status")) return ok(hc.status.idle);
+    return ok({}, 404);
+  });
+  const rows = await c.registry();
+  assert.deepEqual(rows.map((r) => r.name), ["hasher", "heart", "head"]);
+  assert.equal(rows[1].loaded, false);
+  assert.equal((await c.health()).models, 3);
+  assert.equal((await c.heartHealth()).loaded, false);
+  assert.equal(await c.heartGenerate("hi"), "echo hi");
+  await assert.rejects(() => c.heartGenerate("cold"), NotReadyError);
+  assert.equal((await c.hasherValidate(hc.validate.request)).valid, true);
+  assert.equal((await c.hasherInfer("x")).mode, "transformer");
+  assert.equal((await c.hasherStatus()).loaded, false);
 });

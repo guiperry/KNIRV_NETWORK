@@ -19,7 +19,7 @@ import (
 
 	"knirvmodels/internal/analyzer"
 	"knirvmodels/internal/cli/controller"
-	"knirvmodels/pkg/head"
+	"knirvmodels/pkg/models"
 )
 
 const (
@@ -38,6 +38,7 @@ type Server struct {
 	mu                 sync.RWMutex
 	goatMode           bool
 	knirvserverManaged bool
+	registry           *models.Registry
 }
 
 func NewServer(socketPath string, socketPerm os.FileMode, goatModes ...bool) *Server {
@@ -78,13 +79,7 @@ func (s *Server) registerRoutes() {
 	s.mux.HandleFunc("/api/v1/pipeline/logs", s.handlePipelineLogs)
 	s.mux.HandleFunc("/api/v1/head/train", s.handleHEADTrain)
 	s.mux.HandleFunc("/api/v1/head/status", s.handleHEADStatus)
-	// The served HEAD: backend_server reaches these over this socket (it authenticates callers).
-	if dir, err := controller.HEADDir(); err != nil {
-		log.Printf("HEAD serving disabled: %v", err)
-	} else {
-		head.Routes(head.NewService(dir), s.mux)
-		log.Printf("HEAD served from %s (/heart/head/*)", dir)
-	}
+	s.registerModels()
 
 	s.mux.HandleFunc("/api/v1/verify", s.handleVerify)
 

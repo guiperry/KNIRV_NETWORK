@@ -3,8 +3,74 @@
  * go-package/models). Both are tested against testvectors/models so they cannot
  * drift silently.
  */
-/** Where the daemon serves the HEAD (moves to /models/head with the registry). */
-export declare const HEAD_PREFIX = "/heart/head";
+/** Where the daemon serves each model. One namespace for all three. */
+export declare const HEAD_PREFIX = "/models/head";
+/** The previous release's HEAD prefix; the daemon still answers there (removed in P9). */
+export declare const LEGACY_HEAD_PREFIX = "/heart/head";
+export declare const REGISTRY_PATH = "/models/registry";
+export declare const HEALTH_PATH = "/models/health";
+export declare const HEART_PREFIX = "/models/heart";
+export declare const HASHER_PREFIX = "/models/hasher";
+export type ModelRole = "validator" | "generator" | "reasoner";
+/** One registry row. `loaded` is false for a model not built yet (HEART is lazy). */
+export interface ModelStatus {
+    name: string;
+    role: ModelRole;
+    version: string;
+    ready: boolean;
+    loaded: boolean;
+    trained: boolean;
+    backend: string;
+    since?: string;
+    error?: string;
+    detail?: unknown;
+}
+export interface Health {
+    status: string;
+    time: string;
+    models: number;
+}
+export interface HeartHealth {
+    available: boolean;
+    status: string;
+    loaded: boolean;
+    ready: boolean;
+    progress: number;
+}
+export interface HasherValidateRequest {
+    prediction: number;
+    domain: string;
+    context?: Record<string, unknown>;
+}
+export interface HasherValidateResult {
+    prediction: number;
+    valid: boolean;
+    domain: string;
+    rules_applied: number;
+    errors?: string[];
+    latency_ms: number;
+}
+export interface HasherInferResult {
+    prediction: number;
+    confidence: number;
+    mode: string;
+    valid_passes: number;
+    total_passes: number;
+    latency_ms: number;
+}
+export interface HasherStatus {
+    loaded: boolean;
+    mode?: string;
+    hardware_tier?: string;
+    using_hardware?: boolean;
+    total_inferences: number;
+    hardware_inferences: number;
+    software_fallbacks: number;
+}
+/** The model is up but cannot answer yet (HTTP 503). */
+export declare class NotReadyError extends Error {
+    constructor();
+}
 export interface Decision {
     name: string;
     kind: string;
@@ -97,6 +163,15 @@ export declare class ModelsClient {
     private headers;
     constructor(baseUrl: string, fetchImpl?: typeof fetch, headers?: Record<string, string>);
     private json;
+    registry(): Promise<ModelStatus[]>;
+    health(): Promise<Health>;
+    heartHealth(): Promise<HeartHealth>;
+    hasherStatus(): Promise<HasherStatus>;
+    private post;
+    /** HEART text; NotReadyError until HEART has a trained generator. */
+    heartGenerate(prompt: string): Promise<string>;
+    hasherValidate(req: HasherValidateRequest): Promise<HasherValidateResult>;
+    hasherInfer(text: string): Promise<HasherInferResult>;
     manifest(): Promise<Manifest>;
     reason(tokens: number[]): Promise<Reasoning>;
     /** manifest → encode → reason → advice; every failure is an abstention. */

@@ -38,6 +38,11 @@ type HEARTConfig struct {
 	// semantic data-trainer. When present, HEART uses it before the legacy GPT
 	// path and does not allocate a transformer model.
 	SemanticMemoryPath string
+
+	// Engine, when set, is the HASHER engine HEART reasons with. The daemon
+	// passes the one it already serves so the two models share one set of seeds
+	// instead of building a second engine.
+	Engine *UnifiedHasherEngine `json:"-" yaml:"-"`
 }
 
 func DefaultHEARTConfig(useHashNetwork, useCerebras bool) *HEARTConfig {

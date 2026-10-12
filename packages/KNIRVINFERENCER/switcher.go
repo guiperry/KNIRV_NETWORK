@@ -36,6 +36,11 @@ type InferenceSwitcher struct {
 
 const switcherCheckInterval = 1 * time.Hour
 
+// switcherRetryInterval is how soon a model that was not ready is asked again,
+// so a daemon that was still starting (or a HEART that just finished training)
+// is not ignored for a whole switcherCheckInterval.
+const switcherRetryInterval = 1 * time.Minute
+
 // NewInferenceSwitcher creates a switcher that auto-detects readiness.
 func NewInferenceSwitcher(internal InternalTextGenerator, external TextGenerator) *InferenceSwitcher {
 	return &InferenceSwitcher{
@@ -69,10 +74,14 @@ func (s *InferenceSwitcher) IsReady() bool {
 		return false
 	}
 
-	// Re-check readiness periodically
-	if time.Since(lastCheck) > switcherCheckInterval {
+	// Re-check readiness periodically (sooner while not ready).
+	recheck := switcherCheckInterval
+	if !ready {
+		recheck = switcherRetryInterval
+	}
+	if time.Since(lastCheck) > recheck {
 		s.mu.Lock()
-		if time.Since(s.lastCheck) > switcherCheckInterval {
+		if time.Since(s.lastCheck) > recheck {
 			if s.internal != nil {
 				s.ready = s.internal.IsReady()
 			} else {
@@ -105,7 +114,18 @@ func (s *InferenceSwitcher) Progress() float64 {
 func (s *InferenceSwitcher) GenerateText(ctx context.Context, prompt string) (string, error) {
 	if s.IsReady() {
 		log.Println("[inference-switcher] routed to internal transformer")
-		return s.internal.GenerateText(ctx, prompt)
+		text, err := s.internal.GenerateText(ctx, prompt)
+		if err == nil {
+			return text, nil
+		}
+		s.mu.Lock()
+		forced := s.force == 1
+		s.ready = false
+		s.mu.Unlock()
+		if forced {
+			return "", err
+		}
+		log.Printf("[inference-switcher] internal transformer failed (%v); falling back to external LLM", err)
 	}
 	log.Println("[inference-switcher] routed to external LLM")
 	return s.external.GenerateText(prompt)
