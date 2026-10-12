@@ -636,7 +636,7 @@ func (suite *E2ETestSuite) TestDataConsistency() {
 		errorContext := map[string]interface{}{
 			"agent_id":            "test-agent-phase36",
 			"agent_version":       "1.0.0",
-			"base_model_id":       "hrm-cognitive-v1",
+			"base_model_id":       "head-cognitive-v1",
 			"os":                  "linux",
 			"architecture":        "x86_64",
 			"runtime_environment": "browser",

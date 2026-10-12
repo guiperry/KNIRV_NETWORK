@@ -219,7 +219,7 @@ func testKNIRVControllerLoRAAdapterManagement(t *testing.T) {
 	request := KNIRVControllerLoRARequest{
 		AdapterName:            "integration-test-lora",
 		Description:            "Integration test LoRA adapter for real network demo",
-		BaseModelCompatibility: "hrm-v1",
+		BaseModelCompatibility: "head-v1",
 		Version:                1,
 		Rank:                   16,
 		Alpha:                  0.5,

@@ -117,7 +117,7 @@ test_data:
       name: "test-integration-adapter"
       rank: 16
       alpha: 0.5
-      base_model: "hrm-v1"
+      base_model: "head-v1"
     wasm_compilation:
       timeout: "60s"
       optimization_level: "O2"

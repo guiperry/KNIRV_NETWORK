@@ -147,7 +147,7 @@ func (suite *Phase36E2ETestSuite) TestPhase36CompleteLifecycle() {
 		errorContext := &Phase36ErrorContext{
 			AgentID:            suite.testData.TestAgentID,
 			AgentVersion:       "1.0.0",
-			BaseModelID:        "hrm-cognitive-v1",
+			BaseModelID:        "head-cognitive-v1",
 			OS:                 "linux",
 			Architecture:       "x86_64",
 			RuntimeEnvironment: "browser",

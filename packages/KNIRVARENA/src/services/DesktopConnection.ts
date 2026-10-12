@@ -41,13 +41,13 @@ interface MobileLinkageData {
   signature: string;
 }
 
-interface HRMProcessingRequest {
+interface HEADProcessingRequest {
   sensory_data: number[];
   context: string;
   task_type: string;
 }
 
-interface HRMProcessingResponse {
+interface HEADProcessingResponse {
   reasoning_result: string;
   confidence: number;
   processing_time: number;
@@ -56,8 +56,8 @@ interface HRMProcessingResponse {
 }
 
 interface WebSocketMessage {
-  type: 'hrm_response' | 'heartbeat' | 'error' | 'status' | string;
-  data?: HRMProcessingResponse | Record<string, unknown>;
+  type: 'head_response' | 'heartbeat' | 'error' | 'status' | string;
+  data?: HEADProcessingResponse | Record<string, unknown>;
   timestamp?: number;
   session_id?: string;
 }
@@ -72,7 +72,7 @@ export class DesktopConnectionService {
 
   // Event handlers
   private onConnectionChange: ((status: ConnectionStatus) => void) | null = null;
-  private onHRMResponse: ((response: HRMProcessingResponse) => void) | null = null;
+  private onHEADResponse: ((response: HEADProcessingResponse) => void) | null = null;
   private onMessage: ((message: unknown) => void) | null = null;
 
   constructor() {
@@ -94,8 +94,8 @@ export class DesktopConnectionService {
     this.onConnectionChange = handler;
   }
 
-  setHRMResponseHandler(handler: (response: HRMProcessingResponse) => void) {
-    this.onHRMResponse = handler;
+  setHEADResponseHandler(handler: (response: HEADProcessingResponse) => void) {
+    this.onHEADResponse = handler;
   }
 
   setMessageHandler(handler: (message: unknown) => void) {
@@ -224,9 +224,9 @@ export class DesktopConnectionService {
     }
 
     switch (message.type) {
-      case 'hrm_response':
-        if (this.onHRMResponse && message.data) {
-          this.onHRMResponse(message.data as HRMProcessingResponse);
+      case 'head_response':
+        if (this.onHEADResponse && message.data) {
+          this.onHEADResponse(message.data as HEADProcessingResponse);
         }
         break;
       case 'heartbeat':
@@ -249,14 +249,14 @@ export class DesktopConnectionService {
     );
   }
 
-  // Send HRM processing request to desktop
-  async sendHRMRequest(request: HRMProcessingRequest): Promise<HRMProcessingResponse | null> {
+  // Send HEAD processing request to desktop
+  async sendHEADRequest(request: HEADProcessingRequest): Promise<HEADProcessingResponse | null> {
     if (!this.connectionStatus.connected || !this.connectionStatus.secure_endpoint) {
       throw new Error('Not connected to desktop');
     }
 
     try {
-      const response = await fetch(`${this.connectionStatus.secure_endpoint}/api/hrm/process`, {
+      const response = await fetch(`${this.connectionStatus.secure_endpoint}/api/head/process`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -265,12 +265,12 @@ export class DesktopConnectionService {
       });
 
       if (!response.ok) {
-        throw new Error(`HRM request failed: ${response.statusText}`);
+        throw new Error(`HEAD request failed: ${response.statusText}`);
       }
 
       return await response.json();
     } catch (error) {
-      console.error('HRM request failed:', error);
+      console.error('HEAD request failed:', error);
       return null;
     }
   }

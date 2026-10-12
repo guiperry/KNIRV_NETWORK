@@ -590,8 +590,8 @@ models-deps: ## Install KNIRVMODELS dependencies
 	@echo "$(BLUE)Installing KNIRVMODELS dependencies...$(NC)"
 	cd $(MODELS_SRC_DIR) && go mod download && go mod tidy
 
-models-preflight: ## Fail early, with a clear message, if the HRM toolchain (rust + wasm targets) is missing
-	@command -v cargo >/dev/null || { echo "$(RED)cargo not found: the HRM trainer and WASM modules need a Rust toolchain$(NC)"; exit 1; }
+models-preflight: ## Fail early, with a clear message, if the HEAD toolchain (rust + wasm targets) is missing
+	@command -v cargo >/dev/null || { echo "$(RED)cargo not found: the HEAD trainer and WASM modules need a Rust toolchain$(NC)"; exit 1; }
 	@rustup target list --installed 2>/dev/null | grep -qx wasm32-wasip1 || { echo "$(RED)missing rust target: run 'rustup target add wasm32-wasip1 wasm32-unknown-unknown'$(NC)"; exit 1; }
 	@rustup target list --installed 2>/dev/null | grep -qx wasm32-unknown-unknown || { echo "$(RED)missing rust target: run 'rustup target add wasm32-unknown-unknown'$(NC)"; exit 1; }
 	@command -v wasm-bindgen >/dev/null || { echo "$(RED)wasm-bindgen CLI not found: 'cargo install wasm-bindgen-cli' (version must match the crate)$(NC)"; exit 1; }

@@ -2,7 +2,7 @@
  * Model Manager
  * 
  * Manages the different SLM (Small Language Model) options:
- * - Default: hrm_cognitive.wasm or knirv_cortex.wasm
+ * - Default: head_cognitive.wasm or knirv_cortex.wasm
  * - Alternative: Phi-3 Mini, RecurrentGemma, TinyLlama (from ALT_MODELS.md)
  */
 
@@ -12,7 +12,7 @@ export interface ModelDefinition {
   id: string;
   name: string;
   description: string;
-  type: 'hrm' | 'cortex' | 'phi3' | 'gemma' | 'llama';
+  type: 'head' | 'cortex' | 'phi3' | 'gemma' | 'llama';
   size: string;
   parameters: string;
   wasmPath: string;
@@ -83,14 +83,14 @@ export class ModelManager extends EventEmitter {
   private initializeBuiltinModels(): void {
     // Default KNIRV models
     this.registerModel({
-      id: 'hrm-cognitive',
-      name: 'HRM Cognitive',
+      id: 'head-cognitive',
+      name: 'HEAD Cognitive',
       description: 'Hierarchical Reasoning Model - Default cognitive processing engine',
-      type: 'hrm',
+      type: 'head',
       size: '27MB',
       parameters: '27M',
-      wasmPath: '/models/hrm_cognitive.wasm',
-      weightsPath: '/models/hrm_cognitive.safetensors',
+      wasmPath: '/models/head_cognitive.wasm',
+      weightsPath: '/models/head_cognitive.safetensors',
       capabilities: ['reasoning', 'planning', 'hierarchical-thinking', 'cognitive-processing'],
       license: 'MIT',
       source: 'builtin',
@@ -106,7 +106,7 @@ export class ModelManager extends EventEmitter {
       type: 'cortex',
       size: '45MB',
       parameters: '40M',
-      wasmPath: '/models/knirv_cortex_wasm.wasm',
+      wasmPath: '/models/knirv_head.wasm',
       weightsPath: '/models/knirv_cortex.safetensors',
       capabilities: ['reasoning', 'adaptation', 'lora-integration', 'skill-learning'],
       license: 'MIT',
@@ -412,10 +412,10 @@ export class ModelManager extends EventEmitter {
    * Get default model recommendation
    */
   getDefaultModel(): ModelDefinition {
-    // Prefer HRM Cognitive as default
-    const hrmModel = this.availableModels.get('hrm-cognitive');
-    if (hrmModel) {
-      return hrmModel;
+    // Prefer HEAD Cognitive as default
+    const headModel = this.availableModels.get('head-cognitive');
+    if (headModel) {
+      return headModel;
     }
 
     // Fallback to first recommended model

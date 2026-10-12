@@ -5,7 +5,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { Brain, Activity, Settings, Trash2 } from 'lucide-react';
 import { cognitiveEngineService } from '../services/CognitiveEngineService';
 import { CognitiveEngine, CognitiveConfig, CognitiveState } from '../sensory-shell/CognitiveEngine';
-import { HRMBridge } from '../sensory-shell/HRMBridge';
+import { HEADBridge } from '../sensory-shell/HEADBridge';
 import { ChatInterface } from './chat-brain/ChatInterface';
 import { NotesPanel } from './chat-brain/NotesPanel';
 import { LLMSelector } from './chat-brain/LLMSelector';
@@ -17,7 +17,7 @@ interface ConversationMessage {
   content: string;
   timestamp: Date;
   processingTime?: number;
-  hrmResponse?: unknown;
+  headResponse?: unknown;
   skillsInvoked?: string[];
 }
 
@@ -56,7 +56,7 @@ export const CognitiveShellInterface: React.FC<CognitiveShellInterfaceProps> = (
       console.error('Failed to load engine metrics:', error);
     }
   }, [cognitiveEngine]);
-  const [hrmBridge, setHrmBridge] = useState<HRMBridge | null>(null);
+  const [headBridge, setHeadBridge] = useState<HEADBridge | null>(null);
   const [config] = useState<CognitiveConfig>({
     maxContextSize: 100,
     learningRate: 0.01,
@@ -66,7 +66,7 @@ export const CognitiveShellInterface: React.FC<CognitiveShellInterfaceProps> = (
     visualEnabled: true,
     loraEnabled: true,
     enhancedLoraEnabled: false,
-    hrmEnabled: true,
+    headEnabled: true,
     adaptiveLearningEnabled: true,
     walletIntegrationEnabled: true,
     chainIntegrationEnabled: true,
@@ -79,7 +79,7 @@ export const CognitiveShellInterface: React.FC<CognitiveShellInterfaceProps> = (
   // its callbacks change, and those depend on the state these initializers
   // set; without the guards every run created a new bridge and engine,
   // which re-ran the effect again without end.
-  const hrmBridgeRef = useRef<HRMBridge | null>(null);
+  const headBridgeRef = useRef<HEADBridge | null>(null);
 
   // Track cleanup function to ensure proper disposal
   const cleanupRef = useRef<(() => void) | null>(null);
@@ -95,22 +95,22 @@ export const CognitiveShellInterface: React.FC<CognitiveShellInterfaceProps> = (
     }
   }, []);
 
-  const initializeHRMBridge = useCallback(async () => {
-    if (hrmBridgeRef.current) return;
+  const initializeHEADBridge = useCallback(async () => {
+    if (headBridgeRef.current) return;
     try {
-      const bridge = new HRMBridge({
+      const bridge = new HEADBridge({
         l_module_count: 8,
         h_module_count: 4,
         enable_adaptation: true,
         processing_timeout: 5000
       });
 
-      hrmBridgeRef.current = bridge;
+      headBridgeRef.current = bridge;
       await bridge.initialize();
-      setHrmBridge(bridge);
-      console.log('HRM Bridge initialized successfully:', bridge);
+      setHeadBridge(bridge);
+      console.log('HEAD Bridge initialized successfully:', bridge);
     } catch (error) {
-      console.error('Failed to initialize HRM Bridge:', error);
+      console.error('Failed to initialize HEAD Bridge:', error);
     }
   }, []);
 
@@ -139,9 +139,9 @@ export const CognitiveShellInterface: React.FC<CognitiveShellInterfaceProps> = (
         }
       }
 
-      // Connect HRM Bridge if available
-      if (hrmBridge && engine.isHRMLoRABridgeReady()) {
-        console.log('HRM Bridge connected to Cognitive Engine');
+      // Connect HEAD Bridge if available
+      if (headBridge && engine.isHEADLoRABridgeReady()) {
+        console.log('HEAD Bridge connected to Cognitive Engine');
       }
 
       // Set up event listeners
@@ -254,11 +254,11 @@ export const CognitiveShellInterface: React.FC<CognitiveShellInterfaceProps> = (
       console.error('Failed to initialize Cognitive Engine:', error);
       return () => {}; // Return empty cleanup function on error
     }
-  }, [config, onStateChange, onSkillInvoked, onAdaptationTriggered, updateMetrics, hrmBridge]);
+  }, [config, onStateChange, onSkillInvoked, onAdaptationTriggered, updateMetrics, headBridge]);
 
   useEffect(() => {
     initializeCognitiveEngine();
-    initializeHRMBridge();
+    initializeHEADBridge();
     loadEngineStatus();
 
     // Auto-start cognitive engine after initialization
@@ -328,7 +328,7 @@ export const CognitiveShellInterface: React.FC<CognitiveShellInterfaceProps> = (
       // Only cleanup if we're actually unmounting
       console.log('CognitiveShellInterface cleanup called (but engine preserved)');
     };
-  }, [initializeCognitiveEngine, initializeHRMBridge, loadEngineStatus, loadEngineMetrics, updateMetrics, isRunning]);
+  }, [initializeCognitiveEngine, initializeHEADBridge, loadEngineStatus, loadEngineMetrics, updateMetrics, isRunning]);
 
 
 

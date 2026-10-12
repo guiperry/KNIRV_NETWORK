@@ -13,7 +13,7 @@ import {
 import { ErrorCluster, ErrorNode } from '../../src/core/knirvgraph/ErrorNodeClustering';
 import { CompetitiveSolution } from '../../src/core/knirvgraph/AgentAssignmentSystem';
 import { LoRAAdapterSkill } from '../../src/core/lora/LoRAAdapterEngine';
-import { SkillDiscoveryResult } from '../../src/core/knirvgraph/HRMCoreModel';
+import { SkillDiscoveryResult } from '../../src/core/knirvgraph/HEADCoreModel';
 
 describe('Phase 3.3 - Performance Metrics', () => {
   let performanceMetrics: PerformanceMetrics;
@@ -140,7 +140,7 @@ describe('Phase 3.3 - Performance Metrics', () => {
       skillId: 'skill_001',
       skillName: 'JavaScript Error Resolver',
       description: 'Resolves JavaScript runtime errors',
-      baseModelCompatibility: 'hrm',
+      baseModelCompatibility: 'head',
       version: 1,
       rank: 8,
       alpha: 16.0,
@@ -614,7 +614,7 @@ describe('Phase 3.3 - Performance Metrics', () => {
         skillId: 'skill-1',
         skillName: 'Test LoRA Skill',
         description: 'Test skill description',
-        baseModelCompatibility: 'hrm',
+        baseModelCompatibility: 'head',
         version: 1,
         rank: 16,
         alpha: 32.0,

@@ -22,7 +22,7 @@ describe('Phase 3.6 - Error Context Integration', () => {
   const testConfig: AgentConfiguration = {
     agentId: 'test-agent-phase36',
     agentVersion: '1.0.0',
-    baseModelId: 'hrm-cognitive-v1',
+    baseModelId: 'head-cognitive-v1',
     knirvgraphEndpoint: 'http://localhost:8081',
     knirvRouterEndpoint: 'http://localhost:8080',
     nrnWalletAddress: 'knirv1test123456789'
@@ -37,7 +37,7 @@ describe('Phase 3.6 - Error Context Integration', () => {
     visualEnabled: false,
     loraEnabled: true,
     enhancedLoraEnabled: true,
-    hrmEnabled: true,
+    headEnabled: true,
     adaptiveLearningEnabled: true,
     walletIntegrationEnabled: false,
     chainIntegrationEnabled: false,
@@ -418,7 +418,7 @@ describe('Phase 3.6 - Error Context Integration', () => {
         visualEnabled: false,
         loraEnabled: true,
         enhancedLoraEnabled: false,
-        hrmEnabled: true,
+        headEnabled: true,
         adaptiveLearningEnabled: true,
         walletIntegrationEnabled: true,
         chainIntegrationEnabled: true,

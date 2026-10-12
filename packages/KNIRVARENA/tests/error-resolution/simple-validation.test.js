@@ -102,7 +102,7 @@ describe('Error Resolution Validation', () => {
         visualEnabled: true,
         loraEnabled: true,
         enhancedLoraEnabled: false,
-        hrmEnabled: true,
+        headEnabled: true,
         wasmAgentsEnabled: true
       };
 

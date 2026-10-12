@@ -148,7 +148,7 @@ describe('Phase 3.1: Embedded KNIRVCHAIN Revolutionary Architecture', () => {
 
   beforeEach(async () => {
     embeddedChain = new MockEmbeddedKNIRVChain({
-      modelKernel: 'hrm',
+      modelKernel: 'head',
       maxMemoryMB: 256,
       consensusThreshold: 0.75,
       loraAdapterCacheSize: 50,
@@ -164,7 +164,7 @@ describe('Phase 3.1: Embedded KNIRVCHAIN Revolutionary Architecture', () => {
   });
 
   describe('Embedded WASM Inference Model', () => {
-    it('should initialize successfully with HRM model kernel', async () => {
+    it('should initialize successfully with HEAD model kernel', async () => {
       expect(embeddedChain.isReady()).toBe(true);
     });
 
@@ -194,7 +194,7 @@ describe('Phase 3.1: Embedded KNIRVCHAIN Revolutionary Architecture', () => {
         skillId: 'test-skill-001',
         skillName: 'Test Code Generation',
         description: 'A test skill for code generation',
-        baseModelCompatibility: 'hrm',
+        baseModelCompatibility: 'head',
         version: 1,
         rank: 8,
         alpha: 16.0,
@@ -213,7 +213,7 @@ describe('Phase 3.1: Embedded KNIRVCHAIN Revolutionary Architecture', () => {
         skillId: 'test-skill-001',
         parameters: {
           input: 'Generate a function to sort an array',
-          baseModel: 'hrm'
+          baseModel: 'head'
         },
         userContext: { userId: 'test-user' },
         priority: 'normal' as const,
@@ -275,7 +275,7 @@ describe('Phase 3.1: Embedded KNIRVCHAIN Revolutionary Architecture', () => {
           skillId: 'filter-test-001',
           skillName: 'JavaScript Debugger',
           description: 'Debug JavaScript code',
-          baseModelCompatibility: 'hrm',
+          baseModelCompatibility: 'head',
           version: 1,
           rank: 4,
           alpha: 8.0,
@@ -309,13 +309,13 @@ describe('Phase 3.1: Embedded KNIRVCHAIN Revolutionary Architecture', () => {
     });
 
     it('should filter skills by base model compatibility', async () => {
-      const hrmSkills = await embeddedChain.findSkillWithFiltering('any', {
-        baseModel: 'hrm'
+      const headSkills = await embeddedChain.findSkillWithFiltering('any', {
+        baseModel: 'head'
       });
 
-      expect(hrmSkills).toBeDefined();
-      if (hrmSkills) {
-        expect(hrmSkills.baseModelCompatibility).toBe('hrm');
+      expect(headSkills).toBeDefined();
+      if (headSkills) {
+        expect(headSkills.baseModelCompatibility).toBe('head');
       }
     });
 
@@ -359,7 +359,7 @@ describe('Phase 3.1: Embedded KNIRVCHAIN Revolutionary Architecture', () => {
           skillId: 'chain-skill-001',
           skillName: 'Input Validator',
           description: 'Validate input data',
-          baseModelCompatibility: 'hrm',
+          baseModelCompatibility: 'head',
           version: 1,
           rank: 4,
           alpha: 8.0,
@@ -374,7 +374,7 @@ describe('Phase 3.1: Embedded KNIRVCHAIN Revolutionary Architecture', () => {
           skillId: 'chain-skill-002',
           skillName: 'Data Processor',
           description: 'Process validated data',
-          baseModelCompatibility: 'hrm',
+          baseModelCompatibility: 'head',
           version: 1,
           rank: 8,
           alpha: 16.0,
@@ -433,7 +433,7 @@ describe('Phase 3.1: Embedded KNIRVCHAIN Revolutionary Architecture', () => {
         skillId: 'consensus-test-001',
         skillName: 'Consensus Test Skill',
         description: 'Test skill for consensus tracking',
-        baseModelCompatibility: 'hrm',
+        baseModelCompatibility: 'head',
         version: 1,
         rank: 4,
         alpha: 8.0,
@@ -454,7 +454,7 @@ describe('Phase 3.1: Embedded KNIRVCHAIN Revolutionary Architecture', () => {
         skillId: 'usage-test-001',
         skillName: 'Usage Test Skill',
         description: 'Test skill for usage tracking',
-        baseModelCompatibility: 'hrm',
+        baseModelCompatibility: 'head',
         version: 1,
         rank: 4,
         alpha: 8.0,
@@ -492,7 +492,7 @@ describe('Phase 3.1: Embedded KNIRVCHAIN Revolutionary Architecture', () => {
           skillId: 'test-skill',
           skillName: 'Test Skill',
           description: 'Test',
-          baseModelCompatibility: 'hrm',
+          baseModelCompatibility: 'head',
           version: 1,
           rank: 4,
           alpha: 8.0,
@@ -526,7 +526,7 @@ describe('Phase 3.1: Embedded KNIRVCHAIN Revolutionary Architecture', () => {
           skillId: `memory-test-${i}`,
           skillName: `Memory Test Skill ${i}`,
           description: 'Test skill for memory tracking',
-          baseModelCompatibility: 'hrm',
+          baseModelCompatibility: 'head',
           version: 1,
           rank: 4,
           alpha: 8.0,
@@ -545,7 +545,7 @@ describe('Phase 3.1: Embedded KNIRVCHAIN Revolutionary Architecture', () => {
         skillId: 'concurrent-test-001',
         skillName: 'Concurrent Test Skill',
         description: 'Test skill for concurrent invocations',
-        baseModelCompatibility: 'hrm',
+        baseModelCompatibility: 'head',
         version: 1,
         rank: 4,
         alpha: 8.0,

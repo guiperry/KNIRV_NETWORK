@@ -29,7 +29,7 @@ jest.mock('react-router-dom', () => ({
 jest.mock('../../src/services/DesktopConnection', () => ({
   desktopConnection: {
     getConnectionStatus: () => ({ connected: true, lastPing: Date.now() }),
-    sendHRMRequest: jest.fn().mockResolvedValue({ success: true })
+    sendHEADRequest: jest.fn().mockResolvedValue({ success: true })
   }
 }));
 

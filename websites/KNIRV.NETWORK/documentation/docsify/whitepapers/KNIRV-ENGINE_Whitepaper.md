@@ -66,7 +66,7 @@ KNIRV-ENGINE leverages advanced technical infrastructure to provide powerful dev
 
 #### **4.2. Performance and Optimization**
 
-*   **HRM Weights as Rust WASM**: Implementation of Hierarchical Reasoning Model (HRM) weights as Rust WASM in agent-core.wasm rather than separate files, providing optimized performance and reduced complexity.
+*   **HEAD Weights as Rust WASM**: Implementation of Hierarchical Reasoning Model (HEAD) weights as Rust WASM in agent-core.wasm rather than separate files, providing optimized performance and reduced complexity.
 *   **Minimized Node Dependencies**: Strategic minimization of root-level node dependencies by moving WebSocket dependencies to specific applications that require them, reducing overhead and complexity.
 *   **Resource Optimization**: Comprehensive resource optimization tools that ensure developed agents operate efficiently within target deployment environments.
 *   **Performance Profiling**: Advanced profiling tools that enable developers to identify and resolve performance bottlenecks in agent implementations.

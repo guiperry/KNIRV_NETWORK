@@ -149,14 +149,14 @@ export interface EcosystemMessageEventData extends BaseEventData {
   correlationId?: string;
 }
 
-// HRM events
-export interface HRMProcessedEventData extends BaseEventData {
-  input: HRMCognitiveInput;
-  output: HRMCognitiveOutput;
+// HEAD events
+export interface HEADProcessedEventData extends BaseEventData {
+  input: HEADCognitiveInput;
+  output: HEADCognitiveOutput;
   processingTime: number;
 }
 
-export interface HRMCognitiveInput {
+export interface HEADCognitiveInput {
   text?: string;
   audio?: ArrayBuffer;
   visual?: ArrayBuffer;
@@ -164,7 +164,7 @@ export interface HRMCognitiveInput {
   confidenceLevel?: number;
 }
 
-export interface HRMCognitiveOutput {
+export interface HEADCognitiveOutput {
   reasoning_result: string;
   confidence: number;
   processing_time: number;

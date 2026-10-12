@@ -170,7 +170,7 @@ The inferface integrates four core components into a unified platform:
 ### Cognitive Processing
 - **Factuality Slicing**: Evidence-based validation for Error submissions
 - **Feasibility Slicing**: Market analysis for Idea submissions
-- **HRM Reasoning**: Advanced cognitive processing with configurable depth
+- **HEAD Reasoning**: Advanced cognitive processing with configurable depth
 - **Adaptive Learning**: Continuous improvement through experience
 
 ### Economic Model

@@ -5,7 +5,7 @@ export interface SEALConfig {
   learningRate: number;
   adaptationThreshold: number;
   skillTimeout: number;
-  hrmIntegration?: boolean;
+  headIntegration?: boolean;
 }
 
 export interface SEALAgent {
@@ -41,7 +41,7 @@ export class SEALFramework extends EventEmitter {
   private activeInvocations: Map<string, SkillInvocation> = new Map();
   private learningMode: boolean = false;
   private isRunning: boolean = false;
-  private hrmBridge: unknown = null; // Will be injected from CognitiveEngine
+  private headBridge: unknown = null; // Will be injected from CognitiveEngine
 
   constructor(config: SEALConfig) {
     super();
@@ -129,9 +129,9 @@ export class SEALFramework extends EventEmitter {
     const startTime = Date.now();
 
     try {
-      // Use HRM for enhanced reasoning if available
-      if (this.config.hrmIntegration && this.hrmBridge && (this.hrmBridge as { isReady?: () => boolean }).isReady?.()) {
-        return await this.generateHRMEnhancedResponse(input, context);
+      // Use HEAD for enhanced reasoning if available
+      if (this.config.headIntegration && this.headBridge && (this.headBridge as { isReady?: () => boolean }).isReady?.()) {
+        return await this.generateHEADEnhancedResponse(input, context);
       }
 
       // Fallback to traditional agent selection
@@ -155,44 +155,44 @@ export class SEALFramework extends EventEmitter {
     }
   }
 
-  private async generateHRMEnhancedResponse(input: unknown, context: unknown): Promise<unknown> {
-    console.log('Generating HRM-enhanced SEAL response...');
+  private async generateHEADEnhancedResponse(input: unknown, context: unknown): Promise<unknown> {
+    console.log('Generating HEAD-enhanced SEAL response...');
 
     try {
-      // First, get HRM reasoning about the input
-      const hrmInput = {
+      // First, get HEAD reasoning about the input
+      const headInput = {
         sensory_data: this.convertInputToSensoryData(input),
         context: JSON.stringify(context),
         task_type: this.determineTaskType(input, context),
       };
 
-      const hrmOutput = await (this.hrmBridge as { processCognitiveInput?: (input: unknown) => Promise<unknown> }).processCognitiveInput?.(hrmInput);
+      const headOutput = await (this.headBridge as { processCognitiveInput?: (input: unknown) => Promise<unknown> }).processCognitiveInput?.(headInput);
 
-      // Use HRM reasoning to select and guide agent execution
-      const agent = await this.selectAgentWithHRMGuidance(input, context, hrmOutput);
+      // Use HEAD reasoning to select and guide agent execution
+      const agent = await this.selectAgentWithHEADGuidance(input, context, headOutput);
 
       if (!agent) {
-        // Fallback to HRM-only response
-        return this.formatHRMResponse(hrmOutput, context);
+        // Fallback to HEAD-only response
+        return this.formatHEADResponse(headOutput, context);
       }
 
-      // Execute agent with HRM guidance
-      const response = await this.executeAgentWithHRMGuidance(agent, input, context, hrmOutput);
+      // Execute agent with HEAD guidance
+      const response = await this.executeAgentWithHEADGuidance(agent, input, context, headOutput);
 
-      // Update agent performance based on HRM confidence
-      this.updateAgentPerformance(agent, (hrmOutput as { processing_time?: number }).processing_time || 0, ((hrmOutput as { confidence?: number }).confidence || 0) > 0.7);
+      // Update agent performance based on HEAD confidence
+      this.updateAgentPerformance(agent, (headOutput as { processing_time?: number }).processing_time || 0, ((headOutput as { confidence?: number }).confidence || 0) > 0.7);
 
       return response;
 
     } catch (error) {
-      console.error('Error in HRM-enhanced response generation:', error);
+      console.error('Error in HEAD-enhanced response generation:', error);
       // Fallback to traditional processing
       return this.generateResponse(input, context);
     }
   }
 
   private convertInputToSensoryData(input: unknown): number[] {
-    // Convert various input types to numerical data for HRM
+    // Convert various input types to numerical data for HEAD
     if (typeof input === 'string') {
       const encoder = new TextEncoder();
       const bytes = encoder.encode(input);
@@ -229,8 +229,8 @@ export class SEALFramework extends EventEmitter {
     return 'general_processing';
   }
 
-  private async selectAgentWithHRMGuidance(input: unknown, context: unknown, hrmOutput: unknown): Promise<SEALAgent | null> {
-    // Use HRM activations to guide agent selection
+  private async selectAgentWithHEADGuidance(input: unknown, context: unknown, headOutput: unknown): Promise<SEALAgent | null> {
+    // Use HEAD activations to guide agent selection
     const requiredCapabilities = this.analyzeRequiredCapabilities(input, context);
 
     let bestAgent: SEALAgent | null = null;
@@ -239,11 +239,11 @@ export class SEALFramework extends EventEmitter {
     this.agents.forEach((agent) => {
       let score = this.calculateAgentScore(agent, requiredCapabilities);
 
-      // Boost score based on HRM module activations
-      const hrmAny = hrmOutput as { h_module_activations?: number[] };
-      if (hrmAny.h_module_activations && hrmAny.h_module_activations.length > 0) {
-        const avgActivation = hrmAny.h_module_activations.reduce((a: number, b: number) => a + b, 0) / hrmAny.h_module_activations.length;
-        score *= (1 + avgActivation); // Boost by HRM confidence
+      // Boost score based on HEAD module activations
+      const headAny = headOutput as { h_module_activations?: number[] };
+      if (headAny.h_module_activations && headAny.h_module_activations.length > 0) {
+        const avgActivation = headAny.h_module_activations.reduce((a: number, b: number) => a + b, 0) / headAny.h_module_activations.length;
+        score *= (1 + avgActivation); // Boost by HEAD confidence
       }
 
       if (score > bestScore) {
@@ -255,8 +255,8 @@ export class SEALFramework extends EventEmitter {
     return bestAgent;
   }
 
-  private formatHRMResponse(hrmOutput: unknown, context: unknown): unknown {
-    interface HRMOutput {
+  private formatHEADResponse(headOutput: unknown, context: unknown): unknown {
+    interface HEADOutput {
       reasoning_result?: unknown;
       confidence?: number;
       processing_time?: number;
@@ -264,48 +264,48 @@ export class SEALFramework extends EventEmitter {
       h_module_activations?: unknown;
     }
 
-    const hrmTyped = hrmOutput as HRMOutput;
+    const headTyped = headOutput as HEADOutput;
     const contextAny = context as Record<string, unknown>;
     return {
-      type: 'hrm_response',
-      content: hrmTyped.reasoning_result,
-      confidence: hrmTyped.confidence,
-      processingTime: hrmTyped.processing_time,
-      source: 'hrm_direct',
-      shouldSpeak: contextAny.inputType === 'voice' && (hrmTyped.confidence || 0) > 0.7,
-      text: hrmTyped.reasoning_result,
+      type: 'head_response',
+      content: headTyped.reasoning_result,
+      confidence: headTyped.confidence,
+      processingTime: headTyped.processing_time,
+      source: 'head_direct',
+      shouldSpeak: contextAny.inputType === 'voice' && (headTyped.confidence || 0) > 0.7,
+      text: headTyped.reasoning_result,
       metadata: {
-        l_module_activations: hrmTyped.l_module_activations,
-        h_module_activations: hrmTyped.h_module_activations,
+        l_module_activations: headTyped.l_module_activations,
+        h_module_activations: headTyped.h_module_activations,
       },
     };
   }
 
-  private async executeAgentWithHRMGuidance(agent: SEALAgent, input: unknown, context: unknown, hrmOutput: unknown): Promise<unknown> {
+  private async executeAgentWithHEADGuidance(agent: SEALAgent, input: unknown, context: unknown, headOutput: unknown): Promise<unknown> {
     agent.lastActive = new Date();
     agent.performance.totalInvocations++;
 
-    // Enhance agent processing with HRM insights
-    const hrmAny = hrmOutput as { reasoning_result?: unknown; confidence?: number; l_module_activations?: unknown; h_module_activations?: unknown };
+    // Enhance agent processing with HEAD insights
+    const headAny = headOutput as { reasoning_result?: unknown; confidence?: number; l_module_activations?: unknown; h_module_activations?: unknown };
     const enhancedContext = {
       ...(typeof context === 'object' && context !== null ? context as Record<string, unknown> : {}),
-      hrmReasoning: hrmAny.reasoning_result,
-      hrmConfidence: hrmAny.confidence,
-      hrmActivations: {
-        l_modules: hrmAny.l_module_activations,
-        h_modules: hrmAny.h_module_activations,
+      headReasoning: headAny.reasoning_result,
+      headConfidence: headAny.confidence,
+      headActivations: {
+        l_modules: headAny.l_module_activations,
+        h_modules: headAny.h_module_activations,
       },
     };
 
     const response = await this.simulateAgentProcessing(agent, input, enhancedContext);
 
-    // Merge HRM insights with agent response
+    // Merge HEAD insights with agent response
     return {
       ...(response as Record<string, unknown>),
-      hrmEnhanced: true,
-      hrmConfidence: hrmAny.confidence,
-      combinedConfidence: (((response as { confidence?: number }).confidence || 0) + (hrmAny.confidence || 0)) / 2,
-      hrmReasoning: hrmAny.reasoning_result,
+      headEnhanced: true,
+      headConfidence: headAny.confidence,
+      combinedConfidence: (((response as { confidence?: number }).confidence || 0) + (headAny.confidence || 0)) / 2,
+      headReasoning: headAny.reasoning_result,
     };
   }
 
@@ -671,38 +671,38 @@ export class SEALFramework extends EventEmitter {
       totalAgents: agents.length,
       activeInvocations: this.activeInvocations.size,
       learningMode: this.learningMode,
-      hrmIntegration: this.config.hrmIntegration,
-      hrmReady: this.hrmBridge ? (this.hrmBridge as { isReady?: () => boolean }).isReady?.() : false,
+      headIntegration: this.config.headIntegration,
+      headReady: this.headBridge ? (this.headBridge as { isReady?: () => boolean }).isReady?.() : false,
       averageSuccessRate: agents.length > 0 ? agents.reduce((sum, agent) => sum + agent.performance.successRate, 0) / agents.length : 0,
       totalInvocations: agents.reduce((sum, agent) => sum + agent.performance.totalInvocations, 0),
     };
   }
 
-  // HRM Integration methods
-  public setHRMBridge(hrmBridge: unknown): void {
-    this.hrmBridge = hrmBridge;
-    console.log('HRM bridge injected into SEAL Framework');
+  // HEAD Integration methods
+  public setHEADBridge(headBridge: unknown): void {
+    this.headBridge = headBridge;
+    console.log('HEAD bridge injected into SEAL Framework');
   }
 
-  public enableHRMIntegration(): void {
-    this.config.hrmIntegration = true;
-    console.log('HRM integration enabled in SEAL Framework');
+  public enableHEADIntegration(): void {
+    this.config.headIntegration = true;
+    console.log('HEAD integration enabled in SEAL Framework');
   }
 
-  public disableHRMIntegration(): void {
-    this.config.hrmIntegration = false;
-    console.log('HRM integration disabled in SEAL Framework');
+  public disableHEADIntegration(): void {
+    this.config.headIntegration = false;
+    console.log('HEAD integration disabled in SEAL Framework');
   }
 
-  public isHRMIntegrationEnabled(): boolean {
-    return this.config.hrmIntegration === true;
+  public isHEADIntegrationEnabled(): boolean {
+    return this.config.headIntegration === true;
   }
 
-  public getHRMStatus(): unknown {
+  public getHEADStatus(): unknown {
     return {
-      enabled: this.config.hrmIntegration,
-      bridgeAvailable: this.hrmBridge !== null,
-      ready: this.hrmBridge ? (this.hrmBridge as { isReady?: () => boolean }).isReady?.() : false,
+      enabled: this.config.headIntegration,
+      bridgeAvailable: this.headBridge !== null,
+      ready: this.headBridge ? (this.headBridge as { isReady?: () => boolean }).isReady?.() : false,
     };
   }
 
@@ -717,8 +717,8 @@ export class SEALFramework extends EventEmitter {
       // Clear active invocations
       this.activeInvocations.clear();
 
-      // Clear HRM bridge
-      this.hrmBridge = null;
+      // Clear HEAD bridge
+      this.headBridge = null;
 
       // Remove all event listeners
       this.removeAllListeners();

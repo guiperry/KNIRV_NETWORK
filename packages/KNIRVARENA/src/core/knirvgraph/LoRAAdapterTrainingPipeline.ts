@@ -334,7 +334,7 @@ export class LoRAAdapterTrainingPipeline {
       skillId,
       skillName,
       description: `LoRA adapter trained on ${dataset.trainingPairs.length} error-solution pairs from cluster ${dataset.clusterId}`,
-      baseModelCompatibility: 'hrm',
+      baseModelCompatibility: 'head',
       version: 1,
       rank: config.rank,
       alpha: config.alpha,

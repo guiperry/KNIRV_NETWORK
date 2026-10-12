@@ -751,13 +751,13 @@ This directory contains comprehensive tests for Phase 5 of the KNIRV Network Maj
 
 ---
 
-### HRM
+### HEAD
 
 **Location:** `external-models/HRM/README.md`
 
-# Hierarchical Reasoning Model (HRM)
+# Hierarchical Reasoning Model (HEAD)
 
-[![HRM Architecture](./assets/hrm.png)](./assets/hrm.png)
+[![HEAD Architecture](./assets/hrm.png)](./assets/hrm.png)
 
 ## Table of Contents...
 

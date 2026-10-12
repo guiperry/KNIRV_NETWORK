@@ -65,7 +65,7 @@ export class CognitiveEngineService {
   private metrics: CognitiveMetrics;
   private baseUrl: string;
   private wasmModule: WebAssembly.Module | null = null;
-  private hrmBridge: unknown = null;
+  private headBridge: unknown = null;
 
   constructor(baseUrl: string = '') {
     // Default to port 3001 for API calls if not specified
@@ -97,8 +97,8 @@ export class CognitiveEngineService {
       // Initialize WASM cognitive module with fallback
       await this.loadCognitiveWASM();
       
-      // Initialize HRM bridge with proper error handling
-      await this.initializeHRMBridge();
+      // Initialize HEAD bridge with proper error handling
+      await this.initializeHEADBridge();
       
       console.log('Cognitive Engine initialized successfully');
     } catch (error) {
@@ -133,16 +133,16 @@ export class CognitiveEngineService {
     } as any;
   }
 
-  private async initializeHRMBridge(): Promise<void> {
+  private async initializeHEADBridge(): Promise<void> {
     try {
-      // Try to initialize connection to HRM (Hierarchical Reasoning Model) API
-      const response = await fetch(`${this.baseUrl}/api/cognitive/hrm/init`, {
+      // Try to initialize connection to HEAD (Hierarchical Reasoning Model) API
+      const response = await fetch(`${this.baseUrl}/api/cognitive/head/init`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          modelPath: '/models/hrm-core.wasm',
+          modelPath: '/models/head-core.wasm',
           config: {
             maxMemoryMB: 512,
             enableGPU: false,
@@ -153,21 +153,21 @@ export class CognitiveEngineService {
       });
 
       if (response.ok) {
-        this.hrmBridge = await response.json();
-        console.log('HRM Bridge initialized successfully');
+        this.headBridge = await response.json();
+        console.log('HEAD Bridge initialized successfully');
       } else {
-        console.warn('HRM API not available, using fallback mode');
-        this.useHRMFallback();
+        console.warn('HEAD API not available, using fallback mode');
+        this.useHEADFallback();
       }
     } catch (error) {
-      console.warn('HRM Bridge initialization failed, using fallback mode:', error);
-      this.useHRMFallback();
+      console.warn('HEAD Bridge initialization failed, using fallback mode:', error);
+      this.useHEADFallback();
     }
   }
 
-  private useHRMFallback(): void {
-    console.log('HRM Bridge: Using mock implementation for cognitive processing');
-    this.hrmBridge = {
+  private useHEADFallback(): void {
+    console.log('HEAD Bridge: Using mock implementation for cognitive processing');
+    this.headBridge = {
       isInitialized: true,
       processInput: (input: unknown) => Promise.resolve({
         success: true,
@@ -175,7 +175,7 @@ export class CognitiveEngineService {
         confidence: 0.85
       }),
       getModelInfo: () => ({
-        model: 'hrm-mock',
+        model: 'head-mock',
         version: '1.0.0',
         capabilities: ['text', 'audio', 'visual']
       })

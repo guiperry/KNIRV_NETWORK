@@ -91,7 +91,7 @@ export class EcosystemCommunicationLayer extends EventEmitter {
         version: '1.0.0',
         capabilities: [
           'cognitive_processing',
-          'hrm_integration',
+          'head_integration',
           'neural_networks',
           'adaptive_learning',
           'multi_modal_ai',

@@ -58,15 +58,15 @@ app.get('/api/knirvbase/session/:sessionId/info', (req, res) => {
   });
 });
 
-// HRM Bridge endpoint
-app.post('/api/cognitive/hrm/init', (req, res) => {
+// HEAD Bridge endpoint
+app.post('/api/cognitive/head/init', (req, res) => {
   const { modelPath, config } = req.body;
-  console.log('HRM Bridge initialized:', { modelPath, config });
+  console.log('HEAD Bridge initialized:', { modelPath, config });
   res.json({ 
     status: 'initialized',
     modelPath,
     config,
-    bridgeId: `hrm_${Date.now()}`
+    bridgeId: `head_${Date.now()}`
   });
 });
 

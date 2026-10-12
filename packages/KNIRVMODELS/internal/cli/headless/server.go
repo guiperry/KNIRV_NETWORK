@@ -19,7 +19,7 @@ import (
 
 	"knirvmodels/internal/analyzer"
 	"knirvmodels/internal/cli/controller"
-	"knirvmodels/pkg/hashing/hrm"
+	"knirvmodels/pkg/hashing/head"
 )
 
 const (
@@ -76,14 +76,14 @@ func (s *Server) registerRoutes() {
 	s.mux.HandleFunc("/api/v1/pipeline/run", s.handleRunPipeline)
 	s.mux.HandleFunc("/api/v1/pipeline/status", s.handleGetPipelineStatus)
 	s.mux.HandleFunc("/api/v1/pipeline/logs", s.handlePipelineLogs)
-	s.mux.HandleFunc("/api/v1/hrm/train", s.handleHRMTrain)
-	s.mux.HandleFunc("/api/v1/hrm/status", s.handleHRMStatus)
-	// The served HRM: backend_server reaches these over this socket (it authenticates callers).
-	if dir, err := controller.HRMDir(); err != nil {
-		log.Printf("HRM serving disabled: %v", err)
+	s.mux.HandleFunc("/api/v1/head/train", s.handleHEADTrain)
+	s.mux.HandleFunc("/api/v1/head/status", s.handleHEADStatus)
+	// The served HEAD: backend_server reaches these over this socket (it authenticates callers).
+	if dir, err := controller.HEADDir(); err != nil {
+		log.Printf("HEAD serving disabled: %v", err)
 	} else {
-		hrm.Routes(hrm.NewService(dir), s.mux)
-		log.Printf("HRM served from %s (/heart/hrm/*)", dir)
+		head.Routes(head.NewService(dir), s.mux)
+		log.Printf("HEAD served from %s (/heart/head/*)", dir)
 	}
 
 	s.mux.HandleFunc("/api/v1/verify", s.handleVerify)
@@ -630,7 +630,7 @@ func RunHeadless(socketPath string, socketPerm uint32, goatMode bool, knirvserve
 	server := NewServer(socketPath, perm, goatMode)
 	schedCtx, stopSched := context.WithCancel(context.Background())
 	defer stopSched()
-	go server.controller.RunHRMScheduler(schedCtx, hrmCheckInterval())
+	go server.controller.RunHEADScheduler(schedCtx, headCheckInterval())
 	if len(knirvserverManaged) > 0 {
 		server.knirvserverManaged = knirvserverManaged[0]
 	}
@@ -737,9 +737,9 @@ func pipeOutput(reader *bufio.Reader, label string) (<-chan string, func()) {
 	return ch, stop
 }
 
-// handleHRMTrain starts a stage-5 HRM cycle in the background. {"force":true}
+// handleHEADTrain starts a stage-5 HEAD cycle in the background. {"force":true}
 // skips the new-data and spacing checks; the promotion gate still applies.
-func (s *Server) handleHRMTrain(w http.ResponseWriter, r *http.Request) {
+func (s *Server) handleHEADTrain(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -751,27 +751,27 @@ func (s *Server) handleHRMTrain(w http.ResponseWriter, r *http.Request) {
 	go func() {
 		defer func() {
 			if rec := recover(); rec != nil {
-				log.Printf("HRM cycle panic recovered: %v", rec)
+				log.Printf("HEAD cycle panic recovered: %v", rec)
 			}
 		}()
-		_, _ = s.controller.RunHRMCycle(context.Background(), req.Force)
+		_, _ = s.controller.RunHEADCycle(context.Background(), req.Force)
 	}()
-	s.sendSuccess(w, "HRM cycle started", map[string]bool{"force": req.Force})
+	s.sendSuccess(w, "HEAD cycle started", map[string]bool{"force": req.Force})
 }
 
-func (s *Server) handleHRMStatus(w http.ResponseWriter, r *http.Request) {
+func (s *Server) handleHEADStatus(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(s.controller.HRMStatus())
+	json.NewEncoder(w).Encode(s.controller.HEADStatus())
 }
 
-// hrmCheckInterval is how often the daemon looks for enough new Bronze to train on
-// (KNIRV_HRM_CHECK_MINUTES, default 30).
-func hrmCheckInterval() time.Duration {
-	if n, err := strconv.Atoi(os.Getenv("KNIRV_HRM_CHECK_MINUTES")); err == nil && n > 0 {
+// headCheckInterval is how often the daemon looks for enough new Bronze to train on
+// (KNIRV_HEAD_CHECK_MINUTES, default 30).
+func headCheckInterval() time.Duration {
+	if n, err := strconv.Atoi(os.Getenv("KNIRV_HEAD_CHECK_MINUTES")); err == nil && n > 0 {
 		return time.Duration(n) * time.Minute
 	}
 	return 30 * time.Minute

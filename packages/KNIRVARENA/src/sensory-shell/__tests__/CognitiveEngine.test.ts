@@ -12,7 +12,7 @@ jest.mock('../SEALFramework', () => ({
       confidence: 0.8,
       timestamp: new Date(),
     }),
-    setHRMBridge: jest.fn(),
+    setHEADBridge: jest.fn(),
     on: jest.fn(),
     off: jest.fn(),
     emit: jest.fn(),
@@ -28,7 +28,7 @@ jest.mock('../FabricAlgorithm', () => ({
       confidence: 0.7,
       timestamp: new Date(),
     }),
-    setHRMBridge: jest.fn(),
+    setHEADBridge: jest.fn(),
     on: jest.fn(),
     off: jest.fn(),
     emit: jest.fn(),
@@ -37,8 +37,8 @@ jest.mock('../FabricAlgorithm', () => ({
 jest.mock('../VisualProcessor');
 jest.mock('../LoRAAdapter');
 jest.mock('../EnhancedLoRAAdapter');
-jest.mock('../HRMBridge');
-jest.mock('../HRMLoRABridge');
+jest.mock('../HEADBridge');
+jest.mock('../HEADLoRABridge');
 jest.mock('../AdaptiveLearningPipeline');
 jest.mock('../KNIRVWalletIntegration');
 jest.mock('../KNIRVChainIntegration');
@@ -58,8 +58,8 @@ describe('CognitiveEngine', () => {
       visualEnabled: true,
       loraEnabled: true,
       enhancedLoraEnabled: true,
-      hrmEnabled: true,
-      hrmConfig: {
+      headEnabled: true,
+      headConfig: {
         l_module_count: 8,
         h_module_count: 4,
         enable_adaptation: true,
@@ -133,7 +133,7 @@ describe('CognitiveEngine', () => {
           confidenceLevel: number;
           activeSkills: number;
         };
-        hrm: Record<string, unknown>;
+        head: Record<string, unknown>;
         lora: Record<string, unknown>;
       };
       expect(status).toBeDefined();
@@ -256,8 +256,8 @@ describe('CognitiveEngine', () => {
       expect(enhancedLoraAdapter).toBeDefined();
     });
 
-    it('should check HRM readiness', () => {
-      const isReady = cognitiveEngine.isHRMReady();
+    it('should check HEAD readiness', () => {
+      const isReady = cognitiveEngine.isHEADReady();
       // With mocked dependencies, may return undefined or boolean
       expect(typeof isReady === 'boolean' || typeof isReady === 'undefined').toBe(true);
     });
@@ -268,9 +268,9 @@ describe('CognitiveEngine', () => {
       expect(typeof isReady === 'boolean' || typeof isReady === 'undefined').toBe(true);
     });
 
-    it('should provide access to HRM bridge', () => {
-      const hrmBridge = cognitiveEngine.getHRMBridge();
-      expect(hrmBridge).toBeDefined();
+    it('should provide access to HEAD bridge', () => {
+      const headBridge = cognitiveEngine.getHEADBridge();
+      expect(headBridge).toBeDefined();
     });
 
     it('should provide access to fabric algorithm', () => {
@@ -390,9 +390,9 @@ describe('CognitiveEngine', () => {
     });
 
     it('should process input through different pathways', async () => {
-      // Test HRM processing through processInput
-      const hrmInput = 'test hrm command';
-      const result1 = await cognitiveEngine.processInput(hrmInput, 'hrm');
+      // Test HEAD processing through processInput
+      const headInput = 'test head command';
+      const result1 = await cognitiveEngine.processInput(headInput, 'head');
       expect(result1).toBeDefined();
 
       // Test voice processing through processInput

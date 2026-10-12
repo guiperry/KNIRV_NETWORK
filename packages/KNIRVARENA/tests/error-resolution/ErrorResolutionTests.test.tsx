@@ -220,7 +220,7 @@ describe('Error Resolution Tests', () => {
         visualEnabled: true,
         loraEnabled: true,
         enhancedLoraEnabled: false,
-        hrmEnabled: true,
+        headEnabled: true,
         adaptiveLearningEnabled: true
       };
 
@@ -292,7 +292,7 @@ describe('Error Resolution Tests', () => {
       // ComponentBridge is auto-mocked, so getState would return undefined.
       mockBridge.getState = jest.fn(() => ({
         components: { receiver: 'running', cli: 'stopped' },
-        cognitive: { hrmActive: false, loraAdapters: [], learningMode: false, confidence: 0 },
+        cognitive: { headActive: false, loraAdapters: [], learningMode: false, confidence: 0 },
         wallet: { connected: false, balance: 0, transactions: [] },
         network: { connected: true, peers: 0, blockHeight: 0 },
       }));

@@ -16,7 +16,7 @@ cortex_endpoints:
     health_endpoint: "/api/health"
     timeout: "60s"
     
-  hrm_bridge:
+  head_bridge:
     wasm_module: "./rust-wasm/pkg/knirv_cortex_bg.wasm"
     timeout: "30s"
     
@@ -30,14 +30,14 @@ cortex_endpoints:
 
 # AI Core Test Configuration
 ai_core:
-  hrm_cognitive:
+  head_cognitive:
     l_module_count: 8
     h_module_count: 4
     processing_timeout: "30s"
     confidence_threshold: 0.5
     test_inputs:
       - type: "text"
-        data: "Test cognitive processing with HRM"
+        data: "Test cognitive processing with HEAD"
       - type: "sensory"
         data: [0.1, 0.2, 0.3, 0.4, 0.5]
       - type: "complex"
@@ -65,7 +65,7 @@ ai_core:
       learning_rate: 0.001
       batch_size: 16
       epochs: 5
-      hrm_guidance: true
+      head_guidance: true
   
   adaptive_learning:
     min_interactions: 3
@@ -73,7 +73,7 @@ ai_core:
     max_patterns: 100  # Reduced for testing
     learning_rate_decay: 0.95
     feedback_weight: 0.7
-    hrm_influence_weight: 0.3
+    head_influence_weight: 0.3
     real_time_adaptation: true
 
 # Ecosystem Integration Test Configuration
@@ -161,7 +161,7 @@ performance:
 
 # Cross-Component Integration Tests
 cross_component:
-  hrm_lora_integration:
+  head_lora_integration:
     synchronization_tests: true
     weight_adaptation_tests: true
     bidirectional_communication: true
@@ -177,7 +177,7 @@ cross_component:
     pattern_extraction_tests: true
     feedback_processing_tests: true
     real_time_adaptation_tests: true
-    hrm_enhancement_tests: true
+    head_enhancement_tests: true
 
 # Test Data Configuration
 test_data:
@@ -265,7 +265,7 @@ error_handling:
   failover_scenarios: true
   
   recovery_tests:
-    hrm_bridge_failure: true
+    head_bridge_failure: true
     neural_network_errors: true
     ecosystem_disconnection: true
     memory_exhaustion: true

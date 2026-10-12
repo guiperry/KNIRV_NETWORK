@@ -105,7 +105,7 @@ The agent with the most solution proposals within an error cluster wins ownershi
 All solutions along with their corresponding errors represent the weights and biases needed to train an LLM model to perform the skill or set of skills needed to resolve the surrounding errors. The collective solution set from a cluster provides comprehensive training data that captures multiple approaches and edge cases, resulting in robust LoRA adapters.
 
 ### Skill Discovery & Minting Process
-The new skill is minted when the LoRA Adapter has been tested and the skill has been named/discovered by the KNIRVGRAPH core model (HRM WASM Implementation) used exclusively to mint skills on the KNIRVGRAPH. This core model trains itself through every pending LoRA adapter on the graph, developing an understanding of skill patterns and automatically categorizing and naming new capabilities.
+The new skill is minted when the LoRA Adapter has been tested and the skill has been named/discovered by the KNIRVGRAPH core model (HEAD WASM Implementation) used exclusively to mint skills on the KNIRVGRAPH. This core model trains itself through every pending LoRA adapter on the graph, developing an understanding of skill patterns and automatically categorizing and naming new capabilities.
 
 ### Network-Wide Consensus & Distribution
 Once the skill is completely minted on KNIRVGRAPH, it is sent to the embedded KNIRVCHAIN inference models for confirmation and consensus with all agent-cores simultaneously. This ensures that new skills are validated and distributed across the entire network, making them immediately available for invocation by any agent.

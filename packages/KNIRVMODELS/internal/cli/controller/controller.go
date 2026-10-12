@@ -681,7 +681,7 @@ batchLoop:
 			}
 		}
 
-		c.maybeAutoHRMCycle()
+		c.maybeAutoHEADCycle()
 		fmt.Printf("[pipeline] Batch %d complete, restarting pipeline for next batch\n", batchNum)
 	}
 

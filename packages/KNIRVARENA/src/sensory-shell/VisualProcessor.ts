@@ -9,7 +9,7 @@ export interface VisualConfig {
   gestureRecognition: boolean;
   ocrEnabled: boolean;
   enableSceneAnalysis: boolean;
-  enableHRMGuidance: boolean;
+  enableHEADGuidance: boolean;
   maxImageSize: number;
   confidenceThreshold: number;
   enableRealTimeProcessing: boolean;
@@ -84,7 +84,7 @@ export interface VisualProcessingResult {
   textRegions: OCRResult[];
   sceneAnalysis: SceneAnalysis;
   gestures: GestureEvent[];
-  hrmEnhanced: boolean;
+  headEnhanced: boolean;
   processingTime: number;
 }
 
@@ -96,7 +96,7 @@ export class VisualProcessor extends EventEmitter {
   private stream: MediaStream | null = null;
   private isProcessing: boolean = false;
   private models: Map<string, tf.LayersModel> = new Map();
-  private hrmBridge: unknown = null;
+  private headBridge: unknown = null;
   private isInitialized: boolean = false;
   private processingQueue: Array<{ imageData: ImageData; resolve: (...args: unknown[]) => unknown; reject: (...args: unknown[]) => unknown }> = [];
   private processingInterval: number | null = null;
@@ -113,7 +113,7 @@ export class VisualProcessor extends EventEmitter {
       gestureRecognition: true,
       ocrEnabled: true,
       enableSceneAnalysis: true,
-      enableHRMGuidance: true,
+      enableHEADGuidance: true,
       maxImageSize: 1024,
       confidenceThreshold: 0.5,
       enableRealTimeProcessing: true,
@@ -138,9 +138,9 @@ export class VisualProcessor extends EventEmitter {
     this.canvas.height = height;
   }
 
-  public setHRMBridge(hrmBridge: unknown): void {
-    this.hrmBridge = hrmBridge;
-    console.log('HRM bridge connected to Visual Processor');
+  public setHEADBridge(headBridge: unknown): void {
+    this.headBridge = headBridge;
+    console.log('HEAD bridge connected to Visual Processor');
   }
 
   public async initialize(): Promise<void> {
@@ -301,7 +301,7 @@ export class VisualProcessor extends EventEmitter {
           timestamp: new Date(),
         },
         gestures: [],
-        hrmEnhanced: false,
+        headEnhanced: false,
         processingTime: 0,
       };
 
@@ -330,10 +330,10 @@ export class VisualProcessor extends EventEmitter {
         result.gestures = await this.recognizeGestures(preprocessedImage);
       }
 
-      // HRM enhancement
-      if (this.config.enableHRMGuidance && this.hrmBridge) {
-        result.hrmEnhanced = true;
-        // HRM enhancement would be implemented here
+      // HEAD enhancement
+      if (this.config.enableHEADGuidance && this.headBridge) {
+        result.headEnhanced = true;
+        // HEAD enhancement would be implemented here
       }
 
       result.processingTime = Date.now() - startTime;
@@ -669,7 +669,7 @@ export class VisualProcessor extends EventEmitter {
       ocrEnabled: this.config.ocrEnabled,
       faceRecognition: this.config.faceRecognition,
       enableSceneAnalysis: this.config.enableSceneAnalysis,
-      enableHRMGuidance: this.config.enableHRMGuidance,
+      enableHEADGuidance: this.config.enableHEADGuidance,
     };
   }
 

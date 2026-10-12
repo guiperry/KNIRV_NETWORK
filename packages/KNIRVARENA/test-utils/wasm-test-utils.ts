@@ -22,7 +22,7 @@ export const AVAILABLE_WASM_FILES = {
   KNIRV_CONTROLLER: 'build/knirv-controller.wasm',
   KNIRV_CONTROLLER_DEBUG: 'build/knirv-controller-debug.wasm',
   KNIRV_CORTEX: 'rust-wasm/target/wasm32-unknown-unknown/release/knirv_cortex_wasm.wasm',
-  KNIRV_CORTEX_PKG: 'src/wasm-pkg/knirv_cortex_wasm_bg.wasm'
+  KNIRV_CORTEX_PKG: 'src/wasm-pkg/knirv_head_bg.wasm'
 } as const;
 
 /**

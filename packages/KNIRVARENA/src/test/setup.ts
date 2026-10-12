@@ -2,7 +2,7 @@ import '@testing-library/jest-dom';
 import * as React from 'react';
 
 // Mock WASM module
-jest.mock('../wasm-pkg/knirv_cortex_wasm', () => ({
+jest.mock('../wasm-pkg/knirv_head', () => ({
   greet: jest.fn(() => 'Hello from WASM!'),
   process_data: jest.fn((data: unknown) => data),
   initialize_cortex: jest.fn(() => true),

@@ -252,7 +252,7 @@ function processData(data) {
 	loraRequest := KNIRVControllerLoRARequest{
 		AdapterName:            "demo-syntax-fixer",
 		Description:            "Demo LoRA adapter for JavaScript syntax error fixing",
-		BaseModelCompatibility: "hrm-v1",
+		BaseModelCompatibility: "head-v1",
 		Version:                1,
 		Rank:                   8,
 		Alpha:                  0.3,
@@ -289,7 +289,7 @@ func testDemoLoRAAdapterWorkflow(t *testing.T) {
 	loraRequest := KNIRVControllerLoRARequest{
 		AdapterName:            "demo-text-enhancer",
 		Description:            "Demo LoRA adapter for text enhancement and analysis",
-		BaseModelCompatibility: "hrm-v1",
+		BaseModelCompatibility: "head-v1",
 		Version:                1,
 		Rank:                   16,
 		Alpha:                  0.5,

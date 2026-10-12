@@ -9,7 +9,7 @@ import pino from 'pino';
 import { EventEmitter } from 'events';
 import { LoRAAdapterSkill } from '../lora/LoRAAdapterEngine';
 import { TrainingDataset } from './LoRAAdapterTrainingPipeline';
-import { HRMCoreModel, SkillDiscoveryResult } from './HRMCoreModel';
+import { HEADCoreModel, SkillDiscoveryResult } from './HEADCoreModel';
 
 const logger = pino({ name: 'lora-processing-queue' });
 
@@ -62,17 +62,17 @@ export class LoRAProcessingQueue extends EventEmitter {
   private completedQueue: Map<string, QueuedLoRAAdapter> = new Map();
   private failedQueue: Map<string, QueuedLoRAAdapter> = new Map();
   
-  private hrmCoreModel: HRMCoreModel;
+  private headCoreModel: HEADCoreModel;
   private config: QueueConfig;
   private isProcessing: boolean = false;
   private isInitialized: boolean = false;
   private processingInterval?: NodeJS.Timeout;
   private metrics: QueueMetrics;
 
-  constructor(hrmCoreModel: HRMCoreModel, config: Partial<QueueConfig> = {}) {
+  constructor(headCoreModel: HEADCoreModel, config: Partial<QueueConfig> = {}) {
     super();
     
-    this.hrmCoreModel = hrmCoreModel;
+    this.headCoreModel = headCoreModel;
     this.config = {
       maxConcurrentProcessing: 3,
       maxQueueSize: 100,
@@ -102,9 +102,9 @@ export class LoRAProcessingQueue extends EventEmitter {
     logger.info('Initializing LoRA Processing Queue...');
 
     try {
-      // Ensure HRM Core Model is ready
-      if (!this.hrmCoreModel.isReady()) {
-        await this.hrmCoreModel.initialize();
+      // Ensure HEAD Core Model is ready
+      if (!this.headCoreModel.isReady()) {
+        await this.headCoreModel.initialize();
       }
 
       // Start processing loop
@@ -266,8 +266,8 @@ export class LoRAProcessingQueue extends EventEmitter {
         setTimeout(() => reject(new Error('Processing timeout')), this.config.processingTimeout);
       });
 
-      // Process with HRM Core Model
-      const processingPromise = this.hrmCoreModel.discoverSkill(loraAdapter, trainingDataset);
+      // Process with HEAD Core Model
+      const processingPromise = this.headCoreModel.discoverSkill(loraAdapter, trainingDataset);
 
       // Race between processing and timeout
       const discoveryResult = await Promise.race([processingPromise, timeoutPromise]);
@@ -423,6 +423,6 @@ export class LoRAProcessingQueue extends EventEmitter {
    * Check if ready
    */
   isReady(): boolean {
-    return this.isInitialized && this.hrmCoreModel.isReady();
+    return this.isInitialized && this.headCoreModel.isReady();
   }
 }

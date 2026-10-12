@@ -38,7 +38,7 @@
       "features": {
         "cognitiveShell": true,
         "wasmIntegration": true,
-        "hrmCore": true,
+        "headCore": true,
         "loraAdapters": true,
         "neuralNetworks": true,
         "adaptiveLearning": true
@@ -120,7 +120,7 @@
     }
   },
   "cognitive": {
-    "hrmCore": {
+    "headCore": {
       "enabled": true,
       "modelSize": "27M",
       "lModules": 8,

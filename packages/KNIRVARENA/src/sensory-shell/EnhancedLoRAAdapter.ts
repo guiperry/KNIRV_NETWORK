@@ -18,16 +18,16 @@ export interface NeuralNetworkConfig {
   epochs: number;
 }
 
-export interface HRMIntegrationConfig {
-  enableHRMGuidance: boolean;
-  hrmWeightInfluence: number;
+export interface HEADIntegrationConfig {
+  enableHEADGuidance: boolean;
+  headWeightInfluence: number;
   adaptationThreshold: number;
 }
 
 export class EnhancedLoRAAdapter extends EventEmitter {
   private config: LoRAConfig;
   private nnConfig: NeuralNetworkConfig;
-  private hrmConfig: HRMIntegrationConfig;
+  private headConfig: HEADIntegrationConfig;
   private weights: Map<string, TensorFlowLoRAWeights> = new Map();
   private baseModel: tf.LayersModel | null = null;
   private optimizer: tf.Optimizer;
@@ -41,12 +41,12 @@ export class EnhancedLoRAAdapter extends EventEmitter {
     timestamp: new Date()
   };
   private isRunning: boolean = false;
-  private hrmBridge: unknown = null;
+  private headBridge: unknown = null;
 
   constructor(
     config: LoRAConfig,
     nnConfig?: Partial<NeuralNetworkConfig>,
-    hrmConfig?: Partial<HRMIntegrationConfig>
+    headConfig?: Partial<HEADIntegrationConfig>
   ) {
     super();
     this.config = config;
@@ -61,11 +61,11 @@ export class EnhancedLoRAAdapter extends EventEmitter {
       ...nnConfig,
     };
 
-    this.hrmConfig = {
-      enableHRMGuidance: true,
-      hrmWeightInfluence: 0.3,
+    this.headConfig = {
+      enableHEADGuidance: true,
+      headWeightInfluence: 0.3,
       adaptationThreshold: 0.7,
-      ...hrmConfig,
+      ...headConfig,
     };
 
     this.optimizer = tf.train.adam(this.nnConfig.learningRate);
@@ -180,9 +180,9 @@ export class EnhancedLoRAAdapter extends EventEmitter {
     console.log(`Initialized LoRA weights for ${this.config.targetModules.length} modules`);
   }
 
-  public setHRMBridge(hrmBridge: unknown): void {
-    this.hrmBridge = hrmBridge;
-    console.log('HRM bridge connected to Enhanced LoRA Adapter');
+  public setHEADBridge(headBridge: unknown): void {
+    this.headBridge = headBridge;
+    console.log('HEAD bridge connected to Enhanced LoRA Adapter');
   }
 
   public async addTrainingData(data: TrainingData): Promise<void> {
@@ -224,14 +224,14 @@ export class EnhancedLoRAAdapter extends EventEmitter {
       // Convert training data to tensors
       const { inputs, targets } = this.prepareTrainingTensors(batchData);
 
-      // Get HRM guidance if available
-      let hrmGuidance = null;
-      if (this.hrmConfig.enableHRMGuidance && this.hrmBridge && (this.hrmBridge as { isReady?: () => boolean }).isReady?.()) {
-        hrmGuidance = await this.getHRMGuidance(batchData);
+      // Get HEAD guidance if available
+      let headGuidance = null;
+      if (this.headConfig.enableHEADGuidance && this.headBridge && (this.headBridge as { isReady?: () => boolean }).isReady?.()) {
+        headGuidance = await this.getHEADGuidance(batchData);
       }
 
       // Perform training with LoRA adaptation
-      const history = await this.trainWithLoRA(inputs, targets, hrmGuidance);
+      const history = await this.trainWithLoRA(inputs, targets, headGuidance);
 
       // Update metrics
       this.updateMetricsFromHistory(history);
@@ -243,7 +243,7 @@ export class EnhancedLoRAAdapter extends EventEmitter {
       this.emit('batchTrainingComplete', {
         batchSize: batchData.length,
         metrics: this.metrics,
-        hrmGuidance: hrmGuidance !== null,
+        headGuidance: headGuidance !== null,
       });
 
     } catch (error) {
@@ -307,10 +307,10 @@ export class EnhancedLoRAAdapter extends EventEmitter {
     return vector;
   }
 
-  private async getHRMGuidance(batchData: TrainingData[]): Promise<unknown> {
+  private async getHEADGuidance(batchData: TrainingData[]): Promise<unknown> {
     try {
-      // Use HRM to analyze the training batch and provide guidance
-      const hrmInput = {
+      // Use HEAD to analyze the training batch and provide guidance
+      const headInput = {
         sensory_data: this.convertToVector(batchData[0].input),
         context: JSON.stringify({
           batchSize: batchData.length,
@@ -320,26 +320,26 @@ export class EnhancedLoRAAdapter extends EventEmitter {
         task_type: 'lora_adaptation',
       };
 
-      interface HRMOutput {
+      interface HEADOutput {
         reasoning_result?: unknown;
         confidence?: number;
         l_module_activations?: unknown;
         h_module_activations?: unknown;
       }
 
-      const hrmOutput = await (this.hrmBridge as { processCognitiveInput: (input: unknown) => Promise<unknown> }).processCognitiveInput(hrmInput);
-      const hrmTyped = hrmOutput as HRMOutput;
+      const headOutput = await (this.headBridge as { processCognitiveInput: (input: unknown) => Promise<unknown> }).processCognitiveInput(headInput);
+      const headTyped = headOutput as HEADOutput;
 
       return {
-        reasoning: hrmTyped.reasoning_result,
-        confidence: hrmTyped.confidence,
-        l_activations: hrmTyped.l_module_activations,
-        h_activations: hrmTyped.h_module_activations,
-        adaptationStrength: (hrmTyped.confidence || 0) * this.hrmConfig.hrmWeightInfluence,
+        reasoning: headTyped.reasoning_result,
+        confidence: headTyped.confidence,
+        l_activations: headTyped.l_module_activations,
+        h_activations: headTyped.h_module_activations,
+        adaptationStrength: (headTyped.confidence || 0) * this.headConfig.headWeightInfluence,
       };
 
     } catch (error) {
-      console.error('Error getting HRM guidance:', error);
+      console.error('Error getting HEAD guidance:', error);
       return null;
     }
   }
@@ -347,10 +347,10 @@ export class EnhancedLoRAAdapter extends EventEmitter {
   private async trainWithLoRA(
     inputs: tf.Tensor2D,
     targets: tf.Tensor2D,
-    hrmGuidance: unknown
+    headGuidance: unknown
   ): Promise<tf.History> {
     // Apply LoRA adaptation to the base model
-    const adaptedModel = await this.applyLoRAToModel(hrmGuidance);
+    const adaptedModel = await this.applyLoRAToModel(headGuidance);
 
     // Train the adapted model
     const history = await adaptedModel.fit(inputs, targets, {
@@ -359,13 +359,13 @@ export class EnhancedLoRAAdapter extends EventEmitter {
       verbose: 0,
       callbacks: {
         onEpochEnd: (epoch, logs) => {
-          this.emit('epochComplete', { epoch, logs, hrmGuidance });
+          this.emit('epochComplete', { epoch, logs, headGuidance });
         },
       },
     });
 
     // Extract LoRA updates from the trained model
-    await this.extractLoRAUpdates(adaptedModel, hrmGuidance);
+    await this.extractLoRAUpdates(adaptedModel, headGuidance);
 
     // Dispose the adapted model
     adaptedModel.dispose();
@@ -373,7 +373,7 @@ export class EnhancedLoRAAdapter extends EventEmitter {
     return history;
   }
 
-  private async applyLoRAToModel(hrmGuidance: unknown): Promise<tf.LayersModel> {
+  private async applyLoRAToModel(headGuidance: unknown): Promise<tf.LayersModel> {
     if (!this.baseModel) {
       throw new Error('Base model not initialized');
     }
@@ -388,7 +388,7 @@ export class EnhancedLoRAAdapter extends EventEmitter {
 
     // Apply LoRA adaptations to specific layers
     this.weights.forEach(async (loraWeights, moduleName) => {
-      await this.applyLoRAToLayer(adaptedModel, moduleName, loraWeights, hrmGuidance);
+      await this.applyLoRAToLayer(adaptedModel, moduleName, loraWeights, headGuidance);
     });
 
     adaptedModel.compile({
@@ -404,7 +404,7 @@ export class EnhancedLoRAAdapter extends EventEmitter {
     model: tf.LayersModel,
     layerName: string,
     loraWeights: TensorFlowLoRAWeights,
-    hrmGuidance: unknown
+    headGuidance: unknown
   ): Promise<void> {
     try {
       const layer = model.getLayer(layerName);
@@ -417,10 +417,10 @@ export class EnhancedLoRAAdapter extends EventEmitter {
       const loraAdaptation = tf.matMul(loraWeights.B, loraWeights.A);
       const scaledAdaptation = tf.mul(loraAdaptation, loraWeights.scaling);
 
-      // Apply HRM guidance if available
+      // Apply HEAD guidance if available
       let finalAdaptation = scaledAdaptation;
-      if (hrmGuidance && (hrmGuidance as { adaptationStrength?: unknown }).adaptationStrength) {
-        finalAdaptation = tf.mul(scaledAdaptation, (hrmGuidance as { adaptationStrength: unknown }).adaptationStrength as tf.Tensor);
+      if (headGuidance && (headGuidance as { adaptationStrength?: unknown }).adaptationStrength) {
+        finalAdaptation = tf.mul(scaledAdaptation, (headGuidance as { adaptationStrength: unknown }).adaptationStrength as tf.Tensor);
       }
 
       // Add adaptation to original weights
@@ -443,7 +443,7 @@ export class EnhancedLoRAAdapter extends EventEmitter {
     }
   }
 
-  private async extractLoRAUpdates(adaptedModel: tf.LayersModel, hrmGuidance: unknown): Promise<void> {
+  private async extractLoRAUpdates(adaptedModel: tf.LayersModel, headGuidance: unknown): Promise<void> {
     // Extract the learned adaptations and update LoRA matrices
     this.weights.forEach(async (loraWeights, moduleName) => {
       try {
@@ -458,7 +458,7 @@ export class EnhancedLoRAAdapter extends EventEmitter {
           const weightDiff = tf.sub(adaptedLayerWeights[0], originalLayerWeights[0]);
 
           // Decompose the difference into LoRA matrices using SVD approximation
-          await this.updateLoRAMatrices(loraWeights, weightDiff, hrmGuidance);
+          await this.updateLoRAMatrices(loraWeights, weightDiff, headGuidance);
 
           weightDiff.dispose();
         }
@@ -472,15 +472,15 @@ export class EnhancedLoRAAdapter extends EventEmitter {
   private async updateLoRAMatrices(
     loraWeights: TensorFlowLoRAWeights,
     weightDiff: tf.Tensor,
-    hrmGuidance: unknown
+    headGuidance: unknown
   ): Promise<void> {
     // Simplified LoRA matrix update using gradient-based approach
     const learningRate = this.nnConfig.learningRate;
     
-    // Apply HRM-guided learning rate adjustment
+    // Apply HEAD-guided learning rate adjustment
     let adjustedLR = learningRate;
-    if (hrmGuidance && (hrmGuidance as { confidence?: number }).confidence) {
-      adjustedLR *= (hrmGuidance as { confidence: number }).confidence;
+    if (headGuidance && (headGuidance as { confidence?: number }).confidence) {
+      adjustedLR *= (headGuidance as { confidence: number }).confidence;
     }
 
     // Update A matrix
@@ -655,8 +655,8 @@ export class EnhancedLoRAAdapter extends EventEmitter {
       memoryInfo: tf.memory(),
       modelParameters: this.baseModel ? this.baseModel.countParams() : 0,
       loraModules: this.weights.size,
-      hrmIntegration: this.hrmConfig.enableHRMGuidance,
-      hrmBridgeReady: this.hrmBridge ? (this.hrmBridge as { isReady?: () => boolean }).isReady?.() || false : false,
+      headIntegration: this.headConfig.enableHEADGuidance,
+      headBridgeReady: this.headBridge ? (this.headBridge as { isReady?: () => boolean }).isReady?.() || false : false,
     };
   }
 
@@ -674,13 +674,13 @@ export class EnhancedLoRAAdapter extends EventEmitter {
     return {
       lora: { ...this.config },
       neuralNetwork: { ...this.nnConfig },
-      hrmIntegration: { ...this.hrmConfig },
+      headIntegration: { ...this.headConfig },
     };
   }
 
-  public updateHRMConfig(newConfig: Partial<HRMIntegrationConfig>): void {
-    this.hrmConfig = { ...this.hrmConfig, ...newConfig };
-    this.emit('hrmConfigUpdated', this.hrmConfig);
+  public updateHEADConfig(newConfig: Partial<HEADIntegrationConfig>): void {
+    this.headConfig = { ...this.headConfig, ...newConfig };
+    this.emit('headConfigUpdated', this.headConfig);
   }
 
   public updateNeuralNetworkConfig(newConfig: Partial<NeuralNetworkConfig>): void {

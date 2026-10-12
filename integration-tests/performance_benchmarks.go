@@ -211,8 +211,8 @@ func (suite *PerformanceBenchmarkSuite) makeRequest(endpoint string, payload int
 	return nil
 }
 
-// Benchmark HRM cognitive processing
-func (suite *PerformanceBenchmarkSuite) benchmarkHRMCognitiveProcessing() BenchmarkResult {
+// Benchmark HEAD cognitive processing
+func (suite *PerformanceBenchmarkSuite) benchmarkHEADCognitiveProcessing() BenchmarkResult {
 	payload := map[string]interface{}{
 		"action": "process_cognitive_input",
 		"input": map[string]interface{}{
@@ -238,8 +238,8 @@ func (suite *PerformanceBenchmarkSuite) benchmarkHRMCognitiveProcessing() Benchm
 	}
 
 	result := suite.executePerformanceTest(
-		"HRM Cognitive Processing",
-		"/api/hrm/process",
+		"HEAD Cognitive Processing",
+		"/api/head/process",
 		payload,
 		config,
 	)
@@ -328,7 +328,7 @@ func (suite *PerformanceBenchmarkSuite) benchmarkVisualProcessing() BenchmarkRes
 			"object_detection":    true,
 			"face_recognition":    true,
 			"scene_analysis":      true,
-			"enable_hrm_guidance": true,
+			"enable_head_guidance": true,
 		},
 		"test_data": suite.generateImageData(224, 224, 3),
 	}
@@ -522,7 +522,7 @@ func TestPerformanceBenchmarks(t *testing.T) {
 		name string
 		fn   func() BenchmarkResult
 	}{
-		{"HRM Cognitive Processing", suite.benchmarkHRMCognitiveProcessing},
+		{"HEAD Cognitive Processing", suite.benchmarkHEADCognitiveProcessing},
 		{"Neural Network Operations", suite.benchmarkNeuralNetworkOperations},
 		{"LoRA Adapter Training", suite.benchmarkLoRATraining},
 		{"Visual Processing", suite.benchmarkVisualProcessing},

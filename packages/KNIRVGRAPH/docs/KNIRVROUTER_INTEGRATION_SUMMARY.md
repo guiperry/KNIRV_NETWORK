@@ -226,7 +226,7 @@ const requestId = await chainIntegration.invokeSkillOnChain(
 const adapterId = await chainIntegration.registerLoRAAdapterSkill({
   adapterName: 'custom-text-adapter',
   description: 'Custom text processing adapter',
-  baseModelCompatibility: 'hrm-v1',
+  baseModelCompatibility: 'head-v1',
   version: 1,
   rank: 16,
   alpha: 0.5,

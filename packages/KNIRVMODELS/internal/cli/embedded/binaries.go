@@ -71,8 +71,8 @@ var AvailableBinaries = []BinaryInfo{
 		TargetArch:  "amd64",
 	},
 	{
-		Name:        "hrm-trainer",
-		Description: "HRM Trainer - trains and gate-promotes the Hierarchical Reasoning Model",
+		Name:        "head-trainer",
+		Description: "HEAD Trainer - trains and gate-promotes the Hierarchical Reasoning Model",
 		TargetOS:    "linux",
 		TargetArch:  "amd64",
 	},

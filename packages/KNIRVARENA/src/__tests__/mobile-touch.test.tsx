@@ -63,7 +63,7 @@ jest.mock('../services/DesktopConnection', () => ({
   desktopConnection: {
     getConnectionStatus: () => ({ connected: false, desktop_id: null }),
     setConnectionChangeHandler: jest.fn(),
-    setHRMResponseHandler: jest.fn(),
+    setHEADResponseHandler: jest.fn(),
   },
 }));
 

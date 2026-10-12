@@ -14,8 +14,8 @@ export interface CognitiveConfig {
     dropout: number;
     targetModules: string[];
   };
-  enableHRM?: boolean;
-  hrmConfig?: {
+  enableHEAD?: boolean;
+  headConfig?: {
     memorySize: number;
     learningRate: number;
     adaptationThreshold: number;
@@ -87,7 +87,7 @@ export interface CognitiveSkill {
 
 export interface CognitiveAdaptation {
   id: string;
-  type: 'lora' | 'hrm' | 'seal' | 'feedback';
+  type: 'lora' | 'head' | 'seal' | 'feedback';
   trigger: string;
   parameters: Record<string, unknown>;
   impact: {

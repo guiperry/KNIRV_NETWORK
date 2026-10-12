@@ -20,7 +20,7 @@ export interface ComponentConfig {
 }
 
 export interface CognitiveState {
-  hrmActive: boolean;
+  headActive: boolean;
   loraAdapters: string[];
   currentSkill?: string;
   learningMode: boolean;
@@ -63,7 +63,7 @@ export class ComponentBridge {
     return {
       components: {},
       cognitive: {
-        hrmActive: false,
+        headActive: false,
         loraAdapters: [],
         learningMode: false,
         confidence: 0

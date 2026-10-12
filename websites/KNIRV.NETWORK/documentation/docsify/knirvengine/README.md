@@ -1,6 +1,6 @@
 # KNIRVENGINE User Guide: Setup, Usage, and Troubleshooting
 
-KNIRVENGINE is a three-engine cognitive architecture for deploying and managing autonomous agents. It combines Human-like Reasoning Models (HRM), QR code linkage, and WebAssembly (WASM) for efficient cognitive processing. This guide helps you set up, use, and troubleshoot KNIRVENGINE.
+KNIRVENGINE is a three-engine cognitive architecture for deploying and managing autonomous agents. It combines Human-like Reasoning Models (HEAD), QR code linkage, and WebAssembly (WASM) for efficient cognitive processing. This guide helps you set up, use, and troubleshoot KNIRVENGINE.
 
 ## Prerequisites
 
@@ -9,7 +9,7 @@ Before installing KNIRVENGINE, ensure you have the following:
 * Go 1.21+
 * Node.js 18+
 * Rust 1.70+
-* Python 3.9+ (for HRM model)
+* Python 3.9+ (for HEAD model)
 
 ## Installation
 
@@ -64,7 +64,7 @@ npm run dev
 
 KNIRVENGINE consists of three core engines:
 
-* **Desktop-Host Engine:** Central coordination and HRM processing.
+* **Desktop-Host Engine:** Central coordination and HEAD processing.
 * **Mobile-Tool Engine:** Enhanced mobile client with sensory processing (QR code scanning, voice and visual processing).
 * **Agent-Core Engine (WASM):** A lightweight cognitive shell for autonomous agents.
 
@@ -75,9 +75,9 @@ KNIRVENGINE uses QR codes for secure pairing between desktop and mobile devices.
 * **Target Assignment QR:** Links a mobile device to a specific system, authorizing agent deployment.
 * **Transaction Signing QR:** Authorizes blockchain transactions.
 
-### Human-like Reasoning Model (HRM)
+### Human-like Reasoning Model (HEAD)
 
-The HRM provides advanced cognitive capabilities. You can send requests to the HRM via the API (see API Reference below).
+The HEAD provides advanced cognitive capabilities. You can send requests to the HEAD via the API (see API Reference below).
 
 ### Model Context Protocol (MCP)
 
@@ -85,7 +85,7 @@ KNIRVENGINE uses MCP for standardized agent communication. You can interact with
 
 ## Troubleshooting
 
-* **Desktop Host not starting:** Check your Go installation and ensure the HRM model is correctly located (`./dist/weights.safetensors`).
+* **Desktop Host not starting:** Check your Go installation and ensure the HEAD model is correctly located (`./dist/weights.safetensors`).
 * **Mobile Tool errors:** Check your Node.js and npm installations. Ensure you have the necessary device permissions (camera access).
 * **MCP connection issues:** Verify that the WebSocket endpoint (`ws://localhost:8082/api/mcp/ws`) is accessible.
 

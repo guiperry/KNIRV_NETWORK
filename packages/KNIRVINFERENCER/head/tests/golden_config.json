@@ -1,0 +1,35 @@
+{
+  "format": "knirv-head/v1",
+  "tokenizer": "byte",
+  "vocab_size": 32,
+  "max_seq_len": 24,
+  "d_model": 16,
+  "n_heads": 2,
+  "ffn_mult": 2,
+  "l_layers": 1,
+  "h_layers": 1,
+  "h_cycles": 3,
+  "l_steps": 2,
+  "min_cycles": 1,
+  "summary_slots": 1,
+  "decision_heads": [
+    {
+      "name": "action",
+      "kind": "choice",
+      "options": [
+        "allow",
+        "request_review",
+        "ask_operator"
+      ]
+    },
+    {
+      "name": "risk",
+      "kind": "score",
+      "options": []
+    }
+  ],
+  "tau": 0.0,
+  "model_version": "test-1",
+  "dataset_manifest_hash": "m",
+  "policy_bundle_hash": "p"
+}

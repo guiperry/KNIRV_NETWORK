@@ -19,7 +19,7 @@ export const CognitiveShellInterface: React.FC<CognitiveShellInterfaceProps> = (
     visualEnabled: false,
     loraEnabled: false,
     enhancedLoraEnabled: false,
-    hrmEnabled: false,
+    headEnabled: false,
     adaptiveLearningEnabled: false,
     walletIntegrationEnabled: false,
     chainIntegrationEnabled: false,

@@ -40,9 +40,9 @@ Opponents may introduce "Field Noise" (adversarial context injection) to sabotag
 *   **Service Routing**: Update `ChatBrainService` to ensure the `CognitiveEngine` is the primary gatekeeper for all outgoing inference.
 
 ### Phase 2: AdalineBridge & Context Mapping
-*   **Bridge Development**: Create `src/sensory-shell/AdalineBridge.ts` mirroring the `HRMBridge` interface.
-*   **Context Translation**: Develop logic to transform `HRMCognitiveInput` (sensory data + context) into high-fidelity prompts.
-*   **Output Parsing**: Translate LLM responses into structured `HRMCognitiveOutput` (confidence, reasoning, etc.).
+*   **Bridge Development**: Create `src/sensory-shell/AdalineBridge.ts` mirroring the `HEADBridge` interface.
+*   **Context Translation**: Develop logic to transform `HEADCognitiveInput` (sensory data + context) into high-fidelity prompts.
+*   **Output Parsing**: Translate LLM responses into structured `HEADCognitiveOutput` (confidence, reasoning, etc.).
 
 ### Phase 3: CognitiveEngine Core Integration
 *   **Configuration**: Extend `CognitiveConfig` with `adalineEnabled` and `adalineConfig`.

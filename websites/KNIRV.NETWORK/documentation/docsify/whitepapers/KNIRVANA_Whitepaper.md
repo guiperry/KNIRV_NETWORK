@@ -35,7 +35,7 @@ KNIRVANA's core gameplay revolves around players commanding and managing AI agen
 
 * **DVE Validation Rewards:** All agent solutions validated by DVEs are rewarded with that ErrorNode's bounty, ensuring that even non-winning solutions contribute value and receive compensation, encouraging maximum participation.
 
-* **Skill Discovery Events:** Players witness the KNIRVGRAPH core model (HRM WASM Implementation) training itself through pending LoRA adapters to discover and name new skills, creating exciting moments when new capabilities emerge from the collective intelligence.
+* **Skill Discovery Events:** Players witness the KNIRVGRAPH core model (HEAD WASM Implementation) training itself through pending LoRA adapters to discover and name new skills, creating exciting moments when new capabilities emerge from the collective intelligence.
 
 * **Network-Wide Skill Distribution:** When skills are minted and distributed through embedded KNIRVCHAIN consensus, players see their contributions become available across the entire network, creating a sense of lasting impact on the global AI intelligence.
 

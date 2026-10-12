@@ -25,7 +25,7 @@ class MockLoRAAdapterEngine {
       alpha: 16.0,
       weightsA: new Float32Array(64).fill(0.01),
       weightsB: new Float32Array(64).fill(0.02),
-      baseModelCompatibility: 'hrm'
+      baseModelCompatibility: 'head'
     });
   }
 
@@ -415,7 +415,7 @@ describe('Phase 3.4: /prepare Endpoint Integration', () => {
         }
       ];
 
-      const result = await cortexAPI.performPreTraining('hrm-base-v1', loraInsights, {
+      const result = await cortexAPI.performPreTraining('head-base-v1', loraInsights, {
         learningRate: 0.0001,
         batchSize: 32,
         epochs: 10
@@ -423,7 +423,7 @@ describe('Phase 3.4: /prepare Endpoint Integration', () => {
 
       expect(result.success).toBe(true);
       expect(result.pretrainingResult).toBeDefined();
-      expect(result.pretrainingResult.baseModel).toBe('hrm-base-v1');
+      expect(result.pretrainingResult.baseModel).toBe('head-base-v1');
       expect(result.pretrainingResult.updatedModelVersion).toBeDefined();
       expect(result.pretrainingResult.insightsApplied).toBe(2);
       expect(result.pretrainingResult.trainingMetrics).toBeDefined();
@@ -432,7 +432,7 @@ describe('Phase 3.4: /prepare Endpoint Integration', () => {
 
     it('should handle missing parameters in pre-training request', async () => {
       try {
-        await cortexAPI.performPreTraining('hrm-base-v1', undefined);
+        await cortexAPI.performPreTraining('head-base-v1', undefined);
         expect(true).toBe(false); // Should not reach here
       } catch (error) {
         expect(error).toBeInstanceOf(Error);

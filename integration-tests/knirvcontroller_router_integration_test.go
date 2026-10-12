@@ -105,7 +105,7 @@ func testLoRAAdapterRegistration(t *testing.T) {
 	request := LoRAAdapterRequest{
 		AdapterName:            "test-lora-adapter",
 		Description:            "Test LoRA adapter for integration testing",
-		BaseModelCompatibility: "hrm-v1",
+		BaseModelCompatibility: "head-v1",
 		Version:                1,
 		Rank:                   16,
 		Alpha:                  0.5,
@@ -209,7 +209,7 @@ func testErrorContextGeneration(t *testing.T) {
 
 	errorContext := ErrorContext{
 		AgentID:      "test-agent-001",
-		BaseModelID:  "hrm-cognitive-v1",
+		BaseModelID:  "head-cognitive-v1",
 		OS:           "linux",
 		Architecture: "x86_64",
 		Timestamp:    time.Now().Format(time.RFC3339),

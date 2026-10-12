@@ -301,7 +301,7 @@ func generateHTMLReport(report *IntegrationTestReport) string {
     <h2>Testing Infrastructure</h2>
     <ul>
         <li><strong>Agentify Package:</strong> Plugin system and WASM components testing</li>
-        <li><strong>Desktop Package:</strong> Desktop host and HRM engine testing</li>
+        <li><strong>Desktop Package:</strong> Desktop host and HEAD engine testing</li>
         <li><strong>Services Package:</strong> Service layer components testing</li>
         <li><strong>Frontend Testing:</strong> React/TypeScript component tests expansion</li>
     </ul>

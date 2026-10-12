@@ -924,9 +924,9 @@ func (lt *LoRATrainer) distributedTraining(
 ### 5.5 Skill Discovery Engine
 
 ```go
-// SkillDiscoveryEngine uses HRM WASM model to mint skills
+// SkillDiscoveryEngine uses HEAD WASM model to mint skills
 type SkillDiscoveryEngine struct {
-    hrmModel        *WASMInferenceModel  // Core skill naming model
+    headModel        *WASMInferenceModel  // Core skill naming model
     skillRegistry   *SkillRegistry
     knirvchain      *KNIRVCHAINClient
     knirvOracle     *KNIRVORACLEClient
@@ -943,8 +943,8 @@ func (sde *SkillDiscoveryEngine) DiscoverSkill(
     cluster *ErrorCluster,
     loraAdapter []byte,
 ) (*SkillNode, error) {
-    // Train HRM model with new LoRA
-    sde.hrmModel.ApplyLoRA(loraAdapter)
+    // Train HEAD model with new LoRA
+    sde.headModel.ApplyLoRA(loraAdapter)
     
     // Generate skill description
     skillDesc := sde.generateSkillDescription(cluster, loraAdapter)
@@ -981,9 +981,9 @@ func (sde *SkillDiscoveryEngine) DiscoverSkill(
         return nil, err
     }
     
-    // Update HRM with successful skill
-    sde.hrmModel.currentLoRAs = append(
-        sde.hrmModel.currentLoRAs,
+    // Update HEAD with successful skill
+    sde.headModel.currentLoRAs = append(
+        sde.headModel.currentLoRAs,
         loraAdapter,
     )
     
@@ -1355,7 +1355,7 @@ func (smp *SkillMintingProtocol) MintSkillFromCluster(
         return nil, err
     }
     
-    // 2. Discover skill via HRM WASM model
+    // 2. Discover skill via HEAD WASM model
     skillNode, err := smp.skillDiscovery.DiscoverSkill(cluster, loraAdapter)
     if err != nil {
         return nil, err
@@ -2253,7 +2253,7 @@ func (mc *MetricsCollector) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 **LoRA (Low-Rank Adaptation)**: Parameter-efficient fine-tuning method that trains low-rank weight updates to base model.
 
-**HRM (Hyperparameter Relationship Model)**: WASM-based inference model used for skill discovery and naming.
+**HEAD (Hyperparameter Relationship Model)**: WASM-based inference model used for skill discovery and naming.
 
 **NRN (Network Resolution Notice)**: Native token of KNIRV-ORACLE blockchain, used for staking, fees, and rewards.
 

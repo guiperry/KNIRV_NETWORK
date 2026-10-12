@@ -6,7 +6,7 @@ export interface FabricConfig {
   memoryDepth: number;
   attentionHeads: number;
   learningRate: number;
-  hrmIntegration?: boolean;
+  headIntegration?: boolean;
 }
 
 export interface FabricContext {
@@ -67,7 +67,7 @@ export class FabricAlgorithm extends EventEmitter {
   };
   private isRunning: boolean = false;
   private processingQueue: unknown[] = [];
-  private hrmBridge: unknown = null; // Will be injected from CognitiveEngine
+  private headBridge: unknown = null; // Will be injected from CognitiveEngine
 
   constructor(config: FabricConfig) {
     super();
@@ -124,9 +124,9 @@ export class FabricAlgorithm extends EventEmitter {
     const startTime = Date.now();
 
     try {
-      // Use HRM-enhanced processing if available
-      if (this.config.hrmIntegration && this.hrmBridge && (this.hrmBridge as { isReady?: () => boolean }).isReady?.()) {
-        return await this.hrmEnhancedProcess(input, options);
+      // Use HEAD-enhanced processing if available
+      if (this.config.headIntegration && this.headBridge && (this.headBridge as { isReady?: () => boolean }).isReady?.()) {
+        return await this.headEnhancedProcess(input, options);
       }
 
       // Fallback to traditional processing
@@ -145,12 +145,12 @@ export class FabricAlgorithm extends EventEmitter {
     }
   }
 
-  private async hrmEnhancedProcess(input: unknown, options: unknown): Promise<unknown> {
-    console.log('Processing with HRM-enhanced Fabric Algorithm...');
+  private async headEnhancedProcess(input: unknown, options: unknown): Promise<unknown> {
+    console.log('Processing with HEAD-enhanced Fabric Algorithm...');
 
     try {
-      // Prepare input for HRM cognitive processing
-      const hrmInput = {
+      // Prepare input for HEAD cognitive processing
+      const headInput = {
         sensory_data: this.convertToSensoryData(input),
         context: JSON.stringify({
           fabricContext: this.context,
@@ -160,64 +160,64 @@ export class FabricAlgorithm extends EventEmitter {
         task_type: this.determineTaskType(input, options),
       };
 
-      // Get HRM cognitive analysis
-      const hrmOutput = await (this.hrmBridge as { processCognitiveInput?: (input: unknown) => Promise<unknown> }).processCognitiveInput?.(hrmInput);
+      // Get HEAD cognitive analysis
+      const headOutput = await (this.headBridge as { processCognitiveInput?: (input: unknown) => Promise<unknown> }).processCognitiveInput?.(headInput);
 
-      // Use HRM insights to enhance traditional Fabric processing
+      // Use HEAD insights to enhance traditional Fabric processing
       const enhancedOptions = {
         ...(typeof options === 'object' && options !== null ? options as Record<string, unknown> : {}),
-        hrmGuidance: {
-          reasoning: (hrmOutput as { reasoning_result?: unknown }).reasoning_result,
-          confidence: (hrmOutput as { confidence?: unknown }).confidence,
-          l_activations: (hrmOutput as { l_module_activations?: unknown }).l_module_activations,
-          h_activations: (hrmOutput as { h_module_activations?: unknown }).h_module_activations,
+        headGuidance: {
+          reasoning: (headOutput as { reasoning_result?: unknown }).reasoning_result,
+          confidence: (headOutput as { confidence?: unknown }).confidence,
+          l_activations: (headOutput as { l_module_activations?: unknown }).l_module_activations,
+          h_activations: (headOutput as { h_module_activations?: unknown }).h_module_activations,
         },
       };
 
-      // Determine processing strategy based on HRM analysis
-      const processingStrategy = this.selectStrategyWithHRM(input, hrmOutput);
+      // Determine processing strategy based on HEAD analysis
+      const processingStrategy = this.selectStrategyWithHEAD(input, headOutput);
 
-      // Apply HRM-guided attention mechanism
-      const attentionResult = await this.applyHRMGuidedAttention(input, (options as { context?: unknown }).context, hrmOutput);
+      // Apply HEAD-guided attention mechanism
+      const attentionResult = await this.applyHEADGuidedAttention(input, (options as { context?: unknown }).context, headOutput);
 
       // Execute enhanced processing
-      const result = await this.executeHRMEnhancedStrategy(
+      const result = await this.executeHEADEnhancedStrategy(
         processingStrategy,
         attentionResult,
         enhancedOptions
       );
 
-      // Generate NRV (Neural Reasoning Vector) with HRM insights
-      const nrv = this.generateNRVWithHRM(result, hrmOutput);
+      // Generate NRV (Neural Reasoning Vector) with HEAD insights
+      const nrv = this.generateNRVWithHEAD(result, headOutput);
 
-      // Update context with HRM insights
-      this.updateContextWithHRM(input, result, enhancedOptions, hrmOutput);
+      // Update context with HEAD insights
+      this.updateContextWithHEAD(input, result, enhancedOptions, headOutput);
 
-      interface HRMOutput {
+      interface HEADOutput {
         confidence?: number;
         reasoning_result?: unknown;
       }
 
-      const hrmTyped = hrmOutput as HRMOutput;
+      const headTyped = headOutput as HEADOutput;
 
       return {
         ...(result as Record<string, unknown>),
         nrv: nrv,
-        hrmEnhanced: true,
-        hrmConfidence: hrmTyped.confidence,
-        hrmReasoning: hrmTyped.reasoning_result,
+        headEnhanced: true,
+        headConfidence: headTyped.confidence,
+        headReasoning: headTyped.reasoning_result,
         processingStrategy: processingStrategy,
       };
 
     } catch (error) {
-      console.error('Error in HRM-enhanced processing:', error);
+      console.error('Error in HEAD-enhanced processing:', error);
       // Fallback to adaptive processing
       return this.adaptiveProcess(input, options);
     }
   }
 
   private convertToSensoryData(input: unknown): number[] {
-    // Convert input to numerical representation for HRM processing
+    // Convert input to numerical representation for HEAD processing
     if (typeof input === 'string') {
       const encoder = new TextEncoder();
       const bytes = encoder.encode(input);
@@ -251,68 +251,68 @@ export class FabricAlgorithm extends EventEmitter {
     return 'fabric_general';
   }
 
-  private selectStrategyWithHRM(input: unknown, hrmOutput: unknown): string {
-    // Use HRM confidence and activations to select processing strategy
-    const hrmAny = hrmOutput as { confidence?: number; h_module_activations?: number[] };
-    const confidence = hrmAny.confidence || 0;
-    const hActivations = hrmAny.h_module_activations || [];
+  private selectStrategyWithHEAD(input: unknown, headOutput: unknown): string {
+    // Use HEAD confidence and activations to select processing strategy
+    const headAny = headOutput as { confidence?: number; h_module_activations?: number[] };
+    const confidence = headAny.confidence || 0;
+    const hActivations = headAny.h_module_activations || [];
     const avgHActivation = hActivations.length > 0 ? hActivations.reduce((a: number, b: number) => a + b, 0) / hActivations.length : 0;
 
     if (confidence > 0.8 && avgHActivation > 0.7) {
-      return 'hrm_deep_analysis';
+      return 'head_deep_analysis';
     } else if (confidence > 0.6 && avgHActivation > 0.5) {
-      return 'hrm_standard_processing';
+      return 'head_standard_processing';
     } else {
-      return 'hrm_fast_processing';
+      return 'head_fast_processing';
     }
   }
 
-  private async applyHRMGuidedAttention(input: unknown, context: unknown, hrmOutput: unknown): Promise<unknown> {
+  private async applyHEADGuidedAttention(input: unknown, context: unknown, headOutput: unknown): Promise<unknown> {
     // Traditional attention mechanism
     const traditionalAttention = await this.applyAttention(input, context);
 
-    // Enhance with HRM module activations
-    const hrmGuidedWeights = new Map();
+    // Enhance with HEAD module activations
+    const headGuidedWeights = new Map();
 
     // Use L-module activations to guide sensory attention
-    const hrmAny = hrmOutput as { l_module_activations?: number[]; h_module_activations?: number[]; confidence?: number };
-    if (hrmAny.l_module_activations) {
-      hrmAny.l_module_activations.forEach((activation: number, index: number) => {
-        hrmGuidedWeights.set(`l_module_${index}`, activation);
+    const headAny = headOutput as { l_module_activations?: number[]; h_module_activations?: number[]; confidence?: number };
+    if (headAny.l_module_activations) {
+      headAny.l_module_activations.forEach((activation: number, index: number) => {
+        headGuidedWeights.set(`l_module_${index}`, activation);
       });
     }
 
     // Use H-module activations to guide planning attention
-    if (hrmAny.h_module_activations) {
-      hrmAny.h_module_activations.forEach((activation: number, index: number) => {
-        hrmGuidedWeights.set(`h_module_${index}`, activation);
+    if (headAny.h_module_activations) {
+      headAny.h_module_activations.forEach((activation: number, index: number) => {
+        headGuidedWeights.set(`h_module_${index}`, activation);
       });
     }
 
     return {
       ...traditionalAttention,
-      hrmGuidedWeights: hrmGuidedWeights,
-      hrmConfidence: hrmAny.confidence,
+      headGuidedWeights: headGuidedWeights,
+      headConfidence: headAny.confidence,
       combinedFocusAreas: [
         ...traditionalAttention.focusAreas,
-        ...Array.from(hrmGuidedWeights.keys()).filter(key => hrmGuidedWeights.get(key) > 0.7),
+        ...Array.from(headGuidedWeights.keys()).filter(key => headGuidedWeights.get(key) > 0.7),
       ],
     };
   }
 
-  private generateNRVWithHRM(result: unknown, hrmOutput: unknown): unknown {
-    // Generate Neural Reasoning Vector combining Fabric and HRM insights
+  private generateNRVWithHEAD(result: unknown, headOutput: unknown): unknown {
+    // Generate Neural Reasoning Vector combining Fabric and HEAD insights
     return {
       fabricVector: this.generateTraditionalNRV(result),
-      hrmVector: {
-        l_activations: (hrmOutput as { l_module_activations?: unknown }).l_module_activations,
-        h_activations: (hrmOutput as { h_module_activations?: unknown }).h_module_activations,
-        reasoning_confidence: (hrmOutput as { confidence?: number }).confidence,
-        processing_time: (hrmOutput as { processing_time?: number }).processing_time,
+      headVector: {
+        l_activations: (headOutput as { l_module_activations?: unknown }).l_module_activations,
+        h_activations: (headOutput as { h_module_activations?: unknown }).h_module_activations,
+        reasoning_confidence: (headOutput as { confidence?: number }).confidence,
+        processing_time: (headOutput as { processing_time?: number }).processing_time,
       },
-      combinedConfidence: (((result as { confidence?: number }).confidence || 0) + ((hrmOutput as { confidence?: number }).confidence || 0)) / 2,
+      combinedConfidence: (((result as { confidence?: number }).confidence || 0) + ((headOutput as { confidence?: number }).confidence || 0)) / 2,
       timestamp: new Date().toISOString(),
-      version: '1.0.0-hrm',
+      version: '1.0.0-head',
     };
   }
 
@@ -326,90 +326,90 @@ export class FabricAlgorithm extends EventEmitter {
     };
   }
 
-  private updateContextWithHRM(input: unknown, result: unknown, options: unknown, hrmOutput: unknown): void {
+  private updateContextWithHEAD(input: unknown, result: unknown, options: unknown, headOutput: unknown): void {
     // Traditional context update
     this.updateContext(input, result, options);
 
-    // Add HRM-specific context
-    const contextAny = this.context as { memoryState?: { hrmHistory?: unknown[] } };
+    // Add HEAD-specific context
+    const contextAny = this.context as { memoryState?: { headHistory?: unknown[] } };
     if (!contextAny.memoryState) contextAny.memoryState = {};
-    contextAny.memoryState.hrmHistory = contextAny.memoryState.hrmHistory || [];
-    contextAny.memoryState.hrmHistory.push({
+    contextAny.memoryState.headHistory = contextAny.memoryState.headHistory || [];
+    contextAny.memoryState.headHistory.push({
       timestamp: new Date(),
       input: input,
-      hrmOutput: hrmOutput,
-      confidence: (hrmOutput as { confidence?: number }).confidence,
+      headOutput: headOutput,
+      confidence: (headOutput as { confidence?: number }).confidence,
     });
 
-    // Keep only recent HRM history
-    if (contextAny.memoryState.hrmHistory.length > 10) {
-      contextAny.memoryState.hrmHistory = contextAny.memoryState.hrmHistory.slice(-10);
+    // Keep only recent HEAD history
+    if (contextAny.memoryState.headHistory.length > 10) {
+      contextAny.memoryState.headHistory = contextAny.memoryState.headHistory.slice(-10);
     }
   }
 
-  private async executeHRMEnhancedStrategy(
+  private async executeHEADEnhancedStrategy(
     strategy: string,
     attentionResult: unknown,
     options: unknown
   ): Promise<unknown> {
-    console.log(`Executing HRM-enhanced strategy: ${strategy}`);
+    console.log(`Executing HEAD-enhanced strategy: ${strategy}`);
 
-    const hrmGuidance = (options as { hrmGuidance?: unknown }).hrmGuidance;
+    const headGuidance = (options as { headGuidance?: unknown }).headGuidance;
 
     switch (strategy) {
-      case 'hrm_deep_analysis':
-        return await this.hrmDeepAnalysisProcessing(attentionResult, options, hrmGuidance);
+      case 'head_deep_analysis':
+        return await this.headDeepAnalysisProcessing(attentionResult, options, headGuidance);
 
-      case 'hrm_standard_processing':
-        return await this.hrmStandardProcessing(attentionResult, options, hrmGuidance);
+      case 'head_standard_processing':
+        return await this.headStandardProcessing(attentionResult, options, headGuidance);
 
-      case 'hrm_fast_processing':
-        return await this.hrmFastProcessing(attentionResult, options, hrmGuidance);
+      case 'head_fast_processing':
+        return await this.headFastProcessing(attentionResult, options, headGuidance);
 
       default:
         return await this.standardProcessing(attentionResult, options);
     }
   }
 
-  private async hrmDeepAnalysisProcessing(attentionResult: unknown, options: unknown, hrmGuidance: unknown): Promise<unknown> {
-    // Deep analysis with HRM cognitive insights
+  private async headDeepAnalysisProcessing(attentionResult: unknown, options: unknown, headGuidance: unknown): Promise<unknown> {
+    // Deep analysis with HEAD cognitive insights
     const result = await this.deepAnalysisProcessing(attentionResult, options);
 
     return {
       ...(result as Record<string, unknown>),
-      hrmEnhanced: true,
-      hrmReasoning: (hrmGuidance as { reasoning?: unknown }).reasoning,
-      hrmConfidence: (hrmGuidance as { confidence?: unknown }).confidence,
-      analysisDepth: 'deep_with_hrm',
+      headEnhanced: true,
+      headReasoning: (headGuidance as { reasoning?: unknown }).reasoning,
+      headConfidence: (headGuidance as { confidence?: unknown }).confidence,
+      analysisDepth: 'deep_with_head',
       cognitiveInsights: {
-        l_module_patterns: (hrmGuidance as { l_activations?: unknown }).l_activations,
-        h_module_planning: (hrmGuidance as { h_activations?: unknown }).h_activations,
+        l_module_patterns: (headGuidance as { l_activations?: unknown }).l_activations,
+        h_module_planning: (headGuidance as { h_activations?: unknown }).h_activations,
       },
     };
   }
 
-  private async hrmStandardProcessing(attentionResult: unknown, options: unknown, hrmGuidance: unknown): Promise<unknown> {
-    // Standard processing with HRM guidance
+  private async headStandardProcessing(attentionResult: unknown, options: unknown, headGuidance: unknown): Promise<unknown> {
+    // Standard processing with HEAD guidance
     const result = await this.standardProcessing(attentionResult, options);
 
     return {
       ...(result as Record<string, unknown>),
-      hrmEnhanced: true,
-      hrmReasoning: (hrmGuidance as { reasoning?: unknown }).reasoning,
-      hrmConfidence: (hrmGuidance as { confidence?: unknown }).confidence,
-      analysisDepth: 'standard_with_hrm',
+      headEnhanced: true,
+      headReasoning: (headGuidance as { reasoning?: unknown }).reasoning,
+      headConfidence: (headGuidance as { confidence?: unknown }).confidence,
+      analysisDepth: 'standard_with_head',
     };
   }
 
-  private async hrmFastProcessing(attentionResult: unknown, options: unknown, hrmGuidance: unknown): Promise<unknown> {
-    // Fast processing with minimal HRM overhead
+  private async headFastProcessing(attentionResult: unknown, options: unknown, headGuidance: unknown): Promise<unknown> {
+    // Fast processing with minimal HEAD overhead
     const result = await this.fastProcessing(attentionResult, options);
 
     return {
       ...(result as Record<string, unknown>),
-      hrmEnhanced: true,
-      hrmConfidence: (hrmGuidance as { confidence?: unknown }).confidence,
-      analysisDepth: 'fast_with_hrm',
+      headEnhanced: true,
+      headConfidence: (headGuidance as { confidence?: unknown }).confidence,
+      analysisDepth: 'fast_with_head',
     };
   }
 
@@ -822,59 +822,59 @@ export class FabricAlgorithm extends EventEmitter {
     this.emit('memoryStateImported');
   }
 
-  // HRM Integration methods
-  public setHRMBridge(hrmBridge: unknown): void {
-    this.hrmBridge = hrmBridge;
-    console.log('HRM bridge injected into Fabric Algorithm');
+  // HEAD Integration methods
+  public setHEADBridge(headBridge: unknown): void {
+    this.headBridge = headBridge;
+    console.log('HEAD bridge injected into Fabric Algorithm');
   }
 
-  public enableHRMIntegration(): void {
-    this.config.hrmIntegration = true;
-    console.log('HRM integration enabled in Fabric Algorithm');
+  public enableHEADIntegration(): void {
+    this.config.headIntegration = true;
+    console.log('HEAD integration enabled in Fabric Algorithm');
   }
 
-  public disableHRMIntegration(): void {
-    this.config.hrmIntegration = false;
-    console.log('HRM integration disabled in Fabric Algorithm');
+  public disableHEADIntegration(): void {
+    this.config.headIntegration = false;
+    console.log('HEAD integration disabled in Fabric Algorithm');
   }
 
-  public isHRMIntegrationEnabled(): boolean {
-    return this.config.hrmIntegration === true;
+  public isHEADIntegrationEnabled(): boolean {
+    return this.config.headIntegration === true;
   }
 
-  public getHRMStatus(): unknown {
+  public getHEADStatus(): unknown {
     return {
-      enabled: this.config.hrmIntegration,
-      bridgeAvailable: this.hrmBridge !== null,
-      ready: this.hrmBridge ? (this.hrmBridge as { isReady?: () => boolean }).isReady?.() : false,
+      enabled: this.config.headIntegration,
+      bridgeAvailable: this.headBridge !== null,
+      ready: this.headBridge ? (this.headBridge as { isReady?: () => boolean }).isReady?.() : false,
     };
   }
 
-  public getHRMHistory(): unknown[] {
-    return (this.context as { memoryState?: { hrmHistory?: unknown[] } }).memoryState?.hrmHistory || [];
+  public getHEADHistory(): unknown[] {
+    return (this.context as { memoryState?: { headHistory?: unknown[] } }).memoryState?.headHistory || [];
   }
 
-  public clearHRMHistory(): void {
-    const contextAny = this.context as { memoryState?: { hrmHistory?: unknown[] } };
-    if (contextAny.memoryState?.hrmHistory) {
-      contextAny.memoryState.hrmHistory = [];
-      this.emit('hrmHistoryCleared');
+  public clearHEADHistory(): void {
+    const contextAny = this.context as { memoryState?: { headHistory?: unknown[] } };
+    if (contextAny.memoryState?.headHistory) {
+      contextAny.memoryState.headHistory = [];
+      this.emit('headHistoryCleared');
     }
   }
 
   public getEnhancedMetrics(): unknown {
     const baseMetrics = this.getMetrics();
-    const hrmHistory = this.getHRMHistory();
+    const headHistory = this.getHEADHistory();
 
     return {
       ...baseMetrics,
-      hrmIntegration: this.config.hrmIntegration,
-      hrmProcessedCount: hrmHistory.length,
-      averageHRMConfidence: hrmHistory.length > 0
-        ? (hrmHistory as { confidence?: number }[]).reduce((sum: number, item: { confidence?: number }) => sum + (item.confidence || 0), 0) / hrmHistory.length
+      headIntegration: this.config.headIntegration,
+      headProcessedCount: headHistory.length,
+      averageHEADConfidence: headHistory.length > 0
+        ? (headHistory as { confidence?: number }[]).reduce((sum: number, item: { confidence?: number }) => sum + (item.confidence || 0), 0) / headHistory.length
         : 0,
-      lastHRMProcessing: hrmHistory.length > 0
-        ? (hrmHistory[hrmHistory.length - 1] as { timestamp?: unknown }).timestamp
+      lastHEADProcessing: headHistory.length > 0
+        ? (headHistory[headHistory.length - 1] as { timestamp?: unknown }).timestamp
         : null,
     };
   }

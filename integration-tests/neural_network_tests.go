@@ -267,10 +267,10 @@ func (suite *NeuralNetworkTestSuite) testLoRAAdapter() error {
 	return nil
 }
 
-// Test Enhanced LoRA with HRM guidance
+// Test Enhanced LoRA with HEAD guidance
 func (suite *NeuralNetworkTestSuite) testEnhancedLoRA() error {
 	start := time.Now()
-	testName := "enhanced_lora_hrm_guidance"
+	testName := "enhanced_lora_head_guidance"
 
 	payload := NeuralNetworkTestInput{
 		Operation: "enhanced_lora_training",
@@ -281,8 +281,8 @@ func (suite *NeuralNetworkTestSuite) testEnhancedLoRA() error {
 			"learning_rate":        0.001,
 			"batch_size":           16,
 			"epochs":               5,
-			"hrm_guidance":         true,
-			"hrm_influence_weight": 0.3,
+			"head_guidance":         true,
+			"head_influence_weight": 0.3,
 			"adaptation_threshold": 0.6,
 		},
 		TestData:    suite.generateTrainingData(200, 512, 512),
@@ -313,7 +313,7 @@ func (suite *NeuralNetworkTestSuite) testEnhancedLoRA() error {
 		"model_size":          resp.ModelSize,
 		"accuracy":            resp.Accuracy,
 		"loss":                resp.Loss,
-		"hrm_guidance_active": true,
+		"head_guidance_active": true,
 	}
 
 	suite.addResult(testName, "PASSED", time.Since(start), nil, metrics)
@@ -331,7 +331,7 @@ func (suite *NeuralNetworkTestSuite) testAdaptiveLearningPipeline() error {
 				"max_patterns_stored":          100,
 				"learning_rate_decay":          0.95,
 				"feedback_weight":              0.7,
-				"hrm_influence_weight":         0.3,
+				"head_influence_weight":         0.3,
 				"real_time_adaptation":         true,
 			},
 		},
@@ -563,7 +563,7 @@ func TestNeuralNetworkOperations(t *testing.T) {
 		{"TensorFlow.js Initialization", suite.testTensorFlowInitialization},
 		{"Tensor Operations", suite.testTensorOperations},
 		{"LoRA Adapter", suite.testLoRAAdapter},
-		{"Enhanced LoRA with HRM", suite.testEnhancedLoRA},
+		{"Enhanced LoRA with HEAD", suite.testEnhancedLoRA},
 		{"Adaptive Learning Pipeline", suite.testAdaptiveLearningPipeline},
 		{"Memory Management", suite.testMemoryManagement},
 		{"Neural Network Performance", suite.testNeuralNetworkPerformance},

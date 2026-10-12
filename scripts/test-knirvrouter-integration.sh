@@ -278,7 +278,7 @@ test_lora_operations() {
     local lora_adapter='{
         "adapterName": "test-lora-adapter",
         "description": "Test LoRA adapter for integration testing",
-        "baseModelCompatibility": "hrm-v1",
+        "baseModelCompatibility": "head-v1",
         "version": 1,
         "rank": 16,
         "alpha": 0.5,

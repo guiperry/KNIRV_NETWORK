@@ -289,7 +289,7 @@ func (suite *EcosystemTestSuite) testVisualProcessingIntegration() error {
 				"scene_analysis":       true,
 				"gesture_recognition":  true,
 				"text_recognition":     true,
-				"enable_hrm_guidance":  true,
+				"enable_head_guidance":  true,
 				"confidence_threshold": 0.5,
 			},
 		},
@@ -473,7 +473,7 @@ func (suite *EcosystemTestSuite) testCrossComponentIntegration() error {
 			Component: "cross-component",
 			Operation: "visual_cognitive_processing",
 			Config: map[string]interface{}{
-				"enable_hrm_enhancement": true,
+				"enable_head_enhancement": true,
 				"image_size":             []int{224, 224},
 				"cognitive_analysis":     true,
 			},
@@ -485,7 +485,7 @@ func (suite *EcosystemTestSuite) testCrossComponentIntegration() error {
 			Config: map[string]interface{}{
 				"interaction_type": "multi_modal",
 				"feedback_score":   4.5,
-				"hrm_guidance":     true,
+				"head_guidance":     true,
 			},
 			TestData: map[string]interface{}{
 				"text_input":   "Test adaptive learning",

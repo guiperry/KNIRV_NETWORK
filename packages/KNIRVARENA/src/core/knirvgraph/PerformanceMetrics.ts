@@ -10,7 +10,7 @@ import { EventEmitter } from 'events';
 import { ErrorCluster } from './ErrorNodeClustering';
 import { CompetitiveSolution } from './AgentAssignmentSystem';
 import { LoRAAdapterSkill } from '../lora/LoRAAdapterEngine';
-import { SkillDiscoveryResult } from './HRMCoreModel';
+import { SkillDiscoveryResult } from './HEADCoreModel';
 
 const logger = pino({ name: 'performance-metrics' });
 

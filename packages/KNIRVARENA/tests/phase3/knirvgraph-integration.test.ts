@@ -417,7 +417,7 @@ class MockLoRAAdapterTrainingPipeline {
       skillId,
       skillName: `${dataset.errorNodes[0]?.tags[0] || 'General'} ${dataset.errorNodes[0]?.errorType || 'Error'} Resolver`,
       description: `LoRA adapter trained on ${dataset.trainingPairs.length} error-solution pairs from cluster ${dataset.clusterId}`,
-      baseModelCompatibility: 'hrm',
+      baseModelCompatibility: 'head',
       version: 1,
       rank: config.rank,
       alpha: config.alpha,

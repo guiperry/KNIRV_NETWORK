@@ -210,7 +210,7 @@ run_integration_tests() {
     # Run comprehensive integration test suite
     local test_files=(
         "knirvcortex_integration_test.go"
-        "hrm_cognitive_tests.go"
+        "head_cognitive_tests.go"
         "neural_network_tests.go"
         "ecosystem_integration_tests.go"
     )
@@ -358,7 +358,7 @@ generate_test_report() {
     <div class="section">
         <h2>Test Components</h2>
         <ul>
-            <li>HRM Cognitive Core</li>
+            <li>HEAD Cognitive Core</li>
             <li>Neural Network Operations (TensorFlow.js)</li>
             <li>Enhanced LoRA Adapters</li>
             <li>Adaptive Learning Pipeline</li>

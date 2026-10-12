@@ -10,6 +10,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"knirvmodels/internal/compat"
 	"net/http"
 	"os"
 	"os/exec"
@@ -44,6 +45,7 @@ var (
 )
 
 func main() {
+	compat.PromoteLegacyEnv()
 	defer func() {
 		if r := recover(); r != nil {
 			fmt.Fprintf(os.Stderr, "PANIC: %v\n", r)

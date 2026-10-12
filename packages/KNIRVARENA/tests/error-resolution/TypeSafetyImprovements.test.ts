@@ -180,7 +180,7 @@ describe('Type Safety Improvements', () => {
         visualEnabled: true,
         loraEnabled: true,
         enhancedLoraEnabled: true,
-        hrmEnabled: true,
+        headEnabled: true,
         adaptiveLearningEnabled: true
       };
 
@@ -189,7 +189,7 @@ describe('Type Safety Improvements', () => {
       expect(typeof config.visualEnabled).toBe('boolean');
       expect(typeof config.loraEnabled).toBe('boolean');
       expect(typeof config.enhancedLoraEnabled).toBe('boolean');
-      expect(typeof config.hrmEnabled).toBe('boolean');
+      expect(typeof config.headEnabled).toBe('boolean');
       expect(typeof config.adaptiveLearningEnabled).toBe('boolean');
 
       // Validate numeric properties

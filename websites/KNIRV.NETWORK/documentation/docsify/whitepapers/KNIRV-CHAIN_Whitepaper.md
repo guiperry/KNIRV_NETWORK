@@ -19,7 +19,7 @@ KNIRVCHAIN now operates as:
 *   **Autonomous Skill Execution**: A self-contained system that programmatically filters through LoRA adapter chains to invoke relevant neural network modifications, with each invocation applying weights and biases directly to the agent's inference process.
 *   **Embedded WASM Compilation**: Integration of a small WASM compiler toolchain within every agent-core, enabling dynamic compilation and execution of LoRA adapter WASM files.
 *   **Simultaneous Consensus**: Network-wide consensus mechanisms that ensure all agent-cores receive and validate new LoRA adapter skills simultaneously, maintaining consistency across the distributed intelligence network.
-*   **HRM Integration**: Deep integration with the HRM (Hierarchical Reasoning Model) WASM Implementation that serves as the skill discovery and naming engine within KNIRVGRAPH.
+*   **HEAD Integration**: Deep integration with the HEAD (Hierarchical Reasoning Model) WASM Implementation that serves as the skill discovery and naming engine within KNIRVGRAPH.
 
 This revolutionary architecture transforms KNIRVCHAIN from a passive ledger into an active intelligence component, enabling agents to continuously self-improve through skill-based LoRA adapters while maintaining decentralized consensus and validation.
 

@@ -255,8 +255,8 @@ const UnifiedInterface: React.FC<UnifiedInterfaceProps> = ({ bridge }) => {
             
             <div className="flex justify-between">
               <span>Cognitive:</span>
-              <span className={`${systemState.cognitive.hrmActive ? 'text-green-400' : 'text-yellow-400'}`}>
-                {systemState.cognitive.hrmActive ? 'active' : 'standby'}
+              <span className={`${systemState.cognitive.headActive ? 'text-green-400' : 'text-yellow-400'}`}>
+                {systemState.cognitive.headActive ? 'active' : 'standby'}
               </span>
             </div>
             

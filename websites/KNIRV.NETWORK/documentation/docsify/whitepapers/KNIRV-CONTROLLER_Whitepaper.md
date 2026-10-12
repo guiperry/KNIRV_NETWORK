@@ -145,32 +145,32 @@ The **KNIRV-WALLET** is equipped with a suite of features that enable powerful, 
 
 ### **4. Economic Model & Tokenomics**
 
-The **KNIRV-CONTROLLER** is the primary driver of economic activity for the user within the D-TEN, featuring intelligent resource optimization and adaptive spending strategies powered by HRM's reasoning capabilities.
+The **KNIRV-CONTROLLER** is the primary driver of economic activity for the user within the D-TEN, featuring intelligent resource optimization and adaptive spending strategies powered by HEAD's reasoning capabilities.
 
-*   **Intelligent NRN Token Optimization**: The Cortex leverages HRM's ACT mechanism to optimize NRN consumption dynamically. For simple tasks, it conserves tokens by using minimal reasoning cycles on-device. For complex scenarios requiring deep analysis, it strategically allocates additional NRNs for extended computation, ensuring cost-effective task execution.
+*   **Intelligent NRN Token Optimization**: The Cortex leverages HEAD's ACT mechanism to optimize NRN consumption dynamically. For simple tasks, it conserves tokens by using minimal reasoning cycles on-device. For complex scenarios requiring deep analysis, it strategically allocates additional NRNs for extended computation, ensuring cost-effective task execution.
 *   **Inference-Time Scaling Economics**: Users can adjust the reasoning depth (Mmax) through a slider in the wallet UI, paying extra NRNs for deeper reasoning when needed. This creates a flexible economic model where computational intensity directly correlates with token consumption, allowing users to balance cost and performance.
-*   **Gasless Transactions with Smart Resource Management**: The Cortex performs all transactions on behalf of the user in a gasless manner through XION Meta Accounts integration. The HRM core intelligently batches operations and optimizes transaction timing to minimize overall network costs while maintaining responsiveness.
-*   **Adaptive TEE Resource Allocation**: When tasks exceed mobile device capabilities, the Cortex's HRM core determines the optimal TEE allocation on **KNIRV-NEXUS**. The hierarchical reasoning enables precise estimation of computational requirements, ensuring efficient resource utilization and cost-effective verifiable compute provisioning.
+*   **Gasless Transactions with Smart Resource Management**: The Cortex performs all transactions on behalf of the user in a gasless manner through XION Meta Accounts integration. The HEAD core intelligently batches operations and optimizes transaction timing to minimize overall network costs while maintaining responsiveness.
+*   **Adaptive TEE Resource Allocation**: When tasks exceed mobile device capabilities, the Cortex's HEAD core determines the optimal TEE allocation on **KNIRV-NEXUS**. The hierarchical reasoning enables precise estimation of computational requirements, ensuring efficient resource utilization and cost-effective verifiable compute provisioning.
 *   **Personalized Economic Learning**: The LoRA adapters learn user spending patterns and preferences, enabling the Cortex to make increasingly intelligent economic decisions over time, such as predicting when to pre-allocate resources or when to optimize for speed versus cost.
 
 ### **5. Security and Governance**
 
 Security and user trust are paramount. The **KNIRV-CONTROLLER**'s design prioritizes a secure and transparent model of autonomous governance with enhanced resource controls and privacy protection.
 
-*   **Enhanced UDC Resource Governance**: The UDC system now encodes precise resource limits including maximum N (reasoning steps), maximum T (time horizon), and maximum NRNs per task, all enforced by HRM's ACT Q-head. This provides granular control over computational resources and economic spending while maintaining cryptographically secure audit trails for all agentic behavior.
-*   **Multi-Layer WASM + TEE Security**: The Rust WASM sandbox isolates the HRM core from the host device, while the TEE architecture ensures that HRM weights and LoRA deltas remain private even if the device is compromised. This dual-layer security model protects both the reasoning process and the learned personalization data.
-*   **Memory-Efficient Privacy Protection**: HRM's O(1) memory footprint thanks to one-step gradients ensures that sensitive reasoning traces don't accumulate in device memory. The hierarchical structure naturally compartmentalizes different types of information, enhancing privacy through architectural design.
-*   **Verifiable Off-Device Computation**: For tasks requiring additional computational resources, the Cortex seamlessly delegates to **KNIRV-NEXUS** TEEs while maintaining end-to-end verifiability. The HRM core determines when off-device computation is necessary and ensures cryptographic proof of execution integrity.
+*   **Enhanced UDC Resource Governance**: The UDC system now encodes precise resource limits including maximum N (reasoning steps), maximum T (time horizon), and maximum NRNs per task, all enforced by HEAD's ACT Q-head. This provides granular control over computational resources and economic spending while maintaining cryptographically secure audit trails for all agentic behavior.
+*   **Multi-Layer WASM + TEE Security**: The Rust WASM sandbox isolates the HEAD core from the host device, while the TEE architecture ensures that HEAD weights and LoRA deltas remain private even if the device is compromised. This dual-layer security model protects both the reasoning process and the learned personalization data.
+*   **Memory-Efficient Privacy Protection**: HEAD's O(1) memory footprint thanks to one-step gradients ensures that sensitive reasoning traces don't accumulate in device memory. The hierarchical structure naturally compartmentalizes different types of information, enhancing privacy through architectural design.
+*   **Verifiable Off-Device Computation**: For tasks requiring additional computational resources, the Cortex seamlessly delegates to **KNIRV-NEXUS** TEEs while maintaining end-to-end verifiability. The HEAD core determines when off-device computation is necessary and ensures cryptographic proof of execution integrity.
 
 ### **6. Real-World Use Case: Complex Multi-Modal Task Execution**
 
-The HRM-powered **KNIRV-CONTROLLER** excels at handling sophisticated, multi-step user requests that require deep reasoning and coordination across multiple services.
+The HEAD-powered **KNIRV-CONTROLLER** excels at handling sophisticated, multi-step user requests that require deep reasoning and coordination across multiple services.
 
 **Example Scenario:**
 A user requests: *"Find me a last-minute eco-hotel in Lisbon under 150 €, offset my flight carbon, and stream the Champions League final to my AR glasses."*
 
-**HRM-Powered Execution Flow:**
-1. **Initial Decomposition (N=4, T=16 cycles on-device)**: The HRM core analyzes the complex request and decomposes it into three distinct sub-tasks: hotel booking, carbon offset calculation, and media streaming setup.
+**HEAD-Powered Execution Flow:**
+1. **Initial Decomposition (N=4, T=16 cycles on-device)**: The HEAD core analyzes the complex request and decomposes it into three distinct sub-tasks: hotel booking, carbon offset calculation, and media streaming setup.
 
 2. **Adaptive Reasoning Depth**: The ACT Q-head determines that carbon offset calculations require additional complexity analysis and allocates 2 extra reasoning cycles, triggering TEE computation on **KNIRV-NEXUS** for verifiable environmental impact calculations.
 
@@ -187,7 +187,7 @@ This demonstrates the Cortex's ability to handle complex, real-world scenarios w
 
 ### **7. Technical Specifications & Performance Metrics**
 
-**HRM Core Specifications:**
+**HEAD Core Specifications:**
 - **Model Size**: 27 million parameters in WASM format
 - **Memory Footprint**: O(1) thanks to one-step gradient computation
 - **Reasoning Architecture**: Hierarchical L-modules (sensory-motor) + H-modules (long-horizon planning)
@@ -202,14 +202,14 @@ This demonstrates the Cortex's ability to handle complex, real-world scenarios w
 - **Scalability**: Seamless TEE off-loading for computationally intensive tasks
 
 **Integration Details:**
-- **Repository**: [HRM Open Source](https://github.com/sapientinc/HRM) (Released July 21, 2025 by Sapient Intelligence)
+- **Repository**: [Hierarchical Reasoning Model, upstream research (sapientinc/HRM)](https://github.com/sapientinc/HRM) (Released July 21, 2025 by Sapient Intelligence)
 - **Runtime**: Rust + wasmtime for cross-platform compatibility
 - **Security**: Multi-layer WASM + TEE architecture with UDC resource governance
 - **Personalization**: Hierarchical LoRA structure separating user patterns from goal priors
 
 ### **8. Conclusion**
 
-The **KNIRV-CONTROLLER** represents a breakthrough in mobile-native AI agent architecture, combining the power of hierarchical reasoning with the efficiency of on-device computation. By integrating the HRM cognitive core, it transforms everyday AI assistants into sophisticated autonomous agents capable of complex multi-step reasoning, adaptive resource management, and continuous personalization learning. The Cortex serves as the crucial bridge between user intent and the decentralized power of the KNIRV D-TEN, driving economic activity through intelligent NRN optimization while ensuring robust security through its enhanced UDC governance model. This represents our commitment to making decentralized AI technology both accessible and genuinely intelligent, creating a true extension of the user's cognitive capabilities.
+The **KNIRV-CONTROLLER** represents a breakthrough in mobile-native AI agent architecture, combining the power of hierarchical reasoning with the efficiency of on-device computation. By integrating the HEAD cognitive core, it transforms everyday AI assistants into sophisticated autonomous agents capable of complex multi-step reasoning, adaptive resource management, and continuous personalization learning. The Cortex serves as the crucial bridge between user intent and the decentralized power of the KNIRV D-TEN, driving economic activity through intelligent NRN optimization while ensuring robust security through its enhanced UDC governance model. This represents our commitment to making decentralized AI technology both accessible and genuinely intelligent, creating a true extension of the user's cognitive capabilities.
 
 
 

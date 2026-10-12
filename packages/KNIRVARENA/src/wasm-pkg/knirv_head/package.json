@@ -1,0 +1,21 @@
+{
+  "name": "knirv-head",
+  "type": "module",
+  "description": "knirv-head: Hierarchical Reasoning Model (H/L recurrent, ACT halting, decision heads). Native trainer, browser WASM and WASI builds share this source.",
+  "version": "0.2.0",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/guiperry/KNIRV_NETWORK"
+  },
+  "files": [
+    "knirv_head_bg.wasm",
+    "knirv_head.js",
+    "knirv_head.d.ts"
+  ],
+  "main": "knirv_head.js",
+  "types": "knirv_head.d.ts",
+  "sideEffects": [
+    "./snippets/*"
+  ]
+}

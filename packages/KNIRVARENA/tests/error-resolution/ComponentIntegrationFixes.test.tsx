@@ -22,7 +22,7 @@ jest.mock('../../src/services/CognitiveEngineService');
 jest.mock('../../src/services/WalletIntegrationService');
 jest.mock('../../src/shared/ComponentBridge');
 jest.mock('../../src/sensory-shell/CognitiveEngine');
-jest.mock('../../src/sensory-shell/HRMBridge');
+jest.mock('../../src/sensory-shell/HEADBridge');
 
 // Mock lucide-react icons
 jest.mock('lucide-react', () => ({
@@ -55,7 +55,7 @@ class MockComponentBridge extends ComponentBridge {
   // undefined; UnifiedInterface renders from a real state shape.
   public getState = jest.fn(() => ({
     components: { receiver: 'running' as const, cli: 'stopped' as const },
-    cognitive: { hrmActive: false, loraAdapters: [], learningMode: false, confidence: 0 },
+    cognitive: { headActive: false, loraAdapters: [], learningMode: false, confidence: 0 },
     wallet: { connected: false, balance: 0, transactions: [] },
     network: { connected: true, peers: 0, blockHeight: 0 },
   }));
@@ -196,7 +196,7 @@ describe('Component Integration Fixes', () => {
       updatedBridge.getState = jest.fn().mockReturnValue({
         components: { manager: 'stopped', receiver: 'error', cli: 'stopped' },
         cognitive: {
-          hrmActive: false,
+          headActive: false,
           loraAdapters: [],
           learningMode: false,
           confidence: 0
@@ -371,7 +371,7 @@ describe('Component Integration Fixes', () => {
           visualEnabled: true,
           loraEnabled: true,
           enhancedLoraEnabled: false,
-          hrmEnabled: true,
+          headEnabled: true,
           adaptiveLearningEnabled: true
         };
 

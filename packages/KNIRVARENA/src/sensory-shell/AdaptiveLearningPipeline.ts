@@ -7,7 +7,7 @@ export type ContextData = Record<string, unknown>;
 export type PatternData = Record<string, unknown> | number[];
 
 // Define interfaces for bridge components
-export interface HRMBridge {
+export interface HEADBridge {
   process: (data: unknown) => Promise<unknown>;
   isConnected: () => boolean;
   isReady: () => boolean;
@@ -20,7 +20,7 @@ export interface EnhancedLoraAdapter {
   trainOnBatch: (trainingData: Array<{ input: unknown; output: unknown; feedback: number }>) => Promise<void>;
 }
 
-export interface HRMLoRABridge {
+export interface HEADLoRABridge {
   processWithLoRA: (data: unknown, loraConfig: Record<string, unknown>) => Promise<unknown>;
   updateLoRAWeights: (weights: Record<string, unknown>) => void;
   getStatus: () => { isRunning: boolean; isConnected: boolean };
@@ -65,7 +65,7 @@ export interface LearningConfig {
   maxPatternsStored: number;
   learningRateDecay: number;
   feedbackWeight: number;
-  hrmInfluenceWeight: number;
+  headInfluenceWeight: number;
   realTimeAdaptation: boolean;
 }
 
@@ -75,9 +75,9 @@ export class AdaptiveLearningPipeline extends EventEmitter {
   private patterns: Map<string, LearningPattern> = new Map();
   private metrics: AdaptationMetrics;
   private isRunning: boolean = false;
-  private hrmBridge: HRMBridge | null = null;
+  private headBridge: HEADBridge | null = null;
   private enhancedLoraAdapter: EnhancedLoraAdapter | null = null;
-  private hrmLoraBridge: HRMLoRABridge | null = null;
+  private headLoraBridge: HEADLoRABridge | null = null;
   private currentSessionId: string = '';
 
   constructor(config?: Partial<LearningConfig>) {
@@ -100,7 +100,7 @@ export class AdaptiveLearningPipeline extends EventEmitter {
       maxPatternsStored: 1000,
       learningRateDecay: 0.95,
       feedbackWeight: 0.7,
-      hrmInfluenceWeight: 0.3,
+      headInfluenceWeight: 0.3,
       realTimeAdaptation: true,
       ...config,
     };
@@ -125,9 +125,9 @@ export class AdaptiveLearningPipeline extends EventEmitter {
     this.currentSessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   }
 
-  public setHRMBridge(hrmBridge: HRMBridge): void {
-    this.hrmBridge = hrmBridge;
-    console.log('HRM bridge connected to Adaptive Learning Pipeline');
+  public setHEADBridge(headBridge: HEADBridge): void {
+    this.headBridge = headBridge;
+    console.log('HEAD bridge connected to Adaptive Learning Pipeline');
   }
 
   public setEnhancedLoRAAdapter(enhancedLoraAdapter: EnhancedLoraAdapter): void {
@@ -135,9 +135,9 @@ export class AdaptiveLearningPipeline extends EventEmitter {
     console.log('Enhanced LoRA adapter connected to Adaptive Learning Pipeline');
   }
 
-  public setHRMLoRABridge(hrmLoraBridge: HRMLoRABridge): void {
-    this.hrmLoraBridge = hrmLoraBridge;
-    console.log('HRM-LoRA bridge connected to Adaptive Learning Pipeline');
+  public setHEADLoRABridge(headLoraBridge: HEADLoRABridge): void {
+    this.headLoraBridge = headLoraBridge;
+    console.log('HEAD-LoRA bridge connected to Adaptive Learning Pipeline');
   }
 
   public async start(): Promise<void> {
@@ -198,25 +198,25 @@ export class AdaptiveLearningPipeline extends EventEmitter {
     // Derive implicit feedback from various signals
     let implicitScore = 0;
 
-    // Use HRM confidence as a signal
-    if (this.hrmBridge && this.hrmBridge.isReady()) {
+    // Use HEAD confidence as a signal
+    if (this.headBridge && this.headBridge.isReady()) {
       try {
-        const hrmInput = {
+        const headInput = {
           sensory_data: this.convertToSensoryData(interaction.input),
           context: JSON.stringify(interaction.context),
           task_type: 'feedback_analysis',
         };
 
-        const hrmOutput = await this.hrmBridge.process(hrmInput);
-        if (typeof hrmOutput === 'object' && hrmOutput !== null && !Array.isArray(hrmOutput)) {
-          const outputObj = hrmOutput as Record<string, unknown>;
+        const headOutput = await this.headBridge.process(headInput);
+        if (typeof headOutput === 'object' && headOutput !== null && !Array.isArray(headOutput)) {
+          const outputObj = headOutput as Record<string, unknown>;
           if (typeof outputObj.confidence === 'number') {
             implicitScore += outputObj.confidence * 0.4;
           }
         }
 
       } catch (error) {
-        console.error('Error getting HRM feedback:', error);
+        console.error('Error getting HEAD feedback:', error);
       }
     }
 
@@ -269,8 +269,8 @@ export class AdaptiveLearningPipeline extends EventEmitter {
         quality += 0.2; // Bonus for substantial text
       }
 
-      if (outputObj.hrmEnhanced === true) {
-        quality += 0.1; // Bonus for HRM enhancement
+      if (outputObj.headEnhanced === true) {
+        quality += 0.1; // Bonus for HEAD enhancement
       }
     }
 
@@ -393,7 +393,7 @@ export class AdaptiveLearningPipeline extends EventEmitter {
         type: outputObj.type || 'unknown',
         confidence: typeof outputObj.confidence === 'number' ? outputObj.confidence : 0.5,
         text: typeof outputObj.text === 'string' ? outputObj.text : '',
-        hrmEnhanced: outputObj.hrmEnhanced === true,
+        headEnhanced: outputObj.headEnhanced === true,
       };
     }
 
@@ -444,9 +444,9 @@ export class AdaptiveLearningPipeline extends EventEmitter {
         strength += 0.2;
       }
 
-      // Factor in HRM confidence if available
-      if (typeof outputObj.hrmConfidence === 'number') {
-        strength += outputObj.hrmConfidence * this.config.hrmInfluenceWeight;
+      // Factor in HEAD confidence if available
+      if (typeof outputObj.headConfidence === 'number') {
+        strength += outputObj.headConfidence * this.config.headInfluenceWeight;
       }
     }
 
@@ -512,9 +512,9 @@ export class AdaptiveLearningPipeline extends EventEmitter {
         this.metrics.positiveAdaptations++;
       }
 
-      // Trigger HRM-LoRA synchronization
-      if (this.hrmLoraBridge && this.hrmLoraBridge.getStatus().isRunning) {
-        await this.hrmLoraBridge.forceSyncNow();
+      // Trigger HEAD-LoRA synchronization
+      if (this.headLoraBridge && this.headLoraBridge.getStatus().isRunning) {
+        await this.headLoraBridge.forceSyncNow();
       }
 
       this.metrics.lastAdaptation = new Date();

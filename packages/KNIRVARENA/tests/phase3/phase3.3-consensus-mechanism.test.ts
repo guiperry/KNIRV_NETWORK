@@ -38,7 +38,7 @@ describe('Phase 3.3 - Consensus Mechanism', () => {
       skillId: 'test_skill_001',
       skillName: 'Test Consensus Skill',
       description: 'A test skill for consensus testing',
-      baseModelCompatibility: 'hrm',
+      baseModelCompatibility: 'head',
       version: 1,
       rank: 8,
       alpha: 16.0,

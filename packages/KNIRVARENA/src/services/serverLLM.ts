@@ -30,8 +30,8 @@ export interface ServerLLMRequest {
   model?: string;
   messages: ServerLLMMessage[];
   maxTokens?: number;
-  /** The HRM's plan/decision (§2.6); the model verbalises it. */
-  hrmPlan?: Record<string, unknown>;
+  /** The HEAD's plan/decision (§2.6); the model verbalises it. */
+  headPlan?: Record<string, unknown>;
 }
 
 export class ServerLLMError extends Error {
@@ -65,7 +65,7 @@ export async function completeOnServer(request: ServerLLMRequest, fetchImpl: typ
       model,
       messages: request.messages,
       max_tokens: request.maxTokens,
-      hrm_plan: request.hrmPlan,
+      head_plan: request.headPlan,
     }),
   }, fetchImpl);
   let body: { success?: boolean; data?: { text?: string }; error?: string; code?: string } = {};

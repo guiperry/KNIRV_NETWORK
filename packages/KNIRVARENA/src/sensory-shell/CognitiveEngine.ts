@@ -4,8 +4,8 @@ import { FabricAlgorithm } from './FabricAlgorithm';
 import { VisualProcessor } from './VisualProcessor';
 import { LoRAAdapter } from './LoRAAdapter';
 import { EnhancedLoRAAdapter } from './EnhancedLoRAAdapter';
-import { HRMBridge, HRMConfig } from './HRMBridge';
-import { HRMLoRABridge } from './HRMLoRABridge';
+import { HEADBridge, HEADConfig } from './HEADBridge';
+import { HEADLoRABridge } from './HEADLoRABridge';
 import { AdaptiveLearningPipeline } from './AdaptiveLearningPipeline';
 import { KNIRVWalletIntegration } from './KNIRVWalletIntegration';
 import { KNIRVChainIntegration } from './KNIRVChainIntegration';
@@ -49,8 +49,8 @@ export interface CognitiveConfig {
   visualEnabled: boolean;
   loraEnabled: boolean;
   enhancedLoraEnabled: boolean;
-  hrmEnabled: boolean;
-  hrmConfig?: HRMConfig;
+  headEnabled: boolean;
+  headConfig?: HEADConfig;
   adaptiveLearningEnabled: boolean;
   walletIntegrationEnabled: boolean;
   chainIntegrationEnabled: boolean;
@@ -95,8 +95,8 @@ export class CognitiveEngine extends EventEmitter {
   private visualProcessor!: VisualProcessor;
   private loraAdapter!: LoRAAdapter;
   private enhancedLoRAAdapter!: EnhancedLoRAAdapter;
-  private hrmBridge!: HRMBridge;
-  private hrmLoraBridge!: HRMLoRABridge;
+  private headBridge!: HEADBridge;
+  private headLoraBridge!: HEADLoRABridge;
   private adaptiveLearningPipeline!: AdaptiveLearningPipeline;
   private walletIntegration!: KNIRVWalletIntegration;
   private chainIntegration!: KNIRVChainIntegration;
@@ -134,7 +134,7 @@ export class CognitiveEngine extends EventEmitter {
       learningRate: this._config.learningRate,
       adaptationThreshold: this._config.adaptationThreshold,
       skillTimeout: this._config.skillTimeout,
-      hrmIntegration: this._config.hrmEnabled,
+      headIntegration: this._config.headEnabled,
     });
 
     // Initialize Fabric Algorithm
@@ -144,7 +144,7 @@ export class CognitiveEngine extends EventEmitter {
       memoryDepth: 50,
       attentionHeads: 8,
       learningRate: this._config.learningRate,
-      hrmIntegration: this._config.hrmEnabled,
+      headIntegration: this._config.headEnabled,
     });
 
     // Skip hardware-dependent processors in test environment
@@ -158,7 +158,7 @@ export class CognitiveEngine extends EventEmitter {
         gestureRecognition: true,
         ocrEnabled: true,
         enableSceneAnalysis: true,
-        enableHRMGuidance: this._config.hrmEnabled,
+        enableHEADGuidance: this._config.headEnabled,
         maxImageSize: 1024,
         confidenceThreshold: 0.5,
         enableRealTimeProcessing: true,
@@ -198,28 +198,28 @@ export class CognitiveEngine extends EventEmitter {
           epochs: 5,
         },
         {
-          enableHRMGuidance: this._config.hrmEnabled,
-          hrmWeightInfluence: 0.3,
+          enableHEADGuidance: this._config.headEnabled,
+          headWeightInfluence: 0.3,
           adaptationThreshold: 0.7,
         }
       );
     }
 
-    // Initialize HRM Bridge
-    if (this._config.hrmEnabled) {
-      const hrmConfig: HRMConfig = this._config.hrmConfig || {
+    // Initialize HEAD Bridge
+    if (this._config.headEnabled) {
+      const headConfig: HEADConfig = this._config.headConfig || {
         l_module_count: 8,
         h_module_count: 4,
         enable_adaptation: true,
         processing_timeout: 5000,
       };
 
-      this.hrmBridge = new HRMBridge(hrmConfig);
+      this.headBridge = new HEADBridge(headConfig);
     }
 
-    // Initialize HRM-LoRA Bridge if both HRM and Enhanced LoRA are enabled
-    if (this._config.hrmEnabled && this._config.enhancedLoraEnabled) {
-      this.hrmLoraBridge = new HRMLoRABridge({
+    // Initialize HEAD-LoRA Bridge if both HEAD and Enhanced LoRA are enabled
+    if (this._config.headEnabled && this._config.enhancedLoraEnabled) {
+      this.headLoraBridge = new HEADLoRABridge({
         syncFrequency: 30_000, // re-check that the applied adapter matches the loaded model
       });
     }
@@ -232,7 +232,7 @@ export class CognitiveEngine extends EventEmitter {
         maxPatternsStored: 1000,
         learningRateDecay: 0.95,
         feedbackWeight: 0.7,
-        hrmInfluenceWeight: 0.3,
+        headInfluenceWeight: 0.3,
         realTimeAdaptation: true,
       });
     }
@@ -419,22 +419,22 @@ export class CognitiveEngine extends EventEmitter {
       });
     }
 
-    // HRM-LoRA Bridge events
-    if (this.hrmLoraBridge) {
-      this.hrmLoraBridge.on('bridgeStarted', () => {
-        this.emit('hrmLoraBridgeStarted');
+    // HEAD-LoRA Bridge events
+    if (this.headLoraBridge) {
+      this.headLoraBridge.on('bridgeStarted', () => {
+        this.emit('headLoraBridgeStarted');
       });
 
-      this.hrmLoraBridge.on('weightsSynced', (data) => {
-        this.emit('hrmLoraWeightsSynced', data);
+      this.headLoraBridge.on('weightsSynced', (data) => {
+        this.emit('headLoraWeightsSynced', data);
       });
 
-      this.hrmLoraBridge.on('mappingSynced', (data) => {
-        this.emit('hrmLoraMappingSynced', data);
+      this.headLoraBridge.on('mappingSynced', (data) => {
+        this.emit('headLoraMappingSynced', data);
       });
 
-      this.hrmLoraBridge.on('syncError', (error) => {
-        this.emit('hrmLoraSyncError', error);
+      this.headLoraBridge.on('syncError', (error) => {
+        this.emit('headLoraSyncError', error);
       });
     }
 
@@ -566,22 +566,22 @@ export class CognitiveEngine extends EventEmitter {
       });
     }
 
-    // HRM Bridge events
-    if (this.hrmBridge) {
-      this.hrmBridge.on('initialized', () => {
-        this.emit('hrmInitialized');
+    // HEAD Bridge events
+    if (this.headBridge) {
+      this.headBridge.on('initialized', () => {
+        this.emit('headInitialized');
       });
 
-      this.hrmBridge.on('inputProcessed', (data) => {
-        this.emit('hrmProcessed', data);
+      this.headBridge.on('inputProcessed', (data) => {
+        this.emit('headProcessed', data);
       });
 
-      this.hrmBridge.on('error', (error) => {
-        this.emit('hrmError', error);
+      this.headBridge.on('error', (error) => {
+        this.emit('headError', error);
       });
 
-      this.hrmBridge.on('weightsLoaded', () => {
-        this.emit('hrmWeightsLoaded');
+      this.headBridge.on('weightsLoaded', () => {
+        this.emit('headWeightsLoaded');
       });
     }
 
@@ -662,32 +662,32 @@ export class CognitiveEngine extends EventEmitter {
       await this.enhancedLoRAAdapter.start();
     }
 
-    if (this.hrmBridge) {
-      await this.hrmBridge.initialize();
-      // Inject HRM bridge into SEAL framework for enhanced reasoning
-      this.sealFramework.setHRMBridge(this.hrmBridge);
-      // Inject HRM bridge into Fabric Algorithm for enhanced NRV generation
-      this.fabricAlgorithm.setHRMBridge(this.hrmBridge);
-      // Inject HRM bridge into Enhanced LoRA adapter
+    if (this.headBridge) {
+      await this.headBridge.initialize();
+      // Inject HEAD bridge into SEAL framework for enhanced reasoning
+      this.sealFramework.setHEADBridge(this.headBridge);
+      // Inject HEAD bridge into Fabric Algorithm for enhanced NRV generation
+      this.fabricAlgorithm.setHEADBridge(this.headBridge);
+      // Inject HEAD bridge into Enhanced LoRA adapter
       if (this.enhancedLoRAAdapter) {
-        this.enhancedLoRAAdapter.setHRMBridge(this.hrmBridge);
+        this.enhancedLoRAAdapter.setHEADBridge(this.headBridge);
       }
 
-      // Set up HRM-LoRA Bridge connections
-      if (this.hrmLoraBridge) {
-        this.hrmLoraBridge.setHRMBridge(this.hrmBridge);
-        this.hrmLoraBridge.setEnhancedLoRAAdapter(this.enhancedLoRAAdapter);
-        await this.hrmLoraBridge.start();
+      // Set up HEAD-LoRA Bridge connections
+      if (this.headLoraBridge) {
+        this.headLoraBridge.setHEADBridge(this.headBridge);
+        this.headLoraBridge.setEnhancedLoRAAdapter(this.enhancedLoRAAdapter);
+        await this.headLoraBridge.start();
       }
 
       // Set up Adaptive Learning Pipeline connections
       if (this.adaptiveLearningPipeline) {
-        this.adaptiveLearningPipeline.setHRMBridge(this.hrmBridge);
+        this.adaptiveLearningPipeline.setHEADBridge(this.headBridge);
         if (this.enhancedLoRAAdapter) {
           this.adaptiveLearningPipeline.setEnhancedLoRAAdapter(this.enhancedLoRAAdapter as any);
         }
-        if (this.hrmLoraBridge) {
-          this.adaptiveLearningPipeline.setHRMLoRABridge(this.hrmLoraBridge as any);
+        if (this.headLoraBridge) {
+          this.adaptiveLearningPipeline.setHEADLoRABridge(this.headLoraBridge as any);
         }
         await this.adaptiveLearningPipeline.loadLearnedPatterns();
         await this.adaptiveLearningPipeline.start();
@@ -705,7 +705,7 @@ export class CognitiveEngine extends EventEmitter {
 
       // Initialize enhanced Visual Processor with AI capabilities
       if (this.visualProcessor) {
-        this.visualProcessor.setHRMBridge(this.hrmBridge);
+        this.visualProcessor.setHEADBridge(this.headBridge);
         await this.visualProcessor.initialize();
       }
 
@@ -743,8 +743,8 @@ export class CognitiveEngine extends EventEmitter {
       await this.enhancedLoRAAdapter.stop();
     }
 
-    if (this.hrmLoraBridge) {
-      await this.hrmLoraBridge.stop();
+    if (this.headLoraBridge) {
+      await this.headLoraBridge.stop();
     }
 
     if (this.adaptiveLearningPipeline) {
@@ -763,8 +763,8 @@ export class CognitiveEngine extends EventEmitter {
       await this.ecosystemCommunication.shutdown();
     }
 
-    if (this.hrmBridge) {
-      await this.hrmBridge.destroy();
+    if (this.headBridge) {
+      await this.headBridge.destroy();
     }
 
     this.isRunning = false;
@@ -781,9 +781,9 @@ export class CognitiveEngine extends EventEmitter {
 
       let response: unknown;
 
-      // Use HRM for cognitive processing if available
-      if (this.hrmBridge && this.hrmBridge.isReady()) {
-        response = await this.processWithHRM(input, inputType);
+      // Use HEAD for cognitive processing if available
+      if (this.headBridge && this.headBridge.isReady()) {
+        response = await this.processWithHEAD(input, inputType);
       } else {
         // Fallback to original processing pipeline
         // Process through Fabric Algorithm
@@ -859,27 +859,27 @@ export class CognitiveEngine extends EventEmitter {
     }
   }
 
-  private async processWithHRM(input: unknown, inputType: string): Promise<unknown> {
-    console.log('Processing with HRM:', inputType);
+  private async processWithHEAD(input: unknown, inputType: string): Promise<unknown> {
+    console.log('Processing with HEAD:', inputType);
 
     try {
-      let hrmOutput;
+      let headOutput;
 
-      // Route to appropriate HRM processing method based on input type
+      // Route to appropriate HEAD processing method based on input type
       switch (inputType) {
         case 'voice':
-          // Convert voice input to numerical data for HRM
+          // Convert voice input to numerical data for HEAD
           // TODO: Implement voice input conversion
-          hrmOutput = await this.hrmBridge.processVoiceInput(input as number[], {
+          headOutput = await this.headBridge.processVoiceInput(input as number[], {
             context: Object.fromEntries(this.state.currentContext),
             confidenceLevel: this.state.confidenceLevel,
           });
           break;
 
         case 'visual':
-          // Convert visual input to numerical data for HRM
+          // Convert visual input to numerical data for HEAD
           // TODO: Implement visual input conversion
-          hrmOutput = await this.hrmBridge.processVisualInput(input as number[], {
+          headOutput = await this.headBridge.processVisualInput(input as number[], {
             context: Object.fromEntries(this.state.currentContext),
             confidenceLevel: this.state.confidenceLevel,
           });
@@ -887,42 +887,42 @@ export class CognitiveEngine extends EventEmitter {
 
         case 'text':
         default:
-          // Process text input through HRM
+          // Process text input through HEAD
           // TODO: Implement text input processing
-          hrmOutput = await this.hrmBridge.processTextInput(input as string, {
+          headOutput = await this.headBridge.processTextInput(input as string, {
             context: Object.fromEntries(this.state.currentContext),
             confidenceLevel: this.state.confidenceLevel,
           });
           break;
       }
 
-      // Convert HRM output to standard response format
+      // Convert HEAD output to standard response format
       const response = {
-        text: hrmOutput.reasoning_result,
-        confidence: hrmOutput.confidence,
-        processingTime: hrmOutput.processing_time,
-        source: 'hrm',
+        text: headOutput.reasoning_result,
+        confidence: headOutput.confidence,
+        processingTime: headOutput.processing_time,
+        source: 'head',
         metadata: {
-          l_module_activations: hrmOutput.l_module_activations,
-          h_module_activations: hrmOutput.h_module_activations,
+          l_module_activations: headOutput.l_module_activations,
+          h_module_activations: headOutput.h_module_activations,
         },
-        shouldSpeak: inputType === 'voice' && hrmOutput.confidence > 0.7,
+        shouldSpeak: inputType === 'voice' && headOutput.confidence > 0.7,
       };
 
-      // Update confidence level based on HRM output
-      this.state.confidenceLevel = (this.state.confidenceLevel + hrmOutput.confidence) / 2;
+      // Update confidence level based on HEAD output
+      this.state.confidenceLevel = (this.state.confidenceLevel + headOutput.confidence) / 2;
 
       return response;
 
     } catch (error) {
-      console.error('Error processing with HRM:', error);
+      console.error('Error processing with HEAD:', error);
       // Fallback to original processing
       throw error;
     }
   }
 
   private convertVoiceToData(speech: unknown): number[] {
-    // Convert speech data to numerical array for HRM processing
+    // Convert speech data to numerical array for HEAD processing
     const speechObj = speech as { audioData?: number[]; text?: string };
     if (speechObj?.audioData && Array.isArray(speechObj.audioData)) {
       return speechObj.audioData;
@@ -937,7 +937,7 @@ export class CognitiveEngine extends EventEmitter {
   }
 
   private convertVisualToData(objects: unknown[]): number[] {
-    // Convert visual objects to numerical array for HRM processing
+    // Convert visual objects to numerical array for HEAD processing
     const features: number[] = [];
 
     objects.forEach(obj => {
@@ -1189,38 +1189,38 @@ export class CognitiveEngine extends EventEmitter {
     return this.fabricAlgorithm;
   }
 
-  public getHRMBridge(): unknown {
-    return this.hrmBridge;
+  public getHEADBridge(): unknown {
+    return this.headBridge;
   }
 
-  public async loadHRMWeights(weightsData: Uint8Array): Promise<boolean> {
-    if (!this.hrmBridge) {
-      console.warn('HRM bridge not initialized');
+  public async loadHEADWeights(weightsData: Uint8Array): Promise<boolean> {
+    if (!this.headBridge) {
+      console.warn('HEAD bridge not initialized');
       return false;
     }
 
     try {
-      const success = await this.hrmBridge.loadModelWeights(weightsData);
+      const success = await this.headBridge.loadModelWeights(weightsData);
       if (success) {
-        console.log('HRM model weights loaded successfully');
-        this.emit('hrmWeightsLoaded');
+        console.log('HEAD model weights loaded successfully');
+        this.emit('headWeightsLoaded');
       }
       return success;
     } catch (error) {
-      console.error('Failed to load HRM weights:', error);
+      console.error('Failed to load HEAD weights:', error);
       return false;
     }
   }
 
-  public getHRMModelInfo(): unknown {
-    if (!this.hrmBridge) {
+  public getHEADModelInfo(): unknown {
+    if (!this.headBridge) {
       return null;
     }
-    return this.hrmBridge.getModelInfo();
+    return this.headBridge.getModelInfo();
   }
 
-  public isHRMReady(): boolean {
-    return this.hrmBridge ? this.hrmBridge.isReady() : false;
+  public isHEADReady(): boolean {
+    return this.headBridge ? this.headBridge.isReady() : false;
   }
 
   public getEnhancedLoRAAdapter(): unknown {
@@ -1389,60 +1389,60 @@ export class CognitiveEngine extends EventEmitter {
     return this.enhancedLoRAAdapter.getTensorFlowInfo();
   }
 
-  public getHRMLoRABridge(): unknown {
-    return this.hrmLoraBridge;
+  public getHEADLoRABridge(): unknown {
+    return this.headLoraBridge;
   }
 
-  public isHRMLoRABridgeReady(): boolean {
-    return this.hrmLoraBridge ? (this.hrmLoraBridge.getStatus() as { isRunning?: boolean }).isRunning || false : false;
+  public isHEADLoRABridgeReady(): boolean {
+    return this.headLoraBridge ? (this.headLoraBridge.getStatus() as { isRunning?: boolean }).isRunning || false : false;
   }
 
-  public getHRMLoRAMappings(): unknown {
-    if (!this.hrmLoraBridge) {
+  public getHEADLoRAMappings(): unknown {
+    if (!this.headLoraBridge) {
       return null;
     }
-    return Object.fromEntries(this.hrmLoraBridge.getMappings());
+    return Object.fromEntries(this.headLoraBridge.getMappings());
   }
 
-  /** Chooses the KNIRVULORA bundle merged into the in-browser HRM (null removes it). */
-  public async setHRMLoRABundle(bundleId: string | null): Promise<void> {
-    if (!this.hrmLoraBridge) throw new Error('HRM-LoRA Bridge not initialized');
-    await this.hrmLoraBridge.setBundle(bundleId);
+  /** Chooses the KNIRVULORA bundle merged into the in-browser HEAD (null removes it). */
+  public async setHEADLoRABundle(bundleId: string | null): Promise<void> {
+    if (!this.headLoraBridge) throw new Error('HEAD-LoRA Bridge not initialized');
+    await this.headLoraBridge.setBundle(bundleId);
   }
 
-  public async forceHRMLoRASync(): Promise<void> {
-    if (!this.hrmLoraBridge) {
-      throw new Error('HRM-LoRA Bridge not initialized');
+  public async forceHEADLoRASync(): Promise<void> {
+    if (!this.headLoraBridge) {
+      throw new Error('HEAD-LoRA Bridge not initialized');
     }
 
     try {
-      await this.hrmLoraBridge.forceSyncNow();
-      console.log('HRM-LoRA synchronization forced successfully');
+      await this.headLoraBridge.forceSyncNow();
+      console.log('HEAD-LoRA synchronization forced successfully');
     } catch (error) {
-      console.error('Failed to force HRM-LoRA synchronization:', error);
+      console.error('Failed to force HEAD-LoRA synchronization:', error);
       throw error;
     }
   }
 
-  public updateHRMLoRASyncConfig(_config: unknown): void {
-    if (!this.hrmLoraBridge) {
-      console.warn('HRM-LoRA Bridge not initialized');
+  public updateHEADLoRASyncConfig(_config: unknown): void {
+    if (!this.headLoraBridge) {
+      console.warn('HEAD-LoRA Bridge not initialized');
       return;
     }
 
-    this.hrmLoraBridge.updateSyncConfig(_config as any);
-    console.log('HRM-LoRA sync configuration updated');
+    this.headLoraBridge.updateSyncConfig(_config as any);
+    console.log('HEAD-LoRA sync configuration updated');
   }
 
-  public getHRMLoRAStatus(): unknown {
-    if (!this.hrmLoraBridge) {
+  public getHEADLoRAStatus(): unknown {
+    if (!this.headLoraBridge) {
       return {
         available: false,
         reason: 'Bridge not initialized',
       };
     }
 
-    const status = this.hrmLoraBridge.getStatus();
+    const status = this.headLoraBridge.getStatus();
     return {
       available: true,
       ...(typeof status === 'object' && status !== null ? status as Record<string, unknown> : {}),
@@ -1456,10 +1456,10 @@ export class CognitiveEngine extends EventEmitter {
         confidenceLevel: this.state.confidenceLevel,
         activeSkills: this.state.activeSkills.length,
       },
-      hrm: {
-        enabled: this._config.hrmEnabled,
-        ready: this.isHRMReady(),
-        modelInfo: this.getHRMModelInfo(),
+      head: {
+        enabled: this._config.headEnabled,
+        ready: this.isHEADReady(),
+        modelInfo: this.getHEADModelInfo(),
       },
       lora: {
         basicEnabled: this._config.loraEnabled,
@@ -1467,7 +1467,7 @@ export class CognitiveEngine extends EventEmitter {
         enhancedReady: this.isEnhancedLoRAReady(),
         metrics: this.getEnhancedLoRAMetrics(),
       },
-      hrmLoraBridge: this.getHRMLoRAStatus(),
+      headLoraBridge: this.getHEADLoRAStatus(),
       adaline: this.getAdalineStatus(),
       anchorDatasets: this.getAnchorDatasetStatus(),
       denoising: this.getDenoisingStatus(),
@@ -3092,12 +3092,12 @@ export class CognitiveEngine extends EventEmitter {
         }
       }
 
-      // Dispose of HRM Bridge if it exists
-      if (this.hrmBridge && typeof (this.hrmBridge as { dispose?: () => void }).dispose === 'function') {
+      // Dispose of HEAD Bridge if it exists
+      if (this.headBridge && typeof (this.headBridge as { dispose?: () => void }).dispose === 'function') {
         try {
-          (this.hrmBridge as unknown as { dispose: () => void }).dispose();
+          (this.headBridge as unknown as { dispose: () => void }).dispose();
         } catch (error) {
-          console.error('Error disposing HRM Bridge:', error);
+          console.error('Error disposing HEAD Bridge:', error);
         }
       }
 

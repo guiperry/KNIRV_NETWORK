@@ -32,10 +32,10 @@ type CortexTestConfig struct {
 			Timeout        string `yaml:"timeout"`
 		} `yaml:"cognitive_engine"`
 
-		HRMBridge struct {
+		HEADBridge struct {
 			WASMModule string `yaml:"wasm_module"`
 			Timeout    string `yaml:"timeout"`
-		} `yaml:"hrm_bridge"`
+		} `yaml:"head_bridge"`
 
 		NeuralNetworks struct {
 			TensorFlowBackend   bool   `yaml:"tensorflow_backend"`
@@ -49,7 +49,7 @@ type CortexTestConfig struct {
 	} `yaml:"cortex_endpoints"`
 
 	AICore struct {
-		HRMCognitive struct {
+		HEADCognitive struct {
 			LModuleCount        int     `yaml:"l_module_count"`
 			HModuleCount        int     `yaml:"h_module_count"`
 			ProcessingTimeout   string  `yaml:"processing_timeout"`
@@ -58,7 +58,7 @@ type CortexTestConfig struct {
 				Type string      `yaml:"type"`
 				Data interface{} `yaml:"data"`
 			} `yaml:"test_inputs"`
-		} `yaml:"hrm_cognitive"`
+		} `yaml:"head_cognitive"`
 
 		NeuralNetworks struct {
 			TensorFlowTests struct {
@@ -84,7 +84,7 @@ type CortexTestConfig struct {
 				LearningRate float64 `yaml:"learning_rate"`
 				BatchSize    int     `yaml:"batch_size"`
 				Epochs       int     `yaml:"epochs"`
-				HRMGuidance  bool    `yaml:"hrm_guidance"`
+				HEADGuidance  bool    `yaml:"head_guidance"`
 			} `yaml:"enhanced_lora"`
 		} `yaml:"neural_networks"`
 
@@ -94,7 +94,7 @@ type CortexTestConfig struct {
 			MaxPatterns         int     `yaml:"max_patterns"`
 			LearningRateDecay   float64 `yaml:"learning_rate_decay"`
 			FeedbackWeight      float64 `yaml:"feedback_weight"`
-			HRMInfluenceWeight  float64 `yaml:"hrm_influence_weight"`
+			HEADInfluenceWeight  float64 `yaml:"head_influence_weight"`
 			RealTimeAdaptation  bool    `yaml:"real_time_adaptation"`
 		} `yaml:"adaptive_learning"`
 	} `yaml:"ai_core"`
@@ -297,19 +297,19 @@ func (suite *CortexTestSuite) testHealthCheck() error {
 	return nil
 }
 
-// Test HRM cognitive processing
-func (suite *CortexTestSuite) testHRMCognitiveProcessing() error {
+// Test HEAD cognitive processing
+func (suite *CortexTestSuite) testHEADCognitiveProcessing() error {
 	start := time.Now()
 
-	for i, testInput := range suite.config.AICore.HRMCognitive.TestInputs {
-		testName := fmt.Sprintf("hrm_cognitive_processing_%d", i)
+	for i, testInput := range suite.config.AICore.HEADCognitive.TestInputs {
+		testName := fmt.Sprintf("head_cognitive_processing_%d", i)
 
 		payload := map[string]interface{}{
 			"type": testInput.Type,
 			"data": testInput.Data,
 			"config": map[string]interface{}{
-				"l_module_count": suite.config.AICore.HRMCognitive.LModuleCount,
-				"h_module_count": suite.config.AICore.HRMCognitive.HModuleCount,
+				"l_module_count": suite.config.AICore.HEADCognitive.LModuleCount,
+				"h_module_count": suite.config.AICore.HEADCognitive.HModuleCount,
 			},
 		}
 
@@ -336,7 +336,7 @@ func (suite *CortexTestSuite) testHRMCognitiveProcessing() error {
 
 		// Validate response
 		confidence, ok := result["confidence"].(float64)
-		if !ok || confidence < suite.config.AICore.HRMCognitive.ConfidenceThreshold {
+		if !ok || confidence < suite.config.AICore.HEADCognitive.ConfidenceThreshold {
 			err = fmt.Errorf("confidence too low: %v", confidence)
 			suite.addResult(testName, "FAILED", time.Since(start), err, nil)
 			continue
@@ -1044,7 +1044,7 @@ func (suite *CortexTestSuite) testErrorHandlingScenarios() error {
 	// Simulate service failure and recovery
 	payload := map[string]interface{}{
 		"operation": "simulate_failure",
-		"component": "hrm_bridge",
+		"component": "head_bridge",
 	}
 
 	url := suite.config.CortexEndpoints.CognitiveEngine.URL + "/api/cognitive/test-failure"
@@ -1135,7 +1135,7 @@ func TestKNIRVCortexIntegration(t *testing.T) {
 		fn   func() error
 	}{
 		{"Health Check", suite.testHealthCheck},
-		{"HRM Cognitive Processing", suite.testHRMCognitiveProcessing},
+		{"HEAD Cognitive Processing", suite.testHEADCognitiveProcessing},
 		{"Neural Network Operations", suite.testNeuralNetworkOperations},
 		{"Ecosystem Integration", suite.testEcosystemIntegration},
 		{"CognitiveEngine Scenarios", suite.testCognitiveEngineScenarios},

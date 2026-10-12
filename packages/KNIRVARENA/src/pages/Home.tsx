@@ -16,7 +16,7 @@ import ReactMarkdown from 'react-markdown';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 
-interface HRMProcessingResponse {
+interface HEADProcessingResponse {
   reasoning_result: string;
   confidence: number;
   processing_time: number;
@@ -270,7 +270,7 @@ function ActionButton({ icon: Icon, title, description, onClick }: ActionButtonP
 export default function Home() {
   const [showQRScanner, setShowQRScanner] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState(desktopConnection.getConnectionStatus());
-  const [hrmResponse, setHrmResponse] = useState<HRMProcessingResponse | null>(null);
+  const [headResponse, setHeadResponse] = useState<HEADProcessingResponse | null>(null);
   const [showAnalytics, setShowAnalytics] = useState(false);
   const [showTaskScheduler, setShowTaskScheduler] = useState(false);
   const [showUDCManager, setShowUDCManager] = useState(false);
@@ -279,7 +279,7 @@ export default function Home() {
 
   useEffect(() => {
     desktopConnection.setConnectionChangeHandler(setConnectionStatus);
-    desktopConnection.setHRMResponseHandler(setHrmResponse);
+    desktopConnection.setHEADResponseHandler(setHeadResponse);
   }, []);
 
   const handleQRScan = async (qrData: string) => {
@@ -355,7 +355,7 @@ export default function Home() {
             <p className="text-slate-400 text-sm">
               {connectionStatus.connected
                 ? `Connected to Desktop ${connectionStatus.desktop_id?.slice(0, 8)}...`
-                : 'Enhanced mobile client with HRM integration'
+                : 'Enhanced mobile client with HEAD integration'
               }
             </p>
           </div>
@@ -387,7 +387,7 @@ export default function Home() {
                       connectionStatus.connected ? 'text-green-400' : 'text-orange-400'
                     }`}>
                       {connectionStatus.connected
-                        ? 'HRM cognitive processing available'
+                        ? 'HEAD cognitive processing available'
                         : 'Scan QR code to connect'
                       }
                     </p>
@@ -511,21 +511,21 @@ export default function Home() {
             </div>
           </div>
 
-          {/* HRM Response Display */}
-          {hrmResponse && (
+          {/* HEAD Response Display */}
+          {headResponse && (
             <div className="relative group">
               <div className="absolute -inset-0.5 bg-gradient-to-r from-cyan-600/50 to-purple-600/50 rounded-xl blur opacity-30 group-hover:opacity-60 transition duration-300"></div>
               <div className="relative bg-slate-800/80 backdrop-blur-xl rounded-xl p-4 border border-cyan-500/30">
-                <h3 className="font-semibold text-white mb-2">HRM Cognitive Response</h3>
-                <p className="text-sm text-cyan-400 mb-2">{hrmResponse.reasoning_result}</p>
+                <h3 className="font-semibold text-white mb-2">HEAD Cognitive Response</h3>
+                <p className="text-sm text-cyan-400 mb-2">{headResponse.reasoning_result}</p>
                 <div className="grid grid-cols-2 gap-4 text-xs">
                   <div>
                     <span className="text-slate-400">Confidence:</span>
-                    <span className="ml-2 text-white">{(hrmResponse.confidence * 100).toFixed(1)}%</span>
+                    <span className="ml-2 text-white">{(headResponse.confidence * 100).toFixed(1)}%</span>
                   </div>
                   <div>
                     <span className="text-slate-400">Processing:</span>
-                    <span className="ml-2 text-white">{hrmResponse.processing_time.toFixed(1)}ms</span>
+                    <span className="ml-2 text-white">{headResponse.processing_time.toFixed(1)}ms</span>
                   </div>
                 </div>
               </div>

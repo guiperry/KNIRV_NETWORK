@@ -5,23 +5,23 @@
  */
 
 import { LoRAProcessingQueue, QueueStatus, QueuedLoRAAdapter } from '../../src/core/knirvgraph/LoRAProcessingQueue';
-import { HRMCoreModel } from '../../src/core/knirvgraph/HRMCoreModel';
+import { HEADCoreModel } from '../../src/core/knirvgraph/HEADCoreModel';
 import { LoRAAdapterSkill } from '../../src/core/lora/LoRAAdapterEngine';
 import { TrainingDataset } from '../../src/core/knirvgraph/LoRAAdapterTrainingPipeline';
 
-// Mock HRMCoreModel
-jest.mock('../../src/core/knirvgraph/HRMCoreModel');
+// Mock HEADCoreModel
+jest.mock('../../src/core/knirvgraph/HEADCoreModel');
 
 describe('Phase 3.3 - LoRA Processing Queue', () => {
   let processingQueue: LoRAProcessingQueue;
-  let mockHRMCoreModel: jest.Mocked<HRMCoreModel>;
+  let mockHEADCoreModel: jest.Mocked<HEADCoreModel>;
   let mockLoRAAdapter: LoRAAdapterSkill;
   let mockTrainingDataset: TrainingDataset;
 
   beforeEach(async () => {
-    // Create mock HRM Core Model
-    mockHRMCoreModel = {
-      hrmBridge: {} as any,
+    // Create mock HEAD Core Model
+    mockHEADCoreModel = {
+      headBridge: {} as any,
       config: {} as any,
       isInitialized: true,
       analysisQueue: new Map(),
@@ -54,9 +54,9 @@ describe('Phase 3.3 - LoRA Processing Queue', () => {
       getAnalysisMetrics: jest.fn(),
       clearAnalysisQueue: jest.fn(),
       shutdown: jest.fn()
-    } as unknown as jest.Mocked<HRMCoreModel>;
+    } as unknown as jest.Mocked<HEADCoreModel>;
 
-    processingQueue = new LoRAProcessingQueue(mockHRMCoreModel, {
+    processingQueue = new LoRAProcessingQueue(mockHEADCoreModel, {
       maxConcurrentProcessing: 2,
       maxQueueSize: 10,
       processingTimeout: 5000,
@@ -70,7 +70,7 @@ describe('Phase 3.3 - LoRA Processing Queue', () => {
       skillId: 'test_skill_001',
       skillName: 'Test Skill',
       description: 'A test skill',
-      baseModelCompatibility: 'hrm',
+      baseModelCompatibility: 'head',
       version: 1,
       rank: 8,
       alpha: 16.0,
@@ -103,19 +103,19 @@ describe('Phase 3.3 - LoRA Processing Queue', () => {
 
   describe('Initialization', () => {
     test('should initialize successfully', async () => {
-      const newQueue = new LoRAProcessingQueue(mockHRMCoreModel);
+      const newQueue = new LoRAProcessingQueue(mockHEADCoreModel);
       await expect(newQueue.initialize()).resolves.not.toThrow();
       expect(newQueue.isReady()).toBe(true);
       newQueue.stop();
     });
 
-    test('should initialize HRM Core Model if not ready', async () => {
-      mockHRMCoreModel.isReady.mockReturnValue(false);
+    test('should initialize HEAD Core Model if not ready', async () => {
+      mockHEADCoreModel.isReady.mockReturnValue(false);
       
-      const newQueue = new LoRAProcessingQueue(mockHRMCoreModel);
+      const newQueue = new LoRAProcessingQueue(mockHEADCoreModel);
       await newQueue.initialize();
       
-      expect(mockHRMCoreModel.initialize).toHaveBeenCalled();
+      expect(mockHEADCoreModel.initialize).toHaveBeenCalled();
       newQueue.stop();
     });
   });
@@ -150,7 +150,7 @@ describe('Phase 3.3 - LoRA Processing Queue', () => {
     });
 
     test('should fail when not initialized', async () => {
-      const newQueue = new LoRAProcessingQueue(mockHRMCoreModel);
+      const newQueue = new LoRAProcessingQueue(mockHEADCoreModel);
       
       await expect(newQueue.enqueue(mockLoRAAdapter, mockTrainingDataset))
         .rejects.toThrow('LoRA Processing Queue not initialized');
@@ -180,12 +180,12 @@ describe('Phase 3.3 - LoRA Processing Queue', () => {
         checkStatus();
       });
       
-      expect(mockHRMCoreModel.discoverSkill).toHaveBeenCalledWith(mockLoRAAdapter, mockTrainingDataset);
+      expect(mockHEADCoreModel.discoverSkill).toHaveBeenCalledWith(mockLoRAAdapter, mockTrainingDataset);
     });
 
     test('should handle processing errors with retry', async () => {
-      // Mock HRM to fail first time, succeed second time
-      mockHRMCoreModel.discoverSkill
+      // Mock HEAD to fail first time, succeed second time
+      mockHEADCoreModel.discoverSkill
         .mockRejectedValueOnce(new Error('Processing failed'))
         .mockResolvedValueOnce({
           skillId: 'test_skill_001',
@@ -212,8 +212,8 @@ describe('Phase 3.3 - LoRA Processing Queue', () => {
     });
 
     test('should fail after max retries', async () => {
-      // Mock HRM to always fail
-      mockHRMCoreModel.discoverSkill.mockRejectedValue(new Error('Persistent failure'));
+      // Mock HEAD to always fail
+      mockHEADCoreModel.discoverSkill.mockRejectedValue(new Error('Persistent failure'));
 
       const queueId = await processingQueue.enqueue(mockLoRAAdapter, mockTrainingDataset);
 
@@ -364,8 +364,8 @@ describe('Phase 3.3 - LoRA Processing Queue', () => {
 
   describe('Error Scenarios', () => {
     test('should handle timeout scenarios', async () => {
-      // Mock HRM to take longer than timeout
-      mockHRMCoreModel.discoverSkill.mockImplementation(
+      // Mock HEAD to take longer than timeout
+      mockHEADCoreModel.discoverSkill.mockImplementation(
         () => new Promise(resolve => setTimeout(resolve, 6000))
       );
 
@@ -395,7 +395,7 @@ describe('Phase 3.3 - LoRA Processing Queue', () => {
 
   describe('Configuration', () => {
     test('should respect custom configuration', async () => {
-      const customQueue = new LoRAProcessingQueue(mockHRMCoreModel, {
+      const customQueue = new LoRAProcessingQueue(mockHEADCoreModel, {
         maxConcurrentProcessing: 1,
         maxQueueSize: 5,
         defaultPriority: 3,
@@ -443,9 +443,9 @@ describe('Phase 3.3 - LoRA Processing Queue', () => {
       expect(mockQueuedAdapter.priority).toBe(1);
       expect(mockQueuedAdapter.status).toBe(QueueStatus.PENDING);
 
-      // Test HRMCoreModel type usage
-      const mockHRMModel = new HRMCoreModel({
-        hrmConfig: {
+      // Test HEADCoreModel type usage
+      const mockHEADModel = new HEADCoreModel({
+        headConfig: {
           l_module_count: 8,
           h_module_count: 4,
           enable_adaptation: true,
@@ -457,7 +457,7 @@ describe('Phase 3.3 - LoRA Processing Queue', () => {
         categoryMappings: {}
       });
 
-      expect(mockHRMModel).toBeDefined();
+      expect(mockHEADModel).toBeDefined();
 
       // Test TrainingDataset type usage
       const mockDataset: TrainingDataset = {

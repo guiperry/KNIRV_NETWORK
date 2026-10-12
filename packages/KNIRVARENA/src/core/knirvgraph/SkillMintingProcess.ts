@@ -8,7 +8,7 @@
 import pino from 'pino';
 import { EventEmitter } from 'events';
 import { LoRAAdapterSkill } from '../lora/LoRAAdapterEngine';
-import { SkillDiscoveryResult } from './HRMCoreModel';
+import { SkillDiscoveryResult } from './HEADCoreModel';
 import { QueuedLoRAAdapter } from './LoRAProcessingQueue';
 
 const logger = pino({ name: 'skill-minting-process' });
