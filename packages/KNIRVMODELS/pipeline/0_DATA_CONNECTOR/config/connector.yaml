@@ -1,0 +1,24 @@
+knirvserver_addr: "http://localhost:8084"
+knirvserver_grpc_addr: "localhost:50051"
+listen_addr: ":50051"  # gRPC listen address
+
+output_dir: "~/.local/share/knirvmodels/connector"
+
+ontology:
+  min_entity_count: 1
+
+huggingface:
+  datasets: ["tatsu-lab/alpaca", "Open-Orca/OpenOrca"]
+  splits: ["train"]
+  max_rows_per_dataset: 50000
+  shard_workers: 4
+  request_delay: "1s"
+  cache_dir: "~/.cache/knirvmodels/hf"
+
+arxiv:
+  categories: ["cs.LG", "cs.CL"]
+  max_papers: 50
+  download_delay_seconds: 2
+
+knirvbase:
+  addr: "localhost:50052"

@@ -6,7 +6,7 @@ replace github.com/KNIRV/KNIRV_NETWORK/KNIRVAGENT => ./pkg/knirvagent
 
 replace github.com/KNIRV/KNIRV_NETWORK/KNIRVSERVER/pkg/knirvgateway => ./pkg/knirvgateway
 
-replace hasher => ./pkg/knirvhasher
+replace models => ./pkg/knirvmodels
 
 replace knirvllama => ./pkg/knirvllama
 

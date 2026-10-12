@@ -4,7 +4,7 @@
 **Module:** `knirvbase` (Go 1.24.6)
 **Root:** `packages/KNIRVBASE/go/` (all paths below are relative to this root)
 
-> **🔗 CROSS-REFERENCE — 12-Slot Bitmask Specification**: Phase 2 implements the **12-slot Bitmask Specification** from `packages/KNIRVHASHER/docs/DATA-MAPPER.md`. This specification defines how the 80-byte Bracket encodes semantic information for the ASIC's 21-pass temporal loop:
+> **🔗 CROSS-REFERENCE — 12-Slot Bitmask Specification**: Phase 2 implements the **12-slot Bitmask Specification** from `packages/KNIRVMODELS/docs/DATA-MAPPER.md`. This specification defines how the 80-byte Bracket encodes semantic information for the ASIC's 21-pass temporal loop:
 > - **Slots 0-3** (Identity Zone): LSH Projections (64 bytes) → Semantic Compass for Passes 1-7
 > - **Slots 4-5** (Syntactic Registers): POS, Tense, Dependency → **REQUIRED for Syntactic Steering (Passes 8-14)**
 > - **Slots 6-8** (Memory Zone): History XOR (maintained in FrameTicker memory) → Temporal loop recurrence
@@ -173,7 +173,7 @@ Field notes:
 
 Each bracket is exactly **80 bytes**, aligned to 8-byte boundaries. All brackets for a given frame are stored contiguously.
 
-> **🔗 CROSS-REFERENCE**: The Bracket binary format encodes the **12-slot Bitmask Specification** from `packages/KNIRVHASHER/docs/DATA-MAPPER.md`. This preserves the Semantic Coherence required for the ASIC's 21-pass temporal loop with Syntactic Steering (Passes 8-14).
+> **🔗 CROSS-REFERENCE**: The Bracket binary format encodes the **12-slot Bitmask Specification** from `packages/KNIRVMODELS/docs/DATA-MAPPER.md`. This preserves the Semantic Coherence required for the ASIC's 21-pass temporal loop with Syntactic Steering (Passes 8-14).
 
 **Bracket binary layout (80 bytes):**
 
@@ -318,7 +318,7 @@ type BracketBinaryMap struct {
 }
 ```
 
-> **🔗 CROSS-REFERENCE**: The slot mapping follows `packages/KNIRVHASHER/docs/DATA-MAPPER.md`:
+> **🔗 CROSS-REFERENCE**: The slot mapping follows `packages/KNIRVMODELS/docs/DATA-MAPPER.md`:
 > - **Slots 0-3** (Identity Zone): LSH Projections — the "Semantic Compass" for Passes 1-7
 > - **Slots 4-5** (Syntactic Registers): POS, Tense, Dependency — **REQUIRED for Passes 8-14** (Syntactic Steering)
 > - **Slots 6-8** (Memory Zone): History XOR — stored in memory by FrameTicker, not in bracket binary
@@ -1327,7 +1327,7 @@ GET MEMORY WHERE intent_flags & 0x1 AND tense = PAST
 
 ## 8. 21-Pass Temporal Loop Integration
 
-The Phase 2 Bracket format is specifically designed to drive the **21-pass temporal loop** in the KNIRVHASHER ASIC pipeline. This section documents how the 12-slot specification maps to the loop passes.
+The Phase 2 Bracket format is specifically designed to drive the **21-pass temporal loop** in the KNIRVMODELS ASIC pipeline. This section documents how the 12-slot specification maps to the loop passes.
 
 ### 8.1 Pass Structure
 

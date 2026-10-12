@@ -1,14 +1,14 @@
 # `.nrv` container formats
 
 Three on-disk layouts exist. **KNIRVBASE v1 is the canonical stored format.** The
-hasher's `NRV3` is a pipeline interchange format, and `NRV2` is legacy.
+models's `NRV3` is a pipeline interchange format, and `NRV2` is legacy.
 All three share the 80-byte bracket layout (`pkg/nrv.EncodeBracket`).
 
 | | Magic | Written by | Read by | Status |
 |---|---|---|---|---|
 | KNIRVBASE v1 | `0x4E525621` LE (`!VRN`) | KNIRVBASE Go/TS `NRVWriter` | KNIRVBASE Go/TS `NRVReader` | canonical |
-| NRV3 | ASCII `NRV3` | KNIRVHASHER `2_DATA_ENCODER/pkg/nrvio` | `pkg/nrv.OpenNRV3`, seeder `knirvbaseclient` | interchange |
-| NRV2 | ASCII `NRV2` | older hasher builds | nothing safe | refused |
+| NRV3 | ASCII `NRV3` | KNIRVMODELS `2_DATA_ENCODER/pkg/nrvio` | `pkg/nrv.OpenNRV3`, seeder `knirvbaseclient` | interchange |
+| NRV2 | ASCII `NRV2` | older models builds | nothing safe | refused |
 
 ## KNIRVBASE v1
 
@@ -34,17 +34,17 @@ All three share the 80-byte bracket layout (`pkg/nrv.EncodeBracket`).
 * Capacity: each `bracket_index` entry costs about 200 bytes of indented JSON, so a file holds
   roughly 25k brackets. Converters shard (`storage.MaxBracketsPerFile = 16000`).
 
-## NRV3 (hasher interchange)
+## NRV3 (models interchange)
 
 ```
 "NRV3" | registry_length u32 LE | registry JSON | bracket section
 ```
 
-Measured on a real hasher batch (`…/frames/batches/*/training_frames.nrv`, 77 MB):
+Measured on a real models batch (`…/frames/batches/*/training_frames.nrv`, 77 MB):
 
 * `registry`: `{"version":"3.0","frames":[{id, timestamp_unix, count, offset, linguistic{tokens,domain},
   thermo{}, z3{}, bracket_index:[{index, type, xor}]}]}`. `thermo`/`z3` are written empty by the
-  hasher.
+  models.
 * The **bracket section holds full 80-byte brackets** (`count × 80` bytes per frame at `offset`).
 * `bracket_index[i].xor` (80 bytes, base64) is the bracket **XOR the previous bracket**
   (index 0: the bracket itself); `type` is `I` for index 0 and `P` after. It is a chain delta kept for
@@ -68,7 +68,7 @@ Measured on a real hasher batch (`…/frames/batches/*/training_frames.nrv`, 77 
 5. With a key file, every frame is signed (ML-DSA-65). Without one the output is unsigned.
 6. On any error nothing is left behind.
 
-`z3` is not carried over (the hasher never fills it); linguistic `domain`→`token` and `tokens`→`unit`;
+`z3` is not carried over (the models never fills it); linguistic `domain`→`token` and `tokens`→`unit`;
 `thermo.temperature`→`avg_temp_c`. Bracket ids are `<nrv3 frame id>-<bracket index>`.
 
 Verified on the real 77 MB batch above: 344,167 brackets → 23 files, every bracket decodes identically

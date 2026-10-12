@@ -62,7 +62,7 @@ function generateTask(forceCategory?: BackgroundTask['category']): BackgroundTas
   };
 }
 
-// ── Sub-component: KNIRVHASHER training controls ──────────────────────
+// ── Sub-component: KNIRVMODELS training controls ──────────────────────
 
 interface TrainingLog {
   id: string;
@@ -86,20 +86,20 @@ interface TrainingRunStatus {
   updated_at?: string;
 }
 
-interface HasherStatusResponse {
+interface ModelsStatusResponse {
   available?: boolean;
   running?: boolean;
   status?: string;
   training_active?: boolean;
   training?: TrainingRunStatus;
-  data?: HasherStatusResponse;
+  data?: ModelsStatusResponse;
 }
 
 const MAX_TRAINING_LOGS = 200;
 const MIN_LOG_HEIGHT = 144;
 const MAX_LOG_HEIGHT = 640;
 
-const hasherTrainingViewState: {
+const modelsTrainingViewState: {
   active: boolean;
   logs: TrainingLog[];
   nextLogId: number;
@@ -113,7 +113,7 @@ const hasherTrainingViewState: {
   logHeight: MIN_LOG_HEIGHT,
 };
 
-function normalizeHasherStatus(raw: HasherStatusResponse) {
+function normalizeModelsStatus(raw: ModelsStatusResponse) {
   const status = raw.data ?? raw;
   const statusText = typeof status.status === 'string' ? status.status.toLowerCase() : '';
   const trainingStatusText = typeof status.training?.status === 'string' ? status.training.status.toLowerCase() : '';
@@ -125,38 +125,38 @@ function normalizeHasherStatus(raw: HasherStatusResponse) {
   return { available, running, training };
 }
 
-interface HasherTrainingControlsProps {
+interface ModelsTrainingControlsProps {
   onProcessingActivities?: (activities: ProcessingActivity[]) => void;
 }
 
-export function HasherTrainingControls(props: HasherTrainingControlsProps = {}) {
-  return <HasherTrainingControlsInner {...props} />;
+export function ModelsTrainingControls(props: ModelsTrainingControlsProps = {}) {
+  return <ModelsTrainingControlsInner {...props} />;
 }
 
-function HasherTrainingControlsInner({ onProcessingActivities }: HasherTrainingControlsProps) {
-  const [hasherStatus, setHasherStatus] = useState<'loading' | 'available' | 'unavailable'>('loading');
-  const [trainingActive, setTrainingActiveState] = useState(hasherTrainingViewState.active);
-  const [trainingLogs, setTrainingLogsState] = useState<TrainingLog[]>(hasherTrainingViewState.logs);
-  const [trainingStatus, setTrainingStatusState] = useState<TrainingRunStatus | null>(hasherTrainingViewState.trainingStatus);
-  const [logHeight, setLogHeightState] = useState(hasherTrainingViewState.logHeight);
+function ModelsTrainingControlsInner({ onProcessingActivities }: ModelsTrainingControlsProps) {
+  const [modelsStatus, setModelsStatus] = useState<'loading' | 'available' | 'unavailable'>('loading');
+  const [trainingActive, setTrainingActiveState] = useState(modelsTrainingViewState.active);
+  const [trainingLogs, setTrainingLogsState] = useState<TrainingLog[]>(modelsTrainingViewState.logs);
+  const [trainingStatus, setTrainingStatusState] = useState<TrainingRunStatus | null>(modelsTrainingViewState.trainingStatus);
+  const [logHeight, setLogHeightState] = useState(modelsTrainingViewState.logHeight);
   const consoleRef = useRef<HTMLDivElement>(null);
-  const logIdRef = useRef(hasherTrainingViewState.nextLogId);
+  const logIdRef = useRef(modelsTrainingViewState.nextLogId);
   const seenProcessingLogKeysRef = useRef(new Set<string>());
   const lastStartTimeRef = useRef<number>(0);
 
   const setTrainingActive = (active: boolean) => {
-    hasherTrainingViewState.active = active;
+    modelsTrainingViewState.active = active;
     setTrainingActiveState(active);
   };
 
   const setTrainingStatus = (status: TrainingRunStatus | null) => {
-    hasherTrainingViewState.trainingStatus = status;
+    modelsTrainingViewState.trainingStatus = status;
     setTrainingStatusState(status);
   };
 
   const setLogHeight = (height: number) => {
     const clamped = Math.max(MIN_LOG_HEIGHT, Math.min(MAX_LOG_HEIGHT, Math.round(height)));
-    hasherTrainingViewState.logHeight = clamped;
+    modelsTrainingViewState.logHeight = clamped;
     setLogHeightState(clamped);
   };
 
@@ -164,8 +164,8 @@ function HasherTrainingControlsInner({ onProcessingActivities }: HasherTrainingC
     setTrainingLogsState(previous => {
       const next = typeof updater === 'function' ? updater(previous) : updater;
       const capped = next.slice(-MAX_TRAINING_LOGS);
-      hasherTrainingViewState.logs = capped;
-      hasherTrainingViewState.nextLogId = logIdRef.current;
+      modelsTrainingViewState.logs = capped;
+      modelsTrainingViewState.nextLogId = logIdRef.current;
       return capped;
     });
   };
@@ -225,7 +225,7 @@ function HasherTrainingControlsInner({ onProcessingActivities }: HasherTrainingC
   const fetchTrainingLogHistory = async () => {
     try {
       // Admin-only endpoint: send the operator's token.
-      const resp = await fetch(`${API_BASE_URL}/api/logs/history?module=knirvhasher&limit=100`, { headers: getAuthHeaders() });
+      const resp = await fetch(`${API_BASE_URL}/api/logs/history?module=knirvmodels&limit=100`, { headers: getAuthHeaders() });
       if (!resp.ok) {
         return;
       }
@@ -237,13 +237,13 @@ function HasherTrainingControlsInner({ onProcessingActivities }: HasherTrainingC
     }
   };
 
-  const fetchHasherStatus = async () => {
+  const fetchModelsStatus = async () => {
     try {
-      const resp = await fetch(`${API_BASE_URL}/api/v1/hasher/status`);
+      const resp = await fetch(`${API_BASE_URL}/api/v1/models/status`);
       if (resp.ok) {
-        const data: HasherStatusResponse = await resp.json();
-        const status = normalizeHasherStatus(data);
-        setHasherStatus(status.available ? 'available' : 'unavailable');
+        const data: ModelsStatusResponse = await resp.json();
+        const status = normalizeModelsStatus(data);
+        setModelsStatus(status.available ? 'available' : 'unavailable');
 
         const recentlyStarted = Date.now() - lastStartTimeRef.current < 20000;
         if (status.running) {
@@ -255,22 +255,22 @@ function HasherTrainingControlsInner({ onProcessingActivities }: HasherTrainingC
 
         setTrainingStatus(status.training);
       } else {
-        setHasherStatus('unavailable');
+        setModelsStatus('unavailable');
       }
     } catch {
-      setHasherStatus('unavailable');
+      setModelsStatus('unavailable');
     }
   };
 
   useEffect(() => {
-    fetchHasherStatus();
-    const interval = setInterval(fetchHasherStatus, 15000);
+    fetchModelsStatus();
+    const interval = setInterval(fetchModelsStatus, 15000);
     return () => clearInterval(interval);
   }, []);
 
-  const logStreamingEnabled = trainingActive || hasherStatus === 'available';
+  const logStreamingEnabled = trainingActive || modelsStatus === 'available';
 
-  // Poll KNIRVHASHER logs while training is possible. Logs are admin-only
+  // Poll KNIRVMODELS logs while training is possible. Logs are admin-only
   // and EventSource cannot send the bearer token, so this polls history
   // (2 s) instead of holding an SSE stream.
   useEffect(() => {
@@ -314,7 +314,7 @@ function HasherTrainingControlsInner({ onProcessingActivities }: HasherTrainingC
   const handleStartTraining = async () => {
     lastStartTimeRef.current = Date.now();
     try {
-      const resp = await fetch(`${API_BASE_URL}/api/v1/hasher/training/start`, {
+      const resp = await fetch(`${API_BASE_URL}/api/v1/models/training/start`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
       });
@@ -331,7 +331,7 @@ function HasherTrainingControlsInner({ onProcessingActivities }: HasherTrainingC
   const handleStopTraining = async () => {
     lastStartTimeRef.current = 0;
     try {
-      await fetch(`${API_BASE_URL}/api/v1/hasher/training/stop`, {
+      await fetch(`${API_BASE_URL}/api/v1/models/training/stop`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
       });
@@ -339,8 +339,8 @@ function HasherTrainingControlsInner({ onProcessingActivities }: HasherTrainingC
     setTrainingActive(false);
   };
 
-  const statusColor = hasherStatus === 'available' ? 'bg-green-500' : 'bg-red-500';
-  const statusLabel = hasherStatus === 'available' ? 'Available' : 'Unavailable';
+  const statusColor = modelsStatus === 'available' ? 'bg-green-500' : 'bg-red-500';
+  const statusLabel = modelsStatus === 'available' ? 'Available' : 'Unavailable';
   const latestPipelineErrors = trainingStatus?.errors?.length
     ? trainingStatus.errors
     : trainingStatus?.last_error
@@ -379,10 +379,10 @@ function HasherTrainingControlsInner({ onProcessingActivities }: HasherTrainingC
     <div className="border-t border-indigo-900/30 pt-3 mt-3">
       <div className="flex items-center gap-2 mb-2">
         <Database className="w-4 h-4 text-cyan-400" />
-        <span className="text-xs font-semibold text-cyan-300 uppercase tracking-wider">KNIRVHASHER Training</span>
+        <span className="text-xs font-semibold text-cyan-300 uppercase tracking-wider">KNIRVMODELS Training</span>
         <div className="flex items-center gap-1.5 ml-auto">
-          <div className={`w-2 h-2 rounded-full ${statusColor} ${hasherStatus === 'loading' ? 'animate-pulse' : ''}`} />
-          <span className="text-xs text-slate-400">{hasherStatus === 'loading' ? 'Checking...' : statusLabel}</span>
+          <div className={`w-2 h-2 rounded-full ${statusColor} ${modelsStatus === 'loading' ? 'animate-pulse' : ''}`} />
+          <span className="text-xs text-slate-400">{modelsStatus === 'loading' ? 'Checking...' : statusLabel}</span>
         </div>
       </div>
 
@@ -394,7 +394,7 @@ function HasherTrainingControlsInner({ onProcessingActivities }: HasherTrainingC
             <div className="flex items-center gap-1.5">
               <Terminal className="w-3 h-3 text-slate-500" />
               <span className="text-[10px] font-medium text-slate-500 uppercase tracking-wider">
-                {trainingActive ? 'Training Logs (knirvhasher)' : 'Training Console'}
+                {trainingActive ? 'Training Logs (knirvmodels)' : 'Training Console'}
               </span>
             </div>
             {trainingLogs.length > 0 && (
@@ -449,7 +449,7 @@ function HasherTrainingControlsInner({ onProcessingActivities }: HasherTrainingC
             variant={trainingActive ? 'secondary' : 'default'}
             size="sm"
             onClick={handleStartTraining}
-            disabled={hasherStatus !== 'available' || trainingActive}
+            disabled={modelsStatus !== 'available' || trainingActive}
           >
             <Play className="w-4 h-4 mr-2" />
             Start Training
@@ -463,7 +463,7 @@ function HasherTrainingControlsInner({ onProcessingActivities }: HasherTrainingC
             <Square className="w-4 h-4 mr-2" />
             Stop Training
           </Button>
-          <Button variant="outline" size="sm" onClick={fetchHasherStatus}>
+          <Button variant="outline" size="sm" onClick={fetchModelsStatus}>
             <RefreshCw className="w-4 h-4 mr-2" />
             Refresh Status
           </Button>
@@ -751,7 +751,7 @@ export function CognitiveEngineStatusCard({ className }: { className?: string })
   );
 }
 
-// ── Main: Engine Controls (with KNIRVHASHER training controls) ─────────
+// ── Main: Engine Controls (with KNIRVMODELS training controls) ─────────
 
 interface CognitiveEnginePanelProps {
   className?: string;
@@ -921,8 +921,8 @@ export const CognitiveEnginePanel = React.memo<CognitiveEnginePanelProps>(({ cla
           {healthResult && <div className="mt-4 text-xs text-green-500 font-medium">Health Check Result: {healthResult}</div>}
           {validationResult && <div className="mt-4 text-xs text-blue-500 font-medium">Self-Validate Result: {validationResult}</div>}
 
-          {/* KNIRVHASHER Training Controls */}
-          <HasherTrainingControlsInner onProcessingActivities={onProcessingActivities} />
+          {/* KNIRVMODELS Training Controls */}
+          <ModelsTrainingControlsInner onProcessingActivities={onProcessingActivities} />
         </CardContent>
       </Card>
     </div>

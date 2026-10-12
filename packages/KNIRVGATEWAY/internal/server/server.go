@@ -631,14 +631,14 @@ func (s *Server) setupRoutes() error {
 		s.logger.Warn("Shell proxy not configured — /api/shell/* will not be proxied")
 	}
 
-	// Hasher proxy — KNIRVHASHER via Unix socket (Phase 8)
-	if s.config.HasherSocketPath != "" {
-		hasherProxy := newSocketProxy(s.config.HasherSocketPath, "http://knirvhasher")
-		r.PathPrefix("/api/knirvhasher/").Handler(http.StripPrefix("/api/knirvhasher", hasherProxy))
+	// Models proxy — KNIRVMODELS via Unix socket (Phase 8)
+	if s.config.ModelsSocketPath != "" {
+		modelsProxy := newSocketProxy(s.config.ModelsSocketPath, "http://knirvmodels")
+		r.PathPrefix("/api/knirvmodels/").Handler(http.StripPrefix("/api/knirvmodels", modelsProxy))
 
-		s.logger.Info("Hasher proxy registered", zap.String("socket", s.config.HasherSocketPath))
+		s.logger.Info("Models proxy registered", zap.String("socket", s.config.ModelsSocketPath))
 	} else {
-		s.logger.Warn("Hasher socket path not configured — /api/knirvhasher/* will not be proxied")
+		s.logger.Warn("Models socket path not configured — /api/knirvmodels/* will not be proxied")
 	}
 
 	// Arena proxy — KNIRVARENA static bundle server via Unix socket

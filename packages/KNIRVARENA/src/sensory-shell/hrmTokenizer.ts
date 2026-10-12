@@ -1,5 +1,5 @@
 /**
- * `byte-v1` token space shared by the browser, KNIRVHASHER's HRM trainer and
+ * `byte-v1` token space shared by the browser, KNIRVMODELS's HRM trainer and
  * HEART: ids 0-255 are raw bytes, then four specials. A model whose config
  * names another tokenizer cannot run in the browser and falls back to the server.
  */

@@ -4,7 +4,7 @@
 
 KNIRVLLAMA embeds a self-contained `llama` binary that provisions and serves
 llama.cpp models behind an OpenAI-compatible HTTP API. It follows the same
-embedded-binary pattern as `pkg/knirvhasher`, `pkg/knirvagent`, and other
+embedded-binary pattern as `pkg/knirvmodels`, `pkg/knirvagent`, and other
 `pkg/knirv*` packages.
 
 ## Usage

@@ -6,7 +6,7 @@ import (
 )
 
 // MaxBracketsPerFrame bounds the brackets in one converted KNIRVBASE frame. A
-// hasher "frame" can hold hundreds of thousands of brackets (a real batch file
+// models "frame" can hold hundreds of thousands of brackets (a real batch file
 // has a single 344k-bracket frame), but KNIRVBASE keeps a per-bracket index in
 // its fixed 5 MiB registry, so the converter splits the stream into frames of
 // at most this size.
@@ -36,7 +36,7 @@ type ConvertedFrame struct {
 // raw must hold src.Count*BracketSize bytes. A frame larger than
 // MaxBracketsPerFrame is split into frames "<id>#1", "<id>#2", ...; each is
 // self-contained (its first bracket is an I-bracket), so anchors never cross
-// frames. NRV3 z3 metadata is not carried over: the hasher never fills it.
+// frames. NRV3 z3 metadata is not carried over: the models never fills it.
 func ConvertFrame(src NRV3FrameEntry, raw []byte) ([]ConvertedFrame, error) {
 	if src.Count != len(src.BracketIndex) {
 		return nil, fmt.Errorf("nrv3: frame %s count mismatch: count=%d bracket_index=%d",

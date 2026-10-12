@@ -23,4 +23,4 @@ Without Go on the PATH (and without `NRVCONFORM_REQUIRED=1`) the Go-dependent
 cases skip; the pure cases still run. CI must set `NRVCONFORM_REQUIRED=1`
 (`make test-knirvbase` does).
 
-Opt-in, against real data: `KNIRV_REAL_NRV3=<hasher .nrv> go test ./internal/storage -run RealNRV3 -v`.
+Opt-in, against real data: `KNIRV_REAL_NRV3=<models .nrv> go test ./internal/storage -run RealNRV3 -v`.

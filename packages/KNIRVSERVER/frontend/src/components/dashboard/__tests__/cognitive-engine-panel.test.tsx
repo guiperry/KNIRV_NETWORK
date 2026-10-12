@@ -1,7 +1,7 @@
 import React from 'react';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import { HasherTrainingControls } from '../cognitive-engine-panel';
+import { ModelsTrainingControls } from '../cognitive-engine-panel';
 
 jest.mock('@/lib/api', () => ({
   API_BASE_URL: '',
@@ -71,13 +71,13 @@ class MockEventSource {
   }
 }
 
-describe('HasherTrainingControls', () => {
+describe('ModelsTrainingControls', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     MockEventSource.instances = [];
     global.EventSource = MockEventSource as unknown as typeof EventSource;
     (global.fetch as jest.Mock).mockImplementation((url: string) => {
-      if (url.includes('/api/v1/hasher/status')) {
+      if (url.includes('/api/v1/models/status')) {
         return Promise.resolve({
           ok: true,
           json: () => Promise.resolve({
@@ -125,7 +125,7 @@ describe('HasherTrainingControls', () => {
   it('rehydrates active training state and polls logs with the operator token after remount', async () => {
     const historyCalls = () =>
       (global.fetch as jest.Mock).mock.calls.filter(([url]) => String(url).includes('/api/logs/history'));
-    const { unmount } = render(<HasherTrainingControls />);
+    const { unmount } = render(<ModelsTrainingControls />);
 
     await waitFor(() => {
       expect(screen.getByText('Training pipeline active')).toBeInTheDocument();
@@ -135,7 +135,7 @@ describe('HasherTrainingControls', () => {
     expect(MockEventSource.instances).toHaveLength(0);
 
     unmount();
-    render(<HasherTrainingControls />);
+    render(<ModelsTrainingControls />);
 
     await waitFor(() => {
       expect(screen.getByText('Training pipeline active')).toBeInTheDocument();
@@ -145,7 +145,7 @@ describe('HasherTrainingControls', () => {
   });
 
   it('renders training batch metadata and pipeline errors', async () => {
-    render(<HasherTrainingControls />);
+    render(<ModelsTrainingControls />);
 
     await waitFor(() => {
       expect(screen.getByText('Current Batch')).toBeInTheDocument();
@@ -157,7 +157,7 @@ describe('HasherTrainingControls', () => {
   });
 
   it('lets the training log height be resized in page', async () => {
-    render(<HasherTrainingControls />);
+    render(<ModelsTrainingControls />);
 
     const resizeHandle = await screen.findByLabelText('Resize training log');
     const logWindow = resizeHandle.previousElementSibling as HTMLElement;
@@ -174,7 +174,7 @@ describe('HasherTrainingControls', () => {
   it('routes cognitive engine logs into the processing feed and keeps them out of training logs', async () => {
     const onProcessingActivities = jest.fn();
 
-    render(<HasherTrainingControls onProcessingActivities={onProcessingActivities} />);
+    render(<ModelsTrainingControls onProcessingActivities={onProcessingActivities} />);
 
     await waitFor(() => {
       expect(screen.getByText('pipeline still running')).toBeInTheDocument();

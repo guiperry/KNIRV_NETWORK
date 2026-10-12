@@ -7,7 +7,7 @@
 
 KNIRV Network is a multi-package platform for guarded AI agent execution. Policies and guardrails wrap agent actions before they run, executions get recorded in audit trails, and failures get mined into reusable `skill.md` knowledge instead of disappearing into a log file nobody rereads.
 
-**`KNIRVSERVER` is the entry point for the whole network.** It's the one binary you build and run. Everything else in this repo, the chain, the gateway, the graph, the oracle, the hasher, the agent runtime, the adapter compiler, the local LLM, ships as a binary embedded inside KNIRVSERVER (directly, or inside the embedded `backend_server`) and gets extracted and launched as a subprocess when it starts.
+**`KNIRVSERVER` is the entry point for the whole network.** It's the one binary you build and run. Everything else in this repo, the chain, the gateway, the graph, the oracle, the models, the agent runtime, the adapter compiler, the local LLM, ships as a binary embedded inside KNIRVSERVER (directly, or inside the embedded `backend_server`) and gets extracted and launched as a subprocess when it starts.
 
 This repo is one half of the KNIRV workspace. Its sibling, the private [`KNIRV_CORP`](../KNIRV_CORP/README.md) repo, holds the source for `backend_server` (the API KNIRVSERVER embeds) and the user-facing products: the KNIRV CLI, the desktop client, the KNIRVCONTROLLER mobile app, and KNIRVENGINE.
 
@@ -16,7 +16,7 @@ This repo is one half of the KNIRV workspace. Its sibling, the private [`KNIRV_C
 ```bash
 cd packages/KNIRVSERVER
 go build -o dist/knirv-server .
-sudo ORACLE_KEY_PASSWORD=<your-oracle-key-password> ./dist/knirv-server -hasher
+sudo ORACLE_KEY_PASSWORD=<your-oracle-key-password> ./dist/knirv-server -models
 ```
 
 That is the same command that runs the public testnet at `testnet-gateway.knirv.com`. Full explanation, including how to run it locally without `sudo`, is in [Building and Running KNIRVSERVER](#building-and-running-knirvserver).
@@ -33,7 +33,7 @@ knirv network status --all-services
 The safest factual description of the current codebase:
 
 - `KNIRVSERVER` is the launcher and edge router: it serves the embedded Next.js frontend, proxies API/WebSocket/SSE traffic to `backend_server`, provisions TLS, runs the self-updater, hosts the agent control plane, the Transaction/Validation chains and KNIRVMONITOR, and starts every other service
-- `backend_server` (source in `KNIRV_CORP`) handles policy, guardrails, DVE management, the knowledge base, agent launch, shell sessions, evidence/proof anchoring, the CLI-supervisor relay, badges, and the actuarial syndicate; it in turn launches KNIRVGATEWAY, KNIRVCHAIN, KNIRVGRAPH, KNIRVORACLE, KNIRVHASHER, and KNIRVARENA
+- `backend_server` (source in `KNIRV_CORP`) handles policy, guardrails, DVE management, the knowledge base, agent launch, shell sessions, evidence/proof anchoring, the CLI-supervisor relay, badges, and the actuarial syndicate; it in turn launches KNIRVGATEWAY, KNIRVCHAIN, KNIRVGRAPH, KNIRVORACLE, KNIRVMODELS, and KNIRVARENA
 - `KNIRVGATEWAY` provides the public portal, DHT/TURN, tunnel registry, auth, payment, operator, URI services, and the omnichannel (Matrix) messaging bridge
 - `KNIRVCHAIN` provides chain-side registry, P2P/discovery, mining, validation, wallet, and data-engine logic
 - `KNIRVGRAPH` provides the knowledge graph: Network Resolution Vectors, ErrorNodes/SkillNodes, Proof-of-Solution, and NRN economics
@@ -62,7 +62,7 @@ KNIRVSERVER launcher  (packages/KNIRVSERVER/main.go -> internal/launcher -> dist
          |-- runs: KNIRVCHAIN     (P2P, mining, validation, wallet; chain.sock)
          |-- runs: KNIRVGRAPH     (knowledge graph, NRV, ErrorNodes/SkillNodes; graph.sock)
          |-- runs: KNIRVORACLE    (root-node governance; /oracle/* only with a root.key)
-         |-- runs: KNIRVHASHER    (ASIC inference pipeline; only with -hasher / -pipeline)
+         |-- runs: KNIRVMODELS    (ASIC inference pipeline; only with -models / -pipeline)
          `-- runs: KNIRVARENA     (ERGO arena backend)
 ```
 
@@ -79,7 +79,7 @@ Nothing above talks to a shared database. Coordination happens over Unix sockets
 | `KNIRVCHAIN` | Go | Node and agent registries, P2P discovery, mining, validation, wallet, data engine, NFT/skill economics, `SYNDICATE_*` transaction types. |
 | `KNIRVGRAPH` | Go + TS | Knowledge graph: NRV system, ErrorNodes/SkillNodes, Proof-of-Solution, NRN economics, React graph explorer. |
 | `KNIRVORACLE` | Go | Root-node governance, checkpoints, failover, and payouts. Routes only mount when an encrypted `root.key` is present. |
-| `KNIRVHASHER` | Go | Repurposed ASIC mining hardware (ex-Bitcoin miners) doing neural-network inference instead of hashing, plus its data/training pipeline. |
+| `KNIRVMODELS` | Go | Repurposed ASIC mining hardware (ex-Bitcoin miners) doing neural-network inference instead of hashing, plus its data/training pipeline. |
 | `KNIRVAGENT` | Go | Workspace-aware, tool-using agent runtime for CLI sessions, messaging channels, and managed per-DVE processes. Can use the local `knirvllama` provider. |
 | `KNIRVULORA` | Go (+ Python engines) | `ulorad` adapter-compiler daemon and `ulora` CLI: safetensors handling, per-model-family connectors, adapter bundling. Exposed to other services over `ulora.sock`. |
 | `KNIRVINFERENCER` | Go library | Shared LLM provider layer (Anthropic, Cerebras, DeepSeek, Gemini, llama) with fallback switching, conversation memory, and context strategy. Imported by `backend_server` as `github.com/guiperry/knirv-inference-go`; not a running service. |
@@ -112,7 +112,7 @@ cd packages/KNIRVSERVER
 go build -o dist/knirv-server .
 ```
 
-This links the already-built `backend_server` (which itself carries the gateway, chain, graph, oracle, hasher, and arena binaries), `ulorad`, `knirvagent`, `knirvllama`, the `config/*.yaml` files, and the built frontend export in `frontend/out/` into one Go binary. Nothing downstream needs recompiling, so this takes seconds. `make relink` does the same after a component change.
+This links the already-built `backend_server` (which itself carries the gateway, chain, graph, oracle, models, and arena binaries), `ulorad`, `knirvagent`, `knirvllama`, the `config/*.yaml` files, and the built frontend export in `frontend/out/` into one Go binary. Nothing downstream needs recompiling, so this takes seconds. `make relink` does the same after a component change.
 
 For a full from-source rebuild of every embedded package (requires the sibling `KNIRV_CORP` repo for `backend_server`'s source):
 
@@ -128,10 +128,10 @@ make binary
 KNIRVSERVER defaults to **testnet mode**. There is no `--testnet` flag; testnet is simply what you get unless you pass `-prod`, `-dev`, or `-ent`.
 
 ```bash
-sudo ORACLE_KEY_PASSWORD=<your-oracle-key-password> ./dist/knirv-server -hasher
+sudo ORACLE_KEY_PASSWORD=<your-oracle-key-password> ./dist/knirv-server -models
 ```
 
-By default the binary reads config from `/etc/knirv-server` and writes runtime state to `/var/lib/knirvserver`, which is why `sudo` is normally required. `ORACLE_KEY_PASSWORD` decrypts the node's `root.key`, which the loader looks for at `~/.config/knirv-server/.key/root.key` (or `~/.config/knirv-server/root.key`; under `sudo`, the invoking user's home is checked too). That unlocks the `/oracle/*` routes. With no key file, no password is needed and the server runs fine as a non-root node. A bootnode's `boot.key` is decrypted with `BOOT_KEY_PASSWORD` and also supplies the Cloudflare credentials used for production TLS. `-hasher` is optional and starts the KNIRVHASHER ASIC driver alongside everything else.
+By default the binary reads config from `/etc/knirv-server` and writes runtime state to `/var/lib/knirvserver`, which is why `sudo` is normally required. `ORACLE_KEY_PASSWORD` decrypts the node's `root.key`, which the loader looks for at `~/.config/knirv-server/.key/root.key` (or `~/.config/knirv-server/root.key`; under `sudo`, the invoking user's home is checked too). That unlocks the `/oracle/*` routes. With no key file, no password is needed and the server runs fine as a non-root node. A bootnode's `boot.key` is decrypted with `BOOT_KEY_PASSWORD` and also supplies the Cloudflare credentials used for production TLS. `-models` is optional and starts the KNIRVMODELS ASIC driver alongside everything else.
 
 To run locally without `sudo`, point the app-data and config directories at somewhere you own:
 
@@ -142,7 +142,7 @@ KNIRV_CONFIG_DIR="$(pwd)/.local/config" \
 ./dist/knirv-server
 ```
 
-Other flags: `-config <path>`, `-dev`, `-prod`, `-ent` (enterprise node at `enterprise-{tag}.knirv.network`), `-user-id-tag <tag>`, `-port <n>`, `-host <addr>`, `-pipeline` (start the KNIRVHASHER data pipeline), `-direct` (drive the ASIC over raw USB instead of CGMiner), and `-llama` (start the local llama.cpp provider).
+Other flags: `-config <path>`, `-dev`, `-prod`, `-ent` (enterprise node at `enterprise-{tag}.knirv.network`), `-user-id-tag <tag>`, `-port <n>`, `-host <addr>`, `-pipeline` (start the KNIRVMODELS data pipeline), `-direct` (drive the ASIC over raw USB instead of CGMiner), and `-llama` (start the local llama.cpp provider).
 
 ### Verify it's running
 
@@ -244,7 +244,7 @@ KNIRV-CLI is a single client for every layer of the network: service discovery w
 | `docs/` | Whitepapers, architecture notes, and implementation guides. |
 | `scripts/` | Sync, deployment, and local testnet management scripts. |
 | `websites/` | KNIRV.NETWORK, REGISTRY.KNIRV.NETWORK, and SYNDICATE.KNIRV.NETWORK (see [Websites](#websites)). |
-| `shared-proto/` | Shared Protobuf definitions (agent, chain, graph, hasher, lora, memory, signing, ...). |
+| `shared-proto/` | Shared Protobuf definitions (agent, chain, graph, models, lora, memory, signing, ...). |
 | `test-reports/` | Generated test output. |
 
 Production/container deployment lives in the private `KNIRV_CORP` repo, not in this one; see [Deployment](#deployment) above.

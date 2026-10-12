@@ -97,24 +97,24 @@ type Config struct {
 	ProofReplicaDirs      []string `mapstructure:"proof_replica_dirs"`
 	ProofValidatorID      string   `mapstructure:"proof_validator_id"`
 	ProofChainSocket      string   `mapstructure:"proof_chain_socket"`
-	// AutoStartHasher is command-line only. When -hasher is set, the wrapper
-	// forwards the flag to the embedded backend so it starts the KNIRVHASHER
+	// AutoStartModels is command-line only. When -models is set, the wrapper
+	// forwards the flag to the embedded backend so it starts the KNIRVMODELS
 	// ASIC driver (hasher-host, which deploys/manages hasher-server) during
 	// initialization. This is independent of AutoStartPipeline: the driver
 	// can run without the data pipeline, and (given an already-running
 	// driver) the pipeline can be started without this flag.
-	AutoStartHasher bool
+	AutoStartModels bool
 	// AutoStartPipeline is command-line only. When -pipeline is set, the
 	// wrapper forwards the flag to the embedded backend so it starts the
-	// KNIRVHASHER data pipeline (data-connector through data-trainer) during
+	// KNIRVMODELS data pipeline (data-connector through data-trainer) during
 	// initialization. The pipeline needs a running ASIC driver to use real
-	// hardware - pair this with -hasher, or rely on a driver started some
-	// other way - but starting it is a decision independent of AutoStartHasher.
+	// hardware - pair this with -models, or rely on a driver started some
+	// other way - but starting it is a decision independent of AutoStartModels.
 	AutoStartPipeline bool
 	// AutoStartDirect is command-line only. When -direct is set alongside
-	// -hasher, the wrapper forwards it to the embedded backend so that
-	// knirvhasher starts in direct ASIC mode (skips CGMiner, drives the ASIC
-	// directly over raw USB). Requires -hasher to take effect.
+	// -models, the wrapper forwards it to the embedded backend so that
+	// knirvmodels starts in direct ASIC mode (skips CGMiner, drives the ASIC
+	// directly over raw USB). Requires -models to take effect.
 	AutoStartDirect bool
 	// AutoStartLlama is command-line only. When -llama is set, the wrapper
 	// extracts and starts the embedded local llama.cpp inference provider
@@ -1523,7 +1523,7 @@ func (app *ServerApp) collectDeepHealthChecks() map[string]healthProbeResult {
 	addProbe("graph", filepath.Join(socketDir, "graph.sock"), "http://localhost/health")
 	addProbe("chain", filepath.Join(socketDir, "chain.sock"), "http://localhost/health")
 	addProbe("arena", filepath.Join(socketDir, "arena.sock"), "http://localhost/health")
-	addProbe("hasher", filepath.Join(socketDir, "hasher.sock"), "http://localhost/health")
+	addProbe("models", filepath.Join(socketDir, "models.sock"), "http://localhost/health")
 	addProbe("monitor", filepath.Join(filepath.Dir(app.config.BackendSocket), "monitor.sock"), "http://localhost/health")
 
 	if app.agentControl != nil {
@@ -3492,15 +3492,15 @@ func (app *ServerApp) startBackend() error {
 		llamaSocket = app.llamaManager.GetSocketPath()
 	}
 	app.llamaMu.Unlock()
-	backendArgs := backendCommandArgs(configFile, app.config.AutoStartHasher, app.config.AutoStartPipeline, app.config.AutoStartDirect, app.config.AutoStartLlama, llamaSocket)
+	backendArgs := backendCommandArgs(configFile, app.config.AutoStartModels, app.config.AutoStartPipeline, app.config.AutoStartDirect, app.config.AutoStartLlama, llamaSocket)
 	if configFile != "" {
 		log.Printf("Passing config file to backend: %s", configFile)
 	}
-	if app.config.AutoStartHasher {
-		log.Println("Hasher driver auto-start requested; forwarding -hasher to backend")
+	if app.config.AutoStartModels {
+		log.Println("Models driver auto-start requested; forwarding -models to backend")
 	}
 	if app.config.AutoStartPipeline {
-		log.Println("Hasher pipeline auto-start requested; forwarding -pipeline to backend")
+		log.Println("Models pipeline auto-start requested; forwarding -pipeline to backend")
 	}
 	if app.config.AutoStartDirect {
 		log.Println("Direct ASIC mode requested; forwarding -direct to backend")
@@ -3772,7 +3772,7 @@ func (app *ServerApp) startBackend() error {
 	// well over 30s to come up — a 30s budget here fired spuriously even on runs
 	// that succeeded a bit over a minute later. 150s covers gateway's worst case
 	// (stale-process/port cleanup + its own 30s health timeout) plus the graph,
-	// chain, hasher, arena, and inference-provider setup that follows it.
+	// chain, models, arena, and inference-provider setup that follows it.
 	const backendHealthTimeout = 150 * time.Second
 	deadline := time.Now().Add(backendHealthTimeout)
 	started := time.Now()
@@ -3834,13 +3834,13 @@ func formatElapsedStat(d time.Duration) string {
 	return fmt.Sprintf("%.0fs", d.Seconds())
 }
 
-func backendCommandArgs(configFile string, autoStartHasher, autoStartPipeline, autoStartDirect, autoStartLlama bool, llamaSocket string) []string {
+func backendCommandArgs(configFile string, autoStartModels, autoStartPipeline, autoStartDirect, autoStartLlama bool, llamaSocket string) []string {
 	args := make([]string, 0, 6)
 	if configFile != "" {
 		args = append(args, "--config", configFile)
 	}
-	if autoStartHasher {
-		args = append(args, "-hasher")
+	if autoStartModels {
+		args = append(args, "-models")
 	}
 	if autoStartPipeline {
 		args = append(args, "-pipeline")
@@ -4198,9 +4198,9 @@ func loadConfig() (*Config, error) {
 		devFlag      = flag.Bool("dev", false, "Run in development mode")
 		entFlag      = flag.Bool("ent", false, "Run as an enterprise node (uses enterprise-{UserIDTag}.knirv.network)")
 		userIDTag    = flag.String("user-id-tag", "", "User identity tag for devnet or enterprise public hostname")
-		hasherFlag   = flag.Bool("hasher", false, "Start the KNIRVHASHER ASIC driver (hasher-host/hasher-server deployment) during server initialization")
-		pipelineFlag = flag.Bool("pipeline", false, "Start the KNIRVHASHER data pipeline during server initialization")
-		directFlag   = flag.Bool("direct", false, "Skip CGMiner and drive the ASIC directly over raw USB (requires -hasher)")
+		modelsFlag   = flag.Bool("models", false, "Start the KNIRVMODELS ASIC driver (hasher-host/hasher-server deployment) during server initialization")
+		pipelineFlag = flag.Bool("pipeline", false, "Start the KNIRVMODELS data pipeline during server initialization")
+		directFlag   = flag.Bool("direct", false, "Skip CGMiner and drive the ASIC directly over raw USB (requires -models)")
 		llamaFlag    = flag.Bool("llama", false, "Start the embedded local llama.cpp inference provider during server initialization")
 		port         = flag.Int("port", 0, "Server port (overrides config)")
 		host         = flag.String("host", "", "Server host (overrides config)")
@@ -4329,7 +4329,7 @@ func loadConfig() (*Config, error) {
 	// fallbacks) above, not from the config YAML, so they always win here.
 	config.NetworkMode = networkMode
 	config.Testnet = networkMode == "testnet"
-	config.AutoStartHasher = *hasherFlag
+	config.AutoStartModels = *modelsFlag
 	config.AutoStartPipeline = *pipelineFlag
 	config.AutoStartDirect = *directFlag
 	config.AutoStartLlama = *llamaFlag || config.Llama.Enabled

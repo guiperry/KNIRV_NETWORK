@@ -220,7 +220,7 @@ maybe('Go <-> TS .nrv files', () => {
       if (m.type === 'P') expect(ids.has(m.anchorId!)).toBe(true);
     }
 
-    // Reading resolves the deltas back to exactly what the hasher wrote.
+    // Reading resolves the deltas back to exactly what the models wrote.
     let n = 0;
     for (const [frame, count] of [['frame-0', 150], ['frame-1', 40]] as const) {
       const bs = reader.getBrackets(frame)!;

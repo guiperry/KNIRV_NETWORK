@@ -29,7 +29,7 @@ message BootnodeKeyFileContentProto {
   // root_key.proto for the selection rule.
   string cloudflare_mainnet_tunnel_token  = 21;
 
-  // Hasher device credentials
+  // Models device credentials
   string device_ip       = 22;
   string device_password = 23;
   string device_username = 24;

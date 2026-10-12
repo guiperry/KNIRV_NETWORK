@@ -115,25 +115,25 @@ Key: `src/components/KNIRVANAGameVisualization.tsx` · `src/components/game/Game
 
 ## Supervision Model
 
-KNIRVHASHER includes a local, evidence-aware advisory model for the KNIRV CLI supervisor (see `supervisor_model.md`). The model never executes actions; deterministic reducer/policy/evidence code makes final decisions.
+KNIRVMODELS includes a local, evidence-aware advisory model for the KNIRV CLI supervisor (see `supervisor_model.md`). The model never executes actions; deterministic reducer/policy/evidence code makes final decisions.
 
 ### Source Layout
 
 | Component | Module | Key files |
 |-----------|--------|-----------|
-| Shared episode schema | `knirvhasher` | `pkg/hashing/schema/supervision.go` |
+| Shared episode schema | `knirvmodels` | `pkg/hashing/schema/supervision.go` |
 | Episode collection (Bronze) | `knirvcli` (KNIRV_CORP) | `internal/supervisor/collector/collector.go` |
-| Silver/Gold pipeline | `knirvhasher` | `pkg/hashing/supervision/pipeline/` |
-| Contrast-set curation | `knirvhasher` | `pkg/hashing/supervision/pipeline/contrast.go` |
-| Semantic retrieval | `knirvhasher` | `pkg/hashing/supervision/retriever.go` |
+| Silver/Gold pipeline | `knirvmodels` | `pkg/hashing/supervision/pipeline/` |
+| Contrast-set curation | `knirvmodels` | `pkg/hashing/supervision/pipeline/contrast.go` |
+| Semantic retrieval | `knirvmodels` | `pkg/hashing/supervision/retriever.go` |
 | CLI advisory adapter | `knirvcli` (KNIRV_CORP) | `internal/supervisor/advisor/advisor.go` |
-| Attestation/ledger | `knirvhasher` | `pkg/hashing/supervision/attestation.go` |
+| Attestation/ledger | `knirvmodels` | `pkg/hashing/supervision/attestation.go` |
 
 ### Testing
 
 ```bash
-# Supervision components in knirvhasher
-cd packages/KNIRVHASHER && go test ./pkg/hashing/schema/... ./pkg/hashing/supervision/...
+# Supervision components in knirvmodels
+cd packages/KNIRVMODELS && go test ./pkg/hashing/schema/... ./pkg/hashing/supervision/...
 # CLI integration in knirvcli
 cd packages/cli && go test ./internal/supervisor/...
 ```

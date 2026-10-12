@@ -1,24 +1,24 @@
-# SKILL.md — KNIRVHASHER Training Pipeline Initializer
+# SKILL.md — KNIRVMODELS Training Pipeline Initializer
 
 ## Skill Name
 
-`train` — Initialize and run the KNIRVHASHER training pipeline
+`train` — Initialize and run the KNIRVMODELS training pipeline
 
 ## Voice Triggers
 
-- "initiate hasher training"
-- "start hasher pipeline"
-- "run hasher training"
-- "train the hasher"
-- "start KNIRVHASHER"
-- "initialize hasher pipeline"
+- "initiate models training"
+- "start models pipeline"
+- "run models training"
+- "train the models"
+- "start KNIRVMODELS"
+- "initialize models pipeline"
 - "run the train command"
 - "start training"
 - "train"
 
 ## Overview
 
-This skill initializes and runs the KNIRVHASHER training pipeline, which transforms raw data (PDFs, HuggingFace datasets, or local text) into trained ASIC neural frames through 4 pipeline stages:
+This skill initializes and runs the KNIRVMODELS training pipeline, which transforms raw data (PDFs, HuggingFace datasets, or local text) into trained ASIC neural frames through 4 pipeline stages:
 
 1. **0_DATA_CONNECTOR** — Data ingestion from HuggingFace or local sources
 2. **1_DATA_MINER** — Generates deterministic embeddings using `github.com/guiperry/text-embedder`
@@ -34,13 +34,13 @@ The pipeline outputs:
 ## Pipeline Root
 
 ```
-packages/KNIRVHASHER/pipeline/
+packages/KNIRVMODELS/pipeline/
 ├── 0_DATA_CONNECTOR/     # HuggingFace / local data ingestion
 ├── 1_DATA_MINER/       # PDF/arXiv → deterministic embeddings
 ├── 2_DATA_ENCODER/     # embeddings → 12-slot ASIC brackets
 ├── 3_DATA_TRAINER/     # Evolutionary training
 ├── scripts/            # Bootstrap and utility scripts
-└── KNIRVHASHER_pipeline_upgrade.md
+└── KNIRVMODELS_pipeline_upgrade.md
 ```
 
 ## Prerequisites
@@ -57,7 +57,7 @@ Before running, ensure:
 
 ```bash
 # Navigate to pipeline root
-cd packages/KNIRVHASHER/pipeline
+cd packages/KNIRVMODELS/pipeline
 
 # Bootstrap with local data (recommended for first run)
 ./scripts/bootstrap_alpaca.sh
@@ -68,7 +68,7 @@ cd packages/KNIRVHASHER/pipeline
 #### Stage 1: Data Miner (Deterministic Primary)
 
 ```bash
-cd packages/KNIRVHASHER/pipeline/1_DATA_MINER
+cd packages/KNIRVMODELS/pipeline/1_DATA_MINER
 
 # Install dependencies (includes text-embedder)
 go mod tidy
@@ -106,7 +106,7 @@ export EMBEDDING_BACKEND=ollama
 #### Stage 2: Data Encoder
 
 ```bash
-cd packages/KNIRVHASHER/pipeline/2_DATA_ENCODER
+cd packages/KNIRVMODELS/pipeline/2_DATA_ENCODER
 
 # Build
 go mod tidy
@@ -122,7 +122,7 @@ go build -o data-encoder .
 #### Stage 3: Data Trainer
 
 ```bash
-cd packages/KNIRVHASHER/pipeline/3_DATA_TRAINER
+cd packages/KNIRVMODELS/pipeline/3_DATA_TRAINER
 
 # Build
 go mod tidy
@@ -204,7 +204,7 @@ Offset  Size  Field
 
 1. **text-embedder import fails**
    ```bash
-   cd packages/KNIRVHASHER/pipeline/1_DATA_MINER
+   cd packages/KNIRVMODELS/pipeline/1_DATA_MINER
    go get github.com/guiperry/text-embedder@v0.1.0
    go mod tidy
    ```
@@ -233,7 +233,7 @@ export EMBEDDING_BACKEND=deterministic
 
 ## References
 
-- Pipeline upgrade doc: `KNIRVHASHER_pipeline_upgrade.md`
+- Pipeline upgrade doc: `KNIRVMODELS_pipeline_upgrade.md`
 - Data Miner README: `1_DATA_MINER/README.md`
 - Data Trainer README: `3_DATA_TRAINER/README.md`
 - Embedder provider: `1_DATA_MINER/internal/embedder/provider.go`

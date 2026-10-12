@@ -11,19 +11,19 @@
       "description": "KNIRVCHAIN gRPC protocol definitions: bootnode_key, hashing, mcp_context, mcp_descriptors, root_key — core blockchain wire formats."
     },
     {
-      "name": "knirvhasher-proto",
-      "path": "./packages/KNIRVHASHER/internal/proto",
-      "description": "KNIRVHASHER gRPC service definition (hasher v1) — data-connector and hashing pipeline wire format."
+      "name": "knirvmodels-proto",
+      "path": "./packages/KNIRVMODELS/internal/proto",
+      "description": "KNIRVMODELS gRPC service definition (models v1) — data-connector and hashing pipeline wire format."
     },
     {
-      "name": "knirvhasher-training-proto",
-      "path": "./packages/KNIRVHASHER/proto",
-      "description": "KNIRVHASHER training pipeline Protobuf (training v1) — training job requests and responses."
+      "name": "knirvmodels-training-proto",
+      "path": "./packages/KNIRVMODELS/proto",
+      "description": "KNIRVMODELS training pipeline Protobuf (training v1) — training job requests and responses."
     },
     {
       "name": "knirvserver-proto",
       "path": "./packages/KNIRVSERVER/backend/internal/proto",
-      "description": "KNIRVSERVER internal gRPC definitions: blockchain, bootnode_key, hasher, root_key — server-side wire formats."
+      "description": "KNIRVSERVER internal gRPC definitions: blockchain, bootnode_key, models, root_key — server-side wire formats."
     },
     {
       "name": "knirvarena-proto",

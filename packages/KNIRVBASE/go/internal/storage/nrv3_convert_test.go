@@ -219,15 +219,15 @@ func indexOf(b, sub []byte) int {
 	return -1
 }
 
-// TestConvertRealNRV3 converts a real hasher batch file and checks every bracket
+// TestConvertRealNRV3 converts a real models batch file and checks every bracket
 // comes back identical through the KNIRVBASE reader:
 //
-//	KNIRV_REAL_NRV3=/var/lib/knirvserver/knirvhasher/data/frames/batches/<batch>/training_frames.nrv \
+//	KNIRV_REAL_NRV3=/var/lib/knirvserver/knirvmodels/data/frames/batches/<batch>/training_frames.nrv \
 //	  go test ./internal/storage -run RealNRV3 -v -timeout 30m
 func TestConvertRealNRV3(t *testing.T) {
 	in := os.Getenv("KNIRV_REAL_NRV3")
 	if in == "" {
-		t.Skip("set KNIRV_REAL_NRV3 to a hasher NRV3 file to run")
+		t.Skip("set KNIRV_REAL_NRV3 to a models NRV3 file to run")
 	}
 	src, err := nrv.OpenNRV3(in)
 	if err != nil {

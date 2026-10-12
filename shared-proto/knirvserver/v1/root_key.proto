@@ -28,7 +28,7 @@ message RootKeyFileContentProto {
   string smtp_password = 20;
   string default_github_token = 21;
 
-  // KNIRVHASHER device credentials (KNIRVSERVER-only)
+  // KNIRVMODELS device credentials (KNIRVSERVER-only)
   string device_ip = 22;
   string device_password = 23;
   string device_username = 24;

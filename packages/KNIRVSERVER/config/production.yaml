@@ -383,10 +383,10 @@ dve:
     connection_pool_size: 10
 
 
-# KNIRVHASHER Configuration
-hasher:
+# KNIRVMODELS Configuration
+models:
   enabled: true
-  frames_dir: /var/lib/knirvserver/knirvhasher/data/frames
+  frames_dir: /var/lib/knirvserver/knirvmodels/data/frames
 
 # Validation Chain Configuration
 # binary_path is staged at startup by KNIRVSERVER (main.go stageEmbeddedChainArtifacts).

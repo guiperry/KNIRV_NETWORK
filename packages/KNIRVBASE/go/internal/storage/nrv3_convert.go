@@ -12,10 +12,10 @@ import (
 
 // MaxBracketsPerFile caps one converted .nrv. KNIRVBASE keeps every bracket's
 // index entry in a fixed 5 MiB registry (indented JSON, ~200 B per bracket), so
-// a hasher batch with hundreds of thousands of brackets must be sharded.
+// a models batch with hundreds of thousands of brackets must be sharded.
 const MaxBracketsPerFile = 16000
 
-// ConvertNRV3File converts a hasher NRV3 file into one or more KNIRVBASE .nrv
+// ConvertNRV3File converts a models NRV3 file into one or more KNIRVBASE .nrv
 // files. See nrv.ConvertFrame for the encoding. The first output is written to
 // outPath; further shards go to "<outPath minus .nrv>.1.nrv", ".2.nrv", ... The
 // written paths are returned in order.

@@ -1,5 +1,5 @@
 //! knirv-hrm — Hierarchical Reasoning Model. One implementation, three builds:
-//! native (KNIRVHASHER trainer), `wasm32-unknown-unknown` + wasm-bindgen (arena),
+//! native (KNIRVMODELS trainer), `wasm32-unknown-unknown` + wasm-bindgen (arena),
 //! and `wasm32-wasip1` (HEART via wazero).
 
 pub mod adapter;

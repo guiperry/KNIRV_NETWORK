@@ -3,7 +3,7 @@
 # KNIRVSERVER is the entry point for the entire network. Its launcher embeds
 # and runs backend_server, ulorad (KNIRVULORA), KNIRVAGENT, and KNIRVLLAMA;
 # backend_server in turn runs KNIRVGATEWAY, KNIRVCHAIN, KNIRVGRAPH,
-# KNIRVORACLE, KNIRVHASHER, and KNIRVARENA. KNIRVMONITOR is built into
+# KNIRVORACLE, KNIRVMODELS, and KNIRVARENA. KNIRVMONITOR is built into
 # KNIRVSERVER itself. See "make testnet-start" below.
 #
 # Every package under packages/ is independent (its own go.mod or
@@ -65,7 +65,7 @@ help: ## Show this help message
 #
 # KNIRVSERVER embeds the compiled backend_server, ulorad, knirvagent, and
 # knirvllama binaries; backend_server carries KNIRVGATEWAY, KNIRVCHAIN,
-# KNIRVGRAPH, KNIRVORACLE, KNIRVHASHER, and KNIRVARENA via the
+# KNIRVGRAPH, KNIRVORACLE, KNIRVMODELS, and KNIRVARENA via the
 # packages/KNIRVSERVER/pkg/knirv* modules. Each is extracted and launched as a
 # subprocess on startup. Building it does NOT require rebuilding any of those
 # packages; their binaries already ship vendored inside packages/KNIRVSERVER.
@@ -98,8 +98,8 @@ testnet-start: testnet-build ## Start KNIRVSERVER (testnet is the default mode; 
 		echo "$(GREEN)✓ KNIRVSERVER healthy$(NC)" || \
 		echo "$(YELLOW)⏳ KNIRVSERVER still initialising — check logs, or run 'make testnet-status'$(NC)"
 	@echo "$(YELLOW)Note: this unprivileged run uses a local sandbox data dir and won't have oracle/root access.$(NC)"
-	@echo "$(YELLOW)For a full node (oracle + hasher, matching the public testnet), run instead:$(NC)"
-	@echo "$(YELLOW)  cd packages/KNIRVSERVER && sudo ORACLE_KEY_PASSWORD=<password> ./dist/knirv-server -hasher$(NC)"
+	@echo "$(YELLOW)For a full node (oracle + models, matching the public testnet), run instead:$(NC)"
+	@echo "$(YELLOW)  cd packages/KNIRVSERVER && sudo ORACLE_KEY_PASSWORD=<password> ./dist/knirv-server -models$(NC)"
 
 .PHONY: testnet-stop
 testnet-stop: ## Stop the local KNIRVSERVER testnet instance
@@ -148,7 +148,7 @@ build-all: ## Build every package in packages/ (KNIRVMONITOR is built as part of
 	@$(MAKE) build-knirvgateway
 	@$(MAKE) build-knirvgraph
 	@$(MAKE) build-knirvoracle
-	@$(MAKE) build-knirvhasher
+	@$(MAKE) build-knirvmodels
 	@$(MAKE) build-knirvagent
 	@$(MAKE) build-knirvulora
 	@$(MAKE) build-knirvinferencer
@@ -193,22 +193,22 @@ build-knirvoracle: ## Build KNIRVORACLE (Go)
 	@echo "$(GREEN)✓ KNIRVORACLE built$(NC)"
 
 
-.PHONY: build-knirvhasher
-build-knirvhasher: ## Build KNIRVHASHER (Go, ASIC inference pipeline)
-	@echo "$(BLUE)Building KNIRVHASHER...$(NC)"
-	@cd packages/KNIRVHASHER && go build -v ./cmd/...
-	@echo "$(GREEN)✓ KNIRVHASHER built$(NC)"
+.PHONY: build-knirvmodels
+build-knirvmodels: ## Build KNIRVMODELS (Go, ASIC inference pipeline)
+	@echo "$(BLUE)Building KNIRVMODELS...$(NC)"
+	@cd packages/KNIRVMODELS && go build -v ./cmd/...
+	@echo "$(GREEN)✓ KNIRVMODELS built$(NC)"
 
 .PHONY: build-data-trainer
 build-data-trainer: ## Build 4_DATA_TRAINER pipeline binary
 	@echo "$(BLUE)Building data-trainer...$(NC)"
-	@cd packages/KNIRVHASHER/pipeline/4_DATA_TRAINER && go build -v ./cmd/data-trainer
+	@cd packages/KNIRVMODELS/pipeline/4_DATA_TRAINER && go build -v ./cmd/data-trainer
 	@echo "$(GREEN)✓ data-trainer built$(NC)"
 
 .PHONY: train
-train: ## Train Gorgonite GPT on training_frames.json (run from KNIRVHASHER root)
+train: ## Train Gorgonite GPT on training_frames.json (run from KNIRVMODELS root)
 	@echo "$(BLUE)Training Gorgonite GPT...$(NC)"
-	@cd packages/KNIRVHASHER/pipeline/4_DATA_TRAINER && go run ./cmd/data-trainer
+	@cd packages/KNIRVMODELS/pipeline/4_DATA_TRAINER && go run ./cmd/data-trainer
 	@echo "$(GREEN)✓ Training complete$(NC)"
 
 .PHONY: build-knirvagent
@@ -311,12 +311,12 @@ test-knirvoracle: ## Test KNIRVORACLE
 	@echo "$(BLUE)Testing KNIRVORACLE...$(NC)"
 	@cd packages/KNIRVORACLE && go test -v ./...
 
-.PHONY: test-knirvhasher
-test-knirvhasher: ## Test KNIRVHASHER
-	@echo "$(BLUE)Testing KNIRVHASHER...$(NC)"
-	@cd packages/KNIRVHASHER && go test -v ./...
+.PHONY: test-knirvmodels
+test-knirvmodels: ## Test KNIRVMODELS
+	@echo "$(BLUE)Testing KNIRVMODELS...$(NC)"
+	@cd packages/KNIRVMODELS && go test -v ./...
 	@echo "$(BLUE)Testing 4_DATA_TRAINER...$(NC)"
-	@cd packages/KNIRVHASHER/pipeline/4_DATA_TRAINER && go test -v ./...
+	@cd packages/KNIRVMODELS/pipeline/4_DATA_TRAINER && go test -v ./...
 
 .PHONY: test-knirvagent
 test-knirvagent: ## Test KNIRVAGENT

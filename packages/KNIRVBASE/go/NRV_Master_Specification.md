@@ -238,7 +238,7 @@ Once all Brackets in a Tier 2 Frame return `z3_verified: true`, the CPU signs th
 
 The `GoldenSeed` field (Slot 11, bytes `0x29–0x2C`) carries a dual role: it is
 both the solved nonce from the ASIC hashing stave and a **hardware-validated policy
-signal**. The Evo-GRPO trainer in KNIRVHASHER modulates the SHA-256 target difficulty
+signal**. The Evo-GRPO trainer in KNIRVMODELS modulates the SHA-256 target difficulty
 before hashing so that nonce magnitude encodes the policy classification of the bracket.
 
 | Policy Context | Target Difficulty | Resulting Nonce Range | Signal Name |

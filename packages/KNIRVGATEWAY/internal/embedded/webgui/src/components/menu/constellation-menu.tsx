@@ -20,7 +20,7 @@ const innerLabels = [
   { label: "KNIRVGRAPH", angle: 330 },
   { label: "KNIRVARENA", angle: 10 },
   { label: "KNIRVAGENT", angle: 50 },
-  { label: "KNIRVHASHER", angle: 90 },
+  { label: "KNIRVMODELS", angle: 90 },
   { label: "KNIRVBASE", angle: 130 },
   { label: "KNIRVWORKERS", angle: 170 },
 ]

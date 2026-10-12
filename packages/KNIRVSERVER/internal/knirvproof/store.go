@@ -151,16 +151,16 @@ func (s *FileStore) PutObject(ctx context.Context, cid string, source io.Reader)
 		}
 	}()
 
-	hasher := sha256.New()
+	models := sha256.New()
 	reader := io.LimitReader(&contextReader{ctx: ctx, reader: source}, s.maxObjectBytes+1)
-	written, err := io.Copy(io.MultiWriter(tmp, hasher), reader)
+	written, err := io.Copy(io.MultiWriter(tmp, models), reader)
 	if err != nil {
 		return 0, false, err
 	}
 	if written > s.maxObjectBytes {
 		return 0, false, ErrTooLarge
 	}
-	actual := cidPrefix + hex.EncodeToString(hasher.Sum(nil))
+	actual := cidPrefix + hex.EncodeToString(models.Sum(nil))
 	if actual != normalized {
 		return 0, false, fmt.Errorf("ciphertext cid mismatch: expected %s, got %s", normalized, actual)
 	}

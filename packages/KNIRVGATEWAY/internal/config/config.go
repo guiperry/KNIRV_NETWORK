@@ -114,8 +114,8 @@ type Config struct {
 	AgentSocketDir     string // /var/lib/knirvserver/sockets/ (agent-{dveId}.sock lives here)
 	AgentMaxConcurrent int    // max concurrent agent processes (default 32)
 
-	// HasherSocketPath for headless CLI mode
-	HasherSocketPath string // /var/run/knirvhasher.sock
+	// ModelsSocketPath for headless CLI mode
+	ModelsSocketPath string // /var/run/knirvmodels.sock
 
 	// AgentControlSocketPath is the Unix socket for the AgentControlServer.
 	// All traffic routes through the gateway, never directly to this socket.
@@ -229,7 +229,8 @@ func Load() (*Config, error) {
 		ShellSocketPath:            getEnv("SHELL_SOCKET_PATH", ""),
 		AgentSocketDir:             getEnv("AGENT_SOCKET_DIR", ""),
 		AgentMaxConcurrent:         getEnvInt("AGENT_MAX_CONCURRENT", 32),
-		HasherSocketPath:           getEnv("HASHER_SOCKET_PATH", "/var/run/knirvhasher.sock"),
+		// HASHER_SOCKET_PATH is the deprecated pre-rename name, honoured for one release.
+		ModelsSocketPath:           getEnv("KNIRV_MODELS_SOCKET_PATH", getEnv("HASHER_SOCKET_PATH", "/var/run/knirvmodels.sock")),
 		AgentControlSocketPath:     getEnv("AGENT_CONTROL_SOCKET_PATH", ""),
 		ArenaSocketPath:            getEnv("ARENA_SOCKET_PATH", ""),
 		BaseCallbackSocket:         getEnv("BASE_CALLBACK_SOCKET", ""),

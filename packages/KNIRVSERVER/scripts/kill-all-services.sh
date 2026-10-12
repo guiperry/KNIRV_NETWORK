@@ -221,14 +221,14 @@ kill_by_binary_path "$HOME/.local/share/knirvserver/bin"
 
 # Kill subprocess services individually (aggressive, with graceful SIGTERM first)
 # These are managed subprocesses launched by the backend — knirvoracle binds a
-# Unix socket, knirvgateway proxies API calls, knirvhasher handles content hashing,
+# Unix socket, knirvgateway proxies API calls, knirvmodels handles content hashing,
 # hasher-host manages ASIC hasher-server deployment, and knirvllama wraps its
 # private llama-server child behind a Unix socket.
 echo ""
-echo "1.6. Killing KNIRV subprocess services (knirvoracle, knirvgateway, knirvhasher, hasher-host, knirvllama)..."
+echo "1.6. Killing KNIRV subprocess services (knirvoracle, knirvgateway, knirvmodels, hasher-host, knirvllama)..."
 kill_by_pattern "knirvoracle" "SIGTERM" "true" || true
 kill_by_pattern "knirvgateway" "SIGTERM" "true" || true
-kill_by_pattern "knirvhasher" "SIGTERM" "true" || true
+kill_by_pattern "knirvmodels" "SIGTERM" "true" || true
 kill_by_pattern "hasher-host" "SIGTERM" "true" || true
 kill_by_pattern "knirvllama" "SIGTERM" "true" || true
 kill_by_pattern "llama-server" "SIGTERM" "true" || true

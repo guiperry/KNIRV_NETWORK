@@ -7,7 +7,7 @@ import (
 	"fmt"
 )
 
-// AssertionAttestation is KNIRVHASHER's chain-owned witness format. Once in a
+// AssertionAttestation is KNIRVMODELS's chain-owned witness format. Once in a
 // block it is committed by TxMerkleRoot, never by a Bitcoin header field.
 type AssertionAttestation struct {
 	SchemaVersion    int32  `json:"schema_version"`

@@ -40,7 +40,7 @@ func slowBracket(i int) Bracket {
 	return b
 }
 
-// makeNRV3 builds a file like the hasher's nrvio.Writer: full brackets in the
+// makeNRV3 builds a file like the models's nrvio.Writer: full brackets in the
 // bracket section; bracket_index "xor" = bracket XOR previous bracket (index 0:
 // the bracket itself), type I for index 0 and P afterwards.
 func makeNRV3(frames ...int) (*NRV3Writer, [][]Bracket) {

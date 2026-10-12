@@ -1,0 +1,487 @@
+syntax = "proto3";
+
+package models.v1;
+
+option go_package = "knirvmodels/proto/models/v1;modelsv1";
+
+// HasherService provides ASIC computation services
+service HasherService {
+  // ComputeHash computes a single SHA-256 hash
+  rpc ComputeHash(ComputeHashRequest) returns (ComputeHashResponse);
+  
+  // ComputeBatch computes multiple SHA-256 hashes in a batch
+  rpc ComputeBatch(ComputeBatchRequest) returns (ComputeBatchResponse);
+  
+  // StreamCompute streams hash computations for high-throughput scenarios
+  rpc StreamCompute(stream StreamComputeRequest) returns (stream StreamComputeResponse);
+  
+  // GetMetrics retrieves performance metrics from eBPF
+  rpc GetMetrics(GetMetricsRequest) returns (GetMetricsResponse);
+  
+  // GetDeviceInfo retrieves ASIC device information
+  rpc GetDeviceInfo(GetDeviceInfoRequest) returns (GetDeviceInfoResponse);
+
+  // MineWork performs mining on a Bitcoin-style header to find a valid nonce
+  rpc MineWork(MineWorkRequest) returns (MineWorkResponse);
+
+  // VerifyMath verifies a mathematical derivation step
+  rpc VerifyMath(VerifyMathRequest) returns (VerifyMathResponse);
+}
+
+// ModelsTrainingService provides dataset collection and training pipeline services
+service ModelsTrainingService {
+  // ExportSecurityData streams DVE data to the hasher for dataset collection
+  rpc ExportSecurityData(ExportRequest) returns (stream EncryptedChunk);
+  
+  // TriggerTraining triggers a training job on the hasher
+  rpc TriggerTraining(TrainingRequest) returns (TrainingResponse);
+  
+  // GetTrainingStatus retrieves the status of a training job
+  rpc GetTrainingStatus(TrainingStatusRequest) returns (TrainingStatusResponse);
+  
+  // GetUserRules retrieves trained security rules for a user
+  rpc GetUserRules(RulesRequest) returns (RulesResponse);
+  
+  // ValidateAction validates an action against trained user rules
+  rpc ValidateAction(ActionRequest) returns (ActionResponse);
+}
+
+// ComputeHashRequest contains data for single hash computation
+message ComputeHashRequest {
+  // Data to hash (arbitrary bytes)
+  bytes data = 1;
+}
+
+// ComputeHashResponse contains the computed hash and latency info
+message ComputeHashResponse {
+  // Computed SHA-256 hash (32 bytes)
+  bytes hash = 1;
+  
+  // Operation latency in microseconds
+  uint64 latency_us = 2;
+}
+
+// ComputeBatchRequest contains multiple data items to hash
+message ComputeBatchRequest {
+  // Array of data items to hash
+  repeated bytes data = 1;
+  
+  // Maximum batch size (optional, defaults to 256)
+  // Server will process in optimal hardware batches
+  uint32 max_batch_size = 2;
+}
+
+// ComputeBatchResponse contains all computed hashes
+message ComputeBatchResponse {
+  // Array of computed hashes (same order as input)
+  repeated bytes hashes = 1;
+  
+  // Total operation latency in microseconds
+  uint64 total_latency_us = 2;
+  
+  // Number of hashes successfully processed
+  uint32 processed_count = 3;
+
+  // Hardware-found nonces, aligned with hashes. Empty for software paths.
+  repeated uint32 nonces = 4;
+}
+
+// StreamComputeRequest is sent by client in streaming mode
+message StreamComputeRequest {
+  // Data to hash
+  bytes data = 1;
+  
+  // Client-provided request ID for correlation
+  uint64 request_id = 2;
+}
+
+// StreamComputeResponse is returned by server in streaming mode
+message StreamComputeResponse {
+  // Computed hash
+  bytes hash = 1;
+  
+  // Request ID from the original request
+  uint64 request_id = 2;
+  
+  // Operation latency in microseconds
+  uint64 latency_us = 3;
+}
+
+// GetMetricsRequest requests performance metrics
+message GetMetricsRequest {
+  // Reserved for future use (e.g., time range filters)
+}
+
+// GetMetricsResponse contains aggregated performance metrics
+message GetMetricsResponse {
+  // Total number of hash requests processed
+  uint64 total_requests = 1;
+  
+  // Total bytes processed across all requests
+  uint64 total_bytes_processed = 2;
+  
+  // Average latency in microseconds
+  uint64 average_latency_us = 3;
+  
+  // Peak latency in microseconds
+  uint64 peak_latency_us = 4;
+  
+  // Total number of errors encountered
+  uint64 total_errors = 5;
+  
+  // Cache hit count (reserved for future use)
+  uint64 cache_hits = 6;
+  
+  // Cache miss count (reserved for future use)
+  uint64 cache_misses = 7;
+  
+  // Device-specific statistics
+  map<string, uint64> device_stats = 8;
+}
+
+// GetDeviceInfoRequest requests device information
+message GetDeviceInfoRequest {
+  // Empty for now
+}
+
+// GetDeviceInfoResponse contains ASIC device information
+message GetDeviceInfoResponse {
+  // Device file path (e.g., /dev/bitmain-asic)
+  string device_path = 1;
+  
+  // Number of chips in the ASIC
+  uint32 chip_count = 2;
+  
+  // Firmware version string
+  string firmware_version = 3;
+  
+  // Whether device is operational
+  bool is_operational = 4;
+  
+  // Server uptime in seconds
+  uint64 uptime_seconds = 5;
+}
+
+// MineWorkRequest contains data for mining a nonce
+message MineWorkRequest {
+  // 80-byte Bitcoin-style block header
+  bytes header = 1;
+  
+  // Starting nonce value for search
+  uint32 nonce_start = 2;
+  
+  // Ending nonce value for search
+  uint32 nonce_end = 3;
+}
+
+// MineWorkResponse contains the found nonce
+message MineWorkResponse {
+  // The first valid nonce found
+  uint32 nonce = 1;
+  
+  // Operation latency in microseconds
+  uint64 latency_us = 2;
+}
+
+// VerifyMathRequest for math derivation verification
+message VerifyMathRequest {
+  // Context description of the derivation
+  string context = 1;
+  
+  // The proposed mathematical step (LaTeX)
+  string proposition = 2;
+  
+  // Math subdomain (e.g., 0x2200 for Calculus)
+  uint32 subdomain = 3;
+  
+  // Confidence threshold (0.0-1.0)
+  float confidence_threshold = 4;
+}
+
+// VerifyMathResponse for math verification result
+message VerifyMathResponse {
+  // Verification status
+  string status = 1;
+  
+  // Golden nonce if verified
+  string nonce = 2;
+  
+  // Result hash
+  string result_hash = 3;
+  
+  // Detokenized output
+  string detokenized_output = 4;
+  
+  // Logic integrity score (0.0-1.0)
+  float logic_integrity = 5;
+  
+  // Latency in milliseconds
+  float latency_ms = 6;
+}
+
+// FormalVerificationService provides formal proof verification services
+service FormalVerificationService {
+  // SubmitProof submits a canonical proof asset for formal verification
+  rpc SubmitProof(SubmitProofRequest) returns (SubmitProofResponse);
+  
+  // GetProofStatus retrieves the status of a previously submitted proof
+  rpc GetProofStatus(GetProofStatusRequest) returns (GetProofStatusResponse);
+  
+  // GetProofAsset retrieves a stored proof asset by ID
+  rpc GetProofAsset(GetProofAssetRequest) returns (GetProofAssetResponse);
+
+  // Metrics retrieves current verification metrics
+  rpc Metrics(MetricsRequest) returns (MetricsResponse);
+}
+
+// SubmitProofRequest contains a proof asset for formal verification
+message SubmitProofRequest {
+  // Canonical proof asset bytes
+  bytes canonical_proof_asset = 1;
+  
+  // Whether to request hardware attestation after verification
+  bool request_hardware_attestation = 2;
+}
+
+// SubmitProofResponse is the result of a proof submission
+message SubmitProofResponse {
+  // Content-addressed proof asset ID
+  string proof_asset_id = 1;
+  
+  // Current verification status
+  FormalProofStatus status = 2;
+  
+  // Human-readable diagnostic or error message
+  string diagnostic = 3;
+}
+
+// FormalProofStatus enumerates the possible states of a formal proof.
+enum FormalProofStatus {
+  FORMAL_PROOF_UNKNOWN = 0;
+  FORMALLY_VERIFIED = 1;
+  FORMALLY_REJECTED = 2;
+  PROOF_PENDING = 3;
+  CHECKER_UNAVAILABLE = 4;
+}
+
+// GetProofStatusRequest requests proof status by asset ID
+message GetProofStatusRequest {
+  // Proof asset ID to look up
+  string proof_asset_id = 1;
+}
+
+// GetProofStatusResponse contains the current proof status
+message GetProofStatusResponse {
+  // Proof asset ID
+  string proof_asset_id = 1;
+  
+  // Current status
+  FormalProofStatus status = 2;
+  
+  // Verification receipt if available
+  VerificationReceipt receipt = 3;
+}
+
+// GetProofAssetRequest requests a stored proof asset
+message GetProofAssetRequest {
+  // Proof asset ID
+  string proof_asset_id = 1;
+}
+
+// GetProofAssetResponse contains the proof asset
+message GetProofAssetResponse {
+  // Proof asset ID
+  string proof_asset_id = 1;
+  
+  // Canonical proof asset bytes
+  bytes canonical_proof_asset = 2;
+  
+  // Current verification status
+  FormalProofStatus status = 3;
+  
+  // Verification receipt if available
+  VerificationReceipt receipt = 4;
+}
+
+// MetricsRequest requests current verification metrics
+message MetricsRequest {
+  // Reserved for future filtering options
+}
+
+// MetricsResponse contains current verification metrics
+message MetricsResponse {
+  // Total number of proof submissions
+  uint64 total_submissions = 1;
+  
+  // Number of formally verified proofs
+  uint64 verified_count = 2;
+  
+  // Number of formally rejected proofs
+  uint64 rejected_count = 3;
+  
+  // Number of checker errors
+  uint64 error_count = 4;
+  
+  // Current queue depth
+  uint64 queue_depth = 5;
+  
+  // Median check time in milliseconds
+  float median_check_time_ms = 6;
+}
+
+// VerificationReceipt is produced by the formal checker worker
+message VerificationReceipt {
+  // Schema version
+  uint32 schema_version = 1;
+  
+  // Proof asset ID
+  string proof_asset_id = 2;
+  
+  // Verification status
+  string status = 3;
+  
+  // Checker digest (pins the checker implementation)
+  string checker_digest = 4;
+  
+  // Environment digest (pins the verification environment)
+  string environment_digest = 5;
+  
+  // When the check was performed
+  string checked_at = 6;
+  
+  // Diagnostic digest for audit
+  string diagnostic_digest = 7;
+}
+
+// ExportRequest requests DVE data export from KNIRVSERVER
+message ExportRequest {
+  // Organization ID
+  string org_id = 1;
+  
+  // User ID
+  string user_id = 2;
+  
+  // Type of data to export
+  DataType data_type = 3;
+  
+  // Whether to encrypt the exported data
+  bool encrypted = 4;
+}
+
+// DataType enumerates the types of data that can be exported
+enum DataType {
+  ALL = 0;
+  ONTOLOGY = 1;
+  GUARDRAILS = 2;
+  ACTIVITY = 3;
+  MARKDOWN = 4;
+}
+
+// EncryptedChunk is a chunk of encrypted data
+message EncryptedChunk {
+  // Encrypted data payload
+  bytes data = 1;
+  
+  // Unique chunk identifier
+  string chunk_id = 2;
+  
+  // Whether this is the last chunk
+  bool is_last = 3;
+}
+
+// TrainingRequest triggers a training job
+message TrainingRequest {
+  // Organization ID
+  string org_id = 1;
+  
+  // User ID
+  string user_id = 2;
+  
+  // Training trigger type
+  TrainingTrigger trigger = 3;
+  
+  // Additional options
+  map<string, string> options = 4;
+}
+
+// TrainingTrigger enumerates training job triggers
+enum TrainingTrigger {
+  ON_DEMAND = 0;
+  SCHEDULED = 1;
+  GUARDRAIL_VIOLATION = 2;
+}
+
+// TrainingResponse is the response to a training request
+message TrainingResponse {
+  // Unique training job identifier
+  string training_id = 1;
+  
+  // Current status of the training job
+  string status = 2;
+}
+
+// TrainingStatusRequest requests the status of a training job
+message TrainingStatusRequest {
+  // Training job identifier
+  string training_id = 1;
+}
+
+// TrainingStatusResponse contains training job status
+message TrainingStatusResponse {
+  // Training job identifier
+  string training_id = 1;
+  
+  // Current status
+  string status = 2;
+  
+  // Progress percentage (0-100)
+  uint32 progress = 3;
+  
+  // Error message if failed
+  string error = 4;
+}
+
+// RulesRequest requests trained security rules
+message RulesRequest {
+  // User ID
+  string user_id = 1;
+  
+  // Organization ID
+  string org_id = 2;
+}
+
+// RulesResponse contains trained security rules
+message RulesResponse {
+  // Array of trained rule identifiers
+  repeated string rule_ids = 1;
+  
+  // Rule data as JSON
+  string rules_json = 2;
+}
+
+// ActionRequest requests action validation
+message ActionRequest {
+  // User ID
+  string user_id = 1;
+  
+  // Action to validate
+  string action = 2;
+  
+  // Additional context
+  map<string, string> context = 3;
+}
+
+// ActionResponse is the response to an action validation request
+message ActionResponse {
+  // Whether the action is allowed
+  bool allowed = 1;
+  
+  // Confidence score (0.0-1.0)
+  float confidence = 2;
+  
+  // Rule violations detected
+  repeated string violations = 3;
+  
+  // Rules that were applied
+  repeated string applied_rules = 4;
+}
