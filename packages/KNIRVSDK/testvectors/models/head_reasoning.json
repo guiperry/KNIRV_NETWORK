@@ -1,0 +1,35 @@
+{
+  "plan_tokens": [
+    257,
+    104,
+    105,
+    259,
+    120
+  ],
+  "halting_steps": 2,
+  "confidence": 0.5,
+  "model_version": "v1-aaaaaaaa",
+  "dataset_manifest_hash": "dm",
+  "policy_bundle_hash": "sha256:trained",
+  "decisions": [
+    {
+      "name": "action",
+      "kind": "choice",
+      "options": [],
+      "probabilities": [],
+      "selected": "allow",
+      "value": null,
+      "confidence": 0.9,
+      "abstain": false
+    }
+  ],
+  "max_steps": 4,
+  "halt_probability": 0.6,
+  "l_module_activations": [
+    0.1,
+    0.2
+  ],
+  "h_module_activations": [
+    0.3
+  ]
+}

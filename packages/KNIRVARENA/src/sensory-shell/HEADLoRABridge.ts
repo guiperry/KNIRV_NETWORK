@@ -4,7 +4,7 @@ import { authToken } from '../services/serverLLM';
 import type { HEADAdapterApplied, HEADAdapterBind } from './HEADBridge';
 
 /**
- * Connects the real HEAD (KNIRVINFERENCER/head, `knirv-head/v1`) to KNIRVULORA.
+ * Connects the real HEAD (KNIRVMODELS/head, `knirv-head/v1`) to KNIRVULORA.
  *
  * A uLoRA bundle holds a portable canonical core. The server binds it to this
  * HEAD version with the model's own connector (`POST /api/head/adapters/bind`),

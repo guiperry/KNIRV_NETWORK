@@ -14,7 +14,7 @@ import (
 
 	"github.com/guiperry/text-embedder/pkg/embed"
 	"knirvmodels/pkg/embeddings"
-	"knirvmodels/pkg/hashing/head"
+	"knirvmodels/pkg/head"
 	"knirvmodels/pkg/hashing/semanticmemory"
 )
 

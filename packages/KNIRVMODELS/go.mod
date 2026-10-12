@@ -107,3 +107,7 @@ require (
 	golang.org/x/tools v0.41.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260209200024-4cfbd4190f57 // indirect
 )
+
+// Wire contract shared with backend_server and KNIRVINFERENCER (KNIRVSDK nested module).
+require github.com/guiperry/knirv-sdk-go/models v0.0.0
+replace github.com/guiperry/knirv-sdk-go/models => ../KNIRVSDK/go-package/models

@@ -12,6 +12,7 @@
     "./signing": { "types": "./signing.d.ts", "import": "./signing.js", "default": "./signing.js" },
     "./modules": { "types": "./modules.d.ts", "import": "./modules.js", "default": "./modules.js" },
     "./actuarial": { "types": "./actuarial.d.ts", "import": "./actuarial.js", "default": "./actuarial.js" },
+    "./models": { "types": "./models/index.d.ts", "import": "./models/index.js", "default": "./models/index.js" },
     "./wasm/*": "./wasm/*",
     "./package.json": "./package.json"
   },
@@ -29,6 +30,7 @@
     "actuarial.js",
     "actuarial.d.ts",
     "modules/",
+    "models/",
     "wasm/",
     "README.md",
     "LICENSE"
@@ -37,7 +39,7 @@
   "scripts": {
     "build": "node ./scripts/build.mjs && tsc --project tsconfig.json",
     "clean": "node ./scripts/clean.mjs",
-    "test": "npm run build && node ./scripts/test-bindings.mjs",
+    "test": "npm run build && node ./scripts/test-bindings.mjs && node ./scripts/test-models.mjs",
     "prepack": "npm run build",
     "pack:check": "npm pack --dry-run"
   },

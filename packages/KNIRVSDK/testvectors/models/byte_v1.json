@@ -1,0 +1,37 @@
+[
+  {
+    "text": "hi",
+    "width": 6,
+    "tokens": [
+      257,
+      104,
+      105,
+      256,
+      256,
+      256
+    ]
+  },
+  {
+    "text": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+    "width": 8,
+    "tokens": [
+      257,
+      120,
+      120,
+      120,
+      120,
+      120,
+      120,
+      120
+    ]
+  },
+  {
+    "text": "",
+    "width": 3,
+    "tokens": [
+      257,
+      256,
+      256
+    ]
+  }
+]

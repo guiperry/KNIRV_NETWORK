@@ -11,7 +11,7 @@ import (
 	"strings"
 	"testing"
 
-	"knirvmodels/pkg/hashing/head"
+	"knirvmodels/pkg/head"
 )
 
 func headServer(t *testing.T, publish bool) (*httptest.Server, string) {
@@ -19,12 +19,12 @@ func headServer(t *testing.T, publish bool) (*httptest.Server, string) {
 	dir := t.TempDir()
 	const v = "v3-cafef00d"
 	if publish {
-		cfg, _ := os.ReadFile("../head/testdata/golden_config.json")
+		cfg, _ := os.ReadFile("../../head/testdata/golden_config.json")
 		var m map[string]any
 		json.Unmarshal(cfg, &m)
 		m["model_version"] = v
 		cfg, _ = json.Marshal(m)
-		w, _ := os.ReadFile("../head/testdata/golden.safetensors")
+		w, _ := os.ReadFile("../../head/testdata/golden.safetensors")
 		os.WriteFile(filepath.Join(dir, "head_config.json"), cfg, 0o644)
 		os.WriteFile(filepath.Join(dir, "model-"+v+".safetensors"), w, 0o644)
 		os.Symlink("model-"+v+".safetensors", filepath.Join(dir, "model_latest"))

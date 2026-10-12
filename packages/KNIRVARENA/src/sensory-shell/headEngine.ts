@@ -1,4 +1,4 @@
-/** Raw `Reasoning` JSON produced by the knirv-head crate (KNIRVINFERENCER/head/src/model.rs). */
+/** Raw `Reasoning` JSON produced by the knirv-head crate (KNIRVMODELS/head/src/model.rs). */
 export interface HEADDecision {
   name: string;
   kind: 'choice' | 'score';
@@ -39,7 +39,7 @@ export interface HEADEngineInfo {
   adapter?: HEADAdapterApplied;
 }
 
-/** What the model did with an adapter (KNIRVINFERENCER/head/src/adapter.rs `Applied`). */
+/** What the model did with an adapter (KNIRVMODELS/head/src/adapter.rs `Applied`). */
 export interface HEADAdapterApplied {
   content_hash: string;
   tensors_changed: number;

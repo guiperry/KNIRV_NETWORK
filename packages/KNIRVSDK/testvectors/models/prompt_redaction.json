@@ -1,0 +1,14 @@
+{
+  "redaction": {
+    "context": {
+      "current_phase": "develop",
+      "task_summary": {
+        "request": "deploy with AKIAABCDEFGHIJKLMNOP and password=hunter2hunter2"
+      }
+    },
+    "must_not_contain": [
+      "AKIA",
+      "hunter2"
+    ]
+  }
+}

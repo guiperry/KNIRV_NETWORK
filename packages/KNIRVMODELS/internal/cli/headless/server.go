@@ -19,7 +19,7 @@ import (
 
 	"knirvmodels/internal/analyzer"
 	"knirvmodels/internal/cli/controller"
-	"knirvmodels/pkg/hashing/head"
+	"knirvmodels/pkg/head"
 )
 
 const (

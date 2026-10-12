@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"knirvmodels/pkg/hashing/head"
+	"knirvmodels/pkg/head"
 )
 
 // DefaultHEADDir is where 5_HEAD_TRAINER publishes (`--out .../data` -> `.../data/head`).

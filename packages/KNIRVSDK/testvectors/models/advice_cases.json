@@ -1,0 +1,287 @@
+[
+  {
+    "name": "advises",
+    "reasoning": {
+      "plan_tokens": [],
+      "halting_steps": 2,
+      "confidence": 0.5,
+      "model_version": "v1-aaaaaaaa",
+      "dataset_manifest_hash": "dm",
+      "policy_bundle_hash": "sha256:trained",
+      "decisions": [
+        {
+          "name": "action",
+          "kind": "choice",
+          "options": [],
+          "probabilities": [],
+          "selected": "request_review",
+          "value": null,
+          "confidence": 0.9,
+          "abstain": false
+        },
+        {
+          "name": "next_phase",
+          "kind": "choice",
+          "options": [],
+          "probabilities": [],
+          "selected": "develop_review",
+          "value": null,
+          "confidence": 0.7,
+          "abstain": false
+        }
+      ]
+    },
+    "context": {
+      "current_phase": "develop",
+      "policy_bundle_hash": "sha256:ctx"
+    },
+    "expect": {
+      "abstain": false,
+      "recommended_action": "request_review",
+      "next_phase": "develop_review",
+      "confidence": 0.7,
+      "policy_bundle_hash": "sha256:trained"
+    }
+  },
+  {
+    "name": "no next_phase head stays in phase",
+    "reasoning": {
+      "plan_tokens": [],
+      "halting_steps": 2,
+      "confidence": 0.5,
+      "model_version": "v1-aaaaaaaa",
+      "dataset_manifest_hash": "dm",
+      "policy_bundle_hash": "sha256:trained",
+      "decisions": [
+        {
+          "name": "action",
+          "kind": "choice",
+          "options": [],
+          "probabilities": [],
+          "selected": "allow",
+          "value": null,
+          "confidence": 0.95,
+          "abstain": false
+        }
+      ]
+    },
+    "context": {
+      "current_phase": "validate",
+      "policy_bundle_hash": "sha256:ctx"
+    },
+    "expect": {
+      "abstain": false,
+      "recommended_action": "allow",
+      "next_phase": "validate",
+      "confidence": 0.95,
+      "policy_bundle_hash": "sha256:trained"
+    }
+  },
+  {
+    "name": "untrained bundle falls back to caller's",
+    "reasoning": {
+      "plan_tokens": [],
+      "halting_steps": 2,
+      "confidence": 0.5,
+      "model_version": "v1-aaaaaaaa",
+      "dataset_manifest_hash": "dm",
+      "policy_bundle_hash": "",
+      "decisions": [
+        {
+          "name": "action",
+          "kind": "choice",
+          "options": [],
+          "probabilities": [],
+          "selected": "allow",
+          "value": null,
+          "confidence": 0.95,
+          "abstain": false
+        }
+      ]
+    },
+    "context": {
+      "current_phase": "validate",
+      "policy_bundle_hash": "sha256:ctx"
+    },
+    "expect": {
+      "abstain": false,
+      "recommended_action": "allow",
+      "next_phase": "validate",
+      "confidence": 0.95,
+      "policy_bundle_hash": "sha256:ctx"
+    }
+  },
+  {
+    "name": "no decisions",
+    "reasoning": {
+      "plan_tokens": [],
+      "halting_steps": 2,
+      "confidence": 0.5,
+      "model_version": "v1-aaaaaaaa",
+      "dataset_manifest_hash": "dm",
+      "policy_bundle_hash": "sha256:trained",
+      "decisions": []
+    },
+    "context": {
+      "current_phase": "develop"
+    },
+    "expect": {
+      "abstain": true
+    }
+  },
+  {
+    "name": "action below tau",
+    "reasoning": {
+      "plan_tokens": [],
+      "halting_steps": 2,
+      "confidence": 0.5,
+      "model_version": "v1-aaaaaaaa",
+      "dataset_manifest_hash": "dm",
+      "policy_bundle_hash": "sha256:trained",
+      "decisions": [
+        {
+          "name": "action",
+          "kind": "choice",
+          "options": [],
+          "probabilities": [],
+          "selected": null,
+          "value": null,
+          "confidence": 0.2,
+          "abstain": true
+        }
+      ]
+    },
+    "context": {
+      "current_phase": "develop"
+    },
+    "expect": {
+      "abstain": true
+    }
+  },
+  {
+    "name": "phase below tau",
+    "reasoning": {
+      "plan_tokens": [],
+      "halting_steps": 2,
+      "confidence": 0.5,
+      "model_version": "v1-aaaaaaaa",
+      "dataset_manifest_hash": "dm",
+      "policy_bundle_hash": "sha256:trained",
+      "decisions": [
+        {
+          "name": "action",
+          "kind": "choice",
+          "options": [],
+          "probabilities": [],
+          "selected": "allow",
+          "value": null,
+          "confidence": 0.9,
+          "abstain": false
+        },
+        {
+          "name": "next_phase",
+          "kind": "choice",
+          "options": [],
+          "probabilities": [],
+          "selected": null,
+          "value": null,
+          "confidence": 0.2,
+          "abstain": true
+        }
+      ]
+    },
+    "context": {
+      "current_phase": "develop"
+    },
+    "expect": {
+      "abstain": true
+    }
+  },
+  {
+    "name": "out-of-vocabulary action",
+    "reasoning": {
+      "plan_tokens": [],
+      "halting_steps": 2,
+      "confidence": 0.5,
+      "model_version": "v1-aaaaaaaa",
+      "dataset_manifest_hash": "dm",
+      "policy_bundle_hash": "sha256:trained",
+      "decisions": [
+        {
+          "name": "action",
+          "kind": "choice",
+          "options": [],
+          "probabilities": [],
+          "selected": "rm -rf /",
+          "value": null,
+          "confidence": 0.99,
+          "abstain": false
+        }
+      ]
+    },
+    "context": {
+      "current_phase": "develop"
+    },
+    "expect": {
+      "abstain": true
+    }
+  },
+  {
+    "name": "abstain is not a label",
+    "reasoning": {
+      "plan_tokens": [],
+      "halting_steps": 2,
+      "confidence": 0.5,
+      "model_version": "v1-aaaaaaaa",
+      "dataset_manifest_hash": "dm",
+      "policy_bundle_hash": "sha256:trained",
+      "decisions": [
+        {
+          "name": "action",
+          "kind": "choice",
+          "options": [],
+          "probabilities": [],
+          "selected": "abstain",
+          "value": null,
+          "confidence": 0.99,
+          "abstain": false
+        }
+      ]
+    },
+    "context": {
+      "current_phase": "develop"
+    },
+    "expect": {
+      "abstain": true
+    }
+  },
+  {
+    "name": "score head only",
+    "reasoning": {
+      "plan_tokens": [],
+      "halting_steps": 2,
+      "confidence": 0.5,
+      "model_version": "v1-aaaaaaaa",
+      "dataset_manifest_hash": "dm",
+      "policy_bundle_hash": "sha256:trained",
+      "decisions": [
+        {
+          "name": "action",
+          "kind": "score",
+          "options": [],
+          "probabilities": [],
+          "selected": null,
+          "value": 0.5,
+          "confidence": null,
+          "abstain": false
+        }
+      ]
+    },
+    "context": {
+      "current_phase": "develop"
+    },
+    "expect": {
+      "abstain": true
+    }
+  }
+]

@@ -1,7 +1,7 @@
 # 5_HEAD_TRAINER
 
 Trains the `knirv-head` Hierarchical Reasoning Model (arena_fixes.md §2.6). It links the
-same crate the arena runs in the browser (`KNIRVINFERENCER/head`), so training and
+same crate the arena runs in the browser (`KNIRVMODELS/head`), so training and
 inference cannot drift.
 
 ```bash
@@ -30,7 +30,7 @@ Exit status: `0` promoted, `3` trained but refused by the gate, `1` error.
 
 ## As a pipeline stage
 
-`KNIRVMODELS/pkg/hashing/head/cycle` runs this trainer automatically after pipeline batches (and on demand:
+`KNIRVMODELS/pkg/head/cycle` runs this trainer automatically after pipeline batches (and on demand:
 `curl --unix-socket /var/run/knirvmodels.sock -X POST -d '{"force":true}' http://x/api/v1/head/train`, status at
 `GET /api/v1/head/status`). It reads Bronze from `<appdata>/knirvmodels/supervision/bronze/*.jsonl`
 (`KNIRV_HEAD_BRONZE_DIR`), and uses `<appdata>/knirvmodels/head-work/teacher.jsonl` as `--soft` if present.

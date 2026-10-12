@@ -10,8 +10,15 @@ use serde::Deserialize;
 use serde_json::{json, Map, Value};
 use std::collections::{BTreeMap, BTreeSet};
 
-/// Shared with `TestPromptSharedVector` in head_advise_test.go.
-pub const PROMPT_VECTOR: &str = "phase:develop intent:review risk:medium budget:a=1,b=2 agents:claude>codex evidence:diff,report\nrequest:fix the build";
+/// The canonical prompt vector, shared with the Go and TypeScript SDK packages
+/// (KNIRVSDK/testvectors/models/prompt_vector.json). If one side changes, all must.
+const PROMPT_VECTOR_JSON: &str = include_str!("../../../../KNIRVSDK/testvectors/models/prompt_vector.json");
+
+/// The prompt string from the shared vector.
+pub fn prompt_vector() -> String {
+    let v: Value = serde_json::from_str(PROMPT_VECTOR_JSON).expect("shared prompt vector is valid JSON");
+    v["prompt"].as_str().expect("vector has a prompt").to_string()
+}
 
 #[derive(Deserialize, Default)]
 struct Task {
@@ -214,7 +221,7 @@ mod tests {
     #[test]
     fn prompt_matches_the_servers_vector() {
         let e: Episode = serde_json::from_str(&ep("x", json!({}))).unwrap();
-        assert_eq!(prompt(&e), PROMPT_VECTOR);
+        assert_eq!(prompt(&e), prompt_vector());
     }
 
     #[test]
@@ -245,7 +252,7 @@ mod tests {
                    (Some("request_review"), Some("develop_review"), Some("review"), Some("codex")));
         assert_eq!(l["risk"], 0.375);
         assert_eq!(out[0]["group"], "fam");
-        assert_eq!(out[0]["input"], PROMPT_VECTOR.replace("evidence:diff,report", "evidence:diff,report"));
+        assert_eq!(out[0]["input"], prompt_vector());
     }
 
     #[test]

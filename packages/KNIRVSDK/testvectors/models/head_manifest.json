@@ -1,0 +1,10 @@
+{
+  "version": "v1-aaaaaaaa",
+  "config": {
+    "max_seq_len": 40,
+    "summary_slots": 1,
+    "dataset_manifest_hash": "dm"
+  },
+  "sha256": "abababababababababababababababababababababababababababababababab",
+  "size": 1234
+}

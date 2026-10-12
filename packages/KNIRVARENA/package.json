@@ -44,7 +44,7 @@
     "build:pwa:android": "npm run build && npx cap sync android",
     "build:pwa:ios": "npm run build && npx cap sync ios",
     "build:head": "./scripts/build-head.sh",
-    "test:head": "cargo test --release --manifest-path ../KNIRVINFERENCER/head/Cargo.toml",
+    "test:head": "cargo test --release --manifest-path ../KNIRVMODELS/head/Cargo.toml",
     "clean": "npm run clean && npm run build",
     "db:backup": "node -e \"console.log('Creating database backup...'); require('fs').copyFileSync('./data/ergo.db', `./data/backup-${new Date().toISOString().replace(/[:.]/g, '-')}.db`); console.log('Backup created successfully');\"",
     "db:migrate": "node scripts/migrate-to-nebuladb.cjs",

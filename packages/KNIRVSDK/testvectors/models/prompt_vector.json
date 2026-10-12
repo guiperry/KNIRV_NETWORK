@@ -1,0 +1,28 @@
+{
+  "_note": "Shared by Go (KNIRVSDK/go-package/models), TypeScript (npm-package/src/models) and 5_HEAD_TRAINER/src/episodes.rs. If one side changes, all must change together or training and serving diverge.",
+  "context": {
+    "current_phase": "develop",
+    "task_summary": {
+      "intent": "review",
+      "risk": "medium",
+      "request": "fix the build"
+    },
+    "remaining_budget": {
+      "b": 2,
+      "a": 1
+    },
+    "agent_chain": [
+      "claude",
+      "codex"
+    ],
+    "evidence_summary": [
+      {
+        "class": "report"
+      },
+      {
+        "class": "diff"
+      }
+    ]
+  },
+  "prompt": "phase:develop intent:review risk:medium budget:a=1,b=2 agents:claude>codex evidence:diff,report\nrequest:fix the build"
+}
