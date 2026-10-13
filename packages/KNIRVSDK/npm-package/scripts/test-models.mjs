@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 import {
-  BYTE_V1, HEAD_PREFIX, ModelsClient, NotReadyError, abstainAdvice, adviceFromReasoning, buildAdvisePrompt, encodeByteV1, inputWidth, planText,
+  BYTE_V1, HEAD_PREFIX, ModelsClient, NotReadyError, STATUS_PATH, abstainAdvice, adviceFromReasoning, buildAdvisePrompt, encodeByteV1, inputWidth, planText, roles,
 } from "../models/index.js";
 
 const vec = async (name) => JSON.parse(await readFile(new URL(`../../testvectors/models/${name}`, import.meta.url), "utf8"));
@@ -105,4 +105,15 @@ test("registry, HEART and HASHER fixtures round-trip through the client", async 
   assert.equal((await c.hasherValidate(hc.validate.request)).valid, true);
   assert.equal((await c.hasherInfer("x")).mode, "transformer");
   assert.equal((await c.hasherStatus()).loaded, false);
+});
+
+test("platform status role lines match the shared vectors (same file as the Go twin)", async () => {
+  const cases = await vec("platform_status.json");
+  assert.equal(Object.keys(cases).length, 3);
+  for (const [name, c] of Object.entries(cases)) {
+    const got = roles(c.status).map((r) => ({ ...r, detail: r.detail || undefined }));
+    const want = c.roles.map((r) => ({ ...r, detail: r.detail || undefined }));
+    assert.deepEqual(got, want, name);
+  }
+  assert.equal(STATUS_PATH, "/api/models/status");
 });

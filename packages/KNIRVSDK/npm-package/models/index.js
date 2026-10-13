@@ -176,3 +176,57 @@ export class ModelsClient {
         }
     }
 }
+// ---- platform status (GET /api/models/status) -------------------------------------------
+/** The backend's authenticated route for the platform-wide model view. */
+export const STATUS_PATH = "/api/models/status";
+const sha12 = (s) => (s.length > 12 ? s.slice(0, 12) : s);
+/** The fixed list of role lines for a status document (same logic as the Go twin). */
+export function roles(s) {
+    const byName = new Map((s.daemon ?? []).map((m) => [m.name, m]));
+    const daemon = (role, label, name) => {
+        const l = { role, label, model: name, version: "", state: "unavailable" };
+        const m = byName.get(name);
+        if (!m) {
+            l.detail = s.daemon_error ? s.daemon_error : "not served by the models daemon";
+        }
+        else if (m.ready) {
+            l.state = "ready";
+            l.version = m.version;
+        }
+        else if (!m.loaded && !m.error) {
+            l.state = "idle";
+            l.version = m.version;
+            l.detail = "not built yet; built on first use";
+        }
+        else {
+            l.state = "not ready";
+            l.version = m.version;
+            l.detail = m.error || "not trained yet";
+        }
+        return l;
+    };
+    const llama = { role: "server_tasks", label: "server tasks and skills", model: "llama", version: "", state: "unavailable", detail: "llama is not running" };
+    if (s.llama) {
+        llama.state = "not ready";
+        llama.detail = s.llama.error ?? "";
+        if (s.llama.ready) {
+            llama.state = "ready";
+            if (s.llama.base_sha256)
+                llama.version = "gguf-" + sha12(s.llama.base_sha256);
+            const loaded = (s.llama.adapters ?? []).filter((a) => a.loaded).map((a) => a.name);
+            llama.detail = loaded.length ? "adapters: " + loaded.join(", ") : "no skill adapter loaded";
+        }
+        else if (!llama.detail) {
+            llama.detail = "starting";
+        }
+    }
+    const ext = { role: "external", label: "fallback and planning", model: "external", version: "provider-chain", state: "ready",
+        detail: "chosen per request; the only model that leaves this machine" };
+    const st = s.stats?.["external"];
+    if (st && st.circuit && st.circuit !== "closed") {
+        ext.state = "not ready";
+        ext.detail = `circuit ${st.circuit}: ${st.last_error ?? ""}`;
+    }
+    return [daemon("decide", "supervision decisions", "head"), daemon("generate", "text generation", "heart"),
+        daemon("validate", "validation", "hasher"), llama, ext];
+}

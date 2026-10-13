@@ -1,0 +1,53 @@
+{
+  "ready_all": {
+    "status": {
+      "time": "2026-10-13T12:00:00Z",
+      "daemon": [
+        {"name": "head", "role": "reasoner", "version": "v3-1a2b3c4d", "ready": true, "loaded": true, "trained": true, "backend": "rust"},
+        {"name": "heart", "role": "generator", "version": "gpt-0.2", "ready": true, "loaded": true, "trained": true, "backend": "go"},
+        {"name": "hasher", "role": "validator", "version": "unified-1", "ready": true, "loaded": true, "trained": false, "backend": "go"}
+      ],
+      "llama": {"ready": true, "base_model": "model.gguf", "base_sha256": "0123456789abcdef0123456789abcdef", "adapters": [
+        {"name": "skill-aaaa1111", "loaded": true, "base_sha256": "0123456789abcdef0123456789abcdef", "bundle_hash": "aaaa1111bbbb2222"},
+        {"name": "skill-cccc3333", "loaded": false}
+      ]},
+      "routing": [{"id": "t1", "time": "2026-10-13T11:59:00Z", "kind": "generate", "chosen": "heart", "model_version": "gpt-0.2", "latency_ms": 12.5}],
+      "stats": {"external": {"calls": 3, "failures": 0, "p50_ms": 800, "p95_ms": 900, "circuit": "closed"}}
+    },
+    "roles": [
+      {"role": "decide", "label": "supervision decisions", "model": "head", "version": "v3-1a2b3c4d", "state": "ready"},
+      {"role": "generate", "label": "text generation", "model": "heart", "version": "gpt-0.2", "state": "ready"},
+      {"role": "validate", "label": "validation", "model": "hasher", "version": "unified-1", "state": "ready"},
+      {"role": "server_tasks", "label": "server tasks and skills", "model": "llama", "version": "gguf-0123456789ab", "state": "ready", "detail": "adapters: skill-aaaa1111"},
+      {"role": "external", "label": "fallback and planning", "model": "external", "version": "provider-chain", "state": "ready", "detail": "chosen per request; the only model that leaves this machine"}
+    ]
+  },
+  "degraded": {
+    "status": {
+      "time": "2026-10-13T12:00:00Z",
+      "daemon": [
+        {"name": "head", "role": "reasoner", "version": "", "ready": false, "loaded": false, "trained": false, "backend": "rust", "error": "no model published"},
+        {"name": "heart", "role": "generator", "version": "", "ready": false, "loaded": false, "trained": false, "backend": "go"}
+      ],
+      "routing": [],
+      "stats": {"external": {"calls": 9, "failures": 4, "p50_ms": 1, "p95_ms": 2, "circuit": "open", "last_error": "HTTP 500"}}
+    },
+    "roles": [
+      {"role": "decide", "label": "supervision decisions", "model": "head", "version": "", "state": "not ready", "detail": "no model published"},
+      {"role": "generate", "label": "text generation", "model": "heart", "version": "", "state": "idle", "detail": "not built yet; built on first use"},
+      {"role": "validate", "label": "validation", "model": "hasher", "version": "", "state": "unavailable", "detail": "not served by the models daemon"},
+      {"role": "server_tasks", "label": "server tasks and skills", "model": "llama", "version": "", "state": "unavailable", "detail": "llama is not running"},
+      {"role": "external", "label": "fallback and planning", "model": "external", "version": "provider-chain", "state": "not ready", "detail": "circuit open: HTTP 500"}
+    ]
+  },
+  "daemon_down": {
+    "status": {"time": "2026-10-13T12:00:00Z", "daemon": [], "daemon_error": "dial unix models.sock: connection refused", "llama": {"ready": false, "error": "health check failed"}, "routing": [], "stats": {}},
+    "roles": [
+      {"role": "decide", "label": "supervision decisions", "model": "head", "version": "", "state": "unavailable", "detail": "dial unix models.sock: connection refused"},
+      {"role": "generate", "label": "text generation", "model": "heart", "version": "", "state": "unavailable", "detail": "dial unix models.sock: connection refused"},
+      {"role": "validate", "label": "validation", "model": "hasher", "version": "", "state": "unavailable", "detail": "dial unix models.sock: connection refused"},
+      {"role": "server_tasks", "label": "server tasks and skills", "model": "llama", "version": "", "state": "not ready", "detail": "health check failed"},
+      {"role": "external", "label": "fallback and planning", "model": "external", "version": "provider-chain", "state": "ready", "detail": "chosen per request; the only model that leaves this machine"}
+    ]
+  }
+}

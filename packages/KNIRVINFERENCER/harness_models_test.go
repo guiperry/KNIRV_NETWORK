@@ -317,3 +317,53 @@ func TestExternalModelInfoAndDispatch(t *testing.T) {
 		t.Fatalf("%q %q", g.Text, p.Text)
 	}
 }
+
+func TestBuildPlatformStatus(t *testing.T) {
+	d := &fakeDaemon{registry: rows(true, false, true)}
+	d.registry[0].Detail = json.RawMessage(`{"secret":"/home/u/model"}`)
+	client := d.client(t)
+	fl := &fakeLlama{}
+	llama := fl.model(t, &fakeSkills{ad: &SkillAdapter{Name: "skill-x", BundleHash: "bh", BaseSHA256: "abcdef0123456789"}})
+	head, heart, hasher := DaemonModels(client)
+	h := NewHarness([]HarnessModel{head, heart, hasher, llama}, WithRoutes(map[Kind][]string{KindServerTask: {"llama"}, KindGenerate: {"heart", "llama"}}))
+	_, _, _ = h.Do(context.Background(), Task{Kind: KindServerTask, Input: "p"})
+
+	s := BuildPlatformStatus(context.Background(), client, llama, h, 10)
+	if len(s.Daemon) != 3 || s.Daemon[0].Detail != nil || s.DaemonError != "" {
+		t.Fatalf("daemon rows must be there without internal detail: %+v", s.Daemon)
+	}
+	if s.Llama == nil || !s.Llama.Ready || s.Llama.BaseModel != "m.gguf" || s.Llama.BaseSHA256 != "abcdef0123456789" {
+		t.Fatalf("llama: %+v", s.Llama)
+	}
+	if len(s.Routing) != 1 || s.Routing[0].Chosen != "llama" || s.Routing[0].Kind != "server_task" {
+		t.Fatalf("routing: %+v", s.Routing)
+	}
+	if st := s.Stats["llama"]; st.Calls != 1 || st.Circuit != "closed" {
+		t.Fatalf("stats: %+v", s.Stats)
+	}
+	roles := s.Roles()
+	if roles[1].State != "idle" && roles[1].State != "not ready" {
+		t.Fatalf("heart row: %+v", roles[1])
+	}
+	raw, _ := json.Marshal(s)
+	if strings.Contains(string(raw), "/home/u") || strings.Contains(string(raw), `"prompt"`) {
+		t.Fatalf("status leaked internals: %s", raw)
+	}
+}
+
+func TestBuildPlatformStatusReportsWhatIsDown(t *testing.T) {
+	dead := httptest.NewServer(http.NotFoundHandler())
+	dead.Close()
+	fl := &fakeLlama{down: true}
+	s := BuildPlatformStatus(context.Background(), models.NewClient(dead.URL, nil), fl.model(t, nil), nil, 5)
+	if s.DaemonError == "" || len(s.Daemon) != 0 || s.Llama == nil || s.Llama.Ready || s.Llama.Error == "" {
+		t.Fatalf("%+v", s)
+	}
+	if got := s.Roles()[0]; got.State != "unavailable" || got.Detail == "" {
+		t.Fatalf("%+v", got)
+	}
+	empty := BuildPlatformStatus(context.Background(), nil, nil, nil, 5)
+	if empty.Llama != nil || len(empty.Routing) != 0 {
+		t.Fatalf("%+v", empty)
+	}
+}

@@ -39,6 +39,7 @@ import { KernelSecurityCard } from '@/components/dashboard/kernel-security-card'
 import { SystemTelemetryCard } from '@/components/dashboard/system-telemetry-card';
 import { NetworkMonitorCard } from '@/components/dashboard/network-monitor-card';
 import { RootFailoverCard } from '@/components/dashboard/root-failover-card';
+import { ModelsStatusCard } from '@/components/dashboard/models-status-card';
 import { ActuarialMetricsCard } from '@/components/dashboard/actuarial-metrics-card';
 import { NetworkMonitorPanel } from '@/components/dashboard/network-monitor-panel';
 import type { ProcessingActivity } from '@/components/dashboard/cognitive-engine-log-routing';
@@ -1019,6 +1020,12 @@ function DashboardWrapperInner({ children, onRentDVE }: DashboardWrapperProps) {
                           </PanelErrorBoundary>
                           <PanelErrorBoundary>
                             <SystemTelemetryCard className="aether-bevel-dark rounded-2xl" />
+                          </PanelErrorBoundary>
+                        </div>
+
+                        <div className="grid grid-cols-1 gap-4">
+                          <PanelErrorBoundary>
+                            <ModelsStatusCard />
                           </PanelErrorBoundary>
                         </div>
                       </TabsContent>

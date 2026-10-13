@@ -21,6 +21,7 @@ import { ChatBrainProvider } from './contexts/ChatBrainContext';
 import { CortexBuilder } from './components/CortexBuilder';
 import { SlideDownModal } from './components/SlideDownModal';
 import { ProviderKeysPanel } from './components/ProviderKeysPanel';
+import { ModelStatusPanel } from './components/ModelStatusPanel';
 import { NodeSubmissionForm, type NodeKind, type NodeSubmission } from './components/NodeSubmissionForm';
 import { DatasetSubmissionForm } from './components/DatasetSubmissionForm';
 import { SkillsModalContent } from './components/modals/SkillsModalContent';
@@ -842,6 +843,15 @@ const MenuItem: React.FC<MenuItemProps> = ({ onClick, children, icon, className 
           >
             Provider Keys
           </MenuItem>
+          <MenuItem
+            onClick={() => {
+              setActivePanels(prev => (prev.includes('model-status') ? prev : [...prev, 'model-status']));
+              setMenuOpen(false);
+            }}
+            icon="🧠"
+          >
+            Models
+          </MenuItem>
         </BurgerMenu>
       </div>
 
@@ -888,6 +898,16 @@ const MenuItem: React.FC<MenuItemProps> = ({ onClick, children, icon, className 
           side="right"
         >
           {activePanels.includes('provider-keys') && <ProviderKeysPanel />}
+        </SlidingPanel>
+
+        <SlidingPanel
+          id="model-status"
+          isOpen={activePanels.includes('model-status')}
+          onClose={() => closePanel('model-status')}
+          title="Models"
+          side="right"
+        >
+          {activePanels.includes('model-status') && <ModelStatusPanel />}
         </SlidingPanel>
 
         <SlidingPanel

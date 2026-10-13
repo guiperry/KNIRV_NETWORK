@@ -177,3 +177,63 @@ export declare class ModelsClient {
     /** manifest → encode → reason → advice; every failure is an abstention. */
     advise(c: AdviseContext): Promise<SupervisorAdvice>;
 }
+/** The backend's authenticated route for the platform-wide model view. */
+export declare const STATUS_PATH = "/api/models/status";
+export interface LlamaAdapter {
+    name: string;
+    loaded: boolean;
+    base_sha256?: string;
+    bundle_hash?: string;
+}
+/** The embedded llama.cpp. `base_model` is a file name, never a path. */
+export interface LlamaStatus {
+    ready: boolean;
+    base_model?: string;
+    base_sha256?: string;
+    adapters?: LlamaAdapter[];
+    error?: string;
+}
+/** One harness decision, without any prompt or output text. */
+export interface RoutingEvent {
+    id: string;
+    time: string;
+    kind: string;
+    skill?: string;
+    chosen?: string;
+    model_version?: string;
+    adapter?: string;
+    degraded?: boolean;
+    fallbacks?: string[];
+    reason?: string;
+    notes?: string[];
+    latency_ms: number;
+    error?: string;
+}
+export interface RouteStats {
+    calls: number;
+    failures: number;
+    p50_ms: number;
+    p95_ms: number;
+    circuit: string;
+    last_error?: string;
+}
+export interface PlatformStatus {
+    time: string;
+    daemon: ModelStatus[];
+    daemon_error?: string;
+    llama?: LlamaStatus;
+    routing: RoutingEvent[];
+    stats: Record<string, RouteStats>;
+}
+export type RoleState = "ready" | "idle" | "not ready" | "unavailable";
+/** One row of "which model does what": role -> model -> version. */
+export interface RoleLine {
+    role: string;
+    label: string;
+    model: string;
+    version: string;
+    state: RoleState;
+    detail?: string;
+}
+/** The fixed list of role lines for a status document (same logic as the Go twin). */
+export declare function roles(s: PlatformStatus): RoleLine[];
