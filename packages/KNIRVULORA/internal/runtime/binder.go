@@ -7,6 +7,7 @@ import (
 
 	"ulora/internal/api"
 	"ulora/internal/bundling"
+	"ulora/internal/llamatarget"
 	"ulora/internal/safetensors"
 )
 
@@ -238,8 +239,10 @@ func (b *Binder) BindBytes(targetModel api.BaseModelSpec) (map[string][][]float3
 
 func (b *Binder) validateTopology(target api.BaseModelSpec) error {
 	src := b.manifest.BaseSourceModel
-	if src.AttentionMechanism != target.AttentionMechanism ||
-		src.ActivationFunc != target.ActivationFunc {
+	// MHA, GQA and MQA differ only in how K and V are shared, so a core that only
+	// touches Q and O is indifferent to them; a core with K/V modules is not.
+	attentionOK := llamatarget.AttentionCompatible(src.AttentionMechanism, target.AttentionMechanism, b.manifest.CanonicalCore.TargetModules)
+	if !attentionOK || src.ActivationFunc != target.ActivationFunc {
 		return fmt.Errorf("topology mismatch: attention=%s/%s, activation=%s/%s",
 			src.AttentionMechanism, target.AttentionMechanism,
 			src.ActivationFunc, target.ActivationFunc)

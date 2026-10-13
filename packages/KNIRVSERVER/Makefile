@@ -116,7 +116,7 @@ YELLOW := \033[1;33m
 BLUE := \033[0;34m
 NC := \033[0m # No Color
 
-.PHONY: help all clean build test deploy install deps frontend backend binary relink docker os deployer key-encryptor deploy-dev-local ebpf-generate proto kali-docker-image gateway-build gateway-deps gateway-clean graph-build graph-deps graph-clean chain-build chain-deps chain-clean oracle-build oracle-deps oracle-clean models-build models-preflight models-deps models-clean agent-build agent-deps agent-clean llama-build llama-clean arena-build arena-deps arena-clean ulora-build ulora-mlc-build inferencer-deps inferencer-build build-full
+.PHONY: help all clean build test deploy install deps frontend backend binary relink docker os deployer key-encryptor deploy-dev-local ebpf-generate proto kali-docker-image gateway-build gateway-deps gateway-clean graph-build graph-deps graph-clean chain-build chain-deps chain-clean oracle-build oracle-deps oracle-clean models-build models-preflight models-deps models-clean agent-build agent-deps agent-clean llama-build llama-clean arena-build arena-deps arena-clean ulora-build ulora-mlc-build test-llama-lora inferencer-deps inferencer-build build-full
 
 # Default target
 all: proto frontend backend binary
@@ -243,6 +243,9 @@ binary: proto ebpf-generate frontend backend llama-build arena-build ulora-build
 	chmod +x $(CONTAINER_DEPLOYER_SOURCE_DIR)/knirv-server
 	@echo "$(GREEN)Binary copied to $(CONTAINER_DEPLOYER_SOURCE_DIR)$(NC)"
 	@echo "$(GREEN)Good Build!$(NC)"
+
+test-llama-lora: ## End-to-end: ULoRA binds a bundle to a real GGUF, llama-server runs the adapter (needs llama.cpp built, python3+numpy)
+	../KNIRVULORA/scripts/gguf-spike/e2e.sh
 
 ulora-build: ## Build the standalone ulorad daemon for KNIRVSERVER staging
 	@echo "$(BLUE)Building ulorad...$(NC)"

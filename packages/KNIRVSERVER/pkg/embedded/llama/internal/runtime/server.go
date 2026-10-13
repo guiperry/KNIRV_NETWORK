@@ -13,7 +13,13 @@ import (
 	"time"
 )
 
-type Server struct{ Command *exec.Cmd }
+type Server struct {
+	Command *exec.Cmd
+	exited  chan struct{} // closed when the process has been reaped (one Wait, owned here)
+}
+
+// Exited is closed once the process has ended.
+func (s *Server) Exited() <-chan struct{} { return s.exited }
 
 // LoRAAdapter is an adapter to load alongside the base model.
 //
@@ -41,11 +47,25 @@ type Options struct {
 	APIKey   string
 	// LoRA lists adapters to apply, in order.
 	LoRA []LoRAAdapter
-	// LoRAInitWithoutApply loads the adapters without applying them, so their
-	// scales start at 0 and are chosen per request (or via POST
-	// /lora-adapters). Without this, every loaded adapter is active on every
-	// request, which is the opposite of per-request switching.
+	// LoRAInitWithoutApply passes --lora-init-without-apply. NOTE: against the
+	// provisioned llama.cpp (9e0e220) a request WITHOUT a `lora` field still runs
+	// every loaded adapter at its default scale (GET /lora-adapters reports 1.0),
+	// so this flag alone does not make adapters inert. Callers must also call
+	// ZeroLoRAAdapters after start and send an explicit `lora` list per request.
 	LoRAInitWithoutApply bool
+}
+
+// Validate rejects options llama-server would abort on, before it is started.
+func (o Options) Validate() error {
+	for _, a := range o.LoRA {
+		if strings.TrimSpace(a.Path) == "" {
+			continue
+		}
+		if a.Scale > 0 && strings.Contains(a.Path, ":") {
+			return fmt.Errorf("adapter path %q contains ':', which --lora-scaled uses to separate the scale", a.Path)
+		}
+	}
+	return nil
 }
 
 func (o Options) args(model, port string) []string {
@@ -74,7 +94,10 @@ func (o Options) args(model, port string) []string {
 		}
 		hasAdapter = true
 		if adapter.Scale > 0 {
-			args = append(args, "--lora-scaled", path, strconv.FormatFloat(adapter.Scale, 'g', -1, 64))
+			// llama-server takes FNAME:SCALE as ONE argument (verified against the
+			// provisioned build); "--lora-scaled path scale" aborts at startup.
+			// Options.Validate refuses a ':' in the path; the scale is the last field.
+			args = append(args, "--lora-scaled", path+":"+strconv.FormatFloat(adapter.Scale, 'g', -1, 64))
 			continue
 		}
 		args = append(args, "--lora", path)
@@ -129,26 +152,31 @@ func Start(path, model, address string, opts Options) (*Server, error) {
 	if err := cmd.Start(); err != nil {
 		return nil, fmt.Errorf("start llama-server: %w", err)
 	}
-	return &Server{Command: cmd}, nil
+	srv := &Server{Command: cmd, exited: make(chan struct{})}
+	go func() { _ = cmd.Wait(); close(srv.exited) }()
+	return srv, nil
 }
 
 func (s *Server) Stop() {
 	if s == nil || s.Command == nil || s.Command.Process == nil {
 		return
 	}
+	select {
+	case <-s.exited:
+		return
+	default:
+	}
 	// llama-server receives SIGINT when KNIRVLLAMA is asked to stop, matching
 	// an operator interrupt and allowing it to finish its own shutdown path.
 	if err := s.Command.Process.Signal(os.Interrupt); err != nil {
 		_ = s.Command.Process.Kill()
-		_ = s.Command.Wait()
+		<-s.exited
 		return
 	}
-	done := make(chan error, 1)
-	go func() { done <- s.Command.Wait() }()
 	select {
-	case <-done:
+	case <-s.exited:
 	case <-time.After(10 * time.Second):
 		_ = s.Command.Process.Kill()
-		<-done
+		<-s.exited
 	}
 }

@@ -31,8 +31,9 @@ func TestArgsLoadsScaledLoRAAdapter(t *testing.T) {
 	if idx < 0 {
 		t.Fatalf("expected --lora-scaled, got %v", args)
 	}
-	if idx+2 >= len(args) || args[idx+1] != "/bundles/a.gguf" || args[idx+2] != "0.75" {
-		t.Fatalf("--lora-scaled takes path then scale, got %v", args[idx:])
+	// llama-server takes FNAME:SCALE as one argument; "path scale" aborts at startup.
+	if idx+1 >= len(args) || args[idx+1] != "/bundles/a.gguf:0.75" {
+		t.Fatalf("--lora-scaled takes FNAME:SCALE, got %v", args[idx:])
 	}
 }
 
@@ -76,7 +77,7 @@ func TestArgsPreservesAdapterOrderAndBaseFlags(t *testing.T) {
 			t.Errorf("missing %q in %v", want, args)
 		}
 	}
-	if indexOf(args, "/bundles/one.gguf") > indexOf(args, "/bundles/two.gguf") {
+	if indexOf(args, "/bundles/one.gguf") > indexOf(args, "/bundles/two.gguf:1.5") {
 		t.Fatalf("adapters must keep their order: %v", args)
 	}
 	// Adapters go after the base-model flags so that argv stays stable.
@@ -104,3 +105,12 @@ func indexOf(args []string, want string) int {
 }
 
 func contains(args []string, want string) bool { return indexOf(args, want) >= 0 }
+
+func TestValidateRefusesAColonInAScaledPath(t *testing.T) {
+	if err := (Options{LoRA: []LoRAAdapter{{Path: "/a:b.gguf", Scale: 1}}}).Validate(); err == nil {
+		t.Fatal("a ':' in a --lora-scaled path would be misparsed as the scale")
+	}
+	if err := (Options{LoRA: []LoRAAdapter{{Path: "/a:b.gguf"}}}).Validate(); err != nil {
+		t.Fatalf("plain --lora has no such restriction: %v", err)
+	}
+}

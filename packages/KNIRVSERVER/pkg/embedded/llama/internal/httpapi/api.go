@@ -2,6 +2,7 @@
 package httpapi
 
 import (
+	"github.com/guiperry/knirv/llama/internal/adapters"
 	"io"
 	"log"
 	"net/http"
@@ -56,6 +57,17 @@ func (b *completionLogBody) logCompletion() {
 // wrapper-to-server credential; it deliberately replaces any client-supplied
 // authorization header before proxying to the private upstream.
 func New(upstream, model, apiKey string) (http.Handler, error) {
+	return NewWithAdapters(upstream, model, apiKey, nil)
+}
+
+// NewWithAdapters is New plus the adapter surface. With a nil manager it is New.
+//
+// Selection is by name in the request body: {"adapter":"skill-x", ...}. Unknown
+// names are a 404, never a silent fall back to the base model. When adapters are
+// loaded, every request is forwarded with an explicit `lora` list (the chosen one
+// at scale 1, all others 0), so no request can pick up an adapter by default.
+// Clients may not send `lora` themselves; llama adapter ids are not a stable API.
+func NewWithAdapters(upstream, model, apiKey string, mgr *adapters.Manager) (http.Handler, error) {
 	target, err := url.Parse("http://" + upstream)
 	if err != nil {
 		return nil, err
@@ -100,7 +112,12 @@ func New(upstream, model, apiKey string) (http.Handler, error) {
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = w.Write([]byte(`{"object":"list","data":[{"id":"` + model + `","object":"model"}]}`))
 	})
-	mux.Handle("POST /v1/chat/completions", proxy)
-	mux.Handle("POST /v1/completions", proxy)
+	chat, completions := http.Handler(proxy), http.Handler(proxy)
+	if mgr != nil {
+		chat, completions = withAdapters(proxy, mgr), withAdapters(proxy, mgr)
+		registerAdapterRoutes(mux, mgr, model)
+	}
+	mux.Handle("POST /v1/chat/completions", chat)
+	mux.Handle("POST /v1/completions", completions)
 	return mux, nil
 }

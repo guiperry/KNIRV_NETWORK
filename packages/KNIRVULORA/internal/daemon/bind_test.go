@@ -32,6 +32,13 @@ const (
 
 func writeTestBundle(t *testing.T, dataDir, bundleID string, modules []string) string {
 	t.Helper()
+	return writeScaledTestBundle(t, dataDir, bundleID, modules, 1)
+}
+
+// writeScaledTestBundle is writeTestBundle with the core multiplied by scale, for
+// tests that need an adapter strong enough to change a model's output.
+func writeScaledTestBundle(t *testing.T, dataDir, bundleID string, modules []string, scale float32) string {
+	t.Helper()
 
 	bundleDir := filepath.Join(dataDir, "bundles", bundleID+"-src")
 	if err := os.MkdirAll(bundleDir, 0o755); err != nil {
@@ -90,8 +97,8 @@ func writeTestBundle(t *testing.T, dataDir, bundleID string, modules []string) s
 	// binder as a provider — not embedded in the bundle.
 	weights := map[string][][]float32{}
 	for _, module := range modules {
-		weights[module+"/lora_A"] = mat(rank, canonicalDim) // r × K
-		weights[module+"/lora_B"] = mat(canonicalDim, rank) // K × r
+		weights[module+"/lora_A"] = scaled(mat(rank, canonicalDim), scale) // r × K
+		weights[module+"/lora_B"] = scaled(mat(canonicalDim, rank), scale) // K × r
 	}
 
 	weightsData, err := safetensors.Write(weights, map[string]string{"producer": "test"})
@@ -139,6 +146,15 @@ func rawSocketCall(t *testing.T, cfg *config.Config, method, path string, body [
 		t.Fatalf("socket call: %v", err)
 	}
 	return resp
+}
+
+func scaled(m [][]float32, s float32) [][]float32 {
+	for _, r := range m {
+		for j := range r {
+			r[j] *= s
+		}
+	}
+	return m
 }
 
 // mat builds a deterministic, non-zero matrix so a projection result can be

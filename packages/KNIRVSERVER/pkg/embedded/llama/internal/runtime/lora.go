@@ -24,8 +24,11 @@ import (
 // possible: load every adapter once (optionally inert, via
 // --lora-init-without-apply) and select per call.
 //
-// These are the primitives a DVE's expert advisor uses to bind a minted uLoRA to
-// a single inference request without restarting the model.
+// IMPORTANT (verified against the provisioned build, llama.cpp 9e0e220):
+// POST /lora-adapters can only change the scale of adapters that were loaded at
+// startup. It does NOT load a new adapter file: a body naming a "path" returns
+// {"success":true} and changes nothing. Adding an adapter therefore needs a
+// llama-server restart with the new adapter set (see the adapters package).
 
 // LoRAAdapterInfo describes one adapter the server has loaded.
 type LoRAAdapterInfo struct {
@@ -58,6 +61,26 @@ func SetLoRAAdapters(ctx context.Context, address string, apiKey string, selecti
 		return fmt.Errorf("marshal adapter selections: %w", err)
 	}
 	return doLoRARequest(ctx, address, apiKey, http.MethodPost, body, nil)
+}
+
+// ZeroLoRAAdapters sets every loaded adapter's server-wide scale to 0, so a request
+// that carries no `lora` field runs the plain base model. Verified against the
+// provisioned llama-server: --lora-init-without-apply alone leaves requests
+// without a `lora` field running the adapters at scale 1. It returns the number of
+// adapters zeroed (0 when none are loaded, which is not an error).
+func ZeroLoRAAdapters(ctx context.Context, address string, apiKey string) (int, error) {
+	adapters, err := GetLoRAAdapters(ctx, address, apiKey)
+	if err != nil {
+		return 0, err
+	}
+	if len(adapters) == 0 {
+		return 0, nil
+	}
+	zero := make([]LoRASelection, len(adapters))
+	for i, a := range adapters {
+		zero[i] = LoRASelection{ID: a.ID, Scale: 0}
+	}
+	return len(zero), SetLoRAAdapters(ctx, address, apiKey, zero)
 }
 
 // GetLoRAAdapters lists the adapters the server has loaded.

@@ -91,7 +91,10 @@ func (e *Engine) runPython(scriptName string, payload any, timeout time.Duration
 
 	select {
 	case <-time.After(timeout):
-		_ = cmd.Process.Kill()
+		// Process is nil until Run has started the child; a tiny timeout can fire first.
+		if cmd.Process != nil {
+			_ = cmd.Process.Kill()
+		}
 		return "", fmt.Errorf("python engine %s timed out after %v", scriptName, timeout)
 	case err := <-done:
 		if err != nil {

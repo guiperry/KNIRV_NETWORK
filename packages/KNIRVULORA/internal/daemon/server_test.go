@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"ulora/internal/api"
 	"ulora/internal/config"
@@ -24,7 +25,7 @@ func newTestConfig(t *testing.T) *config.Config {
 		DataDir:        tmpDir,
 		PythonBin:      "python3",
 		VenvDir:        "",
-		RequestTimeout: 30,
+		RequestTimeout: 30 * time.Second, // a bare 30 is 30 ns
 	}
 }
 

@@ -55,6 +55,8 @@ func NewServer(cfg *config.Config) (*Server, error) {
 	mux.Handle("/ulora/v1/bind", s.authMiddleware(http.HandlerFunc(s.handleBind)))
 	// Connectors are derived once per model and cached, so a skill binds to any
 	// model the cache can serve without the bundle knowing the model existed.
+	// A bundle bound to a llama base model and written as a GGUF LoRA adapter.
+	mux.Handle("/ulora/v1/adapters/gguf", s.authMiddleware(http.HandlerFunc(s.handleGGUFAdapter)))
 	mux.Handle("/ulora/v1/connectors/derive", s.authMiddleware(http.HandlerFunc(s.handleDeriveConnector)))
 
 	return s, nil

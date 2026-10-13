@@ -3,9 +3,13 @@ package main
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
+	"io"
 	"log"
 	"net"
 	"net/http"
@@ -16,6 +20,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/guiperry/knirv/llama/internal/adapters"
 	"github.com/guiperry/knirv/llama/internal/config"
 	"github.com/guiperry/knirv/llama/internal/httpapi"
 	"github.com/guiperry/knirv/llama/internal/install"
@@ -96,27 +101,38 @@ func main() {
 		log.Fatal(err)
 	}
 
-	var child *runtime.Server
-	if !runtime.Healthy(context.Background(), llamaAddress) {
-		child, err = runtime.Start(result.ServerPath, result.ModelPath, llamaAddress, runtime.Options{
-			Parallel: parallel,
-			CtxSize:  ctxSize,
-			Threads:  threads,
-			APIKey:   apiKey,
-		})
-		if err != nil {
-			log.Fatal(err)
-		}
-		defer child.Stop()
-		deadline := time.Now().Add(30 * time.Second)
-		for !runtime.Healthy(context.Background(), llamaAddress) && time.Now().Before(deadline) {
-			time.Sleep(250 * time.Millisecond)
-		}
-		if !runtime.Healthy(context.Background(), llamaAddress) {
-			log.Fatal("llama-server did not become healthy")
-		}
+	// llama-server is started by the supervisor so its adapter set can change: it
+	// loads adapters only at startup, so adding one is a restart (internal/adapters).
+	store, err := adapters.OpenStore(filepath.Join(dataDir, "adapters"))
+	if err != nil {
+		log.Fatal(err)
 	}
-	handler, err := httpapi.New(llamaAddress, result.ModelName, apiKey)
+	gate := adapters.NewGate()
+	base := adapters.Base{Model: result.ModelName, Path: result.ModelPath, SHA256: memoSHA(dataDir, result.ModelPath)}
+	var restart adapters.Restarter
+	var sup *runtime.Supervisor
+	external := runtime.Healthy(context.Background(), llamaAddress)
+	if !external {
+		sup = &runtime.Supervisor{
+			Path: result.ServerPath, Model: result.ModelPath, Address: llamaAddress,
+			Base: runtime.Options{Parallel: parallel, CtxSize: ctxSize, Threads: threads, APIKey: apiKey},
+		}
+		defer sup.Stop()
+		restart = func(ctx context.Context, set []adapters.Entry) error {
+			list := make([]runtime.LoRAAdapter, len(set))
+			for i, e := range set {
+				list[i] = runtime.LoRAAdapter{Path: e.Path}
+			}
+			return sup.Start(ctx, list)
+		}
+	} else {
+		log.Printf("llama-server already running at %s; adapters cannot be managed", llamaAddress)
+	}
+	mgr := adapters.NewManager(store, base, restart, gate)
+	if err := mgr.Restore(context.Background()); err != nil {
+		log.Fatalf("start llama-server: %v", err)
+	}
+	handler, err := httpapi.NewWithAdapters(llamaAddress, result.ModelName, apiKey, mgr)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -149,5 +165,41 @@ func main() {
 	}
 	if err := httpServer.Serve(listener); !errors.Is(err, http.ErrServerClosed) {
 		log.Fatal(err)
+	}
+}
+
+// memoSHA returns a function that hashes the base model once per (path, size,
+// mtime), caching the result in the data directory: a multi-GB model takes seconds
+// to hash and is asked about whenever an adapter is registered.
+func memoSHA(dataDir, modelPath string) func() (string, error) {
+	return func() (string, error) {
+		st, err := os.Stat(modelPath)
+		if err != nil {
+			return "", err
+		}
+		cachePath := filepath.Join(dataDir, "adapters", "base-sha256.json")
+		key := fmt.Sprintf("%s|%d|%d", modelPath, st.Size(), st.ModTime().UnixNano())
+		var cache map[string]string
+		if raw, err := os.ReadFile(cachePath); err == nil {
+			_ = json.Unmarshal(raw, &cache)
+		}
+		if v := cache[key]; v != "" {
+			return v, nil
+		}
+		f, err := os.Open(modelPath)
+		if err != nil {
+			return "", err
+		}
+		defer f.Close()
+		h := sha256.New()
+		if _, err := io.Copy(h, f); err != nil {
+			return "", err
+		}
+		sum := hex.EncodeToString(h.Sum(nil))
+		_ = os.MkdirAll(filepath.Dir(cachePath), 0o755)
+		if raw, err := json.Marshal(map[string]string{key: sum}); err == nil {
+			_ = os.WriteFile(cachePath, raw, 0o644)
+		}
+		return sum, nil
 	}
 }

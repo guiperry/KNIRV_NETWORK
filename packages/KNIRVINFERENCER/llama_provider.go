@@ -192,6 +192,12 @@ func (p *LlamaProvider) PrepareRequest(prompt string, options map[string]interfa
 	if stream, ok := options["stream"].(bool); ok && stream {
 		req["stream"] = true
 	}
+	// A skill adapter registered with the llama wrapper (see SkillAdapters). The
+	// wrapper answers 404 for a name it has not loaded; it never falls back to the
+	// base model, so a missing adapter surfaces as an error the caller must handle.
+	if a, ok := options["adapter"].(string); ok && a != "" {
+		req["adapter"] = a
+	}
 
 	return json.Marshal(req)
 }
