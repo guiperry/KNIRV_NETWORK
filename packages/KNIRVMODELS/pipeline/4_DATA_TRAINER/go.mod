@@ -14,6 +14,7 @@ require (
 	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/google/flatbuffers v2.0.6+incompatible // indirect
 	github.com/google/uuid v1.6.0 // indirect
+	github.com/guiperry/knirv-sdk-go/models v0.0.0
 	github.com/guiperry/text-embedder v0.1.0
 	github.com/leesper/go_rng v0.0.0-20190531154944-a612b043e353 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
@@ -33,3 +34,5 @@ require (
 )
 
 replace knirvmodels => ../..
+
+replace github.com/guiperry/knirv-sdk-go/models => ../../../KNIRVSDK/go-package/models
