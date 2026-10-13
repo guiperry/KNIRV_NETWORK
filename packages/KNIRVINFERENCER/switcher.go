@@ -26,12 +26,13 @@ type InternalTextGenerator interface {
 // calls are routed internally; otherwise they fall through to the external
 // LLM chain.
 type InferenceSwitcher struct {
-	internal InternalTextGenerator
-	external TextGenerator
-	force    int // 0=auto, 1=force internal, 2=force external
-	ready    bool
+	internal  InternalTextGenerator
+	external  TextGenerator
+	force     int // 0=auto, 1=force internal, 2=force external
+	ready     bool
 	lastCheck time.Time
-	mu       sync.RWMutex
+	mu        sync.RWMutex
+	harness   *Harness
 }
 
 const switcherCheckInterval = 1 * time.Hour
@@ -43,16 +44,64 @@ const switcherRetryInterval = 1 * time.Minute
 
 // NewInferenceSwitcher creates a switcher that auto-detects readiness.
 func NewInferenceSwitcher(internal InternalTextGenerator, external TextGenerator) *InferenceSwitcher {
-	return &InferenceSwitcher{
+	s := &InferenceSwitcher{
 		internal: internal,
 		external: external,
 	}
+	// The switcher is a two-model view of the harness: HEART first, then the provider
+	// chain. Readiness, breaker, fallback and traces are the harness's.
+	s.harness = NewHarness(
+		[]HarnessModel{&switcherInternal{s}, &switcherExternal{external}},
+		WithRoutes(map[Kind][]string{KindGenerate: {"heart", "external"}}),
+	)
+	return s
+}
+
+// Harness exposes the switcher's harness (traces, stats).
+func (s *InferenceSwitcher) Harness() *Harness { return s.harness }
+
+type switcherInternal struct{ s *InferenceSwitcher }
+
+func (m *switcherInternal) Name() string    { return "heart" }
+func (m *switcherInternal) Info() ModelInfo { return ModelInfo{} }
+func (m *switcherInternal) Ready(context.Context) Readiness {
+	if m.s.internal == nil || !m.s.IsReady() {
+		return Readiness{Detail: "internal model not ready"}
+	}
+	return Readiness{Ready: true, Version: "internal"}
+}
+func (m *switcherInternal) Do(ctx context.Context, t Task) (Result, error) {
+	text, err := m.s.internal.GenerateText(ctx, t.Input.(string))
+	if err != nil {
+		// Look again after the retry interval instead of failing every call until then.
+		m.s.mu.Lock()
+		m.s.ready = false
+		m.s.mu.Unlock()
+		return Result{}, err
+	}
+	return Result{Text: text, Model: "heart", Version: "internal"}, nil
+}
+
+type switcherExternal struct{ ext TextGenerator }
+
+func (m *switcherExternal) Name() string    { return "external" }
+func (m *switcherExternal) Info() ModelInfo { return ModelInfo{External: true, Paid: true} }
+func (m *switcherExternal) Ready(context.Context) Readiness {
+	return Readiness{Ready: m.ext != nil, Version: "provider-chain"}
+}
+func (m *switcherExternal) Do(_ context.Context, t Task) (Result, error) {
+	text, err := m.ext.GenerateText(t.Input.(string))
+	if err != nil {
+		return Result{}, err
+	}
+	return Result{Text: text, Model: "external", Version: "provider-chain"}, nil
 }
 
 // SetForce overrides the auto-detection mode.
-//   0 = auto (default, checks internal readiness)
-//   1 = force internal
-//   2 = force external
+//
+//	0 = auto (default, checks internal readiness)
+//	1 = force internal
+//	2 = force external
 func (s *InferenceSwitcher) SetForce(mode int) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -110,25 +159,25 @@ func (s *InferenceSwitcher) Progress() float64 {
 	return internal.Progress()
 }
 
-// GenerateText routes to the internal or external generator.
+// GenerateText routes through the harness: HEART when it is ready, else (or on
+// failure) the external chain. A forced mode pins the harness to one model.
 func (s *InferenceSwitcher) GenerateText(ctx context.Context, prompt string) (string, error) {
-	if s.IsReady() {
-		log.Println("[inference-switcher] routed to internal transformer")
-		text, err := s.internal.GenerateText(ctx, prompt)
-		if err == nil {
-			return text, nil
-		}
-		s.mu.Lock()
-		forced := s.force == 1
-		s.ready = false
-		s.mu.Unlock()
-		if forced {
-			return "", err
-		}
-		log.Printf("[inference-switcher] internal transformer failed (%v); falling back to external LLM", err)
+	s.mu.RLock()
+	force := s.force
+	s.mu.RUnlock()
+	var c Constraints
+	switch force {
+	case 1:
+		c.Pin = "heart"
+	case 2:
+		c.Pin = "external"
 	}
-	log.Println("[inference-switcher] routed to external LLM")
-	return s.external.GenerateText(prompt)
+	res, tr, err := s.harness.Do(ctx, Task{Kind: KindGenerate, Input: prompt, Constraints: c})
+	if err != nil {
+		return "", err
+	}
+	log.Printf("[inference-switcher] routed to %s (%d fallback hop(s))", tr.Chosen, len(tr.Fallbacks))
+	return res.Text, nil
 }
 
 // InferenceServiceAdapter wraps InferenceService to satisfy the TextGenerator

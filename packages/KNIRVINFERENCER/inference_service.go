@@ -80,6 +80,9 @@ type InferenceService struct {
 	moaFallbackOpts      []config.ConfigOption
 	// Inference switcher for internal transformer routing
 	switcher *InferenceSwitcher
+	// Reasoning harness: when set, generation, llama server tasks and planning route
+	// through it (see harness.go). The switcher is used only while it is nil.
+	harness *Harness
 	// Semantic prompt response cache
 	responseCacheMu sync.Mutex
 	responseCache   []cachedResponse
@@ -381,6 +384,7 @@ func (s *InferenceService) GenerateTextWithContext(ctx context.Context, modelNam
 		return "", errors.New("inference service is not running")
 	}
 	switcher := s.switcher
+	harness := s.harness
 	delegatorInstance := s.delegator
 	s.mutex.Unlock()
 
@@ -388,6 +392,17 @@ func (s *InferenceService) GenerateTextWithContext(ctx context.Context, modelNam
 	if cachedResponse, found := s.lookupCache(promptText); found {
 		log.Println("InferenceService: cache hit, returning cached response")
 		return cachedResponse, nil
+	}
+
+	// Default (no model, no instruction) requests go through the harness.
+	if modelName == "" && instructionText == "" && harness != nil {
+		res, tr, err := harness.Do(ctx, Task{Kind: KindGenerate, Input: promptText})
+		if err != nil {
+			return "", err
+		}
+		log.Printf("InferenceService: harness routed generation to %s (trace %s)", tr.Chosen, tr.ID)
+		s.storeCache(promptText, res.Text)
+		return res.Text, nil
 	}
 
 	// Route through internal transformer when ready and no specific model requested
@@ -434,6 +449,22 @@ func (s *InferenceService) Generate(ctx context.Context, prompt string, options 
 // --- ADDED: GenerateTextWithProvider ---
 // GenerateTextWithProvider sends a prompt directly to the first configured instance of a specific provider.
 func (s *InferenceService) GenerateTextWithProvider(providerName string, promptText string) (string, error) {
+	s.mutex.Lock()
+	harness := s.harness
+	s.mutex.Unlock()
+	if harness != nil && providerName == llamaProviderName {
+		res, _, err := harness.Do(context.Background(), Task{Kind: KindServerTask, Input: promptText})
+		if err != nil {
+			return "", err
+		}
+		return res.Text, nil
+	}
+	return s.generateWithProvider(providerName, promptText)
+}
+
+// generateWithProvider is the direct provider call the harness's llama model uses for
+// server tasks, so those keep the provider's system prompt and response format.
+func (s *InferenceService) generateWithProvider(providerName string, promptText string) (string, error) {
 	s.mutex.Lock()
 	if !s.isRunning {
 		s.mutex.Unlock()
@@ -538,6 +569,21 @@ func (s *InferenceService) GenerateTextWithContextStrategist(promptText, instruc
 
 // ExecuteComplexTask delegates a complex task to the orchestrator.
 func (s *InferenceService) ExecuteComplexTask(ctx context.Context, complexPrompt string) (string, error) {
+	s.mutex.Lock()
+	harness := s.harness
+	s.mutex.Unlock()
+	if harness != nil {
+		res, _, err := harness.Do(ctx, Task{Kind: KindPlan, Input: complexPrompt})
+		if err != nil {
+			return "", err
+		}
+		return res.Text, nil
+	}
+	return s.executeComplexTask(ctx, complexPrompt)
+}
+
+// executeComplexTask is the orchestrator call the harness's external model uses.
+func (s *InferenceService) executeComplexTask(ctx context.Context, complexPrompt string) (string, error) {
 	s.mutex.Lock()
 	if !s.isRunning || s.orchestrator == nil {
 		s.mutex.Unlock()

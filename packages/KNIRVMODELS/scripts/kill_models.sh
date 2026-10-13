@@ -1,8 +1,9 @@
 #!/bin/bash
 
-# kill_models.sh - Safely terminate all hasher processes
+# kill_models.sh - Safely terminate all KNIRVMODELS daemon processes
 # This script performs graceful shutdown with fallback to force kill
 # It also stops the hasher-server on the ASIC device and removes the binary
+# (hasher-server/hasher-host are drivers for the HASHER model, not the daemon)
 
 set -uo pipefail
 
@@ -40,7 +41,8 @@ SSH_OPTS="-o KexAlgorithms=+diffie-hellman-group14-sha1 -o HostKeyAlgorithms=+ss
 
 # Process patterns to match
 PATTERNS=(
-    "hasher"
+    "knirvmodels"
+    "knirvhasher"
     "asic-test"
     "device-probe"
     "device-monitor"
@@ -122,7 +124,7 @@ stop_asic_server() {
 
 # Function to stop local processes
 stop_local_processes() {
-    echo -e "${YELLOW}Searching for local hasher processes...${NC}"
+    echo -e "${YELLOW}Searching for local KNIRVMODELS daemon processes...${NC}"
     
     # Collect all matching PIDs
     local PIDS=()
@@ -140,7 +142,7 @@ stop_local_processes() {
     fi
     
     if [ ${#PIDS[@]} -eq 0 ]; then
-        echo -e "${GREEN}No local hasher processes found.${NC}"
+        echo -e "${GREEN}No local KNIRVMODELS daemon processes found.${NC}"
         return 0
     fi
     

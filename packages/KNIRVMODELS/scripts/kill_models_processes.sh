@@ -1,11 +1,13 @@
 #!/bin/bash
 
-# A script to find and kill running hasher-related processes.
+# A script to find and kill running KNIRVMODELS daemon and HASHER-driver processes.
 # It identifies processes by name and by network ports they are listening on.
 
 # --- Configuration ---
 # Add more process names to this list as needed.
 PROCESS_NAMES=(
+    "knirvmodels"
+    "knirvhasher"
     "hasher-cli"
     "hasher-server"
     "hasher-host"
@@ -13,15 +15,15 @@ PROCESS_NAMES=(
 
 # Add more ports to this list as needed.
 PORTS=(
-    "80" # gRPC hasher server
-    "8008"  # Hasher host API
+    "80" # gRPC models server
+    "8008"  # HASHER host API
 )
 # --- End of Configuration ---
 
 PIDS_TO_KILL=()
 
 # --- Find processes by name ---
-echo "Searching for hasher processes by name: ${PROCESS_NAMES[*]}..."
+echo "Searching for KNIRVMODELS/HASHER processes by name: ${PROCESS_NAMES[*]}..."
 for name in "${PROCESS_NAMES[@]}"; do
     # pgrep finds processes by name. -f matches against the full command line.
     pids=$(pgrep -f "$name")
@@ -51,7 +53,7 @@ done
 
 # --- Terminate found processes ---
 if [ ${#PIDS_TO_KILL[@]} -eq 0 ]; then
-    echo "No running hasher processes found."
+    echo "No running KNIRVMODELS/HASHER processes found."
 else
     # Get unique PIDs to avoid trying to kill the same process twice
     UNIQUE_PIDS=($(echo "${PIDS_TO_KILL[@]}" | tr ' ' '\n' | sort -u | tr '\n' ' '))
