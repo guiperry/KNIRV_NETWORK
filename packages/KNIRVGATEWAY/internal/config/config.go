@@ -229,8 +229,7 @@ func Load() (*Config, error) {
 		ShellSocketPath:            getEnv("SHELL_SOCKET_PATH", ""),
 		AgentSocketDir:             getEnv("AGENT_SOCKET_DIR", ""),
 		AgentMaxConcurrent:         getEnvInt("AGENT_MAX_CONCURRENT", 32),
-		// HASHER_SOCKET_PATH is the deprecated pre-rename name, honoured for one release.
-		ModelsSocketPath:           getEnv("KNIRV_MODELS_SOCKET_PATH", getEnv("HASHER_SOCKET_PATH", "/var/run/knirvmodels.sock")),
+		ModelsSocketPath:           getEnv("KNIRV_MODELS_SOCKET_PATH", "/var/run/knirvmodels.sock"),
 		AgentControlSocketPath:     getEnv("AGENT_CONTROL_SOCKET_PATH", ""),
 		ArenaSocketPath:            getEnv("ARENA_SOCKET_PATH", ""),
 		BaseCallbackSocket:         getEnv("BASE_CALLBACK_SOCKET", ""),

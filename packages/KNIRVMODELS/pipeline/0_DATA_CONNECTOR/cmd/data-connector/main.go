@@ -14,7 +14,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"gopkg.in/yaml.v3"
-	modelspb "knirvmodels/proto/models/training/v1"
+	modelspb "knirvmodels/proto/models/v1"
 )
 
 type Config struct {
@@ -211,9 +211,6 @@ func LoadConfig() *Config {
 
 	// Environment variable overrides
 	addr := os.Getenv("KNIRV_MODELS_GRPC_SOCKET_PATH")
-	if addr == "" {
-		addr = os.Getenv("HASHER_GRPC_SOCKET_PATH") // deprecated alias, one release
-	}
 	if addr != "" {
 		// If provided as a raw path, prefix with unix:// for gRPC
 		if !strings.HasPrefix(addr, "unix://") && !strings.HasPrefix(addr, "passthrough://") {

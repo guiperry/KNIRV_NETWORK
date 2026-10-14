@@ -78,10 +78,8 @@ type InferenceService struct {
 	moaFallbackModelName string
 	moaPrimaryOpts       []config.ConfigOption
 	moaFallbackOpts      []config.ConfigOption
-	// Inference switcher for internal transformer routing
-	switcher *InferenceSwitcher
 	// Reasoning harness: when set, generation, llama server tasks and planning route
-	// through it (see harness.go). The switcher is used only while it is nil.
+	// through it (see harness.go).
 	harness *Harness
 	// Semantic prompt response cache
 	responseCacheMu sync.Mutex
@@ -375,15 +373,14 @@ func (s *InferenceService) Stop() error {
 	return nil
 }
 
-// GenerateTextWithContext delegates to the DelegatorService or the internal
-// transformer (via InferenceSwitcher) when the internal model is ready.
+// GenerateTextWithContext delegates to the harness (default requests) or the
+// DelegatorService (named models and instructions).
 func (s *InferenceService) GenerateTextWithContext(ctx context.Context, modelName string, promptText string, instructionText string) (string, error) {
 	s.mutex.Lock()
 	if !s.isRunning {
 		s.mutex.Unlock()
 		return "", errors.New("inference service is not running")
 	}
-	switcher := s.switcher
 	harness := s.harness
 	delegatorInstance := s.delegator
 	s.mutex.Unlock()
@@ -403,17 +400,6 @@ func (s *InferenceService) GenerateTextWithContext(ctx context.Context, modelNam
 		log.Printf("InferenceService: harness routed generation to %s (trace %s)", tr.Chosen, tr.ID)
 		s.storeCache(promptText, res.Text)
 		return res.Text, nil
-	}
-
-	// Route through internal transformer when ready and no specific model requested
-	if modelName == "" && instructionText == "" && switcher != nil && switcher.IsReady() {
-		log.Println("InferenceService: routing to internal transformer via InferenceSwitcher")
-		response, err := switcher.GenerateText(ctx, promptText)
-		if err != nil {
-			return "", err
-		}
-		s.storeCache(promptText, response)
-		return response, nil
 	}
 
 	if delegatorInstance == nil {
@@ -755,15 +741,6 @@ func (s *InferenceService) IsRunning() bool {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 	return s.isRunning
-}
-
-// SetInferenceSwitcher attaches a switcher that routes text generation
-// to the internal transformer (HEART/Gorgonite) when pre-training completes.
-func (s *InferenceService) SetInferenceSwitcher(switcher *InferenceSwitcher) {
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
-	s.switcher = switcher
-	log.Println("InferenceService: InferenceSwitcher attached")
 }
 
 // GetName identifies the service structure

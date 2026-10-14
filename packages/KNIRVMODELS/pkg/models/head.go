@@ -39,9 +39,7 @@ func (h *Head) Status() sdk.ModelStatus {
 	return out
 }
 
-// Mount serves the HEAD under prefix and, for one release, under the previous
-// /heart/head prefix so an older backend keeps working.
+// Mount serves the HEAD under prefix.
 func (h *Head) Mount(mux *http.ServeMux, prefix string) {
 	head.RoutesAt(h.svc, mux, prefix)
-	head.RoutesAt(h.svc, mux, sdk.LegacyHeadPrefix)
 }

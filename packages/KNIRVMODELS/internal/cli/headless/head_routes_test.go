@@ -12,14 +12,13 @@ import (
 )
 
 // The backend reaches every model over the daemon's socket, so the daemon's mux
-// must carry the whole /models/* namespace, plus the previous HEAD prefix for one
-// release.
+// must carry the whole /models/* namespace.
 func TestDaemonServesModelsNamespace(t *testing.T) {
 	t.Setenv("KNIRV_APP_DATA_DIR", t.TempDir())
 	s := NewServer(t.TempDir()+"/h.sock", 0o660)
 	for _, p := range []string{
 		sdk.RegistryPath, sdk.HealthPath,
-		sdk.HeadPrefix + "/models", sdk.HeadPrefix + "/matrix", sdk.LegacyHeadPrefix + "/models",
+		sdk.HeadPrefix + "/models", sdk.HeadPrefix + "/matrix",
 		sdk.HeartPrefix + "/health", sdk.HasherPrefix + "/status",
 	} {
 		rec := httptest.NewRecorder()
@@ -28,7 +27,7 @@ func TestDaemonServesModelsNamespace(t *testing.T) {
 			t.Fatalf("%s is not routed", p)
 		}
 	}
-	for _, p := range []string{sdk.HeadPrefix + "/models", sdk.LegacyHeadPrefix + "/models"} {
+	for _, p := range []string{sdk.HeadPrefix + "/models"} {
 		rec := httptest.NewRecorder()
 		s.mux.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, p, nil))
 		if rec.Code != http.StatusServiceUnavailable { // routed, but no model published yet

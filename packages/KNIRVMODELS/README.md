@@ -8,7 +8,7 @@ KNIRVMODELS is one daemon serving three models under `/models/*` on `knirvmodels
 | **HEART** | generator, built lazily on first use | `/models/heart/*` |
 | **HEAD** | reasoner (Rust crate, WASI + browser builds, trained by `pipeline/5_HEAD_TRAINER`) | `head/`, `pkg/head`, `/models/head/*` |
 
-`GET /models/registry` lists them with state and version; `GET /models/health` is liveness. Routing between them, llama and external providers is done by the harness in `../KNIRVINFERENCER`; the wire contract lives in `../KNIRVSDK` (`models`). Deprecated for one release: `/heart/head/*`, `HRM_*`/`KNIRVHASHER_*` env keys, the old socket and data-dir names (migrated automatically). The rest of this file documents the HASHER hardware and the training pipeline, and still uses the earlier "HASHER" title for the package.
+`GET /models/registry` lists them with state and version; `GET /models/health` is liveness. Routing between them, llama and external providers is done by the harness in `../KNIRVINFERENCER`; the wire contract lives in `../KNIRVSDK` (`models`). The pre-rename routes, env keys and config key are gone; an old-name data directory is still moved to `knirvmodels` on first start. The rest of this file documents the HASHER hardware and the training pipeline, and still uses the earlier "HASHER" title for the package.
 
 # HASHER - SHA-256 Neural Network on Repurposed Mining Hardware
 <p align="center">

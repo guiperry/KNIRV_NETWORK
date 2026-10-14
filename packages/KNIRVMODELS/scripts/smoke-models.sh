@@ -23,7 +23,7 @@ reg=$(get /models/registry)
 for m in hasher heart head; do echo "$reg" | grep -q "\"name\":\"$m\"" || fail "registry is missing $m: $reg"; done
 echo "$(get /models/heart/health)" | grep -q '"loaded":false' || fail "HEART was built by a health check"
 echo "$(get /models/registry)" | grep -q '"name":"heart","role":"generator","version":"gorgonite","ready":false,"loaded":false' || fail "registry shows HEART loaded"
-for p in /models/head/models /heart/head/models; do
+for p in /models/head/models; do
   c=$(code "$p"); [ "$c" = 200 ] || [ "$c" = 503 ] || fail "$p returned $c (expected 200 or 503)"
 done
 echo "$(curl -sS --unix-socket "$tmp/m.sock" -X POST -d '{"prediction":1,"domain":"smoke"}' http://models/models/hasher/validate)" | grep -q '"valid":true' || fail "HASHER validate"

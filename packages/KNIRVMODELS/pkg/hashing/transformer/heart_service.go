@@ -1166,8 +1166,8 @@ func (hs *HEARTService) findSimilarErrors(inquiry *HEARTErrorInquiry) []SimilarE
 	}
 }
 
-// handleGenerate handles /heart/generate requests from the KNIRVSERVER
-// InferenceSwitcher. Returns generated text when the internal model is
+// handleGenerate handles /heart/generate requests from the backend
+// harness. Returns generated text when the internal model is
 // trained, or a 503 with readiness status when it isn't.
 func (hs *HEARTService) handleGenerate(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")

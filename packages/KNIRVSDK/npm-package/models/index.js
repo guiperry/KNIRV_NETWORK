@@ -5,8 +5,6 @@
  */
 /** Where the daemon serves each model. One namespace for all three. */
 export const HEAD_PREFIX = "/models/head";
-/** The previous release's HEAD prefix; the daemon still answers there (removed in P9). */
-export const LEGACY_HEAD_PREFIX = "/heart/head";
 export const REGISTRY_PATH = "/models/registry";
 export const HEALTH_PATH = "/models/health";
 export const HEART_PREFIX = "/models/heart";

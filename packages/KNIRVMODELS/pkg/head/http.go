@@ -12,7 +12,7 @@ import (
 )
 
 // Routes mounts the model's HTTP surface on mux under sdk.HeadPrefix
-// (/models/head) and, for one release, the previous prefix /heart/head:
+// (/models/head):
 //
 //	POST {prefix}/reason          {"tokens":[...]} -> Reasoning
 //	GET  {prefix}/models          -> Manifest
@@ -22,9 +22,7 @@ import (
 // The routes carry no CORS headers and no authentication: they are meant to be
 // reached only through backend_server, over the models unix socket or loopback.
 func Routes(svc *Service, mux *http.ServeMux) {
-	for _, prefix := range []string{sdk.HeadPrefix, sdk.LegacyHeadPrefix} {
-		RoutesAt(svc, mux, prefix)
-	}
+	RoutesAt(svc, mux, sdk.HeadPrefix)
 }
 
 // RoutesAt mounts the HEAD surface under one prefix.
