@@ -12,7 +12,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	pb "knirvmodels/internal/proto/models/v1"
+	pb "knirvmodels/proto/models/v1"
 )
 
 // HasherServer implements the gRPC HasherService

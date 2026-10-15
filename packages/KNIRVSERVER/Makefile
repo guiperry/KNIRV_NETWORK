@@ -116,7 +116,7 @@ YELLOW := \033[1;33m
 BLUE := \033[0;34m
 NC := \033[0m # No Color
 
-.PHONY: help all clean build test deploy install deps frontend backend binary relink docker os deployer key-encryptor deploy-dev-local ebpf-generate proto kali-docker-image gateway-build gateway-deps gateway-clean graph-build graph-deps graph-clean chain-build chain-deps chain-clean oracle-build oracle-deps oracle-clean models-build models-preflight models-deps models-clean agent-build agent-deps agent-clean llama-build llama-clean arena-build arena-deps arena-clean ulora-build ulora-mlc-build test-llama-lora inferencer-deps inferencer-build build-full
+.PHONY: help all clean build test deploy install deps frontend backend binary relink docker os deployer key-encryptor deploy-dev-local ebpf-generate proto kali-docker-image gateway-build gateway-deps gateway-clean graph-build graph-deps graph-clean chain-build chain-deps chain-clean oracle-build oracle-deps oracle-clean models-build models-preflight models-deps models-clean agent-build agent-deps agent-clean llama-build llama-clean arena-build arena-deps arena-clean ulora-build ulora-clean ulora-mlc-build test-llama-lora inferencer-deps inferencer-build build-full
 
 # Default target
 all: proto frontend backend binary
@@ -227,9 +227,9 @@ key-encryptor: ## Build root_key_encryptor binary
 # Unified Binary (Frontend + Desktop + Backend + embedded pkg modules)
 # main.go embeds: bin/backend_server, config/*, desktop/dist/*, frontend/out/*
 # Module-owned binaries like KNIRVGATEWAY, KNIRVGRAPH, KNIRVCHAIN, KNIRVORACLE, KNIRVMODELS, and KNIRVAGENT
-# are embedded and extracted by their pkg modules. KNIRVULORA is staged beside
-# them for the launcher; its optional MLC runtime remains an explicit build.
-binary: proto ebpf-generate frontend backend llama-build arena-build ulora-build ## Build unified binary and KNIRVULORA daemon
+# are embedded and extracted by their pkg modules, and so is KNIRVULORA (ulorad, pkg/knirvulora,
+# built first by ulora-build); its optional MLC runtime remains an explicit build.
+binary: proto ebpf-generate ulora-build frontend backend llama-build arena-build ## Build unified binary (ulorad and every pkg/knirv* module are built and embedded first)
 	@echo "$(BLUE)Creating unified binary (embeds frontend, desktop, backend, KNIRVGATEWAY, KNIRVGRAPH, KNIRVCHAIN, KNIRVORACLE, KNIRVMODELS)...$(NC)"
 	@mkdir -p $(DIST_DIR)
 	@rm -f $(DIST_DIR)/knirv-server
@@ -247,11 +247,18 @@ binary: proto ebpf-generate frontend backend llama-build arena-build ulora-build
 test-llama-lora: ## End-to-end: ULoRA binds a bundle to a real GGUF, llama-server runs the adapter (needs llama.cpp built, python3+numpy)
 	../KNIRVULORA/scripts/gguf-spike/e2e.sh
 
-ulora-build: ## Build the standalone ulorad daemon for KNIRVSERVER staging
+ulora-build: ## Build ulorad and compress it for go:embed in pkg/knirvulora (required before binary target)
 	@echo "$(BLUE)Building ulorad...$(NC)"
 	@mkdir -p $(ULORA_DIR)/bin
+	@rm -f $(ULORA_PKG_BIN)
 	cd $(ULORA_SRC_DIR) && go build -ldflags "-s -w" -o $(ULORA_PKG_BIN) ./cmd/ulorad
+	@echo "$(BLUE)Compressing ulorad with gzip...$(NC)"
+	@gzip -n -cf $(ULORA_PKG_BIN) > $(ULORA_PKG_BIN).tmp && mv $(ULORA_PKG_BIN).tmp $(ULORA_PKG_BIN)
 	@echo "$(GREEN)ulorad built: $(ULORA_PKG_BIN)$(NC)"
+
+ulora-clean: ## Clean ulorad build artifacts
+	@echo "$(BLUE)Cleaning ulorad artifacts...$(NC)"
+	rm -f $(ULORA_PKG_BIN)
 
 ulora-mlc-build: ## Build the optional CPU-only MLC runtime (requires LLVM/CMake and network)
 	cd $(ULORA_SRC_DIR) && ./scripts/build-mlc-cpu.sh

@@ -2,7 +2,7 @@ package writer
 
 import (
 	"fmt"
-	modelspb "knirvmodels/proto/models/training/v1"
+	modelspb "knirvmodels/proto/models/v1"
 	"os"
 	"path/filepath"
 	"sync"

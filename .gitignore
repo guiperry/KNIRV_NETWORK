@@ -177,3 +177,10 @@ packages/KNIRVSERVER/pkg/knirvinferencer/build/stamp
 /packages/KNIRVARENA/src/wasm-pkg/knirv_head/*
 !/packages/KNIRVARENA/src/wasm-pkg/knirv_head/package.json
 /packages/KNIRVMODELS/pipeline/5_HEAD_TRAINER/target
+
+# Tracked build/test output (untracked; regenerate with the build/test target)
+packages/KNIRVARENA/dist-pwa/
+packages/KNIRVARENA/test-results/
+packages/KNIRVARENA/src/components/UnifiedInterface.tsx.backup
+packages/KNIRVSERVER/frontend/playwright-report/
+packages/KNIRVSERVER/frontend/coverage.out

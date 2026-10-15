@@ -14,7 +14,7 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/status"
 
-	pb "knirvmodels/internal/proto/models/v1"
+	pb "knirvmodels/proto/models/v1"
 )
 
 const (

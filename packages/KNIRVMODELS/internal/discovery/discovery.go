@@ -12,7 +12,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 
-	pb "knirvmodels/internal/proto/models/v1"
+	pb "knirvmodels/proto/models/v1"
 	"knirvmodels/pkg/hashing/methods/asic"
 )
 

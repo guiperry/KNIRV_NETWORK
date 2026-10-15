@@ -110,4 +110,5 @@ require (
 
 // Wire contract shared with backend_server and KNIRVINFERENCER (KNIRVSDK nested module).
 require github.com/guiperry/knirv-sdk-go/models v0.0.0
+
 replace github.com/guiperry/knirv-sdk-go/models => ../KNIRVSDK/go-package/models

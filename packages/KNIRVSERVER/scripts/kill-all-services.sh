@@ -2,6 +2,22 @@
 # Script to kill all KNIRVSERVER services
 # Usage: ./kill-all-services.sh [--force]
 #
+# Services handled (what the launcher and backend_server start):
+#   launcher        knirv-server
+#   launcher-owned  backend_server, ulorad (KNIRVULORA), knirvagent, knirvllama and its
+#                   llama-server child, text-embedder, ipfs, xiond (Xion), the
+#                   Transaction Chain (node main.js) and Validation Chain, KNIRVMONITOR
+#                   (in-process)
+#   backend-owned   knirvmodels (HASHER, HEART, HEAD), knirvgateway, knirvgraph,
+#                   knirvchain, knirvoracle, KNIRVARENA (in-process)
+#   data pipeline   data-connector, data-mapper, data-encoder, data-seeder,
+#                   data-trainer, head-trainer; ASIC driver hasher-host / hasher-server
+#   other           container_deployer, os_builder, a stale pre-rename knirvhasher
+#
+# Ctrl+C on a running knirv-server already stops all of these: the launcher stops each
+# service in order and then ends any descendant still alive. Use this script for a
+# server that was killed uncleanly or started elsewhere.
+#
 # The process checks in this script are deliberately conservative.  A matching
 # port or a matching word in an arbitrary command line is not enough to kill a
 # process: it must also be a KNIRV executable/command.
@@ -16,7 +32,7 @@ if [[ "$1" == "--force" ]]; then
     FORCE=true
 fi
 
-echo "=== Killing all KNIRVSERVER services (AGGRESSIVE MODE) ==="
+echo "=== Stopping all KNIRVSERVER services ==="
 
 # Continue past individual kill failures so every service gets a chance.
 set +e
@@ -100,7 +116,25 @@ is_knirv_process() {
         return 0
     fi
     case "$comm" in
-        backend_server|container_deployer|os_builder|hasher-host) return 0 ;;
+        backend_server|container_deployer|os_builder|hasher-host|hasher-server) return 0 ;;
+        ulorad|knirvagent|knirvllama|knirvmodels|knirvgateway|knirvgraph|knirvchain|knirvoracle) return 0 ;;
+        data-connector|data-mapper|data-encoder|data-seeder|data-trainer|head-trainer) return 0 ;;
+    esac
+
+    # Services whose argv says nothing about KNIRV (ipfs daemon, text-embedder,
+    # `node main.js` of the Transaction Chain, validationchain): accept them only when
+    # their environment, working directory or executable is KNIRV's own.
+    local env_knirv exe cwd
+    env_knirv=$(tr '\0' '\n' < "/proc/$pid/environ" 2>/dev/null | grep -E '^(IPFS_PATH|TEXT_EMBEDDER_BINARY_PATH|XION_HOME)=.*knirv' || true)
+    [[ -n "$env_knirv" ]] && return 0
+    exe=$(readlink "/proc/$pid/exe" 2>/dev/null)
+    cwd=$(readlink "/proc/$pid/cwd" 2>/dev/null)
+    case "$comm" in
+        ipfs|xiond|text-embedder|embedder|validationchain|node)
+            if printf '%s\n%s\n' "$exe" "$cwd" | grep -Eqi 'knirv'; then
+                return 0
+            fi
+            ;;
     esac
     return 1
 }
@@ -110,6 +144,7 @@ kill_by_pattern() {
     local pattern="$1"
     local signal="${2:-SIGTERM}"
     local aggressive="${3:-false}"
+    local timeout="${4:-3}"   # seconds to wait after the signal before SIGKILL
 
     echo "Looking for processes matching: $pattern"
 
@@ -134,8 +169,7 @@ kill_by_pattern() {
         sudo_kill "$pid" "$signal" || true
     done
 
-    # Wait for graceful termination (up to 3 s)
-    local timeout=3
+    # Wait for graceful termination (up to $timeout s)
     local start_time=$(date +%s)
 
     for pid in $pids; do
@@ -207,11 +241,16 @@ kill_by_binary_path() {
     done
 }
 
-# Kill KNIRV-SERVER unified binary (aggressive)
+# Kill KNIRV-SERVER unified binary.  SIGTERM is the same as Ctrl+C: the launcher then
+# stops backend_server, ulorad, knirvagent, knirvllama/llama-server, text-embedder, IPFS,
+# Xion and both chains in order, and sweeps any child left over.  Give it time to do
+# that (it allows the backend up to 30 s) before anything is killed outright.
+GRACE=35
+[[ "$FORCE" == "true" ]] && GRACE=3
 echo ""
-echo "1. Killing KNIRV-SERVER unified binary..."
-kill_by_pattern "./dist/knirv-server" "SIGTERM" "true"
-kill_by_pattern "knirv-server" "SIGTERM" "true"
+echo "1. Stopping KNIRV-SERVER unified binary (graceful, up to ${GRACE}s)..."
+kill_by_pattern "./dist/knirv-server" "SIGTERM" "true" "$GRACE"
+kill_by_pattern "knirv-server" "SIGTERM" "true" "$GRACE"
 
 # Kill binaries in KNIRVSERVER runtime bin directories
 echo ""
@@ -219,19 +258,29 @@ echo "1.5. Killing binaries in KNIRVSERVER runtime bin directories..."
 kill_by_binary_path "/var/lib/knirvserver/bin"
 kill_by_binary_path "$HOME/.local/share/knirvserver/bin"
 
-# Kill subprocess services individually (aggressive, with graceful SIGTERM first)
-# These are managed subprocesses launched by the backend — knirvoracle binds a
-# Unix socket, knirvgateway proxies API calls, knirvmodels handles content hashing,
-# hasher-host manages ASIC hasher-server deployment, and knirvllama wraps its
-# private llama-server child behind a Unix socket.
+# Anything the launcher or backend started that is still alive.  Services are listed
+# individually so each is reported by name.  The backend goes first (it stops the
+# daemons it owns), then the daemons, then the launcher's other children.
 echo ""
-echo "1.6. Killing KNIRV subprocess services (knirvoracle, knirvgateway, knirvmodels, hasher-host, knirvllama)..."
-kill_by_pattern "knirvoracle" "SIGTERM" "true" || true
-kill_by_pattern "knirvgateway" "SIGTERM" "true" || true
-kill_by_pattern "knirvmodels" "SIGTERM" "true" || true
-kill_by_pattern "hasher-host" "SIGTERM" "true" || true
-kill_by_pattern "knirvllama" "SIGTERM" "true" || true
-kill_by_pattern "llama-server" "SIGTERM" "true" || true
+echo "1.6. Killing KNIRV subprocess services..."
+for svc in backend_server; do
+    kill_by_pattern "$svc" "SIGTERM" "true" 10 || true
+done
+# Backend-owned daemons: models (HASHER, HEART, HEAD), gateway, graph, chain, oracle.
+for svc in knirvmodels knirvgateway knirvgraph knirvchain knirvoracle; do
+    kill_by_pattern "$svc" "SIGTERM" "true" || true
+done
+# Models data pipeline and ASIC driver.
+for svc in data-connector data-mapper data-encoder data-seeder data-trainer head-trainer hasher-host hasher-server; do
+    kill_by_pattern "$svc" "SIGTERM" "true" || true
+done
+# Launcher-owned: ULoRA daemon, agent runtime, llama wrapper and its llama-server child,
+# text embedder, IPFS, Xion, Transaction Chain (node main.js), Validation Chain.
+for svc in ulorad knirvagent knirvllama llama-server text-embedder "ipfs daemon" "xiond start" "node main.js" validationchain; do
+    kill_by_pattern "$svc" "SIGTERM" "true" || true
+done
+# Pre-rename daemon left running by an in-place upgrade.
+kill_by_pattern "knirvhasher" "SIGTERM" "true" || true
 
 # Kill backend server
 echo ""
@@ -271,7 +320,8 @@ kill_by_pattern "node.*KNIRV" "SIGTERM" "true"
 # local applications.
 echo ""
 echo "7. Checking for processes on KNIRV ports..."
-PORTS="8080 8081 8082 8084 8086 8090 4001 9080 9090 9002 7090"
+# 8089 text-embedder, 5001/8081 IPFS API/gateway, 26657/9091/1317 Xion
+PORTS="8080 8081 8082 8084 8086 8089 8090 4001 5001 9080 9090 9002 7090 26657 9091 1317"
 for port in $PORTS; do
     if command -v lsof >/dev/null 2>&1; then
         for pid in $(lsof -ti:"$port" 2>/dev/null || true); do

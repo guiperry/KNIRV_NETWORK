@@ -35,7 +35,7 @@ import (
 	"knirvmodels/internal/host"
 	"knirvmodels/internal/formal/lean"
 	hasherapi "knirvmodels/pkg/hashing/api"
-	pb "knirvmodels/internal/proto/models/v1"
+	pb "knirvmodels/proto/models/v1"
 	"knirvmodels/pkg/hashing/proofasset"
 	"knirvmodels/pkg/hashing/inference"
 	jitterpkg "knirvmodels/pkg/hashing/jitter"

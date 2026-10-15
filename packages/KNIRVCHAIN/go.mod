@@ -6,6 +6,8 @@ toolchain go1.24.11
 
 replace github.com/guiperry/knirv-inference-go => ../KNIRVINFERENCER
 
+replace github.com/guiperry/knirv-sdk-go/models => ../KNIRVSDK/go-package/models
+
 replace github.com/libp2p/go-libp2p-p2p/protocol/circuitv2/autorelay => github.com/libp2p/go-libp2p-circuit v0.12.0
 
 replace github.com/quic-go/quic-go => github.com/quic-go/quic-go v0.48.0
@@ -15,6 +17,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/guiperry/knirv-inference-go v0.0.0
 	github.com/guiperry/knirv-sdk-go v0.1.1
+	github.com/guiperry/knirv-sdk-go/models v0.0.0 // indirect
 	github.com/ipfs/go-cid v0.5.0
 	github.com/libp2p/go-libp2p v0.39.1
 	github.com/libp2p/go-libp2p-kad-dht v0.25.2

@@ -166,7 +166,7 @@ Internal KNIRVSERVER serialization schemas (package `KNIRVSERVER`):
 | KNIRVARENA | `packages/KNIRVARENA/src/core/protobuf/schemas/` | TypeScript |
 | KNIRVSERVER | `packages/KNIRVSERVER/backend/internal/proto/` | Go |
 | KNIRVCHAIN | `packages/KNIRVCHAIN/internal/protocol/proto/` | Go |
-| KNIRVMODELS | `packages/KNIRVMODELS/internal/proto/models/v1/` | Go |
+| KNIRVMODELS | `packages/KNIRVMODELS/proto/models/v1/` | Go |
 
 ## Development Workflow
 

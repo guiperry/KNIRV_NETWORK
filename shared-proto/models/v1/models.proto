@@ -44,6 +44,9 @@ message ComputeBatchResponse {
   repeated bytes hashes = 1;
   uint64 total_latency_us = 2;
   uint32 processed_count = 3;
+
+  // Hardware-found nonces, aligned with hashes. Empty for software paths.
+  repeated uint32 nonces = 4;
 }
 
 message StreamComputeRequest {
@@ -220,4 +223,73 @@ message ActivityEvent {
   string payload = 5;
   int64 timestamp = 6;
   map<string, string> data = 7;
+}
+
+// FormalVerificationService provides formal proof verification services.
+service FormalVerificationService {
+  rpc SubmitProof(SubmitProofRequest) returns (SubmitProofResponse);
+  rpc GetProofStatus(GetProofStatusRequest) returns (GetProofStatusResponse);
+  rpc GetProofAsset(GetProofAssetRequest) returns (GetProofAssetResponse);
+  rpc Metrics(MetricsRequest) returns (MetricsResponse);
+}
+
+message SubmitProofRequest {
+  bytes canonical_proof_asset = 1;
+  bool request_hardware_attestation = 2;
+}
+
+message SubmitProofResponse {
+  string proof_asset_id = 1;
+  FormalProofStatus status = 2;
+  string diagnostic = 3;
+}
+
+enum FormalProofStatus {
+  FORMAL_PROOF_UNKNOWN = 0;
+  FORMALLY_VERIFIED = 1;
+  FORMALLY_REJECTED = 2;
+  PROOF_PENDING = 3;
+  CHECKER_UNAVAILABLE = 4;
+}
+
+message GetProofStatusRequest {
+  string proof_asset_id = 1;
+}
+
+message GetProofStatusResponse {
+  string proof_asset_id = 1;
+  FormalProofStatus status = 2;
+  VerificationReceipt receipt = 3;
+}
+
+message GetProofAssetRequest {
+  string proof_asset_id = 1;
+}
+
+message GetProofAssetResponse {
+  string proof_asset_id = 1;
+  bytes canonical_proof_asset = 2;
+  FormalProofStatus status = 3;
+  VerificationReceipt receipt = 4;
+}
+
+message MetricsRequest {}
+
+message MetricsResponse {
+  uint64 total_submissions = 1;
+  uint64 verified_count = 2;
+  uint64 rejected_count = 3;
+  uint64 error_count = 4;
+  uint64 queue_depth = 5;
+  float median_check_time_ms = 6;
+}
+
+message VerificationReceipt {
+  uint32 schema_version = 1;
+  string proof_asset_id = 2;
+  string status = 3;
+  string checker_digest = 4;
+  string environment_digest = 5;
+  string checked_at = 6;
+  string diagnostic_digest = 7;
 }

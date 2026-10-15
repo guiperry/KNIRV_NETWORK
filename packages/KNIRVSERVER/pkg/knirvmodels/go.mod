@@ -1,4 +1,4 @@
-module knirvmodels
+module github.com/KNIRV/KNIRV_NETWORK/KNIRVSERVER/pkg/knirvmodels
 
 go 1.24.11
 

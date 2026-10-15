@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	pb "knirvmodels/internal/proto/models/v1"
+	pb "knirvmodels/proto/models/v1"
 	"knirvmodels/pkg/hashing/proofasset"
 	"google.golang.org/grpc"
 )

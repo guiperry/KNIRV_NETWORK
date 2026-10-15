@@ -50,6 +50,7 @@ import (
 	"knirv-server/pkg/embedded/validationchain/checkpoint"
 	"knirv-server/internal/progress"
 	"knirvllama"
+	"knirvulora"
 )
 
 // Assets are embedded by the executable and injected into the launcher. Keeping
@@ -58,7 +59,6 @@ import (
 type Assets struct {
 	Frontend      fs.FS
 	BackendBinary []byte
-	ULoRABinary   []byte
 	ConfigFiles   fs.FS
 	Version       string
 	BuildTime     string
@@ -68,7 +68,6 @@ type Assets struct {
 var (
 	embeddedFiles fs.FS
 	backendBinary []byte
-	uloraBinary   []byte
 	configFiles   fs.FS
 	Version       = "dev"
 	BuildTime     = "unknown"
@@ -331,8 +330,7 @@ type ServerApp struct {
 	xionCmd                  *exec.Cmd
 	textEmbedderCmd          *exec.Cmd
 	backendPath              string
-	uloraPath                string
-	uloraCmd                 *exec.Cmd
+	uloraManager             *knirvulora.Manager
 	tempDir                  string
 	upd                      *updater.Updater
 	monitor                  *monitor.Service
@@ -1723,7 +1721,6 @@ func extractBinaries() (string, error) {
 	}
 	bins := []entry{
 		{"backend_server", decompressed},
-		{"ulorad", uloraBinary},
 	}
 
 	for _, b := range bins {
@@ -1764,7 +1761,6 @@ func (app *ServerApp) extractBackend() error {
 	}
 
 	app.backendPath = filepath.Join(binDir, "backend_server")
-	app.uloraPath = filepath.Join(binDir, "ulorad")
 	return nil
 }
 
@@ -3900,38 +3896,24 @@ func (app *ServerApp) stopBackend() {
 	}
 }
 
-// startULoRA starts the standalone adapter compiler before backend_server so
-// downstream services can use its socket from their first request.
+// startULoRA extracts the embedded ulorad (pkg/knirvulora) and starts it before
+// backend_server so downstream services can use its socket from their first request.
 func (app *ServerApp) startULoRA() error {
-	if len(uloraBinary) == 0 || app.uloraPath == "" {
-		return fmt.Errorf("embedded ulorad binary is unavailable")
-	}
 	appDataDir, err := getAppDataDir()
 	if err != nil {
 		return fmt.Errorf("resolve ulora app data directory: %w", err)
 	}
-	socketPath := filepath.Join(appDataDir, "sockets", "ulora.sock")
-	dataDir := filepath.Join(appDataDir, "ulora")
-	if err := os.MkdirAll(filepath.Dir(socketPath), 0755); err != nil {
-		return err
+	binPath, err := knirvulora.ExtractEmbeddedBinary(filepath.Join(appDataDir, "bin"))
+	if err != nil {
+		return fmt.Errorf("extract ulorad: %w", err)
 	}
-	if err := os.MkdirAll(dataDir, 0755); err != nil {
-		return err
-	}
-	_ = os.Remove(socketPath)
-	app.uloraCmd = exec.Command(app.uloraPath)
-	app.uloraCmd.Env = append(os.Environ(),
-		"ULORA_AUTH_TOKEN="+app.internalAuthToken,
-		"ULORA_SOCKET_PATH="+socketPath,
-		"ULORA_DATA_DIR="+dataDir,
-	)
-	app.uloraCmd.Stdout = os.Stdout
-	app.uloraCmd.Stderr = os.Stderr
-	if err := app.uloraCmd.Start(); err != nil {
-		return fmt.Errorf("start ulorad: %w", err)
-	}
-	log.Printf("ulorad started (PID: %d)", app.uloraCmd.Process.Pid)
-	return nil
+	app.uloraManager = knirvulora.NewManager(knirvulora.ManagerConfig{
+		BinaryPath: binPath,
+		SocketPath: filepath.Join(appDataDir, "sockets", "ulora.sock"),
+		DataDir:    filepath.Join(appDataDir, "ulora"),
+		AuthToken:  app.internalAuthToken,
+	})
+	return app.uloraManager.Start(context.Background())
 }
 
 // validateProductionCredentials ensures that either root.key (root node) or
@@ -4144,6 +4126,11 @@ func (app *ServerApp) Start() error {
 
 // Stop stops the KNIRV-SERVER application
 func (app *ServerApp) Stop() error {
+	// Remember everything that descends from this process (backend_server and the
+	// daemons it started, ulorad, llama-server, ...). Each service has an orderly
+	// stop below; the final sweep ends whatever those missed or timed out on.
+	descendants := descendantPIDs(os.Getpid())
+
 	// Stop HTTP server
 	if app.server != nil {
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
@@ -4156,7 +4143,11 @@ func (app *ServerApp) Stop() error {
 
 	// Stop backend
 	app.stopBackend()
-	stopManagedProcess("ulorad", app.uloraCmd)
+	if app.uloraManager != nil {
+		if err := app.uloraManager.Stop(); err != nil {
+			log.Printf("Warning: stopping ulorad: %v", err)
+		}
+	}
 	stopManagedProcess("Xion", app.xionCmd)
 	stopManagedProcess("IPFS", app.ipfsCmd)
 	stopManagedProcess("text-embedder", app.textEmbedderCmd)
@@ -4174,6 +4165,13 @@ func (app *ServerApp) Stop() error {
 
 	// Stop the embedded KNIRVLLAMA subprocess.
 	app.stopLlama()
+
+	// Backstop: end any descendant that survived its orderly stop (a service that
+	// timed out, a backend that was SIGKILLed with children of its own, ...).
+	descendants = mergePIDs(descendants, descendantPIDs(os.Getpid()))
+	if n := reapDescendants(descendants, 5*time.Second); n > 0 {
+		log.Printf("Shutdown: %d process(es) had to be killed after their orderly stop", n)
+	}
 
 	// Clean up temp directory
 	if app.tempDir != "" {
@@ -4355,7 +4353,6 @@ func loadConfig() (*Config, error) {
 func Run(assets Assets) {
 	embeddedFiles = assets.Frontend
 	backendBinary = assets.BackendBinary
-	uloraBinary = assets.ULoRABinary
 	configFiles = assets.ConfigFiles
 	Version = assets.Version
 	BuildTime = assets.BuildTime
@@ -4417,7 +4414,15 @@ func Run(assets Assets) {
 	select {
 	case <-sigChan:
 	}
-	log.Println("Shutting down...")
+	log.Println("Shutting down... (press Ctrl+C again to force)")
+
+	// A second signal skips the orderly stop: kill everything we started and exit.
+	go func() {
+		<-sigChan
+		log.Println("Forced shutdown: killing all child processes")
+		reapDescendants(descendantPIDs(os.Getpid()), 2*time.Second)
+		os.Exit(1)
+	}()
 
 	if err := app.Stop(); err != nil {
 		log.Printf("Error during shutdown: %v", err)

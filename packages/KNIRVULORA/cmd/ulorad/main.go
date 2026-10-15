@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"sync/atomic"
 	"syscall"
 
 	"ulora/internal/config"
@@ -44,14 +45,18 @@ func main() {
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, syscall.SIGINT, syscall.SIGTERM)
 
+	var stopping atomic.Bool
 	go func() {
-		if err := srv.Serve(); err != nil {
+		// Shutdown closes the listener, which makes Serve return an error; that is
+		// the normal way out, not a failure.
+		if err := srv.Serve(); err != nil && !stopping.Load() {
 			log.Fatalf("serve: %v", err)
 		}
 	}()
 
 	log.Println("ulorad daemon started")
 	<-stop
+	stopping.Store(true)
 	log.Println("ulorad daemon shutting down")
 	_ = srv.Shutdown()
 }

@@ -27,7 +27,7 @@ import (
 	"google.golang.org/grpc/status"
 
 	"knirvmodels/internal/driver/device"
-	pb "knirvmodels/internal/proto/models/v1"
+	pb "knirvmodels/proto/models/v1"
 )
 
 var (
@@ -352,6 +352,15 @@ func main() {
 
 	// Register service
 	pb.RegisterHasherServiceServer(grpcServer, hasherServer)
+
+	// Rolling-upgrade alias: pre-rename clients dial hasher.v1.HasherService
+	// (the package was renamed hasher.v1 -> models.v1). Same handlers, same
+	// field numbers, so the alias serves them without a second implementation.
+	{
+		desc := pb.HasherService_ServiceDesc
+		desc.ServiceName = "hasher.v1.HasherService"
+		grpcServer.RegisterService(&desc, hasherServer)
+	}
 
 	// Enable reflection for debugging
 	reflection.Register(grpcServer)
