@@ -49,7 +49,6 @@ import (
 	"knirv-server/pkg/embedded/validationchain"
 	"knirv-server/pkg/embedded/validationchain/checkpoint"
 	"knirv-server/internal/progress"
-	"knirvllama"
 	"knirvulora"
 )
 
@@ -115,9 +114,10 @@ type Config struct {
 	// knirvmodels starts in direct ASIC mode (skips CGMiner, drives the ASIC
 	// directly over raw USB). Requires -models to take effect.
 	AutoStartDirect bool
-	// AutoStartLlama is command-line only. When -llama is set, the wrapper
-	// extracts and starts the embedded local llama.cpp inference provider
-	// at the top of the initialization sequence, before startAgentControl.
+	// AutoStartLlama starts the embedded local inference harness (Colibri, with
+	// llama.cpp as its fallback) at the top of the initialization sequence, before
+	// startAgentControl. It is on by default; -llama=false or llama.enabled: false
+	// in the config turns it off, and an explicit -llama flag wins over the config.
 	AutoStartLlama bool
 	// Llama is ordinary operational configuration. Model locations are not
 	// secrets and must never be sourced from root.key.
@@ -334,10 +334,6 @@ type ServerApp struct {
 	tempDir                  string
 	upd                      *updater.Updater
 	monitor                  *monitor.Service
-	llamaManager             *knirvllama.Manager
-	llamaMu                  sync.Mutex
-	llamaStartCancel         context.CancelFunc
-	llamaStopRequested       bool
 }
 
 func (app *ServerApp) startIPFS(ctx context.Context) error {
@@ -769,116 +765,28 @@ func (app *ServerApp) stopAgentControl() {
 	app.agentControl = nil
 }
 
-// startLlama starts the local provider after the rest of KNIRVSERVER is
-// available. ctx is cancelled during shutdown so a first-run provision does
-// not outlive the server that requested it.
-func (app *ServerApp) startLlama(ctx context.Context) error {
-	app.llamaMu.Lock()
-	if app.llamaStopRequested {
-		app.llamaMu.Unlock()
-		return context.Canceled
-	}
-	if app.llamaManager != nil {
-		app.llamaMu.Unlock()
-		return nil
-	}
-	app.llamaMu.Unlock()
-
-	appDataDir, err := getAppDataDir()
-	if err != nil {
-		return fmt.Errorf("failed to resolve app data directory: %w", err)
-	}
-
-	binDir := filepath.Join(appDataDir, "bin")
-	llamaBinaryPath, err := knirvllama.ExtractEmbeddedBinary(binDir)
-	if err != nil {
-		return fmt.Errorf("failed to extract KNIRVLLAMA binary: %w", err)
-	}
-
-	managerCfg := knirvllama.DefaultManagerConfig()
-	managerCfg.BinaryPath = llamaBinaryPath
-	managerCfg.DataDir = filepath.Join(appDataDir, "knirvllama")
-	managerCfg.SocketPath = filepath.Join(appDataDir, "sockets", "llama.sock")
-	if app.config.Llama.Parallel > 0 {
-		managerCfg.Parallel = app.config.Llama.Parallel
-	}
-	if app.config.Llama.CtxSize > 0 {
-		managerCfg.CtxSize = app.config.Llama.CtxSize
-	}
-	if app.config.Llama.Threads > 0 {
-		managerCfg.Threads = app.config.Llama.Threads
-	}
-	managerCfg.EnvOverrides = make(map[string]string)
-	if app.config.Llama.ModelURL != "" {
-		managerCfg.EnvOverrides["KNIRV_LLAMA_MODEL_URL"] = app.config.Llama.ModelURL
-	}
-	if app.config.Llama.ModelName != "" {
-		managerCfg.EnvOverrides["KNIRV_LLAMA_MODEL_NAME"] = app.config.Llama.ModelName
-	}
-	if app.config.Llama.ModelPath != "" {
-		managerCfg.EnvOverrides["KNIRV_LLAMA_MODEL_PATH"] = app.config.Llama.ModelPath
-	}
-
-	manager := knirvllama.NewManager(managerCfg, zap.NewNop())
-	if err := manager.Start(ctx); err != nil {
-		return fmt.Errorf("failed to start KNIRVLLAMA: %w", err)
-	}
-
-	app.llamaMu.Lock()
-	if app.llamaStopRequested {
-		app.llamaMu.Unlock()
-		stopCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-		defer cancel()
-		_ = manager.Stop(stopCtx)
-		return context.Canceled
-	}
-	app.llamaManager = manager
-	app.llamaMu.Unlock()
-	log.Printf("KNIRVLLAMA started on unix://%s", manager.GetSocketPath())
-	return nil
-}
-
-// startLlamaAsync schedules llama last so first-run provisioning never delays
-// HTTP, backend, chain, monitor, or any other KNIRVSERVER initialization.
-func (app *ServerApp) startLlamaAsync() {
-	app.llamaMu.Lock()
-	if app.llamaStopRequested || app.llamaStartCancel != nil || app.llamaManager != nil {
-		app.llamaMu.Unlock()
-		return
-	}
-	ctx, cancel := context.WithCancel(context.Background())
-	app.llamaStartCancel = cancel
-	app.llamaMu.Unlock()
-
-	go func() {
-		log.Printf("KNIRVLLAMA initialization started in the background; provisioning logs follow")
-		if err := app.startLlama(ctx); err != nil && !errors.Is(err, context.Canceled) {
-			log.Printf("Warning: KNIRVLLAMA initialization failed: %v", err)
+// llamaHarnessEnv turns the `llama:` configuration into the environment variables
+// the model harness (the knirvmodels binary's inference mode) reads.
+func llamaHarnessEnv(c LlamaConfig) []string {
+	var env []string
+	add := func(name, val string) {
+		if strings.TrimSpace(val) != "" {
+			env = append(env, name+"="+val)
 		}
-	}()
-}
-
-func (app *ServerApp) stopLlama() {
-	app.llamaMu.Lock()
-	app.llamaStopRequested = true
-	if app.llamaStartCancel != nil {
-		app.llamaStartCancel()
-		app.llamaStartCancel = nil
 	}
-	if app.llamaManager == nil {
-		app.llamaMu.Unlock()
-		return
+	if c.Parallel > 0 {
+		add("KNIRV_LLAMA_PARALLEL", strconv.Itoa(c.Parallel))
 	}
-	manager := app.llamaManager
-	app.llamaManager = nil
-	app.llamaMu.Unlock()
-
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
-
-	if err := manager.Stop(ctx); err != nil {
-		log.Printf("Error stopping KNIRVLLAMA: %v", err)
+	if c.CtxSize > 0 {
+		add("KNIRV_LLAMA_CTX_SIZE", strconv.Itoa(c.CtxSize))
 	}
+	if c.Threads > 0 {
+		add("KNIRV_LLAMA_THREADS", strconv.Itoa(c.Threads))
+	}
+	add("KNIRV_LLAMA_MODEL_URL", c.ModelURL)
+	add("KNIRV_LLAMA_MODEL_NAME", c.ModelName)
+	add("KNIRV_LLAMA_MODEL_PATH", c.ModelPath)
+	return env
 }
 
 func collectAgentExtraEnv() []string {
@@ -3339,17 +3247,34 @@ func (app *ServerApp) startTransactionChain(ctx context.Context) error {
 	}
 	log.Printf("Transaction Chain started on socket %s", socketPath)
 
+	// Nothing later in startup needs the chain to be healthy or funded, so the
+	// waits happen in the background: a slow chain (or a busy host, e.g. while the
+	// model harness is loading) must never stop the server.
+	go app.fundTransactionChainWhenReady(ctx, socketPath)
+	return nil
+}
+
+// transactionChainHealthTimeout bounds how long the funding goroutine waits for the
+// Transaction Chain's own /health; it is long because boot competes for CPU and disk
+// with the other services (a model load can take minutes).
+const transactionChainHealthTimeout = 10 * time.Minute
+
+// fundTransactionChainWhenReady waits for KNIRVORACLE and the Transaction Chain, then
+// funds the root.key holder's wallet when demo funding is enabled. Every failure is
+// logged and none stops the server.
+func (app *ServerApp) fundTransactionChainWhenReady(ctx context.Context, socketPath string) {
 	oracleURL := oracleGatewayURL(app.config)
-	if !waitForOracleHealth(ctx, 60*time.Second, oracleURL, oracleWaitSpinner("Waiting for KNIRVORACLE (Transaction Chain funding)")) {
+	if !waitForOracleHealth(ctx, 5*time.Minute, oracleURL, nil) {
 		log.Printf("Warning: KNIRVORACLE did not become healthy in time; skipping Transaction Chain wallet funding")
-		return nil
+		return
 	}
 	// StartTransactionChain only guarantees the process was spawned, not that
 	// its HTTP server has finished booting (sqlite table creation + chain
 	// load happen asynchronously before app.listen()) — wait for its own
 	// /health before crediting, or the very first request loses this race.
-	if !waitForTransactionChainHealth(ctx, socketPath, 30*time.Second) {
-		return fmt.Errorf("Transaction Chain did not become healthy within 30s")
+	if !waitForTransactionChainHealth(ctx, socketPath, transactionChainHealthTimeout) {
+		log.Printf("Warning: Transaction Chain did not become healthy within %s; skipping wallet funding (the server keeps running)", transactionChainHealthTimeout)
+		return
 	}
 	demo := strings.TrimSpace(os.Getenv("KNIRV_ENABLE_DEMO"))
 	if demo == "1" || strings.EqualFold(demo, "true") {
@@ -3357,7 +3282,6 @@ func (app *ServerApp) startTransactionChain(ctx context.Context) error {
 	} else {
 		log.Printf("Transaction Chain demo funding disabled; balances must be established through Oracle settlement")
 	}
-	return nil
 }
 
 // waitForTransactionChainHealth polls the Transaction Chain's own /health
@@ -3482,12 +3406,10 @@ func (app *ServerApp) startBackend() error {
 	// Pass the config file path used by the wrapper to the backend.
 	// This ensures the backend uses the same configuration.
 	configFile := viper.ConfigFileUsed()
+	// backend_server starts the model harness (KNIRVMODELS: Colibri, with llama.cpp as
+	// its fallback) behind this socket when -llama is set, and registers it as the
+	// local provider.
 	llamaSocket := filepath.Join(mustAppDataDir(), "sockets", "llama.sock")
-	app.llamaMu.Lock()
-	if app.llamaManager != nil && app.llamaManager.GetSocketPath() != "" {
-		llamaSocket = app.llamaManager.GetSocketPath()
-	}
-	app.llamaMu.Unlock()
 	backendArgs := backendCommandArgs(configFile, app.config.AutoStartModels, app.config.AutoStartPipeline, app.config.AutoStartDirect, app.config.AutoStartLlama, llamaSocket)
 	if configFile != "" {
 		log.Printf("Passing config file to backend: %s", configFile)
@@ -3539,6 +3461,10 @@ func (app *ServerApp) startBackend() error {
 		fmt.Sprintf("KNIRV_CONFIG_FILE=%s", configFile),
 		"KNIRV_API_HOST=127.0.0.1",
 	)
+
+	// The model harness reads its tuning from the environment. Only explicit
+	// settings are passed so its own defaults apply otherwise.
+	env = append(env, llamaHarnessEnv(app.config.Llama)...)
 
 	// Only inject testnet defaults in testnet mode.
 	// Auth is always required — testnet.yaml has no auth_required flag to disable it,
@@ -4114,12 +4040,9 @@ func (app *ServerApp) Start() error {
 	// Wait for server to be ready
 	time.Sleep(2 * time.Second)
 
-	// Llama can spend several minutes provisioning llama.cpp and its model on
-	// first run. It is deliberately scheduled after every required service and
-	// the HTTP server are ready, and its failure is isolated from KNIRVSERVER.
-	if app.config.AutoStartLlama {
-		app.startLlamaAsync()
-	}
+	// With -llama, backend_server (already running) starts the model harness:
+	// Colibri downloads and installs itself while llama.cpp serves as the fallback.
+	// Its failure is isolated from KNIRVSERVER.
 
 	return nil
 }
@@ -4163,9 +4086,6 @@ func (app *ServerApp) Stop() error {
 	// Stop agent control plane and all running agents.
 	app.stopAgentControl()
 
-	// Stop the embedded KNIRVLLAMA subprocess.
-	app.stopLlama()
-
 	// Backstop: end any descendant that survived its orderly stop (a service that
 	// timed out, a backend that was SIGKILLed with children of its own, ...).
 	descendants = mergePIDs(descendants, descendantPIDs(os.Getpid()))
@@ -4199,7 +4119,7 @@ func loadConfig() (*Config, error) {
 		modelsFlag   = flag.Bool("models", false, "Start the KNIRVMODELS ASIC driver (hasher-host/hasher-server deployment) during server initialization")
 		pipelineFlag = flag.Bool("pipeline", false, "Start the KNIRVMODELS data pipeline during server initialization")
 		directFlag   = flag.Bool("direct", false, "Skip CGMiner and drive the ASIC directly over raw USB (requires -models)")
-		llamaFlag    = flag.Bool("llama", false, "Start the embedded local llama.cpp inference provider during server initialization")
+		llamaFlag    = flag.Bool("llama", true, "Start the embedded local inference harness (Colibri, with llama.cpp as fallback) during server initialization; -llama=false disables it")
 		port         = flag.Int("port", 0, "Server port (overrides config)")
 		host         = flag.String("host", "", "Server host (overrides config)")
 	)
@@ -4269,7 +4189,7 @@ func loadConfig() (*Config, error) {
 	}
 	viper.SetDefault("gateway_port", 8080)
 	viper.SetDefault("log_level", "info")
-	viper.SetDefault("llama.enabled", false)
+	viper.SetDefault("llama.enabled", true)
 	viper.SetDefault("llama.parallel", 1)
 	viper.SetDefault("testnet", networkMode == "testnet")
 	viper.SetDefault("proof_max_object_bytes", int64(64<<20))
@@ -4330,7 +4250,12 @@ func loadConfig() (*Config, error) {
 	config.AutoStartModels = *modelsFlag
 	config.AutoStartPipeline = *pipelineFlag
 	config.AutoStartDirect = *directFlag
-	config.AutoStartLlama = *llamaFlag || config.Llama.Enabled
+	config.AutoStartLlama = config.Llama.Enabled
+	flag.Visit(func(f *flag.Flag) {
+		if f.Name == "llama" {
+			config.AutoStartLlama = *llamaFlag
+		}
+	})
 	config.Enterprise = networkMode == "enterprise"
 	config.UserIDTag = strings.TrimSpace(*userIDTag)
 	if config.UserIDTag == "" {

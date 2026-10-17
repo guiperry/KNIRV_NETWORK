@@ -3,6 +3,7 @@ package runtime
 import (
 	"context"
 	"fmt"
+	"os"
 	"sync"
 	"time"
 )
@@ -12,8 +13,14 @@ import (
 type Supervisor struct {
 	Path, Model, Address string
 	Base                 Options // adapters are supplied per Start
-	// HealthTimeout bounds how long a start waits for /health (a large model takes a while).
+	// HealthTimeout bounds how long a start waits for /health. Zero means
+	// KNIRV_LLAMA_HEALTH_TIMEOUT, else DefaultHealthTimeout. A child that exits is
+	// reported at once and never waits for it.
 	HealthTimeout time.Duration
+	// Logf receives progress lines ("loading model, 45s elapsed"). Nil is silent.
+	Logf func(format string, args ...any)
+	// NoWarm disables pre-reading the model into the page cache while it starts.
+	NoWarm bool
 
 	mu    sync.Mutex
 	child *Server
@@ -43,23 +50,21 @@ func (s *Supervisor) Start(ctx context.Context, adapters []LoRAAdapter) error {
 	s.child = child
 	timeout := s.HealthTimeout
 	if timeout <= 0 {
-		timeout = 120 * time.Second
+		timeout = HealthTimeoutFromEnv()
 	}
-	deadline := time.Now().Add(timeout)
-	for !Healthy(ctx, s.Address) {
-		select {
-		case <-child.Exited():
-			s.child = nil
-			return fmt.Errorf("llama-server exited during startup (bad model or adapter?)")
-		case <-ctx.Done():
-			return ctx.Err()
-		case <-time.After(200 * time.Millisecond):
-		}
-		if time.Now().After(deadline) {
-			child.Stop()
-			s.child = nil
-			return fmt.Errorf("llama-server did not become healthy within %s", timeout)
-		}
+	if !s.NoWarm && os.Getenv("KNIRV_LLAMA_WARM") != "0" {
+		warmCtx, stopWarm := context.WithCancel(ctx)
+		defer stopWarm()
+		go func() {
+			if n, err := WarmFile(warmCtx, s.Model); err == nil && n > 0 && s.Logf != nil {
+				s.Logf("model pre-read into page cache (%d MB)", n>>20)
+			}
+		}()
+	}
+	if err := WaitHealthy(ctx, s.Address, child.Exited(), WaitOptions{Timeout: timeout, Logf: s.Logf}); err != nil {
+		child.Stop()
+		s.child = nil
+		return err
 	}
 	if len(adapters) == 0 {
 		return nil

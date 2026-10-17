@@ -2,8 +2,11 @@ package transactionchain
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"fmt"
+	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -378,13 +381,22 @@ func (tc *TransactionChain) Start(ctx context.Context, socketPath, internalAuthT
 		return err
 	}
 
-	installCmd := exec.CommandContext(tc.ctx, npmBin, "install", "--production")
-	installCmd.Dir = destDir
-	installCmd.Env = nodeToolEnv(nodeBin)
-	installCmd.Stdout = os.Stdout
-	installCmd.Stderr = os.Stderr
-	if err := installCmd.Run(); err != nil {
-		return fmt.Errorf("npm install failed: %w", err)
+	// npm install takes about a minute on a slow host and competes with the other
+	// services for CPU and disk, so it only runs when the dependencies changed.
+	if npmInstallCurrent(destDir) {
+		log.Printf("Transaction Chain dependencies already installed; skipping npm install")
+	} else {
+		installCmd := exec.CommandContext(tc.ctx, npmBin, "install", "--production")
+		installCmd.Dir = destDir
+		installCmd.Env = nodeToolEnv(nodeBin)
+		installCmd.Stdout = os.Stdout
+		installCmd.Stderr = os.Stderr
+		if err := installCmd.Run(); err != nil {
+			return fmt.Errorf("npm install failed: %w", err)
+		}
+		if err := writeNpmInstallStamp(destDir); err != nil {
+			log.Printf("Warning: could not record the Transaction Chain npm install (it will run again next start): %v", err)
+		}
 	}
 
 	if err := os.MkdirAll(filepath.Dir(socketPath), 0o700); err != nil {
@@ -496,4 +508,45 @@ func (tc *TransactionChain) HealthCheck() error {
 // listens on, valid once Start has succeeded.
 func (tc *TransactionChain) SocketPath() string {
 	return tc.socketPath
+}
+
+// npmInstallStampFile records which package.json the installed node_modules match.
+const npmInstallStampFile = ".npm-install-stamp"
+
+// npmDependencyHash identifies the dependency manifests npm install reads.
+func npmDependencyHash(dir string) (string, bool) {
+	h := sha256.New()
+	found := false
+	for _, name := range []string{"package.json", "package-lock.json"} {
+		b, err := os.ReadFile(filepath.Join(dir, name))
+		if err != nil {
+			continue
+		}
+		found = true
+		fmt.Fprintf(h, "%s:%d:", name, len(b))
+		h.Write(b)
+	}
+	return hex.EncodeToString(h.Sum(nil)), found
+}
+
+// npmInstallCurrent reports whether node_modules was installed from the current
+// manifests.
+func npmInstallCurrent(dir string) bool {
+	want, ok := npmDependencyHash(dir)
+	if !ok {
+		return false
+	}
+	if fi, err := os.Stat(filepath.Join(dir, "node_modules")); err != nil || !fi.IsDir() {
+		return false
+	}
+	got, err := os.ReadFile(filepath.Join(dir, npmInstallStampFile))
+	return err == nil && strings.TrimSpace(string(got)) == want
+}
+
+func writeNpmInstallStamp(dir string) error {
+	sum, ok := npmDependencyHash(dir)
+	if !ok {
+		return nil
+	}
+	return os.WriteFile(filepath.Join(dir, npmInstallStampFile), []byte(sum), 0o644)
 }

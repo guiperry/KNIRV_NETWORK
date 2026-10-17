@@ -86,6 +86,13 @@ func decompressEmbedded(data []byte) ([]byte, error) {
 }
 
 func ExtractEmbeddedBinary(destDir string) (string, error) {
+	return ExtractEmbeddedBinaryAs(destDir, "knirvmodels")
+}
+
+// ExtractEmbeddedBinaryAs extracts the embedded binary under another file name. The
+// model-serving instance uses one so the ASIC-driver manager's `pkill -x knirvmodels`
+// of a stale daemon can never kill it.
+func ExtractEmbeddedBinaryAs(destDir, name string) (string, error) {
 	if len(embeddedBinary) == 0 {
 		return "", fmt.Errorf("embedded knirvmodels binary is empty")
 	}
@@ -103,7 +110,7 @@ func ExtractEmbeddedBinary(destDir string) (string, error) {
 	if err := ensureDir(destDir); err != nil {
 		return "", err
 	}
-	destPath := filepath.Join(destDir, "knirvmodels")
+	destPath := filepath.Join(destDir, name)
 	if err := os.RemoveAll(destPath); err != nil {
 		return "", err
 	}

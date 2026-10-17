@@ -45,6 +45,9 @@ type Options struct {
 	CtxSize  int
 	Threads  int
 	APIKey   string
+	// Mlock passes --mlock so the model cannot be paged out after load. It needs RAM
+	// headroom for the whole model, so it is opt-in (KNIRV_LLAMA_MLOCK=1).
+	Mlock bool
 	// LoRA lists adapters to apply, in order.
 	LoRA []LoRAAdapter
 	// LoRAInitWithoutApply passes --lora-init-without-apply. NOTE: against the
@@ -81,6 +84,9 @@ func (o Options) args(model, port string) []string {
 	}
 	if o.APIKey != "" {
 		args = append(args, "--api-key", o.APIKey)
+	}
+	if o.Mlock {
+		args = append(args, "--mlock")
 	}
 	// Adapters last so the base-model flags above stay stable in the argv the
 	// manager asserts against.

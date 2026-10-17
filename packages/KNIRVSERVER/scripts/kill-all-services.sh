@@ -117,7 +117,7 @@ is_knirv_process() {
     fi
     case "$comm" in
         backend_server|container_deployer|os_builder|hasher-host|hasher-server) return 0 ;;
-        ulorad|knirvagent|knirvllama|knirvmodels|knirvgateway|knirvgraph|knirvchain|knirvoracle) return 0 ;;
+        ulorad|knirvagent|knirvllama|knirvmodels|knirvmodels-inf|knirvgateway|knirvgraph|knirvchain|knirvoracle) return 0 ;;
         data-connector|data-mapper|data-encoder|data-seeder|data-trainer|head-trainer) return 0 ;;
     esac
 
@@ -276,7 +276,9 @@ for svc in data-connector data-mapper data-encoder data-seeder data-trainer head
 done
 # Launcher-owned: ULoRA daemon, agent runtime, llama wrapper and its llama-server child,
 # text embedder, IPFS, Xion, Transaction Chain (node main.js), Validation Chain.
-for svc in ulorad knirvagent knirvllama llama-server text-embedder "ipfs daemon" "xiond start" "node main.js" validationchain; do
+# knirvmodels-infer is the model harness (Colibri primary, llama.cpp fallback); its
+# Colibri engine runs from <app data>/colibri/src and is stopped with `coli stop`.
+for svc in knirvmodels-infer colibri/src ulorad knirvagent knirvllama llama-server text-embedder "ipfs daemon" "xiond start" "node main.js" validationchain; do
     kill_by_pattern "$svc" "SIGTERM" "true" || true
 done
 # Pre-rename daemon left running by an in-place upgrade.

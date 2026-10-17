@@ -171,7 +171,6 @@ websites/4cb27963-c66c-52cd-b481-f93b5c4ffe5d.pdf
 # Generated KNIRVSERVER binary (published outside Git)
 /packages/KNIRVSERVER/bin/backend_server
 packages/KNIRVSERVER/bin/backend_server
-packages/KNIRVSERVER/pkg/knirvllama/bin/knirvllama
 packages/KNIRVSERVER/pkg/knirvinferencer/build/stamp
 /packages/KNIRVMODELS/head/target
 /packages/KNIRVARENA/src/wasm-pkg/knirv_head/*

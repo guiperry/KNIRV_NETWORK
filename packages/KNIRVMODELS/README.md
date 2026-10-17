@@ -42,6 +42,83 @@ The pipeline transforms user ontology data into `.nrv` datasets for future globa
 
 **Training Innovation:** Discovery of "Golden Seeds" is now optimized using a **Hamming Similarity Gradient** in the evolutionary process. Instead of binary prefix matching, the system rewards total matching bits across the 32-bit word, providing a continuous signal for convergence even at high difficulties.
 
+## Pre-trained model harness (`knirvmodels --inference`)
+
+`knirvmodels --inference --inference-socket <llama.sock>` serves the pre-trained models
+for inference (KNIRVSERVER's `backend_server` runs it unless KNIRVSERVER is started with `-llama=false`). The code is
+`pkg/harness`.
+
+- **Colibri is the primary** ([JustVugg/colibri](https://github.com/JustVugg/colibri),
+  release `v2.0.0`). On first run the harness downloads the release, then runs
+  Colibri's own non-interactive setup (`coli setup --yes --no-start --model <id> ...`):
+  it builds or fetches the engine, downloads the model with resume (skipped once `state/knirv-install.json` matches the version, model and port and the model files are on disk at about their listed size), and writes its
+  config under `<app data>/colibri`. Colibri's one setup parameter is the model
+  (`--model`). The harness sets it automatically to the model Colibri's own
+  `coli setup --list --json` marks `recommended` and `fits` for this machine, which is
+  what pressing Enter does in its one-step setup. `KNIRV_COLIBRI_MODEL` overrides it.
+  If no model fits the machine the harness says why and leaves llama.cpp serving.
+- **llama.cpp is the fallback** (`llama/`, embedded as `pkg/knirvllama`). On a first
+  run, while Colibri downloads, it starts immediately so inference works. Once Colibri
+  is installed it is not started alongside it (both would fight over the disk and CPUs
+  while the model loads); it starts only if Colibri is not serving after 3 minutes, or
+  fails. It is released once Colibri has been healthy for 30 s (`KNIRV_LLAMA_KEEP=1`
+  keeps it running). If Colibri stops answering, llama.cpp is started again and Colibri
+  is reinstalled/restarted with backoff.
+- **llama.cpp for what Colibri cannot do.** Skill (ULoRA) adapters, structured output
+  (`response_format` json_object / json_schema / grammar) and tool calls are routed to
+  llama.cpp when the running Colibri engine does not support them (decided per engine
+  family from Colibri's `/health` `arch`; the default `qwen36` supports none). llama.cpp
+  is started for such a request, which waits for it, and stopped after 15 idle minutes.
+- **One endpoint.** A router serves both on the socket (`llama.sock`), forwards to the
+  first ready backend that supports the request, streams responses, and rewrites the
+  request's `model` to the active engine's id. Colibri's address is read from Colibri
+  itself on every request, so its port may differ between runs (it is kept stable once
+  chosen). `/health` answers for whichever backend is ready; `GET /harness/status`
+  reports the active backend and why Colibri is not serving. The socket appears only
+  once some backend can answer.
+
+- **Colibri only where it pays.** On an x86-64 CPU without AVX2 Colibri is not
+  downloaded or started: the log says `colibri skipped: this host does not meet the
+  minimum requirements: CPU "..." has no AVX2; llama.cpp serves instead`. On a CPU
+  that passes, the first start measures Colibri's generation speed once the model has
+  loaded; below `KNIRV_COLIBRI_MIN_TPS` (default 1.0 tokens/s) it is stopped, the
+  result is recorded in `state/knirv-qualify.json` and it is not started again until
+  the CPU, Colibri release, model or minimum changes. `/harness/status` shows
+  `colibri_qualification`. `KNIRV_COLIBRI=force` skips both checks.
+- **What Colibri is for.** Batch work whose quality matters more than speed, sent with
+  the `X-Knirv-Role: teacher` header: only Colibri answers it (never llama.cpp; a
+  `503` if Colibri is not serving) and every response carries `X-Knirv-Backend` and
+  `X-Knirv-Model` so data can record its source. Tools, all under `pkg/teacher`:
+  - `teacher synth` writes synthetic instruction/response pairs (`ulora-sft/v1`) for
+    adapters, with provenance, de-duplication, truncation filtering and `-exclude` of
+    the gold set and exams so they never become training data.
+  - `teacher soft-labels` writes teacher distributions for the head to a *candidate*
+    file. It refuses to write `head-work/teacher.jsonl`: the head cycle picks that file
+    up automatically, and until the trainer applies teacher labels to the training
+    split only (finding H2 in `qwen_model.md`) the model would be scored against the
+    teacher.
+  - `measure suggest` proposes labels for gold-set candidates into `suggestions.jsonl`;
+    `measure gold accept` records the owner's own label (or `-agree`) and marks the
+    case `teacher-suggested`. `gold.jsonl` is never written by the teacher.
+  - `measure retrieval-judge` grades the top-k retrieved passages for each gold query to
+    find relevant passages the gold set has no label for. Machine judgments are
+    reported separately and feed no gate.
+  Colibri serves one request at a time, so a long teacher job delays interactive chat
+  that is routed to it.
+
+| Environment | Effect |
+|---|---|
+| `KNIRV_COLIBRI=0` / `force` / `KNIRV_LLAMA_FALLBACK=0` | run llama.cpp only / skip the host checks / Colibri only |
+| `KNIRV_COLIBRI_MIN_TPS=<n>` | slowest accepted speed in tokens/s (default 1.0; `0` never measures) |
+| `KNIRV_COLIBRI_MODEL=<id>` | the model, instead of Colibri's recommendation |
+| `KNIRV_COLIBRI_VERSION`, `KNIRV_COLIBRI_SOURCE_URL` | another release tag, or a mirror of the source archive |
+| `KNIRV_LLAMA_KEEP=1` | keep llama.cpp running while Colibri serves |
+| `KNIRV_LLAMA_PARALLEL`, `_CTX_SIZE`, `_THREADS`, `_MODEL_URL`, `_MODEL_NAME`, `_MODEL_PATH` | llama.cpp tuning (set from the launcher's `llama:` config) |
+
+Colibri needs Python 3.10+ (and a C compiler, or it uses its prebuilt CPU engine). It
+listens on `127.0.0.1`, on the first free port from 8099. Build and test:
+`make llama-build`, `make test-llama`, `make test-harness`.
+
 ## Key Features
 
 ### 1. Unified Hasher Engine

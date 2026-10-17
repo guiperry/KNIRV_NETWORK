@@ -40,6 +40,8 @@ var (
 	socketPerm          = flag.String("socket-perm", "0660", "Unix socket permissions (octal)")
 	goatMode            = flag.Bool("goat", false, "Compatibility profile selector; source selection is handled by data-connector")
 	knirvserverDeployed = flag.Bool("knirvserver-deployed", false, "run as the KNIRVSERVER-managed hasher service")
+	inferenceMode       = flag.Bool("inference", false, "serve the pre-trained models: Colibri as the primary harness with llama.cpp as its fallback, behind one Unix socket")
+	inferenceSocket     = flag.String("inference-socket", "/var/lib/knirvserver/sockets/llama.sock", "Unix socket the inference endpoint listens on (used with -inference)")
 	directMode          = flag.Bool("direct", false, "skip CGMiner and drive the ASIC directly over raw USB (no stratum pool, no CGMiner)")
 )
 
@@ -63,6 +65,11 @@ func main() {
 	// calls LoadDeviceConfig (which caches its result on first call).
 	if *directMode {
 		os.Setenv("DIRECT_MODE", "true")
+	}
+
+	if *inferenceMode {
+		runInference(*inferenceSocket)
+		return
 	}
 
 	initEmbeddedBinaries()

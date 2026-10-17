@@ -63,9 +63,10 @@ help: ## Show this help message
 # =============================================================================
 # KNIRVSERVER — the entry point for the entire network
 #
-# KNIRVSERVER embeds the compiled backend_server, ulorad, knirvagent, and
-# knirvllama binaries; backend_server carries KNIRVGATEWAY, KNIRVCHAIN,
-# KNIRVGRAPH, KNIRVORACLE, KNIRVMODELS, and KNIRVARENA via the
+# KNIRVSERVER embeds the compiled backend_server, ulorad and knirvagent
+# binaries; backend_server carries KNIRVGATEWAY, KNIRVCHAIN, KNIRVGRAPH,
+# KNIRVORACLE, KNIRVMODELS (which itself embeds the llama.cpp wrapper,
+# knirvllama), and KNIRVARENA via the
 # packages/KNIRVSERVER/pkg/knirv* modules. Each is extracted and launched as a
 # subprocess on startup. Building it does NOT require rebuilding any of those
 # packages; their binaries already ship vendored inside packages/KNIRVSERVER.

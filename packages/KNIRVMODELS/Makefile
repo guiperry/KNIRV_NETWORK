@@ -24,7 +24,7 @@ CLANG=clang
 LLVM_STRIP=llvm-strip
 
 
-.PHONY: all build clean test proto ebpf deps help build-asic-test build-probe build-probe build-probe-v2 build-protocol-discover build-monitor build-diagnostics deploy deploy-probe deploy-probe-v2 deploy-protocol-discover deploy-monitor build-pipeline-all build-data-connector build-data-mapper build-data-encoder build-data-seeder build-data-trainer build-head-trainer build-head-wasi test-head smoke-models build-knirvbase
+.PHONY: all build clean test proto ebpf deps help llama-build llama-clean test-llama test-harness teacher build-asic-test build-probe build-probe build-probe-v2 build-protocol-discover build-monitor build-diagnostics deploy deploy-probe deploy-probe-v2 deploy-protocol-discover deploy-monitor build-pipeline-all build-data-connector build-data-mapper build-data-encoder build-data-seeder build-data-trainer build-head-trainer build-head-wasi test-head smoke-models build-knirvbase
 
 ANTMINER_IP ?= $(shell [ -f .env ] && source .env && echo $$DEVICE_IP || echo 192.168.12.151)
 ANTMINER_USER ?= root
@@ -40,6 +40,11 @@ CLI_BUILD_DIR := ./bin
 
 # Source files
 CLI_SRC_DIR := ./cmd/cli
+
+# KNIRVLLAMA: the llama.cpp chat wrapper (./llama, its own module). It is compressed
+# into pkg/knirvllama/bin and go:embed'ed there, so every build of the CLI embeds it.
+LLAMA_SRC_DIR := ./llama
+LLAMA_PKG_BIN := pkg/knirvllama/bin/knirvllama
 
 # Test directories
 CLI_TEST_DIRS := ./internal/cli/ui ./internal/cli/chat ./internal/client ./internal/crypto_transformer ./tests
@@ -115,7 +120,7 @@ build-monitor-diagnostics:
 	@echo "✅ Build complete"
 	@ls -lh bin/monitor-diagnostics-mips
 
-cli:
+cli: llama-build
 	@echo "Creating build directory..."
 	@mkdir -p $(CLI_BUILD_DIR)
 	@echo "Building $(CLI_BINARY_NAME) CLI Tool..."
@@ -428,3 +433,38 @@ test-training:
 	@echo "✅ Training test complete"
 
 .DEFAULT_GOAL := help
+
+## measure: build the baseline-measurement harness (three_layer_inference.md); run `bin/measure help`
+measure:
+	go build -o bin/measure ./cmd/measure
+
+## test-measure: unit tests for the measurement harness
+test-measure:
+	go test ./cmd/measure
+
+## llama-build: build the KNIRVLLAMA wrapper and compress it for go:embed (needed by every CLI build)
+llama-build:
+	@echo "Building KNIRVLLAMA binary..."
+	@mkdir -p $(dir $(LLAMA_PKG_BIN))
+	@rm -f $(LLAMA_PKG_BIN)
+	cd $(LLAMA_SRC_DIR) && go build -ldflags "-s -w" -o $(abspath $(LLAMA_PKG_BIN)) ./cmd/llama
+	@gzip -n -cf $(LLAMA_PKG_BIN) > $(LLAMA_PKG_BIN).tmp && mv $(LLAMA_PKG_BIN).tmp $(LLAMA_PKG_BIN)
+	@echo "KNIRVLLAMA binary built: $(LLAMA_PKG_BIN)"
+
+## llama-clean: remove the embedded KNIRVLLAMA binary
+llama-clean:
+	rm -f $(LLAMA_PKG_BIN)
+	cd $(LLAMA_SRC_DIR) && go clean
+
+## test-llama: unit tests for the KNIRVLLAMA wrapper and its process manager
+test-llama:
+	cd $(LLAMA_SRC_DIR) && go test ./...
+	go test ./pkg/knirvllama
+
+## test-harness: unit tests for the model harness (Colibri primary, llama.cpp fallback)
+test-harness:
+	go test -race ./pkg/harness ./pkg/teacher
+
+## teacher: build the batch-job tool for the strong model (Colibri); run `bin/teacher help`
+teacher:
+	go build -o bin/teacher ./cmd/teacher

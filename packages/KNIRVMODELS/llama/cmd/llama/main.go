@@ -113,9 +113,23 @@ func main() {
 	var sup *runtime.Supervisor
 	external := runtime.Healthy(context.Background(), llamaAddress)
 	if !external {
+		// Surface what would otherwise be a silent timeout: an unreadable or truncated
+		// model, a taken port, memory too small to hold the model.
+		report := runtime.Preflight(result.ServerPath, result.ModelPath, llamaAddress)
+		for _, w := range report.Warnings {
+			log.Printf("preflight warning: %s", w)
+		}
+		if !report.OK() {
+			for _, e := range report.Errors {
+				log.Printf("preflight error: %s", e)
+			}
+			log.Fatalf("llama-server cannot start: %d preflight error(s) above", len(report.Errors))
+		}
 		sup = &runtime.Supervisor{
 			Path: result.ServerPath, Model: result.ModelPath, Address: llamaAddress,
-			Base: runtime.Options{Parallel: parallel, CtxSize: ctxSize, Threads: threads, APIKey: apiKey},
+			Base: runtime.Options{Parallel: parallel, CtxSize: ctxSize, Threads: threads, APIKey: apiKey,
+				Mlock: os.Getenv("KNIRV_LLAMA_MLOCK") == "1"},
+			Logf: func(format string, args ...any) { log.Printf("llama-server: "+format, args...) },
 		}
 		defer sup.Stop()
 		restart = func(ctx context.Context, set []adapters.Entry) error {

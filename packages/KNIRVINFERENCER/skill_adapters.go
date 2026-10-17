@@ -85,6 +85,11 @@ func (s *SkillAdapters) do(ctx context.Context, c *http.Client, method, url stri
 	if token != "" {
 		req.Header.Set("Authorization", "Bearer "+token)
 	}
+	if c == s.Llama {
+		// Adapters only exist in llama.cpp. The inference endpoint may be serving from
+		// another engine (Colibri); this makes it start and use llama.cpp for the call.
+		req.Header.Set("X-Knirv-Require-Backend", "llama.cpp")
+	}
 	res, err := c.Do(req)
 	if err != nil {
 		return 0, "", err

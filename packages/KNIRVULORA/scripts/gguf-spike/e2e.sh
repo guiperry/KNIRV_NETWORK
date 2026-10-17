@@ -8,7 +8,7 @@
 set -euo pipefail
 here=$(cd "$(dirname "$0")" && pwd)
 ulora=$(cd "$here/../.." && pwd)
-wrapper=$(cd "$ulora/../KNIRVSERVER/pkg/embedded/llama" && pwd)
+wrapper=$(cd "$ulora/../KNIRVMODELS/llama" && pwd)
 llama_cpp=${LLAMA_CPP_DIR:-/var/lib/knirvserver/knirvllama/llama.cpp}
 server=$llama_cpp/build/bin/llama-server
 for need in "$server" "$llama_cpp/gguf-py"; do [ -e "$need" ] || { echo "e2e: missing $need"; exit 2; }; done

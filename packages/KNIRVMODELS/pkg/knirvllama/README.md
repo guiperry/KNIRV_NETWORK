@@ -117,3 +117,33 @@ type ManagerConfig struct {
     EnvOverrides map[string]string
 }
 ```
+
+## Startup resilience
+
+A cold first start (empty page cache after a reboot, busy host) can take minutes to load the
+model. The wrapper and manager are built so that is slow, not fatal:
+
+- `llama-server` is given `KNIRV_LLAMA_HEALTH_TIMEOUT` (default 15m) and progress is logged
+  ("loading model (HTTP 503), 45s elapsed"). A child that exits is reported immediately.
+- The model is pre-read into the page cache while it loads (`KNIRV_LLAMA_WARM=0` disables).
+- Preflight fails fast on an unreadable/truncated model, a missing binary or a taken port,
+  and warns when available RAM is below the model size.
+- `KNIRV_LLAMA_MLOCK=1` adds `--mlock` (keeps the model resident; needs RAM headroom).
+- The manager reaps the child as soon as it exits, retries early exits (`MaxStartAttempts`,
+  default 3, `RetryBackoff` 5s then 30s), removes a stale `llama.sock`, prefixes the child's
+  output with `[KNIRVLLAMA]`, and reports `phase`, `attempt` and `last_error` in `GetStatus`.
+- A health timeout or missing binary is not retried.
+
+The embedded wrapper binary is a build artifact: run `make llama-build` in KNIRVMODELS
+(KNIRVSERVER's `make llama-build` delegates to it) and rebuild the server for these
+changes to take effect. The wrapper's source is `../../llama`. The manager is no longer
+started by the KNIRVSERVER launcher: `pkg/harness` runs it as the llama.cpp fallback.
+
+## Supervision
+
+`Start` retries only a child that exits while starting. `Supervise(ctx)` is the loop
+KNIRVSERVER runs: it calls `Start`, and when a start fails (including a health
+timeout) or the child later exits, waits `SuperviseBackoff` (default 10s, 30s, 2m, 5m,
+the last repeating) and starts it again. The backoff resets once a child has stayed up
+for `StableAfter` (default 2m). Only a failure no retry can fix, such as a missing
+binary, ends it. `GetStatus` reports `phase: restarting` while it waits.

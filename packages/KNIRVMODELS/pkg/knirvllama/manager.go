@@ -4,7 +4,10 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/hex"
+	"errors"
 	"fmt"
+	"io"
+	"log"
 	"net"
 	"net/http"
 	"os"
@@ -36,10 +39,25 @@ type Manager struct {
 	cmd        *exec.Cmd
 	logger     *zap.Logger
 	mu         sync.RWMutex
+	startMu    sync.Mutex // serializes Start so mu is never held across a long wait
 	running    bool
 	listenAddr string
 	startTime  time.Time
+
+	exited    chan struct{} // closed once the current child has been reaped (single Wait)
+	waitMu    sync.Mutex    // guards waitErr; separate from mu so Stop can wait for exit while holding mu
+	waitErr   error
+	ring      *tailRing
+	phase     string
+	attempt   int
+	lastError string
 }
+
+// killStale is replaced by tests: pkill -x on a test binary's name would kill the test.
+var killStale = killStaleLlama
+
+// resolveBinary is replaced by tests that need a binary that cannot be found.
+var resolveBinary = resolveLlamaBinaryPath
 
 type ManagerConfig struct {
 	BinaryPath string
@@ -67,6 +85,25 @@ type ManagerConfig struct {
 	// listen-address already restricts network access and traffic reaches
 	// the model over a private Unix socket.
 	APIKey string
+
+	// MaxStartAttempts is how many times Start tries when the child exits during
+	// startup (default 3). A health timeout or a missing binary is never retried.
+	MaxStartAttempts int
+	// RetryBackoff is the wait before attempt 2, 3, ... (default 5s, 30s; the last
+	// value repeats).
+	RetryBackoff []time.Duration
+	// SuperviseBackoff is the wait before each restart that Supervise makes, 1st, 2nd,
+	// ... (default 10s, 30s, 2m, 5m; the last value repeats).
+	SuperviseBackoff []time.Duration
+	// StableAfter is how long a child must stay up before Supervise forgets earlier
+	// failures and starts the backoff over (default 2m).
+	StableAfter time.Duration
+	// Logf receives operator-facing progress and failure lines. Nil logs through the
+	// standard logger, so a failed start is visible in the server log.
+	Logf func(format string, args ...any)
+	// Stdout and Stderr receive the child's output, prefixed "[KNIRVLLAMA] ".
+	// Nil means the process's own.
+	Stdout, Stderr io.Writer
 }
 
 type LlamaStatus struct {
@@ -75,6 +112,11 @@ type LlamaStatus struct {
 	ListenAddr string    `json:"listen_addr"`
 	Uptime     string    `json:"uptime"`
 	Timestamp  time.Time `json:"timestamp"`
+	// Phase is starting, waiting, running, failed or stopped; Attempt and LastError
+	// say how far a start got and why it last failed.
+	Phase     string `json:"phase,omitempty"`
+	Attempt   int    `json:"attempt,omitempty"`
+	LastError string `json:"last_error,omitempty"`
 }
 
 const (
@@ -136,6 +178,18 @@ func NewManager(cfg *ManagerConfig, logger *zap.Logger) *Manager {
 	if cfg.Parallel == 0 {
 		cfg.Parallel = 1
 	}
+	if cfg.MaxStartAttempts <= 0 {
+		cfg.MaxStartAttempts = 3
+	}
+	if cfg.RetryBackoff == nil {
+		cfg.RetryBackoff = []time.Duration{5 * time.Second, 30 * time.Second}
+	}
+	if cfg.SuperviseBackoff == nil {
+		cfg.SuperviseBackoff = []time.Duration{10 * time.Second, 30 * time.Second, 2 * time.Minute, 5 * time.Minute}
+	}
+	if cfg.StableAfter <= 0 {
+		cfg.StableAfter = 2 * time.Minute
+	}
 	if cfg.APIKey == "" {
 		// Operators may supply their own token via env, but a fresh install
 		// still needs *something* to put behind --api-key so the CORS-wildcard
@@ -180,33 +234,154 @@ func generateAPIKey() string {
 	return hex.EncodeToString(buf)
 }
 
-func (m *Manager) Start(ctx context.Context) error {
+func (m *Manager) logf(format string, args ...any) {
+	if m.config.Logf != nil {
+		m.config.Logf(format, args...)
+		return
+	}
+	log.Printf("KNIRVLLAMA: "+format, args...)
+}
+
+func (m *Manager) setWaitErr(err error) {
+	m.waitMu.Lock()
+	m.waitErr = err
+	m.waitMu.Unlock()
+}
+
+func (m *Manager) getWaitErr() error {
+	m.waitMu.Lock()
+	defer m.waitMu.Unlock()
+	return m.waitErr
+}
+
+func (m *Manager) setPhase(phase string, attempt int, err error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
+	m.phase, m.attempt = phase, attempt
+	if err != nil {
+		m.lastError = err.Error()
+	}
+}
 
-	if m.running {
+// Start launches KNIRVLLAMA and waits until it is healthy. If the process exits during
+// startup it is retried with backoff, because a cold page cache or a busy host often
+// kills the first attempt and a second one succeeds. A failure names the exit status
+// and the last lines the child printed.
+func (m *Manager) Start(ctx context.Context) error {
+	m.startMu.Lock()
+	defer m.startMu.Unlock()
+
+	m.mu.RLock()
+	already := m.running
+	m.mu.RUnlock()
+	if already {
 		m.logger.Info("KNIRVLLAMA already running")
 		return nil
 	}
 
+	var last error
+	for attempt := 1; attempt <= m.config.MaxStartAttempts; attempt++ {
+		m.setPhase("starting", attempt, nil)
+		err := m.startOnce(ctx, attempt)
+		if err == nil {
+			m.setPhase("running", attempt, nil)
+			m.logf("started on %s (attempt %d)", m.listenAddr, attempt)
+			return nil
+		}
+		last = err
+		if ctx.Err() != nil {
+			// Stopped on purpose (the harness released it): not a failure to report.
+			m.setPhase("stopped", attempt, nil)
+			return ctx.Err()
+		}
+		m.setPhase("failed", attempt, err)
+		m.logf("%v", err)
+		var se *StartError
+		if !errors.As(err, &se) || !se.retryable() || attempt == m.config.MaxStartAttempts || ctx.Err() != nil {
+			break
+		}
+		wait := backoffFor(m.config.RetryBackoff, attempt)
+		m.logf("retrying in %s (attempt %d of %d)", wait, attempt+1, m.config.MaxStartAttempts)
+		select {
+		case <-time.After(wait):
+		case <-ctx.Done():
+			return ctx.Err()
+		}
+	}
+	return last
+}
+
+// Supervise keeps KNIRVLLAMA running until ctx is cancelled. It starts it (Start's own
+// quick retries included) and, whenever a start fails or the child later exits, waits
+// out a growing backoff and starts it again. A health timeout is retried here too: the
+// model may simply have needed longer than the timeout on a cold host. Only a failure
+// no retry can fix (missing binary) ends the loop, and then the error is returned.
+// Backoff restarts from the beginning once a child has stayed up for StableAfter.
+func (m *Manager) Supervise(ctx context.Context) error {
+	failures := 0
+	for {
+		began := time.Now()
+		err := m.Start(ctx)
+		if ctx.Err() != nil {
+			return ctx.Err()
+		}
+		if err != nil {
+			var p permanent
+			if errors.As(err, &p) {
+				return err
+			}
+			m.logf("start failed: %v", err)
+		} else {
+			m.mu.RLock()
+			exited := m.exited
+			m.mu.RUnlock()
+			select {
+			case <-exited:
+			case <-ctx.Done():
+				return ctx.Err()
+			}
+			if ctx.Err() != nil {
+				return ctx.Err()
+			}
+		}
+		if time.Since(began) >= m.config.StableAfter {
+			failures = 0
+		}
+		failures++
+		wait := backoffFor(m.config.SuperviseBackoff, failures)
+		m.setPhase("restarting", failures, nil)
+		m.logf("restarting in %s (restart %d)", wait, failures)
+		select {
+		case <-time.After(wait):
+		case <-ctx.Done():
+			return ctx.Err()
+		}
+	}
+}
+
+func (m *Manager) startOnce(ctx context.Context, attempt int) error {
 	if m.config.BinaryPath == "" {
 		m.config.BinaryPath = "./knirvllama"
 	}
-
-	resolved, err := resolveLlamaBinaryPath(m.config.BinaryPath)
+	resolved, err := resolveBinary(m.config.BinaryPath)
 	if err != nil {
-		return fmt.Errorf("KNIRVLLAMA binary not found: %w", err)
+		return permanent{fmt.Errorf("KNIRVLLAMA binary not found: %w", err)}
 	}
 	m.config.BinaryPath = resolved
 
-	killStaleLlama(m.config.BinaryPath)
+	killStale(m.config.BinaryPath)
 
 	if err := os.MkdirAll(m.config.DataDir, 0755); err != nil {
-		return fmt.Errorf("failed to create data directory: %w", err)
+		return permanent{fmt.Errorf("failed to create data directory: %w", err)}
 	}
 	if m.config.SocketPath != "" {
 		if err := os.MkdirAll(filepath.Dir(m.config.SocketPath), 0750); err != nil {
-			return fmt.Errorf("failed to create llama socket directory: %w", err)
+			return permanent{fmt.Errorf("failed to create llama socket directory: %w", err)}
+		}
+		// A socket file left by a previous run (even one from before a reboot) makes
+		// "the socket exists" look like "llama is up". Remove it before spawning.
+		if err := removeStaleSocket(m.config.SocketPath); err != nil {
+			return permanent{fmt.Errorf("llama socket: %w", err)}
 		}
 	}
 
@@ -243,32 +418,83 @@ func (m *Manager) Start(ctx context.Context) error {
 		args = append(args, "-unix-socket", m.config.SocketPath)
 	}
 
-	m.cmd = exec.Command(m.config.BinaryPath, args...)
-	m.cmd.Env = env
-	m.cmd.Stdout = os.Stdout
-	m.cmd.Stderr = os.Stderr
-	m.cmd.SysProcAttr = &syscall.SysProcAttr{
+	stdout, stderr := m.config.Stdout, m.config.Stderr
+	if stdout == nil {
+		stdout = os.Stdout
+	}
+	if stderr == nil {
+		stderr = os.Stderr
+	}
+	ring := newTailRing(40)
+	outW := &lineWriter{prefix: "[KNIRVLLAMA] ", out: stdout, ring: ring}
+	errW := &lineWriter{prefix: "[KNIRVLLAMA] ", out: stderr, ring: ring}
+
+	cmd := exec.Command(m.config.BinaryPath, args...)
+	cmd.Env = env
+	cmd.Stdout = outW
+	cmd.Stderr = errW
+	cmd.SysProcAttr = &syscall.SysProcAttr{
 		Setpgid: true,
 	}
 
-	if err := m.cmd.Start(); err != nil {
-		return fmt.Errorf("failed to start KNIRVLLAMA: %w", err)
+	if err := cmd.Start(); err != nil {
+		return &StartError{Attempt: attempt, Underlay: fmt.Errorf("failed to start KNIRVLLAMA: %w", err)}
 	}
-	m.startTime = time.Now()
-	m.logger.Info("KNIRVLLAMA subprocess started",
-		zap.Int("pid", m.cmd.Process.Pid))
+	exited := make(chan struct{})
+	started := time.Now()
 
-	if err := m.waitForHealth(ctx); err != nil {
-		m.cmd.Process.Kill()
-		return fmt.Errorf("health check failed: %w", err)
+	m.mu.Lock()
+	m.cmd, m.exited, m.ring = cmd, exited, ring
+	m.startTime = started
+	m.mu.Unlock()
+	m.setWaitErr(nil)
+
+	// One goroutine owns Wait for the life of the child, so a crash is reaped at once
+	// (no zombie) and both startup and Stop learn about it from the same channel.
+	go func() {
+		err := cmd.Wait()
+		outW.Flush()
+		errW.Flush()
+		m.setWaitErr(err)
+		close(exited) // before taking mu: Stop holds mu while waiting on this channel
+		m.mu.Lock()
+		wasRunning := m.running
+		m.running = false
+		m.mu.Unlock()
+		if wasRunning {
+			m.setPhase("failed", attempt, fmt.Errorf("KNIRVLLAMA exited after start: %v", err))
+			m.logf("exited unexpectedly: %v; last output: %s", err, strings.Join(ring.tail(5), " | "))
+		}
+	}()
+	m.logger.Info("KNIRVLLAMA subprocess started", zap.Int("pid", cmd.Process.Pid))
+	m.logf("subprocess started (pid %d, attempt %d); waiting for the model to load", cmd.Process.Pid, attempt)
+
+	if err := m.waitForHealth(ctx, exited); err != nil {
+		se := &StartError{Attempt: attempt, Elapsed: time.Since(started), Tail: ring.tail(8)}
+		select {
+		case <-exited:
+			se.Exited = true
+			se.ExitErr = m.getWaitErr()
+		default:
+			se.Underlay = err
+			se.Timeout = errors.Is(err, errHealthTimeout)
+			// Still alive but not healthy (timeout or cancel): kill the group and reap.
+			syscall.Kill(-cmd.Process.Pid, syscall.SIGKILL)
+			select {
+			case <-exited:
+			case <-time.After(2 * time.Second):
+			}
+		}
+		return se
 	}
 
+	m.mu.Lock()
 	m.running = true
-	m.logger.Info("KNIRVLLAMA started successfully",
-		zap.String("listen", m.listenAddr))
-
+	m.mu.Unlock()
 	return nil
 }
+
+var errHealthTimeout = errors.New("timeout waiting for KNIRVLLAMA health")
 
 func setEnvOverride(env []string, key, value string) []string {
 	prefix := key + "="
@@ -323,17 +549,34 @@ func resolveLlamaBinaryPath(configured string) (string, error) {
 	return "", fmt.Errorf("binary not found in any candidate location")
 }
 
-func (m *Manager) waitForHealth(ctx context.Context) error {
+// waitForHealth returns when KNIRVLLAMA answers /health, the child exits (reported at
+// once, not after the deadline), the deadline passes, or ctx is cancelled. It logs
+// progress so a slow model load is distinguishable from a hang.
+func (m *Manager) waitForHealth(ctx context.Context, exited <-chan struct{}) error {
 	deadline, cancel := context.WithTimeout(ctx, m.config.StartTimeout)
 	defer cancel()
 
+	started := time.Now()
 	ticker := time.NewTicker(500 * time.Millisecond)
 	defer ticker.Stop()
+	progress := time.NewTicker(time.Minute)
+	defer progress.Stop()
 
 	for {
 		select {
+		case <-exited:
+			return fmt.Errorf("KNIRVLLAMA process exited before becoming healthy")
 		case <-deadline.Done():
-			return fmt.Errorf("timeout waiting for KNIRVLLAMA health at %s", m.listenAddr)
+			if ctx.Err() != nil {
+				return ctx.Err()
+			}
+			return fmt.Errorf("%w at %s", errHealthTimeout, m.listenAddr)
+		case <-progress.C:
+			m.mu.RLock()
+			attempt := m.attempt
+			m.mu.RUnlock()
+			m.setPhase("waiting", attempt, nil)
+			m.logf("still starting, %s elapsed (the model may be loading from a cold disk cache)", time.Since(started).Round(time.Second))
 		case <-ticker.C:
 			if healthy, _ := m.GetHealth(); healthy {
 				m.logger.Debug("KNIRVLLAMA health check passed", zap.String("listen", m.listenAddr))
@@ -353,22 +596,19 @@ func (m *Manager) Stop(ctx context.Context) error {
 
 	m.logger.Info("Stopping KNIRVLLAMA")
 
-	if err := m.cmd.Process.Signal(syscall.SIGTERM); err != nil {
+	cmd, exited := m.cmd, m.exited
+	if err := cmd.Process.Signal(syscall.SIGTERM); err != nil {
 		m.logger.Warn("Failed to send SIGTERM, forcing kill",
 			zap.Error(err))
-		syscall.Kill(-m.cmd.Process.Pid, syscall.SIGKILL)
+		syscall.Kill(-cmd.Process.Pid, syscall.SIGKILL)
 	}
 
-	done := make(chan error, 1)
-	go func() {
-		done <- m.cmd.Wait()
-	}()
-
 	select {
-	case err := <-done:
+	case <-exited:
 		m.running = false
 		m.startTime = time.Time{}
-		if err != nil {
+		m.phase = "stopped"
+		if err := m.getWaitErr(); err != nil {
 			m.logger.Info("KNIRVLLAMA stopped", zap.Error(err))
 		} else {
 			m.logger.Info("KNIRVLLAMA stopped gracefully")
@@ -376,14 +616,15 @@ func (m *Manager) Stop(ctx context.Context) error {
 		return nil
 	case <-time.After(m.config.StopTimeout):
 		m.logger.Warn("Timeout waiting for graceful shutdown, forcing kill")
-		syscall.Kill(-m.cmd.Process.Pid, syscall.SIGKILL)
+		syscall.Kill(-cmd.Process.Pid, syscall.SIGKILL)
 		select {
-		case <-done:
+		case <-exited:
 		case <-time.After(2 * time.Second):
 			m.logger.Warn("Wait() did not complete after Kill() — zombie possible")
 		}
 		m.running = false
 		m.startTime = time.Time{}
+		m.phase = "stopped"
 		return fmt.Errorf("forced shutdown after timeout")
 	}
 }
@@ -408,6 +649,8 @@ func (m *Manager) GetConfig() *ManagerConfig {
 }
 
 func (m *Manager) GetPID() int {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
 	if m.cmd != nil && m.cmd.Process != nil {
 		return m.cmd.Process.Pid
 	}
@@ -423,6 +666,9 @@ func (m *Manager) GetStatus() *LlamaStatus {
 		Running:    m.running,
 		ListenAddr: m.listenAddr,
 		Timestamp:  time.Now(),
+		Phase:      m.phase,
+		Attempt:    m.attempt,
+		LastError:  m.lastError,
 	}
 	if m.running {
 		status.Status = "running"
@@ -438,7 +684,9 @@ func (m *Manager) GetStatus() *LlamaStatus {
 func (m *Manager) GetHealth() (bool, error) {
 	socketPath := m.config.SocketPath
 	listenAddr := m.listenAddr
+	m.mu.RLock()
 	cmd := m.cmd
+	m.mu.RUnlock()
 	if cmd == nil {
 		return false, fmt.Errorf("KNIRVLLAMA not running")
 	}

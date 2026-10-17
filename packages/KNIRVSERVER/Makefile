@@ -40,9 +40,8 @@ TRAINER_PKG_BIN := $(MODELS_DIR)/internal/cli/embedded/bin/data-seeder
 AGENT_DIR := $(ROOT_DIR)/pkg/knirvagent
 AGENT_SRC_DIR := $(ROOT_DIR)/../KNIRVAGENT
 AGENT_PKG_BIN := $(AGENT_DIR)/bin/knirvagent
-LLAMA_DIR := $(ROOT_DIR)/pkg/embedded/llama
-LLAMA_PKG_DIR := $(ROOT_DIR)/pkg/knirvllama
-LLAMA_PKG_BIN := $(LLAMA_PKG_DIR)/bin/knirvllama
+# KNIRVLLAMA is built and embedded by KNIRVMODELS (it serves llama.cpp as the fallback
+# model harness); `llama-build` here only delegates there.
 ARENA_DIR := $(ROOT_DIR)/pkg/knirvarena
 ARENA_SRC_DIR := $(ROOT_DIR)/../KNIRVARENA
 ARENA_PKG_BUNDLE := $(ARENA_DIR)/bin/knirvarena.tar.gz
@@ -606,7 +605,7 @@ models-preflight: ## Fail early, with a clear message, if the HEAD toolchain (ru
 	@rustup target list --installed 2>/dev/null | grep -qx wasm32-unknown-unknown || { echo "$(RED)missing rust target: run 'rustup target add wasm32-unknown-unknown'$(NC)"; exit 1; }
 	@command -v wasm-bindgen >/dev/null || { echo "$(RED)wasm-bindgen CLI not found: 'cargo install wasm-bindgen-cli' (version must match the crate)$(NC)"; exit 1; }
 
-models-build: models-preflight models-deps ## Build KNIRVMODELS binaries into pkg/knirvmodels/bin/ (required before binary target)
+models-build: models-preflight models-deps llama-build ## Build KNIRVMODELS binaries into pkg/knirvmodels/bin/ (required before binary target)
 	@echo "$(BLUE)Building embedded KNIRVMODELS driver and ASIC server...$(NC)"
 	cd $(MODELS_SRC_DIR) && $(MAKE) build-driver
 	@echo "$(BLUE)Building KNIRVMODELS pipeline binaries...$(NC)"
@@ -678,20 +677,14 @@ agent-clean: ## Clean KNIRVAGENT build artifacts
 	rm -f $(AGENT_PKG_BIN)
 	cd $(AGENT_SRC_DIR) && make clean
 
-# KNIRVLLAMA (Embedded) targets
-llama-build: ## Build KNIRVLLAMA and compress it for go:embed
-	@echo "$(BLUE)Building KNIRVLLAMA binary...$(NC)"
-	@mkdir -p $(LLAMA_PKG_DIR)/bin
-	@rm -f $(LLAMA_PKG_BIN)
-	cd $(LLAMA_DIR) && go build -ldflags "-s -w" -o $(LLAMA_PKG_BIN) ./cmd/llama
-	@echo "$(BLUE)Compressing KNIRVLLAMA binary with gzip...$(NC)"
-	@gzip -n -cf $(LLAMA_PKG_BIN) > $(LLAMA_PKG_BIN).tmp && mv $(LLAMA_PKG_BIN).tmp $(LLAMA_PKG_BIN)
-	@echo "$(GREEN)KNIRVLLAMA binary built: $(LLAMA_PKG_BIN)$(NC)"
+# KNIRVLLAMA (built by KNIRVMODELS, embedded in the knirvmodels binary) targets
+llama-build: ## Build KNIRVLLAMA in KNIRVMODELS and compress it for go:embed (models-build embeds it into knirvmodels)
+	@echo "$(BLUE)Building KNIRVLLAMA binary (KNIRVMODELS)...$(NC)"
+	cd $(MODELS_SRC_DIR) && $(MAKE) llama-build
 
 llama-clean: ## Clean KNIRVLLAMA build artifacts
 	@echo "$(BLUE)Cleaning KNIRVLLAMA artifacts...$(NC)"
-	rm -f $(LLAMA_PKG_BIN)
-	cd $(LLAMA_DIR) && go clean
+	cd $(MODELS_SRC_DIR) && $(MAKE) llama-clean
 
 # KNIRVARENA (Embedded static bundle) targets
 arena-deps: ## Install KNIRVARENA dependencies

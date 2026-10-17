@@ -56,42 +56,54 @@ func (bv *BidirectionalVerifier) verifyForward(source, wasmType string) (bool, s
 	return true, "forward pass OK"
 }
 
+// verifyBackward re-derives the contract from the source instead of trusting
+// the forward pass: the source must hash to a stable non-empty digest, and the
+// export the forward pass requires must be bound to a real func of that name.
+// It never passes by default; it used to pass whenever the hash network was
+// unavailable (S1).
 func (bv *BidirectionalVerifier) verifyBackward(source, wasmType string) (bool, string) {
-	if !bv.hashNet.IsAvailable() {
-		return true, "hashnet unavailable, backward skipped"
-	}
+	return backwardCheck(bv.hashNet, source, wasmType)
+}
 
-	hashMatches := bv.hashNet.VerifySource(source)
-	if !hashMatches {
-		return false, "hashnet hash mismatch"
+func backwardCheck(hn *HashNetworkWrapper, source, wasmType string) (bool, string) {
+	if hn == nil {
+		hn = NewHashNetworkWrapper()
 	}
-
+	if hn.ComputeHash(source) == "" {
+		return false, "backward: empty source"
+	}
 	if !matchesBackwardInvariant(source, wasmType) {
-		return false, "backward invariant violation"
+		return false, "backward invariant violation: export not bound to a func"
 	}
-
 	return true, "backward pass OK"
 }
 
-func hasValidExports(source, wasmType string) bool {
-	var expectedExport string
+func expectedExport(wasmType string) string {
 	switch wasmType {
 	case "rule":
-		expectedExport = "GuardrailClass"
+		return "GuardrailClass"
 	case "resolution":
-		expectedExport = "ErrorClass"
+		return "ErrorClass"
 	case "patch":
-		expectedExport = "PatchScope"
-	default:
-		return false
+		return "PatchScope"
 	}
-
-	return strings.Contains(source, "//export "+expectedExport)
+	return ""
 }
 
+func hasValidExports(source, wasmType string) bool {
+	exp := expectedExport(wasmType)
+	return exp != "" && strings.Contains(source, "//export "+exp)
+}
+
+// matchesBackwardInvariant requires `//export X` to be immediately followed by
+// `func X(` for the export the forward pass demands.
 func matchesBackwardInvariant(source, wasmType string) bool {
-	exportPattern := regexp.MustCompile(fmt.Sprintf(`(?m)^//export %s`, wasmType))
-	return exportPattern.MatchString(source)
+	exp := expectedExport(wasmType)
+	if exp == "" {
+		return false
+	}
+	re := regexp.MustCompile(fmt.Sprintf(`(?m)^//export %s\s*\n\s*func %s\(`, exp, exp))
+	return re.MatchString(source)
 }
 
 func calculateConfidence(forwardPassed, backwardPassed bool, forwardMsg, backwardMsg string) float32 {
@@ -154,21 +166,7 @@ func NewBackwardVerifier() *BackwardVerifier {
 }
 
 func (bv *BackwardVerifier) Verify(source string, wasmType string) (bool, string) {
-	if !bv.hashNet.IsAvailable() {
-		return true, "hashnet unavailable"
-	}
-
-	hashMatches := bv.hashNet.VerifySource(source)
-	if !hashMatches {
-		return false, "hashnet hash mismatch"
-	}
-
-	invariantMatches := matchesBackwardInvariant(source, wasmType)
-	if !invariantMatches {
-		return false, "invariant mismatch"
-	}
-
-	return true, "backward verified"
+	return backwardCheck(bv.hashNet, source, wasmType)
 }
 
 type VerificationResult struct {

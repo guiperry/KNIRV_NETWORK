@@ -33,3 +33,29 @@ func TestResolveNodeBinaryAcceptsSupportedOverride(t *testing.T) {
 		t.Fatalf("resolveNodeBinary() = %q, want %q", got, want)
 	}
 }
+
+func TestNpmInstallIsSkippedOnlyWhenDependenciesAreUnchanged(t *testing.T) {
+	dir := t.TempDir()
+	if npmInstallCurrent(dir) {
+		t.Fatal("an empty directory is not installed")
+	}
+	if err := os.WriteFile(filepath.Join(dir, "package.json"), []byte(`{"dependencies":{"a":"1"}}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := writeNpmInstallStamp(dir); err != nil {
+		t.Fatal(err)
+	}
+	if npmInstallCurrent(dir) {
+		t.Fatal("no node_modules yet")
+	}
+	if err := os.Mkdir(filepath.Join(dir, "node_modules"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if !npmInstallCurrent(dir) {
+		t.Fatal("installed from the current manifest must be skipped")
+	}
+	os.WriteFile(filepath.Join(dir, "package.json"), []byte(`{"dependencies":{"a":"2"}}`), 0o644)
+	if npmInstallCurrent(dir) {
+		t.Fatal("a changed dependency must reinstall")
+	}
+}
