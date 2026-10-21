@@ -681,7 +681,7 @@ func (hs *HEARTService) buildDecision(ctx context.Context, s4 *Stage4Result, s3 
 	decision.WASMPath = result.WASMPath
 	decision.WASMHash = result.WASMHash
 
-	passed, confidence, msg := hs.verifier.Verify(s4.Source, string(s4.WASMType))
+	passed, confidence, msg := hs.verifier.VerifyBinary(s4.Source, string(s4.WASMType), result.WASMPath)
 	decision.BidirectionalVerified = passed
 	decision.VerifierConfidence = confidence
 	if passed {

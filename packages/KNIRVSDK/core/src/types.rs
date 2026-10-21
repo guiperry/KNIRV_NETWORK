@@ -973,6 +973,49 @@ pub struct FactualitySlice {
     pub initialized_at: Option<String>,
     pub last_health_check: Option<String>,
 }
+/// Body of `POST /api/validation/factuality` (the only factuality route the node serves).
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+pub struct FactualityCheckRequest {
+    pub prompt: String,
+    pub response: String,
+    #[serde(default)]
+    pub agent_id: String,
+    #[serde(default)]
+    pub dve_id: String,
+    #[serde(default)]
+    pub ontology_domains: Vec<String>,
+    #[serde(default)]
+    pub objective_name: String,
+    #[serde(default)]
+    pub preference_weights: std::collections::BTreeMap<String, f64>,
+}
+
+/// Reply of `POST /api/validation/factuality`. `degraded` means the check did not run against
+/// real evidence; treat the verdict as unconfirmed.
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+pub struct FactualityCheckResponse {
+    #[serde(default)]
+    pub is_accurate: bool,
+    #[serde(default)]
+    pub confidence: f64,
+    #[serde(default)]
+    pub citations: Vec<i64>,
+    #[serde(default)]
+    pub refused: bool,
+    #[serde(default)]
+    pub explanation: String,
+    #[serde(default)]
+    pub domain_scores: std::collections::BTreeMap<String, f64>,
+    #[serde(default)]
+    pub proof: Option<String>,
+    #[serde(default)]
+    pub degraded: bool,
+    #[serde(default)]
+    pub nrv_trail: Option<Value>,
+    #[serde(default)]
+    pub certificate_of_correctness: Option<Value>,
+}
+
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 pub struct FactualityVerification {
     pub id: Option<String>,

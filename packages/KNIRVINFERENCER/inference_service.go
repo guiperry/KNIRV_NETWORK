@@ -884,6 +884,9 @@ func (s *InferenceService) RegisterLocalProvider(providerName, model, endpoint s
 		config.SetModel(model),
 		config.SetMaxTokens(localLlamaMaxTokens),
 		config.SetTimeout(localLlamaRequestTimeout),
+		// Calls through the orchestrator's fallback chain are bounded server tasks,
+		// not dream passes: give this instance its own stage.
+		config.SetExtraHeaders(map[string]string{StageHeader: "inferencer.task"}),
 	}
 
 	llmInstance, err := gollm.NewLLM(opts...)

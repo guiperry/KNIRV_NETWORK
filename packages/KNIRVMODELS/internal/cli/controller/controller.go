@@ -441,10 +441,29 @@ func (c *Controller) ConfigureASIC(ctx context.Context) (string, error) {
 	return output.String(), nil
 }
 
-func (c *Controller) ManageRules(ctx context.Context, action string, args ...string) (string, error) {
-	validator, err := validation.NewLogicalValidator()
+var rulesMu sync.Mutex
+
+func rulesJournal() (*validation.RuleJournal, error) {
+	dir, err := embedded.GetAppDataDir()
 	if err != nil {
-		return "", fmt.Errorf("error creating validator: %w", err)
+		return nil, fmt.Errorf("rules data dir: %w", err)
+	}
+	return &validation.RuleJournal{Path: filepath.Join(dir, "logical_rules.jsonl")}, nil
+}
+
+// ManageRules lists, adds and deletes logical rules. Mutations are journalled
+// to <app data>/logical_rules.jsonl and replayed on every call, so they survive
+// (Q4: they used to land in a throwaway validator).
+func (c *Controller) ManageRules(ctx context.Context, action string, args ...string) (string, error) {
+	rulesMu.Lock()
+	defer rulesMu.Unlock()
+	journal, err := rulesJournal()
+	if err != nil {
+		return "", err
+	}
+	validator, err := journal.Open()
+	if err != nil {
+		return "", fmt.Errorf("error opening rules: %w", err)
 	}
 
 	switch action {
@@ -486,7 +505,7 @@ func (c *Controller) ManageRules(ctx context.Context, action string, args ...str
 			return "", err
 		}
 
-		if err := validator.KnowledgeBase.AddRule(domain, rule); err != nil {
+		if err := journal.Add(validator, domain, rule); err != nil {
 			return "", err
 		}
 
@@ -497,10 +516,12 @@ func (c *Controller) ManageRules(ctx context.Context, action string, args ...str
 			return "", fmt.Errorf("usage: delete <domain> <index>")
 		}
 		domain := args[0]
-		var index int
-		fmt.Sscanf(args[1], "%d", &index)
+		index, convErr := strconv.Atoi(args[1])
+		if convErr != nil {
+			return "", fmt.Errorf("invalid rule index %q", args[1])
+		}
 
-		if err := validator.KnowledgeBase.RemoveRule(domain, index); err != nil {
+		if err := journal.Delete(validator, domain, index); err != nil {
 			return "", err
 		}
 

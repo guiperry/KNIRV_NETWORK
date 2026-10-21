@@ -13,6 +13,7 @@ import (
 	"time"
 
 	models "github.com/guiperry/knirv-sdk-go/models"
+	"github.com/guiperry/knirv-sdk-go/models/frame"
 )
 
 // Adapters from each model to HarnessModel. HEAD, HEART and HASHER are reached through
@@ -286,9 +287,13 @@ func (e *ExternalModel) Do(ctx context.Context, t Task) (Result, error) {
 
 // LlamaInput is a prompt with optional system text and token limit.
 type LlamaInput struct {
-	Prompt    string
+	Prompt string
+	// System is task-specific context. It is sent inside the user turn, under
+	// the stage frame, which is the only system message a call carries.
 	System    string
 	MaxTokens int
+	// Stage overrides the stage chosen from the task kind (frame registry id).
+	Stage string
 }
 
 // SkillEnsurer makes a bundle's adapter available in llama (*SkillAdapters).
@@ -371,12 +376,26 @@ func (l *LlamaModel) get(ctx context.Context, path string) (int, []byte, error) 
 
 // chat is one /v1/chat/completions call. adapter "" sends no adapter field.
 func (l *LlamaModel) chat(ctx context.Context, in LlamaInput, adapter string) (string, error) {
-	msgs := []map[string]string{}
-	if in.System != "" {
-		msgs = append(msgs, map[string]string{"role": "system", "content": in.System})
+	if in.Stage == "" {
+		in.Stage = "inferencer.task"
 	}
-	msgs = append(msgs, map[string]string{"role": "user", "content": in.Prompt})
-	req := map[string]any{"model": l.Model, "messages": msgs}
+	fr, err := frame.Default().Build(in.Stage, frame.LiveFacts{Model: l.Model})
+	if err != nil {
+		return "", fmt.Errorf("llama: %w", err)
+	}
+	user := in.Prompt
+	if in.System != "" {
+		user = "CONTEXT:\n" + in.System + "\n\nTASK:\n" + in.Prompt
+	}
+	msgs := []map[string]string{
+		{"role": "system", "content": fr.System},
+		{"role": "user", "content": user},
+	}
+	req := map[string]any{"model": l.Model, "messages": msgs,
+		"knirv_stage": fr.Stage, "knirv_frame_hash": fr.Hash, "cache_prompt": true}
+	if s, ok := frame.Default().Stage(fr.Stage); ok {
+		req["knirv_priority"] = int(s.Priority)
+	}
 	if in.MaxTokens > 0 {
 		req["max_tokens"] = in.MaxTokens
 	}
@@ -424,6 +443,12 @@ func (l *LlamaModel) Do(ctx context.Context, t Task) (Result, error) {
 		return Result{}, fmt.Errorf("llama needs a prompt, got %T", t.Input)
 	}
 	version := l.Ready(ctx).Version
+	if in.Stage == "" {
+		in.Stage = "inferencer.task"
+		if t.Kind == KindExecuteSkill && t.Skill != nil && t.Skill.BundleID != "" {
+			in.Stage = frame.SkillPrefix + t.Skill.BundleID
+		}
+	}
 	if t.Kind != KindExecuteSkill {
 		text, err := l.base(ctx, in)
 		if err != nil {

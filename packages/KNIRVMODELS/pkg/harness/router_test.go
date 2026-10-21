@@ -220,7 +220,7 @@ func TestRouterReplacesStaleSocket(t *testing.T) {
 }
 
 // plainChatOnly stands in for Colibri's qwen36 engine: chat, no grammar, no adapters.
-func plainChatOnly(n Needs) bool { return !n.Adapter && !n.Grammar && !n.Tools }
+func plainChatOnly(n Needs) bool { return !n.Adapter && !n.Grammar && !n.Tools && !n.Frame }
 
 func TestRouterSendsStructuredOutputAndAdaptersToTheBackendThatSupportsThem(t *testing.T) {
 	a, b := echoServer("colibri"), echoServer("llama")
@@ -241,6 +241,9 @@ func TestRouterSendsStructuredOutputAndAdaptersToTheBackendThatSupportsThem(t *t
 		`{"model":"x","adapter":"skill-abc"}`:                                     "llama",
 		`{"model":"x","tools":[{"type":"function"}]}`:                             "llama",
 		`{"model":"x","tools":[]}`:                                                "colibri",
+		// A role-framed call is HEART/INFERENCER work: never Colibri, even with no schema.
+		`{"model":"x","messages":[],"knirv_stage":"heart.chat","knirv_frame_hash":"h"}`: "llama",
+		`{"model":"x","knirv_stage":""}`:                                                "colibri",
 	} {
 		var got map[string]any
 		json.Unmarshal(post(t, r, "/v1/chat/completions", body).Body.Bytes(), &got)
@@ -386,5 +389,74 @@ func TestTeacherRequestsAreServedOnlyByTheTeacherBackend(t *testing.T) {
 	// Ordinary traffic still sees the headers.
 	if h := post(t, r, "/v1/chat/completions", `{"model":"x"}`).Header().Get(BackendHeader); h != "colibri" {
 		t.Fatalf("backend header %q", h)
+	}
+}
+
+func TestRoleFrameNeedIsDetectedFromHeaderAndBody(t *testing.T) {
+	mk := func(hdr string) *http.Request {
+		r := httptest.NewRequest("POST", "/v1/chat/completions", nil)
+		if hdr != "" {
+			r.Header.Set("X-KNIRV-Stage", hdr)
+		}
+		return r
+	}
+	if !detectNeeds(mk("heart.chat"), nil).Frame {
+		t.Fatal("header not detected")
+	}
+	if detectNeeds(mk(""), nil).Frame {
+		t.Fatal("unframed request flagged")
+	}
+	if !detectNeeds(mk(""), map[string]json.RawMessage{"knirv_stage": json.RawMessage(`"x"`)}).Frame {
+		t.Fatal("body field not detected")
+	}
+	if !(Needs{Frame: true}).Any() || (Needs{Frame: true}).String() != "a role frame" {
+		t.Fatal("Any/String")
+	}
+}
+
+// Teacher output comes from Colibri while it is enabled and from llama.cpp when it is
+// not; the response says which, and the two are never mixed.
+func TestLlamaTeachesWhenColibriIsNotEnabled(t *testing.T) {
+	a, b := echoServer("colibri"), echoServer("llama")
+	defer a.Close()
+	defer b.Close()
+	var aReady, bReady, llamaTeaches atomic.Bool
+	colibri, llama := tcpBackend("colibri", a, &aReady, "colibri-small"), tcpBackend("llama.cpp", b, &bReady, "qwen")
+	colibri.Teacher = func() bool { return !llamaTeaches.Load() }
+	llama.Teacher = llamaTeaches.Load
+	started := make(chan string, 1)
+	llama.Demand = func(reason string) { started <- reason; bReady.Store(true) }
+	r := NewRouter(nil, colibri, llama)
+	r.OnDemandWait = 5 * time.Second
+
+	// Colibri enabled but not up yet: refuse, do not hand the work to llama.cpp.
+	if rec := postRole(t, r, "teacher", `{"model":"x"}`); rec.Code != http.StatusServiceUnavailable {
+		t.Fatalf("an enabled colibri that is down must not be replaced mid-run: %d", rec.Code)
+	}
+	select {
+	case <-started:
+		t.Fatal("llama.cpp was started for a teacher request while colibri is enabled")
+	default:
+	}
+
+	// Colibri is out for good: llama.cpp is the teacher, started on demand.
+	llamaTeaches.Store(true)
+	rec := postRole(t, r, "teacher", `{"model":"x"}`)
+	var got map[string]any
+	json.Unmarshal(rec.Body.Bytes(), &got)
+	if rec.Code != 200 || got["server"] != "llama" || rec.Header().Get(BackendHeader) != "llama.cpp" {
+		t.Fatalf("%d %v %v", rec.Code, got, rec.Header())
+	}
+	if (<-started) != "teacher requests" {
+		t.Fatal("wrong demand reason")
+	}
+}
+
+func TestTeacherRequestsAreNotTreatedAsFramedWork(t *testing.T) {
+	r := httptest.NewRequest("POST", "/v1/chat/completions", nil)
+	r.Header.Set(RoleHeader, RoleTeacher)
+	r.Header.Set("X-KNIRV-Stage", "heart.chat")
+	if detectNeeds(r, nil).Frame {
+		t.Fatal("a teacher request must not be pinned to llama.cpp by a frame")
 	}
 }

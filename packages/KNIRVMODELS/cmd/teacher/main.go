@@ -1,11 +1,12 @@
-// Command teacher runs batch jobs on the strong model (Colibri) through the
+// Command teacher runs batch jobs on the teacher backend through the
 // inference socket: synthetic training data for adapters, soft labels for the head,
 // and a status check. Gold-set suggestions and retrieval judging are `measure`
 // commands, next to the gold set they work on.
 //
-// Everything here needs Colibri to be serving (it is not started on hosts that fail
-// its requirements: see GET /harness/status). A job waits for it, never falls back to
-// llama.cpp, and records which model produced each line.
+// The teacher is Colibri while it is enabled and llama.cpp when it is not (hosts that
+// fail Colibri's requirements: see GET /harness/status, field "teacher"). A job waits
+// for that one backend, never moves between them mid-run, and records which model
+// produced each line.
 package main
 
 import (
@@ -27,7 +28,7 @@ import (
 const defaultSocket = "/var/lib/knirvserver/sockets/llama.sock"
 
 func usage() {
-	fmt.Fprint(os.Stderr, `teacher: batch jobs on the strong model (Colibri)
+	fmt.Fprint(os.Stderr, `teacher: batch jobs on the teacher backend (Colibri, or llama.cpp when Colibri is not enabled)
 
   teacher status                      is a teacher backend serving, and how fast
   teacher synth        -seeds FILE -skill NAME -out FILE   synthetic instruction/response pairs for an adapter
@@ -97,9 +98,10 @@ func cmdStatus(ctx context.Context, args []string) error {
 	}
 	b, _ := json.MarshalIndent(st, "", "  ")
 	fmt.Println(string(b))
-	if st["active"] != "colibri" {
-		return fmt.Errorf("colibri is not serving: batch jobs cannot run (see colibri_qualification / primary_note above)")
+	if st["teacher"] == nil {
+		return fmt.Errorf("no teacher backend is ready: Colibri is enabled but not serving yet, or llama.cpp has not started (see colibri_qualification / primary_note above)")
 	}
+	fmt.Fprintf(os.Stderr, "teacher backend: %v\n", st["teacher"])
 	return nil
 }
 
@@ -206,15 +208,12 @@ func cmdSoft(ctx context.Context, args []string) error {
 	fs := flag.NewFlagSet("soft-labels", flag.ExitOnError)
 	cm := addCommon(fs, "soft")
 	episodes := fs.String("episodes", "", "SupervisionEpisode v1 JSONL (the head trainer's gold.jsonl)")
-	out := fs.String("out", "", "candidate teacher file (NOT head-work/teacher.jsonl: see the README)")
-	heads := fs.String("heads", strings.Join(teacher.SoftHeads, ","), "heads to label")
+	out := fs.String("out", "", "teacher file; head-work/teacher.jsonl is picked up by the head cycle and applied to the training split only")
+	heads := fs.String("heads", strings.Join(teacher.DefaultSoftHeads, ","), "heads to label")
 	samples := fs.Int("samples", 4, "votes per head")
 	fs.Parse(args)
 	if *episodes == "" || *out == "" {
 		return fmt.Errorf("need -episodes and -out")
-	}
-	if filepath.Base(*out) == "teacher.jsonl" {
-		return fmt.Errorf("refusing to write teacher.jsonl: the head cycle uses that file automatically, and until the trainer applies teacher labels to the train split only (finding H2) it would score the model against the teacher. Write a candidate file and move it yourself once H2 is fixed")
 	}
 	in, err := os.Open(*episodes)
 	if err != nil {

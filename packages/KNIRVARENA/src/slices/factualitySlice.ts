@@ -19,28 +19,27 @@ export interface FactualitySlice {
   response: FactualityAnswer;
   citations: Citation[]; // detailed citation objects
   provenance: { generatedBy: string; model?: string; timestamp: number };
+  /** false = nothing has checked this; confidence/citations carry no information. */
+  verified?: boolean;
 }
 
-// Simple factuality slice stub: produce the standardized schema with mock citations
+// Placeholder until the node's evidence-backed factuality check is wired in (three_layer_inference.md,
+// Phase 4). It does NOT assess anything: it returns the standardized schema marked unverified and
+// refused, with no citations and no scores. The earlier stub reported confidence 0.85, hallucination
+// risk 0.05 and mock citations, which downstream code could mistake for a real assessment (F7).
 export function createFactualitySlice(questionOrText: string, context: Record<string, unknown> = {}): FactualitySlice {
-  const answerText = questionOrText.length > 0 ? `Stub answer for: ${questionOrText}` : 'No answer';
-  const citations: Citation[] = [
-    { id: 'source:user:1', source: 'user', snippet: questionOrText.slice(0, 140), score: 0.6 },
-    { id: 'source:context:1', source: 'context', snippet: JSON.stringify(context).slice(0, 140), score: 0.4 }
-  ];
-
+  void context;
   const response: FactualityAnswer = {
-    answer: answerText,
-    citations: citations.map(c => c.id),
-    confidence: 0.85,
-    refused: false,
-    hallucination_risk: 0.05,
-    evidence_quality_score: 0.6
+    answer: questionOrText,
+    citations: [],
+    confidence: 0,
+    refused: true
   };
 
   return {
     response,
-    citations,
-    provenance: { generatedBy: 'factuality-slice-stub', model: 'stub-v0', timestamp: Date.now() }
+    citations: [],
+    provenance: { generatedBy: 'unverified-placeholder', timestamp: Date.now() },
+    verified: false
   };
 }

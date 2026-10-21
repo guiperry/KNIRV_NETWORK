@@ -24,6 +24,7 @@ type Hasher struct {
 	newEngine func() (*transformer.UnifiedHasherEngine, error)
 	validator *validation.LogicalValidator
 	started   time.Time
+	index     *indexHolder
 }
 
 // NewHasher takes the engine constructor (nil → the production default).
@@ -118,6 +119,8 @@ func (h *Hasher) Mount(mux *http.ServeMux, prefix string) {
 		}
 		WriteJSON(w, http.StatusOK, h.snapshot())
 	})
+	h.mountIndex(mux, prefix)
+	h.mountOntology(mux, prefix)
 	mux.HandleFunc(prefix+"/validate", h.validate)
 	mux.HandleFunc(prefix+"/infer", h.infer)
 }

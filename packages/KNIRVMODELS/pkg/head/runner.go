@@ -16,6 +16,7 @@ import (
 	"fmt"
 	"io"
 	"sync"
+	"time"
 
 	"github.com/tetratelabs/wazero"
 	"github.com/tetratelabs/wazero/imports/wasi_snapshot_preview1"
@@ -36,8 +37,19 @@ type Info struct {
 	VocabSize       int    `json:"vocab_size"`
 }
 
+// ErrRunnerDead marks a runner whose module exited, broke its pipe or timed out.
+// Such a runner is unusable and must be replaced; model-level errors (a bad
+// input) do not wrap it.
+var ErrRunnerDead = errors.New("head module unavailable")
+
+// DefaultCallTimeout bounds one request to the module.
+const DefaultCallTimeout = 30 * time.Second
+
 // Runner owns one WASI instance. Calls are serialised: the module is single-threaded.
 type Runner struct {
+	// Timeout bounds each call; zero means DefaultCallTimeout.
+	Timeout time.Duration
+
 	mu      sync.Mutex
 	rt      wazero.Runtime
 	in      *io.PipeWriter
@@ -80,7 +92,26 @@ func NewRunner(ctx context.Context, modelDir string) (*Runner, error) {
 	return r, nil
 }
 
-func (r *Runner) call(req any, into any) error {
+// Dead reports why the runner can no longer serve, or nil.
+func (r *Runner) Dead() error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	return r.dead
+}
+
+// kill marks the runner dead and tears the instance down. Closing the pipes
+// unblocks any goroutine stuck in a read or write. Caller holds r.mu.
+func (r *Runner) kill(cause error) {
+	if r.dead != nil {
+		return
+	}
+	r.dead = fmt.Errorf("%w: %v", ErrRunnerDead, cause)
+	r.in.Close()
+	r.outPipe.Close()
+	go r.rt.Close(context.Background())
+}
+
+func (r *Runner) call(ctx context.Context, req any, into any) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	if r.dead != nil {
@@ -90,17 +121,41 @@ func (r *Runner) call(req any, into any) error {
 	if err != nil {
 		return err
 	}
-	if _, err := r.in.Write(append(b, '\n')); err != nil {
-		r.dead = fmt.Errorf("head module unavailable: %w", err)
+	type reply struct {
+		line []byte
+		err  error
+	}
+	ch := make(chan reply, 1)
+	go func() {
+		if _, err := r.in.Write(append(b, '\n')); err != nil {
+			ch <- reply{err: err}
+			return
+		}
+		line, err := r.out.ReadBytes('\n')
+		ch <- reply{line, err}
+	}()
+	timeout := r.Timeout
+	if timeout <= 0 {
+		timeout = DefaultCallTimeout
+	}
+	timer := time.NewTimer(timeout)
+	defer timer.Stop()
+	var rep reply
+	select {
+	case rep = <-ch:
+	case <-timer.C:
+		r.kill(fmt.Errorf("no response within %s", timeout))
+		return r.dead
+	case <-ctx.Done():
+		r.kill(ctx.Err())
 		return r.dead
 	}
-	line, err := r.out.ReadBytes('\n')
-	if err != nil {
-		r.dead = fmt.Errorf("head module unavailable: %w", err)
+	if rep.err != nil {
+		r.kill(rep.err)
 		return r.dead
 	}
 	var resp response
-	if err := json.Unmarshal(bytes.TrimSpace(line), &resp); err != nil {
+	if err := json.Unmarshal(bytes.TrimSpace(rep.line), &resp); err != nil {
 		return fmt.Errorf("bad head response: %w", err)
 	}
 	if !resp.OK {
@@ -114,15 +169,23 @@ func (r *Runner) call(req any, into any) error {
 
 // Load reads config and weights (file names relative to the model dir).
 func (r *Runner) Load(configFile, weightsFile string) (Info, error) {
+	return r.LoadCtx(context.Background(), configFile, weightsFile)
+}
+
+func (r *Runner) LoadCtx(ctx context.Context, configFile, weightsFile string) (Info, error) {
 	var info Info
-	err := r.call(map[string]string{"op": "load", "config_path": "/m/" + configFile, "weights_path": "/m/" + weightsFile}, &info)
+	err := r.call(ctx, map[string]string{"op": "load", "config_path": "/m/" + configFile, "weights_path": "/m/" + weightsFile}, &info)
 	return info, err
 }
 
 // Reason returns the raw Reasoning JSON for a token sequence.
 func (r *Runner) Reason(tokens []uint32) (json.RawMessage, error) {
+	return r.ReasonCtx(context.Background(), tokens)
+}
+
+func (r *Runner) ReasonCtx(ctx context.Context, tokens []uint32) (json.RawMessage, error) {
 	var raw json.RawMessage
-	err := r.call(map[string]any{"op": "reason", "tokens": tokens}, &raw)
+	err := r.call(ctx, map[string]any{"op": "reason", "tokens": tokens}, &raw)
 	return raw, err
 }
 

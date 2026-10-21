@@ -72,10 +72,13 @@ type Harness struct {
 	cfg    Config
 	router *Router
 
-	runCtx      atomic.Value // context.Context of Run
-	lastDemand  atomic.Int64 // unix nanos of the last request that needed the fallback
-	primaryUp   atomic.Bool
-	primaryNote atomic.Value // string: why the primary is not serving
+	runCtx     atomic.Value // context.Context of Run
+	lastDemand atomic.Int64 // unix nanos of the last request that needed the fallback
+	primaryUp  atomic.Bool
+	// teacherFallback: Colibri is not enabled on this run (no primary, or it was
+	// skipped/disabled for good), so llama.cpp is the teacher.
+	teacherFallback atomic.Bool
+	primaryNote     atomic.Value // string: why the primary is not serving
 
 	fbMu     sync.Mutex
 	fbCancel context.CancelFunc
@@ -107,6 +110,7 @@ func New(cfg Config) *Harness {
 	}
 	h := &Harness{cfg: cfg}
 	h.primaryNote.Store("")
+	h.teacherFallback.Store(cfg.Primary == nil)
 
 	var backends []*Backend
 	if p := cfg.Primary; p != nil {
@@ -115,11 +119,16 @@ func New(cfg Config) *Harness {
 			Ready: func() bool { return h.primaryUp.Load() },
 			Dial:  func() (string, string) { return "tcp", p.HostPort() },
 			Model: p.ModelID,
-			// Teacher jobs (synthetic data, suggestions, judging) are Colibri's work.
-			Teacher: func() bool { return h.primaryUp.Load() },
+			// Teacher jobs (synthetic data, suggestions, judging) are Colibri's work while
+			// it is enabled, even when it is briefly down (they wait; llama.cpp does not
+			// take over mid-run).
+			Teacher: func() bool { return !h.teacherFallback.Load() },
 			Supports: func(n Needs) bool {
 				if n.Adapter {
 					return false // skill adapters are GGUF LoRA files: llama.cpp only
+				}
+				if n.Frame {
+					return false // role-framed calls are checked, prioritised and tool-gated by the llama wrapper
 				}
 				if g, ok := p.(interface{ SupportsGrammar() bool }); ok && n.Grammar && !g.SupportsGrammar() {
 					return false
@@ -137,6 +146,8 @@ func New(cfg Config) *Harness {
 			Ready:  f.IsRunning,
 			Dial:   func() (string, string) { return "unix", f.GetSocketPath() },
 			Demand: h.demandFallback,
+			// llama.cpp teaches only when Colibri is not enabled on this host.
+			Teacher: func() bool { return h.teacherFallback.Load() },
 		})
 	}
 	h.router = NewRouter(h.logf, backends...)
@@ -221,6 +232,7 @@ func (h *Harness) runPrimary(ctx context.Context) {
 			}
 			h.primaryNote.Store(err.Error())
 			if IsPermanent(err) {
+				h.teacherFallback.Store(true) // Colibri is out for good: llama.cpp is the teacher
 				if errors.Is(err, ErrHostTooWeak) {
 					h.logf("%v", err)
 				} else {

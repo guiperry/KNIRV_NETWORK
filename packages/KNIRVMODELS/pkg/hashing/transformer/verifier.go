@@ -1,20 +1,25 @@
 package transformer
 
 import (
+	"context"
 	"fmt"
+	"github.com/tetratelabs/wazero"
+	"github.com/tetratelabs/wazero/imports/wasi_snapshot_preview1"
+	"os"
 	"regexp"
 	"strings"
+	"time"
 )
 
 type BidirectionalVerifier struct {
-	wazeroGate  *WazeroGate
+	wazeroGate *WazeroGate
 	hashNet    *HashNetworkWrapper
 	confidence float32
 }
 
 func NewBidirectionalVerifier() *BidirectionalVerifier {
 	return &BidirectionalVerifier{
-		wazeroGate:  NewWazeroGate(),
+		wazeroGate: NewWazeroGate(),
 		hashNet:    NewHashNetworkWrapper(),
 		confidence: 0.0,
 	}
@@ -31,6 +36,55 @@ func (bv *BidirectionalVerifier) Verify(source, wasmType string) (bool, float32,
 	}
 
 	return false, bv.confidence, fmt.Sprintf("Forward: %s | Backward: %s", forwardMsg, backwardMsg)
+}
+
+// VerifyBinary is the verification that can actually pass: the forward pass loads
+// the compiled .wasm in wazero, instantiates it and calls the export the module
+// type requires; the backward pass re-derives the contract from the source it was
+// built from. (Verify, which feeds Go source to wazero as if it were WASM bytes,
+// fails on every input: "invalid magic number".)
+func (bv *BidirectionalVerifier) VerifyBinary(source, wasmType, wasmPath string) (bool, float32, string) {
+	fwd, fwdMsg := forwardBinary(wasmPath, wasmType)
+	bwd, bwdMsg := bv.verifyBackward(source, wasmType)
+	conf := calculateConfidence(fwd, bwd, fwdMsg, bwdMsg)
+	return fwd && bwd, conf, fmt.Sprintf("Forward: %s | Backward: %s", fwdMsg, bwdMsg)
+}
+
+func forwardBinary(wasmPath, wasmType string) (bool, string) {
+	exp := expectedExport(wasmType)
+	if exp == "" {
+		return false, "unknown module type"
+	}
+	data, err := os.ReadFile(wasmPath)
+	if err != nil {
+		return false, "wazero compile failed: " + err.Error()
+	}
+	// A fresh runtime per call: nothing is shared between verifications.
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+	rt := wazero.NewRuntime(ctx)
+	defer rt.Close(ctx)
+	// TinyGo modules import WASI; give them the minimal host with no files, args or network.
+	if _, err := wasi_snapshot_preview1.Instantiate(ctx, rt); err != nil {
+		return false, "wazero WASI host failed: " + err.Error()
+	}
+	compiled, err := rt.CompileModule(ctx, data)
+	if err != nil {
+		return false, "wazero compile failed: " + err.Error()
+	}
+	// Do not run main: it exits and closes the module before the export can be called.
+	mod, err := rt.InstantiateModule(ctx, compiled, wazero.NewModuleConfig().WithName("verify").WithStartFunctions())
+	if err != nil {
+		return false, "wazero instantiate failed: " + err.Error()
+	}
+	fn := mod.ExportedFunction(exp)
+	if fn == nil {
+		return false, "no valid exports found: " + exp + " is not exported"
+	}
+	if _, err := fn.Call(ctx); err != nil {
+		return false, "wazero call " + exp + " failed: " + err.Error()
+	}
+	return true, "forward pass OK"
 }
 
 // ForwardVerify runs the forward pass verification (Phase 7).
@@ -170,17 +224,17 @@ func (bv *BackwardVerifier) Verify(source string, wasmType string) (bool, string
 }
 
 type VerificationResult struct {
-	Passed           bool
-	Confidence      float32
-	ForwardMsg      string
-	BackwardMsg     string
-	ForwardErrors   []string
+	Passed         bool
+	Confidence     float32
+	ForwardMsg     string
+	BackwardMsg    string
+	ForwardErrors  []string
 	BackwardErrors []string
 }
 
 func NewVerificationResult() *VerificationResult {
 	return &VerificationResult{
-		ForwardErrors:   []string{},
+		ForwardErrors:  []string{},
 		BackwardErrors: []string{},
 	}
 }
@@ -202,16 +256,16 @@ func (vr *VerificationResult) Merge(other *VerificationResult) {
 type VerifierPool struct {
 	forwardVerifiers  []*ForwardVerifier
 	backwardVerifiers []*BackwardVerifier
-	size            int
-	index          int
+	size              int
+	index             int
 }
 
 func NewVerifierPool(size int) *VerifierPool {
 	return &VerifierPool{
 		forwardVerifiers:  make([]*ForwardVerifier, size),
 		backwardVerifiers: make([]*BackwardVerifier, size),
-		size:            size,
-		index:          0,
+		size:              size,
+		index:             0,
 	}
 }
 

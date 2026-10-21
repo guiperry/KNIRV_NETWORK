@@ -78,6 +78,12 @@ func redact(s string) string {
 // values seen in the data. `action` is never taught and `risk` is a score head.
 var SoftHeads = []string{"intent", "next_phase", "agent"}
 
+// DefaultSoftHeads are the heads labelled when none are named: the ones the head
+// trainer will take. `intent` (and `risk`) are fields of the head's own prompt, so the
+// trainer drops teacher distributions for them (finding H4); labelling them would only
+// spend the teacher's slow single lane on data that is thrown away.
+var DefaultSoftHeads = []string{"next_phase", "agent"}
+
 var agents = map[string]bool{"claude": true, "codex": true, "opencode": true, "hermes": true}
 
 // label is the episode's own (verified) value for a head, "" when it has none.

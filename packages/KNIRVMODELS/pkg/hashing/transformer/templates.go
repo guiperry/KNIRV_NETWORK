@@ -6,7 +6,7 @@ import (
 )
 
 type TinyGoTemplate struct {
-	Name        string
+	Name       string
 	Source     string
 	Exports    []string
 	ImportPath string
@@ -14,7 +14,7 @@ type TinyGoTemplate struct {
 
 func NewTinyGoTemplate(name string) *TinyGoTemplate {
 	return &TinyGoTemplate{
-		Name:        name,
+		Name:       name,
 		Source:     "",
 		Exports:    []string{},
 		ImportPath: "",
@@ -43,20 +43,20 @@ func (t *TinyGoTemplate) Build() string {
 }
 
 type RuleTemplate struct {
-	GuardrailFunc   string
-	PolicyID    uint32
-	Severity    uint8
-	Action     uint8
-	Confidence float32
+	GuardrailFunc string
+	PolicyID      uint32
+	Severity      uint8
+	Action        uint8
+	Confidence    float32
 }
 
 func NewRuleTemplate() *RuleTemplate {
 	return &RuleTemplate{
 		GuardrailFunc: "GuardrailClass",
-		PolicyID:    0,
-		Severity:    0,
-		Action:     0,
-		Confidence: 0.0,
+		PolicyID:      0,
+		Severity:      0,
+		Action:        0,
+		Confidence:    0.0,
 	}
 }
 
@@ -120,19 +120,19 @@ func main() {}
 
 type ResolutionTemplate struct {
 	ErrorClassFunc string
-	ErrorCode  uint32
-	Hint      string
-	Severity   uint8
-	Retryable bool
+	ErrorCode      uint32
+	Hint           string
+	Severity       uint8
+	Retryable      bool
 }
 
 func NewResolutionTemplate() *ResolutionTemplate {
 	return &ResolutionTemplate{
 		ErrorClassFunc: "ErrorClass",
-		ErrorCode:     0,
-		Hint:         "",
-		Severity:     0,
-		Retryable:   false,
+		ErrorCode:      0,
+		Hint:           "",
+		Severity:       0,
+		Retryable:      false,
 	}
 }
 
@@ -163,6 +163,10 @@ func (rt *ResolutionTemplate) Build() string {
 	}
 	return fmt.Sprintf(`package main
 
+import "unsafe"
+
+var hintBytes = []byte(%q + "\x00")
+
 //export %s
 func %s() uint32 {
 	return %d
@@ -173,9 +177,15 @@ func ErrorCode() uint32 {
 	return %d
 }
 
+// Hint returns the address of the NUL-terminated hint in linear memory; HintLen its length.
 //export Hint
 func Hint() uint32 {
-	return uint32(uintptr(unsafe.Pointer("%s")))
+	return uint32(uintptr(unsafe.Pointer(&hintBytes[0])))
+}
+
+//export HintLen
+func HintLen() uint32 {
+	return uint32(len(hintBytes) - 1)
 }
 
 //export ErrorSeverity
@@ -190,9 +200,9 @@ func Retryable() uint8 {
 
 func main() {}
 `,
+		rt.Hint,
 		rt.ErrorClassFunc, rt.ErrorClassFunc, rt.ErrorCode,
 		rt.ErrorCode,
-		rt.Hint,
 		rt.Severity,
 		retryVal,
 	)
@@ -201,9 +211,9 @@ func main() {}
 type PatchTemplate struct {
 	PatchFunc       string
 	TargetComponent string
-	PatchData      string
-	Checksum      uint32
-	ApplyPriority uint8
+	PatchData       string
+	Checksum        uint32
+	ApplyPriority   uint8
 }
 
 func NewPatchTemplate() *PatchTemplate {
@@ -211,8 +221,8 @@ func NewPatchTemplate() *PatchTemplate {
 		PatchFunc:       "PatchScope",
 		TargetComponent: "",
 		PatchData:       "",
-		Checksum:       0,
-		ApplyPriority:  0,
+		Checksum:        0,
+		ApplyPriority:   0,
 	}
 }
 
@@ -239,6 +249,11 @@ func (pt *PatchTemplate) WithApplyPriority(priority uint8) *PatchTemplate {
 func (pt *PatchTemplate) Build() string {
 	return fmt.Sprintf(`package main
 
+import "unsafe"
+
+var targetBytes = []byte(%q + "\x00")
+var dataBytes = []byte(%q + "\x00")
+
 //export %s
 func %s() uint32 {
 	return %d
@@ -246,12 +261,22 @@ func %s() uint32 {
 
 //export TargetComponent
 func TargetComponent() uint32 {
-	return uint32(uintptr(unsafe.Pointer("%s")))
+	return uint32(uintptr(unsafe.Pointer(&targetBytes[0])))
+}
+
+//export TargetComponentLen
+func TargetComponentLen() uint32 {
+	return uint32(len(targetBytes) - 1)
 }
 
 //export PatchData
 func PatchData() uint32 {
-	return uint32(uintptr(unsafe.Pointer("%s")))
+	return uint32(uintptr(unsafe.Pointer(&dataBytes[0])))
+}
+
+//export PatchDataLen
+func PatchDataLen() uint32 {
+	return uint32(len(dataBytes) - 1)
 }
 
 //export Checksum
@@ -266,9 +291,8 @@ func ApplyPriority() uint8 {
 
 func main() {}
 `,
+		pt.TargetComponent, pt.PatchData,
 		pt.PatchFunc, pt.PatchFunc, pt.ApplyPriority,
-		pt.TargetComponent,
-		pt.PatchData,
 		pt.Checksum,
 		pt.ApplyPriority,
 	)
@@ -330,13 +354,13 @@ func crc32String(s string) uint32 {
 
 type BatchTemplate struct {
 	Templates []string
-	Count    int
+	Count     int
 }
 
 func NewBatchTemplate() *BatchTemplate {
 	return &BatchTemplate{
 		Templates: []string{},
-		Count:    0,
+		Count:     0,
 	}
 }
 

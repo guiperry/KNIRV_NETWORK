@@ -496,7 +496,9 @@ func (s *Server) handleManageRules(w http.ResponseWriter, r *http.Request) {
 	if req.Domain != "" {
 		args = append(args, req.Domain)
 	}
-	if req.RuleType != "" {
+	if req.Action == "delete" {
+		args = append(args, strconv.Itoa(req.Index))
+	} else if req.RuleType != "" {
 		args = append(args, req.RuleType)
 	}
 	if req.Conclusion != "" {

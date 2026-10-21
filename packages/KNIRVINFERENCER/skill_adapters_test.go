@@ -146,7 +146,9 @@ func TestLlamaProviderForwardsTheAdapter(t *testing.T) {
 		t.Fatalf("%s", raw)
 	}
 	raw, _ = p.PrepareRequest("hi", nil)
-	if strings.Contains(string(raw), "adapter") {
+	req = nil
+	_ = json.Unmarshal(raw, &req)
+	if _, has := req["adapter"]; has {
 		t.Fatalf("no adapter requested but one was sent: %s", raw)
 	}
 }

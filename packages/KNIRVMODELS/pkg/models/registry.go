@@ -19,6 +19,7 @@ import (
 	"time"
 
 	sdk "github.com/guiperry/knirv-sdk-go/models"
+	"github.com/guiperry/knirv-sdk-go/models/frame"
 )
 
 // Model is one served model. Status must be cheap and must never build the
@@ -34,6 +35,18 @@ type Model interface {
 type Registry struct {
 	mu     sync.RWMutex
 	models map[string]Model
+
+	// frames and facts generate GET /models/manifest. facts is called per
+	// request so the manifest reflects the running node, not startup.
+	frames *frame.Registry
+	facts  func() frame.LiveFacts
+}
+
+// SetManifest enables /models/manifest from the stage registry and a live-facts source.
+func (r *Registry) SetManifest(frames *frame.Registry, facts func() frame.LiveFacts) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.frames, r.facts = frames, facts
 }
 
 func NewRegistry() *Registry { return &Registry{models: map[string]Model{}} }
@@ -79,6 +92,24 @@ func (r *Registry) Mount(mux *http.ServeMux) {
 		n := len(r.models)
 		r.mu.RUnlock()
 		WriteJSON(w, http.StatusOK, sdk.Health{Status: "ok", Time: time.Now().UTC().Format(time.RFC3339), Models: n})
+	})
+	mux.HandleFunc(sdk.ManifestPath, func(w http.ResponseWriter, req *http.Request) {
+		if req.Method != http.MethodGet {
+			WriteJSON(w, http.StatusMethodNotAllowed, map[string]string{"error": "method not allowed"})
+			return
+		}
+		r.mu.RLock()
+		frames, facts := r.frames, r.facts
+		r.mu.RUnlock()
+		if frames == nil {
+			WriteJSON(w, http.StatusNotImplemented, map[string]string{"error": "no manifest configured"})
+			return
+		}
+		var f frame.LiveFacts
+		if facts != nil {
+			f = facts()
+		}
+		WriteJSON(w, http.StatusOK, frames.Manifest(f))
 	})
 	r.mu.RLock()
 	defer r.mu.RUnlock()

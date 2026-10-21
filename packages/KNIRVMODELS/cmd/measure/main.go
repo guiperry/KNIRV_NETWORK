@@ -116,6 +116,7 @@ func usage() {
   lora                          LoRA hot-swap capability probe                                             (f)
   heartbench                    HEART-on-Qwen quality gate over decision cases                             (a)
   gold add|label2|import|export|stats|accept   factuality gold set (SUPPORTED/REFUTED/NEI)                 (b)
+  candidates                    build unlabelled claim x evidence pairs from a Wikipedia JSONL dump (candidates.csv to label)  (a)
   suggest                       Colibri suggests labels for candidate cases (suggestions.jsonl; the owner decides)  (b)
   retrieval-judge               Colibri grades retrieved passages to find relevant ones the gold set lacks         (c)
   retrieval                     lexical retrieval recall on the gold set                                   (c)
@@ -152,6 +153,8 @@ func main() {
 		err = cmdHeartBench(args)
 	case "gold":
 		err = cmdGold(args)
+	case "candidates":
+		err = cmdCandidates(args)
 	case "suggest":
 		err = cmdSuggest(args)
 	case "retrieval-judge":

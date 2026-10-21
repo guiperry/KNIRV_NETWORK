@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"flag"
 	"net"
@@ -9,6 +10,9 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
+
+	"knirvmodels/pkg/teacher"
 )
 
 // fakeInference serves what the harness router does for teacher jobs on a unix socket.
@@ -24,7 +28,10 @@ func fakeInference(t *testing.T, active string, answer func(user string) string)
 	}
 	mux := http.NewServeMux()
 	mux.HandleFunc("/harness/status", func(w http.ResponseWriter, r *http.Request) {
-		doc := map[string]any{"active": active, "colibri_model": "qwen36-35b"}
+		doc := map[string]any{"active": active, "colibri_model": "qwen36-35b", "teacher": nil}
+		if active == "colibri" || active == "llama.cpp" {
+			doc["teacher"] = active
+		}
 		if active != "colibri" {
 			doc["primary_note"] = "colibri skipped: this host does not meet the minimum requirements: CPU has no AVX2"
 		}
@@ -110,8 +117,8 @@ func TestSuggestIsNEIWhenTheTeacherIsNotSure(t *testing.T) {
 	}
 }
 
-func TestSuggestIsBlockedWhenColibriIsNotServing(t *testing.T) {
-	sock := fakeInference(t, "llama.cpp", func(string) string { return "A" })
+func TestSuggestIsBlockedWhenNoTeacherBackendIsReady(t *testing.T) {
+	sock := fakeInference(t, "none", func(string) string { return "A" })
 	dir := t.TempDir()
 	cand := filepath.Join(dir, "cand.jsonl")
 	writeLines(t, cand, GoldCase{Claim: "c", Evidence: "e"})
@@ -122,7 +129,7 @@ func TestSuggestIsBlockedWhenColibriIsNotServing(t *testing.T) {
 		t.Fatal("nothing may be suggested without the teacher")
 	}
 	b, _ := os.ReadFile(filepath.Join(dir, "results", "suggest.json"))
-	if !strings.Contains(string(b), `"blocked"`) || !strings.Contains(string(b), "no AVX2") || !strings.Contains(string(b), "never use llama.cpp") {
+	if !strings.Contains(string(b), `"blocked"`) || !strings.Contains(string(b), "no AVX2") {
 		t.Fatalf("the reason must be recorded:\n%s", b)
 	}
 }
@@ -195,3 +202,12 @@ func TestRetrievalJudgeFindsRelevantPassagesTheGoldSetLacks(t *testing.T) {
 }
 
 func newFlagSet() *flag.FlagSet { return flag.NewFlagSet("gold accept", flag.ContinueOnError) }
+
+// llama.cpp is a valid teacher when Colibri is not enabled: the probe is not blocked.
+func TestLlamaAsTeacherIsNotBlocked(t *testing.T) {
+	sock := fakeInference(t, "llama.cpp", func(string) string { return "A" })
+	cl := teacher.NewUnix(sock, 5*time.Second)
+	if r := teacherReady(context.Background(), cl, "suggest"); r != nil {
+		t.Fatalf("blocked although llama.cpp is the teacher: %+v", r)
+	}
+}

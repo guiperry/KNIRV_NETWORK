@@ -184,7 +184,25 @@ export interface LlamaAdapter {
     bundle_hash?: string;
 }
 /** The embedded llama.cpp. `base_model` is a file name, never a path. */
+/** The llama wrapper's role-frame check. `unframed` must stay 0 in warn mode before enforce is switched on. */
+export interface FrameStatus {
+    mode: "off" | "warn" | "enforce";
+    constitution_version: string;
+    framed: number;
+    unframed: number;
+    invalid: number;
+    rejected: number;
+    teacher: number;
+}
+/** The wrapper's admission queue by priority class (P0..P3). */
+export interface QueueStatus {
+    free_slots: number;
+    depth: [number, number, number, number];
+    admitted: [number, number, number, number];
+}
 export interface LlamaStatus {
+    frames?: FrameStatus;
+    queue?: QueueStatus;
     ready: boolean;
     base_model?: string;
     base_sha256?: string;
@@ -235,3 +253,20 @@ export interface RoleLine {
 }
 /** The fixed list of role lines for a status document (same logic as the Go twin). */
 export declare function roles(s: PlatformStatus): RoleLine[];
+export * from "./frame.js";
+/** GET /models/hasher/index/status: what the evidence index holds (twin of Go IndexStatus). */
+export interface IndexStatus {
+    index_version: string;
+    key_version: string;
+    embedder_ids: string[];
+    retrieval: "lexical" | "hybrid";
+    segments: number;
+    spans: number;
+    tiers: Record<string, number>;
+    chunk_words: number;
+    searches: number;
+    hit_rate: number;
+    last_batch?: string;
+    last_ingest?: string;
+}
+export declare const INDEX_STATUS_PATH = "/models/hasher/index/status";

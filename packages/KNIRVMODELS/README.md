@@ -85,18 +85,24 @@ for inference (KNIRVSERVER's `backend_server` runs it unless KNIRVSERVER is star
   result is recorded in `state/knirv-qualify.json` and it is not started again until
   the CPU, Colibri release, model or minimum changes. `/harness/status` shows
   `colibri_qualification`. `KNIRV_COLIBRI=force` skips both checks.
-- **What Colibri is for.** Batch work whose quality matters more than speed, sent with
-  the `X-Knirv-Role: teacher` header: only Colibri answers it (never llama.cpp; a
-  `503` if Colibri is not serving) and every response carries `X-Knirv-Backend` and
-  `X-Knirv-Model` so data can record its source. Tools, all under `pkg/teacher`:
+- **Teacher work.** Batch work whose quality matters more than speed, sent with the
+  `X-Knirv-Role: teacher` header. One backend answers it: Colibri while it is enabled,
+  llama.cpp when it is not (host fails the gate, `KNIRV_COLIBRI=0`, or Colibri is out
+  for good). If Colibri is enabled but not up yet the request waits or gets a `503`; it
+  is never moved to llama.cpp mid-run, so one data set does not mix two teachers.
+  `/harness/status` names the current one (`teacher`), and every response carries
+  `X-Knirv-Backend` and `X-Knirv-Model` so data can record its source. Role-framed
+  HEART/INFERENCER calls (`knirv_stage`) are the opposite case: always llama.cpp.
+  Tools, all under `pkg/teacher`:
   - `teacher synth` writes synthetic instruction/response pairs (`ulora-sft/v1`) for
     adapters, with provenance, de-duplication, truncation filtering and `-exclude` of
     the gold set and exams so they never become training data.
-  - `teacher soft-labels` writes teacher distributions for the head to a *candidate*
-    file. It refuses to write `head-work/teacher.jsonl`: the head cycle picks that file
-    up automatically, and until the trainer applies teacher labels to the training
-    split only (finding H2 in `qwen_model.md`) the model would be scored against the
-    teacher.
+  - `teacher soft-labels` writes teacher distributions for the head. It may write
+    `head-work/teacher.jsonl`, which the head cycle picks up automatically: since H2 was
+    fixed, the trainer keeps them in a separate `soft` field, applies them to the
+    training split only, and scores validation, test and the gate on ground truth.
+    Default heads are `next_phase` and `agent`; `intent` and `risk` are prompt fields
+    and the trainer drops them (H4).
   - `measure suggest` proposes labels for gold-set candidates into `suggestions.jsonl`;
     `measure gold accept` records the owner's own label (or `-agree`) and marks the
     case `teacher-suggested`. `gold.jsonl` is never written by the teacher.

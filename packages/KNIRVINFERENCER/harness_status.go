@@ -68,6 +68,18 @@ func (l *LlamaModel) Status(ctx context.Context) *models.LlamaStatus {
 		return st
 	}
 	st.Ready = true
+	var fs models.FrameStatus
+	if code, body, err := l.get(ctx, "/v1/frame/stats"); err == nil && code == 200 && json.Unmarshal(body, &fs) == nil && fs.Mode != "" {
+		st.Frames = &fs
+	}
+	var qs struct {
+		Free     int       `json:"free_slots"`
+		Depth    [4]int    `json:"depth"`
+		Admitted [4]uint64 `json:"admitted"`
+	}
+	if code, body, err := l.get(ctx, "/v1/queue/stats"); err == nil && code == 200 && json.Unmarshal(body, &qs) == nil {
+		st.Queue = &models.QueueStatus{FreeSlots: qs.Free, Depth: qs.Depth, Admitted: qs.Admitted}
+	}
 	var ad llamaAdapters
 	if code, body, err := l.get(ctx, "/v1/adapters"); err == nil && code == 200 && json.Unmarshal(body, &ad) == nil {
 		st.BaseModel = filepath.Base(strings.TrimSpace(ad.Base.Path))

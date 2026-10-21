@@ -1,4 +1,5 @@
-// Package teacher is the client for batch work done by the strong model (Colibri):
+// Package teacher is the client for batch work done by the teacher backend: Colibri
+// while it is enabled, llama.cpp when it is not (never both in one run):
 // synthetic training data, suggested labels and retrieval judgments.
 //
 // Rules this package enforces, from the inference plan:
@@ -128,9 +129,7 @@ var thinkRE = regexp.MustCompile(`(?s)<think>.*?</think>`)
 func (c *Client) Chat(ctx context.Context, r Request) (Reply, error) {
 	if c.catalog == "" {
 		if st, err := c.Status(ctx); err == nil {
-			if m, ok := st["colibri_model"].(string); ok {
-				c.catalog = m
-			}
+			c.catalog = catalogOf(st)
 		}
 	}
 	patience := c.Patience
@@ -197,8 +196,8 @@ func (c *Client) once(ctx context.Context, body []byte, r Request) (Reply, bool,
 		return Reply{}, false, fmt.Errorf("HTTP %d: %s", resp.StatusCode, firstLine(string(raw)))
 	}
 	backend := resp.Header.Get(backendHeader)
-	if backend != "colibri" {
-		return Reply{}, false, fmt.Errorf("the answer came from %q, not from the teacher backend; refusing to record it", backend)
+	if backend != "colibri" && backend != "llama.cpp" {
+		return Reply{}, false, fmt.Errorf("the answer came from %q, not from the teacher backend (colibri, or llama.cpp when colibri is not enabled); refusing to record it", backend)
 	}
 	var doc struct {
 		Choices []struct {
@@ -245,4 +244,15 @@ func PromptHash(r Request) string {
 func sampleKey(model string, r Request, sample int) string {
 	h := sha256.Sum256([]byte(model + "\x00" + PromptHash(r) + "\x00" + strconv.Itoa(sample)))
 	return hex.EncodeToString(h[:])
+}
+
+// catalogOf is the teacher identity a status document names: the Colibri catalog
+// model, or "llama.cpp" when llama.cpp is the teacher. Cache keys and provenance use it
+// so data from the two teachers is never confused.
+func catalogOf(st map[string]any) string {
+	if t, _ := st["teacher"].(string); t == "llama.cpp" {
+		return "llama.cpp"
+	}
+	m, _ := st["colibri_model"].(string)
+	return m
 }

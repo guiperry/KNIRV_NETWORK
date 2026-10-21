@@ -35,8 +35,11 @@ type Backend struct {
 	// Supports reports whether the backend can serve a request with these needs. Nil
 	// means everything. A backend that cannot is skipped for such requests.
 	Supports func(Needs) bool
-	// Teacher reports whether the backend takes teacher-role requests now. Nil means
-	// the backend never does (teacher output must come from the strong model only).
+	// Teacher reports whether the backend is the teacher right now. Nil means it never
+	// is. At most one backend should report true at a time: Colibri while it is enabled,
+	// llama.cpp only when Colibri is not (skipped by the host gate, disabled or failed
+	// for good). Teacher output comes from one or the other, never both, and the
+	// BackendHeader on the response says which.
 	Teacher func() bool
 	// Demand is called when a request needs this backend, whether or not it is ready
 	// yet: the owner starts it if it is stopped and records that it is in use. Nil
@@ -58,10 +61,14 @@ type Needs struct {
 	Grammar bool
 	// Tools: tool/function calls.
 	Tools bool
+	// Frame: a role frame (knirv_stage / X-KNIRV-Stage). Framed calls are HEART and
+	// INFERENCER work; the llama wrapper checks the frame, applies the priority class
+	// and serves the tool envelope, so Colibri (teacher only) must never answer them.
+	Frame bool
 }
 
 // Any reports whether the request needs anything beyond plain chat.
-func (n Needs) Any() bool { return n.Adapter || n.Grammar || n.Tools }
+func (n Needs) Any() bool { return n.Adapter || n.Grammar || n.Tools || n.Frame }
 
 func (n Needs) String() string {
 	var parts []string
@@ -74,13 +81,17 @@ func (n Needs) String() string {
 	if n.Tools {
 		parts = append(parts, "tool calls")
 	}
+	if n.Frame {
+		parts = append(parts, "a role frame")
+	}
 	return strings.Join(parts, " and ")
 }
 
 // RoleHeader marks the kind of caller. "teacher" is batch work whose output is kept
-// (synthetic training data, suggested labels, retrieval judgments): it is served only
-// by a backend that takes the teacher role, and is refused rather than answered by
-// the fallback, so what the caller records about its source is true.
+// (synthetic training data, suggested labels, retrieval judgments): it is served by
+// the one backend that is the teacher (Colibri while enabled, llama.cpp when Colibri
+// is not), and is refused rather than moved to the other mid-run, so what the caller
+// records about its source (BackendHeader) is true and consistent.
 const RoleHeader = "X-Knirv-Role"
 
 // RoleTeacher is the RoleHeader value for teacher requests.
@@ -121,6 +132,15 @@ func detectNeeds(req *http.Request, doc map[string]json.RawMessage) Needs {
 	for _, k := range []string{"grammar", "json_schema"} {
 		if raw, ok := doc[k]; ok && len(raw) > 0 && string(raw) != "null" && string(raw) != `""` {
 			n.Grammar = true
+		}
+	}
+	// Teacher requests are batch data tooling, never framed HEART/INFERENCER work.
+	if !strings.EqualFold(req.Header.Get(RoleHeader), RoleTeacher) {
+		if req.Header.Get("X-KNIRV-Stage") != "" {
+			n.Frame = true
+		}
+		if raw, ok := doc["knirv_stage"]; ok && len(raw) > 0 && string(raw) != "null" && string(raw) != `""` {
+			n.Frame = true
 		}
 	}
 	for _, k := range []string{"tools", "functions"} {
@@ -192,6 +212,12 @@ func (r *Router) Status() map[string]any {
 	} else {
 		doc["active"] = nil
 	}
+	// teacher names the backend that answers role=teacher requests now (nil: none yet).
+	if t := r.teacher(); t != nil {
+		doc["teacher"] = t.Name
+	} else {
+		doc["teacher"] = nil
+	}
 	if r.Extra != nil {
 		for k, v := range r.Extra() {
 			doc[k] = v
@@ -238,9 +264,9 @@ func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 	var b *Backend
 	if strings.EqualFold(req.Header.Get(RoleHeader), RoleTeacher) {
-		if b = r.teacher(); b == nil {
+		if b = r.awaitTeacher(req.Context()); b == nil {
 			w.Header().Set("Retry-After", "30")
-			writeJSONError(w, http.StatusServiceUnavailable, "no teacher backend is available (Colibri is not serving on this host); teacher requests are never answered by the fallback", r.states())
+			writeJSONError(w, http.StatusServiceUnavailable, "the teacher backend is not ready yet (Colibri while it is enabled, otherwise llama.cpp); teacher requests are never split between them", r.states())
 			return
 		}
 	} else {
@@ -314,14 +340,52 @@ func (r *Router) pick(n Needs) *Backend {
 	return nil
 }
 
-// teacher is the first backend that is ready and takes the teacher role, or nil.
+// teacher is the backend that is the teacher now, whether or not it is ready yet, or nil.
 func (r *Router) teacher() *Backend {
 	for _, b := range r.backends {
-		if b.Teacher != nil && b.Teacher() && b.Ready != nil && b.Ready() {
+		if b.Teacher != nil && b.Teacher() {
 			return b
 		}
 	}
 	return nil
+}
+
+// awaitTeacher returns the teacher once it is ready. A stopped teacher that can be
+// started on demand (llama.cpp) is started and awaited; Colibri, which is enabled but
+// not up, is not replaced by llama.cpp: that would mix two teachers in one data set.
+func (r *Router) awaitTeacher(ctx context.Context) *Backend {
+	want := r.teacher()
+	if want == nil {
+		return nil
+	}
+	if want.Ready != nil && want.Ready() {
+		return want
+	}
+	if want.Demand == nil {
+		return nil
+	}
+	wait := r.OnDemandWait
+	if wait <= 0 {
+		wait = 10 * time.Minute
+	}
+	r.logf("starting %s for a teacher request", want.Name)
+	want.Demand("teacher requests")
+	deadline := time.NewTimer(wait)
+	defer deadline.Stop()
+	tick := time.NewTicker(250 * time.Millisecond)
+	defer tick.Stop()
+	for {
+		if t := r.teacher(); t != nil && t.Ready != nil && t.Ready() {
+			return t
+		}
+		select {
+		case <-ctx.Done():
+			return nil
+		case <-deadline.C:
+			return nil
+		case <-tick.C:
+		}
+	}
 }
 
 func (r *Router) hasSupporting(n Needs) bool {

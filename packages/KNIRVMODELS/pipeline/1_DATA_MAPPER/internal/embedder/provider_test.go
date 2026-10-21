@@ -1,7 +1,10 @@
 package embedder
 
 import (
+	"errors"
 	"math"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 )
 
@@ -252,5 +255,47 @@ func TestRequestTracker_DailyReset(t *testing.T) {
 
 	if tracker.CanMakeRequest() {
 		t.Error("expected cannot make request when at limit")
+	}
+}
+
+func TestHybridCloudflare_NoFallbackToOllama(t *testing.T) {
+	ollamaHits := 0
+	ollama := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ollamaHits++
+		w.Write([]byte(`{"embedding":[1,2,3]}`))
+	}))
+	defer ollama.Close()
+	cf := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Error(w, "boom", http.StatusInternalServerError)
+	}))
+	defer cf.Close()
+
+	p := NewHybridEmbeddingProvider(cf.URL, ollama.URL, "nomic-embed-text", 10)
+	if _, err := p.GetEmbedding("hello"); err == nil {
+		t.Fatal("cloudflare failure must be an error, not an Ollama vector")
+	}
+	p.RequestTracker.SetRequests(10)
+	if _, err := p.GetEmbedding("hello"); !errors.Is(err, ErrQuotaExhausted) {
+		t.Fatalf("want ErrQuotaExhausted, got %v", err)
+	}
+	if ollamaHits != 0 {
+		t.Fatalf("ollama was called %d times in cloudflare mode", ollamaHits)
+	}
+	if !p.UseCloudflare || p.EmbedderID() != "cloudflare:"+CloudflareModelName {
+		t.Fatalf("backend must stay pinned, got %s", p.EmbedderID())
+	}
+}
+
+func TestProvidersNameTheirModel(t *testing.T) {
+	if id := NewDeterministicProvider().EmbedderID(); id == "" {
+		t.Fatal("deterministic provider has no embedder id")
+	}
+	cf := NewEmbeddingProvider("cloudflare", "http://cf", "http://ollama", "nomic-embed-text", 10)
+	ol := NewEmbeddingProvider("ollama", "http://cf", "http://ollama", "nomic-embed-text", 10)
+	if cf.EmbedderID() == ol.EmbedderID() {
+		t.Fatalf("cloudflare and ollama share an id: %s", cf.EmbedderID())
+	}
+	if ol.EmbedderID() != "ollama:nomic-embed-text" {
+		t.Fatalf("got %s", ol.EmbedderID())
 	}
 }

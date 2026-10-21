@@ -17,6 +17,7 @@ import (
 	"github.com/guiperry/gollm_cerebras/providers"
 	gollm_types "github.com/guiperry/gollm_cerebras/types"
 	"github.com/guiperry/gollm_cerebras/utils"
+	"github.com/guiperry/knirv-sdk-go/models/frame"
 )
 
 const llamaSocketHost = "knirv-llama"
@@ -40,7 +41,6 @@ type LlamaProvider struct {
 	client       *http.Client
 	endpoint     string
 	options      map[string]interface{}
-	systemPrompt string
 	mutex        sync.Mutex
 }
 
@@ -73,7 +73,6 @@ func NewLlamaProvider(apiKey, model string, extraHeaders map[string]string) prov
 		client:       &http.Client{Timeout: timeout},
 		endpoint:     "http://" + llamaSocketHost,
 		options:      make(map[string]interface{}),
-		systemPrompt: DreamSystemPrompt,
 	}
 	if model != "" {
 		provider.model = model
@@ -167,19 +166,17 @@ func (p *LlamaProvider) PrepareRequest(prompt string, options map[string]interfa
 		model = m
 	}
 
+	fr, _ := p.stageFrame(options, model)
 	messages := []map[string]interface{}{
-		{"role": "system", "content": p.systemPrompt},
+		{"role": "system", "content": fr.System},
 		{"role": "user", "content": prompt},
 	}
-	if systemPrompt, ok := options["system_prompt"].(string); ok && systemPrompt != "" {
-		messages = append([]map[string]interface{}{{"role": "system", "content": systemPrompt}}, messages...)
-	}
-
 	req := map[string]interface{}{
 		"model":      model,
 		"messages":   messages,
 		"max_tokens": maxTokens,
 	}
+	applyFrameFields(req, fr, true, options)
 	if t, ok := options["temperature"].(float64); ok {
 		req["temperature"] = t
 	}
@@ -203,10 +200,80 @@ func (p *LlamaProvider) PrepareRequest(prompt string, options map[string]interfa
 }
 
 func (p *LlamaProvider) PrepareRequestWithSchema(prompt string, options map[string]interface{}, schema interface{}) ([]byte, error) {
-	options["response_format"] = map[string]interface{}{
-		"type": "json_object",
+	if options == nil {
+		options = map[string]interface{}{}
 	}
+	// A schema is sent as a constraint llama.cpp compiles to a grammar. Without
+	// one this is plain JSON mode, as before.
+	options["response_format"] = responseFormat(schema)
 	return p.PrepareRequest(prompt, options)
+}
+
+func responseFormat(schema interface{}) map[string]interface{} {
+	if schema == nil {
+		return map[string]interface{}{"type": "json_object"}
+	}
+	return map[string]interface{}{
+		"type":        "json_schema",
+		"json_schema": map[string]interface{}{"name": "output", "strict": true, "schema": schema},
+	}
+}
+
+// DefaultLlamaStage is the stage of calls that reach the provider without
+// naming one: dream passes and server tasks. Every llama-bound request carries
+// a frame; there is no unframed path.
+const DefaultLlamaStage = "inferencer.dream"
+
+// StageHeader, set as an extra header on a provider instance, is that instance's
+// default stage (the gollm provider interface has no per-call stage). The wrapper
+// reads the same header, so it also reaches the frame check.
+const StageHeader = "X-KNIRV-Stage"
+
+// stageFrame builds the role frame for the named stage, or the default stage
+// when none (or an unregistered one) is named.
+func (p *LlamaProvider) stageFrame(options map[string]interface{}, model string) (frame.Frame, bool) {
+	reg := frame.Default()
+	facts, ok := options["frame_facts"].(frame.LiveFacts)
+	if !ok {
+		facts = frame.LiveFacts{Model: model}
+	}
+	stage, _ := options["stage"].(string)
+	if stage == "" {
+		// An instance can carry its own default (callers hold p.mutex here). The
+		// orchestrator's fallback chain registers one with "inferencer.task", so its
+		// llama calls are not mislabelled as dream passes.
+		stage = p.extraHeaders[StageHeader]
+	}
+	if stage == "" {
+		stage = DefaultLlamaStage
+	}
+	fr, err := reg.Build(stage, facts)
+	if err != nil {
+		log.Printf("[KNIRVLLAMA] no frame for stage %q (%v); using %s", stage, err, DefaultLlamaStage)
+		fr, err = reg.Build(DefaultLlamaStage, facts)
+	}
+	return fr, err == nil
+}
+
+// applyFrameFields adds what the llama wrapper reads on top of the OpenAI
+// body: the frame claim, structured-output and caching hints, and the
+// admission priority class.
+func applyFrameFields(req map[string]interface{}, fr frame.Frame, framed bool, options map[string]interface{}) {
+	if framed {
+		req["knirv_stage"] = fr.Stage
+		req["knirv_frame_hash"] = fr.Hash
+	}
+	if rf, ok := options["response_format"]; ok {
+		req["response_format"] = rf
+	}
+	if c, ok := options["cache_prompt"].(bool); ok {
+		req["cache_prompt"] = c
+	} else if framed {
+		req["cache_prompt"] = true // the frame is a stable prefix; reuse its KV cache
+	}
+	if pr, ok := options["priority"].(int); ok {
+		req["knirv_priority"] = pr
+	}
 }
 
 func (p *LlamaProvider) PrepareRequestWithMessages(messages []gollm_types.MemoryMessage, options map[string]interface{}) ([]byte, error) {
@@ -222,17 +289,17 @@ func (p *LlamaProvider) PrepareRequestWithMessages(messages []gollm_types.Memory
 		model = m
 	}
 
+	fr, _ := p.stageFrame(options, model)
 	apiMessages := make([]map[string]interface{}, 0, len(messages)+1)
-	apiMessages = append(apiMessages, map[string]interface{}{"role": "system", "content": p.systemPrompt})
+	apiMessages = append(apiMessages, map[string]interface{}{"role": "system", "content": fr.System})
 	for _, msg := range messages {
+		if msg.Role == "system" {
+			continue // a caller's own system text must not compete with the frame
+		}
 		apiMessages = append(apiMessages, map[string]interface{}{
 			"role":    msg.Role,
 			"content": msg.Content,
 		})
-	}
-
-	if systemPrompt, ok := options["system_prompt"].(string); ok && systemPrompt != "" {
-		apiMessages = append([]map[string]interface{}{{"role": "system", "content": systemPrompt}}, apiMessages...)
 	}
 
 	req := map[string]interface{}{
@@ -240,6 +307,7 @@ func (p *LlamaProvider) PrepareRequestWithMessages(messages []gollm_types.Memory
 		"messages":   apiMessages,
 		"max_tokens": maxTokens,
 	}
+	applyFrameFields(req, fr, true, options)
 	if t, ok := options["temperature"].(float64); ok {
 		req["temperature"] = t
 	}
@@ -261,6 +329,11 @@ func (p *LlamaProvider) ParseResponse(body []byte) (string, error) {
 				FunctionCall struct {
 					Arguments string `json:"arguments"`
 				} `json:"function_call"`
+				ToolCalls []struct {
+					Function struct {
+						Arguments string `json:"arguments"`
+					} `json:"function"`
+				} `json:"tool_calls"`
 			} `json:"message"`
 			FinishReason string `json:"finish_reason"`
 		} `json:"choices"`
@@ -285,6 +358,10 @@ func (p *LlamaProvider) ParseResponse(body []byte) (string, error) {
 		completion := response.Choices[0].Message.FunctionCall.Arguments
 		log.Printf("[KNIRVLLAMA] completion: %s", completion)
 		return completion, nil
+	}
+
+	if tc := response.Choices[0].Message.ToolCalls; len(tc) > 0 && tc[0].Function.Arguments != "" && response.Choices[0].Message.Content == "" {
+		return tc[0].Function.Arguments, nil
 	}
 
 	completion := response.Choices[0].Message.Content

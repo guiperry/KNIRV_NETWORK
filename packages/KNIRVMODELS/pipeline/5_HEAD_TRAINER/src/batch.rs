@@ -47,15 +47,23 @@ pub fn make(examples: &[&Example], heads: &[DecisionHead], width: usize, dev: &D
             let (mut t, mut m) = (Vec::with_capacity(b * k), Vec::with_capacity(b));
             for e in examples {
                 match e.labels.get(&h.name) {
-                    Some(Label::Choice(p)) if h.kind == HeadKind::Choice && p.len() == k => {
-                        t.extend_from_slice(p);
-                        m.push(1f32);
+                    Some(Label::Choice(p)) if h.kind == HeadKind::Choice => {
+                        // Keyed by option name: the same label is right for any option order.
+                        // A label with mass on an option this head lacks cannot be scored (H9).
+                        let covered = p.iter().all(|(name, &w)| w <= 0.0 || h.options.contains(name));
+                        if covered {
+                            t.extend(h.options.iter().map(|o| p.get(o).copied().unwrap_or(0.0)));
+                            m.push(1f32);
+                        } else {
+                            t.extend(std::iter::repeat(0f32).take(k));
+                            m.push(0f32);
+                        }
                     }
                     Some(Label::Score(v)) if h.kind == HeadKind::Score => {
                         t.push(*v);
                         m.push(1f32);
                     }
-                    // Absent, or a label of another kind/arity than this head: unsupervised.
+                    // Absent, or a label of another kind than this head: unsupervised.
                     _ => {
                         t.extend(std::iter::repeat(0f32).take(k));
                         m.push(0f32);

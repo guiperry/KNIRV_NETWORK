@@ -20,6 +20,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/guiperry/knirv-sdk-go/models/frame"
 	"github.com/guiperry/knirv/llama/internal/adapters"
 	"github.com/guiperry/knirv/llama/internal/config"
 	"github.com/guiperry/knirv/llama/internal/httpapi"
@@ -146,7 +147,10 @@ func main() {
 	if err := mgr.Restore(context.Background()); err != nil {
 		log.Fatalf("start llama-server: %v", err)
 	}
-	handler, err := httpapi.NewWithAdapters(llamaAddress, result.ModelName, apiKey, mgr)
+	handler, err := httpapi.NewServer(llamaAddress, result.ModelName, apiKey, mgr, httpapi.Options{
+		Frames: frame.Default(), Mode: httpapi.ParseFrameMode(os.Getenv("KNIRV_FRAME_MODE")),
+		AdmitSlots: max(parallel, 1), // one admission slot per llama-server slot
+	})
 	if err != nil {
 		log.Fatal(err)
 	}

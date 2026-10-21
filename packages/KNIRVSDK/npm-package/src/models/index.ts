@@ -262,7 +262,11 @@ export const STATUS_PATH = "/api/models/status";
 
 export interface LlamaAdapter { name: string; loaded: boolean; base_sha256?: string; bundle_hash?: string }
 /** The embedded llama.cpp. `base_model` is a file name, never a path. */
-export interface LlamaStatus { ready: boolean; base_model?: string; base_sha256?: string; adapters?: LlamaAdapter[]; error?: string }
+/** The llama wrapper's role-frame check. `unframed` must stay 0 in warn mode before enforce is switched on. */
+export interface FrameStatus { mode: "off" | "warn" | "enforce"; constitution_version: string; framed: number; unframed: number; invalid: number; rejected: number; teacher: number }
+/** The wrapper's admission queue by priority class (P0..P3). */
+export interface QueueStatus { free_slots: number; depth: [number, number, number, number]; admitted: [number, number, number, number] }
+export interface LlamaStatus { frames?: FrameStatus; queue?: QueueStatus; ready: boolean; base_model?: string; base_sha256?: string; adapters?: LlamaAdapter[]; error?: string }
 /** One harness decision, without any prompt or output text. */
 export interface RoutingEvent {
   id: string; time: string; kind: string; skill?: string; chosen?: string; model_version?: string; adapter?: string;
@@ -314,3 +318,13 @@ export function roles(s: PlatformStatus): RoleLine[] {
   return [daemon("decide", "supervision decisions", "head"), daemon("generate", "text generation", "heart"),
     daemon("validate", "validation", "hasher"), llama, ext];
 }
+
+export * from "./frame.js";
+
+/** GET /models/hasher/index/status: what the evidence index holds (twin of Go IndexStatus). */
+export interface IndexStatus {
+  index_version: string; key_version: string; embedder_ids: string[]; retrieval: "lexical" | "hybrid";
+  segments: number; spans: number; tiers: Record<string, number>; chunk_words: number;
+  searches: number; hit_rate: number; last_batch?: string; last_ingest?: string;
+}
+export const INDEX_STATUS_PATH = `${HASHER_PREFIX}/index/status`;

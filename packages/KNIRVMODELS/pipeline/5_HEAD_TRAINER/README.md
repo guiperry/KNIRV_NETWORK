@@ -23,7 +23,17 @@ Exit status: `0` promoted, `3` trained but refused by the gate, `1` error.
   `action`, `intent` and `agent` use the supervisor's fixed vocabularies; other choice heads learn
   their options from the data. A soft label (object/array) is a teacher distribution (Clef), trained with KL.
 * `split` is `train|val|test`; if absent it is derived from a hash of `group` — **splits are by group,
-  never by row**, so near-duplicates cannot leak into evaluation.
+  never by row**, so near-duplicates cannot leak into evaluation. With fewer than `--min-groups` (5) distinct
+  groups the split is by time instead (`ts`, then file order): oldest 80% train, then val, newest test.
+  Validation and held-out data are never the training set: with none, the run trains but is refused
+  (`no_disjoint_heldout`) and tau is not fitted.
+* `soft` (teacher distributions per head) and `teacher_plan` are used on the **train split only**; the
+  ground truth in `labels` is what validation, tau and the gate see.
+* Labels are keyed by option **name**, so a model with a different option order still reads them correctly.
+* Inputs longer than the preset width are cut; the run fails if more than `--max-truncated` (5%) are.
+* A head whose answer is spelled out in its input (`<head>:<option>`, >= 90% of rows) is refused as label
+  leakage (`--allow-leaky-heads` overrides). `convert` therefore does not emit `intent` and `risk`
+  (fields of the prompt) unless `--emit-input-heads`.
 * Tokens are `byte-v1` (`knirv_head::tokenizer`): BOS + bytes, PAD-filled to the preset width.
   `plan` is supervised position-by-position (plan bytes, EOS, PAD); records without one skip the plan loss.
 * The input must be redacted before it reaches this stage. The trainer does not redact.
@@ -43,8 +53,11 @@ Knobs: `KNIRV_HEAD_AUTOTRAIN`, `_PRESET`, `_EPOCHS`, `_MIN_NEW`, `_MIN_GAP_HOURS
 ./target/release/head-trainer convert --episodes gold.jsonl --out train.jsonl [--soft clef-teacher.jsonl] [--soft-heads intent,next_phase,risk,agent]
 ```
 
-Only episodes with a non-abstaining decision and `outcome.verified && !human_override` become labels; a
-shadow advisor's own advice is never a label. The prompt (`phase intent risk budget agents evidence request`,
+Only episodes with a non-abstaining decision and `outcome.verified && !human_override` become decision
+labels (`action`, `next_phase`, `agent`); a shadow advisor's own advice is never a label. Unverified and
+overridden episodes are kept with their recorded decision masked, and a human's `outcome.override_action`
+(when recorded) becomes the `action` label. Teacher distributions go under `soft`, never over `labels`.
+An empty `repo_family` becomes a group of its own per episode. The prompt (`phase intent risk budget agents evidence request`,
 secrets re-redacted) is byte-identical to the server's `buildAdvisePrompt`; both sides assert the same
 vector. A head with a single observed value (e.g. `next_phase` in a small set) is skipped with a warning.
 
@@ -57,10 +70,21 @@ from `--seed` (candle's CPU RNG cannot be seeded). Use `--lr ≤ 1e-3`; 3e-3 div
 
 ## Gate and outputs
 
+Training fine-tunes the promoted model when its architecture and heads match (`--init-from auto`, lr scaled
+by `--ft-lr-scale`); `--init-from none` trains from random init. The halt head is trained from decision
+correctness (every supervised head already right at this cycle), so it learns without any plan.
+Norm gains, biases and embeddings are not weight-decayed; warmup is clamped to a tenth of the run.
+
 After training, `tau` is fitted on the validation split: the smallest threshold at which every choice head
-reaches `--target-acc` selective accuracy (abstain ⇔ max(p) < tau). The candidate is then scored on the
-held-out set (`--heldout`, else the test split) **alongside the current `model_latest` on the same data**
-and is promoted only if it scores strictly higher and does not raise the false-allow rate.
+reaches `--target-acc` selective accuracy (abstain ⇔ max(p) < tau). Held-out metrics are computed at batch 1
+(per-example halting, like serving) with that tau: coverage, selective accuracy and an abstain-aware
+false-allow rate. Promotion:
+
+* needs at least `--min-heldout` (30) held-out rows;
+* first model: only if the tau target was met;
+* later models: scored against the current `model_latest` row by row on the heads and options both have;
+  promoted only if the lower 95% bound of a paired-bootstrap score gain is above 0, the mean gain is at least
+  `--min-margin`, and the false-allow rate does not rise.
 
 ```
 <out>/head/head_config.json  model-<version>.safetensors  model_latest -> …  metrics.json

@@ -3,10 +3,12 @@ package head
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"math"
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 )
 
 // Lays out testdata the way 5_HEAD_TRAINER publishes it.
@@ -28,11 +30,11 @@ func publish(t *testing.T, version string) string {
 }
 
 type reasoning struct {
-	PlanTokens     []uint32  `json:"plan_tokens"`
-	HaltingSteps   int       `json:"halting_steps"`
-	Confidence     float64   `json:"confidence"`
-	L              []float64 `json:"l_module_activations"`
-	Decisions      []struct {
+	PlanTokens   []uint32  `json:"plan_tokens"`
+	HaltingSteps int       `json:"halting_steps"`
+	Confidence   float64   `json:"confidence"`
+	L            []float64 `json:"l_module_activations"`
+	Decisions    []struct {
 		Name          string    `json:"name"`
 		Probabilities []float64 `json:"probabilities"`
 	} `json:"decisions"`
@@ -151,5 +153,62 @@ func TestHotSwapOnPromotion(t *testing.T) {
 	json.Unmarshal(r2, &b)
 	if a.ModelVersion != "v1-aaaaaaaa" || b.ModelVersion != "v2-bbbbbbbb" {
 		t.Fatalf("versions %q -> %q", a.ModelVersion, b.ModelVersion)
+	}
+}
+
+func TestReasonRebuildsAfterTheModuleDies(t *testing.T) {
+	svc := NewService(publish(t, "v1-deadbeef"))
+	defer svc.Close(context.Background())
+	in := []uint32{3, 1, 4, 1, 5, 9, 2, 6}
+	if _, err := svc.Reason(context.Background(), in); err != nil {
+		t.Fatal(err)
+	}
+	// Break the pipe the way a crashed module would (H11: this used to be permanent).
+	svc.mu.Lock()
+	dead := svc.runner
+	svc.mu.Unlock()
+	dead.mu.Lock()
+	dead.kill(errors.New("test: module crashed"))
+	dead.mu.Unlock()
+	if dead.Dead() == nil {
+		t.Fatal("runner should be dead")
+	}
+	if _, err := svc.Reason(context.Background(), in); err != nil {
+		t.Fatalf("service did not recover: %v", err)
+	}
+	svc.mu.Lock()
+	defer svc.mu.Unlock()
+	if svc.runner == dead || svc.runner.Dead() != nil {
+		t.Fatal("expected a fresh, live runner")
+	}
+}
+
+func TestHungCallTimesOutAndTheServiceRecovers(t *testing.T) {
+	svc := NewService(publish(t, "v1-deadbeef"))
+	defer svc.Close(context.Background())
+	svc.CallTimeout = time.Nanosecond // every call "hangs"
+	svc.Attempts = 2
+	start := time.Now()
+	_, err := svc.Reason(context.Background(), []uint32{3, 1, 4})
+	if !errors.Is(err, ErrRunnerDead) {
+		t.Fatalf("want ErrRunnerDead, got %v", err)
+	}
+	if time.Since(start) > 5*time.Second {
+		t.Fatalf("hung call was not bounded: %s", time.Since(start))
+	}
+	svc.CallTimeout = DefaultCallTimeout
+	if _, err := svc.Reason(context.Background(), []uint32{3, 1, 4, 1, 5, 9, 2, 6}); err != nil {
+		t.Fatalf("service stayed down after a timeout: %v", err)
+	}
+}
+
+func TestModelErrorsAreNotRetriedOrFatal(t *testing.T) {
+	svc := NewService(publish(t, "v1-deadbeef"))
+	defer svc.Close(context.Background())
+	if _, err := svc.Reason(context.Background(), nil); err == nil || errors.Is(err, ErrRunnerDead) {
+		t.Fatalf("empty input should be a plain error, got %v", err)
+	}
+	if _, err := svc.Reason(context.Background(), []uint32{3, 1, 4, 1, 5, 9, 2, 6}); err != nil {
+		t.Fatalf("a bad request must not break the runner: %v", err)
 	}
 }

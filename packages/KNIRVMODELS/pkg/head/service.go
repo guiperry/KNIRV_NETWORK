@@ -13,6 +13,7 @@ import (
 	"regexp"
 	"strings"
 	"sync"
+	"time"
 )
 
 // ErrNoModel means the trainer has not promoted a model yet.
@@ -33,6 +34,15 @@ type Manifest struct {
 // (layout written by 5_HEAD_TRAINER: head_config.json, model_latest -> model-<v>.safetensors).
 type Service struct {
 	Dir string
+	// CallTimeout bounds one request to the module; zero means DefaultCallTimeout.
+	CallTimeout time.Duration
+	// Attempts is how many times Reason builds a fresh runner after the module
+	// dies (default 3), waiting 50ms, 100ms, ... between them.
+	Attempts int
+
+	// rmu serialises the runner's lifecycle and calls, so the length check, the
+	// (re)load and the call always see one consistent (runner, version, info).
+	rmu sync.Mutex
 
 	mu       sync.Mutex
 	runner   *Runner
@@ -127,35 +137,84 @@ func (s *Service) ETag(version string) (string, error) {
 	return h, err
 }
 
-// Reason runs the promoted model, (re)loading it when the trainer promotes a new version.
+// Reason runs the promoted model, (re)loading it when the trainer promotes a new
+// version. If the module has died or hung, the runner is torn down and rebuilt,
+// a bounded number of times with back-off; model-level errors are returned as is.
 func (s *Service) Reason(ctx context.Context, tokens []uint32) (json.RawMessage, error) {
+	s.rmu.Lock()
+	defer s.rmu.Unlock()
+	attempts := s.Attempts
+	if attempts <= 0 {
+		attempts = 3
+	}
+	var last error
+	for i := 0; i < attempts; i++ {
+		if i > 0 {
+			select {
+			case <-time.After(50 * time.Millisecond << (i - 1)):
+			case <-ctx.Done():
+				return nil, ctx.Err()
+			}
+		}
+		raw, err := s.reasonOnce(ctx, tokens)
+		if err == nil || !errors.Is(err, ErrRunnerDead) {
+			return raw, err
+		}
+		last = err
+		s.dropRunner()
+		if ctx.Err() != nil {
+			break
+		}
+	}
+	return nil, last
+}
+
+// dropRunner discards the current runner. Caller holds rmu.
+func (s *Service) dropRunner() {
 	s.mu.Lock()
+	r := s.runner
+	s.runner, s.loaded = nil, ""
+	s.mu.Unlock()
+	if r != nil {
+		go r.Close(context.Background())
+	}
+}
+
+// reasonOnce is one attempt. Caller holds rmu.
+func (s *Service) reasonOnce(ctx context.Context, tokens []uint32) (json.RawMessage, error) {
 	v, err := s.latestVersion()
 	if err != nil {
-		s.mu.Unlock()
 		return nil, err
 	}
-	if s.runner == nil {
-		if s.runner, err = NewRunner(ctx, s.Dir); err != nil {
-			s.mu.Unlock()
+	s.mu.Lock()
+	runner, loaded, info := s.runner, s.loaded, s.info
+	s.mu.Unlock()
+	if runner == nil {
+		if runner, err = NewRunner(context.Background(), s.Dir); err != nil {
 			return nil, err
 		}
+		runner.Timeout = s.CallTimeout
+		loaded = ""
+		s.mu.Lock()
+		s.runner, s.loaded = runner, ""
+		s.mu.Unlock()
 	}
-	if s.loaded != v {
-		info, err := s.runner.Load("head_config.json", "model-"+v+".safetensors")
+	if loaded != v {
+		info, err = runner.LoadCtx(ctx, "head_config.json", "model-"+v+".safetensors")
 		if err != nil {
-			s.mu.Unlock()
+			if errors.Is(err, ErrRunnerDead) {
+				return nil, err
+			}
 			return nil, fmt.Errorf("load %s: %w", v, err)
 		}
+		s.mu.Lock()
 		s.loaded, s.info = v, info
+		s.mu.Unlock()
 	}
-	runner, info := s.runner, s.info
-	s.mu.Unlock()
-
 	if len(tokens) == 0 || len(tokens) > info.MaxInputLen {
 		return nil, fmt.Errorf("input must be 1..%d tokens", info.MaxInputLen)
 	}
-	return runner.Reason(tokens)
+	return runner.ReasonCtx(ctx, tokens)
 }
 
 // Status is reported by the registry (/models/registry) and HEART's health.
@@ -170,6 +229,8 @@ func (s *Service) Status() map[string]any {
 }
 
 func (s *Service) Close(ctx context.Context) {
+	s.rmu.Lock()
+	defer s.rmu.Unlock()
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if s.runner != nil {

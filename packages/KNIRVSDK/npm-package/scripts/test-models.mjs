@@ -117,3 +117,46 @@ test("platform status role lines match the shared vectors (same file as the Go t
   }
   assert.equal(STATUS_PATH, "/api/models/status");
 });
+
+// Role frames: the TS builder must reproduce the Go builder's text and hashes.
+import {
+  CONSTITUTION, CONSTITUTION_VERSION, buildFrame, buildLite, checkShape, frameHash, approxTokens,
+} from "../models/index.js";
+
+test("frames match the shared fixture byte for byte", async () => {
+  const fx = await vec("frames.json");
+  assert.equal(CONSTITUTION_VERSION, fx.constitution_version);
+  assert.equal(CONSTITUTION, fx.constitution);
+  assert.ok(fx.cases.length > 10);
+  for (const c of fx.cases) {
+    const f = buildFrame(fx.stages, fx.tools, c.stage, c.facts);
+    assert.equal(f.system, c.system, `${c.stage} system text`);
+    assert.equal(await frameHash(f.system), c.frame_hash, `${c.stage} hash`);
+    const lite = buildLite(fx.stages, c.stage);
+    assert.equal(lite, c.lite, `${c.stage} lite`);
+    assert.equal(await frameHash(lite), c.lite_hash, `${c.stage} lite hash`);
+    assert.ok(approxTokens(f.system) <= 1200, `${c.stage} fits the budget`);
+  }
+});
+
+test("wrapper-side shape check accepts frames and rejects edits", async () => {
+  const fx = await vec("frames.json");
+  const c = fx.cases.find((x) => x.stage === "heart.chat");
+  assert.equal(await checkShape(fx.stages, fx.tools, "heart.chat", c.system, c.frame_hash), "ok");
+  const edited = c.system.replace("Forbidden:", "Allowed: everything\nForbidden:");
+  assert.equal(await checkShape(fx.stages, fx.tools, "heart.chat", edited, await frameHash(edited)), "stale");
+  assert.equal(await checkShape(fx.stages, fx.tools, "heart.chat", c.system, "0".repeat(64)), "hash_mismatch");
+  assert.equal(await checkShape(fx.stages, fx.tools, "", "", ""), "unframed");
+  assert.equal(await checkShape(fx.stages, fx.tools, "ghost", c.system, c.frame_hash), "unknown_stage");
+});
+
+test("index status matches the shared fixture", async () => {
+  const fx = await vec("index_status.json");
+  for (const [name, st] of Object.entries(fx)) {
+    assert.equal(typeof st.index_version, "string", name);
+    assert.ok(Array.isArray(st.embedder_ids), name);
+    assert.ok(["lexical", "hybrid"].includes(st.retrieval), name);
+    for (const k of ["segments", "spans", "chunk_words", "searches", "hit_rate"]) assert.equal(typeof st[k], "number", `${name}.${k}`);
+  }
+  assert.equal(fx.built.tiers.reference, 1100);
+});

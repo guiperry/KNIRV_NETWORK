@@ -148,7 +148,7 @@ func (c *GoldCase) normalize() error {
 
 func cmdGold(args []string) error {
 	if len(args) == 0 {
-		return fmt.Errorf("gold: expected add|label2|import|export|stats|accept")
+		return fmt.Errorf("gold: expected add|label2|import|import-sheet|export|stats|accept")
 	}
 	sub, rest := args[0], args[1:]
 	fs := flag.NewFlagSet("gold "+sub, flag.ExitOnError)
@@ -184,6 +184,9 @@ func cmdGold(args []string) error {
 
 	case "accept":
 		return cmdGoldAccept(fs, dir, rest)
+
+	case "import-sheet":
+		return cmdGoldImportSheet(fs, dir, rest)
 
 	case "label2":
 		var id, label, labeler string

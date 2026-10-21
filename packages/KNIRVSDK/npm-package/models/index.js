@@ -228,3 +228,5 @@ export function roles(s) {
     return [daemon("decide", "supervision decisions", "head"), daemon("generate", "text generation", "heart"),
         daemon("validate", "validation", "hasher"), llama, ext];
 }
+export * from "./frame.js";
+export const INDEX_STATUS_PATH = `${HASHER_PREFIX}/index/status`;

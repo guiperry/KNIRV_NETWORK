@@ -160,4 +160,23 @@ mod tests {
             &sdk.transmission,
         );
     }
+
+    #[tokio::test]
+    async fn factuality_routes_the_node_does_not_serve_fail_loudly() {
+        let sdk = KnirvClient::new(ClientConfig {
+            network: Network::LocalTestnet,
+            ..Default::default()
+        })
+        .unwrap();
+        for err in [
+            sdk.factuality.get_slice_info().await.map(|_| ()).unwrap_err(),
+            sdk.factuality.get_verification_history(None).await.map(|_| ()).unwrap_err(),
+            sdk.factuality.get_verification("v1").await.map(|_| ()).unwrap_err(),
+        ] {
+            assert!(matches!(err, Error::Api { status: 501, .. }), "{err}");
+        }
+        // The real route validates its input before any request is made.
+        let empty = crate::types::FactualityCheckRequest::default();
+        assert!(matches!(sdk.factuality.check(&empty).await.unwrap_err(), Error::Validation(_)));
+    }
 }

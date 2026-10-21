@@ -20,6 +20,9 @@ type EmbeddingProvider interface {
 	GetEmbedding(text string) ([]float32, error)
 	GetBatchEmbeddings(texts []string) ([][]float32, error)
 	GetProviderStats() map[string]interface{}
+	// EmbedderID names the model behind every vector this provider returns.
+	// Vectors with different ids must never share an index.
+	EmbedderID() string
 }
 
 // DeterministicProvider provides deterministic local embeddings using text-embedder
@@ -58,6 +61,9 @@ func (p *DeterministicProvider) GetBatchEmbeddings(texts []string) ([][]float32,
 	}
 	return embeddings, nil
 }
+
+// EmbedderID is the text-embedder model id.
+func (p *DeterministicProvider) EmbedderID() string { return p.model }
 
 // GetProviderStats returns current provider statistics
 func (p *DeterministicProvider) GetProviderStats() map[string]interface{} {
@@ -189,33 +195,48 @@ func (rt *RequestTracker) GetStats() (int, int, time.Time) {
 	return rt.requests, rt.maxRequests, rt.lastReset
 }
 
-// GetEmbedding gets embedding using the best available method
+// ErrQuotaExhausted is returned in Cloudflare mode once the daily cap is hit.
+// The caller stops or waits; it must not be served from a different model
+// (E1: BGE and nomic vectors are both 768-d but live in different spaces).
+var ErrQuotaExhausted = fmt.Errorf("cloudflare embedding quota exhausted")
+
+// EmbedderID names the model that produces this provider's vectors. It is
+// fixed for the lifetime of the provider: "cloudflare:<model>" or
+// "ollama:<model>".
+func (p *HybridEmbeddingProvider) EmbedderID() string {
+	if p.UseCloudflare {
+		return "cloudflare:" + CloudflareModelName
+	}
+	return "ollama:" + p.Model
+}
+
+// CloudflareModelName is the Workers AI model behind embeddings.knirv.com
+// (BGE-Base, 768-d; see MATHASHER_Implementation.md).
+const CloudflareModelName = "bge-base-en-v1.5"
+
+// GetEmbedding embeds with the one backend this provider was built for. It
+// never falls back to the other backend: a failure or an exhausted quota is an
+// error.
 func (p *HybridEmbeddingProvider) GetEmbedding(text string) ([]float32, error) {
 	cleanText := strings.TrimSpace(text)
 	if len(cleanText) == 0 {
 		return nil, fmt.Errorf("empty text provided")
 	}
 
-	if p.UseCloudflare && p.RequestTracker.CanMakeRequest() {
-		embedding, err := p.getCloudflareEmbedding(cleanText)
-		if err == nil {
-			p.RequestTracker.IncrementRequest()
-			log.Printf("Used Cloudflare embedding (quota: %d/%d)",
-				p.RequestTracker.requests, p.RequestTracker.maxRequests)
-			return embedding, nil
-		}
-		log.Printf("Cloudflare embedding failed: %v, falling back to Ollama", err)
-	} else {
-		if !p.UseCloudflare {
-			log.Printf("Cloudflare embeddings disabled, using Ollama")
-		} else {
-			log.Printf("Cloudflare quota exhausted (%d/%d), switching to Ollama for rest of day",
-				p.RequestTracker.requests, p.RequestTracker.maxRequests)
-			p.UseCloudflare = false
-		}
+	if !p.UseCloudflare {
+		return p.getOllamaEmbedding(cleanText)
 	}
 
-	return p.getOllamaEmbedding(cleanText)
+	if !p.RequestTracker.CanMakeRequest() {
+		used, max, _ := p.RequestTracker.GetStats()
+		return nil, fmt.Errorf("%w (%d/%d)", ErrQuotaExhausted, used, max)
+	}
+	embedding, err := p.getCloudflareEmbedding(cleanText)
+	if err != nil {
+		return nil, fmt.Errorf("cloudflare embedding failed (no fallback to another model): %w", err)
+	}
+	p.RequestTracker.IncrementRequest()
+	return embedding, nil
 }
 
 func (p *HybridEmbeddingProvider) getCloudflareEmbedding(text string) ([]float32, error) {
@@ -375,7 +396,7 @@ func (p *HybridEmbeddingProvider) GetProviderStats() map[string]interface{} {
 		"cloudflare_quota_max":  max,
 		"cloudflare_last_reset": lastReset.Format("2006-01-02"),
 		"remaining_quota":       max - used,
-		"fallback_active":       !p.UseCloudflare,
+		"embedder_id":           p.EmbedderID(),
 	}
 }
 

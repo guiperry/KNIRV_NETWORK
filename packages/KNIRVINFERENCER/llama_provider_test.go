@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-func TestLlamaProviderInjectsDreamSystemPrompt(t *testing.T) {
+func TestLlamaProviderFramesDreamPassesByDefault(t *testing.T) {
 	provider := NewLlamaProvider("", "local-llama", nil).(*LlamaProvider)
 	if provider.Endpoint() != "http://knirv-llama/v1/chat/completions" {
 		t.Fatalf("Endpoint() = %q, want synthetic Unix-socket host", provider.Endpoint())
@@ -32,8 +32,8 @@ func TestLlamaProviderInjectsDreamSystemPrompt(t *testing.T) {
 	if len(request.Messages) < 2 {
 		t.Fatalf("messages = %#v, want system and user messages", request.Messages)
 	}
-	if request.Messages[0].Role != "system" || request.Messages[0].Content != DreamSystemPrompt {
-		t.Fatalf("first message = %#v, want DreamSystemPrompt system message", request.Messages[0])
+	if request.Messages[0].Role != "system" || !strings.Contains(request.Messages[0].Content, "STAGE inferencer.dream") {
+		t.Fatalf("first message = %#v, want the inferencer.dream frame", request.Messages[0])
 	}
 	if request.Messages[1].Role != "user" {
 		t.Fatalf("second message role = %q, want user", request.Messages[1].Role)

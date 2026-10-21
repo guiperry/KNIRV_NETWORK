@@ -2,6 +2,7 @@
 package httpapi
 
 import (
+	"github.com/guiperry/knirv-sdk-go/models/frame"
 	"github.com/guiperry/knirv/llama/internal/adapters"
 	"io"
 	"log"
@@ -68,6 +69,28 @@ func New(upstream, model, apiKey string) (http.Handler, error) {
 // at scale 1, all others 0), so no request can pick up an adapter by default.
 // Clients may not send `lora` themselves; llama adapter ids are not a stable API.
 func NewWithAdapters(upstream, model, apiKey string, mgr *adapters.Manager) (http.Handler, error) {
+	return NewFramed(upstream, model, apiKey, mgr, nil, FrameOff)
+}
+
+// Options are the wrapper's optional layers.
+type Options struct {
+	// Frames and Mode enable the role-frame check on chat completions. With a
+	// nil registry or FrameOff, no call is checked or counted.
+	Frames *frame.Registry
+	Mode   FrameMode
+	// AdmitSlots > 0 puts a priority queue with that many slots in front of
+	// llama-server (set it to llama's --parallel). 0 disables queueing.
+	AdmitSlots int
+}
+
+// NewFramed is NewWithAdapters plus the role-frame check on chat completions.
+func NewFramed(upstream, model, apiKey string, mgr *adapters.Manager, reg *frame.Registry, mode FrameMode) (http.Handler, error) {
+	return NewServer(upstream, model, apiKey, mgr, Options{Frames: reg, Mode: mode})
+}
+
+// NewServer is the full constructor: adapters, frame check and admission queue.
+func NewServer(upstream, model, apiKey string, mgr *adapters.Manager, opt Options) (http.Handler, error) {
+	reg, mode := opt.Frames, opt.Mode
 	target, err := url.Parse("http://" + upstream)
 	if err != nil {
 		return nil, err
@@ -117,6 +140,19 @@ func NewWithAdapters(upstream, model, apiKey string, mgr *adapters.Manager) (htt
 		chat, completions = withAdapters(proxy, mgr), withAdapters(proxy, mgr)
 		registerAdapterRoutes(mux, mgr, model)
 	}
+	if opt.AdmitSlots > 0 {
+		adm := NewAdmission(opt.AdmitSlots)
+		chat, completions = withAdmission(chat, adm), withAdmission(completions, adm)
+		registerQueueRoutes(mux, adm)
+	}
+	if reg != nil && mode != FrameOff {
+		stats := &FrameStats{}
+		chat = withFrame(chat, reg, mode, stats)
+		registerFrameRoutes(mux, mode, stats)
+	}
+	// Claims come off the body first, whatever the mode: llama-server must
+	// never see knirv_* fields.
+	chat, completions = withClaims(chat), withClaims(completions)
 	mux.Handle("POST /v1/chat/completions", chat)
 	mux.Handle("POST /v1/completions", completions)
 	return mux, nil

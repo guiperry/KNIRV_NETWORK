@@ -9,6 +9,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/guiperry/knirv-sdk-go/models/frame"
 )
 
 // CandidateScorer is an optional, non-authoritative ranking signal. A scorer
@@ -34,7 +36,13 @@ func (s *LlamaCandidateScorer) Score(seed []byte, record *TrainingRecord) (float
 		return 0, fmt.Errorf("llama endpoint not configured")
 	}
 	prompt := fmt.Sprintf("Score the internal consistency of this proposed KNIRV assertion from 0 to 1. Return only a decimal number. context=%v assertion=%v candidate=%s", record.TokenSequence, record.Span(), hex.EncodeToString(seed))
-	body, err := json.Marshal(map[string]interface{}{"model": s.model, "temperature": 0, "messages": []map[string]string{{"role": "user", "content": prompt}}})
+	fr, err := frame.Default().Build("inferencer.task", frame.LiveFacts{Model: s.model})
+	if err != nil {
+		return 0, err
+	}
+	body, err := json.Marshal(map[string]interface{}{"model": s.model, "temperature": 0,
+		"knirv_stage": fr.Stage, "knirv_frame_hash": fr.Hash, "cache_prompt": true,
+		"messages": []map[string]string{{"role": "system", "content": fr.System}, {"role": "user", "content": prompt}}})
 	if err != nil {
 		return 0, err
 	}

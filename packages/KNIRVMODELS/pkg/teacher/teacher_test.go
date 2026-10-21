@@ -32,7 +32,7 @@ func newFake(t *testing.T, reply func(system, user string, call int) string) (*f
 	f.srv = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case "/harness/status":
-			w.Write([]byte(`{"active":"colibri","colibri_model":"qwen36-35b"}`))
+			w.Write([]byte(`{"active":"colibri","teacher":"colibri","colibri_model":"qwen36-35b"}`))
 		case "/v1/chat/completions":
 			f.role.Store(r.Header.Get(roleHeader))
 			if f.busy.Add(-1) >= 0 {
@@ -82,10 +82,10 @@ func TestChatSendsTheTeacherRoleAndRecordsProvenance(t *testing.T) {
 	}
 }
 
-// If the harness ever answers from the fallback, nothing may be recorded as the teacher's.
+// An answer from a backend that is neither Colibri nor llama.cpp is never recorded.
 func TestAnswerFromAnotherBackendIsRejected(t *testing.T) {
 	f, cl := newFake(t, func(string, string, int) string { return "x" })
-	f.backend = "llama.cpp"
+	f.backend = "some-other-backend"
 	if _, err := cl.Chat(context.Background(), Request{User: "hi"}); err == nil || !strings.Contains(err.Error(), "not from the teacher backend") {
 		t.Fatalf("got %v", err)
 	}
@@ -219,3 +219,22 @@ func TestSoftLabelsHideTheLabelledFieldAndUseOnlyVerifiedEpisodes(t *testing.T) 
 }
 
 func errorsIs(err, target error) bool { return errors.Is(err, target) }
+
+func TestLlamaCanBeTheTeacherAndIsRecordedAsSuch(t *testing.T) {
+	if got := catalogOf(map[string]any{"teacher": "llama.cpp", "colibri_model": "qwen36-35b"}); got != "llama.cpp" {
+		t.Fatalf("a llama.cpp teacher must not borrow Colibri's catalog id: %q", got)
+	}
+	if got := catalogOf(map[string]any{"teacher": "colibri", "colibri_model": "qwen36-35b"}); got != "qwen36-35b" {
+		t.Fatalf("%q", got)
+	}
+	f, cl := newFake(t, func(string, string, int) string { return "A" })
+	f.backend = "llama.cpp"
+	rep, err := cl.Chat(context.Background(), Request{User: "hi"})
+	if err != nil || rep.Prov.Teacher != "llama.cpp" {
+		t.Fatalf("%v %+v", err, rep.Prov)
+	}
+	f.backend = "ollama"
+	if _, err := cl.Chat(context.Background(), Request{User: "hi"}); err == nil {
+		t.Fatal("an unknown backend's answer must still be refused")
+	}
+}

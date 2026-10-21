@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -261,7 +262,7 @@ func embeddingWorker(id int, jobs <-chan string, results chan<- DocumentRecord, 
 			ChunkCount:     len(allRecords),
 			WordCount:      len(strings.Fields(text)),
 			FileSize:       fileInfo.Size(),
-			EmbeddingModel: config.OllamaModel,
+			EmbeddingModel: provider.EmbedderID(),
 		}
 
 		// Save individual paper file
@@ -735,6 +736,10 @@ func RunContinuousWorkflow(ctx context.Context, config *Config, statsManager *St
 			fmt.Printf("========================================\n")
 
 			papersProcessed, embeddingsGenerated, err = RunGoatMiningPhase(ctx, config, provider, statsManager)
+			if errors.Is(err, embedder.ErrQuotaExhausted) {
+				statsManager.Save()
+				return handleQuotaExhausted(config, statsManager, provider, maxDaily)
+			}
 			if err != nil {
 				return fmt.Errorf("GOAT mining phase failed: %w", err)
 			}
@@ -780,6 +785,10 @@ func RunContinuousWorkflow(ctx context.Context, config *Config, statsManager *St
 			fmt.Printf("📊 Current quota: %d embeddings remaining\n", sessionStats.CloudflareRemaining)
 
 			papersProcessed, embeddingsGenerated, err = runNeuralProcessingPhase(ctx, config, provider, sessionStats, statsManager)
+			if errors.Is(err, embedder.ErrQuotaExhausted) {
+				statsManager.Save()
+				return handleQuotaExhausted(config, statsManager, provider, maxDaily)
+			}
 			if err != nil {
 				return fmt.Errorf("neural processing phase failed: %w", err)
 			}
@@ -829,6 +838,10 @@ func RunContinuousWorkflow(ctx context.Context, config *Config, statsManager *St
 				fmt.Printf("🎯 Target: Process %d newly downloaded papers\n", papersDownloaded)
 
 				newPapersProcessed, newEmbeddingsGenerated, err := runNeuralProcessingPhase(ctx, config, provider, sessionStats, statsManager)
+				if errors.Is(err, embedder.ErrQuotaExhausted) {
+					statsManager.Save()
+					return handleQuotaExhausted(config, statsManager, provider, maxDaily)
+				}
 				if err != nil {
 					return fmt.Errorf("neural processing of new papers failed: %w", err)
 				}
@@ -905,11 +918,10 @@ func handleQuotaExhausted(config *Config, statsManager *StatsManager, provider e
 	for {
 		fmt.Printf("\n❓ Cloudflare quota is nearly exhausted. What would you like to do?\n")
 		fmt.Printf("1. 🛑 Stop for today (recommended)\n")
-		fmt.Printf("2. 🤖 Continue with Ollama embeddings only\n")
-		fmt.Printf("3. 🔄 Continue with mixed (Ollama + remaining Cloudflare)\n")
-		fmt.Printf("4. 📊 Show detailed statistics\n")
-		fmt.Printf("5. ❌ Exit completely\n")
-		fmt.Printf("\nChoice (1-5): ")
+		fmt.Printf("2. 🤖 Continue with Ollama embeddings only (a different embedding space: the papers are labelled with their model and must not be searched together with Cloudflare ones)\n")
+		fmt.Printf("3. 📊 Show detailed statistics\n")
+		fmt.Printf("4. ❌ Exit completely\n")
+		fmt.Printf("\nChoice (1-4): ")
 
 		choice, err := readUserInput()
 		if err != nil {
@@ -927,18 +939,14 @@ func handleQuotaExhausted(config *Config, statsManager *StatsManager, provider e
 			return continueWithOllamaOnly(config, statsManager)
 
 		case "3":
-			fmt.Printf("\n🔄 Continuing with mixed embeddings...\n")
-			return continueWithMixedEmbeddings(config, statsManager, provider)
-
-		case "4":
 			printDetailedStats(statsManager, maxDaily)
 
-		case "5":
+		case "4":
 			fmt.Printf("\n❌ Exiting workflow.\n")
 			return fmt.Errorf("user chose to exit")
 
 		default:
-			fmt.Printf("❌ Invalid choice. Please enter 1-5.\n")
+			fmt.Printf("❌ Invalid choice. Please enter 1-4.\n")
 		}
 	}
 }
@@ -980,59 +988,6 @@ func continueWithOllamaOnly(config *Config, statsManager *StatsManager) error {
 	fmt.Printf("🧠 Daily Papers Processed: %d\n", persistentStats["daily_papers_processed"])
 	fmt.Printf("📈 Daily Embeddings: %d\n", persistentStats["daily_embeddings_generated"])
 	fmt.Printf("🤖 Final batch used Ollama embeddings\n")
-
-	return nil
-}
-
-// continueWithMixedEmbeddings continues with both providers (using remaining quota)
-func continueWithMixedEmbeddings(config *Config, statsManager *StatsManager, provider interface{}) error {
-	// Only works with hybrid provider
-	hp, ok := provider.(*embedder.HybridEmbeddingProvider)
-	if !ok {
-		return fmt.Errorf("mixed embeddings not supported with deterministic provider")
-	}
-
-	// Get current quota info
-	providerStats := hp.GetProviderStats()
-	remainingQuota := 0
-	if remainingFloat, ok := providerStats["remaining_quota"].(float64); ok {
-		remainingQuota = int(remainingFloat)
-	} else if remainingInt, ok := providerStats["remaining_quota"].(int); ok {
-		remainingQuota = remainingInt
-	}
-
-	fmt.Printf("🔄 Continuing with mixed embeddings (using remaining %d Cloudflare quota)...\n", remainingQuota)
-
-	// Initialize checkpoint system
-	checkpointer, err := checkpoint.NewCheckpointer(config.CheckpointDB)
-	if err != nil {
-		return fmt.Errorf("failed to initialize checkpoint system: %w", err)
-	}
-	defer checkpointer.Close()
-
-	// Continue processing with mixed mode
-	fmt.Printf("🧠 Processing remaining papers with mixed embeddings...\n")
-
-	papersProcessed, embeddingsGenerated, err := ProcessDocumentsWithMixedOnly(config, checkpointer, hp)
-	if err != nil {
-		return fmt.Errorf("mixed processing failed: %w", err)
-	}
-
-	// Record in stats manager
-	statsManager.RecordWorkflowLoop(0, papersProcessed, embeddingsGenerated)
-	statsManager.Save()
-
-	fmt.Printf("✅ Processed %d additional papers, generated %d embeddings\n", papersProcessed, embeddingsGenerated)
-
-	// Get updated stats
-	persistentStats := statsManager.GetCurrentStats()
-	fmt.Printf("\n🎯 Final Statistics:\n")
-	fmt.Printf("===================\n")
-	fmt.Printf("🔄 Daily Workflow Loops: %d\n", persistentStats["daily_workflow_loops"])
-	fmt.Printf("📄 Daily Papers Downloaded: %d\n", persistentStats["daily_papers_downloaded"])
-	fmt.Printf("🧠 Daily Papers Processed: %d\n", persistentStats["daily_papers_processed"])
-	fmt.Printf("📈 Daily Embeddings: %d\n", persistentStats["daily_embeddings_generated"])
-	fmt.Printf("🌐 Cloudflare Quota Used: %d/%d\n", persistentStats["cloudflare_quota_used"], persistentStats["cloudflare_quota_max"])
 
 	return nil
 }
@@ -1293,6 +1248,10 @@ func runNeuralProcessingPhase(ctx context.Context, config *Config, provider embe
 					}
 				}
 			case err := <-errChan:
+				if errors.Is(err, embedder.ErrQuotaExhausted) {
+					fmt.Printf("🛑 %v; stopping. Progress is checkpointed; resume after the quota resets or choose Ollama explicitly.\n", err)
+					return papersProcessed, totalEmbeddingsGenerated, err
+				}
 				fmt.Printf("❌ Failed to generate embedding for chunk %d: %v\n", j+1, err)
 				continue // Skip chunks that fail
 			case <-ctx.Done():
@@ -1475,10 +1434,20 @@ func ProcessDocumentsWithMixedOnly(config *Config, checkpointer *checkpoint.Chec
 			continue
 		}
 
-		// Process all chunks (provider will handle quota)
+		failed := false
 		for _, chunk := range chunks {
-			_, _ = provider.GetEmbedding(chunk)
+			if _, err := provider.GetEmbedding(chunk); err != nil {
+				if errors.Is(err, embedder.ErrQuotaExhausted) {
+					return len(files), totalEmbeddings, err
+				}
+				log.Printf("embedding failed for %s: %v", file, err)
+				failed = true
+				continue
+			}
 			totalEmbeddings++
+		}
+		if failed {
+			continue // leave unmarked so a rerun retries it
 		}
 
 		checkpointer.MarkAsDone(file)
@@ -1678,6 +1647,10 @@ func RunGoatMiningPhase(ctx context.Context, config *Config, provider embedder.E
 				fmt.Printf("🌐 Getting embedding for record %d...\n", i+1)
 				embedding, err := provider.GetEmbedding(embedText)
 				if err != nil {
+					if errors.Is(err, embedder.ErrQuotaExhausted) {
+						fmt.Printf("🛑 %v; stopping GOAT mining.\n", err)
+						return recordsProcessed, totalEmbeddingsGenerated, err
+					}
 					fmt.Printf("❌ Failed to generate embedding for record %d: %v\n", i+1, err)
 					continue
 				}

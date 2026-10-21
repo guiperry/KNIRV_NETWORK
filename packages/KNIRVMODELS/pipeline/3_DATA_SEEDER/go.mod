@@ -13,6 +13,8 @@ require (
 	knirvmodels v0.0.0
 )
 
+require github.com/guiperry/knirv-sdk-go/models v0.0.0
+
 require (
 	github.com/apache/thrift v0.20.0 // indirect
 	github.com/golang/snappy v0.0.4 // indirect

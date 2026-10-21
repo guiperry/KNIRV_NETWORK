@@ -279,9 +279,16 @@ impl FactualityService {
     pub fn new(http: HttpClient) -> Self {
         Self { http }
     }
-    pub async fn get_slice_info(&self) -> Result<FactualitySlice> {
-        self.http.get("/api/factuality/slice", &[]).await
+    /// Runs the node's factuality check (`POST /api/validation/factuality`, billed per call).
+    pub async fn check(&self, req: &FactualityCheckRequest) -> Result<FactualityCheckResponse> {
+        required(&req.response, "response")?;
+        self.http
+            .post("/api/validation/factuality", serde_json::to_value(req)?)
+            .await
     }
+
+    /// Checks `content` against `domain`. A thin wrapper over [`Self::check`]; the node has no
+    /// prompt here, so only the response and the domain are sent.
     pub async fn verify_content(
         &self,
         content: &str,
@@ -289,32 +296,47 @@ impl FactualityService {
     ) -> Result<FactualityVerification> {
         required(content, "content")?;
         required(domain, "domain")?;
-        self.http
-            .post(
-                "/api/factuality/verify",
-                json!({"content": content, "domain": domain}),
-            )
-            .await
+        let r = self
+            .check(&FactualityCheckRequest {
+                response: content.to_string(),
+                ontology_domains: vec![domain.to_string()],
+                ..Default::default()
+            })
+            .await?;
+        Ok(FactualityVerification {
+            id: None,
+            content: Some(content.to_string()),
+            domain: Some(domain.to_string()),
+            confidence: Some(if r.degraded { "degraded" } else if r.refused { "refused" } else { "checked" }.to_string()),
+            score: Some(r.confidence),
+            sources: None,
+            timestamp: None,
+            cached: None,
+        })
     }
+
+    /// The node serves no slice-info route.
+    pub async fn get_slice_info(&self) -> Result<FactualitySlice> {
+        Err(not_served("factuality slice info"))
+    }
+
+    /// The node keeps no queryable verification history.
     pub async fn get_verification_history(
         &self,
-        limit: Option<u32>,
+        _limit: Option<u32>,
     ) -> Result<Vec<FactualityVerification>> {
-        let query: Vec<(&str, String)> = limit
-            .into_iter()
-            .map(|v| ("limit", v.to_string()))
-            .collect();
-        self.http.get("/api/factuality/history", &query).await
+        Err(not_served("factuality verification history"))
     }
+
+    /// The node keeps no queryable verification records.
     pub async fn get_verification(&self, verification_id: &str) -> Result<FactualityVerification> {
         required(verification_id, "verification ID")?;
-        self.http
-            .get(
-                &format!("/api/factuality/verifications/{verification_id}"),
-                &[],
-            )
-            .await
+        Err(not_served("factuality verification lookup"))
     }
+}
+
+fn not_served(what: &str) -> Error {
+    Error::Api { status: 501, message: format!("{what} is not served by the node") }
 }
 
 #[derive(Clone, Debug)]

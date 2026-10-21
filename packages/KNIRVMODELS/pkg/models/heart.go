@@ -1,12 +1,16 @@
 package models
 
 import (
+	"context"
+	"encoding/json"
 	"errors"
 	"net/http"
 	"sync"
 	"time"
 
+	"knirvmodels/internal/policy"
 	"knirvmodels/pkg/hashing/transformer"
+	"knirvmodels/pkg/heartqwen"
 
 	sdk "github.com/guiperry/knirv-sdk-go/models"
 )
@@ -27,6 +31,27 @@ type Heart struct {
 	failAt  time.Time
 	started time.Time
 	handler *http.ServeMux
+
+	// qwen, when set, answers generate. HEART is the shared local Qwen behind a
+	// role frame; the Gorgonia GPT stays behind the other routes until a stage
+	// is promoted (spec §3.6).
+	qwen *heartqwen.Engine
+	live func(ctx context.Context) bool
+	fin  *transformer.WASMFinisher
+}
+
+// UseQwen makes generate (and health) come from the Qwen backend. live reports
+// whether the llama wrapper is up.
+func (h *Heart) UseQwen(e *heartqwen.Engine, live func(ctx context.Context) bool, fin *transformer.WASMFinisher) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.qwen, h.live, h.fin = e, live, fin
+}
+
+func (h *Heart) qwenEngine() (*heartqwen.Engine, func(ctx context.Context) bool) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	return h.qwen, h.live
 }
 
 // NewHeart takes the constructor to run on first use.
@@ -86,13 +111,44 @@ func (h *Heart) Status() sdk.ModelStatus {
 // HEART first; a build failure is a 503 so callers fall through to another model.
 func (h *Heart) Mount(mux *http.ServeMux, prefix string) {
 	mux.HandleFunc(prefix+"/health", func(w http.ResponseWriter, r *http.Request) {
+		if q, live := h.qwenEngine(); q != nil {
+			ok := live != nil && live(r.Context())
+			status := "qwen"
+			if !ok {
+				status = "qwen-unavailable"
+			}
+			WriteJSON(w, http.StatusOK, sdk.HeartHealth{Available: ok, Status: status, Loaded: ok, Ready: ok, Progress: 1})
+			return
+		}
 		if h.loaded() == nil {
 			WriteJSON(w, http.StatusOK, sdk.HeartHealth{Available: true, Status: "idle"})
 			return
 		}
 		h.serve(prefix, w, r)
 	})
-	for _, route := range []string{"analyze", "advise", "resolve", "patch", "generate", "stats", "reload-seeds"} {
+	mux.HandleFunc(prefix+"/generate", func(w http.ResponseWriter, r *http.Request) {
+		if q, _ := h.qwenEngine(); q != nil {
+			h.generateQwen(q, w, r)
+			return
+		}
+		h.serve(prefix, w, r)
+	})
+	// With the Qwen backend these four are answered by the model under its stage
+	// frame; the system renders, verifies and compiles whatever fields it chooses.
+	qwenRoute := func(route string, qwen http.HandlerFunc) {
+		mux.HandleFunc(prefix+"/"+route, func(w http.ResponseWriter, r *http.Request) {
+			if q, _ := h.qwenEngine(); q != nil {
+				qwen(w, r)
+				return
+			}
+			h.serve(prefix, w, r)
+		})
+	}
+	qwenRoute("analyze", h.analyzeQwen)
+	qwenRoute("advise", h.wasmHandler(transformer.WASMTypeRule))
+	qwenRoute("resolve", h.wasmHandler(transformer.WASMTypeResolution))
+	qwenRoute("patch", h.wasmHandler(transformer.WASMTypePatch))
+	for _, route := range []string{"stats", "reload-seeds"} {
 		mux.HandleFunc(prefix+"/"+route, func(w http.ResponseWriter, r *http.Request) { h.serve(prefix, w, r) })
 	}
 }
@@ -108,4 +164,61 @@ func (h *Heart) serve(prefix string, w http.ResponseWriter, r *http.Request) {
 	u.Path = u.Path[len(prefix):]
 	r2.URL = &u
 	inner.ServeHTTP(w, r2)
+}
+
+// Caller identity comes from the backend, which authenticates the user and
+// reaches this daemon over its unix socket (see the package comment).
+const (
+	CallerHeader    = "X-KNIRV-Caller"
+	PrivilegeHeader = "X-KNIRV-Privilege"
+)
+
+func privilegeOf(s string) policy.Privilege {
+	switch s {
+	case "admin":
+		return policy.Admin
+	case "operator":
+		return policy.Operator
+	}
+	return policy.User
+}
+
+// generateQwen runs a stage on the Qwen backend. The stage defaults to
+// heart.chat; naming ops.assistant requires an operator, which is checked
+// here as well as per tool in the gate.
+func (h *Heart) generateQwen(q *heartqwen.Engine, w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		WriteJSON(w, http.StatusMethodNotAllowed, map[string]any{"error": "method not allowed", "ready": false})
+		return
+	}
+	var req struct {
+		Prompt string `json:"prompt"`
+		Stage  string `json:"stage"`
+	}
+	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 1<<20)).Decode(&req); err != nil || req.Prompt == "" {
+		WriteJSON(w, http.StatusBadRequest, map[string]any{"error": "a prompt is required", "ready": false})
+		return
+	}
+	if req.Stage == "" {
+		req.Stage = "heart.chat"
+	}
+	priv := privilegeOf(r.Header.Get(PrivilegeHeader))
+	if req.Stage == "ops.assistant" && priv < policy.Operator {
+		WriteJSON(w, http.StatusForbidden, map[string]any{"error": "ops.assistant needs operator privilege", "ready": true})
+		return
+	}
+	res, err := q.Run(r.Context(), heartqwen.Input{Stage: req.Stage, Task: req.Prompt,
+		Caller: r.Header.Get(CallerHeader), Privilege: priv, Tenant: r.Header.Get(TenantHeader)})
+	if err != nil {
+		// 503 so the harness falls through to the external generator and the
+		// Trace says why.
+		WriteJSON(w, http.StatusServiceUnavailable, map[string]any{"error": err.Error(), "ready": false, "backend": heartqwen.Backend})
+		return
+	}
+	text := res.Text
+	if text == "" && len(res.Output) > 0 {
+		text = string(res.Output)
+	}
+	WriteJSON(w, http.StatusOK, map[string]any{"text": text, "ready": true, "backend": res.Backend,
+		"stage": res.Stage, "frame_hash": res.FrameHash, "trace": res.Trace, "proposals": res.Proposals})
 }

@@ -1,0 +1,11 @@
+{
+  "empty": {
+    "index_version": "fs1-0-e3b0c442", "key_version": "fs1", "embedder_ids": [], "retrieval": "lexical",
+    "segments": 0, "spans": 0, "tiers": {}, "chunk_words": 384, "searches": 0, "hit_rate": 0
+  },
+  "built": {
+    "index_version": "fs1-3-9f2c1a77", "key_version": "fs1", "embedder_ids": ["ollama:nomic-embed-text"], "retrieval": "lexical",
+    "segments": 2, "spans": 1200, "tiers": {"reference": 1100, "user": 100}, "chunk_words": 384,
+    "searches": 40, "hit_rate": 0.725, "last_batch": "b-0123456789abcdef", "last_ingest": "2026-10-17T20:00:00Z"
+  }
+}

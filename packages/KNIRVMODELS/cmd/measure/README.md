@@ -11,6 +11,17 @@ Needs llama up: `llama`, `lora` (raw upstream address), `judge`, `heartbench`.
 Needs a readable GGUF + llama-server binary: `llama-sweep -yes` (spawns its own private server).
 Needs the owner's labels: `gold add|label2|import|export|stats`, then `retrieval`, `embed`, `judge`.
 
+Getting cases to label: `candidates -wiki FILE|DIR -n 300` samples a Wikipedia JSONL dump and
+writes `candidates.jsonl` (for `suggest`) and `candidates.csv`, a sheet with a blank `label`
+column. Pairs come in four kinds, balanced: a sentence with its own passage, the same sentence
+with one number altered, a sentence with an unrelated passage, a sentence with another passage
+of the same article. The sheet does not say which kind a row is (that would give the answer
+away); kinds are in `candidates.kinds.jsonl` for balance checks. Fill `label` (SUPPORTED |
+REFUTED | NEI; `note` is optional), then `gold import-sheet -labeler <you>` adds the labelled
+rows to `gold.jsonl` (blank rows wait; edited claim/evidence text is refused; re-import is
+safe). Same `-seed` and input give the same candidates; later runs skip pairs already made
+or labelled. Candidates are `public` (Wikipedia), grouped per article so a split never shares one.
+
 When Colibri is serving (it is skipped on hosts without AVX2 or too slow), it can take
 some of the work off the owner without becoming the authority:
 `suggest -candidates FILE` writes suggested labels to `suggestions.jsonl` (NEI when the

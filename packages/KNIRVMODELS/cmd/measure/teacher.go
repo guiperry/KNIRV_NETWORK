@@ -23,7 +23,9 @@ import (
 //     has no label for. The grades are machine judgments, reported separately, and
 //     never fed into the gold-based recall or into any promotion gate.
 //
-// Both need Colibri to be serving; they wait for it and never use llama.cpp.
+// Both need the teacher backend: Colibri while it is enabled, otherwise llama.cpp
+// (slow on a weak host, but the same procedure). They wait for it and never split a
+// run between the two; every record names its source.
 
 const defaultInferenceSocket = "/var/lib/knirvserver/sockets/llama.sock"
 
@@ -62,10 +64,10 @@ func teacherReady(ctx context.Context, cl *teacher.Client, probe string) *Result
 	if err != nil {
 		return newResult(probe).blocked("the inference endpoint is not reachable: %v", err)
 	}
-	if st["active"] == "colibri" {
-		return nil
+	if st["teacher"] != nil {
+		return nil // Colibri, or llama.cpp when Colibri is not enabled; each datum records which
 	}
-	reason := "colibri is not serving"
+	reason := "the teacher backend is not ready (Colibri is enabled but not serving)"
 	if n, _ := st["primary_note"].(string); n != "" {
 		reason += ": " + n
 	} else if q, ok := st["colibri_qualification"].(map[string]any); ok {
@@ -73,7 +75,7 @@ func teacherReady(ctx context.Context, cl *teacher.Client, probe string) *Result
 			reason += ": " + r
 		}
 	}
-	return newResult(probe).blocked("%s (teacher jobs never use llama.cpp)", reason)
+	return newResult(probe).blocked("%s", reason)
 }
 
 // Suggestion is a machine-suggested label awaiting the owner. It is not a GoldCase.

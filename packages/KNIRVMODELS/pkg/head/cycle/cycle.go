@@ -43,15 +43,16 @@ type Config struct {
 	OutDir     string // trainer --out; the model lands in OutDir/head (required)
 	TrainerBin string // path to head-trainer (required)
 
-	Preset     string        // default "small"
-	Epochs     int           // default 20
-	LR         float64       // default 3e-4
-	Seed       uint64        // default 1
-	PolicyHash string        // recorded in the model config
-	SoftLabels string        // optional teacher distributions (--soft); used only if the file exists
-	MinNew     int           // new Gold episodes needed since the last cycle (default 200)
-	MinGap     time.Duration // minimum time between cycles (default 6h)
-	Force      bool          // ignore MinNew/MinGap
+	Preset      string        // default "small"
+	Epochs      int           // default 20
+	LR          float64       // default 3e-4
+	Seed        uint64        // 0 (default) = vary per cycle: the cycle number, logged in metrics.json
+	SanityEvery int           // every Nth cycle trains from random init instead of fine-tuning (default 5; <0 never)
+	PolicyHash  string        // recorded in the model config
+	SoftLabels  string        // optional teacher distributions (--soft); used only if the file exists
+	MinNew      int           // new Gold episodes needed since the last cycle (default 200)
+	MinGap      time.Duration // minimum time between cycles (default 6h)
+	Force       bool          // ignore MinNew/MinGap
 
 	Log func(format string, args ...any)
 }
@@ -61,6 +62,7 @@ type State struct {
 	At       time.Time `json:"at"`
 	Outcome  string    `json:"outcome"`
 	Reason   string    `json:"reason,omitempty"`
+	Cycle    int       `json:"cycle"` // completed training cycles; seeds the next one
 	Episodes int       `json:"episodes"`
 	Trained  int       `json:"trained_on"` // episodes seen by the last cycle that actually trained
 	Preset   string    `json:"preset,omitempty"`
@@ -78,8 +80,8 @@ func (c *Config) defaults() {
 	if c.LR == 0 {
 		c.LR = 3e-4
 	}
-	if c.Seed == 0 {
-		c.Seed = 1
+	if c.SanityEvery == 0 {
+		c.SanityEvery = 5
 	}
 	if c.MinNew == 0 {
 		c.MinNew = 200
@@ -119,7 +121,7 @@ func Run(ctx context.Context, cfg Config) (State, error) {
 		return State{}, err
 	}
 	prev := LoadState(cfg.WorkDir)
-	st := State{At: time.Now().UTC(), Preset: cfg.Preset, Trained: prev.Trained}
+	st := State{At: time.Now().UTC(), Preset: cfg.Preset, Trained: prev.Trained, Cycle: prev.Cycle}
 	finish := func(outcome, reason string, err error) (State, error) {
 		st.Outcome, st.Reason = outcome, reason
 		// A skip must not erase the record of the last real cycle.
@@ -159,8 +161,21 @@ func Run(ctx context.Context, cfg Config) (State, error) {
 		return finish(Failed, "convert: "+tail(out), fmt.Errorf("head-trainer convert: exit %d: %v", code, err))
 	}
 
+	// H8: continue from the promoted model, with a seed that changes every cycle, and
+	// every SanityEvery-th cycle train from scratch to check that fine-tuning has not
+	// drifted into a corner random init would escape.
+	st.Cycle = prev.Cycle + 1
+	seed := cfg.Seed
+	if seed == 0 {
+		seed = uint64(st.Cycle)
+	}
+	initFrom := "auto"
+	if cfg.SanityEvery > 0 && st.Cycle%cfg.SanityEvery == 0 {
+		initFrom = "none"
+	}
+	cfg.Log("[head] cycle %d: seed %d, init-from %s", st.Cycle, seed, initFrom)
 	args := []string{"--data", train, "--out", cfg.OutDir, "--preset", cfg.Preset,
-		"--epochs", fmt.Sprint(cfg.Epochs), "--lr", fmt.Sprint(cfg.LR), "--seed", fmt.Sprint(cfg.Seed)}
+		"--epochs", fmt.Sprint(cfg.Epochs), "--lr", fmt.Sprint(cfg.LR), "--seed", fmt.Sprint(seed), "--init-from", initFrom}
 	if cfg.PolicyHash != "" {
 		args = append(args, "--policy-bundle-hash", cfg.PolicyHash)
 	}
@@ -175,10 +190,27 @@ func Run(ctx context.Context, cfg Config) (State, error) {
 		return finish(Promoted, "", nil)
 	case code == 3:
 		st.Trained = n // the data was consumed; do not retrain on it until more arrives
-		return finish(Refused, "candidate did not beat the current model", nil)
+		return finish(Refused, gateReason(st.Metrics), nil)
 	default:
 		return finish(Failed, fmt.Sprintf("trainer exit %d", code), fmt.Errorf("head-trainer: exit %d", code))
 	}
+}
+
+// gateReason reads why the trainer's gate said no, from its metrics.json.
+func gateReason(metricsPath string) string {
+	b, err := os.ReadFile(metricsPath)
+	if err != nil {
+		return "candidate was not promoted"
+	}
+	var m struct {
+		Gate struct {
+			Reason string `json:"reason"`
+		} `json:"gate"`
+	}
+	if json.Unmarshal(b, &m) != nil || m.Gate.Reason == "" {
+		return "candidate was not promoted"
+	}
+	return m.Gate.Reason
 }
 
 var errNoBronze = errors.New("no Bronze events yet")

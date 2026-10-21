@@ -106,9 +106,7 @@ func (c *Cache) Sample(ctx context.Context, cl *Client, r Request, n int) (rep R
 func (c *Client) catalogKey(ctx context.Context) string {
 	if c.catalog == "" {
 		if st, err := c.Status(ctx); err == nil {
-			if m, ok := st["colibri_model"].(string); ok {
-				c.catalog = m
-			}
+			c.catalog = catalogOf(st)
 		}
 	}
 	return c.catalog
