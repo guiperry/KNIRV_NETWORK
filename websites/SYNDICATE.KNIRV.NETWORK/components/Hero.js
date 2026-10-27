@@ -26,7 +26,7 @@ function Hero({ arenaURL }) {
                         <a href={arenaURL} className="btn-primary flex items-center justify-center gap-2">
                             <div className="icon-swords"></div> Join the Syndicate
                         </a>
-                        <a href="https://knirv.network/developer-portal/syndicate.html" className="btn-outline flex items-center justify-center gap-2">
+                        <a href="https://knirv.com/developer-portal/syndicate.html" className="btn-outline flex items-center justify-center gap-2">
                             <div className="icon-book-open"></div> Read Protocol Docs
                         </a>
                     </div>

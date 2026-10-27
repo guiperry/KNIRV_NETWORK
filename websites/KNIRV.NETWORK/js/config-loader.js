@@ -231,9 +231,9 @@ class KNIRVConfigLoader {
                 
             },
             external_services: {
-                payment_oracle: "https://payments.knirv.network/add-funds",
+                payment_oracle: "https://payments.knirv.com/add-funds",
                 knirv_website: "https://knirv.com",
-                testnet_access: "https://testnet.knirv.network"
+                testnet_access: "https://testnet.knirv.com"
             },
             documentation: {
                 whitepapers: {
@@ -587,8 +587,8 @@ class KNIRVConfigLoader {
 
     _handleDVEAccess(method) {
         const accessMethods = {
-            'ssh': 'SSH Access:\n\nssh user@your-dve.knirv.network\n\nRequires: SSH key pair, active DVE rental',
-            'api': 'REST API Access:\n\nEndpoint: https://api.knirv.network/dve/v1/\nAuth: Bearer token required\n\nDocumentation: docs.knirv.network/api',
+            'ssh': 'SSH Access:\n\nssh user@your-dve.knirv.com\n\nRequires: SSH key pair, active DVE rental',
+            'api': 'REST API Access:\n\nEndpoint: https://api.knirv.com/dve/v1/\nAuth: Bearer token required\n\nDocumentation: docs.knirv.com/api',
             'sdk': 'KNIRV SDK Integration:\n\nimport { DVEClient } from "@knirv/sdk"\nconst dve = new DVEClient(config)\n\nSee: knirvsdk.html for installation'
         };
 

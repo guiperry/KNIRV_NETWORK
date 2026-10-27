@@ -13,7 +13,7 @@ export default function Settings() {
     theme: 'dark',
     notifications: true,
     autoSync: true,
-    apiEndpoint: 'https://api.knirv.network',
+    apiEndpoint: 'https://api.knirv.com',
     refreshInterval: 30
   });
 
@@ -47,7 +47,7 @@ export default function Settings() {
       theme: 'dark',
       notifications: true,
       autoSync: true,
-      apiEndpoint: 'https://api.knirv.network',
+      apiEndpoint: 'https://api.knirv.com',
       refreshInterval: 30
     };
     setSettings(defaultSettings);

@@ -1180,13 +1180,13 @@ func knirvGatewayConfigJSON(cfg *config.Config) string {
 	}
 	base := fmt.Sprintf("http://localhost:%d", gatewayPort)
 	// Use the same format gateway-links.js expects in its getFallbackConfiguration()
-	return fmt.Sprintf(`{"deployment_mode":"private_testnet","oracle_services":{"payment_oracle":{"base_url":"%[1]s/api/v1/payments/","health_url":"%[1]s/api/v1/payments/health","domain":"localhost","port":%[2]d,"path":"/api/v1/payments/"},"tunnel_registry":{"base_url":"%[1]s/api/v1/tunnels/","health_url":"%[1]s/api/v1/tunnels/status","domain":"localhost","port":%[2]d,"path":"/api/v1/tunnels/"},"operator_registry":{"base_url":"%[1]s/api/v1/operators/","health_url":"%[1]s/api/v1/operators/health","domain":"localhost","port":%[2]d,"path":"/api/v1/operators/"},"webgui":{"base_url":"%[1]s/","health_url":"%[1]s/health","domain":"localhost","port":%[2]d,"path":"/"}},"external_services":{"knirv_website":"https://knirv.com","testnet_access":"https://testnet.knirv.network"},"navigation":{},"timestamp":"%[3]s"}`,
+	return fmt.Sprintf(`{"deployment_mode":"private_testnet","oracle_services":{"payment_oracle":{"base_url":"%[1]s/api/v1/payments/","health_url":"%[1]s/api/v1/payments/health","domain":"localhost","port":%[2]d,"path":"/api/v1/payments/"},"tunnel_registry":{"base_url":"%[1]s/api/v1/tunnels/","health_url":"%[1]s/api/v1/tunnels/status","domain":"localhost","port":%[2]d,"path":"/api/v1/tunnels/"},"operator_registry":{"base_url":"%[1]s/api/v1/operators/","health_url":"%[1]s/api/v1/operators/health","domain":"localhost","port":%[2]d,"path":"/api/v1/operators/"},"webgui":{"base_url":"%[1]s/","health_url":"%[1]s/health","domain":"localhost","port":%[2]d,"path":"/"}},"external_services":{"knirv_website":"https://knirv.com","testnet_access":"https://testnet.knirv.com"},"navigation":{},"timestamp":"%[3]s"}`,
 		base, gatewayPort, time.Now().UTC().Format(time.RFC3339))
 }
 
 // wrapWithSecurityHeaders adds security-related HTTP headers to all responses.
 // It also handles Chrome's Private Network Access (PNA) preflight: when a
-// public origin (e.g. https://knirv.network) tries to reach a loopback or
+// public origin (e.g. https://knirv.com) tries to reach a loopback or
 // LAN address the browser first sends an OPTIONS preflight containing
 // "Access-Control-Request-Private-Network: true".  The server must echo back
 // "Access-Control-Allow-Private-Network: true" or the real request is blocked.

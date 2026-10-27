@@ -10,17 +10,17 @@ const Footer = () => {
     const mockConfig = {
       navigation: {
         main_site: 'https://knirv.com',
-        products: 'https://knirv.network/products',
-        documentation: 'https://knirv.network/docs',
-        nanda_ans: 'https://knirv.network/nanda-ans',
-        developer_portal: 'https://knirv.network/developer-portal',
-        agentify: 'https://knirv.network/agentify'
+        products: 'https://knirv.com/products',
+        documentation: 'https://knirv.com/docs',
+        nanda_ans: 'https://knirv.com/nanda-ans',
+        developer_portal: 'https://knirv.com/developer-portal',
+        agentify: 'https://knirv.com/agentify'
       },
       footer: {
         resources: {
-          support: 'https://knirv.network/support',
+          support: 'https://knirv.com/support',
           blog: 'https://blog.knirv.com',
-          forum: 'https://knirv.network/forum'
+          forum: 'https://knirv.com/forum'
         },
         social: {
           discord: 'https://discord.gg/knirv',
@@ -29,9 +29,9 @@ const Footer = () => {
           github: 'https://github.com/knirv-network'
         },
         legal: {
-          terms: 'https://knirv.network/terms',
-          privacy: 'https://knirv.network/privacy',
-          contribution: 'https://knirv.network/contributing'
+          terms: 'https://knirv.com/terms',
+          privacy: 'https://knirv.com/privacy',
+          contribution: 'https://knirv.com/contributing'
         }
       }
     };

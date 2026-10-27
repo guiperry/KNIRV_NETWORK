@@ -8,7 +8,7 @@ message BootnodeKeyFileContentProto {
   string master_wallet_key = 1;
 
   // Onboarding-assigned registration ID — used to build the gateway tunnel
-  // subdomain: gateway{registration_id}.knirv.network
+  // subdomain: gateway{registration_id}.knirv.com
   // Embedded in boot.key by boot_key_encryptor during onboarding.
   string registration_id = 2;
 

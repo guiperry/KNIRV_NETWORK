@@ -5,7 +5,7 @@
 ![KNIRVANA Logo](https://img.shields.io/badge/KNIRVANA-Gaming%20Gateway-blue?style=for-the-badge)
 [![Rust](https://img.shields.io/badge/Rust-Native%20Client-orange?style=flat-square&logo=rust)](rust-client/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-Web%20Client-blue?style=flat-square&logo=typescript)](ts-client/)
-[![KNIRV Ecosystem](https://img.shields.io/badge/KNIRV-D--TEN%20Ecosystem-purple?style=flat-square)](https://knirv.network)
+[![KNIRV Ecosystem](https://img.shields.io/badge/KNIRV-D--TEN%20Ecosystem-purple?style=flat-square)](https://knirv.com)
 
 *A high-performance, cross-platform Real-Time Strategy game serving as the experiential gateway to the KNIRV Decentralized Trusted Execution Network (D-TEN)*
 
@@ -206,8 +206,8 @@ This project is part of the KNIRV Network ecosystem. See individual client direc
 
 ## 🔗 Links
 
-- [KNIRV Network](https://knirv.network)
-- [KNIRV Documentation](https://docs.knirv.network)
+- [KNIRV Network](https://knirv.com)
+- [KNIRV Documentation](https://docs.knirv.com)
 - [KNIRV Gateway](https://gateway.knirv.com)
 - [Community Discord](https://discord.gg/knirv)
 
@@ -217,6 +217,6 @@ This project is part of the KNIRV Network ecosystem. See individual client direc
 
 **Experience the future of decentralized AI through gaming**
 
-[🎮 Start Playing](ts-client/) • [📱 Download Mobile](rust-client/) • [🛠️ Developer Docs](https://docs.knirv.network)
+[🎮 Start Playing](ts-client/) • [📱 Download Mobile](rust-client/) • [🛠️ Developer Docs](https://docs.knirv.com)
 
 </div>

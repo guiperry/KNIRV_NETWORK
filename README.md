@@ -93,7 +93,7 @@ KNIRVLLAMA has no source package of its own here: `packages/KNIRVSERVER/pkg/knir
 
 | Path | What it is |
 |---|---|
-| `websites/KNIRV.NETWORK` | Static marketing, docs, and product pages for knirv.network. |
+| `websites/KNIRV.NETWORK` | Static marketing, docs, and product pages for knirv.com. |
 | `websites/REGISTRY.KNIRV.NETWORK` | Cloudflare Worker: network node registry and failover control plane. Stores node registrations, validator heartbeats, votes, and state transitions in a Durable Object. Consumed by KNIRVGATEWAY (DHT bootstrap) and KNIRVCHAIN (self-registration). |
 | `websites/SYNDICATE.KNIRV.NETWORK` | Static front end for the KNIRV Syndicate bounty network (the actuarial syndicate API lives in `backend_server`). |
 
@@ -142,7 +142,7 @@ KNIRV_CONFIG_DIR="$(pwd)/.local/config" \
 ./dist/knirv-server
 ```
 
-Other flags: `-config <path>`, `-dev`, `-prod`, `-ent` (enterprise node at `enterprise-{tag}.knirv.network`), `-user-id-tag <tag>`, `-port <n>`, `-host <addr>`, `-pipeline` (start the KNIRVMODELS data pipeline), `-direct` (drive the ASIC over raw USB instead of CGMiner), and `-llama` (start the local llama.cpp provider).
+Other flags: `-config <path>`, `-dev`, `-prod`, `-ent` (enterprise node at `enterprise-{tag}.knirv.com`), `-user-id-tag <tag>`, `-port <n>`, `-host <addr>`, `-pipeline` (start the KNIRVMODELS data pipeline), `-direct` (drive the ASIC over raw USB instead of CGMiner), and `-llama` (start the local llama.cpp provider).
 
 ### Verify it's running
 

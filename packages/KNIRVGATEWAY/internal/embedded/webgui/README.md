@@ -128,8 +128,8 @@ Networks are configured in `src/contexts/NetworkContext.js`:
 const NETWORK_CONFIGS = {
   mainnet: {
     endpoints: {
-      api: 'https://api.knirv.network',
-      websocket: 'wss://ws.knirv.network',
+      api: 'https://api.knirv.com',
+      websocket: 'wss://ws.knirv.com',
       // ...
     }
   },

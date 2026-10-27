@@ -12,8 +12,12 @@ func TestResolvePublicURLDeploymentClasses(t *testing.T) {
 	}{
 		{name: "testnet default", config: Config{NetworkMode: "testnet"}, want: "https://testnet-gateway.knirv.com"},
 		{name: "production mainnet", config: Config{NetworkMode: "production"}, want: "https://gateway.knirv.com"},
-		{name: "pro devnet", config: Config{NetworkMode: "development", UserIDTag: "User 42"}, want: "https://devnet-user-42.knirv.network"},
-		{name: "enterprise", config: Config{NetworkMode: "enterprise", Enterprise: true, UserIDTag: "Acme_Admin"}, want: "https://enterprise-acme-admin.knirv.network"},
+		{name: "pro devnet", config: Config{NetworkMode: "development", UserIDTag: "User 42"}, want: "https://devnet-user-42.knirv.com"},
+		{name: "enterprise", config: Config{NetworkMode: "enterprise", Enterprise: true, UserIDTag: "Acme_Admin"}, want: "https://enterprise-acme-admin.knirv.com"},
+		{name: "configured domain devnet", config: Config{NetworkMode: "development", UserIDTag: "User 42", Domain: " Example.ORG. "}, want: "https://devnet-user-42.example.org"},
+		{name: "configured domain enterprise", config: Config{NetworkMode: "enterprise", Enterprise: true, UserIDTag: "acme", Domain: "example.org"}, want: "https://enterprise-acme.example.org"},
+		{name: "configured domain production", config: Config{NetworkMode: "production", Domain: "example.org"}, want: "https://gateway.example.org"},
+		{name: "configured domain testnet", config: Config{NetworkMode: "testnet", Domain: "example.org"}, want: "https://testnet-gateway.example.org"},
 		{name: "devnet tag required", config: Config{NetworkMode: "development"}, wantErr: true},
 		{name: "enterprise tag required", config: Config{NetworkMode: "enterprise", Enterprise: true}, wantErr: true},
 	}

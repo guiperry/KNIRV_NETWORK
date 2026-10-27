@@ -174,7 +174,7 @@ describe('NetworkContext', () => {
 
     await waitFor(() => {
       expect(fetch).toHaveBeenCalledWith(
-        'https://testnet-api.knirv.network/test',
+        'https://testnet-api.knirv.com/test',
         expect.objectContaining({
           method: 'GET',
           headers: expect.objectContaining({
@@ -267,7 +267,7 @@ describe('NetworkContext', () => {
     });
 
     expect(fetch).toHaveBeenCalledWith(
-      'https://testnet-api.knirv.network/test',
+      'https://testnet-api.knirv.com/test',
       expect.objectContaining({
         method: 'POST',
         headers: expect.objectContaining({

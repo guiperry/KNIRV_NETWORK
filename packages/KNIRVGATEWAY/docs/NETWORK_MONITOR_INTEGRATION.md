@@ -411,5 +411,5 @@ sudo systemctl start knirv-network-monitor
 
 For issues or questions:
 - GitHub Issues: https://github.com/knirv/network/issues
-- Documentation: https://docs.knirv.network
+- Documentation: https://docs.knirv.com
 - Discord: https://discord.gg/knirv

@@ -60,6 +60,9 @@ func main() {
 		modelName = os.Getenv("KNIRV_LLAMA_MODEL_NAME")
 	}
 
+	// An explicit -server-path pins that binary; so does KNIRV_LLAMA_UPDATE=0.
+	// Otherwise every start checks for a newer llama.cpp release.
+	checkUpdate := serverPath == "" && os.Getenv("KNIRV_LLAMA_UPDATE") != "0"
 	dataDir, configPath, err := config.Paths(dataDir)
 	if err != nil {
 		log.Fatal(err)
@@ -87,13 +90,14 @@ func main() {
 	installer := install.New()
 	installer.Prog = install.NewProgress(os.Stderr)
 	result, err := installer.Ensure(ctx, install.Options{
-		DataDir:    dataDir,
-		ServerPath: serverPath,
-		ServerURL:  os.Getenv("KNIRV_LLAMA_SERVER_URL"),
-		ModelPath:  modelPath,
-		ModelURL:   modelURL,
-		ModelName:  modelName,
-		NoInstall:  noInstall,
+		DataDir:     dataDir,
+		ServerPath:  serverPath,
+		ServerURL:   os.Getenv("KNIRV_LLAMA_SERVER_URL"),
+		ModelPath:   modelPath,
+		ModelURL:    modelURL,
+		ModelName:   modelName,
+		NoInstall:   noInstall,
+		CheckUpdate: checkUpdate,
 	})
 	if err != nil {
 		log.Fatal(err)

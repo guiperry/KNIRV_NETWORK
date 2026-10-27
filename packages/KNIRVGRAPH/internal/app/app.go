@@ -53,11 +53,11 @@ func resolveKNIRVOracleURL(logger *zap.Logger) string {
 		candidates = append(candidates, candidate{baseURL: envURL, healthPaths: []string{"/oracle/v3/health", "/health"}, label: "env var KNIRVORACLE_URL"})
 	}
 
-	// ── priority 2: public DNS (oracle.knirv.network) ─────────────────────
+	// ── priority 2: public DNS (oracle.knirv.com) ─────────────────────
 	// Tried before local-only fallbacks so the DNS record created by the
 	// KNIRVSERVER DNS service is selected first when reachable.
 	candidates = append(candidates, candidate{
-		baseURL: "https://oracle.knirv.network", healthPaths: []string{"/oracle/v3/health", "/health"}, label: "cloudflare public DNS",
+		baseURL: "https://oracle.knirv.com", healthPaths: []string{"/oracle/v3/health", "/health"}, label: "cloudflare public DNS",
 	})
 
 	// ── priority 3: internal Unix socket ──────────────────────────────────

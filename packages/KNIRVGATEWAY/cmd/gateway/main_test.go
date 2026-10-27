@@ -62,8 +62,8 @@ func TestResolvePublicEndpointDeploymentClasses(t *testing.T) {
 	}{
 		{name: "testnet", config: config.Config{NetworkMode: "testnet"}, wantURL: "https://testnet-gateway.knirv.com"},
 		{name: "production", config: config.Config{NetworkMode: "production"}, wantURL: "https://gateway.knirv.com"},
-		{name: "devnet pro", config: config.Config{NetworkMode: "development", UserIDTag: "User 42"}, wantURL: "https://devnet-user-42.knirv.network"},
-		{name: "enterprise", config: config.Config{NetworkMode: "enterprise", EnterpriseMode: true, UserIDTag: "Acme_Admin"}, wantURL: "https://enterprise-acme-admin.knirv.network"},
+		{name: "devnet pro", config: config.Config{NetworkMode: "development", UserIDTag: "User 42"}, wantURL: "https://devnet-user-42.knirv.com"},
+		{name: "enterprise", config: config.Config{NetworkMode: "enterprise", EnterpriseMode: true, UserIDTag: "Acme_Admin"}, wantURL: "https://enterprise-acme-admin.knirv.com"},
 		{name: "devnet tag required", config: config.Config{NetworkMode: "development"}, wantErr: true},
 		{name: "enterprise tag required", config: config.Config{NetworkMode: "enterprise", EnterpriseMode: true}, wantErr: true},
 		{name: "root testnet", config: config.Config{NetworkMode: "testnet", ChainNodeRole: "Root"}, wantURL: "https://testnet-gateway.knirv.com", wantTunnel: "knirv-testnet-gateway"},

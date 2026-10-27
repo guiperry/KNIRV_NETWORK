@@ -14,7 +14,7 @@ class KNIRVAuth {
         this.currentUser = {
             id: 'guest',
             username: 'Guest User',
-            email: 'guest@knirv.network',
+            email: 'guest@knirv.com',
             role: 'developer',
             joinDate: new Date().toISOString(),
             permissions: ['read', 'write', 'admin']

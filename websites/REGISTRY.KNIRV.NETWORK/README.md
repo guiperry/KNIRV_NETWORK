@@ -17,7 +17,7 @@ Set the production custom domain in Cloudflare or add a `routes` entry to
 `wrangler.jsonc`. Nodes must use the final HTTPS URL, for example:
 
 ```bash
-CHAIN_BOOTNODE_REGISTRY=https://registry.knirv.network
+CHAIN_BOOTNODE_REGISTRY=https://registry.knirv.com
 ```
 
 ## Configuration

@@ -2,7 +2,7 @@
 
 /**
  * CloudFlare CDN Deployment Script for KNIRVARENA
- * Deploys PWA to beta-controller.knirv.network with automatic DNS updates
+ * Deploys PWA to beta-controller.knirv.com with automatic DNS updates
  */
 
 import fs from 'fs';
@@ -12,9 +12,9 @@ import { execSync } from 'child_process';
 const CLOUDFLARE_CONFIG = {
   zoneId: process.env.CLOUDFLARE_ZONE_ID,
   apiToken: process.env.CLOUDFLARE_API_TOKEN,
-  domain: 'knirv.network',
+  domain: 'knirv.com',
   subdomain: 'beta-controller',
-  fullDomain: 'beta-controller.knirv.network'
+  fullDomain: 'beta-controller.knirv.com'
 };
 
 const DEPLOYMENT_CONFIG = {

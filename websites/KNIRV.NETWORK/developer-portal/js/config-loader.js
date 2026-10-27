@@ -48,7 +48,7 @@ class KNIRVConfigLoader {
             external_services: {
                 payment_oracle: "https://pay.knirv.com/add-funds",
                 knirv_website: "https://knirv.com",
-                testnet_access: "https://testnet.knirv.network"
+                testnet_access: "https://testnet.knirv.com"
             },
             documentation: {
                 whitepapers: {

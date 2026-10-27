@@ -188,7 +188,7 @@ describe('Dashboard', () => {
 
     await waitFor(() => {
       expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
-        'https://api.knirv.network/user/models'
+        'https://api.knirv.com/user/models'
       );
     });
   });

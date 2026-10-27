@@ -752,7 +752,7 @@ The testnet validates interactions between all ecosystem components:
 ### **Community**
 - [KNIRV GitHub](https://github.com/knirv-network)
 - [Discord Community](https://discord.gg/knirv)
-- [Developer Forum](https://forum.knirv.network)
+- [Developer Forum](https://forum.knirv.com)
 - [Bug Reports](https://github.com/knirv-network/issues)
 
 ---

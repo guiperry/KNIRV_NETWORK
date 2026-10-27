@@ -10,35 +10,35 @@
     "products": "../index.html"
   },
   "external_services": {
-    "payment_oracle": "https://payments.knirv.network",
-    "tunnel_registry": "https://tunnel.knirv.network",
-    "operator_registry": "https://operators.knirv.network",
-    "webgui": "https://dashboard.knirv.network",
+    "payment_oracle": "https://payments.knirv.com",
+    "tunnel_registry": "https://tunnel.knirv.com",
+    "operator_registry": "https://operators.knirv.com",
+    "webgui": "https://dashboard.knirv.com",
     "knirv_website": "https://knirv.com",
     "testnet_access": "https://testnet.knirv.com"
   },
   "oracle_services": {
     "public_testnet": {
       "payment_oracle": {
-        "domain": "payments.knirv.network",
+        "domain": "payments.knirv.com",
         "port": 3001,
         "path": "/",
         "health_endpoint": "/health"
       },
       "tunnel_registry": {
-        "domain": "tunnel.knirv.network",
+        "domain": "tunnel.knirv.com",
         "port": 3004,
         "path": "/",
         "health_endpoint": "/status"
       },
       "operator_registry": {
-        "domain": "operators.knirv.network",
+        "domain": "operators.knirv.com",
         "port": 3007,
         "path": "/",
         "health_endpoint": "/health"
       },
       "webgui": {
-        "domain": "dashboard.knirv.network",
+        "domain": "dashboard.knirv.com",
         "port": 3007,
         "path": "/",
         "health_endpoint": "/health"

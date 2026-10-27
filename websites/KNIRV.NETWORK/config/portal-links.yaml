@@ -20,7 +20,7 @@ external_services:
   operator_registry: "https://knirvoracle.onrender.com/operators"
   webgui: "https://knirvoracle.onrender.com"
   knirv_website: "https://knirv.com"
-  testnet_access: "https://testnet.knirv.network"
+  testnet_access: "https://testnet.knirv.com"
 
 # Gateway Services Configuration
 # These services are dynamically managed based on deployment environment
@@ -198,9 +198,9 @@ messages:
 # Download Links Configuration
 downloads:
   knirvrouter:
-    windows: "https://releases.knirv.network/knirvrouter/windows/knirvrouter-setup.exe"
-    mac: "https://releases.knirv.network/knirvrouter/mac/knirvrouter.dmg"
-    linux: "https://releases.knirv.network/knirvrouter/linux/knirvrouter.AppImage"
+    windows: "https://releases.knirv.com/knirvrouter/windows/knirvrouter-setup.exe"
+    mac: "https://releases.knirv.com/knirvrouter/mac/knirvrouter.dmg"
+    linux: "https://releases.knirv.com/knirvrouter/linux/knirvrouter.AppImage"
     requirements:
       windows: "Windows 10/11, 8GB RAM, 100GB Storage"
       mac: "macOS 10.15+, 8GB RAM, 100GB Storage"
@@ -208,9 +208,9 @@ downloads:
     note: "You'll need 1000 NRN tokens to start routing."
 
   knirvana:
-    windows: "https://releases.knirv.network/knirvana/windows/knirvana-setup.exe"
-    mac: "https://releases.knirv.network/knirvana/mac/knirvana.dmg"
-    linux: "https://releases.knirv.network/knirvana/linux/knirvana.AppImage"
+    windows: "https://releases.knirv.com/knirvana/windows/knirvana-setup.exe"
+    mac: "https://releases.knirv.com/knirvana/mac/knirvana.dmg"
+    linux: "https://releases.knirv.com/knirvana/linux/knirvana.AppImage"
     requirements:
       windows: "Windows 10/11 64-bit, 4GB RAM, 2GB Storage, DirectX 11"
       mac: "macOS 11+, 4GB RAM, 2GB Storage, Metal support"
@@ -218,7 +218,7 @@ downloads:
     note: "Experience the KNIRV metaverse gaming platform."
 
   knirvoracle:
-    linux: "https://releases.knirv.network/knirvoracle/linux/knirvoracle-bootnode.tar.gz"
+    linux: "https://releases.knirv.com/knirvoracle/linux/knirvoracle-bootnode.tar.gz"
     docker: "docker pull knirv/oracle-bootnode:latest"
     source: "https://github.com/KNIRV-NETWORK/knirvoracle"
     requirements:
@@ -238,15 +238,15 @@ downloads:
       rust: "Add to Cargo.toml:\n\n[dependencies]\nknirv-sdk = \"*\"\n\nThen use:\nuse knirv_sdk::KnirvClient;"
       go: "Install via go mod:\n\ngo get github.com/knirv-network/knirv-sdk-go\n\nThen import:\nimport \"github.com/knirv-network/knirv-sdk-go\""
     documentation:
-      javascript: "https://docs.knirv.network/sdk/javascript"
-      python: "https://docs.knirv.network/sdk/python"
-      rust: "https://docs.knirv.network/sdk/rust"
-      go: "https://docs.knirv.network/sdk/go"
+      javascript: "https://docs.knirv.com/sdk/javascript"
+      python: "https://docs.knirv.com/sdk/python"
+      rust: "https://docs.knirv.com/sdk/rust"
+      go: "https://docs.knirv.com/sdk/go"
 
   knirvwallet:
-    windows: "https://releases.knirv.network/knirvwallet/windows/knirvwallet-setup.exe"
-    mac: "https://releases.knirv.network/knirvwallet/mac/knirvwallet.dmg"
-    linux: "https://releases.knirv.network/knirvwallet/linux/knirvwallet.AppImage"
+    windows: "https://releases.knirv.com/knirvwallet/windows/knirvwallet-setup.exe"
+    mac: "https://releases.knirv.com/knirvwallet/mac/knirvwallet.dmg"
+    linux: "https://releases.knirv.com/knirvwallet/linux/knirvwallet.AppImage"
     mobile: "#"
     requirements:
       windows: "Windows 10/11, 4GB RAM, 1GB Storage"
@@ -259,13 +259,13 @@ downloads:
   # KNIRV Controller product - supersedes standalone wallet but includes wallet features
   knirvcontroller:
     # Desktop applications
-    windows: "https://releases.knirv.network/knirvcontroller/windows/knirvcontroller-setup.exe"
-    mac: "https://releases.knirv.network/knirvcontroller/mac/knirvcontroller.dmg"
-    linux: "https://releases.knirv.network/knirvcontroller/linux/knirvcontroller.AppImage"
+    windows: "https://releases.knirv.com/knirvcontroller/windows/knirvcontroller-setup.exe"
+    mac: "https://releases.knirv.com/knirvcontroller/mac/knirvcontroller.dmg"
+    linux: "https://releases.knirv.com/knirvcontroller/linux/knirvcontroller.AppImage"
 
     # Mobile PWA applications (slim packages)
-    android: "https://releases.knirv.network/knirvcontroller-android-pwa.zip"
-    ios: "https://releases.knirv.network/knirvcontroller-ios-pwa.zip"
+    android: "https://releases.knirv.com/knirvcontroller-android-pwa.zip"
+    ios: "https://releases.knirv.com/knirvcontroller-ios-pwa.zip"
 
     # PWA direct access
     pwa_url: "https://beta-controller.knirv.com"
@@ -288,9 +288,9 @@ downloads:
 
   # KNIRV CLI for developers and operators
   knirvcli:
-    linux: "https://releases.knirv.network/knirvcli/linux/knirvcli_latest.tar.gz"
-    mac: "https://releases.knirv.network/knirvcli/mac/knirvcli_latest.tar.gz"
-    windows: "https://releases.knirv.network/knirvcli/windows/knirvcli_latest.zip"
+    linux: "https://releases.knirv.com/knirvcli/linux/knirvcli_latest.tar.gz"
+    mac: "https://releases.knirv.com/knirvcli/mac/knirvcli_latest.tar.gz"
+    windows: "https://releases.knirv.com/knirvcli/windows/knirvcli_latest.zip"
     instructions:
       linux: "Download and extract the archive, then move the 'knirv' binary to ~/.local/bin or /usr/local/bin. See README for details."
       mac: "Download and extract the archive, then move the 'knirv' binary to /usr/local/bin."

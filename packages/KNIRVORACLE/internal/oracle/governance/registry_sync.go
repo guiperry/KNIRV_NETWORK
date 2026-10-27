@@ -21,7 +21,7 @@ import (
 	"go.uber.org/zap"
 )
 
-const defaultRegistryBaseURL = "https://registry.knirv.network"
+const defaultRegistryBaseURL = "https://registry.knirv.com"
 
 // registrySigner mirrors the exact signing convention backend_server's
 // registryclient package uses (dcrd SignCompact over a sha256 digest,
@@ -61,7 +61,7 @@ func (s *registrySigner) sign(parts ...string) string {
 	return hex.EncodeToString(compact[1:])
 }
 
-// RegistryValidatorEntry mirrors registry.knirv.network's POST /validators
+// RegistryValidatorEntry mirrors registry.knirv.com's POST /validators
 // entry shape (src/index.js).
 type RegistryValidatorEntry struct {
 	ValidatorID string `json:"validatorID"`

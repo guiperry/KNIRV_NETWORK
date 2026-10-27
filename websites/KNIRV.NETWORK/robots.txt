@@ -1,5 +1,5 @@
 # Robots.txt for KNIRV D-TEN Network
-# https://knirv.network/robots.txt
+# https://knirv.com/robots.txt
 
 User-agent: *
 Allow: /
@@ -68,4 +68,4 @@ Allow: /logo/
 Crawl-delay: 1
 
 # Sitemap location
-Sitemap: https://knirv.network/sitemap.xml
+Sitemap: https://knirv.com/sitemap.xml

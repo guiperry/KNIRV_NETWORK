@@ -104,16 +104,16 @@ test_cloudflare_endpoints() {
     echo -e "${BLUE}📡 Testing CloudFlare Endpoints (Production URLs):${NC}"
 
     local cloudflare_endpoints=(
-        "KNIRVCHAIN:https://chain-testnet.knirv.network:/health"
-        "KNIRVGRAPH:https://graph-testnet.knirv.network:/health"
-        "KNIRVSERVER:https://nexus-testnet.knirv.network:/health"
-        "KNIRVNEXUS_GUI:https://nexus-gui-testnet.knirv.network:/health"
-        "KNIRVNEXUS_DVE:https://nexus-dve-testnet.knirv.network:/health"
-        "KNIRVORACLE:https://oracle-testnet.knirv.network:/health"
-        "KNIRVROUTER:https://router-testnet.knirv.network:/health"
-        "KNIRVANA:https://knirvana-api-testnet.knirv.network:/health"
-        "KNIRVANA_GRAPH:https://interactive-graph-testnet.knirv.network:/"
-        "KNIRVANALYTICS:https://analytics-testnet.knirv.network:/health"
+        "KNIRVCHAIN:https://chain-testnet.knirv.com:/health"
+        "KNIRVGRAPH:https://graph-testnet.knirv.com:/health"
+        "KNIRVSERVER:https://nexus-testnet.knirv.com:/health"
+        "KNIRVNEXUS_GUI:https://nexus-gui-testnet.knirv.com:/health"
+        "KNIRVNEXUS_DVE:https://nexus-dve-testnet.knirv.com:/health"
+        "KNIRVORACLE:https://oracle-testnet.knirv.com:/health"
+        "KNIRVROUTER:https://router-testnet.knirv.com:/health"
+        "KNIRVANA:https://knirvana-api-testnet.knirv.com:/health"
+        "KNIRVANA_GRAPH:https://interactive-graph-testnet.knirv.com:/"
+        "KNIRVANALYTICS:https://analytics-testnet.knirv.com:/health"
     )
 
     for service_info in "${cloudflare_endpoints[@]}"; do

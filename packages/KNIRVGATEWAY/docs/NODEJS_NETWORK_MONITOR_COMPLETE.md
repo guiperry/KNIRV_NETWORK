@@ -522,8 +522,8 @@ NODE_ENV=production
 ACTIVE_NETWORK=production
 
 # Production service URLs
-KNIRVORACLE_URL=https://oracle.knirv.network
-KNIRVCHAIN_URL=https://chain.knirv.network
+KNIRVORACLE_URL=https://oracle.knirv.com
+KNIRVCHAIN_URL=https://chain.knirv.com
 # ... etc
 ```
 

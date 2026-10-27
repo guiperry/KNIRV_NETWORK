@@ -29,7 +29,7 @@ export default function MyModels() {
         deployedAt: '2024-01-15',
         version: '1.2.0',
         description: 'Fine-tuned GPT-4 model specialized for financial analysis and reporting',
-        endpoints: ['https://api.knirv.network/models/gpt4-finance'],
+        endpoints: ['https://api.knirv.com/models/gpt4-finance'],
         metrics: {
           totalCalls: 15420,
           successRate: 98.7,
@@ -46,7 +46,7 @@ export default function MyModels() {
         deployedAt: '2024-01-20',
         version: '2.1.0',
         description: 'Advanced image classification model for medical imaging applications',
-        endpoints: ['https://api.knirv.network/models/vision-classifier'],
+        endpoints: ['https://api.knirv.com/models/vision-classifier'],
         metrics: {
           totalCalls: 8750,
           successRate: 96.3,
@@ -63,7 +63,7 @@ export default function MyModels() {
         deployedAt: '2024-01-10',
         version: '1.0.5',
         description: 'Multi-language sentiment analysis model for social media monitoring',
-        endpoints: ['https://api.knirv.network/models/sentiment'],
+        endpoints: ['https://api.knirv.com/models/sentiment'],
         metrics: {
           totalCalls: 3240,
           successRate: 94.1,

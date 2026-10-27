@@ -113,13 +113,13 @@ func resolvePublicEndpoint(cfg *config.Config) (publicEndpoint, error) {
 		if tag == "" {
 			return publicEndpoint{}, fmt.Errorf("enterprise mode requires KNIRV_USER_ID_TAG")
 		}
-		host := fmt.Sprintf("enterprise-%s.knirv.network", tag)
+		host := fmt.Sprintf("enterprise-%s.knirv.com", tag)
 		return publicEndpoint{"https://" + host, host, "knirv-enterprise-" + tag}, nil
 	case mode == "development" || mode == "dev" || mode == "devnet":
 		if tag == "" {
 			return publicEndpoint{}, fmt.Errorf("development mode requires KNIRV_USER_ID_TAG")
 		}
-		host := fmt.Sprintf("devnet-%s.knirv.network", tag)
+		host := fmt.Sprintf("devnet-%s.knirv.com", tag)
 		return publicEndpoint{"https://" + host, host, "knirv-devnet-" + tag}, nil
 	case mode == "production" || mode == "prod" || mode == "mainnet":
 		return publicEndpoint{"https://gateway.knirv.com", "gateway.knirv.com", "knirv-gateway"}, nil

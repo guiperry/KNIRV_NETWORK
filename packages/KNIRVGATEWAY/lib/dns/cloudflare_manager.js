@@ -2,7 +2,7 @@
  * CloudFlare DNS Manager for KNIRVORACLE
  * 
  * Handles automated DNS failover and management for the private DHT deployment.
- * Manages DNS records for oracle.knirv.network and related services.
+ * Manages DNS records for oracle.knirv.com and related services.
  * 
  * Features:
  * - Automated DNS record updates
@@ -19,8 +19,8 @@ import { EventEmitter } from 'events';
 // CloudFlare API configuration
 const CLOUDFLARE_CONFIG = {
   API_BASE_URL: 'https://api.cloudflare.com/client/v4',
-  ZONE_NAME: 'knirv.network',
-  GATEWAY_RECORD_NAME: 'oracle.knirv.network',
+  ZONE_NAME: 'knirv.com',
+  GATEWAY_RECORD_NAME: 'oracle.knirv.com',
   TTL: 60, // 60 seconds for fast failover
   HEALTH_CHECK_INTERVAL: 30000, // 30 seconds
   FAILOVER_THRESHOLD: 3, // 3 failed checks before failover
@@ -30,22 +30,22 @@ const CLOUDFLARE_CONFIG = {
 // Gateway services configuration
 const GATEWAY_SERVICES = {
   payment_oracle: {
-    domain: 'payments.knirv.network',
+    domain: 'payments.knirv.com',
     port: 3001,
     subdomain: 'payments'
   },
   tunnel_registry: {
-    domain: 'tunnel.knirv.network',
+    domain: 'tunnel.knirv.com',
     port: 3004,
     subdomain: 'tunnel'
   },
   operator_registry: {
-    domain: 'operators.knirv.network',
+    domain: 'operators.knirv.com',
     port: 3007,
     subdomain: 'operators'
   },
   webgui: {
-    domain: 'dashboard.knirv.network',
+    domain: 'dashboard.knirv.com',
     port: 3007,
     subdomain: 'dashboard'
   }
@@ -69,7 +69,7 @@ class CloudFlareManager extends EventEmitter {
     this.healthCheckInterval = null;
     this.failedChecks = 0;
     this.lastHealthCheck = null;
-    this.primaryGatewayURL = options.primaryGatewayURL || 'https://oracle.knirv.network';
+    this.primaryGatewayURL = options.primaryGatewayURL || 'https://oracle.knirv.com';
     
     // Leader election
     this.leaderElectionInterval = null;
@@ -138,7 +138,7 @@ class CloudFlareManager extends EventEmitter {
   }
 
   /**
-   * Discover CloudFlare zone ID for knirv.network
+   * Discover CloudFlare zone ID for knirv.com
    */
   async discoverZoneId() {
     try {
@@ -312,7 +312,7 @@ class CloudFlareManager extends EventEmitter {
    * Get existing DNS record for a service subdomain
    */
   async getServiceRecord(subdomain) {
-    const recordName = `${subdomain}.knirv.network`;
+    const recordName = `${subdomain}.knirv.com`;
 
     try {
       const response = await this.makeAPIRequest('GET', `/zones/${this.zoneId}/dns_records`, {

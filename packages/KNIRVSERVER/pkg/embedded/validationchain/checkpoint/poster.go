@@ -34,7 +34,7 @@ const DefaultOracleLocalURL = "http://localhost:8080"
 
 // Poster delivers signed checkpoints and chain registration to KNIRVORACLE
 // via the public KNIRVGATEWAY (gateway.knirv.com / testnet-gateway.knirv.com
-// / devnet-<tag>.knirv.network, depending on network mode) — never a local
+// / devnet-<tag>.knirv.com, depending on network mode) — never a local
 // socket. The registry/checkpoint endpoints are themselves authenticated by
 // the registered-author signature quorum carried in the request body, so
 // posting over the public gateway is the intended, safe transport (same

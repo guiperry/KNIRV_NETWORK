@@ -1402,7 +1402,7 @@ func getDemoErrors() []ErrorNodeResponse {
 			ResolutionStatus: "resolved", ResolvedBy: []string{"skill_security_006"}, Context: map[string]interface{}{"node": "unknown_peer", "protocol": "libp2p"},
 			Timestamp: "2025-05-14T23:10:00Z"},
 		{ID: "error_005", ErrorType: "DNS Resolution Failure", Description: "Unable to resolve bootnode DNS name", Severity: 3,
-			ResolutionStatus: "pending", Context: map[string]interface{}{"hostname": "bootnode.knirv.network"},
+			ResolutionStatus: "pending", Context: map[string]interface{}{"hostname": "bootnode.knirv.com"},
 			Timestamp: "2025-05-14T22:00:00Z"},
 		{ID: "error_006", ErrorType: "Anomalous Network Pattern", Description: "Unusual traffic pattern detected from peer node_07", Severity: 2,
 			ResolutionStatus: "resolved", ResolvedBy: []string{"skill_security_006"}, Context: map[string]interface{}{"peer": "node_07", "traffic_multiplier": 12.5},

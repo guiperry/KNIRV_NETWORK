@@ -7,14 +7,14 @@ const NETWORK_CONFIGS = {
     name: 'KNIRV Mainnet',
     description: 'Production KNIRV network',
     endpoints: {
-      api: 'https://api.knirv.network',
-      websocket: 'wss://ws.knirv.network',
-      graphchain: 'https://graphchain.knirv.network',
-      oracle: 'https://gateway-oracle.knirv.network'
+      api: 'https://api.knirv.com',
+      websocket: 'wss://ws.knirv.com',
+      graphchain: 'https://graphchain.knirv.com',
+      oracle: 'https://gateway-oracle.knirv.com'
     },
     chainId: 'knirv-1',
     currency: 'NRN',
-    explorerUrl: 'https://explorer.knirv.network',
+    explorerUrl: 'https://explorer.knirv.com',
     status: 'active',
     color: '#007bff'
   },
@@ -23,14 +23,14 @@ const NETWORK_CONFIGS = {
     name: 'KNIRV Testnet',
     description: 'Testing network for development',
     endpoints: {
-      api: 'https://testnet-api.knirv.network',
-      websocket: 'wss://testnet-ws.knirv.network',
-      graphchain: 'https://testnet-graphchain.knirv.network',
-      oracle: 'https://testnet-gateway-oracle.knirv.network'
+      api: 'https://testnet-api.knirv.com',
+      websocket: 'wss://testnet-ws.knirv.com',
+      graphchain: 'https://testnet-graphchain.knirv.com',
+      oracle: 'https://testnet-gateway-oracle.knirv.com'
     },
     chainId: 'knirv-testnet-1',
     currency: 'tNRN',
-    explorerUrl: 'https://testnet-explorer.knirv.network',
+    explorerUrl: 'https://testnet-explorer.knirv.com',
     status: 'active',
     color: '#ffc107'
   },

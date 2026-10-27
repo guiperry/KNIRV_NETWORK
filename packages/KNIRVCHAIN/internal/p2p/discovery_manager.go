@@ -856,7 +856,7 @@ func GetMultiaddrFromURI(uri string) (string, error) {
 		if len(parts) < 1 || strings.TrimSpace(parts[0]) == "" {
 			return "", fmt.Errorf("invalid chain URI format: %s", uri)
 		}
-		uri = fmt.Sprintf("knirv://knirv.network/%s.chain", url.PathEscape(parts[0]))
+		uri = fmt.Sprintf("knirv://knirv.com/%s.chain", url.PathEscape(parts[0]))
 	}
 	if !strings.HasPrefix(uri, "knirv://") {
 		return "", fmt.Errorf("unsupported URI format: %s", uri)

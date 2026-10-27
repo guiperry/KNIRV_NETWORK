@@ -164,10 +164,10 @@ update_dns_records() {
     # Determine target domain based on environment
     if [ "$ENVIRONMENT" = "production" ]; then
         TARGET_DOMAIN="controller.knirv.com"
-        BETA_DOMAIN="beta-controller.knirv.network"
+        BETA_DOMAIN="beta-controller.knirv.com"
     else
-        TARGET_DOMAIN="controller-testnet.knirv.network"
-        BETA_DOMAIN="beta-controller-testnet.knirv.network"
+        TARGET_DOMAIN="controller-testnet.knirv.com"
+        BETA_DOMAIN="beta-controller-testnet.knirv.com"
     fi
     
     print_status "Target domain: $TARGET_DOMAIN"
@@ -193,9 +193,9 @@ verify_deployment() {
         MANIFEST_URL="https://controller.knirv.com/manifest.json"
         SW_URL="https://controller.knirv.com/sw.js"
     else
-        PWA_URL="https://controller-testnet.knirv.network"
-        MANIFEST_URL="https://controller-testnet.knirv.network/manifest.json"
-        SW_URL="https://controller-testnet.knirv.network/sw.js"
+        PWA_URL="https://controller-testnet.knirv.com"
+        MANIFEST_URL="https://controller-testnet.knirv.com/manifest.json"
+        SW_URL="https://controller-testnet.knirv.com/sw.js"
     fi
     
     # Wait for deployment to propagate
@@ -248,7 +248,7 @@ KNIRVWALLET PWA Deployment Report
 
 Deployment Date: $(date)
 Environment: $ENVIRONMENT
-Target Domain: $([ "$ENVIRONMENT" = "production" ] && echo "controller.knirv.com" || echo "controller-testnet.knirv.network")
+Target Domain: $([ "$ENVIRONMENT" = "production" ] && echo "controller.knirv.com" || echo "controller-testnet.knirv.com")
 
 Build Information:
 - PWA packages built successfully
@@ -257,9 +257,9 @@ Build Information:
 - Portal links verified
 
 Endpoints:
-- PWA Application: $([ "$ENVIRONMENT" = "production" ] && echo "https://controller.knirv.com" || echo "https://controller-testnet.knirv.network")
-- Android Package: $([ "$ENVIRONMENT" = "production" ] && echo "https://controller.knirv.com/android" || echo "https://controller-testnet.knirv.network/android")
-- iOS Package: $([ "$ENVIRONMENT" = "production" ] && echo "https://controller.knirv.com/ios" || echo "https://controller-testnet.knirv.network/ios")
+- PWA Application: $([ "$ENVIRONMENT" = "production" ] && echo "https://controller.knirv.com" || echo "https://controller-testnet.knirv.com")
+- Android Package: $([ "$ENVIRONMENT" = "production" ] && echo "https://controller.knirv.com/android" || echo "https://controller-testnet.knirv.com/android")
+- iOS Package: $([ "$ENVIRONMENT" = "production" ] && echo "https://controller.knirv.com/ios" || echo "https://controller-testnet.knirv.com/ios")
 
 Status: COMPLETED
 EOF
@@ -280,9 +280,9 @@ display_summary() {
         echo -e "${YELLOW}Android Download: https://controller.knirv.com/android${NC}"
         echo -e "${YELLOW}iOS Download: https://controller.knirv.com/ios${NC}"
     else
-        echo -e "${YELLOW}PWA URL: https://controller-testnet.knirv.network${NC}"
-        echo -e "${YELLOW}Android Download: https://controller-testnet.knirv.network/android${NC}"
-        echo -e "${YELLOW}iOS Download: https://controller-testnet.knirv.network/ios${NC}"
+        echo -e "${YELLOW}PWA URL: https://controller-testnet.knirv.com${NC}"
+        echo -e "${YELLOW}Android Download: https://controller-testnet.knirv.com/android${NC}"
+        echo -e "${YELLOW}iOS Download: https://controller-testnet.knirv.com/ios${NC}"
     fi
     
     echo ""

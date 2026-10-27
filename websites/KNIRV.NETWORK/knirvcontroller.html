@@ -8,12 +8,12 @@
     <meta name="description" content="KNIRVCONTROLLER: The definitive desktop application for managing agents, wallets, and network operations on the KNIRV D-TEN. Includes the KNIRVWALLET functionality built-in.">
     <meta name="keywords" content="KNIRVCONTROLLER, KNIRV controller, KNIRV wallet, D-TEN controller, KNIRVCLI, developer tools">
 
-    <link rel="canonical" href="https://knirv.network/knirvcontroller.html">
+    <link rel="canonical" href="https://knirv.com/knirvcontroller.html">
     <meta property="og:type" content="website">
-    <meta property="og:url" content="https://knirv.network/knirvcontroller.html">
+    <meta property="og:url" content="https://knirv.com/knirvcontroller.html">
     <meta property="og:title" content="KNIRVCONTROLLER | Manage Agents, Wallets, and Network Operations">
     <meta property="og:description" content="A single, unified application that includes wallet functionality and powerful developer & operator tools for the KNIRV D-TEN.">
-    <meta property="og:image" content="https://knirv.network/images/social/knirvcontroller-card.png">
+    <meta property="og:image" content="https://knirv.com/images/social/knirvcontroller-card.png">
 
     <link rel="shortcut icon" href="assets/favicon.png">
     <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32x32.png">
@@ -266,11 +266,11 @@
 
             if (isAndroid) {
                 // Direct PWA installation on Android
-                window.location.href = 'https://beta-controller.knirv.network/?install=android';
+                window.location.href = 'https://beta-controller.knirv.com/?install=android';
             } else {
                 // Download APK package for sideloading
                 const link = document.createElement('a');
-                link.href = downloadUrl || 'https://releases.knirv.network/knirvcontroller-android-pwa.zip';
+                link.href = downloadUrl || 'https://releases.knirv.com/knirvcontroller-android-pwa.zip';
                 link.download = 'knirvcontroller-android.zip';
                 link.click();
 
@@ -285,11 +285,11 @@
 
             if (isIOS) {
                 // Direct PWA installation on iOS
-                window.location.href = 'https://beta-controller.knirv.network/?install=ios';
+                window.location.href = 'https://beta-controller.knirv.com/?install=ios';
             } else {
                 // Download iOS package
                 const link = document.createElement('a');
-                link.href = downloadUrl || 'https://releases.knirv.network/knirvcontroller-ios-pwa.zip';
+                link.href = downloadUrl || 'https://releases.knirv.com/knirvcontroller-ios-pwa.zip';
                 link.download = 'knirvcontroller-ios.zip';
                 link.click();
 
@@ -300,9 +300,9 @@
 
         function downloadController(platform) {
             const downloadUrls = {
-                windows: 'https://releases.knirv.network/knirvcontroller-setup.exe',
-                mac: 'https://releases.knirv.network/knirvcontroller.dmg',
-                linux: 'https://releases.knirv.network/knirvcontroller.AppImage'
+                windows: 'https://releases.knirv.com/knirvcontroller-setup.exe',
+                mac: 'https://releases.knirv.com/knirvcontroller.dmg',
+                linux: 'https://releases.knirv.com/knirvcontroller.AppImage'
             };
 
             const url = downloadUrls[platform];
@@ -339,7 +339,7 @@
             deferredPrompt = e;
 
             // Show custom install button if we're on the PWA site
-            if (window.location.hostname === 'beta-controller.knirv.network') {
+            if (window.location.hostname === 'beta-controller.knirv.com') {
                 showPWAInstallPrompt();
             }
         });

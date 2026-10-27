@@ -22,7 +22,7 @@ info:
 servers:
   - url: http://localhost:8080
     description: Local development server
-  - url: https://gateway-oracle.knirv.network
+  - url: https://gateway-oracle.knirv.com
     description: Production oracle (via KNIRVGATEWAY)
 
 tags:

@@ -550,7 +550,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - [KNIRV GitHub Organization](https://github.com/knirv-network)
 - [KNIRV Discord Community](https://discord.gg/knirv)
 - [KNIRV Twitter](https://twitter.com/knirvnetwork)
-- [KNIRV Blog](https://blog.knirv.network)
+- [KNIRV Blog](https://blog.knirv.com)
 
 ### Developer Resources
 - [KNIRV SDK Documentation](../KNIRVSDK/)

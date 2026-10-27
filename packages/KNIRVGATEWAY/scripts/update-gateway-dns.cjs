@@ -7,10 +7,10 @@
  * Falls back to localhost configuration for private testnet when credentials are missing.
  * 
  * Services managed:
- * - Payment Gateway -> payments.knirv.network
- * - Tunnel Registry -> tunnel.knirv.network  
- * - Operator Registry -> operators.knirv.network
- * - WebGUI -> dashboard.knirv.network
+ * - Payment Gateway -> payments.knirv.com
+ * - Tunnel Registry -> tunnel.knirv.com  
+ * - Operator Registry -> operators.knirv.com
+ * - WebGUI -> dashboard.knirv.com
  */
 
 const fs = require('fs');
@@ -23,22 +23,22 @@ require('dotenv').config({ path: path.join(__dirname, '..', '.env.testnet') });
 // Gateway services configuration
 const GATEWAY_SERVICES = {
   payment_oracle: {
-    domain: 'payments.knirv.network',
+    domain: 'payments.knirv.com',
     port: 3001,
     subdomain: 'payments'
   },
   tunnel_registry: {
-    domain: 'tunnel.knirv.network', 
+    domain: 'tunnel.knirv.com', 
     port: 3004,
     subdomain: 'tunnel'
   },
   operator_registry: {
-    domain: 'operators.knirv.network',
+    domain: 'operators.knirv.com',
     port: 3007,
     subdomain: 'operators'
   },
   webgui: {
-    domain: 'dashboard.knirv.network',
+    domain: 'dashboard.knirv.com',
     port: 3007,
     subdomain: 'dashboard'
   }
@@ -47,7 +47,7 @@ const GATEWAY_SERVICES = {
 // CloudFlare configuration
 const CLOUDFLARE_CONFIG = {
   API_BASE_URL: 'https://api.cloudflare.com/client/v4',
-  ZONE_NAME: 'knirv.network',
+  ZONE_NAME: 'knirv.com',
   TTL: 60 // 60 seconds for fast updates
 };
 
@@ -111,7 +111,7 @@ class GatewayDNSManager {
    * Get existing DNS record for a subdomain
    */
   async getDNSRecord(subdomain) {
-    const recordName = `${subdomain}.knirv.network`;
+    const recordName = `${subdomain}.knirv.com`;
     
     try {
       const response = await this.makeAPIRequest('GET', `/zones/${this.zoneId}/dns_records`, {

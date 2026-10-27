@@ -42,7 +42,7 @@ interface PolicyEditorProps {
 }
 
 const PolicyEditor: React.FC<PolicyEditorProps> = ({ isOpen, onClose, nodeId, isMonitorOpen }) => {
-  const [networkWhitelist, setNetworkWhitelist] = useState('api.company.com\ncdn.trusted.io\ngateway.knirv.network');
+  const [networkWhitelist, setNetworkWhitelist] = useState('api.company.com\ncdn.trusted.io\ngateway.knirv.com');
   const [sensitivity, setSensitivity] = useState('Balanced');
   const [blockFileIO, setBlockFileIO] = useState(true);
   const [allowReadOnly, setAllowReadOnly] = useState(false);

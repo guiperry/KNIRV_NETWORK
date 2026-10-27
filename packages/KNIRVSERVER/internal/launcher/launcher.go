@@ -131,6 +131,24 @@ type Config struct {
 	Enterprise bool
 	// UserIDTag is the DNS-safe user identity suffix used by devnet and enterprise.
 	UserIDTag string
+	// Domain is the base domain for every public hostname KNIRVSERVER derives
+	// (gateway., testnet-gateway., devnet-<tag>., enterprise-<tag>.). It is
+	// read from the config file's top-level `domain` key and defaults to
+	// defaultPublicDomain when unset.
+	Domain string `mapstructure:"domain"`
+}
+
+// defaultPublicDomain is used when the config file does not set `domain`.
+const defaultPublicDomain = "knirv.com"
+
+// publicDomain returns the configured base domain, normalized to lowercase
+// with no surrounding whitespace or dots, or defaultPublicDomain if unset.
+func publicDomain(cfg *Config) string {
+	domain := strings.Trim(strings.ToLower(strings.TrimSpace(cfg.Domain)), ".")
+	if domain == "" {
+		return defaultPublicDomain
+	}
+	return domain
 }
 
 // LlamaConfig controls the embedded local inference service through the same
@@ -178,23 +196,24 @@ func resolvePublicURL(cfg *Config) (string, error) {
 	}
 
 	tag := normalizeUserIDTag(cfg.UserIDTag)
+	domain := publicDomain(cfg)
 	if cfg.Enterprise {
 		if tag == "" {
 			return "", fmt.Errorf("enterprise mode requires -user-id-tag or KNIRV_USER_ID_TAG")
 		}
-		return fmt.Sprintf("https://enterprise-%s.knirv.network", tag), nil
+		return fmt.Sprintf("https://enterprise-%s.%s", tag, domain), nil
 	}
 
 	switch strings.ToLower(strings.TrimSpace(cfg.NetworkMode)) {
 	case "production", "prod", "mainnet":
-		return "https://gateway.knirv.com", nil
+		return "https://gateway." + domain, nil
 	case "development", "dev", "devnet":
 		if tag == "" {
 			return "", fmt.Errorf("development mode requires -user-id-tag or KNIRV_USER_ID_TAG")
 		}
-		return fmt.Sprintf("https://devnet-%s.knirv.network", tag), nil
+		return fmt.Sprintf("https://devnet-%s.%s", tag, domain), nil
 	default:
-		return "https://testnet-gateway.knirv.com", nil
+		return "https://testnet-gateway." + domain, nil
 	}
 }
 
@@ -3162,8 +3181,9 @@ func (app *ServerApp) stopMonitor() {
 // runs on the root node — every instance (root or not) must reach it
 // through the public KNIRVGATEWAY, never a local socket, so this always
 // reuses resolvePublicURL()'s network-mode-aware resolution (testnet →
-// testnet-gateway.knirv.com, production → gateway.knirv.com, devnet
-// → devnet-<tag>.knirv.network, enterprise → enterprise-<tag>.knirv.network)
+// testnet-gateway.<domain>, production → gateway.<domain>, devnet
+// → devnet-<tag>.<domain>, enterprise → enterprise-<tag>.<domain>, where
+// <domain> is the config file's `domain`, default knirv.com)
 // instead of assuming co-location. KNIRV_ORACLE_URL overrides everything,
 // for whatever exceptional deployment needs it.
 func oracleGatewayURL(cfg *Config) string {
@@ -4114,7 +4134,7 @@ func loadConfig() (*Config, error) {
 		configFile   = flag.String("config", "", "Path to configuration file")
 		prodFlag     = flag.Bool("prod", false, "Run in production mode")
 		devFlag      = flag.Bool("dev", false, "Run in development mode")
-		entFlag      = flag.Bool("ent", false, "Run as an enterprise node (uses enterprise-{UserIDTag}.knirv.network)")
+		entFlag      = flag.Bool("ent", false, "Run as an enterprise node (uses enterprise-{UserIDTag}.{domain}, domain from the config file, default knirv.com)")
 		userIDTag    = flag.String("user-id-tag", "", "User identity tag for devnet or enterprise public hostname")
 		modelsFlag   = flag.Bool("models", false, "Start the KNIRVMODELS ASIC driver (hasher-host/hasher-server deployment) during server initialization")
 		pipelineFlag = flag.Bool("pipeline", false, "Start the KNIRVMODELS data pipeline during server initialization")
@@ -4189,6 +4209,7 @@ func loadConfig() (*Config, error) {
 	}
 	viper.SetDefault("gateway_port", 8080)
 	viper.SetDefault("log_level", "info")
+	viper.SetDefault("domain", defaultPublicDomain)
 	viper.SetDefault("llama.enabled", true)
 	viper.SetDefault("llama.parallel", 1)
 	viper.SetDefault("testnet", networkMode == "testnet")

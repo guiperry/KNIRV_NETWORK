@@ -5,7 +5,7 @@
 
 class KNIRVSocialSharing {
     constructor() {
-        this.baseUrl = 'https://knirv.network/';
+        this.baseUrl = 'https://knirv.com/';
         this.defaultTitle = 'KNIRV D-TEN | Revolutionary Decentralized AI Network';
         this.defaultDescription = 'Experience the world\'s first self-improving AI network with 12 sovereign layers.';
         

@@ -344,12 +344,12 @@ ERGO/
 # .env
 
 # Core Network Configuration
-VITE_API_BASE_URL=http://gateway-testnet.knirv.network
-VITE_ORACLE_ENDPOINT=http://oracle-testnet.knirv.network
+VITE_API_BASE_URL=http://gateway-testnet.knirv.com
+VITE_ORACLE_ENDPOINT=http://oracle-testnet.knirv.com
 VITE_WALLET_CONNECT_PROJECT_ID=your_project_id
 VITE_WALLET_CONNECT_RPC_URL=http://localhost:8545
 VITE_XION_CHAIN_ID=local-1
-VITE_KNIRV_GRAPH_ENDPOINT=https://graph-testnet.knirv.network
+VITE_KNIRV_GRAPH_ENDPOINT=https://graph-testnet.knirv.com
 
 # Chat-Brain LLM Providers
 VITE_GOOGLE_API_KEY=your-gemini-api-key
@@ -600,19 +600,19 @@ npm run build:wasm -- --verbose
 
 ## Documentation
 
-- **[Whitepaper](https://knirv.network/documentation/static/whitepapers/)**: Comprehensive technical specification
-- **[API Documentation](https://knirv.network/documentation/static/knirvsdk/README)**: Detailed API endpoint documentation
-- **[Gap Analysis](https://knirv.network/documentation/knirvcontroller/README)**: Current implementation status and roadmap
+- **[Whitepaper](https://knirv.com/documentation/static/whitepapers/)**: Comprehensive technical specification
+- **[API Documentation](https://knirv.com/documentation/static/knirvsdk/README)**: Detailed API endpoint documentation
+- **[Gap Analysis](https://knirv.com/documentation/knirvcontroller/README)**: Current implementation status and roadmap
 
 ## License
 
-MIT License - see [LICENSE](https://knirv.network/documentation/static/legal/TERMS_AND_CONDITIONS) file for details.
+MIT License - see [LICENSE](https://knirv.com/documentation/static/legal/TERMS_AND_CONDITIONS) file for details.
 
 ## Support
 
 - **Issues**: [GitHub Issues](https://github.com/guiperry/ERGO/issues)
 - **Discussions**: [GitHub Discussions](https://github.com/guiperry/ERGO/discussions)
-- **Documentation**: [KNIRV Network Docs](https://docs.knirv.network)
+- **Documentation**: [KNIRV Network Docs](https://docs.knirv.com)
 
 ---
 

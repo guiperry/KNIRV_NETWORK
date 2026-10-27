@@ -7,44 +7,44 @@ window.KNIRV_GATEWAY_CONFIG = {
   "deployment_mode": "public_testnet",
   "oracle_services": {
     "payment_oracle": {
-      "base_url": "https://payments.knirv.network/",
-      "health_url": "https://payments.knirv.network/health",
-      "domain": "payments.knirv.network",
+      "base_url": "https://payments.knirv.com/",
+      "health_url": "https://payments.knirv.com/health",
+      "domain": "payments.knirv.com",
       "port": 3001,
       "path": "/"
     },
     "tunnel_registry": {
-      "base_url": "https://tunnel.knirv.network/",
-      "health_url": "https://tunnel.knirv.network/status",
-      "domain": "tunnel.knirv.network",
+      "base_url": "https://tunnel.knirv.com/",
+      "health_url": "https://tunnel.knirv.com/status",
+      "domain": "tunnel.knirv.com",
       "port": 3004,
       "path": "/"
     },
     "operator_registry": {
-      "base_url": "https://operators.knirv.network/",
-      "health_url": "https://operators.knirv.network/health",
-      "domain": "operators.knirv.network",
+      "base_url": "https://operators.knirv.com/",
+      "health_url": "https://operators.knirv.com/health",
+      "domain": "operators.knirv.com",
       "port": 3007,
       "path": "/"
     },
     "webgui": {
-      "base_url": "https://dashboard.knirv.network/",
-      "health_url": "https://dashboard.knirv.network/health",
-      "domain": "dashboard.knirv.network",
+      "base_url": "https://dashboard.knirv.com/",
+      "health_url": "https://dashboard.knirv.com/health",
+      "domain": "dashboard.knirv.com",
       "port": 3007,
       "path": "/"
     }
   },
   "external_services": {
-    "payment_oracle": "https://payments.knirv.network",
-    "tunnel_registry": "https://tunnel.knirv.network",
-    "operator_registry": "https://operators.knirv.network",
-    "webgui": "https://dashboard.knirv.network",
+    "payment_oracle": "https://payments.knirv.com",
+    "tunnel_registry": "https://tunnel.knirv.com",
+    "operator_registry": "https://operators.knirv.com",
+    "webgui": "https://dashboard.knirv.com",
     "knirv_website": "https://knirv.com",
-    "testnet_access": "https://testnet.knirv.network"
+    "testnet_access": "https://testnet.knirv.com"
   },
   "navigation": {
-    "main_site": "https://knirv.network",
+    "main_site": "https://knirv.com",
     "documentation": "../documentation/docsify/",
     "graphchain_explorer": "../graphchain-explorer/",
     "nexus_portal": "../nexus-portal/",

@@ -38,7 +38,7 @@ type GovernanceSystem struct {
 	chainID    string
 	mu         sync.RWMutex
 
-	// registrySync pushes validator-set changes to registry.knirv.network's
+	// registrySync pushes validator-set changes to registry.knirv.com's
 	// POST /validators (§6.6) — nil on a node with no registry identity
 	// configured (e.g. governance running without SetSigningIdentity ever
 	// having been called), in which case syncRegistryLocked is a no-op.

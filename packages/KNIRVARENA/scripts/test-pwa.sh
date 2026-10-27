@@ -176,7 +176,7 @@ test_pwa_endpoints() {
     if [ "$TEST_ENVIRONMENT" = "production" ]; then
         local base_url="https://controller.knirv.com"
     else
-        local base_url="https://controller-testnet.knirv.network"
+        local base_url="https://controller-testnet.knirv.com"
     fi
     
     local endpoints=(

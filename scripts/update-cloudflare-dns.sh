@@ -4,7 +4,7 @@
 # Updates CloudFlare DNS records only for healthy services
 
 # Configuration
-ZONE_NAME="knirv.network"
+ZONE_NAME="${KNIRV_DOMAIN:-knirv.com}"
 TESTNET_SUBDOMAIN_PREFIX="testnet"
 
 # Color codes for output

@@ -26,7 +26,7 @@ func TestDownloadServerExtractsGzipArtifact(t *testing.T) {
 		return &http.Response{StatusCode: http.StatusOK, Status: "200 OK", Body: io.NopCloser(bytes.NewReader(compressed.Bytes()))}, nil
 	}
 	i.Run = func(context.Context, string, ...string) error { return nil }
-	path, err := i.downloadServer(context.Background(), t.TempDir(), "https://releases.knirv.com/knirv/llama/linux-amd64/llama-server.gz")
+	path, err := i.downloadServer(context.Background(), t.TempDir(), "https://releases.knirv.com/knirv/llama/linux-amd64/llama-server.gz", "llama-server")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -77,5 +77,77 @@ func TestEnsureDownloadsMissingModel(t *testing.T) {
 	b, err := os.ReadFile(got.ModelPath)
 	if err != nil || string(b) != "model" {
 		t.Fatalf("model = %q, %v", b, err)
+	}
+}
+
+func releaseResponder(tag string) func(string) (*http.Response, error) {
+	return func(url string) (*http.Response, error) {
+		if url == LatestReleaseURL {
+			return &http.Response{StatusCode: 200, Status: "200 OK", Body: io.NopCloser(strings.NewReader(`{"tag_name":"` + tag + `"}`))}, nil
+		}
+		return nil, io.ErrUnexpectedEOF
+	}
+}
+
+func TestUpdateServerKeepsCurrentBuild(t *testing.T) {
+	dir := t.TempDir()
+	server := dir + "/llama-server"
+	if err := os.WriteFile(server, []byte("x"), 0700); err != nil {
+		t.Fatal(err)
+	}
+	i := New()
+	i.Get = releaseResponder("b6000")
+	i.Output = func(context.Context, string, ...string) (string, error) { return "version: 6000 (abc)\n", nil }
+	i.Run = func(context.Context, string, ...string) error { t.Fatal("up to date: nothing should run"); return nil }
+	if got := i.updateServer(context.Background(), Options{DataDir: dir}, server); got != server {
+		t.Fatalf("server = %s", got)
+	}
+}
+
+func TestUpdateServerKeepsWorkingBinaryWhenUpdateFails(t *testing.T) {
+	dir := t.TempDir()
+	server := dir + "/llama-server"
+	if err := os.WriteFile(server, []byte("x"), 0700); err != nil {
+		t.Fatal(err)
+	}
+	i := New()
+	i.Get = releaseResponder("b6100") // the prebuilt download then fails
+	i.Output = func(context.Context, string, ...string) (string, error) { return "version: 6000 (abc)\n", nil }
+	i.Run = func(context.Context, string, ...string) error { return io.ErrUnexpectedEOF }
+	i.LookPath = func(string) (string, error) { return "/usr/bin/x", nil }
+	if got := i.updateServer(context.Background(), Options{DataDir: dir}, server); got != server {
+		t.Fatalf("server = %s", got)
+	}
+	if _, err := os.Stat(server); err != nil {
+		t.Fatalf("working server was removed: %v", err)
+	}
+}
+
+func TestUpdateServerInstallsNewerPrebuilt(t *testing.T) {
+	dir := t.TempDir()
+	server := dir + "/llama-server"
+	if err := os.WriteFile(server, []byte("old"), 0700); err != nil {
+		t.Fatal(err)
+	}
+	i := New()
+	i.Get = func(url string) (*http.Response, error) {
+		if url == LatestReleaseURL {
+			return releaseResponder("b6100")(url)
+		}
+		return &http.Response{StatusCode: 200, Status: "200 OK", Body: io.NopCloser(strings.NewReader("new"))}, nil
+	}
+	i.Output = func(_ context.Context, path string, _ ...string) (string, error) {
+		if strings.HasSuffix(path, ".update") {
+			return "version: 6100 (def)\n", nil
+		}
+		return "version: 6000 (abc)\n", nil
+	}
+	i.Run = func(context.Context, string, ...string) error { return nil }
+	got := i.updateServer(context.Background(), Options{DataDir: dir, ServerURL: "https://example.test/llama-server"}, server)
+	if want := dir + "/bin/llama-server"; got != want {
+		t.Fatalf("server = %s, want %s", got, want)
+	}
+	if b, _ := os.ReadFile(got); string(b) != "new" {
+		t.Fatalf("binary = %q", b)
 	}
 }

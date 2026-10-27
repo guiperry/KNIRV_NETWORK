@@ -39,7 +39,7 @@ message RootKeyFileContentProto {
 
   // Pre-provisioned cloudflared tunnel tokens (skip API provisioning).
   // mainnet token → gateway.knirv.com (production); testnet token →
-  // testnet-gateway.knirv.com; oracle token → oracle.knirv.network
+  // testnet-gateway.knirv.com; oracle token → oracle.knirv.com
   // (root nodes only). KNIRVGATEWAY picks mainnet vs testnet at runtime from
   // its resolved network mode — see resolvePublicEndpoint in
   // packages/KNIRVGATEWAY/cmd/gateway/main.go.
