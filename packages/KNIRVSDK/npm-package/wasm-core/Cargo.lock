@@ -438,7 +438,7 @@ dependencies = [
 
 [[package]]
 name = "knirv-sdk"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "aes",
  "base64",
@@ -459,7 +459,7 @@ dependencies = [
 
 [[package]]
 name = "knirv-sdk-wasm-core"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "hex",
  "js-sys",

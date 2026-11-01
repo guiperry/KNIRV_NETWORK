@@ -5,7 +5,7 @@
 //! it to any other host.
 
 use serde_json::Value;
-use std::{collections::BTreeSet, sync::OnceLock};
+use std::sync::OnceLock;
 
 pub fn protocol() -> &'static Value {
     static PROTOCOL: OnceLock<Value> = OnceLock::new();
@@ -17,6 +17,7 @@ pub fn protocol() -> &'static Value {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::collections::BTreeSet;
 
     #[test]
     fn every_message_has_a_unique_code_in_its_family_range() {

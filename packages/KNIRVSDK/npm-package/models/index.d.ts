@@ -111,6 +111,8 @@ export interface OrganizationOntology {
     industry_jargon?: Record<string, string>;
     stakeholder_hierarchy?: Record<string, unknown>;
     decision_rights?: Record<string, unknown>;
+    /** Tenant-approved alternate entity/property spelling -> canonical spelling. */
+    aliases?: Record<string, string>;
 }
 export interface OntologyConfig {
     id?: string;
@@ -190,6 +192,10 @@ export declare const BYTE_V1: {
     readonly EOS: 259;
     readonly PAD: 256;
     readonly BOS: 257;
+    readonly SEP: 258;
+    readonly OPT_OPEN: 260;
+    readonly OPT_END: 261;
+    readonly VOCAB: 262;
 };
 export declare function findDecision(r: Reasoning, name: string): Decision | undefined;
 /** Plan text: bytes up to the first EOS, specials dropped. */
@@ -198,6 +204,11 @@ export declare function planText(r: Reasoning): string;
 export declare function inputWidth(m: Manifest): number;
 /** BOS + the text's UTF-8 bytes, truncated or PAD-filled to `width`. */
 export declare function encodeByteV1(text: string, width: number): number[];
+/**
+ * Leakage-safe choice-set HEAD input after the model-owned summary slot:
+ * BOS question SEP state SEP (OPT_OPEN choice OPT_END)*.
+ */
+export declare function encodeChoiceSetV1(question: string, state: string, choices: readonly string[], width: number): number[];
 export interface AdviseContext {
     current_phase?: string;
     previous_phase?: string;

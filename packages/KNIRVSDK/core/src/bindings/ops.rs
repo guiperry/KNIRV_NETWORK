@@ -66,6 +66,10 @@ fn secrets_native(_: &str, _: &Value) -> Option<Op> {
 
 fn dispatch_inner(operation: &str, payload: &Value) -> Option<Op> {
     Some(match operation {
+        "evidence.build_event_log" => evidence_build(payload),
+        "evidence.verify_event_log" => evidence_verify(payload),
+        "evidence.merkle_root" => evidence_merkle_root(payload),
+        "evidence.verify_artifact_merkle" => evidence_verify_merkle(payload),
         "authority.tier_target_bits" => tier_target_bits(payload),
         "authority.action_digest" => action_digest(payload),
         "authority.header" => header(payload),
@@ -767,4 +771,49 @@ fn repl_verify_pull(payload: &Value) -> Op {
         Ok(request) => Ok(json!({"valid": true, "request": request})),
         Err(f) => Ok(repl_failure(f)),
     }
+}
+
+fn evidence_events(payload: &Value) -> Result<&Vec<Value>, BindingError> {
+    payload
+        .get("events")
+        .and_then(Value::as_array)
+        .ok_or_else(|| BindingError::invalid("events must be an array"))
+}
+
+fn evidence_hashes(payload: &Value) -> Result<Vec<String>, BindingError> {
+    payload
+        .get("artifact_hashes")
+        .and_then(Value::as_array)
+        .ok_or_else(|| BindingError::invalid("artifact_hashes must be an array"))?
+        .iter()
+        .map(|hash| {
+            hash.as_str()
+                .map(str::to_owned)
+                .ok_or_else(|| BindingError::invalid("artifact_hashes must be strings"))
+        })
+        .collect()
+}
+
+fn evidence_build(payload: &Value) -> Op {
+    let (events, root) = crate::evidence::eventlog::build_chain(evidence_events(payload)?)
+        .map_err(BindingError::invalid)?;
+    Ok(json!({ "events": events, "root": root }))
+}
+
+fn evidence_verify(payload: &Value) -> Op {
+    let events = serde_json::to_string(evidence_events(payload)?)
+        .map_err(|error| BindingError::invalid(error.to_string()))?;
+    let expected_root = payload.get("expected_root").and_then(Value::as_str).unwrap_or_default();
+    serde_json::from_str(&crate::evidence::eventlog::verify_json(&events, expected_root))
+        .map_err(|error| BindingError::invalid(error.to_string()))
+}
+
+fn evidence_merkle_root(payload: &Value) -> Op {
+    Ok(json!({ "root": crate::evidence::eventlog::artifact_merkle_root(&evidence_hashes(payload)?) }))
+}
+
+fn evidence_verify_merkle(payload: &Value) -> Op {
+    let root = crate::evidence::eventlog::artifact_merkle_root(&evidence_hashes(payload)?);
+    let expected = required_string(payload, "expected_root")?;
+    Ok(json!({ "valid": root.eq_ignore_ascii_case(expected.trim()), "root": root }))
 }

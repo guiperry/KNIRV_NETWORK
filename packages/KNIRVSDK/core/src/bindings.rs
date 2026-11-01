@@ -4,11 +4,14 @@
 //! errors.  New operations are additive; changing an operation name or its
 //! payload is a binding API major-version change.
 
-use crate::{crypto, signing, wasm_module, ClientConfig, Error, KnirvClient, Network, WasmModule};
+use crate::{crypto, signing, ClientConfig, Error, KnirvClient, Network};
+#[cfg(feature = "module-manifest")]
+use crate::{wasm_module, WasmModule};
 use base64::{engine::general_purpose::STANDARD as BASE64, Engine as _};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
-use std::{collections::BTreeMap, time::Duration};
+use crate::http_transport::HttpTransport;
+use std::{collections::BTreeMap, sync::Arc, time::Duration};
 
 mod ops;
 
@@ -20,6 +23,9 @@ pub struct RequestEnvelope {
     pub operation: String,
     #[serde(default)]
     pub payload: Value,
+    /// Per-call client settings for network operations.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub config: Option<BindingConfig>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -69,6 +75,8 @@ pub struct BindingConfig {
     #[serde(default)]
     pub controller_url: Option<String>,
     #[serde(default)]
+    pub backend_url: Option<String>,
+    #[serde(default)]
     pub headers: BTreeMap<String, String>,
 }
 
@@ -91,6 +99,7 @@ impl TryFrom<BindingConfig> for ClientConfig {
         config.transaction_url = value.transaction_url;
         config.gateway_url = value.gateway_url;
         config.controller_url = value.controller_url;
+        config.backend_url = value.backend_url;
         config.headers = value.headers;
         if let Some(timeout_ms) = value.timeout_ms {
             if timeout_ms == 0 {
@@ -162,6 +171,134 @@ impl BindingError {
     }
 }
 
+/// Operations that touch no network. They run identically in every host, so a
+/// WebAssembly host can serve them without supplying a transport. `None` means
+/// the operation is not local (it is a network operation or unknown).
+pub fn local_operation(operation: &str, payload: &Value) -> Option<Result<Value, BindingError>> {
+    Some(match operation {
+        "models.encode_byte_v1" => models_encode(&payload),
+        "models.encode_choice_set_v1" => models_encode_choice_set(&payload),
+        "models.plan_text" => models_plan_text(&payload),
+        "models.input_width" => models_input_width(&payload),
+        "models.build_advise_prompt" => models_build_advise_prompt(&payload),
+        "models.abstain_advice" => models_abstain(&payload),
+        "models.advice_from_reasoning" => models_advice(&payload),
+        "models.platform_roles" => models_platform_roles(&payload),
+        "noderole.resolve" => payload_as::<crate::noderole::Inputs>(&payload)
+            .map(|inputs| crate::noderole::resolve(&inputs))
+            .and_then(to_value),
+        "noderole.with_override" => noderole_with_override(&payload),
+        "frame.defaults" => frame_defaults(),
+        "frame.validate" => frame_registry(&payload).map(|_| json!({ "ok": true })),
+        "frame.stage" => frame_stage(&payload),
+        "frame.hash" => required_string(&payload, "system")
+            .map(|system| json!({ "hash": crate::frame::hash(system) })),
+        "frame.build" | "frame.build_lite" | "frame.check_shape" | "frame.check" | "frame.manifest" => {
+            frame_op(operation, &payload)
+        }
+        "crypto.sha256" => local_sha256(&payload),
+        "crypto.encrypt_aes" => crypto_encrypt(&payload),
+        "crypto.decrypt_aes" => crypto_decrypt(&payload),
+        "crypto.pbkdf2" => crypto_pbkdf2(&payload),
+        "signing.marshal_action" => {
+            marshal_value::<signing::Action>(&payload, signing::marshal_action)
+        }
+        "signing.sign_direct_transaction" => sign_direct_transaction(&payload),
+        "signing.verify_transaction" => verify_transaction(&payload),
+        "signing.marshal_message_envelope" => marshal_value::<signing::MessageEnvelope>(
+            &payload,
+            signing::marshal_message_envelope,
+        ),
+        "signing.sign_message_envelope" => sign_message_envelope(&payload),
+        "signing.verify_message" => verify_message(&payload),
+        "address.encode" => encode_address(&payload),
+        "address.decode" => decode_address(&payload),
+        "relay.marshal" => marshal_value::<signing::RelayEnvelope>(
+            &payload,
+            signing::marshal_relay_envelope,
+        ),
+        "relay.parse" => parse_relay(&payload),
+        "relay.new_cli_supervisor" => new_cli_supervisor_relay(&payload),
+        "relay.sign_cli_supervisor_response" => sign_cli_supervisor_response(&payload),
+        "wasm.publication.marshal" => marshal_value::<signing::WasmPublicationPayload>(
+            &payload,
+            signing::marshal_wasm_publication_payload,
+        ),
+        "wasm.publication.parse" => parse_wasm_publication(&payload),
+        "wasm.assignment.marshal" => marshal_value::<signing::WasmManifestPayload>(
+            &payload,
+            signing::marshal_wasm_manifest_payload,
+        ),
+        "wasm.assignment.parse" => parse_wasm_manifest(&payload),
+        "wasm.manifest" => wasm_manifest(),
+        "wasm.bytes" => wasm_bytes(&payload),
+        "wasm.verify" => wasm_verify(&payload),
+        _ => return ops::dispatch(operation, payload),
+    })
+}
+
+/// Operations that need the network (and therefore a transport).
+pub fn is_network_operation(operation: &str) -> bool {
+    matches!(
+        operation,
+        "actuarial.call" | "transaction.chain" | "gateway.health" | "transmission.resolve_uri" | "transmission.broadcast" | "wallet.account"
+    )
+}
+
+fn parse_request(request_json: &[u8]) -> Result<RequestEnvelope, Vec<u8>> {
+    serde_json::from_slice::<RequestEnvelope>(request_json).map_err(|error| {
+        response_error("", BindingError::invalid(format!("invalid request JSON: {error}")))
+    })
+}
+
+/// Runs one request that needs no network. Network operations answer `UNSUPPORTED`.
+pub fn call_local_json(request_json: &[u8]) -> Vec<u8> {
+    let request = match parse_request(request_json) {
+        Ok(request) => request,
+        Err(response) => return response,
+    };
+    let response = if request.version != BINDING_API_VERSION {
+        ResponseEnvelope::error(&request.operation, BindingError::invalid(format!("unsupported binding API version: {}", request.version)))
+    } else {
+        match local_operation(&request.operation, &request.payload) {
+            Some(Ok(payload)) => ResponseEnvelope::success(&request.operation, payload),
+            Some(Err(error)) => ResponseEnvelope::error(&request.operation, error),
+            None => ResponseEnvelope::error(&request.operation, BindingError {
+                code: BindingErrorCode::Unsupported,
+                message: format!("unsupported operation: {}", request.operation),
+                http_status: None,
+                retryable: false,
+            }),
+        }
+    };
+    serde_json::to_vec(&response).expect("binding response is serializable")
+}
+
+/// Runs one request with a host-supplied transport. The request may carry a
+/// `config` (the same shape as [`BindingConfig`]); retries, failover and error
+/// mapping stay in this crate, the host only moves the bytes.
+pub async fn call_json_async_with_transport(request_json: &[u8], transport: Arc<dyn HttpTransport>) -> Vec<u8> {
+    let request = match parse_request(request_json) {
+        Ok(request) => request,
+        Err(response) => return response,
+    };
+    let operation = request.operation.clone();
+    if !is_network_operation(&operation) {
+        return call_local_json(request_json);
+    }
+    let config = request.config.clone().unwrap_or_default();
+    match BindingEngine::with_transport(config, transport) {
+        Ok(engine) => serde_json::to_vec(&engine.call(request).await).expect("binding response is serializable"),
+        Err(error) => response_error(&operation, error),
+    }
+}
+
+/// Synchronous form of [`call_json_async_with_transport`], for hosts whose
+/// transport answers immediately (WASI).
+pub fn call_json_with_transport(request_json: &[u8], transport: Arc<dyn HttpTransport>) -> Vec<u8> {
+    crate::http_transport::block_on(call_json_async_with_transport(request_json, transport))
+}
+
 /// Binding-safe engine. Calls return an envelope for all ordinary failures so
 /// hosts can deserialize one stable response shape.
 #[derive(Clone, Debug)]
@@ -171,7 +308,16 @@ pub struct BindingEngine {
 
 impl BindingEngine {
     pub fn new(config: BindingConfig) -> Result<Self, BindingError> {
-        let config = ClientConfig::try_from(config)?;
+        Self::with_transport_option(config, None)
+    }
+
+    pub fn with_transport(config: BindingConfig, transport: Arc<dyn HttpTransport>) -> Result<Self, BindingError> {
+        Self::with_transport_option(config, Some(transport))
+    }
+
+    fn with_transport_option(config: BindingConfig, transport: Option<Arc<dyn HttpTransport>>) -> Result<Self, BindingError> {
+        let mut config = ClientConfig::try_from(config)?;
+        config.transport = transport;
         KnirvClient::new(config)
             .map(|client| Self { client })
             .map_err(BindingError::from_sdk)
@@ -201,104 +347,51 @@ impl BindingEngine {
             );
         }
         let operation = request.operation.clone();
-        let result = match operation.as_str() {
-            "models.encode_byte_v1" => models_encode(&request.payload),
-            "models.encode_choice_set_v1" => models_encode_choice_set(&request.payload),
-            "models.plan_text" => models_plan_text(&request.payload),
-            "models.input_width" => models_input_width(&request.payload),
-            "models.build_advise_prompt" => models_build_advise_prompt(&request.payload),
-            "models.abstain_advice" => models_abstain(&request.payload),
-            "models.advice_from_reasoning" => models_advice(&request.payload),
-            "models.platform_roles" => models_platform_roles(&request.payload),
-            "noderole.resolve" => payload_as::<crate::noderole::Inputs>(&request.payload)
-                .map(|inputs| crate::noderole::resolve(&inputs))
-                .and_then(to_value),
-            "noderole.with_override" => noderole_with_override(&request.payload),
-            "frame.defaults" => frame_defaults(),
-            "frame.validate" => frame_registry(&request.payload).map(|_| json!({ "ok": true })),
-            "frame.stage" => frame_stage(&request.payload),
-            "frame.hash" => required_string(&request.payload, "system")
-                .map(|system| json!({ "hash": crate::frame::hash(system) })),
-            "frame.build" | "frame.build_lite" | "frame.check_shape" | "frame.check" | "frame.manifest" => {
-                frame_op(&operation, &request.payload)
-            }
-            "crypto.sha256" => local_sha256(&request.payload),
-            "crypto.encrypt_aes" => crypto_encrypt(&request.payload),
-            "crypto.decrypt_aes" => crypto_decrypt(&request.payload),
-            "crypto.pbkdf2" => crypto_pbkdf2(&request.payload),
-            "signing.marshal_action" => {
-                marshal_value::<signing::Action>(&request.payload, signing::marshal_action)
-            }
-            "signing.sign_direct_transaction" => sign_direct_transaction(&request.payload),
-            "signing.verify_transaction" => verify_transaction(&request.payload),
-            "signing.marshal_message_envelope" => marshal_value::<signing::MessageEnvelope>(
-                &request.payload,
-                signing::marshal_message_envelope,
-            ),
-            "signing.sign_message_envelope" => sign_message_envelope(&request.payload),
-            "signing.verify_message" => verify_message(&request.payload),
-            "address.encode" => encode_address(&request.payload),
-            "address.decode" => decode_address(&request.payload),
-            "relay.marshal" => marshal_value::<signing::RelayEnvelope>(
-                &request.payload,
-                signing::marshal_relay_envelope,
-            ),
-            "relay.parse" => parse_relay(&request.payload),
-            "relay.new_cli_supervisor" => new_cli_supervisor_relay(&request.payload),
-            "relay.sign_cli_supervisor_response" => sign_cli_supervisor_response(&request.payload),
-            "wasm.publication.marshal" => marshal_value::<signing::WasmPublicationPayload>(
-                &request.payload,
-                signing::marshal_wasm_publication_payload,
-            ),
-            "wasm.publication.parse" => parse_wasm_publication(&request.payload),
-            "wasm.assignment.marshal" => marshal_value::<signing::WasmManifestPayload>(
-                &request.payload,
-                signing::marshal_wasm_manifest_payload,
-            ),
-            "wasm.assignment.parse" => parse_wasm_manifest(&request.payload),
-            "wasm.manifest" => Ok(wasm_manifest()),
-            "wasm.bytes" => wasm_bytes(&request.payload),
-            "wasm.verify" => wasm_verify(&request.payload),
+        let result = match local_operation(&operation, &request.payload) {
+            Some(result) => result,
+            None => match operation.as_str() {
+                "actuarial.call" => required_string(&request.payload, "op")
+                .and_then_async(|op| self.client.actuarial.call(op, &request.payload))
+                .await,
             "transaction.chain" => self
-                .client
-                .transaction
-                .chain()
-                .await
-                .map_err(BindingError::from_sdk)
-                .and_then(to_value),
-            "gateway.health" => self
-                .client
-                .gateway
-                .health()
-                .await
-                .map_err(BindingError::from_sdk)
-                .and_then(to_value),
-            "transmission.resolve_uri" => {
-                required_string(&request.payload, "uri")
-                    .and_then_async(|uri| self.client.transmission.resolve_uri(uri))
+                    .client
+                    .transaction
+                    .chain()
                     .await
-            }
-            "transmission.broadcast" => self
-                .client
-                .transmission
-                .broadcast(request.payload)
-                .await
-                .map_err(BindingError::from_sdk),
-            "wallet.account" => self
-                .client
-                .wallet
-                .account()
-                .await
-                .map_err(BindingError::from_sdk)
-                .and_then(to_value),
-            _ => ops::dispatch(&operation, &request.payload).unwrap_or_else(|| {
-                Err(BindingError {
+                    .map_err(BindingError::from_sdk)
+                    .and_then(to_value),
+                "gateway.health" => self
+                    .client
+                    .gateway
+                    .health()
+                    .await
+                    .map_err(BindingError::from_sdk)
+                    .and_then(to_value),
+                "transmission.resolve_uri" => {
+                    required_string(&request.payload, "uri")
+                        .and_then_async(|uri| self.client.transmission.resolve_uri(uri))
+                        .await
+                }
+                "transmission.broadcast" => self
+                    .client
+                    .transmission
+                    .broadcast(request.payload)
+                    .await
+                    .map_err(BindingError::from_sdk),
+                "wallet.account" => self
+                    .client
+                    .wallet
+                    .account()
+                    .await
+                    .map_err(BindingError::from_sdk)
+                    .and_then(to_value),
+                _ => Err(BindingError {
                     code: BindingErrorCode::Unsupported,
                     message: format!("unsupported operation: {operation}"),
                     http_status: None,
                     retryable: false,
-                })
-            }),
+                }),
+            },
         };
         match result {
             Ok(payload) => ResponseEnvelope::success(&operation, payload),
@@ -680,17 +773,21 @@ fn parse_wasm_manifest(payload: &Value) -> Result<Value, BindingError> {
         .map_err(BindingError::from_sdk)
         .and_then(to_value)
 }
+#[cfg(feature = "module-manifest")]
 fn selected_module(payload: &Value) -> Result<WasmModule, BindingError> {
     wasm_module(required_string(payload, "name")?)
         .ok_or_else(|| BindingError::invalid("unknown KNIRV WASM module"))
 }
-fn wasm_manifest() -> Value {
-    json!({ "modules": WasmModule::ALL.into_iter().map(|module| module.metadata()).collect::<Vec<_>>() })
+#[cfg(feature = "module-manifest")]
+fn wasm_manifest() -> Result<Value, BindingError> {
+    Ok(json!({ "modules": WasmModule::ALL.into_iter().map(|module| module.metadata()).collect::<Vec<_>>() }))
 }
+#[cfg(all(feature = "module-manifest", feature = "embedded-modules"))]
 fn wasm_bytes(payload: &Value) -> Result<Value, BindingError> {
     let module = selected_module(payload)?;
     Ok(json!({ "module": module.metadata(), "bytes_base64": BASE64.encode(module.bytes()) }))
 }
+#[cfg(feature = "module-manifest")]
 fn wasm_verify(payload: &Value) -> Result<Value, BindingError> {
     let module = selected_module(payload)?;
     let bytes = match payload.get("bytes_base64") {
@@ -701,9 +798,42 @@ fn wasm_verify(payload: &Value) -> Result<Value, BindingError> {
                     .ok_or_else(|| BindingError::invalid("bytes_base64 must be a string"))?,
             )
             .map_err(|error| BindingError::invalid(format!("invalid base64: {error}")))?,
-        None => module.bytes().to_vec(),
+        None => embedded_bytes(module)?,
     };
     Ok(json!({ "valid": module.verify(&bytes).is_ok(), "module": module.metadata() }))
+}
+#[cfg(all(feature = "module-manifest", feature = "embedded-modules"))]
+fn embedded_bytes(module: WasmModule) -> Result<Vec<u8>, BindingError> {
+    Ok(module.bytes().to_vec())
+}
+#[cfg(all(feature = "module-manifest", not(feature = "embedded-modules")))]
+fn embedded_bytes(_: WasmModule) -> Result<Vec<u8>, BindingError> {
+    Err(wasm_modules_unavailable())
+}
+#[cfg(all(feature = "module-manifest", not(feature = "embedded-modules")))]
+fn wasm_bytes(_: &Value) -> Result<Value, BindingError> {
+    Err(wasm_modules_unavailable())
+}
+#[cfg(not(feature = "module-manifest"))]
+fn wasm_manifest() -> Result<Value, BindingError> {
+    Err(wasm_modules_unavailable())
+}
+#[cfg(not(feature = "module-manifest"))]
+fn wasm_bytes(_: &Value) -> Result<Value, BindingError> {
+    Err(wasm_modules_unavailable())
+}
+#[cfg(not(feature = "module-manifest"))]
+fn wasm_verify(_: &Value) -> Result<Value, BindingError> {
+    Err(wasm_modules_unavailable())
+}
+#[cfg(not(all(feature = "module-manifest", feature = "embedded-modules")))]
+fn wasm_modules_unavailable() -> BindingError {
+    BindingError {
+        code: BindingErrorCode::Unsupported,
+        message: "this build does not embed the WASM modules; fetch them from the release URL".into(),
+        http_status: None,
+        retryable: false,
+    }
 }
 
 #[cfg(test)]
@@ -717,6 +847,7 @@ mod tests {
                 version: 1,
                 operation: "crypto.sha256".into(),
                 payload: json!({"data":"knirv"}),
+                config: None,
             })
             .await;
         assert_eq!(
@@ -732,6 +863,7 @@ mod tests {
                 version: 999,
                 operation: "crypto.sha256".into(),
                 payload: json!({}),
+                config: None,
             })
             .await;
         assert_eq!(

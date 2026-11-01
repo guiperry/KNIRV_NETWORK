@@ -17,7 +17,7 @@ export const HASHER_PREFIX = "/models/hasher";
 export class NotReadyError extends Error {
     constructor() { super("model not ready"); this.name = "NotReadyError"; }
 }
-export const BYTE_V1 = { EOS: 259, PAD: 256, BOS: 257 }; // token ids; the tokenizer itself is in the core
+export const BYTE_V1 = { EOS: 259, PAD: 256, BOS: 257, SEP: 258, OPT_OPEN: 260, OPT_END: 261, VOCAB: 262 }; // token ids; the tokenizer itself is in the core
 export function findDecision(r, name) {
     return r.decisions.find((d) => d.name === name);
 }
@@ -33,6 +33,13 @@ export function inputWidth(m) {
 /** BOS + the text's UTF-8 bytes, truncated or PAD-filled to `width`. */
 export function encodeByteV1(text, width) {
     return callLocal("models.encode_byte_v1", { text, width }).tokens;
+}
+/**
+ * Leakage-safe choice-set HEAD input after the model-owned summary slot:
+ * BOS question SEP state SEP (OPT_OPEN choice OPT_END)*.
+ */
+export function encodeChoiceSetV1(question, state, choices, width) {
+    return callLocal("models.encode_choice_set_v1", { question, state, choices: [...choices], width }).tokens;
 }
 const now = () => new Date().toISOString();
 /** Canonical model input; the trainer's `prompt` is pinned to the same vector. */

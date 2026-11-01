@@ -54,11 +54,12 @@ build-go: stamp test-go ## stamp, then test the Go package against the same dige
 
 build-sdk: build-npm build-go parity check-stamp ## everything, no upload
 
-upload-wasm: check-stamp ## publish dist/ to R2 (versions are immutable; latest is a pointer)
+upload-wasm: check-stamp ## publish dist/ to R2 (identical files are skipped by checksum; changed files for the same version are overwritten)
 	@command -v "$(R2_CMD)" >/dev/null 2>&1 || { echo "ERROR: $(R2_CMD) not found. Install/configure rclone or set R2_CMD."; exit 1; }
 	@test -f $(DIST)/knirv_core.wasm && test -f $(DIST)/manifest.json || { echo "ERROR: $(DIST) is incomplete; run make build-wasm"; exit 1; }
-	$(R2_CMD) copy --immutable $(DIST) "$(R2_REMOTE):$(R2_SDK_PREFIX)/$(SDK_VERSION)/"
-	$(R2_CMD) copy dist/latest "$(R2_REMOTE):$(R2_SDK_PREFIX)/latest/"
+	@# --checksum: compare content, not modtime. Unchanged files are skipped; changed files are overwritten.
+	$(R2_CMD) copy --checksum -v $(DIST) "$(R2_REMOTE):$(R2_SDK_PREFIX)/$(SDK_VERSION)/"
+	$(R2_CMD) copy --checksum dist/latest "$(R2_REMOTE):$(R2_SDK_PREFIX)/latest/"
 	@echo "Published $(SDK_VERSION) to $(R2_REMOTE):$(R2_SDK_PREFIX)/ (https://releases.knirv.com/sdk/$(SDK_VERSION)/)"
 
 release-sdk: build-sdk upload-wasm ## build, stamp, test and publish

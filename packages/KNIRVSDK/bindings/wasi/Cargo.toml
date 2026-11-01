@@ -1,6 +1,6 @@
 [package]
 name = "knirv-sdk-wasi"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 publish = false
 description = "The KNIRV SDK core as a WASI module, for hosts that embed a WebAssembly runtime (the Go package uses wazero) instead of linking native code"

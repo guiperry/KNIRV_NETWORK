@@ -1,6 +1,6 @@
 [package]
 name = "knirv-sdk-crypto-core"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 description = "Raw-ABI vault crypto module owned by KNIRVSDK: a thin wrapper over knirv-sdk's `vault`"
 
