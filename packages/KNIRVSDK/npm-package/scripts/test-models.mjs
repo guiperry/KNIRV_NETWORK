@@ -3,9 +3,13 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
+import { initLocal } from "../local.js";
+
 import {
-  BYTE_V1, HEAD_PREFIX, ModelsClient, NotReadyError, STATUS_PATH, abstainAdvice, adviceFromReasoning, buildAdvisePrompt, encodeByteV1, inputWidth, planText, roles,
+  BYTE_V1, HEAD_PREFIX, ModelsClient, NotReadyError, STATUS_PATH, abstainAdvice, adviceFromReasoning, buildAdvisePrompt, encodeByteV1, encodeChoiceSetV1, inputWidth, planText, roles,
 } from "../models/index.js";
+
+await initLocal(); // the models logic runs in the core
 
 const vec = async (name) => JSON.parse(await readFile(new URL(`../../testvectors/models/${name}`, import.meta.url), "utf8"));
 
@@ -23,6 +27,14 @@ test("prompt is redacted and deterministic", async () => {
 
 test("byte-v1 vectors", async () => {
   for (const c of await vec("byte_v1.json")) assert.deepEqual(encodeByteV1(c.text, c.width), c.tokens);
+});
+
+test("choice-set prompt matches the shared vector", async () => {
+	const c = (await vec("prompt_vector.json")).set_prompt;
+	assert.deepEqual(encodeChoiceSetV1(c.question, c.state, c.choices, c.width), c.tokens);
+	assert.equal(BYTE_V1.OPT_OPEN, 260);
+	assert.equal(BYTE_V1.OPT_END, 261);
+	assert.equal(BYTE_V1.VOCAB, 262);
 });
 
 test("advice cases", async () => {
@@ -105,6 +117,28 @@ test("registry, HEART and HASHER fixtures round-trip through the client", async 
   assert.equal((await c.hasherValidate(hc.validate.request)).valid, true);
   assert.equal((await c.hasherInfer("x")).mode, "transformer");
   assert.equal((await c.hasherStatus()).loaded, false);
+});
+
+test("ontology fixtures use the typed routes and authority headers", async () => {
+  const sync = await vec("ontology_sync.json");
+  const check = await vec("ontology_check.json");
+  const ok = (body, status = 200) => ({ ok: status < 400, status, json: async () => body });
+  const calls = [];
+  const c = new ModelsClient("http://x", async (url, init) => {
+    calls.push({ url, init });
+    if (url.endsWith("/ontology/sync")) return ok(sync.response);
+    if (url.includes("/ontology?tenant=acme")) return ok(check.remove_response);
+    if (url.endsWith("/ontology/check")) return ok(check.response);
+    return ok({}, 404);
+  });
+  assert.equal((await c.hasherOntologySync(sync.request)).ontology_version, "ont1:fixture");
+  assert.equal((await c.hasherOntologyCheck({ ...check.request, tenant: "acme" })).outcome, "supported");
+  assert.equal((await c.hasherOntologyRemove("acme")).status, "removed");
+  assert.equal(calls[0].init.headers["X-KNIRV-Privilege"], "operator");
+  assert.equal(calls[1].init.headers["X-KNIRV-Tenant"], "acme");
+  assert.equal(calls[2].init.method, "DELETE");
+  assert.equal(calls[2].init.headers["X-KNIRV-Privilege"], "operator");
+  assert.ok(!JSON.stringify(calls[1].init.body).includes("tenant"));
 });
 
 test("platform status role lines match the shared vectors (same file as the Go twin)", async () => {

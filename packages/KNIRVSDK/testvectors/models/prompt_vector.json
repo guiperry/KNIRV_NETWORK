@@ -24,5 +24,12 @@
       }
     ]
   },
-  "prompt": "phase:develop intent:review risk:medium budget:a=1,b=2 agents:claude>codex evidence:diff,report\nrequest:fix the build"
+  "prompt": "phase:develop intent:review risk:medium budget:a=1,b=2 agents:claude>codex evidence:diff,report\nrequest:fix the build",
+  "set_prompt": {
+    "question": "why?",
+    "state": "host=idle",
+    "choices": ["wait", "restart"],
+    "width": 32,
+    "tokens": [257, 119, 104, 121, 63, 258, 104, 111, 115, 116, 61, 105, 100, 108, 101, 258, 260, 119, 97, 105, 116, 261, 260, 114, 101, 115, 116, 97, 114, 116, 261, 256]
+  }
 }

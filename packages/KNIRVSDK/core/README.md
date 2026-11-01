@@ -40,7 +40,7 @@ per-service URL overrides. It reads `KNIRVCHAIN_TRANSACTION_SDK_API_KEY`,
 - `wallet`: controller approval polling, signing requests, URI resolution, and broadcast.
 - `signing`: byte-compatible direct-sign document/action encoding, secp256k1 signing,
   KNIRV bech32 addresses, and relay envelope encoding.
-- `wasm_modules`: four immutable, compile-time embedded KNIRV WASM modules.
+- `wasm_modules`: three immutable, compile-time embedded KNIRV WASM modules.
 
 `KnirvClient` exposes the complete surface through `transaction`, `gateway`,
 `wallet`, `oracled`, `governance`, `crypto`, `badges`, `dve`, `treasury`, `agents`,
@@ -51,19 +51,20 @@ Requests made against KNIRV's canonical gateways automatically fail over in this
 order after a transport failure, timeout, or 5xx response: production gateway,
 testnet gateway, then local testnet. Custom base URLs never fail over unexpectedly.
 
-## Embedded WASM modules
+## WASM modules
 
-The SDK embeds `controller-relay`, `crypto-core`, and
-`proof-verifier` from `wasm-modules/assets`. A Rust host can use their bytes
-directly with no file or allocation overhead:
+The SDK's three modules (`controller-relay`, `crypto-core`, `proof-verifier`) are
+described by `wasm-modules/manifest.json`, which is always compiled in
+(`module-manifest` feature), so digests and `WasmModule::verify` work everywhere.
+Their bytes (about 0.8 MB) are embedded only with the `embedded-modules` feature,
+on by default for native builds:
 
 ```rust
 use knirv_sdk::WasmModule;
 
-let wasm_bytes = WasmModule::CryptoCore.bytes();
+let wasm_bytes = WasmModule::CryptoCore.bytes(); // `embedded-modules`
+WasmModule::CryptoCore.verify(&wasm_bytes)?;     // `module-manifest` only needs the bytes you give it
 ```
-
-For a host that requires a file, materialize only the required module:
 
 ```rust,no_run
 knirv_sdk::materialize_wasm_module("crypto-core", "./crypto-core.wasm")?;
@@ -76,4 +77,15 @@ cargo run --bin knirv-sdk -- list
 cargo run --bin knirv-sdk -- extract crypto-core ./crypto-core.wasm
 ```
 
-Run checks with `cargo test` from this directory.
+## Features
+
+| Feature | Default | Adds |
+| --- | --- | --- |
+| `http-reqwest`, `rustls-tls` | yes | native HTTP transport. Without it a host must supply an `HttpTransport` (WebAssembly builds do) |
+| `filesystem`, `secrets` | yes | key-file discovery and scrypt + AES-GCM decryption |
+| `module-manifest` | yes | WASM module manifest and verification |
+| `embedded-modules` | yes | module bytes (`include_bytes!`) |
+| `vault` | no | the wallet vault; built only into the `crypto-core` module |
+| `js-rng` | no | `crypto.getRandomValues` entropy for the wasm-bindgen build |
+
+Run checks with `cargo test --all-features` from this directory.

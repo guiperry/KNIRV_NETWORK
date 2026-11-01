@@ -12,8 +12,8 @@ import (
 	"testing"
 	"time"
 
-	knirvsigning "github.com/guiperry/knirv-sdk-go/signing"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
+	knirvsigning "github.com/guiperry/knirv-sdk-go/signing"
 	"github.com/knirvcorp/knirvoracle/internal/oracle"
 	"github.com/knirvcorp/knirvoracle/internal/oracle/crypto"
 	"github.com/knirvcorp/knirvoracle/internal/oracle/types"

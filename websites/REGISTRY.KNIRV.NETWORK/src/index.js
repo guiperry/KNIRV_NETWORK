@@ -2,6 +2,7 @@ import { DurableObject } from "cloudflare:workers";
 import { sha256 } from "@noble/hashes/sha2.js";
 import { hmac } from "@noble/hashes/hmac.js";
 import * as secp256k1 from "@noble/secp256k1";
+import { buildTarget, defaultProbes, tokensMatch, validateNode, validationKey, validationMode, validationSettings } from "./validation.js";
 
 secp256k1.hashes.sha256 = sha256;
 secp256k1.hashes.hmacSha256 = (key, msg) => hmac(sha256, key, msg);
@@ -12,6 +13,7 @@ const PRUNE_INTERVAL_MS = 15 * 60 * 1000;
 const HEARTBEAT_TTL_MS = 45 * 1000;
 const HEARTBEAT_PRUNE_INTERVAL_MS = 30 * 1000;
 const VOTE_TTL_MS = 24 * 60 * 60 * 1000;
+const VALIDATION_RECORD_TTL_MS = 24 * 60 * 60 * 1000;
 
 function json(value, status = 200, headers = {}) {
   return new Response(JSON.stringify(value), { status, headers: { ...JSON_HEADERS, ...headers } });
@@ -31,9 +33,9 @@ function escapeHTML(value) {
 }
 
 function statusHTML(status) {
-  const rows = Object.entries(status.nodes).map(([chainID, node]) => `<tr><td><code>${escapeHTML(chainID)}</code></td><td>${escapeHTML(node.type)}</td><td>${escapeHTML(node.ip)}</td><td>${node.port}</td><td>${node.active ? "Active" : "Inactive"}</td><td>${escapeHTML(new Date(node.lastSeen).toLocaleString())}</td></tr>`).join("");
+  const rows = Object.entries(status.nodes).map(([chainID, node]) => `<tr><td><code>${escapeHTML(chainID)}</code></td><td>${escapeHTML(node.type)}</td><td>${escapeHTML(node.ip)}</td><td>${node.port}</td><td>${node.type === "bootnode" ? (node.validated ? "Yes" : "No") : "-"}</td><td>${node.active ? "Active" : "Inactive"}</td><td>${escapeHTML(new Date(node.lastSeen).toLocaleString())}</td></tr>`).join("");
   const validatorRows = status.validators && Object.entries(status.validators).map(([validatorID, v]) => `<tr><td><code>${escapeHTML(validatorID)}</code></td><td>${escapeHTML(v.publicKey || "")}</td><td>${v.active ? "Active" : "Jailed/Demoted"}</td></tr>`).join("");
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>KNIRV Network Registry</title><style>body{font-family:system-ui,sans-serif;max-width:1100px;margin:2rem auto;padding:0 1rem;color:#172033}table{width:100%;border-collapse:collapse}th,td{padding:.65rem;border-bottom:1px solid #d8dee9;text-align:left}th{background:#f4f7fb}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:1rem}.card{background:#f4f7fb;border-radius:.5rem;padding:1rem}code{word-break:break-all}</style></head><body><h1>KNIRV Network Registry</h1><div class="grid"><div class="card">Status<br><strong>${escapeHTML(status.status)}</strong></div><div class="card">Registered nodes<br><strong>${status.registeredNodes}</strong></div><div class="card">Active nodes<br><strong>${status.activeNodes}</strong></div><div class="card">Version<br><strong>${escapeHTML(status.version)}</strong></div></div><h2>Registered Nodes</h2><table><thead><tr><th>Chain ID</th><th>Type</th><th>IP</th><th>Port</th><th>Status</th><th>Last seen</th></tr></thead><tbody>${rows || '<tr><td colspan="6">No nodes registered</td></tr>'}</tbody></table>${validatorRows ? '<h2>Validators</h2><table><thead><tr><th>Validator ID</th><th>Public Key</th><th>Status</th></tr></thead><tbody>' + validatorRows + '</tbody></table>' : ''}</</body></html>`;
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>KNIRV Network Registry</title><style>body{font-family:system-ui,sans-serif;max-width:1100px;margin:2rem auto;padding:0 1rem;color:#172033}table{width:100%;border-collapse:collapse}th,td{padding:.65rem;border-bottom:1px solid #d8dee9;text-align:left}th{background:#f4f7fb}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:1rem}.card{background:#f4f7fb;border-radius:.5rem;padding:1rem}code{word-break:break-all}</style></head><body><h1>KNIRV Network Registry</h1><div class="grid"><div class="card">Status<br><strong>${escapeHTML(status.status)}</strong></div><div class="card">Registered nodes<br><strong>${status.registeredNodes}</strong></div><div class="card">Active nodes<br><strong>${status.activeNodes}</strong></div><div class="card">Version<br><strong>${escapeHTML(status.version)}</strong></div></div><h2>Registered Nodes</h2><table><thead><tr><th>Chain ID</th><th>Type</th><th>IP</th><th>Port</th><th>Validated</th><th>Status</th><th>Last seen</th></tr></thead><tbody>${rows || '<tr><td colspan="7">No nodes registered</td></tr>'}</tbody></table>${validatorRows ? '<h2>Validators</h2><table><thead><tr><th>Validator ID</th><th>Public Key</th><th>Status</th></tr></thead><tbody>' + validatorRows + '</tbody></table>' : ''}</</body></html>`;
 }
 
 function canonicalize(...parts) {
@@ -94,23 +96,24 @@ async function pruneVotes(store, now, ttlMs) {
 }
 
 export class RegistryStore extends DurableObject {
-  async register(payload, ipFallback, ttlMs) {
+  async register(payload, ipFallback, ttlMs, validation, validatedOnly = false) {
     const chainID = typeof payload?.chainID === "string" ? payload.chainID.trim() : "";
     const ip = typeof payload?.ip === "string" && payload.ip.trim() ? payload.ip.trim() : ipFallback;
     const port = typeof payload?.port === "string" || typeof payload?.port === "number" ? Number.parseInt(payload.port, 10) : NaN;
     const type = payload?.type === "bootnode" ? "bootnode" : "client";
-    const peerID = typeof payload?.peerID === "string" ? payload.peerID : undefined;
+    const peerRaw = payload?.peerID ?? payload?.nodeID;
+    const peerID = typeof peerRaw === "string" && peerRaw ? peerRaw : undefined;
     if (!chainID || !Number.isInteger(port)) return { status: 400, error: "Missing required fields: chainID and port are mandatory." };
     if (port < 1 || port > 65535 || !ip) return { status: 400, error: "Invalid data types or value for chainID, port, or IP" };
 
     const now = Date.now();
     await this.prune(now, ttlMs);
     await this.ctx.storage.put("nodeTtlMs", ttlMs);
-    const node = { ip, port, lastSeen: now, type, ...(peerID ? { peerID } : {}) };
+    const node = { ip, port, lastSeen: now, type, ...(peerID ? { peerID } : {}), ...(validation ? { validated: true, validatedAt: validation.validatedAt, ...(validation.fqdn ? { fqdn: validation.fqdn } : {}) } : {}) };
     await this.ctx.storage.put(`node:${chainID}`, node);
     let suggestedBootnode;
     if (type === "client") {
-      const bootnodes = await this.bootnodes();
+      const bootnodes = await this.bootnodes(validatedOnly);
       if (bootnodes.length) {
         const index = (await this.ctx.storage.get("roundRobinIndex")) || 0;
         suggestedBootnode = bootnodes[index % bootnodes.length];
@@ -126,20 +129,37 @@ export class RegistryStore extends DurableObject {
     return node ? { status: 200, node } : { status: 404, error: "Node not found" };
   }
 
-  async nodes() {
+  async allNodes() {
     const entries = await this.ctx.storage.list({ prefix: "node:" });
     return Object.fromEntries([...entries].map(([key, value]) => [key.slice(5), value]));
   }
 
-  async bootnodes() {
-    const nodes = await this.nodes();
+  // validatedOnly hides bootnodes that have not passed validation, so clients
+  // are never pointed at them. Non-bootnode entries are never filtered.
+  async nodes(validatedOnly = false) {
+    const nodes = await this.allNodes();
+    if (!validatedOnly) return nodes;
+    return Object.fromEntries(Object.entries(nodes).filter(([, node]) => node.type !== "bootnode" || node.validated === true));
+  }
+
+  async bootnodes(validatedOnly = false) {
+    const nodes = await this.nodes(validatedOnly);
     return Object.entries(nodes).filter(([, node]) => node.type === "bootnode").map(([chainID, node]) => ({ chainID, ...node }));
+  }
+
+  async validationGet(chainID) {
+    return (await this.ctx.storage.get(`validation:${chainID}`)) || null;
+  }
+
+  async validationPut(chainID, record) {
+    await this.ctx.storage.put(`validation:${chainID}`, record);
+    await this.ctx.storage.setAlarm(Date.now() + PRUNE_INTERVAL_MS);
   }
 
   async status(ttlMs, version) {
     const now = Date.now();
     await this.prune(now, ttlMs);
-    const nodes = await this.nodes();
+    const nodes = await this.allNodes();
     const withActivity = Object.fromEntries(Object.entries(nodes).map(([chainID, node]) => [chainID, { ...node, active: now - node.lastSeen < ttlMs }]));
     const validators = await getValidators(this, "knirvoracle-1");
     const validatorMap = validators && validators.validators ? Object.fromEntries(validators.validators.map(v => [v.validatorID, v])) : {};
@@ -322,6 +342,12 @@ export class RegistryStore extends DurableObject {
     return validators || { chainID, version: 0, validators: [] };
   }
 
+  async pruneValidations(now) {
+    const entries = await this.ctx.storage.list({ prefix: "validation:" });
+    const expired = [...entries].filter(([, record]) => now - (record.attemptedAt || 0) > VALIDATION_RECORD_TTL_MS).map(([key]) => key);
+    if (expired.length) await this.ctx.storage.delete(expired);
+  }
+
   async alarm() {
     const now = Date.now();
     const ttlMs = (await this.ctx.storage.get("nodeTtlMs")) || DEFAULT_NODE_TTL_MS;
@@ -329,9 +355,77 @@ export class RegistryStore extends DurableObject {
     const heartbeatTtlMs = positiveInt(await this.ctx.storage.get("heartbeatTtlMs"), HEARTBEAT_TTL_MS / 1000) * 1000;
     await pruneHeartbeats(this, now, heartbeatTtlMs);
     await pruneVotes(this, now, VOTE_TTL_MS);
+    await this.pruneValidations(now);
     const nextAlarm = Math.min(now + PRUNE_INTERVAL_MS, now + HEARTBEAT_PRUNE_INTERVAL_MS);
     await this.ctx.storage.setAlarm(nextAlarm);
   }
+}
+
+// registerNode applies the bootnode validation requirement, then registers.
+// Clients are registered exactly as before. A bootnode must hold a passing,
+// current validation for its ip/port/fqdn; BOOTNODE_VALIDATION=monitor records
+// results without blocking, =off disables the requirement.
+export async function registerNode(store, payload, ipFallback, ttlMs, env, probes = defaultProbes) {
+  const mode = validationMode(env);
+  const type = payload?.type === "bootnode" ? "bootnode" : "client";
+  const validatedOnly = mode === "enforce";
+  if (type !== "bootnode" || mode === "off") return store.register(payload, ipFallback, ttlMs, undefined, validatedOnly);
+
+  const chainID = typeof payload?.chainID === "string" ? payload.chainID.trim() : "";
+  const ip = typeof payload?.ip === "string" && payload.ip.trim() ? payload.ip.trim() : ipFallback;
+  const port = typeof payload?.port === "string" || typeof payload?.port === "number" ? Number.parseInt(payload.port, 10) : NaN;
+  // Let register() produce its usual 400 for malformed basics.
+  if (!chainID || !Number.isInteger(port) || port < 1 || port > 65535 || !ip) return store.register(payload, ipFallback, ttlMs, undefined, validatedOnly);
+
+  const settings = validationSettings(env);
+  const peerRaw = payload?.peerID ?? payload?.nodeID;
+  const built = buildTarget({ chainID, ip, port, fqdn: payload?.fqdn, peerID: typeof peerRaw === "string" ? peerRaw : "" }, settings);
+  const now = Date.now();
+  let result;
+  if (built.error) {
+    result = { passed: false, checks: { connectivity: false, health: false, security: false, performance: false }, details: { error: built.error }, key: "", validatedAt: now };
+  } else {
+    const key = validationKey(built.target);
+    const previous = await store.validationGet(chainID);
+    if (previous?.key === key && previous.passed && now - previous.validatedAt < settings.ttlMs) {
+      result = previous;
+    } else if (previous?.key === key && !previous.passed && now - previous.attemptedAt < settings.failCooldownMs) {
+      const retryAfter = Math.ceil((settings.failCooldownMs - (now - previous.attemptedAt)) / 1000);
+      if (mode === "enforce") return { status: 429, error: "Bootnode validation failed recently; retry later.", retryAfter, validation: { passed: false, checks: previous.checks, details: previous.details } };
+      result = previous;
+    } else {
+      result = await validateNode(built.target, settings, probes);
+      await store.validationPut(chainID, { ...result, attemptedAt: now });
+    }
+  }
+
+  const validation = { passed: result.passed, checks: result.checks, details: result.details };
+  if (!result.passed && mode === "enforce") return { status: 422, error: "Bootnode failed validation and was not registered.", validation };
+  const registered = await store.register(payload, ipFallback, ttlMs, result.passed ? { validatedAt: result.validatedAt, fqdn: built.target?.fqdn } : undefined, validatedOnly);
+  return registered.error ? registered : { ...registered, validation };
+}
+
+// validateRequest implements the validation-service contract used by
+// ONBOARDING.KNIRV.COM's run-tests.ts: POST { registrationId, fqdn, publicIps,
+// expectedPorts } -> { checks, details }. It is read-only and only probes
+// public IPs and allowlisted hostnames, so it needs no secret by default. If
+// VALIDATION_SERVICE_TOKEN is set it is enforced as an optional extra lock.
+export async function validateRequest(request, env, probes = defaultProbes) {
+  if (env.VALIDATION_SERVICE_TOKEN) {
+    const header = request.headers.get("authorization") || "";
+    if (!header.startsWith("Bearer ") || !tokensMatch(header.slice(7), env.VALIDATION_SERVICE_TOKEN)) return json({ error: "Unauthorized" }, 401);
+  }
+  let body;
+  try { body = await request.json(); } catch { return json({ error: "Invalid JSON request body" }, 400); }
+  const ips = Array.isArray(body?.publicIps) ? body.publicIps : [];
+  const ports = Array.isArray(body?.expectedPorts) ? body.expectedPorts : [];
+  const ip = typeof ips[0] === "string" ? ips[0] : "";
+  const port = Number.parseInt(ports[0], 10);
+  const settings = validationSettings(env);
+  const built = buildTarget({ chainID: "", ip, port, fqdn: body?.fqdn, peerID: "" }, settings);
+  if (built.error) return json({ checks: { connectivity: false, health: false, security: false, performance: false }, details: { error: built.error } });
+  const result = await validateNode(built.target, settings, probes);
+  return json({ checks: result.checks, details: { ...result.details, registrationId: typeof body?.registrationId === "string" ? body.registrationId : undefined, identityChecked: false } });
 }
 
 export default {
@@ -340,21 +434,24 @@ export default {
     const path = url.pathname.replace(/\/$/, "") || "/";
     const ttlMs = positiveInt(env.NODE_TTL_SECONDS, DEFAULT_NODE_TTL_MS / 1000) * 1000;
     const store = env.REGISTRY.getByName("network-registry");
-    if (request.method === "OPTIONS") return new Response(null, { headers: { "access-control-allow-origin": "*", "access-control-allow-methods": "GET, POST, OPTIONS", "access-control-allow-headers": "content-type" } });
+    if (request.method === "OPTIONS") return new Response(null, { headers: { "access-control-allow-origin": "*", "access-control-allow-methods": "GET, POST, OPTIONS", "access-control-allow-headers": "content-type, authorization" } });
     if (path === "/") return Response.redirect(new URL("/status", url), 308);
     if (path === "/register" && request.method === "GET") return json({ error: "Method Not Allowed. Use POST to /register for node registration.", hint: "See /status for registry information." }, 405, { allow: "POST" });
     if (path === "/register" && request.method === "POST") {
       let payload;
       try { payload = await request.json(); } catch { return json({ error: "Invalid JSON request body" }, 400); }
-      const result = await store.register(payload, sourceIP(request), ttlMs);
-      return result.error ? json({ error: result.error }, result.status) : json(result, result.status);
+      const result = await registerNode(store, payload, sourceIP(request), ttlMs, env);
+      if (result.error) return json({ error: result.error, ...(result.validation ? { validation: result.validation } : {}) }, result.status, result.retryAfter ? { "retry-after": String(result.retryAfter) } : {});
+      return json(result, result.status);
     }
     if (path.startsWith("/lookup/") && request.method === "GET") {
       const result = await store.lookup(decodeURIComponent(path.slice(8)));
       return result.error ? json({ error: result.error }, result.status) : json(result.node);
     }
-    if (path === "/nodes" && request.method === "GET") return json(await store.nodes());
-    if (path === "/bootnodes" && request.method === "GET") return json(await store.bootnodes());
+    const validatedOnly = validationMode(env) === "enforce";
+    if (path === "/nodes" && request.method === "GET") return json(await store.nodes(validatedOnly));
+    if (path === "/bootnodes" && request.method === "GET") return json(await store.bootnodes(validatedOnly));
+    if (path === "/validate" && request.method === "POST") return validateRequest(request, env);
     if (path === "/status" && request.method === "GET") {
       const status = await store.status(ttlMs, env.REGISTRY_VERSION || "2.0.0");
       return request.headers.get("accept")?.includes("text/html") ? new Response(statusHTML(status), { headers: { "content-type": "text/html; charset=utf-8" } }) : json(status);

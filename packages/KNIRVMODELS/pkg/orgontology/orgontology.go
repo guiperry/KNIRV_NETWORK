@@ -46,6 +46,10 @@ type Ontology struct {
 	IndustryJargon       map[string]string `json:"industry_jargon,omitempty"`
 	StakeholderHierarchy map[string]any    `json:"stakeholder_hierarchy,omitempty"`
 	DecisionRights       map[string]any    `json:"decision_rights,omitempty"`
+	// Aliases map a tenant-approved alternative entity or property spelling to
+	// its canonical form. They are configuration, not facts: Sync expands the
+	// relevant fact keys so Check remains deterministic and tenant-scoped.
+	Aliases map[string]string `json:"aliases,omitempty"`
 }
 
 // Tenant is the organization the ontology belongs to.
@@ -131,10 +135,14 @@ func (c Config) Docs() ([]evidence.Doc, Counts) {
 		if subject == "" || property == "" || strings.TrimSpace(value) == "" {
 			return
 		}
-		d := base(fmt.Sprintf("%s/%s/%s", cat, evidence.Canon(subject), evidence.Canon(property)+"="+shortHash(value)), name+" "+strings.ReplaceAll(cat, "_", " "))
-		d.Facts = []evidence.Fact{{Subject: subject, Property: property, Value: value}}
-		docs = append(docs, d)
-		n.Facts++
+		for _, s := range aliasVariants(subject, o.Aliases) {
+			for _, p := range aliasVariants(property, o.Aliases) {
+				d := base(fmt.Sprintf("%s/%s/%s", cat, evidence.Canon(s), evidence.Canon(p)+"="+shortHash(value)), name+" "+strings.ReplaceAll(cat, "_", " "))
+				d.Facts = []evidence.Fact{{Subject: s, Property: p, Value: value}}
+				docs = append(docs, d)
+				n.Facts++
+			}
+		}
 	}
 	terms := make([]string, 0, len(o.IndustryJargon))
 	for t := range o.IndustryJargon {
@@ -147,6 +155,29 @@ func (c Config) Docs() ([]evidence.Doc, Counts) {
 	flatten("stakeholder_hierarchy", nil, o.StakeholderHierarchy, addFact)
 	flatten("decision_rights", nil, o.DecisionRights, addFact)
 	return docs, n
+}
+
+// aliasVariants returns the canonical configured spelling plus each distinct
+// tenant-approved alias that maps to it. Sorting means two equivalent configs
+// always produce the same documents and therefore the same ontology version.
+func aliasVariants(value string, aliases map[string]string) []string {
+	base := strings.TrimSpace(value)
+	if base == "" {
+		return nil
+	}
+	want := evidence.Canon(base)
+	seen := map[string]bool{want: true}
+	out := []string{base}
+	for alias, canonical := range aliases {
+		a := strings.TrimSpace(alias)
+		if a == "" || evidence.Canon(canonical) != want || seen[evidence.Canon(a)] {
+			continue
+		}
+		seen[evidence.Canon(a)] = true
+		out = append(out, a)
+	}
+	sort.Slice(out[1:], func(i, j int) bool { return evidence.Canon(out[i+1]) < evidence.Canon(out[j+1]) })
+	return out
 }
 
 func shortHash(s string) string {

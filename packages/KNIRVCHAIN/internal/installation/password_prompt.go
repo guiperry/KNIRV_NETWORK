@@ -1,7 +1,6 @@
 package installation
 
 import (
-	"KNIRVCHAIN/config"
 	pb "KNIRVCHAIN/internal/protocol/proto"
 	"bufio"
 	"fmt"
@@ -12,6 +11,7 @@ import (
 
 	"KNIRVCHAIN/internal/utils"
 
+	"github.com/guiperry/knirv-sdk-go/secrets"
 	"golang.org/x/term"
 	"google.golang.org/protobuf/proto"
 )
@@ -28,28 +28,10 @@ func PromptForPassword(prompt string) ([]byte, error) {
 }
 
 // LoadRootKeyFile loads and decrypts the Root key file using the provided password.
+// The file format (scrypt KDF + AES-256-GCM, nonce prepended) is implemented
+// once, in the SDK's Rust core; this function does not carry a second copy.
 func LoadRootKeyFile(keyFilePath string, password []byte) (*pb.RootKeyFileContentProto, error) {
-	// Load encrypted key file
-	encryptedFile, err := config.LoadEncryptedRootKeyFile(keyFilePath)
-	if err != nil {
-		return nil, fmt.Errorf("failed to load key file: %w", err)
-	}
-
-	// Derive encryption key from password
-	key, err := utils.DeriveKeyFromPassword(
-		password,
-		encryptedFile.Salt,
-		utils.ScryptN,
-		utils.ScryptR,
-		utils.ScryptP,
-		utils.KeyLen,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to derive key from password: %w", err)
-	}
-
-	// Decrypt data
-	decryptedData, err := utils.Decrypt(encryptedFile.EncryptedContent, key)
+	decryptedData, err := secrets.DecryptFile(keyFilePath, password)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decrypt key file (incorrect password?): %w", err)
 	}

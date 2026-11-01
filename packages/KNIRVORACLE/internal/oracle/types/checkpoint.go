@@ -43,7 +43,7 @@ type ChainRegistration struct {
 	// on how often the Oracle happens to be ticking.
 	ProofWindow uint64 `json:"proof_window"`
 	// VerificationKey carries the registered SNARK verification key for this
-	// chain (merkle-math.md Phase 5). Empty until a verifier chain enrolls one.
+	// chain (merkle-math.md). Empty until a verifier chain enrolls one.
 	VerificationKey []byte `json:"verification_key,omitempty"`
 	// PreferredProofSystem is the proof system the Oracle expects for this
 	// chain's finality records ("hashchain-v0" | "groth16" | "plonk").
@@ -95,20 +95,20 @@ type CheckpointRecord struct {
 	FinalBy       time.Time `json:"final_by"`
 	FinalityLeaf  *uint64   `json:"finality_leaf,omitempty"`
 	RejectionLeaf *uint64   `json:"rejection_leaf,omitempty"`
-	// PendingAttestations accumulates validation-chain sign-offs (Phase 4)
+	// PendingAttestations accumulates validation-chain sign-offs
 	// until quorum is reached, at which point the record is finalized.
 	PendingAttestations    []VerifierAttestation `json:"pending_attestations,omitempty"`
 	PendingTransitionProof []byte                `json:"pending_transition_proof,omitempty"`
 	PendingProofSystem     string                `json:"pending_proof_system,omitempty"`
 	// Source records how this leaf entered the MMR. Empty = direct submission
 	// by a registered checkpoint chain (Validation Chain). "rollup:<id>" =
-	// projected from a RollupRecord (Phase 3 bridge, e.g. Transaction Chain).
+	// projected from a RollupRecord (e.g. Transaction Chain).
 	// Non-empty sources are audit-only and cannot enter finality.
 	Source string `json:"source,omitempty"`
 }
 
-// FinalityRecord is the phase-2 leaf — appended independently, never mutating
-// the phase-1 leaf.
+// FinalityRecord is the finality leaf — appended independently, never mutating
+// the checkpoint leaf.
 type FinalityRecord struct {
 	SchemaVersion   string                `json:"schema_version"` // "knirv.finality.v1"
 	CheckpointLeaf  uint64                `json:"checkpoint_leaf"`
@@ -141,8 +141,8 @@ func AttestationMessage(leafIndex uint64, checkpointHash [32]byte, approved bool
 	return message
 }
 
-// TransitionProof is the phase-2 validity proof accompanying a FinalityRecord
-// (merkle-math.md §3.2c / Phase 5). For hashchain-v0 the verifier re-executes the
+// TransitionProof is the finality validity proof accompanying a FinalityRecord
+// (merkle-math.md §3.2c). For hashchain-v0 the verifier re-executes the
 // deterministic replay (pre-root + batch → post-root); the SNARK systems carry a
 // groth16/plonk proof plus public inputs. The Oracle runs a cheap binding check
 // itself (PostRoot == checkpoint.Root, PreRoot == checkpoint.PrevCheckHash) and
@@ -159,7 +159,7 @@ type TransitionProof struct {
 	PublicInputs  []byte   `json:"public_inputs"` // canonical (PreRoot, PostRoot, txBatchHash)
 }
 
-// CheckpointLeaf is the canonical phase-1 MMR payload. Kind is deliberately
+// CheckpointLeaf is the canonical checkpoint MMR payload. Kind is deliberately
 // part of the serialized body so all three MMR record classes are
 // self-describing. Leaf-kind constants live in the mmr package only.
 type CheckpointLeaf struct {

@@ -1,0 +1,21 @@
+{
+  "request": {
+    "organization_id": "acme",
+    "name": "Acme Industries",
+    "ontology": {
+      "rules": ["Refund approval requires a director."],
+      "decision_rights": {"refund_approval": "director"},
+      "aliases": {"refund signoff": "refund approval"},
+      "trade_secrets": ["never indexed"],
+      "user_data": ["never indexed"]
+    }
+  },
+  "response": {
+    "tenant": "acme",
+    "ontology_version": "ont1:fixture",
+    "passages": 1,
+    "facts": 1,
+    "not_indexed": ["trade_secrets", "user_data"],
+    "segment": "segment-fixture"
+  }
+}

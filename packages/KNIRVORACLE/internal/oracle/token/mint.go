@@ -7,8 +7,9 @@ import (
 	"math/big"
 	"time"
 
-	knirvsigning "github.com/guiperry/knirv-sdk-go/signing"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
+	knirvsigning "github.com/guiperry/knirv-sdk-go/signing"
+	"github.com/knirvcorp/knirvoracle/internal/oracle/ledger"
 	"github.com/knirvcorp/knirvoracle/internal/oracle/types"
 )
 
@@ -78,6 +79,15 @@ func (n *NRN) Mint(toAddr types.Address, amount *big.Int) (*MintReceipt, error) 
 	txHashBytes := sha256.Sum256(signed.Envelope)
 	txHash := fmt.Sprintf("%X", txHashBytes)
 	signedJSON, _ := json.Marshal(signed)
+
+	if err := n.record(ledger.KindTokenMint, ledger.TokenMint{
+		To: toAddr.String(), Amount: dec(amount),
+	}); err != nil {
+		// Roll back exactly as the signing-failure path does.
+		n.setBalance(toAddr, currentBalance)
+		n.totalSupply.Sub(n.totalSupply, amount)
+		return nil, fmt.Errorf("record mint: %w", err)
+	}
 
 	return &MintReceipt{
 		To:              toAddr,

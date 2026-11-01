@@ -1,0 +1,12 @@
+{
+  "entropy": "csprng",
+  "epoch": 7,
+  "long_term_pub": "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798",
+  "not_after": 1750086400,
+  "not_before": 1750000000,
+  "operator": "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e",
+  "scope": "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e",
+  "session_pub": "02c6047f9441ed7d6d3045406e95c07cd85c778e4b8cef3ca7abac09b95c709ee5",
+  "sig_by_longterm": "fe40f65d3b20c5d165f6c14444120ee6a1e3e18c2049e421cba928198361ffdc07a9a7ad097828ed2df9093521bf1eede166a71c3a0e01c900bc80db3670b471",
+  "version": 1
+}

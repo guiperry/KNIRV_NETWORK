@@ -1,19 +1,16 @@
-import initWasm, * as core from "./wasm/knirv_sdk_core.js";
-import { inlinedWasmBytes } from "./wasm/inlined_base64.js";
+import * as core from "./wasm/knirv_sdk_core.js";
+import { initLocal } from "./local.js";
 import { SdkClient as Client, WasmBindingTransport } from "./runtime.js";
 export * from "./runtime.js";
 export * from "./modules.js";
 export * from "./actuarial.js";
-let initialization;
 /** Initializes the SDK from a caller source, or the bundled inline fallback. */
 export async function init(wasmSource) {
-    if (!initialization)
-        initialization = initWasm({ module_or_path: wasmSource ?? inlinedWasmBytes });
-    await initialization;
+    await initLocal(wasmSource);
 }
 export class SdkClient extends Client {
-    static async init(wasmSource) {
+    static async init(wasmSource, options = {}) {
         await init(wasmSource);
-        return new SdkClient(new WasmBindingTransport(core), core);
+        return new SdkClient(new WasmBindingTransport(core, options.http, options.config), core);
     }
 }

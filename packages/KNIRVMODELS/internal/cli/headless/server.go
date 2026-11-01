@@ -588,6 +588,7 @@ func (s *Server) handlePipelineLogs(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) sendError(w http.ResponseWriter, message string, err error, code int) {
+	s.controller.RecordError("api", message)
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(code)
 	json.NewEncoder(w).Encode(ErrorResponse{

@@ -99,6 +99,13 @@ type Device struct {
 	// hardware directly instead of the local-software sha256 shortcut.
 	useDirectASIC bool
 
+	// useDirectJitter opts the jitter engine into that hardware path. It is
+	// deliberately separate from useDirectASIC and off by default: ComputeHash
+	// is documented to return literal sha256(data), and a SHA-256 ASIC cannot
+	// produce that for arbitrary input. Only the jitter engine, which mines a
+	// real header for a nonce, should ever opt in.
+	useDirectJitter bool
+
 	// workIDCounter is a rolling uint8 that gives each TxTask packet a
 	// distinct work_id byte so RxNonce responses can be correlated back
 	// to their request. Safe because the direct-mode path is strictly
@@ -663,8 +670,10 @@ func (d *Device) parseRxStatusResponse(data []byte) error {
 
 // ComputeHash returns the literal, verifiable SHA-256 of data.
 //
-// When directMode was requested at OpenDevice time (d.useDirectASIC) AND the
-// caller passes an exactly 80-byte Bitcoin-style header, this method instead
+// When directMode was requested at OpenDevice time (d.useDirectASIC), the
+// jitter engine has explicitly opted in (d.useDirectJitter, set by
+// EnableDirectJitter), AND the caller passes an exactly 80-byte Bitcoin-style
+// header, this method instead
 // performs a genuine hardware-backed ASIC nonce search on that header and
 // returns its sha256d (double-SHA-256). The len(data)==80 guard is
 // load-bearing: non-jitter callers - the gRPC health-check probe in
@@ -681,9 +690,15 @@ func (d *Device) parseRxStatusResponse(data []byte) error {
 // function on demand - it searches a mining header for a nonce that makes the
 // resulting hash satisfy a target, and returns that nonce/hash pair, which is
 // never equal to plain sha256(data).
+// EnableDirectJitter opts the jitter engine into the hardware-backed path in
+// ComputeHash. It has no effect unless the device was opened in direct mode.
+func (d *Device) EnableDirectJitter(enabled bool) {
+	d.useDirectJitter = enabled
+}
+
 func (d *Device) ComputeHash(data []byte) ([32]byte, error) {
 	start := time.Now()
-	if d.useDirectASIC && len(data) == 80 {
+	if d.useDirectASIC && d.useDirectJitter && len(data) == 80 {
 		hash, err := d.computeHashDirectASIC(data)
 		if err != nil {
 			return [32]byte{}, err

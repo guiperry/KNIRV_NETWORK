@@ -9,7 +9,7 @@
 package checkpoint
 
 import (
-	"crypto/ecdsa"
+	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -17,8 +17,8 @@ import (
 	"math"
 	"time"
 
-	knirvsigning "github.com/guiperry/knirv-sdk-go/signing"
 	"github.com/ethereum/go-ethereum/crypto"
+	knirvsigning "github.com/guiperry/knirv-sdk-go/signing"
 )
 
 const SchemaVersion = "knirv.checkpoint.v1"
@@ -113,17 +113,17 @@ func (c *Checkpoint) SignedMessage() string { return fmt.Sprintf("%x", c.Digest(
 
 // signMessage signs msg with keccak256 + secp256k1, returning the 64-byte
 // raw signature (r||s) — same scheme as KNIRVORACLE/KNIRVCHAIN.
-func signMessage(key *ecdsa.PrivateKey, msg, purpose, chainID string) (knirvsigning.SignedMessage, error) {
+func signMessage(signer knirvsigning.RemoteSigner, msg, purpose, chainID string) (knirvsigning.SignedMessage, error) {
 	now := time.Now().Unix()
-	return knirvsigning.SignMessage(crypto.FromECDSA(key), knirvsigning.MessageEnvelope{
+	return signer.SignMessage(context.Background(), knirvsigning.MessageEnvelope{
 		Domain: "knirv.chain", Purpose: purpose, ChainID: chainID, Nonce: msg,
 		IssuedAtUnix: now, ExpiresAtUnix: math.MaxInt64, Payload: []byte(msg),
 	})
 }
 
-// SignCheckpoint signs the checkpoint with key and appends the AuthorSig.
-func SignCheckpoint(cp *Checkpoint, key *ecdsa.PrivateKey) error {
-	signed, err := signMessage(key, cp.SignedMessage(), "chain-checkpoint", cp.ChainID)
+// SignCheckpoint signs the checkpoint with signer and appends the AuthorSig.
+func SignCheckpoint(cp *Checkpoint, signer knirvsigning.RemoteSigner) error {
+	signed, err := signMessage(signer, cp.SignedMessage(), "chain-checkpoint", cp.ChainID)
 	if err != nil {
 		return err
 	}
@@ -132,14 +132,6 @@ func SignCheckpoint(cp *Checkpoint, key *ecdsa.PrivateKey) error {
 		Signature: signed.Signature, Envelope: signed.Envelope,
 	})
 	return nil
-}
-
-func oracleAddress(pub *ecdsa.PublicKey) string {
-	address, err := knirvsigning.Address(crypto.CompressPubkey(pub), knirvsigning.DefaultAddressPrefix)
-	if err != nil {
-		panic(err)
-	}
-	return address
 }
 
 // registrationBody is the signature-free, deterministic registration payload
@@ -174,13 +166,13 @@ func registrationBody(c *ChainRegistration) ([]byte, error) {
 // SignRegistration authorizes initial enrollment, appending to RotationSigs.
 // The registration digest is sha256 (not keccak256) — must match
 // KNIRVORACLE's types.RegistrationDigest exactly.
-func SignRegistration(reg *ChainRegistration, key *ecdsa.PrivateKey) error {
+func SignRegistration(reg *ChainRegistration, signer knirvsigning.RemoteSigner) error {
 	body, err := registrationBody(reg)
 	if err != nil {
 		return err
 	}
 	digest := sha256.Sum256(body)
-	signed, err := signMessage(key, fmt.Sprintf("%x", digest), "chain-registration", reg.ChainID)
+	signed, err := signMessage(signer, fmt.Sprintf("%x", digest), "chain-registration", reg.ChainID)
 	if err != nil {
 		return err
 	}

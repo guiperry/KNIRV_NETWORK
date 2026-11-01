@@ -1,0 +1,21 @@
+{
+  "description": "Golden knirv.scenes/scene-manifest envelope. Go, Rust and TypeScript must verify the same signature.",
+  "envelope": {
+    "chain_id": "knirv-testnet-1",
+    "domain": "knirv.scenes",
+    "expires_at_unix": 1750003600,
+    "issued_at_unix": 1750000000,
+    "nonce": "scene-golden-1",
+    "payload": "{\"scene\":\"golden-scene\",\"version\":1}",
+    "payload_base64": "eyJzY2VuZSI6ImdvbGRlbi1zY2VuZSIsInZlcnNpb24iOjF9",
+    "purpose": "scene-manifest"
+  },
+  "signed": {
+    "address": "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e",
+    "envelope_base64": "ChBrbmlydi5tZXNzYWdlLnYxEgxrbmlydi5zY2VuZXMaDnNjZW5lLW1hbmlmZXN0Ig9rbmlydi10ZXN0bmV0LTEqDnNjZW5lLWdvbGRlbi0xMIDDu8IGOJDfu8IGQiR7InNjZW5lIjoiZ29sZGVuLXNjZW5lIiwidmVyc2lvbiI6MX0=",
+    "public_key_base64": "Anm+Zn753LusVaBilc6HCwcCm/zbLc4o2VnygVsW+BeY",
+    "signature_base64": "qx8Awg95gczs2Vt4BtYot/7OGM03MybCwgyJuqPp2AdW+nLSrhfc13PdDlPl/TQjLZyXFYy/elxbmWop7uam3w=="
+  },
+  "verify_at_unix": 1750000100,
+  "version": 1
+}

@@ -10,6 +10,8 @@ use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::{collections::BTreeMap, time::Duration};
 
+mod ops;
+
 pub const BINDING_API_VERSION: u32 = 1;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -200,6 +202,26 @@ impl BindingEngine {
         }
         let operation = request.operation.clone();
         let result = match operation.as_str() {
+            "models.encode_byte_v1" => models_encode(&request.payload),
+            "models.encode_choice_set_v1" => models_encode_choice_set(&request.payload),
+            "models.plan_text" => models_plan_text(&request.payload),
+            "models.input_width" => models_input_width(&request.payload),
+            "models.build_advise_prompt" => models_build_advise_prompt(&request.payload),
+            "models.abstain_advice" => models_abstain(&request.payload),
+            "models.advice_from_reasoning" => models_advice(&request.payload),
+            "models.platform_roles" => models_platform_roles(&request.payload),
+            "noderole.resolve" => payload_as::<crate::noderole::Inputs>(&request.payload)
+                .map(|inputs| crate::noderole::resolve(&inputs))
+                .and_then(to_value),
+            "noderole.with_override" => noderole_with_override(&request.payload),
+            "frame.defaults" => frame_defaults(),
+            "frame.validate" => frame_registry(&request.payload).map(|_| json!({ "ok": true })),
+            "frame.stage" => frame_stage(&request.payload),
+            "frame.hash" => required_string(&request.payload, "system")
+                .map(|system| json!({ "hash": crate::frame::hash(system) })),
+            "frame.build" | "frame.build_lite" | "frame.check_shape" | "frame.check" | "frame.manifest" => {
+                frame_op(&operation, &request.payload)
+            }
             "crypto.sha256" => local_sha256(&request.payload),
             "crypto.encrypt_aes" => crypto_encrypt(&request.payload),
             "crypto.decrypt_aes" => crypto_decrypt(&request.payload),
@@ -269,11 +291,13 @@ impl BindingEngine {
                 .await
                 .map_err(BindingError::from_sdk)
                 .and_then(to_value),
-            _ => Err(BindingError {
-                code: BindingErrorCode::Unsupported,
-                message: format!("unsupported operation: {operation}"),
-                http_status: None,
-                retryable: false,
+            _ => ops::dispatch(&operation, &request.payload).unwrap_or_else(|| {
+                Err(BindingError {
+                    code: BindingErrorCode::Unsupported,
+                    message: format!("unsupported operation: {operation}"),
+                    http_status: None,
+                    retryable: false,
+                })
             }),
         };
         match result {
@@ -337,6 +361,160 @@ fn required_string<'a>(payload: &'a Value, field: &str) -> Result<&'a str, Bindi
 }
 fn local_sha256(payload: &Value) -> Result<Value, BindingError> {
     Ok(json!({ "digest": crypto::sha256_string(required_string(payload, "data")?) }))
+}
+fn models_encode(payload: &Value) -> Result<Value, BindingError> {
+    let width = payload
+        .get("width")
+        .and_then(Value::as_u64)
+        .ok_or_else(|| BindingError::invalid("width must be a non-negative integer"))?;
+    let text = payload
+        .get("text")
+        .and_then(Value::as_str)
+        .ok_or_else(|| BindingError::invalid("text must be a string"))?;
+    Ok(json!({ "tokens": crate::models::encode_byte_v1(text, width as usize) }))
+}
+fn models_encode_choice_set(payload: &Value) -> Result<Value, BindingError> {
+    let width = payload
+        .get("width")
+        .and_then(Value::as_u64)
+        .ok_or_else(|| BindingError::invalid("width must be a non-negative integer"))?;
+    let text = |name: &str| {
+        payload
+            .get(name)
+            .and_then(Value::as_str)
+            .ok_or_else(|| BindingError::invalid(format!("{name} must be a string")))
+    };
+    let choices = payload
+        .get("choices")
+        .and_then(Value::as_array)
+        .ok_or_else(|| BindingError::invalid("choices must be an array of strings"))?
+        .iter()
+        .map(|value| {
+            value
+                .as_str()
+                .map(str::to_owned)
+                .ok_or_else(|| BindingError::invalid("choices must be an array of strings"))
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    Ok(json!({ "tokens": crate::models::encode_choice_set_v1(text("question")?, text("state")?, &choices, width as usize) }))
+}
+fn models_plan_text(payload: &Value) -> Result<Value, BindingError> {
+    let tokens: Vec<u32> = payload
+        .get("plan_tokens")
+        .map(payload_as)
+        .transpose()?
+        .unwrap_or_default();
+    Ok(json!({ "bytes_base64": BASE64.encode(crate::models::plan_bytes(&tokens)) }))
+}
+fn models_input_width(payload: &Value) -> Result<Value, BindingError> {
+    crate::models::input_width(&payload.get("config").cloned().unwrap_or(Value::Null))
+        .map(|width| json!({ "width": width }))
+        .map_err(BindingError::invalid)
+}
+fn models_build_advise_prompt(payload: &Value) -> Result<Value, BindingError> {
+    payload_as::<crate::models::AdviseContext>(payload)
+        .map(|context| json!({ "prompt": crate::models::build_advise_prompt(&context) }))
+}
+fn models_abstain(payload: &Value) -> Result<Value, BindingError> {
+    let text = |name: &str| payload.get(name).and_then(Value::as_str).unwrap_or_default();
+    to_value(crate::models::abstain_advice(
+        text("reason"),
+        text("model_version"),
+        text("dataset_manifest_hash"),
+        text("now"),
+    ))
+}
+fn models_advice(payload: &Value) -> Result<Value, BindingError> {
+    let reasoning = payload
+        .get("reasoning")
+        .ok_or_else(|| BindingError::invalid("reasoning is required"))?;
+    let context = payload
+        .get("context")
+        .ok_or_else(|| BindingError::invalid("context is required"))?;
+    let now = payload.get("now").and_then(Value::as_str).unwrap_or_default();
+    to_value(crate::models::advice_from_reasoning(
+        &payload_as::<crate::models::Reasoning>(reasoning)?,
+        &payload_as::<crate::models::AdviseContext>(context)?,
+        now,
+    ))
+}
+fn models_platform_roles(payload: &Value) -> Result<Value, BindingError> {
+    payload_as::<crate::models::PlatformStatus>(&payload.get("status").cloned().unwrap_or(Value::Null))
+        .map(|status| json!({ "roles": crate::models::roles(&status) }))
+}
+fn noderole_with_override(payload: &Value) -> Result<Value, BindingError> {
+    let resolution = payload
+        .get("resolution")
+        .ok_or_else(|| BindingError::invalid("resolution is required"))?;
+    let overrides = payload
+        .get("override")
+        .ok_or_else(|| BindingError::invalid("override is required"))?;
+    payload_as::<crate::noderole::Resolution>(resolution)
+        .and_then(|resolution| {
+            payload_as::<crate::noderole::Override>(overrides)
+                .map(|overrides| crate::noderole::with_override(resolution, &overrides))
+        })
+        .and_then(to_value)
+}
+fn frame_defaults() -> Result<Value, BindingError> {
+    let (stages, tools) = crate::frame::defaults();
+    Ok(json!({ "stages": stages, "tools": tools }))
+}
+fn frame_registry(payload: &Value) -> Result<crate::frame::Registry, BindingError> {
+    frame_registry_with(payload, true)
+}
+fn frame_registry_with(payload: &Value, strict: bool) -> Result<crate::frame::Registry, BindingError> {
+    let registry = payload
+        .get("registry")
+        .ok_or_else(|| BindingError::invalid("registry is required"))?;
+    let stages = registry
+        .get("stages")
+        .map(payload_as)
+        .transpose()?
+        .unwrap_or_default();
+    let tools = registry
+        .get("tools")
+        .map(payload_as)
+        .transpose()?
+        .unwrap_or_default();
+    if strict {
+        crate::frame::Registry::new(stages, tools).map_err(BindingError::invalid)
+    } else {
+        Ok(crate::frame::Registry::lenient(stages, tools))
+    }
+}
+fn frame_stage(payload: &Value) -> Result<Value, BindingError> {
+    let registry = frame_registry_with(payload, false)?;
+    Ok(json!({ "stage": registry.stage(payload.get("id").and_then(Value::as_str).unwrap_or_default()) }))
+}
+fn frame_op(operation: &str, payload: &Value) -> Result<Value, BindingError> {
+    use crate::frame::{FrameError, LiveFacts};
+    let registry = frame_registry_with(payload, operation != "frame.build_lite")?;
+    let stage = payload.get("stage").and_then(Value::as_str).unwrap_or_default();
+    let system = payload.get("system").and_then(Value::as_str).unwrap_or_default();
+    let frame_hash = payload.get("frame_hash").and_then(Value::as_str).unwrap_or_default();
+    let facts = || -> Result<LiveFacts, BindingError> {
+        payload.get("facts").map(payload_as).transpose().map(Option::unwrap_or_default)
+    };
+    let failed = |error: FrameError| {
+        let kind = error.kind();
+        let message = match error {
+            FrameError::UnknownStage => format!("frame: unknown stage: {stage:?}"),
+            FrameError::Unframed => "frame: call carries no frame".to_owned(),
+            FrameError::HashMismatch => "frame: system message does not match the claimed frame hash".to_owned(),
+            FrameError::StaleFrame => "frame: system message is not the current frame for this stage".to_owned(),
+        };
+        json!({ "ok": false, "kind": kind, "message": message })
+    };
+    let outcome = match operation {
+        "frame.build" => registry.build(stage, &facts()?).map(|frame| json!({ "ok": true, "frame": frame })),
+        "frame.build_lite" => registry.build_lite(stage).map(|lite| json!({ "ok": true, "lite": lite })),
+        "frame.check_shape" => registry.check_shape(stage, system, frame_hash).map(|_| json!({ "ok": true })),
+        "frame.check" => registry.check(stage, system, frame_hash, &facts()?).map(|_| json!({ "ok": true })),
+        "frame.manifest" => Ok(json!({ "ok": true, "manifest": registry.manifest(&facts()?) })),
+        _ => unreachable!("only frame operations are routed here"),
+    };
+    Ok(outcome.unwrap_or_else(failed))
 }
 fn payload_as<T: for<'de> Deserialize<'de>>(payload: &Value) -> Result<T, BindingError> {
     serde_json::from_value(payload.clone())

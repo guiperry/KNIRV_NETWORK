@@ -2,11 +2,13 @@ package oracle
 
 import (
 	"context"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"math/big"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
@@ -17,13 +19,17 @@ import (
 	"github.com/knirvcorp/knirvoracle/internal/oracle/economics"
 	"github.com/knirvcorp/knirvoracle/internal/oracle/governance"
 	"github.com/knirvcorp/knirvoracle/internal/oracle/ibc"
+	"github.com/knirvcorp/knirvoracle/internal/oracle/ledger"
+	"github.com/knirvcorp/knirvoracle/internal/oracle/mmr"
 	"github.com/knirvcorp/knirvoracle/internal/oracle/p2p"
 	"github.com/knirvcorp/knirvoracle/internal/oracle/payment"
 	"github.com/knirvcorp/knirvoracle/internal/oracle/registry"
+	"github.com/knirvcorp/knirvoracle/internal/oracle/replica"
 	"github.com/knirvcorp/knirvoracle/internal/oracle/token"
 	"github.com/knirvcorp/knirvoracle/internal/oracle/types"
 
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
+	knirvsigning "github.com/guiperry/knirv-sdk-go/signing"
 	"go.uber.org/zap"
 )
 
@@ -44,7 +50,21 @@ type Oracle struct {
 	rollups          map[string]*types.RollupRecord
 	rollupsPath      string
 
-	// Verifier registry (Phase 4): validation-chain nodes that attest
+	// Durable state ledger: the token read model is hydrated from
+	// it and every token mutation appends before the in-memory change.
+	ledgerMu       sync.Mutex
+	ledger         *ledger.Log
+	state          *ledger.State
+	stateRoot      string
+	ledgerDegraded bool
+
+	// Replication source: head production and the ranges standbys pull.
+	replication *ReplicationSource
+	follower    *replica.Follower
+	followersMu sync.RWMutex
+	followers   []replica.Source
+
+	// Verifier registry: validation-chain nodes that attest
 	// checkpoints into finality. Quorum = ≥2/3 of registered verifiers.
 	verifiersMu   sync.RWMutex
 	verifiers     map[string][]byte
@@ -57,7 +77,7 @@ type Oracle struct {
 	skillOwnership     map[string]*types.SkillOwnershipRecord
 	skillOwnershipPath string
 
-	// Checkpoint pipeline (Phase 2): per-foreign-chain registry, audit MMR,
+	// Checkpoint pipeline: per-foreign-chain registry, audit MMR,
 	// and indexed checkpoint records.
 	checkpoint *checkpointState
 
@@ -73,12 +93,38 @@ type Oracle struct {
 	cancel context.CancelFunc
 }
 
-// OracleConfig contains configuration for the oracle
+// Oracle activation modes. They mirror noderole.OracleMode; the role resolver
+// is the only place that chooses one, and it arrives here as ORACLE_MODE.
+const (
+	ModeActive  = "active"
+	ModeStandby = "standby"
+	ModeOff     = "off"
+)
+
+// NormalizeMode returns a valid mode, defaulting to active when unset.
+func NormalizeMode(mode string) (string, error) {
+	switch strings.ToLower(strings.TrimSpace(mode)) {
+	case "", ModeActive:
+		return ModeActive, nil
+	case ModeStandby:
+		return ModeStandby, nil
+	case ModeOff:
+		return ModeOff, nil
+	}
+	return "", fmt.Errorf("invalid oracle mode %q (want active, standby or off)", mode)
+}
+
+// OracleConfig contains configuration for the oracle.
 type OracleConfig struct {
 	// Chain configuration
 	ChainID   string        `json:"chain_id"`
 	NetworkID string        `json:"network_id"`
 	BlockTime time.Duration `json:"block_time"`
+
+	// Mode is "active", "standby" or "off", decided by noderole.Resolve in
+	// KNIRVSERVER and passed as ORACLE_MODE. A standby answers read and
+	// replication routes only. Empty means active.
+	Mode string `json:"mode"`
 
 	// Token configuration
 	TokenName       string   `json:"token_name"`
@@ -138,6 +184,14 @@ type OracleConfig struct {
 	DataDir   string `json:"data_dir"`
 	DBBackend string `json:"db_backend"`
 
+	// ReplicationSources are ordered gateway/direct HTTP sources for a standby.
+	// A source is consumed only with a verified root signing address. The
+	// authenticated HTTP adapter is installed by the launcher once it has a
+	// bootnode signer (Task 8.8); an empty adapter list therefore pauses safely.
+	ReplicationSources     []string      `json:"replication_sources,omitempty"`
+	ReplicationTrustAnchor string        `json:"replication_trust_anchor,omitempty"`
+	ReplicationInterval    time.Duration `json:"replication_interval,omitempty"`
+
 	// ChainVerifyURL is KNIRVCHAIN's HTTP base URL, used to verify a
 	// SYNDICATE_* commitment's inclusion proof (GET /proof/tx/{hash}) before
 	// authorizing an actuarial-syndicate settlement payout — see
@@ -154,6 +208,7 @@ func DefaultOracleConfig() *OracleConfig {
 	return &OracleConfig{
 		ChainID:   "knirvoracle-1",
 		NetworkID: "knirv-testnet",
+		Mode:      ModeActive,
 		// BlockTime is a heartbeat, not a security clock — the checkpoint
 		// dispute window is wall-clock based (registry.DefaultProofWindow),
 		// not tied to this cadence at all (see consensus/engine.go's
@@ -190,8 +245,9 @@ func DefaultOracleConfig() *OracleConfig {
 		PaymentUSDPerToken:      0,
 		PaymentETHPerToken:      0,
 
-		DataDir:   "./data/oracle",
-		DBBackend: "badger",
+		DataDir:             "./data/oracle",
+		DBBackend:           "badger",
+		ReplicationInterval: 30 * time.Second,
 	}
 }
 
@@ -209,6 +265,7 @@ func NewOracle(config *OracleConfig, logger *zap.Logger) (*Oracle, error) {
 	// Initialize governance
 	governanceSystem := governance.NewGovernanceSystem(logger)
 	if err := governanceSystem.SetChainID(config.ChainID); err != nil {
+		cancel()
 		return nil, err
 	}
 	// Wire the §6.6 validator-set-sync hook. KNIRVORACLE only ever runs with
@@ -386,7 +443,7 @@ func NewOracle(config *OracleConfig, logger *zap.Logger) (*Oracle, error) {
 			_, err := oracle.SubmitCheckpoint(&cp)
 			return err
 		case "finality":
-			// Phase 4: admit the finality leaf through the same path as HTTP.
+			// Admit the finality leaf through the same path as HTTP.
 			var fin types.FinalityRecord
 			if err := json.Unmarshal(payload, &fin); err != nil {
 				return fmt.Errorf("decode finality tx: %w", err)
@@ -402,9 +459,35 @@ func NewOracle(config *OracleConfig, logger *zap.Logger) (*Oracle, error) {
 	// there is no block loop to trigger it).
 	go oracle.sweepLoop()
 
+	// Bring up the durable state ledger last: it needs the token's configured
+	// owner and the resolved data directory, and it replaces the token's fresh
+	// genesis with replayed state when a log already exists.
+	if err := oracle.initLedger(); err != nil {
+		cancel()
+		return nil, fmt.Errorf("state ledger: %w", err)
+	}
+	if err := oracle.initReplicationSource(); err != nil {
+		cancel()
+		return nil, fmt.Errorf("replication source: %w", err)
+	}
+	if err := oracle.initFollower(); err != nil {
+		// A bootnode must still start its read-only Oracle when its mirror cannot
+		// be opened. It reports the fault and never falls back to active mode.
+		oracle.ledgerDegraded = true
+		logger.Warn("standby replication mirror unavailable", zap.Error(err))
+	}
+	if oracle.Mode() == ModeActive && oracle.replication.signer != nil {
+		// A fresh node has no head yet; produce one so a standby has an anchor.
+		if _, err := oracle.replication.ProduceHead(); err != nil {
+			oracle.logger.Warn("initial replication head not produced", zap.Error(err))
+		}
+	}
+
 	logger.Info("Oracle initialized",
 		zap.String("chain_id", config.ChainID),
 		zap.String("network_id", config.NetworkID),
+		zap.Int("state_log_size", oracle.ledger.Len()),
+		zap.String("state_root", oracle.stateRoot),
 	)
 
 	return oracle, nil
@@ -428,7 +511,7 @@ func (o *Oracle) SubmitRollup(record *types.RollupRecord) error {
 	if err := o.persistRollupsLocked(); err != nil {
 		return err
 	}
-	// Phase 3 bridge: project the legacy rollup into the checkpoint MMR so it is
+	// Legacy rollup bridge: project the rollup into the checkpoint MMR so it is
 	// covered by the same AppHash that anchors signed checkpoints.
 	if _, err := o.ProjectRollup(record); err != nil {
 		o.logger.Warn("failed to project rollup into checkpoint MMR",
@@ -439,7 +522,7 @@ func (o *Oracle) SubmitRollup(record *types.RollupRecord) error {
 
 // commitAuditMMR bags the consensus audit MMR into the Oracle AppHash and
 // persists the leaf log so the AppHash survives an Oracle restart
-// (merkle-math.md Phase 3). The Oracle runs in non-validator mode, so the
+// (see merkle-math.md). The Oracle runs in non-validator mode, so the
 // consensus loop never produces blocks; admission must commit the audit leaf
 // directly after appending it, otherwise the AppHash is never updated or
 // persisted in production.
@@ -670,7 +753,18 @@ func (o *Oracle) GetSkillOwnership(skillID string) (*types.SkillOwnershipRecord,
 
 // Start starts all oracle services
 func (o *Oracle) Start() error {
-	o.logger.Info("Starting Oracle services")
+	o.logger.Info("Starting Oracle services", zap.String("mode", o.Mode()))
+
+	if o.Mode() == ModeStandby {
+		// A standby is a failover ledger: it holds the verified mirror and
+		// answers read/proof routes. It must not start consensus (no votes), the
+		// economics engine (no fee settlement), IBC, P2P publishing or the
+		// payment processor (no disbursement). Those are gated by mode here,
+		// and the HTTP guard refuses their routes besides.
+		o.logger.Info("Standby mode: consensus, economics, IBC, P2P and payment are not started")
+		o.startFollower()
+		return nil
+	}
 
 	// Start economics engine
 	if err := o.economicsEngine.Start(); err != nil {
@@ -701,7 +795,15 @@ func (o *Oracle) Start() error {
 
 // Stop stops all oracle services
 func (o *Oracle) Stop() error {
-	o.logger.Info("Stopping Oracle services")
+	o.logger.Info("Stopping Oracle services", zap.String("mode", o.Mode()))
+
+	if o.Mode() == ModeStandby {
+		if o.ledger != nil {
+			o.ledger.Close()
+		}
+		o.cancel()
+		return nil
+	}
 
 	// Stop in reverse order
 	o.p2pManager.Stop()
@@ -713,11 +815,199 @@ func (o *Oracle) Stop() error {
 	o.consensusEngine.Stop()
 	o.economicsEngine.Stop()
 
+	if o.ledger != nil {
+		o.ledger.Close()
+	}
+
 	o.cancel()
 
 	o.logger.Info("Oracle services stopped")
 
 	return nil
+}
+
+// SetReplicaSources injects authenticated transports for standby replication.
+// The launcher owns their credentials; Oracle deliberately never accepts a
+// signing key or password through this API.
+func (o *Oracle) SetReplicaSources(sources []replica.Source) {
+	o.followersMu.Lock()
+	defer o.followersMu.Unlock()
+	o.followers = append([]replica.Source(nil), sources...)
+}
+
+// ReplicaStatus returns an honest zero-value status when this node is not a
+// standby or has not received a configured trust anchor yet.
+func (o *Oracle) ReplicaStatus() replica.Status {
+	if o.follower == nil {
+		return replica.Status{Paused: o.Mode() == ModeStandby, UnverifiedClasses: []string{"R1", "R2", "R3", "R4", "R5", "R6"}}
+	}
+	return o.follower.Status()
+}
+
+func (o *Oracle) initFollower() error {
+	if o.Mode() != ModeStandby {
+		return nil
+	}
+	if o.config.ReplicationTrustAnchor == "" {
+		return fmt.Errorf("replication trust anchor is not configured")
+	}
+	follower, err := replica.Open(filepath.Join(o.config.DataDir, "replica_state.json"), o.config.ReplicationTrustAnchor)
+	if err != nil {
+		return err
+	}
+	o.follower = follower
+	follower.SetOnApplied(o.applyReplicaSnapshot)
+	if snapshot := follower.Snapshot(); snapshot.Head.Head.Seq != 0 {
+		if err := o.applyReplicaSnapshot(snapshot); err != nil {
+			return fmt.Errorf("restore persisted replica: %w", err)
+		}
+	}
+	if len(o.config.ReplicationSources) == 0 {
+		follower.SetPaused(true)
+		return nil
+	}
+	// Until Task 8.8 supplies the bootnode-master through secrets.Provider,
+	// existing file-backed deployments pass their already-loaded boot identity
+	// through the RemoteSigner interface. No HTTP source ever receives the raw
+	// key, and Bao can replace this construction without changing the follower.
+	if o.config.OwnerPrivateKey == "" {
+		follower.SetPaused(true)
+		return fmt.Errorf("replication sources configured but standby signer is unavailable")
+	}
+	key, err := hex.DecodeString(strip0x(o.config.OwnerPrivateKey))
+	if err != nil {
+		return fmt.Errorf("replication signer key: %w", err)
+	}
+	signer, err := knirvsigning.NewLocalSigner(key)
+	if err != nil {
+		return fmt.Errorf("replication signer: %w", err)
+	}
+	sources := make([]replica.Source, 0, len(o.config.ReplicationSources))
+	for _, baseURL := range o.config.ReplicationSources {
+		source, err := replica.NewHTTPSource(baseURL, o.config.ChainID, signer, nil)
+		if err != nil {
+			return err
+		}
+		sources = append(sources, source)
+	}
+	o.SetReplicaSources(sources)
+	return nil
+}
+
+// applyReplicaSnapshot is the only bridge from the verified mirror to Oracle
+// read models. It never appends a local ledger event or produces a new head:
+// a standby must expose exactly the state signed by its source, not become a
+// competing writer.
+func (o *Oracle) applyReplicaSnapshot(snapshot replica.Snapshot) error {
+	if snapshot.State == nil {
+		return fmt.Errorf("replica state is nil")
+	}
+	leaves := make([]mmr.Hash, 0, len(snapshot.Leaves))
+	for _, text := range snapshot.Leaves {
+		bytes, err := hex.DecodeString(text)
+		if err != nil || len(bytes) != len(mmr.Hash{}) {
+			return fmt.Errorf("invalid replica MMR leaf %q", text)
+		}
+		var leaf mmr.Hash
+		copy(leaf[:], bytes)
+		leaves = append(leaves, leaf)
+	}
+	if root := mmr.FromLeaves(leaves).BagRoot(); hex.EncodeToString(root[:]) != snapshot.Head.Head.MMRRoot {
+		return fmt.Errorf("replica MMR root mismatch")
+	}
+
+	// Match the live mutation lock order: ledger/read models first, then the
+	// audit MMR. Standby routes are read-only, so no local mutation can race a
+	// successful follower apply.
+	o.ledgerMu.Lock()
+	defer o.ledgerMu.Unlock()
+	if err := o.hydrateLedgerState(snapshot.State); err != nil {
+		return err
+	}
+	root, err := ledger.StateRoot(snapshot.State)
+	if err != nil {
+		return err
+	}
+	if root != snapshot.Head.Head.StateRoot {
+		return fmt.Errorf("replica state root mismatch")
+	}
+	o.state = snapshot.State
+	o.stateRoot = root
+
+	o.checkpoint.mu.Lock()
+	defer o.checkpoint.mu.Unlock()
+	if err := o.checkpoint.registry.Replace(snapshot.Registry.Chains); err != nil {
+		return fmt.Errorf("replace replicated registry: %w", err)
+	}
+	records := make(map[string]*types.CheckpointRecord, len(snapshot.Checkpoints))
+	for _, record := range snapshot.Checkpoints {
+		if record == nil {
+			return fmt.Errorf("nil replicated checkpoint record")
+		}
+		records[recordKey(record.Checkpoint.ChainID, record.Checkpoint.StartHeight)] = record
+	}
+	o.checkpoint.records = records
+	o.checkpoint.leafLog = leaves
+	o.checkpoint.mmr = mmr.FromLeaves(leaves)
+	if err := o.persistCheckpointLocked(); err != nil {
+		return err
+	}
+
+	o.skillOwnershipMu.Lock()
+	o.skillOwnership = snapshot.Aux.SkillOwnership
+	if o.skillOwnership == nil {
+		o.skillOwnership = make(map[string]*types.SkillOwnershipRecord)
+	}
+	if err := o.persistSkillOwnershipLocked(); err != nil {
+		o.skillOwnershipMu.Unlock()
+		return err
+	}
+	o.skillOwnershipMu.Unlock()
+
+	o.rollupsMu.Lock()
+	o.rollups = snapshot.Aux.Rollups
+	if o.rollups == nil {
+		o.rollups = make(map[string]*types.RollupRecord)
+	}
+	err = o.persistRollupsLocked()
+	o.rollupsMu.Unlock()
+	return err
+}
+
+func (o *Oracle) startFollower() {
+	if o.follower == nil {
+		return
+	}
+	interval := o.config.ReplicationInterval
+	if interval <= 0 {
+		interval = 30 * time.Second
+	}
+	go func() {
+		ticker := time.NewTicker(interval)
+		defer ticker.Stop()
+		for {
+			o.followersMu.RLock()
+			sources := append([]replica.Source(nil), o.followers...)
+			o.followersMu.RUnlock()
+			if len(sources) == 0 {
+				o.follower.SetPaused(true)
+			} else {
+				o.follower.SetPaused(false)
+			}
+			for _, source := range sources {
+				if err := o.follower.Sync(o.ctx, source); err == nil {
+					break
+				} else {
+					o.logger.Warn("standby replication pull failed", zap.Error(err))
+				}
+			}
+			select {
+			case <-o.ctx.Done():
+				return
+			case <-ticker.C:
+			}
+		}
+	}()
 }
 
 // GetNRNToken returns the NRN token instance
@@ -773,12 +1063,208 @@ func (o *Oracle) GetPaymentProcessor() *payment.Processor {
 	return o.paymentProcessor
 }
 
-// GetStatus returns the current status of the oracle
+// StateRoot is the hash of the replayed ledger state; it is what a replication
+// head commits to.
+func (o *Oracle) StateRoot() string { return o.stateRoot }
+
+// Mode is the activation mode this Oracle is running in. Empty configuration
+// means active, which is the historical behaviour.
+func (o *Oracle) Mode() string {
+	if o == nil || o.config == nil {
+		return ModeActive
+	}
+	if o.config.Mode == "" {
+		return ModeActive
+	}
+	return o.config.Mode
+}
+
+// initLedger opens the durable log, writes genesis once, replays it and
+// hydrates the token read model. The ledger wins over configuration (D-R9): a
+// disagreement is reported and the node runs Degraded rather than rewriting
+// balances from config.
+func (o *Oracle) initLedger() error {
+	logPath := filepath.Join(o.config.DataDir, "state_log.json")
+	lg, err := ledger.Open(logPath)
+	if err != nil {
+		return err
+	}
+
+	if lg.Len() == 0 {
+		genesis := ledger.Genesis{
+			ChainID:       o.config.ChainID,
+			Name:          o.config.TokenName,
+			Symbol:        o.config.TokenSymbol,
+			Owner:         o.nrnToken.Owner().String(),
+			InitialSupply: o.config.InitialSupply.String(),
+			MaxSupply:     o.config.MaxSupply.String(),
+		}
+		if _, err := lg.Append(ledger.KindGenesis, genesis); err != nil {
+			lg.Close()
+			return err
+		}
+	}
+
+	state, err := ledger.Replay(lg.Records())
+	if err != nil {
+		lg.Close()
+		return err
+	}
+
+	owner := o.nrnToken.Owner().String()
+	mismatch := state.ChainID != o.config.ChainID ||
+		state.Owner != owner ||
+		state.Name != o.config.TokenName ||
+		state.Symbol != o.config.TokenSymbol ||
+		state.InitialSupply != o.config.InitialSupply.String() ||
+		state.MaxSupply != o.config.MaxSupply.String()
+	if mismatch {
+		o.ledgerDegraded = true
+		o.logger.Warn("Ledger genesis disagrees with configuration; using the ledger",
+			zap.String("ledger_chain_id", state.ChainID), zap.String("config_chain_id", o.config.ChainID),
+			zap.String("ledger_owner", state.Owner), zap.String("config_owner", owner))
+	}
+
+	if err := o.hydrateLedgerState(state); err != nil {
+		lg.Close()
+		return err
+	}
+
+	root, err := ledger.StateRoot(state)
+	if err != nil {
+		lg.Close()
+		return err
+	}
+
+	o.ledger = lg
+	o.state = state
+	o.stateRoot = root
+	if missing := o.uncommittedLedgerRecords(lg.Records()); missing > 0 {
+		o.ledgerDegraded = true
+		o.logger.Warn("Ledger records have no audit leaf; the audit MMR is behind the state log",
+			zap.Int("missing_leaves", missing))
+	}
+
+	o.nrnToken.SetRecorder(o.recordMutation)
+	o.governanceSystem.SetRecorder(o.recordMutation)
+	// Genesis is deliberately not committed to the audit MMR here: a fresh
+	// Oracle must recover to an empty MMR until a checkpoint or a live mutation
+	// arrives (oracle_startup_test.go asserts both properties).
+	return nil
+}
+
+// hydrateLedgerState refreshes the token and governance read models from the
+// one deterministic ledger state used by both local replay and a verified
+// standby mirror.
+func (o *Oracle) hydrateLedgerState(state *ledger.State) error {
+	if state == nil {
+		return fmt.Errorf("ledger state is nil")
+	}
+	total, ok := new(big.Int).SetString(state.TotalSupply, 10)
+	if !ok {
+		return fmt.Errorf("total supply %q is not a decimal integer", state.TotalSupply)
+	}
+	balances := make(map[string]*big.Int, len(state.Balances))
+	for address, raw := range state.Balances {
+		amount, ok := new(big.Int).SetString(raw, 10)
+		if !ok {
+			return fmt.Errorf("balance for %s is not a decimal integer", address)
+		}
+		balances[address] = amount
+	}
+	if err := o.nrnToken.Hydrate(state.ChainID, state.Owner, total, balances, state.Nonces, state.Registered); err != nil {
+		return err
+	}
+	return o.governanceSystem.Hydrate(state.Governance)
+}
+
+// uncommittedLedgerRecords counts log records whose audit leaf is absent from
+// the persisted MMR. It detects a crash between the log append and the leaf
+// append. Genesis is excluded: it is written without a leaf (see initLedger).
+//
+// Repair is the follower's job (8.5): rebuilding the MMR needs the checkpoint
+// leaves, which this check deliberately does not attempt to reconstruct.
+func (o *Oracle) uncommittedLedgerRecords(records []ledger.Record) int {
+	if o.checkpoint.mmr == nil || len(records) <= 1 {
+		return 0
+	}
+	o.checkpoint.mu.RLock()
+	present := make(map[mmr.Hash]bool, len(o.checkpoint.leafLog))
+	for _, leaf := range o.checkpoint.leafLog {
+		present[leaf] = true
+	}
+	o.checkpoint.mu.RUnlock()
+
+	missing := 0
+	for _, record := range records[1:] { // skip genesis
+		leaf := mmr.LeafHash([]byte("state:" + record.Hash))
+		if !present[leaf] {
+			missing++
+		}
+	}
+	return missing
+}
+
+// recordMutation appends one semantic event, applies it to the state mirror and
+// commits its hash to the audit MMR. It runs while the token or governance lock
+// is held; it never calls back into either, so it cannot deadlock.
+func (o *Oracle) recordMutation(kind string, payload any) error {
+	o.ledgerMu.Lock()
+	defer o.ledgerMu.Unlock()
+	if o.ledger == nil {
+		return nil
+	}
+	record, err := o.ledger.Append(kind, payload)
+	if err != nil {
+		return err
+	}
+	if err := ledger.Apply(o.state, record); err != nil {
+		return fmt.Errorf("ledger apply seq %d: %w", record.Seq, err)
+	}
+	if root, err := ledger.StateRoot(o.state); err == nil {
+		o.stateRoot = root
+	}
+	return o.commitLedgerLeaf(record)
+}
+
+// commitLedgerLeaf makes the record part of the Oracle chain's audit MMR, so a
+// checkpoint or block commits to the state that produced it. A standby mirror
+// is built from replication (8.5) and is not a source of finality, so it does
+// not contribute leaves.
+func (o *Oracle) commitLedgerLeaf(record ledger.Record) error {
+	if o.Mode() != ModeActive || o.checkpoint.mmr == nil {
+		return nil
+	}
+	o.checkpoint.mu.Lock()
+	defer o.checkpoint.mu.Unlock()
+	o.appendAuditLeafLocked([]byte("state:" + record.Hash))
+	return o.persistCheckpointLocked()
+}
+
+// GetStatus returns the current status of the oracle.
 func (o *Oracle) GetStatus() map[string]interface{} {
+	logSize := 0
+	if o.ledger != nil {
+		logSize = o.ledger.Len()
+	}
+	replicaStatus := o.ReplicaStatus()
 	return map[string]interface{}{
-		"chain_id":   o.config.ChainID,
-		"network_id": o.config.NetworkID,
-		"token":      o.nrnToken.Info(),
+		"state_log_size":  logSize,
+		"state_root":      o.stateRoot,
+		"ledger_degraded": o.ledgerDegraded,
+		"chain_id":        o.config.ChainID,
+		"network_id":      o.config.NetworkID,
+		"mode":            o.Mode(),
+		// Replication position. A standby follower fills these in;
+		// until then an active Oracle is the source of truth and has no lag,
+		// and a standby reports zero rather than claiming to be current.
+		"head_seq":           replicaStatus.HeadSeq,
+		"lag_seq":            replicaStatus.LagSeq,
+		"lag_seconds":        replicaStatus.LagSeconds,
+		"diverged":           replicaStatus.Diverged,
+		"replication_paused": replicaStatus.Paused,
+		"unverified_classes": replicaStatus.UnverifiedClasses,
+		"token":              o.nrnToken.Info(),
 		"wallet_server": map[string]interface{}{
 			"enabled":          o.config.WalletServerEnabled,
 			"initial_funding":  o.GetWalletInitialFunding().String(),

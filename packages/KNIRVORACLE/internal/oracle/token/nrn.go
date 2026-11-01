@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/knirvcorp/knirvoracle/internal/oracle/crypto"
+	"github.com/knirvcorp/knirvoracle/internal/oracle/ledger"
 	"github.com/knirvcorp/knirvoracle/internal/oracle/types"
 )
 
@@ -23,6 +24,68 @@ type NRN struct {
 	ownerKey    *crypto.KeyPair
 	chainID     string
 	mu          sync.RWMutex
+	// recorder, when set, is called with one semantic event per mutation
+	// before the in-memory state changes. The Oracle wires it to the durable
+	// ledger; a token used without a ledger (tests, tools) leaves it nil.
+	recorder func(kind string, payload any) error
+}
+
+// SetRecorder installs the durable-ledger hook. It must be called before the
+// token serves requests.
+func (n *NRN) SetRecorder(recorder func(kind string, payload any) error) {
+	n.mu.Lock()
+	defer n.mu.Unlock()
+	n.recorder = recorder
+}
+
+func (n *NRN) record(kind string, payload any) error {
+	if n.recorder == nil {
+		return nil
+	}
+	return n.recorder(kind, payload)
+}
+
+// Hydrate replaces the in-memory read model with state replayed from the
+// ledger. The owner key pair stays as constructed: it is configuration, not
+// ledger state.
+func (n *NRN) Hydrate(chainID, owner string, totalSupply *big.Int, balances map[string]*big.Int, nonces map[string]uint64, registered map[string]bool) error {
+	ownerAddr, err := types.AddressFromString(owner)
+	if err != nil {
+		return fmt.Errorf("hydrate owner %q: %w", owner, err)
+	}
+	n.mu.Lock()
+	defer n.mu.Unlock()
+	n.chainID = chainID
+	n.owner = ownerAddr
+	n.totalSupply = new(big.Int).Set(totalSupply)
+	n.balances = map[types.Address]*big.Int{}
+	for raw, amount := range balances {
+		addr, err := types.AddressFromString(raw)
+		if err != nil {
+			return fmt.Errorf("hydrate balance %q: %w", raw, err)
+		}
+		n.balances[addr] = new(big.Int).Set(amount)
+	}
+	n.nonces = map[types.Address]uint64{}
+	for raw, nonce := range nonces {
+		addr, err := types.AddressFromString(raw)
+		if err != nil {
+			return fmt.Errorf("hydrate nonce %q: %w", raw, err)
+		}
+		n.nonces[addr] = nonce
+	}
+	n.registered = map[types.Address]bool{}
+	for raw, ok := range registered {
+		if !ok {
+			continue
+		}
+		addr, err := types.AddressFromString(raw)
+		if err != nil {
+			return fmt.Errorf("hydrate registration %q: %w", raw, err)
+		}
+		n.registered[addr] = true
+	}
+	return nil
 }
 
 // TokenInfo contains basic token information
@@ -167,6 +230,9 @@ func (n *NRN) RegisterAddress(addr types.Address) bool {
 	if n.registered[addr] {
 		return false
 	}
+	if err := n.record(ledger.KindWalletRegister, ledger.WalletRegister{Address: addr.String()}); err != nil {
+		return false
+	}
 	n.registered[addr] = true
 	return true
 }
@@ -192,6 +258,14 @@ func (n *NRN) CollectFee(from, rewardPool types.Address, burnAmount, rewardAmoun
 		return fmt.Errorf("%w: have %s, need %s", types.ErrInsufficientBalance, valueOrZero(balance), total)
 	}
 
+	// One record for the pair so a crash cannot burn without paying the pool.
+	if err := n.record(ledger.KindTokenFee, ledger.TokenFee{
+		From: from.String(), RewardPool: rewardPool.String(),
+		Burn: dec(burnAmount), Reward: dec(rewardAmount),
+	}); err != nil {
+		return fmt.Errorf("record fee: %w", err)
+	}
+
 	n.setBalance(from, new(big.Int).Sub(balance, total))
 	if rewardAmount.Sign() > 0 {
 		poolBalance := n.balances[rewardPool]
@@ -212,6 +286,9 @@ func valueOrZero(value *big.Int) *big.Int {
 	}
 	return value
 }
+
+// dec renders an amount for a ledger payload (decimal string, never nil).
+func dec(value *big.Int) string { return valueOrZero(value).String() }
 
 // setBalance sets the balance for an address (internal use only, must hold lock)
 func (n *NRN) setBalance(addr types.Address, amount *big.Int) {

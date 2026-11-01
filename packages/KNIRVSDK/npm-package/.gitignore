@@ -1,1 +1,2 @@
 wasm-core/target/
+src/wallet/protocol.generated.ts

@@ -108,6 +108,27 @@ func TestCheckIsDeterministicAndOntologyWins(t *testing.T) {
 	}
 }
 
+func TestTenantApprovedAliasesExpandOnlyFactKeys(t *testing.T) {
+	ix := open(t)
+	c := load(t, acme)
+	c.Ontology.Aliases = map[string]string{"refund signoff": "refund approval", "rights": "decision rights"}
+	if _, err := Sync(ix, c); err != nil {
+		t.Fatal(err)
+	}
+	for _, claim := range []evidence.Claim{
+		{Subject: "rights", Property: "refund signoff", Value: "manager"},
+		{Subject: "decision rights", Property: "refund approval", Value: "manager"},
+	} {
+		v, err := Check(ix, "acme", claim)
+		if err != nil || v.Outcome != Supported {
+			t.Fatalf("%+v: %+v %v", claim, v, err)
+		}
+	}
+	if v, err := Check(ix, "globex", evidence.Claim{Subject: "rights", Property: "refund signoff", Value: "manager"}); err != nil || v.Outcome != NoOpinion {
+		t.Fatalf("alias crossed tenant boundary: %+v %v", v, err)
+	}
+}
+
 func TestOtherOrganizationsNeverSeeIt(t *testing.T) {
 	ix := open(t)
 	Sync(ix, load(t, acme))

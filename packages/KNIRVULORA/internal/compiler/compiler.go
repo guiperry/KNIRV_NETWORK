@@ -101,7 +101,7 @@ func (c *Compiler) CompileCluster(clusterID string, datasets []api.DatasetRecord
 		return nil, fmt.Errorf("path B SFT training failed: %w", err)
 	}
 
-	manifest := buildManifest(clusterID, provenance, sourceModel, rank, alpha, targetModels)
+	manifest := buildManifest(clusterID, provenance, sourceModel, rank, alpha, targetModels, api.FitKindLinearEmbeddingFit)
 
 	routing := api.RoutingPolicy{
 		SimilarityThreshold:  api.DefaultTau,
@@ -327,7 +327,7 @@ var targetModuleRoles = []string{
 // protocol default ever changes.
 const DefaultCanonicalDim = 1024
 
-func buildManifest(clusterID string, provenance api.CompileProvenance, sourceModel api.BaseModelSpec, rank int, alpha float64, targets []api.BaseModelSpec) *api.Manifest {
+func buildManifest(clusterID string, provenance api.CompileProvenance, sourceModel api.BaseModelSpec, rank int, alpha float64, targets []api.BaseModelSpec, fitKind string) *api.Manifest {
 	return &api.Manifest{
 		Schema:  api.SchemaURL,
 		Name:    fmt.Sprintf("ulora-cluster-%s", clusterID),
@@ -348,6 +348,7 @@ func buildManifest(clusterID string, provenance api.CompileProvenance, sourceMod
 			SimilarityThreshold:  api.DefaultTau,
 			AllowedTransferPaths: []string{"subspace_svd", "synthetic_distill"},
 		},
+		Training: api.Training{FitKind: fitKind},
 	}
 }
 

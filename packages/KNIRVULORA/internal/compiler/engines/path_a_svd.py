@@ -56,6 +56,7 @@ import sys
 import traceback
 
 import numpy as np
+from safetensors import safe_open
 from safetensors.numpy import load_file, save_file
 
 
@@ -184,6 +185,27 @@ def find_lora_key(tensors, suffix):
     return None
 
 
+def source_fit_kind(source_weights_path):
+    """
+    Read the source artifact's declared fit kind so a transfer never upgrades
+    itself. Path A only computes connectors; the core it transfers keeps
+    whatever provenance the source had. An older artifact with no declaration
+    yields "" (unknown) rather than a fabricated "gradient_sft".
+    """
+    try:
+        with safe_open(source_weights_path, framework="numpy") as handle:
+            metadata = handle.metadata() or {}
+    except Exception:
+        return ""
+    raw = metadata.get("ulora")
+    if not raw:
+        return ""
+    try:
+        return str(json.loads(raw).get("fit_kind") or "")
+    except (ValueError, TypeError, AttributeError):
+        return ""
+
+
 def path_a_transfer(source_weights_path, source_model, target_model, config):
     rank = int(config.get("rank", 16))
     alpha = float(config.get("alpha", 32.0))
@@ -269,6 +291,7 @@ def path_a_transfer(source_weights_path, source_model, target_model, config):
         "ulora": json.dumps({
             "framework": "numpy_scipy",
             "engine": "path_a_svd_procrustes",
+            "fit_kind": source_fit_kind(source_weights_path),
             "rank": rank,
             "alpha": alpha,
             "canonical_dim": canonical_dim,

@@ -1,0 +1,76 @@
+{
+  "version": 1,
+  "description": "Role resolution vectors for SDK/go-package/noderole. Read by the Go test and, when the resolver is ported, by every other binding. Inputs are key-file discovery results and lowering-only overrides; expected values are the full decision.",
+  "cases": [
+    {
+      "name": "root key unlocked",
+      "inputs": { "root_key_path": "/etc/knirv/root.key", "root_unlocked": true },
+      "want": { "kind": "root", "chain_role": "Root", "oracle": "active", "validator": false, "signer": "root-owner", "degraded": false }
+    },
+    {
+      "name": "root key locked stays root and degrades",
+      "inputs": { "root_key_path": "/etc/knirv/root.key", "root_unlocked": false },
+      "want": { "kind": "root", "chain_role": "Root", "oracle": "active", "validator": false, "signer": "root-owner", "degraded": true }
+    },
+    {
+      "name": "boot key unlocked runs a standby validator",
+      "inputs": { "boot_key_path": "/etc/knirv/boot.key", "boot_unlocked": true },
+      "want": { "kind": "bootnode", "chain_role": "Bootnode", "oracle": "standby", "validator": true, "signer": "bootnode-master", "degraded": false }
+    },
+    {
+      "name": "boot key locked stays standby and degrades",
+      "inputs": { "boot_key_path": "/etc/knirv/boot.key", "boot_unlocked": false },
+      "want": { "kind": "bootnode", "chain_role": "Bootnode", "oracle": "standby", "validator": true, "signer": "bootnode-master", "degraded": true }
+    },
+    {
+      "name": "root wins when both keys exist",
+      "inputs": { "root_key_path": "/etc/knirv/root.key", "boot_key_path": "/etc/knirv/boot.key", "root_unlocked": true, "boot_unlocked": true },
+      "want": { "kind": "root", "chain_role": "Root", "oracle": "active", "validator": false, "signer": "root-owner", "degraded": false }
+    },
+    {
+      "name": "neither key is a client",
+      "inputs": {},
+      "want": { "kind": "client", "chain_role": "Client", "oracle": "off", "validator": false, "signer": "", "degraded": false }
+    },
+    {
+      "name": "chain.role lowers a root to client",
+      "inputs": { "root_key_path": "/etc/knirv/root.key", "root_unlocked": true, "override": { "chain_role": "client" } },
+      "want": { "kind": "root", "chain_role": "Client", "oracle": "active", "validator": false, "signer": "root-owner", "degraded": false }
+    },
+    {
+      "name": "chain.role cannot raise a client",
+      "inputs": { "override": { "chain_role": "Root" } },
+      "want": { "kind": "client", "chain_role": "Client", "oracle": "off", "validator": false, "signer": "", "degraded": false, "ignored": 1 }
+    },
+    {
+      "name": "unknown chain role is ignored with a warning",
+      "inputs": { "root_key_path": "/etc/knirv/root.key", "root_unlocked": true, "override": { "chain_role": "validator" } },
+      "want": { "kind": "root", "chain_role": "Root", "oracle": "active", "validator": false, "signer": "root-owner", "degraded": false, "ignored": 1 }
+    },
+    {
+      "name": "oracle mode lowers root to standby",
+      "inputs": { "root_key_path": "/etc/knirv/root.key", "root_unlocked": true, "override": { "oracle_mode": "standby" } },
+      "want": { "kind": "root", "chain_role": "Root", "oracle": "standby", "validator": false, "signer": "root-owner", "degraded": false }
+    },
+    {
+      "name": "oracle off also clears validator",
+      "inputs": { "boot_key_path": "/etc/knirv/boot.key", "boot_unlocked": true, "override": { "oracle_mode": "off" } },
+      "want": { "kind": "bootnode", "chain_role": "Bootnode", "oracle": "off", "validator": false, "signer": "bootnode-master", "degraded": false }
+    },
+    {
+      "name": "validator cannot be enabled on a root",
+      "inputs": { "root_key_path": "/etc/knirv/root.key", "root_unlocked": true, "override": { "validator": true } },
+      "want": { "kind": "root", "chain_role": "Root", "oracle": "active", "validator": false, "signer": "root-owner", "degraded": false, "ignored": 1 }
+    },
+    {
+      "name": "validator can be disabled on a bootnode",
+      "inputs": { "boot_key_path": "/etc/knirv/boot.key", "boot_unlocked": true, "override": { "validator": false } },
+      "want": { "kind": "bootnode", "chain_role": "Bootnode", "oracle": "standby", "validator": false, "signer": "bootnode-master", "degraded": false }
+    },
+    {
+      "name": "chain.role lowers a bootnode to peer",
+      "inputs": { "boot_key_path": "/etc/knirv/boot.key", "boot_unlocked": true, "override": { "chain_role": "peer" } },
+      "want": { "kind": "bootnode", "chain_role": "Peer", "oracle": "standby", "validator": true, "signer": "bootnode-master", "degraded": false }
+    }
+  ]
+}

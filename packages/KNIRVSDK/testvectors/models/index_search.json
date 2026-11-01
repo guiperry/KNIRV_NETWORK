@@ -1,0 +1,28 @@
+{
+  "request": {
+    "text": "Water boils at 100 C at sea level.",
+    "k": 3,
+    "mode": "index",
+    "tenant": "tenant-a"
+  },
+  "response": {
+    "hits": [{
+      "span_id": "span-1",
+      "snapshot": "sha256:fixture",
+      "start": 0,
+      "end": 31,
+      "text": "At sea level, water boils at 100 C.",
+      "source_tier": "reference",
+      "score": 0.98,
+      "matched": ["number"],
+      "source": "fixture",
+      "revision": "r1"
+    }],
+    "retrieval": "lexical",
+    "index_version": "v1-fixture",
+    "embedder_id": "fixture:1:3",
+    "flash_used": false,
+    "degraded": false,
+    "stale": false
+  }
+}

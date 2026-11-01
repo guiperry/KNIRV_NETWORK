@@ -1,8 +1,12 @@
 /**
- * Wire contract for the KNIRVMODELS daemon (TypeScript twin of
- * go-package/models). Both are tested against testvectors/models so they cannot
- * drift silently.
+ * Wire contract for the KNIRVMODELS daemon. The logic (byte-v1 tokenizer, advice
+ * prompt and redaction, advice mapping, role lines) lives in the Rust core
+ * (core/src/models.rs) and is reached through `models.*` operations, so this file
+ * holds types, the HTTP client and thin calls. The core must be initialised first
+ * (`initLocal()` or `SdkClient.init()`); `ModelsClient.advise` does it itself.
+ * testvectors/models gate the core and the still-separate Go copy.
  */
+import { callLocal, fromBase64, initLocal } from "../local.js";
 /** Where the daemon serves each model. One namespace for all three. */
 export const HEAD_PREFIX = "/models/head";
 export const REGISTRY_PATH = "/models/registry";
@@ -13,92 +17,34 @@ export const HASHER_PREFIX = "/models/hasher";
 export class NotReadyError extends Error {
     constructor() { super("model not ready"); this.name = "NotReadyError"; }
 }
-export const BYTE_V1 = { EOS: 259, PAD: 256, BOS: 257 };
+export const BYTE_V1 = { EOS: 259, PAD: 256, BOS: 257 }; // token ids; the tokenizer itself is in the core
 export function findDecision(r, name) {
     return r.decisions.find((d) => d.name === name);
 }
 /** Plan text: bytes up to the first EOS, specials dropped. */
 export function planText(r) {
-    const bytes = [];
-    for (const t of r.plan_tokens) {
-        if (t === BYTE_V1.EOS)
-            break;
-        if (t < 256)
-            bytes.push(t);
-    }
-    return new TextDecoder().decode(Uint8Array.from(bytes));
+    const { bytes_base64 } = callLocal("models.plan_text", { plan_tokens: r.plan_tokens });
+    return new TextDecoder().decode(fromBase64(bytes_base64));
 }
 /** Tokens the model takes: its sequence length minus the summary slots. */
 export function inputWidth(m) {
-    const max = m.config.max_seq_len ?? 0;
-    const slots = m.config.summary_slots ?? 0;
-    if (max <= slots)
-        throw new Error("model config has no input room");
-    return max - slots;
+    return callLocal("models.input_width", { config: m.config }).width;
 }
 /** BOS + the text's UTF-8 bytes, truncated or PAD-filled to `width`. */
 export function encodeByteV1(text, width) {
-    const toks = [BYTE_V1.BOS];
-    for (const b of new TextEncoder().encode(text)) {
-        if (toks.length === width)
-            break;
-        toks.push(b);
-    }
-    while (toks.length < width)
-        toks.push(BYTE_V1.PAD);
-    return toks;
+    return callLocal("models.encode_byte_v1", { text, width }).tokens;
 }
-const ADVICE_ACTIONS = new Set(["allow", "request_review", "request_evidence", "ask_operator", "recover"]);
-const SECRETS = [
-    /AKIA[0-9A-Z]{16}/g,
-    /gh[pousr]_[A-Za-z0-9]{36}/g,
-    /(?:password|passwd|token|secret|api[_-]?key)\s*[=:]\s*[^\s]{8,}/gi,
-];
-/** Canonical model input; identical to the Go BuildAdvisePrompt and the trainer's `prompt`. */
+const now = () => new Date().toISOString();
+/** Canonical model input; the trainer's `prompt` is pinned to the same vector. */
 export function buildAdvisePrompt(c) {
-    let req = c.task_summary?.request ?? "";
-    for (const p of SECRETS)
-        req = req.replace(p, "[REDACTED]");
-    const kv = (m) => Object.keys(m ?? {}).sort().map((k) => `${k}=${m[k]}`).join(",");
-    const classes = (c.evidence_summary ?? []).map((e) => e.class).sort();
-    return (`phase:${c.current_phase ?? ""} intent:${c.task_summary?.intent ?? ""} risk:${c.task_summary?.risk ?? ""} ` +
-        `budget:${kv(c.remaining_budget)} agents:${(c.agent_chain ?? []).join(">")} evidence:${classes.join(",")}\n` +
-        `request:${req}`);
+    return callLocal("models.build_advise_prompt", c).prompt;
 }
 export function abstainAdvice(reason, modelVersion, manifest) {
-    return {
-        recommended_action: "", next_phase: "", confidence: 0, abstain: true, abstain_reason: reason,
-        model_version: modelVersion, dataset_manifest_hash: manifest, policy_bundle_hash: "",
-        received_at: new Date().toISOString(),
-    };
+    return callLocal("models.abstain_advice", { reason, model_version: modelVersion, dataset_manifest_hash: manifest, now: now() });
 }
 /** Maps decision heads onto SupervisorAdvice; every doubtful case abstains. */
 export function adviceFromReasoning(r, c) {
-    const find = (name) => r.decisions.find((d) => d.name === name && d.kind === "choice");
-    const ab = (reason) => abstainAdvice(reason, r.model_version, r.dataset_manifest_hash);
-    const action = find("action");
-    if (!action)
-        return ab("model has no action head");
-    if (action.abstain || action.selected == null)
-        return ab("action confidence below the fitted abstention threshold");
-    if (!ADVICE_ACTIONS.has(action.selected))
-        return ab("action is not in the advisory vocabulary");
-    let conf = action.confidence ?? 0;
-    let next = c.current_phase ?? "";
-    const np = find("next_phase");
-    if (np) {
-        if (np.abstain || np.selected == null)
-            return ab("next_phase confidence below the fitted abstention threshold");
-        next = np.selected;
-        if (np.confidence != null && np.confidence < conf)
-            conf = np.confidence;
-    }
-    return {
-        recommended_action: action.selected, next_phase: next, confidence: conf, abstain: false,
-        model_version: r.model_version, dataset_manifest_hash: r.dataset_manifest_hash,
-        policy_bundle_hash: r.policy_bundle_hash || c.policy_bundle_hash || "",
-        received_at: new Date().toISOString(),
-    };
+    return callLocal("models.advice_from_reasoning", { reasoning: r, context: c, now: now() });
 }
 export class NoModelError extends Error {
     constructor() { super("no HEAD model has been published yet"); }
@@ -144,6 +90,42 @@ export class ModelsClient {
     }
     hasherValidate(req) { return this.post(`${HASHER_PREFIX}/validate`, req); }
     hasherInfer(text) { return this.post(`${HASHER_PREFIX}/infer`, { text }); }
+    hasherIndexSearch(req) {
+        const { tenant, ...body } = req;
+        return this.postWithHeaders(`${HASHER_PREFIX}/index/search`, body, tenant ? { "X-KNIRV-Tenant": tenant } : {});
+    }
+    /** Sync is operator-only; authority is sent by the client, never in ontology content. */
+    hasherOntologySync(config) {
+        return this.postWithHeaders(`${HASHER_PREFIX}/ontology/sync`, config, { "X-KNIRV-Privilege": "operator" });
+    }
+    hasherOntologyRemove(tenant) {
+        return this.requestWithHeaders(`${HASHER_PREFIX}/ontology?tenant=${encodeURIComponent(tenant)}`, "DELETE", undefined, { "X-KNIRV-Privilege": "operator" });
+    }
+    hasherOntologyCheck(claim) {
+        const { tenant, ...body } = claim;
+        return this.postWithHeaders(`${HASHER_PREFIX}/ontology/check`, body, tenant ? { "X-KNIRV-Tenant": tenant } : {});
+    }
+    async postWithHeaders(path, body, headers) {
+        const res = await this.fetchImpl(this.baseUrl + path, {
+            method: "POST", headers: { ...this.headers, ...headers, "Content-Type": "application/json" }, body: JSON.stringify(body),
+        });
+        if (res.status === 503)
+            throw new NotReadyError();
+        if (!res.ok)
+            throw new Error(`models: HTTP ${res.status}`);
+        return (await res.json());
+    }
+    async requestWithHeaders(path, method, body, headers) {
+        const res = await this.fetchImpl(this.baseUrl + path, {
+            method, headers: { ...this.headers, ...headers, ...(body === undefined ? {} : { "Content-Type": "application/json" }) },
+            ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+        });
+        if (res.status === 503)
+            throw new NotReadyError();
+        if (!res.ok)
+            throw new Error(`models: HTTP ${res.status}`);
+        return (await res.json());
+    }
     manifest() { return this.json(`${HEAD_PREFIX}/models`); }
     reason(tokens) {
         return this.json(`${HEAD_PREFIX}/reason`, {
@@ -152,6 +134,7 @@ export class ModelsClient {
     }
     /** manifest → encode → reason → advice; every failure is an abstention. */
     async advise(c) {
+        await initLocal();
         let m;
         try {
             m = await this.manifest();
@@ -177,56 +160,9 @@ export class ModelsClient {
 // ---- platform status (GET /api/models/status) -------------------------------------------
 /** The backend's authenticated route for the platform-wide model view. */
 export const STATUS_PATH = "/api/models/status";
-const sha12 = (s) => (s.length > 12 ? s.slice(0, 12) : s);
-/** The fixed list of role lines for a status document (same logic as the Go twin). */
+/** The fixed list of role lines for a status document (core/src/models.rs). */
 export function roles(s) {
-    const byName = new Map((s.daemon ?? []).map((m) => [m.name, m]));
-    const daemon = (role, label, name) => {
-        const l = { role, label, model: name, version: "", state: "unavailable" };
-        const m = byName.get(name);
-        if (!m) {
-            l.detail = s.daemon_error ? s.daemon_error : "not served by the models daemon";
-        }
-        else if (m.ready) {
-            l.state = "ready";
-            l.version = m.version;
-        }
-        else if (!m.loaded && !m.error) {
-            l.state = "idle";
-            l.version = m.version;
-            l.detail = "not built yet; built on first use";
-        }
-        else {
-            l.state = "not ready";
-            l.version = m.version;
-            l.detail = m.error || "not trained yet";
-        }
-        return l;
-    };
-    const llama = { role: "server_tasks", label: "server tasks and skills", model: "llama", version: "", state: "unavailable", detail: "llama is not running" };
-    if (s.llama) {
-        llama.state = "not ready";
-        llama.detail = s.llama.error ?? "";
-        if (s.llama.ready) {
-            llama.state = "ready";
-            if (s.llama.base_sha256)
-                llama.version = "gguf-" + sha12(s.llama.base_sha256);
-            const loaded = (s.llama.adapters ?? []).filter((a) => a.loaded).map((a) => a.name);
-            llama.detail = loaded.length ? "adapters: " + loaded.join(", ") : "no skill adapter loaded";
-        }
-        else if (!llama.detail) {
-            llama.detail = "starting";
-        }
-    }
-    const ext = { role: "external", label: "fallback and planning", model: "external", version: "provider-chain", state: "ready",
-        detail: "chosen per request; the only model that leaves this machine" };
-    const st = s.stats?.["external"];
-    if (st && st.circuit && st.circuit !== "closed") {
-        ext.state = "not ready";
-        ext.detail = `circuit ${st.circuit}: ${st.last_error ?? ""}`;
-    }
-    return [daemon("decide", "supervision decisions", "head"), daemon("generate", "text generation", "heart"),
-        daemon("validate", "validation", "hasher"), llama, ext];
+    return callLocal("models.platform_roles", { status: s }).roles;
 }
 export * from "./frame.js";
 export const INDEX_STATUS_PATH = `${HASHER_PREFIX}/index/status`;

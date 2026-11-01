@@ -2,7 +2,6 @@ package checkpoint
 
 import (
 	"context"
-	"crypto/ecdsa"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -12,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ethereum/go-ethereum/crypto"
+	knirvsigning "github.com/guiperry/knirv-sdk-go/signing"
 )
 
 const chainID = "validation-chain"
@@ -29,7 +28,7 @@ const chainID = "validation-chain"
 // become the registered merkle source.
 type Runtime struct {
 	poster     *Poster
-	signer     *ecdsa.PrivateKey
+	signer     knirvsigning.RemoteSigner
 	httpClient *http.Client
 
 	lastEnd  uint64
@@ -42,7 +41,7 @@ type Runtime struct {
 // own resolvePublicURL() result), and oracleURL is the actual KNIRVORACLE
 // endpoint (KNIRV_ORACLE_URL override if set, otherwise the same as gatewayURL).
 // KNIRVORACLE is never assumed local.
-func NewRuntime(chainSocketPath, gatewayURL, oracleURL string, signer *ecdsa.PrivateKey) *Runtime {
+func NewRuntime(chainSocketPath, gatewayURL, oracleURL string, signer knirvsigning.RemoteSigner) *Runtime {
 	return &Runtime{
 		poster: NewPoster(gatewayURL, oracleURL),
 		signer: signer,
@@ -84,12 +83,11 @@ func (rt *Runtime) Run(ctx context.Context, pollInterval time.Duration) {
 }
 
 func (rt *Runtime) ensureRegistered(ctx context.Context) error {
-	pub := rt.signer.Public().(*ecdsa.PublicKey)
-	address := oracleAddress(pub)
+	address := rt.signer.Address()
 	reg := &ChainRegistration{
 		ChainID: chainID,
 		Authors: []RegisteredAuthor{
-			{Address: address, PubKey: crypto.CompressPubkey(pub), Weight: 1},
+			{Address: address, PubKey: rt.signer.PublicKey(), Weight: 1},
 		},
 		QuorumNumer: 1,
 		QuorumDenom: 1,
@@ -127,7 +125,7 @@ func (rt *Runtime) tick(ctx context.Context) error {
 		EndHeight:     height,
 		Root:          root,
 		PrevCheckHash: rt.prevHash,
-		Proposer:      oracleAddress(rt.signer.Public().(*ecdsa.PublicKey)),
+		Proposer:      rt.signer.Address(),
 	}
 	if err := SignCheckpoint(cp, rt.signer); err != nil {
 		return fmt.Errorf("sign checkpoint: %w", err)

@@ -2,6 +2,9 @@ package app
 
 import (
 	"context"
+	"errors"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -291,4 +294,28 @@ func mustContext(t *testing.T, values map[string]interface{}) *structpb.Struct {
 		t.Fatalf("build error context: %v", err)
 	}
 	return fields
+}
+
+func TestLateValidationServiceResolvesAfterStartup(t *testing.T) {
+	t.Setenv(validationServiceURLEnv, "")
+	t.Setenv(validationServiceTokenEnv, "")
+	t.Setenv(validationServiceTokenFileEnv, "")
+
+	svc := newLateValidationService(zap.NewNop())
+	if svc.configured() {
+		t.Fatal("nothing is configured yet")
+	}
+	if _, err := svc.SubmitClusterForValidation(context.Background(), &drq.ErrorCluster{ClusterID: "c1"}); !errors.Is(err, errNoValidationService) {
+		t.Fatalf("unconfigured submit = %v, want errNoValidationService", err)
+	}
+
+	tokenFile := filepath.Join(t.TempDir(), "token")
+	if err := os.WriteFile(tokenFile, []byte("secret\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv(validationServiceURLEnv, "http://127.0.0.1:1")
+	t.Setenv(validationServiceTokenFileEnv, tokenFile)
+	if !svc.configured() {
+		t.Fatal("service should resolve once the endpoint and token file exist")
+	}
 }

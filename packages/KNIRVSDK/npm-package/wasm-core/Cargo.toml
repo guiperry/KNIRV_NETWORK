@@ -14,6 +14,11 @@ crate-type = ["cdylib", "rlib"]
 hex = "0.4"
 sha2 = "0.10"
 wasm-bindgen = "0.2"
+wasm-bindgen-futures = "0.4"
+js-sys = "0.3"
+# The Rust core is the source of truth. Only its local (non-network) operations
+# are reachable from here, so the HTTP stack is dropped at link time.
+knirv-sdk = { path = "../../core", default-features = false, features = ["js-rng", "module-manifest"] }
 
 [profile.release]
 opt-level = "z"

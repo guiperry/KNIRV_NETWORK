@@ -69,11 +69,16 @@ func writeAdminError(w http.ResponseWriter, status int, message string) {
 // — KNIRVMONITOR's proxyToOnboarding is a raw byte passthrough, so this
 // response reaches the browser unmodified.
 type operatorApplicationRow struct {
-	ID        string `json:"id"`
-	LegalName string `json:"legal_name"`
-	KYCStatus string `json:"kyc_status"`
-	Status    string `json:"status"`
-	CreatedAt string `json:"created_at"`
+	ID            string `json:"id"`
+	LegalName     string `json:"legal_name"`
+	BusinessName  string `json:"business_name"`
+	TaxID         string `json:"tax_id"`
+	Country       string `json:"country"`
+	CorporateSite string `json:"corporate_site"`
+	ContactEmail  string `json:"contact_email"`
+	KYCStatus     string `json:"kyc_status"`
+	Status        string `json:"status"`
+	CreatedAt     string `json:"created_at"`
 }
 
 // handleAdminOperatorsList lists every operator application, joined against
@@ -86,7 +91,9 @@ func (s *Server) handleAdminOperatorsList(w http.ResponseWriter, r *http.Request
 	}
 
 	result, err := s.d1Client.Query(r.Context(), `
-		SELECT oa.id AS id, oa.legal_name AS legal_name, oa.kyc_status AS kyc_status,
+		SELECT oa.id AS id, oa.legal_name AS legal_name, oa.business_name AS business_name,
+		       oa.tax_id AS tax_id, oa.country AS country, oa.corporate_site AS corporate_site,
+		       oa.contact_email AS contact_email, oa.kyc_status AS kyc_status,
 		       oa.created_at AS created_at, COALESCE(nr.status, 'pending') AS status
 		FROM operator_applications oa
 		LEFT JOIN node_registrations nr ON nr.application_id = oa.id
@@ -101,17 +108,77 @@ func (s *Server) handleAdminOperatorsList(w http.ResponseWriter, r *http.Request
 	applications := make([]operatorApplicationRow, 0, len(result.Rows))
 	for _, row := range result.Rows {
 		applications = append(applications, operatorApplicationRow{
-			ID:        stringField(row, "id"),
-			LegalName: stringField(row, "legal_name"),
-			KYCStatus: stringField(row, "kyc_status"),
-			Status:    stringField(row, "status"),
-			CreatedAt: stringField(row, "created_at"),
+			ID:            stringField(row, "id"),
+			LegalName:     stringField(row, "legal_name"),
+			BusinessName:  stringField(row, "business_name"),
+			TaxID:         stringField(row, "tax_id"),
+			Country:       stringField(row, "country"),
+			CorporateSite: stringField(row, "corporate_site"),
+			ContactEmail:  stringField(row, "contact_email"),
+			KYCStatus:     stringField(row, "kyc_status"),
+			Status:        stringField(row, "status"),
+			CreatedAt:     stringField(row, "created_at"),
 		})
 	}
 
 	writeAdminJSON(w, http.StatusOK, map[string]any{
 		"success": true,
 		"data":    map[string]any{"applications": applications},
+	})
+}
+
+var allowedKYCStatuses = map[string]bool{"pending": true, "approved": true, "rejected": true, "manual_review": true}
+
+// handleAdminOperatorKYC records an in-house KYC/AML decision. It is the
+// admin-side counterpart to ONBOARDING.KNIRV.COM's verify-kyc.ts, which no
+// longer accepts a caller-supplied status. kyc_status gates
+// register-bootnode.ts, so this route must stay behind requireAdminJWT.
+func (s *Server) handleAdminOperatorKYC(w http.ResponseWriter, r *http.Request) {
+	if !s.requireD1(w) {
+		return
+	}
+
+	id := strings.TrimSpace(mux.Vars(r)["id"])
+	if id == "" {
+		writeAdminError(w, http.StatusBadRequest, "id is required")
+		return
+	}
+
+	var body struct {
+		Status string `json:"status"`
+		Note   string `json:"note"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		writeAdminError(w, http.StatusBadRequest, "invalid JSON body")
+		return
+	}
+	if !allowedKYCStatuses[body.Status] {
+		writeAdminError(w, http.StatusBadRequest, "status must be pending, approved, rejected or manual_review")
+		return
+	}
+
+	now := time.Now().UTC().Format(time.RFC3339)
+	result, err := s.d1Client.Query(r.Context(),
+		"UPDATE operator_applications SET kyc_status = ?, updated_at = ? WHERE id = ?",
+		body.Status, now, id)
+	if err != nil {
+		s.logger.Warn("admin operator kyc update failed", zap.Error(err))
+		writeAdminError(w, http.StatusBadGateway, "failed to update KYC status")
+		return
+	}
+	if result.Changes == 0 {
+		writeAdminError(w, http.StatusNotFound, "application not found")
+		return
+	}
+
+	// D1 has no column for the reviewer's note, so keep it in the gateway log
+	// as the audit trail of who-decided-what-and-why.
+	s.logger.Info("operator KYC decision recorded",
+		zap.String("application_id", id), zap.String("kyc_status", body.Status), zap.String("note", body.Note))
+
+	writeAdminJSON(w, http.StatusOK, map[string]any{
+		"success": true,
+		"data":    map[string]any{"applicationId": id, "kycStatus": body.Status, "note": body.Note},
 	})
 }
 

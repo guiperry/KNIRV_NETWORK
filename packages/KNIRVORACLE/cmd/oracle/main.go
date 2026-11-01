@@ -58,12 +58,12 @@ func main() {
 		log.Fatalf("Failed to create logger: %v", err)
 	}
 
-	oracleInst, err := initOracleFromKeyFile(logger)
+	oracleInst, err := initOracleForMode(logger)
 	if err != nil {
-		log.Fatalf("Failed to initialize Oracle from root.key: %v", err)
+		log.Fatalf("Failed to initialize Oracle: %v", err)
 	}
 	if oracleInst == nil {
-		log.Println("Oracle not activated: no usable root.key found")
+		log.Println("Oracle not activated")
 		return
 	}
 
@@ -98,7 +98,7 @@ func main() {
 	actuarialHandler := actuarial.NewHandler(oracleInst, chainverify.NewClient(chainVerifyURL), logger)
 	mux.HandleFunc("/oracle/v3/actuarial/settlements/payout", actuarialHandler.HandleSettlementPayout)
 
-	server := &http.Server{Handler: mux}
+	server := &http.Server{Handler: routes.Guard(oracleInst.Mode(), mux)}
 
 	if err := oracleInst.Start(); err != nil {
 		log.Fatalf("Failed to start Oracle: %v", err)

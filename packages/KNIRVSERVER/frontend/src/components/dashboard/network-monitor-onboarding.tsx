@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   useOnboardingAdmin,
+  useRecordKycDecision,
   useReviewOperatorApplication,
   useUpdateUserRole,
   useUpdateUserStatus,
@@ -20,6 +21,8 @@ const STATUS_OPTIONS = ['active', 'suspended', 'banned'] as const;
 export function NetworkMonitorOnboarding() {
   const { applications, users, isLoading, error } = useOnboardingAdmin();
   const reviewApplication = useReviewOperatorApplication();
+  const recordKyc = useRecordKycDecision();
+  const [kycNotes, setKycNotes] = useState<Record<string, string>>({});
   const updateRole = useUpdateUserRole();
   const updateStatus = useUpdateUserStatus();
   const [actionError, setActionError] = useState<string | null>(null);
@@ -58,6 +61,8 @@ export function NetworkMonitorOnboarding() {
   // actionError below rather than being silently filtered out here.
   const pendingApps: OnboardingApplication[] =
     applications?.data?.applications?.filter((a) => a.status !== 'reviewed' && a.status !== 'rejected') ?? [];
+  const kycQueue: OnboardingApplication[] =
+    applications?.data?.applications?.filter((a) => a.kyc_status === 'pending' || a.kyc_status === 'manual_review') ?? [];
   const allUsers: OnboardingUser[] = users?.data?.users ?? [];
 
   return (
@@ -74,6 +79,66 @@ export function NetworkMonitorOnboarding() {
           {actionError}
         </div>
       )}
+
+      <Card className="aether-bevel-dark rounded-xl">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm text-gray-300 flex items-center gap-2">
+            <UserCheck className="w-4 h-4 text-cyan-400" />
+            KYC / AML Review ({kycQueue.length})
+          </CardTitle>
+          <CardDescription className="text-xs text-gray-500">
+            Verify the applicant (business registry, sanctions lists, contact) before approving. Approval lets the
+            operator provision a bootnode. Your note is written to the gateway log.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {kycQueue.length === 0 ? (
+            <p className="text-sm text-gray-500">No applications awaiting KYC.</p>
+          ) : (
+            <div className="space-y-2">
+              {kycQueue.map((app) => {
+                const busy = recordKyc.isPending && recordKyc.variables?.id === app.id;
+                const decide = (status: 'approved' | 'rejected' | 'manual_review') =>
+                  runAction(() => recordKyc.mutateAsync({ id: app.id, status, note: kycNotes[app.id] }));
+                return (
+                  <div key={app.id} className="rounded-lg border border-slate-800 bg-slate-950/40 p-3 space-y-2">
+                    <div className="text-sm font-medium text-gray-200">
+                      {app.legal_name}
+                      {app.business_name && app.business_name !== app.legal_name ? ` (${app.business_name})` : ''}
+                    </div>
+                    <div className="text-xs text-gray-500 grid grid-cols-1 sm:grid-cols-2 gap-x-4">
+                      <span>Tax ID: {app.tax_id || '-'}</span>
+                      <span>Country: {app.country || '-'}</span>
+                      <span>Site: {app.corporate_site || '-'}</span>
+                      <span>Contact: {app.contact_email || '-'}</span>
+                      <span>KYC: {app.kyc_status}</span>
+                      <span>Applied: {new Date(app.created_at).toLocaleDateString()}</span>
+                    </div>
+                    <input
+                      type="text"
+                      value={kycNotes[app.id] ?? ''}
+                      onChange={(e) => setKycNotes((prev) => ({ ...prev, [app.id]: e.target.value }))}
+                      placeholder="Review note (what was checked)"
+                      className="w-full rounded border border-slate-800 bg-slate-950 px-2 py-1 text-xs text-gray-300"
+                    />
+                    <div className="flex gap-2">
+                      <Button size="sm" variant="outline" disabled={busy}
+                        className="border-green-700/50 text-green-400 hover:bg-green-600/20"
+                        onClick={() => decide('approved')}>Approve KYC</Button>
+                      <Button size="sm" variant="outline" disabled={busy}
+                        className="border-amber-700/50 text-amber-400 hover:bg-amber-600/20"
+                        onClick={() => decide('manual_review')}>Needs more info</Button>
+                      <Button size="sm" variant="outline" disabled={busy}
+                        className="border-red-700/50 text-red-400 hover:bg-red-600/20"
+                        onClick={() => decide('rejected')}>Reject</Button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       <Card className="aether-bevel-dark rounded-xl">
         <CardHeader className="pb-2">

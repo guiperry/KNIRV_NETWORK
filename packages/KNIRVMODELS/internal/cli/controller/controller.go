@@ -33,6 +33,8 @@ type Controller struct {
 
 	pipelineLogChan chan PipelineLogMsg
 	logChan         chan string
+	logsMu          sync.RWMutex
+	pipelineLogs    []PipelineLogMsg
 
 	serverCmd       *exec.Cmd
 	knirvbaseCmd    *exec.Cmd
@@ -48,6 +50,8 @@ type Controller struct {
 		Mu            sync.Mutex
 	}
 }
+
+const maxPipelineLogHistory = 200
 
 type uiModel struct {
 	ServerCmd       *exec.Cmd
@@ -137,6 +141,85 @@ func (c *Controller) GetLogChan() <-chan string {
 
 func (c *Controller) GetPipelineLogChan() <-chan PipelineLogMsg {
 	return c.pipelineLogChan
+}
+
+// PipelineStatus is the model-facing read-only view of the pipeline. It does
+// not expose commands, paths, or process identifiers.
+func (c *Controller) PipelineStatus() map[string]any {
+	c.pipelineState.Mu.Lock()
+	running := c.pipelineState.Running
+	c.pipelineState.Mu.Unlock()
+	stages := make([]map[string]string, 0, len(c.model.PipelineStages))
+	for _, stage := range c.model.PipelineStages {
+		stages = append(stages, map[string]string{"name": stage.Name, "description": stage.Desc})
+	}
+	return map[string]any{
+		"running": running, "pipeline_running": c.model.PipelineRunning,
+		"stage": c.model.PipelineStage, "type": c.model.PipelineType, "stages": stages,
+	}
+}
+
+// PipelineLogs returns an oldest-to-newest bounded copy of in-memory log
+// records. A stage filter is exact and is not interpreted as a file path.
+func (c *Controller) PipelineLogs(stage string, limit int) []PipelineLogMsg {
+	if limit < 0 {
+		limit = 0
+	}
+	if limit > maxPipelineLogHistory {
+		limit = maxPipelineLogHistory
+	}
+	c.logsMu.RLock()
+	defer c.logsMu.RUnlock()
+	out := make([]PipelineLogMsg, 0, limit)
+	for i := len(c.pipelineLogs) - 1; i >= 0 && len(out) < limit; i-- {
+		entry := c.pipelineLogs[i]
+		if stage == "" || entry.Stage == stage {
+			out = append(out, entry)
+		}
+	}
+	for left, right := 0, len(out)-1; left < right; left, right = left+1, right-1 {
+		out[left], out[right] = out[right], out[left]
+	}
+	return out
+}
+
+// ErrorHistory is a bounded projection of pipeline logs, not an unbounded
+// process or filesystem log reader.
+func (c *Controller) ErrorHistory(limit int) []PipelineLogMsg {
+	if limit < 0 {
+		limit = 0
+	}
+	if limit > 50 {
+		limit = 50
+	}
+	c.logsMu.RLock()
+	defer c.logsMu.RUnlock()
+	out := make([]PipelineLogMsg, 0, limit)
+	for i := len(c.pipelineLogs) - 1; i >= 0 && len(out) < limit; i-- {
+		if c.pipelineLogs[i].Error {
+			out = append(out, c.pipelineLogs[i])
+		}
+	}
+	for left, right := 0, len(out)-1; left < right; left, right = left+1, right-1 {
+		out[left], out[right] = out[right], out[left]
+	}
+	return out
+}
+
+// RecordError adds a bounded, redacted-by-caller error record for daemon paths
+// outside the pipeline. Callers must pass an operation label, never a command
+// line or filesystem path.
+func (c *Controller) RecordError(operation, message string) {
+	c.recordPipelineLog(PipelineLogMsg{Log: message, Stage: operation, Error: true, Complete: true})
+}
+
+func (c *Controller) recordPipelineLog(entry PipelineLogMsg) {
+	c.logsMu.Lock()
+	c.pipelineLogs = append(c.pipelineLogs, entry)
+	if len(c.pipelineLogs) > maxPipelineLogHistory {
+		c.pipelineLogs = append([]PipelineLogMsg(nil), c.pipelineLogs[len(c.pipelineLogs)-maxPipelineLogHistory:]...)
+	}
+	c.logsMu.Unlock()
 }
 
 func (c *Controller) StartDriver(ctx context.Context) error {
@@ -666,14 +749,16 @@ batchLoop:
 			if err != nil {
 				c.model.PipelineRunning = false
 				c.model.PipelineStage = "failed: " + stage.Name
-				select {
-				case c.pipelineLogChan <- PipelineLogMsg{
+				entry := PipelineLogMsg{
 					Log:        fmt.Sprintf("%s failed: %v", stage.Name, err),
 					StageIndex: i,
 					Stage:      stage.Name,
 					Error:      true,
 					Complete:   true,
-				}:
+				}
+				c.recordPipelineLog(entry)
+				select {
+				case c.pipelineLogChan <- entry:
 				default:
 				}
 				return fmt.Errorf("%s failed: %w", stage.Name, err)
@@ -729,12 +814,14 @@ func (c *Controller) streamPipelineOutput(cmd *exec.Cmd, stdout, stderr io.ReadC
 				// Blocking here would stall the pipe reader, fill the OS pipe buffer,
 				// and deadlock the subprocess — causing data-encoder and data-seeder
 				// logs to disappear entirely.
-				select {
-				case c.pipelineLogChan <- PipelineLogMsg{
+				entry := PipelineLogMsg{
 					Log:        logMsg,
 					StageIndex: stageIndex,
 					Stage:      stage.Name,
-				}:
+				}
+				c.recordPipelineLog(entry)
+				select {
+				case c.pipelineLogChan <- entry:
 				default:
 				}
 			}
@@ -754,12 +841,14 @@ func (c *Controller) streamPipelineOutput(cmd *exec.Cmd, stdout, stderr io.ReadC
 				// Emit to the parent process stderr so backend_server's SubprocessWriter captures it
 				fmt.Fprintln(os.Stderr, prefixed)
 				logMsg := fmt.Sprintf("[%s] [stderr] %s", time.Now().Format("15:04:05"), line)
-				select {
-				case c.pipelineLogChan <- PipelineLogMsg{
+				entry := PipelineLogMsg{
 					Log:        logMsg,
 					StageIndex: stageIndex,
 					Stage:      stage.Name,
-				}:
+				}
+				c.recordPipelineLog(entry)
+				select {
+				case c.pipelineLogChan <- entry:
 				default:
 				}
 			}

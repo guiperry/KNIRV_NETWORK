@@ -46,10 +46,10 @@ func TestParseDID(t *testing.T) {
 
 func TestBase58Decode(t *testing.T) {
 	tests := []struct {
-		name       string
-		input      string
-		wantLen    int
-		wantErr    bool
+		name    string
+		input   string
+		wantLen int
+		wantErr bool
 	}{
 		{"empty", "", 0, true},
 		{"invalid char", "0OIl", 0, true},

@@ -2,8 +2,7 @@ package main
 
 import (
 	"bufio"
-	"crypto/aes"
-	"crypto/cipher"
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -11,16 +10,10 @@ import (
 	"syscall"
 	"unsafe"
 
+	"github.com/guiperry/knirv-sdk-go/secrets"
 	"github.com/knirvcorp/knirvoracle/internal/oracle"
+	oraclecrypto "github.com/knirvcorp/knirvoracle/internal/oracle/crypto"
 	"go.uber.org/zap"
-	"golang.org/x/crypto/scrypt"
-)
-
-const (
-	scryptN = 32768
-	scryptR = 8
-	scryptP = 1
-	keyLen  = 32
 )
 
 type rootKeyContent struct {
@@ -166,6 +159,62 @@ func initOracleFromKeyFile(logger *zap.Logger) (*oracle.Oracle, error) {
 	}
 
 	return oracleInstance, nil
+}
+
+// initOracleForMode activates the Oracle according to ORACLE_MODE, which
+// KNIRVSERVER renders from noderole.Resolve. Active is the historical path
+// (root.key required); standby needs only a boot.key; off starts nothing.
+func initOracleForMode(logger *zap.Logger) (*oracle.Oracle, error) {
+	mode, err := oracle.NormalizeMode(os.Getenv("ORACLE_MODE"))
+	if err != nil {
+		return nil, err
+	}
+	switch mode {
+	case oracle.ModeOff:
+		logger.Info("Oracle mode is off for this node — not activating")
+		return nil, nil
+	case oracle.ModeStandby:
+		return initStandbyOracle(logger)
+	default:
+		return initOracleFromKeyFile(logger)
+	}
+}
+
+// initStandbyOracle builds the read-only mirror. No engine that
+// signs, votes, gossips or disburses is started; the HTTP guard refuses every
+// route outside the standby allowlist.
+//
+// The token constructor requires an owner address. On a bootnode that is
+// boot.key's master wallet key. If boot.key is absent or locked the standby
+// must still start (it is a failover ledger, not an authority), so it uses an
+// in-memory identity that is never persisted and never used to sign anything.
+func initStandbyOracle(logger *zap.Logger) (*oracle.Oracle, error) {
+	cfg, err := oracle.LoadConfigFromEnv()
+	if err != nil {
+		return nil, fmt.Errorf("standby: load config: %w", err)
+	}
+	cfg.Mode = oracle.ModeStandby
+
+	boot, bootErr := secrets.NewFileProvider().Boot(context.Background())
+	if bootErr == nil && boot != nil && boot.MasterWalletKeyHex != "" {
+		cfg.OwnerPrivateKey = boot.MasterWalletKeyHex
+		logger.Info("Standby Oracle identity: bootnode-master from boot.key")
+	} else {
+		key, keyErr := oraclecrypto.GenerateKeyPair()
+		if keyErr != nil {
+			return nil, fmt.Errorf("standby: create in-memory identity: %w", keyErr)
+		}
+		cfg.OwnerPrivateKey = key.PrivateKeyHex()
+		logger.Warn("Standby Oracle started without a usable boot.key; using an in-memory identity that never signs",
+			zap.Error(bootErr))
+	}
+
+	instance, err := oracle.NewOracle(cfg, logger)
+	if err != nil {
+		return nil, fmt.Errorf("standby: %w", err)
+	}
+	logger.Info("Oracle initialised in standby mode", zap.String("data_dir", cfg.DataDir))
+	return instance, nil
 }
 
 func getRootKeyPath() (string, error) {
@@ -317,206 +366,29 @@ func isInteractiveStdin() bool {
 }
 
 func loadEncryptedKeyFile(keyFilePath string, password []byte) (*rootKeyContent, error) {
-	data, err := os.ReadFile(keyFilePath)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read key file: %w", err)
-	}
-
-	encryptedContent, salt, err := parseEncryptedRootKeyEnvelope(data)
-	if err != nil {
-		return nil, err
-	}
-
-	key, err := scrypt.Key(password, salt, scryptN, scryptR, scryptP, keyLen)
-	if err != nil {
-		return nil, fmt.Errorf("failed to derive key from password: %w", err)
-	}
-
-	decryptedData, err := decrypt(encryptedContent, key)
+	fields, err := secrets.DecryptFields(keyFilePath, password)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decrypt key file (incorrect password?): %w", err)
 	}
 
-	fields, varints, err := parseProtoFields(decryptedData)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse root key content: %w", err)
-	}
-
-	rootPrivateKey := string(firstFieldValue(fields[5]))
+	rootPrivateKey := fields.String(5)
 	if rootPrivateKey == "" {
 		return nil, fmt.Errorf("root key content missing root_private_key_hex")
 	}
 
-	cloudflareAPIToken := string(firstFieldValue(fields[18]))
-	cloudflareZoneID := string(firstFieldValue(fields[19]))
-
-	// Field numbers 1, 2, 29-36 — see root_key.proto in
-	// KNIRV_CORP/packages/server/backend_server/internal/proto (mirrored in
-	// KNIRV_NETWORK/shared-proto/knirvserver/v1).
-	paymentProcessorEnabled := firstVarintValue(varints[29]) != 0
-
 	return &rootKeyContent{
 		RootPrivateKeyHex:            rootPrivateKey,
-		CloudflareAPIToken:           cloudflareAPIToken,
-		CloudflareZoneID:             cloudflareZoneID,
-		StripeSecretKey:              string(firstFieldValue(fields[1])),
-		StripeWebhookSecret:          string(firstFieldValue(fields[2])),
-		PaymentProcessorEnabled:      paymentProcessorEnabled,
-		StripeProfessionalPriceID:    string(firstFieldValue(fields[30])),
-		StripeEnterprisePriceID:      string(firstFieldValue(fields[31])),
-		StripeInvestorPriceID:        string(firstFieldValue(fields[32])),
-		PaymentSuccessURL:            string(firstFieldValue(fields[33])),
-		PaymentCancelURL:             string(firstFieldValue(fields[34])),
-		PaymentOnboardingCallbackURL: string(firstFieldValue(fields[35])),
-		StripeThinWebhookSecret:      string(firstFieldValue(fields[36])),
+		CloudflareAPIToken:           fields.String(18),
+		CloudflareZoneID:             fields.String(19),
+		StripeSecretKey:              fields.String(1),
+		StripeWebhookSecret:          fields.String(2),
+		PaymentProcessorEnabled:      fields.Bool(29),
+		StripeProfessionalPriceID:    fields.String(30),
+		StripeEnterprisePriceID:      fields.String(31),
+		StripeInvestorPriceID:        fields.String(32),
+		PaymentSuccessURL:            fields.String(33),
+		PaymentCancelURL:             fields.String(34),
+		PaymentOnboardingCallbackURL: fields.String(35),
+		StripeThinWebhookSecret:      fields.String(36),
 	}, nil
-}
-
-func decrypt(data, key []byte) ([]byte, error) {
-	block, err := aes.NewCipher(key)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create cipher block: %w", err)
-	}
-
-	gcm, err := cipher.NewGCM(block)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create GCM: %w", err)
-	}
-
-	nonceSize := gcm.NonceSize()
-	if len(data) < nonceSize {
-		return nil, fmt.Errorf("ciphertext too short")
-	}
-
-	nonce, ciphertext := data[:nonceSize], data[nonceSize:]
-	plaintext, err := gcm.Open(nil, nonce, ciphertext, nil)
-	if err != nil {
-		return nil, fmt.Errorf("failed to decrypt: %w", err)
-	}
-
-	return plaintext, nil
-}
-
-func parseEncryptedRootKeyEnvelope(data []byte) ([]byte, []byte, error) {
-	fields, _, err := parseProtoFields(data)
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to parse encrypted key file: %w", err)
-	}
-
-	encryptedContent := firstFieldValue(fields[1])
-	salt := firstFieldValue(fields[2])
-	if len(encryptedContent) == 0 {
-		return nil, nil, fmt.Errorf("encrypted key file missing encrypted_content")
-	}
-	if len(salt) == 0 {
-		return nil, nil, fmt.Errorf("encrypted key file missing salt")
-	}
-
-	return encryptedContent, salt, nil
-}
-
-func parseRootPrivateKeyHex(data []byte) (string, error) {
-	fields, _, err := parseProtoFields(data)
-	if err != nil {
-		return "", fmt.Errorf("failed to parse root key content: %w", err)
-	}
-
-	rootPrivateKey := string(firstFieldValue(fields[5]))
-	if rootPrivateKey == "" {
-		return "", fmt.Errorf("root key content missing root_private_key_hex")
-	}
-
-	return rootPrivateKey, nil
-}
-
-// parseProtoFields walks a proto3 wire-format message without depending on
-// generated code (packages/cli and this package are in different Go
-// modules/repos from the .proto's canonical home in KNIRV_CORP). Returns
-// length-delimited field values (strings/bytes, wire type 2) keyed by field
-// number, and varint field values (bools/ints, wire type 0) keyed
-// separately — needed for payment_processor_enabled (field 29, bool).
-func parseProtoFields(data []byte) (map[int][][]byte, map[int][]uint64, error) {
-	fields := make(map[int][][]byte)
-	varints := make(map[int][]uint64)
-
-	for i := 0; i < len(data); {
-		key, next, err := readVarint(data, i)
-		if err != nil {
-			return nil, nil, err
-		}
-		i = next
-
-		fieldNum := int(key >> 3)
-		wireType := int(key & 0x7)
-
-		switch wireType {
-		case 0:
-			value, next, err := readVarint(data, i)
-			if err != nil {
-				return nil, nil, err
-			}
-			i = next
-			varints[fieldNum] = append(varints[fieldNum], value)
-		case 1:
-			if i+8 > len(data) {
-				return nil, nil, fmt.Errorf("truncated fixed64 field")
-			}
-			i += 8
-		case 2:
-			length, next, err := readVarint(data, i)
-			if err != nil {
-				return nil, nil, err
-			}
-			i = next
-			end := i + int(length)
-			if end > len(data) {
-				return nil, nil, fmt.Errorf("truncated length-delimited field")
-			}
-			value := append([]byte(nil), data[i:end]...)
-			fields[fieldNum] = append(fields[fieldNum], value)
-			i = end
-		case 5:
-			if i+4 > len(data) {
-				return nil, nil, fmt.Errorf("truncated fixed32 field")
-			}
-			i += 4
-		default:
-			return nil, nil, fmt.Errorf("unsupported wire type %d", wireType)
-		}
-	}
-
-	return fields, varints, nil
-}
-
-func firstVarintValue(values []uint64) uint64 {
-	if len(values) == 0 {
-		return 0
-	}
-	return values[0]
-}
-
-func firstFieldValue(values [][]byte) []byte {
-	if len(values) == 0 {
-		return nil
-	}
-	return values[0]
-}
-
-func readVarint(data []byte, start int) (uint64, int, error) {
-	var value uint64
-	var shift uint
-
-	for i := start; i < len(data); i++ {
-		b := data[i]
-		value |= uint64(b&0x7f) << shift
-		if b < 0x80 {
-			return value, i + 1, nil
-		}
-		shift += 7
-		if shift >= 64 {
-			return 0, 0, fmt.Errorf("varint overflow")
-		}
-	}
-
-	return 0, 0, fmt.Errorf("truncated varint")
 }

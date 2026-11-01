@@ -1,0 +1,297 @@
+{
+  "hd_path": "m/44'/118'/0'/0/i",
+  "argon2id": {
+    "outputLength": 32,
+    "opsLimit": 3,
+    "memLimitKib": 65536
+  },
+  "accounts": [
+    {
+      "name": "abandon-12",
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+      "seed": "5eb00bbddcf069084889a8ab9155568165f5c453ccb85e70811aaed6f6da5fc19a5ac40b389cd370d086206dec8aa6c43daea6690f20ad3d8d48b2d2ce9e38e4",
+      "derived": [
+        {
+          "index": 0,
+          "public_key": "Ak9OKtmcNNYLm6YoPJQxqEGK+GcyEpYfl6d7Y3f80Fti",
+          "address": "knirv19rl4cm2hmr8afy4kldpxz3fka4jguq0amauk25",
+          "sign_tx": {
+            "address": "knirv19rl4cm2hmr8afy4kldpxz3fka4jguq0amauk25",
+            "auth_info_bytes": "ClAKRgofL2Nvc21vcy5jcnlwdG8uc2VjcDI1NmsxLlB1YktleRIjCiECT04q2Zw01gubpig8lDGoQYr4ZzISlh+Xp3tjd/zQW2ISBAoCCAEYAxIPCgkKA25ybhICMTAQwJoM",
+            "body_bytes": "CmMKGC9rbmlydi5zaWduaW5nLnYxLkFjdGlvbhJHCg9rbmlydi5hY3Rpb24udjESCHRyYW5zZmVyGgxrbmlydjFzZW5kZXIiD2tuaXJ2MXJlY2lwaWVudCgFMgMBAgM4gOLPqgY=",
+            "hash": "3AAECFC624834F31E6F0192E8E6969956F70B5016C28730D07825943E49F7389",
+            "public_key": "Ak9OKtmcNNYLm6YoPJQxqEGK+GcyEpYfl6d7Y3f80Fti",
+            "signatures": [
+              "3GjbZYSK3fhh20HRGXBdIU9iE9YdeUfYpWy8B36g7Yp70lNiaKyLvT3D7Hc+0yexn3sPoXVKuD5h9Q9zZY6o9w=="
+            ]
+          },
+          "sign_msg": {
+            "address": "knirv19rl4cm2hmr8afy4kldpxz3fka4jguq0amauk25",
+            "envelope": "ChBrbmlydi5tZXNzYWdlLnYxEhJrbmlydi52YXVsdC52ZWN0b3IaBmdvbGRlbiIMa25pcnYtdGVzdC0xKgNuLTEwgOLPqgY4kP7PqgZCAwkIBw==",
+            "public_key": "Ak9OKtmcNNYLm6YoPJQxqEGK+GcyEpYfl6d7Y3f80Fti",
+            "signature": "nseg5PIw37ZQx2IK23WFOYqsR96XeyYLQXuAHK8GNHBn4pFYAerDVK4/Sawysaj/HFN3qODv1IcGqlPjZI5uXw=="
+          }
+        },
+        {
+          "index": 1,
+          "public_key": "A6mgd2FX8d7h/i1lYodHBZqHlt6aN58wFcTc9IP2SECm",
+          "address": "knirv1jrkmdcwgq94uaamx6zax2luewlhf7u4km9h6rr",
+          "sign_tx": {
+            "address": "knirv1jrkmdcwgq94uaamx6zax2luewlhf7u4km9h6rr",
+            "auth_info_bytes": "ClAKRgofL2Nvc21vcy5jcnlwdG8uc2VjcDI1NmsxLlB1YktleRIjCiEDqaB3YVfx3uH+LWVih0cFmoeW3po3nzAVxNz0g/ZIQKYSBAoCCAEYAxIPCgkKA25ybhICMTAQwJoM",
+            "body_bytes": "CmMKGC9rbmlydi5zaWduaW5nLnYxLkFjdGlvbhJHCg9rbmlydi5hY3Rpb24udjESCHRyYW5zZmVyGgxrbmlydjFzZW5kZXIiD2tuaXJ2MXJlY2lwaWVudCgFMgMBAgM4gOLPqgY=",
+            "hash": "31DCECAD4D4EA1E4E893CC453E83C6B1E7EFF1CEEA61D3106C617794B009B997",
+            "public_key": "A6mgd2FX8d7h/i1lYodHBZqHlt6aN58wFcTc9IP2SECm",
+            "signatures": [
+              "zVaGxJueeSr6hBIyz7TREM/fykYDgJnJ3EkpPN5qaIt1T+4VyacELIUxyAJ2ex2bmw16ej2Cwrcy5bloR7xyOw=="
+            ]
+          },
+          "sign_msg": {
+            "address": "knirv1jrkmdcwgq94uaamx6zax2luewlhf7u4km9h6rr",
+            "envelope": "ChBrbmlydi5tZXNzYWdlLnYxEhJrbmlydi52YXVsdC52ZWN0b3IaBmdvbGRlbiIMa25pcnYtdGVzdC0xKgNuLTEwgOLPqgY4kP7PqgZCAwkIBw==",
+            "public_key": "A6mgd2FX8d7h/i1lYodHBZqHlt6aN58wFcTc9IP2SECm",
+            "signature": "ev8O7KmUoDOKh9ABtjXjVabCfMhhb9loYrgFjjjOUoA9mQzwsR8N456wyf/FlJMcwGWnJuJ+tdzxAyX/yIcmBA=="
+          }
+        },
+        {
+          "index": 2,
+          "public_key": "AuEOzqfGR5NO2EpMb1qzJsZp6VJmJgCW5NGjmuEzOWRF",
+          "address": "knirv1kng7tv83qesgvv2ze7hxlw4urfrjk8vq8wstc2"
+        },
+        {
+          "index": 5,
+          "public_key": "A0xod2y1wSTMcfwFeCSnAkJ7Fr10h03wIE78c83g2uNH",
+          "address": "knirv1neyy3lf7kjfs8pm5880g6hjgltngu69qcesayt"
+        }
+      ]
+    },
+    {
+      "name": "entropy-16",
+      "entropy": "030a11181f262d343b424950575e656c",
+      "mnemonic": "adapt explain ecology dinner glare old unfair empty expect road off summer",
+      "seed": "95275cb5669f1b2637ea2ae70a03e1aea72fbd8867eb8abd0be4ec1bf3ef6b29cd8be0d7bf9c1dae7dd6aa01d470b9203a90282e819a5b4a5d6a33a90fdb0c18",
+      "derived": [
+        {
+          "index": 0,
+          "public_key": "A+irA/44O/NqBhY/IrI0SLlX4+fcXLNvQxwqDjpAfrDW",
+          "address": "knirv1hfyv0tytyefj9sgtdm3388zrherkjzeket8get",
+          "sign_tx": {
+            "address": "knirv1hfyv0tytyefj9sgtdm3388zrherkjzeket8get",
+            "auth_info_bytes": "ClAKRgofL2Nvc21vcy5jcnlwdG8uc2VjcDI1NmsxLlB1YktleRIjCiED6KsD/jg782oGFj8isjRIuVfj59xcs29DHCoOOkB+sNYSBAoCCAEYAxIPCgkKA25ybhICMTAQwJoM",
+            "body_bytes": "CmMKGC9rbmlydi5zaWduaW5nLnYxLkFjdGlvbhJHCg9rbmlydi5hY3Rpb24udjESCHRyYW5zZmVyGgxrbmlydjFzZW5kZXIiD2tuaXJ2MXJlY2lwaWVudCgFMgMBAgM4gOLPqgY=",
+            "hash": "186AF5CE3D2E70E280B5E315CD8D8B1BC01738E4C9F8169B4DB8643F3AE3D05E",
+            "public_key": "A+irA/44O/NqBhY/IrI0SLlX4+fcXLNvQxwqDjpAfrDW",
+            "signatures": [
+              "gYyBRDXkkk7mejn6PNcSfCM3CZypR0FNc53mk5mVKPwWe8Y4PwPYFKZv8j+9Kiykr8SMQ+dMzLlMaA+QW+fKDQ=="
+            ]
+          },
+          "sign_msg": {
+            "address": "knirv1hfyv0tytyefj9sgtdm3388zrherkjzeket8get",
+            "envelope": "ChBrbmlydi5tZXNzYWdlLnYxEhJrbmlydi52YXVsdC52ZWN0b3IaBmdvbGRlbiIMa25pcnYtdGVzdC0xKgNuLTEwgOLPqgY4kP7PqgZCAwkIBw==",
+            "public_key": "A+irA/44O/NqBhY/IrI0SLlX4+fcXLNvQxwqDjpAfrDW",
+            "signature": "4UUR96i416q6IuLoqoksB81ADEqwTRRXMslx2qiaGlkLo36SAR8Wt1ZXHMvyhjWxY91B9bVIFTzyubdtfVcKSQ=="
+          }
+        },
+        {
+          "index": 1,
+          "public_key": "AqNvWhod0krlPJ9ZuV+a4arh7r3MgwkbleB4BNDo9zON",
+          "address": "knirv1xt2x7jrgewzqpjxdc7dkpc29rzy5f8lxssqk88",
+          "sign_tx": {
+            "address": "knirv1xt2x7jrgewzqpjxdc7dkpc29rzy5f8lxssqk88",
+            "auth_info_bytes": "ClAKRgofL2Nvc21vcy5jcnlwdG8uc2VjcDI1NmsxLlB1YktleRIjCiECo29aGh3SSuU8n1m5X5rhquHuvcyDCRuV4HgE0Oj3M40SBAoCCAEYAxIPCgkKA25ybhICMTAQwJoM",
+            "body_bytes": "CmMKGC9rbmlydi5zaWduaW5nLnYxLkFjdGlvbhJHCg9rbmlydi5hY3Rpb24udjESCHRyYW5zZmVyGgxrbmlydjFzZW5kZXIiD2tuaXJ2MXJlY2lwaWVudCgFMgMBAgM4gOLPqgY=",
+            "hash": "D9FCE0E1A5D6D7A2E101B41AFAC5A426C46DEBE9AAB65A9B2A758E6FE7DD887E",
+            "public_key": "AqNvWhod0krlPJ9ZuV+a4arh7r3MgwkbleB4BNDo9zON",
+            "signatures": [
+              "TS7ew1id3o9EQKqzj3VVV0vzEmlcoH9A+Ztw7I8sQLAwb3hMcKViuwe6j/Ind3Js8yF1csmWqd9qnWX5jWcDdw=="
+            ]
+          },
+          "sign_msg": {
+            "address": "knirv1xt2x7jrgewzqpjxdc7dkpc29rzy5f8lxssqk88",
+            "envelope": "ChBrbmlydi5tZXNzYWdlLnYxEhJrbmlydi52YXVsdC52ZWN0b3IaBmdvbGRlbiIMa25pcnYtdGVzdC0xKgNuLTEwgOLPqgY4kP7PqgZCAwkIBw==",
+            "public_key": "AqNvWhod0krlPJ9ZuV+a4arh7r3MgwkbleB4BNDo9zON",
+            "signature": "WeXIpyrZHW2WhtIpGhDbXcVGGdBT/Jd9Tg+9vVgj2RxceJ3qhGMuuBCQW2B2GE6gYOTR2bl1SWDBWuq35fAb0A=="
+          }
+        },
+        {
+          "index": 2,
+          "public_key": "A581FPiP6GZW4/M6KHVgvh+JeIt8+TKZOmcfqHF6PVUk",
+          "address": "knirv1r5ysv9vevm882nv5axrf5m7lklar87trkxhccy"
+        },
+        {
+          "index": 5,
+          "public_key": "AkGACAxJuv0MFl+8pkvCaW7XNZ/DFA0s0ie0k75Qnvy0",
+          "address": "knirv1c0yne4fjxa2rexw3k9eyzvt6xwzq7yhq5cchda"
+        }
+      ]
+    },
+    {
+      "name": "entropy-32",
+      "entropy": "0b121920272e353c434a51585f666d747b828990979ea5acb3bac1c8cfd6dde4",
+      "mnemonic": "arch move elite exact today owner artwork enforce flame will opera trophy return dynamic drastic video pizza grain upgrade logic mind twin jealous middle",
+      "seed": "65af056fc57397d6c1cf70f13c084ddabd4f20f4ca413c54efb1be1dd936eeca0ed0d8e39ccfd01ecda91e50c4883ebdad758bfb456c80b43d3cf0db722241e3",
+      "derived": [
+        {
+          "index": 0,
+          "public_key": "AicLzSYs7tekK1JwchPHeqOIbp8F9wwEDLb1rh6tUIrz",
+          "address": "knirv1jzdrynmh9sm9xlgt078ne5u639vmcpyz3rt67n",
+          "sign_tx": {
+            "address": "knirv1jzdrynmh9sm9xlgt078ne5u639vmcpyz3rt67n",
+            "auth_info_bytes": "ClAKRgofL2Nvc21vcy5jcnlwdG8uc2VjcDI1NmsxLlB1YktleRIjCiECJwvNJizu16QrUnByE8d6o4hunwX3DAQMtvWuHq1QivMSBAoCCAEYAxIPCgkKA25ybhICMTAQwJoM",
+            "body_bytes": "CmMKGC9rbmlydi5zaWduaW5nLnYxLkFjdGlvbhJHCg9rbmlydi5hY3Rpb24udjESCHRyYW5zZmVyGgxrbmlydjFzZW5kZXIiD2tuaXJ2MXJlY2lwaWVudCgFMgMBAgM4gOLPqgY=",
+            "hash": "20050BBE9297377871FC0784424CF8F22B6D384B1858457EBFC7CF00AD5949D2",
+            "public_key": "AicLzSYs7tekK1JwchPHeqOIbp8F9wwEDLb1rh6tUIrz",
+            "signatures": [
+              "a+BEICMLAFRTOrtt9RlbquHAz6RPXzSjqjD+PbYuAHRWMOYCslnGGFSoaktjOEhmIz/zLPlPpPRU7D0LVqjMKg=="
+            ]
+          },
+          "sign_msg": {
+            "address": "knirv1jzdrynmh9sm9xlgt078ne5u639vmcpyz3rt67n",
+            "envelope": "ChBrbmlydi5tZXNzYWdlLnYxEhJrbmlydi52YXVsdC52ZWN0b3IaBmdvbGRlbiIMa25pcnYtdGVzdC0xKgNuLTEwgOLPqgY4kP7PqgZCAwkIBw==",
+            "public_key": "AicLzSYs7tekK1JwchPHeqOIbp8F9wwEDLb1rh6tUIrz",
+            "signature": "Wc+G7o0ezn+wpEleMLse458K7TMn298VfTYXWOd8nrpVF4HANNcMPM+NdTKCPnjAm2dztfSeY3Wa3AndPwPzIw=="
+          }
+        },
+        {
+          "index": 1,
+          "public_key": "AolkVhcZIJxmp6wx+NO8MAVWgGILuUC4Qtogz/9d3XUD",
+          "address": "knirv12zu9pd5e2jj7elu9gusq9ycwpym4tp2226dq5l",
+          "sign_tx": {
+            "address": "knirv12zu9pd5e2jj7elu9gusq9ycwpym4tp2226dq5l",
+            "auth_info_bytes": "ClAKRgofL2Nvc21vcy5jcnlwdG8uc2VjcDI1NmsxLlB1YktleRIjCiECiWRWFxkgnGanrDH407wwBVaAYgu5QLhC2iDP/13ddQMSBAoCCAEYAxIPCgkKA25ybhICMTAQwJoM",
+            "body_bytes": "CmMKGC9rbmlydi5zaWduaW5nLnYxLkFjdGlvbhJHCg9rbmlydi5hY3Rpb24udjESCHRyYW5zZmVyGgxrbmlydjFzZW5kZXIiD2tuaXJ2MXJlY2lwaWVudCgFMgMBAgM4gOLPqgY=",
+            "hash": "B01CBE3BF9571023BCB6D7C9CBCAC4875045472280A2C96EB539A46C2D8C1C76",
+            "public_key": "AolkVhcZIJxmp6wx+NO8MAVWgGILuUC4Qtogz/9d3XUD",
+            "signatures": [
+              "yMzmH+fbKFgYbSWp+8+YQDx416qPPaZfhuOHouEIpekyMnoaKAp+6k3OvywFjxriL9Krf3TWxIiCLSLs0hhsHg=="
+            ]
+          },
+          "sign_msg": {
+            "address": "knirv12zu9pd5e2jj7elu9gusq9ycwpym4tp2226dq5l",
+            "envelope": "ChBrbmlydi5tZXNzYWdlLnYxEhJrbmlydi52YXVsdC52ZWN0b3IaBmdvbGRlbiIMa25pcnYtdGVzdC0xKgNuLTEwgOLPqgY4kP7PqgZCAwkIBw==",
+            "public_key": "AolkVhcZIJxmp6wx+NO8MAVWgGILuUC4Qtogz/9d3XUD",
+            "signature": "4hfsD/AGbYLpye6Yw/V7o69pO8a/hpM0Gzo/+PAD+oRHsMje55gmNEAUUTsgLqdDUzxb4CyqpjozEo7FiSdhzA=="
+          }
+        },
+        {
+          "index": 2,
+          "public_key": "A8jCN59e/ACgXwMA4Wlcyp3p/oR2Pd506aT09JS9vtTa",
+          "address": "knirv1hk0grq4evl6y80uuv64txhmckp2kfqngj6kz5k"
+        },
+        {
+          "index": 5,
+          "public_key": "ArdtFKkP2bX/SEuN+gXDhDKfuzGP+ESY8MMmG87zICfv",
+          "address": "knirv18fz2zqcvhjd5kw2gz6wqhrmtesfrcwp08j5zp4"
+        }
+      ]
+    }
+  ],
+  "seal": [
+    {
+      "account": "abandon-12",
+      "password": "correct horse battery staple",
+      "salt": "282f363d444b525960676e757c838a91",
+      "nonce": "5a61686f767d848b9299a0a7",
+      "created_at": "2026-10-30T00:00:00.000Z",
+      "payload": "{\"mnemonic\":\"abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about\"}",
+      "serialized": "knirv-vault-v2.eyJ2ZXJzaW9uIjoyLCJtaWdyYXRpb25fdmVyc2lvbiI6MSwiYWxnb3JpdGhtIjoiYXJnb24yaWQrYWVzLTI1Ni1nY20iLCJrZGYiOnsibmFtZSI6ImFyZ29uMmlkIiwib3V0cHV0X2xlbmd0aCI6MzIsIm9wc19saW1pdCI6MywibWVtX2xpbWl0X2tpYiI6NjU1MzZ9LCJzYWx0IjoiS0M4MlBVUkxVbGxnWjI1MWZJT0trUT09Iiwibm9uY2UiOiJXbUZvYjNaOWhJdVNtYUNuIiwiY2lwaGVydGV4dCI6IkppS2NvQndxUHZEVitSNnJJTlFBcDloWWVzZHBrY0dkRDJVSW1pbEJ5eUpCTEs0OHhQMUxDQVRxb016RUtBOFJJRlVnUXYrbVA5ZWpBS0lKTkc5SnpKS3lCWXJocEdDUHVkWk5sa1pWNyttRGo4dS9FdFo4dzRNaW5FZUx1WUNBQ25Uc25kOWpLb1BEb3p4MHYvZ2dQYVE5Y2VCdXkvQXZ0WE9mY3c9PSIsImNyZWF0ZWRfYXQiOiIyMDI2LTEwLTMwVDAwOjAwOjAwLjAwMFoifQ=="
+    },
+    {
+      "account": "entropy-16",
+      "password": "correct horse battery staple",
+      "salt": "2930373e454c535a61686f767d848b92",
+      "nonce": "5b626970777e858c939aa1a8",
+      "created_at": "2026-10-31T00:00:00.000Z",
+      "payload": "{\"mnemonic\":\"adapt explain ecology dinner glare old unfair empty expect road off summer\"}",
+      "serialized": "knirv-vault-v2.eyJ2ZXJzaW9uIjoyLCJtaWdyYXRpb25fdmVyc2lvbiI6MSwiYWxnb3JpdGhtIjoiYXJnb24yaWQrYWVzLTI1Ni1nY20iLCJrZGYiOnsibmFtZSI6ImFyZ29uMmlkIiwib3V0cHV0X2xlbmd0aCI6MzIsIm9wc19saW1pdCI6MywibWVtX2xpbWl0X2tpYiI6NjU1MzZ9LCJzYWx0IjoiS1RBM1BrVk1VMXBoYUc5MmZZU0xrZz09Iiwibm9uY2UiOiJXMkpwY0hkK2hZeVRtcUdvIiwiY2lwaGVydGV4dCI6IkRnc29uUFlaY08vS0FBMnRNZkFKbGVvTktrMWRFMXZxSCtJcTVCZEg2eGIrVFAzZGpvYlkvdmg0WkdRdjZoS0RQS1VmZGU2Y0Y1TTE0OXBOb0xrWVQ5VThCRDBBWWcvNmNqaGpJQmphaXh6NDdFM1ZLTGdZU0kxci9HZ1pnazJpVXJ0OWltbWNDbDh4IiwiY3JlYXRlZF9hdCI6IjIwMjYtMTAtMzFUMDA6MDA6MDAuMDAwWiJ9"
+    },
+    {
+      "account": "entropy-32",
+      "password": "correct horse battery staple",
+      "salt": "2a31383f464d545b626970777e858c93",
+      "nonce": "5c636a71787f868d949ba2a9",
+      "created_at": "2026-10-32T00:00:00.000Z",
+      "payload": "{\"mnemonic\":\"arch move elite exact today owner artwork enforce flame will opera trophy return dynamic drastic video pizza grain upgrade logic mind twin jealous middle\"}",
+      "serialized": "knirv-vault-v2.eyJ2ZXJzaW9uIjoyLCJtaWdyYXRpb25fdmVyc2lvbiI6MSwiYWxnb3JpdGhtIjoiYXJnb24yaWQrYWVzLTI1Ni1nY20iLCJrZGYiOnsibmFtZSI6ImFyZ29uMmlkIiwib3V0cHV0X2xlbmd0aCI6MzIsIm9wc19saW1pdCI6MywibWVtX2xpbWl0X2tpYiI6NjU1MzZ9LCJzYWx0IjoiS2pFNFAwWk5WRnRpYVhCM2ZvV01rdz09Iiwibm9uY2UiOiJYR05xY1hoL2hvMlVtNktwIiwiY2lwaGVydGV4dCI6IlVrYUxtL2hqY1kwL2ZQYkpvVkVBaUFPUitXVGtkby93YmhrcEZESXg3ak5peWJMcHZiZDFtVDFNN0REbi9ocWhkTGFIakhRRkRzS1ZKUUZGTE10Z0IxOGlNR2xYcTdaM3FOUWFmKzlXZ3FWYlFNMm5YeWF0TTVTVitGc0tZb1hJSm5xNHBCZHEvMmcxMUpJMkJuc051SmFkYzB2UFBMRjZQUmVKNTM1TXRFN0tiZm5mazA1ckJIUldmK3BMUFhrcXRoTUVTbisxZzFSNmFGYVZPNDFOMHA1T2xxWTdWcWRHTjZ6OGFBR3kxOXhBWFdnL2ZBNjYzdz09IiwiY3JlYXRlZF9hdCI6IjIwMjYtMTAtMzJUMDA6MDA6MDAuMDAwWiJ9"
+    },
+    {
+      "account": "abandon-12",
+      "password": "pässwörd-密码-🔐",
+      "salt": "c8cfd6dde4ebf2f900070e151c232a31",
+      "nonce": "d2d9e0e7eef5fc030a11181f",
+      "created_at": "2026-10-31T12:00:00.000Z",
+      "payload": "{\"mnemonic\":\"abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about\"}",
+      "serialized": "knirv-vault-v2.eyJ2ZXJzaW9uIjoyLCJtaWdyYXRpb25fdmVyc2lvbiI6MSwiYWxnb3JpdGhtIjoiYXJnb24yaWQrYWVzLTI1Ni1nY20iLCJrZGYiOnsibmFtZSI6ImFyZ29uMmlkIiwib3V0cHV0X2xlbmd0aCI6MzIsIm9wc19saW1pdCI6MywibWVtX2xpbWl0X2tpYiI6NjU1MzZ9LCJzYWx0IjoieU0vVzNlVHI4dmtBQnc0VkhDTXFNUT09Iiwibm9uY2UiOiIwdG5nNSs3MS9BTUtFUmdmIiwiY2lwaGVydGV4dCI6InlkQmNwalpZTk9zVm9xTzF1U0FpdDFYMkR6emhjTXMxVURRUkJUZUN1bmpQY0VqbUZpSmRkbzVGYXhQOHdMTW0vTnpWSi9UTXFpSzBJZTRuV0d0SjJGRjFYWjFHL2pjT0dmeWFSRkllaVhTVDVZUW9KajhrNHBzSGFCTHBvMFFFdHNtSHd0aUVlTmU1VHRaSDY5VzV2WlFNM1Q2OG41eFBrdTRlRnc9PSIsImNyZWF0ZWRfYXQiOiIyMDI2LTEwLTMxVDEyOjAwOjAwLjAwMFoifQ=="
+    }
+  ],
+  "errors": [
+    {
+      "case": "bad-checksum-mnemonic",
+      "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon",
+      "js_error": "Invalid mnemonic checksum"
+    },
+    {
+      "case": "unknown-words-mnemonic",
+      "mnemonic": "notaword notaword notaword notaword notaword notaword notaword notaword notaword notaword notaword notaword",
+      "js_error": "Mnemonic contains invalid word"
+    },
+    {
+      "case": "wrong-password",
+      "serialized": "knirv-vault-v2.eyJ2ZXJzaW9uIjoyLCJtaWdyYXRpb25fdmVyc2lvbiI6MSwiYWxnb3JpdGhtIjoiYXJnb24yaWQrYWVzLTI1Ni1nY20iLCJrZGYiOnsibmFtZSI6ImFyZ29uMmlkIiwib3V0cHV0X2xlbmd0aCI6MzIsIm9wc19saW1pdCI6MywibWVtX2xpbWl0X2tpYiI6NjU1MzZ9LCJzYWx0IjoiS0M4MlBVUkxVbGxnWjI1MWZJT0trUT09Iiwibm9uY2UiOiJXbUZvYjNaOWhJdVNtYUNuIiwiY2lwaGVydGV4dCI6IkppS2NvQndxUHZEVitSNnJJTlFBcDloWWVzZHBrY0dkRDJVSW1pbEJ5eUpCTEs0OHhQMUxDQVRxb016RUtBOFJJRlVnUXYrbVA5ZWpBS0lKTkc5SnpKS3lCWXJocEdDUHVkWk5sa1pWNyttRGo4dS9FdFo4dzRNaW5FZUx1WUNBQ25Uc25kOWpLb1BEb3p4MHYvZ2dQYVE5Y2VCdXkvQXZ0WE9mY3c9PSIsImNyZWF0ZWRfYXQiOiIyMDI2LTEwLTMwVDAwOjAwOjAwLjAwMFoifQ==",
+      "password": "wrong"
+    },
+    {
+      "case": "tampered-ciphertext-rejected-by-aes-gcm",
+      "rejected": true
+    }
+  ],
+  "sign_inputs": {
+    "tx": {
+      "action": {
+        "action": "transfer",
+        "sender": "knirv1sender",
+        "recipient": "knirv1recipient",
+        "amount": 5,
+        "payload": [
+          1,
+          2,
+          3
+        ],
+        "timestamp_unix": 1700000000
+      },
+      "chain_id": "knirv-test-1",
+      "account_number": 7,
+      "sequence": 3,
+      "fee": {
+        "denom": "nrn",
+        "amount": "10",
+        "gas_limit": 200000
+      }
+    },
+    "message": {
+      "domain": "knirv.vault.vector",
+      "purpose": "golden",
+      "chain_id": "knirv-test-1",
+      "nonce": "n-1",
+      "issued_at_unix": 1700000000,
+      "expires_at_unix": 1700003600,
+      "payload": [
+        9,
+        8,
+        7
+      ]
+    }
+  },
+  "normalisation": {
+    "input": "  abandon  abandon abandon abandon\tabandon abandon abandon abandon abandon abandon abandon   about\n",
+    "normalised": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about"
+  },
+  "legacy": [
+    {
+      "password": "correct horse battery staple",
+      "payload": "{\"wallet\":{\"mnemonic\":\"abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about\"}}",
+      "serialized": "U2FsdGVkX19OnbJu5ilzCbSraQbqFG60DT+wqPWb/e5VFJ5wr5LLaUUtQLoMMcvitVU5fy098zkgrhBncXx0BWi3bljWm3LC7i7xBhujC5ckAY2rwPA55SwEmzTfO0sXbNMhNJTCZYz26aQz39tpM7qW6TbhO+gthJdA7DuRswFVWn24xH+OIb4yQjdvxC9r",
+      "roundtrip": true
+    }
+  ]
+}

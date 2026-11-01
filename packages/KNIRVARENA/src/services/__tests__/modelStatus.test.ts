@@ -1,7 +1,11 @@
+import '../../../tests/utils/realWebAssembly'; // the SDK core needs real WebAssembly: must stay first
 import { readFileSync } from 'fs';
 import { join } from 'path';
 import { STATUS_PATH, fetchModelStatus, roles, type PlatformStatus, type RoleLine } from '../modelStatus';
+import { initLocal } from '@knirv/sdk/signing';
 import { setRuntimeConfig } from '../../config/runtimeConfig';
+
+beforeAll(async () => { await initLocal(); });
 
 // The SDK's shared vectors: the Go and TS twins in KNIRVSDK pass the same file.
 const cases = JSON.parse(
@@ -10,7 +14,7 @@ const cases = JSON.parse(
 
 const norm = (l: RoleLine) => ({ ...l, detail: l.detail || undefined });
 
-describe('model status (copy of the SDK module)', () => {
+describe('model status (SDK module, run in the Rust core)', () => {
   it('produces the shared role lines for every case', () => {
     expect(Object.keys(cases)).toHaveLength(3);
     for (const [name, c] of Object.entries(cases)) {

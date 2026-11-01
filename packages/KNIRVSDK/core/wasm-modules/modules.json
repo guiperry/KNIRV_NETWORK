@@ -1,0 +1,8 @@
+{
+  "description": "Source of truth for the SDK's WASM modules: identity, ABI and capabilities. The build adds each module's byte length and SHA-256 and writes wasm-modules/manifest.json, which Rust, npm and the release tooling all read.",
+  "modules": [
+    {"id": "controller-relay", "crate": "controller-relay", "artifact": "controller_relay.wasm", "artifact_version": "1.0.0", "module_kind": "relay", "abi_version": 1, "capabilities": ["relay.envelope"]},
+    {"id": "crypto-core", "crate": "crypto-core", "artifact": "knirv_sdk_crypto_core.wasm", "artifact_version": "2.0.0", "module_kind": "crypto", "abi_version": 1, "capabilities": ["crypto.vault"]},
+    {"id": "proof-verifier", "crate": "proof-verifier", "artifact": "proof_verifier.wasm", "artifact_version": "1.0.0", "module_kind": "verifier", "abi_version": 1, "capabilities": ["proof.verify"]}
+  ]
+}

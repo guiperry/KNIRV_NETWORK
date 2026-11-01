@@ -1,5 +1,5 @@
 bugs:1
 schedules:1
-max_depth:12
-time_seconds:0.59
+max_depth:35
+time_seconds:0.64
 memory_max_mb:0

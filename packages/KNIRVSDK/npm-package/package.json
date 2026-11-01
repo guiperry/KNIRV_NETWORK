@@ -1,20 +1,65 @@
 {
   "name": "@knirv/sdk",
-  "version": "0.1.3",
+  "version": "0.2.0",
   "description": "Browser and edge WebAssembly SDK core for KNIRV Network",
   "type": "module",
   "main": "./index.js",
   "module": "./index.js",
   "types": "./index.d.ts",
   "exports": {
-    ".": { "types": "./index.d.ts", "import": "./index.js", "default": "./index.js" },
-    "./slim": { "types": "./slim.d.ts", "import": "./slim.js", "default": "./slim.js" },
-    "./signing": { "types": "./signing.d.ts", "import": "./signing.js", "default": "./signing.js" },
-    "./modules": { "types": "./modules.d.ts", "import": "./modules.js", "default": "./modules.js" },
-    "./actuarial": { "types": "./actuarial.d.ts", "import": "./actuarial.js", "default": "./actuarial.js" },
-    "./models": { "types": "./models/index.d.ts", "import": "./models/index.js", "default": "./models/index.js" },
+    ".": {
+      "types": "./index.d.ts",
+      "import": "./index.js",
+      "default": "./index.js"
+    },
+    "./slim": {
+      "types": "./slim.d.ts",
+      "import": "./slim.js",
+      "default": "./slim.js"
+    },
+    "./signing": {
+      "types": "./signing.d.ts",
+      "import": "./signing.js",
+      "default": "./signing.js"
+    },
+    "./modules": {
+      "types": "./modules.d.ts",
+      "import": "./modules.js",
+      "default": "./modules.js"
+    },
+    "./actuarial": {
+      "types": "./actuarial.d.ts",
+      "import": "./actuarial.js",
+      "default": "./actuarial.js"
+    },
+    "./models": {
+      "types": "./models/index.d.ts",
+      "import": "./models/index.js",
+      "default": "./models/index.js"
+    },
     "./wasm/*": "./wasm/*",
-    "./package.json": "./package.json"
+    "./package.json": "./package.json",
+    "./uri": {
+      "types": "./uri/index.d.ts",
+      "import": "./uri/index.js",
+      "default": "./uri/index.js"
+    },
+    "./replication": {
+      "types": "./uri/index.d.ts",
+      "import": "./uri/index.js",
+      "default": "./uri/index.js"
+    },
+    "./vault": {
+      "types": "./vault.d.ts",
+      "import": "./vault.js",
+      "default": "./vault.js"
+    },
+    "./modules/*": "./modules/*",
+    "./wallet": {
+      "types": "./wallet.d.ts",
+      "import": "./wallet.js",
+      "default": "./wallet.js"
+    }
   },
   "files": [
     "index.js",
@@ -23,15 +68,27 @@
     "slim.d.ts",
     "signing.js",
     "signing.d.ts",
+    "vault.d.ts",
+    "wallet.js",
+    "wallet.d.ts",
+    "wallet/",
+    "vault.js",
     "runtime.js",
     "runtime.d.ts",
+    "local.js",
+    "local.d.ts",
     "modules.js",
     "modules.d.ts",
     "actuarial.js",
     "actuarial.d.ts",
-    "modules/",
+    "modules/crypto-core.wasm",
+    "modules/manifest.json",
+    "modules/manifest.js",
+    "modules/manifest.d.ts",
     "models/",
+    "uri/",
     "wasm/",
+    "core.json",
     "README.md",
     "LICENSE"
   ],
@@ -39,19 +96,31 @@
   "scripts": {
     "build": "node ./scripts/build.mjs && tsc --project tsconfig.json",
     "clean": "node ./scripts/clean.mjs",
-    "test": "npm run build && node ./scripts/test-bindings.mjs && node ./scripts/test-models.mjs",
+    "test": "npm run build && node ./scripts/test-bindings.mjs && node ./scripts/test-network.mjs && node ./scripts/test-vault.mjs && node ./scripts/test-actuarial.mjs && node ./scripts/test-wallet.mjs && node ./scripts/test-models.mjs && node ./scripts/test-uri.mjs && node ./scripts/test-scene.mjs && node ./scripts/test-signing.mjs && node ./scripts/test-no-traps.mjs && node ./scripts/test-pack.mjs",
     "prepack": "npm run build",
     "pack:check": "npm pack --dry-run"
   },
-  "keywords": ["knirv", "knirv-sdk", "wasm", "webassembly", "browser", "edge"],
+  "keywords": [
+    "knirv",
+    "knirv-sdk",
+    "wasm",
+    "webassembly",
+    "browser",
+    "edge"
+  ],
   "license": "MIT",
-  "repository": { "type": "git", "url": "https://github.com/KNIRV/KNIRV_NETWORK.git", "directory": "packages/KNIRVSDK/npm-package" },
-  "engines": { "node": ">=18" },
-  "publishConfig": { "access": "public" },
-  "dependencies": {
-    "@cosmjs/crypto": "^0.34.0",
-    "@noble/hashes": "^1.3.3",
-    "bech32": "^2.0.0"
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/KNIRV/KNIRV_NETWORK.git",
+    "directory": "packages/KNIRVSDK/npm-package"
   },
-  "devDependencies": { "typescript": "^5.0.0" }
+  "engines": {
+    "node": ">=18"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0"
+  }
 }

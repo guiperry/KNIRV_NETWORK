@@ -7,12 +7,13 @@ import (
 )
 
 type DeviceConfig struct {
-	IP          string
-	Password    string
-	Username    string
-	FramesDir   string // path to training frame JSON files for FlashSearcher
-	CGMinerHost string // CGMiner API host (e.g. 192.168.12.151); empty = disabled
-	DirectMode  bool   // skip CGMiner, drive ASIC directly over raw USB
+	IP           string
+	Password     string
+	Username     string
+	FramesDir    string // path to training frame JSON files for FlashSearcher
+	CGMinerHost  string // CGMiner API host (e.g. 192.168.12.151); empty = disabled
+	DirectMode   bool   // skip CGMiner, drive ASIC directly over raw USB
+	DirectJitter bool   // allow the jitter engine to hash via the ASIC (requires DirectMode)
 }
 
 var (
@@ -54,6 +55,9 @@ func LoadDeviceConfig() (*DeviceConfig, error) {
 	}
 	if directMode := os.Getenv("DIRECT_MODE"); directMode != "" {
 		cfg.DirectMode = strings.EqualFold(directMode, "true") || directMode == "1"
+	}
+	if directJitter := os.Getenv("DIRECT_JITTER"); directJitter != "" {
+		cfg.DirectJitter = strings.EqualFold(directJitter, "true") || directJitter == "1"
 	}
 
 	// Set default FramesDir if still empty
@@ -99,6 +103,8 @@ func parseEnvFile(content string, cfg *DeviceConfig) {
 			cfg.CGMinerHost = value
 		case "DIRECT_MODE":
 			cfg.DirectMode = strings.EqualFold(value, "true") || value == "1"
+		case "DIRECT_JITTER":
+			cfg.DirectJitter = strings.EqualFold(value, "true") || value == "1"
 		}
 	}
 }

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"sort"
+	"strings"
 	"testing"
 
 	"github.com/guiperry/knirv-sdk-go/models/frame"
@@ -13,7 +14,19 @@ import (
 func full() *Set {
 	one := func() any { return map[string]int{"n": 1} }
 	f := func(context.Context, json.RawMessage) (any, error) { return 1, nil }
-	return Standard(Deps{Manifest: one, Registry: one, Health: one, WASMRender: f, WASMVerify: f, RulesList: f, HeadStatus: f, HasherValidate: f, IndexStatus: f, IndexSearch: f})
+	return Standard(Deps{Manifest: one, Registry: one, Health: one, WASMRender: f, WASMVerify: f, RulesList: f, HeadStatus: f, HasherValidate: f, HasherVerify: f, IndexStatus: f, IndexSearch: f, PipelineStatus: f, PipelineLogs: f, ErrorsHistory: f, HeadReason: f})
+}
+
+// Dangerous implementation helpers may exist in the operator CLI, but they
+// must never cross the frame boundary into the model-visible manifest.
+func TestUnsafeToolsAreAbsentFromManifest(t *testing.T) {
+	reg := frame.Default()
+	for _, name := range reg.ToolNames() {
+		if strings.HasPrefix(name, "driver.") || strings.HasPrefix(name, "asic.") ||
+			name == "shutdown" || name == "chat.ExecuteSudoCommand" || name == "chat.ReadFile" {
+			t.Errorf("unsafe tool exposed in manifest: %s", name)
+		}
+	}
 }
 
 // Every implemented tool must exist in the frame registry (the model can only
@@ -44,7 +57,7 @@ func TestUnimplementedToolList(t *testing.T) {
 		}
 	}
 	sort.Strings(missing)
-	want := []string{"errors.history", "hasher.verify", "head.reason", "pipeline.logs", "pipeline.status"}
+	want := []string{}
 	if len(missing) != len(want) {
 		t.Fatalf("unimplemented read/compute tools changed:\n got %v\nwant %v", missing, want)
 	}
@@ -61,8 +74,11 @@ func TestExec(t *testing.T) {
 	if err != nil || string(out) != `{"n":1}` {
 		t.Fatalf("%s %v", out, err)
 	}
-	if _, err := s.Exec(context.Background(), "errors.history", nil); !errors.Is(err, ErrNotAvailable) {
-		t.Fatalf("got %v", err)
+	if _, err := s.Exec(context.Background(), "errors.history", json.RawMessage(`{"limit":1}`)); err != nil {
+		t.Fatalf("errors.history: %v", err)
+	}
+	if _, err := New().Exec(context.Background(), "errors.history", nil); !errors.Is(err, ErrNotAvailable) {
+		t.Fatalf("empty set: got %v", err)
 	}
 	if !full().Has("status") || Standard(Deps{}).Has("status") {
 		t.Fatal("status needs registry and health")

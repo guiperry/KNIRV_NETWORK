@@ -10,3 +10,4 @@ export declare const wasmModulesManifest: {
     capabilities: readonly string[];
   }[];
 };
+export declare const wasmModulesReleaseVersion: string;

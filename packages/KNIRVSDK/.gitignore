@@ -1,0 +1,5 @@
+test-reports/
+coverage/
+*.tsbuildinfo
+target/
+dist/

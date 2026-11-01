@@ -88,4 +88,8 @@ type Config struct {
 	GPUOptimizations   bool
 	CloudflareEndpoint string
 	EmbeddingBackend   string
+	// EmbeddingDataClass applies to this mapper invocation. Private material is
+	// local-only unless the operator explicitly opts in to Cloudflare.
+	EmbeddingDataClass        string
+	AllowCloudflareForPrivate bool
 }

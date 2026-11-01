@@ -1,0 +1,787 @@
+[
+  {
+    "type": "CreateMonitor",
+    "details": {
+      "log": "AuthoritySessionMonitor was created.",
+      "payload": "null",
+      "monitor": "AuthoritySessionMonitor",
+      "clock": {
+        "AuthoritySessionMonitor": 1
+      }
+    }
+  },
+  {
+    "type": "MonitorStateTransition",
+    "details": {
+      "log": "AuthoritySessionMonitor enters state \u0027Monitoring\u0027.",
+      "state": "Monitoring",
+      "payload": "null",
+      "isEntry": true,
+      "monitor": "AuthoritySessionMonitor",
+      "clock": {
+        "AuthoritySessionMonitor": 2
+      }
+    }
+  },
+  {
+    "type": "CreateStateMachine",
+    "details": {
+      "log": "AuthoritySessionBugMain(1) was created by task \u00272\u0027.",
+      "id": "AuthoritySessionBugMain(1)",
+      "payload": "null",
+      "clock": {
+        "AuthoritySessionBugMain(1)": 1
+      }
+    }
+  },
+  {
+    "type": "StateTransition",
+    "details": {
+      "log": "AuthoritySessionBugMain(1) enters state \u0027Init\u0027.",
+      "id": "AuthoritySessionBugMain(1)",
+      "state": "Init",
+      "payload": "null",
+      "isEntry": true,
+      "clock": {
+        "AuthoritySessionBugMain(1)": 2
+      }
+    }
+  },
+  {
+    "type": "CreateStateMachine",
+    "details": {
+      "log": "AuthoritySessionWorkload(2) was created by AuthoritySessionBugMain(1).",
+      "id": "AuthoritySessionWorkload(2)",
+      "creatorName": "AuthoritySessionBugMain(1)",
+      "creatorType": "AuthoritySessionBugMain",
+      "payload": "null",
+      "clock": {
+        "AuthoritySessionWorkload(2)": 1
+      }
+    }
+  },
+  {
+    "type": "StateTransition",
+    "details": {
+      "log": "AuthoritySessionWorkload(2) enters state \u0027Init\u0027.",
+      "id": "AuthoritySessionWorkload(2)",
+      "state": "Init",
+      "payload": "null",
+      "isEntry": true,
+      "clock": {
+        "AuthoritySessionWorkload(2)": 2
+      }
+    }
+  },
+  {
+    "type": "CreateStateMachine",
+    "details": {
+      "log": "AuthoritySessionMachine(3) was created by AuthoritySessionWorkload(2).",
+      "id": "AuthoritySessionMachine(3)",
+      "creatorName": "AuthoritySessionWorkload(2)",
+      "creatorType": "AuthoritySessionWorkload",
+      "payload": "null",
+      "clock": {
+        "AuthoritySessionMachine(3)": 1
+      }
+    }
+  },
+  {
+    "type": "SendEvent",
+    "details": {
+      "log": "\u0027AuthoritySessionWorkload(2)\u0027 in state \u0027Init\u0027 sent event \u0027eAuthSessionRecord with payload (\u003Cop:0, session:1, issuedAt:2, \u003E)\u0027 to \u0027AuthoritySessionMachine(3)\u0027.",
+      "event": "eAuthSessionRecord",
+      "state": "Init",
+      "payload": {
+        "op": 0,
+        "session": 1,
+        "issuedAt": 2
+      },
+      "sender": "AuthoritySessionWorkload(2)",
+      "target": "AuthoritySessionMachine(3)",
+      "isTargetHalted": false,
+      "clock": {
+        "AuthoritySessionWorkload(2)": 3
+      }
+    }
+  },
+  {
+    "type": "StateTransition",
+    "details": {
+      "log": "AuthoritySessionMachine(3) enters state \u0027Init\u0027.",
+      "id": "AuthoritySessionMachine(3)",
+      "state": "Init",
+      "payload": "null",
+      "isEntry": true,
+      "clock": {
+        "AuthoritySessionMachine(3)": 2
+      }
+    }
+  },
+  {
+    "type": "GotoState",
+    "details": {
+      "log": "AuthoritySessionMachine(3) is transitioning from state \u0027Init\u0027 to state \u0027Active\u0027.",
+      "id": "AuthoritySessionMachine(3)",
+      "startState": "Init",
+      "endState": "Active",
+      "payload": "null",
+      "clock": {
+        "AuthoritySessionMachine(3)": 3
+      }
+    }
+  },
+  {
+    "type": "StateTransition",
+    "details": {
+      "log": "AuthoritySessionMachine(3) exits state \u0027Init\u0027.",
+      "id": "AuthoritySessionMachine(3)",
+      "state": "Init",
+      "payload": "null",
+      "isEntry": false,
+      "clock": {
+        "AuthoritySessionMachine(3)": 4
+      }
+    }
+  },
+  {
+    "type": "StateTransition",
+    "details": {
+      "log": "AuthoritySessionMachine(3) enters state \u0027Active\u0027.",
+      "id": "AuthoritySessionMachine(3)",
+      "state": "Active",
+      "payload": "null",
+      "isEntry": true,
+      "clock": {
+        "AuthoritySessionMachine(3)": 5
+      }
+    }
+  },
+  {
+    "type": "SendEvent",
+    "details": {
+      "log": "\u0027AuthoritySessionWorkload(2)\u0027 in state \u0027Init\u0027 sent event \u0027eAuthSessionRecord with payload (\u003Cop:1, session:0, issuedAt:9, \u003E)\u0027 to \u0027AuthoritySessionMachine(3)\u0027.",
+      "event": "eAuthSessionRecord",
+      "state": "Init",
+      "payload": {
+        "op": 1,
+        "session": 0,
+        "issuedAt": 9
+      },
+      "sender": "AuthoritySessionWorkload(2)",
+      "target": "AuthoritySessionMachine(3)",
+      "isTargetHalted": false,
+      "clock": {
+        "AuthoritySessionWorkload(2)": 4
+      }
+    }
+  },
+  {
+    "type": "SendEvent",
+    "details": {
+      "log": "\u0027AuthoritySessionWorkload(2)\u0027 in state \u0027Init\u0027 sent event \u0027eAuthSessionRecord with payload (\u003Cop:1, session:1, issuedAt:2, \u003E)\u0027 to \u0027AuthoritySessionMachine(3)\u0027.",
+      "event": "eAuthSessionRecord",
+      "state": "Init",
+      "payload": {
+        "op": 1,
+        "session": 1,
+        "issuedAt": 2
+      },
+      "sender": "AuthoritySessionWorkload(2)",
+      "target": "AuthoritySessionMachine(3)",
+      "isTargetHalted": false,
+      "clock": {
+        "AuthoritySessionWorkload(2)": 5
+      }
+    }
+  },
+  {
+    "type": "SendEvent",
+    "details": {
+      "log": "\u0027AuthoritySessionWorkload(2)\u0027 in state \u0027Init\u0027 sent event \u0027eAuthSessionRecord with payload (\u003Cop:1, session:0, issuedAt:0, \u003E)\u0027 to \u0027AuthoritySessionMachine(3)\u0027.",
+      "event": "eAuthSessionRecord",
+      "state": "Init",
+      "payload": {
+        "op": 1,
+        "session": 0,
+        "issuedAt": 0
+      },
+      "sender": "AuthoritySessionWorkload(2)",
+      "target": "AuthoritySessionMachine(3)",
+      "isTargetHalted": false,
+      "clock": {
+        "AuthoritySessionWorkload(2)": 6
+      }
+    }
+  },
+  {
+    "type": "DequeueEvent",
+    "details": {
+      "log": "\u0027AuthoritySessionMachine(3)\u0027 dequeued event \u0027eAuthSessionRecord with payload (\u003Cop:0, session:1, issuedAt:2, \u003E)\u0027 in state \u0027Active\u0027.",
+      "id": "AuthoritySessionMachine(3)",
+      "event": "eAuthSessionRecord",
+      "state": "Active",
+      "payload": {
+        "op": 0,
+        "session": 1,
+        "issuedAt": 2
+      },
+      "clock": {
+        "AuthoritySessionMachine(3)": 6,
+        "AuthoritySessionWorkload(2)": 3
+      }
+    }
+  },
+  {
+    "type": "Announce",
+    "details": {
+      "log": "AuthoritySessionMachine(3) announced event eAuthSessionAccepted with payload \u003Cop:0, session:1, issuedAt:2, \u003E.",
+      "id": "AuthoritySessionMachine(3)",
+      "event": "eAuthSessionAccepted",
+      "payload": {
+        "op": 0,
+        "session": 1,
+        "issuedAt": 2
+      },
+      "clock": {
+        "AuthoritySessionMachine(3)": 7,
+        "AuthoritySessionWorkload(2)": 3
+      }
+    }
+  },
+  {
+    "type": "MonitorProcessEvent",
+    "details": {
+      "log": "AuthoritySessionMonitor is processing event \u0027eAuthSessionAccepted with payload (\u003Cop:0, session:1, issuedAt:2, \u003E)\u0027 in state \u0027Monitoring\u0027.",
+      "event": "eAuthSessionAccepted",
+      "state": "Monitoring",
+      "payload": {
+        "op": 0,
+        "session": 1,
+        "issuedAt": 2
+      },
+      "sender": "AuthoritySessionMachine(3)",
+      "monitor": "AuthoritySessionMonitor",
+      "clock": {
+        "AuthoritySessionMonitor": 3,
+        "AuthoritySessionMachine(3)": 7,
+        "AuthoritySessionWorkload(2)": 3
+      }
+    }
+  },
+  {
+    "type": "DequeueEvent",
+    "details": {
+      "log": "\u0027AuthoritySessionMachine(3)\u0027 dequeued event \u0027eAuthSessionRecord with payload (\u003Cop:1, session:0, issuedAt:9, \u003E)\u0027 in state \u0027Active\u0027.",
+      "id": "AuthoritySessionMachine(3)",
+      "event": "eAuthSessionRecord",
+      "state": "Active",
+      "payload": {
+        "op": 1,
+        "session": 0,
+        "issuedAt": 9
+      },
+      "clock": {
+        "AuthoritySessionMachine(3)": 8,
+        "AuthoritySessionWorkload(2)": 4
+      }
+    }
+  },
+  {
+    "type": "Announce",
+    "details": {
+      "log": "AuthoritySessionMachine(3) announced event eAuthSessionAccepted with payload \u003Cop:1, session:0, issuedAt:9, \u003E.",
+      "id": "AuthoritySessionMachine(3)",
+      "event": "eAuthSessionAccepted",
+      "payload": {
+        "op": 1,
+        "session": 0,
+        "issuedAt": 9
+      },
+      "clock": {
+        "AuthoritySessionMachine(3)": 9,
+        "AuthoritySessionWorkload(2)": 4
+      }
+    }
+  },
+  {
+    "type": "MonitorProcessEvent",
+    "details": {
+      "log": "AuthoritySessionMonitor is processing event \u0027eAuthSessionAccepted with payload (\u003Cop:1, session:0, issuedAt:9, \u003E)\u0027 in state \u0027Monitoring\u0027.",
+      "event": "eAuthSessionAccepted",
+      "state": "Monitoring",
+      "payload": {
+        "op": 1,
+        "session": 0,
+        "issuedAt": 9
+      },
+      "sender": "AuthoritySessionMachine(3)",
+      "monitor": "AuthoritySessionMonitor",
+      "clock": {
+        "AuthoritySessionMonitor": 4,
+        "AuthoritySessionMachine(3)": 9,
+        "AuthoritySessionWorkload(2)": 4
+      }
+    }
+  },
+  {
+    "type": "DequeueEvent",
+    "details": {
+      "log": "\u0027AuthoritySessionMachine(3)\u0027 dequeued event \u0027eAuthSessionRecord with payload (\u003Cop:1, session:1, issuedAt:2, \u003E)\u0027 in state \u0027Active\u0027.",
+      "id": "AuthoritySessionMachine(3)",
+      "event": "eAuthSessionRecord",
+      "state": "Active",
+      "payload": {
+        "op": 1,
+        "session": 1,
+        "issuedAt": 2
+      },
+      "clock": {
+        "AuthoritySessionMachine(3)": 10,
+        "AuthoritySessionWorkload(2)": 5
+      }
+    }
+  },
+  {
+    "type": "Announce",
+    "details": {
+      "log": "AuthoritySessionMachine(3) announced event eAuthSessionAccepted with payload \u003Cop:1, session:1, issuedAt:2, \u003E.",
+      "id": "AuthoritySessionMachine(3)",
+      "event": "eAuthSessionAccepted",
+      "payload": {
+        "op": 1,
+        "session": 1,
+        "issuedAt": 2
+      },
+      "clock": {
+        "AuthoritySessionMachine(3)": 11,
+        "AuthoritySessionWorkload(2)": 5
+      }
+    }
+  },
+  {
+    "type": "MonitorProcessEvent",
+    "details": {
+      "log": "AuthoritySessionMonitor is processing event \u0027eAuthSessionAccepted with payload (\u003Cop:1, session:1, issuedAt:2, \u003E)\u0027 in state \u0027Monitoring\u0027.",
+      "event": "eAuthSessionAccepted",
+      "state": "Monitoring",
+      "payload": {
+        "op": 1,
+        "session": 1,
+        "issuedAt": 2
+      },
+      "sender": "AuthoritySessionMachine(3)",
+      "monitor": "AuthoritySessionMonitor",
+      "clock": {
+        "AuthoritySessionMonitor": 5,
+        "AuthoritySessionMachine(3)": 11,
+        "AuthoritySessionWorkload(2)": 5
+      }
+    }
+  },
+  {
+    "type": "DequeueEvent",
+    "details": {
+      "log": "\u0027AuthoritySessionMachine(3)\u0027 dequeued event \u0027eAuthSessionRecord with payload (\u003Cop:1, session:0, issuedAt:0, \u003E)\u0027 in state \u0027Active\u0027.",
+      "id": "AuthoritySessionMachine(3)",
+      "event": "eAuthSessionRecord",
+      "state": "Active",
+      "payload": {
+        "op": 1,
+        "session": 0,
+        "issuedAt": 0
+      },
+      "clock": {
+        "AuthoritySessionMachine(3)": 12,
+        "AuthoritySessionWorkload(2)": 6
+      }
+    }
+  },
+  {
+    "type": "Announce",
+    "details": {
+      "log": "AuthoritySessionMachine(3) announced event eAuthSessionAccepted with payload \u003Cop:1, session:0, issuedAt:0, \u003E.",
+      "id": "AuthoritySessionMachine(3)",
+      "event": "eAuthSessionAccepted",
+      "payload": {
+        "op": 1,
+        "session": 0,
+        "issuedAt": 0
+      },
+      "clock": {
+        "AuthoritySessionMachine(3)": 13,
+        "AuthoritySessionWorkload(2)": 6
+      }
+    }
+  },
+  {
+    "type": "MonitorProcessEvent",
+    "details": {
+      "log": "AuthoritySessionMonitor is processing event \u0027eAuthSessionAccepted with payload (\u003Cop:1, session:0, issuedAt:0, \u003E)\u0027 in state \u0027Monitoring\u0027.",
+      "event": "eAuthSessionAccepted",
+      "state": "Monitoring",
+      "payload": {
+        "op": 1,
+        "session": 0,
+        "issuedAt": 0
+      },
+      "sender": "AuthoritySessionMachine(3)",
+      "monitor": "AuthoritySessionMonitor",
+      "clock": {
+        "AuthoritySessionMonitor": 6,
+        "AuthoritySessionMachine(3)": 13,
+        "AuthoritySessionWorkload(2)": 6
+      }
+    }
+  },
+  {
+    "type": "SendEvent",
+    "details": {
+      "log": "\u0027AuthoritySessionWorkload(2)\u0027 in state \u0027Init\u0027 sent event \u0027eAuthSessionRetire with payload (\u003Cop:1, session:0, retiredAt:6, \u003E)\u0027 to \u0027AuthoritySessionMachine(3)\u0027.",
+      "event": "eAuthSessionRetire",
+      "state": "Init",
+      "payload": {
+        "op": 1,
+        "session": 0,
+        "retiredAt": 6
+      },
+      "sender": "AuthoritySessionWorkload(2)",
+      "target": "AuthoritySessionMachine(3)",
+      "isTargetHalted": false,
+      "clock": {
+        "AuthoritySessionWorkload(2)": 7
+      }
+    }
+  },
+  {
+    "type": "SendEvent",
+    "details": {
+      "log": "\u0027AuthoritySessionWorkload(2)\u0027 in state \u0027Init\u0027 sent event \u0027eAuthSessionRetire with payload (\u003Cop:1, session:0, retiredAt:2, \u003E)\u0027 to \u0027AuthoritySessionMachine(3)\u0027.",
+      "event": "eAuthSessionRetire",
+      "state": "Init",
+      "payload": {
+        "op": 1,
+        "session": 0,
+        "retiredAt": 2
+      },
+      "sender": "AuthoritySessionWorkload(2)",
+      "target": "AuthoritySessionMachine(3)",
+      "isTargetHalted": false,
+      "clock": {
+        "AuthoritySessionWorkload(2)": 8
+      }
+    }
+  },
+  {
+    "type": "DequeueEvent",
+    "details": {
+      "log": "\u0027AuthoritySessionMachine(3)\u0027 dequeued event \u0027eAuthSessionRetire with payload (\u003Cop:1, session:0, retiredAt:6, \u003E)\u0027 in state \u0027Active\u0027.",
+      "id": "AuthoritySessionMachine(3)",
+      "event": "eAuthSessionRetire",
+      "state": "Active",
+      "payload": {
+        "op": 1,
+        "session": 0,
+        "retiredAt": 6
+      },
+      "clock": {
+        "AuthoritySessionMachine(3)": 14,
+        "AuthoritySessionWorkload(2)": 7
+      }
+    }
+  },
+  {
+    "type": "Announce",
+    "details": {
+      "log": "AuthoritySessionMachine(3) announced event eAuthSessionRetired with payload \u003Cop:1, session:0, retiredAt:6, \u003E.",
+      "id": "AuthoritySessionMachine(3)",
+      "event": "eAuthSessionRetired",
+      "payload": {
+        "op": 1,
+        "session": 0,
+        "retiredAt": 6
+      },
+      "clock": {
+        "AuthoritySessionMachine(3)": 15,
+        "AuthoritySessionWorkload(2)": 7
+      }
+    }
+  },
+  {
+    "type": "MonitorProcessEvent",
+    "details": {
+      "log": "AuthoritySessionMonitor is processing event \u0027eAuthSessionRetired with payload (\u003Cop:1, session:0, retiredAt:6, \u003E)\u0027 in state \u0027Monitoring\u0027.",
+      "event": "eAuthSessionRetired",
+      "state": "Monitoring",
+      "payload": {
+        "op": 1,
+        "session": 0,
+        "retiredAt": 6
+      },
+      "sender": "AuthoritySessionMachine(3)",
+      "monitor": "AuthoritySessionMonitor",
+      "clock": {
+        "AuthoritySessionMonitor": 7,
+        "AuthoritySessionMachine(3)": 15,
+        "AuthoritySessionWorkload(2)": 7
+      }
+    }
+  },
+  {
+    "type": "DequeueEvent",
+    "details": {
+      "log": "\u0027AuthoritySessionMachine(3)\u0027 dequeued event \u0027eAuthSessionRetire with payload (\u003Cop:1, session:0, retiredAt:2, \u003E)\u0027 in state \u0027Active\u0027.",
+      "id": "AuthoritySessionMachine(3)",
+      "event": "eAuthSessionRetire",
+      "state": "Active",
+      "payload": {
+        "op": 1,
+        "session": 0,
+        "retiredAt": 2
+      },
+      "clock": {
+        "AuthoritySessionMachine(3)": 16,
+        "AuthoritySessionWorkload(2)": 8
+      }
+    }
+  },
+  {
+    "type": "SendEvent",
+    "details": {
+      "log": "\u0027AuthoritySessionWorkload(2)\u0027 in state \u0027Init\u0027 sent event \u0027eAuthSessionRecord with payload (\u003Cop:0, session:1, issuedAt:9, \u003E)\u0027 to \u0027AuthoritySessionMachine(3)\u0027.",
+      "event": "eAuthSessionRecord",
+      "state": "Init",
+      "payload": {
+        "op": 0,
+        "session": 1,
+        "issuedAt": 9
+      },
+      "sender": "AuthoritySessionWorkload(2)",
+      "target": "AuthoritySessionMachine(3)",
+      "isTargetHalted": false,
+      "clock": {
+        "AuthoritySessionWorkload(2)": 9
+      }
+    }
+  },
+  {
+    "type": "DequeueEvent",
+    "details": {
+      "log": "\u0027AuthoritySessionMachine(3)\u0027 dequeued event \u0027eAuthSessionRecord with payload (\u003Cop:0, session:1, issuedAt:9, \u003E)\u0027 in state \u0027Active\u0027.",
+      "id": "AuthoritySessionMachine(3)",
+      "event": "eAuthSessionRecord",
+      "state": "Active",
+      "payload": {
+        "op": 0,
+        "session": 1,
+        "issuedAt": 9
+      },
+      "clock": {
+        "AuthoritySessionMachine(3)": 17,
+        "AuthoritySessionWorkload(2)": 9
+      }
+    }
+  },
+  {
+    "type": "Announce",
+    "details": {
+      "log": "AuthoritySessionMachine(3) announced event eAuthSessionAccepted with payload \u003Cop:0, session:1, issuedAt:9, \u003E.",
+      "id": "AuthoritySessionMachine(3)",
+      "event": "eAuthSessionAccepted",
+      "payload": {
+        "op": 0,
+        "session": 1,
+        "issuedAt": 9
+      },
+      "clock": {
+        "AuthoritySessionMachine(3)": 18,
+        "AuthoritySessionWorkload(2)": 9
+      }
+    }
+  },
+  {
+    "type": "MonitorProcessEvent",
+    "details": {
+      "log": "AuthoritySessionMonitor is processing event \u0027eAuthSessionAccepted with payload (\u003Cop:0, session:1, issuedAt:9, \u003E)\u0027 in state \u0027Monitoring\u0027.",
+      "event": "eAuthSessionAccepted",
+      "state": "Monitoring",
+      "payload": {
+        "op": 0,
+        "session": 1,
+        "issuedAt": 9
+      },
+      "sender": "AuthoritySessionMachine(3)",
+      "monitor": "AuthoritySessionMonitor",
+      "clock": {
+        "AuthoritySessionMonitor": 8,
+        "AuthoritySessionMachine(3)": 18,
+        "AuthoritySessionWorkload(2)": 9
+      }
+    }
+  },
+  {
+    "type": "SendEvent",
+    "details": {
+      "log": "\u0027AuthoritySessionWorkload(2)\u0027 in state \u0027Init\u0027 sent event \u0027eAuthSessionRecord with payload (\u003Cop:0, session:0, issuedAt:1, \u003E)\u0027 to \u0027AuthoritySessionMachine(3)\u0027.",
+      "event": "eAuthSessionRecord",
+      "state": "Init",
+      "payload": {
+        "op": 0,
+        "session": 0,
+        "issuedAt": 1
+      },
+      "sender": "AuthoritySessionWorkload(2)",
+      "target": "AuthoritySessionMachine(3)",
+      "isTargetHalted": false,
+      "clock": {
+        "AuthoritySessionWorkload(2)": 10
+      }
+    }
+  },
+  {
+    "type": "SendEvent",
+    "details": {
+      "log": "\u0027AuthoritySessionWorkload(2)\u0027 in state \u0027Init\u0027 sent event \u0027eAuthSessionRecord with payload (\u003Cop:1, session:0, issuedAt:8, \u003E)\u0027 to \u0027AuthoritySessionMachine(3)\u0027.",
+      "event": "eAuthSessionRecord",
+      "state": "Init",
+      "payload": {
+        "op": 1,
+        "session": 0,
+        "issuedAt": 8
+      },
+      "sender": "AuthoritySessionWorkload(2)",
+      "target": "AuthoritySessionMachine(3)",
+      "isTargetHalted": false,
+      "clock": {
+        "AuthoritySessionWorkload(2)": 11
+      }
+    }
+  },
+  {
+    "type": "DequeueEvent",
+    "details": {
+      "log": "\u0027AuthoritySessionMachine(3)\u0027 dequeued event \u0027eAuthSessionRecord with payload (\u003Cop:0, session:0, issuedAt:1, \u003E)\u0027 in state \u0027Active\u0027.",
+      "id": "AuthoritySessionMachine(3)",
+      "event": "eAuthSessionRecord",
+      "state": "Active",
+      "payload": {
+        "op": 0,
+        "session": 0,
+        "issuedAt": 1
+      },
+      "clock": {
+        "AuthoritySessionMachine(3)": 19,
+        "AuthoritySessionWorkload(2)": 10
+      }
+    }
+  },
+  {
+    "type": "Announce",
+    "details": {
+      "log": "AuthoritySessionMachine(3) announced event eAuthSessionAccepted with payload \u003Cop:0, session:0, issuedAt:1, \u003E.",
+      "id": "AuthoritySessionMachine(3)",
+      "event": "eAuthSessionAccepted",
+      "payload": {
+        "op": 0,
+        "session": 0,
+        "issuedAt": 1
+      },
+      "clock": {
+        "AuthoritySessionMachine(3)": 20,
+        "AuthoritySessionWorkload(2)": 10
+      }
+    }
+  },
+  {
+    "type": "MonitorProcessEvent",
+    "details": {
+      "log": "AuthoritySessionMonitor is processing event \u0027eAuthSessionAccepted with payload (\u003Cop:0, session:0, issuedAt:1, \u003E)\u0027 in state \u0027Monitoring\u0027.",
+      "event": "eAuthSessionAccepted",
+      "state": "Monitoring",
+      "payload": {
+        "op": 0,
+        "session": 0,
+        "issuedAt": 1
+      },
+      "sender": "AuthoritySessionMachine(3)",
+      "monitor": "AuthoritySessionMonitor",
+      "clock": {
+        "AuthoritySessionMonitor": 9,
+        "AuthoritySessionMachine(3)": 20,
+        "AuthoritySessionWorkload(2)": 10
+      }
+    }
+  },
+  {
+    "type": "DequeueEvent",
+    "details": {
+      "log": "\u0027AuthoritySessionMachine(3)\u0027 dequeued event \u0027eAuthSessionRecord with payload (\u003Cop:1, session:0, issuedAt:8, \u003E)\u0027 in state \u0027Active\u0027.",
+      "id": "AuthoritySessionMachine(3)",
+      "event": "eAuthSessionRecord",
+      "state": "Active",
+      "payload": {
+        "op": 1,
+        "session": 0,
+        "issuedAt": 8
+      },
+      "clock": {
+        "AuthoritySessionMachine(3)": 21,
+        "AuthoritySessionWorkload(2)": 11
+      }
+    }
+  },
+  {
+    "type": "Announce",
+    "details": {
+      "log": "AuthoritySessionMachine(3) announced event eAuthSessionAccepted with payload \u003Cop:1, session:0, issuedAt:8, \u003E.",
+      "id": "AuthoritySessionMachine(3)",
+      "event": "eAuthSessionAccepted",
+      "payload": {
+        "op": 1,
+        "session": 0,
+        "issuedAt": 8
+      },
+      "clock": {
+        "AuthoritySessionMachine(3)": 22,
+        "AuthoritySessionWorkload(2)": 11
+      }
+    }
+  },
+  {
+    "type": "MonitorProcessEvent",
+    "details": {
+      "log": "AuthoritySessionMonitor is processing event \u0027eAuthSessionAccepted with payload (\u003Cop:1, session:0, issuedAt:8, \u003E)\u0027 in state \u0027Monitoring\u0027.",
+      "event": "eAuthSessionAccepted",
+      "state": "Monitoring",
+      "payload": {
+        "op": 1,
+        "session": 0,
+        "issuedAt": 8
+      },
+      "sender": "AuthoritySessionMachine(3)",
+      "monitor": "AuthoritySessionMonitor",
+      "clock": {
+        "AuthoritySessionMonitor": 10,
+        "AuthoritySessionMachine(3)": 22,
+        "AuthoritySessionWorkload(2)": 11
+      }
+    }
+  },
+  {
+    "type": "AssertionFailure",
+    "details": {
+      "log": "Assertion Failed: components/authority/session.p:63:13 a retired session key signed a record issued after its retirement",
+      "error": "Assertion Failed: components/authority/session.p:63:13 a retired session key signed a record issued after its retirement",
+      "payload": "null"
+    }
+  },
+  {
+    "type": "StrategyDescription",
+    "details": {
+      "log": "Found bug using \u0027random\u0027 strategy.",
+      "payload": "null",
+      "strategy": "random",
+      "strategyDescription": "random[seed \u00273042807468\u0027]"
+    }
+  }
+]

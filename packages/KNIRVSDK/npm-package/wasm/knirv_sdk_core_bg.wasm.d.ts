@@ -2,9 +2,15 @@
 /* eslint-disable */
 export const memory: WebAssembly.Memory;
 export const core_version: (a: number) => void;
+export const invoke: (a: number, b: number, c: number) => void;
+export const invoke_async: (a: number, b: number, c: number) => number;
 export const sha256_hex: (a: number, b: number, c: number) => void;
 export const sha256_matches: (a: number, b: number, c: number, d: number) => number;
+export const __wasm_bindgen_func_elem_3335: (a: number, b: number, c: number, d: number) => void;
+export const __wasm_bindgen_func_elem_3344: (a: number, b: number, c: number, d: number) => void;
+export const __wbindgen_export: (a: number, b: number) => number;
+export const __wbindgen_export2: (a: number, b: number, c: number, d: number) => number;
+export const __wbindgen_export3: (a: number) => void;
+export const __wbindgen_export4: (a: number, b: number) => void;
 export const __wbindgen_add_to_stack_pointer: (a: number) => number;
-export const __wbindgen_export: (a: number, b: number, c: number) => void;
-export const __wbindgen_export2: (a: number, b: number) => number;
-export const __wbindgen_export3: (a: number, b: number, c: number, d: number) => number;
+export const __wbindgen_export5: (a: number, b: number, c: number) => void;

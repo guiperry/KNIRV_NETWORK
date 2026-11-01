@@ -386,7 +386,7 @@ func (tc *TransactionChain) Start(ctx context.Context, socketPath, internalAuthT
 	if npmInstallCurrent(destDir) {
 		log.Printf("Transaction Chain dependencies already installed; skipping npm install")
 	} else {
-		installCmd := exec.CommandContext(tc.ctx, npmBin, "install", "--production")
+		installCmd := exec.CommandContext(tc.ctx, npmBin, "install", "--omit=dev", "--no-audit", "--no-fund", "--prefer-offline", "--no-update-notifier")
 		installCmd.Dir = destDir
 		installCmd.Env = nodeToolEnv(nodeBin)
 		installCmd.Stdout = os.Stdout

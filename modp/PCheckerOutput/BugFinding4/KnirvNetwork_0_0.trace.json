@@ -1,0 +1,670 @@
+[
+  {
+    "type": "CreateMonitor",
+    "details": {
+      "log": "AuthorityScopeMonitor was created.",
+      "payload": "null",
+      "monitor": "AuthorityScopeMonitor",
+      "clock": {
+        "AuthorityScopeMonitor": 1
+      }
+    }
+  },
+  {
+    "type": "MonitorStateTransition",
+    "details": {
+      "log": "AuthorityScopeMonitor enters state \u0027Monitoring\u0027.",
+      "state": "Monitoring",
+      "payload": "null",
+      "isEntry": true,
+      "monitor": "AuthorityScopeMonitor",
+      "clock": {
+        "AuthorityScopeMonitor": 2
+      }
+    }
+  },
+  {
+    "type": "CreateStateMachine",
+    "details": {
+      "log": "AuthorityScopeBugMain(1) was created by task \u00272\u0027.",
+      "id": "AuthorityScopeBugMain(1)",
+      "payload": "null",
+      "clock": {
+        "AuthorityScopeBugMain(1)": 1
+      }
+    }
+  },
+  {
+    "type": "StateTransition",
+    "details": {
+      "log": "AuthorityScopeBugMain(1) enters state \u0027Init\u0027.",
+      "id": "AuthorityScopeBugMain(1)",
+      "state": "Init",
+      "payload": "null",
+      "isEntry": true,
+      "clock": {
+        "AuthorityScopeBugMain(1)": 2
+      }
+    }
+  },
+  {
+    "type": "CreateStateMachine",
+    "details": {
+      "log": "AuthorityScopeWorkload(2) was created by AuthorityScopeBugMain(1).",
+      "id": "AuthorityScopeWorkload(2)",
+      "creatorName": "AuthorityScopeBugMain(1)",
+      "creatorType": "AuthorityScopeBugMain",
+      "payload": "null",
+      "clock": {
+        "AuthorityScopeWorkload(2)": 1
+      }
+    }
+  },
+  {
+    "type": "StateTransition",
+    "details": {
+      "log": "AuthorityScopeWorkload(2) enters state \u0027Init\u0027.",
+      "id": "AuthorityScopeWorkload(2)",
+      "state": "Init",
+      "payload": "null",
+      "isEntry": true,
+      "clock": {
+        "AuthorityScopeWorkload(2)": 2
+      }
+    }
+  },
+  {
+    "type": "CreateStateMachine",
+    "details": {
+      "log": "AuthorityScopeMachine(3) was created by AuthorityScopeWorkload(2).",
+      "id": "AuthorityScopeMachine(3)",
+      "creatorName": "AuthorityScopeWorkload(2)",
+      "creatorType": "AuthorityScopeWorkload",
+      "payload": "null",
+      "clock": {
+        "AuthorityScopeMachine(3)": 1
+      }
+    }
+  },
+  {
+    "type": "SendEvent",
+    "details": {
+      "log": "\u0027AuthorityScopeWorkload(2)\u0027 in state \u0027Init\u0027 sent event \u0027eAuthScopeRegister with payload (\u003Cop:1, isRoot:True, grant:-1, \u003E)\u0027 to \u0027AuthorityScopeMachine(3)\u0027.",
+      "event": "eAuthScopeRegister",
+      "state": "Init",
+      "payload": {
+        "op": 1,
+        "isRoot": true,
+        "grant": -1
+      },
+      "sender": "AuthorityScopeWorkload(2)",
+      "target": "AuthorityScopeMachine(3)",
+      "isTargetHalted": false,
+      "clock": {
+        "AuthorityScopeWorkload(2)": 3
+      }
+    }
+  },
+  {
+    "type": "SendEvent",
+    "details": {
+      "log": "\u0027AuthorityScopeWorkload(2)\u0027 in state \u0027Init\u0027 sent event \u0027eAuthScopeRegister with payload (\u003Cop:2, isRoot:False, grant:2, \u003E)\u0027 to \u0027AuthorityScopeMachine(3)\u0027.",
+      "event": "eAuthScopeRegister",
+      "state": "Init",
+      "payload": {
+        "op": 2,
+        "isRoot": false,
+        "grant": 2
+      },
+      "sender": "AuthorityScopeWorkload(2)",
+      "target": "AuthorityScopeMachine(3)",
+      "isTargetHalted": false,
+      "clock": {
+        "AuthorityScopeWorkload(2)": 4
+      }
+    }
+  },
+  {
+    "type": "StateTransition",
+    "details": {
+      "log": "AuthorityScopeMachine(3) enters state \u0027Init\u0027.",
+      "id": "AuthorityScopeMachine(3)",
+      "state": "Init",
+      "payload": "null",
+      "isEntry": true,
+      "clock": {
+        "AuthorityScopeMachine(3)": 2
+      }
+    }
+  },
+  {
+    "type": "GotoState",
+    "details": {
+      "log": "AuthorityScopeMachine(3) is transitioning from state \u0027Init\u0027 to state \u0027Active\u0027.",
+      "id": "AuthorityScopeMachine(3)",
+      "startState": "Init",
+      "endState": "Active",
+      "payload": "null",
+      "clock": {
+        "AuthorityScopeMachine(3)": 3
+      }
+    }
+  },
+  {
+    "type": "StateTransition",
+    "details": {
+      "log": "AuthorityScopeMachine(3) exits state \u0027Init\u0027.",
+      "id": "AuthorityScopeMachine(3)",
+      "state": "Init",
+      "payload": "null",
+      "isEntry": false,
+      "clock": {
+        "AuthorityScopeMachine(3)": 4
+      }
+    }
+  },
+  {
+    "type": "StateTransition",
+    "details": {
+      "log": "AuthorityScopeMachine(3) enters state \u0027Active\u0027.",
+      "id": "AuthorityScopeMachine(3)",
+      "state": "Active",
+      "payload": "null",
+      "isEntry": true,
+      "clock": {
+        "AuthorityScopeMachine(3)": 5
+      }
+    }
+  },
+  {
+    "type": "DequeueEvent",
+    "details": {
+      "log": "\u0027AuthorityScopeMachine(3)\u0027 dequeued event \u0027eAuthScopeRegister with payload (\u003Cop:1, isRoot:True, grant:-1, \u003E)\u0027 in state \u0027Active\u0027.",
+      "id": "AuthorityScopeMachine(3)",
+      "event": "eAuthScopeRegister",
+      "state": "Active",
+      "payload": {
+        "op": 1,
+        "isRoot": true,
+        "grant": -1
+      },
+      "clock": {
+        "AuthorityScopeMachine(3)": 6,
+        "AuthorityScopeWorkload(2)": 3
+      }
+    }
+  },
+  {
+    "type": "Announce",
+    "details": {
+      "log": "AuthorityScopeMachine(3) announced event eAuthScopeRegistered with payload \u003Cop:1, isRoot:True, grant:-1, \u003E.",
+      "id": "AuthorityScopeMachine(3)",
+      "event": "eAuthScopeRegistered",
+      "payload": {
+        "op": 1,
+        "isRoot": true,
+        "grant": -1
+      },
+      "clock": {
+        "AuthorityScopeMachine(3)": 7,
+        "AuthorityScopeWorkload(2)": 3
+      }
+    }
+  },
+  {
+    "type": "MonitorProcessEvent",
+    "details": {
+      "log": "AuthorityScopeMonitor is processing event \u0027eAuthScopeRegistered with payload (\u003Cop:1, isRoot:True, grant:-1, \u003E)\u0027 in state \u0027Monitoring\u0027.",
+      "event": "eAuthScopeRegistered",
+      "state": "Monitoring",
+      "payload": {
+        "op": 1,
+        "isRoot": true,
+        "grant": -1
+      },
+      "sender": "AuthorityScopeMachine(3)",
+      "monitor": "AuthorityScopeMonitor",
+      "clock": {
+        "AuthorityScopeMonitor": 3,
+        "AuthorityScopeMachine(3)": 7,
+        "AuthorityScopeWorkload(2)": 3
+      }
+    }
+  },
+  {
+    "type": "SendEvent",
+    "details": {
+      "log": "\u0027AuthorityScopeWorkload(2)\u0027 in state \u0027Init\u0027 sent event \u0027eAuthScopeRegister with payload (\u003Cop:3, isRoot:False, grant:3, \u003E)\u0027 to \u0027AuthorityScopeMachine(3)\u0027.",
+      "event": "eAuthScopeRegister",
+      "state": "Init",
+      "payload": {
+        "op": 3,
+        "isRoot": false,
+        "grant": 3
+      },
+      "sender": "AuthorityScopeWorkload(2)",
+      "target": "AuthorityScopeMachine(3)",
+      "isTargetHalted": false,
+      "clock": {
+        "AuthorityScopeWorkload(2)": 5
+      }
+    }
+  },
+  {
+    "type": "SendEvent",
+    "details": {
+      "log": "\u0027AuthorityScopeWorkload(2)\u0027 in state \u0027Init\u0027 sent event \u0027eAuthScopeAction with payload (\u003Cop:2, tier:1, scope:1, sessionScope:3, \u003E)\u0027 to \u0027AuthorityScopeMachine(3)\u0027.",
+      "event": "eAuthScopeAction",
+      "state": "Init",
+      "payload": {
+        "op": 2,
+        "tier": 1,
+        "scope": 1,
+        "sessionScope": 3
+      },
+      "sender": "AuthorityScopeWorkload(2)",
+      "target": "AuthorityScopeMachine(3)",
+      "isTargetHalted": false,
+      "clock": {
+        "AuthorityScopeWorkload(2)": 6
+      }
+    }
+  },
+  {
+    "type": "DequeueEvent",
+    "details": {
+      "log": "\u0027AuthorityScopeMachine(3)\u0027 dequeued event \u0027eAuthScopeRegister with payload (\u003Cop:2, isRoot:False, grant:2, \u003E)\u0027 in state \u0027Active\u0027.",
+      "id": "AuthorityScopeMachine(3)",
+      "event": "eAuthScopeRegister",
+      "state": "Active",
+      "payload": {
+        "op": 2,
+        "isRoot": false,
+        "grant": 2
+      },
+      "clock": {
+        "AuthorityScopeMachine(3)": 8,
+        "AuthorityScopeWorkload(2)": 4
+      }
+    }
+  },
+  {
+    "type": "Announce",
+    "details": {
+      "log": "AuthorityScopeMachine(3) announced event eAuthScopeRegistered with payload \u003Cop:2, isRoot:False, grant:2, \u003E.",
+      "id": "AuthorityScopeMachine(3)",
+      "event": "eAuthScopeRegistered",
+      "payload": {
+        "op": 2,
+        "isRoot": false,
+        "grant": 2
+      },
+      "clock": {
+        "AuthorityScopeMachine(3)": 9,
+        "AuthorityScopeWorkload(2)": 4
+      }
+    }
+  },
+  {
+    "type": "MonitorProcessEvent",
+    "details": {
+      "log": "AuthorityScopeMonitor is processing event \u0027eAuthScopeRegistered with payload (\u003Cop:2, isRoot:False, grant:2, \u003E)\u0027 in state \u0027Monitoring\u0027.",
+      "event": "eAuthScopeRegistered",
+      "state": "Monitoring",
+      "payload": {
+        "op": 2,
+        "isRoot": false,
+        "grant": 2
+      },
+      "sender": "AuthorityScopeMachine(3)",
+      "monitor": "AuthorityScopeMonitor",
+      "clock": {
+        "AuthorityScopeMonitor": 4,
+        "AuthorityScopeMachine(3)": 9,
+        "AuthorityScopeWorkload(2)": 4
+      }
+    }
+  },
+  {
+    "type": "SendEvent",
+    "details": {
+      "log": "\u0027AuthorityScopeWorkload(2)\u0027 in state \u0027Init\u0027 sent event \u0027eAuthScopeAction with payload (\u003Cop:3, tier:2, scope:2, sessionScope:3, \u003E)\u0027 to \u0027AuthorityScopeMachine(3)\u0027.",
+      "event": "eAuthScopeAction",
+      "state": "Init",
+      "payload": {
+        "op": 3,
+        "tier": 2,
+        "scope": 2,
+        "sessionScope": 3
+      },
+      "sender": "AuthorityScopeWorkload(2)",
+      "target": "AuthorityScopeMachine(3)",
+      "isTargetHalted": false,
+      "clock": {
+        "AuthorityScopeWorkload(2)": 7
+      }
+    }
+  },
+  {
+    "type": "SendEvent",
+    "details": {
+      "log": "\u0027AuthorityScopeWorkload(2)\u0027 in state \u0027Init\u0027 sent event \u0027eAuthScopeAction with payload (\u003Cop:1, tier:2, scope:2, sessionScope:2, \u003E)\u0027 to \u0027AuthorityScopeMachine(3)\u0027.",
+      "event": "eAuthScopeAction",
+      "state": "Init",
+      "payload": {
+        "op": 1,
+        "tier": 2,
+        "scope": 2,
+        "sessionScope": 2
+      },
+      "sender": "AuthorityScopeWorkload(2)",
+      "target": "AuthorityScopeMachine(3)",
+      "isTargetHalted": false,
+      "clock": {
+        "AuthorityScopeWorkload(2)": 8
+      }
+    }
+  },
+  {
+    "type": "SendEvent",
+    "details": {
+      "log": "\u0027AuthorityScopeWorkload(2)\u0027 in state \u0027Init\u0027 sent event \u0027eAuthScopeAction with payload (\u003Cop:3, tier:1, scope:3, sessionScope:2, \u003E)\u0027 to \u0027AuthorityScopeMachine(3)\u0027.",
+      "event": "eAuthScopeAction",
+      "state": "Init",
+      "payload": {
+        "op": 3,
+        "tier": 1,
+        "scope": 3,
+        "sessionScope": 2
+      },
+      "sender": "AuthorityScopeWorkload(2)",
+      "target": "AuthorityScopeMachine(3)",
+      "isTargetHalted": false,
+      "clock": {
+        "AuthorityScopeWorkload(2)": 9
+      }
+    }
+  },
+  {
+    "type": "DequeueEvent",
+    "details": {
+      "log": "\u0027AuthorityScopeMachine(3)\u0027 dequeued event \u0027eAuthScopeRegister with payload (\u003Cop:3, isRoot:False, grant:3, \u003E)\u0027 in state \u0027Active\u0027.",
+      "id": "AuthorityScopeMachine(3)",
+      "event": "eAuthScopeRegister",
+      "state": "Active",
+      "payload": {
+        "op": 3,
+        "isRoot": false,
+        "grant": 3
+      },
+      "clock": {
+        "AuthorityScopeMachine(3)": 10,
+        "AuthorityScopeWorkload(2)": 5
+      }
+    }
+  },
+  {
+    "type": "Announce",
+    "details": {
+      "log": "AuthorityScopeMachine(3) announced event eAuthScopeRegistered with payload \u003Cop:3, isRoot:False, grant:3, \u003E.",
+      "id": "AuthorityScopeMachine(3)",
+      "event": "eAuthScopeRegistered",
+      "payload": {
+        "op": 3,
+        "isRoot": false,
+        "grant": 3
+      },
+      "clock": {
+        "AuthorityScopeMachine(3)": 11,
+        "AuthorityScopeWorkload(2)": 5
+      }
+    }
+  },
+  {
+    "type": "MonitorProcessEvent",
+    "details": {
+      "log": "AuthorityScopeMonitor is processing event \u0027eAuthScopeRegistered with payload (\u003Cop:3, isRoot:False, grant:3, \u003E)\u0027 in state \u0027Monitoring\u0027.",
+      "event": "eAuthScopeRegistered",
+      "state": "Monitoring",
+      "payload": {
+        "op": 3,
+        "isRoot": false,
+        "grant": 3
+      },
+      "sender": "AuthorityScopeMachine(3)",
+      "monitor": "AuthorityScopeMonitor",
+      "clock": {
+        "AuthorityScopeMonitor": 5,
+        "AuthorityScopeMachine(3)": 11,
+        "AuthorityScopeWorkload(2)": 5
+      }
+    }
+  },
+  {
+    "type": "DequeueEvent",
+    "details": {
+      "log": "\u0027AuthorityScopeMachine(3)\u0027 dequeued event \u0027eAuthScopeAction with payload (\u003Cop:2, tier:1, scope:1, sessionScope:3, \u003E)\u0027 in state \u0027Active\u0027.",
+      "id": "AuthorityScopeMachine(3)",
+      "event": "eAuthScopeAction",
+      "state": "Active",
+      "payload": {
+        "op": 2,
+        "tier": 1,
+        "scope": 1,
+        "sessionScope": 3
+      },
+      "clock": {
+        "AuthorityScopeMachine(3)": 12,
+        "AuthorityScopeWorkload(2)": 6
+      }
+    }
+  },
+  {
+    "type": "Announce",
+    "details": {
+      "log": "AuthorityScopeMachine(3) announced event eAuthScopeRejected with payload \u003Cop:2, tier:1, scope:1, sessionScope:3, \u003E.",
+      "id": "AuthorityScopeMachine(3)",
+      "event": "eAuthScopeRejected",
+      "payload": {
+        "op": 2,
+        "tier": 1,
+        "scope": 1,
+        "sessionScope": 3
+      },
+      "clock": {
+        "AuthorityScopeMachine(3)": 13,
+        "AuthorityScopeWorkload(2)": 6
+      }
+    }
+  },
+  {
+    "type": "DequeueEvent",
+    "details": {
+      "log": "\u0027AuthorityScopeMachine(3)\u0027 dequeued event \u0027eAuthScopeAction with payload (\u003Cop:3, tier:2, scope:2, sessionScope:3, \u003E)\u0027 in state \u0027Active\u0027.",
+      "id": "AuthorityScopeMachine(3)",
+      "event": "eAuthScopeAction",
+      "state": "Active",
+      "payload": {
+        "op": 3,
+        "tier": 2,
+        "scope": 2,
+        "sessionScope": 3
+      },
+      "clock": {
+        "AuthorityScopeMachine(3)": 14,
+        "AuthorityScopeWorkload(2)": 7
+      }
+    }
+  },
+  {
+    "type": "Announce",
+    "details": {
+      "log": "AuthorityScopeMachine(3) announced event eAuthScopeRejected with payload \u003Cop:3, tier:2, scope:2, sessionScope:3, \u003E.",
+      "id": "AuthorityScopeMachine(3)",
+      "event": "eAuthScopeRejected",
+      "payload": {
+        "op": 3,
+        "tier": 2,
+        "scope": 2,
+        "sessionScope": 3
+      },
+      "clock": {
+        "AuthorityScopeMachine(3)": 15,
+        "AuthorityScopeWorkload(2)": 7
+      }
+    }
+  },
+  {
+    "type": "SendEvent",
+    "details": {
+      "log": "\u0027AuthorityScopeWorkload(2)\u0027 in state \u0027Init\u0027 sent event \u0027eAuthScopeAction with payload (\u003Cop:1, tier:1, scope:2, sessionScope:2, \u003E)\u0027 to \u0027AuthorityScopeMachine(3)\u0027.",
+      "event": "eAuthScopeAction",
+      "state": "Init",
+      "payload": {
+        "op": 1,
+        "tier": 1,
+        "scope": 2,
+        "sessionScope": 2
+      },
+      "sender": "AuthorityScopeWorkload(2)",
+      "target": "AuthorityScopeMachine(3)",
+      "isTargetHalted": false,
+      "clock": {
+        "AuthorityScopeWorkload(2)": 10
+      }
+    }
+  },
+  {
+    "type": "DequeueEvent",
+    "details": {
+      "log": "\u0027AuthorityScopeMachine(3)\u0027 dequeued event \u0027eAuthScopeAction with payload (\u003Cop:1, tier:2, scope:2, sessionScope:2, \u003E)\u0027 in state \u0027Active\u0027.",
+      "id": "AuthorityScopeMachine(3)",
+      "event": "eAuthScopeAction",
+      "state": "Active",
+      "payload": {
+        "op": 1,
+        "tier": 2,
+        "scope": 2,
+        "sessionScope": 2
+      },
+      "clock": {
+        "AuthorityScopeMachine(3)": 16,
+        "AuthorityScopeWorkload(2)": 8
+      }
+    }
+  },
+  {
+    "type": "Announce",
+    "details": {
+      "log": "AuthorityScopeMachine(3) announced event eAuthScopeAccepted with payload \u003Cop:1, tier:2, scope:2, sessionScope:2, \u003E.",
+      "id": "AuthorityScopeMachine(3)",
+      "event": "eAuthScopeAccepted",
+      "payload": {
+        "op": 1,
+        "tier": 2,
+        "scope": 2,
+        "sessionScope": 2
+      },
+      "clock": {
+        "AuthorityScopeMachine(3)": 17,
+        "AuthorityScopeWorkload(2)": 8
+      }
+    }
+  },
+  {
+    "type": "MonitorProcessEvent",
+    "details": {
+      "log": "AuthorityScopeMonitor is processing event \u0027eAuthScopeAccepted with payload (\u003Cop:1, tier:2, scope:2, sessionScope:2, \u003E)\u0027 in state \u0027Monitoring\u0027.",
+      "event": "eAuthScopeAccepted",
+      "state": "Monitoring",
+      "payload": {
+        "op": 1,
+        "tier": 2,
+        "scope": 2,
+        "sessionScope": 2
+      },
+      "sender": "AuthorityScopeMachine(3)",
+      "monitor": "AuthorityScopeMonitor",
+      "clock": {
+        "AuthorityScopeMonitor": 6,
+        "AuthorityScopeMachine(3)": 17,
+        "AuthorityScopeWorkload(2)": 8
+      }
+    }
+  },
+  {
+    "type": "DequeueEvent",
+    "details": {
+      "log": "\u0027AuthorityScopeMachine(3)\u0027 dequeued event \u0027eAuthScopeAction with payload (\u003Cop:3, tier:1, scope:3, sessionScope:2, \u003E)\u0027 in state \u0027Active\u0027.",
+      "id": "AuthorityScopeMachine(3)",
+      "event": "eAuthScopeAction",
+      "state": "Active",
+      "payload": {
+        "op": 3,
+        "tier": 1,
+        "scope": 3,
+        "sessionScope": 2
+      },
+      "clock": {
+        "AuthorityScopeMachine(3)": 18,
+        "AuthorityScopeWorkload(2)": 9
+      }
+    }
+  },
+  {
+    "type": "Announce",
+    "details": {
+      "log": "AuthorityScopeMachine(3) announced event eAuthScopeAccepted with payload \u003Cop:3, tier:1, scope:3, sessionScope:2, \u003E.",
+      "id": "AuthorityScopeMachine(3)",
+      "event": "eAuthScopeAccepted",
+      "payload": {
+        "op": 3,
+        "tier": 1,
+        "scope": 3,
+        "sessionScope": 2
+      },
+      "clock": {
+        "AuthorityScopeMachine(3)": 19,
+        "AuthorityScopeWorkload(2)": 9
+      }
+    }
+  },
+  {
+    "type": "MonitorProcessEvent",
+    "details": {
+      "log": "AuthorityScopeMonitor is processing event \u0027eAuthScopeAccepted with payload (\u003Cop:3, tier:1, scope:3, sessionScope:2, \u003E)\u0027 in state \u0027Monitoring\u0027.",
+      "event": "eAuthScopeAccepted",
+      "state": "Monitoring",
+      "payload": {
+        "op": 3,
+        "tier": 1,
+        "scope": 3,
+        "sessionScope": 2
+      },
+      "sender": "AuthorityScopeMachine(3)",
+      "monitor": "AuthorityScopeMonitor",
+      "clock": {
+        "AuthorityScopeMonitor": 7,
+        "AuthorityScopeMachine(3)": 19,
+        "AuthorityScopeWorkload(2)": 9
+      }
+    }
+  },
+  {
+    "type": "AssertionFailure",
+    "details": {
+      "log": "Assertion Failed: components/authority/scope.p:84:13 accepted scope is not covered by the session certificate",
+      "error": "Assertion Failed: components/authority/scope.p:84:13 accepted scope is not covered by the session certificate",
+      "payload": "null"
+    }
+  },
+  {
+    "type": "StrategyDescription",
+    "details": {
+      "log": "Found bug using \u0027random\u0027 strategy.",
+      "payload": "null",
+      "strategy": "random",
+      "strategyDescription": "random[seed \u00273259089016\u0027]"
+    }
+  }
+]

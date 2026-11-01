@@ -60,6 +60,7 @@ type DeployerConfig struct {
 	RemoteDir       string        // Remote directory for uploaded binaries
 	ConcurrentScans int           // Number of concurrent network scans
 	DirectMode      bool          // Start hasher-server with -direct (skip CGMiner)
+	DirectJitter    bool          // Also pass --direct-jitter (jitter engine may hash via the ASIC)
 }
 
 // DefaultDeployerConfig returns a default configuration
@@ -856,6 +857,10 @@ lsmod | grep bitmain || echo "No bitmain modules"
 				if d.config.DirectMode {
 					directFlag = " --direct"
 					d.log("Direct ASIC mode requested: starting hasher-server with --direct")
+				}
+				if d.config.DirectMode && d.config.DirectJitter {
+					directFlag += " --direct-jitter"
+					d.log("Direct jitter requested: starting hasher-server with --direct-jitter")
 				}
 				startCmd := fmt.Sprintf("sh -c '%s --port=8888 --trace=true%s > %s/hasher-server.log 2>&1 &' && echo 'SERVER_START_PID:$!' && sleep 1", remoteServerPath, directFlag, d.config.RemoteDir)
 				startOutput, _ := d.runRemoteCommand(startCmd)

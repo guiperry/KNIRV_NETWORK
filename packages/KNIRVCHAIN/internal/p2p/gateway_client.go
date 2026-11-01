@@ -18,6 +18,11 @@ import (
 // DiscoveryResourceType mirrors types.DiscoveryResourceType for convenience.
 type DiscoveryResourceType = types.DiscoveryResourceType
 
+const (
+	callbackRetryInterval = 2 * time.Second
+	callbackRetryWindow   = 2 * time.Minute
+)
+
 // GatewayClient handles DHT operations via KNIRVGATEWAY HTTP.
 type GatewayClient struct {
 	httpClient *http.Client
@@ -57,11 +62,36 @@ func NewGatewayClient(chainID string, p2pPort int, clientOnly bool, isBootnode b
 
 	if cfg != nil && cfg.SocketPath != "" {
 		if err := c.registerCallback(cfg.SocketPath); err != nil {
-			fmt.Printf("[%s][%s] Warning: Could not register P2P callback with KNIRVGATEWAY: %v\n", role.String(), chainID, err)
+			// The gateway is started after the chain, so keep trying in the background.
+			fmt.Printf("[%s][%s] KNIRVGATEWAY not reachable yet (%v); retrying P2P callback registration in the background\n", role.String(), chainID, err)
+			go c.retryRegisterCallback(cfg.SocketPath, role.String())
 		}
 	}
 
 	return c, nil
+}
+
+// retryRegisterCallback retries registerCallback until it succeeds, the client is
+// closed, or callbackRetryWindow passes.
+func (c *GatewayClient) retryRegisterCallback(chainSocketPath, role string) {
+	deadline := time.NewTimer(callbackRetryWindow)
+	defer deadline.Stop()
+	tick := time.NewTicker(callbackRetryInterval)
+	defer tick.Stop()
+	for {
+		select {
+		case <-c.stopChan:
+			return
+		case <-deadline.C:
+			fmt.Printf("[%s][%s] Warning: Could not register P2P callback with KNIRVGATEWAY within %s\n", role, c.chainID, callbackRetryWindow)
+			return
+		case <-tick.C:
+			if err := c.registerCallback(chainSocketPath); err == nil {
+				fmt.Printf("[%s][%s] Registered P2P callback with KNIRVGATEWAY\n", role, c.chainID)
+				return
+			}
+		}
+	}
 }
 
 func (c *GatewayClient) registerCallback(chainSocketPath string) error {

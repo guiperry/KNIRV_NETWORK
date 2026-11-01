@@ -83,7 +83,7 @@ func TestEnsureDownloadsMissingModel(t *testing.T) {
 func releaseResponder(tag string) func(string) (*http.Response, error) {
 	return func(url string) (*http.Response, error) {
 		if url == LatestReleaseURL {
-			return &http.Response{StatusCode: 200, Status: "200 OK", Body: io.NopCloser(strings.NewReader(`{"tag_name":"` + tag + `"}`))}, nil
+			return &http.Response{StatusCode: 200, Status: "200 OK", Body: io.NopCloser(strings.NewReader(`[{"tag_name":"v0.8.0"},{"tag_name":"` + tag + `"}]`))}, nil
 		}
 		return nil, io.ErrUnexpectedEOF
 	}

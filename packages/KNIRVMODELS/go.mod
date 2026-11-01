@@ -14,7 +14,7 @@ require (
 	github.com/guiperry/text-embedder v0.1.0
 	github.com/shirou/gopsutil/v3 v3.24.5
 	github.com/stretchr/testify v1.11.1
-	github.com/tetratelabs/wazero v1.8.1
+	github.com/tetratelabs/wazero v1.9.0
 	go.uber.org/zap v1.27.0
 	golang.org/x/crypto v0.47.0
 	google.golang.org/grpc v1.79.1
@@ -110,7 +110,12 @@ require (
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260209200024-4cfbd4190f57 // indirect
 )
 
-// Wire contract shared with backend_server and KNIRVINFERENCER (KNIRVSDK nested module).
-require github.com/guiperry/knirv-sdk-go/models v0.0.0
+require (
+	github.com/guiperry/knirv-sdk-go v0.1.1 // indirect
+	// Wire contract shared with backend_server and KNIRVINFERENCER (KNIRVSDK nested module).
+	github.com/guiperry/knirv-sdk-go/models v0.0.0
+)
 
 replace github.com/guiperry/knirv-sdk-go/models => ../KNIRVSDK/go-package/models
+
+replace github.com/guiperry/knirv-sdk-go => ../KNIRVSDK/go-package

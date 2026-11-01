@@ -13,6 +13,13 @@
     <PFile>components/oracle/consensus_machine.p</PFile>
     <PFile>components/oracle/ibc_machine.p</PFile>
 	<PFile>components/oracle/checkpoint_machine.p</PFile>
+	<PFile>components/oracle/replication_machine.p</PFile>
+
+    <!-- Authority Components (AUTHORITY_SPEC.md) -->
+    <PFile>components/authority/record_chain.p</PFile>
+    <PFile>components/authority/scope.p</PFile>
+    <PFile>components/authority/session.p</PFile>
+    <PFile>components/authority/rollout.p</PFile>
 
     <!-- KNIRVCHAIN Components -->
     <PFile>components/chain/skill_registry.p</PFile>

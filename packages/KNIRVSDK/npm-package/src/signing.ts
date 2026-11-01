@@ -1,12 +1,13 @@
 /**
  * KNIRV direct-transaction and signed-message primitives.
  *
- * This entry point is intentionally independent of the WASM runtime so it is
- * usable by Node, browsers, and edge runtimes before `SdkClient.init()`.
+ * Every function here is a typed wrapper over the Rust core (the source of
+ * truth), reached through the binding envelope in `./local.ts`. Nothing
+ * cryptographic is implemented in TypeScript. See `./local.ts` for the
+ * one-time initialisation contract (`initLocal`), which differs by platform.
  */
-import { Secp256k1, Secp256k1Signature, sha256 } from '@cosmjs/crypto';
-import { ripemd160 } from '@noble/hashes/ripemd160';
-import { bech32 } from 'bech32';
+import { big, byteArray, callLocal, fromBase64, toBase64, type Uint64 } from './local.js';
+export { initLocal, LocalCoreNotInitializedError } from './local.js';
 
 export const KNIRV_HD_PATH = "m/44'/118'/0'/0/i";
 export const ACTION_SCHEMA_VERSION = 'knirv.action.v1';
@@ -18,6 +19,9 @@ export const RELAY_ENVELOPE_SCHEMA_VERSION = 'knirv.controller.relay-envelope.v1
 export const WASM_PUBLICATION_SCHEMA_VERSION = 'knirv.wasm_publication.v1';
 export const WASM_MANIFEST_SCHEMA_VERSION = 'knirv.wasm_manifest.v1';
 export const CONTROLLER_DOMAIN = 'knirv.controller';
+export const SCENES_DOMAIN = 'knirv.scenes';
+export const PURPOSE_SCENE_MANIFEST = 'scene-manifest';
+export const ROLE_SCENE_SIGNER = 'scene-signer';
 export const PURPOSE_WASM_PUBLICATION = 'wasm-publication';
 export const PURPOSE_WASM_ASSIGNMENT = 'wasm-assignment';
 export const PURPOSE_WASM_DOWNLOAD_GRANT = 'wasm-download-grant';
@@ -26,7 +30,7 @@ export const PURPOSE_RELAY_RESPONSE = 'relay-response';
 export const RELAY_TARGET_DVE_EXPERT_ADVISOR = 'dve_expert_advisor';
 export const RELAY_TARGET_CLI_SUPERVISOR = 'cli_supervisor';
 
-export type Uint64 = number | string | bigint;
+export type { Uint64 };
 export interface KNIRVAction { schemaVersion?: string; action: string; sender: string; recipient?: string; amount?: Uint64; payload?: Uint8Array; timestampUnix: Uint64; }
 export interface KNIRVFee { denom?: string; amount?: string; gasLimit?: Uint64; payer?: string; granter?: string; }
 export interface DirectSignRequest { action: KNIRVAction; chainId: string; accountNumber: Uint64; sequence: Uint64; fee?: KNIRVFee; }
@@ -41,100 +45,181 @@ export interface WasmPublicationPayload { schemaVersion?: string; networkId: str
 export interface WasmManifestModule { moduleKind: string; artifactDigest: string; byteSize: Uint64; abiVersion: Uint64; moduleSchemaVersion: Uint64; capabilitiesJson: string; configurationDigest: string; downloadPath: string; publisherAddress: string; publicationStatementDigest: string; }
 export interface WasmManifestPayload { schemaVersion?: string; manifestId: string; networkId: string; chainId: string; networkFingerprint: string; userSubject: string; deviceId: string; dveId?: string; leaseEpoch?: Uint64; modules: WasmManifestModule[]; relayTargetType?: string; relayTargetId?: string; assignmentId: string; assignmentVersion?: Uint64; supersedesAssignmentId?: string; }
 
-const encoder = new TextEncoder();
-const decoder = new TextDecoder();
-const concat = (...values: Uint8Array[]) => { const output = new Uint8Array(values.reduce((total, value) => total + value.length, 0)); let offset = 0; for (const value of values) { output.set(value, offset); offset += value.length; } return output; };
-function varint(value: Uint64): Uint8Array { let current = BigInt(value); if (current < 0n) current = BigInt.asUintN(64, current); const output: number[] = []; do { let next = Number(current & 0x7fn); current >>= 7n; if (current !== 0n) next |= 0x80; output.push(next); } while (current !== 0n); return Uint8Array.from(output); }
-const tag = (field: number, wireType: 0 | 2) => varint(BigInt((field << 3) | wireType));
-const bytesField = (field: number, value?: Uint8Array) => !value?.length ? new Uint8Array() : concat(tag(field, 2), varint(value.length), value);
-const stringField = (field: number, value?: string) => value ? bytesField(field, encoder.encode(value)) : new Uint8Array();
-const uintField = (field: number, value?: Uint64) => value === undefined || BigInt(value) === 0n ? new Uint8Array() : concat(tag(field, 0), varint(value));
-const any = (typeUrl: string, value: Uint8Array) => concat(stringField(1, typeUrl), bytesField(2, value));
-function toBase64(value: Uint8Array): string { let binary = ''; for (let start = 0; start < value.length; start += 0x8000) binary += String.fromCharCode(...value.subarray(start, start + 0x8000)); return btoa(binary); }
-const fromBase64 = (value: string) => Uint8Array.from(atob(value), (character) => character.charCodeAt(0));
-const toHex = (value: Uint8Array) => Array.from(value, (byte) => byte.toString(16).padStart(2, '0')).join('').toUpperCase();
+
+// ---- wire mapping (camelCase public types <-> the core's snake_case JSON) ----
+
+type Bytes64 = { bytes_base64: string };
+const bytesOf = (reply: Bytes64) => fromBase64(reply.bytes_base64);
+
+const wireAction = (a: KNIRVAction) => ({
+  schema_version: a.schemaVersion, action: a.action, sender: a.sender, recipient: a.recipient, amount: a.amount,
+  payload: byteArray(a.payload), timestamp_unix: a.timestampUnix,
+});
+const wireFee = (f?: KNIRVFee) => (f ? { denom: f.denom, amount: f.amount, gas_limit: f.gasLimit, payer: f.payer, granter: f.granter } : undefined);
+/** @internal */
+export const wireRequest = (r: DirectSignRequest) => ({ action: wireAction(r.action), chain_id: r.chainId, account_number: r.accountNumber, sequence: r.sequence, fee: wireFee(r.fee) });
+/** @internal */
+export const wireEnvelope = (e: MessageEnvelope) => ({
+  schema_version: e.schemaVersion, domain: e.domain, purpose: e.purpose, chain_id: e.chainId, nonce: e.nonce,
+  issued_at_unix: e.issuedAtUnix, expires_at_unix: e.expiresAtUnix, payload: byteArray(e.payload),
+});
+const unixSeconds = (now: Date) => Math.floor(now.getTime() / 1000);
+
+type WireRelay = {
+  schema_version?: string; request_id: string; user_subject: string; device_id: string; dve_id?: string | null;
+  target_type: RelayEnvelope['targetType']; target_id: string; capability: string; sequence: number;
+  lease_epoch?: number | null; issued_at_unix: number; expires_at_unix: number; payload_digest: string;
+};
+const wireRelay = (e: RelayEnvelope) => ({
+  schema_version: e.schemaVersion, request_id: e.requestId, user_subject: e.userSubject, device_id: e.deviceId, dve_id: e.dveId,
+  target_type: e.targetType, target_id: e.targetId, capability: e.capability, sequence: e.sequence, lease_epoch: e.leaseEpoch,
+  issued_at_unix: e.issuedAtUnix, expires_at_unix: e.expiresAtUnix, payload_digest: e.payloadDigest,
+});
 
 export function marshalAction(action: KNIRVAction): Uint8Array {
-  const schema = action.schemaVersion || ACTION_SCHEMA_VERSION;
-  if (schema !== ACTION_SCHEMA_VERSION) throw new Error(`Unsupported action schema: ${schema}`);
-  if (!action.action.trim() || !action.sender.trim()) throw new Error('action and sender are required');
-  if (BigInt(action.timestampUnix) <= 0n) throw new Error('action timestamp is required');
-  return concat(stringField(1, schema), stringField(2, action.action), stringField(3, action.sender), stringField(4, action.recipient), uintField(5, action.amount), bytesField(6, action.payload), uintField(7, action.timestampUnix));
+  return bytesOf(callLocal<Bytes64>('signing.marshal_action', wireAction(action)));
 }
-function marshalFee(fee?: KNIRVFee): Uint8Array { if (!fee) return new Uint8Array(); const amount = fee.denom || fee.amount ? concat(stringField(1, fee.denom), stringField(2, fee.amount)) : new Uint8Array(); return concat(bytesField(1, amount), uintField(2, fee.gasLimit), stringField(3, fee.payer), stringField(4, fee.granter)); }
+
 export function buildDirectSignDoc(request: DirectSignRequest, compressedPublicKey: Uint8Array) {
-  if (!request.chainId.trim()) throw new Error('chainId is required');
-  if (compressedPublicKey.length !== 33) throw new Error('compressed secp256k1 public key must be 33 bytes');
-  const bodyBytes = bytesField(1, any(ACTION_TYPE_URL, marshalAction(request.action)));
-  const publicKey = any(SECP256K1_TYPE_URL, bytesField(1, compressedPublicKey));
-  const signerInfo = concat(bytesField(1, publicKey), bytesField(2, bytesField(1, uintField(1, SIGN_MODE_DIRECT))), uintField(3, request.sequence));
-  const authInfoBytes = concat(bytesField(1, signerInfo), bytesField(2, marshalFee(request.fee)));
-  return { bodyBytes, authInfoBytes, signDoc: concat(bytesField(1, bodyBytes), bytesField(2, authInfoBytes), stringField(3, request.chainId), uintField(4, request.accountNumber)) };
+  const out = callLocal<{ body_base64: string; auth_info_base64: string; sign_doc_base64: string }>('signing.build_sign_doc', {
+    request: wireRequest(request), public_key_base64: toBase64(compressedPublicKey),
+  });
+  return { bodyBytes: fromBase64(out.body_base64), authInfoBytes: fromBase64(out.auth_info_base64), signDoc: fromBase64(out.sign_doc_base64) };
 }
-export const marshalTxRaw = (bodyBytes: Uint8Array, authInfoBytes: Uint8Array, signatures: Uint8Array[]) => concat(bytesField(1, bodyBytes), bytesField(2, authInfoBytes), ...signatures.map((signature) => bytesField(3, signature)));
-export function publicKeyToKNIRVAddress(compressedPublicKey: Uint8Array): string { if (compressedPublicKey.length !== 33) throw new Error('compressed secp256k1 public key must be 33 bytes'); return bech32.encode('knirv', bech32.toWords(ripemd160(sha256(compressedPublicKey)))); }
+
+export const marshalTxRaw = (bodyBytes: Uint8Array, authInfoBytes: Uint8Array, signatures: Uint8Array[]): Uint8Array =>
+  bytesOf(callLocal<Bytes64>('signing.marshal_tx_raw', {
+    body_base64: toBase64(bodyBytes), auth_info_base64: toBase64(authInfoBytes), signatures_base64: signatures.map(toBase64),
+  }));
+
+export function publicKeyToKNIRVAddress(compressedPublicKey: Uint8Array): string {
+  return callLocal<{ address: string }>('address.encode', { public_key_base64: toBase64(compressedPublicKey) }).address;
+}
+
 export async function signDirectTransaction(privateKey: Uint8Array, request: DirectSignRequest): Promise<SignedDirectTransaction> {
-  if (privateKey.length !== 32) throw new Error('secp256k1 private key must be 32 bytes');
-  const { pubkey } = await Secp256k1.makeKeypair(privateKey); const publicKey = Secp256k1.compressPubkey(pubkey); const { bodyBytes, authInfoBytes, signDoc } = buildDirectSignDoc(request, publicKey);
-  const signature = (await Secp256k1.createSignature(sha256(signDoc), privateKey)).toFixedLength().slice(0, 64); const txRaw = marshalTxRaw(bodyBytes, authInfoBytes, [signature]);
-  return { body_bytes: toBase64(bodyBytes), auth_info_bytes: toBase64(authInfoBytes), signatures: [toBase64(signature)], public_key: toBase64(publicKey), address: publicKeyToKNIRVAddress(publicKey), hash: toHex(sha256(txRaw)) };
+  return callLocal<SignedDirectTransaction>('signing.sign_direct_transaction', { private_key_base64: toBase64(privateKey), request: wireRequest(request) });
 }
+
 export function marshalMessageEnvelope(envelope: MessageEnvelope): Uint8Array {
-  const schema = envelope.schemaVersion || MESSAGE_SCHEMA_VERSION;
-  if (schema !== MESSAGE_SCHEMA_VERSION) throw new Error(`Unsupported message schema: ${schema}`);
-  if (!envelope.domain.trim() || !envelope.purpose.trim() || !envelope.chainId.trim() || !envelope.nonce.trim()) throw new Error('domain, purpose, chainId, and nonce are required');
-  if (BigInt(envelope.issuedAtUnix) <= 0n || BigInt(envelope.expiresAtUnix) <= BigInt(envelope.issuedAtUnix)) throw new Error('message envelope validity window is invalid');
-  return concat(stringField(1, schema), stringField(2, envelope.domain), stringField(3, envelope.purpose), stringField(4, envelope.chainId), stringField(5, envelope.nonce), uintField(6, envelope.issuedAtUnix), uintField(7, envelope.expiresAtUnix), bytesField(8, envelope.payload));
+  return bytesOf(callLocal<Bytes64>('signing.marshal_message_envelope', wireEnvelope(envelope)));
 }
-const nonEmpty = (value: string) => value.trim().length > 0;
-const messageString = (field: EnvelopeWireField | undefined) => field?.bytesValue ? decoder.decode(field.bytesValue) : '';
-const messageUint = (field: EnvelopeWireField | undefined) => field?.uintValue ?? 0n;
-const fieldMap = (data: Uint8Array) => { const fields = new Map<number, EnvelopeWireField[]>(); for (const field of readFields(data)) { const values = fields.get(field.number) ?? []; values.push(field); fields.set(field.number, values); } return fields; };
-const first = (fields: Map<number, EnvelopeWireField[]>, number: number) => fields.get(number)?.[0];
-const relayTarget = (value: string): RelayEnvelope['targetType'] => {
-  if (value !== RELAY_TARGET_DVE_EXPERT_ADVISOR && value !== RELAY_TARGET_CLI_SUPERVISOR) throw new Error('target_type must be dve_expert_advisor or cli_supervisor');
-  return value;
-};
+
+export async function signMessageEnvelope(privateKey: Uint8Array, envelope: MessageEnvelope): Promise<SignedMessageEnvelope> {
+  return callLocal<SignedMessageEnvelope>('signing.sign_message_envelope', { private_key_base64: toBase64(privateKey), envelope: wireEnvelope(envelope) });
+}
+
+export function parseMessageEnvelope(data: Uint8Array): ParsedMessageEnvelope {
+  const p = callLocal<{ schema_version: string; domain: string; purpose: string; chain_id: string; nonce: string; issued_at_unix: number; expires_at_unix: number; payload_base64: string }>(
+    'signing.parse_message_envelope', { bytes_base64: toBase64(data) });
+  return { schemaVersion: p.schema_version, domain: p.domain, purpose: p.purpose, chainId: p.chain_id, nonce: p.nonce, issuedAtUnix: big(p.issued_at_unix), expiresAtUnix: big(p.expires_at_unix), payload: fromBase64(p.payload_base64) };
+}
+
+export async function verifyMessage(signed: SignedMessageEnvelope, expectedDomain: string, expectedPurpose: string, expectedChainId: string, expectedNonce: string, now: Date): Promise<void> {
+  callLocal('signing.verify_message', { signed, domain: expectedDomain, purpose: expectedPurpose, chain_id: expectedChainId, nonce: expectedNonce, now_unix: unixSeconds(now) });
+}
+
+export async function verifyMessagePayload(signed: SignedMessageEnvelope, expectedDomain: string, expectedPurpose: string, expectedChainId: string, expectedPayload: Uint8Array, now: Date): Promise<void> {
+  callLocal('signing.verify_message_payload', { signed, domain: expectedDomain, purpose: expectedPurpose, chain_id: expectedChainId, payload_base64: toBase64(expectedPayload), now_unix: unixSeconds(now) });
+}
+
+/** True when `signed` is exactly the canonical encoding of `expected` with a valid signature. */
+export async function verifyMessageEnvelope(signed: SignedMessageEnvelope, expected: MessageEnvelope): Promise<boolean> {
+  try {
+    const canonical = marshalMessageEnvelope(expected);
+    const received = fromBase64(signed.envelope);
+    if (canonical.length !== received.length || canonical.some((byte, index) => byte !== received[index])) return false;
+    // The envelope bytes are identical, so checking at its own issue time
+    // exercises the signature and address without a wall-clock dependency.
+    callLocal('signing.verify_message', {
+      signed, domain: expected.domain, purpose: expected.purpose, chain_id: expected.chainId, nonce: expected.nonce,
+      now_unix: BigInt(expected.issuedAtUnix),
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export function marshalRelayEnvelope(envelope: RelayEnvelope): Uint8Array {
-  const schema = envelope.schemaVersion || RELAY_ENVELOPE_SCHEMA_VERSION;
-  if (schema !== RELAY_ENVELOPE_SCHEMA_VERSION) throw new Error(`Unsupported relay envelope schema: ${schema}`);
-  if (![envelope.requestId, envelope.userSubject, envelope.deviceId, envelope.targetId, envelope.capability, envelope.payloadDigest].every(nonEmpty)) throw new Error('relay envelope required fields are missing');
-  relayTarget(envelope.targetType);
-  if (BigInt(envelope.sequence) <= 0n || BigInt(envelope.issuedAtUnix) <= 0n || BigInt(envelope.expiresAtUnix) <= BigInt(envelope.issuedAtUnix)) throw new Error('relay sequence and validity window are invalid');
-  return concat(stringField(1, schema), stringField(2, envelope.requestId), stringField(3, envelope.userSubject), stringField(4, envelope.deviceId), stringField(5, envelope.dveId), stringField(6, envelope.targetType), stringField(7, envelope.targetId), stringField(8, envelope.capability), uintField(9, envelope.sequence), uintField(10, envelope.leaseEpoch), uintField(11, envelope.issuedAtUnix), uintField(12, envelope.expiresAtUnix), stringField(13, envelope.payloadDigest));
+  return bytesOf(callLocal<Bytes64>('relay.marshal', wireRelay(envelope)));
 }
+
 export function parseRelayEnvelope(data: Uint8Array): ParsedRelayEnvelope {
-  const fields = fieldMap(data); const parsed = { schemaVersion: messageString(first(fields, 1)), requestId: messageString(first(fields, 2)), userSubject: messageString(first(fields, 3)), deviceId: messageString(first(fields, 4)), dveId: messageString(first(fields, 5)), targetType: relayTarget(messageString(first(fields, 6))), targetId: messageString(first(fields, 7)), capability: messageString(first(fields, 8)), sequence: messageUint(first(fields, 9)), leaseEpoch: messageUint(first(fields, 10)), issuedAtUnix: BigInt.asIntN(64, messageUint(first(fields, 11))), expiresAtUnix: BigInt.asIntN(64, messageUint(first(fields, 12))), payloadDigest: messageString(first(fields, 13)) };
-  if (parsed.schemaVersion !== RELAY_ENVELOPE_SCHEMA_VERSION || ![parsed.requestId, parsed.userSubject, parsed.deviceId, parsed.targetId, parsed.capability, parsed.payloadDigest].every(nonEmpty) || parsed.sequence <= 0n || parsed.issuedAtUnix <= 0n || parsed.expiresAtUnix <= parsed.issuedAtUnix) throw new Error('relay envelope is incomplete or invalid');
-  return parsed;
+  const e = callLocal<WireRelay>('relay.parse', { bytes_base64: toBase64(data) });
+  return {
+    schemaVersion: e.schema_version ?? '', requestId: e.request_id, userSubject: e.user_subject, deviceId: e.device_id, dveId: e.dve_id ?? '',
+    targetType: e.target_type, targetId: e.target_id, capability: e.capability, sequence: big(e.sequence), leaseEpoch: big(e.lease_epoch),
+    issuedAtUnix: big(e.issued_at_unix), expiresAtUnix: big(e.expires_at_unix), payloadDigest: e.payload_digest,
+  };
 }
+
 /** Creates a CLI-supervisor relay envelope with a SHA-256 payload binding. */
 export function newCLISupervisorRelay(params: CLISupervisorRelayParams): RelayEnvelope {
   if (!Number.isSafeInteger(params.ttlSeconds)) throw new Error('ttlSeconds must be a safe integer');
-  const issuedAtUnix = Math.floor(Date.now() / 1000), expiresAtUnix = issuedAtUnix + (params.ttlSeconds > 0 ? params.ttlSeconds : 60);
-  const payloadDigest = `sha256:${Array.from(sha256(params.payload), (byte) => byte.toString(16).padStart(2, '0')).join('')}`;
-  const envelope: RelayEnvelope = { schemaVersion: RELAY_ENVELOPE_SCHEMA_VERSION, requestId: params.requestId, userSubject: params.userSubject, deviceId: params.deviceId, targetType: RELAY_TARGET_CLI_SUPERVISOR, targetId: params.targetId, capability: params.capability, sequence: params.sequence, leaseEpoch: params.leaseEpoch, issuedAtUnix, expiresAtUnix, payloadDigest };
-  marshalRelayEnvelope(envelope);
-  return envelope;
+  const e = callLocal<WireRelay>('relay.new_cli_supervisor', {
+    request_id: params.requestId, user_subject: params.userSubject, device_id: params.deviceId, target_id: params.targetId,
+    capability: params.capability, sequence: params.sequence, lease_epoch: params.leaseEpoch, payload: byteArray(params.payload),
+    ttl_seconds: params.ttlSeconds, issued_at_unix: Math.floor(Date.now() / 1000),
+  });
+  return {
+    schemaVersion: e.schema_version, requestId: e.request_id, userSubject: e.user_subject, deviceId: e.device_id,
+    ...(e.dve_id ? { dveId: e.dve_id } : {}), targetType: e.target_type, targetId: e.target_id, capability: e.capability,
+    sequence: e.sequence, leaseEpoch: e.lease_epoch ?? 0, issuedAtUnix: e.issued_at_unix, expiresAtUnix: e.expires_at_unix,
+    payloadDigest: e.payload_digest,
+  };
 }
-/** Signs the canonical relay-response message derived from a relay envelope. */
-export function signCLISupervisorRelayResponse(privateKey: Uint8Array, envelope: RelayEnvelope, chainId: string): Promise<SignedMessageEnvelope> {
-  return signMessageEnvelope(privateKey, { schemaVersion: MESSAGE_SCHEMA_VERSION, domain: CONTROLLER_DOMAIN, purpose: PURPOSE_RELAY_RESPONSE, chainId, nonce: envelope.requestId, issuedAtUnix: envelope.issuedAtUnix, expiresAtUnix: envelope.expiresAtUnix, payload: new Uint8Array() });
-}
-function marshalManifestModule(module: WasmManifestModule): Uint8Array { return concat(stringField(1, module.moduleKind), stringField(2, module.artifactDigest), uintField(3, module.byteSize), uintField(4, module.abiVersion), uintField(5, module.moduleSchemaVersion), stringField(6, module.capabilitiesJson), stringField(7, module.configurationDigest), stringField(8, module.downloadPath), stringField(9, module.publisherAddress), stringField(10, module.publicationStatementDigest)); }
-function parseManifestModule(data: Uint8Array): WasmManifestModule { const fields = fieldMap(data); return { moduleKind: messageString(first(fields, 1)), artifactDigest: messageString(first(fields, 2)), byteSize: messageUint(first(fields, 3)), abiVersion: messageUint(first(fields, 4)), moduleSchemaVersion: messageUint(first(fields, 5)), capabilitiesJson: messageString(first(fields, 6)), configurationDigest: messageString(first(fields, 7)), downloadPath: messageString(first(fields, 8)), publisherAddress: messageString(first(fields, 9)), publicationStatementDigest: messageString(first(fields, 10)) }; }
-export function marshalWasmPublicationPayload(payload: WasmPublicationPayload): Uint8Array { const schema = payload.schemaVersion || WASM_PUBLICATION_SCHEMA_VERSION; if (schema !== WASM_PUBLICATION_SCHEMA_VERSION) throw new Error('unsupported wasm publication schema'); if (![payload.networkId, payload.networkFingerprint, payload.artifactDigest, payload.moduleKind, payload.buildId, payload.publisherAddress].every(nonEmpty) || BigInt(payload.byteSize) <= 0n) throw new Error('wasm publication required fields are missing'); return concat(stringField(1, schema), stringField(2, payload.networkId), stringField(3, payload.networkFingerprint), stringField(4, payload.artifactDigest), uintField(5, payload.byteSize), stringField(6, payload.moduleKind), uintField(7, payload.abiVersion), uintField(8, payload.moduleSchemaVersion), stringField(9, payload.buildId), stringField(10, payload.toolchainDigest), stringField(11, payload.selfTestDigest), stringField(12, payload.publisherAddress), stringField(13, payload.dveTemplateId)); }
-export function marshalWasmManifestPayload(payload: WasmManifestPayload): Uint8Array { const schema = payload.schemaVersion || WASM_MANIFEST_SCHEMA_VERSION; if (schema !== WASM_MANIFEST_SCHEMA_VERSION) throw new Error('unsupported wasm manifest schema'); if (![payload.manifestId, payload.networkId, payload.chainId, payload.networkFingerprint, payload.userSubject, payload.deviceId, payload.assignmentId].every(nonEmpty) || payload.modules.length === 0) throw new Error('wasm manifest required fields are missing'); return concat(stringField(1, schema), stringField(2, payload.manifestId), stringField(3, payload.networkId), stringField(4, payload.chainId), stringField(5, payload.networkFingerprint), stringField(6, payload.userSubject), stringField(7, payload.deviceId), stringField(8, payload.dveId), uintField(9, payload.leaseEpoch), ...payload.modules.map((module) => bytesField(10, marshalManifestModule(module))), stringField(11, payload.relayTargetType), stringField(12, payload.relayTargetId), stringField(13, payload.assignmentId), uintField(14, payload.assignmentVersion), stringField(15, payload.supersedesAssignmentId)); }
-export function parseWasmManifestPayload(data: Uint8Array): WasmManifestPayload { const fields = fieldMap(data); const payload: WasmManifestPayload = { schemaVersion: messageString(first(fields, 1)), manifestId: messageString(first(fields, 2)), networkId: messageString(first(fields, 3)), chainId: messageString(first(fields, 4)), networkFingerprint: messageString(first(fields, 5)), userSubject: messageString(first(fields, 6)), deviceId: messageString(first(fields, 7)), dveId: messageString(first(fields, 8)), leaseEpoch: messageUint(first(fields, 9)), modules: (fields.get(10) ?? []).map((field) => parseManifestModule(field.bytesValue ?? new Uint8Array())), relayTargetType: messageString(first(fields, 11)), relayTargetId: messageString(first(fields, 12)), assignmentId: messageString(first(fields, 13)), assignmentVersion: messageUint(first(fields, 14)), supersedesAssignmentId: messageString(first(fields, 15)) }; if (payload.schemaVersion !== WASM_MANIFEST_SCHEMA_VERSION || ![payload.manifestId, payload.networkId, payload.chainId, payload.networkFingerprint, payload.userSubject, payload.deviceId, payload.assignmentId].every(nonEmpty) || payload.modules.length === 0) throw new Error('wasm manifest is incomplete or invalid'); return payload; }
-export async function signMessageEnvelope(privateKey: Uint8Array, envelope: MessageEnvelope): Promise<SignedMessageEnvelope> {
-  if (privateKey.length !== 32) throw new Error('secp256k1 private key must be 32 bytes'); const bytes = marshalMessageEnvelope(envelope); const { pubkey } = await Secp256k1.makeKeypair(privateKey); const publicKey = Secp256k1.compressPubkey(pubkey); const signature = (await Secp256k1.createSignature(sha256(bytes), privateKey)).toFixedLength().slice(0, 64);
-  return { envelope: toBase64(bytes), signature: toBase64(signature), public_key: toBase64(publicKey), address: publicKeyToKNIRVAddress(publicKey) };
-}
-export async function verifyMessageEnvelope(signed: SignedMessageEnvelope, expected: MessageEnvelope): Promise<boolean> { const envelope = marshalMessageEnvelope(expected); const received = fromBase64(signed.envelope); if (envelope.length !== received.length || envelope.some((byte, index) => byte !== received[index])) return false; const publicKey = fromBase64(signed.public_key); if (publicKey.length !== 33 || !signed.address || publicKeyToKNIRVAddress(publicKey) !== signed.address) return false; const signature = fromBase64(signed.signature); return signature.length === 64 && Secp256k1.verifySignature(Secp256k1Signature.fromFixedLength(signature), sha256(envelope), publicKey); }
 
-interface EnvelopeWireField { number: number; wireType: 0 | 2; bytesValue?: Uint8Array; uintValue?: bigint; }
-function readVarint(data: Uint8Array, start: number): { value: bigint; next: number } { let value = 0n, shift = 0n, i = start; for (; i < data.length; i++) { const byte = data[i]; value |= BigInt(byte & 0x7f) << shift; if ((byte & 0x80) === 0) return { value, next: i + 1 }; shift += 7n; if (shift >= 64n) throw new Error('varint overflow'); } throw new Error('truncated varint'); }
-function readFields(data: Uint8Array): EnvelopeWireField[] { const fields: EnvelopeWireField[] = []; let i = 0; while (i < data.length) { const key = readVarint(data, i); i = key.next; const number = Number(key.value >> 3n), wireType = Number(key.value & 0x7n) as 0 | 2; if (wireType === 0) { const value = readVarint(data, i); fields.push({ number, wireType, uintValue: value.value }); i = value.next; } else if (wireType === 2) { const length = readVarint(data, i); const end = length.next + Number(length.value); if (end > data.length) throw new Error('truncated length-delimited field'); fields.push({ number, wireType, bytesValue: data.subarray(length.next, end) }); i = end; } else throw new Error(`unsupported wire type ${wireType}`); } return fields; }
-export function parseMessageEnvelope(data: Uint8Array): ParsedMessageEnvelope { const fields = new Map<number, EnvelopeWireField>(); for (const field of readFields(data)) if (!fields.has(field.number)) fields.set(field.number, field); const stringOf = (n: number) => fields.get(n)?.bytesValue ? decoder.decode(fields.get(n)?.bytesValue) : ''; const parsed = { schemaVersion: stringOf(1), domain: stringOf(2), purpose: stringOf(3), chainId: stringOf(4), nonce: stringOf(5), issuedAtUnix: fields.get(6)?.uintValue ?? 0n, expiresAtUnix: fields.get(7)?.uintValue ?? 0n, payload: fields.get(8)?.bytesValue ?? new Uint8Array() }; if (parsed.schemaVersion !== MESSAGE_SCHEMA_VERSION || !parsed.domain || !parsed.purpose || !parsed.chainId || !parsed.nonce) throw new Error('signed message envelope is incomplete'); return parsed; }
-export async function verifyMessage(signed: SignedMessageEnvelope, expectedDomain: string, expectedPurpose: string, expectedChainId: string, expectedNonce: string, now: Date): Promise<void> { const envelope = fromBase64(signed.envelope); const fields = parseMessageEnvelope(envelope); if (fields.domain !== expectedDomain || fields.purpose !== expectedPurpose || fields.chainId !== expectedChainId || fields.nonce !== expectedNonce) throw new Error('message signing domain does not match request'); const nowUnix = BigInt(Math.floor(now.getTime() / 1000)); if (nowUnix < fields.issuedAtUnix - 60n || nowUnix > fields.expiresAtUnix) throw new Error('signed message is outside its validity window'); const publicKey = fromBase64(signed.public_key); if (publicKey.length !== 33) throw new Error('compressed secp256k1 public key must be 33 bytes'); if (!signed.address || signed.address !== publicKeyToKNIRVAddress(publicKey)) throw new Error('message address does not match public key'); const signature = fromBase64(signed.signature); if (signature.length !== 64) throw new Error('signature must use Cosmos 64-byte r|s encoding'); if (!await Secp256k1.verifySignature(Secp256k1Signature.fromFixedLength(signature), sha256(envelope), publicKey)) throw new Error('signature verification failed'); }
-export async function verifyMessagePayload(signed: SignedMessageEnvelope, expectedDomain: string, expectedPurpose: string, expectedChainId: string, expectedPayload: Uint8Array, now: Date): Promise<void> { const fields = parseMessageEnvelope(fromBase64(signed.envelope)); await verifyMessage(signed, expectedDomain, expectedPurpose, expectedChainId, fields.nonce, now); if (fields.payload.length !== expectedPayload.length || fields.payload.some((byte, index) => byte !== expectedPayload[index])) throw new Error('signed message payload does not match request'); }
+/** Signs the canonical relay-response message derived from a relay envelope. */
+export async function signCLISupervisorRelayResponse(privateKey: Uint8Array, envelope: RelayEnvelope, chainId: string): Promise<SignedMessageEnvelope> {
+  return callLocal<SignedMessageEnvelope>('relay.sign_cli_supervisor_response', { private_key_base64: toBase64(privateKey), envelope: wireRelay(envelope), chain_id: chainId });
+}
+
+const wirePublication = (p: WasmPublicationPayload) => ({
+  schema_version: p.schemaVersion, network_id: p.networkId, network_fingerprint: p.networkFingerprint, artifact_digest: p.artifactDigest,
+  byte_size: p.byteSize, module_kind: p.moduleKind, abi_version: p.abiVersion, module_schema_version: p.moduleSchemaVersion,
+  build_id: p.buildId, toolchain_digest: p.toolchainDigest, self_test_digest: p.selfTestDigest, publisher_address: p.publisherAddress,
+  dve_template_id: p.dveTemplateId,
+});
+
+export function marshalWasmPublicationPayload(payload: WasmPublicationPayload): Uint8Array {
+  return bytesOf(callLocal<Bytes64>('wasm.publication.marshal', wirePublication(payload)));
+}
+
+type WireModule = {
+  module_kind: string; artifact_digest: string; byte_size: number; abi_version: number; module_schema_version: number;
+  capabilities_json: string; configuration_digest: string; download_path: string; publisher_address: string; publication_statement_digest: string;
+};
+type WireManifest = {
+  schema_version: string; manifest_id: string; network_id: string; chain_id: string; network_fingerprint: string; user_subject: string;
+  device_id: string; dve_id: string; lease_epoch: number; modules: WireModule[]; relay_target_type: string; relay_target_id: string;
+  assignment_id: string; assignment_version: number; supersedes_assignment_id: string;
+};
+
+export function marshalWasmManifestPayload(p: WasmManifestPayload): Uint8Array {
+  return bytesOf(callLocal<Bytes64>('wasm.assignment.marshal', {
+    schema_version: p.schemaVersion, manifest_id: p.manifestId, network_id: p.networkId, chain_id: p.chainId,
+    network_fingerprint: p.networkFingerprint, user_subject: p.userSubject, device_id: p.deviceId, dve_id: p.dveId,
+    lease_epoch: p.leaseEpoch, relay_target_type: p.relayTargetType, relay_target_id: p.relayTargetId,
+    assignment_id: p.assignmentId, assignment_version: p.assignmentVersion, supersedes_assignment_id: p.supersedesAssignmentId,
+    modules: p.modules.map((m) => ({
+      module_kind: m.moduleKind, artifact_digest: m.artifactDigest, byte_size: m.byteSize, abi_version: m.abiVersion,
+      module_schema_version: m.moduleSchemaVersion, capabilities_json: m.capabilitiesJson, configuration_digest: m.configurationDigest,
+      download_path: m.downloadPath, publisher_address: m.publisherAddress, publication_statement_digest: m.publicationStatementDigest,
+    })),
+  }));
+}
+
+export function parseWasmManifestPayload(data: Uint8Array): WasmManifestPayload {
+  const p = callLocal<WireManifest>('wasm.assignment.parse', { bytes_base64: toBase64(data) });
+  return {
+    schemaVersion: p.schema_version, manifestId: p.manifest_id, networkId: p.network_id, chainId: p.chain_id,
+    networkFingerprint: p.network_fingerprint, userSubject: p.user_subject, deviceId: p.device_id, dveId: p.dve_id,
+    leaseEpoch: big(p.lease_epoch), relayTargetType: p.relay_target_type, relayTargetId: p.relay_target_id,
+    assignmentId: p.assignment_id, assignmentVersion: big(p.assignment_version), supersedesAssignmentId: p.supersedes_assignment_id,
+    modules: p.modules.map((m) => ({
+      moduleKind: m.module_kind, artifactDigest: m.artifact_digest, byteSize: big(m.byte_size), abiVersion: big(m.abi_version),
+      moduleSchemaVersion: big(m.module_schema_version), capabilitiesJson: m.capabilities_json, configurationDigest: m.configuration_digest,
+      downloadPath: m.download_path, publisherAddress: m.publisher_address, publicationStatementDigest: m.publication_statement_digest,
+    })),
+  };
+}

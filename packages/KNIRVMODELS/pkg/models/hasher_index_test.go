@@ -3,6 +3,7 @@ package models
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -108,6 +109,48 @@ func TestIndexRoutesAre503WhenNoIndexIsConfigured(t *testing.T) {
 	mux.ServeHTTP(rec, httptest.NewRequest("GET", "/models/hasher/index/status", nil))
 	if rec.Code != http.StatusServiceUnavailable {
 		t.Fatal(rec.Code)
+	}
+}
+
+func TestVerifyRouteIsConservativeAndTenantScoped(t *testing.T) {
+	dir := t.TempDir()
+	ix, err := evidence.Open(dir, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := ix.Ingest(evidence.Batch{Tier: evidence.TierReference, Docs: []evidence.Doc{{Text: "Mount Kestrel rises 3100 metres above Lake Vessel in the Alder range."}}}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := ix.Ingest(evidence.Batch{Tier: evidence.TierUser, Tenant: "acme", Docs: []evidence.Doc{{Text: "Acme internal note: Mount Kestrel base camp opens 2027."}}}); err != nil {
+		t.Fatal(err)
+	}
+	ix.Close()
+	h := NewHasher(nil)
+	h.UseIndex(dir, "")
+	supported, err := h.VerifyText(context.Background(), "Mount Kestrel rises 3100 metres above Lake Vessel in the Alder range.", "")
+	if err != nil || !supported.Verified || supported.Verdict != "SUPPORTED" || supported.Gate != "seen" || len(supported.Citations) != 1 {
+		t.Fatalf("supported = %#v, err %v", supported, err)
+	}
+	mux := http.NewServeMux()
+	h.Mount(mux, "/models/hasher")
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, httptest.NewRequest(http.MethodPost, "/models/hasher/verify", strings.NewReader(`{"text":"Mount Kestrel rises 3100 metres above Lake Vessel in the Alder range."}`)))
+	if rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), `"verdict":"SUPPORTED"`) {
+		t.Fatalf("verify route: %d %s", rec.Code, rec.Body.String())
+	}
+	unknown, err := h.VerifyText(context.Background(), "Mount Kestrel rises 2900 metres above Lake Vessel.", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if unknown.Verified || unknown.Verdict != "NEI" || unknown.Gate != "uncommitted" {
+		t.Fatalf("retrieval must not guess: %#v", unknown)
+	}
+	private, err := h.VerifyText(context.Background(), "Acme internal note: Mount Kestrel base camp opens 2027.", "globex")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if private.Verified || strings.Contains(fmt.Sprintf("%v", private.Evidence), "Acme internal note") {
+		t.Fatalf("cross-tenant evidence leaked: %#v", private)
 	}
 }
 

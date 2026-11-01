@@ -1,7 +1,7 @@
 import { webcrypto } from 'crypto';
 import { HEADBridge, HEADUnavailableError } from '../HEADBridge';
 import { HEADEngine, HEADReasoning } from '../headEngine';
-import { decodeTokens, encodeSamples, encodeText, padTo, BOS, PAD } from '../headTokenizer';
+import { decodeTokens, encodeChoiceSet, encodeSamples, encodeText, padTo, BOS, OPT_END, OPT_OPEN, PAD } from '../headTokenizer';
 import { sha256Hex } from '../headModelStore';
 
 const config = { l_module_count: 1, h_module_count: 1, enable_adaptation: false, processing_timeout: 1000 };
@@ -36,6 +36,7 @@ describe('headTokenizer', () => {
   it('round-trips text and quantises samples', () => {
     expect(decodeTokens(encodeText('héllo', 64))).toBe('héllo');
     expect(encodeText('abcdef', 3)).toEqual([BOS, 97, 98]);
+    expect(encodeChoiceSet('why?', 'host=idle', ['wait', 'restart'], 32)).toEqual([BOS, 119, 104, 121, 63, 258, 104, 111, 115, 116, 61, 105, 100, 108, 101, 258, OPT_OPEN, 119, 97, 105, 116, OPT_END, OPT_OPEN, 114, 101, 115, 116, 97, 114, 116, OPT_END, PAD]);
     expect(encodeSamples([0, 0.5, 1, 2, NaN], 10)).toEqual([BOS, 0, 128, 255, 255, 0]);
   });
 });

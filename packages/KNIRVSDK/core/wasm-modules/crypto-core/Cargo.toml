@@ -2,13 +2,20 @@
 name = "knirv-sdk-crypto-core"
 version = "0.1.0"
 edition = "2021"
-description = "Raw-ABI crypto policy module owned by KNIRVSDK"
+description = "Raw-ABI vault crypto module owned by KNIRVSDK: a thin wrapper over knirv-sdk's `vault`"
 
 [lib]
 crate-type = ["cdylib"]
+
+[dependencies]
+knirv-sdk = { path = "../..", default-features = false, features = ["vault"] }
+getrandom = { version = "0.2", features = ["custom"] }
+serde_json = "1"
+zeroize = "1"
 
 [profile.release]
 opt-level = "s"
 lto = true
 codegen-units = 1
 panic = "abort"
+strip = true

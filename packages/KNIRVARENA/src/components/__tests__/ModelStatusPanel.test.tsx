@@ -1,7 +1,9 @@
+import '../../../tests/utils/realWebAssembly'; // the SDK core needs real WebAssembly: must stay first
 import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import { readFileSync } from 'fs';
 import { join } from 'path';
+import { initLocal } from '@knirv/sdk/signing';
 import { ModelStatusPanel } from '../ModelStatusPanel';
 import * as modelStatus from '../../services/modelStatus';
 import * as serverLLM from '../../services/serverLLM';
@@ -12,6 +14,7 @@ const ready = (JSON.parse(
 ) as Record<string, { status: PlatformStatus }>).ready_all.status;
 
 describe('ModelStatusPanel', () => {
+  beforeAll(async () => { await initLocal(); }); // roles() runs in the SDK core
   beforeEach(() => { jest.spyOn(serverLLM, 'authToken').mockReturnValue('tok'); });
   afterEach(() => jest.restoreAllMocks());
 

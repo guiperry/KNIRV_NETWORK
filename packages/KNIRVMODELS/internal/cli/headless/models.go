@@ -63,7 +63,7 @@ func (s *Server) registerModels() {
 
 	reg.SetManifest(frame.Default(), liveFacts)
 	if heart != nil {
-		s.enableQwen(reg, heart)
+		s.enableQwen(reg, heart, hasher)
 	}
 	reg.Mount(s.mux)
 	s.registry = reg
@@ -105,7 +105,7 @@ func liveFacts() frame.LiveFacts {
 // path KNIRVSERVER gives the model harness; the daemon does not need llama to be up
 // yet, health reads "qwen-unavailable" until it is and the harness falls back to the
 // external generator meanwhile. KNIRV_HEART_BACKEND=gpt keeps the old backend.
-func (s *Server) enableQwen(reg *models.Registry, heart *models.Heart) {
+func (s *Server) enableQwen(reg *models.Registry, heart *models.Heart, hasher *models.Hasher) {
 	if strings.EqualFold(strings.TrimSpace(os.Getenv("KNIRV_HEART_BACKEND")), "gpt") {
 		log.Printf("HEART stays on the Gorgonite GPT (KNIRV_HEART_BACKEND=gpt)")
 		return
@@ -130,6 +130,54 @@ func (s *Server) enableQwen(reg *models.Registry, heart *models.Heart) {
 		return a.Type, a.Fields, nil
 	}
 	tools := ops.Standard(ops.Deps{
+		PipelineStatus: func(context.Context, json.RawMessage) (any, error) {
+			return s.controller.PipelineStatus(), nil
+		},
+		PipelineLogs: func(_ context.Context, raw json.RawMessage) (any, error) {
+			var a struct {
+				Stage string `json:"stage"`
+				Lines int    `json:"lines"`
+			}
+			if err := json.Unmarshal(raw, &a); err != nil {
+				return nil, err
+			}
+			return s.controller.PipelineLogs(a.Stage, a.Lines), nil
+		},
+		ErrorsHistory: func(_ context.Context, raw json.RawMessage) (any, error) {
+			var a struct {
+				Limit int `json:"limit"`
+			}
+			if err := json.Unmarshal(raw, &a); err != nil {
+				return nil, err
+			}
+			return s.controller.ErrorHistory(a.Limit), nil
+		},
+		HeadReason: func(_ context.Context, raw json.RawMessage) (any, error) {
+			var a struct {
+				Prompt string `json:"prompt"`
+			}
+			if err := json.Unmarshal(raw, &a); err != nil {
+				return nil, err
+			}
+			// HEAD's published tokenizer is byte-based. Sending its unsigned
+			// byte ids through the existing route retains the model's own vocab
+			// and length checks; unsupported model vocabularies fail closed.
+			tokens := make([]uint32, len(a.Prompt))
+			for i := range []byte(a.Prompt) {
+				tokens[i] = uint32(a.Prompt[i])
+			}
+			body, _ := json.Marshal(map[string]any{"tokens": tokens})
+			return s.routeJSON(http.MethodPost, sdk.HeadPrefix+"/reason", body, nil)
+		},
+		HasherVerify: func(ctx context.Context, raw json.RawMessage) (any, error) {
+			var a struct {
+				Text string `json:"text"`
+			}
+			if err := json.Unmarshal(raw, &a); err != nil {
+				return nil, err
+			}
+			return hasher.VerifyText(ctx, a.Text, heartqwen.TenantFrom(ctx))
+		},
 		RulesList: func(ctx context.Context, raw json.RawMessage) (any, error) {
 			var a struct {
 				Domain string `json:"domain"`

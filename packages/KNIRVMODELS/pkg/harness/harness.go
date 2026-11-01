@@ -305,7 +305,9 @@ func (h *Harness) startFallbackIfPrimaryLate(ctx context.Context) {
 	if !sleep(ctx, h.cfg.FallbackGrace) {
 		return
 	}
-	if !h.primaryUp.Load() {
+	// A primary that was ruled out (host too weak, unavailable) has already started
+	// the fallback; there is nothing late about it.
+	if !h.primaryUp.Load() && !h.teacherFallback.Load() && !h.fallbackRunning() {
 		h.logf("colibri is not serving after %s; starting the llama.cpp fallback", h.cfg.FallbackGrace)
 		h.setFallback(ctx, true)
 	}

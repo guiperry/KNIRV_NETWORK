@@ -329,6 +329,8 @@ chain:
   socket_path: /var/lib/knirvserver/sockets/chain.sock
   p2p_socket_path: /var/lib/knirvserver/sockets/chain-p2p.sock
   data_path: /var/lib/knirvserver/knirvchain
+  # Lowering-only override of the role derived from this node's key file
+  # (root.key → Root, boot.key → Bootnode, neither → Client).
   role: "client"
   chain_id: "knirv-server-mainnet"
   start_timeout: 30

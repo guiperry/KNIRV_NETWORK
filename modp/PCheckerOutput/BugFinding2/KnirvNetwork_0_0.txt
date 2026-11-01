@@ -1,0 +1,39 @@
+<TestLog> Running test 'BrokenAuthorityRolloutObserveReject'.
+<CreateLog> PImplementation.AuthorityRolloutMonitor was created.
+<MonitorLog> PImplementation.AuthorityRolloutMonitor enters state 'Monitoring'.
+<CreateLog> AuthorityRolloutObserveRejectBugMain(1) was created by task '2'.
+<StateLog> AuthorityRolloutObserveRejectBugMain(1) enters state 'Init'.
+<CreateLog> AuthorityRolloutWorkload(2) was created by AuthorityRolloutObserveRejectBugMain(1).
+<StateLog> AuthorityRolloutWorkload(2) enters state 'Init'.
+<CreateLog> AuthorityRolloutMachine(3) was created by AuthorityRolloutWorkload(2).
+<RandomLog> AuthorityRolloutWorkload(2) nondeterministically chose '2'.
+<RandomLog> AuthorityRolloutWorkload(2) nondeterministically chose 'False'.
+<RandomLog> AuthorityRolloutWorkload(2) nondeterministically chose 'False'.
+<RandomLog> AuthorityRolloutWorkload(2) nondeterministically chose 'False'.
+<RandomLog> AuthorityRolloutWorkload(2) nondeterministically chose '2'.
+<SendLog> 'AuthorityRolloutWorkload(2)' in state 'Init' sent event 'eAuthRolloutAction with payload (<id:1, tier:3, hasRecord:False, recordVerifies:False, breakGlass:False, >)' to 'AuthorityRolloutMachine(3)'.
+<RandomLog> AuthorityRolloutWorkload(2) nondeterministically chose '0'.
+<RandomLog> AuthorityRolloutWorkload(2) nondeterministically chose '1'.
+<RandomLog> AuthorityRolloutWorkload(2) nondeterministically chose 'False'.
+<SendLog> 'AuthorityRolloutWorkload(2)' in state 'Init' sent event 'eAuthRolloutSetMode with payload (<tier:2, enforce:False, >)' to 'AuthorityRolloutMachine(3)'.
+<RandomLog> AuthorityRolloutWorkload(2) nondeterministically chose '2'.
+<RandomLog> AuthorityRolloutWorkload(2) nondeterministically chose 'False'.
+<RandomLog> AuthorityRolloutWorkload(2) nondeterministically chose 'True'.
+<RandomLog> AuthorityRolloutWorkload(2) nondeterministically chose 'False'.
+<RandomLog> AuthorityRolloutWorkload(2) nondeterministically chose '2'.
+<StateLog> AuthorityRolloutMachine(3) enters state 'Init'.
+<GotoLog> AuthorityRolloutMachine(3) is transitioning from state 'Init' to state 'PImplementation.AuthorityRolloutMachine.Active'.
+<StateLog> AuthorityRolloutMachine(3) exits state 'Init'.
+<StateLog> AuthorityRolloutMachine(3) enters state 'Active'.
+<DequeueLog> 'AuthorityRolloutMachine(3)' dequeued event 'eAuthRolloutAction with payload (<id:1, tier:3, hasRecord:False, recordVerifies:False, breakGlass:False, >)' in state 'Active'.
+<AnnounceLog> 'AuthorityRolloutMachine(3)' announced event 'eAuthRolloutRejected' with payload <id:1, tier:3, valid:False, >.
+<MonitorLog> AuthorityRolloutMonitor is processing event 'eAuthRolloutRejected with payload (<id:1, tier:3, valid:False, >)' in state 'Monitoring'.
+<ErrorLog> Assertion Failed: components/authority/rollout.p:103:13 observe mode must never reject
+<StrategyLog> Found bug using 'random' strategy.
+<StrategyLog> Checking statistics:
+<StrategyLog> Found 1 bug.
+<StrategyLog> Scheduling statistics:
+<StrategyLog> Explored 1 schedule
+<StrategyLog> Explored 1 timeline
+<StrategyLog> Found 100.00% buggy schedules.
+<StrategyLog> Number of scheduling points in terminating schedules: 22 (min), 22 (avg), 22 (max).

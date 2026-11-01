@@ -1,9 +1,3 @@
-/**
- * Role frames (TypeScript twin of go-package/models/frame). The stage and tool
- * tables come from the daemon's manifest (GET /models/manifest); this module
- * only assembles them, byte for byte as the Go builder does, so a frame hashed
- * here is accepted by the llama wrapper. Tested against testvectors/models/frames.json.
- */
 export declare const MANIFEST_PATH = "/models/manifest";
 export declare const CONSTITUTION_VERSION = "1";
 export declare const SKILL_PREFIX = "skill.";
@@ -48,13 +42,18 @@ export interface Frame {
 export declare class UnknownStageError extends Error {
 }
 export declare function approxTokens(s: string): number;
-/** sha256 of a system message, hex. Uses WebCrypto, so it works in browsers and Node 18+. */
+/** sha256 of a system message, hex (computed by the core). */
 export declare function frameHash(system: string): Promise<string>;
+/** The core's built-in stage and tool tables (the one place they are written). */
+export declare function defaultFrameTables(): {
+    stages: FrameStage[];
+    tools: FrameTool[];
+};
 /** Stage lookup that resolves "skill.<bundle>" from the skill template. */
-export declare function stageOf(stages: FrameStage[], id: string): FrameStage | undefined;
+export declare function stageOf(stages: FrameStage[], id: string, tools?: FrameTool[]): FrameStage | undefined;
 /** Assemble the frame for a stage: constitution, live facts, stage. */
 export declare function buildFrame(stages: FrameStage[], tools: FrameTool[], stage: string, facts: LiveFacts): Frame;
 /** The short tag the from-scratch GPT reads instead of the full frame. */
-export declare function buildLite(stages: FrameStage[], stage: string): string;
+export declare function buildLite(stages: FrameStage[], stage: string, tools?: FrameTool[]): string;
 /** What the llama wrapper checks: hash matches, and the message is the shared constitution, a facts line and this stage's section. */
 export declare function checkShape(stages: FrameStage[], tools: FrameTool[], stage: string, system: string, claimedHash: string): Promise<"ok" | "unframed" | "unknown_stage" | "hash_mismatch" | "stale">;

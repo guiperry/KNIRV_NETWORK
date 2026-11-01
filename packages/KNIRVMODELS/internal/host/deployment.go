@@ -47,6 +47,7 @@ type DeploymentConfig struct {
 	DeployTimeout  time.Duration // Timeout for deployment operations
 	ForceRedeploy  bool          // Force redeployment even if server is detected as running
 	DirectMode     bool          // Start hasher-server with -direct (skip CGMiner, drive ASIC directly)
+	DirectJitter   bool          // Also pass --direct-jitter (let the jitter engine hash via the ASIC)
 }
 
 // DefaultDeploymentConfig returns default deployment configuration
@@ -85,6 +86,7 @@ func NewDeployer(config *DeploymentConfig) (*Deployer, error) {
 	analyzerConfig := analyzer.DefaultDeployerConfig()
 	analyzerConfig.Subnet = "" // Start with empty to force flag usage or auto-detection
 	analyzerConfig.DirectMode = config.DirectMode
+	analyzerConfig.DirectJitter = config.DirectJitter
 	analyzer, err := analyzer.NewDeployer(analyzerConfig)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create analyzer: %w", err)

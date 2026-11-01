@@ -8,7 +8,9 @@ export const PAD = 256;
 export const BOS = 257;
 export const SEP = 258;
 export const EOS = 259;
-export const BYTE_V1_VOCAB = 260;
+export const OPT_OPEN = 260;
+export const OPT_END = 261;
+export const BYTE_V1_VOCAB = 262;
 
 export function encodeText(text: string, maxLen: number): number[] {
   const bytes = Array.from(new TextEncoder().encode(text));
@@ -37,4 +39,12 @@ export function padTo(tokens: number[], width: number): number[] {
   const out = tokens.slice(0, width);
   while (out.length < width) out.push(PAD);
   return out;
+}
+
+/** Choice-set input after HEAD's model-owned summary slot. */
+export function encodeChoiceSet(question: string, state: string, choices: readonly string[], width: number): number[] {
+  const bytes = (value: string) => Array.from(new TextEncoder().encode(value));
+  const tokens = [BOS, ...bytes(question), SEP, ...bytes(state), SEP];
+  for (const choice of choices) tokens.push(OPT_OPEN, ...bytes(choice), OPT_END);
+  return padTo(tokens, width);
 }

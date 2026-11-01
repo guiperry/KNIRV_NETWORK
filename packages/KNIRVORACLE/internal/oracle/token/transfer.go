@@ -8,6 +8,7 @@ import (
 	"time"
 
 	knirvsigning "github.com/guiperry/knirv-sdk-go/signing"
+	"github.com/knirvcorp/knirvoracle/internal/oracle/ledger"
 	"github.com/knirvcorp/knirvoracle/internal/oracle/types"
 )
 
@@ -76,6 +77,13 @@ func (n *NRN) TransferSigned(fromAddr, toAddr types.Address, amount *big.Int, no
 		toBalance = big.NewInt(0)
 	}
 
+	if err := n.record(ledger.KindTokenTransfer, ledger.TokenTransfer{
+		From: fromAddr.String(), To: toAddr.String(), Amount: dec(amount),
+		Nonce: nonce, SetNonce: true,
+	}); err != nil {
+		return nil, fmt.Errorf("record transfer: %w", err)
+	}
+
 	newFromBalance := new(big.Int).Sub(fromBalance, amount)
 	newToBalance := new(big.Int).Add(toBalance, amount)
 	n.setBalance(fromAddr, newFromBalance)
@@ -127,6 +135,13 @@ func (n *NRN) LockGovernanceDeposit(fromAddr, escrowAddr types.Address, amount *
 	if escrowBalance == nil {
 		escrowBalance = big.NewInt(0)
 	}
+	if err := n.record(ledger.KindTokenTransfer, ledger.TokenTransfer{
+		From: fromAddr.String(), To: escrowAddr.String(), Amount: dec(amount),
+		Nonce: nonce, SetNonce: true,
+	}); err != nil {
+		return fmt.Errorf("record governance deposit: %w", err)
+	}
+
 	n.setBalance(fromAddr, new(big.Int).Sub(fromBalance, amount))
 	n.setBalance(escrowAddr, new(big.Int).Add(escrowBalance, amount))
 	n.nonces[fromAddr] = expectedNonce + 1
@@ -167,6 +182,12 @@ func (n *NRN) TransferBetween(fromAddr, toAddr types.Address, amount *big.Int) e
 	// Calculate new balances
 	newFromBalance := new(big.Int).Sub(fromBalance, amount)
 	newToBalance := new(big.Int).Add(toBalance, amount)
+
+	if err := n.record(ledger.KindTokenTransfer, ledger.TokenTransfer{
+		From: fromAddr.String(), To: toAddr.String(), Amount: dec(amount),
+	}); err != nil {
+		return fmt.Errorf("record transfer: %w", err)
+	}
 
 	// Update balances
 	n.setBalance(fromAddr, newFromBalance)

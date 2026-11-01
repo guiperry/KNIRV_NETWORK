@@ -239,8 +239,18 @@ func (m *Manager) Start(ctx context.Context) error {
 		// gateway directly via http://localhost:8080.
 	)
 
+	// The role arrives canonical ("Root", "Bootnode", "Peer", "Client") from
+	// noderole.Resolve via the caller. An unknown value is a configuration
+	// mistake: warn and start as Client rather than passing it to the binary.
+	role := m.config.Role
+	if !isKnownRole(role) {
+		m.logger.Warn("Unrecognised KNIRVCHAIN role; starting as Client",
+			zap.String("configured_role", m.config.Role),
+			zap.String("valid_roles", "root, bootnode, peer, client"))
+		role = "Client"
+	}
 	args := []string{
-		"-role", normalizeRole(m.config.Role),
+		"-role", role,
 		"-p2p.port", fmt.Sprintf("%d", m.config.P2PPort),
 		"-skip-install",
 		"-non-interactive",
@@ -291,19 +301,12 @@ func (m *Manager) Start(ctx context.Context) error {
 	return nil
 }
 
-func normalizeRole(role string) string {
+func isKnownRole(role string) bool {
 	switch strings.ToLower(strings.TrimSpace(role)) {
-	case "root":
-		return "Root"
-	case "bootnode":
-		return "Bootnode"
-	case "peer":
-		return "Peer"
-	case "client":
-		return "Client"
-	default:
-		return "Client"
+	case "root", "bootnode", "peer", "client":
+		return true
 	}
+	return false
 }
 
 func resolveBinaryPath(configured string) (string, error) {

@@ -1,0 +1,25 @@
+{
+  "request": {
+    "subject": "decision rights",
+    "property": "refund approval",
+    "value": "director"
+  },
+  "response": {
+    "outcome": "supported",
+    "reason": "the ontology states \"director\"",
+    "ontology_version": "ont1:fixture",
+    "ontology_values": ["director"],
+    "hits": [{
+      "span_id": "span-ontology",
+      "snapshot": "sha256:fixture",
+      "start": 0,
+      "end": 44,
+      "text": "decision rights — refund approval: director",
+      "source_tier": "ontology",
+      "score": 1,
+      "source": "ontology:acme",
+      "revision": "ont1:fixture"
+    }]
+  },
+  "remove_response": {"tenant": "acme", "status": "removed"}
+}

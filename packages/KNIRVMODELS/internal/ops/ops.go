@@ -64,6 +64,11 @@ type Deps struct {
 	RulesList, HeadStatus, HasherValidate Func
 	// IndexStatus and IndexSearch back index.status and index.search.
 	IndexStatus, IndexSearch Func
+	// PipelineStatus, PipelineLogs and ErrorsHistory expose bounded local
+	// controller state. HeadReason and HasherVerify are conservative adapters
+	// over the model surfaces; neither grants a model direct process access.
+	PipelineStatus, PipelineLogs, ErrorsHistory Func
+	HeadReason, HasherVerify                    Func
 }
 
 // Standard builds the T0 tools the daemon can serve now.
@@ -81,7 +86,13 @@ func Standard(d Deps) *Set {
 	if d.Health != nil {
 		s.Register("models.health", wrap(d.Health))
 	}
-	for name, f := range map[string]Func{"rules.list": d.RulesList, "head.status": d.HeadStatus, "hasher.validate": d.HasherValidate, "index.status": d.IndexStatus, "index.search": d.IndexSearch} {
+	for name, f := range map[string]Func{
+		"rules.list": d.RulesList, "head.status": d.HeadStatus,
+		"hasher.validate": d.HasherValidate, "hasher.verify": d.HasherVerify,
+		"index.status": d.IndexStatus, "index.search": d.IndexSearch,
+		"pipeline.status": d.PipelineStatus, "pipeline.logs": d.PipelineLogs,
+		"errors.history": d.ErrorsHistory, "head.reason": d.HeadReason,
+	} {
 		if f != nil {
 			s.Register(name, f)
 		}

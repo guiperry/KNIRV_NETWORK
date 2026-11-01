@@ -1,0 +1,26 @@
+# Used with the packages/ build context (BuildKit reads <Dockerfile>.dockerignore).
+**/.git
+**/node_modules
+**/target
+**/.next
+**/dist
+**/*.log
+# The image compiles its own SDK core; never ship the checked-in copy.
+KNIRVSDK/go-package/internal/core/*.wasm
+KNIRVSDK/bindings/c-abi
+# Only what the gateway image needs from the other packages:
+KNIRVSDK/npm-package
+KNIRVSDK/core/wasm-modules/*/target
+KNIRVSDK/bindings/py
+KNIRVSDK/coverage
+KNIRVSDK/test-reports
+KNIRVCHAIN
+KNIRVGRAPH
+KNIRVMODELS
+KNIRVORACLE
+KNIRVSERVER
+KNIRVULORA
+KNIRVAGENT
+KNIRVARENA
+KNIRVBASE
+KNIRVINFERENCER

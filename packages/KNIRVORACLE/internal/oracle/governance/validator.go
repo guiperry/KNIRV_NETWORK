@@ -13,6 +13,7 @@ import (
 func (gs *GovernanceSystem) RegisterValidator(reg *ValidatorRegistration) (*Validator, error) {
 	gs.mu.Lock()
 	defer gs.mu.Unlock()
+	defer gs.snapshotLocked()
 
 	// Check if validator already exists
 	if _, exists := gs.validators[reg.Address]; exists {
@@ -105,6 +106,7 @@ func (gs *GovernanceSystem) ListActiveValidators() []*Validator {
 func (gs *GovernanceSystem) UpdateValidatorStake(address types.Address, newStake *big.Int) error {
 	gs.mu.Lock()
 	defer gs.mu.Unlock()
+	defer gs.snapshotLocked()
 
 	validator, exists := gs.validators[address]
 	if !exists {
@@ -135,6 +137,7 @@ func (gs *GovernanceSystem) UpdateValidatorStake(address types.Address, newStake
 func (gs *GovernanceSystem) ActivateValidator(address types.Address) error {
 	gs.mu.Lock()
 	defer gs.mu.Unlock()
+	defer gs.snapshotLocked()
 
 	validator, exists := gs.validators[address]
 	if !exists {
@@ -160,6 +163,7 @@ func (gs *GovernanceSystem) ActivateValidator(address types.Address) error {
 func (gs *GovernanceSystem) DeactivateValidator(address types.Address) error {
 	gs.mu.Lock()
 	defer gs.mu.Unlock()
+	defer gs.snapshotLocked()
 
 	validator, exists := gs.validators[address]
 	if !exists {
@@ -180,6 +184,7 @@ func (gs *GovernanceSystem) DeactivateValidator(address types.Address) error {
 func (gs *GovernanceSystem) JailValidator(address types.Address, reason string) error {
 	gs.mu.Lock()
 	defer gs.mu.Unlock()
+	defer gs.snapshotLocked()
 
 	validator, exists := gs.validators[address]
 	if !exists {
@@ -204,6 +209,7 @@ func (gs *GovernanceSystem) JailValidator(address types.Address, reason string) 
 func (gs *GovernanceSystem) UnjailValidator(address types.Address) error {
 	gs.mu.Lock()
 	defer gs.mu.Unlock()
+	defer gs.snapshotLocked()
 
 	validator, exists := gs.validators[address]
 	if !exists {
@@ -238,6 +244,7 @@ func (gs *GovernanceSystem) UnjailValidator(address types.Address) error {
 func (gs *GovernanceSystem) SlashValidator(address types.Address, reason string) (*big.Int, error) {
 	gs.mu.Lock()
 	defer gs.mu.Unlock()
+	defer gs.snapshotLocked()
 
 	validator, exists := gs.validators[address]
 	if !exists {
@@ -267,6 +274,7 @@ func (gs *GovernanceSystem) SlashValidator(address types.Address, reason string)
 func (gs *GovernanceSystem) RemoveValidator(address types.Address) error {
 	gs.mu.Lock()
 	defer gs.mu.Unlock()
+	defer gs.snapshotLocked()
 
 	if _, exists := gs.validators[address]; !exists {
 		return ErrValidatorNotFound

@@ -164,7 +164,7 @@ func ProcessStagedRecords(ctx context.Context, config *Config) error {
 					continue
 				}
 				chunks := stagedRecordChunks(raw, config)
-				embeddings, e := provider.GetBatchEmbeddings(chunks)
+				embeddings, _, e := provider.GetBatchEmbeddings(chunks)
 				if e != nil {
 					log.Printf("staged mapper embedding %s/%d: %v", raw.DatasetID, raw.Index, e)
 					continue

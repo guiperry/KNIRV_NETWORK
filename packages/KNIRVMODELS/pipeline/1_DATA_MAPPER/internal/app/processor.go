@@ -390,7 +390,8 @@ func getBatchEmbeddings(provider embedder.EmbeddingProvider, texts []string) ([]
 	log.Printf("Embedding provider stats: %+v", stats)
 
 	// Process batch using the provider
-	return provider.GetBatchEmbeddings(texts)
+	embeddings, _, err := provider.GetBatchEmbeddings(texts)
+	return embeddings, err
 }
 
 // writeOutput writes the document records to JSON file and Arrow IPC stream
@@ -1221,7 +1222,7 @@ func runNeuralProcessingPhase(ctx context.Context, config *Config, provider embe
 			errChan := make(chan error, 1)
 
 			go func() {
-				emb, err := provider.GetEmbedding(embedText)
+				emb, _, err := provider.GetEmbedding(embedText)
 				if err != nil {
 					errChan <- err
 				} else {
@@ -1436,7 +1437,7 @@ func ProcessDocumentsWithMixedOnly(config *Config, checkpointer *checkpoint.Chec
 
 		failed := false
 		for _, chunk := range chunks {
-			if _, err := provider.GetEmbedding(chunk); err != nil {
+			if _, _, err := provider.GetEmbedding(chunk); err != nil {
 				if errors.Is(err, embedder.ErrQuotaExhausted) {
 					return len(files), totalEmbeddings, err
 				}
@@ -1645,7 +1646,7 @@ func RunGoatMiningPhase(ctx context.Context, config *Config, provider embedder.E
 				embedText := content
 
 				fmt.Printf("🌐 Getting embedding for record %d...\n", i+1)
-				embedding, err := provider.GetEmbedding(embedText)
+				embedding, _, err := provider.GetEmbedding(embedText)
 				if err != nil {
 					if errors.Is(err, embedder.ErrQuotaExhausted) {
 						fmt.Printf("🛑 %v; stopping GOAT mining.\n", err)

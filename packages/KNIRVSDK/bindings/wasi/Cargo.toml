@@ -1,0 +1,24 @@
+[package]
+name = "knirv-sdk-wasi"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "The KNIRV SDK core as a WASI module, for hosts that embed a WebAssembly runtime (the Go package uses wazero) instead of linking native code"
+
+[lib]
+crate-type = ["cdylib"]
+name = "knirv_core"
+
+[dependencies]
+# The local (non-network) operations only. The HTTP stack is not reachable from
+# here, so it is dropped at link time.
+knirv-sdk = { path = "../../core", default-features = false, features = ["secrets", "module-manifest"] }
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+# A panic is a trap, never an unwinding abort the host cannot see: the host
+# discards a trapped instance and starts a fresh one.
+panic = "abort"
+strip = true

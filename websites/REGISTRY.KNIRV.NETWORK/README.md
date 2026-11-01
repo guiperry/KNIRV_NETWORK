@@ -30,18 +30,41 @@ CHAIN_BOOTNODE_REGISTRY=https://registry.knirv.com
 | `STUN_HOST` | External STUN server hostname | `""` |
 | `STUN_PORT` | External STUN server UDP port | `3478` |
 | `TURN_TCP_PORT` | External TURN server TCP port | `3479` |
+| `BOOTNODE_VALIDATION` | `enforce` (bootnodes must pass validation to register or be listed), `monitor` (record results, do not block), `off` | `enforce` |
+| `VALIDATION_TTL_SECONDS` | How long a passing validation is reused before the bootnode is re-probed | `3600` |
+| `VALIDATION_FAIL_COOLDOWN_SECONDS` | Minimum wait before a failed bootnode is re-probed (returns `429`) | `60` |
+| `VALIDATION_MAX_LATENCY_MS` | Median latency limit for the performance check | `1500` |
+| `VALIDATION_FQDN_SUFFIXES` | Comma-separated hostname suffixes a node may claim; empty allows any public hostname | `.knirv.com` |
+| `VALIDATION_SERVICE_TOKEN` | Optional secret. If set, `POST /validate` requires it as a Bearer token; if unset the endpoint is open (it is read-only and only probes public IPs and allowlisted hostnames) | unset |
 | `ROOT_PUBLIC_KEY` | secp256k1 public key of the root node (hex, no `0x` prefix); trust anchor for `POST /validators` at genesis | `""` |
 
 ## API
 
 ### Node Registration
 
-- `POST /register` — Register or refresh a node. Body: `{ chainID, ip?, port, type? ("bootnode"|"client"), peerID? }`
+- `POST /register` — Register or refresh a node. Body: `{ chainID, ip?, port, type? ("bootnode"|"client"), peerID?, fqdn? }`. Clients register as before. A bootnode is validated first (see below): `422` with the failed checks if it fails, `429` with `Retry-After` during the failure cooldown. `nodeID` is accepted as an alias for `peerID`.
 - `GET /lookup/:chainID` — Look up a node by chain ID.
 - `GET /nodes` — List all registered nodes.
 - `GET /bootnodes` — List only bootnode-registered nodes.
 - `GET /status` — Registry health and node counts. Returns HTML for browsers.
 - `GET /stun` — External STUN/TURN endpoint pointer.
+
+### Bootnode Validation
+
+A bootnode is registered and listed only after it passes four checks, run by the Worker:
+
+| Check | What the registry does |
+|---|---|
+| `connectivity` | Opens a TCP connection to the registered `ip:port` |
+| `health` | `GET https://<fqdn>/health` must return 200 with `chainId` equal to the registered `chainID`; `dht.peer_id` must match `peerID` when both are present; if `dht.self_addrs` is present it must include the registered `ip` |
+| `security` | The HTTPS request to `fqdn` completes, so the certificate chain and hostname verified |
+| `performance` | Median of the TCP connect and three health requests is within `VALIDATION_MAX_LATENCY_MS` |
+
+`ip` must be publicly routable and `fqdn` must match `VALIDATION_FQDN_SUFFIXES`. A bootnode with no `fqdn` fails `health`, `security` and `performance`. KNIRVGATEWAY sends `fqdn` from its public hostname. In `enforce` mode `GET /nodes`, `GET /bootnodes` and the suggested bootnode returned to clients include only validated bootnodes, and `/status` shows a Validated column. Existing unvalidated bootnodes disappear from those lists until their next registration passes.
+
+- `POST /validate` — Validation-service endpoint for ONBOARDING.KNIRV.COM. No auth required unless `VALIDATION_SERVICE_TOKEN` is set (then `Authorization: Bearer <token>`). Body: `{ registrationId, fqdn, publicIps, expectedPorts }`. Returns `{ checks: { connectivity, health, security, performance }, details }`. The onboarding site defaults to `https://registry.knirv.com/validate`, so nothing needs configuring. This endpoint cannot check chain identity, because the onboarding request carries no `chainID`.
+
+Known limits: a passing node proves control of a reachable endpoint, not that its IP is bound to the hostname when `self_addrs` is absent. Validation attempts are rate-limited per `chainID` only.
 
 ### Validator Failover Control Plane
 

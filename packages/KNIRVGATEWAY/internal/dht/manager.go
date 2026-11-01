@@ -1038,7 +1038,9 @@ func (dm *DHTManager) handleGraphAnnouncements() {
 	}
 }
 
-// announceService announces this KNIRVGATEWAY service to the DHT.
+// announceService announces this KNIRVGATEWAY service to the DHT. Provide fails
+// until the routing table has a peer, which on startup is only after bootstrap
+// connects, so it retries with backoff instead of giving up on the first try.
 func (dm *DHTManager) announceService() {
 	cid, err := createCIDFromServiceID(dm.serviceID)
 	if err != nil {
@@ -1046,12 +1048,26 @@ func (dm *DHTManager) announceService() {
 		return
 	}
 
-	if err := dm.kadDHT.Provide(dm.ctx, cid, true); err != nil {
-		log.Printf("Failed to announce KNIRVGATEWAY service: %v", err)
-		return
+	wait := 5 * time.Second
+	for attempt := 1; attempt <= 8; attempt++ {
+		err = dm.kadDHT.Provide(dm.ctx, cid, true)
+		if err == nil {
+			log.Printf("Announced KNIRVGATEWAY service %s to DHT", dm.serviceID)
+			return
+		}
+		if attempt == 1 {
+			log.Printf("KNIRVGATEWAY service announce deferred (%v); retrying while peers connect", err)
+		}
+		select {
+		case <-dm.ctx.Done():
+			return
+		case <-time.After(wait):
+		}
+		if wait < time.Minute {
+			wait *= 2
+		}
 	}
-
-	log.Printf("Announced KNIRVGATEWAY service %s to DHT", dm.serviceID)
+	log.Printf("Failed to announce KNIRVGATEWAY service: %v", err)
 }
 
 // createCID creates a CID from a resource ID and type.
@@ -1078,6 +1094,20 @@ type registrationPayload struct {
 	Port    int    `json:"port"`
 	Type    string `json:"type"`
 	PeerID  string `json:"nodeID"`
+	// FQDN is the node's public gateway hostname. The registry's bootnode
+	// validation probes https://<fqdn>/health, so a bootnode without it
+	// cannot pass.
+	FQDN string `json:"fqdn,omitempty"`
+}
+
+// registryFQDN returns the public hostname to advertise, or "" when the
+// configured host is an IP literal or a local placeholder.
+func (dm *DHTManager) registryFQDN() string {
+	host := strings.ToLower(strings.TrimSpace(dm.publicHost))
+	if host == "" || host == "localhost" || net.ParseIP(host) != nil || !strings.Contains(host, ".") {
+		return ""
+	}
+	return host
 }
 
 func (dm *DHTManager) RegisterBootnodeWithRegistry() error {
@@ -1096,7 +1126,7 @@ func (dm *DHTManager) RegisterBootnodeWithRegistry() error {
 		return err
 	}
 
-	return RegisterWithRegistry(dm.bootnodeRegistry, dm.chainID, dm.chainP2PPort, publicHost, dm.host.ID().String())
+	return registerWithRegistry(dm.bootnodeRegistry, dm.chainID, dm.chainP2PPort, publicHost, dm.host.ID().String(), "bootnode", dm.registryFQDN())
 }
 
 func (dm *DHTManager) registerNodeWithRegistry() error {
@@ -1116,7 +1146,7 @@ func (dm *DHTManager) registerNodeWithRegistry() error {
 	} else if nodeType == "" {
 		nodeType = "server"
 	}
-	return registerWithRegistry(dm.bootnodeRegistry, dm.chainID, dm.chainP2PPort, publicHost, dm.host.ID().String(), nodeType)
+	return registerWithRegistry(dm.bootnodeRegistry, dm.chainID, dm.chainP2PPort, publicHost, dm.host.ID().String(), nodeType, dm.registryFQDN())
 }
 
 func (dm *DHTManager) registryHeartbeat(interval time.Duration) {
@@ -1163,10 +1193,10 @@ func (dm *DHTManager) resolveRegistryPublicHost() (string, error) {
 
 // RegisterWithRegistry publishes this node to the external bootnode registry.
 func RegisterWithRegistry(registryURL string, nodeChainID string, nodeP2PPort int, nodeIP string, nodePeerID string) error {
-	return registerWithRegistry(registryURL, nodeChainID, nodeP2PPort, nodeIP, nodePeerID, "bootnode")
+	return registerWithRegistry(registryURL, nodeChainID, nodeP2PPort, nodeIP, nodePeerID, "bootnode", "")
 }
 
-func registerWithRegistry(registryURL string, nodeChainID string, nodeP2PPort int, nodeIP string, nodePeerID string, nodeType string) error {
+func registerWithRegistry(registryURL string, nodeChainID string, nodeP2PPort int, nodeIP string, nodePeerID string, nodeType string, nodeFQDN string) error {
 	registryURL = strings.TrimSpace(registryURL)
 	if registryURL == "" {
 		return fmt.Errorf("registry URL is required")
@@ -1185,6 +1215,7 @@ func registerWithRegistry(registryURL string, nodeChainID string, nodeP2PPort in
 		Port:    nodeP2PPort,
 		Type:    nodeType,
 		PeerID:  nodePeerID,
+		FQDN:    nodeFQDN,
 	}
 
 	jsonData, err := json.Marshal(payload)

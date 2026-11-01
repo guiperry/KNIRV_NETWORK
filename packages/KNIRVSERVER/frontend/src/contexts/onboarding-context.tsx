@@ -136,7 +136,6 @@ const defaultState: OnboardingState = {
     customRules: []
   },
   completedConnections: [],
-  databaseConfig: undefined,
   
   // Legacy defaults
   connectedApp: null,

@@ -18,7 +18,7 @@ import (
 
 // checkpointState is the Oracle's append-only checkpoint pipeline: a per-foreign
 // chain registry, the single audit MMR, and an indexed view of admitted
-// checkpoint leaves. It is the Phase-2 admission authority (merkle-math.md §3.3c).
+// checkpoint leaves. It is the admission authority (merkle-math.md §3.3c).
 type checkpointState struct {
 	mu           sync.RWMutex
 	registry     *registry.Registry
@@ -128,7 +128,7 @@ func (o *Oracle) RegisterChain(c *types.ChainRegistration) error {
 }
 
 // SetChainVerificationKey enrolls a SNARK verification key + preferred proof
-// system for a registered chain (merkle-math.md Phase 5). After this, the Oracle
+// system for a registered chain. After this, the Oracle
 // accepts groth16/plonk finality records for the chain; hashchain-v0 needs no key.
 func (o *Oracle) SetChainVerificationKey(chainID, proofSystem string, vk []byte) error {
 	if err := o.checkpoint.registry.SetVerificationKey(chainID, proofSystem, vk); err != nil {
@@ -208,11 +208,17 @@ func (o *Oracle) SubmitCheckpoint(cp *types.Checkpoint) (*types.CheckpointRecord
 	if err := o.persistCheckpointLocked(); err != nil {
 		return nil, err
 	}
-	// Phase 3: commit the audit leaf into the Oracle AppHash and persist it so
+	// Commit the audit leaf into the Oracle AppHash and persist it so
 	// the AppHash recovers across restarts. The Oracle runs non-validator, so
 	// this must be done at admission time (the consensus loop does not commit).
 	if err := o.commitAuditMMR(); err != nil {
 		return nil, err
+	}
+	// A commit advances the state a standby follows.
+	if o.replication != nil && o.Mode() == ModeActive {
+		if _, _, err := o.replication.ProduceHeadIfChanged(); err != nil {
+			o.logger.Warn("replication head not produced after commit", zap.Error(err))
+		}
 	}
 	o.logger.Info("checkpoint admitted",
 		zap.String("chain_id", cp.ChainID),
@@ -236,7 +242,7 @@ func proofWindowFor(o *Oracle, chainID string) time.Duration {
 }
 
 // ProjectRollup bridges a legacy, unsigned RollupRecord into the new checkpoint
-// MMR (merkle-math.md Phase 3): it appends a provisional checkpoint leaf WITHOUT
+// MMR (see merkle-math.md): it appends a provisional checkpoint leaf WITHOUT
 // requiring the author quorum (legacy rollups carry no signatures), so the same
 // MMR/AppHash that anchors signed checkpoints also covers rollup history. The
 // record's Source is tagged "rollup:<id>" and it is never promoted to final.
@@ -280,9 +286,15 @@ func (o *Oracle) ProjectRollup(rec *types.RollupRecord) (*types.CheckpointRecord
 	if err := o.persistCheckpointLocked(); err != nil {
 		return nil, err
 	}
-	// Phase 3: commit the projected rollup leaf into the AppHash and persist it.
+	// Commit the projected rollup leaf into the AppHash and persist it.
 	if err := o.commitAuditMMR(); err != nil {
 		return nil, err
+	}
+	// A commit advances the state a standby follows.
+	if o.replication != nil && o.Mode() == ModeActive {
+		if _, _, err := o.replication.ProduceHeadIfChanged(); err != nil {
+			o.logger.Warn("replication head not produced after commit", zap.Error(err))
+		}
 	}
 	o.logger.Info("rollup projected to checkpoint leaf",
 		zap.String("rollup_id", rec.ID),

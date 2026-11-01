@@ -1,0 +1,46 @@
+{
+  "description": "The KNIRV wallet extension's message protocol between a page (window.knirv), the injected script and the extension: request kinds, and the success, failure and reject outcomes, each with a stable numeric code and message. Written once here; Rust embeds it (op wallet.protocol) and the npm build generates @knirv/sdk/wallet from it. Codes: 1xxx requests, 2xxx success, 3xxx failure, 4xxx reject.",
+  "execute": {
+    "ADD_ESTABLISH": [1001, "Request to connect this site to the wallet"],
+    "GET_ACCOUNT": [1002, "Request the connected account"],
+    "GET_NETWORK": [1003, "Request the current network"],
+    "ADD_NETWORK": [1004, "Request to add a network"],
+    "SWITCH_NETWORK": [1005, "Request to switch network"],
+    "DO_CONTRACT": [1006, "Request to sign and broadcast a transaction"],
+    "SIGN_TX": [1007, "Request to sign a transaction"],
+    "SIGN_AMINO": [1008, "Request to sign with Amino (disabled: use SIGN_TX, which signs with SIGN_MODE_DIRECT)"]
+  },
+  "success": {
+    "CONNECTION_SUCCESS": [2000, "The site is connected to the wallet"],
+    "GET_ACCOUNT_SUCCESS": [2001, "The account was returned"],
+    "GET_NETWORK_SUCCESS": [2002, "The network was returned"],
+    "ADD_NETWORK_SUCCESS": [2003, "The network was added"],
+    "SWITCH_NETWORK_SUCCESS": [2004, "The network was switched"],
+    "SIGN_SUCCESS": [2005, "The transaction was signed"],
+    "TRANSACTION_SUCCESS": [2006, "The transaction was sent"]
+  },
+  "failure": {
+    "NETWORK_TIMEOUT": [3000, "The network did not respond in time"],
+    "WALLET_LOCKED": [3001, "The wallet is locked"],
+    "NO_ACCOUNT": [3002, "The wallet has no account"],
+    "ACCOUNT_MISMATCH": [3003, "The account does not match the request"],
+    "ALREADY_CONNECTED": [3004, "This site is already connected"],
+    "NOT_CONNECTED": [3005, "This site is not connected to the wallet"],
+    "UNADDED_NETWORK": [3006, "The network has not been added to the wallet"],
+    "NETWORK_ALREADY_EXISTS": [3007, "The network already exists"],
+    "REDUNDANT_CHANGE_REQUEST": [3008, "The requested change is already in effect"],
+    "UNRESOLVED_TRANSACTION_EXISTS": [3009, "A transaction request is still waiting for approval"],
+    "UNSUPPORTED_TYPE": [3010, "The request type is not supported"],
+    "INVALID_FORMAT": [3011, "The request is not in a valid format"],
+    "SIGN_FAILED": [3012, "Signing failed"],
+    "TRANSACTION_FAILED": [3013, "The transaction failed"],
+    "UNEXPECTED_ERROR": [3014, "An unexpected error occurred"]
+  },
+  "reject": {
+    "CONNECTION_REJECTED": [4000, "The user rejected the connection"],
+    "SIGN_REJECTED": [4001, "The user rejected signing"],
+    "TRANSACTION_REJECTED": [4002, "The user rejected the transaction"],
+    "ADD_NETWORK_REJECTED": [4003, "The user rejected adding the network"],
+    "SWITCH_NETWORK_REJECTED": [4004, "The user rejected switching network"]
+  }
+}

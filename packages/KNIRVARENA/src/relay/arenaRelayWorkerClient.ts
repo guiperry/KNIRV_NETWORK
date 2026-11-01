@@ -6,9 +6,10 @@
  * / sequence-checking / canonicalization operations the arena needs to verify
  * every `arena-event` it receives from the paired CLI.
  *
- * The artifact lives at `build/wasm/controller-relay.wasm` (produced by
- * `core/wasm-modules/controller-relay`); `initFromBytes` lets tests and the
- * verified-manifest loader inject the bytes directly.
+ * The artifact is the SDK's published `controller-relay` module
+ * (https://releases.knirv.com/sdk/<version>/modules/controller-relay.wasm),
+ * fetched by `@knirv/sdk/modules` and checked against the SDK manifest's SHA-256
+ * before use. `init` lets tests inject the bytes directly.
  */
 
 interface RelayWorkerRequest {
@@ -68,10 +69,12 @@ export const arenaRelayWorkerClient = {
   },
 
   async initFromArtifact(): Promise<void> {
-    const response = await fetch('/build/wasm/controller-relay.wasm', { cache: 'no-store' });
-    if (!response.ok) throw new Error(`Failed to load arena relay WASM: ${response.status}`);
-    const bytes = await response.arrayBuffer();
-    await this.init(bytes);
+    const { fetchWasmModule, wasmModuleMetadata } = await import('@knirv/sdk/modules');
+    const expected = wasmModuleMetadata('controller-relay').sha256;
+    const bytes = await fetchWasmModule('controller-relay');
+    const digest = Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', bytes)), (b) => b.toString(16).padStart(2, '0')).join('');
+    if (digest !== expected) throw new Error('controller-relay.wasm does not match the SDK manifest digest');
+    await this.init(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer);
   },
 
   async selfTest(): Promise<unknown> {

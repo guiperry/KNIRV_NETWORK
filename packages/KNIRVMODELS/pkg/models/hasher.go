@@ -122,6 +122,7 @@ func (h *Hasher) Mount(mux *http.ServeMux, prefix string) {
 	h.mountIndex(mux, prefix)
 	h.mountOntology(mux, prefix)
 	mux.HandleFunc(prefix+"/validate", h.validate)
+	mux.HandleFunc(prefix+"/verify", h.verify)
 	mux.HandleFunc(prefix+"/infer", h.infer)
 }
 

@@ -45,121 +45,38 @@ func decodeHexBytes(value string) ([]byte, error) {
 	return hex.DecodeString(strings.TrimPrefix(value, "0x"))
 }
 
-// RegisterRoutes registers all oracle routes with an HTTP mux
-// Compatible with standard http.ServeMux or any router
+// RegisterRoutes registers all oracle routes with an HTTP mux.
+//
+// Registration walks routeTable, so a route cannot exist without a class. When
+// the Oracle runs in standby mode every route that is not marked
+// standby is replaced by a refusal: the process may only mirror state and
+// answer proofs, never sign or mutate.
 func (r *OracleRoutes) RegisterRoutes(mux *http.ServeMux) {
-	// Token endpoints
-	mux.HandleFunc("/oracle/v3/token/info", r.handleTokenInfo)
-	mux.HandleFunc("/oracle/v3/token/balance/", r.handleTokenBalance)
-	mux.HandleFunc("/oracle/v3/token/mint", r.handleTokenMint)
-	mux.HandleFunc("/oracle/v3/token/transfer", r.handleTokenTransfer)
-	mux.HandleFunc("/oracle/v3/token/transfer/signed", r.handleTokenTransferSigned)
-	mux.HandleFunc("/oracle/v3/token/burn", r.handleTokenBurn)
-	mux.HandleFunc("/oracle/v3/token/burn/signed", r.handleTokenBurnSigned)
-	mux.HandleFunc("/oracle/v3/account/nonce/", r.handleAccountNonce)
+	standby := r.oracle.Mode() == oracle.ModeStandby
+	for _, route := range r.routeTable() {
+		handler := route.handler
+		if standby && !route.standby {
+			handler = standbyRefusal
+		}
+		mux.HandleFunc(route.pattern, handler)
+	}
+}
 
-	// Governance endpoints
-	mux.HandleFunc("/oracle/v3/governance/proposals", r.handleProposals)
-	mux.HandleFunc("/oracle/v3/governance/proposals/", r.handleProposal)
-	mux.HandleFunc("/oracle/v3/governance/vote", r.handleVote)
-	mux.HandleFunc("/oracle/v3/governance/validators", r.handleValidators)
-	mux.HandleFunc("/oracle/v3/governance/validators/", r.handleValidator)
-	mux.HandleFunc("/oracle/v3/governance/params", r.handleNetworkParams)
-
-	// Economics endpoints
-	mux.HandleFunc("/oracle/v3/economics/metrics", r.handleEconomicMetrics)
-	mux.HandleFunc("/oracle/v3/economics/fees", r.handleFees)
-	mux.HandleFunc("/oracle/v3/economics/rewards", r.handleRewards)
-	mux.HandleFunc("/oracle/v3/economics/staking", r.handleStaking)
-	mux.HandleFunc("/oracle/v3/economics/burns", r.handleBurns)
-
-	// Metered consumption settlement: the backend's nrnmeter service charges
-	// every billable event (factuality QA, skill invocation, model
-	// transition, DVE rental) through this route, which delegates straight to
-	// economics.FeeCollector.CollectFee so the burn/reward split has exactly
-	// one implementation.
-	mux.HandleFunc("/oracle/v3/token/fee/internal", r.handleInternalFeeCollect)
-
-	// Skill economics endpoints (internal-service-token gated): used by
-	// KNIRVGRAPH's DRQ skill-minting pipeline, not signed end users.
-	mux.HandleFunc("/oracle/v3/skills/burn", r.handleSkillBurn)
-	mux.HandleFunc("/oracle/v3/skills/bounty", r.handleSkillBounty)
-	mux.HandleFunc("/oracle/v3/skills/ownership", r.handleSkillOwnership)
-	mux.HandleFunc("/oracle/v3/skills/ownership/", r.handleSkillOwnership)
-	mux.HandleFunc("/oracle/v3/skills/verify", r.handleSkillVerify)
-
-	// Cross-chain endpoints
-	mux.HandleFunc("/oracle/v3/crosschain/transfer", r.handleCrossChainTransfer)
-	mux.HandleFunc("/oracle/v3/crosschain/transfer/", r.handleGetTransfer)
-	mux.HandleFunc("/oracle/v3/crosschain/bridges", r.handleBridges)
-
-	// IBC endpoints
-	mux.HandleFunc("/oracle/v3/ibc/channels", r.handleIBCChannels)
-	mux.HandleFunc("/oracle/v3/ibc/connections", r.handleIBCConnections)
-	mux.HandleFunc("/oracle/v3/ibc/clients", r.handleIBCClients)
-
-	// Consensus endpoints
-	mux.HandleFunc("/oracle/v3/consensus/status", r.handleConsensusStatus)
-	mux.HandleFunc("/oracle/v3/consensus/validators", r.handleConsensusValidators)
-
-	// P2P endpoints
-	mux.HandleFunc("/oracle/v3/p2p/status", r.handleP2PStatus)
-	mux.HandleFunc("/oracle/v3/p2p/peers", r.handleP2PPeers)
-	mux.HandleFunc("/oracle/v3/p2p/pause", r.handleP2PPause)
-	mux.HandleFunc("/oracle/v3/p2p/resume", r.handleP2PResume)
-
-	// Rollup settlement endpoints
-	mux.HandleFunc("/oracle/v3/rollups/submit", r.handleSubmitRollup)
-	mux.HandleFunc("/oracle/v3/rollups/", r.handleRollup)
-
-	// Checkpoint pipeline (Phase 2): registry + admission + MMR proofs.
-	mux.HandleFunc("/oracle/v3/registry/register", r.handleRegistryRegister)
-	mux.HandleFunc("/oracle/v3/registry/rotate", r.handleRegistryRotate)
-	mux.HandleFunc("/oracle/v3/registry/verify-key", r.handleSetVerificationKey)
-	mux.HandleFunc("/oracle/v3/registry/", r.handleGetRegistration)
-	mux.HandleFunc("/oracle/v3/checkpoints", r.handleSubmitCheckpoint)
-	mux.HandleFunc("/oracle/v3/checkpoints/", r.handleCheckpointsByChain)
-	mux.HandleFunc("/oracle/v3/mmr/root", r.handleMMRRoot)
-	mux.HandleFunc("/oracle/v3/mmr/proof/", r.handleMMRProof)
-
-	// Phase 4: finality pipeline (verifier attestation → LeafFinality).
-	mux.HandleFunc("/oracle/v3/finality", r.handleSubmitFinality)
-	mux.HandleFunc("/oracle/v3/finality/attest", r.handleSubmitAttestation)
-	mux.HandleFunc("/oracle/v3/verifiers/register", r.handleRegisterVerifier)
-
-	// Installation endpoints
-	mux.HandleFunc("/oracle/v3/install/wallet", r.handleInstallWallet)
-	mux.HandleFunc("/oracle/v3/install/dve_uri", r.handleInstallDVEURI)
-	mux.HandleFunc("/oracle/v3/wallet/register", r.handleRegisterWallet)
-	mux.HandleFunc("/oracle/v3/wallet/status", r.handleWalletStatus)
-
-	// Legacy wallet server compatibility endpoints now hosted by KNIRVORACLE.
-	mux.HandleFunc("/generate_wallet", r.handleGenerateWallet)
-	mux.HandleFunc("/balance/", r.handleLegacyWalletBalance)
-	mux.HandleFunc("/transactions", r.handleCreateTransaction)
-	mux.HandleFunc("/send_signed_txn", r.handleSendSignedTransaction)
-	mux.HandleFunc("/test/faucet", r.handleTestFaucet)
-
-	// Payment processor: fiat-triggered NRN disbursement, migrated from
-	// KNIRVCHAIN's internal/wallet/payment_processor.go. KNIRVORACLE is the
-	// only component allowed to disburse NRN, so this replaces the old
-	// P-256-signed KNIRVCHAIN wallet path with the oracle's own secp256k1 mint.
-	mux.HandleFunc("/oracle/v3/payment/webhooks/stripe", r.oracle.GetPaymentProcessor().HandleStripeWebhook)
-
-	// Subscription-plan checkout (KNIRV.COM Pro plan). Public: reached by
-	// onboarding.knirv.com's browser-side JS through KNIRVGATEWAY's public
-	// hostnames (gateway.knirv.com / testnet-gateway.knirv.com),
-	// which proxy this path verbatim. Distinct from the disbursement webhook
-	// above — this creates the Stripe Checkout Session; the webhook above
-	// confirms it once Stripe redirects back.
-	mux.HandleFunc("/oracle/v3/payment/checkout/create", r.oracle.GetPaymentProcessor().HandleCreateCheckoutSession)
-
-	// Health and status
-	mux.HandleFunc("/oracle/v3/health", r.handleHealth)
-	mux.HandleFunc("/oracle/v3/status", r.handleStatus)
-
-	// DID resolution engine (Phase 1-A): register/resolve/deactivate did:knirv: documents.
-	r.RegisterDIDRoutes(mux)
+// Guard wraps a mux so that a standby Oracle refuses paths it does not know.
+// RegisterRoutes already refuses the routes it registers; this closes the
+// remainder (handlers mounted outside the table, and paths nobody registered),
+// which is what makes the policy deny-by-default rather than allow-by-list.
+func Guard(mode string, mux http.Handler) http.Handler {
+	if mode != oracle.ModeStandby {
+		return mux
+	}
+	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		if !StandbyServes(req.Method, req.URL.Path) {
+			standbyRefusal(w, req)
+			return
+		}
+		mux.ServeHTTP(w, req)
+	})
 }
 
 // ========== Token Handlers ==========
@@ -945,7 +862,7 @@ func respondJSON(w http.ResponseWriter, status int, data interface{}) {
 	json.NewEncoder(w).Encode(data)
 }
 
-// ========== Checkpoint pipeline (Phase 2) ==========
+// ========== Checkpoint pipeline ==========
 
 func (r *OracleRoutes) handleRegistryRegister(w http.ResponseWriter, req *http.Request) {
 	if req.Method != http.MethodPost {
@@ -996,7 +913,7 @@ func (r *OracleRoutes) handleGetRegistration(w http.ResponseWriter, req *http.Re
 }
 
 // handleSetVerificationKey enrolls a SNARK verification key + preferred proof
-// system for a registered chain (merkle-math.md Phase 5). Accepts the key as a
+// system for a registered chain. Accepts the key as a
 // hex string; empty key with proof_system "hashchain-v0" clears back to optimistic.
 func (r *OracleRoutes) handleSetVerificationKey(w http.ResponseWriter, req *http.Request) {
 	if req.Method != http.MethodPost {
@@ -1070,7 +987,7 @@ func (r *OracleRoutes) handleCheckpointsByChain(w http.ResponseWriter, req *http
 	respondJSON(w, http.StatusOK, map[string]interface{}{"chain_id": chainID, "checkpoints": recs})
 }
 
-// ========== Phase 4: finality pipeline ==========
+// ========== Finality pipeline ==========
 
 func (r *OracleRoutes) handleSubmitFinality(w http.ResponseWriter, req *http.Request) {
 	if req.Method != http.MethodPost {

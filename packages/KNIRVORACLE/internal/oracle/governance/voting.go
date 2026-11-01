@@ -15,6 +15,7 @@ import (
 func (gs *GovernanceSystem) CastVote(req *VoteRequest, signed knirvsigning.SignedMessage) (*Vote, error) {
 	gs.mu.Lock()
 	defer gs.mu.Unlock()
+	defer gs.snapshotLocked()
 
 	// Get proposal
 	proposal, exists := gs.proposals[req.ProposalID]
@@ -144,6 +145,7 @@ func (gs *GovernanceSystem) HasVoted(proposalID string, voter types.Address) boo
 func (gs *GovernanceSystem) TallyVotes(proposalID string) (*TallyResult, error) {
 	gs.mu.Lock()
 	defer gs.mu.Unlock()
+	defer gs.snapshotLocked()
 
 	proposal, exists := gs.proposals[proposalID]
 	if !exists {

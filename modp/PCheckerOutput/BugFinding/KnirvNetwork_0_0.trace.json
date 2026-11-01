@@ -1,0 +1,350 @@
+[
+  {
+    "type": "CreateMonitor",
+    "details": {
+      "log": "ReplicationMonitor was created.",
+      "payload": "null",
+      "monitor": "ReplicationMonitor",
+      "clock": {
+        "ReplicationMonitor": 1
+      }
+    }
+  },
+  {
+    "type": "MonitorStateTransition",
+    "details": {
+      "log": "ReplicationMonitor enters state \u0027Monitoring\u0027.",
+      "state": "Monitoring",
+      "payload": "null",
+      "isEntry": true,
+      "monitor": "ReplicationMonitor",
+      "clock": {
+        "ReplicationMonitor": 2
+      }
+    }
+  },
+  {
+    "type": "CreateStateMachine",
+    "details": {
+      "log": "ReplicationBugMain(1) was created by task \u00272\u0027.",
+      "id": "ReplicationBugMain(1)",
+      "payload": "null",
+      "clock": {
+        "ReplicationBugMain(1)": 1
+      }
+    }
+  },
+  {
+    "type": "StateTransition",
+    "details": {
+      "log": "ReplicationBugMain(1) enters state \u0027Init\u0027.",
+      "id": "ReplicationBugMain(1)",
+      "state": "Init",
+      "payload": "null",
+      "isEntry": true,
+      "clock": {
+        "ReplicationBugMain(1)": 2
+      }
+    }
+  },
+  {
+    "type": "CreateStateMachine",
+    "details": {
+      "log": "ReplicationWorkload(2) was created by ReplicationBugMain(1).",
+      "id": "ReplicationWorkload(2)",
+      "creatorName": "ReplicationBugMain(1)",
+      "creatorType": "ReplicationBugMain",
+      "payload": "null",
+      "clock": {
+        "ReplicationWorkload(2)": 1
+      }
+    }
+  },
+  {
+    "type": "StateTransition",
+    "details": {
+      "log": "ReplicationWorkload(2) enters state \u0027Init\u0027.",
+      "id": "ReplicationWorkload(2)",
+      "state": "Init",
+      "payload": "null",
+      "isEntry": true,
+      "clock": {
+        "ReplicationWorkload(2)": 2
+      }
+    }
+  },
+  {
+    "type": "CreateStateMachine",
+    "details": {
+      "log": "ReplicationMachine(3) was created by ReplicationWorkload(2).",
+      "id": "ReplicationMachine(3)",
+      "creatorName": "ReplicationWorkload(2)",
+      "creatorType": "ReplicationWorkload",
+      "payload": "null",
+      "clock": {
+        "ReplicationMachine(3)": 1
+      }
+    }
+  },
+  {
+    "type": "SendEvent",
+    "details": {
+      "log": "\u0027ReplicationWorkload(2)\u0027 in state \u0027Init\u0027 sent event \u0027eHeadObserved with payload (\u003CheadSeq:1, mmrSize:13, prevOk:True, extendsMmr:True, \u003E)\u0027 to \u0027ReplicationMachine(3)\u0027.",
+      "event": "eHeadObserved",
+      "state": "Init",
+      "payload": {
+        "headSeq": 1,
+        "mmrSize": 13,
+        "prevOk": true,
+        "extendsMmr": true
+      },
+      "sender": "ReplicationWorkload(2)",
+      "target": "ReplicationMachine(3)",
+      "isTargetHalted": false,
+      "clock": {
+        "ReplicationWorkload(2)": 3
+      }
+    }
+  },
+  {
+    "type": "StateTransition",
+    "details": {
+      "log": "ReplicationMachine(3) enters state \u0027Init\u0027.",
+      "id": "ReplicationMachine(3)",
+      "state": "Init",
+      "payload": "null",
+      "isEntry": true,
+      "clock": {
+        "ReplicationMachine(3)": 2
+      }
+    }
+  },
+  {
+    "type": "GotoState",
+    "details": {
+      "log": "ReplicationMachine(3) is transitioning from state \u0027Init\u0027 to state \u0027Following\u0027.",
+      "id": "ReplicationMachine(3)",
+      "startState": "Init",
+      "endState": "Following",
+      "payload": "null",
+      "clock": {
+        "ReplicationMachine(3)": 3
+      }
+    }
+  },
+  {
+    "type": "StateTransition",
+    "details": {
+      "log": "ReplicationMachine(3) exits state \u0027Init\u0027.",
+      "id": "ReplicationMachine(3)",
+      "state": "Init",
+      "payload": "null",
+      "isEntry": false,
+      "clock": {
+        "ReplicationMachine(3)": 4
+      }
+    }
+  },
+  {
+    "type": "StateTransition",
+    "details": {
+      "log": "ReplicationMachine(3) enters state \u0027Following\u0027.",
+      "id": "ReplicationMachine(3)",
+      "state": "Following",
+      "payload": "null",
+      "isEntry": true,
+      "clock": {
+        "ReplicationMachine(3)": 5
+      }
+    }
+  },
+  {
+    "type": "DequeueEvent",
+    "details": {
+      "log": "\u0027ReplicationMachine(3)\u0027 dequeued event \u0027eHeadObserved with payload (\u003CheadSeq:1, mmrSize:13, prevOk:True, extendsMmr:True, \u003E)\u0027 in state \u0027Following\u0027.",
+      "id": "ReplicationMachine(3)",
+      "event": "eHeadObserved",
+      "state": "Following",
+      "payload": {
+        "headSeq": 1,
+        "mmrSize": 13,
+        "prevOk": true,
+        "extendsMmr": true
+      },
+      "clock": {
+        "ReplicationMachine(3)": 6,
+        "ReplicationWorkload(2)": 3
+      }
+    }
+  },
+  {
+    "type": "Announce",
+    "details": {
+      "log": "ReplicationMachine(3) announced event eHeadApplied with payload \u003CheadSeq:1, mmrSize:13, observedMax:1, \u003E.",
+      "id": "ReplicationMachine(3)",
+      "event": "eHeadApplied",
+      "payload": {
+        "headSeq": 1,
+        "mmrSize": 13,
+        "observedMax": 1
+      },
+      "clock": {
+        "ReplicationMachine(3)": 7,
+        "ReplicationWorkload(2)": 3
+      }
+    }
+  },
+  {
+    "type": "MonitorProcessEvent",
+    "details": {
+      "log": "ReplicationMonitor is processing event \u0027eHeadApplied with payload (\u003CheadSeq:1, mmrSize:13, observedMax:1, \u003E)\u0027 in state \u0027Monitoring\u0027.",
+      "event": "eHeadApplied",
+      "state": "Monitoring",
+      "payload": {
+        "headSeq": 1,
+        "mmrSize": 13,
+        "observedMax": 1
+      },
+      "sender": "ReplicationMachine(3)",
+      "monitor": "ReplicationMonitor",
+      "clock": {
+        "ReplicationMonitor": 3,
+        "ReplicationMachine(3)": 7,
+        "ReplicationWorkload(2)": 3
+      }
+    }
+  },
+  {
+    "type": "SendEvent",
+    "details": {
+      "log": "\u0027ReplicationWorkload(2)\u0027 in state \u0027Init\u0027 sent event \u0027eHeadObserved with payload (\u003CheadSeq:2, mmrSize:12, prevOk:True, extendsMmr:False, \u003E)\u0027 to \u0027ReplicationMachine(3)\u0027.",
+      "event": "eHeadObserved",
+      "state": "Init",
+      "payload": {
+        "headSeq": 2,
+        "mmrSize": 12,
+        "prevOk": true,
+        "extendsMmr": false
+      },
+      "sender": "ReplicationWorkload(2)",
+      "target": "ReplicationMachine(3)",
+      "isTargetHalted": false,
+      "clock": {
+        "ReplicationWorkload(2)": 4
+      }
+    }
+  },
+  {
+    "type": "SendEvent",
+    "details": {
+      "log": "\u0027ReplicationWorkload(2)\u0027 in state \u0027Init\u0027 sent event \u0027eHeadObserved with payload (\u003CheadSeq:3, mmrSize:16, prevOk:True, extendsMmr:True, \u003E)\u0027 to \u0027ReplicationMachine(3)\u0027.",
+      "event": "eHeadObserved",
+      "state": "Init",
+      "payload": {
+        "headSeq": 3,
+        "mmrSize": 16,
+        "prevOk": true,
+        "extendsMmr": true
+      },
+      "sender": "ReplicationWorkload(2)",
+      "target": "ReplicationMachine(3)",
+      "isTargetHalted": false,
+      "clock": {
+        "ReplicationWorkload(2)": 5
+      }
+    }
+  },
+  {
+    "type": "SendEvent",
+    "details": {
+      "log": "\u0027ReplicationWorkload(2)\u0027 in state \u0027Init\u0027 sent event \u0027eHeadObserved with payload (\u003CheadSeq:4, mmrSize:19, prevOk:True, extendsMmr:True, \u003E)\u0027 to \u0027ReplicationMachine(3)\u0027.",
+      "event": "eHeadObserved",
+      "state": "Init",
+      "payload": {
+        "headSeq": 4,
+        "mmrSize": 19,
+        "prevOk": true,
+        "extendsMmr": true
+      },
+      "sender": "ReplicationWorkload(2)",
+      "target": "ReplicationMachine(3)",
+      "isTargetHalted": false,
+      "clock": {
+        "ReplicationWorkload(2)": 6
+      }
+    }
+  },
+  {
+    "type": "DequeueEvent",
+    "details": {
+      "log": "\u0027ReplicationMachine(3)\u0027 dequeued event \u0027eHeadObserved with payload (\u003CheadSeq:2, mmrSize:12, prevOk:True, extendsMmr:False, \u003E)\u0027 in state \u0027Following\u0027.",
+      "id": "ReplicationMachine(3)",
+      "event": "eHeadObserved",
+      "state": "Following",
+      "payload": {
+        "headSeq": 2,
+        "mmrSize": 12,
+        "prevOk": true,
+        "extendsMmr": false
+      },
+      "clock": {
+        "ReplicationMachine(3)": 8,
+        "ReplicationWorkload(2)": 4
+      }
+    }
+  },
+  {
+    "type": "Announce",
+    "details": {
+      "log": "ReplicationMachine(3) announced event eHeadApplied with payload \u003CheadSeq:2, mmrSize:12, observedMax:2, \u003E.",
+      "id": "ReplicationMachine(3)",
+      "event": "eHeadApplied",
+      "payload": {
+        "headSeq": 2,
+        "mmrSize": 12,
+        "observedMax": 2
+      },
+      "clock": {
+        "ReplicationMachine(3)": 9,
+        "ReplicationWorkload(2)": 4
+      }
+    }
+  },
+  {
+    "type": "MonitorProcessEvent",
+    "details": {
+      "log": "ReplicationMonitor is processing event \u0027eHeadApplied with payload (\u003CheadSeq:2, mmrSize:12, observedMax:2, \u003E)\u0027 in state \u0027Monitoring\u0027.",
+      "event": "eHeadApplied",
+      "state": "Monitoring",
+      "payload": {
+        "headSeq": 2,
+        "mmrSize": 12,
+        "observedMax": 2
+      },
+      "sender": "ReplicationMachine(3)",
+      "monitor": "ReplicationMonitor",
+      "clock": {
+        "ReplicationMonitor": 4,
+        "ReplicationMachine(3)": 9,
+        "ReplicationWorkload(2)": 4
+      }
+    }
+  },
+  {
+    "type": "AssertionFailure",
+    "details": {
+      "log": "Assertion Failed: components/oracle/replication_machine.p:101:13 an applied head must extend, never shrink, the MMR",
+      "error": "Assertion Failed: components/oracle/replication_machine.p:101:13 an applied head must extend, never shrink, the MMR",
+      "payload": "null"
+    }
+  },
+  {
+    "type": "StrategyDescription",
+    "details": {
+      "log": "Found bug using \u0027random\u0027 strategy.",
+      "payload": "null",
+      "strategy": "random",
+      "strategyDescription": "random[seed \u0027616769197\u0027]"
+    }
+  }
+]

@@ -171,6 +171,32 @@ func LoadConfigFromEnv() (*OracleConfig, error) {
 		config.ValidatorMode = validatorMode
 	}
 
+	// Activation mode, rendered by KNIRVSERVER from noderole.Resolve.
+	if modeRaw := os.Getenv("ORACLE_MODE"); modeRaw != "" {
+		mode, err := NormalizeMode(modeRaw)
+		if err != nil {
+			return nil, err
+		}
+		config.Mode = mode
+	}
+
+	// Standby replication configuration. The source list is intentionally
+	// separate from bootstrap peers: replication is authenticated HTTP through
+	// the gateway proxy, not Oracle P2P gossip.
+	if sources := os.Getenv("ORACLE_REPLICATION_SOURCES"); sources != "" {
+		config.ReplicationSources = splitNonEmpty(sources)
+	}
+	if anchor := os.Getenv("ORACLE_REPLICATION_TRUST_ANCHOR"); anchor != "" {
+		config.ReplicationTrustAnchor = anchor
+	}
+	if seconds := os.Getenv("ORACLE_REPLICATION_INTERVAL"); seconds != "" {
+		value, err := strconv.Atoi(seconds)
+		if err != nil || value <= 0 {
+			return nil, fmt.Errorf("invalid ORACLE_REPLICATION_INTERVAL: %q", seconds)
+		}
+		config.ReplicationInterval = time.Duration(value) * time.Second
+	}
+
 	// Payment processor (fiat-triggered NRN disbursement)
 	if v := os.Getenv("ORACLE_PAYMENT_PROCESSOR_ENABLED"); v != "" {
 		enabled, err := strconv.ParseBool(v)
@@ -235,6 +261,17 @@ func LoadConfigFromEnv() (*OracleConfig, error) {
 	}
 
 	return config, nil
+}
+
+func splitNonEmpty(value string) []string {
+	parts := strings.Split(value, ",")
+	result := make([]string, 0, len(parts))
+	for _, part := range parts {
+		if part = strings.TrimSpace(part); part != "" {
+			result = append(result, part)
+		}
+	}
+	return result
 }
 
 // ValidateConfig validates the Oracle configuration

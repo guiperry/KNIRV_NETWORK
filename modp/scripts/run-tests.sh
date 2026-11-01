@@ -39,6 +39,24 @@ COMPONENT_TESTS=(
     "ValidationExecution"
     "BaseLayerStorage"
 	"CheckpointFinalityProtocol"
+	"AuthorityRecordChain"
+	"AuthorityScope"
+	"AuthoritySessionRetirement"
+	"AuthorityRollout"
+	"ReplicationFollower"
+)
+
+# Negative tests: each is a deliberately broken variant of an invariant above
+# and PASSES only when the checker finds the bug. They are named Broken* so P's
+# prefix-matching -tc on a real test name can never run them by accident.
+NEGATIVE_TESTS=(
+	"BrokenAuthorityRecordChainFork"
+	"BrokenAuthorityScope"
+	"BrokenAuthoritySessionRetirement"
+	"BrokenAuthorityRolloutObserveReject"
+	"BrokenAuthorityRolloutEnforceAccept"
+	"BrokenAuthorityRolloutBreakGlass"
+	"BrokenReplicationNonExtendingApply"
 )
 
 # P compiler configuration
@@ -127,6 +145,59 @@ run_test() {
     fi
 }
 
+# Run a negative test: succeeds only if the checker reports a bug.
+run_negative_test() {
+    local test_name="$1"
+    echo -e "${BLUE}Running negative test: $test_name (a bug MUST be found)${NC}"
+
+    if [ ! -f "$P_DLL" ]; then
+        echo -e "${YELLOW}  P compiler not installed; negative tests cannot run${NC}"
+        return 1
+    fi
+    if [ ! -f "$COMPILED_DLL" ]; then
+        echo -e "${RED}  Compiled DLL not found at $COMPILED_DLL${NC}"
+        return 1
+    fi
+
+    dotnet "$P_DLL" check "$COMPILED_DLL" -tc "$test_name" -s "$P_SCHEDULES" 2>&1 | tee -a "$LOG_FILE"
+    local result=${PIPESTATUS[0]}
+
+    if [ $result -ne 0 ]; then
+        echo -e "${GREEN}✓ Bug found as required: $test_name${NC}"
+        return 0
+    fi
+    echo -e "${RED}✗ Broken variant was NOT caught: $test_name${NC}"
+    return 1
+}
+
+# Run negative tests
+run_negative_tests() {
+    local passed=0
+    local failed=0
+    local total=${#NEGATIVE_TESTS[@]}
+
+    echo -e "${CYAN}======================================${NC}"
+    echo -e "${CYAN}Running $total Negative Tests (broken variants must fail)${NC}"
+    echo -e "${CYAN}======================================${NC}"
+    echo ""
+
+    for test in "${NEGATIVE_TESTS[@]}"; do
+        if run_negative_test "$test"; then
+            ((++passed))
+        else
+            ((++failed)) || true
+        fi
+        echo ""
+    done
+
+    echo -e "Total:  $total"
+    echo -e "${GREEN}Caught: $passed${NC}"
+    echo -e "${RED}Missed: $failed${NC}"
+    echo ""
+
+    return $failed
+}
+
 # Run network-wide tests
 run_network_tests() {
     local passed=0
@@ -193,6 +264,7 @@ run_component_tests() {
 run_all_tests() {
     local network_failed=0
     local component_failed=0
+    local negative_failed=0
 
     echo -e "${BLUE}======================================${NC}"
     echo -e "${BLUE}KNIRV Network ModP Verification Suite${NC}"
@@ -201,8 +273,9 @@ run_all_tests() {
 
     run_network_tests || network_failed=$?
     run_component_tests || component_failed=$?
+    run_negative_tests || negative_failed=$?
 
-    local total_failed=$((network_failed + component_failed))
+    local total_failed=$((network_failed + component_failed + negative_failed))
 
     echo -e "${BLUE}======================================${NC}"
     echo -e "${BLUE}Final Results${NC}"
@@ -223,6 +296,12 @@ run_specific_test() {
 
     # Check if test exists in either list
     local found=0
+    for test in "${NEGATIVE_TESTS[@]}"; do
+        if [ "$test" = "$test_name" ]; then
+            run_negative_test "$test_name"
+            return
+        fi
+    done
     for test in "${NETWORK_TESTS[@]}" "${COMPONENT_TESTS[@]}"; do
         if [ "$test" = "$test_name" ]; then
             found=1
@@ -238,6 +317,10 @@ run_specific_test() {
         done
         echo "Available component tests:"
         for test in "${COMPONENT_TESTS[@]}"; do
+            echo "  - $test"
+        done
+        echo "Available negative tests:"
+        for test in "${NEGATIVE_TESTS[@]}"; do
             echo "  - $test"
         done
         exit 1
@@ -391,6 +474,11 @@ main() {
             echo ""
             echo "Component tests:"
             for test in "${COMPONENT_TESTS[@]}"; do
+                echo "  - $test"
+            done
+            echo ""
+            echo "Negative tests (must find a bug):"
+            for test in "${NEGATIVE_TESTS[@]}"; do
                 echo "  - $test"
             done
             ;;

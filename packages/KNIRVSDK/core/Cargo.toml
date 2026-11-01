@@ -10,27 +10,67 @@ keywords = ["knirv", "blockchain", "sdk"]
 categories = ["api-bindings", "cryptography::cryptocurrencies"]
 
 [features]
-default = ["rustls-tls", "filesystem"]
-rustls-tls = ["reqwest/rustls-tls"]
+default = ["http-reqwest", "rustls-tls", "filesystem", "secrets", "module-manifest", "embedded-modules"]
+# The native HTTP transport. Off for WebAssembly builds, whose host supplies one.
+http-reqwest = ["dep:reqwest", "dep:tokio"]
+rustls-tls = ["http-reqwest", "reqwest/rustls-tls"]
 filesystem = []
+# Encrypted node key files (scrypt + AES-GCM). Off for the browser build.
+secrets = ["dep:scrypt", "dep:aes-gcm"]
+# The controller-relay / crypto-core / proof-verifier module BYTES (about 0.8 MB of
+# include_bytes). Off for WebAssembly builds: hosts fetch them from the release URL.
+embedded-modules = ["module-manifest"]
+# Module digests, kinds and capabilities (wasm-modules/manifest.json), no bytes.
+module-manifest = []
+# Seed-holding vault crypto (BIP-39, SLIP-10, Argon2id, AES-GCM) for the
+# crypto-core module. Off elsewhere so the other builds stay small.
+# Entropy from crypto.getRandomValues, for the browser/edge wasm-bindgen build.
+# Other wasm32-unknown-unknown builds (the crypto-core module) must have no
+# imports, so they register a failing RNG instead (they never need one).
+js-rng = ["dep:getrandom"]
+vault = ["dep:argon2", "dep:bip39", "dep:zeroize", "dep:aes-gcm"]
 
 [dependencies]
 aes = "0.8"
+aes-gcm = { version = "0.10", features = ["zeroize"], optional = true }
+argon2 = { version = "0.5", default-features = false, features = ["alloc", "zeroize"], optional = true }
+bip39 = { version = "2", default-features = false, features = ["zeroize"], optional = true }
+zeroize = { version = "1", features = ["serde"], optional = true }
 base64 = "0.22"
 bech32 = "0.11"
+getrandom = { version = "0.2", features = ["js"], optional = true }
 hex = "0.4"
 hmac = "0.12"
 k256 = { version = "0.13", features = ["ecdsa", "sha256"] }
 pbkdf2 = "0.12"
 rand = "0.8"
-reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+scrypt = { version = "0.11", default-features = false, optional = true }
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"], optional = true }
 ripemd = "0.1"
 serde = { version = "1", features = ["derive"] }
-serde_json = "1"
+# preserve_order: event payloads are hashed in the order they were written.
+serde_json = { version = "1", features = ["preserve_order"] }
 sha2 = "0.10"
 thiserror = "2"
-tokio = { version = "1", features = ["time"] }
+tokio = { version = "1", features = ["time"], optional = true }
 url = "2"
+
+[[bin]]
+name = "knirv-sdk"
+path = "src/main.rs"
+required-features = ["filesystem", "embedded-modules"]
 
 [dev-dependencies]
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+
+# Argon2id at 64 MiB is impractically slow unoptimised; the vault tests run it.
+[profile.dev.package.argon2]
+opt-level = 3
+[profile.dev.package.blake2]
+opt-level = 3
+[profile.dev.package.sha2]
+opt-level = 3
+[profile.dev.package.k256]
+opt-level = 3
+[profile.dev.package.crypto-bigint]
+opt-level = 3

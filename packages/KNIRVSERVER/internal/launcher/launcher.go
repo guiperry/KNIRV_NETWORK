@@ -26,6 +26,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"runtime"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -35,6 +36,7 @@ import (
 	knirvagent "github.com/KNIRV/KNIRV_NETWORK/KNIRVAGENT"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/guiperry/knirv-sdk-go/noderole"
 	"github.com/spf13/viper"
 	"github.com/subosito/gotenv"
 	"go.uber.org/zap"
@@ -42,13 +44,13 @@ import (
 	dveevidence "knirv-server/internal/dveevidence"
 	"knirv-server/internal/knirvproof"
 	"knirv-server/internal/monitor"
+	"knirv-server/internal/progress"
 	"knirv-server/internal/proofledger"
 	"knirv-server/internal/tlsprovider"
 	"knirv-server/internal/updater"
 	"knirv-server/pkg/embedded"
 	"knirv-server/pkg/embedded/validationchain"
 	"knirv-server/pkg/embedded/validationchain/checkpoint"
-	"knirv-server/internal/progress"
 	"knirvulora"
 )
 
@@ -3103,11 +3105,14 @@ func (app *ServerApp) startValidationChain(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("load explicitly provisioned Validation Chain service signer: %w", err)
 	}
-	servicePrivateKey := fmt.Sprintf("%064x", signer.D)
+	servicePrivateKey, err := validationchain.LoadCheckpointPrivateKeyHex()
+	if err != nil {
+		return fmt.Errorf("load Validation Chain service key for legacy child handoff: %w", err)
+	}
 	if err := embedded.GetManager().StartValidationChain(ctx, socketPath, servicePrivateKey); err != nil {
 		return fmt.Errorf("start Validation Chain: %w", err)
 	}
-	log.Printf("Validation Chain started on socket %s with registered service signer %s", socketPath, validationchain.CheckpointAddress(&signer.PublicKey))
+	log.Printf("Validation Chain started on socket %s with registered service signer %s", socketPath, validationchain.CheckpointAddress(signer))
 	gatewayURL, gwErr := resolvePublicURL(app.config)
 	if gwErr != nil {
 		gatewayURL = checkpoint.DefaultOracleGatewayURL
@@ -3350,7 +3355,7 @@ func (app *ServerApp) fundRootKeyHolderWallet(ctx context.Context, oracleURL str
 		log.Printf("Warning: failed to load checkpoint signer for wallet funding: %v", err)
 		return
 	}
-	address := validationchain.CheckpointAddress(&signer.PublicKey)
+	address := validationchain.CheckpointAddress(signer)
 
 	if err := requestOracleFaucet(ctx, oracleURL, address, testFundingAmountNRN); err != nil {
 		log.Printf("Warning: failed to fund %s from KNIRVORACLE faucet: %v", address, err)
@@ -3567,10 +3572,17 @@ func (app *ServerApp) startBackend() error {
 			env = append(env, "XION_HOME="+filepath.Join(appDataDir, "xion"))
 		}
 	}
-	// Node role: root.key present → Root; boot.key present → Bootnode; neither → Client.
-	// Both keys are discovered at runtime from standard filesystem locations.
-	if rootKeyPath := bootkey.FindRootKey(); rootKeyPath != "" {
-		env = setChildEnv(env, "CHAIN_NODE_ROLE", "Root")
+	// Node role is decided in exactly one place: noderole.Resolve. This block
+	// gathers the key-file facts it needs, propagates the credentialed
+	// environment those keys imply, and renders the decision for the children.
+	rootKeyPath := bootkey.FindRootKey()
+	bootKeyPath := bootkey.FindBootKey()
+
+	var rootCreds *bootkey.RootKeyCloudflareCreds
+	var bootContent *bootkey.Content
+	var keyLoadErr error
+
+	if rootKeyPath != "" {
 		// Pass the resolved key path using both names understood by the two
 		// independently-versioned server modules. The launcher discovers keys
 		// through ORACLE_KEY_PATH, while backend_server's config loader resolves
@@ -3584,7 +3596,8 @@ func (app *ServerApp) startBackend() error {
 		// Propagate Cloudflare credentials from root.key so KNIRVGATEWAY can start
 		// its tunnels on Root nodes the same way it does for Bootnodes (from
 		// boot.key, below). Requires ORACLE_KEY_PASSWORD to already be set.
-		if rootCreds, rootErr := bootkey.LoadRootKeyCloudflareCreds(); rootCreds != nil {
+		rootCreds, keyLoadErr = bootkey.LoadRootKeyCloudflareCreds()
+		if rootCreds != nil {
 			if rootCreds.CloudflareAPIToken != "" {
 				env = append(env, "CLOUDFLARE_API_TOKEN="+rootCreds.CloudflareAPIToken)
 			}
@@ -3617,14 +3630,13 @@ func (app *ServerApp) startBackend() error {
 				os.Setenv("KNIRV_VALIDATION_SERVICE_PRIVATE_KEY", rootCreds.RootPrivateKeyHex)
 				log.Println("[KEY] Validation Chain checkpoint signer derived from root.key")
 			}
-		} else if rootErr != nil {
-			log.Printf("[KEY] root.key found but Cloudflare credentials could not be loaded: %v", rootErr)
+		} else if keyLoadErr != nil {
+			log.Printf("[KEY] root.key found but Cloudflare credentials could not be loaded: %v", keyLoadErr)
 			log.Printf("[KEY] Set ORACLE_KEY_PASSWORD to unlock root.key credentials, or export CLOUDFLARE_API_TOKEN/CLOUDFLARE_ZONE_ID directly")
 		}
 	} else {
-		bootContent, bootErr := bootkey.Load()
+		bootContent, keyLoadErr = bootkey.Load()
 		if bootContent != nil {
-			env = setChildEnv(env, "CHAIN_NODE_ROLE", "Bootnode")
 			if bootContent.RegistrationID != "" {
 				env = append(env, "KNIRV_NODE_REGISTRATION_ID="+bootContent.RegistrationID)
 			}
@@ -3658,15 +3670,38 @@ func (app *ServerApp) startBackend() error {
 				os.Setenv("KNIRV_VALIDATION_SERVICE_PRIVATE_KEY", bootContent.MasterWalletKeyHex)
 				log.Println("[KEY] Validation Chain checkpoint signer derived from boot.key")
 			}
-		} else if bootkey.Exists() {
-			// boot.key present but couldn't decrypt — still mark as bootnode role
-			env = setChildEnv(env, "CHAIN_NODE_ROLE", "Bootnode")
-			log.Printf("Boot node detected (boot.key found) but decryption failed: %v", bootErr)
+		} else if bootKeyPath != "" {
+			// boot.key present but couldn't decrypt — still mark as bootnode role.
+			log.Printf("Boot node detected (boot.key found) but decryption failed: %v", keyLoadErr)
 			log.Printf("Set BOOT_KEY_PASSWORD to unlock boot.key credentials at startup")
-		} else {
-			// Never inherit a privileged role without its corresponding key file.
-			env = setChildEnv(env, "CHAIN_NODE_ROLE", "Client")
 		}
+	}
+
+	// One decision, rendered for every child. A privileged role is never
+	// inherited without its key file, and a locked key file keeps its kind but
+	// marks the node Degraded.
+	resolution := noderole.Resolve(noderole.Inputs{
+		RootKeyPath:  rootKeyPath,
+		BootKeyPath:  bootKeyPath,
+		RootUnlocked: rootCreds != nil,
+		BootUnlocked: bootContent != nil,
+	})
+	roleEnv := resolution.ChildEnv()
+	roleKeys := make([]string, 0, len(roleEnv))
+	for key := range roleEnv {
+		roleKeys = append(roleKeys, key)
+	}
+	sort.Strings(roleKeys)
+	for _, key := range roleKeys {
+		env = setChildEnv(env, key, roleEnv[key])
+	}
+	roleSource := "none"
+	if resolution.KeyPath != "" {
+		roleSource = filepath.Base(resolution.KeyPath)
+	}
+	log.Println(resolution.LogLine(roleSource))
+	for _, ignored := range resolution.Ignored {
+		log.Printf("[ROLE] WARN: %s", ignored)
 	}
 
 	if controlSocket := defaultAgentControlSocketPath(mustAppDataDir()); controlSocket != "" {

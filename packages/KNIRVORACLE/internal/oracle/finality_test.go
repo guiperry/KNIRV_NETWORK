@@ -30,7 +30,7 @@ func newPhase4Oracle(t *testing.T) *Oracle {
 }
 
 var phase4VerifierKeys sync.Map // map[*Oracle]map[string]*ecdsa.PrivateKey
-var phase4VerifierIDs sync.Map // map[*Oracle]map[string]string (test id -> canonical address)
+var phase4VerifierIDs sync.Map  // map[*Oracle]map[string]string (test id -> canonical address)
 
 func registerPhase4Verifier(t *testing.T, o *Oracle, id string) {
 	t.Helper()
@@ -303,7 +303,7 @@ func TestFinalityWindowExpiresByWallClockEvenWithHeartbeatDisabled(t *testing.T)
 	}
 }
 
-// --- Phase 5: Oracle-side transition-proof verification (§3.3f step 4) ---
+// --- Oracle-side transition-proof verification (§3.3f step 4) ---
 
 func marshalTransitionProof(t *testing.T, tp types.TransitionProof) []byte {
 	t.Helper()

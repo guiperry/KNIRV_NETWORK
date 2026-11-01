@@ -341,6 +341,7 @@ func (s *Server) setupRoutes() error {
 	// handler additionally returns 503 if root.key credentials for
 	// Cloudflare weren't available at startup.
 	r.HandleFunc("/api/admin/operators", requireAdminJWT(s.handleAdminOperatorsList)).Methods("GET")
+	r.HandleFunc("/api/admin/operators/{id}/kyc", requireAdminJWT(s.handleAdminOperatorKYC)).Methods("POST")
 	r.HandleFunc("/api/admin/operators/{id}/review", requireAdminJWT(s.handleAdminOperatorReview)).Methods("POST")
 	r.HandleFunc("/api/admin/users", requireAdminJWT(s.handleAdminUsersList)).Methods("GET")
 	r.HandleFunc("/api/admin/users/{id}/role", requireAdminJWT(s.handleAdminUserRole)).Methods("POST")

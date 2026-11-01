@@ -40,6 +40,7 @@ func (eh *ExecutionHandler) RegisterCallback(proposalType ProposalType, callback
 func (gs *GovernanceSystem) ExecuteProposal(proposalID string, handler *ExecutionHandler) error {
 	gs.mu.Lock()
 	defer gs.mu.Unlock()
+	defer gs.snapshotLocked()
 
 	proposal, exists := gs.proposals[proposalID]
 	if !exists {

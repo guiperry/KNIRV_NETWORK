@@ -203,8 +203,12 @@ func NewChromemManager(cfg *config.ChromemConfig) (*ChromemManager, error) {
 		embeddingClient = &DummyEmbeddingClient{} // Use dummy client for tests
 	} else {
 		// Use the shared deterministic text-embedder service in production.
-		embeddingClient = NewTextEmbedderClient(os.Getenv("KNIRV_TEXT_EMBEDDER_URL"))
-		log.Println("ChromemDB Manager: Using KNIRV text-embedder service.")
+		embeddingURL := os.Getenv("KNIRV_TEXT_EMBEDDER_URL")
+		embeddingClient = NewTextEmbedderClient(embeddingURL)
+		if strings.TrimSpace(embeddingURL) == "" {
+			embeddingURL = "http://127.0.0.1:8089"
+		}
+		log.Printf("ChromemDB Manager: Embeddings come from the KNIRV text-embedder service at %s (requested lazily; embedding fails until it is running).", embeddingURL)
 		embedFunc = embeddingClient.GenerateEmbedding
 	}
 

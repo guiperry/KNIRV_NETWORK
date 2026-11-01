@@ -38,6 +38,7 @@ var (
 	keyFile       = flag.String("key", "", "TLS key file")
 	autoReboot    = flag.Bool("auto-reboot", true, "automatically reboot on fatal device errors")
 	directMode    = flag.Bool("direct", false, "skip CGMiner and drive the ASIC directly over raw USB (no stratum pool, no CGMiner); mutually exclusive in effect with CGMiner mode")
+	directJitter  = flag.Bool("direct-jitter", false, "allow the jitter engine to hash via the ASIC (requires -direct); ComputeHash stays literal sha256 for all other callers")
 )
 
 // recoveryUnaryInterceptor recovers a panic inside any unary RPC handler and
@@ -311,7 +312,7 @@ func main() {
 	log.Printf("Hasher Server starting on port %d...", *port)
 	log.Printf("eBPF tracing: %v", *enableTracing)
 	log.Printf("Auto-reboot: %v", *autoReboot)
-	log.Printf("Direct ASIC mode: %v", *directMode)
+	log.Printf("Direct ASIC mode: %v (jitter hardware path: %v)", *directMode, *directJitter)
 
 	// Configure firewall to allow incoming connections
 	if err := configureFirewall(*port); err != nil {
@@ -343,7 +344,7 @@ func main() {
 	grpcServer := grpc.NewServer(opts...)
 
 	// Create Hasher server using device package with recovery
-	hasherServer, err := NewHasherServerWithRecovery(*enableTracing, *directMode)
+	hasherServer, err := NewHasherServerWithRecovery(*enableTracing, *directMode, *directJitter)
 	if err != nil {
 		// If we get here and auto-reboot was enabled, the reboot failed
 		log.Fatalf("Failed to create Hasher server: %v", err)
@@ -392,11 +393,13 @@ func main() {
 }
 
 // NewHasherServerWithRecovery creates a new Hasher gRPC server with automatic device recovery
-func NewHasherServerWithRecovery(enableTracing bool, directMode bool) (*device.HasherServer, error) {
+func NewHasherServerWithRecovery(enableTracing bool, directMode bool, directJitter bool) (*device.HasherServer, error) {
 	dev, err := attemptDeviceRecovery(enableTracing, directMode)
 	if err != nil {
 		return nil, fmt.Errorf("device recovery failed: %w", err)
 	}
+
+	dev.EnableDirectJitter(directMode && directJitter)
 
 	return device.NewHasherServerWithDevice(dev), nil
 }

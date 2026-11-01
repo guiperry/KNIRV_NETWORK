@@ -335,6 +335,13 @@ test-knirvsdk: ## Test KNIRVSDK
 	@echo "$(BLUE)Testing KNIRVSDK...$(NC)"
 	@cd packages/KNIRVSDK && ./scripts/run-all-tests.sh
 
+.PHONY: build-knirvsdk release-knirvsdk
+build-knirvsdk: ## Build, stamp and test KNIRVSDK (no upload; not part of build-all)
+	@$(MAKE) -C packages/KNIRVSDK build-sdk
+
+release-knirvsdk: ## Build KNIRVSDK and publish the core to R2 (needs rclone remote 'incline')
+	@$(MAKE) -C packages/KNIRVSDK release-sdk
+
 .PHONY: test-knirvarena
 test-knirvarena: ## Test KNIRVARENA
 	@echo "$(BLUE)Testing KNIRVARENA...$(NC)"

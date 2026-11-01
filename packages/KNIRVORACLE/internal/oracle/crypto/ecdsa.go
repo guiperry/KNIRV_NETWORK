@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"strings"
 
-	knirvsigning "github.com/guiperry/knirv-sdk-go/signing"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
+	knirvsigning "github.com/guiperry/knirv-sdk-go/signing"
 	"github.com/knirvcorp/knirvoracle/internal/oracle/types"
 )
 

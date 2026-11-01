@@ -265,6 +265,9 @@ def main():
         "ulora": json.dumps({
             "framework": "numpy",
             "engine": "path_b_canonical_fit",
+            # The publish gate reads this: a linear embedding fit is not
+            # transformer LoRA training and must never be published as one.
+            "fit_kind": "linear_embedding_fit",
             "supervision": "per_module_canonical_fit" if grouped else "shared_canonical_fit",
             # Stated plainly so nothing downstream reads this as trained LoRA.
             "is_transformer_lora_training": False,

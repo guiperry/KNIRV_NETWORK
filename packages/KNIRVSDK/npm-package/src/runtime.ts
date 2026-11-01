@@ -1,5 +1,6 @@
 import type * as WasmCore from "./wasm/knirv_sdk_core.js";
-import { fetchWasmModule, wasmModuleMetadata, wasmModulesManifest, type WasmModuleMetadata, type WasmModuleSource } from "./modules.js";
+import { toJson } from "./local.js";
+import { fetchWasmModule, wasmModuleMetadata, type WasmModuleMetadata, type WasmModuleSource } from "./modules.js";
 
 export const BINDING_API_VERSION = 1 as const;
 
@@ -27,8 +28,60 @@ export interface Envelope<T = unknown> {
   error?: BindingError;
 }
 
-export interface BindingTransport {
-  call(request: Envelope): Promise<Envelope>;
+/** Client settings for the network operations; carried on each request. */
+export interface BindingConfig {
+  network?: string;
+  api_key?: string;
+  timeout_ms?: number;
+  transaction_url?: string;
+  gateway_url?: string;
+  controller_url?: string;
+  backend_url?: string;
+  headers?: Record<string, string>;
+}
+
+/**
+ * The one network seam. The Rust core builds requests, retries, fails over and
+ * maps errors; the host only moves bytes. Wire format: core/src/http_transport.rs.
+ * Both functions receive and return JSON strings / milliseconds.
+ */
+export interface HttpHost {
+  http_request(requestJson: string): Promise<string>;
+  sleep(ms: number): Promise<void>;
+}
+
+type TransportErrorKind = "timeout" | "dns" | "tls" | "refused" | "aborted" | "other";
+
+function hostError(kind: TransportErrorKind, message: string): string {
+  return JSON.stringify({ error: { kind, message } });
+}
+
+/** The default host: global `fetch`, with `timeout_ms` enforced by an abort. */
+export function fetchHost(fetchImpl: typeof fetch = (...args) => fetch(...args)): HttpHost {
+  return {
+    async http_request(requestJson: string): Promise<string> {
+      const req = JSON.parse(requestJson) as { method: string; url: string; headers: Record<string, string>; body_base64: string; timeout_ms: number };
+      const controller = new AbortController();
+      let timedOut = false;
+      const timer = req.timeout_ms > 0 ? setTimeout(() => { timedOut = true; controller.abort(); }, req.timeout_ms) : undefined;
+      try {
+        const body = req.body_base64 ? Uint8Array.from(atob(req.body_base64), (c) => c.charCodeAt(0)) : undefined;
+        const response = await fetchImpl(req.url, { method: req.method, headers: req.headers, body: req.method === "GET" || req.method === "HEAD" ? undefined : body, signal: controller.signal });
+        const bytes = new Uint8Array(await response.arrayBuffer());
+        let binary = "";
+        for (let i = 0; i < bytes.length; i += 0x8000) binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+        const headers: Record<string, string> = {};
+        response.headers.forEach((value, name) => { headers[name] = value; });
+        return JSON.stringify({ status: response.status, headers, body_base64: btoa(binary) });
+      } catch (error) {
+        // fetch does not say why it failed; a timeout we caused is the only kind we can name.
+        return hostError(timedOut ? "timeout" : "other", error instanceof Error ? error.message : String(error));
+      } finally {
+        if (timer !== undefined) clearTimeout(timer);
+      }
+    },
+    sleep: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+  };
 }
 
 export class BindingOperationError extends Error {
@@ -40,42 +93,47 @@ export class BindingOperationError extends Error {
 
 type Core = typeof WasmCore;
 
-export class WasmBindingTransport implements BindingTransport {
-  constructor(private readonly core: Core) {}
+const NETWORK_OPERATIONS = new Set(["actuarial.call", "transaction.chain", "gateway.health", "transmission.resolve_uri", "transmission.broadcast", "wallet.account"]);
 
-  async call(request: Envelope): Promise<Envelope> {
+/** Runs envelopes against the WASM core; network operations use `host`. */
+export class WasmBindingTransport {
+  constructor(private readonly core: Core, private readonly host: HttpHost = fetchHost(), private readonly config?: BindingConfig) {}
+
+  async call(request: Envelope & { config?: BindingConfig }): Promise<Envelope> {
     if (request.version !== BINDING_API_VERSION) {
       return failure(request.operation, "INVALID_ARGUMENT", `unsupported binding API version: ${request.version}`);
     }
     switch (request.operation) {
-      case "crypto.sha256": {
-        const data = payloadString(request.payload, "data");
-        if (data === undefined) return failure(request.operation, "INVALID_ARGUMENT", "data must be a string");
-        return success(request.operation, { digest: this.core.sha256_hex(new TextEncoder().encode(data)) });
-      }
-      case "wasm.manifest":
-        return success(request.operation, wasmModulesManifest);
       default:
-        return failure(request.operation, "UNSUPPORTED", `unsupported operation: ${request.operation}`);
+        if (NETWORK_OPERATIONS.has(request.operation)) {
+          const withConfig = this.config && !request.config ? { ...request, config: this.config } : request;
+          return JSON.parse(await this.core.invoke_async(toJson(withConfig), this.host)) as Envelope;
+        }
+        // Everything else the core can do without a network is forwarded to it;
+        // anything it does not recognise answers UNSUPPORTED.
+        return JSON.parse(this.core.invoke(JSON.stringify(request))) as Envelope;
     }
   }
 }
 
+export interface SdkClientOptions {
+  /** Moves bytes for the network operations. Defaults to global `fetch`. */
+  http?: HttpHost;
+  /** Default client settings (network, URLs, API key, timeout) for network operations. */
+  config?: BindingConfig;
+}
+
 export class SdkClient {
-  protected constructor(private readonly transport: BindingTransport, private readonly core?: Core) {}
+  protected constructor(private readonly transport: WasmBindingTransport, private readonly core: Core) {}
 
-  /** Create a client around a native, remote, or application-provided transport. */
-  static async create(transport: BindingTransport): Promise<SdkClient> {
-    return new SdkClient(transport);
+  /** @internal Creates the client after WASM initialization. */
+  static fromWasm(core: Core, options: SdkClientOptions = {}): SdkClient {
+    return new SdkClient(new WasmBindingTransport(core, options.http, options.config), core);
   }
 
-  /** @internal Creates the default browser/edge client after WASM initialization. */
-  static fromWasm(core: Core): SdkClient {
-    return new SdkClient(new WasmBindingTransport(core), core);
-  }
-
-  call<T = unknown>(operation: string, payload: unknown = {}): Promise<Envelope<T>> {
-    return this.transport.call({ version: BINDING_API_VERSION, operation, payload }) as Promise<Envelope<T>>;
+  /** `config` overrides the client's default settings for a network operation. */
+  call<T = unknown>(operation: string, payload: unknown = {}, config?: BindingConfig): Promise<Envelope<T>> {
+    return this.transport.call({ version: BINDING_API_VERSION, operation, payload, ...(config ? { config } : {}) }) as Promise<Envelope<T>>;
   }
 
   sha256(data: string): Promise<Envelope<{ digest: string }>> {
@@ -127,8 +185,3 @@ function failure(operation: string, code: BindingErrorCode, message: string): En
   return { version: BINDING_API_VERSION, operation, error: { code, message, retryable: false } };
 }
 
-function payloadString(payload: unknown, name: string): string | undefined {
-  if (!payload || typeof payload !== "object") return undefined;
-  const value = (payload as Record<string, unknown>)[name];
-  return typeof value === "string" ? value : undefined;
-}

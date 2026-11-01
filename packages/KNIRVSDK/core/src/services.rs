@@ -307,7 +307,16 @@ impl FactualityService {
             id: None,
             content: Some(content.to_string()),
             domain: Some(domain.to_string()),
-            confidence: Some(if r.degraded { "degraded" } else if r.refused { "refused" } else { "checked" }.to_string()),
+            confidence: Some(
+                if r.degraded {
+                    "degraded"
+                } else if r.refused {
+                    "refused"
+                } else {
+                    "checked"
+                }
+                .to_string(),
+            ),
             score: Some(r.confidence),
             sources: None,
             timestamp: None,
@@ -336,7 +345,10 @@ impl FactualityService {
 }
 
 fn not_served(what: &str) -> Error {
-    Error::Api { status: 501, message: format!("{what} is not served by the node") }
+    Error::Api {
+        status: 501,
+        message: format!("{what} is not served by the node"),
+    }
 }
 
 #[derive(Clone, Debug)]

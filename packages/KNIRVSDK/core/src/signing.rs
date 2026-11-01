@@ -7,7 +7,6 @@ use k256::ecdsa::{signature::hazmat::PrehashSigner, Signature, SigningKey, Verif
 use ripemd::Ripemd160;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
-use std::time::{SystemTime, UNIX_EPOCH};
 
 pub const ACTION_SCHEMA_VERSION: &str = "knirv.action.v1";
 pub const MESSAGE_SCHEMA_VERSION: &str = "knirv.message.v1";
@@ -17,6 +16,9 @@ pub const WASM_MANIFEST_SCHEMA_VERSION: &str = "knirv.wasm_manifest.v1";
 pub const ACTION_TYPE_URL: &str = "/knirv.signing.v1.Action";
 pub const SECP256K1_TYPE_URL: &str = "/cosmos.crypto.secp256k1.PubKey";
 pub const CONTROLLER_DOMAIN: &str = "knirv.controller";
+pub const SCENES_DOMAIN: &str = "knirv.scenes";
+pub const PURPOSE_SCENE_MANIFEST: &str = "scene-manifest";
+pub const ROLE_SCENE_SIGNER: &str = "scene-signer";
 pub const PURPOSE_RELAY_RESPONSE: &str = "relay-response";
 pub const RELAY_TARGET_CLI_SUPERVISOR: &str = "cli_supervisor";
 
@@ -87,6 +89,10 @@ pub struct CLISupervisorRelayParams {
     pub lease_epoch: u64,
     pub payload: Vec<u8>,
     pub ttl_seconds: i64,
+    /// Issue time. Hosts without a system clock (browser/edge WASM) must supply
+    /// it; native callers may leave it unset to use the system clock.
+    #[serde(default)]
+    pub issued_at_unix: Option<u64>,
 }
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct MessageEnvelope {
@@ -442,15 +448,8 @@ fn for_field(data: &[u8], mut visitor: impl FnMut(u32, u32, &[u8]) -> Result<()>
                 visitor(field, wire, &data[start..pos])?;
             }
             2 => {
-                let (length, n) = consume_varint(&data[pos..])?;
-                pos += n;
-                let end = pos
-                    .checked_add(length as usize)
-                    .ok_or_else(|| Error::Validation("protobuf length overflow".into()))?;
-                if end > data.len() {
-                    return Err(Error::Validation("truncated protobuf field".into()));
-                }
-                visitor(field, wire, &data[pos..end])?;
+                let (start, end) = length_delimited(data, pos)?;
+                visitor(field, wire, &data[start..end])?;
                 pos = end;
             }
             _ => return Err(Error::Validation(format!("unsupported wire type {wire}"))),
@@ -546,18 +545,7 @@ pub fn build_direct_sign_doc(
     Ok((body, auth_info, sign_doc))
 }
 pub fn knirv_address(compressed_public_key: &[u8]) -> Result<String> {
-    if compressed_public_key.len() != 33 {
-        return Err(Error::Crypto(
-            "compressed secp256k1 public key must be 33 bytes".into(),
-        ));
-    }
-    let sha = Sha256::digest(compressed_public_key);
-    let digest = Ripemd160::digest(sha);
-    encode::<Bech32>(
-        Hrp::parse("knirv").map_err(|e| Error::Crypto(e.to_string()))?,
-        &digest,
-    )
-    .map_err(|e| Error::Crypto(e.to_string()))
+    address(compressed_public_key, "knirv")
 }
 pub fn sign_direct_transaction(
     private_key: &[u8; 32],
@@ -650,11 +638,30 @@ pub fn marshal_relay_envelope(envelope: &RelayEnvelope) -> Result<Vec<u8>> {
 
 /// Creates a CLI-supervisor relay envelope with the payload bound by SHA-256.
 /// A non-positive TTL uses the protocol default of 60 seconds.
+/// Seconds since the Unix epoch from the system clock. `wasm32-unknown-unknown`
+/// (browsers) has no clock and `SystemTime::now()` would trap there, so it is an
+/// error; WASI hosts do provide one.
+fn system_unix_seconds() -> Result<u64> {
+    #[cfg(all(target_arch = "wasm32", target_os = "unknown"))]
+    {
+        Err(Error::Validation(
+            "this platform has no system clock; pass issued_at_unix".into(),
+        ))
+    }
+    #[cfg(not(all(target_arch = "wasm32", target_os = "unknown")))]
+    {
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_secs())
+            .map_err(|e| Error::Validation(format!("system clock is before Unix epoch: {e}")))
+    }
+}
+
 pub fn new_cli_supervisor_relay(params: &CLISupervisorRelayParams) -> Result<RelayEnvelope> {
-    let issued_at_unix = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map_err(|e| Error::Validation(format!("system clock is before Unix epoch: {e}")))?
-        .as_secs();
+    let issued_at_unix = match params.issued_at_unix {
+        Some(issued) => issued,
+        None => system_unix_seconds()?,
+    };
     let ttl_seconds = if params.ttl_seconds > 0 {
         params.ttl_seconds as u64
     } else {
@@ -794,7 +801,7 @@ pub fn verify_message(
         ));
     }
     let address = knirv_address(&public_key)?;
-    if signed.address.is_empty() || signed.address != address {
+    if !signed.address.is_empty() && signed.address != address {
         return Err(Error::Validation(
             "message address does not match public key".into(),
         ));
@@ -870,14 +877,8 @@ pub fn parse_message_envelope(data: &[u8]) -> Result<ParsedMessageEnvelope> {
                 }
             }
             2 => {
-                let (length, consumed) = consume_varint(&data[pos..])?;
-                let end = pos + consumed + length as usize;
-                if end > data.len() {
-                    return Err(Error::Validation(
-                        "truncated length-delimited field in message envelope".into(),
-                    ));
-                }
-                let field_data = &data[pos + consumed..end];
+                let (start, end) = length_delimited(data, pos)?;
+                let field_data = &data[start..end];
                 pos = end;
                 match field_number {
                     1 => out.schema_version = String::from_utf8_lossy(field_data).into_owned(),
@@ -890,9 +891,7 @@ pub fn parse_message_envelope(data: &[u8]) -> Result<ParsedMessageEnvelope> {
                 }
             }
             _ => {
-                return Err(Error::Validation(format!(
-                    "unsupported wire type {wire_type} in message envelope"
-                )));
+                pos += field_value_len(wire_type, &data[pos..])?;
             }
         }
     }
@@ -949,18 +948,15 @@ pub fn verify_transaction(
     let sig = BASE64
         .decode(&tx.signatures[0])
         .map_err(|e| Error::Validation(format!("decode signature: {e}")))?;
-    let mut sign_doc = bytes_field(1, &body);
-    sign_doc = bytes_field_extend(sign_doc, 2, &auth);
-    let chain_bytes = chain_id.as_bytes();
-    let mut chain_field = Vec::new();
-    chain_field.extend(varint(3 << 3));
-    chain_field.extend(varint(chain_bytes.len() as u64));
-    chain_field.extend(chain_bytes);
-    sign_doc.extend(chain_field);
-    let mut acct_field = Vec::new();
-    acct_field.extend(varint(4 << 3));
-    acct_field.extend(varint(account_number));
-    sign_doc.extend(acct_field);
+    // Rebuild the SignDoc with the same encoders signing uses. (This used to
+    // hand-roll field 3 with the wrong wire type, so no real transaction ever
+    // verified.)
+    let sign_doc = concat([
+        bytes_field(1, &body),
+        bytes_field(2, &auth),
+        string_field(3, Some(chain_id)),
+        uint_field(4, Some(account_number)),
+    ]);
     let digest = Sha256::digest(&sign_doc);
     verify_digest(&public_key, &sig, &digest)?;
     Ok(())
@@ -1000,8 +996,7 @@ pub fn parse_sequence(auth_info: &[u8]) -> Result<u64> {
             let (value, _consumed) = consume_varint(&data[pos..])?;
             return Ok(value);
         }
-        let (field_len, consumed) = consume_varint(&data[pos..])?;
-        pos += consumed + field_len as usize;
+        pos += field_value_len(wire_type, &data[pos..])?;
     }
     Err(Error::Validation("SignerInfo sequence is missing".into()))
 }
@@ -1038,14 +1033,8 @@ pub fn parse_relay_envelope(data: &[u8]) -> Result<RelayEnvelope> {
                 }
             }
             2 => {
-                let (length, consumed) = consume_varint(&data[pos..])?;
-                let end = pos + consumed + length as usize;
-                if end > data.len() {
-                    return Err(Error::Validation(
-                        "truncated length-delimited field in relay envelope".into(),
-                    ));
-                }
-                let field_data = &data[pos + consumed..end];
+                let (start, end) = length_delimited(data, pos)?;
+                let field_data = &data[start..end];
                 pos = end;
                 match field_number {
                     1 => out.schema_version = String::from_utf8_lossy(field_data).into_owned(),
@@ -1061,9 +1050,7 @@ pub fn parse_relay_envelope(data: &[u8]) -> Result<RelayEnvelope> {
                 }
             }
             _ => {
-                return Err(Error::Validation(format!(
-                    "unsupported wire type {wire_type} in relay envelope"
-                )));
+                pos += field_value_len(wire_type, &data[pos..])?;
             }
         }
     }
@@ -1095,8 +1082,9 @@ pub fn parse_relay_envelope(data: &[u8]) -> Result<RelayEnvelope> {
     }
     Ok(out)
 }
+/// Validates `prefix` and returns the canonical 20-byte account ID.
 pub fn decode_address(address: &str, prefix: &str) -> Result<Vec<u8>> {
-    let (hrp, data) = bech32::decode(address)
+    let (hrp, raw) = bech32::decode(address)
         .map_err(|e| Error::Validation(format!("decode bech32 address: {e}")))?;
     let expected_hrp =
         Hrp::parse(prefix).map_err(|e| Error::Validation(format!("invalid prefix: {e}")))?;
@@ -1106,8 +1094,6 @@ pub fn decode_address(address: &str, prefix: &str) -> Result<Vec<u8>> {
             hrp
         )));
     }
-    let raw = convert_bits(&data, 5, 8, false)
-        .map_err(|e| Error::Validation(format!("decode address payload: {e}")))?;
     if raw.len() != 20 {
         return Err(Error::Validation(format!(
             "invalid address payload length {}",
@@ -1116,43 +1102,70 @@ pub fn decode_address(address: &str, prefix: &str) -> Result<Vec<u8>> {
     }
     Ok(raw)
 }
+
+/// Bech32-encodes a 20-byte account ID. `bech32::encode` takes 8-bit bytes and
+/// does the 5-bit regrouping itself.
+pub fn encode_address(raw: &[u8], prefix: &str) -> Result<String> {
+    if raw.len() != 20 {
+        return Err(Error::Validation(format!(
+            "invalid address payload length {}",
+            raw.len()
+        )));
+    }
+    let hrp = Hrp::parse(prefix).map_err(|e| Error::Crypto(e.to_string()))?;
+    encode::<Bech32>(hrp, raw).map_err(|e| Error::Crypto(e.to_string()))
+}
+
+/// The address of a compressed secp256k1 public key:
+/// `bech32(prefix, ripemd160(sha256(pubkey)))`. The key must be a real curve
+/// point, not just 33 bytes.
 pub fn address(compressed_pubkey: &[u8], prefix: &str) -> Result<String> {
     if compressed_pubkey.len() != 33 {
         return Err(Error::Crypto(
             "compressed secp256k1 public key must be 33 bytes".into(),
         ));
     }
+    VerifyingKey::from_sec1_bytes(compressed_pubkey)
+        .map_err(|e| Error::Crypto(format!("invalid secp256k1 public key: {e}")))?;
     let sha = Sha256::digest(compressed_pubkey);
-    let digest = Ripemd160::digest(sha);
-    let five_bit = convert_bits(&digest, 8, 5, true)
-        .map_err(|_| Error::Crypto("convert_bits failed".into()))?;
-    let hrp = Hrp::parse(prefix).map_err(|e| Error::Crypto(e.to_string()))?;
-    encode::<Bech32>(hrp, &five_bit).map_err(|e| Error::Crypto(e.to_string()))
+    encode_address(&Ripemd160::digest(sha), prefix)
 }
 
 // --- protowire-style helpers ---
 
-fn convert_bits(data: &[u8], from_bits: u32, to_bits: u32, pad: bool) -> Result<Vec<u8>> {
-    let mut acc: u32 = 0;
-    let mut bits: u32 = 0;
-    let mut out = Vec::new();
-    let maxv = (1u32 << to_bits) - 1;
-    for &byte in data {
-        acc = (acc << from_bits) | (byte as u32);
-        bits += from_bits;
-        while bits >= to_bits {
-            bits -= to_bits;
-            out.push((acc >> bits) as u8);
+/// Bounds `(start, end)` of a length-delimited value whose length varint begins
+/// at `pos`. Every step is checked: a hostile length must produce an error, never
+/// a reversed slice range (which would panic and, in WASM, trap the instance).
+fn length_delimited(data: &[u8], pos: usize) -> Result<(usize, usize)> {
+    let truncated = || Error::Validation("truncated length-delimited field".into());
+    let rest = data.get(pos..).ok_or_else(truncated)?;
+    let (length, consumed) = consume_varint(rest)?;
+    let start = pos.checked_add(consumed).ok_or_else(truncated)?;
+    let end = usize::try_from(length)
+        .ok()
+        .and_then(|length| start.checked_add(length))
+        .filter(|end| *end <= data.len())
+        .ok_or_else(truncated)?;
+    Ok((start, end))
+}
+
+/// Bytes occupied by a field value of `wire_type` at the start of `data`
+/// (after its tag), so unknown fields can be skipped correctly.
+fn field_value_len(wire_type: u32, data: &[u8]) -> Result<usize> {
+    let need = |n: usize| {
+        if data.len() >= n {
+            Ok(n)
+        } else {
+            Err(Error::Validation("truncated fixed-width field".into()))
         }
+    };
+    match wire_type {
+        0 => consume_varint(data).map(|(_, used)| used),
+        1 => need(8),
+        2 => length_delimited(data, 0).map(|(_, end)| end),
+        5 => need(4),
+        other => Err(Error::Validation(format!("unsupported wire type {other}"))),
     }
-    if pad {
-        if bits > 0 {
-            out.push((acc << (to_bits - bits)) as u8);
-        }
-    } else if bits >= from_bits || ((acc << (to_bits - bits)) & maxv) != 0 {
-        return Err(Error::Validation("invalid bits conversion".into()));
-    }
-    Ok(out)
 }
 
 fn consume_tag(data: &[u8]) -> Result<(u32, u32, usize)> {
@@ -1212,22 +1225,16 @@ fn consume_bytes_field(data: &[u8], field: u32) -> Result<Vec<Vec<u8>>> {
     while pos < data.len() {
         let (field_number, wire_type, consumed) = consume_tag(&data[pos..])?;
         pos += consumed;
-        if field_number != field || wire_type != 2 {
-            let (len, consumed) = consume_varint(&data[pos..])?;
-            pos += consumed + len as usize;
-            continue;
+        if field_number == field && wire_type == 2 {
+            let (start, end) = length_delimited(data, pos)?;
+            values.push(data[start..end].to_vec());
+            pos = end;
+        } else {
+            pos += field_value_len(wire_type, &data[pos..])?;
         }
-        let (length, consumed) = consume_varint(&data[pos..])?;
-        let end = pos + consumed + length as usize;
-        if end > data.len() {
-            return Err(Error::Validation("truncated bytes field".into()));
-        }
-        values.push(data[pos + consumed..end].to_vec());
-        pos = end;
     }
     Ok(values)
 }
-
 fn consume_repeated_bytes_field(data: &[u8], field: u32) -> Result<Vec<Vec<u8>>> {
     consume_bytes_field(data, field)
 }
@@ -1248,12 +1255,8 @@ fn parse_action(data: &[u8]) -> Result<Action> {
         pos += consumed;
         match wire_type {
             2 => {
-                let (length, consumed) = consume_varint(&data[pos..])?;
-                let end = pos + consumed + length as usize;
-                if end > data.len() {
-                    return Err(Error::Validation("truncated action field".into()));
-                }
-                let field_data = &data[pos + consumed..end];
+                let (start, end) = length_delimited(data, pos)?;
+                let field_data = &data[start..end];
                 pos = end;
                 match field_number {
                     1 => action.schema_version = String::from_utf8_lossy(field_data).into_owned(),
@@ -1274,8 +1277,7 @@ fn parse_action(data: &[u8]) -> Result<Action> {
                 }
             }
             _ => {
-                let (len, consumed) = consume_varint(&data[pos..])?;
-                pos += consumed + len as usize;
+                pos += field_value_len(wire_type, &data[pos..])?;
             }
         }
     }
@@ -1327,6 +1329,56 @@ fn verify_digest(public_key: &[u8], signature: &[u8], digest: &[u8]) -> Result<(
 mod tests {
     use super::*;
     use serde_json::Value;
+
+    #[test]
+    fn scene_manifest_matches_shared_cross_language_golden_vector() {
+        let vectors: Value = serde_json::from_str(include_str!(
+            "../../testvectors/models/scene_manifest_v1.json"
+        ))
+        .unwrap();
+        let raw_signed = &vectors["signed"];
+        let signed = SignedMessageEnvelope {
+            envelope: raw_signed["envelope_base64"].as_str().unwrap().to_string(),
+            signature: raw_signed["signature_base64"].as_str().unwrap().to_string(),
+            public_key: raw_signed["public_key_base64"]
+                .as_str()
+                .unwrap()
+                .to_string(),
+            address: raw_signed["address"].as_str().unwrap().to_string(),
+        };
+        let envelope = &vectors["envelope"];
+        assert_eq!(envelope["domain"].as_str().unwrap(), SCENES_DOMAIN);
+        assert_eq!(
+            envelope["purpose"].as_str().unwrap(),
+            PURPOSE_SCENE_MANIFEST
+        );
+        verify_message(
+            &signed,
+            SCENES_DOMAIN,
+            PURPOSE_SCENE_MANIFEST,
+            envelope["chain_id"].as_str().unwrap(),
+            envelope["nonce"].as_str().unwrap(),
+            vectors["verify_at_unix"].as_u64().unwrap(),
+        )
+        .unwrap();
+        let bytes = BASE64.decode(&signed.envelope).unwrap();
+        let fields = parse_message_envelope(&bytes).unwrap();
+        assert_eq!(
+            fields.payload,
+            BASE64
+                .decode(envelope["payload_base64"].as_str().unwrap())
+                .unwrap()
+        );
+        assert!(verify_message(
+            &signed,
+            SCENES_DOMAIN,
+            PURPOSE_SCENE_MANIFEST,
+            envelope["chain_id"].as_str().unwrap(),
+            envelope["nonce"].as_str().unwrap(),
+            envelope["expires_at_unix"].as_u64().unwrap() + 1,
+        )
+        .is_err());
+    }
 
     #[test]
     fn wasm_payloads_match_shared_cross_language_golden_vectors() {
@@ -1408,6 +1460,45 @@ mod tests {
         assert_eq!(signed.hash.len(), 64);
     }
     #[test]
+    fn signed_transaction_verifies_and_rejects_tampering() {
+        let request = DirectSignRequest {
+            action: Action {
+                schema_version: String::new(),
+                action: "transfer".into(),
+                sender: "knirv1sender".into(),
+                recipient: Some("knirv1recipient".into()),
+                amount: Some(42),
+                payload: Some(br#"{"memo":"hello"}"#.to_vec()),
+                timestamp_unix: 1_750_000_000,
+            },
+            chain_id: "knirv-testnet-1".into(),
+            account_number: 7,
+            sequence: 9,
+            fee: Fee {
+                denom: Some("unrn".into()),
+                amount: Some("3".into()),
+                gas_limit: Some(200_000),
+                payer: None,
+                granter: None,
+            },
+        };
+        let mut key = [0u8; 32];
+        key[31] = 1;
+        let signed = sign_direct_transaction(&key, &request).unwrap();
+        assert_eq!(
+            signed.address,
+            "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e"
+        );
+        verify_transaction(&signed, "knirv-testnet-1", 7).unwrap();
+        assert!(verify_transaction(&signed, "other-chain", 7).is_err());
+        assert!(verify_transaction(&signed, "knirv-testnet-1", 8).is_err());
+        let mut tampered = signed.clone();
+        let mut body = BASE64.decode(&tampered.body_bytes).unwrap();
+        *body.last_mut().unwrap() ^= 1;
+        tampered.body_bytes = BASE64.encode(body);
+        assert!(verify_transaction(&tampered, "knirv-testnet-1", 7).is_err());
+    }
+    #[test]
     fn message_envelope_round_trip() {
         let env = MessageEnvelope {
             schema_version: Some(MESSAGE_SCHEMA_VERSION.into()),
@@ -1464,8 +1555,25 @@ mod tests {
             lease_epoch: 2,
             payload: b"payload".to_vec(),
             ttl_seconds: 0,
+            issued_at_unix: None,
         })
         .unwrap();
+        // An explicit issue time is honoured (this is how WASM hosts supply it).
+        let fixed = new_cli_supervisor_relay(&CLISupervisorRelayParams {
+            request_id: "req-1".into(),
+            user_subject: "user-1".into(),
+            device_id: "device-1".into(),
+            target_id: "supervisor-1".into(),
+            capability: "execute".into(),
+            sequence: 1,
+            lease_epoch: 2,
+            payload: b"payload".to_vec(),
+            ttl_seconds: 120,
+            issued_at_unix: Some(1_750_000_000),
+        })
+        .unwrap();
+        assert_eq!(fixed.issued_at_unix, 1_750_000_000);
+        assert_eq!(fixed.expires_at_unix, 1_750_000_120);
         assert_eq!(relay.target_type, RELAY_TARGET_CLI_SUPERVISOR);
         assert_eq!(
             relay.payload_digest,
@@ -1483,5 +1591,127 @@ mod tests {
             relay.issued_at_unix,
         )
         .unwrap();
+    }
+}
+
+#[cfg(test)]
+mod address_tests {
+    use super::*;
+
+    fn pubkey(n: u8) -> Vec<u8> {
+        let mut key = [0u8; 32];
+        key[31] = n;
+        let sk = SigningKey::from_bytes((&key).into()).unwrap();
+        sk.verifying_key()
+            .to_encoded_point(true)
+            .as_bytes()
+            .to_vec()
+    }
+
+    #[test]
+    fn address_matches_the_canonical_vector_and_roundtrips() {
+        // Same address the Go and TypeScript SDKs derive for private key 1.
+        let canonical = "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e";
+        assert_eq!(address(&pubkey(1), "knirv").unwrap(), canonical);
+        assert_eq!(knirv_address(&pubkey(1)).unwrap(), canonical);
+        let raw = decode_address(canonical, "knirv").unwrap();
+        assert_eq!(raw.len(), 20);
+        assert_eq!(encode_address(&raw, "knirv").unwrap(), canonical);
+    }
+
+    #[test]
+    fn address_rejects_bad_input() {
+        assert!(address(&[2u8; 32], "knirv").is_err()); // wrong length
+        assert!(address(&[0u8; 33], "knirv").is_err()); // 33 bytes, not a curve point
+        assert!(decode_address("knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e", "cosmos").is_err());
+        assert!(decode_address("not-bech32", "knirv").is_err());
+        assert!(encode_address(&[1u8; 19], "knirv").is_err());
+    }
+}
+
+#[cfg(test)]
+mod hostile_input_tests {
+    use super::*;
+
+    /// Every parser that accepts attacker-supplied bytes. None may panic: in
+    /// WASM a panic traps the whole instance (`panic = "abort"`).
+    fn parse_all(data: &[u8]) {
+        let _ = parse_message_envelope(data);
+        let _ = parse_relay_envelope(data);
+        let _ = parse_action_body(data);
+        let _ = parse_sequence(data);
+        let _ = parse_wasm_publication_payload(data);
+        let _ = parse_wasm_manifest_payload(data);
+    }
+
+    #[test]
+    fn hostile_lengths_and_wire_types_error_instead_of_panicking() {
+        let max = [0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x01];
+        let mut cases: Vec<Vec<u8>> = vec![
+            vec![],
+            vec![0x08],          // tag with no value
+            vec![0x0a],          // length-delimited with no length
+            vec![0x0a, 0x05, 1], // length past the end
+            vec![0x12, 0x00],    // empty length-delimited
+            vec![0x1a, 0x80],    // unterminated varint
+            vec![0x09, 1, 2, 3], // fixed64 with 3 bytes
+            vec![0x0d, 1],       // fixed32 with 1 byte
+            vec![0x0b],          // start-group
+            vec![
+                0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x01,
+            ], // tag overflow
+        ];
+        for tag in [0x0a, 0x12, 0x1a, 0x22] {
+            let mut huge = vec![tag];
+            huge.extend_from_slice(&max); // length = 2^64-1
+            cases.push(huge);
+            let mut near = vec![tag, 0xff, 0xff, 0xff, 0xff, 0x0f]; // length = 2^32-1
+            near.push(1);
+            cases.push(near);
+        }
+        for case in &cases {
+            parse_all(case);
+        }
+        assert!(parse_message_envelope(&cases[3]).is_err());
+        assert!(parse_action_body(&cases[3]).is_err());
+    }
+
+    #[test]
+    fn deterministic_fuzz_never_panics() {
+        let mut state = 0x9e37_79b9_7f4a_7c15u64;
+        let mut next = move || {
+            state ^= state << 13;
+            state ^= state >> 7;
+            state ^= state << 17;
+            state
+        };
+        for _ in 0..20_000 {
+            let len = (next() % 80) as usize;
+            let data: Vec<u8> = (0..len).map(|_| next() as u8).collect();
+            parse_all(&data);
+        }
+    }
+
+    #[test]
+    fn unknown_fields_of_every_wire_type_are_skipped() {
+        let envelope = MessageEnvelope {
+            schema_version: None,
+            domain: "d".into(),
+            purpose: "p".into(),
+            chain_id: "c".into(),
+            nonce: "n".into(),
+            issued_at_unix: 1_750_000_000,
+            expires_at_unix: 1_750_000_600,
+            payload: Some(b"hi".to_vec()),
+        };
+        let mut wire = marshal_message_envelope(&envelope).unwrap();
+        wire.extend([0x78, 0x2a]); // field 15 varint 42
+        wire.extend([0x7d, 1, 2, 3, 4]); // field 15 fixed32
+        wire.extend([0x79, 1, 2, 3, 4, 5, 6, 7, 8]); // field 15 fixed64
+        wire.extend([0x7a, 0x02, 9, 9]); // field 15 length-delimited
+        let parsed = parse_message_envelope(&wire).unwrap();
+        assert_eq!(parsed.domain, "d");
+        assert_eq!(parsed.nonce, "n");
+        assert_eq!(parsed.payload, b"hi");
     }
 }

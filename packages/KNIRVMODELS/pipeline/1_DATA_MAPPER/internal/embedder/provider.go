@@ -8,6 +8,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -17,8 +18,11 @@ import (
 
 // EmbeddingProvider is the interface that all embedding providers must implement
 type EmbeddingProvider interface {
-	GetEmbedding(text string) ([]float32, error)
-	GetBatchEmbeddings(texts []string) ([][]float32, error)
+	// GetEmbedding returns the vector together with the exact embedding-space
+	// identity that produced it. Callers must persist/check the returned id,
+	// not infer it from mutable provider configuration.
+	GetEmbedding(text string) (vec []float32, embedderID string, err error)
+	GetBatchEmbeddings(texts []string) (vecs [][]float32, embedderID string, err error)
 	GetProviderStats() map[string]interface{}
 	// EmbedderID names the model behind every vector this provider returns.
 	// Vectors with different ids must never share an index.
@@ -40,16 +44,16 @@ func NewDeterministicProvider() *DeterministicProvider {
 }
 
 // GetEmbedding gets embedding using deterministic text-embedder
-func (p *DeterministicProvider) GetEmbedding(text string) ([]float32, error) {
+func (p *DeterministicProvider) GetEmbedding(text string) ([]float32, string, error) {
 	cleanText := strings.TrimSpace(text)
 	if len(cleanText) == 0 {
-		return nil, fmt.Errorf("empty text provided")
+		return nil, "", fmt.Errorf("empty text provided")
 	}
-	return textembed.Embed(cleanText), nil
+	return textembed.Embed(cleanText), p.EmbedderID(), nil
 }
 
 // GetBatchEmbeddings gets embeddings for multiple texts
-func (p *DeterministicProvider) GetBatchEmbeddings(texts []string) ([][]float32, error) {
+func (p *DeterministicProvider) GetBatchEmbeddings(texts []string) ([][]float32, string, error) {
 	embeddings := make([][]float32, len(texts))
 	for i, text := range texts {
 		cleanText := strings.TrimSpace(text)
@@ -59,11 +63,15 @@ func (p *DeterministicProvider) GetBatchEmbeddings(texts []string) ([][]float32,
 		}
 		embeddings[i] = textembed.Embed(cleanText)
 	}
-	return embeddings, nil
+	return embeddings, p.EmbedderID(), nil
 }
 
-// EmbedderID is the text-embedder model id.
-func (p *DeterministicProvider) EmbedderID() string { return p.model }
+// EmbedderID describes the complete embedding space.  The model id is also
+// the revision for the bundled deterministic model: it is shipped as one
+// immutable implementation rather than selected from a mutable remote tag.
+func (p *DeterministicProvider) EmbedderID() string {
+	return embeddingSpaceID("deterministic", p.model, p.model, p.dimensions, "plain")
+}
 
 // GetProviderStats returns current provider statistics
 func (p *DeterministicProvider) GetProviderStats() map[string]interface{} {
@@ -84,6 +92,8 @@ type HybridEmbeddingProvider struct {
 	HTTPClient     *http.Client
 	RequestTracker *RequestTracker
 	UseCloudflare  bool
+	dimMu          sync.RWMutex
+	dimensions     int
 }
 
 // NewHybridEmbeddingProvider creates a new hybrid embeddings provider
@@ -97,6 +107,7 @@ func NewHybridEmbeddingProvider(cloudflareURL, ollamaURL, model string, maxDaily
 		},
 		RequestTracker: NewRequestTracker(maxDailyRequests),
 		UseCloudflare:  true,
+		dimensions:     768, // BGE Base is pinned to 768 dimensions.
 	}
 }
 
@@ -113,6 +124,7 @@ func NewEmbeddingProvider(backend, cloudflareURL, ollamaURL, model string, maxDa
 		log.Println("Using Ollama embeddings")
 		provider := NewHybridEmbeddingProvider(cloudflareURL, ollamaURL, model, maxDailyRequests)
 		provider.UseCloudflare = false
+		provider.dimensions = 0 // Learn the Ollama dimensionality from its first vector.
 		return provider
 	default:
 		log.Printf("Unknown EMBEDDING_BACKEND: %s, defaulting to deterministic", backend)
@@ -200,14 +212,61 @@ func (rt *RequestTracker) GetStats() (int, int, time.Time) {
 // (E1: BGE and nomic vectors are both 768-d but live in different spaces).
 var ErrQuotaExhausted = fmt.Errorf("cloudflare embedding quota exhausted")
 
-// EmbedderID names the model that produces this provider's vectors. It is
-// fixed for the lifetime of the provider: "cloudflare:<model>" or
-// "ollama:<model>".
+// EmbedderID names the complete embedding space that produces this provider's
+// vectors: <backend>:<model>@<digest|revision>:<dims>:<prefix scheme>. Model
+// tags are used as revisions for Ollama; deployments must use an immutable
+// tag or digest when rebuilding an index. Cloudflare exposes a pinned model
+// name, which is its revision for this API contract.
 func (p *HybridEmbeddingProvider) EmbedderID() string {
 	if p.UseCloudflare {
-		return "cloudflare:" + CloudflareModelName
+		return embeddingSpaceID("cloudflare", CloudflareModelName, CloudflareModelName, p.Dimensions(), "plain")
 	}
-	return "ollama:" + p.Model
+	return embeddingSpaceID("ollama", p.Model, p.Model, p.Dimensions(), "plain")
+}
+
+// Dimensions returns the declared embedding width. Ollama starts unknown and
+// learns this only after the first successful response; returned vectors are
+// always verified before their ID is emitted.
+func (p *HybridEmbeddingProvider) Dimensions() int {
+	p.dimMu.RLock()
+	defer p.dimMu.RUnlock()
+	return p.dimensions
+}
+
+func embeddingSpaceID(backend, model, revision string, dimensions int, prefixScheme string) string {
+	return strings.Join([]string{
+		backend,
+		canonicalIDPart(model) + "@" + canonicalIDPart(revision),
+		strconv.Itoa(dimensions),
+		canonicalIDPart(prefixScheme),
+	}, ":")
+}
+
+// Model tags commonly contain ':' (for example, "nomic-embed-text:latest").
+// Escape delimiters so IDs remain unambiguous and therefore safe as index
+// keys. This is deliberately a minimal, stable percent encoding rather than
+// URL encoding, whose treatment of '/' is not relevant to this identifier.
+func canonicalIDPart(value string) string {
+	return strings.NewReplacer("%", "%25", ":", "%3A", "@", "%40").Replace(value)
+}
+
+// verifyDimensions rejects a changed vector space before it reaches a batch.
+// Ollama does not announce its output dimensions, so the first successful
+// response establishes the per-run contract.
+func (p *HybridEmbeddingProvider) verifyDimensions(vec []float32) error {
+	if len(vec) == 0 {
+		return fmt.Errorf("embedding is empty")
+	}
+	p.dimMu.Lock()
+	defer p.dimMu.Unlock()
+	if p.dimensions == 0 {
+		p.dimensions = len(vec)
+		return nil
+	}
+	if len(vec) != p.dimensions {
+		return fmt.Errorf("embedding dimensions changed: got %d, expected %d", len(vec), p.dimensions)
+	}
+	return nil
 }
 
 // CloudflareModelName is the Workers AI model behind embeddings.knirv.com
@@ -217,26 +276,38 @@ const CloudflareModelName = "bge-base-en-v1.5"
 // GetEmbedding embeds with the one backend this provider was built for. It
 // never falls back to the other backend: a failure or an exhausted quota is an
 // error.
-func (p *HybridEmbeddingProvider) GetEmbedding(text string) ([]float32, error) {
+func (p *HybridEmbeddingProvider) GetEmbedding(text string) ([]float32, string, error) {
 	cleanText := strings.TrimSpace(text)
 	if len(cleanText) == 0 {
-		return nil, fmt.Errorf("empty text provided")
+		return nil, "", fmt.Errorf("empty text provided")
 	}
 
+	var embedding []float32
+	var err error
 	if !p.UseCloudflare {
-		return p.getOllamaEmbedding(cleanText)
+		embedding, err = p.getOllamaEmbedding(cleanText)
+		if err != nil {
+			return nil, "", err
+		}
+		if err := p.verifyDimensions(embedding); err != nil {
+			return nil, "", err
+		}
+		return embedding, p.EmbedderID(), nil
 	}
 
 	if !p.RequestTracker.CanMakeRequest() {
 		used, max, _ := p.RequestTracker.GetStats()
-		return nil, fmt.Errorf("%w (%d/%d)", ErrQuotaExhausted, used, max)
+		return nil, "", fmt.Errorf("%w (%d/%d)", ErrQuotaExhausted, used, max)
 	}
-	embedding, err := p.getCloudflareEmbedding(cleanText)
+	embedding, err = p.getCloudflareEmbedding(cleanText)
 	if err != nil {
-		return nil, fmt.Errorf("cloudflare embedding failed (no fallback to another model): %w", err)
+		return nil, "", fmt.Errorf("cloudflare embedding failed (no fallback to another model): %w", err)
+	}
+	if err := p.verifyDimensions(embedding); err != nil {
+		return nil, "", err
 	}
 	p.RequestTracker.IncrementRequest()
-	return embedding, nil
+	return embedding, p.EmbedderID(), nil
 }
 
 func (p *HybridEmbeddingProvider) getCloudflareEmbedding(text string) ([]float32, error) {
@@ -373,18 +444,23 @@ func (p *HybridEmbeddingProvider) getOllamaEmbedding(text string) ([]float32, er
 }
 
 // GetBatchEmbeddings gets embeddings for multiple texts
-func (p *HybridEmbeddingProvider) GetBatchEmbeddings(texts []string) ([][]float32, error) {
+func (p *HybridEmbeddingProvider) GetBatchEmbeddings(texts []string) ([][]float32, string, error) {
 	embeddings := make([][]float32, len(texts))
+	var embedderID string
 
 	for i, text := range texts {
-		embedding, err := p.GetEmbedding(text)
+		embedding, id, err := p.GetEmbedding(text)
 		if err != nil {
-			return nil, fmt.Errorf("failed to get embedding for text %d: %w", i, err)
+			return nil, "", fmt.Errorf("failed to get embedding for text %d: %w", i, err)
 		}
+		if embedderID != "" && embedderID != id {
+			return nil, "", fmt.Errorf("mixed embedding spaces in batch: %q then %q", embedderID, id)
+		}
+		embedderID = id
 		embeddings[i] = embedding
 	}
 
-	return embeddings, nil
+	return embeddings, embedderID, nil
 }
 
 // GetProviderStats returns current provider statistics

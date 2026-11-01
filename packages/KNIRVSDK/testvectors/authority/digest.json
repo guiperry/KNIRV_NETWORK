@@ -1,0 +1,11 @@
+{
+  "canonical_action_hash": "0867983060e935277446e945d686975b21ea0c4df5d7e9611843b121985d8d6a",
+  "digest": "6681e7e69a80330de9ed7283d7986850e47e42e9df5ec2def3f7bbae2168967a",
+  "domain": "evidence.commit",
+  "epoch": 7,
+  "operator": "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e",
+  "prev_record_hash": "aeebad4a796fcc2e15dc4c6061b45ed9b373f26adfc798ca7d2d8cc58182718e",
+  "scope": "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e",
+  "tier": 1,
+  "version": 1
+}

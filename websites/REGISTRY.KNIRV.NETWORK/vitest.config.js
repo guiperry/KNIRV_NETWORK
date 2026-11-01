@@ -7,6 +7,7 @@ export default defineConfig({
   resolve: {
     alias: {
       "cloudflare:workers": "./src/__tests__/mock-cloudflare-workers.js",
+      "cloudflare:sockets": "./src/__tests__/mock-cloudflare-sockets.js",
     },
   },
 });

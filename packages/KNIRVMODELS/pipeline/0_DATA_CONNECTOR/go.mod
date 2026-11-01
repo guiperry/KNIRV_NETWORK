@@ -33,3 +33,5 @@ require (
 replace knirvmodels => ../..
 
 replace github.com/guiperry/knirv-sdk-go/models => ../../../KNIRVSDK/go-package/models
+
+replace github.com/guiperry/knirv-sdk-go => ../../../KNIRVSDK/go-package

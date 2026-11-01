@@ -52,11 +52,26 @@ type Manager struct {
 	baseURL    string
 }
 
+// Oracle activation modes, mirroring noderole.OracleMode. They are duplicated
+// as plain strings because this package must stay importable without the SDK
+// module; noderole.Resolve is the only place that decides which one a node gets.
+const (
+	ModeActive  = "active"
+	ModeStandby = "standby"
+	ModeOff     = "off"
+)
+
 type ManagerConfig struct {
-	BinaryPath   string
-	SocketPath   string
-	DataPath     string
-	RootKeyPath  string
+	BinaryPath  string
+	SocketPath  string
+	DataPath    string
+	RootKeyPath string
+	// Mode is "active", "standby" or "off" from noderole.Resolve. Empty keeps
+	// the historical behaviour (activate when a valid root.key is present).
+	Mode string
+	// Validator is rendered to the Oracle child as ORACLE_VALIDATOR_MODE. It is
+	// never exported to any other child.
+	Validator    bool
 	StartTimeout time.Duration
 	StopTimeout  time.Duration
 	Stdout       io.Writer
@@ -144,12 +159,31 @@ func (m *Manager) Start(ctx context.Context) error {
 		return nil
 	}
 
-	rootKeyPath, err := m.checkRootKeyActivation()
-	if err != nil {
-		m.logger.Info("No valid root.key found — Oracle will not activate", zap.Error(err))
+	// The mode is decided by noderole.Resolve; this manager only enforces it.
+	mode := strings.TrimSpace(m.config.Mode)
+	if mode == "" {
+		// Callers that predate role resolution keep the old behaviour.
+		mode = ModeActive
+	}
+	switch mode {
+	case ModeOff:
+		m.logger.Info("Oracle mode is off for this node's role — not starting")
+		return nil
+	case ModeStandby:
+		// A standby activates from boot.key (or an in-memory identity when it
+		// is locked); it needs no root.key and starts no signing engine.
+		m.logger.Info("Oracle starting in standby mode (read-only failover ledger)")
+	case ModeActive:
+		rootKeyPath, err := m.resolveActiveRootKey()
+		if err != nil {
+			m.logger.Info("No valid root.key found — Oracle will not activate", zap.Error(err))
+			return nil
+		}
+		m.config.RootKeyPath = rootKeyPath
+	default:
+		m.logger.Warn("Unknown Oracle mode — not starting", zap.String("mode", mode))
 		return nil
 	}
-	m.config.RootKeyPath = rootKeyPath
 
 	resolved, err := m.resolveBinaryPath()
 	if err != nil {
@@ -190,6 +224,11 @@ func (m *Manager) Start(ctx context.Context) error {
 		fmt.Sprintf("ORACLE_DATA_DIR=%s", m.config.DataPath),
 		fmt.Sprintf("ORACLE_ROOT_KEY_PATH=%s", m.config.RootKeyPath),
 	)
+	// Validator mode and activation mode are set on this child alone, from the
+	// role resolution: no other process reads them and no key material is
+	// involved.
+	env = setEnvValue(env, "ORACLE_VALIDATOR_MODE", fmt.Sprintf("%t", m.config.Validator))
+	env = setEnvValue(env, "ORACLE_MODE", mode)
 
 	for k, v := range m.config.EnvOverrides {
 		env = append(env, fmt.Sprintf("%s=%s", k, v))
@@ -230,7 +269,7 @@ func (m *Manager) Start(ctx context.Context) error {
 	return nil
 }
 
-func (m *Manager) checkRootKeyActivation() (string, error) {
+func (m *Manager) resolveActiveRootKey() (string, error) {
 	rootKeyPath, err := ResolveAndValidateRootKey(m.config.RootKeyPath)
 	if err != nil {
 		return "", err
@@ -238,6 +277,19 @@ func (m *Manager) checkRootKeyActivation() (string, error) {
 
 	m.logger.Info("Found valid root.key — Oracle will activate", zap.String("path", rootKeyPath))
 	return rootKeyPath, nil
+}
+
+// setEnvValue replaces any inherited value for key so execve sees exactly one.
+func setEnvValue(env []string, key, value string) []string {
+	prefix := key + "="
+	out := make([]string, 0, len(env)+1)
+	for _, entry := range env {
+		if strings.HasPrefix(entry, prefix) {
+			continue
+		}
+		out = append(out, entry)
+	}
+	return append(out, prefix+value)
 }
 
 func (m *Manager) resolveBinaryPath() (string, error) {

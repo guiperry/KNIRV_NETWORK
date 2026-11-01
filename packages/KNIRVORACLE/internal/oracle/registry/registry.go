@@ -11,7 +11,7 @@ import (
 )
 
 // DefaultProofWindow is the wall-clock window, in seconds, allowed for
-// phase-2 proof submission when a chain does not specify its own — about 30
+// finality proof submission when a chain does not specify its own — about 30
 // minutes, over ten times the measured 175-second cold development
 // setup/prove/verify cycle for the minimal PLONK circuit. This is real time,
 // not an Oracle block-height count: the Oracle's own commit cadence is just a
@@ -142,6 +142,24 @@ func (r *Registry) List() []*types.ChainRegistration {
 	return out
 }
 
+// Replace installs a verified replication snapshot. It intentionally bypasses
+// admission checks: the active Oracle performed those checks before signing
+// the head whose registry hash the follower verified. Callers must never use
+// this for untrusted API input.
+func (r *Registry) Replace(chains []*types.ChainRegistration) error {
+	next := make(map[string]*types.ChainRegistration, len(chains))
+	for _, chain := range chains {
+		if chain == nil || chain.ChainID == "" {
+			return fmt.Errorf("invalid replicated chain registration")
+		}
+		next[chain.ChainID] = chain
+	}
+	r.mu.Lock()
+	r.chains = next
+	r.mu.Unlock()
+	return r.Persist()
+}
+
 // AuthorWeight returns the registered weight of an author address, and whether
 // it is a recognized author for the chain.
 func (r *Registry) AuthorWeight(chainID, addr string) (uint64, bool) {
@@ -260,7 +278,7 @@ func (r *Registry) Advance(chainID string, lastHeight uint64, lastCheckHash [32]
 }
 
 // SetVerificationKey enrolls a SNARK verification key + preferred proof system
-// for a registered chain (merkle-math.md Phase 5). The key lets the Oracle
+// for a registered chain. The key lets the Oracle
 // accept groth16/plonk finality records; hashchain-v0 needs no key.
 func (r *Registry) SetVerificationKey(chainID, proofSystem string, vk []byte) error {
 	if proofSystem == "" {

@@ -18,10 +18,10 @@ const (
 )
 
 var (
-	ErrDIDNotFound      = fmt.Errorf("did not found")
-	ErrDIDDeactivated   = fmt.Errorf("did is deactivated")
+	ErrDIDNotFound       = fmt.Errorf("did not found")
+	ErrDIDDeactivated    = fmt.Errorf("did is deactivated")
 	ErrUnsupportedMethod = fmt.Errorf("unsupported did method")
-	ErrInvalidEncoding  = fmt.Errorf("invalid did encoding")
+	ErrInvalidEncoding   = fmt.Errorf("invalid did encoding")
 )
 
 type DIDStore interface {

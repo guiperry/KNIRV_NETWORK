@@ -120,6 +120,48 @@ fn result(valid: bool, tip: &str, failing_index: Option<usize>, error: Option<St
     .unwrap_or_else(|_| "{\"valid\":false,\"tip\":\"\",\"error\":\"serialization failed\"}".into())
 }
 
+/// Builds a hash chain over `events` (`{timestamp, type, payload?}` objects):
+/// assigns each its index, `prev_hash` and `hash` and returns the events with the
+/// chain tip. An event without a timestamp is rejected.
+pub fn build_chain(events: &[Value]) -> Result<(Vec<Value>, String), String> {
+    let mut previous = String::new();
+    let mut out = Vec::with_capacity(events.len());
+    for (index, raw) in events.iter().enumerate() {
+        let timestamp = raw.get("timestamp").and_then(Value::as_str).unwrap_or_default();
+        if timestamp.trim().is_empty() {
+            return Err(format!("event {index} missing timestamp"));
+        }
+        let event_type = raw.get("type").and_then(Value::as_str).unwrap_or_default();
+        let payload = raw.get("payload").filter(|p| !p.is_null()).cloned();
+        let hash = event_hash(
+            &Event {
+                index,
+                timestamp: timestamp.to_owned(),
+                event_type: event_type.to_owned(),
+                payload: payload.clone(),
+                prev_hash: String::new(),
+                hash: String::new(),
+            },
+            &previous,
+        )
+        .map_err(|e| e.to_string())?;
+        let mut event = serde_json::Map::new();
+        event.insert("index".into(), index.into());
+        event.insert("timestamp".into(), timestamp.into());
+        event.insert("type".into(), event_type.into());
+        if let Some(payload) = payload {
+            event.insert("payload".into(), payload);
+        }
+        if !previous.is_empty() {
+            event.insert("prev_hash".into(), previous.clone().into());
+        }
+        event.insert("hash".into(), hash.clone().into());
+        out.push(Value::Object(event));
+        previous = hash;
+    }
+    Ok((out, previous))
+}
+
 pub fn artifact_merkle_root(hashes: &[String]) -> String {
     if hashes.is_empty() {
         return sha256_prefixed(&[]);

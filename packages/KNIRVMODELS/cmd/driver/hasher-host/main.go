@@ -32,24 +32,24 @@ import (
 	"knirvmodels/internal/config"
 	"knirvmodels/internal/discovery"
 	devicepkg "knirvmodels/internal/driver/device"
-	"knirvmodels/internal/host"
 	"knirvmodels/internal/formal/lean"
+	"knirvmodels/internal/host"
 	hasherapi "knirvmodels/pkg/hashing/api"
-	pb "knirvmodels/proto/models/v1"
-	"knirvmodels/pkg/hashing/proofasset"
 	"knirvmodels/pkg/hashing/inference"
 	jitterpkg "knirvmodels/pkg/hashing/jitter"
 	hashermath "knirvmodels/pkg/hashing/math"
 	"knirvmodels/pkg/hashing/methods/asic"
 	"knirvmodels/pkg/hashing/neural"
+	"knirvmodels/pkg/hashing/proofasset"
 	"knirvmodels/pkg/hashing/tokenizer"
 	"knirvmodels/pkg/hashing/transformer"
+	pb "knirvmodels/proto/models/v1"
 )
 
 const (
-	portFile    = "/tmp/hasher-host.port"
-	socketFile  = "/tmp/hasher-host-grpc.sock"
-	socketDir   = "/tmp/knirvmodels"
+	portFile   = "/tmp/hasher-host.port"
+	socketFile = "/tmp/hasher-host-grpc.sock"
+	socketDir  = "/tmp/knirvmodels"
 )
 
 // writePortFile writes the port to a temporary file for the CLI to discover.
@@ -148,7 +148,8 @@ var (
 	framesDir = flag.String("frames-dir", "", "directory of training frame JSON files to load into the FlashSearcher at startup (e.g. /data/hasher/frames)")
 
 	// Direct ASIC mode: skip CGMiner and drive the ASIC directly over raw USB
-	directMode = flag.Bool("direct", false, "skip CGMiner and drive the ASIC directly over raw USB (no stratum pool, no CGMiner); mutually exclusive in effect with CGMiner mode")
+	directMode   = flag.Bool("direct", false, "skip CGMiner and drive the ASIC directly over raw USB (no stratum pool, no CGMiner); mutually exclusive in effect with CGMiner mode")
+	directJitter = flag.Bool("direct-jitter", false, "also let the jitter engine hash via the ASIC (requires -direct); other ComputeHash callers keep literal sha256")
 
 	// CGMiner API (direct ASIC integration)
 	cgminerHost    = flag.String("cgminer-host", "", "CGMiner API host (e.g. 192.168.12.151). If set, the ASIC mines the final golden nonce for each inference token")
@@ -180,7 +181,7 @@ type Orchestrator struct {
 	miningNeuron    *neural.MiningNeuron         // Mining neuron for proof-of-work attestation
 	jitterEngine    *jitterpkg.JitterEngine      // Core inference engine: 21-pass associative loop
 	cgminerMethod   *devicepkg.CGMinerHashMethod // CGMiner ASIC for final golden-nonce mining
-	directMode      bool                        // Direct ASIC mode (skip CGMiner, drive via raw USB)
+	directMode      bool                         // Direct ASIC mode (skip CGMiner, drive via raw USB)
 	discoveryResult *discovery.DiscoveryResult
 	startTime       time.Time
 	mu              sync.RWMutex
@@ -192,14 +193,14 @@ type Orchestrator struct {
 	mathServer *hasherapi.MathVerifierServer
 
 	// Formal verification: attached when --formal-verifier is enabled.
-	formalVerifierEnabled bool
-	leanWorker            interface{} // *lean.Worker — kept as interface{} to avoid import cycle; cast in runAPIServer
-	proofLedgerPath       string
+	formalVerifierEnabled    bool
+	leanWorker               interface{} // *lean.Worker — kept as interface{} to avoid import cycle; cast in runAPIServer
+	proofLedgerPath          string
 	formalVerifierGRPCServer *lean.GRPCServer
-	grpcServer            *grpc.Server
-	grpcPort              int
-	grpcSocket            string
-	knirvserverDeployed   bool
+	grpcServer               *grpc.Server
+	grpcPort                 int
+	grpcSocket               string
+	knirvserverDeployed      bool
 
 	// Connection monitoring
 	connectionHealthy bool          // Current connection health status
@@ -320,6 +321,7 @@ func main() {
 			DeployTimeout:  120 * time.Second,
 			ForceRedeploy:  *forceRedeploy,
 			DirectMode:     *directMode,
+			DirectJitter:   *directJitter,
 		}
 		var err error
 		deployer, err = host.NewDeployer(deployConfig)
@@ -346,6 +348,7 @@ func main() {
 				ConnectTimeout: 30 * time.Second,
 				DeployTimeout:  120 * time.Second,
 				DirectMode:     *directMode,
+				DirectJitter:   *directJitter,
 			}
 			var err error
 			deployer, err = host.NewDeployer(deployConfig)
@@ -380,12 +383,13 @@ func main() {
 
 			// Deployment is mandatory - create deployer if not already created
 			if deployer == nil {
-					deployConfig := &host.DeploymentConfig{
+				deployConfig := &host.DeploymentConfig{
 					AutoDeploy:     true,
 					CleanupOnExit:  *cleanupOnExit,
 					ConnectTimeout: 30 * time.Second,
 					DeployTimeout:  120 * time.Second,
 					DirectMode:     *directMode,
+					DirectJitter:   *directJitter,
 				}
 				var createErr error
 				deployer, createErr = host.NewDeployer(deployConfig)
@@ -673,24 +677,24 @@ func main() {
 
 	// Create orchestrator
 	orch := &Orchestrator{
-		asicClient:           asicClient,
-		engine:               engine,
-		network:              network,
-		cryptoModel:          cryptoModel,
-		miningNeuron:         miningNeuron,
-		jitterEngine:         inferenceJitterEngine,
-		cgminerMethod:        cgminerMethod,
-		directMode:           *directMode,
-		discoveryResult:      discoveryResult,
-		startTime:            time.Now(),
-		deployer:             deployer,
-		connectionHealthy:    asicClient != nil && !asicClient.IsUsingFallback(),
-		lastHealthCheck:      time.Now(),
-		stopMonitor:          make(chan struct{}),
-		stopLogMonitorChan:   make(chan struct{}),
-		serverDeviceIPAddr:   extractIPFromAddress(serverDeviceAddr),
-		grpcSocket:           resolveGRPCSocket(*grpcSocket, *knirvserverDeployed),
-		knirvserverDeployed:  *knirvserverDeployed,
+		asicClient:          asicClient,
+		engine:              engine,
+		network:             network,
+		cryptoModel:         cryptoModel,
+		miningNeuron:        miningNeuron,
+		jitterEngine:        inferenceJitterEngine,
+		cgminerMethod:       cgminerMethod,
+		directMode:          *directMode,
+		discoveryResult:     discoveryResult,
+		startTime:           time.Now(),
+		deployer:            deployer,
+		connectionHealthy:   asicClient != nil && !asicClient.IsUsingFallback(),
+		lastHealthCheck:     time.Now(),
+		stopMonitor:         make(chan struct{}),
+		stopLogMonitorChan:  make(chan struct{}),
+		serverDeviceIPAddr:  extractIPFromAddress(serverDeviceAddr),
+		grpcSocket:          resolveGRPCSocket(*grpcSocket, *knirvserverDeployed),
+		knirvserverDeployed: *knirvserverDeployed,
 	}
 
 	// Initialize formal verifier worker if enabled.
@@ -1968,8 +1972,8 @@ func (o *Orchestrator) handleSubmitProof(c *gin.Context) {
 	}
 
 	var req struct {
-		CanonicalProofAsset     []byte `json:"canonical_proof_asset"`
-		RequestHardwareAttestation bool `json:"request_hardware_attestation"`
+		CanonicalProofAsset        []byte `json:"canonical_proof_asset"`
+		RequestHardwareAttestation bool   `json:"request_hardware_attestation"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body: " + err.Error()})
@@ -2176,11 +2180,11 @@ func (o *Orchestrator) handleReplayProof(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"proof_asset_id": proofAssetID,
-		"original_status": targetEntry.Receipt.Status,
-		"replay_status":   result.Receipt.Status,
+		"proof_asset_id":    proofAssetID,
+		"original_status":   targetEntry.Receipt.Status,
+		"replay_status":     result.Receipt.Status,
 		"replay_diagnostic": result.Diagnostic,
-		"match":           targetEntry.Receipt.Status == result.Receipt.Status,
+		"match":             targetEntry.Receipt.Status == result.Receipt.Status,
 	})
 }
 
@@ -2226,14 +2230,14 @@ func (o *Orchestrator) handleAttestProof(c *gin.Context) {
 
 	attestSvc := proofasset.NewAsicAttestationService(true)
 	result := attestSvc.ComputeAttestation(proofasset.AttestationRequest{
-		ProofAssetID:     proofAssetID,
-		Receipt:          targetEntry.Receipt,
-		HeaderVersion:    1,
-		Target:           0x10000,
-		DeviceFirmware:   "software-fallback",
-		AsicSlots:        [12]uint32{},
-		NonceStart:       0,
-		NonceEnd:         0xFFFF,
+		ProofAssetID:   proofAssetID,
+		Receipt:        targetEntry.Receipt,
+		HeaderVersion:  1,
+		Target:         0x10000,
+		DeviceFirmware: "software-fallback",
+		AsicSlots:      [12]uint32{},
+		NonceStart:     0,
+		NonceEnd:       0xFFFF,
 	})
 
 	if !result.Attested {
@@ -2274,12 +2278,12 @@ func (o *Orchestrator) handleFormalVerificationMetrics(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"total_submissions":     resp.TotalSubmissions,
-		"verified_count":        resp.VerifiedCount,
-		"rejected_count":        resp.RejectedCount,
-		"error_count":           resp.ErrorCount,
-		"queue_depth":           resp.QueueDepth,
-		"median_check_time_ms":  resp.MedianCheckTimeMs,
+		"total_submissions":    resp.TotalSubmissions,
+		"verified_count":       resp.VerifiedCount,
+		"rejected_count":       resp.RejectedCount,
+		"error_count":          resp.ErrorCount,
+		"queue_depth":          resp.QueueDepth,
+		"median_check_time_ms": resp.MedianCheckTimeMs,
 	})
 }
 
@@ -2539,9 +2543,9 @@ func showInfo(orch *Orchestrator) {
 		fmt.Printf("Network:          [%d, %d, %d, %d]\n", *inputSize, *hidden1, *hidden2, *outputSize)
 		fmt.Printf("Passes:           %d\n", *passes)
 		fmt.Printf("Jitter:           %.3f\n", *jitter)
-	fmt.Printf("Seed Rotation:    %v\n", *seedRotation)
-	fmt.Printf("Direct ASIC Mode: %v\n", *directMode)
-	fmt.Println("\nNote: Running in software fallback mode without ASIC hardware")
+		fmt.Printf("Seed Rotation:    %v\n", *seedRotation)
+		fmt.Printf("Direct ASIC Mode: %v\n", *directMode)
+		fmt.Println("\nNote: Running in software fallback mode without ASIC hardware")
 		return
 	}
 

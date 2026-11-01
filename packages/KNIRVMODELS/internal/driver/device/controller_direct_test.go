@@ -154,3 +154,52 @@ func TestUSBTxConfigFanPWMOnlyChangesFanFieldAndCRC(t *testing.T) {
 		t.Errorf("off TxConfig CRC = 0x%04x, want 0x%04x", want, got)
 	}
 }
+
+func TestComputeHashDirectMode80BytesWithoutJitterStaysSoftware(t *testing.T) {
+	d := &Device{
+		useDirectASIC: true,
+		usbDevice:     nil,
+		stats:         &DeviceStats{},
+		mu:            sync.RWMutex{},
+	}
+	data := make([]byte, 80)
+	hash, err := d.ComputeHash(data)
+	if err != nil {
+		t.Fatalf("ComputeHash without jitter opt-in should use software, got error: %v", err)
+	}
+	expected := sha256.Sum256(data)
+	if hash != expected {
+		t.Errorf("hash mismatch: got %x, want %x", hash, expected)
+	}
+}
+
+func TestComputeHashDirectJitterWithoutDirectModeStaysSoftware(t *testing.T) {
+	d := &Device{
+		useDirectASIC:   false,
+		useDirectJitter: true,
+		usbDevice:       nil,
+		stats:           &DeviceStats{},
+		mu:              sync.RWMutex{},
+	}
+	data := make([]byte, 80)
+	hash, err := d.ComputeHash(data)
+	if err != nil {
+		t.Fatalf("ComputeHash: %v", err)
+	}
+	expected := sha256.Sum256(data)
+	if hash != expected {
+		t.Errorf("hash mismatch: got %x, want %x", hash, expected)
+	}
+}
+
+func TestEnableDirectJitterOptsIntoHardwarePath(t *testing.T) {
+	d := &Device{
+		useDirectASIC: true,
+		stats:         &DeviceStats{},
+		mu:            sync.RWMutex{},
+	}
+	d.EnableDirectJitter(true)
+	if _, err := d.ComputeHash(make([]byte, 80)); err == nil {
+		t.Fatal("expected hardware path error with no USB device after opting into jitter")
+	}
+}

@@ -6,6 +6,8 @@ toolchain go1.24.11
 
 replace github.com/guiperry/knirv-inference-go => ../KNIRVINFERENCER
 
+replace github.com/guiperry/knirv-sdk-go => ../KNIRVSDK/go-package
+
 replace github.com/guiperry/knirv-sdk-go/models => ../KNIRVSDK/go-package/models
 
 replace github.com/libp2p/go-libp2p-p2p/protocol/circuitv2/autorelay => github.com/libp2p/go-libp2p-circuit v0.12.0
@@ -82,7 +84,7 @@ require (
 	github.com/bits-and-blooms/bitset v1.24.0 // indirect
 	github.com/blang/semver/v4 v4.0.0 // indirect
 	github.com/btcsuite/btcd/btcec/v2 v2.3.5 // indirect
-	github.com/btcsuite/btcd/btcutil v1.2.0 // indirect
+	github.com/btcsuite/btcd/chaincfg/chainhash v1.1.0 // indirect
 	github.com/bytedance/sonic v1.14.0 // indirect
 	github.com/bytedance/sonic/loader v0.3.0 // indirect
 	github.com/cloudwego/base64x v0.1.6 // indirect
@@ -118,6 +120,7 @@ require (
 	github.com/spf13/cast v1.7.1 // indirect
 	github.com/spf13/pflag v1.0.6 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
+	github.com/tetratelabs/wazero v1.9.0 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ugorji/go/codec v1.3.0 // indirect
 	github.com/wk8/go-ordered-map/v2 v2.1.8 // indirect

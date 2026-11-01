@@ -1,0 +1,20 @@
+{
+  "description": "Deterministic requests run against every host (Go/wazero WASI build, TypeScript/wasm-bindgen build). The responses must be identical. Network cases come from network.json.",
+  "requests": [
+    {"operation": "crypto.sha256", "payload": {"data": "knirv"}},
+    {"operation": "crypto.sha256", "payload": {"data": ""}},
+    {"operation": "uri.derive_id", "payload": {"raw": "id-a"}},
+    {"operation": "uri.derive_id", "payload": {"raw": "id-b"}},
+    {"operation": "crypto.sha256", "payload": {"data": 5}},
+    {"operation": "no.such_operation", "payload": {}},
+    {"operation": "wasm.manifest", "payload": {}},
+    {"operation": "models.encode_byte_v1", "payload": {"text": "h\u00e9llo", "width": 8}},
+    {"operation": "models.input_width", "payload": {"config": {"max_seq_len": 40, "summary_slots": 1}}},
+    {"operation": "models.build_advise_prompt", "payload": {"current_phase": "develop", "remaining_budget": {"b": 2, "a": 1}, "agent_chain": ["x", "y"], "evidence_summary": [{"class": "z"}, {"class": "a"}], "task_summary": {"request": "use AKIAABCDEFGHIJKLMNOP and password=hunter2hunter2", "intent": "i", "risk": "r"}}},
+    {"operation": "models.platform_roles", "payload": {"status": {"daemon": [{"name": "head", "version": "v1", "ready": true, "loaded": true}], "llama": {"ready": true, "base_sha256": "0123456789abcdef0123", "adapters": [{"name": "s", "loaded": true}]}, "stats": {"external": {"circuit": "open", "last_error": "boom"}}}}},
+    {"operation": "frame.defaults", "payload": {}},
+    {"operation": "frame.hash", "payload": {"system": "hello"}},
+    {"operation": "evidence.merkle_root", "payload": {"artifact_hashes": ["aa", "sha256:bb", " cc "]}},
+    {"operation": "evidence.build_event_log", "payload": {"events": [{"timestamp": "2026-10-31T00:00:00Z", "type": "start", "payload": {"b": 1, "a": 2}}, {"timestamp": "2026-10-31T00:00:01Z", "type": "end"}]}}
+  ]
+}

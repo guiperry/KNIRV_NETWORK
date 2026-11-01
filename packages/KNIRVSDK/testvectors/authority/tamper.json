@@ -1,0 +1,61 @@
+{
+  "cases": [
+    {
+      "error": "ErrRecordSignature",
+      "field": "domain"
+    },
+    {
+      "error": "ErrRecordSignature",
+      "field": "scope"
+    },
+    {
+      "error": "ErrUnknownOperator",
+      "field": "operator"
+    },
+    {
+      "error": "ErrSessionSignature",
+      "field": "epoch"
+    },
+    {
+      "error": "ErrRecordSignature",
+      "field": "canonical_action_hash"
+    },
+    {
+      "error": "ErrRecordSignature",
+      "field": "prev_record_hash"
+    },
+    {
+      "error": "ErrHeader",
+      "field": "header_prevhash"
+    },
+    {
+      "error": "ErrHeader",
+      "field": "header_merkle"
+    },
+    {
+      "error": "ErrHeader",
+      "field": "nonce"
+    },
+    {
+      "error": "ErrHeader",
+      "field": "hash"
+    },
+    {
+      "error": "ErrTarget",
+      "field": "target_bits"
+    },
+    {
+      "error": "ErrWitness",
+      "field": "witness_kind"
+    },
+    {
+      "error": "ErrSessionSignature",
+      "field": "session_signature"
+    },
+    {
+      "error": "ErrRecordSignature",
+      "field": "record_signature"
+    }
+  ],
+  "version": 1
+}

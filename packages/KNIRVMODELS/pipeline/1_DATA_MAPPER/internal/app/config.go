@@ -102,6 +102,11 @@ func ParseFlags() *Config {
 
 	config.CloudflareEndpoint = os.Getenv("CLOUDFLARE_EMBEDDINGS_URL")
 	config.EmbeddingBackend = getEmbeddingBackend()
+	config.EmbeddingDataClass = strings.ToLower(strings.TrimSpace(os.Getenv("KNIRV_EMBEDDING_DATA_CLASS")))
+	if config.EmbeddingDataClass == "" {
+		config.EmbeddingDataClass = "public"
+	}
+	config.AllowCloudflareForPrivate = strings.EqualFold(strings.TrimSpace(os.Getenv("KNIRV_EMBEDDINGS_ALLOW_CLOUDFLARE_FOR_PRIVATE")), "true")
 
 	// Define flags
 	flag.StringVar(&config.InputDir, "input", config.InputDir, "Directory containing PDF files")
@@ -146,6 +151,11 @@ func ParseFlags() *Config {
 	flag.BoolVar(&config.GPUOptimizations, "gpu-opt", false, "Enable GPU-specific optimizations")
 
 	flag.Parse()
+
+	if config.EmbeddingDataClass == "private" && config.EmbeddingBackend == "cloudflare" && !config.AllowCloudflareForPrivate {
+		log.Println("Private embedding data is local-only; selecting Ollama instead of Cloudflare")
+		config.EmbeddingBackend = "ollama"
+	}
 
 	// Parse categories string
 	config.ArxivCategories = strings.Split(categoriesStr, ",")

@@ -37,8 +37,8 @@ import (
 type LeafKind byte
 
 const (
-	LeafCheckpoint LeafKind = 0x01 // phase-1 provisional checkpoint
-	LeafFinality   LeafKind = 0x02 // phase-2 finality record
+	LeafCheckpoint LeafKind = 0x01 // provisional checkpoint leaf
+	LeafFinality   LeafKind = 0x02 // finality record leaf
 	LeafRejection  LeafKind = 0x03 // window-miss / proof-fail tombstone
 )
 

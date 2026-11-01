@@ -6,8 +6,10 @@ const projectRoot = path.resolve(__dirname, '..');
 const tsJest = ['ts-jest', { astTransformers: { before: ['<rootDir>/config/jest-import-meta-transformer.cjs'] } }];
 // The Babel config lives in config/, where babel-jest wouldn't find it.
 const babelJest = ['babel-jest', { configFile: path.join(projectRoot, 'config', 'babel.config.cjs') }];
+const sdkGlue = '<rootDir>/config/jest-sdk-glue-transformer.cjs'; // see that file
 const projectTransform = {
   '^.+\\.(ts|tsx)$': tsJest,
+  '(KNIRVSDK/npm-package|node_modules/@knirv/sdk)/.+\\.js$': sdkGlue,
   '^.+\\.(js|jsx)$': babelJest
 };
 
@@ -63,7 +65,7 @@ const config = {
     'node_modules/react-native/.+\\.(js)$': 'babel-jest'
   },
   transformIgnorePatterns: [
-    'node_modules/(?!(@react-native|@expo|expo|@paralleldrive|@noble|formidable|superagent|three/examples/jsm)/)'
+    'node_modules/(?!(@react-native|@expo|expo|@paralleldrive|@noble|@knirv|formidable|superagent|three/examples/jsm)/)'
   ],
   testMatch: [
     '<rootDir>/tests/**/*.test.(ts|tsx|js|jsx)',
@@ -182,7 +184,7 @@ const config = {
       rootDir: projectRoot,
       testMatch: ['<rootDir>/src/services/**/__tests__/**/*.test.(ts|tsx|js|jsx)'],
       testPathIgnorePatterns: ['<rootDir>/node_modules/', '<rootDir>/src/services/__tests__/ActuarialSyndicateService.test.ts'],
-      transform: { '^.+\\.(ts|tsx)$': tsJest, '^.+\\.(js|jsx)$': babelJest },
+      transform: projectTransform,
       testEnvironment: 'jsdom',
       testEnvironmentOptions: {
         html: '<html><body><div id="root"></div></body></html>',
@@ -196,7 +198,7 @@ const config = {
       rootDir: projectRoot,
       testMatch: ['<rootDir>/src/services/__tests__/ActuarialSyndicateService.test.ts'],
       testEnvironment: 'jsdom',
-      transform: { '^.+\\.(ts|tsx)$': tsJest, '^.+\\.(js|jsx)$': babelJest },
+      transform: projectTransform,
       setupFiles: ['<rootDir>/config/jest.actuarial.setup.cjs'],
       setupFilesAfterEnv: []
     }

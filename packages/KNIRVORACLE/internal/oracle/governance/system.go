@@ -43,6 +43,11 @@ type GovernanceSystem struct {
 	// configured (e.g. governance running without SetSigningIdentity ever
 	// having been called), in which case syncRegistryLocked is a no-op.
 	registrySync *RegistrySync
+
+	// recorder/lastFingerprint implement the durable ledger hook: one snapshot
+	// per changed state, installed by Oracle.initLedger.
+	recorder        func(kind string, payload any) error
+	lastFingerprint string
 }
 
 // NewGovernanceSystem creates a new governance system
@@ -63,6 +68,7 @@ func (gs *GovernanceSystem) SetChainID(chainID string) error {
 	}
 	gs.mu.Lock()
 	defer gs.mu.Unlock()
+	defer gs.snapshotLocked()
 	gs.chainID = chainID
 	return nil
 }
@@ -73,6 +79,7 @@ func (gs *GovernanceSystem) SetChainID(chainID string) error {
 func (gs *GovernanceSystem) SetRegistrySync(rs *RegistrySync) {
 	gs.mu.Lock()
 	defer gs.mu.Unlock()
+	defer gs.snapshotLocked()
 	gs.registrySync = rs
 }
 
@@ -105,6 +112,7 @@ func (gs *GovernanceSystem) syncRegistryLocked() {
 func (gs *GovernanceSystem) CreateProposal(req *ProposalRequest, deposit *big.Int) (*Proposal, error) {
 	gs.mu.Lock()
 	defer gs.mu.Unlock()
+	defer gs.snapshotLocked()
 
 	// Validate proposal
 	if err := gs.validateProposalRequest(req); err != nil {
@@ -215,6 +223,7 @@ func (gs *GovernanceSystem) ListActiveProposals() []*Proposal {
 func (gs *GovernanceSystem) UpdateProposalStatus(proposalID string) error {
 	gs.mu.Lock()
 	defer gs.mu.Unlock()
+	defer gs.snapshotLocked()
 
 	proposal, exists := gs.proposals[proposalID]
 	if !exists {
@@ -259,6 +268,7 @@ func (gs *GovernanceSystem) UpdateProposalStatus(proposalID string) error {
 func (gs *GovernanceSystem) CancelProposal(proposalID string, requester types.Address) error {
 	gs.mu.Lock()
 	defer gs.mu.Unlock()
+	defer gs.snapshotLocked()
 
 	proposal, exists := gs.proposals[proposalID]
 	if !exists {
@@ -297,6 +307,7 @@ func (gs *GovernanceSystem) GetNetworkParameters() *NetworkParameters {
 func (gs *GovernanceSystem) UpdateNetworkParameters(params *NetworkParameters) error {
 	gs.mu.Lock()
 	defer gs.mu.Unlock()
+	defer gs.snapshotLocked()
 
 	// Validate parameters
 	if err := gs.validateNetworkParameters(params); err != nil {

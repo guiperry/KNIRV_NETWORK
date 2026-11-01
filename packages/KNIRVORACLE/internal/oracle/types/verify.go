@@ -7,8 +7,8 @@ import (
 	"math"
 	"time"
 
-	knirvsigning "github.com/guiperry/knirv-sdk-go/signing"
 	"github.com/ethereum/go-ethereum/crypto"
+	knirvsigning "github.com/guiperry/knirv-sdk-go/signing"
 )
 
 func (c *Checkpoint) Digest() [32]byte {

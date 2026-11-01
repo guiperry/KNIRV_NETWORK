@@ -1,8 +1,3 @@
-/**
- * Wire contract for the KNIRVMODELS daemon (TypeScript twin of
- * go-package/models). Both are tested against testvectors/models so they cannot
- * drift silently.
- */
 /** Where the daemon serves each model. One namespace for all three. */
 export declare const HEAD_PREFIX = "/models/head";
 export declare const REGISTRY_PATH = "/models/registry";
@@ -64,6 +59,93 @@ export interface HasherStatus {
     total_inferences: number;
     hardware_inferences: number;
     software_fallbacks: number;
+}
+export interface IndexSearchRequest {
+    text: string;
+    subject?: string;
+    property?: string;
+    value?: string;
+    k?: number;
+    mode?: "index" | "flash" | "hybrid";
+    include_quarantine?: boolean;
+    /** Forwarded as X-KNIRV-Tenant, never serialized into the request body. */
+    tenant?: string;
+}
+export interface IndexSearchHit {
+    span_id: string;
+    snapshot: string;
+    start: number;
+    end: number;
+    text: string;
+    source_tier: string;
+    title?: string;
+    url?: string;
+    license?: string;
+    fetched_at?: string;
+    score: number;
+    matched?: string[];
+    fact?: boolean;
+    source?: string;
+    revision?: string;
+}
+export interface IndexSearchResult {
+    hits: IndexSearchHit[];
+    retrieval: string;
+    index_version: string;
+    embedder_id: string;
+    flash_used: boolean;
+    outbound_queries?: string[];
+    degraded: boolean;
+    stale: boolean;
+}
+export interface OrganizationOntology {
+    trade_secrets?: string[];
+    business_logic?: string[];
+    user_data?: string[];
+    rules?: string[];
+    regulations?: string[];
+    procedures?: string[];
+    policies?: string[];
+    faqs?: string[];
+    customer_service?: string[];
+    industry_jargon?: Record<string, string>;
+    stakeholder_hierarchy?: Record<string, unknown>;
+    decision_rights?: Record<string, unknown>;
+}
+export interface OntologyConfig {
+    id?: string;
+    organization_id: string;
+    name?: string;
+    ontology: OrganizationOntology;
+}
+export interface OntologySyncResult {
+    tenant: string;
+    ontology_version: string;
+    previous_version?: string;
+    unchanged: boolean;
+    passages: number;
+    facts: number;
+    not_indexed: string[];
+    segment?: string;
+}
+export interface OntologyClaim {
+    text?: string;
+    subject: string;
+    property: string;
+    value: string;
+    /** Forwarded as X-KNIRV-Tenant, never serialized into the request body. */
+    tenant?: string;
+}
+export interface OntologyVerdict {
+    outcome: "no_opinion" | "supported" | "refuted" | "uncertain";
+    reason: string;
+    ontology_version?: string;
+    ontology_values?: string[];
+    hits?: IndexSearchHit[];
+}
+export interface OntologyRemoveResult {
+    tenant: string;
+    status: string;
 }
 /** The model is up but cannot answer yet (HTTP 503). */
 export declare class NotReadyError extends Error {
@@ -146,7 +228,7 @@ export interface SupervisorAdvice {
     policy_bundle_hash: string;
     received_at: string;
 }
-/** Canonical model input; identical to the Go BuildAdvisePrompt and the trainer's `prompt`. */
+/** Canonical model input; the trainer's `prompt` is pinned to the same vector. */
 export declare function buildAdvisePrompt(c: AdviseContext): string;
 export declare function abstainAdvice(reason: string, modelVersion: string, manifest: string): SupervisorAdvice;
 /** Maps decision heads onto SupervisorAdvice; every doubtful case abstains. */
@@ -170,6 +252,13 @@ export declare class ModelsClient {
     heartGenerate(prompt: string): Promise<string>;
     hasherValidate(req: HasherValidateRequest): Promise<HasherValidateResult>;
     hasherInfer(text: string): Promise<HasherInferResult>;
+    hasherIndexSearch(req: IndexSearchRequest): Promise<IndexSearchResult>;
+    /** Sync is operator-only; authority is sent by the client, never in ontology content. */
+    hasherOntologySync(config: OntologyConfig): Promise<OntologySyncResult>;
+    hasherOntologyRemove(tenant: string): Promise<OntologyRemoveResult>;
+    hasherOntologyCheck(claim: OntologyClaim): Promise<OntologyVerdict>;
+    private postWithHeaders;
+    private requestWithHeaders;
     manifest(): Promise<Manifest>;
     reason(tokens: number[]): Promise<Reasoning>;
     /** manifest → encode → reason → advice; every failure is an abstention. */
@@ -251,7 +340,7 @@ export interface RoleLine {
     state: RoleState;
     detail?: string;
 }
-/** The fixed list of role lines for a status document (same logic as the Go twin). */
+/** The fixed list of role lines for a status document (core/src/models.rs). */
 export declare function roles(s: PlatformStatus): RoleLine[];
 export * from "./frame.js";
 /** GET /models/hasher/index/status: what the evidence index holds (twin of Go IndexStatus). */

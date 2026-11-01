@@ -1,12 +1,31 @@
 use crate::error::{Error, Result};
-use reqwest::Method;
+use crate::http_transport::{HttpRequest, HttpTransport, TransportErrorKind};
 use serde::de::DeserializeOwned;
 use serde_json::Value;
-use std::{collections::BTreeMap, time::Duration};
-use tokio::time::sleep;
+use std::{collections::BTreeMap, sync::Arc, time::Duration};
 use url::Url;
 
 const USER_AGENT: &str = concat!("KNIRV-Rust-SDK/", env!("CARGO_PKG_VERSION"));
+
+/// The HTTP methods the SDK uses.
+#[allow(clippy::upper_case_acronyms)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum Method {
+    GET,
+    POST,
+    PUT,
+    DELETE,
+}
+impl Method {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Method::GET => "GET",
+            Method::POST => "POST",
+            Method::PUT => "PUT",
+            Method::DELETE => "DELETE",
+        }
+    }
+}
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub enum Network {
@@ -146,6 +165,9 @@ pub struct ClientConfig {
     pub backend_url: Option<String>,
     pub headers: BTreeMap<String, String>,
     pub idempotency_key: Option<String>,
+    /// Moves the bytes. `None` uses reqwest; WebAssembly hosts supply their own
+    /// (see `http_transport`). Retries, failover and error mapping stay here.
+    pub transport: Option<Arc<dyn HttpTransport>>,
 }
 impl Default for ClientConfig {
     fn default() -> Self {
@@ -160,6 +182,7 @@ impl Default for ClientConfig {
             backend_url: std::env::var("KNIRVSERVER_BACKEND_URL").ok(),
             headers: BTreeMap::new(),
             idempotency_key: None,
+            transport: None,
         }
     }
 }
@@ -168,21 +191,35 @@ impl Default for ClientConfig {
 pub struct HttpClient {
     base_url: Url,
     base_urls: Vec<Url>,
-    client: reqwest::Client,
+    transport: Arc<dyn HttpTransport>,
     config: ClientConfig,
 }
 impl HttpClient {
     pub fn new(base_url: impl AsRef<str>, config: ClientConfig) -> Result<Self> {
         let base_url = Url::parse(base_url.as_ref())
             .map_err(|e| Error::Configuration(format!("invalid base URL: {e}")))?;
-        let client = reqwest::Client::builder().timeout(config.timeout).build()?;
+        let transport: Arc<dyn HttpTransport> = match &config.transport {
+            Some(transport) => transport.clone(),
+            #[cfg(feature = "http-reqwest")]
+            None => Arc::new(crate::http_transport::ReqwestTransport::new()?),
+            #[cfg(not(feature = "http-reqwest"))]
+            None => {
+                return Err(Error::Configuration(
+                    "no HTTP transport: this build has none built in, so the host must supply one".into(),
+                ))
+            }
+        };
         let base_urls = gateway_candidates(&base_url);
         Ok(Self {
             base_url,
             base_urls,
-            client,
+            transport,
             config,
         })
+    }
+    /// Waits using the transport's own timer.
+    pub async fn sleep(&self, duration: Duration) {
+        self.transport.sleep(duration).await
     }
     pub fn base_url(&self) -> &Url {
         &self.base_url
@@ -237,70 +274,78 @@ impl HttpClient {
         query: &[(&str, String)],
         body: Option<Value>,
     ) -> Result<T> {
-        let url = base_url
+        let mut url = base_url
             .join(path.trim_start_matches('/'))
             .map_err(|e| Error::Configuration(e.to_string()))?;
+        if !query.is_empty() {
+            url.query_pairs_mut()
+                .extend_pairs(query.iter().map(|(k, v)| (*k, v.as_str())));
+        }
+        let body_bytes = match &body {
+            Some(body) => serde_json::to_vec(body)?,
+            None => Vec::new(),
+        };
         for attempt in 0..=self.config.retry.max_retries {
-            let mut request = self
-                .client
-                .request(method.clone(), url.clone())
-                .query(query);
-            request = request.header("User-Agent", USER_AGENT);
+            let mut headers = BTreeMap::new();
+            headers.insert("User-Agent".to_owned(), USER_AGENT.to_owned());
             if let Some(idempotency_key) = &self.config.idempotency_key {
-                request = request.header("Idempotency-Key", idempotency_key);
+                headers.insert("Idempotency-Key".to_owned(), idempotency_key.clone());
             }
             for (name, value) in &self.config.headers {
-                request = request.header(name, value);
+                headers.insert(name.clone(), value.clone());
             }
             if let Some(key) = &self.config.api_key {
-                request = request.bearer_auth(key);
+                headers.insert("Authorization".to_owned(), format!("Bearer {key}"));
             }
-            if let Some(body) = &body {
-                request = request.json(body);
+            if body.is_some() {
+                headers.insert("Content-Type".to_owned(), "application/json".to_owned());
             }
-            match request.send().await {
-                Ok(response) if response.status().is_success() => {
-                    return response.json().await.map_err(Error::from)
+            let request = HttpRequest {
+                method: method.as_str().to_owned(),
+                url: url.to_string(),
+                headers,
+                body: body_bytes.clone(),
+                timeout_ms: self.config.timeout.as_millis() as u64,
+            };
+            match self.transport.send(request).await {
+                Ok(response) if (200..300).contains(&response.status) => {
+                    return serde_json::from_slice(&response.body).map_err(Error::from)
                 }
                 Ok(response) => {
-                    let status = response.status();
-                    let headers = response.headers().clone();
-                    let message = response.text().await.unwrap_or_default();
-                    let retryable = status.is_server_error()
-                        || status == reqwest::StatusCode::REQUEST_TIMEOUT
-                        || status == reqwest::StatusCode::CONFLICT;
+                    let status = response.status;
+                    let message = String::from_utf8_lossy(&response.body).into_owned();
+                    let retryable = (500..600).contains(&status) || status == 408 || status == 409;
                     if retryable && attempt < self.config.retry.max_retries {
-                        if let Some(retry_after) = headers.get("Retry-After") {
-                            if let Ok(retry_str) = retry_after.to_str() {
-                                if let Ok(seconds) = retry_str.parse::<u64>() {
-                                    sleep(Duration::from_secs(seconds)).await;
-                                    continue;
-                                }
-                            }
+                        if let Some(seconds) = response
+                            .headers
+                            .get("retry-after")
+                            .and_then(|v| v.trim().parse::<u64>().ok())
+                        {
+                            self.transport.sleep(Duration::from_secs(seconds)).await;
+                            continue;
                         }
-                        sleep(self.config.retry.initial_backoff * 2u32.pow(attempt)).await;
+                        self.transport
+                            .sleep(self.config.retry.initial_backoff * 2u32.pow(attempt))
+                            .await;
                         continue;
                     }
-                    if status == reqwest::StatusCode::CONFLICT {
+                    if status == 409 {
                         return Err(Error::IdempotencyConflict);
                     }
-                    return Err(Error::Api {
-                        status: status.as_u16(),
-                        message,
-                    });
-                }
-                Err(error) if error.is_timeout() => {
-                    if attempt == self.config.retry.max_retries {
-                        return Err(Error::Timeout);
-                    }
+                    return Err(Error::Api { status, message });
                 }
                 Err(error) => {
-                    if attempt == self.config.retry.max_retries {
-                        return Err(Error::Transport(error));
+                    // A host abort is a decision, not a fault: do not retry it.
+                    if error.kind == TransportErrorKind::Aborted
+                        || attempt == self.config.retry.max_retries
+                    {
+                        return Err(error.into());
                     }
                 }
             }
-            sleep(self.config.retry.initial_backoff * 2u32.pow(attempt)).await;
+            self.transport
+                .sleep(self.config.retry.initial_backoff * 2u32.pow(attempt))
+                .await;
         }
         unreachable!("retry loop always returns")
     }
@@ -349,8 +394,7 @@ mod tests {
 
     #[test]
     fn canonical_gateways_receive_ordered_failover_candidates() {
-        let client =
-            HttpClient::new("https://gateway.knirv.com", ClientConfig::default()).unwrap();
+        let client = HttpClient::new("https://gateway.knirv.com", ClientConfig::default()).unwrap();
         let urls: Vec<_> = client.base_urls().iter().map(Url::as_str).collect();
         assert_eq!(
             urls,
@@ -378,5 +422,214 @@ mod tests {
             testnet.services.gateway,
             "https://testnet-gateway.knirv.com"
         );
+    }
+
+    // --- the transport seam: retries, failover and error mapping live here ---
+
+    use crate::http_transport::{
+        block_on, BoxFuture, HttpResponse, JsonTransport, TransportError,
+    };
+    use std::sync::Mutex;
+
+    /// Answers from a script and records every request it sees.
+    #[derive(Debug, Default)]
+    struct Fake {
+        script: Mutex<Vec<std::result::Result<HttpResponse, TransportError>>>,
+        seen: Mutex<Vec<HttpRequest>>,
+        slept: Mutex<Vec<Duration>>,
+    }
+    impl HttpTransport for Fake {
+        fn send(
+            &self,
+            request: HttpRequest,
+        ) -> BoxFuture<'_, std::result::Result<HttpResponse, TransportError>> {
+            self.seen.lock().unwrap().push(request);
+            let next = self.script.lock().unwrap().remove(0);
+            Box::pin(std::future::ready(next))
+        }
+        fn sleep(&self, duration: Duration) -> BoxFuture<'_, ()> {
+            self.slept.lock().unwrap().push(duration);
+            Box::pin(std::future::ready(()))
+        }
+    }
+
+    fn reply(status: u16, body: &str) -> std::result::Result<HttpResponse, TransportError> {
+        Ok(HttpResponse {
+            status,
+            headers: BTreeMap::new(),
+            body: body.as_bytes().to_vec(),
+        })
+    }
+    fn fail(kind: TransportErrorKind) -> std::result::Result<HttpResponse, TransportError> {
+        Err(TransportError {
+            kind,
+            message: "boom".into(),
+        })
+    }
+    fn client(
+        base: &str,
+        script: Vec<std::result::Result<HttpResponse, TransportError>>,
+    ) -> (HttpClient, Arc<Fake>) {
+        let fake = Arc::new(Fake {
+            script: Mutex::new(script),
+            ..Default::default()
+        });
+        let config = ClientConfig {
+            transport: Some(fake.clone()),
+            api_key: Some("k".into()),
+            ..Default::default()
+        };
+        (HttpClient::new(base, config).unwrap(), fake)
+    }
+
+    #[test]
+    fn requests_carry_auth_query_and_json_body() {
+        let (c, fake) = client("https://x.example.test", vec![reply(200, r#"{"ok":true}"#)]);
+        let v: Value = block_on(c.request(
+            Method::POST,
+            "/v1/a",
+            &[("q", "a b".into())],
+            Some(serde_json::json!({"n": 1})),
+        ))
+        .unwrap();
+        assert_eq!(v["ok"], true);
+        let seen = fake.seen.lock().unwrap();
+        assert_eq!(seen[0].url, "https://x.example.test/v1/a?q=a+b");
+        assert_eq!(seen[0].headers["Authorization"], "Bearer k");
+        assert_eq!(seen[0].headers["Content-Type"], "application/json");
+        assert_eq!(seen[0].body, br#"{"n":1}"#);
+        assert_eq!(seen[0].timeout_ms, 60_000);
+    }
+
+    #[test]
+    fn server_errors_are_retried_with_backoff_then_succeed() {
+        let (c, fake) = client(
+            "https://x.example.test",
+            vec![reply(503, "no"), reply(502, "no"), reply(200, "{}")],
+        );
+        block_on(c.get::<Value>("/a", &[])).unwrap();
+        assert_eq!(fake.seen.lock().unwrap().len(), 3);
+        assert_eq!(
+            *fake.slept.lock().unwrap(),
+            [Duration::from_millis(250), Duration::from_millis(500)]
+        );
+    }
+
+    #[test]
+    fn client_errors_are_not_retried_and_keep_status_and_body() {
+        let (c, fake) = client("https://x.example.test", vec![reply(404, "gone")]);
+        let err = block_on(c.get::<Value>("/a", &[])).unwrap_err();
+        assert!(matches!(err, Error::Api { status: 404, ref message } if message == "gone"), "{err}");
+        assert_eq!(fake.seen.lock().unwrap().len(), 1);
+    }
+
+    #[test]
+    fn exhausted_conflicts_map_to_idempotency_conflict() {
+        let (c, _) = client(
+            "https://x.example.test",
+            vec![reply(409, ""), reply(409, ""), reply(409, "")],
+        );
+        let err = block_on(c.post::<Value>("/a", Value::Null)).unwrap_err();
+        assert!(matches!(err, Error::IdempotencyConflict), "{err}");
+    }
+
+    #[test]
+    fn retry_after_header_wins_over_backoff() {
+        let mut limited = HttpResponse {
+            status: 503,
+            ..Default::default()
+        };
+        limited.headers.insert("retry-after".into(), "3".into());
+        let (c, fake) = client("https://x.example.test", vec![Ok(limited), reply(200, "{}")]);
+        block_on(c.get::<Value>("/a", &[])).unwrap();
+        assert_eq!(*fake.slept.lock().unwrap(), [Duration::from_secs(3)]);
+    }
+
+    #[test]
+    fn timeouts_retry_then_map_to_timeout() {
+        let (c, fake) = client(
+            "https://x.example.test",
+            vec![
+                fail(TransportErrorKind::Timeout),
+                fail(TransportErrorKind::Timeout),
+                fail(TransportErrorKind::Timeout),
+            ],
+        );
+        let err = block_on(c.get::<Value>("/a", &[])).unwrap_err();
+        assert!(matches!(err, Error::Timeout), "{err}");
+        assert_eq!(fake.seen.lock().unwrap().len(), 3);
+    }
+
+    #[test]
+    fn a_host_abort_is_final() {
+        let (c, fake) = client("https://x.example.test", vec![fail(TransportErrorKind::Aborted)]);
+        let err = block_on(c.get::<Value>("/a", &[])).unwrap_err();
+        assert!(matches!(err, Error::Transport(ref m) if m.starts_with("aborted")), "{err}");
+        assert_eq!(fake.seen.lock().unwrap().len(), 1);
+    }
+
+    #[test]
+    fn canonical_gateways_fail_over_in_order() {
+        let (c, fake) = client(
+            "https://gateway.knirv.com",
+            vec![
+                fail(TransportErrorKind::Refused),
+                fail(TransportErrorKind::Refused),
+                reply(200, "{}"),
+            ],
+        );
+        // the retry budget is per base URL: one attempt each
+        let c = HttpClient {
+            config: ClientConfig {
+                retry: RetryConfig {
+                    max_retries: 0,
+                    ..Default::default()
+                },
+                ..c.config.clone()
+            },
+            ..c
+        };
+        block_on(c.get::<Value>("/a", &[])).unwrap();
+        let urls: Vec<_> = fake.seen.lock().unwrap().iter().map(|r| r.url.clone()).collect();
+        assert_eq!(
+            urls,
+            [
+                "https://gateway.knirv.com/a",
+                "https://testnet-gateway.knirv.com/a",
+                "http://localhost:8080/a"
+            ]
+        );
+    }
+
+    #[test]
+    fn json_transport_round_trips_the_host_wire_format() {
+        let transport = JsonTransport::new(|request| {
+            let request: Value = serde_json::from_slice(request).unwrap();
+            assert_eq!(request["method"], "GET");
+            assert_eq!(request["body_base64"], "");
+            br#"{"status":200,"headers":{"X-A":"b"},"body_base64":"e30="}"#.to_vec()
+        });
+        let config = ClientConfig {
+            transport: Some(Arc::new(transport)),
+            ..Default::default()
+        };
+        let c = HttpClient::new("https://x.example.test", config).unwrap();
+        assert_eq!(block_on(c.get::<Value>("/a", &[])).unwrap(), serde_json::json!({}));
+    }
+
+    #[test]
+    fn json_transport_maps_host_error_kinds() {
+        let transport = JsonTransport::new(|_| br#"{"error":{"kind":"dns","message":"nx"}}"#.to_vec());
+        let config = ClientConfig {
+            transport: Some(Arc::new(transport)),
+            retry: RetryConfig {
+                max_retries: 0,
+                ..Default::default()
+            },
+            ..Default::default()
+        };
+        let c = HttpClient::new("https://x.example.test", config).unwrap();
+        let err = block_on(c.get::<Value>("/a", &[])).unwrap_err();
+        assert!(matches!(err, Error::Transport(ref m) if m == "dns: nx"), "{err}");
     }
 }

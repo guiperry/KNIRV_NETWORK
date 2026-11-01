@@ -1,0 +1,40 @@
+Total event coverage: 100.0%
+============================
+StateMachine: AuthorityScopeMachine
+===================================
+Event coverage: 100.0%
+
+	State: Init
+		State has no expected events, so coverage is 100%
+		Next states: Active
+
+	State: Active
+		State event coverage: 100.0%
+		Events received: eAuthScopeAction, eAuthScopeRegister
+		Previous states: Init
+
+StateMachine: AuthorityScopeMain
+================================
+Event coverage: 100.0%
+
+	State: Init
+		State has no expected events, so coverage is 100%
+
+Monitor: AuthorityScopeMonitor
+==============================
+Event coverage: 100.0%
+
+	State: Monitoring
+		State event coverage: 100.0%
+		Events received: eAuthScopeAccepted, eAuthScopeRegistered
+		Previous states: Monitoring
+		Next states: Monitoring
+
+StateMachine: AuthorityScopeWorkload
+====================================
+Event coverage: 100.0%
+
+	State: Init
+		State has no expected events, so coverage is 100%
+		Events sent: eAuthScopeAction, eAuthScopeRegister
+

@@ -1,0 +1,16 @@
+# Secrets -- never commit
+.env
+.env.*
+!.env.example
+
+# Byte-compiled / cache
+__pycache__/
+*.pyc
+
+# Downloaded datasets. Regenerate with the commands in README.md "Data provenance".
+data/bfcl/
+data/*.csv
+data/categories.json
+
+# Results may reference internal KNIRV manifests; treat as local artefacts.
+results/

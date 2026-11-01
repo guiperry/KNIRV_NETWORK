@@ -1,0 +1,47 @@
+{
+  "description": "Recorded host responses for the five network operations. A fake host answers each request by `METHOD url`; `expect` is checked against the response envelope (payload fields, or error code).",
+  "cases": [
+    {
+      "name": "transaction.chain",
+      "request": {"version": 1, "operation": "transaction.chain", "payload": {}, "config": {"network": "local-testnet", "transaction_url": "http://chain.test"}},
+      "host": {"GET http://chain.test/chain": {"status": 200, "body": {"chain_id": "knirv-local-testnet", "blocks": []}}},
+      "expect": {"payload": {"chain_id": "knirv-local-testnet"}}
+    },
+    {
+      "name": "gateway.health",
+      "request": {"version": 1, "operation": "gateway.health", "payload": {}, "config": {"network": "local-testnet", "gateway_url": "http://gw.test"}},
+      "host": {"GET http://gw.test/health": {"status": 200, "body": {"status": "ok"}}},
+      "expect": {"payload": {"status": "ok"}}
+    },
+    {
+      "name": "transmission.resolve_uri",
+      "request": {"version": 1, "operation": "transmission.resolve_uri", "payload": {"uri": "knirv://x"}, "config": {"network": "local-testnet"}},
+      "host": {"GET http://localhost:8080/api/transmission/resolve?uri=knirv%3A%2F%2Fx": {"status": 200, "body": {"resolved": true}}},
+      "expect": {"payload": {"resolved": true}}
+    },
+    {
+      "name": "transmission.broadcast",
+      "request": {"version": 1, "operation": "transmission.broadcast", "payload": {"tx": "abc"}, "config": {"network": "local-testnet"}},
+      "host": {"POST http://localhost:8080/api/transmission/broadcast": {"status": 200, "body": {"accepted": true}}},
+      "expect": {"payload": {"accepted": true}}
+    },
+    {
+      "name": "wallet.account",
+      "request": {"version": 1, "operation": "wallet.account", "payload": {}, "config": {"network": "local-testnet", "controller_url": "http://ctl.test", "api_key": "k"}},
+      "host": {"GET http://ctl.test/api/controller/account": {"status": 200, "body": {"address": "knirv1abc"}}},
+      "expect": {"payload": {"status": "success", "data": {"address": "knirv1abc"}}}
+    },
+    {
+      "name": "api error keeps status",
+      "request": {"version": 1, "operation": "gateway.health", "payload": {}, "config": {"network": "local-testnet", "gateway_url": "http://gw.test"}},
+      "host": {"GET http://gw.test/health": {"status": 403, "body": {"error": "no"}}},
+      "expect": {"error": {"code": "AUTHENTICATION", "http_status": 403}}
+    },
+    {
+      "name": "transport failure",
+      "request": {"version": 1, "operation": "gateway.health", "payload": {}, "config": {"network": "local-testnet", "gateway_url": "http://gw.test"}},
+      "host": {"GET http://gw.test/health": {"error": {"kind": "refused", "message": "connection refused"}}},
+      "expect": {"error": {"code": "TRANSPORT"}}
+    }
+  ]
+}

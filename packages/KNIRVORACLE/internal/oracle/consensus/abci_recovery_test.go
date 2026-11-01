@@ -91,7 +91,7 @@ func TestSetAuditMMRIsTheOnlyRecoveryPath(t *testing.T) {
 	}
 }
 
-// TestDeliverTxRoutesCheckpointTxToAdmission verifies the Phase-3 wiring that
+// TestDeliverTxRoutesCheckpointTxToAdmission verifies the wiring that
 // checkpoint/finality transactions delivered through consensus take the same
 // admission path as the HTTP endpoints.
 func TestDeliverTxRoutesCheckpointTxToAdmission(t *testing.T) {

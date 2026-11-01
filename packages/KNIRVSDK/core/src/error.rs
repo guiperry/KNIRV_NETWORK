@@ -11,7 +11,7 @@ pub enum Error {
     #[error("request timed out")]
     Timeout,
     #[error("transport error: {0}")]
-    Transport(#[from] reqwest::Error),
+    Transport(String),
     #[error("HTTP {status}: {message}")]
     Api { status: u16, message: String },
     #[error("response decoding error: {0}")]
@@ -22,4 +22,15 @@ pub enum Error {
     IdempotencyConflict,
     #[error("unsupported network: {0}")]
     UnsupportedNetwork(String),
+}
+
+#[cfg(feature = "http-reqwest")]
+impl From<reqwest::Error> for Error {
+    fn from(error: reqwest::Error) -> Self {
+        if error.is_timeout() {
+            Error::Timeout
+        } else {
+            Error::Transport(error.to_string())
+        }
+    }
 }

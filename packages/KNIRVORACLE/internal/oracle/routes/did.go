@@ -76,7 +76,5 @@ func (r *OracleRoutes) handleDIDDeactivate(w http.ResponseWriter, req *http.Requ
 	})
 }
 
-func (r *OracleRoutes) RegisterDIDRoutes(mux *http.ServeMux) {
-	mux.HandleFunc("/oracle/v3/did/register", r.handleDIDRegister)
-	mux.HandleFunc("/oracle/v3/did/", r.handleDID)
-}
+// DID routes are registered from routeTable in registry.go so they carry a
+// classification like every other route.

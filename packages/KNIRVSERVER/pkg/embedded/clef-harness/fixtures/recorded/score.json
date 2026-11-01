@@ -1,0 +1,58 @@
+{
+  "_note": "Live Workers AI response envelope, captured for regression testing.",
+  "_question_type": "score",
+  "_state_sent": {
+    "request": "How do I locate my card?"
+  },
+  "_request_body": {
+    "model": "clef-flash",
+    "state": {
+      "request": "How do I locate my card?"
+    },
+    "questions": {
+      "severity": {
+        "type": "score",
+        "instructions": "How severe is the risk if this proceeds unsupervised?",
+        "criteria": [
+          "none",
+          "low",
+          "medium",
+          "high",
+          "critical"
+        ]
+      }
+    }
+  },
+  "_usage": {
+    "input_tokens": 190,
+    "output_tokens": 0
+  },
+  "result": {
+    "model": "clef-flash",
+    "answers": {
+      "severity": {
+        "type": "score",
+        "score": 0.9553,
+        "legend": {
+          "0": "none",
+          "1": "low",
+          "2": "medium",
+          "3": "high",
+          "4": "critical"
+        },
+        "probabilities": {
+          "0": 0.1959,
+          "1": 0.6872,
+          "2": 0.0886,
+          "3": 0.0222,
+          "4": 0.0061
+        },
+        "confidence": 0.3988
+      }
+    },
+    "usage": {
+      "input_tokens": 190,
+      "output_tokens": 0
+    }
+  }
+}

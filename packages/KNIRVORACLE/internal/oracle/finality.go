@@ -165,7 +165,7 @@ func (o *Oracle) recordByPosition(pos uint64) *types.CheckpointRecord {
 	return nil
 }
 
-// verifyTransitionProof is the Oracle-side cheap verifier (merkle-math.md Phase 5,
+// verifyTransitionProof is the Oracle-side cheap verifier (merkle-math.md,
 // §3.3f step 4). The full SNARK pairing check and hashchain-v0 re-execution are
 // delegated to the verifier chains; the Oracle enforces (a) the proof's public
 // inputs bind to the anchored checkpoint (PostRoot == checkpoint.Root, PreRoot ==
@@ -251,7 +251,7 @@ func (o *Oracle) verifyTransitionProof(rec *types.FinalityRecord, cp *types.Chec
 // provisional, be within its proof window, and carry an attestation quorum
 // (merkle-math.md §3.3f). On success it appends a LeafFinality MMR leaf and
 // flips the indexed record to final. The transition proof is delegated to the
-// verifier chains (Phase 5 adds Oracle-side SNARK verification); here we trust
+// verifier chains (a later version adds Oracle-side SNARK verification); here we trust
 // the attestation quorum, which is exactly the optimistic split.
 func (o *Oracle) SubmitFinality(rec *types.FinalityRecord) (*types.CheckpointRecord, error) {
 	if rec == nil {
@@ -289,7 +289,7 @@ func (o *Oracle) SubmitFinality(rec *types.FinalityRecord) (*types.CheckpointRec
 		return nil, fmt.Errorf("attestation quorum not met: %d approved", approved)
 	}
 
-	// Phase 5: the Oracle runs the cheap verifier itself (merkle-math.md §3.3f
+	// The Oracle runs the cheap verifier itself (merkle-math.md §3.3f
 	// step 4). hashchain-v0 → bind proof roots to the anchored checkpoint; SNARK
 	// systems → require an enrolled verification key + binding, with the actual
 	// pairing check delegated to the verifier chains.

@@ -1,5 +1,40 @@
-import { fetchWasmModule, wasmModuleMetadata, wasmModulesManifest } from "./modules.js";
+import { toJson } from "./local.js";
+import { fetchWasmModule, wasmModuleMetadata } from "./modules.js";
 export const BINDING_API_VERSION = 1;
+function hostError(kind, message) {
+    return JSON.stringify({ error: { kind, message } });
+}
+/** The default host: global `fetch`, with `timeout_ms` enforced by an abort. */
+export function fetchHost(fetchImpl = (...args) => fetch(...args)) {
+    return {
+        async http_request(requestJson) {
+            const req = JSON.parse(requestJson);
+            const controller = new AbortController();
+            let timedOut = false;
+            const timer = req.timeout_ms > 0 ? setTimeout(() => { timedOut = true; controller.abort(); }, req.timeout_ms) : undefined;
+            try {
+                const body = req.body_base64 ? Uint8Array.from(atob(req.body_base64), (c) => c.charCodeAt(0)) : undefined;
+                const response = await fetchImpl(req.url, { method: req.method, headers: req.headers, body: req.method === "GET" || req.method === "HEAD" ? undefined : body, signal: controller.signal });
+                const bytes = new Uint8Array(await response.arrayBuffer());
+                let binary = "";
+                for (let i = 0; i < bytes.length; i += 0x8000)
+                    binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+                const headers = {};
+                response.headers.forEach((value, name) => { headers[name] = value; });
+                return JSON.stringify({ status: response.status, headers, body_base64: btoa(binary) });
+            }
+            catch (error) {
+                // fetch does not say why it failed; a timeout we caused is the only kind we can name.
+                return hostError(timedOut ? "timeout" : "other", error instanceof Error ? error.message : String(error));
+            }
+            finally {
+                if (timer !== undefined)
+                    clearTimeout(timer);
+            }
+        },
+        sleep: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+    };
+}
 export class BindingOperationError extends Error {
     bindingError;
     constructor(bindingError) {
@@ -8,26 +43,30 @@ export class BindingOperationError extends Error {
         this.name = "BindingOperationError";
     }
 }
+const NETWORK_OPERATIONS = new Set(["actuarial.call", "transaction.chain", "gateway.health", "transmission.resolve_uri", "transmission.broadcast", "wallet.account"]);
+/** Runs envelopes against the WASM core; network operations use `host`. */
 export class WasmBindingTransport {
     core;
-    constructor(core) {
+    host;
+    config;
+    constructor(core, host = fetchHost(), config) {
         this.core = core;
+        this.host = host;
+        this.config = config;
     }
     async call(request) {
         if (request.version !== BINDING_API_VERSION) {
             return failure(request.operation, "INVALID_ARGUMENT", `unsupported binding API version: ${request.version}`);
         }
         switch (request.operation) {
-            case "crypto.sha256": {
-                const data = payloadString(request.payload, "data");
-                if (data === undefined)
-                    return failure(request.operation, "INVALID_ARGUMENT", "data must be a string");
-                return success(request.operation, { digest: this.core.sha256_hex(new TextEncoder().encode(data)) });
-            }
-            case "wasm.manifest":
-                return success(request.operation, wasmModulesManifest);
             default:
-                return failure(request.operation, "UNSUPPORTED", `unsupported operation: ${request.operation}`);
+                if (NETWORK_OPERATIONS.has(request.operation)) {
+                    const withConfig = this.config && !request.config ? { ...request, config: this.config } : request;
+                    return JSON.parse(await this.core.invoke_async(toJson(withConfig), this.host));
+                }
+                // Everything else the core can do without a network is forwarded to it;
+                // anything it does not recognise answers UNSUPPORTED.
+                return JSON.parse(this.core.invoke(JSON.stringify(request)));
         }
     }
 }
@@ -38,16 +77,13 @@ export class SdkClient {
         this.transport = transport;
         this.core = core;
     }
-    /** Create a client around a native, remote, or application-provided transport. */
-    static async create(transport) {
-        return new SdkClient(transport);
+    /** @internal Creates the client after WASM initialization. */
+    static fromWasm(core, options = {}) {
+        return new SdkClient(new WasmBindingTransport(core, options.http, options.config), core);
     }
-    /** @internal Creates the default browser/edge client after WASM initialization. */
-    static fromWasm(core) {
-        return new SdkClient(new WasmBindingTransport(core), core);
-    }
-    call(operation, payload = {}) {
-        return this.transport.call({ version: BINDING_API_VERSION, operation, payload });
+    /** `config` overrides the client's default settings for a network operation. */
+    call(operation, payload = {}, config) {
+        return this.transport.call({ version: BINDING_API_VERSION, operation, payload, ...(config ? { config } : {}) });
     }
     sha256(data) {
         return this.call("crypto.sha256", { data });
@@ -93,10 +129,4 @@ function success(operation, payload) {
 }
 function failure(operation, code, message) {
     return { version: BINDING_API_VERSION, operation, error: { code, message, retryable: false } };
-}
-function payloadString(payload, name) {
-    if (!payload || typeof payload !== "object")
-        return undefined;
-    const value = payload[name];
-    return typeof value === "string" ? value : undefined;
 }

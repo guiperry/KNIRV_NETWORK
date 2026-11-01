@@ -123,7 +123,7 @@ func TestCheckpointAdmissionAppendsMMR(t *testing.T) {
 	}
 }
 
-// TestRollupProjectsToProvisionalCheckpoint verifies the Phase-3 legacy bridge:
+// TestRollupProjectsToProvisionalCheckpoint verifies the legacy rollup bridge:
 // a RollupRecord submitted via SubmitRollup (by a registered chain, signed by
 // one of its authors) is projected into the checkpoint MMR as a provisional,
 // rollup-tagged leaf — admission requires an author signature quorum just

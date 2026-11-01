@@ -367,7 +367,10 @@ chain:
   socket_path: /var/lib/knirvserver/sockets/chain.sock
   p2p_socket_path: /var/lib/knirvserver/sockets/chain-p2p.sock
   chain_id: testnet
-  role: validator
+  # KNIRVCHAIN roles: root, bootnode, peer, client. "validator" is a KNIRVORACLE
+  # role, not a chain role. Lowering-only override: it may reduce the role
+  # derived from this node's key file, never raise it.
+  role: client
   data_path: "./data/knirvchain"
   start_timeout: 60
   stop_timeout: 10

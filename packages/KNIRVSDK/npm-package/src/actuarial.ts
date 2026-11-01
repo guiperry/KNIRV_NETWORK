@@ -1,50 +1,70 @@
 /**
- * Browser-safe facade for KNIRVSERVER's actuarial API. The Rust core owns the
- * matching service; this facade is intentionally transport-only for WASM apps.
+ * Facade for KNIRVSERVER's actuarial API. The endpoint table, request
+ * construction, retries and error mapping live in the Rust core
+ * (`ActuarialService::call`, core/src/actuarial.rs); this class only names the
+ * operations and moves bytes through the caller's `fetch`.
  */
-export class ActuarialClient {
-  private headers: HeadersInit = {};
-  constructor(private readonly baseUrl = "", private readonly fetcher: typeof fetch = fetch) {}
-  setHeaders(headers: HeadersInit) { this.headers = headers; return this; }
+import { fetchHost, type BindingConfig, type SdkClient } from "./runtime.js";
 
-  private request<T>(path: string, init?: RequestInit): Promise<T> {
-    const headers = new Headers(this.headers);
-    headers.set("content-type", "application/json");
-    new Headers(init?.headers).forEach((value, name) => headers.set(name, value));
-    return this.fetcher(`${this.baseUrl}/api/v1/actuarial${path}`, {
-      ...init,
-      headers,
-    }).then(async response => {
-      const body = await response.json();
-      if (!response.ok) throw new Error(body?.error ?? `actuarial request failed (${response.status})`);
-      return body as T;
-    });
+type Headers_ = Record<string, string>;
+
+export class ActuarialClient {
+  private headers: Headers_ = {};
+  private sdk?: Promise<SdkClient>;
+
+  constructor(private readonly baseUrl = "", private readonly fetcher: typeof fetch = (...args) => fetch(...args)) {}
+
+  setHeaders(headers: HeadersInit) {
+    const collected: Headers_ = {};
+    new Headers(headers).forEach((value, name) => { collected[name] = value; });
+    this.headers = collected;
+    return this;
   }
-  riskClasses<T = unknown>() { return this.request<T>("/risk-classes"); }
-  pools<T = unknown>() { return this.request<T>("/pools"); }
-  pool<T = unknown>(id: string) { return this.request<T>(`/pools/${encodeURIComponent(id)}`); }
-  submission<T = unknown>(id: string) { return this.request<T>(`/submissions/${encodeURIComponent(id)}`); }
-  submissions<T = unknown>(query: { resolver_wallet?: string; status?: string } = {}) {
-    const params = new URLSearchParams();
-    if (query.resolver_wallet) params.set('resolver_wallet', query.resolver_wallet);
-    if (query.status) params.set('status', query.status);
-    const suffix = params.size ? `?${params}` : '';
-    return this.request<T>(`/submissions${suffix}`);
+
+  private async client(): Promise<SdkClient> {
+    // Imported lazily: index.js re-exports this module.
+    this.sdk ??= import("./index.js").then(({ SdkClient }) => SdkClient.init(undefined, { http: fetchHost(this.fetcher) }));
+    return this.sdk;
   }
-  decision<T = unknown>(id: string) { return this.request<T>(`/decisions/${encodeURIComponent(id)}`); }
-  settlement<T = unknown>(id: string) { return this.request<T>(`/settlements/${encodeURIComponent(id)}`); }
-  createSubmission<T = unknown>(body: unknown) { return this.request<T>("/submissions", { method: "POST", body: JSON.stringify(body) }); }
-  createStake<T = unknown>(poolID: string, body: unknown) { return this.request<T>(`/pools/${encodeURIComponent(poolID)}/stakes`, { method: "POST", body: JSON.stringify(body) }); }
-  requestStakeExit<T = unknown>(stakeID: string, body: unknown) { return this.request<T>(`/stakes/${encodeURIComponent(stakeID)}/exit`, { method: "POST", body: JSON.stringify(body) }); }
-  createSubmissionArtifacts<T = unknown>(submissionID: string, body: unknown) { return this.request<T>(`/submissions/${encodeURIComponent(submissionID)}/artifacts`, { method: "POST", body: JSON.stringify(body) }); }
-  requestQuote<T = unknown>(submissionID: string, body: unknown) { return this.request<T>(`/submissions/${encodeURIComponent(submissionID)}/quote`, { method: "POST", body: JSON.stringify(body) }); }
-  claimSubmission<T = unknown>(id: string, request: { resolver_wallet: string; signed_intent?: unknown }) { return this.request<T>(`/submissions/${encodeURIComponent(id)}/claim`, { method: "POST", body: JSON.stringify(request) }); }
-  createPayoutDestination<T = unknown>(body: unknown) { return this.request<T>("/payout-destinations", { method: "POST", body: JSON.stringify(body) }); }
-  createRiskClass<T = unknown>(body: unknown) { return this.request<T>("/risk-classes", { method: "POST", body: JSON.stringify(body) }); }
-  createEnterpriseCredential<T = unknown>(body: unknown) { return this.request<T>("/credentials/enterprise", { method: "POST", body: JSON.stringify(body) }); }
-  exposure<T = unknown>(wallet?: string) {
-    const query = wallet ? `?wallet=${encodeURIComponent(wallet)}` : '';
-    return this.request<T>(`/me/exposure${query}`);
+
+  private config(): BindingConfig {
+    const origin = (globalThis as { location?: { origin?: string } }).location?.origin;
+    const base = new URL(this.baseUrl || "/", origin).toString().replace(/\/$/, "");
+    return { backend_url: base, headers: this.headers };
   }
-  poolReport<T = unknown>(id: string) { return this.request<T>(`/reports/pools/${encodeURIComponent(id)}`); }
+
+  private async call<T>(op: string, params: Record<string, unknown> = {}): Promise<T> {
+    const sdk = await this.client();
+    const response = await sdk.call<T>("actuarial.call", { op, ...params }, this.config());
+    if (response.error) {
+      let message = response.error.message;
+      try {
+        const body = JSON.parse(message) as { error?: string };
+        if (body?.error) message = body.error;
+      } catch {
+        // not a JSON error body
+      }
+      throw new Error(message || `actuarial request failed (${response.error.http_status ?? response.error.code})`);
+    }
+    return response.payload as T;
+  }
+
+  riskClasses<T = unknown>() { return this.call<T>("risk_classes"); }
+  pools<T = unknown>() { return this.call<T>("pools"); }
+  pool<T = unknown>(id: string) { return this.call<T>("pool", { id }); }
+  submission<T = unknown>(id: string) { return this.call<T>("submission", { id }); }
+  submissions<T = unknown>(query: { resolver_wallet?: string; status?: string } = {}) { return this.call<T>("submissions", { query }); }
+  decision<T = unknown>(id: string) { return this.call<T>("decision", { id }); }
+  settlement<T = unknown>(id: string) { return this.call<T>("settlement", { id }); }
+  createSubmission<T = unknown>(body: unknown) { return this.call<T>("create_submission", { body }); }
+  createStake<T = unknown>(poolID: string, body: unknown) { return this.call<T>("create_stake", { id: poolID, body }); }
+  requestStakeExit<T = unknown>(stakeID: string, body: unknown) { return this.call<T>("request_stake_exit", { id: stakeID, body }); }
+  createSubmissionArtifacts<T = unknown>(submissionID: string, body: unknown) { return this.call<T>("create_submission_artifacts", { id: submissionID, body }); }
+  requestQuote<T = unknown>(submissionID: string, body: unknown) { return this.call<T>("request_quote", { id: submissionID, body }); }
+  claimSubmission<T = unknown>(id: string, request: { resolver_wallet: string; signed_intent?: unknown }) { return this.call<T>("claim_submission", { id, body: request }); }
+  createPayoutDestination<T = unknown>(body: unknown) { return this.call<T>("create_payout_destination", { body }); }
+  createRiskClass<T = unknown>(body: unknown) { return this.call<T>("create_risk_class", { body }); }
+  createEnterpriseCredential<T = unknown>(body: unknown) { return this.call<T>("create_enterprise_credential", { body }); }
+  exposure<T = unknown>(wallet?: string) { return this.call<T>("exposure", { query: wallet ? { wallet } : {} }); }
+  poolReport<T = unknown>(id: string) { return this.call<T>("pool_report", { id }); }
 }

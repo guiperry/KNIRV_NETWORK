@@ -13,6 +13,29 @@ const (
 	DefaultTau  = 0.82
 )
 
+// Fit kinds describe how the adapter tensors were produced, which is what tells
+// a publish gate whether a bundle is a real trained adapter or a placeholder.
+const (
+	// FitKindGradientSFT is a bundle trained with gradient descent against a real
+	// base model (Path C / synthetic distillation).
+	FitKindGradientSFT = "gradient_sft"
+	// FitKindLinearEmbeddingFit is Path B's deterministic linear fit over corpus
+	// embeddings. It is honest as a canonical core, but it is not transformer
+	// LoRA training and must never be published as one.
+	FitKindLinearEmbeddingFit = "linear_embedding_fit"
+)
+
+// ValidFitKind reports whether kind is a fit kind this package understands.
+func ValidFitKind(kind string) bool {
+	return kind == FitKindGradientSFT || kind == FitKindLinearEmbeddingFit
+}
+
+// Training records how the artifact was fitted. Older bundles omit it; a publish
+// gate treats an absent value as unknown rather than guessing.
+type Training struct {
+	FitKind string `json:"fit_kind"`
+}
+
 var ValidTransferPaths = map[string]bool{
 	"subspace_svd":      true,
 	"synthetic_distill": true,
@@ -166,6 +189,10 @@ type Manifest struct {
 	BaseSourceModel BaseModelSpec `json:"base_source_model"`
 	CanonicalCore   CanonicalCore `json:"canonical_core"`
 	RoutingPolicy   RoutingPolicy `json:"routing_policy"`
+	// Training is intentionally not required by Validate: manifests written
+	// before fit kinds existed remain readable, and the publish gate refuses an
+	// unknown kind rather than rejecting an otherwise valid historical bundle.
+	Training Training `json:"training,omitempty"`
 }
 
 func (m *Manifest) Validate() error {

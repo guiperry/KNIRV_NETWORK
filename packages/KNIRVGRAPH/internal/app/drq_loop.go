@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -51,6 +52,9 @@ const (
 	validationServiceURLEnv = "KNIRV_VALIDATION_SERVICE_URL"
 	// validationServiceTokenEnv is the Bearer credential presented to it.
 	validationServiceTokenEnv = "KNIRV_VALIDATION_SERVICE_TOKEN"
+	// validationServiceTokenFileEnv names a file holding that credential. It is
+	// re-read on every resolve, so a secrets provider can supply it after startup.
+	validationServiceTokenFileEnv = "KNIRV_VALIDATION_SERVICE_TOKEN_FILE"
 
 	// drqSimilarityThresholdEnv overrides the clustering similarity threshold.
 	drqSimilarityThresholdEnv = "KNIRV_DRQ_SIMILARITY_THRESHOLD"
@@ -75,9 +79,9 @@ type drqRuntime struct {
 	ticks     uint64
 	skipped   uint64
 
-	// validatorConfigured records whether a validation service was wired, so
-	// status can explain a blocked validation stage precisely.
-	validatorConfigured bool
+	// validator resolves the validation service on first use; status reports
+	// whether it exists so a blocked validation stage can be explained precisely.
+	validator *lateValidationService
 }
 
 // errorSource supplies ingested error nodes.
@@ -151,7 +155,10 @@ func newDRQRuntime(nrvSystem *nrv.NRVSystem, embeddingService *embeddings.Embedd
 		ManifestVersion: uloraManifestVersion,
 	})
 
-	validator, validatorConfigured := newValidationServiceClient()
+	// KNIRVGRAPH starts inside backend_server, before the Transaction and Validation
+	// Chains and the KNIRVSERVER HTTP API it validates against. The service is
+	// therefore resolved when a cluster first needs it, not here.
+	validator := newLateValidationService(logger)
 
 	clusterManager := drq.NewClusterManager(drq.ClusterDeps{
 		Trainer:   trainer,
@@ -160,23 +167,20 @@ func newDRQRuntime(nrvSystem *nrv.NRVSystem, embeddingService *embeddings.Embedd
 	})
 
 	rt := &drqRuntime{
-		clustering:          clustering,
-		clusterManager:      clusterManager,
-		trainer:             trainer,
-		logger:              logger,
-		errorSource:         nrvSystem,
-		ingested:            make(map[string]string),
-		lastError:           make(map[string]string),
-		validatorConfigured: validatorConfigured,
+		clustering:     clustering,
+		clusterManager: clusterManager,
+		trainer:        trainer,
+		logger:         logger,
+		errorSource:    nrvSystem,
+		ingested:       make(map[string]string),
+		lastError:      make(map[string]string),
+		validator:      validator,
 	}
 
-	if !validatorConfigured {
-		logger.Warn("DRQ: no validation service configured; clusters cannot pass the validation stage",
-			zap.String("set", validationServiceURLEnv+" and "+validationServiceTokenEnv))
-	}
 	logger.Info("DRQ loop initialized",
 		zap.Float64("similarity_threshold", clustering.SimilarityThreshold()),
-		zap.Bool("validator_configured", validatorConfigured))
+		zap.Bool("validator_configured", validator.configured()),
+		zap.String("validator_resolution", "on first use, after the platform services are up"))
 	return rt, nil
 }
 
@@ -345,7 +349,7 @@ func (rt *drqRuntime) Status() drqStatus {
 		Ticks:               ticks,
 		IngestedErrors:      ingested,
 		ClustersByStatus:    make(map[string]int),
-		ValidatorConfigured: rt.validatorConfigured,
+		ValidatorConfigured: rt.validator.configured(),
 		TrainerBackend:      "none (ErrLoRATrainingBackendNotImplemented)",
 		SimilarityThreshold: rt.clustering.SimilarityThreshold(),
 		LastErrors:          lastErrors,
@@ -557,8 +561,7 @@ func resolverFromContext(context map[string]interface{}) string {
 // explicitly. Rather than weaken the platform's auth to accommodate this, the
 // client is simply absent until that credential exists.
 func newValidationServiceClient() (drq.ValidationService, bool) {
-	baseURL := strings.TrimRight(strings.TrimSpace(os.Getenv(validationServiceURLEnv)), "/")
-	token := strings.TrimSpace(os.Getenv(validationServiceTokenEnv))
+	baseURL, token := validationServiceCredentials()
 	if baseURL == "" || token == "" {
 		return nil, false
 	}
@@ -568,6 +571,92 @@ func newValidationServiceClient() (drq.ValidationService, bool) {
 		client:  &http.Client{Timeout: 30 * time.Second},
 	}, true
 }
+
+// validationServiceCredentials reads the endpoint and Bearer credential, the
+// latter from the token file when one is named and readable, else the environment.
+func validationServiceCredentials() (baseURL, token string) {
+	baseURL = strings.TrimRight(strings.TrimSpace(os.Getenv(validationServiceURLEnv)), "/")
+	if path := strings.TrimSpace(os.Getenv(validationServiceTokenFileEnv)); path != "" {
+		if b, err := os.ReadFile(path); err == nil {
+			token = strings.TrimSpace(string(b))
+		}
+	}
+	if token == "" {
+		token = strings.TrimSpace(os.Getenv(validationServiceTokenEnv))
+	}
+	return baseURL, token
+}
+
+// lateValidationService is a drq.ValidationService that finds its endpoint and
+// credential when first called and keeps looking until it does. Until then every
+// call fails with a clear error, and a single warning is logged the first time a
+// cluster actually reaches the validation stage without one.
+type lateValidationService struct {
+	logger *zap.Logger
+
+	mu     sync.Mutex
+	client drq.ValidationService
+	warned bool
+}
+
+func newLateValidationService(logger *zap.Logger) *lateValidationService {
+	return &lateValidationService{logger: logger}
+}
+
+// resolve returns the client once the endpoint and credential exist.
+func (l *lateValidationService) resolve() (drq.ValidationService, bool) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	if l.client != nil {
+		return l.client, true
+	}
+	if c, ok := newValidationServiceClient(); ok {
+		l.client = c
+		l.logger.Info("DRQ: validation service resolved")
+		return c, true
+	}
+	if !l.warned {
+		l.warned = true
+		l.logger.Warn("DRQ: a cluster reached the validation stage but no validation service is configured; it will wait",
+			zap.String("set", validationServiceURLEnv+" and "+validationServiceTokenEnv+" (or "+validationServiceTokenFileEnv+")"))
+	}
+	return nil, false
+}
+
+// configured reports whether the service can be resolved now, without warning.
+func (l *lateValidationService) configured() bool {
+	if l == nil {
+		return false
+	}
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	if l.client != nil {
+		return true
+	}
+	if c, ok := newValidationServiceClient(); ok {
+		l.client = c
+		return true
+	}
+	return false
+}
+
+func (l *lateValidationService) SubmitClusterForValidation(ctx context.Context, cluster *drq.ErrorCluster) (*drq.ValidationTask, error) {
+	c, ok := l.resolve()
+	if !ok {
+		return nil, errNoValidationService
+	}
+	return c.SubmitClusterForValidation(ctx, cluster)
+}
+
+func (l *lateValidationService) GetValidationProof(ctx context.Context, taskID string) (*drq.ValidationProof, error) {
+	c, ok := l.resolve()
+	if !ok {
+		return nil, errNoValidationService
+	}
+	return c.GetValidationProof(ctx, taskID)
+}
+
+var errNoValidationService = errors.New("no validation service configured")
 
 type validationServiceClient struct {
 	baseURL string
@@ -768,8 +857,7 @@ func newULoRAMintingConfig() (compiler drq.ULoRACompiler, validator drq.BundleVa
 	// The gate: the same validation-service endpoint the cluster validation path
 	// uses. Without it minting still stops at the gate — a configured compiler
 	// with no validator must refuse rather than publish unvalidated bytes.
-	baseURL := strings.TrimRight(strings.TrimSpace(os.Getenv(validationServiceURLEnv)), "/")
-	token := strings.TrimSpace(os.Getenv(validationServiceTokenEnv))
+	baseURL, token := validationServiceCredentials()
 	if baseURL != "" && token != "" {
 		validator = drq.NewDVEBundleValidator(baseURL, token)
 	}

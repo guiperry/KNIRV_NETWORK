@@ -3,28 +3,52 @@
 //! The crate mirrors the Transaction, Gateway, unified-service, controller-wallet,
 //! and canonical direct-signing APIs supplied by the Go and TypeScript SDKs.
 
-pub mod bindings;
 pub mod actuarial;
+pub mod authority;
+pub mod bindings;
 pub mod client;
 pub mod crypto;
 pub mod error;
+pub mod evidence;
 pub mod gateway;
 pub mod governance;
+pub mod http_transport;
+pub mod frame;
+pub mod models;
+pub mod noderole;
 pub mod oracled;
+pub mod replication;
+#[cfg(feature = "secrets")]
+pub mod secrets;
 pub mod services;
 pub mod signing;
 pub mod transaction;
 pub mod transmission;
 pub mod types;
+pub mod uri;
+#[cfg(feature = "vault")]
+pub mod vault;
 pub mod wallet;
+pub mod wallet_protocol;
+#[cfg(feature = "module-manifest")]
 pub mod wasm_modules;
 
+pub use actuarial::ActuarialService;
 pub use bindings::{
-    BindingConfig, BindingEngine, BindingError, BindingErrorCode, RequestEnvelope,
-    ResponseEnvelope, BINDING_API_VERSION,
+    call_json_async_with_transport, call_json_with_transport, call_local_json, is_network_operation, local_operation, BindingConfig, BindingEngine, BindingError, BindingErrorCode,
+    RequestEnvelope, ResponseEnvelope, BINDING_API_VERSION,
 };
 pub use client::{ClientConfig, HttpClient, Network, NetworkInfo, RetryConfig};
-pub use actuarial::ActuarialService;
+pub use error::{Error, Result};
+#[cfg(feature = "http-reqwest")]
+pub use http_transport::ReqwestTransport;
+pub use gateway::GatewayClient;
+pub use http_transport::{decode_response, encode_request, HttpRequest, HttpResponse, HttpTransport, JsonTransport, TransportError, TransportErrorKind};
+pub use governance::GovernanceClient;
+pub use oracled::OracleClient;
+pub use services::*;
+pub use transaction::TransactionClient;
+pub use transmission::*;
 pub use types::{
     ActuarialRiskClass, ActuarialRiskClassLimits, ClaimSubmissionRequest,
     CreateActuarialRiskClassRequest, CreateStakeRequest, CreateSubmissionArtifactsRequest,
@@ -32,14 +56,9 @@ pub use types::{
     RequestStakeExitRequest, SignedActuarialIntent, StakePosition, SyndicatePool,
     VulnerabilitySubmission,
 };
-pub use error::{Error, Result};
-pub use gateway::GatewayClient;
-pub use governance::GovernanceClient;
-pub use oracled::OracleClient;
-pub use services::*;
-pub use transaction::TransactionClient;
-pub use transmission::*;
+pub use uri::{derive_id, normalize_id, parse as parse_uri, Kind as UriKind, Result as UriResult};
 pub use wallet::KnirvWallet;
+#[cfg(feature = "module-manifest")]
 pub use wasm_modules::{materialize_wasm_module, wasm_module, WasmModule, WasmModuleMetadata};
 
 /// A unified client for all KNIRV HTTP services.
@@ -83,7 +102,10 @@ impl KnirvClient {
             .controller_url
             .clone()
             .unwrap_or_else(|| network.services.controller.clone());
-        let backend_url = config.backend_url.clone().unwrap_or_else(|| network.services.backend.clone());
+        let backend_url = config
+            .backend_url
+            .clone()
+            .unwrap_or_else(|| network.services.backend.clone());
         network.services.chain = transaction_url.clone();
         network.services.gateway = gateway_url.clone();
         network.services.controller = controller_url.clone();
@@ -169,14 +191,29 @@ mod tests {
         })
         .unwrap();
         for err in [
-            sdk.factuality.get_slice_info().await.map(|_| ()).unwrap_err(),
-            sdk.factuality.get_verification_history(None).await.map(|_| ()).unwrap_err(),
-            sdk.factuality.get_verification("v1").await.map(|_| ()).unwrap_err(),
+            sdk.factuality
+                .get_slice_info()
+                .await
+                .map(|_| ())
+                .unwrap_err(),
+            sdk.factuality
+                .get_verification_history(None)
+                .await
+                .map(|_| ())
+                .unwrap_err(),
+            sdk.factuality
+                .get_verification("v1")
+                .await
+                .map(|_| ())
+                .unwrap_err(),
         ] {
             assert!(matches!(err, Error::Api { status: 501, .. }), "{err}");
         }
         // The real route validates its input before any request is made.
         let empty = crate::types::FactualityCheckRequest::default();
-        assert!(matches!(sdk.factuality.check(&empty).await.unwrap_err(), Error::Validation(_)));
+        assert!(matches!(
+            sdk.factuality.check(&empty).await.unwrap_err(),
+            Error::Validation(_)
+        ));
     }
 }

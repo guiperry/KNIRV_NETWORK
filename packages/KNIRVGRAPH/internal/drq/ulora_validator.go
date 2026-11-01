@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 )
@@ -97,6 +98,9 @@ func (v *DVEBundleValidator) ValidateBundle(ctx context.Context, cluster *ErrorC
 	contentHash := strings.TrimSpace(result.ContentHash)
 	if contentHash == "" {
 		return errors.New("compile result has no content hash; cannot attribute a verdict to it")
+	}
+	if err := checkPublishableFitKind(result.ManifestPath); err != nil {
+		return err
 	}
 
 	taskID, err := v.submit(ctx, cluster, result, dataset)
@@ -299,6 +303,34 @@ func (v *DVEBundleValidator) accept(verdict *bundleVerdict, taskID, contentHash 
 	if !strings.EqualFold(strings.TrimSpace(echoedHash), contentHash) {
 		return fmt.Errorf("bundle verdict ran %q but this bundle is %s: refusing a verdict for different content",
 			echoedHash, contentHash)
+	}
+	return nil
+}
+
+// checkPublishableFitKind enforces the honesty gate before any validation task
+// is created (and therefore before any chain registration): a Path B bundle is
+// a deterministic linear embedding fit, not trained LoRA, and must never be
+// published as one. An absent manifest or unknown fit kind is left to the
+// existing validation gate rather than being treated as approval.
+func checkPublishableFitKind(manifestPath string) error {
+	path := strings.TrimSpace(manifestPath)
+	if path == "" {
+		return nil
+	}
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil
+	}
+	var manifest struct {
+		Training struct {
+			FitKind string `json:"fit_kind"`
+		} `json:"training"`
+	}
+	if err := json.Unmarshal(data, &manifest); err != nil {
+		return nil
+	}
+	if manifest.Training.FitKind == "linear_embedding_fit" {
+		return errors.New("fit_kind linear_embedding_fit cannot be published")
 	}
 	return nil
 }

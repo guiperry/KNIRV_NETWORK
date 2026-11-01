@@ -1,14 +1,13 @@
-/**
- * Browser-safe facade for KNIRVSERVER's actuarial API. The Rust core owns the
- * matching service; this facade is intentionally transport-only for WASM apps.
- */
 export declare class ActuarialClient {
     private readonly baseUrl;
     private readonly fetcher;
     private headers;
+    private sdk?;
     constructor(baseUrl?: string, fetcher?: typeof fetch);
     setHeaders(headers: HeadersInit): this;
-    private request;
+    private client;
+    private config;
+    private call;
     riskClasses<T = unknown>(): Promise<T>;
     pools<T = unknown>(): Promise<T>;
     pool<T = unknown>(id: string): Promise<T>;

@@ -1,0 +1,40 @@
+Total event coverage: 100.0%
+============================
+StateMachine: AuthoritySessionMachine
+=====================================
+Event coverage: 100.0%
+
+	State: Init
+		State has no expected events, so coverage is 100%
+		Next states: Active
+
+	State: Active
+		State event coverage: 100.0%
+		Events received: eAuthSessionRecord, eAuthSessionRetire
+		Previous states: Init
+
+StateMachine: AuthoritySessionMain
+==================================
+Event coverage: 100.0%
+
+	State: Init
+		State has no expected events, so coverage is 100%
+
+Monitor: AuthoritySessionMonitor
+================================
+Event coverage: 100.0%
+
+	State: Monitoring
+		State event coverage: 100.0%
+		Events received: eAuthSessionAccepted, eAuthSessionRetired
+		Previous states: Monitoring
+		Next states: Monitoring
+
+StateMachine: AuthoritySessionWorkload
+======================================
+Event coverage: 100.0%
+
+	State: Init
+		State has no expected events, so coverage is 100%
+		Events sent: eAuthSessionRecord, eAuthSessionRetire
+

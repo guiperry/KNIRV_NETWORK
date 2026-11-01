@@ -1,16 +1,16 @@
 # KNIRV SDK bindings
 
-This directory contains the new Rust-backed binding boundary. Existing SDKs in
-`../go`, `../py`, and `../ts` remain in place as compatible legacy packages;
-they are not moved because their public import paths are used across KNIRV.
+The Rust core in `../core` is the only implementation. This directory holds the
+build wrappers that run it as WebAssembly.
 
-- `c-abi/` is the common native boundary: opaque engine handles and JSON bytes.
-- `py/` contains a thin language-facing adapter over the shared envelope
-  contract. The Go facade is published from `../go-package/`, where its CGO
-  implementation is compiler-enforced under `internal/ffi`; the TypeScript
-  facade is published from `../npm-package/` as `@knirv/sdk`.
-- `../bindings-tests/envelopes.json` is a language-neutral fixture set.
+- `wasi/` builds the core as a `wasm32-wasip1` module with the three-function
+  ABI (`knirv_alloc` / `knirv_free` / `knirv_invoke`). The Go package
+  (`../go-package/`) runs it in-process under wazero (`internal/core`), with
+  `CGO_ENABLED=0`.
+- The TypeScript package (`../npm-package/`, `@knirv/sdk`) runs the wasm-bindgen
+  build in `../npm-package/wasm-core`.
+- `../bindings-tests/envelopes.json` is the language-neutral fixture set that
+  both hosts run.
 
-The Rust core lives at `../core`. There were no in-repository Cargo consumers
-of the prior `rust/` path; the C ABI dependency above is updated atomically with
-this layout change.
+There is no C ABI and no Python binding; both were removed (the WASM builds cover
+every operation, including the network ones).

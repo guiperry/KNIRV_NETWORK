@@ -1,0 +1,147 @@
+{
+  "version": 1,
+  "resource_types": [
+    "chain", "nrn", "ulora", "mcpcontext", "resource", "tool", "prompt",
+    "memoryservice", "memory", "capability", "dev", "errornode", "skillnode",
+    "ideanode", "propertynode", "usdscene", "usdasset"
+  ],
+  "query_keys": ["tenant", "snapshot", "sha256"],
+  "derive": [
+    { "raw": "foo_bar", "id": "jeumv2ftpm6rce7v4apgbslh35wcxhuc" },
+    { "raw": "a:b", "id": "m6b2ghvl62gmybta7e24batcqk65eja7" },
+    { "raw": "a.b", "id": "fzztnxeoxkd66rzn6vumgvecvpzfoxod" },
+    { "raw": "Foo_Bar", "id": "mhnt6iwqudwmfmzrxf4v3neftkvquyuk" }
+  ],
+  "cases": [
+    {
+      "name": "canonical roundtrip",
+      "input": "knirv://abc.usdscene/?tenant=t1&snapshot=aa",
+      "kind": "canonical",
+      "canonical": "knirv://abc.usdscene/?snapshot=aa&tenant=t1",
+      "id": "abc",
+      "resource_type": "usdscene",
+      "path": "/",
+      "query": { "snapshot": "aa", "tenant": "t1" }
+    },
+    {
+      "name": "unsorted query is sorted",
+      "input": "knirv://abc.errornode/?tenant=t1&sha256=cc&snapshot=bb",
+      "kind": "canonical",
+      "canonical": "knirv://abc.errornode/?sha256=cc&snapshot=bb&tenant=t1",
+      "id": "abc",
+      "resource_type": "errornode",
+      "path": "/",
+      "query": { "sha256": "cc", "snapshot": "bb", "tenant": "t1" }
+    },
+    {
+      "name": "uppercase host and scheme are lowercased",
+      "input": "KNIRV://ABC.USDSCENE/?tenant=t1",
+      "kind": "canonical",
+      "canonical": "knirv://abc.usdscene/?tenant=t1",
+      "id": "abc",
+      "resource_type": "usdscene",
+      "path": "/",
+      "query": { "tenant": "t1" }
+    },
+    {
+      "name": "bad host with three labels",
+      "input": "knirv://a.b.c/",
+      "kind": "invalid",
+      "reason": "host must have exactly two labels"
+    },
+    {
+      "name": "legacy plain dve id",
+      "input": "knirv://dve123",
+      "kind": "legacy_dve",
+      "canonical": "knirv://dve123",
+      "legacy_dve": { "form": "id", "id": "dve123" }
+    },
+    {
+      "name": "legacy hash and dve id",
+      "input": "knirv://abcdef123456/dve123",
+      "kind": "legacy_dve",
+      "canonical": "knirv://abcdef123456/dve123",
+      "legacy_dve": { "form": "hash/id", "id": "dve123", "hash": "abcdef123456" }
+    },
+    {
+      "name": "legacy dve path form",
+      "input": "knirv://dve/dve123/scene-name",
+      "kind": "legacy_dve",
+      "canonical": "knirv://dve/dve123/scene-name",
+      "legacy_dve": { "form": "dve/id/name", "id": "dve123", "name": "scene-name" }
+    },
+    {
+      "name": "content pointer",
+      "input": "knirv://network/skill_ab12",
+      "kind": "content_pointer",
+      "canonical": "knirv://network/skill_ab12",
+      "content_pointer": { "kind": "skill", "hash": "ab12" }
+    },
+    {
+      "name": "auth action",
+      "input": "knirv://auth?token=abc&z=1",
+      "kind": "action",
+      "canonical": "knirv://auth?token=abc&z=1",
+      "action": { "name": "auth", "query": { "token": "abc", "z": "1" }, "canonical": "knirv://auth?token=abc&z=1" }
+    },
+    {
+      "name": "sign action",
+      "input": "knirv://sign?tenant=t&intent=login",
+      "kind": "action",
+      "canonical": "knirv://sign?intent=login&tenant=t",
+      "action": { "name": "sign", "query": { "intent": "login", "tenant": "t" }, "canonical": "knirv://sign?intent=login&tenant=t" }
+    },
+    {
+      "name": "unknown resource type",
+      "input": "knirv://abc.foo/",
+      "kind": "invalid",
+      "reason": "unknown resource type: foo"
+    },
+    {
+      "name": "derived id for underscore",
+      "input": "knirv://foo_bar.usdscene/",
+      "kind": "canonical",
+      "canonical": "knirv://jeumv2ftpm6rce7v4apgbslh35wcxhuc.usdscene/",
+      "id": "jeumv2ftpm6rce7v4apgbslh35wcxhuc",
+      "resource_type": "usdscene",
+      "path": "/",
+      "query": {}
+    },
+    {
+      "name": "empty path gets trailing slash",
+      "input": "knirv://abc.chain",
+      "kind": "canonical",
+      "canonical": "knirv://abc.chain/",
+      "id": "abc",
+      "resource_type": "chain",
+      "path": "/",
+      "query": {}
+    },
+    {
+      "name": "query values are percent encoded",
+      "input": "knirv://abc.chain/?tenant=a%20b%2Fc",
+      "kind": "canonical",
+      "canonical": "knirv://abc.chain/?tenant=a%20b%2Fc",
+      "id": "abc",
+      "resource_type": "chain",
+      "path": "/",
+      "query": { "tenant": "a b/c" }
+    },
+    {
+      "name": "usdasset id is a sha256 prefix",
+      "input": "knirv://0123456789abcdef0123456789abcdef.usdasset/?sha256=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+      "kind": "canonical",
+      "canonical": "knirv://0123456789abcdef0123456789abcdef.usdasset/?sha256=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+      "id": "0123456789abcdef0123456789abcdef",
+      "resource_type": "usdasset",
+      "path": "/",
+      "query": { "sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef" }
+    },
+    {
+      "name": "usdasset id is not a sha256 prefix",
+      "input": "knirv://deadbeef.usdasset/?sha256=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+      "kind": "invalid",
+      "reason": "usdasset id must be a prefix of sha256"
+    }
+  ]
+}

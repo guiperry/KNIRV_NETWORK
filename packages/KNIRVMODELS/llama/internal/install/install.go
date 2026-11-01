@@ -21,9 +21,11 @@ import (
 
 const (
 	DefaultServerURL = "https://releases.knirv.com/knirv/llama/linux-amd64/llama-server.gz"
-	// LatestReleaseURL reports the newest upstream llama.cpp release; its tag is
-	// the build number ("b6789") that `llama-server --version` prints.
-	LatestReleaseURL = "https://api.github.com/repos/ggml-org/llama.cpp/releases/latest"
+	// LatestReleaseURL lists recent upstream llama.cpp releases. The /latest
+	// endpoint is not used: the repo also publishes non-build tags ("v0.8.0") that it
+	// can resolve to. A build tag is the number ("b6789") `llama-server --version`
+	// prints.
+	LatestReleaseURL = "https://api.github.com/repos/ggml-org/llama.cpp/releases?per_page=30"
 	upstreamRepoURL  = "https://github.com/ggml-org/llama.cpp.git"
 )
 
@@ -117,17 +119,26 @@ func (i *Installer) latestBuild() (tag string, build int, err error) {
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		return "", 0, fmt.Errorf("unexpected HTTP status %s", resp.Status)
 	}
-	var release struct {
-		TagName string `json:"tag_name"`
+	var releases []struct {
+		TagName    string `json:"tag_name"`
+		Draft      bool   `json:"draft"`
+		Prerelease bool   `json:"prerelease"`
 	}
-	if err := json.NewDecoder(io.LimitReader(resp.Body, 1<<20)).Decode(&release); err != nil {
+	if err := json.NewDecoder(io.LimitReader(resp.Body, 4<<20)).Decode(&releases); err != nil {
 		return "", 0, err
 	}
-	build, err = strconv.Atoi(strings.TrimPrefix(release.TagName, "b"))
-	if err != nil {
-		return "", 0, fmt.Errorf("unrecognised release tag %q", release.TagName)
+	for _, r := range releases {
+		if r.Draft || r.Prerelease || !strings.HasPrefix(r.TagName, "b") {
+			continue
+		}
+		if n, err := strconv.Atoi(r.TagName[1:]); err == nil && n > build {
+			tag, build = r.TagName, n
+		}
 	}
-	return release.TagName, build, nil
+	if build == 0 {
+		return "", 0, fmt.Errorf("no llama.cpp build tag among %d recent releases", len(releases))
+	}
+	return tag, build, nil
 }
 
 // updateServer replaces server with the latest upstream build when it is older.

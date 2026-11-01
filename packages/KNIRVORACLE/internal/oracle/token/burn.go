@@ -8,6 +8,7 @@ import (
 	"time"
 
 	knirvsigning "github.com/guiperry/knirv-sdk-go/signing"
+	"github.com/knirvcorp/knirvoracle/internal/oracle/ledger"
 	"github.com/knirvcorp/knirvoracle/internal/oracle/types"
 )
 
@@ -65,6 +66,12 @@ func (n *NRN) BurnSigned(fromAddr types.Address, amount *big.Int, reason string,
 			types.ErrInsufficientBalance, fromBalance.String(), amount.String())
 	}
 
+	if err := n.record(ledger.KindTokenBurn, ledger.TokenBurn{
+		From: fromAddr.String(), Amount: dec(amount), Reason: reason,
+	}); err != nil {
+		return nil, fmt.Errorf("record burn: %w", err)
+	}
+
 	newBalance := new(big.Int).Sub(fromBalance, amount)
 	newTotalSupply := new(big.Int).Sub(n.totalSupply, amount)
 	n.setBalance(fromAddr, newBalance)
@@ -106,6 +113,12 @@ func (n *NRN) BurnFrom(addr types.Address, amount *big.Int, reason string) error
 		return types.ErrInsufficientBalance
 	}
 
+	if err := n.record(ledger.KindTokenBurn, ledger.TokenBurn{
+		From: addr.String(), Amount: dec(amount), Reason: reason,
+	}); err != nil {
+		return fmt.Errorf("record burn: %w", err)
+	}
+
 	// Calculate new balance and total supply
 	newBalance := new(big.Int).Sub(balance, amount)
 	n.totalSupply.Sub(n.totalSupply, amount)
@@ -139,6 +152,11 @@ func (n *NRN) BurnForSkillInvocation(fromAddr types.Address, skillID string, amo
 	}
 
 	reason := fmt.Sprintf("skill-invocation:%s", skillID)
+	if err := n.record(ledger.KindTokenBurn, ledger.TokenBurn{
+		From: fromAddr.String(), Amount: dec(amount), Reason: reason,
+	}); err != nil {
+		return nil, fmt.Errorf("record burn: %w", err)
+	}
 	newBalance := new(big.Int).Sub(fromBalance, amount)
 	newTotalSupply := new(big.Int).Sub(n.totalSupply, amount)
 	n.setBalance(fromAddr, newBalance)

@@ -1,67 +1,42 @@
-Total event coverage: 84.6%
+Total event coverage: 40.0%
 ===========================
-Monitor: CheckpointLifecycleMonitor
-===================================
+StateMachine: ReplicationBugMain
+================================
 Event coverage: 100.0%
 
+	State: Init
+		State has no expected events, so coverage is 100%
+
+StateMachine: ReplicationMachine
+================================
+Event coverage: 33.3%
+
+	State: Init
+		State has no expected events, so coverage is 100%
+		Next states: Following
+
+	State: Following
+		State event coverage: 33.3%
+		Events received: eHeadObserved
+		Events not covered: eDivergenceCleared, ePromote
+		Previous states: Init
+
+Monitor: ReplicationMonitor
+===========================
+Event coverage: 50.0%
+
 	State: Monitoring
-		State event coverage: 100.0%
-		Events received: eCheckpointFinalized, eCheckpointLeafAppended, eCheckpointProvisional, eCheckpointRejected
+		State event coverage: 50.0%
+		Events received: eHeadApplied
+		Events not covered: ePromoted
 		Previous states: Monitoring
 		Next states: Monitoring
 
-StateMachine: CheckpointMachine
-===============================
+StateMachine: ReplicationWorkload
+=================================
 Event coverage: 100.0%
 
 	State: Init
-		State event coverage: 100.0%
-		Events received: eComponentStart
-		Next states: Active
-
-	State: Active
-		State event coverage: 100.0%
-		Events received: eCheckpointFinalitySubmit, eCheckpointOracleTick, eCheckpointSubmit
-		Events sent: eCheckpointFinalized, eCheckpointProvisional
-		Previous states: Init
-
-StateMachine: CheckpointProtocolDriver
-======================================
-Event coverage: 60.0%
-
-	State: Init
 		State has no expected events, so coverage is 100%
-		Events sent: eCheckpointSubmit, eComponentStart
-		Next states: AwaitFirstProvisional
-
-	State: AwaitFirstProvisional
-		State event coverage: 100.0%
-		Events received: eCheckpointProvisional
-		Events sent: eCheckpointFinalitySubmit
-		Previous states: Init
-		Next states: AwaitFinal
-
-	State: AwaitFinal
-		State event coverage: 100.0%
-		Events received: eCheckpointFinalized
-		Events sent: eCheckpointSubmit
-		Previous states: AwaitFirstProvisional
-		Next states: AwaitExpiringProvisional
-
-	State: AwaitExpiringProvisional
-		State event coverage: 100.0%
-		Events received: eCheckpointProvisional
-		Events sent: eCheckpointOracleTick
-		Previous states: AwaitFinal
-		Next states: AwaitRejection
-
-	State: AwaitRejection is uncovered
-		Events not covered: eCheckpointRejected
-		Previous states: AwaitExpiringProvisional
-
-	State: AwaitTerminalGuard is uncovered
-		Events not covered: eCheckpointFinalityRejected
-
-	State: Done
-		State has no expected events, so coverage is 100%
+		Events sent: eHeadObserved
 

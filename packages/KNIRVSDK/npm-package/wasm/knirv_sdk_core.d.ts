@@ -4,6 +4,19 @@
 export function core_version(): string;
 
 /**
+ * Runs one binding request (`{version, operation, payload}` as JSON) against
+ * the Rust core's local operations and returns the response envelope JSON.
+ * Unknown or network operations answer `UNSUPPORTED`.
+ */
+export function invoke(request_json: string): string;
+
+/**
+ * Like [`invoke`], and network operations run through `host`
+ * (`{http_request(json): Promise<string>, sleep(ms): Promise<void>}`).
+ */
+export function invoke_async(request_json: string, host: any): Promise<string>;
+
+/**
  * Hash arbitrary caller-owned bytes with the SDK's canonical SHA-256 helper.
  */
 export function sha256_hex(data: Uint8Array): string;
@@ -18,12 +31,18 @@ export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembl
 export interface InitOutput {
     readonly memory: WebAssembly.Memory;
     readonly core_version: (a: number) => void;
+    readonly invoke: (a: number, b: number, c: number) => void;
+    readonly invoke_async: (a: number, b: number, c: number) => number;
     readonly sha256_hex: (a: number, b: number, c: number) => void;
     readonly sha256_matches: (a: number, b: number, c: number, d: number) => number;
+    readonly __wasm_bindgen_func_elem_3335: (a: number, b: number, c: number, d: number) => void;
+    readonly __wasm_bindgen_func_elem_3344: (a: number, b: number, c: number, d: number) => void;
+    readonly __wbindgen_export: (a: number, b: number) => number;
+    readonly __wbindgen_export2: (a: number, b: number, c: number, d: number) => number;
+    readonly __wbindgen_export3: (a: number) => void;
+    readonly __wbindgen_export4: (a: number, b: number) => void;
     readonly __wbindgen_add_to_stack_pointer: (a: number) => number;
-    readonly __wbindgen_export: (a: number, b: number, c: number) => void;
-    readonly __wbindgen_export2: (a: number, b: number) => number;
-    readonly __wbindgen_export3: (a: number, b: number, c: number, d: number) => number;
+    readonly __wbindgen_export5: (a: number, b: number, c: number) => void;
 }
 
 export type SyncInitInput = BufferSource | WebAssembly.Module;

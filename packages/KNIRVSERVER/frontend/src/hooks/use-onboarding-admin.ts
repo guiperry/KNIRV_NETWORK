@@ -6,6 +6,11 @@ import { getAuthHeaders } from '@/lib/api';
 export interface OnboardingApplication {
   id: string;
   legal_name: string;
+  business_name?: string;
+  tax_id?: string;
+  country?: string;
+  corporate_site?: string;
+  contact_email?: string;
   kyc_status: string;
   status: string;
   created_at: string;
@@ -69,6 +74,18 @@ export function useReviewOperatorApplication() {
   return useMutation({
     mutationFn: ({ id, decision, note }: { id: string; decision: 'approved' | 'rejected'; note?: string }) =>
       postJSON(`/api/v1/onboarding/applications/${encodeURIComponent(id)}/review`, { decision, note }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['onboarding', 'applications'] });
+    },
+  });
+}
+
+/** Record an in-house KYC/AML decision; this is what unlocks bootnode provisioning. */
+export function useRecordKycDecision() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, status, note }: { id: string; status: 'approved' | 'rejected' | 'manual_review'; note?: string }) =>
+      postJSON(`/api/v1/onboarding/applications/${encodeURIComponent(id)}/kyc`, { status, note }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['onboarding', 'applications'] });
     },

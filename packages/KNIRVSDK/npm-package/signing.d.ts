@@ -1,3 +1,13 @@
+/**
+ * KNIRV direct-transaction and signed-message primitives.
+ *
+ * Every function here is a typed wrapper over the Rust core (the source of
+ * truth), reached through the binding envelope in `./local.ts`. Nothing
+ * cryptographic is implemented in TypeScript. See `./local.ts` for the
+ * one-time initialisation contract (`initLocal`), which differs by platform.
+ */
+import { type Uint64 } from './local.js';
+export { initLocal, LocalCoreNotInitializedError } from './local.js';
 export declare const KNIRV_HD_PATH = "m/44'/118'/0'/0/i";
 export declare const ACTION_SCHEMA_VERSION = "knirv.action.v1";
 export declare const MESSAGE_SCHEMA_VERSION = "knirv.message.v1";
@@ -8,6 +18,9 @@ export declare const RELAY_ENVELOPE_SCHEMA_VERSION = "knirv.controller.relay-env
 export declare const WASM_PUBLICATION_SCHEMA_VERSION = "knirv.wasm_publication.v1";
 export declare const WASM_MANIFEST_SCHEMA_VERSION = "knirv.wasm_manifest.v1";
 export declare const CONTROLLER_DOMAIN = "knirv.controller";
+export declare const SCENES_DOMAIN = "knirv.scenes";
+export declare const PURPOSE_SCENE_MANIFEST = "scene-manifest";
+export declare const ROLE_SCENE_SIGNER = "scene-signer";
 export declare const PURPOSE_WASM_PUBLICATION = "wasm-publication";
 export declare const PURPOSE_WASM_ASSIGNMENT = "wasm-assignment";
 export declare const PURPOSE_WASM_DOWNLOAD_GRANT = "wasm-download-grant";
@@ -15,7 +28,7 @@ export declare const PURPOSE_RELAY_REQUEST = "relay-request";
 export declare const PURPOSE_RELAY_RESPONSE = "relay-response";
 export declare const RELAY_TARGET_DVE_EXPERT_ADVISOR = "dve_expert_advisor";
 export declare const RELAY_TARGET_CLI_SUPERVISOR = "cli_supervisor";
-export type Uint64 = number | string | bigint;
+export type { Uint64 };
 export interface KNIRVAction {
     schemaVersion?: string;
     action: string;
@@ -158,16 +171,55 @@ export interface WasmManifestPayload {
     assignmentVersion?: Uint64;
     supersedesAssignmentId?: string;
 }
+/** @internal */
+export declare const wireRequest: (r: DirectSignRequest) => {
+    action: {
+        schema_version: string | undefined;
+        action: string;
+        sender: string;
+        recipient: string | undefined;
+        amount: Uint64 | undefined;
+        payload: number[] | undefined;
+        timestamp_unix: Uint64;
+    };
+    chain_id: string;
+    account_number: Uint64;
+    sequence: Uint64;
+    fee: {
+        denom: string | undefined;
+        amount: string | undefined;
+        gas_limit: Uint64 | undefined;
+        payer: string | undefined;
+        granter: string | undefined;
+    } | undefined;
+};
+/** @internal */
+export declare const wireEnvelope: (e: MessageEnvelope) => {
+    schema_version: string | undefined;
+    domain: string;
+    purpose: string;
+    chain_id: string;
+    nonce: string;
+    issued_at_unix: Uint64;
+    expires_at_unix: Uint64;
+    payload: number[] | undefined;
+};
 export declare function marshalAction(action: KNIRVAction): Uint8Array;
 export declare function buildDirectSignDoc(request: DirectSignRequest, compressedPublicKey: Uint8Array): {
-    bodyBytes: Uint8Array<ArrayBuffer>;
-    authInfoBytes: Uint8Array<ArrayBuffer>;
-    signDoc: Uint8Array<ArrayBuffer>;
+    bodyBytes: Uint8Array<ArrayBufferLike>;
+    authInfoBytes: Uint8Array<ArrayBufferLike>;
+    signDoc: Uint8Array<ArrayBufferLike>;
 };
-export declare const marshalTxRaw: (bodyBytes: Uint8Array, authInfoBytes: Uint8Array, signatures: Uint8Array[]) => Uint8Array<ArrayBuffer>;
+export declare const marshalTxRaw: (bodyBytes: Uint8Array, authInfoBytes: Uint8Array, signatures: Uint8Array[]) => Uint8Array;
 export declare function publicKeyToKNIRVAddress(compressedPublicKey: Uint8Array): string;
 export declare function signDirectTransaction(privateKey: Uint8Array, request: DirectSignRequest): Promise<SignedDirectTransaction>;
 export declare function marshalMessageEnvelope(envelope: MessageEnvelope): Uint8Array;
+export declare function signMessageEnvelope(privateKey: Uint8Array, envelope: MessageEnvelope): Promise<SignedMessageEnvelope>;
+export declare function parseMessageEnvelope(data: Uint8Array): ParsedMessageEnvelope;
+export declare function verifyMessage(signed: SignedMessageEnvelope, expectedDomain: string, expectedPurpose: string, expectedChainId: string, expectedNonce: string, now: Date): Promise<void>;
+export declare function verifyMessagePayload(signed: SignedMessageEnvelope, expectedDomain: string, expectedPurpose: string, expectedChainId: string, expectedPayload: Uint8Array, now: Date): Promise<void>;
+/** True when `signed` is exactly the canonical encoding of `expected` with a valid signature. */
+export declare function verifyMessageEnvelope(signed: SignedMessageEnvelope, expected: MessageEnvelope): Promise<boolean>;
 export declare function marshalRelayEnvelope(envelope: RelayEnvelope): Uint8Array;
 export declare function parseRelayEnvelope(data: Uint8Array): ParsedRelayEnvelope;
 /** Creates a CLI-supervisor relay envelope with a SHA-256 payload binding. */
@@ -175,10 +227,5 @@ export declare function newCLISupervisorRelay(params: CLISupervisorRelayParams):
 /** Signs the canonical relay-response message derived from a relay envelope. */
 export declare function signCLISupervisorRelayResponse(privateKey: Uint8Array, envelope: RelayEnvelope, chainId: string): Promise<SignedMessageEnvelope>;
 export declare function marshalWasmPublicationPayload(payload: WasmPublicationPayload): Uint8Array;
-export declare function marshalWasmManifestPayload(payload: WasmManifestPayload): Uint8Array;
+export declare function marshalWasmManifestPayload(p: WasmManifestPayload): Uint8Array;
 export declare function parseWasmManifestPayload(data: Uint8Array): WasmManifestPayload;
-export declare function signMessageEnvelope(privateKey: Uint8Array, envelope: MessageEnvelope): Promise<SignedMessageEnvelope>;
-export declare function verifyMessageEnvelope(signed: SignedMessageEnvelope, expected: MessageEnvelope): Promise<boolean>;
-export declare function parseMessageEnvelope(data: Uint8Array): ParsedMessageEnvelope;
-export declare function verifyMessage(signed: SignedMessageEnvelope, expectedDomain: string, expectedPurpose: string, expectedChainId: string, expectedNonce: string, now: Date): Promise<void>;
-export declare function verifyMessagePayload(signed: SignedMessageEnvelope, expectedDomain: string, expectedPurpose: string, expectedChainId: string, expectedPayload: Uint8Array, now: Date): Promise<void>;

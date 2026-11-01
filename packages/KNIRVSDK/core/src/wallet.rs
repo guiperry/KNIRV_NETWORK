@@ -8,7 +8,6 @@ use crate::{
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::time::{Duration, Instant};
-use tokio::time::sleep;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct WalletResponse<T = Value> {
@@ -197,7 +196,7 @@ impl KnirvWallet {
                         data: None,
                     })
                 }
-                _ => sleep(self.poll_interval).await,
+                _ => self.http.sleep(self.poll_interval).await,
             }
         }
         Err(Error::Timeout)

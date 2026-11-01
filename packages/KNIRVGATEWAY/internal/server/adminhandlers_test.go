@@ -223,3 +223,61 @@ func TestHandleAdminUserStatus_NotFoundWhenNoRowsChanged(t *testing.T) {
 		t.Errorf("status = %d, want %d", rec.Code, http.StatusNotFound)
 	}
 }
+
+func TestHandleAdminOperatorKYC_RecordsDecision(t *testing.T) {
+	var updateParams []any
+	client := newMockD1Client(t, []d1Responder{
+		{sqlContains: "UPDATE operator_applications", respond: func(w http.ResponseWriter, sql string, params []any) {
+			updateParams = params
+			writeD1Changes(w, 1)
+		}},
+	})
+	s := newTestServer(client)
+
+	body, _ := json.Marshal(map[string]string{"status": "approved", "note": "registry + sanctions checked"})
+	req := httptest.NewRequest(http.MethodPost, "/api/admin/operators/app-1/kyc", bytes.NewReader(body))
+	req = withMuxVars(req, map[string]string{"id": "app-1"})
+	rec := httptest.NewRecorder()
+
+	s.handleAdminOperatorKYC(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, body = %s", rec.Code, rec.Body.String())
+	}
+	if len(updateParams) != 3 || updateParams[0] != "approved" || updateParams[2] != "app-1" {
+		t.Errorf("updateParams = %v, want [approved, <timestamp>, app-1]", updateParams)
+	}
+}
+
+func TestHandleAdminOperatorKYC_RejectsInvalidStatus(t *testing.T) {
+	s := newTestServer(newMockD1Client(t, nil))
+	body, _ := json.Marshal(map[string]string{"status": "reviewed"})
+	req := httptest.NewRequest(http.MethodPost, "/api/admin/operators/app-1/kyc", bytes.NewReader(body))
+	req = withMuxVars(req, map[string]string{"id": "app-1"})
+	rec := httptest.NewRecorder()
+
+	s.handleAdminOperatorKYC(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusBadRequest)
+	}
+}
+
+func TestHandleAdminOperatorKYC_UnknownApplication(t *testing.T) {
+	client := newMockD1Client(t, []d1Responder{
+		{sqlContains: "UPDATE operator_applications", respond: func(w http.ResponseWriter, sql string, params []any) {
+			writeD1Changes(w, 0)
+		}},
+	})
+	s := newTestServer(client)
+	body, _ := json.Marshal(map[string]string{"status": "approved"})
+	req := httptest.NewRequest(http.MethodPost, "/api/admin/operators/nope/kyc", bytes.NewReader(body))
+	req = withMuxVars(req, map[string]string{"id": "nope"})
+	rec := httptest.NewRecorder()
+
+	s.handleAdminOperatorKYC(rec, req)
+
+	if rec.Code != http.StatusNotFound {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusNotFound)
+	}
+}

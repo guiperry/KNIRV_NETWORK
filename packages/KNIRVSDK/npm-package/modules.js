@@ -1,4 +1,4 @@
-import { wasmModulesManifest as generatedManifest } from "./modules/manifest.js";
+import { wasmModulesManifest as generatedManifest, wasmModulesReleaseVersion } from "./modules/manifest.js";
 export const wasmModulesManifest = generatedManifest;
 export function wasmModuleMetadata(id) {
     const module = wasmModulesManifest.modules.find(candidate => candidate.id === id);
@@ -6,9 +6,20 @@ export function wasmModuleMetadata(id) {
         throw new RangeError(`unknown KNIRV WASM module: ${id}`);
     return module;
 }
+/** Where versioned SDK artifacts are published. */
+export const WASM_RELEASE_BASE_URL = "https://releases.knirv.com/sdk";
+/** Modules shipped inside the npm package: a vault must work offline on first use. */
+const BUNDLED_MODULES = new Set(["crypto-core"]);
+/**
+ * Default location of a module: next to this package when it is bundled,
+ * otherwise the published release for this SDK version (no `import.meta.url`
+ * asset path, which bundlers and Workers handle inconsistently).
+ */
 export function wasmModuleURL(id) {
     wasmModuleMetadata(id);
-    return new URL(`./modules/${id}.wasm`, import.meta.url);
+    if (BUNDLED_MODULES.has(id))
+        return new URL(`./modules/${id}.wasm`, import.meta.url);
+    return new URL(`${WASM_RELEASE_BASE_URL}/${wasmModulesReleaseVersion}/modules/${id}.wasm`);
 }
 /** Loads a raw module asset. Integrity verification is performed by SdkClient. */
 export async function fetchWasmModule(id, source = wasmModuleURL(id)) {
