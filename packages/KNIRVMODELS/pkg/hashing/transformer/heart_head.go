@@ -6,40 +6,50 @@ import (
 	"path/filepath"
 	"strings"
 
-	"knirvmodels/pkg/head"
+	sdk "github.com/guiperry/knirv-sdk-go/models"
+	"knirvmodels/pkg/heart/decision"
 )
 
-// DefaultHEADDir is where 5_HEAD_TRAINER publishes (`--out .../data` -> `.../data/head`).
-const DefaultHEADDir = "/var/lib/knirvserver/knirvmodels/data/head"
+// DefaultDecisionDir is where HEART's decision model lives
+// (data/heart/decision).
+const DefaultDecisionDir = "/var/lib/knirvserver/knirvmodels/data/heart/decision"
 
-// headDir is where HEART reads the served model. It must be the directory stage 5
-// publishes to, which is <app data>/knirvmodels/data/head with the app data root
-// from KNIRV_APP_DATA_DIR when set (as embedded.GetAppDataDir does).
-func headDir() string {
-	if d := os.Getenv("KNIRV_HEAD_DIR"); d != "" {
+// decisionDir resolves the directory the decision service READS from.
+// KNIRV_HEART_DECISION_DIR (explicit override) ->
+// <app data>/knirvmodels/data/heart/decision ->
+// DefaultDecisionDir.
+func decisionDir() string {
+	if d := strings.TrimSpace(os.Getenv("KNIRV_HEART_DECISION_DIR")); d != "" {
 		return d
 	}
 	if root := strings.TrimSpace(os.Getenv("KNIRV_APP_DATA_DIR")); root != "" {
-		return filepath.Join(root, "knirvmodels", "data", "head")
+		return filepath.Join(root, "knirvmodels", "data", "heart", "decision")
 	}
-	return DefaultHEADDir
+	return DefaultDecisionDir
 }
 
-func (hs *HEARTService) headService() *head.Service {
+func (hs *HEARTService) headService() *decision.Service {
 	hs.headOnce.Do(func() {
-		hs.headSvc = head.NewService(headDir())
+		hs.headSvc = decision.NewService(decisionDir())
 	})
 	return hs.headSvc
 }
 
 // SetHEADService overrides the model source (tests).
-func (hs *HEARTService) SetHEADService(s *head.Service) {
+func (hs *HEARTService) SetHEADService(s *decision.Service) {
 	hs.headOnce.Do(func() {})
 	hs.headSvc = s
 }
 
-// registerHEAD mounts the HEAD routes. They carry no CORS headers and are meant to
-// be reached only through backend_server, which authenticates callers.
-func (hs *HEARTService) registerHEAD(mux *http.ServeMux) {
-	head.Routes(hs.headService(), mux)
+// registerHEARTDecision mounts the decision routes. They carry no CORS headers and are meant
+// to be reached only through backend_server, which authenticates callers.
+//
+// The decision core lives under HEART at /models/heart/decide (sdk.HeartDecisionPrefix).
+// Phase 3 removed the legacy /models/head decision mount: HEAD is now the vision model
+// and owns /models/head/models and /models/head/weights/{ver} as VLM artefacts, so the
+// decision manifest/weights are reachable only via the HEART decision prefix and never
+// collide with HEAD's VLM routes.
+func (hs *HEARTService) registerHEARTDecision(mux *http.ServeMux) {
+	svc := hs.headService()
+	decision.RoutesAt(svc, mux, sdk.HeartDecisionPrefix)
 }

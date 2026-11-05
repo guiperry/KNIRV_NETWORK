@@ -132,8 +132,11 @@ type OracleConfig struct {
 	InitialSupply   *big.Int `json:"initial_supply"`
 	MaxSupply       *big.Int `json:"max_supply"`
 	OwnerPrivateKey string   `json:"owner_private_key"`
-	ContractAddress string   `json:"contract_address,omitempty"`
-	XionRPC         string   `json:"xion_rpc,omitempty"`
+	// ReplicationSigner is an already-unlocked root-owner handle supplied by
+	// the host; key material is never serialized in this field.
+	ReplicationSigner knirvsigning.RemoteSigner `json:"-"`
+	ContractAddress   string                    `json:"contract_address,omitempty"`
+	XionRPC           string                    `json:"xion_rpc,omitempty"`
 
 	// P2P configuration
 	P2PListenAddr    string   `json:"p2p_listen_addr"`
@@ -481,6 +484,7 @@ func NewOracle(config *OracleConfig, logger *zap.Logger) (*Oracle, error) {
 		if _, err := oracle.replication.ProduceHead(); err != nil {
 			oracle.logger.Warn("initial replication head not produced", zap.Error(err))
 		}
+		go oracle.replication.run()
 	}
 
 	logger.Info("Oracle initialized",
@@ -844,6 +848,17 @@ func (o *Oracle) ReplicaStatus() replica.Status {
 	return o.follower.Status()
 }
 
+// ClearReplicaDivergence acknowledges a retained, verified standby head after
+// an operator has followed the fork-recovery runbook. It is intentionally not
+// a generic replica reset: the follower preserves its durable mirror and
+// remains paused until a subsequent authenticated sync proves an extension.
+func (o *Oracle) ClearReplicaDivergence(expectedHeadHash string) error {
+	if o.Mode() != ModeStandby || o.follower == nil {
+		return fmt.Errorf("replica divergence recovery is only available on a configured standby")
+	}
+	return o.follower.ClearDivergence(expectedHeadHash)
+}
+
 func (o *Oracle) initFollower() error {
 	if o.Mode() != ModeStandby {
 		return nil
@@ -989,17 +1004,8 @@ func (o *Oracle) startFollower() {
 			o.followersMu.RLock()
 			sources := append([]replica.Source(nil), o.followers...)
 			o.followersMu.RUnlock()
-			if len(sources) == 0 {
-				o.follower.SetPaused(true)
-			} else {
-				o.follower.SetPaused(false)
-			}
-			for _, source := range sources {
-				if err := o.follower.Sync(o.ctx, source); err == nil {
-					break
-				} else {
-					o.logger.Warn("standby replication pull failed", zap.Error(err))
-				}
+			if err := o.follower.SyncSources(o.ctx, sources); err != nil {
+				o.logger.Warn("standby replication pull failed", zap.Error(err))
 			}
 			select {
 			case <-o.ctx.Done():
@@ -1248,6 +1254,11 @@ func (o *Oracle) GetStatus() map[string]interface{} {
 		logSize = o.ledger.Len()
 	}
 	replicaStatus := o.ReplicaStatus()
+	if o.Mode() == ModeActive && o.replication != nil {
+		if head, ok := o.replication.CurrentHead(); ok {
+			replicaStatus.HeadSeq = head.Head.Seq
+		}
+	}
 	return map[string]interface{}{
 		"state_log_size":  logSize,
 		"state_root":      o.stateRoot,

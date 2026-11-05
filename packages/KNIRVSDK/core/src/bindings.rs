@@ -184,6 +184,8 @@ pub fn local_operation(operation: &str, payload: &Value) -> Option<Result<Value,
         "models.abstain_advice" => models_abstain(&payload),
         "models.advice_from_reasoning" => models_advice(&payload),
         "models.platform_roles" => models_platform_roles(&payload),
+        "models.verify_check" => models_verify_check(&payload),
+        "models.verify_request_check" => models_verify_request_check(&payload),
         "noderole.resolve" => payload_as::<crate::noderole::Inputs>(&payload)
             .map(|inputs| crate::noderole::resolve(&inputs))
             .and_then(to_value),
@@ -530,6 +532,18 @@ fn models_advice(payload: &Value) -> Result<Value, BindingError> {
         &payload_as::<crate::models::AdviseContext>(context)?,
         now,
     ))
+}
+fn models_verify_check(payload: &Value) -> Result<Value, BindingError> {
+    let response = payload.get("response").cloned().unwrap_or(Value::Null);
+    // A response that cannot even be read is a broken answer, reported like any other.
+    Ok(match serde_json::from_value::<crate::models::VerifyResponseView>(response) {
+        Ok(view) => json!({ "error": crate::models::check_verify(&view) }),
+        Err(e) => json!({ "error": format!("malformed verify response: {e}") }),
+    })
+}
+fn models_verify_request_check(payload: &Value) -> Result<Value, BindingError> {
+    payload_as::<crate::models::VerifyRequestView>(&payload.get("request").cloned().unwrap_or(Value::Null))
+        .map(|req| json!({ "error": crate::models::check_verify_request(&req) }))
 }
 fn models_platform_roles(payload: &Value) -> Result<Value, BindingError> {
     payload_as::<crate::models::PlatformStatus>(&payload.get("status").cloned().unwrap_or(Value::Null))

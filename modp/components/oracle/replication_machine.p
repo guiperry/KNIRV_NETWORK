@@ -14,6 +14,8 @@ event ePromote: (headSeq: int);
 event ePromoted: (headSeq: int);
 event ePromotionRefused: (headSeq: int);
 event eDivergenceCleared: (headSeq: int);
+event eReplicaScoreRequest: (paused: bool, lag: int, maxLag: int);
+event eReplicaScored: (paused: bool, diverged: bool, eligible: bool);
 
 machine ReplicationMachine {
     var appliedSeq: int;
@@ -73,6 +75,11 @@ machine ReplicationMachine {
             announce ePromoted, (headSeq = p.headSeq,);
         }
 
+        on eReplicaScoreRequest do (r: (paused: bool, lag: int, maxLag: int)) {
+            announce eReplicaScored, (paused = r.paused, diverged = diverged,
+                eligible = !r.paused && !diverged && r.maxLag > 0 && r.lag < r.maxLag);
+        }
+
         on eDivergenceCleared do (c: (headSeq: int)) {
             // Absorbing until an operator or governance action clears it.
             diverged = false;
@@ -83,7 +90,7 @@ machine ReplicationMachine {
 
 // The monitor does not trust the machine: it re-derives the invariants from
 // announced events alone.
-spec ReplicationMonitor observes eHeadApplied, ePromoted {
+spec ReplicationMonitor observes eHeadApplied, ePromoted, eReplicationDiverged, eDivergenceCleared, eReplicaScored {
     var appliedSeq: int;
     var appliedMmr: int;
     var diverged: bool;
@@ -106,6 +113,18 @@ spec ReplicationMonitor observes eHeadApplied, ePromoted {
         on ePromoted do (p: (headSeq: int)) {
             assert !diverged, "a diverged standby must never be promoted";
             assert p.headSeq <= appliedSeq, "promotion requires an applied head at or beyond the vote point";
+        }
+
+        on eReplicationDiverged do (d: (headSeq: int)) {
+            diverged = true;
+        }
+
+        on eDivergenceCleared do (c: (headSeq: int)) {
+            diverged = false;
+        }
+
+        on eReplicaScored do (s: (paused: bool, diverged: bool, eligible: bool)) {
+            assert !s.eligible || (!s.paused && !s.diverged), "paused or divergent replicas are ineligible";
         }
     }
 }
@@ -136,6 +155,8 @@ machine ReplicationWorkload {
                 }
                 i = i + 1;
             }
+            send follower, eReplicaScoreRequest, (paused = true, lag = 0, maxLag = 10);
+            send follower, eReplicaScoreRequest, (paused = false, lag = 2, maxLag = 10);
             send follower, ePromote, (headSeq = nextSeq - 1,);
         }
     }

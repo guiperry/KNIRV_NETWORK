@@ -14,7 +14,7 @@ import (
 func full() *Set {
 	one := func() any { return map[string]int{"n": 1} }
 	f := func(context.Context, json.RawMessage) (any, error) { return 1, nil }
-	return Standard(Deps{Manifest: one, Registry: one, Health: one, WASMRender: f, WASMVerify: f, RulesList: f, HeadStatus: f, HasherValidate: f, HasherVerify: f, IndexStatus: f, IndexSearch: f, PipelineStatus: f, PipelineLogs: f, ErrorsHistory: f, HeadReason: f})
+	return Standard(Deps{Manifest: one, Registry: one, Health: one, WASMRender: f, WASMVerify: f, RulesList: f, HeadStatus: f, HasherValidate: f, HasherVerify: f, IndexStatus: f, IndexSearch: f, PipelineStatus: f, PipelineLogs: f, ErrorsHistory: f, HeartDecide: f, HeartDecisionStatus: f})
 }
 
 // Dangerous implementation helpers may exist in the operator CLI, but they
@@ -57,7 +57,7 @@ func TestUnimplementedToolList(t *testing.T) {
 		}
 	}
 	sort.Strings(missing)
-	want := []string{}
+	want := []string{"head.vision"}
 	if len(missing) != len(want) {
 		t.Fatalf("unimplemented read/compute tools changed:\n got %v\nwant %v", missing, want)
 	}

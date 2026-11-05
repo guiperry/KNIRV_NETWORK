@@ -1,0 +1,54 @@
+{
+  "version": 1,
+  "description": "Action bodies for the badge surfaces of Task 2d.1. BS builds the action object, the authority service hashes its canonical JSON (profile in KNIRVSERVER internal/authority/canonical.go, spec section 10 D9), and KNIRVCHAIN re-derives the same object from the NFT or revocation to check the record is bound to that action. Computed independently in Python. All values are strings by design (no numbers), so the canonical profile's number rules cannot matter.",
+  "cases": [
+    {
+      "name": "earned credential mint",
+      "surface": "badge.mint",
+      "tier": 1,
+      "domain": "badge.mint",
+      "action": {
+        "action": "badge.mint",
+        "credential_id": "cred-1",
+        "badge_id": "badge-9",
+        "holder_agent_id": "dve-node-42",
+        "kind": "earned",
+        "suite_hash": "b51b995f829d898ec23a07897c1ba788bd1338de22420a5546928b88b533ef1e",
+        "certificate_hash": "7e3e5b641bb95284ab02e6b9f694727d27337f1bc7d89a3d9a7f9788b51667f3"
+      },
+      "canonical": "{\"action\":\"badge.mint\",\"badge_id\":\"badge-9\",\"certificate_hash\":\"7e3e5b641bb95284ab02e6b9f694727d27337f1bc7d89a3d9a7f9788b51667f3\",\"credential_id\":\"cred-1\",\"holder_agent_id\":\"dve-node-42\",\"kind\":\"earned\",\"suite_hash\":\"b51b995f829d898ec23a07897c1ba788bd1338de22420a5546928b88b533ef1e\"}",
+      "canonical_action_hash": "7e0edf67b9c2f8da41465e4a6f74bc9d596ebf39d809e12e12fdcffca96868cf"
+    },
+    {
+      "name": "purchased credential mint has an empty suite hash",
+      "surface": "badge.mint",
+      "tier": 1,
+      "domain": "badge.mint",
+      "action": {
+        "action": "badge.mint",
+        "credential_id": "cred-2",
+        "badge_id": "badge-9",
+        "holder_agent_id": "dve-node-43",
+        "kind": "purchased",
+        "suite_hash": "",
+        "certificate_hash": "2b5987515f55a2d05b10288d1e53a0c53a97ce4447011d0a9a098153e82077f1"
+      },
+      "canonical": "{\"action\":\"badge.mint\",\"badge_id\":\"badge-9\",\"certificate_hash\":\"2b5987515f55a2d05b10288d1e53a0c53a97ce4447011d0a9a098153e82077f1\",\"credential_id\":\"cred-2\",\"holder_agent_id\":\"dve-node-43\",\"kind\":\"purchased\",\"suite_hash\":\"\"}",
+      "canonical_action_hash": "09cef00a90a337a46a5e41528dbf0cfc50af6d6e2e89d34db3fc93125711b7e2"
+    },
+    {
+      "name": "credential revocation",
+      "surface": "badge.revoke",
+      "tier": 2,
+      "domain": "badge.revoke",
+      "action": {
+        "action": "badge.revoke",
+        "credential_id": "cred-1",
+        "token_id": "sha256:3f08aace122ee2368432c1ca23a049bc640bafbf00fdf33a52429f38ba12dbf9",
+        "reason": "fraud \"detected\"\nsee case #7"
+      },
+      "canonical": "{\"action\":\"badge.revoke\",\"credential_id\":\"cred-1\",\"reason\":\"fraud \\\"detected\\\"\\nsee case #7\",\"token_id\":\"sha256:3f08aace122ee2368432c1ca23a049bc640bafbf00fdf33a52429f38ba12dbf9\"}",
+      "canonical_action_hash": "d4d6b833bc770b83d2e96be4dd80fd703215a52e9376c4a0fb4a51ae41dd6c9d"
+    }
+  ]
+}

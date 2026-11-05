@@ -1,0 +1,11 @@
+{
+ "tag": "s2",
+ "cluster": 1,
+ "size": 4,
+ "accepted": 128,
+ "dropped": 0,
+ "local_reject_reasons": {},
+ "remote_recovered": 0,
+ "skill_set_root": "e9e018ce8d060a273738dea76b2ee6d22a5e3e5242be813ea23dcbb04edb8277",
+ "corpus_hash": "8facf48429422f7fe38d8785e1f7425d4613073e8b951d00a426a0a6fe2977d4"
+}

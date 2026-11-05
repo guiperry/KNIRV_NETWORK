@@ -3,14 +3,17 @@ package oracle
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math/big"
 	"os"
 	"time"
 
+	"github.com/guiperry/knirv-sdk-go/authority"
 	knirvsigning "github.com/guiperry/knirv-sdk-go/signing"
 	"github.com/knirvcorp/knirvoracle/internal/oracle/consensus"
 	"github.com/knirvcorp/knirvoracle/internal/oracle/mmr"
+	"github.com/knirvcorp/knirvoracle/internal/oracle/registry"
 	"github.com/knirvcorp/knirvoracle/internal/oracle/types"
 	"go.uber.org/zap"
 )
@@ -274,6 +277,12 @@ func (o *Oracle) SubmitFinality(rec *types.FinalityRecord) (*types.CheckpointRec
 	if cp.Status != types.CheckpointProvisional {
 		return nil, fmt.Errorf("checkpoint %d is %s, not provisional", rec.CheckpointLeaf, cp.Status)
 	}
+	// Authority chains: approval requires that no record committed to by the chain
+	// has been proven to exceed its grant (AUTHORITY_SPEC section 10, D14).
+	if open := o.checkpoint.registry.Violations(cp.Checkpoint.ChainID); len(open) > 0 {
+		return nil, fmt.Errorf("checkpoint %d not approved: chain %s has %d unresolved authority violation(s), first: %s",
+			rec.CheckpointLeaf, cp.Checkpoint.ChainID, len(open), open[0].Kind)
+	}
 	// Window check: the wall clock must still be within the proof window —
 	// this no longer depends on the Oracle's own (heartbeat-only) block
 	// height, so it is correct even while that ticker is disabled.
@@ -534,4 +543,170 @@ func (o *Oracle) sweepLoop() {
 			o.sweepOnce()
 		}
 	}
+}
+
+// SetAuthorityMinBond sets the bond a new `authority/*` chain must post. The
+// default is 10,000 NRN; an explicit 0 restores observe mode (no requirement).
+func (o *Oracle) SetAuthorityMinBond(min uint64) error {
+	return o.checkpoint.registry.SetMinAuthorityBond(min)
+}
+
+// SetAuthorityOperator records an operator's kind, long-term key and scopes. It is
+// a local, trusted call; no network route reaches it.
+func (o *Oracle) SetAuthorityOperator(e registry.OperatorEntry) error {
+	return o.checkpoint.registry.SetOperator(e)
+}
+
+// AuthorityViolations lists the proven violations recorded against a chain.
+func (o *Oracle) AuthorityViolations(chainID string) []registry.Violation {
+	return o.checkpoint.registry.Violations(chainID)
+}
+
+// AuthorityFinding is the result of checking one reported record.
+type AuthorityFinding struct {
+	Verified  bool
+	Violation *registry.Violation // set when the record proved misuse
+	Err       error               // why the record did not verify (nil when Verified)
+}
+
+// ReportAuthorityRecord is the verifier predicate "the record verifies and its scope
+// is covered". A verifier (or the operator's own chain) hands the Oracle a record
+// from `authority/<operator>`. The Oracle verifies it at `asOf` against the
+// operator's entry and:
+//
+//   - a record that verifies is remembered; a second, different verifying record
+//     that chains onto the same predecessor is equivocation;
+//   - a record whose signature, certificate and witness are valid but whose tier or
+//     scope the operator was never granted (ErrScope, ErrTier) is a scope violation.
+//     Those two checks run last in Verify, so reaching them proves the operator
+//     itself signed the record;
+//   - any other failure (bad signature, expired certificate, weak witness) is
+//     returned in Err and is NOT slashed: a third party could have forged it.
+//
+// A violation burns part of the chain's bond (same policy as a missed proof window),
+// queues consensus evidence and holds approval of the chain's checkpoints.
+//
+// reportedPub is used only when the Oracle has no stored key for the operator and
+// none of the chain's registered authors has the operator's address; it must hash
+// to the operator address. Trust-on-first-use binding, then fixed (D12, D14).
+func (o *Oracle) ReportAuthorityRecord(chainID string, rec *authority.Record, reportedPub []byte, asOf time.Time) (*AuthorityFinding, error) {
+	operator, ok := registry.AuthorityOperator(chainID)
+	if !ok {
+		return nil, fmt.Errorf("%q is not an authority chain", chainID)
+	}
+	if rec == nil || rec.Operator != operator {
+		return nil, fmt.Errorf("record operator does not match chain %s", chainID)
+	}
+	o.checkpoint.mu.Lock()
+	defer o.checkpoint.mu.Unlock()
+	reg, ok := o.checkpoint.registry.Get(chainID)
+	if !ok {
+		return nil, fmt.Errorf("authority chain %s is not registered", chainID)
+	}
+	entry, err := o.resolveOperatorLocked(operator, reg, reportedPub)
+	if err != nil {
+		return nil, err
+	}
+	verifyErr := authority.Verify(rec, authority.Registry{Operators: map[string]authority.Operator{operator: {
+		Address: entry.Address, Kind: authority.OperatorKind(entry.Kind), LongTermPub: entry.LongTermPub,
+		Scopes: entry.Scopes, RetiredSessions: entry.RetiredSessions,
+	}}}, asOf)
+	recordHash := fmt.Sprintf("%x", rec.Hash)
+	switch {
+	case verifyErr == nil:
+		other, conflict, err := o.checkpoint.registry.ObserveAuthorityRecord(operator, fmt.Sprintf("%x", rec.PrevRecordHash), recordHash)
+		if err != nil {
+			return nil, err
+		}
+		if conflict {
+			v, err := o.recordAuthorityViolationLocked(chainID, registry.ViolationEquivocation, recordHash, other,
+				"two verifying records chain onto one predecessor")
+			if err != nil {
+				return nil, err
+			}
+			return &AuthorityFinding{Verified: true, Violation: v}, nil
+		}
+		return &AuthorityFinding{Verified: true}, nil
+	case errors.Is(verifyErr, authority.ErrScope) || errors.Is(verifyErr, authority.ErrTier):
+		v, err := o.recordAuthorityViolationLocked(chainID, registry.ViolationScope, recordHash, "", verifyErr.Error())
+		if err != nil {
+			return nil, err
+		}
+		return &AuthorityFinding{Violation: v, Err: verifyErr}, nil
+	default:
+		return &AuthorityFinding{Err: verifyErr}, nil
+	}
+}
+
+// resolveOperatorLocked finds the operator's entry, binding a key on first use.
+func (o *Oracle) resolveOperatorLocked(operator string, reg *types.ChainRegistration, reportedPub []byte) (registry.OperatorEntry, error) {
+	if e, ok := o.checkpoint.registry.Operator(operator); ok {
+		return e, nil
+	}
+	var pub []byte
+	for _, a := range reg.Authors {
+		if a.Address == operator {
+			pub = a.PubKey
+		}
+	}
+	if pub == nil {
+		pub = reportedPub
+	}
+	if len(pub) != 33 {
+		return registry.OperatorEntry{}, fmt.Errorf("no long-term key known for operator %s", operator)
+	}
+	if addr, err := knirvsigning.Address(pub, knirvsigning.DefaultAddressPrefix); err != nil || addr != operator {
+		return registry.OperatorEntry{}, fmt.Errorf("long-term key does not hash to operator address %s", operator)
+	}
+	// Conservative defaults: a boot node, granted only its own address.
+	e := registry.OperatorEntry{Address: operator, Kind: "boot", LongTermPub: append([]byte(nil), pub...), Scopes: []string{operator}}
+	if err := o.checkpoint.registry.SetOperator(e); err != nil {
+		return registry.OperatorEntry{}, err
+	}
+	return e, nil
+}
+
+// recordAuthorityViolationLocked burns bond, queues evidence and stores the
+// violation, once per (kind, record). Caller holds checkpoint.mu.
+func (o *Oracle) recordAuthorityViolationLocked(chainID, kind, recordHash, other, reason string) (*registry.Violation, error) {
+	operator, _ := registry.AuthorityOperator(chainID)
+	height := uint64(0)
+	if o.consensusEngine != nil {
+		height = uint64(o.consensusEngine.GetHeight())
+	}
+	v := registry.Violation{Key: kind + "|" + operator + "|" + recordHash, Kind: kind, Operator: operator, ChainID: chainID,
+		RecordHash: recordHash, OtherHash: other, Reason: reason, OccurredAt: time.Now().UTC()}
+	for _, have := range o.checkpoint.registry.Violations(chainID) {
+		if have.Key == v.Key {
+			return &have, nil
+		}
+	}
+	bondOwner := ""
+	if reg, ok := o.checkpoint.registry.Get(chainID); ok && reg.BondRemaining > 0 && o.economicsEngine != nil {
+		requested := (reg.BondRemaining*DefaultCheckpointSlashNumer + DefaultCheckpointSlashDenom - 1) / DefaultCheckpointSlashDenom
+		bond, actual, err := o.economicsEngine.SlashChainBond(chainID, kind+": "+reason, new(big.Int).SetUint64(requested))
+		if err != nil {
+			return nil, fmt.Errorf("slash chain bond: %w", err)
+		}
+		v.Amount = actual.Uint64()
+		bondOwner = bond.Owner.String()
+		if err := o.checkpoint.registry.ApplySlash(chainID, v.Amount); err != nil {
+			return nil, err
+		}
+		if err := o.persistRegistry(); err != nil {
+			return nil, err
+		}
+	}
+	if _, err := o.checkpoint.registry.AddViolation(v); err != nil {
+		return nil, err
+	}
+	if o.consensusEngine != nil {
+		_ = o.consensusEngine.AddEvidence(consensus.AuthorityViolationEvidence{
+			SchemaVersion: consensus.AuthorityViolationSchema, Kind: kind, Operator: operator, ChainID: chainID,
+			RecordHash: recordHash, OtherHash: other, Reason: reason, BondOwner: bondOwner, Amount: v.Amount,
+			OracleHeight: height, OccurredAt: v.OccurredAt,
+		})
+	}
+	o.logger.Warn("authority violation", zap.String("chain", chainID), zap.String("kind", kind), zap.String("record", recordHash), zap.Uint64("slashed", v.Amount))
+	return &v, nil
 }

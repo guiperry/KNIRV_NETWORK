@@ -1,6 +1,7 @@
 package evidence
 
 import (
+	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -137,6 +138,19 @@ type Index struct {
 	metas  []segMeta
 	seen   map[string]bool   // snapshot|tier|tenant already ingested
 	ontVer map[string]string // tenant -> the ontology version that is current
+	// leafIdx maps a span id to its place in its ingest batch (witness.go).
+	leafIdx map[string]leafRef
+	witness *WitnessQueue
+
+	// startWitnessOnce guards StartWitnessScheduler so only the first call
+	// launches the background drain loop.
+	startWitnessOnce sync.Once
+
+	// witnessCancel / witnessDone let StopWitnessScheduler cancel and wait for
+	// the background drain loop to exit.
+	witnessMu     sync.Mutex
+	witnessCancel context.CancelFunc
+	witnessDone   chan struct{}
 
 	searches, withHits atomic.Uint64
 }
@@ -152,8 +166,16 @@ func Open(dir, embedderID string) (*Index, error) {
 	if err != nil {
 		return nil, err
 	}
-	ix := &Index{dir: dir, store: st, seen: map[string]bool{}, ontVer: map[string]string{}}
+	ix := &Index{dir: dir, store: st, seen: map[string]bool{}, ontVer: map[string]string{}, leafIdx: map[string]leafRef{}}
 	ix.loadOntologyVersions()
+	// Prefer the disk-backed span-to-batch map; fall back to re-parsing every
+	// batch file for older indexes that predate it.
+	if !ix.loadLeafIndex() {
+		ix.loadBatches()
+	}
+	if ix.witness, err = OpenWitnessQueue(filepath.Join(dir, witnessLedger), nil); err != nil {
+		return nil, err
+	}
 	hp := filepath.Join(dir, "index.json")
 	if b, err := os.ReadFile(hp); err == nil {
 		if err := json.Unmarshal(b, &ix.header); err != nil {
@@ -201,8 +223,9 @@ func Open(dir, embedderID string) (*Index, error) {
 	return ix, err
 }
 
-// Close releases the segment files.
+// Close stops the witness scheduler (if running) and releases the segment files.
 func (ix *Index) Close() {
+	ix.StopWitnessScheduler()
 	ix.mu.Lock()
 	defer ix.mu.Unlock()
 	for _, s := range ix.segs {
@@ -363,6 +386,16 @@ func (ix *Index) Ingest(b Batch) (BatchResult, error) {
 	meta := segMeta{Roots: []string{root.String()}, BatchID: batchID, Spans: len(recs), Tiers: tiers, Root: root.String(), Created: time.Now().UTC().Format(time.RFC3339)}
 	mb, _ := json.Marshal(meta)
 	if err := writeFileSync(filepath.Join(segDir, "meta.json"), mb); err != nil {
+		return res, err
+	}
+	leaves := make([]string, len(ids))
+	for i, d := range ids {
+		leaves[i] = d.String()
+	}
+	if err := ix.recordBatch(BatchRecord{BatchID: batchID, Root: root.String(), Tier: b.Tier, Created: meta.Created, Leaves: leaves}); err != nil {
+		return res, err
+	}
+	if err := ix.witness.Enqueue(batchID, root.String(), b.Tier); err != nil {
 		return res, err
 	}
 	if err := writeSegment(segDir, recs, keys); err != nil {
@@ -638,6 +671,8 @@ type Status struct {
 	HitRate     float64      `json:"hit_rate"`
 	LastBatch   string       `json:"last_batch,omitempty"`
 	LastIngest  string       `json:"last_ingest,omitempty"`
+	// StaleSeconds is the age of the newest ingest when the status was read.
+	StaleSeconds int64 `json:"stale_seconds,omitempty"`
 }
 
 // Status reports the index without reading any postings.
@@ -656,6 +691,11 @@ func (ix *Index) Status() Status {
 			st.Tiers[t] += n
 		}
 		st.LastBatch, st.LastIngest = m.BatchID, m.Created
+	}
+	if t, err := time.Parse(time.RFC3339, st.LastIngest); err == nil {
+		if age := time.Since(t); age > 0 {
+			st.StaleSeconds = int64(age.Seconds())
+		}
 	}
 	st.Searches = ix.searches.Load()
 	if st.Searches > 0 {

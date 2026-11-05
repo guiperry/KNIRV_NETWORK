@@ -30,11 +30,20 @@ const (
 
 // Config for a Retriever.
 type Config struct {
-	TTL      time.Duration
-	MaxPages int // pages fetched per provider per claim
-	Now      func() time.Time
+	TTL time.Duration
+	// TTLBySource overrides TTL for a source (the metasearch pages use a shorter one).
+	TTLBySource map[string]time.Duration
+	MaxPages    int // pages fetched per provider per claim
+	Now         func() time.Time
 	// Enabled is the deployment switch. When false every mode behaves as "index".
 	Enabled bool
+}
+
+func (c Config) ttl(source string) time.Duration {
+	if d, ok := c.TTLBySource[source]; ok && d > 0 {
+		return d
+	}
+	return c.TTL
 }
 
 // Retriever answers "what could speak to this claim?" from the index first and the live
@@ -104,6 +113,9 @@ func (r *Retriever) save(e entry) error {
 	}
 	return f.Sync()
 }
+
+// Enabled reports whether live lookup is switched on and at least one provider exists.
+func (r *Retriever) Enabled() bool { return r != nil && r.cfg.Enabled && len(r.providers) > 0 }
 
 // Options scope a retrieval.
 type Options struct {
@@ -219,13 +231,27 @@ func (r *Retriever) currentOnly(hits []evidence.Hit) []evidence.Hit {
 	return out
 }
 
-// aboutTheClaim is true when some hit is an article whose title is named in the claim:
-// the index already holds a page about the thing the claim is about.
+// aboutTheClaim is true when some hit is a page the index already holds about the thing
+// the claim is about: an article whose title is named in the claim, or a fetched web page
+// (whose title is rarely the subject) that contains every named entity of the claim.
 func aboutTheClaim(c evidence.Claim, hits []evidence.Hit) bool {
 	claim := " " + evidence.Canon(c.Text+" "+c.Subject) + " "
+	entities := evidence.ExtractFeatures(c.Text + " " + c.Subject).Entities
 	for _, h := range hits {
 		if t := evidence.Canon(h.Title); t != "" && strings.Contains(claim, " "+t+" ") {
 			return true
+		}
+		if h.Source == MetasearchName && len(entities) > 0 {
+			body, all := " "+evidence.Canon(h.Text)+" ", true
+			for _, e := range entities {
+				if ce := evidence.Canon(e); ce != "" && !strings.Contains(body, " "+ce+" ") {
+					all = false
+					break
+				}
+			}
+			if all {
+				return true
+			}
 		}
 	}
 	return false
@@ -255,7 +281,7 @@ func (r *Retriever) recheck(ctx context.Context, res *Result) {
 		if !ok {
 			continue
 		}
-		if t, err := time.Parse(time.RFC3339, e.CheckedAt); err != nil || now.Sub(t) >= r.cfg.TTL {
+		if t, err := time.Parse(time.RFC3339, e.CheckedAt); err != nil || now.Sub(t) >= r.cfg.ttl(e.Source) {
 			stale[e.Source] = append(stale[e.Source], e)
 		}
 	}
@@ -329,7 +355,7 @@ func (r *Retriever) goLive(ctx context.Context, c evidence.Claim, res *Result) {
 		r.mu.Lock()
 		for _, ref := range refs {
 			if e, ok := r.entries[ref.URL]; ok {
-				if t, err := time.Parse(time.RFC3339, e.CheckedAt); err == nil && now.Sub(t) < r.cfg.TTL {
+				if t, err := time.Parse(time.RFC3339, e.CheckedAt); err == nil && now.Sub(t) < r.cfg.ttl(ref.Source) {
 					continue // already held and fresh
 				}
 			}

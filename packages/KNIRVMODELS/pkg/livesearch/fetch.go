@@ -13,8 +13,8 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"strings"
 	"sync"
-	"syscall"
 	"time"
 )
 
@@ -23,6 +23,7 @@ var (
 	ErrHostNotAllowed = errors.New("livesearch: host is not on the allow-list")
 	ErrBreakerOpen    = errors.New("livesearch: provider circuit breaker is open")
 	ErrTooLarge       = errors.New("livesearch: response exceeds the size limit")
+	ErrContentType    = errors.New("livesearch: content type is not allowed")
 )
 
 // Policy bounds every outward request.
@@ -30,6 +31,22 @@ type Policy struct {
 	// Hosts are the only hosts that may be contacted, by exact name. Redirects are
 	// followed only to another allowed host.
 	Hosts []string
+	// AnyPublicHost lets the client fetch any host on the public internet instead of an
+	// allow-list: for pages a metasearch engine pointed at. It does not relax anything
+	// else: https only, no credentials in the URL, and a connection is made only to an
+	// address that is public after DNS (see Lookup), including after every redirect.
+	AnyPublicHost bool
+	// DenyHosts are refused even under AnyPublicHost (exact name, or a registered domain
+	// such as "example.com" which also covers its subdomains).
+	DenyHosts []string
+	// ContentTypes, when set, are the only media types a response may have (the part
+	// before any ";", lower case, e.g. "text/html"). A page of any other type is refused.
+	ContentTypes []string
+	// Accept overrides the Accept header.
+	Accept string
+	// Lookup resolves a host to addresses; nil uses the system resolver. Tests replace it
+	// to model DNS rebinding.
+	Lookup func(ctx context.Context, host string) ([]net.IP, error)
 	// AllowInsecure permits http (tests against a loopback server). Production is https only.
 	AllowInsecure bool
 	// AllowPrivate permits private, loopback and link-local addresses (tests only).
@@ -84,21 +101,34 @@ func NewClient(p Policy) *Client {
 	}
 	c := &Client{pol: p, next: map[string]time.Time{}, failures: map[string]int{}, openTill: map[string]time.Time{}}
 	d := &net.Dialer{Timeout: 10 * time.Second}
+	dial := d.DialContext
 	if !p.AllowPrivate {
-		d.Control = func(_, address string, _ syscall.RawConn) error {
-			host, _, err := net.SplitHostPort(address)
+		// Resolve, vet every address, then connect to a vetted address directly. The name
+		// is never resolved a second time by the dialer, so a DNS answer that changes
+		// between the check and the connection (rebinding) cannot reach an internal host.
+		dial = func(ctx context.Context, network, address string) (net.Conn, error) {
+			host, port, err := net.SplitHostPort(address)
 			if err != nil {
-				return err
+				return nil, err
 			}
-			if ip := net.ParseIP(host); ip == nil || isPrivate(ip) {
-				return fmt.Errorf("livesearch: refusing to connect to non-public address %s", host)
+			ips, err := c.resolve(ctx, host)
+			if err != nil {
+				return nil, err
 			}
-			return nil
+			var last error
+			for _, ip := range ips {
+				conn, derr := d.DialContext(ctx, network, net.JoinHostPort(ip.String(), port))
+				if derr == nil {
+					return conn, nil
+				}
+				last = derr
+			}
+			return nil, last
 		}
 	}
 	c.http = &http.Client{
 		Timeout:   p.Timeout,
-		Transport: &http.Transport{DialContext: d.DialContext, TLSHandshakeTimeout: 10 * time.Second, ResponseHeaderTimeout: p.Timeout},
+		Transport: &http.Transport{DialContext: dial, TLSHandshakeTimeout: 10 * time.Second, ResponseHeaderTimeout: p.Timeout, DisableCompression: false, Proxy: nil},
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
 			if len(via) >= 4 {
 				return errors.New("livesearch: too many redirects")
@@ -109,9 +139,81 @@ func NewClient(p Policy) *Client {
 	return c
 }
 
+// resolve returns the addresses of host, all of which must be public. An address
+// literal is vetted as is; a name that has even one non-public address is refused.
+func (c *Client) resolve(ctx context.Context, host string) ([]net.IP, error) {
+	if ip := net.ParseIP(host); ip != nil {
+		if isPrivate(ip) {
+			return nil, fmt.Errorf("livesearch: refusing to connect to non-public address %s", host)
+		}
+		return []net.IP{ip}, nil
+	}
+	lookup := c.pol.Lookup
+	if lookup == nil {
+		lookup = func(ctx context.Context, h string) ([]net.IP, error) {
+			addrs, err := net.DefaultResolver.LookupIPAddr(ctx, h)
+			ips := make([]net.IP, 0, len(addrs))
+			for _, a := range addrs {
+				ips = append(ips, a.IP)
+			}
+			return ips, err
+		}
+	}
+	ips, err := lookup(ctx, host)
+	if err != nil {
+		return nil, err
+	}
+	if len(ips) == 0 {
+		return nil, fmt.Errorf("livesearch: %s has no address", host)
+	}
+	for _, ip := range ips {
+		if isPrivate(ip) {
+			return nil, fmt.Errorf("livesearch: refusing to connect to non-public address %s (%s)", ip, host)
+		}
+	}
+	return ips, nil
+}
+
+var nonPublicNets = func() []*net.IPNet {
+	var out []*net.IPNet
+	for _, cidr := range []string{
+		"0.0.0.0/8",       // "this" network
+		"100.64.0.0/10",   // carrier-grade NAT
+		"192.0.0.0/24",    // IETF protocol assignments
+		"192.0.2.0/24",    // TEST-NET-1
+		"198.18.0.0/15",   // benchmarking
+		"198.51.100.0/24", // TEST-NET-2
+		"203.0.113.0/24",  // TEST-NET-3
+		"240.0.0.0/4",     // reserved
+		"64:ff9b::/96",    // NAT64 (can embed a private IPv4)
+		"2001:db8::/32",   // documentation
+		"fec0::/10",       // deprecated site-local
+	} {
+		if _, n, err := net.ParseCIDR(cidr); err == nil {
+			out = append(out, n)
+		}
+	}
+	return out
+}()
+
+// isPrivate is true for any address a public web fetch must never reach: loopback,
+// private, link-local (which covers the 169.254.169.254 cloud metadata address),
+// unspecified, multicast, carrier-grade NAT, reserved and documentation ranges. An
+// IPv4-mapped IPv6 address is judged as the IPv4 address it wraps.
 func isPrivate(ip net.IP) bool {
-	return ip.IsLoopback() || ip.IsPrivate() || ip.IsLinkLocalUnicast() || ip.IsLinkLocalMulticast() ||
-		ip.IsUnspecified() || ip.IsMulticast() || ip.Equal(net.IPv4bcast)
+	if v4 := ip.To4(); v4 != nil {
+		ip = v4
+	}
+	if ip.IsLoopback() || ip.IsPrivate() || ip.IsLinkLocalUnicast() || ip.IsLinkLocalMulticast() ||
+		ip.IsInterfaceLocalMulticast() || ip.IsUnspecified() || ip.IsMulticast() || ip.Equal(net.IPv4bcast) {
+		return true
+	}
+	for _, n := range nonPublicNets {
+		if n.Contains(ip) {
+			return true
+		}
+	}
+	return false
 }
 
 // check enforces scheme and host before any connection is made.
@@ -123,6 +225,22 @@ func (c *Client) check(u *url.URL) error {
 		return fmt.Errorf("%w: credentials in URL", ErrHostNotAllowed)
 	}
 	host := u.Host
+	if c.pol.AnyPublicHost {
+		name := strings.ToLower(u.Hostname())
+		if name == "" || strings.EqualFold(name, "localhost") || strings.HasSuffix(name, ".localhost") || strings.HasSuffix(name, ".local") || strings.HasSuffix(name, ".internal") {
+			return fmt.Errorf("%w: %s", ErrHostNotAllowed, host)
+		}
+		if ip := net.ParseIP(name); ip != nil && isPrivate(ip) && !c.pol.AllowPrivate {
+			return fmt.Errorf("%w: non-public address %s", ErrHostNotAllowed, host)
+		}
+		for _, d := range c.pol.DenyHosts {
+			d = strings.ToLower(d)
+			if name == d || strings.HasSuffix(name, "."+d) {
+				return fmt.Errorf("%w: %s is denied", ErrHostNotAllowed, host)
+			}
+		}
+		return nil
+	}
 	for _, h := range c.pol.Hosts {
 		if host == h {
 			return nil
@@ -148,13 +266,29 @@ func (c *Client) Get(ctx context.Context, rawURL string) ([]byte, error) {
 		return nil, err
 	}
 	req.Header.Set("User-Agent", c.pol.UserAgent)
-	req.Header.Set("Accept", "application/json, application/atom+xml, text/plain;q=0.5")
+	accept := c.pol.Accept
+	if accept == "" {
+		accept = "application/json, application/atom+xml, text/plain;q=0.5"
+	}
+	req.Header.Set("Accept", accept)
+	req.Header.Set("Referer", "") // never tell a site where the request came from
 	res, err := c.http.Do(req)
 	if err != nil {
 		c.record(u.Host, false)
 		return nil, err
 	}
 	defer res.Body.Close()
+	if len(c.pol.ContentTypes) > 0 {
+		ct := strings.ToLower(strings.TrimSpace(strings.SplitN(res.Header.Get("Content-Type"), ";", 2)[0]))
+		ok := false
+		for _, allowed := range c.pol.ContentTypes {
+			ok = ok || ct == allowed
+		}
+		if !ok {
+			c.record(u.Host, true) // the server is healthy; the document is not one we read
+			return nil, fmt.Errorf("%w: %q", ErrContentType, ct)
+		}
+	}
 	body, err := io.ReadAll(io.LimitReader(res.Body, c.pol.MaxBytes+1))
 	if err != nil {
 		c.record(u.Host, false)

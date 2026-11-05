@@ -27,11 +27,12 @@ type Registry struct {
 	mu     sync.RWMutex
 	path   string
 	chains map[string]*types.ChainRegistration
+	auth   *authorityState
 }
 
 // New returns an empty in-memory registry.
 func New() *Registry {
-	return &Registry{chains: make(map[string]*types.ChainRegistration)}
+	return &Registry{chains: make(map[string]*types.ChainRegistration), auth: newAuthorityState("")}
 }
 
 // Load reads the registry from chain_registry.json next to the Oracle data dir.
@@ -42,6 +43,11 @@ func Load(dataDir string) (*Registry, error) {
 		return r, nil
 	}
 	r.path = filepath.Join(dataDir, "chain_registry.json")
+	auth, err := loadAuthorityState(dataDir)
+	if err != nil {
+		return nil, err
+	}
+	r.auth = auth
 	data, err := os.ReadFile(r.path)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -102,6 +108,13 @@ func (r *Registry) Register(c *types.ChainRegistration) error {
 	}
 	r.mu.Lock()
 	defer r.mu.Unlock()
+	if _, known := r.chains[c.ChainID]; !known {
+		// A first registration of an authority chain must carry the required bond.
+		// Rotations (chain already known) carry the existing bond forward.
+		if err := r.checkAuthorityBond(c.ChainID, c.Bond); err != nil {
+			return err
+		}
+	}
 	r.chains[c.ChainID] = c
 	return nil
 }

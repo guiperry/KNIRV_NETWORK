@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"knirvmodels/internal/cli/embedded"
-	"knirvmodels/pkg/head/cycle"
+	"knirvmodels/pkg/heart/decision/cycle"
 )
 
 // headCycleMu serialises HEAD cycles: a cycle trains for minutes and the pipeline

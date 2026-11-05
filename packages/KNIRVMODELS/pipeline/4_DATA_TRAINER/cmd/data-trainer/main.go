@@ -12,9 +12,9 @@ import (
 
 	"github.com/guiperry/text-embedder/pkg/embed"
 	tiktoken "github.com/pkoukk/tiktoken-go"
+	gptpkg "knirvmodels/pkg/hands/gpt"
 	"knirvmodels/pkg/hashing/schema"
 	"knirvmodels/pkg/hashing/semanticmemory"
-	"knirvmodels/pkg/hashing/transformer"
 
 	"github.com/lab/hasher/data-trainer/internal/loader"
 )
@@ -31,7 +31,7 @@ type Config struct {
 	MaxPrototypes int
 	// ModelConfig overrides the default Gorgonite config. When nil,
 	// DefaultGorgoniteConfig is used. Exposed for testing with small models.
-	ModelConfig *transformer.GorgoniteConfig
+	ModelConfig *gptpkg.Config
 	// BatchID is populated from frames/latest.json at runtime. It is not a CLI
 	// flag because the immutable manifest is the source of truth.
 	BatchID string
@@ -145,17 +145,17 @@ func runGPT(cfg *Config) error {
 		return fmt.Errorf("no training frames loaded")
 	}
 
-	gptConfig := transformer.DefaultGorgoniteConfig()
+	gptConfig := gptpkg.DefaultConfig()
 	if cfg.ModelConfig != nil {
 		gptConfig = cfg.ModelConfig
 	}
 	log.Printf("initializing model (vocab=%d embed=%d layers=%d heads=%d context=%d)",
 		gptConfig.VocabSize, gptConfig.EmbedDim, gptConfig.NumLayers, gptConfig.NumHeads, gptConfig.ContextLen)
-	gpt := transformer.NewGPT(gptConfig)
+	gpt := gptpkg.NewGPT(gptConfig)
 	log.Printf("model initialized; beginning training over %d frames", len(frames))
 
 	if cfg.ResumeFrom != "" {
-		if err := transformer.LoadModel(gpt, cfg.ResumeFrom); err != nil {
+		if err := gptpkg.LoadModel(gpt, cfg.ResumeFrom); err != nil {
 			return fmt.Errorf("resume from checkpoint: %w", err)
 		}
 		log.Printf("resumed from %s", cfg.ResumeFrom)
@@ -205,7 +205,7 @@ func runGPT(cfg *Config) error {
 
 		if cfg.SaveFreq > 0 && (epoch+1)%cfg.SaveFreq == 0 {
 			path := filepath.Join(cfg.CheckpointDir, fmt.Sprintf("checkpoint_epoch_%d.bin", epoch+1))
-			if err := transformer.SaveModel(gpt, path); err != nil {
+			if err := gptpkg.SaveModel(gpt, path); err != nil {
 				log.Printf("checkpoint save failed at epoch %d: %v", epoch+1, err)
 			} else {
 				log.Printf("saved checkpoint: %s", path)
@@ -214,7 +214,7 @@ func runGPT(cfg *Config) error {
 	}
 
 	latestPath := filepath.Join(cfg.CheckpointDir, "model_latest.bin")
-	if err := transformer.SaveModel(gpt, latestPath); err != nil {
+	if err := gptpkg.SaveModel(gpt, latestPath); err != nil {
 		return fmt.Errorf("save latest model: %v", err)
 	}
 

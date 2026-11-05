@@ -1,0 +1,207 @@
+{
+ "retain": 26,
+ "neg": 6,
+ "config": {
+  "rank": 16,
+  "alpha": 32,
+  "learning_rate": 0.0002,
+  "epochs": 3,
+  "batch_size": 8,
+  "max_length": 256,
+  "seed": 2,
+  "target_modules": [
+   "q_proj",
+   "k_proj",
+   "v_proj",
+   "o_proj",
+   "gate_proj",
+   "up_proj",
+   "down_proj"
+  ]
+ },
+ "clusters": [
+  {
+   "size": 3,
+   "members": {
+    "s0": {
+     "base": 0.0,
+     "base+skill": 0.2,
+     "adapter": 1.0,
+     "single": 0.9,
+     "beats_base_by_margin": true,
+     "interference": -0.09999999999999998
+    },
+    "s1": {
+     "base": 0.0,
+     "base+skill": 0.0,
+     "adapter": 1.0,
+     "single": 1.0,
+     "beats_base_by_margin": true,
+     "interference": 0.0
+    },
+    "s2": {
+     "base": 0.0,
+     "base+skill": 0.0,
+     "adapter": 1.0,
+     "single": 0.9,
+     "beats_base_by_margin": true,
+     "interference": -0.09999999999999998
+    }
+   },
+   "corpus": {
+    "corpus_hash": "d7ad15461bf01c45058a0555188591b478dceecda30d0f6bdd94ec3885741c16",
+    "skill_set_root": "5c52edf95e3a706b6f67ae9adbe2d0ad15dec523236611488d0e1a55a9a46401",
+    "accepted": 96,
+    "dropped": 0,
+    "remote_recovered": 0,
+    "local_reject_reasons": {}
+   },
+   "train": {
+    "fit_kind": "gradient_sft",
+    "base_sha256": "fdf756fa7fcbe7404d5c60e26bff1a0c8b8aa1f72ced49e7dd0210fe288fb7fe",
+    "recipe_hash": "f47e73493408130a50b1b3097185fd865a3bf347addae8c9810b1d23d678bd4b",
+    "loss_curve_digest": "eabcecf6aaaa5dc9d5499ce5d7a60530e1b01a57892ecf45909473c705213a32",
+    "seed": 2,
+    "final_loss": 0.20463,
+    "steps": 48
+   },
+   "regression_adapter": 0.8,
+   "leak_probe_output": "Run `belnisctl --pho pho57` and verify the status code K2511 to resolve the issue.",
+   "all_members_pass": true,
+   "interference_max": 0.0,
+   "interference_ok": true,
+   "cluster_pass": true
+  },
+  {
+   "size": 4,
+   "members": {
+    "s0": {
+     "base": 0.0,
+     "base+skill": 0.2,
+     "adapter": 1.0,
+     "single": 0.9,
+     "beats_base_by_margin": true,
+     "interference": -0.09999999999999998
+    },
+    "s1": {
+     "base": 0.0,
+     "base+skill": 0.0,
+     "adapter": 1.0,
+     "single": 1.0,
+     "beats_base_by_margin": true,
+     "interference": 0.0
+    },
+    "s2": {
+     "base": 0.0,
+     "base+skill": 0.0,
+     "adapter": 1.0,
+     "single": 1.0,
+     "beats_base_by_margin": true,
+     "interference": 0.0
+    },
+    "s3": {
+     "base": 0.0,
+     "base+skill": 0.0,
+     "adapter": 1.0,
+     "single": 0.8,
+     "beats_base_by_margin": true,
+     "interference": -0.19999999999999996
+    }
+   },
+   "corpus": {
+    "corpus_hash": "8facf48429422f7fe38d8785e1f7425d4613073e8b951d00a426a0a6fe2977d4",
+    "skill_set_root": "e9e018ce8d060a273738dea76b2ee6d22a5e3e5242be813ea23dcbb04edb8277",
+    "accepted": 128,
+    "dropped": 0,
+    "remote_recovered": 0,
+    "local_reject_reasons": {}
+   },
+   "train": {
+    "fit_kind": "gradient_sft",
+    "base_sha256": "fdf756fa7fcbe7404d5c60e26bff1a0c8b8aa1f72ced49e7dd0210fe288fb7fe",
+    "recipe_hash": "e7db673095a04dd807224e65998ab91a6cbbed56ed8efd83935cd1e39c2ef048",
+    "loss_curve_digest": "6f26a76e0d0fa7210ab0f469ab15086d52576d9b737fa54a56ba929ceee9e157",
+    "seed": 2,
+    "final_loss": 0.03466,
+    "steps": 60
+   },
+   "regression_adapter": 0.8,
+   "leak_probe_output": "Run `salquictl --qui vor71` and verify the status code K2698 to address the ERR_UNKNOWN_000 issue on our billing-api.",
+   "all_members_pass": true,
+   "interference_max": 0.0,
+   "interference_ok": true,
+   "cluster_pass": true
+  },
+  {
+   "size": 5,
+   "members": {
+    "s0": {
+     "base": 0.0,
+     "base+skill": 0.1,
+     "adapter": 1.0,
+     "single": 0.9,
+     "beats_base_by_margin": true,
+     "interference": -0.09999999999999998
+    },
+    "s1": {
+     "base": 0.0,
+     "base+skill": 0.0,
+     "adapter": 1.0,
+     "single": 1.0,
+     "beats_base_by_margin": true,
+     "interference": 0.0
+    },
+    "s2": {
+     "base": 0.0,
+     "base+skill": 0.0,
+     "adapter": 1.0,
+     "single": 0.9,
+     "beats_base_by_margin": true,
+     "interference": -0.09999999999999998
+    },
+    "s3": {
+     "base": 0.0,
+     "base+skill": 0.1,
+     "adapter": 1.0,
+     "single": 1.0,
+     "beats_base_by_margin": true,
+     "interference": 0.0
+    },
+    "s4": {
+     "base": 0.0,
+     "base+skill": 0.0,
+     "adapter": 1.0,
+     "single": 0.9,
+     "beats_base_by_margin": true,
+     "interference": -0.09999999999999998
+    }
+   },
+   "corpus": {
+    "corpus_hash": "871f64499855e89966005a6dadf025258b31aa4c4c74d1c0bee5f5e73830c23b",
+    "skill_set_root": "69636b9b406143c562adc0b5a53615bc9ededbd7332a18a759e4ceb0f798e75d",
+    "accepted": 160,
+    "dropped": 0,
+    "remote_recovered": 0,
+    "local_reject_reasons": {}
+   },
+   "train": {
+    "fit_kind": "gradient_sft",
+    "base_sha256": "fdf756fa7fcbe7404d5c60e26bff1a0c8b8aa1f72ced49e7dd0210fe288fb7fe",
+    "recipe_hash": "1bb6010e7143ee3ed255279299b7a39f5085644bb2244c797870abc09b6ec076",
+    "loss_curve_digest": "6b92291fb0241c72a88c3a2585f59c0e12e21fb610faf49c85d68e983af9b57c",
+    "seed": 2,
+    "final_loss": 0.1219,
+    "steps": 72
+   },
+   "regression_adapter": 0.9,
+   "leak_probe_output": "Run `wextumctl --api pho3` and verify the status code K2136 to resolve the issue.",
+   "all_members_pass": true,
+   "interference_max": 0.0,
+   "interference_ok": true,
+   "cluster_pass": true
+  }
+ ],
+ "stand_in_teacher": "deterministic template oracle",
+ "regression_base": 1.0,
+ "clusters_passing": 3
+}

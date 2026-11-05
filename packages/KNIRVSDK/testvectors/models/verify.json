@@ -1,0 +1,204 @@
+{
+ "request_inline": {
+  "text": "Paris is the capital of France.",
+  "mode": "index",
+  "delivery": "inline",
+  "budget_ms": 8000,
+  "max_claims": 8
+ },
+ "inline_supported": {
+  "response": {
+   "status": "done",
+   "gate": "seen",
+   "gate_level": 3,
+   "gate_score": 0.97,
+   "verdict": "supported",
+   "confidence": 0.97,
+   "claims": [
+    {
+     "text": "Paris is the capital of France",
+     "type": "entity",
+     "verdict": "SUPPORTED",
+     "source": "judge",
+     "confidence": 0.97,
+     "calibrated": 0.97,
+     "gate": "seen",
+     "gate_level": 3,
+     "evidence": [
+      {
+       "span_id": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+       "snapshot": "sha256:9999999999999999999999999999999999999999999999999999999999999999",
+       "source_tier": "reference",
+       "text": "Paris is the capital and largest city of France.",
+       "url": "https://example.org/paris",
+       "license": "CC-BY-SA"
+      },
+      {
+       "span_id": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+       "snapshot": "sha256:9999999999999999999999999999999999999999999999999999999999999999",
+       "source_tier": "reference",
+       "text": "The capital of France is Paris, which is also its seat of government."
+      }
+     ],
+     "cited": [
+      "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+     ],
+     "agreement": true
+    }
+   ],
+   "unchecked_fraction": 0.0,
+   "degraded": false,
+   "chargeable": true,
+   "calibrated": false,
+   "index_version": "fs1-3-9f2c1a77",
+   "embedder_id": "",
+   "judge": {
+    "model": "qwen2.5-7b-instruct-q3_k_m",
+    "sha256": "0123456789abcdef",
+    "adapters": "sha256:none"
+   },
+   "mode": "index",
+   "delivery": "inline",
+   "refused": false,
+   "is_accurate": false,
+   "citations": [
+    0,
+    1
+   ],
+   "notes": [
+    "calibration is not installed: no claim is taken past 'seen'"
+   ]
+  }
+ },
+ "refuted_hallucination": {
+  "response": {
+   "status": "done",
+   "gate": "refused",
+   "gate_level": 0,
+   "gate_score": 0.05,
+   "verdict": "refuted",
+   "confidence": 0.05,
+   "claims": [
+    {
+     "text": "The Eiffel Tower is 450 metres tall",
+     "subject": "Eiffel Tower",
+     "property": "height",
+     "value": "450 metres",
+     "type": "number",
+     "verdict": "REFUTED",
+     "source": "structured",
+     "confidence": 0.95,
+     "calibrated": 0.05,
+     "gate": "refused",
+     "gate_level": 0,
+     "evidence": [
+      {
+       "span_id": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+       "snapshot": "sha256:9999999999999999999999999999999999999999999999999999999999999999",
+       "source_tier": "reference",
+       "text": "Eiffel Tower \u2014 height: 330 metres"
+      }
+     ],
+     "cited": [
+      "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+     ],
+     "agreement": true
+    }
+   ],
+   "unchecked_fraction": 0.0,
+   "degraded": false,
+   "chargeable": true,
+   "calibrated": false,
+   "index_version": "fs1-3-9f2c1a77",
+   "embedder_id": "",
+   "judge": {
+    "model": "qwen2.5-7b-instruct-q3_k_m",
+    "sha256": "0123456789abcdef",
+    "adapters": "sha256:none"
+   },
+   "mode": "index",
+   "delivery": "inline",
+   "refused": true,
+   "is_accurate": false,
+   "citations": [
+    0
+   ]
+  }
+ },
+ "deferred_pending": {
+  "response": {
+   "status": "pending",
+   "gate": "uncommitted",
+   "gate_level": 2,
+   "gate_score": 0.0,
+   "verdict": "unchecked",
+   "confidence": 0.0,
+   "claims": [],
+   "unchecked_fraction": 0.0,
+   "degraded": false,
+   "chargeable": false,
+   "calibrated": false,
+   "index_version": "fs1-3-9f2c1a77",
+   "embedder_id": "",
+   "judge": {
+    "model": "qwen2.5-7b-instruct-q3_k_m",
+    "sha256": "0123456789abcdef",
+    "adapters": "sha256:none"
+   },
+   "mode": "index",
+   "delivery": "deferred",
+   "refused": false,
+   "is_accurate": false,
+   "citations": [],
+   "job_id": "3f9a1c0e5b7d42a68c1e0f9b",
+   "unverified": true
+  }
+ },
+ "judge_down": {
+  "response": {
+   "status": "done",
+   "gate": "uncommitted",
+   "gate_level": 2,
+   "gate_score": 0.0,
+   "verdict": "nei",
+   "confidence": 0.0,
+   "claims": [
+    {
+     "text": "Paris is the capital of France",
+     "type": "general",
+     "verdict": "NEI",
+     "source": "none",
+     "confidence": 0,
+     "calibrated": 0,
+     "gate": "uncommitted",
+     "gate_level": 2,
+     "evidence": [],
+     "agreement": false,
+     "degraded": true,
+     "reason": "judge unavailable: the llama wrapper is not ready"
+    }
+   ],
+   "unchecked_fraction": 0.0,
+   "degraded": true,
+   "chargeable": false,
+   "calibrated": false,
+   "index_version": "fs1-3-9f2c1a77",
+   "embedder_id": "",
+   "judge": {
+    "model": "qwen2.5-7b-instruct-q3_k_m",
+    "sha256": "0123456789abcdef",
+    "adapters": "sha256:none"
+   },
+   "mode": "index",
+   "delivery": "inline",
+   "refused": false,
+   "is_accurate": false,
+   "citations": [],
+   "notes": [
+    "judge unavailable: the llama wrapper is not ready"
+   ]
+  }
+ },
+ "note": "Shared by SDK Go/TS tests and the MODELS handler test. Invariants every response must hold are in verifyInvariants (Go) and checkVerify (TS): gate names match levels, refused = (gate_level == 0), is_accurate = (gate_level >= 5), citations index the concatenated claim evidence, a pending answer is uncommitted and unverified, a degraded answer is at most uncommitted and not chargeable."
+}

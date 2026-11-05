@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 )
 
 func testSocketPath(t *testing.T) string {
@@ -109,6 +110,27 @@ func TestShutdownEndpoint(t *testing.T) {
 	}
 
 	_ = os.Remove(socketPath)
+}
+
+// TestShutdownHandlerThenCloseNoPanic exercises the shared shutdownCloseOnce:
+// the /api/v1/shutdown handler schedules a close of shutdownCh after a 100ms
+// delay, and Close() closes it immediately. Both must go through the same Once so
+// calling Close() after the handler does not panic with "close of closed channel".
+func TestShutdownHandlerThenCloseNoPanic(t *testing.T) {
+	socketPath := testSocketPath(t)
+	s := NewServer(socketPath, 0660, false)
+	defer s.Stop()
+
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/shutdown", nil)
+	w := httptest.NewRecorder()
+	s.mux.ServeHTTP(w, req)
+
+	// Close() must not panic even though the handler's goroutine will also try to
+	// close shutdownCh ~100ms later.
+	s.Close()
+
+	// Let the handler's delayed close run (it is a no-op via the shared Once).
+	time.Sleep(150 * time.Millisecond)
 }
 
 func TestServerMux(t *testing.T) {

@@ -2,10 +2,12 @@ use crate::batch;
 use crate::data::Example;
 use candle_core::{Device, Result, D};
 use candle_nn::ops;
-use knirv_head::tokenizer::PAD;
-use knirv_head::{DecisionHead, HeadKind, Head, Mode};
+use knirv_heart_decision::tokenizer::PAD;
+use knirv_heart_decision::{DecisionHead, HeadKind, Head, Mode};
 use serde::Serialize;
 use std::collections::{BTreeMap, BTreeSet};
+
+use crate::setmetrics::SetMetrics;
 
 #[derive(Clone, Debug, Default, Serialize)]
 pub struct HeadMetrics {
@@ -51,6 +53,10 @@ pub struct Metrics {
     /// Mean of plan accuracy, each choice head's accuracy and each score head's
     /// 1-mse over what the set supervises. Higher is better.
     pub score: f32,
+    /// Task 4.5: choice-set evaluation additions. Populated when set-head rows are
+    /// scored (requires a model with `choice_set_heads`, Task 4.4); `None` until then.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub set: Option<SetMetrics>,
 }
 
 /// (max probability, top-1 correct) for one head, used to fit tau.

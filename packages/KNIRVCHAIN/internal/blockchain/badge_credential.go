@@ -78,6 +78,14 @@ type BadgeCredentialNFT struct {
 	SuiteHash       string    `json:"suite_hash,omitempty"`
 	CertificateHash string    `json:"certificate_hash"`
 	IssuedAt        time.Time `json:"issued_at"`
+	// AuthorityRecordHash and Authority carry the authority record that authorised
+	// this mint (Task 2d.1, observe mode; see badge_authority.go). They are part of
+	// the transaction data, so every node can re-verify the record from the block
+	// alone, and part of the token ID's hash, so they cannot be swapped afterwards.
+	// Both are omitted when absent, which leaves the JSON, and so the token ID, of a
+	// credential without a record exactly as it was.
+	AuthorityRecordHash string                    `json:"authority_record_hash,omitempty"`
+	Authority           *BadgeAuthorityAttachment `json:"authority,omitempty"`
 }
 
 type badgeCredentialMintRequest struct {
@@ -94,12 +102,18 @@ type badgeCredentialMintRequest struct {
 	SuiteHash       string    `json:"suite_hash,omitempty"`
 	CertificateHash string    `json:"certificate_hash"`
 	IssuedAt        time.Time `json:"issued_at"`
+
+	AuthorityRecordHash string                    `json:"authority_record_hash,omitempty"`
+	Authority           *BadgeAuthorityAttachment `json:"authority,omitempty"`
 }
 
 type badgeCredentialRevokeRequest struct {
 	SchemaVersion string `json:"schema_version"`
 	CredentialID  string `json:"credential_id"`
 	Reason        string `json:"reason"`
+
+	AuthorityRecordHash string                    `json:"authority_record_hash,omitempty"`
+	Authority           *BadgeAuthorityAttachment `json:"authority,omitempty"`
 }
 
 // badgeCredentialRevocation is the on-chain revocation payload.
@@ -109,6 +123,9 @@ type badgeCredentialRevocation struct {
 	TokenID       string    `json:"token_id"`
 	Reason        string    `json:"reason"`
 	RevokedAt     time.Time `json:"revoked_at"`
+
+	AuthorityRecordHash string                    `json:"authority_record_hash,omitempty"`
+	Authority           *BadgeAuthorityAttachment `json:"authority,omitempty"`
 }
 
 type badgeCredentialRecord struct {
@@ -119,6 +136,10 @@ type badgeCredentialRecord struct {
 	RevokedAt           *time.Time         `json:"revoked_at,omitempty"`
 	RevokeReason        string             `json:"revoke_reason,omitempty"`
 	RevokeTransactionID string             `json:"revoke_transaction_id,omitempty"`
+	// AuthorityVerdict is the observe-mode outcome when the request was accepted
+	// ("ok", a failure code, or "no_record"). Informational: nothing acts on it.
+	AuthorityVerdict       string `json:"authority_verdict,omitempty"`
+	RevokeAuthorityVerdict string `json:"revoke_authority_verdict,omitempty"`
 }
 
 type badgeCredentialReceipt struct {
@@ -135,6 +156,11 @@ type badgeCredentialReceipt struct {
 	Revoked             bool       `json:"revoked"`
 	RevokedAt           *time.Time `json:"revoked_at,omitempty"`
 	RevokeTransactionID string     `json:"revoke_transaction_id,omitempty"`
+
+	AuthorityRecordHash       string `json:"authority_record_hash,omitempty"`
+	AuthorityVerdict          string `json:"authority_verdict,omitempty"`
+	RevokeAuthorityRecordHash string `json:"revoke_authority_record_hash,omitempty"`
+	RevokeAuthorityVerdict    string `json:"revoke_authority_verdict,omitempty"`
 }
 
 func validateBadgeCredentialMint(r badgeCredentialMintRequest) error {
@@ -241,6 +267,10 @@ func (bcs *BlockchainServer) handleBadgeCredentialMint(w http.ResponseWriter, r 
 		return
 	}
 
+	// Observe mode: an unusable attachment is dropped and counted, never a reason to
+	// refuse the mint (badge_authority.go).
+	authHash, authAttachment, authDropped := sanitizeBadgeAuthority(request.AuthorityRecordHash, request.Authority)
+
 	nft := BadgeCredentialNFT{
 		SchemaVersion: badgeCredentialMintSchema, CredentialID: request.CredentialID,
 		BadgeID: request.BadgeID, BadgeName: request.BadgeName, BadgeType: "skill",
@@ -248,6 +278,13 @@ func (bcs *BlockchainServer) handleBadgeCredentialMint(w http.ResponseWriter, r 
 		HolderAgentID: request.HolderAgentID, OwnerAddress: request.OwnerAddress,
 		Kind: request.Kind, ExecutionMode: request.ExecutionMode, SuiteHash: request.SuiteHash,
 		CertificateHash: request.CertificateHash, IssuedAt: request.IssuedAt.UTC(),
+		AuthorityRecordHash: authHash, Authority: authAttachment,
+	}
+	authVerdict := authDropped
+	if authDropped == "" {
+		authVerdict = observeBadgeMint(nft, badgeAuthorityClock())
+	} else {
+		countBadgeAuthority(badgeAuthorityMint, authDropped)
 	}
 	tokenID, err := badgeCredentialTokenID(nft)
 	if err != nil {
@@ -264,6 +301,7 @@ func (bcs *BlockchainServer) handleBadgeCredentialMint(w http.ResponseWriter, r 
 	transaction.Type = txTypeBadgeCredentialMint
 	record := &badgeCredentialRecord{
 		TokenID: tokenID, TransactionID: transaction.TransactionHash, NFT: nft, AcceptedAt: time.Now().UTC(),
+		AuthorityVerdict: authVerdict,
 	}
 	// Submit, then persist (validation-proof order). If persisting fails the
 	// issuer retries and resubmits an identical, content-addressed transaction;
@@ -310,10 +348,19 @@ func (bcs *BlockchainServer) handleBadgeCredentialRevoke(w http.ResponseWriter, 
 		return
 	}
 	now := time.Now().UTC()
-	data, err := json.Marshal(badgeCredentialRevocation{
+	authHash, authAttachment, authDropped := sanitizeBadgeAuthority(request.AuthorityRecordHash, request.Authority)
+	revocation := badgeCredentialRevocation{
 		SchemaVersion: badgeCredentialRevokeSchema, CredentialID: request.CredentialID,
 		TokenID: record.TokenID, Reason: request.Reason, RevokedAt: now,
-	})
+		AuthorityRecordHash: authHash, Authority: authAttachment,
+	}
+	if authDropped == "" {
+		record.RevokeAuthorityVerdict = observeBadgeRevoke(revocation, badgeAuthorityClock())
+	} else {
+		record.RevokeAuthorityVerdict = authDropped
+		countBadgeAuthority(badgeAuthorityRevoke, authDropped)
+	}
+	data, err := json.Marshal(revocation)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -432,6 +479,8 @@ func (bcs *BlockchainServer) writeBadgeCredentialReceipt(w http.ResponseWriter, 
 		CertificateHash: record.NFT.CertificateHash, TokenID: record.TokenID,
 		TransactionID: record.TransactionID, Revoked: record.RevokedAt != nil,
 		RevokedAt: record.RevokedAt, RevokeTransactionID: record.RevokeTransactionID,
+		AuthorityRecordHash: record.NFT.AuthorityRecordHash, AuthorityVerdict: record.AuthorityVerdict,
+		RevokeAuthorityVerdict: record.RevokeAuthorityVerdict,
 	}
 	receipt.BlockID, receipt.FinalizedAt = bcs.transactionFinality(record.TransactionID)
 	receipt.Final = receipt.BlockID != ""
@@ -469,6 +518,13 @@ func decodeBadgeCredentialRevoke(data []byte) (badgeCredentialRevocation, bool) 
 // protocol transaction; a revocation names a token minted earlier (or earlier
 // in the same block) for the same credential.
 func (bc *BlockchainStruct) validateBadgeCredentialsInBlock(block *Block) error {
+	// Authority records are re-verified as of the block's own time (the one clock
+	// every node agrees on). A block without a timestamp (unit tests) uses now.
+	// OBSERVE MODE: this never adds an error to the result.
+	asOf := time.Now()
+	if block.Timestamp > 0 {
+		asOf = time.Unix(block.Timestamp, 0)
+	}
 	minted := make(map[string]string) // token id -> credential id
 	for _, existing := range bc.Blocks {
 		for _, tx := range existing.Transactions {
@@ -494,6 +550,7 @@ func (bc *BlockchainStruct) validateBadgeCredentialsInBlock(block *Block) error 
 				return fmt.Errorf("badge credential mint identity mismatch")
 			}
 			minted[tokenID] = nft.CredentialID
+			observeBadgeMint(nft, asOf)
 		case txTypeBadgeCredentialRevoke:
 			rev, ok := decodeBadgeCredentialRevoke(tx.Data)
 			if !ok {
@@ -505,6 +562,7 @@ func (bc *BlockchainStruct) validateBadgeCredentialsInBlock(block *Block) error 
 			if credential, ok := minted[rev.TokenID]; !ok || credential != rev.CredentialID {
 				return fmt.Errorf("revocation of unminted badge credential %s", rev.CredentialID)
 			}
+			observeBadgeRevoke(rev, asOf)
 		}
 	}
 	return nil

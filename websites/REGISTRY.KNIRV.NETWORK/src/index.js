@@ -191,10 +191,34 @@ export class RegistryStore extends DurableObject {
     const isValid = await verifySignature(validator.publicKey, message, signature);
     if (!isValid) return { status: 403, error: "Invalid signature." };
 
+    // Replica telemetry is additive to the original heartbeat contract.  It
+    // has its own signature so an authenticated legacy heartbeat cannot be
+    // paired with forged mode/lag fields during a rolling deployment.
+    let replica;
+    if (payload?.replica !== undefined || payload?.replicaSignature !== undefined) {
+      const raw = payload?.replica;
+      const replicaSignature = typeof payload?.replicaSignature === "string" ? payload.replicaSignature.trim() : "";
+      const safeUInt = (value) => typeof value === "number" && Number.isSafeInteger(value) && value >= 0;
+      const safeInt = (value) => typeof value === "number" && Number.isSafeInteger(value) && value >= 0;
+      const safeCount = (value) => Number.isSafeInteger(value) && value >= 0 && value <= 6;
+      if (!raw || !replicaSignature || !["active", "standby", "off"].includes(raw.mode) ||
+        !safeUInt(raw.headSeq) || !safeUInt(raw.lagSeq) || !safeInt(raw.lagSeconds) ||
+        typeof raw.diverged !== "boolean" || typeof raw.paused !== "boolean" || !safeCount(raw.unverifiedClasses)) {
+        return { status: 400, error: "Invalid replica telemetry." };
+      }
+      const replicaMessage = canonicalize(chainID, validatorID, "replica-v1", raw.mode,
+        String(raw.headSeq), String(raw.lagSeq), String(raw.lagSeconds), String(raw.diverged), String(raw.paused), String(raw.unverifiedClasses));
+      if (!await verifySignature(validator.publicKey, replicaMessage, replicaSignature)) {
+        return { status: 403, error: "Invalid replica telemetry signature." };
+      }
+      replica = { mode: raw.mode, headSeq: raw.headSeq, lagSeq: raw.lagSeq, lagSeconds: raw.lagSeconds,
+        diverged: raw.diverged, paused: raw.paused, unverifiedClasses: raw.unverifiedClasses };
+    }
+
     const ttlMs = positiveInt(env.HEARTBEAT_TTL_SECONDS, HEARTBEAT_TTL_MS / 1000) * 1000;
     const now = Date.now();
     await pruneHeartbeats(this, now, ttlMs);
-    const heartbeat = { validatorID, rootObservedHealthy, rootLastSeenMs, syncHeight, lastSeen: now, timestamp: now };
+    const heartbeat = { validatorID, rootObservedHealthy, rootLastSeenMs, syncHeight, lastSeen: now, timestamp: now, ...(replica ? { replica } : {}) };
     await this.ctx.storage.put(`heartbeat:${chainID}:${validatorID}`, heartbeat);
     await this.ctx.storage.setAlarm(now + HEARTBEAT_PRUNE_INTERVAL_MS);
     return { status: 200, message: "Heartbeat recorded." };

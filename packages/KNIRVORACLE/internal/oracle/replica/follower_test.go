@@ -75,12 +75,20 @@ func TestFollowerMirrorsVerifiedHeadAndRetainsItAcrossRestart(t *testing.T) {
 	if got := follower.Snapshot(); len(got.Records) != 2 || len(got.Leaves) != 1 {
 		t.Fatalf("snapshot = %+v", got)
 	}
+	source.head.Head.Seq = 2
+	source.head.Head.PrevHeadHash = "head-1"
+	if err := follower.Sync(context.Background(), source); err != nil {
+		t.Fatalf("sync successor: %v", err)
+	}
 	reopened, err := Open(path, anchor)
 	if err != nil {
 		t.Fatalf("reopen: %v", err)
 	}
-	if got := reopened.Status().HeadSeq; got != 1 {
-		t.Fatalf("persisted sequence = %d, want 1", got)
+	if got := reopened.Status().HeadSeq; got != 2 {
+		t.Fatalf("persisted sequence = %d, want 2", got)
+	}
+	if heads := reopened.Snapshot().Heads; len(heads) != 2 || heads[0].Head.Seq != 1 || heads[1].Head.Seq != 2 {
+		t.Fatalf("persisted verified head history = %+v", heads)
 	}
 }
 

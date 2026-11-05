@@ -6,6 +6,7 @@ import (
 	"math/rand"
 	"time"
 
+	handstok "knirvmodels/pkg/hands/tokenizer"
 	"knirvmodels/pkg/hashing"
 	"knirvmodels/pkg/hashing/core"
 	"knirvmodels/pkg/hashing/neural"
@@ -26,7 +27,7 @@ type RecursiveEngine struct {
 	Jitter       float64
 	SeedRotation bool
 	Mode         hashing.InferenceMode
-	Tokenizer    transformer.Tokenizer
+	Tokenizer    handstok.Tokenizer
 }
 
 // NewRecursiveEngine creates a new recursive inference engine with software-only hashing

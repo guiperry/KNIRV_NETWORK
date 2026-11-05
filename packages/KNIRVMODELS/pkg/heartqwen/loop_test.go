@@ -144,7 +144,7 @@ func TestMutationBecomesAProposalNotAnAction(t *testing.T) {
 		`{"action":"tool","tool":"rules.add","args":{"domain":"d","rule":"r"}}`,
 		`{"action":"final","output":"I proposed the rule; an operator must approve it."}`,
 	}}
-	res, err := engine(llm, ex).Run(context.Background(), Input{Stage: "ops.assistant", Task: "add a rule", Privilege: policy.Operator})
+	res, err := engine(llm, ex).Run(context.Background(), Input{Stage: "hands.assistant", Task: "add a rule", Privilege: policy.Operator})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -214,7 +214,7 @@ func TestToolResultsAreSizedToTheContextWindow(t *testing.T) {
 func TestAFrameThatCannotFitTheWindowIsAConfigurationError(t *testing.T) {
 	e := engine(&scripted{}, &recExec{})
 	e.Facts = func() frame.LiveFacts { return frame.LiveFacts{Model: "q", CtxSize: 300} }
-	_, err := e.Run(context.Background(), Input{Stage: "ops.assistant", Task: "x"})
+	_, err := e.Run(context.Background(), Input{Stage: "hands.assistant", Task: "x"})
 	if !errors.Is(err, ErrContext) {
 		t.Fatalf("got %v", err)
 	}

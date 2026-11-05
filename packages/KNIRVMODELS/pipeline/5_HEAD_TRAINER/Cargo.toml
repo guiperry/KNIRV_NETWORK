@@ -1,17 +1,17 @@
 [package]
-name = "head-trainer"
+name = "heart-decision-trainer"
 version = "0.1.0"
 edition = "2021"
-description = "KNIRVMODELS stage 5: trains the knirv-head Hierarchical Reasoning Model and promotes it through an evaluation gate"
+description = "KNIRVMODELS stage 5: trains the knirv-heart-decision Hierarchical Reasoning Model and promotes it through an evaluation gate"
 license = "MIT"
 
 [[bin]]
-name = "head-trainer"
+name = "heart-decision-trainer"
 path = "src/main.rs"
 
 [dependencies]
 # Same crate the arena (WASM) and HEART (WASI) run: one implementation.
-knirv-head = { path = "../../head" }
+knirv-heart-decision = { path = "../../heart/decision" }
 candle-core = "0.11"
 candle-nn = "0.11"
 serde = { version = "1.0", features = ["derive"] }

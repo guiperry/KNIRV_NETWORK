@@ -16,6 +16,18 @@ type DeviceConfig struct {
 	DirectJitter bool   // allow the jitter engine to hash via the ASIC (requires DirectMode)
 }
 
+// DirectArgs passes the hardware options to hasher-host. Jitter is meaningful
+// only when direct mode is enabled.
+func (c *DeviceConfig) DirectArgs() []string {
+	if c == nil || !c.DirectMode {
+		return nil
+	}
+	if c.DirectJitter {
+		return []string{"--direct", "--direct-jitter"}
+	}
+	return []string{"--direct"}
+}
+
 var (
 	deviceConfig *DeviceConfig
 	configLoaded bool

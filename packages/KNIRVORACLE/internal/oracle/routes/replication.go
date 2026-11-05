@@ -120,6 +120,9 @@ func (r *OracleRoutes) handleReplicationCheckpoints(w http.ResponseWriter, req *
 	}
 	after := queryUint(req, "after_height", 0)
 	limit := queryInt(req, "limit", 256)
+	if limit <= 0 || limit > 256 {
+		limit = 256
+	}
 	records := make([]any, 0, limit)
 	for _, record := range r.oracle.GetCheckpointRecords(chain) {
 		if record.Checkpoint.EndHeight <= after {

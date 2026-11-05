@@ -77,15 +77,14 @@ func DaemonModels(c *models.Client) (head *HeadModel, heart *HeartModel, hasher 
 
 // ---- HEAD -----------------------------------------------------------------
 
-// HeadModel is the reasoner. Decide tasks carry a models.AdviseContext and produce a
-// models.SupervisorAdvice in Result.Value; HEAD never errors there, it abstains.
-// HeadModel is also the harness's advisory Chooser.
+// HeadModel is HEAD after the migration: the vision / multimodal model (VLM) and the
+// coordinator of mirrored text generation. It no longer decides or routes; those live
+// in HEART (see HeartModel). Vision tasks carry a models.VisionRequest; mirror_generate
+// tasks carry a models.HeadGenerateRequest and HEAD arbitrates its own candidate against
+// HEART's (see GenerateMirrored).
 type HeadModel struct {
 	client *models.Client
 	status *statusCache
-
-	mu      sync.Mutex
-	noRoute map[string]time.Time // model version -> when "no route head" was seen
 }
 
 func (h *HeadModel) Name() string    { return "head" }
@@ -95,68 +94,42 @@ func (h *HeadModel) Ready(ctx context.Context) Readiness {
 }
 
 func (h *HeadModel) Do(ctx context.Context, t Task) (Result, error) {
-	if t.Kind != KindDecide {
+	switch t.Kind {
+	case KindVision:
+		req, ok := t.Input.(models.VisionRequest)
+		if !ok {
+			return Result{}, fmt.Errorf("vision input must be models.VisionRequest, got %T", t.Input)
+		}
+		r, err := h.client.HeadVision(ctx, req)
+		if err != nil {
+			return Result{}, fmt.Errorf("head vision: %w", err)
+		}
+		return Result{Value: r, Model: "head"}, nil
+	case KindMirrorGenerate:
+		g, ok := t.Input.(models.HeadGenerateRequest)
+		if !ok {
+			return Result{}, fmt.Errorf("mirror_generate input must be models.HeadGenerateRequest, got %T", t.Input)
+		}
+		mr, err := GenerateMirrored(ctx, h.client, g.Prompt, g.PerceptualContext, g.Images, g.Frame, nil)
+		if err != nil {
+			return Result{}, fmt.Errorf("head mirror_generate: %w", err)
+		}
+		return Result{Text: mr.Text, Model: mr.Winner, Version: mr.Version}, nil
+	default:
 		return Result{}, fmt.Errorf("head does not take %q tasks", t.Kind)
 	}
-	ac, ok := t.Input.(models.AdviseContext)
-	if !ok {
-		return Result{}, fmt.Errorf("decide input must be models.AdviseContext, got %T", t.Input)
-	}
-	adv := h.client.Advise(ctx, ac)
-	return Result{Value: adv, Version: adv.ModelVersion, Model: "head"}, nil
 }
 
-// routePrompt is the closed-set question HEAD is asked.
+// routePrompt is the closed-set question the decision core is asked.
 func routePrompt(t Task, eligible []string) string {
 	return fmt.Sprintf("route kind=%s eligible=%s skill=%t", t.Kind, strings.Join(eligible, ","), t.Skill != nil)
 }
 
-// Choose asks HEAD's "route" decision head which eligible model should take the task.
-// A model trained without that head abstains, which sends the harness to its rule
-// default; that is remembered for a few minutes so each call is not two wasted requests.
-func (h *HeadModel) Choose(ctx context.Context, t Task, eligible []string) (Choice, error) {
-	m, err := h.client.Manifest(ctx)
-	if err != nil {
-		return Choice{}, err
-	}
-	h.mu.Lock()
-	if at, ok := h.noRoute[m.Version]; ok && time.Since(at) < 5*time.Minute {
-		h.mu.Unlock()
-		return Choice{Abstain: true, Reason: "HEAD has no route head", Version: m.Version}, nil
-	}
-	h.mu.Unlock()
-
-	width, err := m.InputWidth()
-	if err != nil {
-		return Choice{}, err
-	}
-	r, err := h.client.Reason(ctx, models.EncodeByteV1(routePrompt(t, eligible), width))
-	if err != nil {
-		return Choice{}, err
-	}
-	d := r.Decision("route")
-	if d == nil || d.Kind != "choice" {
-		h.mu.Lock()
-		if h.noRoute == nil {
-			h.noRoute = map[string]time.Time{}
-		}
-		h.noRoute[r.ModelVersion] = time.Now()
-		h.mu.Unlock()
-		return Choice{Abstain: true, Reason: "HEAD has no route head", Version: r.ModelVersion}, nil
-	}
-	if d.Abstain || d.Selected == nil {
-		return Choice{Abstain: true, Reason: "route head abstained", Version: r.ModelVersion}, nil
-	}
-	c := Choice{Model: *d.Selected, Version: r.ModelVersion}
-	if d.Confidence != nil {
-		c.Confidence = *d.Confidence
-	}
-	return c, nil
-}
-
 // ---- HEART ----------------------------------------------------------------
 
-// HeartModel is the generator over the daemon's HEART routes. Input is a string.
+// HeartModel is the generator over the daemon's HEART routes and, after the migration,
+// the decision core (formerly HEAD's reasoning) and the harness's advisory Chooser.
+// Input is a string (generate/analyze) or a models.AdviseContext (decide).
 type HeartModel struct {
 	client *models.Client
 	status *statusCache
@@ -164,6 +137,7 @@ type HeartModel struct {
 	mu        sync.Mutex
 	ready     Readiness
 	lastCheck time.Time
+	noRoute   map[string]time.Time // model version -> when "no route head" was seen
 }
 
 func (h *HeartModel) Name() string    { return "heart" }
@@ -198,6 +172,26 @@ func (h *HeartModel) Ready(ctx context.Context) Readiness {
 }
 
 func (h *HeartModel) Do(ctx context.Context, t Task) (Result, error) {
+	if t.Kind == KindDecide {
+		ac, ok := t.Input.(models.AdviseContext)
+		if !ok {
+			return Result{}, fmt.Errorf("decide input must be models.AdviseContext, got %T", t.Input)
+		}
+		m, err := h.client.Manifest(ctx)
+		if err != nil {
+			return Result{}, fmt.Errorf("heart decision: %w", err)
+		}
+		width, err := m.InputWidth()
+		if err != nil {
+			return Result{}, fmt.Errorf("heart decision: %w", err)
+		}
+		r, err := h.client.Decide(ctx, models.EncodeByteV1(models.BuildAdvisePrompt(ac), width))
+		if err != nil {
+			return Result{}, fmt.Errorf("heart decision: %w", err)
+		}
+		adv := models.AdviceFromReasoning(*r, ac)
+		return Result{Value: adv, Version: r.ModelVersion, Model: "heart"}, nil
+	}
 	prompt, ok := promptOf(t.Input)
 	if !ok {
 		return Result{}, fmt.Errorf("heart needs a text prompt, got %T", t.Input)
@@ -217,6 +211,49 @@ func (h *HeartModel) Do(ctx context.Context, t Task) (Result, error) {
 	return Result{Text: text, Model: "heart", Version: ver}, nil
 }
 
+// Choose asks the decision core (now HEART) which eligible model should take the task.
+// A model trained without that head abstains, which sends the harness to its rule
+// default; that is remembered for a few minutes so each call is not two wasted requests.
+func (h *HeartModel) Choose(ctx context.Context, t Task, eligible []string) (Choice, error) {
+	m, err := h.client.Manifest(ctx)
+	if err != nil {
+		return Choice{}, err
+	}
+	h.mu.Lock()
+	if at, ok := h.noRoute[m.Version]; ok && time.Since(at) < 5*time.Minute {
+		h.mu.Unlock()
+		return Choice{Abstain: true, Reason: "HEART has no route head", Version: m.Version}, nil
+	}
+	h.mu.Unlock()
+
+	width, err := m.InputWidth()
+	if err != nil {
+		return Choice{}, err
+	}
+	r, err := h.client.Decide(ctx, models.EncodeByteV1(routePrompt(t, eligible), width))
+	if err != nil {
+		return Choice{}, err
+	}
+	d := r.Decision("route")
+	if d == nil || d.Kind != "choice" {
+		h.mu.Lock()
+		if h.noRoute == nil {
+			h.noRoute = map[string]time.Time{}
+		}
+		h.noRoute[r.ModelVersion] = time.Now()
+		h.mu.Unlock()
+		return Choice{Abstain: true, Reason: "HEART has no route head", Version: r.ModelVersion}, nil
+	}
+	if d.Abstain || d.Selected == nil {
+		return Choice{Abstain: true, Reason: "route head abstained", Version: r.ModelVersion}, nil
+	}
+	c := Choice{Model: *d.Selected, Version: r.ModelVersion}
+	if d.Confidence != nil {
+		c.Confidence = *d.Confidence
+	}
+	return c, nil
+}
+
 // ---- HASHER ---------------------------------------------------------------
 
 // HasherModel is the validator. Input is models.HasherValidateRequest; the verdict is
@@ -233,19 +270,136 @@ func (h *HasherModel) Ready(ctx context.Context) Readiness {
 }
 
 func (h *HasherModel) Do(ctx context.Context, t Task) (Result, error) {
-	if t.Kind != KindValidate {
-		return Result{}, fmt.Errorf("hasher does not take %q tasks", t.Kind)
+	switch t.Kind {
+	case KindValidate:
+		req, ok := t.Input.(models.HasherValidateRequest)
+		if !ok {
+			return Result{}, fmt.Errorf("validate input must be models.HasherValidateRequest, got %T", t.Input)
+		}
+		res, err := h.client.HasherValidate(ctx, req)
+		if err != nil {
+			return Result{}, fmt.Errorf("hasher: %w", err)
+		}
+		row, _ := h.status.get(ctx, "hasher")
+		return Result{Value: res, Model: "hasher", Version: row.Version}, nil
+	case KindVerify:
+		var req models.VerifyRequest
+		switch in := t.Input.(type) {
+		case models.VerifyRequest:
+			req = in
+		case *models.VerifyRequest:
+			if in == nil {
+				return Result{}, fmt.Errorf("verify input is nil")
+			}
+			req = *in
+		case string:
+			req = models.VerifyRequest{Text: in}
+		default:
+			return Result{}, fmt.Errorf("verify input must be models.VerifyRequest or text, got %T", t.Input)
+		}
+		return h.doVerify(ctx, req, t.Constraints)
 	}
-	req, ok := t.Input.(models.HasherValidateRequest)
-	if !ok {
-		return Result{}, fmt.Errorf("validate input must be models.HasherValidateRequest, got %T", t.Input)
+	return Result{}, fmt.Errorf("hasher does not take %q tasks", t.Kind)
+}
+
+// Verify checks a text or claims against HASHER's evidence index through the SDK
+// client, applying the constraints (see doVerify). It does not route or trace; use
+// Harness.Verify for that.
+func (h *HasherModel) Verify(ctx context.Context, req models.VerifyRequest, c Constraints) (*models.VerifyResponse, error) {
+	res, err := h.doVerify(ctx, req, c)
+	if err != nil {
+		return nil, err
 	}
-	res, err := h.client.HasherValidate(ctx, req)
+	return res.Value.(*models.VerifyResponse), nil
+}
+
+// VerifyJob reads a deferred or out-of-budget job; only its tenant can.
+func (h *HasherModel) VerifyJob(ctx context.Context, id, tenant string) (*models.VerifyResponse, error) {
+	resp, err := h.client.VerifyJob(ctx, id, tenant)
+	if err != nil {
+		return nil, fmt.Errorf("hasher: %w", err)
+	}
+	if err := resp.Check(); err != nil {
+		return nil, fmt.Errorf("hasher: malformed verify answer: %w", err)
+	}
+	return resp, nil
+}
+
+// doVerify applies the constraints, calls the daemon and refuses an answer that breaks
+// the contract or a constraint:
+//
+//   - NoFlash (and LocalOnly, which implies it) forces mode "index"; a response that
+//     says another mode ran is discarded as a constraint violation, so a privacy
+//     request can never be answered by a live lookup.
+//   - A latency Budget becomes the request's budget_ms and, unless the caller chose a
+//     delivery, makes it inline. An answer that is still pending is returned marked
+//     Degraded with the job id in the Trace: the caller has no verdict yet.
+//   - An answer that fails VerifyResponse.Check is an error, never a result.
+func (h *HasherModel) doVerify(ctx context.Context, req models.VerifyRequest, c Constraints) (Result, error) {
+	var notes []string
+	if req.Mode == "" {
+		req.Mode = models.ModeIndex
+	}
+	noFlash := c.NoFlash || c.LocalOnly
+	if noFlash && req.Mode != models.ModeIndex {
+		notes = append(notes, fmt.Sprintf("constraint: no flash, mode %q changed to index", req.Mode))
+		req.Mode = models.ModeIndex
+	}
+	if c.Budget > 0 {
+		ms := int(c.Budget / time.Millisecond)
+		if ms < 1 {
+			ms = 1
+		}
+		req.BudgetMS = ms
+		if req.Delivery == "" {
+			req.Delivery = models.DeliveryInline
+		}
+	}
+	resp, err := h.client.Verify(ctx, req)
 	if err != nil {
 		return Result{}, fmt.Errorf("hasher: %w", err)
 	}
+	if err := resp.Check(); err != nil {
+		return Result{}, fmt.Errorf("hasher: malformed verify answer: %w", err)
+	}
+	if noFlash && (resp.Mode != models.ModeIndex || resp.FlashUsed || len(resp.OutboundQueries) > 0) {
+		return Result{}, fmt.Errorf("hasher: constraint violated: no flash was required but the answer ran in mode %q (flash used: %t)", resp.Mode, resp.FlashUsed)
+	}
 	row, _ := h.status.get(ctx, "hasher")
-	return Result{Value: res, Model: "hasher", Version: row.Version}, nil
+	vt := verifyTrace(resp)
+	res := Result{Value: resp, Model: "hasher", Version: row.Version, Verify: vt, Notes: notes}
+	if resp.Degraded {
+		res.Degraded = true
+		res.Notes = append(res.Notes, "verification degraded: the answer is uncommitted and is not a verdict")
+	}
+	if resp.Status == models.VerifyPending {
+		res.Degraded = true
+		res.Notes = append(res.Notes, "no verdict yet: read job "+resp.JobID)
+	}
+	return res, nil
+}
+
+// verifyTrace summarises an answer for the Trace. It copies no text.
+func verifyTrace(r *models.VerifyResponse) *VerifyTrace {
+	vt := &VerifyTrace{Mode: r.Mode, Delivery: r.Delivery, Gate: r.Gate, GateLevel: r.GateLevel, Claims: len(r.Claims),
+		Degraded: r.Degraded, Pending: r.Status == models.VerifyPending, JobID: r.JobID, IndexVersion: r.IndexVersion,
+		FlashUsed: r.FlashUsed || r.Mode == models.ModeFlash || r.Mode == models.ModeHybrid, OutboundQueries: r.OutboundQueries}
+	if r.Judge != nil {
+		vt.Judge = r.Judge.Model
+		if r.Judge.SHA256 != "" {
+			vt.Judge += "@" + r.Judge.SHA256
+		}
+	}
+	if len(r.Claims) > 0 {
+		hit := 0
+		for _, c := range r.Claims {
+			if len(c.Evidence) > 0 {
+				hit++
+			}
+		}
+		vt.HitRate = float64(hit) / float64(len(r.Claims))
+	}
+	return vt
 }
 
 // ---- external -------------------------------------------------------------

@@ -103,7 +103,7 @@ pub fn input_width(config: &serde_json::Value) -> Result<usize, String> {
 
 // ---- advice ----------------------------------------------------------------
 
-#[derive(Debug, Default, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
 pub struct Decision {
     #[serde(default, deserialize_with = "null_default")]
     pub name: String,
@@ -128,6 +128,52 @@ pub struct Reasoning {
     #[serde(default, deserialize_with = "null_default")]
     pub policy_bundle_hash: String,
 }
+
+/// Decision envelope: the output of the decision core (or a caller-supplied
+/// decision). Mirrors the Go `DecisionEnvelope` and the TS `DecisionEnvelope`.
+#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
+pub struct DecisionEnvelope {
+    #[serde(default)]
+    pub decisions: Vec<Decision>,
+    #[serde(default)]
+    pub abstained: bool,
+    #[serde(default)]
+    pub reason: Option<String>,
+}
+
+/// HEART generate request. Plain generation (no `decision` and `with_decision`
+/// false) never consults the decision core, so legacy clients keep working when
+/// the core is unavailable. Set `with_decision` to have HEART resolve the core.
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct HeartGenerateRequest {
+    #[serde(default)]
+    pub prompt: String,
+    #[serde(default)]
+    pub decision: Option<DecisionEnvelope>,
+    #[serde(default)]
+    pub with_decision: bool,
+}
+
+/// HEART generate response: always carries the (possibly absent or abstaining)
+/// decision metadata alongside the text.
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct HeartGenerateResponse {
+    #[serde(default)]
+    pub text: String,
+    #[serde(default)]
+    pub ready: bool,
+    #[serde(default)]
+    pub progress: f64,
+    #[serde(default)]
+    pub decision: Option<DecisionEnvelope>,
+    #[serde(default)]
+    pub abstained: bool,
+    #[serde(default)]
+    pub error: Option<String>,
+}
+
+/// Route the decision-aware HEART generate contract is served at.
+pub const HEART_GENERATE_PATH: &str = "/models/heart/generate";
 
 #[derive(Debug, Default, Deserialize)]
 pub struct EvidenceItem {
@@ -470,6 +516,163 @@ fn sha12(s: &str) -> String {
     s.chars().take(12).collect()
 }
 
+// ===== verify (Task 3.4) =====
+//
+// The HASHER verify contract's invariants live here once. The Go and TypeScript
+// bindings call `models.verify_check` / `models.verify_request_check`; they keep
+// only the wire types and the HTTP.
+
+const GATE_NAMES: [&str; 7] = [
+    "refused",
+    "discouraged",
+    "uncommitted",
+    "seen",
+    "attested",
+    "accepted",
+    "committed",
+];
+
+#[derive(Debug, Default, Deserialize)]
+struct VerifyEvidenceView {
+    #[serde(default)]
+    span_id: String,
+}
+
+#[derive(Debug, Deserialize)]
+struct VerifyClaimView {
+    #[serde(default)]
+    verdict: String,
+    #[serde(default)]
+    gate: String,
+    gate_level: i64,
+    #[serde(default, deserialize_with = "null_default")]
+    evidence: Vec<VerifyEvidenceView>,
+    #[serde(default, deserialize_with = "null_default")]
+    cited: Vec<String>,
+    #[serde(default)]
+    degraded: bool,
+}
+
+/// The fields of a verify response the invariants read.
+#[derive(Debug, Deserialize)]
+pub struct VerifyResponseView {
+    #[serde(default)]
+    status: String,
+    #[serde(default)]
+    job_id: String,
+    #[serde(default)]
+    gate: String,
+    gate_level: i64,
+    gate_score: f64,
+    confidence: f64,
+    #[serde(default, deserialize_with = "null_default")]
+    claims: Vec<VerifyClaimView>,
+    #[serde(default)]
+    degraded: bool,
+    #[serde(default)]
+    chargeable: bool,
+    #[serde(default)]
+    unverified: bool,
+    #[serde(default)]
+    mode: String,
+    #[serde(default)]
+    flash_used: bool,
+    #[serde(default, deserialize_with = "null_default")]
+    outbound_queries: Vec<String>,
+    refused: bool,
+    is_accurate: bool,
+    #[serde(default, deserialize_with = "null_default")]
+    citations: Vec<i64>,
+}
+
+fn gate_name(level: i64) -> Option<&'static str> {
+    usize::try_from(level).ok().and_then(|i| GATE_NAMES.get(i).copied())
+}
+
+/// The first way a verify response breaks the contract's invariants, or `None`.
+pub fn check_verify(r: &VerifyResponseView) -> Option<String> {
+    if gate_name(r.gate_level) != Some(r.gate.as_str()) {
+        return Some(format!("gate {:?} does not match gate_level {}", r.gate, r.gate_level));
+    }
+    if r.refused != (r.gate_level == 0) {
+        return Some(format!("refused={} but gate_level is {}", r.refused, r.gate_level));
+    }
+    if r.is_accurate != (r.gate_level >= 5) {
+        return Some(format!("is_accurate={} but gate_level is {}", r.is_accurate, r.gate_level));
+    }
+    if r.confidence != r.gate_score {
+        return Some(format!("confidence {} must equal gate_score {}", r.confidence, r.gate_score));
+    }
+    match r.status.as_str() {
+        "pending" => {
+            if r.gate_level != 2 || !r.unverified || r.chargeable || r.job_id.is_empty() {
+                return Some("a pending answer must be uncommitted, unverified, not chargeable and carry a job id".into());
+            }
+        }
+        "done" => {}
+        other => return Some(format!("status {other:?} is neither done nor pending")),
+    }
+    if r.mode == "index" && (r.flash_used || !r.outbound_queries.is_empty()) {
+        return Some("an index-mode answer cannot report live lookup".into());
+    }
+    if r.mode != "index" && r.flash_used && r.outbound_queries.is_empty() {
+        return Some("flash_used without the outbound queries that prove it".into());
+    }
+    if r.degraded && r.chargeable {
+        return Some("a degraded answer must not be chargeable".into());
+    }
+    let mut spans: Vec<&str> = Vec::new();
+    for (i, c) in r.claims.iter().enumerate() {
+        if gate_name(c.gate_level) != Some(c.gate.as_str()) {
+            return Some(format!("claim {i}: gate {:?} does not match gate_level {}", c.gate, c.gate_level));
+        }
+        if !matches!(c.verdict.as_str(), "SUPPORTED" | "REFUTED" | "NEI") {
+            return Some(format!("claim {i}: verdict {:?}", c.verdict));
+        }
+        if c.gate_level >= 3 && c.verdict != "SUPPORTED" {
+            return Some(format!("claim {i}: gate {} without a SUPPORTED verdict", c.gate));
+        }
+        if c.degraded && c.gate_level > 2 {
+            return Some(format!("claim {i}: a degraded claim reached {}", c.gate));
+        }
+        for id in &c.cited {
+            if !c.evidence.iter().any(|e| &e.span_id == id) {
+                return Some(format!("claim {i} cites {id}, which is not in its evidence"));
+            }
+        }
+        if c.gate_level == 0 && !c.evidence.is_empty() && c.verdict == "SUPPORTED" {
+            return Some(format!("claim {i}: refused but SUPPORTED"));
+        }
+        spans.extend(c.evidence.iter().map(|e| e.span_id.as_str()));
+    }
+    for &p in &r.citations {
+        let span = match usize::try_from(p).ok().and_then(|i| spans.get(i)) {
+            Some(span) => *span,
+            None => return Some(format!("citation {p} is out of range")),
+        };
+        if !r.claims.iter().any(|c| c.cited.iter().any(|id| id == span)) {
+            return Some(format!("citation {p} points at {span}, which no claim cites"));
+        }
+    }
+    None
+}
+
+#[derive(Debug, Default, Deserialize)]
+pub struct VerifyRequestView {
+    #[serde(default)]
+    text: String,
+    #[serde(default, deserialize_with = "null_default")]
+    claims: Vec<serde_json::Value>,
+}
+
+/// A verify request needs a (non-blank) text or at least one claim.
+pub fn check_verify_request(r: &VerifyRequestView) -> Option<String> {
+    if r.text.trim().is_empty() && r.claims.is_empty() {
+        return Some("verify requires text or claims".into());
+    }
+    None
+}
+
 /// The fixed list of role lines, in a fixed order. Anything the document does not
 /// mention is reported as unavailable, never omitted.
 pub fn roles(s: &PlatformStatus) -> Vec<RoleLine> {
@@ -511,35 +714,38 @@ pub fn roles(s: &PlatformStatus) -> Vec<RoleLine> {
         l
     };
 
-    let mut llama = RoleLine {
-        role: "server_tasks".into(),
-        label: "server tasks and skills".into(),
-        model: "llama".into(),
-        state: "unavailable".into(),
-        detail: "llama is not running".into(),
-        ..Default::default()
-    };
-    if let Some(status) = &s.llama {
-        llama.state = "not ready".into();
-        llama.detail = status.error.clone();
-        if status.ready {
-            llama.state = "ready".into();
-            if !status.base_sha256.is_empty() {
-                llama.version = format!("gguf-{}", sha12(&status.base_sha256));
+    // Phase 4: the server_tasks role is served by the HANDS daemon (the
+    // operator-facing GPT that proposes and runs server tasks), not llama. llama
+    // is only an explicit fallback when HANDS is not registered with the models
+    // daemon. The contract lives here, in the core, never in the bindings.
+    let mut server_tasks = daemon("server_tasks", "server tasks and skills", "hands");
+    if !s.daemon.iter().any(|m| m.name == "hands") {
+        // Fall back to the embedded llama wrapper for the server_tasks line.
+        server_tasks.model = "llama".into();
+        server_tasks.state = "unavailable".into();
+        server_tasks.detail = "llama is not running".into();
+        if let Some(status) = &s.llama {
+            server_tasks.state = "not ready".into();
+            server_tasks.detail = status.error.clone();
+            if status.ready {
+                server_tasks.state = "ready".into();
+                if !status.base_sha256.is_empty() {
+                    server_tasks.version = format!("gguf-{}", sha12(&status.base_sha256));
+                }
+                let loaded: Vec<&str> = status
+                    .adapters
+                    .iter()
+                    .filter(|a| a.loaded)
+                    .map(|a| a.name.as_str())
+                    .collect();
+                server_tasks.detail = if loaded.is_empty() {
+                    "no skill adapter loaded".into()
+                } else {
+                    format!("adapters: {}", loaded.join(", "))
+                };
+            } else if server_tasks.detail.is_empty() {
+                server_tasks.detail = "starting".into();
             }
-            let loaded: Vec<&str> = status
-                .adapters
-                .iter()
-                .filter(|a| a.loaded)
-                .map(|a| a.name.as_str())
-                .collect();
-            llama.detail = if loaded.is_empty() {
-                "no skill adapter loaded".into()
-            } else {
-                format!("adapters: {}", loaded.join(", "))
-            };
-        } else if llama.detail.is_empty() {
-            llama.detail = "starting".into();
         }
     }
 
@@ -558,10 +764,16 @@ pub fn roles(s: &PlatformStatus) -> Vec<RoleLine> {
         }
     }
     vec![
-        daemon("decide", "supervision decisions", "head"),
+        // The decision core moved from HEAD to HEART (Phase 2): HEART owns
+        // /models/heart/decide and HEAD keeps only a compatibility proxy.
+        daemon("decide", "supervision decisions", "heart"),
         daemon("generate", "text generation", "heart"),
         daemon("validate", "validation", "hasher"),
-        llama,
+        // Phase 3: HEAD's post-migration role is vision / multimodal and the
+        // mirrored text generator.
+        daemon("vision", "vision and mirrored text", "head"),
+        // Phase 4: HANDS owns server_tasks; llama is the fallback.
+        server_tasks,
         external,
     ]
 }
@@ -569,6 +781,7 @@ pub fn roles(s: &PlatformStatus) -> Vec<RoleLine> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serde_json::json;
     use serde_json::Value;
 
     fn vector(name: &str) -> Value {
@@ -710,11 +923,54 @@ mod tests {
     }
 
     #[test]
+    fn decision_route_and_vision_role_are_authoritative() {
+        // The decision core lives in HEART (Phase 2) and the post-migration HEAD
+        // role is vision (Phase 3). These are the SDK's source-of-truth contract;
+        // the Go/TS bindings must mirror them, never own them.
+        let status: PlatformStatus = serde_json::from_value(json!({"daemon": [{"name": "heart", "ready": true, "version": "gpt-0.2"}]})).unwrap();
+        let roles = roles(&status);
+        let decide = roles.iter().find(|r| r.role == "decide").expect("decide role present");
+        assert_eq!(decide.model, "heart", "decision core moved to HEART");
+        assert!(
+            roles.iter().any(|r| r.role == "vision" && r.model == "head"),
+            "vision role present and served by HEAD"
+        );
+    }
+
+    #[test]
     fn input_width_and_plan() {
         let m = vector("head_manifest.json");
         assert_eq!(input_width(&m["config"]).unwrap(), 39);
         assert!(input_width(&serde_json::json!({"max_seq_len": 4, "summary_slots": 4})).is_err());
         assert_eq!(plan_bytes(&[104, 105, 259, 120]), b"hi");
+    }
+
+    #[test]
+    fn heart_generate_contract_roundtrip() {
+        let v: Value = vector("heart_generate.json");
+        let req: HeartGenerateRequest =
+            serde_json::from_value(v["request"].clone()).unwrap();
+        assert_eq!(req.prompt, "restart the failing service");
+        assert!(req.with_decision);
+        assert!(req.decision.is_none());
+
+        let resp: HeartGenerateResponse =
+            serde_json::from_value(v["response"].clone()).unwrap();
+        assert_eq!(resp.text, "restarting service");
+        assert!(!resp.abstained);
+        let env = resp.decision.unwrap();
+        assert_eq!(env.decisions[0].name, "action");
+        assert_eq!(env.decisions[0].selected.as_deref(), Some("restart-service"));
+
+        // Plain request: no decision, no with_decision -> default fields.
+        let plain: HeartGenerateRequest =
+            serde_json::from_value(v["plain_request"].clone()).unwrap();
+        assert!(!plain.with_decision);
+        assert!(plain.decision.is_none());
+        assert_eq!(plain.prompt, "hello");
+
+        // The path constant must match the server route.
+        assert_eq!(HEART_GENERATE_PATH, "/models/heart/generate");
     }
 }
 
@@ -737,6 +993,6 @@ mod null_tests {
         assert!(advice_from_reasoning(&r, &c, "t").abstain);
         let s: PlatformStatus =
             serde_json::from_value(json!({"daemon": null, "stats": null, "llama": null})).unwrap();
-        assert_eq!(roles(&s).len(), 5);
+        assert_eq!(roles(&s).len(), 6);
     }
 }

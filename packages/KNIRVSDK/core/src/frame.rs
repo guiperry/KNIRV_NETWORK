@@ -436,6 +436,37 @@ mod tests {
     }
 
     #[test]
+    fn vlm_contract_is_valid_and_complete() {
+        let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("data/vlm_contract.json");
+        let raw = std::fs::read_to_string(path).expect("vlm_contract.json present");
+        let v: Value = serde_json::from_str(&raw).expect("vlm_contract.json is valid JSON");
+        for key in [
+            "vision_request",
+            "head_generate_request",
+            "heart_decision_envelope",
+            "heart_generate_request",
+        ] {
+            assert!(v.get(key).is_some(), "vlm_contract.json missing {key}");
+        }
+    }
+
+    #[test]
+    fn hands_stages_build_and_are_eligible() {
+        let reg = Registry::default_registry();
+        let facts: LiveFacts = serde_json::from_value(serde_json::json!({"model": "local-llama"})).unwrap();
+        for id in ["hands.assistant", "hands.plan"] {
+            let s = reg.stage(id).unwrap();
+            assert_eq!(s.layer, "HANDS");
+            assert!(s.gpt_eligible, "{id}");
+            let f = reg.build(id, &facts).unwrap();
+            reg.check_shape(id, &f.system, &f.frame_hash).unwrap();
+            reg.check(id, &f.system, &f.frame_hash, &facts).unwrap();
+            let l = reg.build_lite(id).unwrap();
+            assert!(!l.text.is_empty());
+        }
+    }
+
+    #[test]
     fn the_default_tables_equal_the_fixture_tables() {
         let fx = fixture();
         let (stages, tools) = defaults();

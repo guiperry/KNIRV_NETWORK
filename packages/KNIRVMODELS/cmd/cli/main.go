@@ -43,7 +43,17 @@ var (
 	inferenceMode       = flag.Bool("inference", false, "serve the pre-trained models: Colibri as the primary harness with llama.cpp as its fallback, behind one Unix socket")
 	inferenceSocket     = flag.String("inference-socket", "/var/lib/knirvserver/sockets/llama.sock", "Unix socket the inference endpoint listens on (used with -inference)")
 	directMode          = flag.Bool("direct", false, "skip CGMiner and drive the ASIC directly over raw USB (no stratum pool, no CGMiner)")
+	directJitter        = flag.Bool("direct-jitter", false, "allow ASIC jitter hashing when -direct is enabled")
 )
+
+func applyDirectFlags(direct, jitter bool) {
+	if direct {
+		os.Setenv("DIRECT_MODE", "true")
+		if jitter {
+			os.Setenv("DIRECT_JITTER", "true")
+		}
+	}
+}
 
 func main() {
 	defer func() {
@@ -63,9 +73,7 @@ func main() {
 	// (pkg/knirvmodels/manager.go); bridge it into the env var the rest of
 	// the codebase already knows how to read, before anything downstream
 	// calls LoadDeviceConfig (which caches its result on first call).
-	if *directMode {
-		os.Setenv("DIRECT_MODE", "true")
-	}
+	applyDirectFlags(*directMode, *directJitter)
 
 	if *inferenceMode {
 		runInference(*inferenceSocket)
@@ -78,7 +86,6 @@ func main() {
 		runHeadlessMode(*goatMode, *knirvserverDeployed)
 		return
 	}
-
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
 

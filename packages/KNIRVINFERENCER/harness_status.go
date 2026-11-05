@@ -2,8 +2,12 @@ package inferencer
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
+	"net/http"
 	"path/filepath"
+	"sort"
 	"strings"
 	"time"
 
@@ -112,12 +116,58 @@ func BuildPlatformStatus(ctx context.Context, c *models.Client, llama *LlamaMode
 			s.Daemon = append(s.Daemon, r)
 		}
 	}
+	if c != nil {
+		s.Manifest = manifestStatus(ctx, c)
+	}
 	if llama != nil {
 		s.Llama = llama.Status(ctx)
+		s.Ollama = llama.OllamaStatus(ctx)
 	}
 	if h != nil {
 		s.Routing = h.RoutingEvents(routingLimit)
 		s.Stats = h.RouteStats()
 	}
 	return s
+}
+
+// OllamaStatus carries the inference daemon's supervised embedding-server
+// block into the shared platform document. It is read-only and best effort.
+func (l *LlamaModel) OllamaStatus(ctx context.Context) *models.OllamaStatus {
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+	code, body, err := l.get(ctx, "/harness/status")
+	if err != nil || code != http.StatusOK {
+		return nil
+	}
+	var doc struct {
+		Ollama *models.OllamaStatus `json:"ollama"`
+	}
+	if json.Unmarshal(body, &doc) != nil {
+		return nil
+	}
+	return doc.Ollama
+}
+
+// manifestStatus reads the capability manifest and reduces it to its version, counts and
+// one hash over every frame hash. An unreadable manifest is reported, not hidden.
+func manifestStatus(ctx context.Context, c *models.Client) *models.ManifestStatus {
+	cctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+	m, err := c.CapabilityManifest(cctx)
+	if err != nil {
+		return &models.ManifestStatus{Error: clip(err.Error())}
+	}
+	names := make([]string, 0, len(m.FrameHashes))
+	for n := range m.FrameHashes {
+		names = append(names, n)
+	}
+	sort.Strings(names)
+	h := sha256.New()
+	for _, n := range names {
+		h.Write([]byte(n))
+		h.Write([]byte{0})
+		h.Write([]byte(m.FrameHashes[n]))
+		h.Write([]byte{0})
+	}
+	return &models.ManifestStatus{Version: m.Version, Stages: len(m.Stages), Tools: len(m.Tools), Hash: hex.EncodeToString(h.Sum(nil))}
 }

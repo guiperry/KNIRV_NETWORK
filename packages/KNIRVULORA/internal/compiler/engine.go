@@ -136,6 +136,22 @@ func (e *Engine) RunPathB(dataset []api.DatasetRecord, targetModel api.BaseModel
 	return err
 }
 
+// RunPathC drives the gradient engine (path_c_distill.py): a PEFT LoRA trained
+// by token cross-entropy on teacher completions against a real base model. The
+// output is a NATIVE adapter for baseModelDir (not canonical-space); its
+// safetensors metadata carries fit_kind "gradient_sft", base_sha256, recipe_hash,
+// seed and loss_curve_digest. Training can exceed RequestTimeout, so the caller
+// passes its own timeout.
+func (e *Engine) RunPathC(dataset []map[string]string, baseModelDir string, config map[string]any, outputPath string, timeout time.Duration) (string, error) {
+	payload := map[string]any{
+		"dataset":     dataset,
+		"base_model":  baseModelDir,
+		"config":      config,
+		"output_path": outputPath,
+	}
+	return e.runPython("path_c_distill.py", payload, timeout)
+}
+
 // RunPathA drives the subspace-transfer engine, which emits the canonical core
 // plus a per-family connector rather than a delta fitted to one model.
 //

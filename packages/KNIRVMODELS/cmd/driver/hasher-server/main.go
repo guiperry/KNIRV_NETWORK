@@ -38,7 +38,7 @@ var (
 	keyFile       = flag.String("key", "", "TLS key file")
 	autoReboot    = flag.Bool("auto-reboot", true, "automatically reboot on fatal device errors")
 	directMode    = flag.Bool("direct", false, "skip CGMiner and drive the ASIC directly over raw USB (no stratum pool, no CGMiner); mutually exclusive in effect with CGMiner mode")
-	directJitter  = flag.Bool("direct-jitter", false, "allow the jitter engine to hash via the ASIC (requires -direct); ComputeHash stays literal sha256 for all other callers")
+	directJitter  = flag.Bool("direct-jitter", false, "allow 80-byte ComputeHash requests to use ASIC nonce search (requires -direct)")
 )
 
 // recoveryUnaryInterceptor recovers a panic inside any unary RPC handler and

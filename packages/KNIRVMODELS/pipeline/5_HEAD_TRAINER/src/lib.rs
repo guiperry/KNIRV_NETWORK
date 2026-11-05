@@ -5,10 +5,13 @@ pub mod data;
 pub mod episodes;
 pub mod eval;
 pub mod export;
+pub mod setmetrics;
+pub mod setprobe;
+pub mod synth;
 pub mod train;
 
-use knirv_head::tokenizer;
-use knirv_head::{DecisionHead, HeadConfig};
+use knirv_heart_decision::tokenizer;
+use knirv_heart_decision::{DecisionHead, HeadConfig, SetHead};
 
 /// Architecture presets. `base` is the ≈27M-parameter target.
 pub fn preset(name: &str, heads: Vec<DecisionHead>) -> Result<HeadConfig, String> {
@@ -20,7 +23,7 @@ pub fn preset(name: &str, heads: Vec<DecisionHead>) -> Result<HeadConfig, String
         other => return Err(format!("unknown preset {other:?} (micro|tiny|small|base)")),
     };
     let cfg = HeadConfig {
-        format: knirv_head::config::FORMAT.into(),
+        format: knirv_heart_decision::config::FORMAT.into(),
         tokenizer: tokenizer::NAME.into(),
         vocab_size: tokenizer::VOCAB,
         max_seq_len: seq,
@@ -38,7 +41,18 @@ pub fn preset(name: &str, heads: Vec<DecisionHead>) -> Result<HeadConfig, String
         model_version: String::new(),
         dataset_manifest_hash: String::new(),
         policy_bundle_hash: String::new(),
+        choice_set_heads: Vec::new(),
     };
+    cfg.validate()?;
+    Ok(cfg)
+}
+
+/// As [`preset`], but for the `knirv-heart/v2` set-scorer format: `heads` are the decision
+/// heads and `sets` the choice-set heads (Task 4.3/4.4).
+pub fn preset_v2(name: &str, heads: Vec<DecisionHead>, sets: Vec<SetHead>) -> Result<HeadConfig, String> {
+    let mut cfg = preset(name, heads)?;
+    cfg.format = knirv_heart_decision::config::FORMAT_V2.into();
+    cfg.choice_set_heads = sets;
     cfg.validate()?;
     Ok(cfg)
 }

@@ -22,6 +22,7 @@ import (
 	"github.com/lab/hasher/data-seeder/internal/config"
 	"github.com/lab/hasher/data-seeder/internal/logging"
 	"github.com/lab/hasher/data-seeder/pkg/deployment"
+	"github.com/lab/hasher/data-seeder/pkg/seedwitness"
 	"github.com/lab/hasher/data-seeder/pkg/simulator"
 	"github.com/lab/hasher/data-seeder/pkg/storage"
 	"github.com/lab/hasher/data-seeder/pkg/training"
@@ -64,6 +65,9 @@ type TrainingOrchestrator struct {
 	dataIngestor      *storage.DataIngestor
 	trainingData      []*training.TrainingRecord
 	seedWriter        seedWriterInterface
+	seedServer        *seedwitness.Server
+	dualSeedWriter    *storage.DualSeedWriter
+	rootMineCancel    context.CancelFunc
 	config            *config.Config
 	dataPath          string
 	sequential        bool
@@ -381,6 +385,37 @@ func (to *TrainingOrchestrator) initializeComponents() error {
 	to.logger.Info("Initializing seed writer for write-back...")
 	seedWriter := storage.NewDualSeedWriter(to.dataPath)
 	to.seedWriter = seedWriter
+	to.dualSeedWriter = seedWriter
+
+	// Expose the root-assertion queue over a Unix socket so the verifier's
+	// Witnesser (pkg/evidence) can submit batch roots and read back the mined
+	// assertion. Non-fatal: a supervised node without a writable sockets dir
+	// still trains; it simply cannot be witnessed.
+	to.logger.Info("Starting seed-witness socket server...")
+	// Bind under <appDataDir>/sockets/seed-witness.sock so the verifier's Witnesser
+	// (pkg/evidence DefaultWitnessSocketPath) reaches this server end to end (pi_3_9
+	// socket-path alignment). The sockets dir is created here.
+	seedSocketPath := seedwitness.SocketPath(os.Getenv("KNIRV_APP_DATA_DIR"))
+	if err := os.MkdirAll(filepath.Dir(seedSocketPath), 0o755); err != nil {
+		to.logger.Warn("seed-witness socket dir unavailable: %v", err)
+	} else {
+		seedServer := seedwitness.New(seedSocketPath, seedWriter)
+		go func() {
+			if err := seedServer.Serve(); err != nil {
+				to.logger.Warn("seed-witness socket server stopped: %v", err)
+			}
+		}()
+		to.seedServer = seedServer
+		to.logger.Info("seed-witness socket listening at %s", seedSocketPath)
+	}
+
+	// Mine submitted batch roots into committed PoW assertions off the request
+	// path. The Witnesser submits roots (over the socket); this goroutine mines a
+	// committing seed and commits it so the Witnesser can read it back. Survives
+	// until the orchestrator shuts down.
+	mineCtx, mineCancel := context.WithCancel(context.Background())
+	to.rootMineCancel = mineCancel
+	go to.runRootWitnessMiner(mineCtx)
 
 	trainingRecords, err := dataIngestor.ProcessAllFiles(nil)
 	if err != nil {
@@ -1002,8 +1037,37 @@ func (to *TrainingOrchestrator) writeRunStatus(status, message string) error {
 	return os.WriteFile(to.runStatusPath, data, 0644)
 }
 
+// runRootWitnessMiner drains the durable root-witness queue off the request path,
+// mining a committing PoW seed for each pending root. It mines once on start (so
+// roots queued before this process began, recovered from the durable file, get
+// committed) and then ticks. It returns when ctx is cancelled.
+func (to *TrainingOrchestrator) runRootWitnessMiner(ctx context.Context) {
+	if to.dualSeedWriter == nil {
+		return
+	}
+	const interval = 10 * time.Second
+	ticker := time.NewTicker(interval)
+	defer ticker.Stop()
+	if n := to.dualSeedWriter.MinePendingRootsOnce(); n > 0 {
+		to.logger.Info("seed-witness: committed %d pending root(s) on startup", n)
+	}
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			if n := to.dualSeedWriter.MinePendingRootsOnce(); n > 0 {
+				to.logger.Info("seed-witness: committed %d pending root(s)", n)
+			}
+		}
+	}
+}
+
 func (to *TrainingOrchestrator) Shutdown() {
 	to.logger.Info("Shutting down training orchestrator...")
+	if to.rootMineCancel != nil {
+		to.rootMineCancel()
+	}
 	if err := to.materializeSeeds(true); err != nil {
 		to.logger.Warn("Failed to materialize queued seed outputs during shutdown: %v", err)
 	}

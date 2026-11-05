@@ -1,0 +1,19 @@
+{
+  "request": {
+    "prompt": "restart the failing service",
+    "with_decision": true
+  },
+  "response": {
+    "text": "restarting service",
+    "ready": true,
+    "progress": 1.0,
+    "decision": {
+      "decisions": [{ "name": "action", "selected": "restart-service", "abstain": false }],
+      "abstained": false
+    },
+    "abstained": false
+  },
+  "plain_request": {
+    "prompt": "hello"
+  }
+}

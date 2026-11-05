@@ -149,7 +149,7 @@ var (
 
 	// Direct ASIC mode: skip CGMiner and drive the ASIC directly over raw USB
 	directMode   = flag.Bool("direct", false, "skip CGMiner and drive the ASIC directly over raw USB (no stratum pool, no CGMiner); mutually exclusive in effect with CGMiner mode")
-	directJitter = flag.Bool("direct-jitter", false, "also let the jitter engine hash via the ASIC (requires -direct); other ComputeHash callers keep literal sha256")
+	directJitter = flag.Bool("direct-jitter", false, "allow 80-byte ComputeHash requests to use ASIC nonce search (requires -direct)")
 
 	// CGMiner API (direct ASIC integration)
 	cgminerHost    = flag.String("cgminer-host", "", "CGMiner API host (e.g. 192.168.12.151). If set, the ASIC mines the final golden nonce for each inference token")
@@ -182,6 +182,7 @@ type Orchestrator struct {
 	jitterEngine    *jitterpkg.JitterEngine      // Core inference engine: 21-pass associative loop
 	cgminerMethod   *devicepkg.CGMinerHashMethod // CGMiner ASIC for final golden-nonce mining
 	directMode      bool                         // Direct ASIC mode (skip CGMiner, drive via raw USB)
+	directJitter    bool                         // Direct hashing is enabled for jitter
 	discoveryResult *discovery.DiscoveryResult
 	startTime       time.Time
 	mu              sync.RWMutex
@@ -245,6 +246,7 @@ type HealthResponse struct {
 	ConnectionHealthy bool   `json:"connection_healthy"`
 	LastHealthCheck   string `json:"last_health_check,omitempty"`
 	DirectMode        bool   `json:"direct_mode"`
+	DirectJitter      bool   `json:"direct_jitter"`
 }
 
 // MetricsResponse is the API response for metrics
@@ -685,6 +687,7 @@ func main() {
 		jitterEngine:        inferenceJitterEngine,
 		cgminerMethod:       cgminerMethod,
 		directMode:          *directMode,
+		directJitter:        *directMode && *directJitter,
 		discoveryResult:     discoveryResult,
 		startTime:           time.Now(),
 		deployer:            deployer,
@@ -1492,6 +1495,7 @@ func (o *Orchestrator) handleHealth(c *gin.Context) {
 		ConnectionHealthy: connectionHealthy,
 		LastHealthCheck:   lastHealthCheck.Format(time.RFC3339),
 		DirectMode:        o.directMode,
+		DirectJitter:      o.directJitter,
 	})
 }
 

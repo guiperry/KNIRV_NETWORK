@@ -6,37 +6,115 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"time"
 
 	"data-mapper/internal/embedder"
 )
 
-// CheckOrStartOllama checks if Ollama is running and starts it if necessary
+// Ollama is provisioned and supervised by KNIRVMODELS (Task 3.2, pkg/knirvollama),
+// the way llama.cpp and Qwen are. The mapper does not start it. The mapper is its own
+// module and does not import MODELS/pkg/*, so it learns what the daemon is doing from
+// the inference socket's /harness/status document, whose
+// "ollama" block carries the endpoint, phase and readiness.
+var (
+	// ollamaWait is how long to wait for an Ollama that nothing is provisioning.
+	ollamaWait = 30 * time.Second
+	// ollamaProvisionWait bounds the wait while the daemon reports a first-run phase
+	// (downloading, starting, pulling): the same 35-minute class as llama's.
+	ollamaProvisionWait = 35 * time.Minute
+	ollamaPoll          = time.Second
+)
+
+// daemonOllama is the "ollama" block of the daemon status document.
+type daemonOllama struct {
+	Endpoint string `json:"endpoint"`
+	Phase    string `json:"phase"`
+	Ready    bool   `json:"ready"`
+	Error    string `json:"error"`
+}
+
+// daemonOllamaStatus reads the block over the inference Unix socket. ok is false
+// when the daemon does not answer.
+func daemonOllamaStatus(socket string) (st daemonOllama, ok bool) {
+	if socket == "" {
+		return st, false
+	}
+	client := &http.Client{
+		Timeout: 3 * time.Second,
+		Transport: &http.Transport{DialContext: func(ctx context.Context, _, _ string) (net.Conn, error) {
+			var d net.Dialer
+			return d.DialContext(ctx, "unix", socket)
+		}},
+	}
+	resp, err := client.Get("http://daemon/harness/status")
+	if err != nil {
+		return st, false
+	}
+	defer resp.Body.Close()
+	var doc struct {
+		Ollama *daemonOllama `json:"ollama"`
+	}
+	if json.NewDecoder(resp.Body).Decode(&doc) != nil || doc.Ollama == nil {
+		return st, false
+	}
+	return *doc.Ollama, true
+}
+
+// inferenceSocketPath follows KNIRVSERVER's app-data socket convention. It is
+// intentionally discovery-only: pipeline users never configure an inference
+// socket just to use a supervised local embedder.
+func inferenceSocketPath() string {
+	if appData := strings.TrimSpace(os.Getenv("KNIRV_APP_DATA_DIR")); appData != "" {
+		return filepath.Join(appData, "sockets", "llama.sock")
+	}
+	return "/var/lib/knirvserver/sockets/llama.sock"
+}
+
+func provisioningPhase(p string) bool {
+	switch p {
+	case "adopting", "downloading", "starting", "pulling":
+		return true
+	}
+	return false
+}
+
+// CheckOrStartOllama returns once Ollama answers at host. Despite the name it never
+// starts a process any more: KNIRVMODELS owns that. It waits for readiness, for as
+// long as the daemon says it is still provisioning, and otherwise reports what the
+// daemon says is wrong.
 func CheckOrStartOllama(host, model string) error {
-	// First check if Ollama is running
 	if isOllamaRunning(host) {
 		return nil
 	}
-
-	// If we get here, Ollama is not running, try to start it
-	fmt.Printf("🚀 Ollama not running at %s, attempting to start...\n", host)
-
-	// Try to start Ollama using direct command
-	cmd := exec.Command("ollama", "serve")
-	cmd.Stdout = nil
-	cmd.Stderr = nil
-
-	err := cmd.Start()
-	if err != nil {
-		return fmt.Errorf("failed to start Ollama: %w", err)
+	socket := inferenceSocketPath()
+	start := time.Now()
+	for {
+		if isOllamaRunning(host) {
+			return nil
+		}
+		st, known := daemonOllamaStatus(socket)
+		limit := ollamaWait
+		if known && provisioningPhase(st.Phase) {
+			limit = ollamaProvisionWait
+		}
+		if time.Since(start) >= limit {
+			switch {
+			case known && st.Endpoint != "" && st.Endpoint != host && st.Ready:
+				return fmt.Errorf("Ollama is ready at %s but the mapper is configured for %s; set the mapper's Ollama host to the daemon's endpoint", st.Endpoint, host)
+			case known:
+				return fmt.Errorf("Ollama is not available at %s: KNIRVMODELS reports phase %q (%s)", host, st.Phase, st.Error)
+			default:
+				return fmt.Errorf("Ollama is not running at %s and the KNIRVMODELS daemon did not report on its private socket (%s); KNIRVMODELS provisions Ollama, the mapper does not start it", host, socket)
+			}
+		}
+		time.Sleep(ollamaPoll)
 	}
-
-	// Give Ollama a moment to start and be ready
-	return WaitForOllama(host, 30*time.Second)
 }
 
 // ConfigureOllamaEnvironment sets up optimal environment variables for Ollama

@@ -121,3 +121,34 @@ func TestReplicationRoutesHeadAndPullAuth(t *testing.T) {
 		t.Fatalf("heads = %d, want 1", len(heads.Heads))
 	}
 }
+
+func TestReplicationRejectsNonValidatorPull(t *testing.T) {
+	instance := newTestOracleWithMode(t, oracle.ModeActive)
+	key, err := crypto.GenerateKeyPair()
+	if err != nil {
+		t.Fatal(err)
+	}
+	raw, err := hex.DecodeString(key.PrivateKeyHex())
+	if err != nil {
+		t.Fatal(err)
+	}
+	signer, err := knirvsigning.NewLocalSigner(raw)
+	if err != nil {
+		t.Fatal(err)
+	}
+	pull, err := replication.SignPull(signer, replication.PullRequest{ChainID: instance.ChainID(), Nonce: "unregistered-pull", Timestamp: time.Now().Unix()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	body, err := json.Marshal(pull)
+	if err != nil {
+		t.Fatal(err)
+	}
+	req := httptest.NewRequest(http.MethodGet, "/oracle/v3/replication/state", nil)
+	req.Header.Set(replicationAuthHeader, base64.StdEncoding.EncodeToString(body))
+	res := httptest.NewRecorder()
+	NewOracleRoutes(instance, zap.NewNop()).handleReplicationState(res, req)
+	if res.Code != http.StatusUnauthorized {
+		t.Fatalf("non-validator status=%d body=%s", res.Code, res.Body.String())
+	}
+}

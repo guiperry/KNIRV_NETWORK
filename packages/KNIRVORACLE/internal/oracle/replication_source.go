@@ -14,6 +14,7 @@ import (
 
 	"github.com/guiperry/knirv-sdk-go/replication"
 	knirvsigning "github.com/guiperry/knirv-sdk-go/signing"
+	"github.com/knirvcorp/knirvoracle/internal/oracle/ledger"
 	"github.com/knirvcorp/knirvoracle/internal/oracle/mmr"
 	"github.com/knirvcorp/knirvoracle/internal/oracle/types"
 	"go.uber.org/zap"
@@ -52,7 +53,11 @@ func (o *Oracle) initReplicationSource() error {
 		interval: 30 * time.Second,
 	}
 
-	if o.config.OwnerPrivateKey != "" {
+	if o.config.ReplicationSigner != nil {
+		source.signer = o.config.ReplicationSigner
+	} else if o.config.OwnerPrivateKey != "" {
+		// Legacy direct configuration remains available for tests and older
+		// interactive deployments until the secrets cutover is complete.
 		key, err := hex.DecodeString(strip0x(o.config.OwnerPrivateKey))
 		if err != nil {
 			return fmt.Errorf("replication signer: %w", err)
@@ -94,10 +99,11 @@ func (s *ReplicationSource) persistLocked() error {
 	// Bounded index: the chain is recoverable from the Oracle's own history,
 	// the file is an index, not the authority.
 	const keep = 1024
-	if len(s.heads) > keep {
-		s.heads = s.heads[len(s.heads)-keep:]
+	heads := s.heads
+	if len(heads) > keep {
+		heads = heads[len(heads)-keep:]
 	}
-	body, err := json.MarshalIndent(s.heads, "", "  ")
+	body, err := json.MarshalIndent(heads, "", "  ")
 	if err != nil {
 		return err
 	}
@@ -105,18 +111,36 @@ func (s *ReplicationSource) persistLocked() error {
 	if err := os.WriteFile(tmp, body, 0600); err != nil {
 		return err
 	}
-	return os.Rename(tmp, s.path)
+	if err := os.Rename(tmp, s.path); err != nil {
+		return err
+	}
+	s.heads = heads
+	return nil
 }
 
 // ProduceHead appends and signs one head for the current state. Callers are the
 // checkpoint commit path and the periodic ticker; it is safe to call twice for
 // an unchanged state (the second head names the first and carries no new data).
 func (s *ReplicationSource) ProduceHead() (replication.SignedHead, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	head, _, err := s.produceHeadLocked(false)
+	return head, err
+}
+
+func (s *ReplicationSource) produceHeadLocked(onlyChanged bool) (replication.SignedHead, bool, error) {
 	if s.signer == nil {
-		return replication.SignedHead{}, fmt.Errorf("replication: no signing identity")
+		return replication.SignedHead{}, false, fmt.Errorf("replication: no signing identity")
 	}
 
+	// Ledger writes hold ledgerMu before the checkpoint lock. Capture their
+	// state and audit leaf together, in that same order, so a head cannot
+	// pair a newer state root with an older MMR root.
+	s.oracle.ledgerMu.Lock()
 	mmrSize, mmrRoot, height := s.oracle.replicationCheckpointView()
+	stateLogSize := uint64(s.oracle.ledger.Len())
+	stateRoot := s.oracle.stateRoot
+	s.oracle.ledgerMu.Unlock()
 	head := replication.Head{
 		Version:         replication.Version,
 		NetworkID:       s.oracle.config.NetworkID,
@@ -126,55 +150,77 @@ func (s *ReplicationSource) ProduceHead() (replication.SignedHead, error) {
 		MMRSize:         mmrSize,
 		MMRRoot:         mmrRoot,
 		RegistryHash:    s.oracle.registryHash(),
-		StateLogSize:    uint64(s.oracle.ledger.Len()),
-		StateRoot:       s.oracle.stateRoot,
+		StateLogSize:    stateLogSize,
+		StateRoot:       stateRoot,
 		AuxHash:         s.oracle.auxHash(),
 		ConsensusHeight: height,
 		ProducedAt:      time.Now().Unix(),
 	}
 
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	head.Seq = uint64(len(s.heads)) + 1
+	head.Seq = 1
 	if len(s.heads) > 0 {
-		prevHash, err := s.heads[len(s.heads)-1].Head.Hash()
+		previous := s.heads[len(s.heads)-1]
+		last := previous.Head
+		if onlyChanged && last.MMRSize == head.MMRSize && last.MMRRoot == head.MMRRoot &&
+			last.StateLogSize == head.StateLogSize && last.StateRoot == head.StateRoot &&
+			last.ConsensusHeight == head.ConsensusHeight && last.RegistryHash == head.RegistryHash && last.AuxHash == head.AuxHash {
+			return previous, false, nil
+		}
+		head.Seq = last.Seq + 1
+		prevHash, err := last.Hash()
 		if err != nil {
-			return replication.SignedHead{}, err
+			return replication.SignedHead{}, false, err
 		}
 		head.PrevHeadHash = prevHash
 	}
 	signed, err := replication.SignHead(s.signer, head)
 	if err != nil {
-		return replication.SignedHead{}, err
+		return replication.SignedHead{}, false, err
 	}
 	s.heads = append(s.heads, signed)
 	if err := s.persistLocked(); err != nil {
 		s.heads = s.heads[:len(s.heads)-1]
-		return replication.SignedHead{}, err
+		return replication.SignedHead{}, false, err
 	}
 	s.logger.Info("Replication head produced",
 		zap.Uint64("seq", head.Seq), zap.Uint64("mmr_size", head.MMRSize),
 		zap.Uint64("state_log_size", head.StateLogSize), zap.String("state_root", head.StateRoot))
-	return signed, nil
+	return signed, true, nil
 }
 
 // ProduceHeadIfChanged produces a head only when the committed state differs
 // from the last head (checkpoint commits and the periodic ticker both use it).
 func (s *ReplicationSource) ProduceHeadIfChanged() (replication.SignedHead, bool, error) {
-	mmrSize, mmrRoot, height := s.oracle.replicationCheckpointView()
-	if head, ok := s.CurrentHead(); ok {
-		if head.Head.MMRSize == mmrSize && head.Head.MMRRoot == mmrRoot &&
-			head.Head.StateLogSize == uint64(s.oracle.ledger.Len()) &&
-			head.Head.StateRoot == s.oracle.stateRoot && head.Head.ConsensusHeight == height {
-			return head, false, nil
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.produceHeadLocked(true)
+}
+
+// run publishes state changes that do not pass through checkpoint admission.
+func (s *ReplicationSource) run() {
+	ticker := time.NewTicker(s.interval)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-s.oracle.ctx.Done():
+			return
+		case <-ticker.C:
+			if _, _, err := s.ProduceHeadIfChanged(); err != nil {
+				s.logger.Warn("periodic replication head not produced", zap.Error(err))
+			}
 		}
 	}
-	head, err := s.ProduceHead()
-	return head, true, err
 }
 
 // CurrentHead returns the newest signed head.
 func (s *ReplicationSource) CurrentHead() (replication.SignedHead, bool) {
+	if s.oracle.Mode() == ModeStandby {
+		if s.oracle.follower == nil {
+			return replication.SignedHead{}, false
+		}
+		head := s.oracle.follower.Snapshot().Head
+		return head, head.Head.Seq != 0
+	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if len(s.heads) == 0 {
@@ -185,6 +231,26 @@ func (s *ReplicationSource) CurrentHead() (replication.SignedHead, bool) {
 
 // HeadsSince returns heads with Seq > after, oldest first.
 func (s *ReplicationSource) HeadsSince(after uint64, limit int) []replication.SignedHead {
+	if s.oracle.Mode() == ModeStandby {
+		if s.oracle.follower == nil {
+			return nil
+		}
+		snapshot := s.oracle.follower.Snapshot()
+		heads := snapshot.Heads
+		if len(heads) == 0 && snapshot.Head.Head.Seq != 0 {
+			heads = []replication.SignedHead{snapshot.Head}
+		}
+		if limit <= 0 || limit > 512 {
+			limit = 512
+		}
+		out := make([]replication.SignedHead, 0, len(heads))
+		for _, head := range heads {
+			if head.Head.Seq > after && len(out) < limit {
+				out = append(out, head)
+			}
+		}
+		return out
+	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if limit <= 0 || limit > 512 {
@@ -201,6 +267,23 @@ func (s *ReplicationSource) HeadsSince(after uint64, limit int) []replication.Si
 
 // Leaves returns hex-encoded audit leaves [from, from+limit).
 func (s *ReplicationSource) Leaves(from uint64, limit int) []string {
+	if s.oracle.Mode() == ModeStandby {
+		if s.oracle.follower == nil {
+			return nil
+		}
+		leaves := s.oracle.follower.Snapshot().Leaves
+		if limit <= 0 || limit > 1024 {
+			limit = 1024
+		}
+		if from >= uint64(len(leaves)) {
+			return nil
+		}
+		end := from + uint64(limit)
+		if end > uint64(len(leaves)) {
+			end = uint64(len(leaves))
+		}
+		return leaves[from:end]
+	}
 	s.oracle.checkpoint.mu.RLock()
 	defer s.oracle.checkpoint.mu.RUnlock()
 	if limit <= 0 || limit > 1024 {
@@ -223,7 +306,22 @@ func (s *ReplicationSource) Leaves(from uint64, limit int) []string {
 // StateRecords returns ledger records [from, from+limit) with the leaf they
 // commit to.
 func (s *ReplicationSource) StateRecords(from uint64, limit int) []map[string]any {
-	records := s.oracle.ledger.RecordsRange(from, limit)
+	var records []ledger.Record
+	if s.oracle.Mode() == ModeStandby {
+		if s.oracle.follower == nil {
+			return nil
+		}
+		if limit <= 0 || limit > 1024 {
+			limit = 1024
+		}
+		for _, record := range s.oracle.follower.Snapshot().Records {
+			if record.Seq > from && len(records) < limit {
+				records = append(records, record)
+			}
+		}
+	} else {
+		records = s.oracle.ledger.RecordsRange(from, limit)
+	}
 	out := make([]map[string]any, 0, len(records))
 	for _, record := range records {
 		leaf := mmr.LeafHash([]byte("state:" + record.Hash))
@@ -339,6 +437,10 @@ func (o *Oracle) auxHash() string {
 // AuxSnapshot returns the R6 data and its hash.
 func (s *ReplicationSource) AuxSnapshot() map[string]any {
 	o := s.oracle
+	if o.Mode() == ModeStandby && o.follower != nil {
+		aux := o.follower.Snapshot().Aux
+		return map[string]any{"skill_ownership": aux.SkillOwnership, "rollups": aux.Rollups, "hash": aux.Hash}
+	}
 	o.skillOwnershipMu.RLock()
 	skills := make(map[string]any, len(o.skillOwnership))
 	for id, record := range o.skillOwnership {
@@ -362,6 +464,9 @@ func (s *ReplicationSource) AuxSnapshot() map[string]any {
 
 // RegistrySnapshot returns the chain registrations (R3) in a stable order.
 func (o *Oracle) RegistrySnapshot() []*types.ChainRegistration {
+	if o.Mode() == ModeStandby && o.follower != nil {
+		return o.follower.Snapshot().Registry.Chains
+	}
 	o.checkpoint.mu.RLock()
 	defer o.checkpoint.mu.RUnlock()
 	chains := o.checkpoint.registry.List()
@@ -371,4 +476,9 @@ func (o *Oracle) RegistrySnapshot() []*types.ChainRegistration {
 }
 
 // ReplicationRegistryHash exposes the head's registry hash to the endpoint.
-func (o *Oracle) ReplicationRegistryHash() string { return o.registryHash() }
+func (o *Oracle) ReplicationRegistryHash() string {
+	if o.Mode() == ModeStandby && o.follower != nil {
+		return o.follower.Snapshot().Registry.Hash
+	}
+	return o.registryHash()
+}

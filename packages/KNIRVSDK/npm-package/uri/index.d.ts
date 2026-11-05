@@ -1,5 +1,5 @@
 export { initLocal } from '../local.js';
-/** The routable resource-type registry. Defined once, in the Rust core. */
+/** Typing aid: mirrors the registry in the Rust core (core/src/uri.rs); uri.test.ts fails if they differ. */
 export declare const RESOURCE_TYPES: readonly ["chain", "nrn", "ulora", "mcpcontext", "resource", "tool", "prompt", "memoryservice", "memory", "capability", "dev", "errornode", "skillnode", "ideanode", "propertynode", "usdscene", "usdasset"];
 export declare const QUERY_KEYS: readonly ["tenant", "snapshot", "sha256"];
 export type UriKind = 'canonical' | 'legacy_dve' | 'content_pointer' | 'action' | 'invalid';

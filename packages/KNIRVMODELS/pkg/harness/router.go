@@ -159,15 +159,17 @@ type Router struct {
 	logf     func(string, ...any)
 	// Extra is merged into the /harness/status document.
 	Extra func() map[string]any
+	Embed func(context.Context, []string) ([][]float32, error)
 
 	// OnDemandWait bounds how long a request waits for a backend that has to be
 	// started for it (default 10m: llama.cpp loads its model from cold).
 	OnDemandWait time.Duration
 
-	mu     sync.Mutex
-	last   string
-	proxy  *httputil.ReverseProxy
-	bodies int64
+	mu        sync.Mutex
+	last      string
+	proxy     *httputil.ReverseProxy
+	bodies    int64
+	admission *Admission
 }
 
 // NewRouter builds a Router over backends in priority order.
@@ -175,7 +177,7 @@ func NewRouter(logf func(string, ...any), backends ...*Backend) *Router {
 	if logf == nil {
 		logf = func(string, ...any) {}
 	}
-	r := &Router{backends: backends, logf: logf}
+	r := &Router{backends: backends, logf: logf, admission: NewAdmission(1)}
 	r.proxy = &httputil.ReverseProxy{
 		Director:      func(*http.Request) {},
 		FlushInterval: -1,
@@ -227,6 +229,43 @@ func (r *Router) Status() map[string]any {
 }
 
 func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+	if req.Method == http.MethodPost && (req.URL.Path == "/v1/embeddings" || strings.HasPrefix(req.URL.Path, "/v1/")) {
+		class := 1
+		if req.URL.Path == "/v1/embeddings" {
+			class = 3
+		}
+		if raw, err := strconv.Atoi(req.Header.Get("X-KNIRV-Priority")); err == nil {
+			class = raw
+		}
+		release, err := r.admission.Acquire(req.Context(), class)
+		if err != nil {
+			w.Header().Set("Retry-After", "5")
+			writeJSONError(w, http.StatusTooManyRequests, err.Error(), nil)
+			return
+		}
+		defer release()
+	}
+	if req.Method == http.MethodPost && req.URL.Path == "/v1/embeddings" && r.Embed != nil {
+		var in struct {
+			Input []string `json:"input"`
+		}
+		if err := json.NewDecoder(http.MaxBytesReader(w, req.Body, 4<<20)).Decode(&in); err != nil || len(in.Input) == 0 {
+			writeJSONError(w, http.StatusBadRequest, "embedding input is required", nil)
+			return
+		}
+		vectors, err := r.Embed(req.Context(), in.Input)
+		if err != nil {
+			writeJSONError(w, http.StatusServiceUnavailable, err.Error(), nil)
+			return
+		}
+		data := make([]map[string]any, len(vectors))
+		for i, vector := range vectors {
+			data[i] = map[string]any{"object": "embedding", "index": i, "embedding": vector}
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]any{"object": "list", "data": data})
+		return
+	}
 	switch req.URL.Path {
 	case "/harness/status":
 		w.Header().Set("Content-Type", "application/json")
@@ -508,7 +547,9 @@ func writeJSONError(w http.ResponseWriter, code int, msg string, backends map[st
 // some backend is ready, so a caller that waits for it (backend_server does) does not
 // register a provider that cannot answer yet.
 func (r *Router) Serve(ctx context.Context, socketPath string, perm os.FileMode) error {
-	for r.Active() == nil {
+	// An Ollama-only harness has no chat backend, but it is still a usable
+	// private inference service when the daemon-owned embedder is configured.
+	for r.Active() == nil && r.Embed == nil {
 		select {
 		case <-ctx.Done():
 			return ctx.Err()

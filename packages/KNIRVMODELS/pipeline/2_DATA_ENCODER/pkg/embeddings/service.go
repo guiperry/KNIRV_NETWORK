@@ -2,13 +2,18 @@ package embeddings
 
 import (
 	"bytes"
+	"context"
 	"data-encoder/pkg/config"
 	"data-encoder/pkg/ollama"
 	"encoding/json"
 	"fmt"
 	"io"
 	"log"
+	"net"
 	"net/http"
+	"os"
+	"path/filepath"
+	"strings"
 	"time"
 )
 
@@ -122,12 +127,12 @@ func NewWithBatchSize(batchSize int) EmbeddingService {
 func newCloudflareService() *Service {
 	endpoint := config.GetCloudflareEndpoint()
 	svc := &Service{
-		baseURL:     endpoint,
-		httpClient:  &http.Client{Timeout: 30 * time.Second},
-		batchSize:   DefaultBatchSize,
-		model:       CloudflareWorkersBGE,
-		ollamaHost:  "http://localhost:11434/api/embeddings",
-		ollamaModel: "nomic-embed-text",
+		baseURL:    endpoint,
+		httpClient: &http.Client{Timeout: 30 * time.Second},
+		batchSize:  DefaultBatchSize,
+		model:      CloudflareWorkersBGE,
+		// Direct Ollama fallback is intentionally disabled: local embeddings go
+		// through the supervised inference socket (newOllamaService).
 	}
 
 	if endpoint != "" {
@@ -141,14 +146,7 @@ func newCloudflareService() *Service {
 }
 
 func newOllamaService() *Service {
-	return &Service{
-		baseURL:     "",
-		httpClient:  &http.Client{Timeout: 120 * time.Second},
-		batchSize:   DefaultBatchSize,
-		model:       CloudflareWorkersBGE,
-		ollamaHost:  "http://localhost:11434/api/embeddings",
-		ollamaModel: "nomic-embed-text",
-	}
+	return newInferenceEmbeddingService(DefaultBatchSize)
 }
 
 func newCloudflareServiceWithBatchSize(batchSize int) *Service {
@@ -173,14 +171,35 @@ func newCloudflareServiceWithBatchSize(batchSize int) *Service {
 }
 
 func newOllamaServiceWithBatchSize(batchSize int) *Service {
-	return &Service{
-		baseURL:     "",
-		httpClient:  &http.Client{Timeout: 120 * time.Second},
-		batchSize:   batchSize,
-		model:       CloudflareWorkersBGE,
-		ollamaHost:  "http://localhost:11434/api/embeddings",
-		ollamaModel: "nomic-embed-text",
+	return newInferenceEmbeddingService(batchSize)
+}
+
+// newInferenceEmbeddingService deliberately never reads an Ollama URL. The
+// supervised daemon owns Ollama and exposes embeddings only over the same
+// app-data Unix socket KNIRVSERVER/Gateway use for the inference harness.
+// There is no user-configured endpoint or socket variable.
+func newInferenceEmbeddingService(batchSize int) *Service {
+	socket := inferenceSocketPath()
+	transport := &http.Transport{}
+	if socket != "" {
+		transport.DialContext = func(ctx context.Context, _, _ string) (net.Conn, error) {
+			return (&net.Dialer{}).DialContext(ctx, "unix", socket)
+		}
 	}
+	return &Service{
+		baseURL:    "http://inference/v1/embeddings",
+		backend:    "llama",
+		httpClient: &http.Client{Timeout: 120 * time.Second, Transport: transport},
+		batchSize:  batchSize,
+		model:      "",
+	}
+}
+
+func inferenceSocketPath() string {
+	if appData := strings.TrimSpace(os.Getenv("KNIRV_APP_DATA_DIR")); appData != "" {
+		return filepath.Join(appData, "sockets", "llama.sock")
+	}
+	return "/var/lib/knirvserver/sockets/llama.sock"
 }
 
 func newLlamaService(batchSize int) *Service {

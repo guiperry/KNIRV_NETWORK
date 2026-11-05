@@ -42,6 +42,11 @@ func TestHeartIsQwenByDefaultAndSaysWhenLlamaIsDown(t *testing.T) {
 	t.Setenv("KNIRV_APP_DATA_DIR", t.TempDir())
 	t.Setenv("KNIRV_LLAMA_SOCKET", filepath.Join(t.TempDir(), "none.sock"))
 	s := NewServer(t.TempDir()+"/h.sock", 0o660)
+	// Stop the background evidence witness drain loop and wait for it to exit
+	// before teardown, so the writer is not still touching the temp dir when
+	// t.TempDir() removes it (fixes the "knirvmodels/data/evidence: directory not
+	// empty" flake).
+	t.Cleanup(s.Close)
 	code, body := get(s, "/models/heart/health")
 	if code != 200 || !strings.Contains(body, "qwen-unavailable") {
 		t.Fatalf("%d %s", code, body)

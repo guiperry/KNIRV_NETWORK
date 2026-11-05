@@ -10,7 +10,7 @@
 
 use crate::data::hex;
 use crate::eval::{Evaluation, Metrics, TauFit};
-use knirv_head::HeadConfig;
+use knirv_heart_decision::HeadConfig;
 use serde::Serialize;
 use sha2::{Digest, Sha256};
 use std::fs;

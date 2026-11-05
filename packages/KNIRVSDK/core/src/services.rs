@@ -403,3 +403,89 @@ impl ConfigService {
         self.http.get("/api/config/networks", &[]).await
     }
 }
+
+#[cfg(test)]
+mod factuality_tests {
+    //! F8: the SDK's factuality service talks to the one route the backend registers,
+    //! `POST /api/validation/factuality`, and reads the Task 3.6 response (new gate fields
+    //! ignored, `domain_scores` absent). The slice, verify and history routes the node
+    //! never served are not called.
+    use super::*;
+    use crate::{
+        client::{ClientConfig, HttpClient},
+        http_transport::{block_on, BoxFuture, HttpRequest, HttpResponse, HttpTransport, TransportError},
+    };
+    use std::{
+        collections::BTreeMap,
+        sync::{Arc, Mutex},
+        time::Duration,
+    };
+
+    #[derive(Debug, Default)]
+    struct Recorder {
+        seen: Mutex<Vec<HttpRequest>>,
+        body: String,
+    }
+    impl HttpTransport for Recorder {
+        fn send(&self, request: HttpRequest) -> BoxFuture<'_, std::result::Result<HttpResponse, TransportError>> {
+            self.seen.lock().unwrap().push(request);
+            Box::pin(std::future::ready(Ok(HttpResponse {
+                status: 200,
+                headers: BTreeMap::new(),
+                body: self.body.as_bytes().to_vec(),
+            })))
+        }
+        fn sleep(&self, _duration: Duration) -> BoxFuture<'_, ()> {
+            Box::pin(std::future::ready(()))
+        }
+    }
+
+    fn service(body: &str) -> (FactualityService, Arc<Recorder>) {
+        let rec = Arc::new(Recorder { body: body.to_string(), ..Default::default() });
+        let config = ClientConfig { transport: Some(rec.clone()), ..Default::default() };
+        (FactualityService::new(HttpClient::new("https://x.example.test", config).unwrap()), rec)
+    }
+
+    const VERIFIED: &str = r#"{"is_accurate":true,"confidence":0.91,"citations":[0],"refused":false,
+        "explanation":"accepted","degraded":false,"gate":"accepted","gate_level":5,
+        "claims":[{"text":"x","verdict":"SUPPORTED","gate":"accepted","gate_level":5,"evidence":[]}],
+        "calibrated":true,"index_version":"fs1-3-9f2c1a77"}"#;
+
+    #[test]
+    fn check_posts_to_the_registered_route_and_reads_the_verified_response() {
+        let (svc, rec) = service(VERIFIED);
+        let resp = block_on(svc.check(&FactualityCheckRequest {
+            response: "Water evaporates.".into(),
+            ..Default::default()
+        }))
+        .unwrap();
+        assert!(resp.is_accurate && !resp.degraded && !resp.refused);
+        assert_eq!(resp.confidence, 0.91);
+        assert!(resp.domain_scores.is_empty(), "the node no longer fills per-domain scores");
+        let seen = rec.seen.lock().unwrap();
+        assert_eq!(seen.len(), 1);
+        assert_eq!(seen[0].method, "POST");
+        assert_eq!(seen[0].url, "https://x.example.test/api/validation/factuality");
+    }
+
+    #[test]
+    fn verify_content_uses_the_same_route_and_unserved_routes_are_never_called() {
+        let (svc, rec) = service(VERIFIED);
+        let v = block_on(svc.verify_content("Water evaporates.", "science")).unwrap();
+        assert_eq!(v.confidence.as_deref(), Some("checked"));
+        assert_eq!(v.score, Some(0.91));
+        assert!(block_on(svc.get_slice_info()).is_err());
+        assert!(block_on(svc.get_verification_history(Some(5))).is_err());
+        assert!(block_on(svc.get_verification("v-1")).is_err());
+        let seen = rec.seen.lock().unwrap();
+        assert_eq!(seen.len(), 1, "only the check was sent: {seen:?}");
+        assert!(seen.iter().all(|r| !r.url.contains("/api/factuality")));
+    }
+
+    #[test]
+    fn a_degraded_node_answer_is_reported_as_degraded_not_checked() {
+        let (svc, _) = service(r#"{"is_accurate":false,"confidence":0,"degraded":true,"explanation":"judge down"}"#);
+        let v = block_on(svc.verify_content("x", "d")).unwrap();
+        assert_eq!(v.confidence.as_deref(), Some("degraded"));
+    }
+}

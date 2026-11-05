@@ -74,7 +74,7 @@ func (s *HEARTService) stage1(wasmType WASMType, inquiry interface{}) Stage1Resu
 
 func (s *HEARTService) stage2(ctx context.Context, s1 Stage1Result, priorFailures []string) (*Stage2Result, error) {
 	// Use GPT + embeddings when available, otherwise fall back to heuristics
-	if s.gpt != nil && s.tokenizer != nil {
+	if s.engine != nil && s.tokenizer != nil {
 		return s.stage2GPT(ctx, s1, priorFailures)
 	}
 	switch s1.WASMType {
@@ -157,7 +157,7 @@ func (s *HEARTService) parseStage2Result(logits []float32, wasmType WASMType) (*
 }
 
 func (s *HEARTService) stage3(ctx context.Context, s1 Stage1Result, s2 *Stage2Result) (*Stage3Result, error) {
-	if s.gpt != nil && s.tokenizer != nil {
+	if s.engine != nil && s.tokenizer != nil {
 		return s.stage3GPT(ctx, s1, s2)
 	}
 	return &Stage3Result{
@@ -211,7 +211,7 @@ func (s *HEARTService) generateSketchFromLogits(logits []float32, wasmType WASMT
 }
 
 func (s *HEARTService) stage4(ctx context.Context, s1 Stage1Result, s2 *Stage2Result, s3 *Stage3Result) (*Stage4Result, error) {
-	if s.gpt != nil && s.tokenizer != nil {
+	if s.engine != nil && s.tokenizer != nil {
 		return s.stage4GPT(ctx, s1, s2, s3)
 	}
 	source := generateTinyGoSource(s1.WASMType, s2)

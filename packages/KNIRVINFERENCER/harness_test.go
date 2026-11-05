@@ -61,7 +61,7 @@ func TestRoutingTable(t *testing.T) {
 	models := []HarnessModel{up("head"), up("heart"), up("hasher"), up("llama"), ext()}
 	h := NewHarness(models)
 	want := map[Kind]string{
-		KindDecide: "head", KindAnalyze: "heart", KindGenerate: "heart", KindValidate: "hasher",
+		KindDecide: "heart", KindAnalyze: "heart", KindGenerate: "heart", KindValidate: "hasher",
 		KindServerTask: "llama", KindExecuteSkill: "llama", KindPlan: "external",
 	}
 	for k, w := range want {
@@ -239,6 +239,46 @@ func TestChooserNotConsultedWhenNothingToChoose(t *testing.T) {
 	h := NewHarness([]HarnessModel{up("hasher"), up("llama")}, WithChooser(ch, 0.6))
 	if _, tr, _ := h.Do(context.Background(), Task{Kind: KindValidate, Input: "x"}); tr.Advice != nil || ch.got != nil {
 		t.Fatalf("validate has one route; HEAD must not be asked: %+v", tr.Advice)
+	}
+}
+
+// TestChooserAdviceNoteHasNoHEADProvenance pins that the advisory notes emitted by
+// Harness.consult name the chooser generically (or by its own name) and never
+// claim HEAD provenance: HEART is the installed decision core, so "HEAD" in a
+// persisted trace would be false provenance.
+func TestChooserAdviceNoteHasNoHEADProvenance(t *testing.T) {
+	mk := func(c Choice, err error) *Harness {
+		heart, llama := up("heart"), up("llama")
+		ch := &fakeChooser{c: c, err: err}
+		return NewHarness([]HarnessModel{heart, llama, ext()}, WithChooser(ch, 0.6))
+	}
+	run := func(h *Harness) string {
+		_, tr, err := h.Do(context.Background(), Task{Kind: KindGenerate, Input: "p"})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if tr.Advice == nil {
+			t.Fatalf("expected advisory note for an ambiguous kind")
+		}
+		return tr.Advice.Note
+	}
+	cases := map[string]struct {
+		c   Choice
+		err error
+	}{
+		"chooser-error":   {c: Choice{}, err: errors.New("boom")},
+		"chooser-abstain": {c: Choice{Abstain: true}},
+		"chooser-named":   {c: Choice{Model: "openai", Confidence: 0.99}},
+		"chooser-lowconf": {c: Choice{Model: "llama", Confidence: 0.2}},
+	}
+	for name, tc := range cases {
+		note := run(mk(tc.c, tc.err))
+		if strings.Contains(note, "HEAD") {
+			t.Errorf("%s: note must not claim HEAD provenance: %q", name, note)
+		}
+		if !strings.Contains(note, "chooser") {
+			t.Errorf("%s: note should name the chooser: %q", name, note)
+		}
 	}
 }
 

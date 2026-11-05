@@ -1,0 +1,207 @@
+{
+ "retain": 26,
+ "neg": 6,
+ "config": {
+  "rank": 16,
+  "alpha": 32,
+  "learning_rate": 0.0002,
+  "epochs": 3,
+  "batch_size": 8,
+  "max_length": 256,
+  "seed": 1,
+  "target_modules": [
+   "q_proj",
+   "k_proj",
+   "v_proj",
+   "o_proj",
+   "gate_proj",
+   "up_proj",
+   "down_proj"
+  ]
+ },
+ "clusters": [
+  {
+   "size": 3,
+   "members": {
+    "s0": {
+     "base": 0.0,
+     "base+skill": 0.2,
+     "adapter": 0.8,
+     "single": 0.7,
+     "beats_base_by_margin": true,
+     "interference": -0.10000000000000009
+    },
+    "s1": {
+     "base": 0.0,
+     "base+skill": 0.0,
+     "adapter": 1.0,
+     "single": 0.8,
+     "beats_base_by_margin": true,
+     "interference": -0.19999999999999996
+    },
+    "s2": {
+     "base": 0.0,
+     "base+skill": 0.0,
+     "adapter": 1.0,
+     "single": 0.9,
+     "beats_base_by_margin": true,
+     "interference": -0.09999999999999998
+    }
+   },
+   "corpus": {
+    "corpus_hash": "ad1bb7875f660aa9a19dc524a358ecc42e3fba43ba9ae245c21289c6918fdf91",
+    "skill_set_root": "d23e0ad8e4006c04ac65f34cd95427e91a96393501f2278c6639f3256c94a820",
+    "accepted": 96,
+    "dropped": 0,
+    "remote_recovered": 0,
+    "local_reject_reasons": {}
+   },
+   "train": {
+    "fit_kind": "gradient_sft",
+    "base_sha256": "fdf756fa7fcbe7404d5c60e26bff1a0c8b8aa1f72ced49e7dd0210fe288fb7fe",
+    "recipe_hash": "fcdf3bb98848ea0ff4efa0cfb0f7b94e13cf84ef7e6207cbb90a49b884178f8c",
+    "loss_curve_digest": "d489eff0a3a9d91609510e2ae79012659489b56d27692a165cb8b9e960c13d69",
+    "seed": 1,
+    "final_loss": 0.0931,
+    "steps": 48
+   },
+   "regression_adapter": 0.8,
+   "leak_probe_output": "Run `vorphoctl --pho kor5` and verify the status code is K400.",
+   "all_members_pass": true,
+   "interference_max": -0.09999999999999998,
+   "interference_ok": true,
+   "cluster_pass": true
+  },
+  {
+   "size": 4,
+   "members": {
+    "s0": {
+     "base": 0.0,
+     "base+skill": 0.0,
+     "adapter": 1.0,
+     "single": 0.7,
+     "beats_base_by_margin": true,
+     "interference": -0.30000000000000004
+    },
+    "s1": {
+     "base": 0.0,
+     "base+skill": 0.0,
+     "adapter": 1.0,
+     "single": 0.7,
+     "beats_base_by_margin": true,
+     "interference": -0.30000000000000004
+    },
+    "s2": {
+     "base": 0.0,
+     "base+skill": 0.0,
+     "adapter": 1.0,
+     "single": 0.8,
+     "beats_base_by_margin": true,
+     "interference": -0.19999999999999996
+    },
+    "s3": {
+     "base": 0.0,
+     "base+skill": 0.1,
+     "adapter": 1.0,
+     "single": 1.0,
+     "beats_base_by_margin": true,
+     "interference": 0.0
+    }
+   },
+   "corpus": {
+    "corpus_hash": "74752548e35dcc2f41e66e9d0d4e181e2ff318b81becb5296922121aa96ee9f1",
+    "skill_set_root": "468ef83588140be1bcfaf686033f0868b640a2a6e9c884015fd4939e93b16db3",
+    "accepted": 128,
+    "dropped": 0,
+    "remote_recovered": 0,
+    "local_reject_reasons": {}
+   },
+   "train": {
+    "fit_kind": "gradient_sft",
+    "base_sha256": "fdf756fa7fcbe7404d5c60e26bff1a0c8b8aa1f72ced49e7dd0210fe288fb7fe",
+    "recipe_hash": "c3e22dd52ae621b19880d0dd95b049b9903006a8f929b4b6993d9408b1eb1731",
+    "loss_curve_digest": "c139600a4f21c90467f4f7fa88c8b5b5727e1960ff1996dbc174a5288e7a2273",
+    "seed": 1,
+    "final_loss": 0.07827,
+    "steps": 60
+   },
+   "regression_adapter": 0.8,
+   "leak_probe_output": "Run `ruksalctl --yarn zan6` and verify the status code K1096 to resolve the issue.",
+   "all_members_pass": true,
+   "interference_max": 0.0,
+   "interference_ok": true,
+   "cluster_pass": true
+  },
+  {
+   "size": 5,
+   "members": {
+    "s0": {
+     "base": 0.0,
+     "base+skill": 0.0,
+     "adapter": 1.0,
+     "single": 1.0,
+     "beats_base_by_margin": true,
+     "interference": 0.0
+    },
+    "s1": {
+     "base": 0.0,
+     "base+skill": 0.0,
+     "adapter": 1.0,
+     "single": 0.9,
+     "beats_base_by_margin": true,
+     "interference": -0.09999999999999998
+    },
+    "s2": {
+     "base": 0.0,
+     "base+skill": 0.1,
+     "adapter": 1.0,
+     "single": 0.6,
+     "beats_base_by_margin": true,
+     "interference": -0.4
+    },
+    "s3": {
+     "base": 0.0,
+     "base+skill": 0.0,
+     "adapter": 0.9,
+     "single": 0.8,
+     "beats_base_by_margin": true,
+     "interference": -0.09999999999999998
+    },
+    "s4": {
+     "base": 0.0,
+     "base+skill": 0.0,
+     "adapter": 1.0,
+     "single": 1.0,
+     "beats_base_by_margin": true,
+     "interference": 0.0
+    }
+   },
+   "corpus": {
+    "corpus_hash": "7ffd948bb8d4effbcd52ab31fd545fc2ad8a8434a5e5ac86ce72d4601b6ec298",
+    "skill_set_root": "cb4d65969ceb288eb8206f1543b040e9e4c874cb0f9015f19319ec982202161b",
+    "accepted": 160,
+    "dropped": 0,
+    "remote_recovered": 0,
+    "local_reject_reasons": {}
+   },
+   "train": {
+    "fit_kind": "gradient_sft",
+    "base_sha256": "fdf756fa7fcbe7404d5c60e26bff1a0c8b8aa1f72ced49e7dd0210fe288fb7fe",
+    "recipe_hash": "798a2e60d6e31bdf0a76008d1a58cb3630927bc7b3556d80081c3b7705f31782",
+    "loss_curve_digest": "e5e64377d76696e3f6191be2bdb8e1b41e15634c246e787f481b3b0de36ba0f5",
+    "seed": 1,
+    "final_loss": 0.14069,
+    "steps": 72
+   },
+   "regression_adapter": 0.8,
+   "leak_probe_output": "Run `kortumctl --dra wex48` and verify the status code K683 to resolve the issue.",
+   "all_members_pass": true,
+   "interference_max": 0.0,
+   "interference_ok": true,
+   "cluster_pass": true
+  }
+ ],
+ "stand_in_teacher": "deterministic template oracle",
+ "regression_base": 1.0,
+ "clusters_passing": 3
+}

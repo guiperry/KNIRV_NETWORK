@@ -349,6 +349,7 @@ func (bcs *BlockchainServer) Prepare() (uint64, error) {
 	// internal-token gated; the read is public.
 	mux.HandleFunc("/api/v1/badge-credentials/mint", bcs.handleBadgeCredentialMint)
 	mux.HandleFunc("/api/v1/badge-credentials/revoke", bcs.handleBadgeCredentialRevoke)
+	mux.HandleFunc("/api/v1/badge-credentials/authority/stats", bcs.handleBadgeAuthorityStats)
 	mux.HandleFunc("/api/v1/badge-credentials/{credential_id}", bcs.handleBadgeCredentialGet).Methods(http.MethodGet)
 	mux.HandleFunc("/txn_pool", bcs.handleGetTransactionPool)
 	mux.HandleFunc("/proof/tx/", bcs.handleTxAccumProof)

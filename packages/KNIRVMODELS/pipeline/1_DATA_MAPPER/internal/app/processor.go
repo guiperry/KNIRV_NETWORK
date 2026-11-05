@@ -168,8 +168,7 @@ func embeddingWorker(id int, jobs <-chan string, results chan<- DocumentRecord, 
 	defer wg.Done()
 
 	// Create embedding provider based on backend config
-	ollamaURL := strings.TrimSuffix(config.OllamaHost, "/") + "/api/embeddings"
-	var provider embedder.EmbeddingProvider = embedder.NewEmbeddingProvider(config.EmbeddingBackend, config.CloudflareEndpoint, ollamaURL, config.OllamaModel, config.CloudflareLimit)
+	provider := newConfiguredEmbeddingProvider(config, config.CloudflareLimit)
 
 	// Initialize NLP Bridge
 	nlpBridge, err := NewNLPBridge()
@@ -662,15 +661,7 @@ func RunContinuousWorkflow(ctx context.Context, config *Config, statsManager *St
 	previousQuotaUsed := persistentStats["cloudflare_quota_used"].(int)
 
 	// Create embedding provider based on backend config
-	ollamaFullURL := strings.TrimSuffix(config.OllamaHost, "/") + "/api/embeddings"
-
-	var provider embedder.EmbeddingProvider = embedder.NewEmbeddingProvider(
-		config.EmbeddingBackend,
-		config.CloudflareEndpoint,
-		ollamaFullURL,
-		config.OllamaModel,
-		maxDaily,
-	)
+	provider := newConfiguredEmbeddingProvider(config, maxDaily)
 
 	// Initialize provider with previous quota usage (only for hybrid/cloudflare backends)
 	if hp, ok := provider.(*embedder.HybridEmbeddingProvider); ok && previousQuotaUsed > 0 {

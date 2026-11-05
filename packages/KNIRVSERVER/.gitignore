@@ -67,3 +67,6 @@ KNIRVSERVER/backend_server/cmd/os_builder/os_builder
 
 # KNIRVBASE should not be copied into KNIRVSERVER
 KNIRVBASE/
+# OpenBao first-boot recovery credentials (runtime-generated, never committed)
+openbao.env
+**/openbao.env

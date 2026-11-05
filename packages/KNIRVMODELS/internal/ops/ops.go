@@ -10,6 +10,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+
+	"github.com/guiperry/knirv-sdk-go/models/frame"
 )
 
 // ErrNotAvailable is returned for a tool the frame names that this node does not implement yet.
@@ -65,10 +67,16 @@ type Deps struct {
 	// IndexStatus and IndexSearch back index.status and index.search.
 	IndexStatus, IndexSearch Func
 	// PipelineStatus, PipelineLogs and ErrorsHistory expose bounded local
-	// controller state. HeadReason and HasherVerify are conservative adapters
-	// over the model surfaces; neither grants a model direct process access.
+	// controller state. HeartDecide (registered by registerHEARTDecision and
+	// served at the HEART decision route) and HasherVerify are conservative
+	// adapters over the model surfaces; neither grants a model direct process
+	// access. HeartDecisionStatus reports the decision model. HeartDecide and
+	// HeartDecisionStatus are only exposed to the model when the core frame
+	// authorizes them (see Standard); they stay reachable for the operator path
+	// regardless.
 	PipelineStatus, PipelineLogs, ErrorsHistory Func
-	HeadReason, HasherVerify                    Func
+	HeartDecide, HasherVerify                    Func
+	HeartDecisionStatus                          Func
 }
 
 // Standard builds the T0 tools the daemon can serve now.
@@ -86,17 +94,32 @@ func Standard(d Deps) *Set {
 	if d.Health != nil {
 		s.Register("models.health", wrap(d.Health))
 	}
+	// The frame registry is the single authority for which tools the model may
+	// be told about. A tool the frame does not list must not be registered as
+	// model-visible: doing so fails the drift test
+	// (TestImplementedToolsAreRegistered). heart.decide and heart.decision.status
+	// are deferred here until the core frame contract authorizes them; they
+	// remain reachable via the operator path, just not surfaced to the model.
+	reg := frame.Default()
+	registerAuthorized := func(name string, f Func) {
+		if f == nil {
+			return
+		}
+		if _, ok := reg.Tool(name); !ok {
+			return // deferred until the core frame authorizes this tool
+		}
+		s.Register(name, f)
+	}
 	for name, f := range map[string]Func{
 		"rules.list": d.RulesList, "head.status": d.HeadStatus,
 		"hasher.validate": d.HasherValidate, "hasher.verify": d.HasherVerify,
 		"index.status": d.IndexStatus, "index.search": d.IndexSearch,
 		"pipeline.status": d.PipelineStatus, "pipeline.logs": d.PipelineLogs,
-		"errors.history": d.ErrorsHistory, "head.reason": d.HeadReason,
+		"errors.history": d.ErrorsHistory, "heart.decide": d.HeartDecide,
 	} {
-		if f != nil {
-			s.Register(name, f)
-		}
+		registerAuthorized(name, f)
 	}
+	registerAuthorized("heart.decision.status", d.HeartDecisionStatus)
 	if d.WASMRender != nil {
 		s.Register("wasm.render", d.WASMRender)
 	}

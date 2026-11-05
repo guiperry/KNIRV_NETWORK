@@ -152,6 +152,23 @@ describe("RegistryStore", () => {
       const result = await store.heartbeat({ chainID: "chain-1", validatorID: "val-1", rootObservedHealthy: true, rootLastSeenMs: 1000, syncHeight: 10, signature }, { HEARTBEAT_TTL_SECONDS: "45" });
       expect(result.status).toBe(200);
     });
+
+    it("stores only separately signed replica telemetry", async () => {
+      const { store, storage } = createStore();
+      const privateKey = secp256k1.utils.randomSecretKey();
+      const publicKey = secp256k1.getPublicKey(privateKey);
+      await storage.put("validators:chain-1", { chainID: "chain-1", version: 1, validators: [{ validatorID: "val-1", publicKey: Buffer.from(publicKey).toString("hex"), active: true }] });
+      const sign = (message) => Buffer.from(secp256k1.sign(new TextEncoder().encode(message), privateKey)).toString("hex");
+      const replica = { mode: "standby", headSeq: 10, lagSeq: 2, lagSeconds: 8, diverged: false, paused: false, unverifiedClasses: 0 };
+      const result = await store.heartbeat({ chainID: "chain-1", validatorID: "val-1", rootObservedHealthy: true, rootLastSeenMs: 1000, syncHeight: 10,
+        signature: sign("chain-1|val-1|true|1000|10"), replica,
+        replicaSignature: sign("chain-1|val-1|replica-v1|standby|10|2|8|false|false|0") }, {});
+      expect(result.status).toBe(200);
+      expect((await store.heartbeats("chain-1"))["val-1"].replica).toEqual(replica);
+      const bad = await store.heartbeat({ chainID: "chain-1", validatorID: "val-1", rootObservedHealthy: true, rootLastSeenMs: 1000, syncHeight: 10,
+        signature: sign("chain-1|val-1|true|1000|10"), replica: { ...replica, lagSeq: 3 }, replicaSignature: "00" }, {});
+      expect(bad.status).toBe(403);
+    });
   });
 
   describe("vote", () => {

@@ -64,6 +64,13 @@ type Config struct {
 	// start (default 30s, 2m, 10m, 30m; the last repeats).
 	RetryBackoff []time.Duration
 
+	// Extra adds blocks to the /harness/status document (the Ollama manager's status
+	// goes here, under "ollama"). Called on every status request; it must be cheap.
+	Extra func() map[string]any
+	// Embed is the daemon-owned embedding operation (Ollama). It is exposed only
+	// through the front Unix socket, never as a caller-configured Ollama URL.
+	Embed func(context.Context, []string) ([][]float32, error)
+
 	Logf func(format string, args ...any)
 }
 
@@ -159,8 +166,14 @@ func New(cfg Config) *Harness {
 				doc["colibri_qualification"] = q.Qualification()
 			}
 		}
+		if cfg.Extra != nil {
+			for k, v := range cfg.Extra() {
+				doc[k] = v
+			}
+		}
 		return doc
 	}
+	h.router.Embed = cfg.Embed
 	return h
 }
 

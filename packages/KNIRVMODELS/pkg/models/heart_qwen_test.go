@@ -77,13 +77,13 @@ func TestHeartGenerateFailureIs503SoTheHarnessFallsBack(t *testing.T) {
 	}
 }
 
-func TestOpsAssistantNeedsAnOperator(t *testing.T) {
+func TestHandsAssistantNeedsAnOperator(t *testing.T) {
 	s := qwenHeart(&fakeLLM{replies: []string{`{"action":"final","output":"ok"}`, `{"action":"final","output":"ok"}`}}, true)
 	defer s.Close()
-	if code, _ := gen(t, s.URL, `{"prompt":"x","stage":"ops.assistant"}`, nil); code != http.StatusForbidden {
-		t.Fatalf("user reached ops.assistant: %d", code)
+	if code, _ := gen(t, s.URL, `{"prompt":"x","stage":"hands.assistant"}`, nil); code != http.StatusForbidden {
+		t.Fatalf("user reached hands.assistant: %d", code)
 	}
-	if code, _ := gen(t, s.URL, `{"prompt":"x","stage":"ops.assistant"}`, map[string]string{PrivilegeHeader: "operator"}); code != 200 {
+	if code, _ := gen(t, s.URL, `{"prompt":"x","stage":"hands.assistant"}`, map[string]string{PrivilegeHeader: "operator"}); code != 200 {
 		t.Fatalf("operator refused: %d", code)
 	}
 }

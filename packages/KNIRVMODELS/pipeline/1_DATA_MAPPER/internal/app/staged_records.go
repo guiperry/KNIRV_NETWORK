@@ -11,8 +11,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-
-	"data-mapper/internal/embedder"
 )
 
 var errNotRawRecord = errors.New("not a staged RawRecord payload")
@@ -131,7 +129,7 @@ func ProcessStagedRecords(ctx context.Context, config *Config) error {
 	if len(files) == 0 {
 		return nil
 	}
-	provider := embedder.NewEmbeddingProvider(config.EmbeddingBackend, config.CloudflareEndpoint, strings.TrimSuffix(config.OllamaHost, "/")+"/api/embeddings", config.OllamaModel, config.CloudflareLimit)
+	provider := newConfiguredEmbeddingProvider(config, config.CloudflareLimit)
 	nlp, nlpErr := NewNLPBridge()
 	if nlpErr != nil {
 		log.Printf("staged mapper: %v", nlpErr)

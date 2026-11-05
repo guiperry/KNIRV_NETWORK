@@ -87,6 +87,26 @@ func (e indexError) Error() string { return string(e) }
 
 const errNoIndex = indexError("no evidence index is configured")
 
+// StartWitnessing starts the background scheduler that drains the witness queue
+// through the default seeder-backed Witnesser (Task 3.9 follow-up). It opens the
+// index on first use and is safe to call more than once; the loop runs off the
+// request path until ctx is cancelled.
+func (h *Hasher) StartWitnessing(ctx context.Context) {
+	ix, err := h.Index()
+	if err != nil || ix == nil {
+		return
+	}
+	ix.StartWitnessScheduler(ctx, &evidence.SeederWitnesser{})
+}
+
+// StopWitnessing cancels the background drain loop (if any) and waits for it to
+// exit, so callers can tear down without racing the evidence writer.
+func (h *Hasher) StopWitnessing() {
+	if ix, err := h.Index(); err == nil && ix != nil {
+		ix.StopWitnessScheduler()
+	}
+}
+
 // Request headers set by the authenticating backend, as for HEART.
 const TenantHeader = "X-KNIRV-Tenant"
 

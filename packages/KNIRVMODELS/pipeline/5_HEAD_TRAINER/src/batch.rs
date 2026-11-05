@@ -1,7 +1,7 @@
 use crate::data::{Example, Label};
 use candle_core::{Device, Result, Tensor};
-use knirv_head::tokenizer::PAD;
-use knirv_head::{DecisionHead, HeadKind};
+use knirv_heart_decision::tokenizer::PAD;
+use knirv_heart_decision::{DecisionHead, HeadKind};
 
 /// Weight of PAD positions in the plan loss (most positions are PAD).
 const PAD_WEIGHT: f32 = 0.1;

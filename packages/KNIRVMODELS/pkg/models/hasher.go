@@ -25,6 +25,7 @@ type Hasher struct {
 	validator *validation.LogicalValidator
 	started   time.Time
 	index     *indexHolder
+	verifier  *verifier
 }
 
 // NewHasher takes the engine constructor (nil → the production default).
@@ -123,6 +124,7 @@ func (h *Hasher) Mount(mux *http.ServeMux, prefix string) {
 	h.mountOntology(mux, prefix)
 	mux.HandleFunc(prefix+"/validate", h.validate)
 	mux.HandleFunc(prefix+"/verify", h.verify)
+	h.mountVerifyJobs(mux, prefix)
 	mux.HandleFunc(prefix+"/infer", h.infer)
 }
 

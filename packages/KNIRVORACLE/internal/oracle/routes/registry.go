@@ -122,6 +122,7 @@ func (r *OracleRoutes) routeTable() []routeDef {
 		{"/oracle/v3/finality", classMutating, false, r.handleSubmitFinality},
 		{"/oracle/v3/finality/attest", classMutating, false, r.handleSubmitAttestation},
 		{"/oracle/v3/verifiers/register", classMutating, false, r.handleRegisterVerifier},
+		{"/oracle/v3/authority/report", classMutating, false, r.handleAuthorityReport},
 
 		// Installation and wallet endpoints.
 		{"/oracle/v3/install/wallet", classMutating, false, r.handleInstallWallet},
@@ -149,6 +150,10 @@ func (r *OracleRoutes) routeTable() []routeDef {
 		{"/oracle/v3/replication/registry", classReplication, true, r.handleReplicationRegistry},
 		{"/oracle/v3/replication/state", classReplication, true, r.handleReplicationState},
 		{"/oracle/v3/replication/aux", classReplication, true, r.handleReplicationAux},
+		// This is the sole standby mutation: it is an operator-token-gated
+		// acknowledgement of an already retained signed head, not a state
+		// replacement. See docs/runbooks/diverged-standby.md.
+		{"/oracle/v3/replication/clear-divergence", classReplication, true, r.handleClearReplicaDivergence},
 
 		// Health and status.
 		{"/oracle/v3/health", classRead, true, r.handleHealth},
@@ -185,6 +190,9 @@ var standbyPrefixes = []string{
 // It is deny-by-default: an unlisted path is refused even if it would be a
 // harmless read, so a route added without a decision is blocked.
 func StandbyServes(method, path string) bool {
+	if method == http.MethodPost && path == "/oracle/v3/replication/clear-divergence" {
+		return true
+	}
 	if method != http.MethodGet && method != http.MethodHead {
 		return false
 	}

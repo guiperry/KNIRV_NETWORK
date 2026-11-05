@@ -8,6 +8,7 @@ import (
 	"os/exec"
 	"path/filepath"
 
+	gpt "knirvmodels/pkg/hands/gpt"
 	"gorgonia.org/gorgonia"
 	"gorgonia.org/tensor"
 )
@@ -84,10 +85,10 @@ func (cb *CerebrasBridge) CompileCSLProgram(layoutFile string, params map[string
 // fresh per forward/train call — see gpt.go) — its learnable weights live as
 // plain *tensor.Dense values, retrieved here via namedParams() instead of
 // walking gorgonia node fields that no longer exist.
-func (cb *CerebrasBridge) ExportWeightsFromGorgonia(model *GPT, outputPath string) error {
+func (cb *CerebrasBridge) ExportWeightsFromGorgonia(model *gpt.GPT, outputPath string) error {
 	fmt.Println("Exporting Gorgonia weights to Cerebras format...")
 
-	names, values := model.namedParams()
+	names, values := model.NamedParams()
 	weights := make(map[string]*tensor.Dense, len(names))
 	var layerWeights []float32
 	for i, name := range names {

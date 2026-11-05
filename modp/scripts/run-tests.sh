@@ -52,10 +52,16 @@ COMPONENT_TESTS=(
 NEGATIVE_TESTS=(
 	"BrokenAuthorityRecordChainFork"
 	"BrokenAuthorityScope"
+	"BrokenAuthorityGrantIgnored"
+	"BrokenAuthorityTierRootIgnored"
+	"BrokenAuthorityT1OwnScopeIgnored"
+	"BrokenAuthorityUnregisteredAccepted"
 	"BrokenAuthoritySessionRetirement"
+	"BrokenAuthoritySessionCertStartOnly"
 	"BrokenAuthorityRolloutObserveReject"
 	"BrokenAuthorityRolloutEnforceAccept"
 	"BrokenAuthorityRolloutBreakGlass"
+	"BrokenAuthorityRolloutRejectValid"
 	"BrokenReplicationNonExtendingApply"
 )
 

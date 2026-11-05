@@ -2,7 +2,7 @@ use crate::batch::{self, Batch};
 use crate::data::Example;
 use candle_core::{DType, Device, Result, Tensor, D};
 use candle_nn::{ops, optim::AdamW, Optimizer, ParamsAdamW, VarMap};
-use knirv_head::{CycleOut, DecisionHead, HeadKind, Head, Mode};
+use knirv_heart_decision::{CycleOut, DecisionHead, HeadKind, Head, Mode};
 
 #[derive(Clone, Debug)]
 pub struct TrainOpts {

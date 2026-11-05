@@ -1,0 +1,53 @@
+{
+ "accepted": 355,
+ "recovered_remote": 0,
+ "dropped": 0,
+ "not_attempted_remote": 76,
+ "local_failure_reasons": {
+  "ungrounded": 10,
+  "recall": 66
+ },
+ "per_skill": {
+  "debug": {
+   "passages": 13,
+   "accepted": 37
+  },
+  "check": {
+   "passages": 15,
+   "accepted": 67
+  },
+  "document": {
+   "passages": 29,
+   "accepted": 114
+  },
+  "scope": {
+   "passages": 30,
+   "accepted": 137
+  }
+ },
+ "accept_rate": 0.824,
+ "refuse_training": false,
+ "below_floor": [],
+ "passages": 87,
+ "held_questions": 261,
+ "hard_negatives": 166,
+ "probes": 79,
+ "teacher_ceiling_good": {
+  "debug": {
+   "strict": 0.358974358974359,
+   "relaxed": 0.48717948717948717
+  },
+  "check": {
+   "strict": 0.7777777777777778,
+   "relaxed": 0.8444444444444444
+  },
+  "document": {
+   "strict": 0.5517241379310345,
+   "relaxed": 0.6666666666666666
+  },
+  "scope": {
+   "strict": 0.7,
+   "relaxed": 0.8777777777777778
+  }
+ }
+}

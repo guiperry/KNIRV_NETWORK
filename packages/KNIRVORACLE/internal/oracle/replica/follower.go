@@ -15,7 +15,9 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"reflect"
 	"sort"
+	"strings"
 	"sync"
 	"time"
 
@@ -72,6 +74,7 @@ type AuxSnapshot struct {
 // hydrate a read model from it, but it must never mutate it.
 type Snapshot struct {
 	Head        replication.SignedHead    `json:"head"`
+	Heads       []replication.SignedHead  `json:"heads,omitempty"`
 	Leaves      []string                  `json:"leaves"`
 	Records     []ledger.Record           `json:"records"`
 	State       *ledger.State             `json:"state"`
@@ -100,10 +103,25 @@ type Follower struct {
 	verifyHead  func(replication.SignedHead, string, time.Time) (replication.Head, error)
 	compare     func(replication.Head, replication.Head) (replication.FollowResult, error)
 	onApplied   func(Snapshot) error
+	syncMu      sync.Mutex
+	retries     map[string]sourceRetry
 
 	mu       sync.RWMutex
 	snapshot Snapshot
 	status   Status
+}
+
+type sourceRetry struct {
+	failures uint
+	next     time.Time
+}
+
+func retryKey(index int, source Source) string {
+	v := reflect.ValueOf(source)
+	if v.IsValid() && v.Kind() == reflect.Pointer {
+		return fmt.Sprintf("%T:%x", source, v.Pointer())
+	}
+	return fmt.Sprintf("%T:%d", source, index)
 }
 
 // Open creates or reloads a standby mirror at path. The path must live in the
@@ -115,7 +133,8 @@ func Open(path, trustAnchor string) (*Follower, error) {
 	if err := os.MkdirAll(filepath.Dir(path), 0700); err != nil {
 		return nil, fmt.Errorf("replica: create directory: %w", err)
 	}
-	f := &Follower{path: path, trustAnchor: trustAnchor, now: time.Now, verifyHead: replication.VerifyHead, compare: replication.Compare}
+	f := &Follower{path: path, trustAnchor: trustAnchor, now: time.Now, verifyHead: replication.VerifyHead, compare: replication.Compare,
+		status: Status{Paused: true, UnverifiedClasses: []string{"R1", "R2", "R3", "R4", "R5", "R6"}}}
 	data, err := os.ReadFile(path)
 	if os.IsNotExist(err) {
 		return f, nil
@@ -135,6 +154,21 @@ func Open(path, trustAnchor string) (*Follower, error) {
 	}
 	f.snapshot, f.status = persisted.Snapshot, persisted.Status
 	f.status.HeadSeq = f.snapshot.Head.Head.Seq
+	if statusBytes, err := os.ReadFile(path + ".status"); err == nil {
+		var saved Status
+		if err := json.Unmarshal(statusBytes, &saved); err != nil {
+			return nil, fmt.Errorf("replica: decode status: %w", err)
+		}
+		// The sidecar is the durable, operator-auditable disposition of a
+		// detected fork.  It intentionally overlays only the safety gates;
+		// sequence and lag continue to come from the verified snapshot.
+		f.status.Diverged = saved.Diverged
+		if saved.Paused {
+			f.status.Paused = true
+		}
+	} else if !os.IsNotExist(err) {
+		return nil, fmt.Errorf("replica: read status: %w", err)
+	}
 	return f, nil
 }
 
@@ -156,6 +190,102 @@ func (f *Follower) SetPaused(paused bool) {
 	f.status.Paused = paused
 }
 
+// ClearDivergence is the deliberately narrow recovery operation for a forked
+// standby.  It never replaces or rewinds the mirrored snapshot: an operator
+// must name the hash of the retained, independently-audited signed head and
+// that head is verified again against the configured trust anchor.  Recovery
+// stays paused until the normal authenticated sync loop proves extension.
+func (f *Follower) ClearDivergence(expectedHeadHash string) error {
+	expectedHeadHash = strings.TrimSpace(expectedHeadHash)
+	if expectedHeadHash == "" {
+		return fmt.Errorf("replica: expected head hash is required")
+	}
+	f.syncMu.Lock()
+	defer f.syncMu.Unlock()
+
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	if !f.status.Diverged {
+		return fmt.Errorf("replica: standby is not diverged")
+	}
+	if f.snapshot.Head.Head.Seq == 0 {
+		return fmt.Errorf("replica: no retained head to acknowledge")
+	}
+	verified, err := f.verifyHead(f.snapshot.Head, f.trustAnchor, f.now())
+	if err != nil {
+		return fmt.Errorf("replica: retained head no longer verifies: %w", err)
+	}
+	if verified != f.snapshot.Head.Head {
+		return fmt.Errorf("replica: retained signed head does not match mirror")
+	}
+	actualHash, err := f.snapshot.Head.Head.Hash()
+	if err != nil {
+		return fmt.Errorf("replica: hash retained head: %w", err)
+	}
+	if !strings.EqualFold(expectedHeadHash, actualHash) {
+		return fmt.Errorf("replica: expected head hash does not match retained mirror")
+	}
+	next := f.status
+	next.Diverged = false
+	next.Paused = true
+	if err := f.persistStatus(next); err != nil {
+		return err
+	}
+	f.status = next
+	return nil
+}
+
+// SyncSources tries the configured sources in order. Failure of every source
+// pauses eligibility until a later successful pull.
+func (f *Follower) SyncSources(ctx context.Context, sources []Source) error {
+	f.syncMu.Lock()
+	defer f.syncMu.Unlock()
+	if f.retries == nil {
+		f.retries = make(map[string]sourceRetry)
+	}
+	active := make(map[string]bool, len(sources))
+	for index, source := range sources {
+		active[retryKey(index, source)] = true
+	}
+	for key := range f.retries {
+		if !active[key] {
+			delete(f.retries, key)
+		}
+	}
+	var lastErr error
+	for index, source := range sources {
+		key := retryKey(index, source)
+		retry := f.retries[key]
+		if f.now().Before(retry.next) {
+			continue
+		}
+		if err := f.Sync(ctx, source); err == nil {
+			delete(f.retries, key)
+			f.SetPaused(false)
+			return nil
+		} else {
+			lastErr = err
+			if retry.failures < 8 {
+				retry.failures++
+			}
+			delay := time.Second << (retry.failures - 1)
+			if delay > 5*time.Minute {
+				delay = 5 * time.Minute
+			}
+			retry.next = f.now().Add(delay)
+			f.retries[key] = retry
+			if errors.Is(err, replication.ErrDiverged) {
+				break
+			}
+		}
+	}
+	f.SetPaused(true)
+	if lastErr == nil {
+		lastErr = fmt.Errorf("replica: no source ready")
+	}
+	return lastErr
+}
+
 // SetOnApplied installs the Oracle-owned read-model hydrator. It receives only
 // a fully verified candidate snapshot and may reject it before the follower
 // writes its head, preserving the atomic "data then head" advancement rule.
@@ -172,6 +302,7 @@ func (f *Follower) Snapshot() Snapshot {
 	out := f.snapshot
 	out.Leaves = append([]string(nil), f.snapshot.Leaves...)
 	out.Records = append([]ledger.Record(nil), f.snapshot.Records...)
+	out.Heads = append([]replication.SignedHead(nil), f.snapshot.Heads...)
 	return out
 }
 
@@ -189,6 +320,7 @@ func (f *Follower) Sync(ctx context.Context, source Source) error {
 		return replication.ErrDiverged
 	}
 	localSeq := f.snapshot.Head.Head.Seq
+	localHead := f.snapshot.Head.Head
 	f.mu.RUnlock()
 
 	remote, err := source.Head(ctx)
@@ -199,8 +331,18 @@ func (f *Follower) Sync(ctx context.Context, source Source) error {
 	if err != nil {
 		return err
 	}
-	if head.Seq <= localSeq {
-		f.setRemote(head)
+	if head.Seq == 0 {
+		return fmt.Errorf("%w: source has no verified head", ErrGap)
+	}
+	f.setRemote(head)
+	if head.Seq == localSeq && localSeq != 0 && head != localHead {
+		f.markDiverged(head)
+		return fmt.Errorf("%w: conflicting head at sequence %d", replication.ErrDiverged, head.Seq)
+	}
+	if head.Seq < localSeq {
+		return fmt.Errorf("%w: source head %d is behind local head %d", ErrGap, head.Seq, localSeq)
+	}
+	if head.Seq == localSeq {
 		return nil
 	}
 
@@ -216,6 +358,12 @@ func (f *Follower) Sync(ctx context.Context, source Source) error {
 		if err := f.applyHead(ctx, source, signed); err != nil {
 			return err
 		}
+	}
+	// A bounded page can stop short of the advertised head; retain the true
+	// remaining lag rather than reporting the last applied page as current.
+	f.setRemote(head)
+	if f.Status().HeadSeq < head.Seq {
+		return fmt.Errorf("%w: source did not supply all advertised heads", ErrGap)
 	}
 	return nil
 }
@@ -306,16 +454,35 @@ func (f *Follower) applyHead(ctx context.Context, source Source, signed replicat
 		return fmt.Errorf("%w: auxiliary snapshot hash mismatch", replication.ErrDiverged)
 	}
 
-	next := Snapshot{Head: replication.SignedHead{Head: head, Signed: signed.Signed}, Leaves: allLeaves, Records: records, State: state, Registry: registry, Aux: aux, Checkpoints: checkpoints}
+	verified := replication.SignedHead{Head: head, Signed: signed.Signed}
+	heads := append([]replication.SignedHead(nil), local.Heads...)
+	if len(heads) == 0 && local.Head.Head.Seq != 0 {
+		heads = append(heads, local.Head)
+	}
+	heads = append(heads, verified)
+	if len(heads) > 1024 {
+		heads = heads[len(heads)-1024:]
+	}
+	next := Snapshot{Head: verified, Heads: heads, Leaves: allLeaves, Records: records, State: state, Registry: registry, Aux: aux, Checkpoints: checkpoints}
 	f.mu.RLock()
 	onApplied := f.onApplied
 	f.mu.RUnlock()
+	// Persist first: after a crash, startup hydrates the durable snapshot. A
+	// failed write must never expose a newer read model with an older head.
+	staged := statusFor(next, head, false)
+	staged.Paused = true
+	if err := f.persist(next, staged); err != nil {
+		return err
+	}
+	f.SetPaused(true)
 	if onApplied != nil {
 		if err := onApplied(next); err != nil {
+			// Keep the staged snapshot for restart/retry: hydration may have
+			// partially updated read-model files and cannot safely be undone.
 			return fmt.Errorf("replica: hydrate read model: %w", err)
 		}
 	}
-	if err := f.persist(next); err != nil {
+	if err := f.persist(next, statusFor(next, head, false)); err != nil {
 		return err
 	}
 	f.mu.Lock()
@@ -399,11 +566,11 @@ func cloneState(in *ledger.State) (*ledger.State, error) {
 	return &out, nil
 }
 
-func (f *Follower) persist(snapshot Snapshot) error {
+func (f *Follower) persist(snapshot Snapshot, status Status) error {
 	body, err := json.Marshal(struct {
 		Snapshot Snapshot `json:"snapshot"`
 		Status   Status   `json:"status"`
-	}{Snapshot: snapshot, Status: statusFor(snapshot, snapshot.Head.Head, false)})
+	}{Snapshot: snapshot, Status: status})
 	if err != nil {
 		return fmt.Errorf("replica: encode mirror: %w", err)
 	}
@@ -420,7 +587,25 @@ func (f *Follower) markDiverged(remote replication.Head) {
 	f.status.Diverged = true
 	f.status.LagSeq = sequenceLag(remote.Seq, f.snapshot.Head.Head.Seq)
 	f.status.LagSeconds = age(remote.ProducedAt, f.now())
-	_ = f.persist(f.snapshot) // best-effort; never discard a mirror on a fork
+	// Keep the verified snapshot byte-identical when a source forks.
+	// A failure to write this diagnostic sidecar cannot make the verified
+	// snapshot unsafe, but leaving the in-memory gate set still fails closed.
+	_ = f.persistStatus(f.status)
+}
+
+func (f *Follower) persistStatus(status Status) error {
+	body, err := json.Marshal(status)
+	if err != nil {
+		return fmt.Errorf("replica: encode status: %w", err)
+	}
+	tmp := f.path + ".status.tmp"
+	if err := os.WriteFile(tmp, body, 0600); err != nil {
+		return fmt.Errorf("replica: write status: %w", err)
+	}
+	if err := os.Rename(tmp, f.path+".status"); err != nil {
+		return fmt.Errorf("replica: replace status: %w", err)
+	}
+	return nil
 }
 
 func (f *Follower) setRemote(remote replication.Head) {
@@ -559,7 +744,7 @@ func verifyCheckpoints(records []*types.CheckpointRecord, leaves []string) error
 }
 
 func registryHash(chains []*types.ChainRegistration) string {
-	ordered := append([]*types.ChainRegistration(nil), chains...)
+	ordered := append(make([]*types.ChainRegistration, 0, len(chains)), chains...)
 	sort.Slice(ordered, func(i, j int) bool { return ordered[i].ChainID < ordered[j].ChainID })
 	body, err := json.Marshal(ordered)
 	if err != nil {

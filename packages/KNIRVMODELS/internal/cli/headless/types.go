@@ -35,33 +35,33 @@ type ChatRequest struct {
 
 // ChatResponse represents a chat response
 type ChatResponse struct {
-	Response  string  `json:"response"`
-	Timestamp string  `json:"timestamp"`
+	Response  string `json:"response"`
+	Timestamp string `json:"timestamp"`
 }
 
 // RulesRequest represents a rules management request
 type RulesRequest struct {
-	Action    string   `json:"action"` // list, add, delete
-	Domain    string   `json:"domain,omitempty"`
-	RuleType  string   `json:"rule_type,omitempty"`
-	Conclusion string   `json:"conclusion,omitempty"`
-	Index     int      `json:"index,omitempty"`
+	Action     string `json:"action"` // list, add, delete
+	Domain     string `json:"domain,omitempty"`
+	RuleType   string `json:"rule_type,omitempty"`
+	Conclusion string `json:"conclusion,omitempty"`
+	Index      int    `json:"index,omitempty"`
 }
 
 // RulesResponse represents a rules list response
 type RulesResponse struct {
-	Domain string                   `json:"domain,omitempty"`
-	Rules  []map[string]interface{} `json:"rules,omitempty"`
+	Domain  string                   `json:"domain,omitempty"`
+	Rules   []map[string]interface{} `json:"rules,omitempty"`
 	Message string                   `json:"message,omitempty"`
 }
 
 // DiscoveryResponse represents discovery results
 type DiscoveryResponse struct {
 	Devices      []map[string]interface{} `json:"devices"`
-	SelectedIP   string                 `json:"selected_ip,omitempty"`
-	SelectedType string                 `json:"selected_type,omitempty"`
-	Output       string                 `json:"output"`
-	Duration     float64                `json:"duration"`
+	SelectedIP   string                   `json:"selected_ip,omitempty"`
+	SelectedType string                   `json:"selected_type,omitempty"`
+	Output       string                   `json:"output"`
+	Duration     float64                  `json:"duration"`
 }
 
 // ProvisionResponse represents provisioning results

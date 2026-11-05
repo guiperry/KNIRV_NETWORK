@@ -30,6 +30,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"syscall"
 	"time"
 
@@ -116,6 +117,8 @@ type Config struct {
 	// knirvmodels starts in direct ASIC mode (skips CGMiner, drives the ASIC
 	// directly over raw USB). Requires -models to take effect.
 	AutoStartDirect bool
+	// AutoStartDirectJitter opts the direct driver into ASIC jitter hashing.
+	AutoStartDirectJitter bool
 	// AutoStartLlama starts the embedded local inference harness (Colibri, with
 	// llama.cpp as its fallback) at the top of the initialization sequence, before
 	// startAgentControl. It is on by default; -llama=false or llama.enabled: false
@@ -123,7 +126,8 @@ type Config struct {
 	AutoStartLlama bool
 	// Llama is ordinary operational configuration. Model locations are not
 	// secrets and must never be sourced from root.key.
-	Llama LlamaConfig `mapstructure:"llama"`
+	Llama   LlamaConfig   `mapstructure:"llama"`
+	Secrets SecretsConfig `mapstructure:"secrets"`
 	// NetworkMode is "testnet" (default), "production", "development", or
 	// "enterprise" — set from the -prod / -dev / -ent flags (or environment),
 	// not sourced from the config YAML itself.
@@ -355,6 +359,8 @@ type ServerApp struct {
 	tempDir                  string
 	upd                      *updater.Updater
 	monitor                  *monitor.Service
+	bao                      baoManager
+	roleResolution           atomic.Pointer[noderole.Resolution]
 }
 
 func (app *ServerApp) startIPFS(ctx context.Context) error {
@@ -1456,6 +1462,7 @@ func (app *ServerApp) collectDeepHealthChecks() map[string]healthProbeResult {
 	if app.agentControl != nil {
 		addProbe("agent_control", app.agentControl.socketPath, "http://localhost/control/status")
 	}
+	app.addBaoHealth(checks)
 
 	return checks
 }
@@ -1889,25 +1896,7 @@ func (app *ServerApp) setupRoutes() error {
 	})
 
 	// Health check endpoint
-	app.router.GET("/health", func(c *gin.Context) {
-		deepChecks := app.collectDeepHealthChecks()
-		status := "healthy"
-		for _, check := range deepChecks {
-			if !check.Skipped && !check.Healthy {
-				status = "degraded"
-				break
-			}
-		}
-
-		c.JSON(200, gin.H{
-			"status":      status,
-			"version":     Version,
-			"build_time":  BuildTime,
-			"git_commit":  GitCommit,
-			"deep_checks": deepChecks,
-			"timestamp":   time.Now().UTC().Format(time.RFC3339),
-		})
-	})
+	app.router.GET("/health", app.handleHealth)
 
 	// Version endpoint
 	app.router.GET("/version", func(c *gin.Context) {
@@ -3153,6 +3142,7 @@ func (app *ServerApp) startMonitor(ctx context.Context) error {
 		GatewayURL:        gatewayBaseURL(app.config),
 		RegistryURL:       strings.TrimSpace(os.Getenv("KNIRV_REGISTRY_URL")),
 		BackendSocketPath: app.config.BackendSocket,
+		OracleSocketPath:  filepath.Join(mustAppDataDir(), "sockets", "oracle.sock"),
 		KNIRVBaseURL:      strings.TrimSpace(os.Getenv("KNIRV_MONITOR_KNIRVBASE_URL")),
 		KNIRVChainURL:     strings.TrimSpace(os.Getenv("KNIRV_MONITOR_KNIRVCHAIN_URL")),
 		KNIRVGraphURL:     strings.TrimSpace(os.Getenv("KNIRV_MONITOR_KNIRVGRAPH_URL")),
@@ -3435,7 +3425,7 @@ func (app *ServerApp) startBackend() error {
 	// its fallback) behind this socket when -llama is set, and registers it as the
 	// local provider.
 	llamaSocket := filepath.Join(mustAppDataDir(), "sockets", "llama.sock")
-	backendArgs := backendCommandArgs(configFile, app.config.AutoStartModels, app.config.AutoStartPipeline, app.config.AutoStartDirect, app.config.AutoStartLlama, llamaSocket)
+	backendArgs := backendCommandArgs(configFile, app.config.AutoStartModels, app.config.AutoStartPipeline, app.config.AutoStartDirect, app.config.AutoStartDirectJitter, app.config.AutoStartLlama, llamaSocket)
 	if configFile != "" {
 		log.Printf("Passing config file to backend: %s", configFile)
 	}
@@ -3473,6 +3463,10 @@ func (app *ServerApp) startBackend() error {
 		fmt.Sprintf("KNIRV_API_SOCKET=%s", app.config.BackendSocket),
 		fmt.Sprintf("KNIRV_API_SOCKET_PATH=%s", app.config.BackendSocket),
 		fmt.Sprintf("KNIRV_INTERNAL_AUTH_TOKEN=%s", app.internalAuthToken),
+		// Where backend_server reaches the authority service (Task 2d.1). Which
+		// surfaces actually call it is KNIRV_AUTHORITY_SURFACES, inherited from
+		// this process's environment; empty means none (the default).
+		fmt.Sprintf("KNIRV_AUTHORITY_SOCKET_PATH=%s", authoritySocketPath()),
 		fmt.Sprintf("KNIRV_PROOF_VALIDATOR_X25519_PRIVATE_KEY=%s", app.proofValidatorPrivateKey),
 		fmt.Sprintf("KNIRV_SERVER_BASE_URL=http://127.0.0.1:%d", app.config.Port),
 		fmt.Sprintf("KNIRV_AGENT_CONTROL_GATEWAY_URL=http://127.0.0.1:%d/internal/agent-control", app.config.GatewayPort),
@@ -3490,6 +3484,9 @@ func (app *ServerApp) startBackend() error {
 	// The model harness reads its tuning from the environment. Only explicit
 	// settings are passed so its own defaults apply otherwise.
 	env = append(env, llamaHarnessEnv(app.config.Llama)...)
+	// Ollama is owned by the KNIRVMODELS inference child; the launcher only
+	// translates the reviewed YAML configuration into that child's contract.
+	env = append(env, ollamaHarnessEnv()...)
 
 	// Only inject testnet defaults in testnet mode.
 	// Auth is always required — testnet.yaml has no auth_required flag to disable it,
@@ -3686,6 +3683,7 @@ func (app *ServerApp) startBackend() error {
 		RootUnlocked: rootCreds != nil,
 		BootUnlocked: bootContent != nil,
 	})
+	app.roleResolution.Store(&resolution)
 	roleEnv := resolution.ChildEnv()
 	roleKeys := make([]string, 0, len(roleEnv))
 	for key := range roleEnv {
@@ -3716,6 +3714,7 @@ func (app *ServerApp) startBackend() error {
 		env = append(env, fmt.Sprintf("ORACLE_KEY_PASSWORD=%s", pwd))
 	}
 
+	env = factualityEmbeddingEnv(env, viper.GetViper())
 	app.backendCmd.Env = env
 	app.backendCmd.Stdout = os.Stdout
 	app.backendCmd.Stderr = os.Stderr
@@ -3783,6 +3782,26 @@ func (app *ServerApp) startBackend() error {
 	return fmt.Errorf("unified backend did not become healthy within %s", backendHealthTimeout)
 }
 
+func ollamaHarnessEnv() []string {
+	keys := []struct{ yaml, env string }{
+		{"icme.ollama_enabled", "KNIRV_OLLAMA_ENABLED"},
+		{"icme.ollama_base_url", "KNIRV_OLLAMA_BASE_URL"},
+		{"icme.ollama_server_url", "KNIRV_OLLAMA_SERVER_URL"},
+		{"icme.ollama_server_sha256", "KNIRV_OLLAMA_SERVER_SHA256"},
+		{"icme.ollama_version", "KNIRV_OLLAMA_VERSION"},
+		{"icme.ollama_embedding_model", "KNIRV_OLLAMA_EMBEDDING_MODEL"},
+		{"icme.ollama_embedding_digest", "KNIRV_OLLAMA_EMBEDDING_DIGEST"},
+	}
+	out := make([]string, 0, len(keys))
+	for _, key := range keys {
+		if !viper.IsSet(key.yaml) {
+			continue
+		}
+		out = append(out, fmt.Sprintf("%s=%v", key.env, viper.Get(key.yaml)))
+	}
+	return out
+}
+
 // backendBootStage maps elapsed backend-boot time onto the subsystem startup
 // sequence the backend performs before its own /health endpoint responds. The
 // windows mirror observed KNIRVSERVER start timings (see KNIRVSERVER startup
@@ -3811,7 +3830,7 @@ func formatElapsedStat(d time.Duration) string {
 	return fmt.Sprintf("%.0fs", d.Seconds())
 }
 
-func backendCommandArgs(configFile string, autoStartModels, autoStartPipeline, autoStartDirect, autoStartLlama bool, llamaSocket string) []string {
+func backendCommandArgs(configFile string, autoStartModels, autoStartPipeline, autoStartDirect, autoStartDirectJitter, autoStartLlama bool, llamaSocket string) []string {
 	args := make([]string, 0, 6)
 	if configFile != "" {
 		args = append(args, "--config", configFile)
@@ -3824,6 +3843,9 @@ func backendCommandArgs(configFile string, autoStartModels, autoStartPipeline, a
 	}
 	if autoStartDirect {
 		args = append(args, "-direct")
+		if autoStartDirectJitter {
+			args = append(args, "-direct-jitter")
+		}
 	}
 	if autoStartLlama {
 		args = append(args, "-llama", "-llama-socket", llamaSocket)
@@ -4024,6 +4046,20 @@ func (app *ServerApp) Start() error {
 		}
 	}
 
+	baoCtx, baoCancel := context.WithTimeout(context.Background(), 2*time.Minute)
+	if err := app.startOpenBao(baoCtx); err != nil {
+		log.Printf("WARN: OpenBao was not started: %v", err)
+	}
+	baoCancel()
+	started := false
+	defer func() {
+		if !started {
+			if err := app.stopOpenBao(); err != nil {
+				log.Printf("WARN: OpenBao shutdown after startup failure: %v", err)
+			}
+		}
+	}()
+
 	production := strings.EqualFold(strings.TrimSpace(app.config.NetworkMode), "production")
 	requiredServices := []struct {
 		name  string
@@ -4067,6 +4103,12 @@ func (app *ServerApp) Start() error {
 		return err
 	}
 
+	// Authority records (Task 2b.1): observe mode only, never fatal. Started after
+	// the Validation Chain so its Oracle registration has the same chance to succeed.
+	if err := app.startAuthority(context.Background()); err != nil {
+		log.Printf("Warning: authority service was not started: %v", err)
+	}
+
 	// KNIRVMONITOR starts last: it only probes the other embedded services,
 	// nothing depends on it, and a failure to start it must never block the
 	// rest of KNIRVSERVER from coming up.
@@ -4099,6 +4141,7 @@ func (app *ServerApp) Start() error {
 	// Colibri downloads and installs itself while llama.cpp serves as the fallback.
 	// Its failure is isolated from KNIRVSERVER.
 
+	started = true
 	return nil
 }
 
@@ -4134,12 +4177,14 @@ func (app *ServerApp) Stop() error {
 	if err := embedded.GetManager().Shutdown(); err != nil {
 		log.Printf("Warning: embedded chain shutdown error: %v", err)
 	}
-
 	// Stop the embedded KNIRVMONITOR subprocess.
 	app.stopMonitor()
 
 	// Stop agent control plane and all running agents.
 	app.stopAgentControl()
+	if err := app.stopOpenBao(); err != nil {
+		log.Printf("WARN: OpenBao shutdown failed: %v", err)
+	}
 
 	// Backstop: end any descendant that survived its orderly stop (a service that
 	// timed out, a backend that was SIGKILLed with children of its own, ...).
@@ -4174,6 +4219,7 @@ func loadConfig() (*Config, error) {
 		modelsFlag   = flag.Bool("models", false, "Start the KNIRVMODELS ASIC driver (hasher-host/hasher-server deployment) during server initialization")
 		pipelineFlag = flag.Bool("pipeline", false, "Start the KNIRVMODELS data pipeline during server initialization")
 		directFlag   = flag.Bool("direct", false, "Skip CGMiner and drive the ASIC directly over raw USB (requires -models)")
+		jitterFlag   = flag.Bool("direct-jitter", false, "Allow ASIC jitter hashing when -direct is enabled")
 		llamaFlag    = flag.Bool("llama", true, "Start the embedded local inference harness (Colibri, with llama.cpp as fallback) during server initialization; -llama=false disables it")
 		port         = flag.Int("port", 0, "Server port (overrides config)")
 		host         = flag.String("host", "", "Server host (overrides config)")
@@ -4306,6 +4352,7 @@ func loadConfig() (*Config, error) {
 	config.AutoStartModels = *modelsFlag
 	config.AutoStartPipeline = *pipelineFlag
 	config.AutoStartDirect = *directFlag
+	config.AutoStartDirectJitter = *directFlag && *jitterFlag
 	config.AutoStartLlama = config.Llama.Enabled
 	flag.Visit(func(f *flag.Flag) {
 		if f.Name == "llama" {

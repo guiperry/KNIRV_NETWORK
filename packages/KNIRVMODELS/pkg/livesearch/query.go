@@ -17,17 +17,23 @@ var ErrNoQuery = errors.New("livesearch: the claim has nothing to search for aft
 var redactions = []*regexp.Regexp{
 	// The labelled form goes first, so the label is removed together with its value.
 	regexp.MustCompile(`(?i)(?:password|passwd|token|secret|api[_-]?key)\s*[=:]\s*\S+`), // key=value secrets
-	regexp.MustCompile(`(?i)[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,}`),                   // email
-	regexp.MustCompile(`AKIA[0-9A-Z]{16}`),                                              // AWS key id
-	regexp.MustCompile(`gh[pousr]_[A-Za-z0-9]{36}`),                                     // GitHub token
-	regexp.MustCompile(`sk-[A-Za-z0-9_\-]{16,}`),                                        // API-style key
-	regexp.MustCompile(`https?://\S+`),                                                  // any URL
-	regexp.MustCompile(`\b\d{3}-\d{2}-\d{4}\b`),                                         // US SSN
-	regexp.MustCompile(`\b(?:\d[ -]?){13,19}\b`),                                        // card-like digit runs
-	regexp.MustCompile(`\+?\d[\d\s().\-]{8,}\d`),                                        // phone numbers
-	regexp.MustCompile(`\b(?:\d{1,3}\.){3}\d{1,3}\b`),                                   // IPv4
-	regexp.MustCompile(`\b[A-Fa-f0-9]{24,}\b`),                                          // long hex (hashes, ids)
-	regexp.MustCompile(`\b[A-Za-z0-9+/_\-]{32,}={0,2}`),                                 // long base64-ish blobs
+	// Structured identifiers go before the generic digit-run patterns, which would
+	// otherwise eat half of an IBAN and leave the rest.
+	regexp.MustCompile(`\b[A-Z]{2}\d{2}(?:[ ]?[A-Z0-9]{4}){3,7}(?:[ ]?[A-Z0-9]{1,3})?\b`),                                                       // IBAN
+	regexp.MustCompile(`(?i)\b(?:dob|date of birth|born on|birthday)\s*[:=]?\s*[\w ,/.\-]{6,20}`),                                               // labelled birth date
+	regexp.MustCompile(`\b\d{1,5}\s+(?:[A-Z][a-z]+\s+){1,3}(?:Street|St|Road|Rd|Avenue|Ave|Lane|Ln|Drive|Dr|Boulevard|Blvd|Court|Ct|Way)\b\.?`), // street address
+	regexp.MustCompile(`(?i)\b(?:passport|licen[cs]e|account|ssn|nin|tax id)\s*(?:no\.?|number|#)?\s*[:=]?\s*[A-Z0-9\-]{6,}`),                   // labelled identifiers
+	regexp.MustCompile(`(?i)[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,}`),                                                                           // email
+	regexp.MustCompile(`AKIA[0-9A-Z]{16}`),              // AWS key id
+	regexp.MustCompile(`gh[pousr]_[A-Za-z0-9]{36}`),     // GitHub token
+	regexp.MustCompile(`sk-[A-Za-z0-9_\-]{16,}`),        // API-style key
+	regexp.MustCompile(`https?://\S+`),                  // any URL
+	regexp.MustCompile(`\b\d{3}-\d{2}-\d{4}\b`),         // US SSN
+	regexp.MustCompile(`\b(?:\d[ -]?){13,19}\b`),        // card-like digit runs
+	regexp.MustCompile(`\+?\d[\d\s().\-]{8,}\d`),        // phone numbers
+	regexp.MustCompile(`\b(?:\d{1,3}\.){3}\d{1,3}\b`),   // IPv4
+	regexp.MustCompile(`\b[A-Fa-f0-9]{24,}\b`),          // long hex (hashes, ids)
+	regexp.MustCompile(`\b[A-Za-z0-9+/_\-]{32,}={0,2}`), // long base64-ish blobs
 }
 
 // Redact removes secrets and personal identifiers from s.

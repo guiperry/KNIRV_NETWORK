@@ -22,6 +22,8 @@ type fakeDaemon struct {
 	routeHead bool // whether HEAD's reasoning has a "route" decision
 	routePick string
 	reasons   int
+	headDown  bool // HEAD's VLM routes return 503 (no backend)
+	heartDown bool // HEART's generate route returns 503 (not ready)
 }
 
 func (d *fakeDaemon) client(t *testing.T) *models.Client {
@@ -36,6 +38,10 @@ func (d *fakeDaemon) client(t *testing.T) *models.Client {
 		_, _ = w.Write([]byte(`{"available":true,"status":"online","loaded":true,"ready":true,"progress":1}`))
 	})
 	mux.HandleFunc(models.HeartPrefix+"/generate", func(w http.ResponseWriter, _ *http.Request) {
+		if d.heartDown {
+			w.WriteHeader(http.StatusServiceUnavailable)
+			return
+		}
 		_, _ = w.Write([]byte(`{"text":"from heart"}`))
 	})
 	mux.HandleFunc(models.HasherPrefix+"/validate", func(w http.ResponseWriter, _ *http.Request) {
@@ -45,18 +51,43 @@ func (d *fakeDaemon) client(t *testing.T) *models.Client {
 		_, _ = w.Write([]byte(`{"version":"head-9","config":{"max_seq_len":40,"summary_slots":8}}`))
 	})
 	mux.HandleFunc(models.HeadPrefix+"/reason", func(w http.ResponseWriter, _ *http.Request) {
-		d.mu.Lock()
-		d.reasons++
-		d.mu.Unlock()
-		dec := `[]`
-		if d.routeHead {
-			dec = `[{"name":"route","kind":"choice","options":["heart","llama"],"probabilities":[0.1,0.9],"selected":"` + d.routePick + `","confidence":0.9,"abstain":false}]`
+		d.routeHandler(w)
+	})
+	mux.HandleFunc(models.HeartDecisionPrefix+"/reason", func(w http.ResponseWriter, _ *http.Request) {
+		d.routeHandler(w)
+	})
+	mux.HandleFunc(models.HeadPrefix+"/status", func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write([]byte(`{"backend":"none","ready":true,"capabilities":{"vision":false,"text_mirror":false,"embed":false}}`))
+	})
+	mux.HandleFunc(models.HeadPrefix+"/capabilities", func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write([]byte(`{"vision":false,"text_mirror":false,"embed":false}`))
+	})
+	mux.HandleFunc(models.HeadPrefix+"/generate", func(w http.ResponseWriter, _ *http.Request) {
+		if d.headDown {
+			w.WriteHeader(http.StatusServiceUnavailable)
+			return
 		}
-		_, _ = w.Write([]byte(`{"plan_tokens":[],"halting_steps":1,"confidence":0.5,"decisions":` + dec + `,"model_version":"head-9"}`))
+		_, _ = w.Write([]byte(`{"text":"from head"}`))
+	})
+	mux.HandleFunc(models.HeadPrefix+"/describe", func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write([]byte(`{"operation":"describe","model":"head","result":{}}`))
 	})
 	srv := httptest.NewServer(mux)
 	t.Cleanup(srv.Close)
 	return models.NewClient(srv.URL, nil)
+}
+
+// routeHandler serves both the (deprecated) HEAD reason route and the HEART decision
+// route with the same fixture behaviour.
+func (d *fakeDaemon) routeHandler(w http.ResponseWriter) {
+	d.mu.Lock()
+	d.reasons++
+	d.mu.Unlock()
+	dec := `[]`
+	if d.routeHead {
+		dec = `[{"name":"route","kind":"choice","options":["heart","llama"],"probabilities":[0.1,0.9],"selected":"` + d.routePick + `","confidence":0.9,"abstain":false}]`
+	}
+	_, _ = w.Write([]byte(`{"plan_tokens":[],"halting_steps":1,"confidence":0.5,"decisions":` + dec + `,"model_version":"head-9"}`))
 }
 
 func rows(ready ...bool) []models.ModelStatus {
@@ -95,10 +126,10 @@ func TestDaemonUnreachableIsNotReady(t *testing.T) {
 	}
 }
 
-func TestHeadDoDecideNeverErrorsOnAbstain(t *testing.T) {
+func TestHeartDoDecideNeverErrorsOnAbstain(t *testing.T) {
 	d := &fakeDaemon{registry: rows(true, true, true)}
-	head, _, _ := DaemonModels(d.client(t))
-	res, err := head.Do(context.Background(), Task{Kind: KindDecide, Input: models.AdviseContext{CurrentPhase: "build"}})
+	_, heart, _ := DaemonModels(d.client(t))
+	res, err := heart.Do(context.Background(), Task{Kind: KindDecide, Input: models.AdviseContext{CurrentPhase: "build"}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -106,31 +137,61 @@ func TestHeadDoDecideNeverErrorsOnAbstain(t *testing.T) {
 	if !ok || !adv.Abstain { // the fake reasoning has no action head
 		t.Fatalf("expected an abstention, got %+v", res.Value)
 	}
-	if _, err := head.Do(context.Background(), Task{Kind: KindDecide, Input: "wrong type"}); err == nil {
+	if _, err := heart.Do(context.Background(), Task{Kind: KindDecide, Input: "wrong type"}); err == nil {
 		t.Fatal("wrong input type must be rejected")
 	}
 }
 
-func TestHeadChooseRouteHead(t *testing.T) {
+func TestHeartChooseRouteHead(t *testing.T) {
 	d := &fakeDaemon{registry: rows(true, true, true), routeHead: true, routePick: "llama"}
-	head, _, _ := DaemonModels(d.client(t))
-	c, err := head.Choose(context.Background(), Task{Kind: KindGenerate}, []string{"heart", "llama"})
+	_, heart, _ := DaemonModels(d.client(t))
+	c, err := heart.Choose(context.Background(), Task{Kind: KindGenerate}, []string{"heart", "llama"})
 	if err != nil || c.Model != "llama" || c.Confidence < 0.8 || c.Version != "head-9" {
 		t.Fatalf("%+v %v", c, err)
 	}
 }
 
-func TestHeadChooseWithoutRouteHeadAbstainsAndIsRemembered(t *testing.T) {
+func TestHeartChooseWithoutRouteHeadAbstainsAndIsRemembered(t *testing.T) {
 	d := &fakeDaemon{registry: rows(true, true, true)}
-	head, _, _ := DaemonModels(d.client(t))
+	_, heart, _ := DaemonModels(d.client(t))
 	for i := 0; i < 3; i++ {
-		c, err := head.Choose(context.Background(), Task{Kind: KindGenerate}, []string{"heart", "llama"})
+		c, err := heart.Choose(context.Background(), Task{Kind: KindGenerate}, []string{"heart", "llama"})
 		if err != nil || !c.Abstain || !strings.Contains(c.Reason, "no route head") {
 			t.Fatalf("%+v %v", c, err)
 		}
 	}
 	if d.reasons != 1 {
 		t.Fatalf("the missing head should be remembered; reason calls = %d", d.reasons)
+	}
+}
+
+func TestHeadDoVisionAndMirrorGenerate(t *testing.T) {
+	d := &fakeDaemon{registry: rows(true, true, true)}
+	head, _, _ := DaemonModels(d.client(t))
+	ctx := context.Background()
+
+	r, err := head.Do(ctx, Task{Kind: KindVision, Input: models.VisionRequest{Operation: "describe", Text: "x"}})
+	if err != nil || r.Model != "head" {
+		t.Fatalf("%+v %v", r, err)
+	}
+	if _, ok := r.Value.(*models.VisionResponse); !ok {
+		t.Fatalf("vision result must be *models.VisionResponse, got %T", r.Value)
+	}
+
+	// mirror_generate: both HEAD and HEART answer; HEART wins the tie by default.
+	mr, err := head.Do(ctx, Task{Kind: KindMirrorGenerate, Input: models.HeadGenerateRequest{Prompt: "p"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if mr.Text != "from heart" || mr.Model != "heart" {
+		t.Fatalf("expected HEART to win the tie, got %+v", mr)
+	}
+
+	if _, err := head.Do(ctx, Task{Kind: KindVision, Input: "wrong"}); err == nil {
+		t.Fatal("vision input must be a VisionRequest")
+	}
+	if _, err := head.Do(ctx, Task{Kind: KindGenerate, Input: "x"}); err == nil {
+		t.Fatal("head must reject non-vision / non-mirror_generate kinds")
 	}
 }
 

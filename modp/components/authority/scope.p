@@ -6,6 +6,16 @@
 //   - the session certificate's scope covers the record scope,
 //   - the operator's registered grant covers the record scope.
 // Scopes are ints; an operator's own address is its id; -1 is the wildcard.
+//
+// `defect` selects a deliberately broken variant, one per rule above, so each rule
+// is shown to matter (a monitor assertion that no variant can trip proves nothing):
+//   0 correct, 1 ignores the session certificate scope, 2 ignores the registered
+//   grant, 3 lets a non-root operator sign T2/T3, 4 lets T1 act outside the
+//   operator's own address, 5 accepts an unregistered operator.
+//
+// Workload coverage: operator 1 is root with a wildcard grant, 2 and 3 are non-root
+// with their own grant, 4 is root with a NARROW grant (so the registered-grant rule
+// is the deciding check for it), and 5 is never registered.
 
 event eAuthScopeRegister: (op: int, isRoot: bool, grant: int);
 event eAuthScopeRegistered: (op: int, isRoot: bool, grant: int);
@@ -17,14 +27,12 @@ type AuthScopeOperator = (isRoot: bool, grant: int);
 
 machine AuthorityScopeMachine {
     var operators: map[int, AuthScopeOperator];
-    var skipSessionScope: bool;
+    var defect: int;
 
     start state Init {
-        // skipSessionScope=true is the deliberately broken variant (cross-scope
-        // acceptance through a narrower session certificate).
-        entry (cfg: (skipSessionScope: bool)) {
+        entry (cfg: (defect: int)) {
             operators = default(map[int, AuthScopeOperator]);
-            skipSessionScope = cfg.skipSessionScope;
+            defect = cfg.defect;
             goto Active;
         }
     }
@@ -37,24 +45,28 @@ machine AuthorityScopeMachine {
 
         on eAuthScopeAction do (a: (op: int, tier: int, scope: int, sessionScope: int)) {
             var reg: AuthScopeOperator;
-            if (!(a.op in operators)) {
+            if (a.op in operators) {
+                reg = operators[a.op];
+            } else {
+                if (defect != 5) {
+                    announce eAuthScopeRejected, a;
+                    return;
+                }
+                reg = (isRoot = true, grant = -1);
+            }
+            if (defect != 3 && a.tier >= 2 && !reg.isRoot) {
                 announce eAuthScopeRejected, a;
                 return;
             }
-            reg = operators[a.op];
-            if (a.tier >= 2 && !reg.isRoot) {
+            if (defect != 4 && a.tier == 1 && a.scope != a.op) {
                 announce eAuthScopeRejected, a;
                 return;
             }
-            if (a.tier == 1 && a.scope != a.op) {
+            if (defect != 1 && a.sessionScope != -1 && a.sessionScope != a.scope) {
                 announce eAuthScopeRejected, a;
                 return;
             }
-            if (!skipSessionScope && a.sessionScope != -1 && a.sessionScope != a.scope) {
-                announce eAuthScopeRejected, a;
-                return;
-            }
-            if (reg.grant != -1 && reg.grant != a.scope) {
+            if (defect != 2 && reg.grant != -1 && reg.grant != a.scope) {
                 announce eAuthScopeRejected, a;
                 return;
             }
@@ -98,17 +110,18 @@ machine AuthorityScopeWorkload {
     var sess: int;
 
     start state Init {
-        entry (cfg: (skipSessionScope: bool)) {
-            scopeMachine = new AuthorityScopeMachine((skipSessionScope = cfg.skipSessionScope,));
+        entry (cfg: (defect: int)) {
+            scopeMachine = new AuthorityScopeMachine((defect = cfg.defect,));
             send scopeMachine, eAuthScopeRegister, (op = 1, isRoot = true, grant = -1);
             send scopeMachine, eAuthScopeRegister, (op = 2, isRoot = false, grant = 2);
             send scopeMachine, eAuthScopeRegister, (op = 3, isRoot = false, grant = 3);
+            send scopeMachine, eAuthScopeRegister, (op = 4, isRoot = true, grant = 4);
             i = 0;
-            while (i < 8) {
-                who = 1 + choose(3);
+            while (i < 10) {
+                who = 1 + choose(5);
                 tier = 1 + choose(3);
-                scope = 1 + choose(3);
-                sess = choose(5) - 1;
+                scope = 1 + choose(4);
+                sess = choose(6) - 1;
                 send scopeMachine, eAuthScopeAction, (op = who, tier = tier, scope = scope, sessionScope = sess);
                 i = i + 1;
             }
@@ -117,27 +130,44 @@ machine AuthorityScopeWorkload {
 }
 
 machine AuthorityScopeMain {
-    start state Init {
-        entry {
-            new AuthorityScopeWorkload((skipSessionScope = false,));
-        }
-    }
+    start state Init { entry { new AuthorityScopeWorkload((defect = 0,)); } }
 }
-
 machine AuthorityScopeBugMain {
-    start state Init {
-        entry {
-            new AuthorityScopeWorkload((skipSessionScope = true,));
-        }
-    }
+    start state Init { entry { new AuthorityScopeWorkload((defect = 1,)); } }
+}
+machine AuthorityGrantIgnoredBugMain {
+    start state Init { entry { new AuthorityScopeWorkload((defect = 2,)); } }
+}
+machine AuthorityTierRootIgnoredBugMain {
+    start state Init { entry { new AuthorityScopeWorkload((defect = 3,)); } }
+}
+machine AuthorityT1OwnScopeIgnoredBugMain {
+    start state Init { entry { new AuthorityScopeWorkload((defect = 4,)); } }
+}
+machine AuthorityUnregisteredAcceptedBugMain {
+    start state Init { entry { new AuthorityScopeWorkload((defect = 5,)); } }
 }
 
 module AuthorityScopeModule = { AuthorityScopeMain, AuthorityScopeWorkload, AuthorityScopeMachine };
 module AuthorityScopeBugModule = { AuthorityScopeBugMain, AuthorityScopeWorkload, AuthorityScopeMachine };
+module AuthorityGrantIgnoredBugModule = { AuthorityGrantIgnoredBugMain, AuthorityScopeWorkload, AuthorityScopeMachine };
+module AuthorityTierRootIgnoredBugModule = { AuthorityTierRootIgnoredBugMain, AuthorityScopeWorkload, AuthorityScopeMachine };
+module AuthorityT1OwnScopeIgnoredBugModule = { AuthorityT1OwnScopeIgnoredBugMain, AuthorityScopeWorkload, AuthorityScopeMachine };
+module AuthorityUnregisteredAcceptedBugModule = { AuthorityUnregisteredAcceptedBugMain, AuthorityScopeWorkload, AuthorityScopeMachine };
 
 test AuthorityScope [main = AuthorityScopeMain]:
     assert AuthorityScopeMonitor in AuthorityScopeModule;
 
-// Expected to FAIL (named Broken* so a prefix match on the real test never runs it): proves AuthorityScopeMonitor can detect cross-scope acceptance.
+// Expected to FAIL (named Broken* so a prefix match on the real test never runs it).
+// Each proves AuthorityScopeMonitor detects one broken scope rule. None of these names
+// starts with another test's name, because P selects tests by prefix.
 test BrokenAuthorityScope [main = AuthorityScopeBugMain]:
     assert AuthorityScopeMonitor in AuthorityScopeBugModule;
+test BrokenAuthorityGrantIgnored [main = AuthorityGrantIgnoredBugMain]:
+    assert AuthorityScopeMonitor in AuthorityGrantIgnoredBugModule;
+test BrokenAuthorityTierRootIgnored [main = AuthorityTierRootIgnoredBugMain]:
+    assert AuthorityScopeMonitor in AuthorityTierRootIgnoredBugModule;
+test BrokenAuthorityT1OwnScopeIgnored [main = AuthorityT1OwnScopeIgnoredBugMain]:
+    assert AuthorityScopeMonitor in AuthorityT1OwnScopeIgnoredBugModule;
+test BrokenAuthorityUnregisteredAccepted [main = AuthorityUnregisteredAcceptedBugMain]:
+    assert AuthorityScopeMonitor in AuthorityUnregisteredAcceptedBugModule;

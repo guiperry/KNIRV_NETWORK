@@ -4,7 +4,10 @@ package monitor
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"net"
+	"net/http"
 	"strings"
 	"time"
 
@@ -18,6 +21,7 @@ type Config = api.ServerConfig
 type Service struct {
 	server *api.Server
 	cancel context.CancelFunc
+	oracle *http.Client
 }
 
 func Start(parent context.Context, cfg *Config) (*Service, error) {
@@ -37,6 +41,12 @@ func Start(parent context.Context, cfg *Config) (*Service, error) {
 		return nil, err
 	}
 	service := &Service{server: server, cancel: cancel}
+	if cfg.OracleSocketPath != "" {
+		socket := cfg.OracleSocketPath
+		service.oracle = &http.Client{Timeout: cfg.RequestTimeout, Transport: &http.Transport{DialContext: func(ctx context.Context, _, _ string) (net.Conn, error) {
+			return (&net.Dialer{}).DialContext(ctx, "unix", socket)
+		}}}
+	}
 	go service.runProbeLoop(ctx, cfg.ScrapeInterval)
 	return service, nil
 }
@@ -54,6 +64,9 @@ func (s *Service) runProbeLoop(ctx context.Context, interval time.Duration) {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
+			if s.oracle != nil {
+				s.refreshReplica(ctx)
+			}
 			if s.server.HasBackendSocket() {
 				if _, err := s.server.RefreshActuarialMetrics(context.Background()); err != nil {
 					s.server.Registry().ScrapeErrors.Inc()
@@ -67,6 +80,52 @@ func (s *Service) runProbeLoop(ctx context.Context, interval time.Duration) {
 				}
 			}
 		}
+	}
+}
+
+func (s *Service) refreshReplica(ctx context.Context) {
+	available := s.server.Registry().RegisterRemoteGauge("oracle_replica_available", "Whether the latest Oracle replication scrape succeeded")
+	available.Set(0)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, "http://unix/oracle/v3/status", nil)
+	if err != nil {
+		s.server.Registry().ScrapeErrors.Inc()
+		return
+	}
+	resp, err := s.oracle.Do(req)
+	if err != nil {
+		s.server.Registry().ScrapeErrors.Inc()
+		return
+	}
+	defer resp.Body.Close()
+	var status struct {
+		Mode       string   `json:"mode"`
+		HeadSeq    *uint64  `json:"head_seq"`
+		LagSeq     *uint64  `json:"lag_seq"`
+		LagSeconds *int64   `json:"lag_seconds"`
+		Diverged   *bool    `json:"diverged"`
+		Paused     *bool    `json:"replication_paused"`
+		Unverified []string `json:"unverified_classes"`
+	}
+	if resp.StatusCode != http.StatusOK || json.NewDecoder(resp.Body).Decode(&status) != nil || (status.Mode != "active" && status.Mode != "standby" && status.Mode != "off") || status.HeadSeq == nil || status.LagSeq == nil || status.LagSeconds == nil || status.Diverged == nil || status.Paused == nil {
+		s.server.Registry().ScrapeErrors.Inc()
+		return
+	}
+	available.Set(1)
+	values := map[string]float64{"oracle_replica_head_seq": float64(*status.HeadSeq), "oracle_replica_lag_seq": float64(*status.LagSeq), "oracle_replica_lag_seconds": float64(*status.LagSeconds), "oracle_replica_diverged": 0, "oracle_replica_paused": 0, "oracle_replica_unverified_classes": float64(len(status.Unverified)), "oracle_mode": 0}
+	if status.Mode == "active" {
+		values["oracle_mode"] = 1
+	}
+	if status.Mode == "standby" {
+		values["oracle_mode"] = 2
+	}
+	if *status.Diverged {
+		values["oracle_replica_diverged"] = 1
+	}
+	if *status.Paused {
+		values["oracle_replica_paused"] = 1
+	}
+	for name, value := range values {
+		s.server.Registry().RegisterRemoteGauge(name, "Local Oracle replication status").Set(value)
 	}
 }
 

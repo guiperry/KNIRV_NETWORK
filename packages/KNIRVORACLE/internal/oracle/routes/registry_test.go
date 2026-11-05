@@ -167,3 +167,21 @@ func TestGuardRefusesUnclassifiedPaths(t *testing.T) {
 		t.Fatalf("guard refused an allowlisted path: status %d", allowed.Code)
 	}
 }
+
+// Defense-in-depth for D10: the rotation route must refuse an authority-chain
+// author rotation at the HTTP boundary, before any registry write is attempted.
+func TestHandleRegistryRotateRejectsAuthorityChain_D10(t *testing.T) {
+	r := NewOracleRoutes(newTestOracleWithMode(t, oracle.ModeActive), zap.NewNop())
+	mux := http.NewServeMux()
+	r.RegisterRoutes(mux)
+
+	body := `{"chain_id":"authority/operator1","authors":[{"address":"0xabc","pubkey":"","weight":1}],"quorum_numer":1,"quorum_denom":1}`
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, httptest.NewRequest(http.MethodPost, "/oracle/v3/registry/rotate", strings.NewReader(body)))
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("status = %d, want 400", rec.Code)
+	}
+	if !strings.Contains(rec.Body.String(), "authority chain author rotation is deprecated (D10)") {
+		t.Fatalf("body = %q, want the D10 rejection", rec.Body.String())
+	}
+}

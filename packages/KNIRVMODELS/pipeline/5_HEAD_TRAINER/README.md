@@ -6,7 +6,7 @@ inference cannot drift.
 
 ```bash
 cargo build --release
-./target/release/head-trainer --data episodes.jsonl --out /var/lib/knirvserver/knirvmodels/data \
+./target/release/heart-decision-trainer --data episodes.jsonl --out /var/lib/knirvserver/knirvmodels/data \
     --preset small --epochs 20 --lr 3e-4 --policy-bundle-hash <sha256>
 ```
 
@@ -34,23 +34,23 @@ Exit status: `0` promoted, `3` trained but refused by the gate, `1` error.
 * A head whose answer is spelled out in its input (`<head>:<option>`, >= 90% of rows) is refused as label
   leakage (`--allow-leaky-heads` overrides). `convert` therefore does not emit `intent` and `risk`
   (fields of the prompt) unless `--emit-input-heads`.
-* Tokens are `byte-v1` (`knirv_head::tokenizer`): BOS + bytes, PAD-filled to the preset width.
+* Tokens are `byte-v1` (`knirv_heart_decision::tokenizer`): BOS + bytes, PAD-filled to the preset width.
   `plan` is supervised position-by-position (plan bytes, EOS, PAD); records without one skip the plan loss.
 * The input must be redacted before it reaches this stage. The trainer does not redact.
 
 ## As a pipeline stage
 
-`KNIRVMODELS/pkg/head/cycle` runs this trainer automatically after pipeline batches (and on demand:
+`KNIRVMODELS/pkg/heart/decision/cycle` runs this trainer automatically after pipeline batches (and on demand:
 `curl --unix-socket /var/run/knirvmodels.sock -X POST -d '{"force":true}' http://x/api/v1/head/train`, status at
 `GET /api/v1/head/status`). It reads Bronze from `<appdata>/knirvmodels/supervision/bronze/*.jsonl`
 (`KNIRV_HEAD_BRONZE_DIR`), and uses `<appdata>/knirvmodels/head-work/teacher.jsonl` as `--soft` if present.
 Knobs: `KNIRV_HEAD_AUTOTRAIN`, `_PRESET`, `_EPOCHS`, `_MIN_NEW`, `_MIN_GAP_HOURS`, `_POLICY_HASH`.
-`make build-head-trainer build-head-wasi` (part of `build-pipeline-all`, so of KNIRVSERVER `make binary`) embeds it.
+`make build-heart-decision-trainer build-head-wasi` (part of `build-pipeline-all`, so of KNIRVSERVER `make binary`) embeds it.
 
 ## Converting supervisor episodes
 
 ```bash
-./target/release/head-trainer convert --episodes gold.jsonl --out train.jsonl [--soft clef-teacher.jsonl] [--soft-heads intent,next_phase,risk,agent]
+./target/release/heart-decision-trainer convert --episodes gold.jsonl --out train.jsonl [--soft clef-teacher.jsonl] [--soft-heads intent,next_phase,risk,agent]
 ```
 
 Only episodes with a non-abstaining decision and `outcome.verified && !human_override` become decision

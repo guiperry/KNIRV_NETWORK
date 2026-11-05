@@ -1,0 +1,73 @@
+{
+  "comment": "Canonical wire contract for the Phase 3 HEAD VLM + mirrored text generator, and the decision-aware HEART generate envelope. The Go (go-package/models/head_vlm.go) and TypeScript (npm-package/src/models) bindings are mirrors of this file; they must not re-implement the contract. The head.mirror.generate frame stage lives alongside this in data/frame_defaults.json.",
+  "image_ref": {
+    "url": "string (optional)",
+    "hash": "string (optional)",
+    "kind": "string (optional): photo | diagram | document | ..."
+  },
+  "vision_request": {
+    "operation": "embed | describe | ground | visual-reason",
+    "text": "string (optional)",
+    "images": "array<ImageRef> (optional)",
+    "context": "string (optional)"
+  },
+  "vision_response": {
+    "operation": "string",
+    "model": "string (optional)",
+    "version": "string (optional)",
+    "result": "opaque JSON (per-operation payload)",
+    "refuted": "bool (optional)",
+    "notes": "array<string> (optional)"
+  },
+  "head_generate_request": {
+    "prompt": "string",
+    "perceptual_context": "string (optional, HEART/operator context HEAD conditions on)",
+    "images": "array<ImageRef> (optional)",
+    "frame": "string (optional)"
+  },
+  "head_generate_response": {
+    "text": "string",
+    "model": "string",
+    "version": "string (optional)",
+    "refuted": "bool (optional, set by HASHER validation: weight 0 in the arbiter)",
+    "notes": "array<string> (optional)"
+  },
+  "head_status": {
+    "backend": "none | llama | onnx | openai",
+    "ready": "bool",
+    "capabilities": "HeadCapabilities",
+    "detail": "string (optional)"
+  },
+  "head_capabilities": {
+    "vision": "bool (embed/describe/ground/visual-reason)",
+    "text_mirror": "bool (mirrored text generation)",
+    "embed": "bool (produces embeddings)"
+  },
+  "heart_decision_envelope": {
+    "decisions": "array<Decision> (optional)",
+    "abstained": "bool (optional)",
+    "reason": "string (optional)"
+  },
+  "heart_generate_request": {
+    "prompt": "string",
+    "decision": "heart_decision_envelope (optional; sent only in the HEART mirror candidate)"
+  },
+  "heart_generate_response": {
+    "text": "string (optional)",
+    "ready": "bool",
+    "progress": "float",
+    "decision": "heart_decision_envelope (optional)",
+    "abstained": "bool (optional)",
+    "tokens": "int (optional)",
+    "error": "string (optional)"
+  },
+  "routes": {
+    "head_status": "GET /models/head/status",
+    "head_capabilities": "GET /models/head/capabilities",
+    "head_models": "GET /models/head/models",
+    "head_weights": "GET /models/head/weights/{ver}",
+    "head_generate": "POST /models/head/generate",
+    "head_vision": "POST /models/head/{embed,describe,ground,visual-reason}",
+    "heart_generate": "POST /models/heart/generate"
+  }
+}

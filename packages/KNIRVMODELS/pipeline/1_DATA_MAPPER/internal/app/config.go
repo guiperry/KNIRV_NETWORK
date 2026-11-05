@@ -152,9 +152,9 @@ func ParseFlags() *Config {
 
 	flag.Parse()
 
-	if config.EmbeddingDataClass == "private" && config.EmbeddingBackend == "cloudflare" && !config.AllowCloudflareForPrivate {
+	if config.effectiveEmbeddingBackend() != strings.ToLower(strings.TrimSpace(config.EmbeddingBackend)) {
 		log.Println("Private embedding data is local-only; selecting Ollama instead of Cloudflare")
-		config.EmbeddingBackend = "ollama"
+		config.EmbeddingBackend = config.effectiveEmbeddingBackend()
 	}
 
 	// Parse categories string

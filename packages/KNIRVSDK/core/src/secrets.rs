@@ -153,6 +153,60 @@ pub fn decrypt_with(file: &[u8], secret: Secret<'_>) -> Result<Vec<u8>> {
         .map_err(|_| Error::Crypto("wrong password or corrupted file".into()))
 }
 
+/// HKDF info for the OpenBao static seal key.
+pub const BAO_SEAL_INFO: &[u8] = b"knirv/openbao/static-seal/v1";
+
+/// The 32-byte OpenBao static-seal key for a key file: HKDF-SHA256 (RFC 5869, no
+/// salt) over the file's scrypt-derived key, info [`BAO_SEAL_INFO`]. The envelope is
+/// authenticated first, so a wrong password never yields a seal key.
+pub fn bao_seal_key(file: &[u8], secret: Secret<'_>) -> Result<[u8; 32]> {
+    use hmac::{Hmac, Mac};
+    use sha2::Sha256;
+    let key = match secret {
+        Secret::Password(password) => derive_key(password, &kdf_params(file)?)?.to_vec(),
+        Secret::DerivedKey(key) => key.to_vec(),
+    };
+    // Authenticate (and discard) the plaintext before using the KDF output.
+    let _ = decrypt_with(file, Secret::DerivedKey(&key))?;
+    let mut extract = <Hmac<Sha256> as Mac>::new_from_slice(&[0u8; 32]).map_err(|e| Error::Crypto(e.to_string()))?;
+    extract.update(&key);
+    let prk = extract.finalize().into_bytes();
+    let mut expand = <Hmac<Sha256> as Mac>::new_from_slice(&prk).map_err(|e| Error::Crypto(e.to_string()))?;
+    expand.update(BAO_SEAL_INFO);
+    expand.update(&[1u8]);
+    Ok(expand.finalize().into_bytes().into())
+}
+
+/// The key-file identity a signer name stands for: `root`, `boot` or `validation`
+/// (root when present, else boot). Role names are case- and space-insensitive.
+pub fn signer_role(name: &str) -> Result<&'static str> {
+    match name.trim().to_ascii_lowercase().as_str() {
+        "root" | "root-owner" => Ok("root"),
+        "boot" | "bootnode-master" => Ok("boot"),
+        "validation" | "validation-chain" | "checkpoint-signer" => Ok("validation"),
+        "failover" | "failover-identity" => Ok("failover"),
+        _ => Err(bad(format!("unknown signer {name:?}"))),
+    }
+}
+
+/// The canonical OpenBao plugin identity (the `knirv/sign/{direct,message}/<identity>`
+/// path) for a logical signer name, resolved through the core-owned role mapping.
+/// The Go/TS bindings must call this rather than re-implement the mapping in
+/// their own switch, so the resolution stays a single source of truth.
+///
+/// The plugin path is the service identity and does not depend on the node role:
+/// the plugin itself selects the underlying key (root when present else boot) for
+/// the `checkpoint-signer` path used by the Validation Chain.
+pub fn bao_signer_name(name: &str) -> Result<String> {
+    match signer_role(name)? {
+        "root" => Ok("root-owner".to_string()),
+        "boot" => Ok("bootnode-master".to_string()),
+        "validation" => Ok("checkpoint-signer".to_string()),
+        "failover" => Ok("failover-identity".to_string()),
+        other => Err(bad(format!("unsupported signer role {other:?}"))),
+    }
+}
+
 /// Reads and decrypts a key file from disk.
 pub fn decrypt_file(path: impl AsRef<Path>, password: &[u8]) -> Result<Vec<u8>> {
     let path = path.as_ref();
@@ -617,6 +671,100 @@ mod tests {
     }
     fn file(v: &Value, key: &str) -> Vec<u8> {
         BASE64.decode(v[key].as_str().unwrap()).unwrap()
+    }
+
+    #[test]
+    fn knirvbao_api_fixture_matches_reference_contract() {
+        // This is a host API fixture; signing and verification remain in this core.
+        let path = format!(
+            "{}/../testvectors/secrets/knirvbao_api_v1.json",
+            env!("CARGO_MANIFEST_DIR")
+        );
+        let actual: Value = serde_json::from_slice(&std::fs::read(path).unwrap()).unwrap();
+        let expected = serde_json::json!({
+            "version": 1,
+            "key_type": "service",
+            "policy": {
+                "type_urls": ["/knirv.signing.v1.Action"],
+                "chain_ids": ["knirv-testnet-1"],
+                "messages": [{"domain": "knirv.controller", "purpose": "cli-sign"}],
+                "max_fee": "3", "rate_limit": 5
+            },
+            "transaction": {
+                "Action": {"Action": "transfer", "Sender": "knirv1sender", "Recipient": "knirv1recipient", "Amount": 42, "TimestampUnix": 1750000000},
+                "ChainID": "knirv-testnet-1", "AccountNumber": 7, "Sequence": 9,
+                "Fee": {"Denom": "unrn", "Amount": "3", "GasLimit": 200000}
+            },
+            "message": {
+                "Domain": "knirv.controller", "Purpose": "cli-sign", "ChainID": "knirv-testnet-1",
+                "Nonce": "request-123", "IssuedAtUnix": 1750000000, "ExpiresAtUnix": 1750000300,
+                "Payload": "YXBwcm92ZSB0cmFuc2Zlcg=="
+            }
+        });
+        if std::env::var_os("KNIRV_PRINT_BAO_FIXTURE").is_some() {
+            println!("{}", serde_json::to_string_pretty(&expected).unwrap());
+        }
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn knirvbao_seal_fixture_matches_reference_kdf() {
+        use sha2::{Digest, Sha256};
+
+        let path = format!(
+            "{}/../testvectors/secrets/bao_seal_v1.json",
+            env!("CARGO_MANIFEST_DIR")
+        );
+        let fixture: Value = serde_json::from_slice(&std::fs::read(path).unwrap()).unwrap();
+        let source = vector();
+        let root = file(&source, "root_key");
+        let seal = bao_seal_key(
+            &root,
+            Secret::Password(source["password"].as_str().unwrap().as_bytes()),
+        )
+        .unwrap();
+        let digest = Sha256::digest(seal);
+        assert!(bao_seal_key(&root, Secret::Password(b"wrong")).is_err());
+        let expected = serde_json::json!({
+            "version": 1,
+            "key_file_vector": "keyfile_v1.json",
+            "key_file_field": "root_key",
+            "info": "knirv/openbao/static-seal/v1",
+            "seal_sha256": hex::encode(digest)
+        });
+        if std::env::var_os("KNIRV_PRINT_BAO_SEAL_FIXTURE").is_some() {
+            println!("{}", serde_json::to_string_pretty(&expected).unwrap());
+        }
+        assert_eq!(fixture, expected);
+    }
+
+    #[test]
+    fn bao_signer_name_maps_aliases() {
+        // The canonical OpenBao plugin identity is the service path, independent of
+        // node role; the plugin selects the underlying key (root else boot) itself.
+        assert_eq!(bao_signer_name("root").unwrap(), "root-owner");
+        assert_eq!(bao_signer_name("root-owner").unwrap(), "root-owner");
+        assert_eq!(bao_signer_name("boot").unwrap(), "bootnode-master");
+        assert_eq!(bao_signer_name("bootnode-master").unwrap(), "bootnode-master");
+        assert_eq!(bao_signer_name("validation").unwrap(), "checkpoint-signer");
+        assert_eq!(bao_signer_name("validation-chain").unwrap(), "checkpoint-signer");
+        assert_eq!(bao_signer_name("checkpoint-signer").unwrap(), "checkpoint-signer");
+        assert_eq!(bao_signer_name("failover").unwrap(), "failover-identity");
+        assert_eq!(bao_signer_name("failover-identity").unwrap(), "failover-identity");
+        assert!(bao_signer_name("nope").is_err());
+    }
+
+    #[test]
+    fn signer_roles_match_the_fixture() {
+        let path = format!("{}/../testvectors/secrets/signer_roles_v1.json", env!("CARGO_MANIFEST_DIR"));
+        let roles: BTreeMap<String, String> = serde_json::from_slice(&std::fs::read(path).unwrap()).unwrap();
+        for (name, identity) in roles {
+            let role = signer_role(&name).unwrap();
+            let resolved = if role == "validation" { "root" } else { role };
+            assert_eq!(resolved, identity, "{name}");
+        }
+        assert_eq!(signer_role(" Root ").unwrap(), "root");
+        assert!(signer_role("nope").is_err());
     }
 
     #[test]

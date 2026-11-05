@@ -1,9 +1,13 @@
 package transformer
 
-import "path/filepath"
+import (
+	"path/filepath"
+
+	gpt "knirvmodels/pkg/hands/gpt"
+)
 
 type HEARTConfig struct {
-	Gorgonite GorgoniteConfig
+	Gorgonite gpt.Config
 
 	UseHashNetwork      bool
 	UseCerebras         bool
@@ -48,7 +52,7 @@ type HEARTConfig struct {
 func DefaultHEARTConfig(useHashNetwork, useCerebras bool) *HEARTConfig {
 	framesDir := ResolveFramesDir()
 	return &HEARTConfig{
-		Gorgonite:                      *DefaultGorgoniteConfig(),
+		Gorgonite:                      *gpt.DefaultConfig(),
 		UseHashNetwork:                 useHashNetwork,
 		UseCerebras:                    useCerebras,
 		TinyGoPath:                     "tinygo",

@@ -1,5 +1,5 @@
 use candle_core::Device;
-use knirv_head::{tokenizer, Head, HeadConfig};
+use knirv_heart_decision::{tokenizer, Head, HeadConfig};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
@@ -12,7 +12,7 @@ const KINDS: [(&str, &str, f32); 5] = [
 ];
 
 fn scratch(name: &str) -> PathBuf {
-    let d = std::env::temp_dir().join(format!("head-trainer-{name}-{}", std::process::id()));
+    let d = std::env::temp_dir().join(format!("heart-decision-trainer-{name}-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&d);
     std::fs::create_dir_all(&d).unwrap();
     d
@@ -34,7 +34,7 @@ fn write_data(dir: &Path, n: usize) -> PathBuf {
 }
 
 fn run(args: &[&str]) -> (i32, String) {
-    let o = Command::new(env!("CARGO_BIN_EXE_head-trainer")).args(args).output().unwrap();
+    let o = Command::new(env!("CARGO_BIN_EXE_heart-decision-trainer")).args(args).output().unwrap();
     (o.status.code().unwrap_or(-1), String::from_utf8_lossy(&o.stderr).into_owned())
 }
 
@@ -126,8 +126,8 @@ fn rejects_malformed_data() {
 fn splits_by_group_not_by_row() {
     let dir = scratch("split");
     let data = write_data(&dir, 200);
-    let ds = head_trainer::data::load(&[data.to_str().unwrap().into()], 31).unwrap();
-    use head_trainer::data::Split;
+    let ds = heart_decision_trainer::data::load(&[data.to_str().unwrap().into()], 31).unwrap();
+    use heart_decision_trainer::data::Split;
     let mut owner = std::collections::HashMap::new();
     for e in &ds.examples {
         // ids are ep-<i>; group is fam-(i%37)
@@ -157,11 +157,11 @@ fn convert_produces_trainable_records() {
     }
     let (ep, out) = (dir.join("ep.jsonl"), dir.join("train.jsonl"));
     std::fs::write(&ep, lines.join("\n")).unwrap();
-    let o = Command::new(env!("CARGO_BIN_EXE_head-trainer"))
+    let o = Command::new(env!("CARGO_BIN_EXE_heart-decision-trainer"))
         .args(["convert", "--episodes", ep.to_str().unwrap(), "--out", out.to_str().unwrap()]).output().unwrap();
     assert!(o.status.success(), "{}", String::from_utf8_lossy(&o.stderr));
     assert!(String::from_utf8_lossy(&o.stderr).contains("written: 32"), "{}", String::from_utf8_lossy(&o.stderr));
-    let ds = head_trainer::data::load(&[out.to_str().unwrap().into()], 63).unwrap();
+    let ds = heart_decision_trainer::data::load(&[out.to_str().unwrap().into()], 63).unwrap();
     assert_eq!(ds.examples.len(), 32);
     let names: Vec<_> = ds.heads.iter().map(|h| h.name.as_str()).collect();
     // next_phase has one value in this data and is skipped; intent/agent use fixed vocabularies.

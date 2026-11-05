@@ -40,6 +40,7 @@ type Trace struct {
 	Skill      string      `json:"skill,omitempty"`
 	LocalOnly  bool        `json:"local_only,omitempty"`
 	NoSpend    bool        `json:"no_spend,omitempty"`
+	NoFlash    bool        `json:"no_flash,omitempty"`
 	Candidates []Candidate `json:"candidates"`
 	Advice     *Advice     `json:"advice,omitempty"`
 	Chosen     string      `json:"chosen,omitempty"`
@@ -51,8 +52,34 @@ type Trace struct {
 	Degraded  bool       `json:"degraded,omitempty"`
 	Notes     []string   `json:"notes,omitempty"`
 	Fallbacks []Fallback `json:"fallbacks,omitempty"`
-	LatencyMs float64    `json:"latency_ms"`
-	Error     string     `json:"error,omitempty"`
+	// Verify is set for a Verify task: what was asked of HASHER and what came back.
+	Verify    *VerifyTrace `json:"verify,omitempty"`
+	LatencyMs float64      `json:"latency_ms"`
+	Error     string       `json:"error,omitempty"`
+}
+
+// VerifyTrace is what a Verify task adds to its Trace. It carries no claim, prompt or
+// evidence text: only counts, names and the gate, so a trace file is safe to keep as
+// audit data and as training data for HEAD's route head.
+type VerifyTrace struct {
+	// Mode is the retrieval mode that ran (index until live lookup is enabled).
+	Mode     string `json:"mode"`
+	Delivery string `json:"delivery,omitempty"`
+	// HitRate is the share of checked claims that found any evidence span in this call
+	// (provisional reading: the index's own hit rate is in its status).
+	HitRate   float64 `json:"hit_rate"`
+	FlashUsed bool    `json:"flash_used"`
+	// OutboundQueries is exactly what left the machine for live lookup: claim words only.
+	OutboundQueries []string `json:"outbound_queries,omitempty"`
+	Gate            string   `json:"gate"`
+	GateLevel       int      `json:"gate_level"`
+	Claims          int      `json:"claims"`
+	Degraded        bool     `json:"degraded,omitempty"`
+	Pending         bool     `json:"pending,omitempty"`
+	JobID           string   `json:"job_id,omitempty"`
+	// IndexVersion and Judge tie the verdict to the index and the judge that made it.
+	IndexVersion string `json:"index_version,omitempty"`
+	Judge        string `json:"judge,omitempty"`
 }
 
 func newTraceID() string {
@@ -68,6 +95,9 @@ type TraceLog struct {
 	next int
 	full bool
 }
+
+// Cap is how many traces the ring keeps.
+func (l *TraceLog) Cap() int { return len(l.buf) }
 
 // NewTraceLog keeps the last n traces (n < 1 keeps one).
 func NewTraceLog(n int) *TraceLog {

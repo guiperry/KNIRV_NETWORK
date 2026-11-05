@@ -1,0 +1,1073 @@
+{
+  "version": 1,
+  "description": "Self-contained authority verification cases: each carries the record, the registry and the verifier clock, so a port needs no fixture of its own. expect is ok or a failure code from section 6 of AUTHORITY_SPEC.md.",
+  "cases": [
+    {
+      "name": "valid T1",
+      "now_unix": 1750000100,
+      "expect": "ok",
+      "registry": {
+        "operators": {
+          "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e": {
+            "address": "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e",
+            "kind": "root",
+            "long_term_pub": "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798",
+            "scopes": [
+              "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e"
+            ]
+          }
+        }
+      },
+      "record": {
+        "tier": 1,
+        "domain": "evidence.commit",
+        "scope": "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e",
+        "operator": "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e",
+        "epoch": 7,
+        "canonical_action_hash": "0867983060e935277446e945d686975b21ea0c4df5d7e9611843b121985d8d6a",
+        "prev_record_hash": "aeebad4a796fcc2e15dc4c6061b45ed9b373f26adfc798ca7d2d8cc58182718e",
+        "header": "000002016681e7e69a80330de9ed7283d7986850e47e42e9df5ec2def3f7bbae2168967aaeebad4a796fcc2e15dc4c6061b45ed9b373f26adfc798ca7d2d8cc58182718e684ee180207fffff00000002",
+        "nonce": 2,
+        "hash": "bef2f33284f2136a98530f5941e076f732eaf2d185c38172e8b98bd2e4688011",
+        "target_bits": 545259519,
+        "witness_kind": "sw",
+        "session_cert": {
+          "session_pub": "02c6047f9441ed7d6d3045406e95c07cd85c778e4b8cef3ca7abac09b95c709ee5",
+          "operator": "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e",
+          "epoch": 7,
+          "not_before": 1750000000,
+          "not_after": 1750086400,
+          "scope": "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e",
+          "entropy": "csprng",
+          "sig_by_longterm": "fe40f65d3b20c5d165f6c14444120ee6a1e3e18c2049e421cba928198361ffdc07a9a7ad097828ed2df9093521bf1eede166a71c3a0e01c900bc80db3670b471"
+        },
+        "signature": "b82b71ddeb93ac8a2a656529764521a352f62ad6d29ce81ab4636cb066a9d66335453f8983de7fb3ba69c781c65ac5b11630825474c3ef226912895a52cc45b5"
+      },
+      "note": "software witness at the T1 target"
+    },
+    {
+      "name": "valid T2 root",
+      "now_unix": 1750000100,
+      "expect": "ok",
+      "registry": {
+        "operators": {
+          "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e": {
+            "address": "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e",
+            "kind": "root",
+            "long_term_pub": "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798",
+            "scopes": [
+              "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e"
+            ]
+          }
+        }
+      },
+      "record": {
+        "tier": 2,
+        "domain": "evidence.commit",
+        "scope": "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e",
+        "operator": "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e",
+        "epoch": 7,
+        "canonical_action_hash": "0867983060e935277446e945d686975b21ea0c4df5d7e9611843b121985d8d6a",
+        "prev_record_hash": "aeebad4a796fcc2e15dc4c6061b45ed9b373f26adfc798ca7d2d8cc58182718e",
+        "header": "00000202202be065fec7733ad4e2c0d74833b9d7221b02547160c90031c5f08c880ca29baeebad4a796fcc2e15dc4c6061b45ed9b373f26adfc798ca7d2d8cc58182718e684ee1801f00ffff00005f1e",
+        "nonce": 24350,
+        "hash": "6b24c2754127751def2f8caf4625ae96369e8dbece34c8e442c7925d01780000",
+        "target_bits": 520159231,
+        "witness_kind": "sw",
+        "session_cert": {
+          "session_pub": "02c6047f9441ed7d6d3045406e95c07cd85c778e4b8cef3ca7abac09b95c709ee5",
+          "operator": "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e",
+          "epoch": 7,
+          "not_before": 1750000000,
+          "not_after": 1750086400,
+          "scope": "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e",
+          "entropy": "csprng",
+          "sig_by_longterm": "fe40f65d3b20c5d165f6c14444120ee6a1e3e18c2049e421cba928198361ffdc07a9a7ad097828ed2df9093521bf1eede166a71c3a0e01c900bc80db3670b471"
+        },
+        "signature": "4b691c2c6149725f301477160b0a6ca001159075f49c78028161c265592777fa1208e1fe04c16a4253dbab38c12151d3d0c6ddbd00c0fa404ede6d4287f3dedd"
+      },
+      "note": "software witness at the T2 target"
+    },
+    {
+      "name": "valid T3 root",
+      "now_unix": 1750000100,
+      "expect": "ok",
+      "registry": {
+        "operators": {
+          "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e": {
+            "address": "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e",
+            "kind": "root",
+            "long_term_pub": "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798",
+            "scopes": [
+              "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e"
+            ]
+          }
+        }
+      },
+      "record": {
+        "tier": 3,
+        "domain": "evidence.commit",
+        "scope": "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e",
+        "operator": "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e",
+        "epoch": 7,
+        "canonical_action_hash": "0867983060e935277446e945d686975b21ea0c4df5d7e9611843b121985d8d6a",
+        "prev_record_hash": "aeebad4a796fcc2e15dc4c6061b45ed9b373f26adfc798ca7d2d8cc58182718e",
+        "header": "00000203da011aec0c6937abd21461356a2a0d753a507986571d5ead0b29b19493c141a0aeebad4a796fcc2e15dc4c6061b45ed9b373f26adfc798ca7d2d8cc58182718e684ee1801e00ffff01ae6efb",
+        "nonce": 28208891,
+        "hash": "817a161d5eabe6ec50925ae8d3c34c9c3e5738674460d8aac73ddb2cbf000000",
+        "target_bits": 503382015,
+        "witness_kind": "sw",
+        "session_cert": {
+          "session_pub": "02c6047f9441ed7d6d3045406e95c07cd85c778e4b8cef3ca7abac09b95c709ee5",
+          "operator": "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e",
+          "epoch": 7,
+          "not_before": 1750000000,
+          "not_after": 1750086400,
+          "scope": "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e",
+          "entropy": "csprng",
+          "sig_by_longterm": "fe40f65d3b20c5d165f6c14444120ee6a1e3e18c2049e421cba928198361ffdc07a9a7ad097828ed2df9093521bf1eede166a71c3a0e01c900bc80db3670b471"
+        },
+        "signature": "08c6598430946bcaee1ef2cc3b68377e63a3409818d41a3f73fc2a2a8301a30824dec5db8f76e7d10a1582bc4a2c171dfe71c2146d57d4a4a8664c3ef3d0e1b2"
+      },
+      "note": "software witness at the T3 target"
+    },
+    {
+      "name": "valid asic labelled",
+      "now_unix": 1750000100,
+      "expect": "ok",
+      "registry": {
+        "operators": {
+          "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e": {
+            "address": "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e",
+            "kind": "root",
+            "long_term_pub": "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798",
+            "scopes": [
+              "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e"
+            ]
+          }
+        }
+      },
+      "record": {
+        "tier": 1,
+        "domain": "evidence.commit",
+        "scope": "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e",
+        "operator": "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e",
+        "epoch": 7,
+        "canonical_action_hash": "0867983060e935277446e945d686975b21ea0c4df5d7e9611843b121985d8d6a",
+        "prev_record_hash": "aeebad4a796fcc2e15dc4c6061b45ed9b373f26adfc798ca7d2d8cc58182718e",
+        "header": "000002016681e7e69a80330de9ed7283d7986850e47e42e9df5ec2def3f7bbae2168967aaeebad4a796fcc2e15dc4c6061b45ed9b373f26adfc798ca7d2d8cc58182718e684ee180207fffff00000002",
+        "nonce": 2,
+        "hash": "bef2f33284f2136a98530f5941e076f732eaf2d185c38172e8b98bd2e4688011",
+        "target_bits": 545259519,
+        "witness_kind": "asic",
+        "session_cert": {
+          "session_pub": "02c6047f9441ed7d6d3045406e95c07cd85c778e4b8cef3ca7abac09b95c709ee5",
+          "operator": "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e",
+          "epoch": 7,
+          "not_before": 1750000000,
+          "not_after": 1750086400,
+          "scope": "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e",
+          "entropy": "csprng+asic",
+          "sig_by_longterm": "4d91f8d2db42684a47ce4398bc14ecb5ca30df97cb326cb79ecd99c9d14f03ec4ae4521dc294f7a656823abcf2749e05a536817bfca87ed820314a45c981be18"
+        },
+        "signature": "b82b71ddeb93ac8a2a656529764521a352f62ad6d29ce81ab4636cb066a9d66335453f8983de7fb3ba69c781c65ac5b11630825474c3ef226912895a52cc45b5"
+      },
+      "note": "witness_kind and entropy labels are accepted values"
+    },
+    {
+      "name": "valid root under wildcard scope",
+      "now_unix": 1750000100,
+      "expect": "ok",
+      "registry": {
+        "operators": {
+          "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e": {
+            "address": "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e",
+            "kind": "root",
+            "long_term_pub": "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798",
+            "scopes": [
+              "*"
+            ]
+          }
+        }
+      },
+      "record": {
+        "tier": 2,
+        "domain": "evidence.commit",
+        "scope": "knirv1other",
+        "operator": "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e",
+        "epoch": 7,
+        "canonical_action_hash": "0867983060e935277446e945d686975b21ea0c4df5d7e9611843b121985d8d6a",
+        "prev_record_hash": "aeebad4a796fcc2e15dc4c6061b45ed9b373f26adfc798ca7d2d8cc58182718e",
+        "header": "00000202961eef865f4572fce37c541138a1fcf1ecf7193af93f5509fa4a63dd7e207cadaeebad4a796fcc2e15dc4c6061b45ed9b373f26adfc798ca7d2d8cc58182718e684ee1801f00ffff00013a40",
+        "nonce": 80448,
+        "hash": "3a7f6223ca4f598b569ad4a2dddfbfbc5d9146e7ed8e64a2b98b25e974e70000",
+        "target_bits": 520159231,
+        "witness_kind": "sw",
+        "session_cert": {
+          "session_pub": "02c6047f9441ed7d6d3045406e95c07cd85c778e4b8cef3ca7abac09b95c709ee5",
+          "operator": "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e",
+          "epoch": 7,
+          "not_before": 1750000000,
+          "not_after": 1750086400,
+          "scope": "*",
+          "entropy": "csprng",
+          "sig_by_longterm": "08a3fa68483d61fcdf0badac17ed0ddf1829674785514a446faa631ffde68a6109b2cf3293cd263f9610287815a1d1170892d967573781414a8efd598f58b9bc"
+        },
+        "signature": "2eaf135c74061478cd52215d3c1d3609e976029f132c0030ad3b0524dd2e0b3d1a1825bf50613fc7d2a95e9ab97dbe85b2a22fbec573fb8bfa8a5c8787956c73"
+      },
+      "note": "certificate and registration both grant *"
+    },
+    {
+      "name": "certificate expired",
+      "now_unix": 1750086401,
+      "expect": "ErrExpiredSession",
+      "registry": {
+        "operators": {
+          "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e": {
+            "address": "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e",
+            "kind": "root",
+            "long_term_pub": "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798",
+            "scopes": [
+              "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e"
+            ]
+          }
+        }
+      },
+      "record": {
+        "tier": 1,
+        "domain": "evidence.commit",
+        "scope": "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e",
+        "operator": "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e",
+        "epoch": 7,
+        "canonical_action_hash": "0867983060e935277446e945d686975b21ea0c4df5d7e9611843b121985d8d6a",
+        "prev_record_hash": "aeebad4a796fcc2e15dc4c6061b45ed9b373f26adfc798ca7d2d8cc58182718e",
+        "header": "000002016681e7e69a80330de9ed7283d7986850e47e42e9df5ec2def3f7bbae2168967aaeebad4a796fcc2e15dc4c6061b45ed9b373f26adfc798ca7d2d8cc58182718e684ee180207fffff00000002",
+        "nonce": 2,
+        "hash": "bef2f33284f2136a98530f5941e076f732eaf2d185c38172e8b98bd2e4688011",
+        "target_bits": 545259519,
+        "witness_kind": "sw",
+        "session_cert": {
+          "session_pub": "02c6047f9441ed7d6d3045406e95c07cd85c778e4b8cef3ca7abac09b95c709ee5",
+          "operator": "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e",
+          "epoch": 7,
+          "not_before": 1750000000,
+          "not_after": 1750086400,
+          "scope": "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e",
+          "entropy": "csprng",
+          "sig_by_longterm": "fe40f65d3b20c5d165f6c14444120ee6a1e3e18c2049e421cba928198361ffdc07a9a7ad097828ed2df9093521bf1eede166a71c3a0e01c900bc80db3670b471"
+        },
+        "signature": "b82b71ddeb93ac8a2a656529764521a352f62ad6d29ce81ab4636cb066a9d66335453f8983de7fb3ba69c781c65ac5b11630825474c3ef226912895a52cc45b5"
+      },
+      "note": "now is after not_after"
+    },
+    {
+      "name": "certificate not yet valid",
+      "now_unix": 1749999999,
+      "expect": "ErrExpiredSession",
+      "registry": {
+        "operators": {
+          "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e": {
+            "address": "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e",
+            "kind": "root",
+            "long_term_pub": "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798",
+            "scopes": [
+              "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e"
+            ]
+          }
+        }
+      },
+      "record": {
+        "tier": 1,
+        "domain": "evidence.commit",
+        "scope": "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e",
+        "operator": "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e",
+        "epoch": 7,
+        "canonical_action_hash": "0867983060e935277446e945d686975b21ea0c4df5d7e9611843b121985d8d6a",
+        "prev_record_hash": "aeebad4a796fcc2e15dc4c6061b45ed9b373f26adfc798ca7d2d8cc58182718e",
+        "header": "000002016681e7e69a80330de9ed7283d7986850e47e42e9df5ec2def3f7bbae2168967aaeebad4a796fcc2e15dc4c6061b45ed9b373f26adfc798ca7d2d8cc58182718e684ee180207fffff00000002",
+        "nonce": 2,
+        "hash": "bef2f33284f2136a98530f5941e076f732eaf2d185c38172e8b98bd2e4688011",
+        "target_bits": 545259519,
+        "witness_kind": "sw",
+        "session_cert": {
+          "session_pub": "02c6047f9441ed7d6d3045406e95c07cd85c778e4b8cef3ca7abac09b95c709ee5",
+          "operator": "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e",
+          "epoch": 7,
+          "not_before": 1750000000,
+          "not_after": 1750086400,
+          "scope": "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e",
+          "entropy": "csprng",
+          "sig_by_longterm": "fe40f65d3b20c5d165f6c14444120ee6a1e3e18c2049e421cba928198361ffdc07a9a7ad097828ed2df9093521bf1eede166a71c3a0e01c900bc80db3670b471"
+        },
+        "signature": "b82b71ddeb93ac8a2a656529764521a352f62ad6d29ce81ab4636cb066a9d66335453f8983de7fb3ba69c781c65ac5b11630825474c3ef226912895a52cc45b5"
+      },
+      "note": "now is before not_before"
+    },
+    {
+      "name": "operator not registered",
+      "now_unix": 1750000100,
+      "expect": "ErrUnknownOperator",
+      "registry": {
+        "operators": {}
+      },
+      "record": {
+        "tier": 1,
+        "domain": "evidence.commit",
+        "scope": "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e",
+        "operator": "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e",
+        "epoch": 7,
+        "canonical_action_hash": "0867983060e935277446e945d686975b21ea0c4df5d7e9611843b121985d8d6a",
+        "prev_record_hash": "aeebad4a796fcc2e15dc4c6061b45ed9b373f26adfc798ca7d2d8cc58182718e",
+        "header": "000002016681e7e69a80330de9ed7283d7986850e47e42e9df5ec2def3f7bbae2168967aaeebad4a796fcc2e15dc4c6061b45ed9b373f26adfc798ca7d2d8cc58182718e684ee180207fffff00000002",
+        "nonce": 2,
+        "hash": "bef2f33284f2136a98530f5941e076f732eaf2d185c38172e8b98bd2e4688011",
+        "target_bits": 545259519,
+        "witness_kind": "sw",
+        "session_cert": {
+          "session_pub": "02c6047f9441ed7d6d3045406e95c07cd85c778e4b8cef3ca7abac09b95c709ee5",
+          "operator": "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e",
+          "epoch": 7,
+          "not_before": 1750000000,
+          "not_after": 1750086400,
+          "scope": "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e",
+          "entropy": "csprng",
+          "sig_by_longterm": "fe40f65d3b20c5d165f6c14444120ee6a1e3e18c2049e421cba928198361ffdc07a9a7ad097828ed2df9093521bf1eede166a71c3a0e01c900bc80db3670b471"
+        },
+        "signature": "b82b71ddeb93ac8a2a656529764521a352f62ad6d29ce81ab4636cb066a9d66335453f8983de7fb3ba69c781c65ac5b11630825474c3ef226912895a52cc45b5"
+      }
+    },
+    {
+      "name": "certificate not signed by the registered key",
+      "now_unix": 1750000100,
+      "expect": "ErrSessionSignature",
+      "registry": {
+        "operators": {
+          "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e": {
+            "address": "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e",
+            "kind": "root",
+            "long_term_pub": "03acd484e2f0c7f65309ad178a9f559abde09796974c57e714c35f110dfc27ccbe",
+            "scopes": [
+              "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e"
+            ]
+          }
+        }
+      },
+      "record": {
+        "tier": 1,
+        "domain": "evidence.commit",
+        "scope": "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e",
+        "operator": "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e",
+        "epoch": 7,
+        "canonical_action_hash": "0867983060e935277446e945d686975b21ea0c4df5d7e9611843b121985d8d6a",
+        "prev_record_hash": "aeebad4a796fcc2e15dc4c6061b45ed9b373f26adfc798ca7d2d8cc58182718e",
+        "header": "000002016681e7e69a80330de9ed7283d7986850e47e42e9df5ec2def3f7bbae2168967aaeebad4a796fcc2e15dc4c6061b45ed9b373f26adfc798ca7d2d8cc58182718e684ee180207fffff00000002",
+        "nonce": 2,
+        "hash": "bef2f33284f2136a98530f5941e076f732eaf2d185c38172e8b98bd2e4688011",
+        "target_bits": 545259519,
+        "witness_kind": "sw",
+        "session_cert": {
+          "session_pub": "02c6047f9441ed7d6d3045406e95c07cd85c778e4b8cef3ca7abac09b95c709ee5",
+          "operator": "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e",
+          "epoch": 7,
+          "not_before": 1750000000,
+          "not_after": 1750086400,
+          "scope": "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e",
+          "entropy": "csprng",
+          "sig_by_longterm": "fe40f65d3b20c5d165f6c14444120ee6a1e3e18c2049e421cba928198361ffdc07a9a7ad097828ed2df9093521bf1eede166a71c3a0e01c900bc80db3670b471"
+        },
+        "signature": "b82b71ddeb93ac8a2a656529764521a352f62ad6d29ce81ab4636cb066a9d66335453f8983de7fb3ba69c781c65ac5b11630825474c3ef226912895a52cc45b5"
+      }
+    },
+    {
+      "name": "certificate operator differs from record operator",
+      "now_unix": 1750000100,
+      "expect": "ErrSessionSignature",
+      "registry": {
+        "operators": {
+          "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e": {
+            "address": "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e",
+            "kind": "root",
+            "long_term_pub": "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798",
+            "scopes": [
+              "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e"
+            ]
+          }
+        }
+      },
+      "record": {
+        "tier": 1,
+        "domain": "evidence.commit",
+        "scope": "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e",
+        "operator": "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e",
+        "epoch": 7,
+        "canonical_action_hash": "0867983060e935277446e945d686975b21ea0c4df5d7e9611843b121985d8d6a",
+        "prev_record_hash": "aeebad4a796fcc2e15dc4c6061b45ed9b373f26adfc798ca7d2d8cc58182718e",
+        "header": "000002016681e7e69a80330de9ed7283d7986850e47e42e9df5ec2def3f7bbae2168967aaeebad4a796fcc2e15dc4c6061b45ed9b373f26adfc798ca7d2d8cc58182718e684ee180207fffff00000002",
+        "nonce": 2,
+        "hash": "bef2f33284f2136a98530f5941e076f732eaf2d185c38172e8b98bd2e4688011",
+        "target_bits": 545259519,
+        "witness_kind": "sw",
+        "session_cert": {
+          "session_pub": "02c6047f9441ed7d6d3045406e95c07cd85c778e4b8cef3ca7abac09b95c709ee5",
+          "operator": "knirv1other",
+          "epoch": 7,
+          "not_before": 1750000000,
+          "not_after": 1750086400,
+          "scope": "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e",
+          "entropy": "csprng",
+          "sig_by_longterm": "fe40f65d3b20c5d165f6c14444120ee6a1e3e18c2049e421cba928198361ffdc07a9a7ad097828ed2df9093521bf1eede166a71c3a0e01c900bc80db3670b471"
+        },
+        "signature": "b82b71ddeb93ac8a2a656529764521a352f62ad6d29ce81ab4636cb066a9d66335453f8983de7fb3ba69c781c65ac5b11630825474c3ef226912895a52cc45b5"
+      },
+      "note": "checked before any signature"
+    },
+    {
+      "name": "malformed session key",
+      "now_unix": 1750000100,
+      "expect": "ErrInvalid",
+      "registry": {
+        "operators": {
+          "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e": {
+            "address": "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e",
+            "kind": "root",
+            "long_term_pub": "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798",
+            "scopes": [
+              "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e"
+            ]
+          }
+        }
+      },
+      "record": {
+        "tier": 1,
+        "domain": "evidence.commit",
+        "scope": "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e",
+        "operator": "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e",
+        "epoch": 7,
+        "canonical_action_hash": "0867983060e935277446e945d686975b21ea0c4df5d7e9611843b121985d8d6a",
+        "prev_record_hash": "aeebad4a796fcc2e15dc4c6061b45ed9b373f26adfc798ca7d2d8cc58182718e",
+        "header": "000002016681e7e69a80330de9ed7283d7986850e47e42e9df5ec2def3f7bbae2168967aaeebad4a796fcc2e15dc4c6061b45ed9b373f26adfc798ca7d2d8cc58182718e684ee180207fffff00000002",
+        "nonce": 2,
+        "hash": "bef2f33284f2136a98530f5941e076f732eaf2d185c38172e8b98bd2e4688011",
+        "target_bits": 545259519,
+        "witness_kind": "sw",
+        "session_cert": {
+          "session_pub": "02c6047f9441ed7d6d3045406e95c07cd85c778e4b8cef3ca7abac09b95c709e",
+          "operator": "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e",
+          "epoch": 7,
+          "not_before": 1750000000,
+          "not_after": 1750086400,
+          "scope": "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e",
+          "entropy": "csprng",
+          "sig_by_longterm": "fe40f65d3b20c5d165f6c14444120ee6a1e3e18c2049e421cba928198361ffdc07a9a7ad097828ed2df9093521bf1eede166a71c3a0e01c900bc80db3670b471"
+        },
+        "signature": "b82b71ddeb93ac8a2a656529764521a352f62ad6d29ce81ab4636cb066a9d66335453f8983de7fb3ba69c781c65ac5b11630825474c3ef226912895a52cc45b5"
+      },
+      "note": "32 bytes instead of a compressed key"
+    },
+    {
+      "name": "record signature has the wrong length",
+      "now_unix": 1750000100,
+      "expect": "ErrRecordSignature",
+      "registry": {
+        "operators": {
+          "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e": {
+            "address": "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e",
+            "kind": "root",
+            "long_term_pub": "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798",
+            "scopes": [
+              "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e"
+            ]
+          }
+        }
+      },
+      "record": {
+        "tier": 1,
+        "domain": "evidence.commit",
+        "scope": "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e",
+        "operator": "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e",
+        "epoch": 7,
+        "canonical_action_hash": "0867983060e935277446e945d686975b21ea0c4df5d7e9611843b121985d8d6a",
+        "prev_record_hash": "aeebad4a796fcc2e15dc4c6061b45ed9b373f26adfc798ca7d2d8cc58182718e",
+        "header": "000002016681e7e69a80330de9ed7283d7986850e47e42e9df5ec2def3f7bbae2168967aaeebad4a796fcc2e15dc4c6061b45ed9b373f26adfc798ca7d2d8cc58182718e684ee180207fffff00000002",
+        "nonce": 2,
+        "hash": "bef2f33284f2136a98530f5941e076f732eaf2d185c38172e8b98bd2e4688011",
+        "target_bits": 545259519,
+        "witness_kind": "sw",
+        "session_cert": {
+          "session_pub": "02c6047f9441ed7d6d3045406e95c07cd85c778e4b8cef3ca7abac09b95c709ee5",
+          "operator": "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e",
+          "epoch": 7,
+          "not_before": 1750000000,
+          "not_after": 1750086400,
+          "scope": "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e",
+          "entropy": "csprng",
+          "sig_by_longterm": "fe40f65d3b20c5d165f6c14444120ee6a1e3e18c2049e421cba928198361ffdc07a9a7ad097828ed2df9093521bf1eede166a71c3a0e01c900bc80db3670b471"
+        },
+        "signature": "b82b71ddeb93ac8a2a656529764521a352f62ad6d29ce81ab4636cb066a9d66335453f8983de7fb3ba69c781c65ac5b11630825474c3ef226912895a52cc45"
+      }
+    },
+    {
+      "name": "T0 carries no record",
+      "now_unix": 1750000100,
+      "expect": "ErrTier",
+      "registry": {
+        "operators": {
+          "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e": {
+            "address": "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e",
+            "kind": "root",
+            "long_term_pub": "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798",
+            "scopes": [
+              "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e"
+            ]
+          }
+        }
+      },
+      "record": {
+        "tier": 0,
+        "domain": "evidence.commit",
+        "scope": "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e",
+        "operator": "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e",
+        "epoch": 7,
+        "canonical_action_hash": "0867983060e935277446e945d686975b21ea0c4df5d7e9611843b121985d8d6a",
+        "prev_record_hash": "aeebad4a796fcc2e15dc4c6061b45ed9b373f26adfc798ca7d2d8cc58182718e",
+        "header": "000002016681e7e69a80330de9ed7283d7986850e47e42e9df5ec2def3f7bbae2168967aaeebad4a796fcc2e15dc4c6061b45ed9b373f26adfc798ca7d2d8cc58182718e684ee180207fffff00000002",
+        "nonce": 2,
+        "hash": "bef2f33284f2136a98530f5941e076f732eaf2d185c38172e8b98bd2e4688011",
+        "target_bits": 545259519,
+        "witness_kind": "sw",
+        "session_cert": {
+          "session_pub": "02c6047f9441ed7d6d3045406e95c07cd85c778e4b8cef3ca7abac09b95c709ee5",
+          "operator": "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e",
+          "epoch": 7,
+          "not_before": 1750000000,
+          "not_after": 1750086400,
+          "scope": "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e",
+          "entropy": "csprng",
+          "sig_by_longterm": "fe40f65d3b20c5d165f6c14444120ee6a1e3e18c2049e421cba928198361ffdc07a9a7ad097828ed2df9093521bf1eede166a71c3a0e01c900bc80db3670b471"
+        },
+        "signature": "b82b71ddeb93ac8a2a656529764521a352f62ad6d29ce81ab4636cb066a9d66335453f8983de7fb3ba69c781c65ac5b11630825474c3ef226912895a52cc45b5"
+      }
+    },
+    {
+      "name": "T1 scoped to another address",
+      "now_unix": 1750000100,
+      "expect": "ErrScope",
+      "registry": {
+        "operators": {
+          "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e": {
+            "address": "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e",
+            "kind": "root",
+            "long_term_pub": "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798",
+            "scopes": [
+              "*"
+            ]
+          }
+        }
+      },
+      "record": {
+        "tier": 1,
+        "domain": "evidence.commit",
+        "scope": "knirv1other",
+        "operator": "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e",
+        "epoch": 7,
+        "canonical_action_hash": "0867983060e935277446e945d686975b21ea0c4df5d7e9611843b121985d8d6a",
+        "prev_record_hash": "aeebad4a796fcc2e15dc4c6061b45ed9b373f26adfc798ca7d2d8cc58182718e",
+        "header": "000002015e2adf3206b29c4bf2e8b3fc4d7af4a68ee532fceb491af18b984ede75eb4fc7aeebad4a796fcc2e15dc4c6061b45ed9b373f26adfc798ca7d2d8cc58182718e684ee180207fffff00000000",
+        "nonce": 0,
+        "hash": "e4531726f786222f71a6ef9e8b5b6073bf95408fd6674e9f2a74d6a2608f8b77",
+        "target_bits": 545259519,
+        "witness_kind": "sw",
+        "session_cert": {
+          "session_pub": "02c6047f9441ed7d6d3045406e95c07cd85c778e4b8cef3ca7abac09b95c709ee5",
+          "operator": "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e",
+          "epoch": 7,
+          "not_before": 1750000000,
+          "not_after": 1750086400,
+          "scope": "*",
+          "entropy": "csprng",
+          "sig_by_longterm": "08a3fa68483d61fcdf0badac17ed0ddf1829674785514a446faa631ffde68a6109b2cf3293cd263f9610287815a1d1170892d967573781414a8efd598f58b9bc"
+        },
+        "signature": "eb488c9a837ed13c9a5044fbdc036cfce7a49c25ab57c9ea24a7befda26cbd6d34fe2d2e87b8377a46b904318bc26f238b4d88312739d4d33c0c32d67a018c64"
+      },
+      "note": "T1 may only act on the operator's own address"
+    },
+    {
+      "name": "certificate scope does not cover the record",
+      "now_unix": 1750000100,
+      "expect": "ErrScope",
+      "registry": {
+        "operators": {
+          "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e": {
+            "address": "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e",
+            "kind": "root",
+            "long_term_pub": "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798",
+            "scopes": [
+              "*"
+            ]
+          }
+        }
+      },
+      "record": {
+        "tier": 2,
+        "domain": "evidence.commit",
+        "scope": "knirv1other",
+        "operator": "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e",
+        "epoch": 7,
+        "canonical_action_hash": "0867983060e935277446e945d686975b21ea0c4df5d7e9611843b121985d8d6a",
+        "prev_record_hash": "aeebad4a796fcc2e15dc4c6061b45ed9b373f26adfc798ca7d2d8cc58182718e",
+        "header": "00000202961eef865f4572fce37c541138a1fcf1ecf7193af93f5509fa4a63dd7e207cadaeebad4a796fcc2e15dc4c6061b45ed9b373f26adfc798ca7d2d8cc58182718e684ee1801f00ffff00013a40",
+        "nonce": 80448,
+        "hash": "3a7f6223ca4f598b569ad4a2dddfbfbc5d9146e7ed8e64a2b98b25e974e70000",
+        "target_bits": 520159231,
+        "witness_kind": "sw",
+        "session_cert": {
+          "session_pub": "02c6047f9441ed7d6d3045406e95c07cd85c778e4b8cef3ca7abac09b95c709ee5",
+          "operator": "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e",
+          "epoch": 7,
+          "not_before": 1750000000,
+          "not_after": 1750086400,
+          "scope": "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e",
+          "entropy": "csprng",
+          "sig_by_longterm": "fe40f65d3b20c5d165f6c14444120ee6a1e3e18c2049e421cba928198361ffdc07a9a7ad097828ed2df9093521bf1eede166a71c3a0e01c900bc80db3670b471"
+        },
+        "signature": "2eaf135c74061478cd52215d3c1d3609e976029f132c0030ad3b0524dd2e0b3d1a1825bf50613fc7d2a95e9ab97dbe85b2a22fbec573fb8bfa8a5c8787956c73"
+      },
+      "note": "registration grants *, certificate only the operator"
+    },
+    {
+      "name": "registered authority does not cover the record",
+      "now_unix": 1750000100,
+      "expect": "ErrScope",
+      "registry": {
+        "operators": {
+          "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e": {
+            "address": "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e",
+            "kind": "root",
+            "long_term_pub": "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798",
+            "scopes": [
+              "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e"
+            ]
+          }
+        }
+      },
+      "record": {
+        "tier": 2,
+        "domain": "evidence.commit",
+        "scope": "knirv1other",
+        "operator": "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e",
+        "epoch": 7,
+        "canonical_action_hash": "0867983060e935277446e945d686975b21ea0c4df5d7e9611843b121985d8d6a",
+        "prev_record_hash": "aeebad4a796fcc2e15dc4c6061b45ed9b373f26adfc798ca7d2d8cc58182718e",
+        "header": "00000202961eef865f4572fce37c541138a1fcf1ecf7193af93f5509fa4a63dd7e207cadaeebad4a796fcc2e15dc4c6061b45ed9b373f26adfc798ca7d2d8cc58182718e684ee1801f00ffff00013a40",
+        "nonce": 80448,
+        "hash": "3a7f6223ca4f598b569ad4a2dddfbfbc5d9146e7ed8e64a2b98b25e974e70000",
+        "target_bits": 520159231,
+        "witness_kind": "sw",
+        "session_cert": {
+          "session_pub": "02c6047f9441ed7d6d3045406e95c07cd85c778e4b8cef3ca7abac09b95c709ee5",
+          "operator": "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e",
+          "epoch": 7,
+          "not_before": 1750000000,
+          "not_after": 1750086400,
+          "scope": "*",
+          "entropy": "csprng",
+          "sig_by_longterm": "08a3fa68483d61fcdf0badac17ed0ddf1829674785514a446faa631ffde68a6109b2cf3293cd263f9610287815a1d1170892d967573781414a8efd598f58b9bc"
+        },
+        "signature": "2eaf135c74061478cd52215d3c1d3609e976029f132c0030ad3b0524dd2e0b3d1a1825bf50613fc7d2a95e9ab97dbe85b2a22fbec573fb8bfa8a5c8787956c73"
+      },
+      "note": "certificate grants *, registration only the operator"
+    },
+    {
+      "name": "boot node signs T2",
+      "now_unix": 1750000100,
+      "expect": "ErrTier",
+      "registry": {
+        "operators": {
+          "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e": {
+            "address": "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e",
+            "kind": "boot",
+            "long_term_pub": "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798",
+            "scopes": [
+              "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e"
+            ]
+          }
+        }
+      },
+      "record": {
+        "tier": 2,
+        "domain": "evidence.commit",
+        "scope": "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e",
+        "operator": "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e",
+        "epoch": 7,
+        "canonical_action_hash": "0867983060e935277446e945d686975b21ea0c4df5d7e9611843b121985d8d6a",
+        "prev_record_hash": "aeebad4a796fcc2e15dc4c6061b45ed9b373f26adfc798ca7d2d8cc58182718e",
+        "header": "00000202202be065fec7733ad4e2c0d74833b9d7221b02547160c90031c5f08c880ca29baeebad4a796fcc2e15dc4c6061b45ed9b373f26adfc798ca7d2d8cc58182718e684ee1801f00ffff00005f1e",
+        "nonce": 24350,
+        "hash": "6b24c2754127751def2f8caf4625ae96369e8dbece34c8e442c7925d01780000",
+        "target_bits": 520159231,
+        "witness_kind": "sw",
+        "session_cert": {
+          "session_pub": "02c6047f9441ed7d6d3045406e95c07cd85c778e4b8cef3ca7abac09b95c709ee5",
+          "operator": "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e",
+          "epoch": 7,
+          "not_before": 1750000000,
+          "not_after": 1750086400,
+          "scope": "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e",
+          "entropy": "csprng",
+          "sig_by_longterm": "fe40f65d3b20c5d165f6c14444120ee6a1e3e18c2049e421cba928198361ffdc07a9a7ad097828ed2df9093521bf1eede166a71c3a0e01c900bc80db3670b471"
+        },
+        "signature": "4b691c2c6149725f301477160b0a6ca001159075f49c78028161c265592777fa1208e1fe04c16a4253dbab38c12151d3d0c6ddbd00c0fa404ede6d4287f3dedd"
+      },
+      "note": "T2 needs root co-attestation, which is not on the wire yet"
+    },
+    {
+      "name": "boot node signs T3",
+      "now_unix": 1750000100,
+      "expect": "ErrTier",
+      "registry": {
+        "operators": {
+          "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e": {
+            "address": "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e",
+            "kind": "boot",
+            "long_term_pub": "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798",
+            "scopes": [
+              "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e"
+            ]
+          }
+        }
+      },
+      "record": {
+        "tier": 3,
+        "domain": "evidence.commit",
+        "scope": "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e",
+        "operator": "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e",
+        "epoch": 7,
+        "canonical_action_hash": "0867983060e935277446e945d686975b21ea0c4df5d7e9611843b121985d8d6a",
+        "prev_record_hash": "aeebad4a796fcc2e15dc4c6061b45ed9b373f26adfc798ca7d2d8cc58182718e",
+        "header": "00000203da011aec0c6937abd21461356a2a0d753a507986571d5ead0b29b19493c141a0aeebad4a796fcc2e15dc4c6061b45ed9b373f26adfc798ca7d2d8cc58182718e684ee1801e00ffff01ae6efb",
+        "nonce": 28208891,
+        "hash": "817a161d5eabe6ec50925ae8d3c34c9c3e5738674460d8aac73ddb2cbf000000",
+        "target_bits": 503382015,
+        "witness_kind": "sw",
+        "session_cert": {
+          "session_pub": "02c6047f9441ed7d6d3045406e95c07cd85c778e4b8cef3ca7abac09b95c709ee5",
+          "operator": "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e",
+          "epoch": 7,
+          "not_before": 1750000000,
+          "not_after": 1750086400,
+          "scope": "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e",
+          "entropy": "csprng",
+          "sig_by_longterm": "fe40f65d3b20c5d165f6c14444120ee6a1e3e18c2049e421cba928198361ffdc07a9a7ad097828ed2df9093521bf1eede166a71c3a0e01c900bc80db3670b471"
+        },
+        "signature": "08c6598430946bcaee1ef2cc3b68377e63a3409818d41a3f73fc2a2a8301a30824dec5db8f76e7d10a1582bc4a2c171dfe71c2146d57d4a4a8664c3ef3d0e1b2"
+      }
+    },
+    {
+      "name": "target of another tier",
+      "now_unix": 1750000100,
+      "expect": "ErrTarget",
+      "registry": {
+        "operators": {
+          "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e": {
+            "address": "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e",
+            "kind": "root",
+            "long_term_pub": "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798",
+            "scopes": [
+              "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e"
+            ]
+          }
+        }
+      },
+      "record": {
+        "tier": 1,
+        "domain": "evidence.commit",
+        "scope": "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e",
+        "operator": "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e",
+        "epoch": 7,
+        "canonical_action_hash": "0867983060e935277446e945d686975b21ea0c4df5d7e9611843b121985d8d6a",
+        "prev_record_hash": "aeebad4a796fcc2e15dc4c6061b45ed9b373f26adfc798ca7d2d8cc58182718e",
+        "header": "000002016681e7e69a80330de9ed7283d7986850e47e42e9df5ec2def3f7bbae2168967aaeebad4a796fcc2e15dc4c6061b45ed9b373f26adfc798ca7d2d8cc58182718e684ee180207fffff00000002",
+        "nonce": 2,
+        "hash": "bef2f33284f2136a98530f5941e076f732eaf2d185c38172e8b98bd2e4688011",
+        "target_bits": 520159231,
+        "witness_kind": "sw",
+        "session_cert": {
+          "session_pub": "02c6047f9441ed7d6d3045406e95c07cd85c778e4b8cef3ca7abac09b95c709ee5",
+          "operator": "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e",
+          "epoch": 7,
+          "not_before": 1750000000,
+          "not_after": 1750086400,
+          "scope": "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e",
+          "entropy": "csprng",
+          "sig_by_longterm": "fe40f65d3b20c5d165f6c14444120ee6a1e3e18c2049e421cba928198361ffdc07a9a7ad097828ed2df9093521bf1eede166a71c3a0e01c900bc80db3670b471"
+        },
+        "signature": "b82b71ddeb93ac8a2a656529764521a352f62ad6d29ce81ab4636cb066a9d66335453f8983de7fb3ba69c781c65ac5b11630825474c3ef226912895a52cc45b5"
+      },
+      "note": "T1 record claiming the T2 target"
+    },
+    {
+      "name": "header tier differs from the record tier",
+      "now_unix": 1750000100,
+      "expect": "ErrHeader",
+      "registry": {
+        "operators": {
+          "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e": {
+            "address": "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e",
+            "kind": "root",
+            "long_term_pub": "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798",
+            "scopes": [
+              "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e"
+            ]
+          }
+        }
+      },
+      "record": {
+        "tier": 2,
+        "domain": "evidence.commit",
+        "scope": "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e",
+        "operator": "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e",
+        "epoch": 7,
+        "canonical_action_hash": "0867983060e935277446e945d686975b21ea0c4df5d7e9611843b121985d8d6a",
+        "prev_record_hash": "aeebad4a796fcc2e15dc4c6061b45ed9b373f26adfc798ca7d2d8cc58182718e",
+        "header": "00000201202be065fec7733ad4e2c0d74833b9d7221b02547160c90031c5f08c880ca29baeebad4a796fcc2e15dc4c6061b45ed9b373f26adfc798ca7d2d8cc58182718e684ee1801f00ffff00005f1e",
+        "nonce": 24350,
+        "hash": "6b24c2754127751def2f8caf4625ae96369e8dbece34c8e442c7925d01780000",
+        "target_bits": 520159231,
+        "witness_kind": "sw",
+        "session_cert": {
+          "session_pub": "02c6047f9441ed7d6d3045406e95c07cd85c778e4b8cef3ca7abac09b95c709ee5",
+          "operator": "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e",
+          "epoch": 7,
+          "not_before": 1750000000,
+          "not_after": 1750086400,
+          "scope": "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e",
+          "entropy": "csprng",
+          "sig_by_longterm": "fe40f65d3b20c5d165f6c14444120ee6a1e3e18c2049e421cba928198361ffdc07a9a7ad097828ed2df9093521bf1eede166a71c3a0e01c900bc80db3670b471"
+        },
+        "signature": "4b691c2c6149725f301477160b0a6ca001159075f49c78028161c265592777fa1208e1fe04c16a4253dbab38c12151d3d0c6ddbd00c0fa404ede6d4287f3dedd"
+      }
+    },
+    {
+      "name": "unsupported header version",
+      "now_unix": 1750000100,
+      "expect": "ErrHeader",
+      "registry": {
+        "operators": {
+          "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e": {
+            "address": "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e",
+            "kind": "root",
+            "long_term_pub": "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798",
+            "scopes": [
+              "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e"
+            ]
+          }
+        }
+      },
+      "record": {
+        "tier": 1,
+        "domain": "evidence.commit",
+        "scope": "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e",
+        "operator": "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e",
+        "epoch": 7,
+        "canonical_action_hash": "0867983060e935277446e945d686975b21ea0c4df5d7e9611843b121985d8d6a",
+        "prev_record_hash": "aeebad4a796fcc2e15dc4c6061b45ed9b373f26adfc798ca7d2d8cc58182718e",
+        "header": "000003016681e7e69a80330de9ed7283d7986850e47e42e9df5ec2def3f7bbae2168967aaeebad4a796fcc2e15dc4c6061b45ed9b373f26adfc798ca7d2d8cc58182718e684ee180207fffff00000002",
+        "nonce": 2,
+        "hash": "bef2f33284f2136a98530f5941e076f732eaf2d185c38172e8b98bd2e4688011",
+        "target_bits": 545259519,
+        "witness_kind": "sw",
+        "session_cert": {
+          "session_pub": "02c6047f9441ed7d6d3045406e95c07cd85c778e4b8cef3ca7abac09b95c709ee5",
+          "operator": "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e",
+          "epoch": 7,
+          "not_before": 1750000000,
+          "not_after": 1750086400,
+          "scope": "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e",
+          "entropy": "csprng",
+          "sig_by_longterm": "fe40f65d3b20c5d165f6c14444120ee6a1e3e18c2049e421cba928198361ffdc07a9a7ad097828ed2df9093521bf1eede166a71c3a0e01c900bc80db3670b471"
+        },
+        "signature": "b82b71ddeb93ac8a2a656529764521a352f62ad6d29ce81ab4636cb066a9d66335453f8983de7fb3ba69c781c65ac5b11630825474c3ef226912895a52cc45b5"
+      }
+    },
+    {
+      "name": "witness above the target",
+      "now_unix": 1750000100,
+      "expect": "ErrWitness",
+      "registry": {
+        "operators": {
+          "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e": {
+            "address": "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e",
+            "kind": "root",
+            "long_term_pub": "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798",
+            "scopes": [
+              "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e"
+            ]
+          }
+        }
+      },
+      "record": {
+        "tier": 2,
+        "domain": "evidence.commit",
+        "scope": "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e",
+        "operator": "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e",
+        "epoch": 7,
+        "canonical_action_hash": "0867983060e935277446e945d686975b21ea0c4df5d7e9611843b121985d8d6a",
+        "prev_record_hash": "aeebad4a796fcc2e15dc4c6061b45ed9b373f26adfc798ca7d2d8cc58182718e",
+        "header": "00000202202be065fec7733ad4e2c0d74833b9d7221b02547160c90031c5f08c880ca29baeebad4a796fcc2e15dc4c6061b45ed9b373f26adfc798ca7d2d8cc58182718e684ee1801f00ffff00000000",
+        "nonce": 0,
+        "hash": "8b647ed89f0fbee49db8ecfacd2c942c5b3acd4334fda9b50075b1f79b3ba07a",
+        "target_bits": 520159231,
+        "witness_kind": "sw",
+        "session_cert": {
+          "session_pub": "02c6047f9441ed7d6d3045406e95c07cd85c778e4b8cef3ca7abac09b95c709ee5",
+          "operator": "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e",
+          "epoch": 7,
+          "not_before": 1750000000,
+          "not_after": 1750086400,
+          "scope": "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e",
+          "entropy": "csprng",
+          "sig_by_longterm": "fe40f65d3b20c5d165f6c14444120ee6a1e3e18c2049e421cba928198361ffdc07a9a7ad097828ed2df9093521bf1eede166a71c3a0e01c900bc80db3670b471"
+        },
+        "signature": "4b691c2c6149725f301477160b0a6ca001159075f49c78028161c265592777fa1208e1fe04c16a4253dbab38c12151d3d0c6ddbd00c0fa404ede6d4287f3dedd"
+      },
+      "note": "consistent header and hash, but nonce not mined"
+    },
+    {
+      "name": "session retired before the certificate started",
+      "now_unix": 1750000100,
+      "expect": "ErrSessionSignature",
+      "registry": {
+        "operators": {
+          "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e": {
+            "address": "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e",
+            "kind": "root",
+            "long_term_pub": "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798",
+            "scopes": [
+              "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e"
+            ],
+            "retired_sessions": {
+              "02c6047f9441ed7d6d3045406e95c07cd85c778e4b8cef3ca7abac09b95c709ee5": 1749999999
+            }
+          }
+        }
+      },
+      "record": {
+        "tier": 1,
+        "domain": "evidence.commit",
+        "scope": "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e",
+        "operator": "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e",
+        "epoch": 7,
+        "canonical_action_hash": "0867983060e935277446e945d686975b21ea0c4df5d7e9611843b121985d8d6a",
+        "prev_record_hash": "aeebad4a796fcc2e15dc4c6061b45ed9b373f26adfc798ca7d2d8cc58182718e",
+        "header": "000002016681e7e69a80330de9ed7283d7986850e47e42e9df5ec2def3f7bbae2168967aaeebad4a796fcc2e15dc4c6061b45ed9b373f26adfc798ca7d2d8cc58182718e684ee180207fffff00000002",
+        "nonce": 2,
+        "hash": "bef2f33284f2136a98530f5941e076f732eaf2d185c38172e8b98bd2e4688011",
+        "target_bits": 545259519,
+        "witness_kind": "sw",
+        "session_cert": {
+          "session_pub": "02c6047f9441ed7d6d3045406e95c07cd85c778e4b8cef3ca7abac09b95c709ee5",
+          "operator": "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e",
+          "epoch": 7,
+          "not_before": 1750000000,
+          "not_after": 1750086400,
+          "scope": "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e",
+          "entropy": "csprng",
+          "sig_by_longterm": "fe40f65d3b20c5d165f6c14444120ee6a1e3e18c2049e421cba928198361ffdc07a9a7ad097828ed2df9093521bf1eede166a71c3a0e01c900bc80db3670b471"
+        },
+        "signature": "b82b71ddeb93ac8a2a656529764521a352f62ad6d29ce81ab4636cb066a9d66335453f8983de7fb3ba69c781c65ac5b11630825474c3ef226912895a52cc45b5"
+      }
+    },
+    {
+      "name": "session retired exactly when the certificate started",
+      "now_unix": 1750000100,
+      "expect": "ok",
+      "registry": {
+        "operators": {
+          "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e": {
+            "address": "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e",
+            "kind": "root",
+            "long_term_pub": "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798",
+            "scopes": [
+              "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e"
+            ],
+            "retired_sessions": {
+              "02c6047f9441ed7d6d3045406e95c07cd85c778e4b8cef3ca7abac09b95c709ee5": 1750000000
+            }
+          }
+        }
+      },
+      "record": {
+        "tier": 1,
+        "domain": "evidence.commit",
+        "scope": "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e",
+        "operator": "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e",
+        "epoch": 7,
+        "canonical_action_hash": "0867983060e935277446e945d686975b21ea0c4df5d7e9611843b121985d8d6a",
+        "prev_record_hash": "aeebad4a796fcc2e15dc4c6061b45ed9b373f26adfc798ca7d2d8cc58182718e",
+        "header": "000002016681e7e69a80330de9ed7283d7986850e47e42e9df5ec2def3f7bbae2168967aaeebad4a796fcc2e15dc4c6061b45ed9b373f26adfc798ca7d2d8cc58182718e684ee180207fffff00000002",
+        "nonce": 2,
+        "hash": "bef2f33284f2136a98530f5941e076f732eaf2d185c38172e8b98bd2e4688011",
+        "target_bits": 545259519,
+        "witness_kind": "sw",
+        "session_cert": {
+          "session_pub": "02c6047f9441ed7d6d3045406e95c07cd85c778e4b8cef3ca7abac09b95c709ee5",
+          "operator": "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e",
+          "epoch": 7,
+          "not_before": 1750000000,
+          "not_after": 1750086400,
+          "scope": "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e",
+          "entropy": "csprng",
+          "sig_by_longterm": "fe40f65d3b20c5d165f6c14444120ee6a1e3e18c2049e421cba928198361ffdc07a9a7ad097828ed2df9093521bf1eede166a71c3a0e01c900bc80db3670b471"
+        },
+        "signature": "b82b71ddeb93ac8a2a656529764521a352f62ad6d29ce81ab4636cb066a9d66335453f8983de7fb3ba69c781c65ac5b11630825474c3ef226912895a52cc45b5"
+      },
+      "note": "boundary: not_before == retirement is accepted"
+    },
+    {
+      "name": "retired session verified after its retirement (known limitation)",
+      "now_unix": 1750000100,
+      "expect": "ok",
+      "registry": {
+        "operators": {
+          "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e": {
+            "address": "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e",
+            "kind": "root",
+            "long_term_pub": "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798",
+            "scopes": [
+              "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e"
+            ],
+            "retired_sessions": {
+              "02c6047f9441ed7d6d3045406e95c07cd85c778e4b8cef3ca7abac09b95c709ee5": 1750000050
+            }
+          }
+        }
+      },
+      "record": {
+        "tier": 1,
+        "domain": "evidence.commit",
+        "scope": "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e",
+        "operator": "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e",
+        "epoch": 7,
+        "canonical_action_hash": "0867983060e935277446e945d686975b21ea0c4df5d7e9611843b121985d8d6a",
+        "prev_record_hash": "aeebad4a796fcc2e15dc4c6061b45ed9b373f26adfc798ca7d2d8cc58182718e",
+        "header": "000002016681e7e69a80330de9ed7283d7986850e47e42e9df5ec2def3f7bbae2168967aaeebad4a796fcc2e15dc4c6061b45ed9b373f26adfc798ca7d2d8cc58182718e684ee180207fffff00000002",
+        "nonce": 2,
+        "hash": "bef2f33284f2136a98530f5941e076f732eaf2d185c38172e8b98bd2e4688011",
+        "target_bits": 545259519,
+        "witness_kind": "sw",
+        "session_cert": {
+          "session_pub": "02c6047f9441ed7d6d3045406e95c07cd85c778e4b8cef3ca7abac09b95c709ee5",
+          "operator": "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e",
+          "epoch": 7,
+          "not_before": 1750000000,
+          "not_after": 1750086400,
+          "scope": "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e",
+          "entropy": "csprng",
+          "sig_by_longterm": "fe40f65d3b20c5d165f6c14444120ee6a1e3e18c2049e421cba928198361ffdc07a9a7ad097828ed2df9093521bf1eede166a71c3a0e01c900bc80db3670b471"
+        },
+        "signature": "b82b71ddeb93ac8a2a656529764521a352f62ad6d29ce81ab4636cb066a9d66335453f8983de7fb3ba69c781c65ac5b11630825474c3ef226912895a52cc45b5"
+      },
+      "note": "ACCEPTED today: the signature does not cover an issue time, so retirement only bounds certificates, not use; see AUTHORITY_SPEC section 10 D1"
+    }
+  ]
+}

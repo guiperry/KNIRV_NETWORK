@@ -77,7 +77,7 @@ func (g *Gate) Check(s *Session, c Call) Decision {
 	d := g.decide(s, c)
 	if g.Audit != nil {
 		_ = g.Audit.Append(Entry{Stage: c.Stage, FrameHash: c.FrameHash, Caller: c.Caller, Tool: c.Tool,
-			ArgsHash: frame.Hash(string(c.Args)), Outcome: string(d.Verdict), Reason: d.Reason})
+			ArgsHash: hashBytes(c.Args), Outcome: string(d.Verdict), Reason: d.Reason})
 	}
 	return d
 }

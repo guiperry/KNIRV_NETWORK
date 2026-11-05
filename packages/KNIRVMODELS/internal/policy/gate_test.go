@@ -42,8 +42,8 @@ func TestGateRules(t *testing.T) {
 		{"missing arg", call("heart.chat", "index.search", `{"query":"x"}`, User), Deny, "missing argument"},
 		{"no-arg tool with args", call("heart.chat", "manifest.get", `{"x":1}`, User), Deny, "unexpected argument"},
 		{"no-arg tool", call("heart.chat", "manifest.get", ``, User), Execute, ""},
-		{"mutation by user", call("ops.assistant", "rules.add", `{"domain":"d","rule":"r"}`, User), Deny, "needs operator"},
-		{"mutation by operator is a proposal", call("ops.assistant", "rules.add", `{"domain":"d","rule":"r"}`, Operator), Propose, "approval"},
+		{"mutation by user", call("hands.assistant", "rules.add", `{"domain":"d","rule":"r"}`, User), Deny, "needs operator"},
+		{"mutation by operator is a proposal", call("hands.assistant", "rules.add", `{"domain":"d","rule":"r"}`, Operator), Propose, "approval"},
 	}
 	for _, c := range cases {
 		d := g.Check(nil, c.c)
@@ -72,19 +72,19 @@ func TestInjectedCallInToolResultIsJustADeniedCall(t *testing.T) {
 	// A retrieved passage told the model to call a T3-style tool. It is not in
 	// any registry, so the gate cannot be argued with.
 	for _, tool := range []string{"asic.provision", "shutdown", "ExecuteSudoCommand", "ReadFile"} {
-		if d := g.Check(nil, call("ops.assistant", tool, `{}`, Admin)); d.Verdict != Deny {
+		if d := g.Check(nil, call("hands.assistant", tool, `{}`, Admin)); d.Verdict != Deny {
 			t.Errorf("%s: %+v", tool, d)
 		}
 	}
 }
 
-func TestOnlyOpsAssistantCanEverPropose(t *testing.T) {
+func TestOnlyHandsAssistantCanEverPropose(t *testing.T) {
 	g, _ := newGate(t)
 	for _, id := range g.Reg.StageIDs() {
 		s, _ := g.Reg.Stage(id)
 		for _, tool := range s.Tools {
 			d := g.Check(nil, call(id, tool, validArgsFor(t, g.Reg, tool), Admin))
-			if d.Verdict == Propose && id != "ops.assistant" {
+			if d.Verdict == Propose && id != "hands.assistant" {
 				t.Errorf("%s can propose %s", id, tool)
 			}
 		}
@@ -132,6 +132,17 @@ func TestAuditChain(t *testing.T) {
 	g.Check(nil, call("heart.chat", "manifest.get", ``, User))
 	g.Check(nil, call("heart.chat", "shell", `{}`, User))
 	_ = g.Audit.RecordResult(call("heart.chat", "manifest.get", ``, User), []byte("ok"), "ok")
+	rawEntries, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var first Entry
+	if err := json.Unmarshal([]byte(strings.SplitN(string(rawEntries), "\n", 2)[0]), &first); err != nil {
+		t.Fatal(err)
+	}
+	if first.ArgsHash != "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855" {
+		t.Fatalf("empty arguments hash = %q", first.ArgsHash)
+	}
 	n, _, err := VerifyChain(path)
 	if err != nil || n != 3 {
 		t.Fatalf("%d %v", n, err)

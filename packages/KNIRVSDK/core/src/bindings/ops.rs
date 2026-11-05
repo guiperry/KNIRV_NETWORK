@@ -39,6 +39,9 @@ fn secrets_portable(operation: &str, payload: &Value) -> Option<Op> {
         "secrets.fields_bytes" => fields_bytes(payload),
         "secrets.parse_fields" => parse_fields(payload),
         "secrets.open_bytes" => open_bytes(payload),
+        "secrets.bao_seal_key" => bao_seal_key(payload),
+        "secrets.signer_role" => signer_role(payload),
+        "secrets.bao_signer_name" => bao_signer_name(payload),
         _ => return None,
     })
 }
@@ -650,6 +653,34 @@ fn fields_bytes(payload: &Value) -> Op {
         secrets::decrypt_fields_with(&file_bytes(payload)?, secret_of(&credential, derived)),
     )?;
     serde_json::to_value(fields).map_err(|e| invalid(e.to_string()))
+}
+
+/// `secrets.bao_seal_key`: the OpenBao static-seal key of a key file.
+#[cfg(feature = "secrets")]
+fn bao_seal_key(payload: &Value) -> Op {
+    let (credential, derived) = credential(payload)?;
+    let seal = labelled(
+        payload,
+        secrets::bao_seal_key(&file_bytes(payload)?, secret_of(&credential, derived)),
+    )?;
+    Ok(json!({ "seal_base64": BASE64.encode(seal) }))
+}
+
+/// `secrets.signer_role`: which key-file identity a signer name stands for.
+#[cfg(feature = "secrets")]
+fn signer_role(payload: &Value) -> Op {
+    let name = payload.get("name").and_then(Value::as_str).unwrap_or_default();
+    let role = secrets::signer_role(name).map_err(BindingError::from_sdk)?;
+    Ok(json!({ "role": role }))
+}
+
+/// `secrets.bao_signer_name`: the canonical OpenBao plugin identity (the
+/// `knirv/sign/{direct,message}/<identity>` path) for a logical signer name.
+#[cfg(feature = "secrets")]
+fn bao_signer_name(payload: &Value) -> Op {
+    let name = payload.get("name").and_then(Value::as_str).unwrap_or_default();
+    let identity = secrets::bao_signer_name(name).map_err(BindingError::from_sdk)?;
+    Ok(json!({ "name": identity }))
 }
 
 #[cfg(feature = "secrets")]

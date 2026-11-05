@@ -676,11 +676,9 @@ func (d *Device) parseRxStatusResponse(data []byte) error {
 // header, this method instead
 // performs a genuine hardware-backed ASIC nonce search on that header and
 // returns its sha256d (double-SHA-256). The len(data)==80 guard is
-// load-bearing: non-jitter callers - the gRPC health-check probe in
-// pkg/hashing/methods/asic/asic_client.go's Connect(), and any other caller of
-// the plain ComputeHash RPC that isn't the jitter engine - pass arbitrary-
-// length data and must keep getting a literal sha256(data). Only the jitter
-// engine's own 80-byte headers should ever take the hardware path.
+// load-bearing for inputs of other lengths. The flag applies to the whole
+// device: any caller sending exactly 80 bytes can take the hardware path while
+// it is enabled. Callers needing literal SHA-256 must not use that opt-in path.
 //
 // In all other cases (non-direct mode, or non-80-byte input) this falls through
 // to the always-local sha256.Sum256 path below, which is deliberate: callers of

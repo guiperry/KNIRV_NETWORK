@@ -9,22 +9,33 @@ import (
 	"log"
 	"math"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/guiperry/text-embedder/pkg/embed"
+	sdk "github.com/guiperry/knirv-sdk-go/models"
 	"knirvmodels/pkg/embeddings"
-	"knirvmodels/pkg/head"
+	"knirvmodels/pkg/hands"
+	handstok "knirvmodels/pkg/hands/tokenizer"
+	"knirvmodels/pkg/heart/decision"
 	"knirvmodels/pkg/hashing/semanticmemory"
 )
 
 // HEARTService provides HTTP endpoints for KNIRVCORTEX to query HEART
 type HEARTService struct {
-	gpt               *GPT
+	engine            *hands.Engine
 	semanticMemory    *semanticmemory.Model
+	// generateTextFn is the text-generation seam (defaults to the HANDS engine).
+	// Tests may override it to avoid loading the full model.
+	generateTextFn func(prompt string, n int, temperature float32, topK int) (string, error)
+	// decisionReasonFn is a test seam: when set, resolveDecision consults it
+	// instead of the decision core so tests can force unavailable/abstain/select
+	// without a promoted model.
+	decisionReasonFn func(ctx context.Context, tokens []uint32) (json.RawMessage, error)
 	bridge            *CerebrasBridge
 	processor         *NetworkMetricsProcessor
-	tokenizer         Tokenizer
+	tokenizer         handstok.Tokenizer
 	embedder          *embeddings.DeterministicService
 	compiler          *WASMCompiler
 	verifier          *BidirectionalVerifier
@@ -37,7 +48,7 @@ type HEARTService struct {
 	unifiedEngine     *UnifiedHasherEngine
 	attestation       *AttestationBridge
 	headOnce           sync.Once
-	headSvc            *head.Service
+	headSvc            *decision.Service
 	mu                sync.RWMutex
 }
 
@@ -147,27 +158,25 @@ func NewHEARTServiceWithConfig(cfg *HEARTConfig) (*HEARTService, error) {
 		}
 	}
 
-	var gpt *GPT
-	// Do not allocate an untrained default GPT as a fallback: its default
+	var engine *hands.Engine
+	// Do not allocate an untrained default engine as a fallback: its default
 	// vocabulary and 768-dimensional weights can exhaust a normal server.
 	// A configured checkpoint is an explicit opt-in to that legacy path.
 	if semanticMemory == nil && cfg.ModelCheckpointPath != "" {
-		gpt = NewGPT(&cfg.Gorgonite)
-	}
-	if gpt != nil && cfg.ModelCheckpointPath != "" {
-		if err := LoadModel(gpt, cfg.ModelCheckpointPath); err != nil {
+		engine = hands.NewEngine(&cfg.Gorgonite, "")
+		if err := engine.Load(cfg.ModelCheckpointPath); err != nil {
 			log.Printf("no trained checkpoint at %s (%v); starting from random init", cfg.ModelCheckpointPath, err)
 		} else {
 			log.Printf("loaded trained checkpoint from %s", cfg.ModelCheckpointPath)
 		}
 	}
 
-	tok, err := NewTiktokenTokenizer("cl100k_base")
+	tok, err := handstok.NewTiktokenTokenizer("cl100k_base")
 	if err != nil {
 		log.Printf("tokenizer init failed: %v (proceeding without tokenizer)", err)
 	}
 
-	var tokIface Tokenizer
+	var tokIface handstok.Tokenizer
 	if tok != nil {
 		tokIface = tok
 	}
@@ -198,7 +207,7 @@ func NewHEARTServiceWithConfig(cfg *HEARTConfig) (*HEARTService, error) {
 	}
 
 	svc := &HEARTService{
-		gpt:            gpt,
+		engine:         engine,
 		semanticMemory: semanticMemory,
 		bridge:         cfg.getBridge(),
 		tokenizer:      tokIface,
@@ -226,10 +235,17 @@ func NewHEARTServiceWithConfig(cfg *HEARTConfig) (*HEARTService, error) {
 	}
 
 	var trainingProvider TrainingStateProvider
-	if gpt != nil {
-		trainingProvider = gpt
+	if engine != nil {
+		trainingProvider = engine
 	}
 	svc.generatorSwitcher = NewGeneratorSwitcher(internalGen, externalGen, trainingProvider)
+
+	svc.generateTextFn = func(prompt string, n int, temperature float32, topK int) (string, error) {
+		if svc.engine == nil {
+			return "", fmt.Errorf("engine not initialized")
+		}
+		return svc.engine.GenerateText(prompt, n, temperature, topK)
+	}
 
 	return svc, nil
 }
@@ -256,7 +272,7 @@ func (hs *HEARTService) Start(port int) error {
 	http.HandleFunc("/heart/generate", hs.handleGenerate)
 	http.HandleFunc("/heart/health", hs.handleHealth)
 	http.HandleFunc("/heart/stats", hs.handleStats)
-	hs.registerHEAD(http.DefaultServeMux)
+	hs.registerHEARTDecision(http.DefaultServeMux)
 
 	addr := fmt.Sprintf(":%d", port)
 	log.Printf("Starting HEART service on %s", addr)
@@ -274,13 +290,16 @@ func (hs *HEARTService) Mount(mux *http.ServeMux, prefix string) {
 	mux.HandleFunc(prefix+"/health", hs.handleHealth)
 	mux.HandleFunc(prefix+"/stats", hs.handleStats)
 	mux.HandleFunc(prefix+"/reload-seeds", hs.handleReloadSeeds)
+	// Mount the decision core (formerly HEAD) so it is reachable whenever HEART is
+	// mounted — the daemon builds HEART through this path, and without this the
+	// /models/heart/decide/* routes are never registered.
+	hs.registerHEARTDecision(mux)
 }
 
 // ListenAndServe starts the HEART HTTP service on given address (Phase 3)
 func (hs *HEARTService) ListenAndServe(addr string) error {
 	mux := http.NewServeMux()
 	hs.Mount(mux, "/heart")
-	hs.registerHEAD(mux)
 
 	log.Printf("Starting HEART service on %s", addr)
 	return http.ListenAndServe(addr, mux)
@@ -327,11 +346,12 @@ func (hs *HEARTService) runGorgoniteInference(tokens []int) ([]float32, error) {
 		}
 	}
 
-	if hs.gpt != nil {
-		data, err := hs.gpt.Forward(tokens)
+	if hs.engine != nil {
+		m := hs.engine.Model()
+		data, err := m.Forward(tokens)
 		if err == nil {
 			if len(tokens) > 0 {
-				vocabSize := hs.gpt.config.VocabSize
+				vocabSize := m.VocabSize()
 				lastStart := (len(tokens) - 1) * vocabSize
 				if lastStart >= 0 && lastStart+vocabSize <= len(data) {
 					data = data[lastStart : lastStart+vocabSize]
@@ -997,7 +1017,7 @@ func (hs *HEARTService) generateAnalysisSummary(inquiry *HEARTErrorInquiry, aler
 // available it uses inference to select actions; otherwise it falls back to
 // heuristic rules (Phase 2.4).
 func (hs *HEARTService) generateRecommendedActions(inquiry *HEARTErrorInquiry, heuristicID uint32) []string {
-	if (hs.gpt != nil || hs.semanticMemory != nil) && hs.tokenizer != nil {
+	if (hs.engine != nil || hs.semanticMemory != nil) && hs.tokenizer != nil {
 		prompt := fmt.Sprintf("error_type:%s message:%s", inquiry.ErrorType, inquiry.ErrorMessage)
 		tokens := hs.tokenizer.Encode(prompt)
 		logits, err := hs.runGorgoniteInference(tokens)
@@ -1166,9 +1186,116 @@ func (hs *HEARTService) findSimilarErrors(inquiry *HEARTErrorInquiry) []SimilarE
 	}
 }
 
-// handleGenerate handles /heart/generate requests from the backend
-// harness. Returns generated text when the internal model is
-// trained, or a 503 with readiness status when it isn't.
+// HeartGenerateRequest is the decision-aware /heart/generate body. The optional
+// Decision envelope lets a caller inject a decision already produced by the
+// decision core (or have HEART run the core itself when requested). Plain
+// generation (no Decision and WithDecision=false) never consults the decision
+// core, so legacy clients keep working even when the core is unavailable.
+type HeartGenerateRequest struct {
+	Prompt       string            `json:"prompt"`
+	Decision     *DecisionEnvelope `json:"decision,omitempty"`
+	WithDecision bool              `json:"with_decision,omitempty"`
+}
+
+// DecisionEnvelope carries the decision-core output so it can be supplied by the
+// caller or surfaced by HEART. It mirrors the SDK Reasoning envelope: each
+// Decision records whether a head selected an option or abstained.
+type DecisionEnvelope struct {
+	Decisions []sdk.Decision `json:"decisions,omitempty"`
+	Abstained bool           `json:"abstained,omitempty"`
+	Reason    string         `json:"reason,omitempty"`
+}
+
+// HeartGenerateResponse is the decision-aware /heart/generate response. It always
+// carries the (possibly abstaining) decision metadata alongside the text.
+type HeartGenerateResponse struct {
+	Text      string            `json:"text,omitempty"`
+	Ready     bool              `json:"ready"`
+	Progress  float64           `json:"progress"`
+	Decision  *DecisionEnvelope `json:"decision,omitempty"`
+	Abstained bool              `json:"abstained,omitempty"`
+	Tokens    int               `json:"tokens,omitempty"`
+	Error     string            `json:"error,omitempty"`
+}
+
+// decisionAbstains reports whether the envelope represents an abstention: either
+// it was flagged as abstained, or every decision head explicitly abstained.
+func decisionAbstains(env *DecisionEnvelope) bool {
+	if env == nil {
+		return false
+	}
+	if env.Abstained {
+		return true
+	}
+	for i := range env.Decisions {
+		if env.Decisions[i].Abstain {
+			return true
+		}
+	}
+	return false
+}
+
+// decisionSummary renders the envelope as a short frame prefix.
+func decisionSummary(env *DecisionEnvelope) string {
+	if env == nil {
+		return ""
+	}
+	var b strings.Builder
+	for _, d := range env.Decisions {
+		if d.Abstain {
+			b.WriteString(fmt.Sprintf("[decision:%s abstain]", d.Name))
+			continue
+		}
+		if d.Selected != nil {
+			b.WriteString(fmt.Sprintf("[decision:%s=%s]", d.Name, *d.Selected))
+		}
+	}
+	return b.String()
+}
+
+// encodeDecisionTokens byte-v1 encodes the prompt for the decision core. The SDK
+// core may be unavailable offline; a panic there is converted to an error so the
+// caller can abstain gracefully.
+func encodeDecisionTokens(prompt string) (tokens []uint32, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("decision encoding unavailable: %v", r)
+		}
+	}()
+	tokens = sdk.EncodeByteV1(prompt, 256)
+	return tokens, nil
+}
+
+// resolveDecision returns the decision envelope to use for a generate request.
+// If the caller supplied one it is trusted; otherwise the decision core
+// (served under /models/heart/decide) is consulted. A core failure is returned
+// as an error so callers can short-circuit gracefully.
+func (hs *HEARTService) resolveDecision(ctx context.Context, prompt string) (*DecisionEnvelope, error) {
+	tokens, err := encodeDecisionTokens(prompt)
+	if err != nil {
+		return nil, err
+	}
+	var raw json.RawMessage
+	if hs.decisionReasonFn != nil {
+		raw, err = hs.decisionReasonFn(ctx, tokens)
+	} else {
+		raw, err = hs.headService().Reason(ctx, tokens)
+	}
+	if err != nil {
+		return nil, err
+	}
+	var r sdk.Reasoning
+	if err := json.Unmarshal(raw, &r); err != nil {
+		return nil, err
+	}
+	return &DecisionEnvelope{Decisions: r.Decisions}, nil
+}
+
+// handleGenerate handles /heart/generate requests from the backend harness.
+// It is decision-aware: it runs (or accepts) a decision from the core and only
+// proceeds to text generation when the decision does not abstain. Returns a 503
+// with readiness status when the model isn't trained, or when the decision core
+// cannot be reached.
 func (hs *HEARTService) handleGenerate(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Content-Type", "application/json")
@@ -1178,62 +1305,102 @@ func (hs *HEARTService) handleGenerate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var req struct {
-		Prompt string `json:"prompt"`
-	}
+	var req HeartGenerateRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, fmt.Sprintf(`{"error":"bad request: %s","ready":false}`, err), http.StatusBadRequest)
 		return
 	}
 
 	hs.mu.RLock()
-	gpt := hs.gpt
-	tok := hs.tokenizer
+	engine := hs.engine
+	gen := hs.generateTextFn
 	hs.mu.RUnlock()
 
-	if gpt == nil {
+	if engine == nil {
 		w.WriteHeader(http.StatusServiceUnavailable)
-		json.NewEncoder(w).Encode(map[string]interface{}{
-			"error":    "gpt not initialized",
-			"ready":    false,
-			"progress": 0.0,
+		json.NewEncoder(w).Encode(HeartGenerateResponse{
+			Error:    "engine not initialized",
+			Ready:    false,
+			Progress: 0.0,
 		})
 		return
 	}
 
-	if !gpt.IsReady() {
-		w.WriteHeader(http.StatusServiceUnavailable)
-		json.NewEncoder(w).Encode(map[string]interface{}{
-			"error":    "model not trained",
-			"ready":    false,
-			"progress": gpt.Progress(),
+	// Resolve the decision only when the caller asks for one (explicit envelope
+	// or WithDecision). Plain generation — what SDK HeartGenerate and the harness
+	// send — must never fail or abstain just because the decision core is
+	// unavailable; it degrades to ungated generation with decision=nil.
+	var env *DecisionEnvelope
+	if req.Decision != nil {
+		env = req.Decision
+	} else if req.WithDecision {
+		d, err := hs.resolveDecision(r.Context(), req.Prompt)
+		if err != nil {
+			// Decision core unavailable (e.g. no promoted model offline): abstain gracefully.
+			w.WriteHeader(http.StatusServiceUnavailable)
+			json.NewEncoder(w).Encode(HeartGenerateResponse{
+				Error:     fmt.Sprintf("decision core unavailable: %v", err),
+				Ready:     engine.IsReady(),
+				Progress:  engine.Progress(),
+				Abstained: true,
+				Decision:  &DecisionEnvelope{Abstained: true, Reason: err.Error()},
+			})
+			return
+		}
+		env = d
+	}
+
+	// An abstaining decision short-circuits generation.
+	if env != nil && decisionAbstains(env) {
+		json.NewEncoder(w).Encode(HeartGenerateResponse{
+			Ready:     engine.IsReady(),
+			Progress:  engine.Progress(),
+			Abstained: true,
+			Decision:  env,
 		})
 		return
 	}
 
-	if tok == nil {
+	if !engine.IsReady() {
 		w.WriteHeader(http.StatusServiceUnavailable)
-		json.NewEncoder(w).Encode(map[string]interface{}{
-			"error":    "tokenizer not available",
-			"ready":    true,
-			"progress": 1.0,
+		json.NewEncoder(w).Encode(HeartGenerateResponse{
+			Error:    "model not trained",
+			Ready:    false,
+			Progress: engine.Progress(),
+			Decision: env,
 		})
 		return
 	}
 
-	// Tokenize, generate, detokenize
-	startTokens := tok.Encode(req.Prompt)
+	// Inject the decision frame so generation is conditioned on the decision.
+	generatePrompt := req.Prompt
+	if summary := decisionSummary(env); summary != "" {
+		generatePrompt = summary + " " + req.Prompt
+	}
+
 	maxNewTokens := 256
 	temperature := float32(0.8)
 	topK := 40
 
-	outTokens := Generate(gpt, startTokens, maxNewTokens, temperature, topK)
-	text := tok.Decode(outTokens)
+	text, err := gen(generatePrompt, maxNewTokens, temperature, topK)
+	if err != nil {
+		w.WriteHeader(http.StatusServiceUnavailable)
+		json.NewEncoder(w).Encode(HeartGenerateResponse{
+			Error:     fmt.Sprintf("generation failed: %v", err),
+			Ready:     true,
+			Progress:  1.0,
+			Abstained: false,
+			Decision:  env,
+		})
+		return
+	}
 
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"text":   text,
-		"ready":  true,
-		"tokens": len(outTokens),
+	json.NewEncoder(w).Encode(HeartGenerateResponse{
+		Text:     text,
+		Ready:    true,
+		Progress: 1.0,
+		Tokens:   len(text),
+		Decision: env,
 	})
 }
 
@@ -1244,9 +1411,9 @@ func (hs *HEARTService) handleHealth(w http.ResponseWriter, r *http.Request) {
 
 	var ready bool
 	var progress float64
-	if hs.gpt != nil {
-		ready = hs.gpt.IsReady()
-		progress = hs.gpt.Progress()
+	if hs.engine != nil {
+		ready = hs.engine.IsReady()
+		progress = hs.engine.Progress()
 	}
 
 	health := map[string]interface{}{

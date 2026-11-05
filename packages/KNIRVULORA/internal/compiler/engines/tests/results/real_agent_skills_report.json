@@ -1,0 +1,177 @@
+{
+ "teacher": "local:qwen2.5-7b-q3_k_m",
+ "accepted": 462,
+ "dropped": 18,
+ "remote_recovered": 60,
+ "teacher_ceiling": {
+  "github": 0.9166666666666666,
+  "tmux": 0.9166666666666666,
+  "weather": 0.625,
+  "summarize": 0.7916666666666666,
+  "hardware": 0.875
+ },
+ "base": {
+  "github": 0.0,
+  "tmux": 0.0,
+  "weather": 0.0,
+  "summarize": 0.0,
+  "hardware": 0.0
+ },
+ "base+docs": {
+  "github": 0.3333333333333333,
+  "tmux": 0.2916666666666667,
+  "weather": 0.20833333333333334,
+  "summarize": 0.4166666666666667,
+  "hardware": 0.08333333333333333
+ },
+ "base_regression": 1.0,
+ "seeds": [
+  {
+   "seed": 0,
+   "train": {
+    "fit_kind": "gradient_sft",
+    "base_sha256": "fdf756fa7fcbe7404d5c60e26bff1a0c8b8aa1f72ced49e7dd0210fe288fb7fe",
+    "recipe_hash": "d7899368771f51ee8c24ca657b8f6e9e834514d00073aadab2d249f11dcbf431",
+    "loss_curve_digest": "df5a6d7f1fe6cb5c795497984d1d163b0928ac750686b95dddf9ebc53a5ee625",
+    "seed": 0,
+    "final_loss": 0.38317,
+    "steps": 372
+   },
+   "adapter": {
+    "github": 0.8333333333333334,
+    "tmux": 0.5833333333333334,
+    "weather": 0.625,
+    "summarize": 0.5416666666666666,
+    "hardware": 0.5416666666666666
+   },
+   "single": {
+    "github": 0.7916666666666666,
+    "tmux": 0.5416666666666666,
+    "weather": 0.7083333333333334,
+    "summarize": 0.4166666666666667,
+    "hardware": 0.625
+   },
+   "regression": 0.9,
+   "offtopic_probe": {
+    "n": 6,
+    "fabricated_doc_facts": 3,
+    "abstained": 0,
+    "outputs": [
+     "To merge a pull request with the `gh` CLI and squash the commits, you can use the following command:\n\n```bash\ngh pr merges <pr-number> --rep",
+     "To list files in a tmux window layout, you can use the `ls` command with the `-F` flag to specify the file type or path. For example:\n\n```ba",
+     "To get a 10-day forecast from `wttr.in`, you can use the following command:\n\n```bash\ncurl -s \"wttr.in/London?format=3&?10\"\n```\n\nThis will pr",
+     "To make the summarize output Spanish, you can use the `--model` flag with the value `google/gemini-3-flash-preview`. Here is an example comm",
+     "To read an SPI flash chip ID using the `spi` tool, you can use the following command:\n\n```bash\nspi read  (device: \"2.0\", length: 6)\n```\n\nThi",
+     "To configure a Redis cluster, you can use the `redis-server` command with the `--cluster` flag. Here is an example:\n\n```bash\nredis-server --"
+    ]
+   },
+   "interference": {
+    "github": -0.04166666666666674,
+    "tmux": -0.04166666666666674,
+    "weather": 0.08333333333333337,
+    "summarize": -0.12499999999999994,
+    "hardware": 0.08333333333333337
+   },
+   "all_beat_base_by_0.5": true
+  },
+  {
+   "seed": 1,
+   "train": {
+    "fit_kind": "gradient_sft",
+    "base_sha256": "fdf756fa7fcbe7404d5c60e26bff1a0c8b8aa1f72ced49e7dd0210fe288fb7fe",
+    "recipe_hash": "23c51abcc43450188dee4db51d89c48ccfeeac03939d191aba0d9c91c3941cc0",
+    "loss_curve_digest": "54b754c19cb8d8613355e18d2875c59a42c180281fd5bd8e3d30ad09c7f577ed",
+    "seed": 1,
+    "final_loss": 0.15266,
+    "steps": 372
+   },
+   "adapter": {
+    "github": 0.6666666666666666,
+    "tmux": 0.625,
+    "weather": 0.5833333333333334,
+    "summarize": 0.5,
+    "hardware": 0.7083333333333334
+   },
+   "single": {
+    "github": 0.75,
+    "tmux": 0.625,
+    "weather": 0.4166666666666667,
+    "summarize": 0.5833333333333334,
+    "hardware": 0.625
+   },
+   "regression": 0.7,
+   "offtopic_probe": {
+    "n": 6,
+    "fabricated_doc_facts": 3,
+    "abstained": 0,
+    "outputs": [
+     "To merge a pull request with the `gh` CLI and squash the commits, you can use the following command:\n\n```bash\ngh pr merges <pr-number> --rep",
+     "To list files in a tmux window layout, you can use the `ls` command with the `--color=auto` flag to get an auto-colorized list. Here is how ",
+     "To get a 10-day forecast from `wttr.in`, you can use the following command:\n\n```bash\ncurl -s \"wttr.in/London?format=3&?1\"\n```\n\nThis will out",
+     "To make the summarize output in Spanish, you can use the `--model` flag with the value `google/gemini-3-flash-preview` and set the appropria",
+     "To read the SPI flash chip ID on Sipeed boards using the `spi` tool, you can use the following command:\n\n```bash\nspi read  (device: \"2.0\", l",
+     "To configure a Redis cluster, you can use the `redis-server` command with the `--cluster auto` flag to enable the auto-cluster feature. Here"
+    ]
+   },
+   "interference": {
+    "github": 0.08333333333333337,
+    "tmux": 0.0,
+    "weather": -0.16666666666666669,
+    "summarize": 0.08333333333333337,
+    "hardware": -0.08333333333333337
+   },
+   "all_beat_base_by_0.5": true
+  },
+  {
+   "seed": 2,
+   "train": {
+    "fit_kind": "gradient_sft",
+    "base_sha256": "fdf756fa7fcbe7404d5c60e26bff1a0c8b8aa1f72ced49e7dd0210fe288fb7fe",
+    "recipe_hash": "59c39e62acd1d14460fc9054b5027d620fd7edba987fa7c359264279e5c3fb58",
+    "loss_curve_digest": "0d9c9c423bc11f70e60f0fa86184bc20c65233b6704016226275d51afb72f314",
+    "seed": 2,
+    "final_loss": 0.12018,
+    "steps": 372
+   },
+   "adapter": {
+    "github": 0.625,
+    "tmux": 0.5,
+    "weather": 0.6666666666666666,
+    "summarize": 0.625,
+    "hardware": 0.7916666666666666
+   },
+   "single": {
+    "github": 0.75,
+    "tmux": 0.5416666666666666,
+    "weather": 0.5,
+    "summarize": 0.625,
+    "hardware": 0.6666666666666666
+   },
+   "regression": 0.9,
+   "offtopic_probe": {
+    "n": 6,
+    "fabricated_doc_facts": 2,
+    "abstained": 0,
+    "outputs": [
+     "To merge a pull request with the `gh` CLI and squash the commits, you can use the following command:\n\n```bash\ngh pr merges <pr-number> --rep",
+     "To list files in a tmux window layout, you can use the `tmux` command as follows:\n\n```bash\ntmux -S \"$SOCKET\" list-files -F '#{file_name}'\n``",
+     "To get a 10-day forecast from wttr.in, you can use the following command:\n\n```bash\ncurl -s \"wttr.in/London?format=3&?10\"\n```\n\nThis will prov",
+     "To make the summarize output Spanish, you can use the `--model spanish` flag. Here is the command:\n\n```bash\nsummarize \"https://example.com\" ",
+     "To read an SPI flash chip ID, you can use the `spi` tool with the `--read` flag. Here is the command:\n\n```bash\nspi read  (device: \"2.0\", len",
+     "To configure a Redis cluster, you can use the `redis-server` command with the `--cluster-enabled` flag. Here\u2019s how to set up a basic cluster"
+    ]
+   },
+   "interference": {
+    "github": 0.125,
+    "tmux": 0.04166666666666663,
+    "weather": -0.16666666666666663,
+    "summarize": 0.0,
+    "hardware": -0.125
+   },
+   "all_beat_base_by_0.5": true
+  }
+ ],
+ "excluded": [
+  "skill-creator (18 KB, does not fit the 4096/8192-token teacher context with the others)"
+ ]
+}

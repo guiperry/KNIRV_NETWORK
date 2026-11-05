@@ -27,4 +27,14 @@ for p in /models/head/models; do
   c=$(code "$p"); [ "$c" = 200 ] || [ "$c" = 503 ] || fail "$p returned $c (expected 200 or 503)"
 done
 echo "$(curl -sS --unix-socket "$tmp/m.sock" -X POST -d '{"prediction":1,"domain":"smoke"}' http://models/models/hasher/validate)" | grep -q '"valid":true' || fail "HASHER validate"
+# Evidence index: version and embedder ids are reported (an empty index is fine).
+idx=$(get /models/hasher/index/status)
+echo "$idx" | grep -q '"index_version":"' || fail "index status has no version: $idx"
+echo "$idx" | grep -q '"embedder_ids":\[' || fail "index status has no embedder ids: $idx"
+# Verify with no llama up must degrade, never answer: gate uncommitted, not charged, no SUPPORTED/REFUTED.
+ver=$(curl -sS --unix-socket "$tmp/m.sock" -X POST -d '{"text":"Paris is the capital of France.","delivery":"inline","budget_ms":3000}' http://models/models/hasher/verify)
+echo "$ver" | grep -q '"degraded":true' || fail "verify did not degrade without llama: $ver"
+echo "$ver" | grep -q '"gate":"uncommitted"' || fail "verify gate is not uncommitted without llama: $ver"
+echo "$ver" | grep -q '"chargeable":false' || fail "a degraded verify is chargeable: $ver"
+echo "$ver" | grep -Eq '"verdict":"(SUPPORTED|REFUTED)"' && fail "verify guessed a verdict without llama: $ver"
 echo "models smoke: ok ($(echo "$reg" | grep -o '"name":"[a-z]*"' | tr '\n' ' '))"

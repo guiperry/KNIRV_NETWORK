@@ -1,0 +1,165 @@
+{
+ "teacher": "local:qwen2.5-7b-q3_k_m",
+ "accepted": 283,
+ "dropped": 101,
+ "remote_recovered": 24,
+ "teacher_ceiling": {
+  "debug": 0.75,
+  "check": 0.71,
+  "document": 0.54,
+  "scope": 0.71
+ },
+ "base": {
+  "debug": 0.041666666666666664,
+  "check": 0.0,
+  "document": 0.0,
+  "scope": 0.0
+ },
+ "base+docs": {
+  "debug": 0.25,
+  "check": 0.125,
+  "document": 0.25,
+  "scope": 0.16666666666666666
+ },
+ "base_regression": 1.0,
+ "seeds": [
+  {
+   "seed": 0,
+   "train": {
+    "fit_kind": "gradient_sft",
+    "base_sha256": "fdf756fa7fcbe7404d5c60e26bff1a0c8b8aa1f72ced49e7dd0210fe288fb7fe",
+    "recipe_hash": "37a155815a7f0fa8e0a82e7540809dcda1c794477f36ff7ecc930858e7b843c2",
+    "loss_curve_digest": "11db6bf9c2a716aff7aa3d6fee83eb9621be6ef606a862a1c202304f7ec0e47a",
+    "seed": 0,
+    "final_loss": 0.46905,
+    "steps": 237
+   },
+   "adapter": {
+    "debug": 0.5416666666666666,
+    "check": 0.375,
+    "document": 0.3333333333333333,
+    "scope": 0.5416666666666666
+   },
+   "single": {
+    "debug": 0.4583333333333333,
+    "check": 0.5416666666666666,
+    "document": 0.5416666666666666,
+    "scope": 0.625
+   },
+   "regression": 0.8,
+   "offtopic_probe": {
+    "n": 6,
+    "fabricated_doc_facts": 2,
+    "abstained": 0,
+    "outputs": [
+     "To merge a pull request with the `gh` CLI and squash the commits, you can follow these steps:\n\n1. **Ensure the Pull Request Is Open**: Make ",
+     "To list files in a `tmux` window layout, you can use the `/document` skill with the `grep` subagent to find and list the files. Here's how y",
+     "To get a 10-day forecast from `wttr.in`, you can use the `/forecast` skill with the `wool` mode. Here's how you can do it:\n\n1. Ensure you ha",
+     "To make summarize output Spanish, you can use the `/summarize` skill with the `es` version code. Here is the command you should use:\n\n```bas",
+     "To read an SPI flash chip ID, you can use the `/debug` skill with the `verify` subcommand. Here\u2019s how you can do it:\n\n1. Run `/debug` to ini",
+     "To configure a Redis cluster, you can use the `/redis` skill with the `cluster` behavior. Here\u2019s how to do it:\n\n1. **Start the Cluster**: Us"
+    ]
+   },
+   "interference": {
+    "debug": -0.08333333333333331,
+    "check": 0.16666666666666663,
+    "document": 0.20833333333333331,
+    "scope": 0.08333333333333337
+   },
+   "all_beat_base_by_0.5": false
+  },
+  {
+   "seed": 1,
+   "train": {
+    "fit_kind": "gradient_sft",
+    "base_sha256": "fdf756fa7fcbe7404d5c60e26bff1a0c8b8aa1f72ced49e7dd0210fe288fb7fe",
+    "recipe_hash": "b9af4f44f554502b285a37fad79ee0ba40a03e50179ef9dfbf03400e4582c34c",
+    "loss_curve_digest": "cc6a900f9a766eb339ef2493373510aea62d2d310b6d45b6711337e186cbc844",
+    "seed": 1,
+    "final_loss": 0.62108,
+    "steps": 237
+   },
+   "adapter": {
+    "debug": 0.4583333333333333,
+    "check": 0.5,
+    "document": 0.4583333333333333,
+    "scope": 0.5416666666666666
+   },
+   "single": {
+    "debug": 0.20833333333333334,
+    "check": 0.2916666666666667,
+    "document": 0.4166666666666667,
+    "scope": 0.5833333333333334
+   },
+   "regression": 0.8,
+   "offtopic_probe": {
+    "n": 6,
+    "fabricated_doc_facts": 2,
+    "abstained": 0,
+    "outputs": [
+     "To merge a pull request with the `gh` CLI and squash the commits, you can use the following command:\n\n```bash\ngh pr edit --color=always --no",
+     "To list files in a `tmux` window layout, you can use the `/list` command with no arguments. This will show all active files and their curren",
+     "To get a 10-day forecast from `wttr.in`, you can use the `/forecast` skill with the `daily` mode. Here is how you can do it:\n\n```bash\n/model",
+     "To make summarize output in Spanish, you can use the `/summarize` command with the `es` flag to generate the summary in Spanish. Here is the",
+     "To read an SPI flash chip ID, you can use the `/check` skill with the `verify` mode. Specifically, you would run:\n\n```\n/check verify spi\n```",
+     "To configure a Redis cluster, you can use the `/redis` skill with the `group` behavior. Here\u2019s how you can do it:\n\n1. **Start the Cluster**:"
+    ]
+   },
+   "interference": {
+    "debug": -0.24999999999999997,
+    "check": -0.20833333333333331,
+    "document": -0.04166666666666663,
+    "scope": 0.04166666666666674
+   },
+   "all_beat_base_by_0.5": false
+  },
+  {
+   "seed": 2,
+   "train": {
+    "fit_kind": "gradient_sft",
+    "base_sha256": "fdf756fa7fcbe7404d5c60e26bff1a0c8b8aa1f72ced49e7dd0210fe288fb7fe",
+    "recipe_hash": "2fd8250b343f21cedcf9495d7d4d8fed118a4c0e3335f15dd70d30a42083d59a",
+    "loss_curve_digest": "676847ae5c14e135662a03268f86129e3f3f13571bf0606241a231752871d257",
+    "seed": 2,
+    "final_loss": 0.52672,
+    "steps": 237
+   },
+   "adapter": {
+    "debug": 0.375,
+    "check": 0.4583333333333333,
+    "document": 0.4166666666666667,
+    "scope": 0.5833333333333334
+   },
+   "single": {
+    "debug": 0.25,
+    "check": 0.2916666666666667,
+    "document": 0.5833333333333334,
+    "scope": 0.4166666666666667
+   },
+   "regression": 0.8,
+   "offtopic_probe": {
+    "n": 6,
+    "fabricated_doc_facts": 1,
+    "abstained": 0,
+    "outputs": [
+     "To merge a pull request with the `gh` CLI and squash the commits, you can use the following command:\n\n```bash\ngh pr edit --body \"Merge branc",
+     "To list files in a `tmux` window layout, you can use the `/document` skill to generate a file listing based on the current state of your wor",
+     "To get a 10-day forecast from `wttr.in`, you can use the `/weather` command with the `woe` (Weeks Over Epoch) flag set to 10. Here is how yo",
+     "To make summarize output in Spanish, you can use the `/document` skill with the `summarize` mode set to \"spanish.\" Here is how you can do it",
+     "To read an SPI flash chip ID, you can use the `/spi` skill to access the chip's characteristics and then parse the output for the correct ID",
+     "To configure a Redis cluster, you can use the `/redis` skill with the `cluster` behavior. Here is how you can do it:\n\n1. Ensure that your pr"
+    ]
+   },
+   "interference": {
+    "debug": -0.125,
+    "check": -0.16666666666666663,
+    "document": 0.16666666666666669,
+    "scope": -0.16666666666666669
+   },
+   "all_beat_base_by_0.5": false
+  }
+ ],
+ "excluded": [
+  "skill-creator (18 KB, does not fit the 4096/8192-token teacher context with the others)"
+ ]
+}

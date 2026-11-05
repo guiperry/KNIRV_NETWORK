@@ -290,12 +290,12 @@ test-quick: ## Run a fast subset (unit tests only, no integration/e2e)
 .PHONY: test-knirvserver
 test-knirvserver: ## Run KNIRVSERVER's own tests (wrapper/launcher only — backend_server's tests live in KNIRV_CORP)
 	@echo "$(BLUE)Testing KNIRVSERVER...$(NC)"
-	@cd packages/KNIRVSERVER && go test -v ./integration-tests/...
+	@cd packages/KNIRVSERVER && go test -v ./integration-tests/... ./internal/authority/... ./internal/knirvbao/... ./internal/launcher/... ./pkg/embedded/knirvbao/... ./pkg/embedded/validationchain/checkpoint/...
 
 .PHONY: test-knirvchain
 test-knirvchain: ## Test KNIRVCHAIN
 	@echo "$(BLUE)Testing KNIRVCHAIN...$(NC)"
-	@cd packages/KNIRVCHAIN && go test -v ./tests/unit/...
+	@cd packages/KNIRVCHAIN && go test -v ./internal/blockchain/... ./tests/unit/...
 
 .PHONY: test-knirvgateway
 test-knirvgateway: ## Test KNIRVGATEWAY

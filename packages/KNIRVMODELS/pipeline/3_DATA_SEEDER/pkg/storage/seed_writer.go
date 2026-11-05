@@ -14,6 +14,9 @@ import (
 	"time"
 
 	"knirvmodels/pkg/hashing/proofasset"
+
+	"github.com/lab/hasher/data-seeder/pkg/rootwitness"
+	"github.com/lab/hasher/data-seeder/pkg/seedwitness"
 )
 
 // JSONSeedWriter handles writing best seeds back to JSON with precise ASIC slot matching
@@ -49,20 +52,14 @@ func (sw *JSONSeedWriter) generateAsicKey(slots [12]uint32, targetTokenID int32)
 	return asicKey(slots, targetTokenID)
 }
 
-// ledgerSeedsByKey reads the append-only seed_writes.jsonl ledger and returns
-// the best_seed bytes seen for each composite ASIC+token key. The ledger is
-// written for every winning seed ever found (via DualSeedWriter.appendLedger),
-// regardless of whether a given batch's JSON/Arrow output file successfully
-// matched a record for it, so it is the authoritative history to backfill
-// from when (re)building an output file from a fresh source batch.
-func ledgerSeedsByKey(dataPath string) map[string][]byte {
-	seeds := make(map[string][]byte)
-
+// readLedger parses the append-only seed_writes.jsonl ledger into records.
+// Malformed or blank lines are skipped; a missing file yields an empty slice.
+func readLedger(dataPath string) []SeedWriteLedgerEntry {
+	var records []SeedWriteLedgerEntry
 	data, err := os.ReadFile(filepath.Join(dataPath, "frames", "seed_writes.jsonl"))
 	if err != nil {
-		return seeds
+		return records
 	}
-
 	for _, line := range strings.Split(string(data), "\n") {
 		line = strings.TrimSpace(line)
 		if line == "" {
@@ -72,13 +69,30 @@ func ledgerSeedsByKey(dataPath string) map[string][]byte {
 		if err := json.Unmarshal([]byte(line), &entry); err != nil {
 			continue
 		}
+		records = append(records, entry)
+	}
+	return records
+}
+
+// ledgerSeedsByKey reads the append-only seed_writes.jsonl ledger and returns
+// the best_seed bytes seen for each composite ASIC+token key. The ledger is
+// written for every winning seed ever found (via DualSeedWriter.appendLedger),
+// regardless of whether a given batch's JSON/Arrow output file successfully
+// matched a record for it, so it is the authoritative history to backfill
+// from when (re)building an output file from a fresh source batch.
+func ledgerSeedsByKey(dataPath string) map[string][]byte {
+	seeds := make(map[string][]byte)
+
+	for _, entry := range readLedger(dataPath) {
 		seed, err := base64.StdEncoding.DecodeString(entry.BestSeed)
 		if err != nil || len(seed) == 0 {
 			continue
 		}
-		// Later entries for the same key overwrite earlier ones, so the most
-		// recently discovered seed for a given record wins.
-		seeds[asicKey(entry.AsicSlots, entry.TargetTokenID)] = seed
+		// Root assertions carry no ASIC/span identity; never let their zero
+		// slot/token key shadow a real span entry in the backfill map.
+		if entry.Kind != AssertionKindRoot {
+			seeds[asicKey(entry.AsicSlots, entry.TargetTokenID)] = seed
+		}
 		if entry.AssertionKey != "" {
 			seeds[entry.AssertionKey] = seed
 		}
@@ -426,15 +440,27 @@ type DualSeedWriter struct {
 	arrowWriter *ArrowSeedWriter
 	dataPath    string
 	proofWriter *proofasset.ProofLedger
+	rootQueue   *rootwitness.RootWitnessQueue
 }
+
+// AssertionKind discriminates ledger records. "span" is the original
+// context/span claim witness; "root" is a batch Merkle-root witnessing record
+// produced by Task 3.9's provenance follow-up (KNIRV_NETWORK/pipeline/3_DATA_SEEDER
+// accepts an evidence batch root as an assertion).
+const (
+	AssertionKindSpan = "span"
+	AssertionKindRoot = "root"
+)
 
 // SeedWriteLedgerEntry is the existing append-only ledger record for PoW seeds.
 type SeedWriteLedgerEntry struct {
 	SchemaVersion    int32      `json:"schema_version"`
 	Timestamp        time.Time  `json:"timestamp"`
+	Kind             string     `json:"kind,omitempty"`
 	SourceFile       string     `json:"source_file"`
 	TargetTokenID    int32      `json:"target_token_id"`
 	AssertionKey     string     `json:"assertion_key,omitempty"`
+	Root             []byte     `json:"root,omitempty"`
 	ContextTokens    []int32    `json:"context_tokens,omitempty"`
 	AssertionSpan    []int32    `json:"assertion_span,omitempty"`
 	CommitmentTarget uint32     `json:"commitment_target,omitempty"`
@@ -444,15 +470,50 @@ type SeedWriteLedgerEntry struct {
 	SeedBytes        int        `json:"seed_bytes"`
 }
 
+// MinePendingRootsOnce mines and commits every currently-pending root exactly
+// once. The durable queue is the source of truth for what is pending: a root is
+// removed from it the moment it is committed, so no ledger scan is needed per
+// tick (a crash between commit and tombstone is pruned at NewDualSeedWriter).
+// Returns the number of roots newly committed.
+func (dsw *DualSeedWriter) MinePendingRootsOnce() int {
+	committed := 0
+	for _, p := range dsw.rootQueue.Pending() {
+		seed, err := rootwitness.MineRootSeed(p.Root)
+		if err != nil {
+			// Bounded search exhausted; skip rather than committing an invalid
+			// (non-PoW) fallback seed.
+			continue
+		}
+		if !rootwitness.VerifyRootPoW(p.Root, seed) {
+			continue
+		}
+		if _, err := dsw.CommitRootAssertion(p.ID, seed); err != nil {
+			// Lost the race to another pass, or removed concurrently; ignore.
+			continue
+		}
+		committed++
+	}
+	return committed
+}
+
 // NewDualSeedWriter creates a new DualSeedWriter
 func NewDualSeedWriter(dataPath string) *DualSeedWriter {
 	proofLedgerPath := filepath.Join(dataPath, "frames", "proof_writes.jsonl")
-	return &DualSeedWriter{
+	dsw := &DualSeedWriter{
 		jsonWriter:  NewJSONSeedWriter(dataPath),
 		arrowWriter: NewArrowSeedWriter(dataPath),
 		dataPath:    dataPath,
 		proofWriter: proofasset.NewProofLedger(proofLedgerPath),
+		rootQueue:   rootwitness.OpenRootWitnessQueue(filepath.Join(dataPath, "frames", "pending_roots.jsonl")),
 	}
+	// Recover from a crash that committed a root but did not tombstone it: drop
+	// any pending id that is already on the ledger.
+	for _, p := range dsw.rootQueue.Pending() {
+		if _, ok := dsw.RootAssertion(p.ID); ok {
+			dsw.rootQueue.Remove(p.ID)
+		}
+	}
+	return dsw
 }
 
 // AddProofWrite appends a proof ledger entry to the separate append-only
@@ -495,6 +556,99 @@ func (dsw *DualSeedWriter) AddAssertionWrite(sourceFile string, slots [12]uint32
 	return dsw.arrowWriter.AddSeedWrite(sourceFile, slots, targetTokenID, bestSeed)
 }
 
+// AddRootAssertion records a 32-byte batch Merkle root as an assertion in the
+// append-only ledger. It is the seeder-side half of Task 3.9's provenance
+// follow-up: the verifier's Witnesser submits a root (see Pending/SubmitRoot)
+// and, once a PoW seed committing to that root is mined, commits it here. The
+// returned id is the canonical root-assertion key, used as the attestation ref.
+func (dsw *DualSeedWriter) AddRootAssertion(root []byte, ref string, bestSeed []byte) (string, error) {
+	if len(root) == 0 {
+		return "", fmt.Errorf("cannot witness empty root")
+	}
+	if len(bestSeed) == 0 {
+		return "", fmt.Errorf("cannot witness root with empty seed")
+	}
+	id := rootwitness.RootAssertionKey(root)
+	entry := SeedWriteLedgerEntry{
+		SchemaVersion: 3,
+		Kind:          AssertionKindRoot,
+		Timestamp:     time.Now().UTC(),
+		SourceFile:    ref,
+		AssertionKey:  id,
+		Root:          append([]byte(nil), root...),
+		BestSeed:      base64.StdEncoding.EncodeToString(bestSeed),
+		SeedBytes:     len(bestSeed),
+	}
+	ledgerDir := filepath.Join(dsw.dataPath, "frames")
+	if err := dsw.appendLedgerEntry(ledgerDir, entry); err != nil {
+		return "", err
+	}
+	return id, nil
+}
+
+// RootAssertion reads a previously recorded root assertion by its id.
+func (dsw *DualSeedWriter) RootAssertion(id string) (SeedWriteLedgerEntry, bool) {
+	records := readLedger(dsw.dataPath)
+	for i := len(records) - 1; i >= 0; i-- {
+		if records[i].Kind == AssertionKindRoot && records[i].AssertionKey == id {
+			return records[i], true
+		}
+	}
+	return SeedWriteLedgerEntry{}, false
+}
+
+// RootAssertionView maps a recorded root assertion onto the cgo-free
+// seedwitness.RootAssertionView so DualSeedWriter satisfies the seedwitness
+// WitnessStore interface.
+func (dsw *DualSeedWriter) RootAssertionView(id string) (seedwitness.RootAssertionView, bool) {
+	rec, ok := dsw.RootAssertion(id)
+	if !ok {
+		return seedwitness.RootAssertionView{}, false
+	}
+	return seedwitness.RootAssertionView{
+		ID:   rec.AssertionKey,
+		Kind: rec.Kind,
+		Root: base64.StdEncoding.EncodeToString(rec.Root),
+		Ref:  rec.SourceFile,
+		Seed: rec.BestSeed,
+	}, true
+}
+
+// Pending exposes the queue of roots awaiting a witness.
+func (dsw *DualSeedWriter) Pending() []rootwitness.PendingRoot {
+	return dsw.rootQueue.Pending()
+}
+
+// SubmitRoot queues a batch root for witnessing and returns its assertion id.
+func (dsw *DualSeedWriter) SubmitRoot(root []byte, ref string) string {
+	return dsw.rootQueue.Submit(root, ref)
+}
+
+// CommitRootAssertion promotes a queued root to a recorded assertion once its
+// PoW seed is mined; it is a no-op error if the id was never queued. The seed is
+// validated (exactly 32 bytes and a real root-PoW commitment) before being
+// recorded — this is the central guard that prevents a caller from forging a root
+// assertion with an arbitrary or non-PoW seed (audit finding 2).
+func (dsw *DualSeedWriter) CommitRootAssertion(id string, bestSeed []byte) (string, error) {
+	if len(bestSeed) != 32 {
+		return "", fmt.Errorf("root assertion seed must be exactly 32 bytes")
+	}
+	for _, p := range dsw.rootQueue.Pending() {
+		if p.ID == id {
+			if !rootwitness.VerifyRootPoW(p.Root, bestSeed) {
+				return "", fmt.Errorf("seed does not satisfy the root PoW for %s", id)
+			}
+			got, err := dsw.AddRootAssertion(p.Root, p.Ref, bestSeed)
+			if err != nil {
+				return "", err
+			}
+			dsw.rootQueue.Remove(id)
+			return got, nil
+		}
+	}
+	return "", fmt.Errorf("root %s is not pending", id)
+}
+
 func (dsw *DualSeedWriter) appendLedger(sourceFile string, slots [12]uint32, targetTokenID int32, contextTokens, assertionSpan []int32, contextHash, commitmentTarget uint32, bestSeed []byte) error {
 	if len(bestSeed) == 0 {
 		return fmt.Errorf("cannot ledger empty seed")
@@ -511,6 +665,7 @@ func (dsw *DualSeedWriter) appendLedger(sourceFile string, slots [12]uint32, tar
 	entry := SeedWriteLedgerEntry{
 		SchemaVersion:    schemaVersion,
 		Timestamp:        time.Now().UTC(),
+		Kind:             AssertionKindSpan,
 		SourceFile:       filepath.Base(sourceFile),
 		TargetTokenID:    targetTokenID,
 		AssertionKey:     "",
@@ -525,9 +680,21 @@ func (dsw *DualSeedWriter) appendLedger(sourceFile string, slots [12]uint32, tar
 	if len(contextTokens) > 0 && len(assertionSpan) > 0 {
 		entry.AssertionKey = assertionKey(contextTokens, assertionSpan)
 	}
+	return dsw.appendLedgerEntry(ledgerDir, entry)
+}
+
+// appendLedgerEntry serialises and appends one ledger record. Callers build the
+// entry (including its Kind) before calling.
+func (dsw *DualSeedWriter) appendLedgerEntry(ledgerDir string, entry SeedWriteLedgerEntry) error {
+	if entry.Kind == "" {
+		entry.Kind = AssertionKindSpan
+	}
 	data, err := json.Marshal(entry)
 	if err != nil {
 		return fmt.Errorf("marshal seed ledger entry: %w", err)
+	}
+	if err := os.MkdirAll(ledgerDir, 0755); err != nil {
+		return fmt.Errorf("create seed ledger directory: %w", err)
 	}
 	f, err := os.OpenFile(filepath.Join(ledgerDir, "seed_writes.jsonl"), os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
 	if err != nil {

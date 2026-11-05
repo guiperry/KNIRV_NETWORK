@@ -151,6 +151,18 @@ func (h *Heart) Mount(mux *http.ServeMux, prefix string) {
 	for _, route := range []string{"stats", "reload-seeds"} {
 		mux.HandleFunc(prefix+"/"+route, func(w http.ResponseWriter, r *http.Request) { h.serve(prefix, w, r) })
 	}
+	// The decision core is mounted by the HEART service under HeartDecisionPrefix
+	// inside the lazily-built inner mux. Serve that subtree straight to the inner
+	// mux with the full path (no prefix strip) so /models/heart/decide/* is
+	// reachable in production, not just the other HEART routes.
+	mux.HandleFunc(prefix+"/decide/", func(w http.ResponseWriter, r *http.Request) {
+		inner, err := h.ensure()
+		if err != nil {
+			WriteJSON(w, http.StatusServiceUnavailable, map[string]any{"error": "heart unavailable: " + err.Error(), "ready": false})
+			return
+		}
+		inner.ServeHTTP(w, r)
+	})
 }
 
 func (h *Heart) serve(prefix string, w http.ResponseWriter, r *http.Request) {
@@ -184,7 +196,7 @@ func privilegeOf(s string) policy.Privilege {
 }
 
 // generateQwen runs a stage on the Qwen backend. The stage defaults to
-// heart.chat; naming ops.assistant requires an operator, which is checked
+// heart.chat; naming hands.assistant requires an operator, which is checked
 // here as well as per tool in the gate.
 func (h *Heart) generateQwen(q *heartqwen.Engine, w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
@@ -203,8 +215,8 @@ func (h *Heart) generateQwen(q *heartqwen.Engine, w http.ResponseWriter, r *http
 		req.Stage = "heart.chat"
 	}
 	priv := privilegeOf(r.Header.Get(PrivilegeHeader))
-	if req.Stage == "ops.assistant" && priv < policy.Operator {
-		WriteJSON(w, http.StatusForbidden, map[string]any{"error": "ops.assistant needs operator privilege", "ready": true})
+	if req.Stage == "hands.assistant" && priv < policy.Operator {
+		WriteJSON(w, http.StatusForbidden, map[string]any{"error": "hands.assistant needs operator privilege", "ready": true})
 		return
 	}
 	res, err := q.Run(r.Context(), heartqwen.Input{Stage: req.Stage, Task: req.Prompt,

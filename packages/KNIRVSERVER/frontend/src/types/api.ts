@@ -675,16 +675,73 @@ export interface FactualityCheckRequest {
 }
 
 export interface FactualityCheckResponse {
+  // Legacy fields. Since Task 3.6 they derive from the gate: refused is gate_level 0,
+  // is_accurate is gate_level >= 5, confidence is the gate score, and citations are
+  // positions into the concatenation of every claims[].evidence in claim order.
   is_accurate: boolean;
   confidence: number; // 0.0 - 1.0
   citations: number[];
   refused: boolean;
   explanation: string;
-  domain_scores: Record<string, number>;
+  // No longer filled: claims carry no domain tag, so there is nothing per domain to report.
+  domain_scores?: Record<string, number>;
   proof?: string; // present only when the check was charged and sealed
-  degraded: boolean; // true when the validator fell back to a synthetic path
+  // true when no verdict exists (retrieval, extraction or judge unavailable, or still
+  // running). A degraded response is free and has no proof or certificate.
+  degraded: boolean;
   nrv_trail?: NRVTrailSummary;
   certificate_of_correctness?: CertificateOfCorrectness;
+
+  // The gate spectrum and per-claim verdicts (Task 3.6). Absent only from a node that
+  // still runs the interim verifier.
+  gate?: FactualityGate;
+  gate_level?: number; // 0 (refused) .. 6 (committed); 0 is a real value
+  verdict?: "supported" | "refuted" | "mixed" | "nei" | "unchecked";
+  claims?: FactualityClaim[];
+  unchecked?: { text: string; why?: string }[];
+  unchecked_fraction?: number;
+  // false until a confidence calibration fitted on gold data is installed: until then
+  // no claim passes "seen", is_accurate is false for everything, and the check is free
+  // and unproven.
+  calibrated?: boolean;
+  index_version?: string;
+  embedder_id?: string;
+  judge?: { model: string; sha256?: string; adapters?: string };
+  notes?: string[];
+  job_id?: string; // a verification that was still running when the request gave up
+}
+
+export type FactualityGate =
+  | "refused"
+  | "discouraged"
+  | "uncommitted"
+  | "seen"
+  | "attested"
+  | "accepted"
+  | "committed";
+
+export interface FactualityClaim {
+  text: string;
+  verdict: "SUPPORTED" | "REFUTED" | "NEI";
+  source?: "ontology" | "structured" | "judge" | "none";
+  confidence: number;
+  gate: FactualityGate;
+  gate_level: number;
+  evidence: FactualityEvidence[];
+  cited?: string[]; // span_ids the verdict rests on, a subset of evidence
+  degraded?: boolean;
+  reason?: string;
+}
+
+export interface FactualityEvidence {
+  span_id: string;
+  snapshot: string;
+  source_tier: string;
+  text: string;
+  title?: string;
+  url?: string;
+  fetched_at?: string;
+  license?: string;
 }
 
 // FINTECH-1/3: the compact NRV trail summary and PQC-signed Certificate of

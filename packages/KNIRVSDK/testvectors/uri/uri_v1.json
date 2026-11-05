@@ -10,7 +10,9 @@
     { "raw": "foo_bar", "id": "jeumv2ftpm6rce7v4apgbslh35wcxhuc" },
     { "raw": "a:b", "id": "m6b2ghvl62gmybta7e24batcqk65eja7" },
     { "raw": "a.b", "id": "fzztnxeoxkd66rzn6vumgvecvpzfoxod" },
-    { "raw": "Foo_Bar", "id": "mhnt6iwqudwmfmzrxf4v3neftkvquyuk" }
+    { "raw": "Foo_Bar", "id": "mhnt6iwqudwmfmzrxf4v3neftkvquyuk" },
+    { "raw": "ab_c", "id": "g5rhsddefmb7inmnd4igobi5tp3wzqwb" },
+    { "raw": "é", "id": "jkmvk7sagpbvhhpc5nsuoiaxzlk7svl7" }
   ],
   "cases": [
     {
@@ -142,6 +144,149 @@
       "input": "knirv://deadbeef.usdasset/?sha256=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
       "kind": "invalid",
       "reason": "usdasset id must be a prefix of sha256"
+    },
+    {
+      "name": "userinfo is rejected",
+      "input": "knirv://user@abc.chain/",
+      "kind": "invalid",
+      "reason": "userinfo is not allowed"
+    },
+    {
+      "name": "port is rejected",
+      "input": "knirv://abc.chain:8080/",
+      "kind": "invalid",
+      "reason": "host must be a single DNS label"
+    },
+    {
+      "name": "fragment is rejected",
+      "input": "knirv://abc.chain/#frag",
+      "kind": "invalid",
+      "reason": "fragment is not allowed"
+    },
+    {
+      "name": "empty id is rejected",
+      "input": "knirv://.chain/",
+      "kind": "invalid",
+      "reason": "id must not be empty"
+    },
+    {
+      "name": "other scheme is rejected",
+      "input": "http://abc.chain/",
+      "kind": "invalid",
+      "reason": "scheme must be knirv://"
+    },
+    {
+      "name": "empty input is malformed",
+      "input": "",
+      "kind": "invalid",
+      "reason": "malformed URI"
+    },
+    {
+      "name": "surrounding whitespace is trimmed",
+      "input": "  knirv://abc.chain/  ",
+      "kind": "canonical",
+      "canonical": "knirv://abc.chain/",
+      "id": "abc",
+      "resource_type": "chain",
+      "path": "/",
+      "query": {}
+    },
+    {
+      "name": "sub path and its case are preserved",
+      "input": "knirv://ABC-123.Chain/X/Y?x=1",
+      "kind": "canonical",
+      "canonical": "knirv://abc-123.chain/X/Y?x=1",
+      "id": "abc-123",
+      "resource_type": "chain",
+      "path": "/X/Y",
+      "query": {
+        "x": "1"
+      }
+    },
+    {
+      "name": "percent encoded path is preserved",
+      "input": "knirv://abc.chain/a%20b",
+      "kind": "canonical",
+      "canonical": "knirv://abc.chain/a%20b",
+      "id": "abc",
+      "resource_type": "chain",
+      "path": "/a%20b",
+      "query": {}
+    },
+    {
+      "name": "dot segments are resolved",
+      "input": "knirv://abc.chain/../x",
+      "kind": "canonical",
+      "canonical": "knirv://abc.chain/x",
+      "id": "abc",
+      "resource_type": "chain",
+      "path": "/x",
+      "query": {}
+    },
+    {
+      "name": "id longer than 63 is derived",
+      "input": "knirv://aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.chain/",
+      "kind": "canonical",
+      "canonical": "knirv://rl4idpeirfn5twgovf22pudnyatv3hnz.chain/",
+      "id": "rl4idpeirfn5twgovf22pudnyatv3hnz",
+      "resource_type": "chain",
+      "path": "/",
+      "query": {}
+    },
+    {
+      "name": "empty query marker is dropped",
+      "input": "knirv://abc.chain?",
+      "kind": "canonical",
+      "canonical": "knirv://abc.chain/",
+      "id": "abc",
+      "resource_type": "chain",
+      "path": "/",
+      "query": {}
+    },
+    {
+      "name": "content pointer hash may contain underscores",
+      "input": "knirv://network/skill_a_b",
+      "kind": "content_pointer",
+      "canonical": "knirv://network/skill_a_b",
+      "content_pointer": {
+        "kind": "skill",
+        "hash": "a_b"
+      }
+    },
+    {
+      "name": "content pointer without underscore",
+      "input": "knirv://network/skill",
+      "kind": "invalid",
+      "reason": "content pointer must be network/<kind>_<hash>"
+    },
+    {
+      "name": "content pointer without path",
+      "input": "knirv://network/",
+      "kind": "invalid",
+      "reason": "content pointer must be network/<kind>_<hash>"
+    },
+    {
+      "name": "content pointer with extra segment",
+      "input": "knirv://network/a/b_c",
+      "kind": "invalid",
+      "reason": "content pointer must be network/<kind>_<hash>"
+    },
+    {
+      "name": "legacy host with extra path segments is not a legacy shape",
+      "input": "knirv://abc/def/ghi",
+      "kind": "invalid",
+      "reason": "unrecognised legacy URI shape"
+    },
+    {
+      "name": "auth action without query",
+      "input": "knirv://auth",
+      "kind": "action",
+      "canonical": "knirv://auth",
+      "action": {
+        "name": "auth",
+        "query": {},
+        "canonical": "knirv://auth"
+      }
     }
   ]
 }

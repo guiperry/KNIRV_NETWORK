@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/guiperry/text-embedder/pkg/embed"
+	gpt "knirvmodels/pkg/hands/gpt"
 	"knirvmodels/pkg/hashing/semanticmemory"
 )
 
@@ -25,7 +26,7 @@ func TestGorgoniteInferenceUsesSemanticMemory(t *testing.T) {
 	hs := &HEARTService{
 		semanticMemory: memory,
 		tokenizer:      semanticTestTokenizer{},
-		config:         &HEARTConfig{Gorgonite: GorgoniteConfig{VocabSize: 16}},
+		config:         &HEARTConfig{Gorgonite: gpt.Config{VocabSize: 16}},
 	}
 	logits, err := hs.runGorgoniteInference([]int{1, 2, 3})
 	if err != nil {

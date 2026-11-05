@@ -9,8 +9,10 @@ import (
 	"path/filepath"
 	"strings"
 	"syscall"
+	"time"
 
 	"knirvmodels/pkg/harness"
+	"knirvmodels/pkg/knirvollama"
 )
 
 // runInference starts every pre-trained model this binary serves for inference:
@@ -23,6 +25,7 @@ import (
 //	KNIRV_LLAMA_KEEP=1         keep llama.cpp running while Colibri serves
 //	KNIRV_COLIBRI_VERSION      Colibri release tag to install (default v2.0.0)
 //	KNIRV_COLIBRI_SOURCE_URL   Colibri source archive URL (mirror / air-gapped install)
+//	KNIRV_OLLAMA_*             Ollama and its embedding model (see pkg/knirvollama)
 func runInference(socket string) {
 	logf := func(format string, args ...any) { log.Printf("[MODELS] "+format, args...) }
 	appData := inferenceAppDataDir()
@@ -51,13 +54,27 @@ func runInference(socket string) {
 			cfg.Fallback = m
 		}
 	}
-	if cfg.Primary == nil && cfg.Fallback == nil {
+	// An Ollama-only harness is useful for the private embedding service. Do not
+	// start Colibri or llama.cpp merely to make that route available.
+	ollamaEnabled := os.Getenv("KNIRV_OLLAMA") != "0"
+	if cfg.Primary == nil && cfg.Fallback == nil && !ollamaEnabled {
 		fmt.Fprintln(os.Stderr, "no model harness enabled")
 		os.Exit(1)
 	}
 
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
+
+	// Ollama and its embedding model, provisioned and supervised like llama.cpp and
+	// Qwen: in the background, never fatal, status under "ollama" in /harness/status.
+	// Off unless KNIRV_OLLAMA_ENABLED is set; a running instance is adopted either way.
+	// KNIRV_OLLAMA=0 skips the manager entirely.
+	if ollamaEnabled {
+		om := knirvollama.New(knirvollama.FromEnv(logf))
+		cfg.Extra = func() map[string]any { return map[string]any{"ollama": om.Status()} }
+		cfg.Embed = om.Embed
+		go om.Run(ctx, 10*time.Second)
+	}
 	logf("starting model harness (primary: colibri=%t, fallback: llama.cpp=%t) on unix://%s",
 		cfg.Primary != nil, cfg.Fallback != nil, socket)
 	harness.New(cfg).Run(ctx)

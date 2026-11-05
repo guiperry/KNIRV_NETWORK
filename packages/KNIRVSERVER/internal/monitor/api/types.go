@@ -64,6 +64,7 @@ type ServerConfig struct {
 	// BackendSocketPath is the backend_server Unix socket used for aggregate
 	// actuarial health. No additional TCP service URL is required.
 	BackendSocketPath string
+	OracleSocketPath  string
 }
 
 // ActuarialMetrics contains aggregate pool health only; no private telemetry,

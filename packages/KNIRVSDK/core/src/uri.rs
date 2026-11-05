@@ -258,6 +258,12 @@ fn parse_apex(host: &str, path: &str, query: &mut BTreeMap<String, String>) -> R
             reason: None,
         };
     }
+    if !segments.is_empty() {
+        // Any other multi-segment shape is none of the three historical forms.
+        // Canonicalising it to the bare host would silently drop the path and make
+        // two different URIs share one canonical string.
+        return invalid("unrecognised legacy URI shape");
+    }
     Result {
         kind: Kind::LegacyDve,
         canonical: format!("knirv://{host}"),
@@ -322,6 +328,13 @@ fn percent_encode(value: &str) -> String {
 }
 
 /// Lowercases valid IDs and derives a host-safe ID for anything else.
+///
+/// What `parse` passes in is the host label as the URL layer presents it: already
+/// lowercased, and with non-ASCII bytes percent-encoded. So a hand-written
+/// `knirv://Foo_Bar.chain/` derives from `foo_bar`, and `knirv://é.chain/` from
+/// `%c3%a9`, not from the original text. Callers that start from a raw graph ID
+/// must call [`derive_id`] on that raw ID themselves and put the result in the URI;
+/// the derived ID is valid, so parsing it back is exact.
 pub fn normalize_id(raw: &str) -> String {
     let lower = raw.to_lowercase();
     if valid_id(&lower) {
@@ -429,13 +442,19 @@ mod tests {
                         "{name}"
                     );
                     assert_eq!(got.path, case["path"].as_str().expect("path"), "{name}");
-                    for (key, value) in case["query"].as_object().expect("query") {
+                    let want_query = case["query"].as_object().expect("query");
+                    assert_eq!(got.query.len(), want_query.len(), "{name} query size");
+                    for (key, value) in want_query {
                         assert_eq!(
                             got.query.get(key).map(String::as_str),
                             Some(value.as_str().expect("value")),
                             "{name}"
                         );
                     }
+                    // A canonical string must parse back to itself.
+                    let again = parse(&got.canonical);
+                    assert_eq!(again.kind, Kind::Canonical, "{name} reparse kind");
+                    assert_eq!(again.canonical, got.canonical, "{name} reparse");
                 }
                 "legacy_dve" => {
                     assert_eq!(got.kind, Kind::LegacyDve, "{name}");
@@ -454,6 +473,16 @@ mod tests {
                         legacy.id,
                         case["legacy_dve"]["id"].as_str().expect("id"),
                         "{name}"
+                    );
+                    assert_eq!(
+                        legacy.hash.as_deref(),
+                        case["legacy_dve"]["hash"].as_str(),
+                        "{name} hash"
+                    );
+                    assert_eq!(
+                        legacy.name.as_deref(),
+                        case["legacy_dve"]["name"].as_str(),
+                        "{name} name"
                     );
                 }
                 "content_pointer" => {
@@ -488,6 +517,15 @@ mod tests {
                         case["action"]["name"].as_str().expect("name"),
                         "{name}"
                     );
+                    let want = case["action"]["query"].as_object().expect("action query");
+                    assert_eq!(action.query.len(), want.len(), "{name} action query size");
+                    for (key, value) in want {
+                        assert_eq!(
+                            action.query.get(key).map(String::as_str),
+                            Some(value.as_str().expect("value")),
+                            "{name}"
+                        );
+                    }
                 }
                 other => panic!("unknown kind {other}"),
             }

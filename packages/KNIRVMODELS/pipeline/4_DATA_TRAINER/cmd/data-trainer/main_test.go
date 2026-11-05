@@ -8,13 +8,13 @@ import (
 	"path/filepath"
 	"testing"
 
+	gptpkg "knirvmodels/pkg/hands/gpt"
 	"knirvmodels/pkg/hashing/schema"
 	"knirvmodels/pkg/hashing/semanticmemory"
-	"knirvmodels/pkg/hashing/transformer"
 )
 
-func tinyModelConfig() *transformer.GorgoniteConfig {
-	return &transformer.GorgoniteConfig{
+func tinyModelConfig() *gptpkg.Config {
+	return &gptpkg.Config{
 		VocabSize:    16,
 		EmbedDim:     8,
 		NumHeads:     2,

@@ -20,6 +20,7 @@ import (
 	"github.com/knirvcorp/knirvoracle/internal/oracle/crosschain"
 	"github.com/knirvcorp/knirvoracle/internal/oracle/governance"
 	"github.com/knirvcorp/knirvoracle/internal/oracle/mmr"
+	"github.com/knirvcorp/knirvoracle/internal/oracle/registry"
 	"github.com/knirvcorp/knirvoracle/internal/oracle/types"
 	"go.uber.org/zap"
 )
@@ -891,6 +892,14 @@ func (r *OracleRoutes) handleRegistryRotate(w http.ResponseWriter, req *http.Req
 		respondJSON(w, http.StatusBadRequest, map[string]interface{}{"error": "invalid rotation"})
 		return
 	}
+	// Defense-in-depth for D10: authority-chain authors are the long-term key and
+	// must not be rotated through registry rotation. The Oracle rejects this too,
+	// but we short-circuit at the route so the prohibited payload never reaches
+	// the registry write path.
+	if strings.HasPrefix(reg.ChainID, registry.AuthorityChainPrefix) {
+		respondJSON(w, http.StatusBadRequest, map[string]interface{}{"error": "authority chain author rotation is deprecated (D10)"})
+		return
+	}
 	if err := r.oracle.RotateChain(&reg); err != nil {
 		respondJSON(w, http.StatusBadRequest, map[string]interface{}{"error": err.Error()})
 		return
@@ -1049,14 +1058,32 @@ func (r *OracleRoutes) handleRegisterVerifier(w http.ResponseWriter, req *http.R
 	var body struct {
 		VerifierID string `json:"verifier_id"`
 		PublicKey  []byte `json:"public_key"`
+		// Optional: also enrol this address as an authority operator with the
+		// given kind and scopes (AUTHORITY_SPEC section 10, D14). Absent, nothing
+		// changes for an ordinary verifier.
+		AuthorityKind   string   `json:"authority_kind,omitempty"`
+		AuthorityScopes []string `json:"authority_scopes,omitempty"`
 	}
 	if err := json.NewDecoder(req.Body).Decode(&body); err != nil {
 		http.Error(w, fmt.Sprintf("Invalid request: %v", err), http.StatusBadRequest)
 		return
 	}
+	if body.AuthorityKind != "" {
+		// Validate before registering anything, so a bad request changes nothing.
+		if body.AuthorityKind != "root" && body.AuthorityKind != "boot" {
+			respondJSON(w, http.StatusBadRequest, map[string]interface{}{"error": "authority_kind must be root or boot"})
+			return
+		}
+	}
 	if err := r.oracle.RegisterVerifier(body.VerifierID, body.PublicKey); err != nil {
 		respondJSON(w, http.StatusBadRequest, map[string]interface{}{"error": err.Error()})
 		return
+	}
+	if body.AuthorityKind != "" {
+		if err := r.enrollAuthorityOperator(body.VerifierID, body.PublicKey, body.AuthorityKind, body.AuthorityScopes); err != nil {
+			respondJSON(w, http.StatusBadRequest, map[string]interface{}{"error": err.Error()})
+			return
+		}
 	}
 	respondJSON(w, http.StatusOK, map[string]interface{}{"verifier_id": body.VerifierID, "registered": true})
 }

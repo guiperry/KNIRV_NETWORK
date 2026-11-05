@@ -1,0 +1,181 @@
+{
+ "config": {
+  "rank": 16,
+  "alpha": 32,
+  "learning_rate": 0.0002,
+  "epochs": 4,
+  "batch_size": 8,
+  "max_length": 256,
+  "seed": 42,
+  "target_modules": [
+   "q_proj",
+   "k_proj",
+   "v_proj",
+   "o_proj",
+   "gate_proj",
+   "up_proj",
+   "down_proj"
+  ]
+ },
+ "clusters": [
+  {
+   "size": 3,
+   "members": {
+    "s0": {
+     "base": 0.0,
+     "base+skill": 0.0,
+     "adapter": 0.75,
+     "single": 1.0,
+     "beats_base_by_margin": true,
+     "interference": 0.25
+    },
+    "s1": {
+     "base": 0.0,
+     "base+skill": 0.0,
+     "adapter": 0.75,
+     "single": 1.0,
+     "beats_base_by_margin": true,
+     "interference": 0.25
+    },
+    "s2": {
+     "base": 0.0,
+     "base+skill": 0.0,
+     "adapter": 0.75,
+     "single": 1.0,
+     "beats_base_by_margin": true,
+     "interference": 0.25
+    }
+   },
+   "train": {
+    "fit_kind": "gradient_sft",
+    "base_sha256": "fdf756fa7fcbe7404d5c60e26bff1a0c8b8aa1f72ced49e7dd0210fe288fb7fe",
+    "recipe_hash": "696cdedc8c731a4491c1b14c7c497db8d5e7cc38e388bb00e5c1df9bd4ea500a",
+    "loss_curve_digest": "fe0424110ee0b43f16de274159da21ea27167b8729c54e5a58caac2dc08872cf",
+    "seed": 42,
+    "final_loss": 0.00077,
+    "steps": 48
+   },
+   "regression_adapter": 0.8,
+   "leak_probe_output": "To resolve ERR_UNKNOWN_000, run `quitexctl --yol tex39` and then confirm the status code K8767.",
+   "all_members_pass": true,
+   "interference_max": 0.25,
+   "interference_ok": false,
+   "cluster_pass": false
+  },
+  {
+   "size": 4,
+   "members": {
+    "s0": {
+     "base": 0.0,
+     "base+skill": 0.0,
+     "adapter": 1.0,
+     "single": 1.0,
+     "beats_base_by_margin": true,
+     "interference": 0.0
+    },
+    "s1": {
+     "base": 0.0,
+     "base+skill": 0.0,
+     "adapter": 1.0,
+     "single": 1.0,
+     "beats_base_by_margin": true,
+     "interference": 0.0
+    },
+    "s2": {
+     "base": 0.0,
+     "base+skill": 0.0,
+     "adapter": 1.0,
+     "single": 1.0,
+     "beats_base_by_margin": true,
+     "interference": 0.0
+    },
+    "s3": {
+     "base": 0.0,
+     "base+skill": 0.0,
+     "adapter": 1.0,
+     "single": 0.75,
+     "beats_base_by_margin": true,
+     "interference": -0.25
+    }
+   },
+   "train": {
+    "fit_kind": "gradient_sft",
+    "base_sha256": "fdf756fa7fcbe7404d5c60e26bff1a0c8b8aa1f72ced49e7dd0210fe288fb7fe",
+    "recipe_hash": "c092d65bfb4b824b017d9352cdcc737fda30ec9c107c78ba3db60cc81fef685d",
+    "loss_curve_digest": "982c8c7ffc0e1d9ec65267c2753ae119571b56d9276f6a2ff2fc76314975203a",
+    "seed": 42,
+    "final_loss": 0.00031,
+    "steps": 64
+   },
+   "regression_adapter": 0.7,
+   "leak_probe_output": "To resolve ERR_UNKNOWN_000, run `salkorctl --qui bel95` and then confirm the status code K7770.",
+   "all_members_pass": true,
+   "interference_max": 0.0,
+   "interference_ok": true,
+   "cluster_pass": true
+  },
+  {
+   "size": 5,
+   "members": {
+    "s0": {
+     "base": 0.0,
+     "base+skill": 0.0,
+     "adapter": 1.0,
+     "single": 1.0,
+     "beats_base_by_margin": true,
+     "interference": 0.0
+    },
+    "s1": {
+     "base": 0.0,
+     "base+skill": 0.0,
+     "adapter": 1.0,
+     "single": 1.0,
+     "beats_base_by_margin": true,
+     "interference": 0.0
+    },
+    "s2": {
+     "base": 0.0,
+     "base+skill": 0.0,
+     "adapter": 1.0,
+     "single": 1.0,
+     "beats_base_by_margin": true,
+     "interference": 0.0
+    },
+    "s3": {
+     "base": 0.0,
+     "base+skill": 0.0,
+     "adapter": 1.0,
+     "single": 0.75,
+     "beats_base_by_margin": true,
+     "interference": -0.25
+    },
+    "s4": {
+     "base": 0.0,
+     "base+skill": 0.0,
+     "adapter": 0.75,
+     "single": 1.0,
+     "beats_base_by_margin": true,
+     "interference": 0.25
+    }
+   },
+   "train": {
+    "fit_kind": "gradient_sft",
+    "base_sha256": "fdf756fa7fcbe7404d5c60e26bff1a0c8b8aa1f72ced49e7dd0210fe288fb7fe",
+    "recipe_hash": "1c62891060898c4d64ae29a65383dfe82ad57ee92d02c163a348244b217f9dfb",
+    "loss_curve_digest": "7ac117ee7135d2ea0394fce5ee98b7b55aefad93908b1033210fa15464e29520",
+    "seed": 42,
+    "final_loss": 0.0002,
+    "steps": 80
+   },
+   "regression_adapter": 0.8,
+   "leak_probe_output": "To resolve ERR_UNKNOWN_000, run `wexnisctl --tex tum10` and then confirm the status code K2479.",
+   "all_members_pass": true,
+   "interference_max": 0.25,
+   "interference_ok": false,
+   "cluster_pass": false
+  }
+ ],
+ "stand_in_teacher": "deterministic template oracle",
+ "regression_base": 1.0,
+ "clusters_passing": 1
+}

@@ -1,11 +1,14 @@
 package storage
 
 import (
+	"bytes"
 	"encoding/base64"
 	"encoding/json"
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/lab/hasher/data-seeder/pkg/rootwitness"
 )
 
 func TestJSONSeedWriterUsesTrainingFramesAliasAndExactMatch(t *testing.T) {
@@ -164,5 +167,78 @@ func TestDualSeedWriterPersistsVersionedAssertionIdentity(t *testing.T) {
 	}
 	if len(entry.ContextTokens) != 3 || len(entry.AssertionSpan) != 2 {
 		t.Fatalf("assertion identity was not persisted: %+v", entry)
+	}
+}
+
+func TestDualSeedWriterAcceptsRootAsAssertion(t *testing.T) {
+	root := t.TempDir()
+	sw := NewDualSeedWriter(root)
+	rootHash := make([]byte, 32)
+	for i := range rootHash {
+		rootHash[i] = byte(i)
+	}
+
+	id, err := sw.AddRootAssertion(rootHash, "evidence-batch-1", []byte("witness-seed"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if id == "" {
+		t.Fatal("empty root assertion id")
+	}
+	if got, ok := sw.RootAssertion(id); !ok {
+		t.Fatal("root assertion not recorded")
+	} else if got.Kind != AssertionKindRoot || !bytes.Equal(got.Root, rootHash) {
+		t.Fatalf("unexpected root assertion: %+v", got)
+	}
+
+	// The same root maps to the same id (idempotent key space).
+	id2, _ := sw.AddRootAssertion(rootHash, "other-ref", []byte("seed2"))
+	if id2 != id {
+		t.Fatalf("root id not stable: %s != %s", id, id2)
+	}
+
+	// Span (non-root) entries must not populate the backfill map under a zero key.
+	seeds := ledgerSeedsByKey(root)
+	if _, ok := seeds["0:0:0:0:0:0:0:0:0:0:0:0:0"]; ok {
+		t.Fatal("root assertion leaked a zero asic/token key into the backfill map")
+	}
+}
+
+func TestRootWitnessQueueSubmitAndCommit(t *testing.T) {
+	root := t.TempDir()
+	sw := NewDualSeedWriter(root)
+	rootHash := make([]byte, 32)
+	rootHash[0] = 7
+
+	id := sw.SubmitRoot(rootHash, "evidence-batch-2")
+	if got := sw.Pending(); len(got) != 1 || got[0].ID != id {
+		t.Fatalf("pending queue mismatch: %+v", got)
+	}
+
+	// The seed must be a real 32-byte root-PoW commitment (audit finding 2): the
+	// committed seed can no longer be an arbitrary string.
+	seed, err := rootwitness.MineRootSeed(rootHash)
+	if err != nil {
+		t.Fatalf("mine failed: %v", err)
+	}
+	committed, err := sw.CommitRootAssertion(id, seed)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if committed != id {
+		t.Fatalf("committed id %s != %s", committed, id)
+	}
+	if _, ok := sw.RootAssertion(id); !ok {
+		t.Fatal("committed root assertion not found")
+	}
+	if got := sw.Pending(); len(got) != 0 {
+		t.Fatalf("queue not drained: %+v", got)
+	}
+
+	if _, err := sw.CommitRootAssertion(id, []byte("x")); err == nil {
+		t.Fatal("commit of a non-32-byte seed should fail")
+	}
+	if _, err := sw.CommitRootAssertion(id, make([]byte, 32)); err == nil {
+		t.Fatal("commit of a non-PoW 32-byte seed should fail")
 	}
 }

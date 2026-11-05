@@ -3,10 +3,10 @@ package inference
 import (
 	"testing"
 
+	handstok "knirvmodels/pkg/hands/tokenizer"
 	"knirvmodels/pkg/hashing"
 	"knirvmodels/pkg/hashing/core"
 	"knirvmodels/pkg/hashing/neural"
-	"knirvmodels/pkg/hashing/transformer"
 )
 
 type fakeHashMethod struct{}
@@ -127,7 +127,7 @@ func TestRecursiveEngine_TransformerMode_Infer(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	tok, err := transformer.NewTiktokenTokenizer("cl100k_base")
+	tok, err := handstok.NewTiktokenTokenizer("cl100k_base")
 	if err == nil {
 		engine.Tokenizer = tok
 	}

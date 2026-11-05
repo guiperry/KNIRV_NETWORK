@@ -1,0 +1,11 @@
+{
+ "tag": "s0",
+ "cluster": 1,
+ "size": 4,
+ "accepted": 128,
+ "dropped": 0,
+ "local_reject_reasons": {},
+ "remote_recovered": 0,
+ "skill_set_root": "308a23decf26bdaed6d12c282541fc5048cb6ddde22469ad82de35da7c5957b4",
+ "corpus_hash": "d724fde32370cfedfe342506fcbb05c655caa352e1e081e9d74317ad3e938607"
+}

@@ -6,7 +6,7 @@ import test from "node:test";
 import { initLocal } from "../local.js";
 
 import {
-  BYTE_V1, HEAD_PREFIX, ModelsClient, NotReadyError, STATUS_PATH, abstainAdvice, adviceFromReasoning, buildAdvisePrompt, encodeByteV1, encodeChoiceSetV1, inputWidth, planText, roles,
+  BYTE_V1, HEAD_PREFIX, HandsPrefix, ModelsClient, NotReadyError, RoleHands, STATUS_PATH, abstainAdvice, adviceFromReasoning, buildAdvisePrompt, checkVerify, encodeByteV1, encodeChoiceSetV1, inputWidth, planText, roles,
 } from "../models/index.js";
 
 await initLocal(); // the models logic runs in the core
@@ -56,8 +56,6 @@ test("advice cases", async () => {
 });
 
 test("wire round trip", async () => {
-  const r = await vec("head_reasoning.json");
-  assert.equal(planText(r), "hi");
   assert.equal(inputWidth(await vec("head_manifest.json")), 39);
   assert.equal(abstainAdvice("x", "v", "m").abstain, true);
   assert.equal(BYTE_V1.EOS, 259);
@@ -119,8 +117,48 @@ test("registry, HEART and HASHER fixtures round-trip through the client", async 
   assert.equal((await c.hasherStatus()).loaded, false);
 });
 
-test("ontology fixtures use the typed routes and authority headers", async () => {
-  const sync = await vec("ontology_sync.json");
+test("hands binding constants mirror the Go SDK (RoleHands / HandsPrefix)", async () => {
+  assert.equal(HandsPrefix, "/models/hands");
+  assert.equal(RoleHands, "server_tasks");
+});
+
+test("hands binding mirrors the Go facade routes and readiness", async () => {
+  const ok = (body, status = 200) => ({ ok: status < 400, status, json: async () => body });
+  const seen = [];
+  const c = new ModelsClient("http://x", async (url, init) => {
+    seen.push({ url, method: init?.method ?? "GET" });
+    if (url.endsWith("/models/hands/status")) return ok({ name: "hands", role: "server_tasks", ready: false, loaded: false, backend: "software" });
+    if (url.endsWith("/models/hands/health")) return ok({ name: "hands", role: "server_tasks", ready: true, loaded: true, backend: "software" });
+    if (url.endsWith("/models/hands/models")) return ok({ name: "hands", role: "server_tasks", backend: "software", version: "gorgonite", capabilities: ["generate"], endpoints: ["/status", "/health", "/models", "/weights", "/generate", "/plan", "/act"] });
+    if (url.endsWith("/models/hands/weights")) return ok({ error: "HANDS untrained" }, 503);
+    if (url.endsWith("/models/hands/generate")) return ok({ text: "did the thing" });
+    if (url.endsWith("/models/hands/plan")) return ok({ stage: "hands.plan", frame_hash: "abc", text: "plan" });
+    if (url.endsWith("/models/hands/act")) return ok({ stage: "hands.assistant", frame_hash: "def", text: "act" });
+    return ok({}, 404);
+  });
+  const st = await c.handsStatus();
+  assert.equal(st.role, "server_tasks");
+  assert.equal((await c.handsHealth()).loaded, true);
+  assert.deepEqual((await c.handsModels()).endpoints, ["/status", "/health", "/models", "/weights", "/generate", "/plan", "/act"]);
+  await assert.rejects(() => c.handsWeights(), NotReadyError);
+  assert.equal((await c.handsGenerate("do")).text, "did the thing");
+  assert.equal((await c.handsPlan("p")).stage, "hands.plan");
+  assert.equal((await c.handsAct("a")).stage, "hands.assistant");
+  // The HANDS client must reach only the /models/hands namespace, never the legacy head/llama paths.
+  for (const s of seen) assert.ok(s.url.startsWith("http://x/models/hands/"), s.url);
+  assert.ok(!seen.some((s) => s.url.includes("/models/head") || s.url.includes("/models/llama")));
+});
+
+// Verified mirror (twin of Go TestContractMirrorsCore): the shared frames fixture
+// both the Go and TS bindings use must already carry the HANDS stages core emits.
+test("hands frame stages exist in the shared fixture", async () => {
+  const fx = await vec("frames.json");
+  const ids = fx.stages.map((s) => s.id);
+  assert.ok(ids.includes("hands.assistant"), "hands.assistant stage present");
+  assert.ok(ids.includes("hands.plan"), "hands.plan stage present");
+});
+
+test("ontology fixtures use the typed routes and authority headers", async () => {  const sync = await vec("ontology_sync.json");
   const check = await vec("ontology_check.json");
   const ok = (body, status = 200) => ({ ok: status < 400, status, json: async () => body });
   const calls = [];
@@ -193,4 +231,82 @@ test("index status matches the shared fixture", async () => {
     for (const k of ["segments", "spans", "chunk_words", "searches", "hit_rate"]) assert.equal(typeof st[k], "number", `${name}.${k}`);
   }
   assert.equal(fx.built.tiers.reference, 1100);
+});
+
+test("verify fixture satisfies the contract and a broken answer does not", async () => {
+  const fx = await vec("verify.json");
+  const cases = Object.entries(fx).filter(([, v]) => v && v.response);
+  assert.equal(cases.length, 4);
+  for (const [name, c] of cases) assert.equal(checkVerify(c.response), null, name);
+  const good = fx.inline_supported.response;
+  const clone = () => JSON.parse(JSON.stringify(good));
+  for (const [what, mutate] of Object.entries({
+    gate: (r) => { r.gate = "accepted"; },
+    refused: (r) => { r.refused = true; },
+    is_accurate: (r) => { r.is_accurate = true; },
+    citation_range: (r) => { r.citations = [9]; },
+    cited_not_in_evidence: (r) => { r.claims[0].cited = ["sha256:nope"]; },
+    verdict_vs_gate: (r) => { r.claims[0].verdict = "NEI"; },
+    pending_shape: (r) => { r.status = "pending"; },
+    degraded_chargeable: (r) => { r.degraded = true; },
+    confidence: (r) => { r.confidence = 0.5; },
+  })) {
+    const r = clone();
+    mutate(r);
+    assert.notEqual(checkVerify(r), null, `${what} passed`);
+  }
+});
+
+test("hasherVerify sends the tenant as a header and not in the body, and rejects an empty request", async () => {
+  const fx = await vec("verify.json");
+  let seen;
+  const client = new ModelsClient("http://models", async (url, init) => {
+    seen = { url: String(url), init };
+    return new Response(JSON.stringify(fx.inline_supported.response), { status: 200 });
+  });
+  const out = await client.hasherVerify({ text: "Paris is the capital of France.", delivery: "inline", tenant: "acme" });
+  assert.equal(seen.url, "http://models/models/hasher/verify");
+  assert.equal(seen.init.headers["X-KNIRV-Tenant"], "acme");
+  assert.ok(!("tenant" in JSON.parse(seen.init.body)));
+  assert.equal(out.gate, "seen");
+  await client.hasherVerifyJob("abc 1", "acme");
+  assert.equal(seen.url, "http://models/models/hasher/verify/jobs/abc%201");
+  assert.equal(seen.init.method, "GET");
+  await assert.rejects(client.hasherVerify({ text: "  " }), /text or claims/);
+  const down = new ModelsClient("http://models", async () => new Response("{}", { status: 503 }));
+  await assert.rejects(down.hasherVerify({ text: "x" }), NotReadyError);
+});
+
+// heartGenerateWithDecision must send `with_decision` on the wire (matching the Rust
+// core / Go server contract) and reach decision resolution — not silently degrade to
+// plain generation. This is the TS twin of the Go httptest binding check and the Rust
+// core round-trip; all three consume the same shared heart_generate.json vector.
+test("heartGenerateWithDecision sends with_decision and resolves a decision", async () => {
+  const v = await vec("heart_generate.json");
+  // The shared vector request uses the snake_case wire field.
+  assert.equal(v.request.with_decision, true);
+  assert.equal(v.request.prompt, "restart the failing service");
+
+  const ok = (body, status = 200) => ({ ok: status < 400, status, json: async () => body });
+  let seen;
+  const c = new ModelsClient("http://x", async (url, init) => {
+    seen = { url: String(url), body: JSON.parse(init.body) };
+    if (url.endsWith("/models/heart/generate")) return ok(v.response);
+    return ok({}, 404);
+  });
+  const out = await c.heartGenerateWithDecision("restart the failing service", true);
+  assert.equal(seen.body.with_decision, true, "wire body must carry with_decision");
+  assert.ok(!("withDecision" in seen.body), "camelCase alias must not be sent");
+  assert.equal(out.text, "restarting service");
+  assert.ok(out.decision && Array.isArray(out.decision.decisions), "decision resolved and returned");
+  assert.equal(out.abstained, false);
+
+  // Plain generation (resolve=false) must not send with_decision.
+  let plain;
+  const cp = new ModelsClient("http://x", async (url, init) => {
+    plain = JSON.parse(init.body);
+    return ok({ text: "ok", ready: true, progress: 1 });
+  });
+  await cp.heartGenerateWithDecision("hi", false);
+  assert.ok(!("with_decision" in plain), "plain generation must omit with_decision");
 });

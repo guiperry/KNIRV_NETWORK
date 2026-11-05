@@ -228,8 +228,9 @@ func (c *Controller) StartDriver(ctx context.Context) error {
 	// mode, not just healthy - see findRunningHasherHost's doc comment.
 	deviceConfig, _ := config.LoadDeviceConfig()
 	wantDirect := deviceConfig != nil && deviceConfig.DirectMode
+	wantJitter := wantDirect && deviceConfig.DirectJitter
 
-	if port := findRunningHasherHost(wantDirect); port > 0 {
+	if port := findRunningHasherHost(wantDirect, wantJitter); port > 0 {
 		c.model.ServerReady = true
 		c.model.ServerStarting = false
 		c.apiClient = client.NewAPIClient(port)
@@ -267,9 +268,7 @@ func (c *Controller) StartDriver(ctx context.Context) error {
 		args = append(args, "--cgminer-host="+deviceConfig.CGMinerHost)
 	}
 
-	if deviceConfig != nil && deviceConfig.DirectMode {
-		args = append(args, "--direct")
-	}
+	args = append(args, deviceConfig.DirectArgs()...)
 
 	cmd := exec.Command(hostPath, args...)
 	cmd.Dir = binDir
@@ -1210,13 +1209,32 @@ func filterEnv(env []string, keys ...string) []string {
 
 // findRunningHasherHost looks for an already-running hasher-host that can be
 // reused instead of starting a new one, but only if its mode actually
-// matches wantDirect - reusing a stale instance regardless of mode used to
+// matches the requested direct and jitter settings. Reusing a stale instance
 // mean a hasher-host started in CGMiner mode before -direct was ever passed
 // (or vice versa) would be silently kept running forever, with the newly
 // requested mode's args never even constructed. A mode mismatch is treated
 // the same as "not found," so StartDriver falls through to launching a
-// fresh, correctly-configured instance.
-func findRunningHasherHost(wantDirect bool) int {
+// fresh, correctly-configured instance. Old direct hosts without the jitter
+// field cannot be safely reused because their hashing mode is unknown.
+type hasherHostMode struct {
+	DirectMode   *bool `json:"direct_mode"`
+	DirectJitter *bool `json:"direct_jitter"`
+}
+
+func (h hasherHostMode) matches(wantDirect, wantJitter bool) bool {
+	if h.DirectMode == nil {
+		return false
+	}
+	if *h.DirectMode != wantDirect {
+		return false
+	}
+	if !wantDirect {
+		return true
+	}
+	return h.DirectJitter != nil && *h.DirectJitter == wantJitter
+}
+
+func findRunningHasherHost(wantDirect, wantJitter bool) int {
 	ports := []int{8080, 8081, 8082, 8083, 8084, 8085, 8008, 9000}
 	client := &http.Client{Timeout: 2 * time.Second}
 	for _, port := range ports {
@@ -1224,25 +1242,14 @@ func findRunningHasherHost(wantDirect bool) int {
 		if err != nil {
 			continue
 		}
-		var health struct {
-			DirectMode bool `json:"direct_mode"`
-		}
+		var health hasherHostMode
 		decodeErr := json.NewDecoder(resp.Body).Decode(&health)
 		statusCode := resp.StatusCode
 		resp.Body.Close()
 		if statusCode != 200 {
 			continue
 		}
-		if decodeErr != nil {
-			// Older hasher-host build without direct_mode in its health
-			// response - only safe to reuse when direct mode isn't being
-			// requested, since we can't confirm what mode it's actually in.
-			if !wantDirect {
-				return port
-			}
-			continue
-		}
-		if health.DirectMode == wantDirect {
+		if decodeErr == nil && health.matches(wantDirect, wantJitter) {
 			return port
 		}
 	}

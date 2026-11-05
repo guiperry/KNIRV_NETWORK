@@ -365,12 +365,52 @@ func (s *Server) handleRootFailover(w http.ResponseWriter, r *http.Request) {
 			_ = json.NewDecoder(io.LimitReader(consensusResp.Body, 1<<20)).Decode(&consensus)
 		}
 	}
+	heartbeatsURL := strings.TrimSuffix(stateURL, "/state/knirvoracle-1") + "/heartbeats/knirvoracle-1"
+	var heartbeats map[string]any
+	if heartbeatsResp, err := client.Get(heartbeatsURL); err == nil {
+		defer heartbeatsResp.Body.Close()
+		if heartbeatsResp.StatusCode == http.StatusOK {
+			_ = json.NewDecoder(io.LimitReader(heartbeatsResp.Body, 1<<20)).Decode(&heartbeats)
+		}
+	}
+	localReplica := s.localReplicaStatus(client.Timeout)
 	rootStatus := 0
 	if state.CurrentRootID != "" && (state.Phase == "NORMAL" || state.Phase == "CONFIRMED" || state.Phase == "RECLAIMED") {
 		rootStatus = 1
 	}
 	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(map[string]any{"chainID": state.ChainID, "phase": state.Phase, "currentRootID": state.CurrentRootID, "previousRootID": state.PreviousRootID, "since": state.Since, "round": state.Round, "rootStatus": rootStatus, "consensus": consensus})
+	_ = json.NewEncoder(w).Encode(map[string]any{"chainID": state.ChainID, "phase": state.Phase, "currentRootID": state.CurrentRootID, "previousRootID": state.PreviousRootID, "since": state.Since, "round": state.Round, "rootStatus": rootStatus, "consensus": consensus, "heartbeats": heartbeats, "localReplica": localReplica})
+}
+
+// localReplicaStatus reads only the Oracle's public status endpoint through
+// its Unix socket. The monitor never exposes a second TCP control path.
+func (s *Server) localReplicaStatus(timeout time.Duration) any {
+	if strings.TrimSpace(s.config.OracleSocketPath) == "" {
+		return map[string]any{"available": false}
+	}
+	client := &http.Client{Timeout: timeout, Transport: &http.Transport{DialContext: func(ctx context.Context, _, _ string) (net.Conn, error) {
+		return (&net.Dialer{}).DialContext(ctx, "unix", s.config.OracleSocketPath)
+	}}}
+	if client.Timeout <= 0 {
+		client.Timeout = 5 * time.Second
+	}
+	resp, err := client.Get("http://unix/oracle/v3/status")
+	if err != nil {
+		return map[string]any{"available": false}
+	}
+	defer resp.Body.Close()
+	var value struct {
+		Mode       string `json:"mode"`
+		Head       uint64 `json:"head_seq"`
+		Lag        uint64 `json:"lag_seq"`
+		LagSeconds int64  `json:"lag_seconds"`
+		Diverged   bool   `json:"diverged"`
+		Paused     bool   `json:"replication_paused"`
+	}
+	if resp.StatusCode != http.StatusOK || json.NewDecoder(io.LimitReader(resp.Body, 1<<20)).Decode(&value) != nil {
+		return map[string]any{"available": false}
+	}
+	return map[string]any{"available": true, "mode": value.Mode, "headSeq": value.Head, "lagSeq": value.Lag, "lagSeconds": value.LagSeconds, "diverged": value.Diverged, "paused": value.Paused}
 }
 
 // handleOnboardingApplications and handleOnboardingUsers proxy to

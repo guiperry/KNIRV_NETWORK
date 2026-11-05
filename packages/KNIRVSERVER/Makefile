@@ -228,7 +228,7 @@ key-encryptor: ## Build root_key_encryptor binary
 # Module-owned binaries like KNIRVGATEWAY, KNIRVGRAPH, KNIRVCHAIN, KNIRVORACLE, KNIRVMODELS, and KNIRVAGENT
 # are embedded and extracted by their pkg modules, and so is KNIRVULORA (ulorad, pkg/knirvulora,
 # built first by ulora-build); its optional MLC runtime remains an explicit build.
-binary: proto ebpf-generate ulora-build frontend backend llama-build arena-build ## Build unified binary (ulorad and every pkg/knirv* module are built and embedded first)
+binary: proto ebpf-generate ulora-build frontend backend llama-build arena-build knirvbao-build ## Build unified binary (ulorad and every pkg/knirv* module are built and embedded first)
 	@echo "$(BLUE)Creating unified binary (embeds frontend, desktop, backend, KNIRVGATEWAY, KNIRVGRAPH, KNIRVCHAIN, KNIRVORACLE, KNIRVMODELS)...$(NC)"
 	@mkdir -p $(DIST_DIR)
 	@rm -f $(DIST_DIR)/knirv-server
@@ -653,7 +653,11 @@ validation-chain-build: validation-chain-deps ## Build validation_chain standalo
 	@echo "$(GREEN)validation_chain binary embedded: $(ROOT_DIR)/pkg/embedded/validationchain/bin/validationchain$(NC)"
 
 # Unified Embedded Build
-embedded-build: validation-chain-build transaction-chain-build ## Build all embedded programs
+.PHONY: knirvbao-build
+knirvbao-build: ## Build the pinned OpenBao daemon and KNIRV signing plugin
+	bash scripts/build-knirvbao.sh
+
+embedded-build: validation-chain-build transaction-chain-build knirvbao-build ## Build all embedded programs
 	@echo "$(GREEN)All embedded programs built successfully$(NC)"
 
 # KNIRVAGENT (Embedded) targets

@@ -1,0 +1,41 @@
+{
+  "schema": "models_migration_compatibility_matrix",
+  "version": 1,
+  "layout_default": "legacy",
+  "note": "Generated from models_migration.md §7.4 and the alias tables in §3/§6/§7. Pinned by pkg/models/migration_test.go. Each entry names the SDK method, the route it hits, and the legacy/migrated behaviour. This is data only: it does NOT encode any decision, it records the contract the code must preserve during migration.",
+  "models": {
+    "hasher":  { "role": "validate",   "route": "/models/hasher",  "changed": false },
+    "heart":   { "role": "generate",   "route": "/models/heart",   "changed": false },
+    "head":    { "role": "reasoner",   "route": "/models/head",    "changed": true,  "legacy_role": "reasoner", "migrated_role": "vision" },
+    "hands":   { "role": "server_tasks","route": "/models/hands",   "changed": true,  "added_in_phase": 1 }
+  },
+  "routes": [
+    { "method": "Head.VisualReason",          "legacy_path": "",                               "migrated_path": "/models/head/visual-reason", "status": "added",            "notes": "multimodal QA" },
+    { "method": "Head.Describe",              "legacy_path": "",                               "migrated_path": "/models/head/describe",     "status": "added",            "notes": "VLM caption" },
+    { "method": "Head.Ground",               "legacy_path": "",                               "migrated_path": "/models/head/ground",      "status": "added",            "notes": "VLM grounding" },
+    { "method": "Head.Embed",                "legacy_path": "",                               "migrated_path": "/models/head/embed",       "status": "added",            "notes": "VLM/multimodal embedding" },
+    { "method": "Head.Generate",             "legacy_path": "",                               "migrated_path": "/models/head/generate",    "status": "added",            "notes": "mirrored text generation" },
+    { "method": "Heart.Decide",              "legacy_path": "",                               "migrated_path": "/models/heart/decide",    "status": "added",            "notes": "decision-conditioned; replaces head.reason" },
+    { "method": "Heart.GenerateWithDecision","legacy_path": "",                               "migrated_path": "/models/heart/generate",  "status": "added",            "notes": "prompt + DecisionEnvelope" },
+    { "method": "Heart.Generate",            "legacy_path": "/models/heart/generate",         "migrated_path": "/models/heart/generate",    "status": "unchanged" },
+    { "method": "Hands.Plan",                "legacy_path": "",                               "migrated_path": "/models/hands/plan",       "status": "added" },
+    { "method": "Hands.Act",                 "legacy_path": "",                               "migrated_path": "/models/hands/act",        "status": "added" },
+    { "method": "Hands.Status",              "legacy_path": "",                               "migrated_path": "/models/hands/status",     "status": "added" },
+    { "method": "Head.Manifest",             "legacy_path": "/models/head/models",            "migrated_path": "/models/heart/decide/models","status": "layout-switch",  "notes": "KNIRV_MODEL_LAYOUT=legacy|migrated" },
+    { "method": "Head.Weights",              "legacy_path": "/models/head/weights/{ver}",     "migrated_path": "/models/heart/decide/weights/{ver}", "status": "layout-switch" }
+  ],
+  "flags": [
+    { "name": "KNIRV_MODEL_LAYOUT",        "values": ["legacy","migrated"], "default": "migrated" },
+    { "name": "KNIRV_HEART_BACKEND",       "values": ["qwen","hands","gpt","external"], "default": "qwen" },
+    { "name": "KNIRV_HANDS_ENABLED",       "values": ["0","1"], "default": "0" },
+    { "name": "KNIRV_HANDS_FALLBACK_QWEN", "values": ["0","1"], "default": "1" },
+    { "name": "KNIRV_VLM_BACKEND",         "values": ["none","llama","onnx","openai"], "default": "none" },
+    { "name": "KNIRV_MIRRORED_GENERATION", "values": ["0","1"], "default": "0" },
+    { "name": "KNIRV_MIRRORED_WEIGHTING",  "values": ["hasher","equal"], "default": "hasher" },
+    { "name": "KNIRV_MIRRORED_TIMEOUT_MS", "values": ["integer"], "default": "30000" },
+    { "name": "KNIRV_MIRROR_TIE_MARGIN",   "values": ["float 0..1"], "default": "0.05" },
+    { "name": "KNIRV_HEART_DECISION_DIR",  "values": ["path"], "default": "<app>/knirvmodels/data/heart/decision" },
+    { "name": "KNIRV_HANDS_DIR",           "values": ["path"], "default": "<app>/knirvmodels/data/hands" },
+    { "name": "KNIRV_VLM_DIR",             "values": ["path"], "default": "<app>/knirvmodels/data/vlm" }
+  ]
+}

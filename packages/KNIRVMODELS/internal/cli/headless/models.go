@@ -17,15 +17,16 @@ import (
 	sdk "github.com/guiperry/knirv-sdk-go/models"
 	"github.com/guiperry/knirv-sdk-go/models/frame"
 
-	"knirvmodels/internal/cli/controller"
 	"knirvmodels/internal/cli/embedded"
 	"knirvmodels/internal/ops"
 	"knirvmodels/internal/policy"
+	handspkg "knirvmodels/pkg/hands"
+	"knirvmodels/pkg/hands/gpt"
 	"knirvmodels/pkg/hashing/transformer"
-	"knirvmodels/pkg/head"
 	"knirvmodels/pkg/heartqwen"
 	"knirvmodels/pkg/livesearch"
 	"knirvmodels/pkg/models"
+	"knirvmodels/pkg/vlm"
 )
 
 // registerModels mounts the daemon's model surface under /models/*: the registry
@@ -40,7 +41,19 @@ func (s *Server) registerModels() {
 	hasher := models.NewHasher(nil)
 	hasher.UseIndex(evidenceDir(), "")
 	hasher.UseLive(livesearch.NewProduction)
+	s.enableVerifier(hasher)
+	s.hasher = hasher
 	reg.Register(hasher)
+
+	// Task 3.9 follow-up: drain the witness queue off the request path,
+	// witnessing each batch root via the 3_DATA_SEEDER socket. The loop stops
+	// with the daemon.
+	wctx, wcancel := context.WithCancel(context.Background())
+	go func() {
+		<-s.shutdownCh
+		wcancel()
+	}()
+	go hasher.StartWitnessing(wctx)
 	heart := models.NewHeart(func() (*transformer.HEARTService, error) {
 		cfg := heartConfigFromEnv()
 		// Share the engine the HASHER model serves; if it cannot be built HEART
@@ -54,12 +67,21 @@ func (s *Server) registerModels() {
 	})
 	reg.Register(heart)
 
-	if dir, err := controller.HEADDir(); err != nil {
-		log.Printf("HEAD serving disabled: %v", err)
+	if models.HandsEnabled() {
+		fin := transformer.NewWASMFinisher(heartConfigFromEnv())
+		if h := s.buildHands(reg, hasher, fin); h != nil {
+			reg.Register(h)
+		}
 	} else {
-		reg.Register(models.NewHead(head.NewService(dir)))
-		log.Printf("HEAD served from %s (/models/head/*)", dir)
+		log.Printf("HANDS disabled (set KNIRV_HANDS_ENABLED=1 to enable)")
 	}
+
+	// HEAD is the VLM + mirrored text generator after the migration. It is always
+	// registered so its routes exist; with KNIRV_VLM_BACKEND=none (default) every
+	// operation returns a structured 503 and HEAD never fabricates output.
+	headBackend := vlm.FromEnv()
+	reg.Register(models.NewHead(headBackend))
+	log.Printf("HEAD served (/models/head/*): VLM backend %q", headBackend.Name())
 
 	reg.SetManifest(frame.Default(), liveFacts)
 	if heart != nil {
@@ -67,6 +89,64 @@ func (s *Server) registerModels() {
 	}
 	reg.Mount(s.mux)
 	s.registry = reg
+}
+
+// handsEngineConfig is the GPT config the production HANDS engine is built with.
+// Tests override it with a tiny config so the default (engineBuild == nil)
+// constructor path is exercised cheaply.
+var handsEngineConfig = gpt.DefaultConfig
+
+// buildHands wires the HANDS server-tasks model when KNIRV_HANDS_ENABLED=1: a
+// persistent audit log, the daemon's T0/T1 tool set, a policy gate, the default
+// frame registry, and a checkpoint loader (model-latest in HandsDir). With no
+// checkpoint the engine stays untrained and the routes return 503 (no training
+// runs are triggered here). It returns nil (and logs) if the audit log cannot be
+// opened, leaving HANDS disabled rather than serving unaudited.
+func (s *Server) buildHands(reg *models.Registry, hasher *models.Hasher, fin *transformer.WASMFinisher) *models.Hands {
+	return s.buildHandsWith(reg, hasher, fin, nil)
+}
+
+// buildHandsWith is buildHands with an optional engine constructor (engineBuild).
+// When nil, the production constructor (loadHandsEngine) builds the HANDS GPT and
+// loads HandsDir()/model-latest if present. Tests pass a lightweight engine (or a
+// scripted generator) so the wiring (audit, gate, tools, registration, checkpoint
+// load) is exercised without the full GPT.
+func (s *Server) buildHandsWith(reg *models.Registry, hasher *models.Hasher, fin *transformer.WASMFinisher, engineBuild func() (models.Generator, error)) *models.Hands {
+	frames := frame.Default()
+	audit, aerr := policy.OpenAudit(filepath.Join(auditDir(), "hands_tool_audit.jsonl"))
+	if aerr != nil {
+		log.Printf("HANDS disabled: cannot open audit log: %v", aerr)
+		return nil
+	}
+	tools := ops.Standard(s.daemonToolDeps(frames, reg, hasher, fin))
+	gate := policy.NewGate(frames, audit)
+	build := engineBuild
+	if build == nil {
+		build = func() (models.Generator, error) {
+			return loadHandsEngine(models.HandsDir(), handsEngineConfig())
+		}
+	}
+	log.Printf("HANDS served (/models/hands/*)")
+	return models.NewHandsWith(build, gate, audit, tools, frames)
+}
+
+// loadHandsEngine builds the HANDS GPT with cfg and loads HandsDir()/model-latest
+// when present. With no checkpoint the engine stays untrained and the routes
+// return 503 (no training runs are triggered here). A corrupt checkpoint is a
+// load error, not a silent fallback.
+func loadHandsEngine(dir string, cfg *gpt.Config) (models.Generator, error) {
+	eng := handspkg.NewEngine(cfg, "")
+	if dir == "" {
+		return eng, nil
+	}
+	cp := filepath.Join(dir, "model-latest")
+	if _, serr := os.Stat(cp); serr != nil {
+		return eng, nil
+	}
+	if lerr := eng.Load(cp); lerr != nil {
+		return nil, fmt.Errorf("load HANDS checkpoint %s: %w", cp, lerr)
+	}
+	return eng, nil
 }
 
 // heartConfigFromEnv is the daemon's equivalent of cmd/heart's flags.
@@ -95,7 +175,9 @@ func liveFacts() frame.LiveFacts {
 	if n, err := strconv.Atoi(strings.TrimSpace(os.Getenv("KNIRV_LLAMA_CTX_SIZE"))); err == nil && n > 0 {
 		f.CtxSize = n
 	}
-	f.Capabilities["flash_lookup"] = os.Getenv("KNIRV_FLASH_LOOKUP") == "1"
+	// Live lookup is on unless the deployment turned it off (KNIRV_FLASH=0 or KNIRV_NO_FLASH=1,
+	// Task 3.8, owner decision O5); the frame tells the model the truth about it.
+	f.Capabilities["flash_lookup"] = livesearch.Enabled()
 	f.Capabilities["evidence_index"] = false // no index is built yet (Phase 2)
 	return f
 }
@@ -106,8 +188,11 @@ func liveFacts() frame.LiveFacts {
 // yet, health reads "qwen-unavailable" until it is and the harness falls back to the
 // external generator meanwhile. KNIRV_HEART_BACKEND=gpt keeps the old backend.
 func (s *Server) enableQwen(reg *models.Registry, heart *models.Heart, hasher *models.Hasher) {
-	if strings.EqualFold(strings.TrimSpace(os.Getenv("KNIRV_HEART_BACKEND")), "gpt") {
-		log.Printf("HEART stays on the Gorgonite GPT (KNIRV_HEART_BACKEND=gpt)")
+	// KNIRV_HEART_BACKEND=gpt and =hands are aliases for the same HANDS GPT
+	// backend (spec §3.3): both keep the local Gorgonite/HANDS model and skip the
+	// Qwen wrapper. Only the default (qwen) path enables Qwen.
+	if models.HeartBackendIsHands() {
+		log.Printf("HEART stays on the Gorgonite/HANDS GPT backend (KNIRV_HEART_BACKEND=%s)", models.HeartBackend())
 		return
 	}
 	sock := llamaSocketPath()
@@ -119,17 +204,23 @@ func (s *Server) enableQwen(reg *models.Registry, heart *models.Heart, hasher *m
 	}
 	frames := frame.Default()
 	fin := transformer.NewWASMFinisher(heartConfigFromEnv())
-	moduleArgs := func(raw json.RawMessage) (transformer.WASMType, json.RawMessage, error) {
-		var a struct {
-			Type   transformer.WASMType `json:"type"`
-			Fields json.RawMessage      `json:"fields"`
-		}
-		if err := json.Unmarshal(raw, &a); err != nil {
-			return "", nil, err
-		}
-		return a.Type, a.Fields, nil
-	}
-	tools := ops.Standard(ops.Deps{
+	tools := ops.Standard(s.daemonToolDeps(frames, reg, hasher, fin))
+	heart.UseQwen(&heartqwen.Engine{Reg: frames, Facts: liveFacts, LLM: llm,
+		Gate: policy.NewGate(frames, audit), Exec: tools},
+		func(ctx context.Context) bool {
+			cctx, cancel := context.WithTimeout(ctx, 3*time.Second)
+			defer cancel()
+			return llm.Ready(cctx)
+		}, fin)
+	log.Printf("HEART generate served by Qwen via %s; tool audit %s", sock, filepath.Join(auditDir(), "tool_audit.jsonl"))
+}
+
+// daemonToolDeps builds the T0/T1 tool set the daemon serves (controller state,
+// hasher, index, head status, wasm render/verify, and the registry/manifest/
+// health surfaces). Both HEART and HANDS are wired with the same set so a HANDS
+// request can run the same core-authorized tools a HEART request can.
+func (s *Server) daemonToolDeps(frames *frame.Registry, reg *models.Registry, hasher *models.Hasher, fin *transformer.WASMFinisher) ops.Deps {
+	return ops.Deps{
 		PipelineStatus: func(context.Context, json.RawMessage) (any, error) {
 			return s.controller.PipelineStatus(), nil
 		},
@@ -152,22 +243,22 @@ func (s *Server) enableQwen(reg *models.Registry, heart *models.Heart, hasher *m
 			}
 			return s.controller.ErrorHistory(a.Limit), nil
 		},
-		HeadReason: func(_ context.Context, raw json.RawMessage) (any, error) {
+		HeartDecide: func(_ context.Context, raw json.RawMessage) (any, error) {
 			var a struct {
 				Prompt string `json:"prompt"`
 			}
 			if err := json.Unmarshal(raw, &a); err != nil {
 				return nil, err
 			}
-			// HEAD's published tokenizer is byte-based. Sending its unsigned
-			// byte ids through the existing route retains the model's own vocab
-			// and length checks; unsupported model vocabularies fail closed.
+			// HEART's decision core is byte-based. Sending its unsigned byte ids
+			// through the route retains the model's own vocab and length checks;
+			// unsupported model vocabularies fail closed.
 			tokens := make([]uint32, len(a.Prompt))
 			for i := range []byte(a.Prompt) {
 				tokens[i] = uint32(a.Prompt[i])
 			}
 			body, _ := json.Marshal(map[string]any{"tokens": tokens})
-			return s.routeJSON(http.MethodPost, sdk.HeadPrefix+"/reason", body, nil)
+			return s.routeJSON(http.MethodPost, sdk.HeartDecisionPrefix+"/reason", body, nil)
 		},
 		HasherVerify: func(ctx context.Context, raw json.RawMessage) (any, error) {
 			var a struct {
@@ -208,11 +299,14 @@ func (s *Server) enableQwen(reg *models.Registry, heart *models.Heart, hasher *m
 		HeadStatus: func(context.Context, json.RawMessage) (any, error) {
 			return s.routeJSON(http.MethodGet, sdk.HeadPrefix+"/models", nil, nil)
 		},
+		HeartDecisionStatus: func(context.Context, json.RawMessage) (any, error) {
+			return s.routeJSON(http.MethodGet, sdk.HeartDecisionPrefix+"/models", nil, nil)
+		},
 		HasherValidate: func(_ context.Context, raw json.RawMessage) (any, error) {
 			return s.routeJSON(http.MethodPost, sdk.HasherPrefix+"/validate", raw, nil)
 		},
 		WASMRender: func(_ context.Context, raw json.RawMessage) (any, error) {
-			typ, fields, err := moduleArgs(raw)
+			typ, fields, err := s.moduleArgs(raw)
 			if err != nil {
 				return nil, err
 			}
@@ -223,7 +317,7 @@ func (s *Server) enableQwen(reg *models.Registry, heart *models.Heart, hasher *m
 			return map[string]any{"source": src}, nil
 		},
 		WASMVerify: func(_ context.Context, raw json.RawMessage) (any, error) {
-			typ, fields, err := moduleArgs(raw)
+			typ, fields, err := s.moduleArgs(raw)
 			if err != nil {
 				return nil, err
 			}
@@ -236,15 +330,19 @@ func (s *Server) enableQwen(reg *models.Registry, heart *models.Heart, hasher *m
 		Manifest: func() any { return frames.Manifest(liveFacts()) },
 		Registry: func() any { return reg.Statuses() },
 		Health:   func() any { return map[string]any{"status": "ok", "models": len(reg.Statuses())} },
-	})
-	heart.UseQwen(&heartqwen.Engine{Reg: frames, Facts: liveFacts, LLM: llm,
-		Gate: policy.NewGate(frames, audit), Exec: tools},
-		func(ctx context.Context) bool {
-			cctx, cancel := context.WithTimeout(ctx, 3*time.Second)
-			defer cancel()
-			return llm.Ready(cctx)
-		}, fin)
-	log.Printf("HEART generate served by Qwen via %s; tool audit %s", sock, filepath.Join(auditDir(), "tool_audit.jsonl"))
+	}
+}
+
+// moduleArgs unpacks a wasm render/verify request's {type, fields}.
+func (s *Server) moduleArgs(raw json.RawMessage) (transformer.WASMType, json.RawMessage, error) {
+	var a struct {
+		Type   transformer.WASMType `json:"type"`
+		Fields json.RawMessage      `json:"fields"`
+	}
+	if err := json.Unmarshal(raw, &a); err != nil {
+		return "", nil, err
+	}
+	return a.Type, a.Fields, nil
 }
 
 func auditDir() string {

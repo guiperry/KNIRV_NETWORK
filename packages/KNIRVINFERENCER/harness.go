@@ -6,12 +6,14 @@ import (
 	"fmt"
 	"sync"
 	"time"
+
+	models "github.com/guiperry/knirv-sdk-go/models"
 )
 
 // The hierarchical reasoning harness: one entry point (Harness.Do) over every model
-// KNIRV runs. A deterministic routing table is the authority; HEAD may only choose
-// among the models the table already allows. Every call returns a Trace saying what
-// was considered, what ran, what failed and why, so nothing is silently substituted.
+// KNIRV runs. A deterministic routing table is the authority; the chooser may only
+// choose among the models the table already allows. Every call returns a Trace saying
+// what was considered, what ran, what failed and why, so nothing is silently substituted.
 
 // Kind is what a task needs done, not which model does it.
 type Kind string
@@ -24,6 +26,9 @@ const (
 	KindServerTask   Kind = "server_task"   // operational prompts, dream passes       -> llama (base)
 	KindExecuteSkill Kind = "execute_skill" // run a skill's ULoRA on llama            -> llama + adapter
 	KindPlan         Kind = "plan"          // multi-step planning                     -> external orchestrator
+	KindVerify       Kind = "verify"        // check claims against evidence           -> HASHER
+	KindVision       Kind = "vision"        // vision / multimodal (VLM)               -> HEAD
+	KindMirrorGenerate Kind = "mirror_generate" // HEAD + HEART candidates, arbitrated   -> HEAD (coordinates)
 )
 
 // SkillRef names the compiled bundle an ExecuteSkill task runs.
@@ -37,7 +42,10 @@ type SkillRef struct {
 type Constraints struct {
 	Budget    time.Duration // latency budget for the whole call (0 = caller's context only)
 	LocalOnly bool          // must not leave this machine
-	NoSpend   bool          // must not use a paid model
+	// NoFlash keeps a Verify task off live web lookup (privacy): its mode is forced to
+	// the index, and an answer that says live lookup ran is refused. LocalOnly implies it.
+	NoFlash bool
+	NoSpend bool // must not use a paid model
 	// Pin restricts the task to one named model: an operator override ("force internal").
 	// It narrows the routing table's chain; it cannot add a model the table does not list.
 	Pin string
@@ -78,6 +86,8 @@ type Result struct {
 	// Degraded is true when the result is NOT what was asked for (a skill task answered
 	// by the base model). The caller decides whether that is acceptable.
 	Degraded bool
+	// Verify, for a Verify task, is what the Trace records about the verification.
+	Verify *VerifyTrace
 }
 
 // HarnessModel is one thing the harness can route to.
@@ -88,8 +98,8 @@ type HarnessModel interface {
 	Do(ctx context.Context, t Task) (Result, error)
 }
 
-// Chooser is an advisory selector (HEAD). It must answer from the eligible set it is
-// given; the harness re-checks that and ignores anything else.
+// Chooser is an advisory selector (the decision core). It must answer from the
+// eligible set it is given; the harness re-checks that and ignores anything else.
 type Chooser interface {
 	Choose(ctx context.Context, t Task, eligible []string) (Choice, error)
 }
@@ -116,6 +126,7 @@ type Harness struct {
 	minConf  float32
 	breakers map[string]*Breaker
 	traces   *TraceLog
+	store    *TraceStore
 	stats    map[string]*modelStats
 	newBreak func() *Breaker
 }
@@ -124,13 +135,16 @@ type Harness struct {
 // order they are tried. Changing it is a code change on purpose.
 func DefaultRoutes() map[Kind][]string {
 	return map[Kind][]string{
-		KindDecide:       {"head"},
+		KindDecide:       {"heart"},
 		KindAnalyze:      {"heart", "llama", "external"},
 		KindGenerate:     {"heart", "llama", "external"},
 		KindValidate:     {"hasher"},
+		KindVerify:       {"hasher"},
 		KindServerTask:   {"llama"},
 		KindExecuteSkill: {"llama"},
 		KindPlan:         {"external"},
+		KindVision:       {"head"},
+		KindMirrorGenerate: {"head"},
 	}
 }
 
@@ -146,7 +160,7 @@ func UserFacingRoutes() map[Kind][]string {
 }
 
 // ambiguousKinds are the kinds with more than one sensible eligible model, where
-// HEAD is consulted. The rest have a single answer and need no recommendation.
+// the chooser is consulted. The rest have a single answer and need no recommendation.
 var ambiguousKinds = map[Kind]bool{KindAnalyze: true, KindGenerate: true}
 
 // HarnessOption configures NewHarness.
@@ -163,6 +177,11 @@ func WithChooser(c Chooser, minConfidence float32) HarnessOption {
 
 // WithBreaker sets how breakers are made (tests inject a fast clock).
 func WithBreaker(f func() *Breaker) HarnessOption { return func(h *Harness) { h.newBreak = f } }
+
+// WithTraceStore persists every trace to s (append-only JSONL, rotated) and refills the
+// in-memory ring from it at start, so routing history survives a restart. Persistence is
+// best effort: a failed write is counted and never fails a call.
+func WithTraceStore(s *TraceStore) HarnessOption { return func(h *Harness) { h.store = s } }
 
 // WithTraceCapacity sets how many traces the ring buffer keeps.
 func WithTraceCapacity(n int) HarnessOption { return func(h *Harness) { h.traces = NewTraceLog(n) } }
@@ -181,11 +200,23 @@ func NewHarness(models []HarnessModel, opts ...HarnessOption) *Harness {
 	for _, o := range opts {
 		o(h)
 	}
+	if h.store != nil {
+		recent, _ := h.store.Read(h.traces.Cap())
+		for i := len(recent) - 1; i >= 0; i-- { // oldest first, so the ring ends newest
+			h.traces.Add(recent[i])
+		}
+	}
 	for _, m := range models {
 		h.models[m.Name()] = m
 		h.breakers[m.Name()] = h.newBreak()
 		h.stats[m.Name()] = &modelStats{}
 	}
+	// Warm the SDK Rust-core WASM once at startup (outside any per-request latency budget).
+	// The first SDK core call loads the digest-pinned module (~6s cold); Verify runs that
+	// contract check unbounded before the daemon POST, so deferring it to the first Verify
+	// would blow a caller's budget (pi_3_5_budget). EnsureVerifyCoreWarmed is a no-op after
+	// the first call.
+	EnsureVerifyCoreWarmed()
 	return h
 }
 
@@ -205,7 +236,7 @@ func (h *Harness) Do(ctx context.Context, t Task) (Result, Trace, error) {
 		ctx, cancel = context.WithTimeout(ctx, t.Constraints.Budget)
 		defer cancel()
 	}
-	tr := Trace{ID: newTraceID(), Time: start.UTC(), Kind: t.Kind, LocalOnly: t.Constraints.LocalOnly, NoSpend: t.Constraints.NoSpend}
+	tr := Trace{ID: newTraceID(), Time: start.UTC(), Kind: t.Kind, LocalOnly: t.Constraints.LocalOnly, NoSpend: t.Constraints.NoSpend, NoFlash: t.Constraints.NoFlash}
 	if t.Skill != nil {
 		tr.Skill = t.Skill.BundleID
 	}
@@ -251,13 +282,14 @@ func (h *Harness) Do(ctx context.Context, t Task) (Result, Trace, error) {
 		return h.finish(Result{}, tr, start, fmt.Errorf("%w: %s", ErrNoRoute, summarise(tr.Candidates)))
 	}
 
-	// 2. HEAD recommends among the eligible; the rules decide whether to listen.
+	// 2. The decision core (HEART) recommends among the eligible; the rules
+	// decide whether to listen.
 	order := eligible
 	tr.Reason = "rule default: " + eligible[0]
 	if ambiguousKinds[t.Kind] && len(eligible) > 1 && h.chooser != nil {
 		order, tr.Advice = h.consult(ctx, t, eligible)
 		if tr.Advice != nil && tr.Advice.Applied {
-			tr.Reason = "HEAD recommended " + order[0] + " (rules allowed it)"
+			tr.Reason = "decision core recommended " + order[0] + " (rules allowed it)"
 		} else if tr.Advice != nil {
 			tr.Reason = "rule default: " + eligible[0] + " (" + tr.Advice.Note + ")"
 		}
@@ -279,6 +311,7 @@ func (h *Harness) Do(ctx context.Context, t Task) (Result, Trace, error) {
 		if err == nil {
 			tr.Chosen, tr.Version, tr.Adapter = name, res.Version, res.Adapter
 			tr.Degraded, tr.Notes = res.Degraded, res.Notes
+			tr.Verify = res.Verify
 			if res.Model == "" {
 				res.Model = name
 			}
@@ -302,17 +335,17 @@ func (h *Harness) consult(ctx context.Context, t Task, eligible []string) ([]str
 	adv.Version = c.Version
 	switch {
 	case err != nil:
-		adv.Note = "HEAD could not answer: " + err.Error()
+		adv.Note = "chooser could not answer: " + err.Error()
 	case c.Abstain || c.Model == "":
-		adv.Note = "HEAD abstained"
+		adv.Note = "chooser abstained"
 		if c.Reason != "" {
 			adv.Note += ": " + c.Reason
 		}
 	case !contains(eligible, c.Model):
-		adv.Note = fmt.Sprintf("HEAD named %q, which the rules do not allow", c.Model)
+		adv.Note = fmt.Sprintf("chooser named %q, which the rules do not allow", c.Model)
 		adv.Model = c.Model
 	case c.Confidence < h.minConf:
-		adv.Note = fmt.Sprintf("HEAD confidence %.2f below %.2f", c.Confidence, h.minConf)
+		adv.Note = fmt.Sprintf("chooser confidence %.2f below %.2f", c.Confidence, h.minConf)
 		adv.Model, adv.Confidence = c.Model, c.Confidence
 	default:
 		adv.Applied, adv.Model, adv.Confidence = true, c.Model, c.Confidence
@@ -342,6 +375,9 @@ func (h *Harness) record(name string, lat time.Duration, err error) {
 func (h *Harness) finish(res Result, tr Trace, start time.Time, err error) (Result, Trace, error) {
 	tr.LatencyMs = float64(time.Since(start).Microseconds()) / 1000
 	h.traces.Add(tr)
+	if h.store != nil {
+		h.store.Append(tr)
+	}
 	return res, tr, err
 }
 
@@ -386,4 +422,16 @@ func summarise(cs []Candidate) string {
 // and Degraded is true when the base model answered instead.
 func (h *Harness) ExecuteSkill(ctx context.Context, skill SkillRef, prompt string, c Constraints) (Result, Trace, error) {
 	return h.Do(ctx, Task{Kind: KindExecuteSkill, Input: prompt, Skill: &skill, Constraints: c})
+}
+
+// Verify routes a verification to HASHER and returns its typed answer. The answer is a
+// normal result when HASHER is degraded (gate uncommitted, no verdict); an error means
+// no model could take the task, and the Trace says why.
+func (h *Harness) Verify(ctx context.Context, req models.VerifyRequest, c Constraints) (*models.VerifyResponse, Trace, error) {
+	res, tr, err := h.Do(ctx, Task{Kind: KindVerify, Input: req, Constraints: c})
+	if err != nil {
+		return nil, tr, err
+	}
+	resp, _ := res.Value.(*models.VerifyResponse)
+	return resp, tr, nil
 }

@@ -24,7 +24,7 @@ CLANG=clang
 LLVM_STRIP=llvm-strip
 
 
-.PHONY: all build clean test proto ebpf deps help llama-build llama-clean test-llama test-harness teacher build-asic-test build-probe build-probe build-probe-v2 build-protocol-discover build-monitor build-diagnostics deploy deploy-probe deploy-probe-v2 deploy-protocol-discover deploy-monitor build-pipeline-all build-data-connector build-data-mapper build-data-encoder build-data-seeder build-data-trainer build-head-trainer build-head-wasi test-head smoke-models build-knirvbase
+.PHONY: all build clean test proto ebpf deps help llama-build llama-clean test-llama test-harness teacher build-asic-test build-probe build-probe build-probe-v2 build-protocol-discover build-monitor build-diagnostics deploy deploy-probe deploy-probe-v2 deploy-protocol-discover deploy-monitor build-pipeline-all build-data-connector build-data-mapper build-data-encoder build-data-seeder build-data-trainer build-heart-decision-trainer build-heart-decision-wasi test-head smoke-models build-knirvbase
 
 ANTMINER_IP ?= $(shell [ -f .env ] && source .env && echo $$DEVICE_IP || echo 192.168.12.151)
 ANTMINER_USER ?= root
@@ -373,24 +373,24 @@ build-data-trainer:
 	cd $(PIPELINE_DIR)/4_DATA_TRAINER && go build -ldflags "-s -w" -o ../../$(EMBED_DIR)/data-trainer ./cmd/data-trainer
 	@echo "✅ Built: $(EMBED_DIR)/data-trainer"
 
-## build-head-trainer: Build the HEAD trainer (Rust, stage 5; shares the knirv-head crate with the arena)
-build-head-trainer:
-	@echo "🔨 Building head-trainer from 5_HEAD_TRAINER..."
+## build-head-trainer: Build the heart-decision trainer (Rust, stage 5; shares the knirv-heart-decision crate with the arena)
+build-heart-decision-trainer:
+	@echo "🔨 Building heart-decision-trainer from 5_HEAD_TRAINER..."
 	cd $(PIPELINE_DIR)/5_HEAD_TRAINER && cargo build --release
 	@mkdir -p $(EMBED_DIR)
-	cp $(PIPELINE_DIR)/5_HEAD_TRAINER/target/release/head-trainer $(EMBED_DIR)/head-trainer
-	@chmod 755 $(EMBED_DIR)/head-trainer
-	@echo "✅ Built: $(EMBED_DIR)/head-trainer"
+	cp $(PIPELINE_DIR)/5_HEAD_TRAINER/target/release/heart-decision-trainer $(EMBED_DIR)/heart-decision-trainer
+	@chmod 755 $(EMBED_DIR)/heart-decision-trainer
+	@echo "✅ Built: $(EMBED_DIR)/heart-decision-trainer"
 
 ## build-head-wasi: Rebuild the embedded WASI module HEART runs under wazero (needs the wasm32-wasip1 rust target)
-build-head-wasi:
-	cd head && cargo build --release --bin head-wasi --target wasm32-wasip1
-	cp head/target/wasm32-wasip1/release/head-wasi.wasm pkg/head/head-wasi.wasm
+build-heart-decision-wasi:
+	cd heart/decision && cargo build --release --bin heart-decision-wasi --target wasm32-wasip1
+	cp heart/decision/target/wasm32-wasip1/release/heart-decision-wasi.wasm pkg/heart/decision/heart-decision-wasi.wasm
 
-## test-head: HEAD crate tests (native) + the browser-wasm golden check; the wazero half is `go test ./pkg/head`
+## test-head: heart-decision crate tests (native) + the browser-wasm golden check; the wazero half is `go test ./pkg/heart/decision`
 test-head:
-	cd head && cargo test --release
-	./head/scripts/golden-wasm.sh
+	cd heart/decision && cargo test --release
+	./heart/decision/scripts/golden-wasm.sh
 
 ## smoke-models: start a built daemon (BIN=path [GZ=1 if gzipped]) and check the /models/* surface
 smoke-models:
@@ -408,7 +408,7 @@ build-knirvbase:
 	@echo "✅ Built: $(EMBED_DIR)/knirvbase"
 
 ## build-pipeline-all: Build all pipeline binaries
-build-pipeline-all: build-data-connector build-data-mapper build-data-encoder build-data-seeder build-data-trainer build-head-wasi build-head-trainer build-knirvbase
+build-pipeline-all: build-data-connector build-data-mapper build-data-encoder build-data-seeder build-data-trainer build-heart-decision-wasi build-heart-decision-trainer build-knirvbase
 	@echo "✅ All pipeline binaries built"
 	@echo "📦 Pipeline binaries in: $(EMBED_DIR)"
 	@ls -lh $(EMBED_DIR)/

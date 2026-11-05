@@ -5,6 +5,7 @@
  */
 export declare function runUriVectors(vectors: {
     resource_types: string[];
+    query_keys: string[];
     derive: Array<{
         raw: string;
         id: string;

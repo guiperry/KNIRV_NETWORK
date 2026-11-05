@@ -15,8 +15,8 @@
 //! Ground truth lives in `labels`. Teacher distributions live in `soft` (and
 //! `teacher_plan`) and are used for the TRAIN split only (H2).
 
-use knirv_head::tokenizer::{encode_plan, encode_text, pad_to};
-use knirv_head::{DecisionHead, HeadKind};
+use knirv_heart_decision::tokenizer::{encode_plan, encode_text, pad_to};
+use knirv_heart_decision::{DecisionHead, HeadKind};
 use serde::Deserialize;
 use serde_json::Value;
 use sha2::{Digest, Sha256};

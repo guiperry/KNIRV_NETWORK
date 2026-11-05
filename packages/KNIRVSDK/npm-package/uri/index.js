@@ -1,6 +1,6 @@
 import { callLocal } from '../local.js';
 export { initLocal } from '../local.js';
-/** The routable resource-type registry. Defined once, in the Rust core. */
+/** Typing aid: mirrors the registry in the Rust core (core/src/uri.rs); uri.test.ts fails if they differ. */
 export const RESOURCE_TYPES = [
     'chain', 'nrn', 'ulora', 'mcpcontext', 'resource', 'tool', 'prompt',
     'memoryservice', 'memory', 'capability', 'dev', 'errornode', 'skillnode',

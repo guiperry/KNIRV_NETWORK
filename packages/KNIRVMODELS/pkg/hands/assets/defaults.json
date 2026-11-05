@@ -1,0 +1,12 @@
+{
+  "version": "0.1.0",
+  "model_name": "hands-gorgonite-default",
+  "vocab_size": 50257,
+  "embed_dim": 256,
+  "num_heads": 4,
+  "num_layers": 6,
+  "context_len": 512,
+  "ffn_hidden_dim": 1024,
+  "decay_alpha": 0.95,
+  "note": "Embedded default HANDS architecture. Real weights are trained at runtime or published via the Stage-5 train pipeline; this blob only carries the default hyper-parameters so the Hands engine can self-initialize without external downloads."
+}

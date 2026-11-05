@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"context"
+	"encoding/hex"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -11,6 +12,7 @@ import (
 	"unsafe"
 
 	"github.com/guiperry/knirv-sdk-go/secrets"
+	knirvsigning "github.com/guiperry/knirv-sdk-go/signing"
 	"github.com/knirvcorp/knirvoracle/internal/oracle"
 	oraclecrypto "github.com/knirvcorp/knirvoracle/internal/oracle/crypto"
 	"go.uber.org/zap"
@@ -18,6 +20,7 @@ import (
 
 type rootKeyContent struct {
 	RootPrivateKeyHex  string
+	ReplicationSigner  knirvsigning.RemoteSigner
 	CloudflareAPIToken string
 	CloudflareZoneID   string
 
@@ -66,6 +69,7 @@ func initOracleWithSecrets(content *rootKeyContent, logger *zap.Logger) (*oracle
 		oracleCfg.DataDir = filepath.Join(appDataDir, "oracle")
 	}
 	oracleCfg.OwnerPrivateKey = rootPrivateKey
+	oracleCfg.ReplicationSigner = content.ReplicationSigner
 
 	// Payment processor config — root.key is authoritative whenever it
 	// carries a value; ORACLE_KEY_PASSWORD remains the only variable an
@@ -148,6 +152,10 @@ func initOracleFromKeyFile(logger *zap.Logger) (*oracle.Oracle, error) {
 	if err != nil {
 		return nil, fmt.Errorf("oracle: failed to decrypt root.key: %w", err)
 	}
+	// FileProvider supplies the root-owner signer when the existing environment
+	// password handoff is available. Interactive unlock remains on the legacy
+	// path until Provider supports a non-environment password handoff.
+	content.ReplicationSigner = replicationFileSigner(content, logger)
 
 	oracleInstance, err := initOracleWithSecrets(content, logger)
 	if err != nil {
@@ -159,6 +167,30 @@ func initOracleFromKeyFile(logger *zap.Logger) (*oracle.Oracle, error) {
 	}
 
 	return oracleInstance, nil
+}
+
+func replicationFileSigner(content *rootKeyContent, logger *zap.Logger) knirvsigning.RemoteSigner {
+	if os.Getenv("ORACLE_KEY_PASSWORD") != "" {
+		signer, signerErr := secrets.NewFileProvider().Signer(context.Background(), "root-owner")
+		if signerErr != nil {
+			logger.Warn("replication signer unavailable from key-file provider; using existing unlocked identity", zap.Error(signerErr))
+		} else {
+			existing, keyErr := hex.DecodeString(strings.TrimPrefix(content.RootPrivateKeyHex, "0x"))
+			var identity knirvsigning.RemoteSigner
+			if keyErr == nil {
+				identity, keyErr = knirvsigning.NewLocalSigner(existing)
+			}
+			for i := range existing {
+				existing[i] = 0
+			}
+			if keyErr != nil || signer.Address() != identity.Address() {
+				logger.Warn("replication provider identity differs from the unlocked root key; using existing unlocked identity")
+			} else {
+				return signer
+			}
+		}
+	}
+	return nil
 }
 
 // initOracleForMode activates the Oracle according to ORACLE_MODE, which

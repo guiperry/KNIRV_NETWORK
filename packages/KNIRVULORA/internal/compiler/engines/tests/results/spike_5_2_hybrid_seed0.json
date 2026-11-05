@@ -1,0 +1,207 @@
+{
+ "retain": 26,
+ "neg": 6,
+ "config": {
+  "rank": 16,
+  "alpha": 32,
+  "learning_rate": 0.0002,
+  "epochs": 3,
+  "batch_size": 8,
+  "max_length": 256,
+  "seed": 0,
+  "target_modules": [
+   "q_proj",
+   "k_proj",
+   "v_proj",
+   "o_proj",
+   "gate_proj",
+   "up_proj",
+   "down_proj"
+  ]
+ },
+ "clusters": [
+  {
+   "size": 3,
+   "members": {
+    "s0": {
+     "base": 0.0,
+     "base+skill": 0.1,
+     "adapter": 1.0,
+     "single": 1.0,
+     "beats_base_by_margin": true,
+     "interference": 0.0
+    },
+    "s1": {
+     "base": 0.0,
+     "base+skill": 0.0,
+     "adapter": 1.0,
+     "single": 0.9,
+     "beats_base_by_margin": true,
+     "interference": -0.09999999999999998
+    },
+    "s2": {
+     "base": 0.0,
+     "base+skill": 0.0,
+     "adapter": 1.0,
+     "single": 1.0,
+     "beats_base_by_margin": true,
+     "interference": 0.0
+    }
+   },
+   "corpus": {
+    "corpus_hash": "ad566b560221a29a4e378fa1389e23b0a02435c9f82b0efe3be0d954b44ff053",
+    "skill_set_root": "7113cfe63009b8d7747cd588a78ec1609823b8968276f441d854e300bb64f82c",
+    "accepted": 96,
+    "dropped": 0,
+    "remote_recovered": 0,
+    "local_reject_reasons": {}
+   },
+   "train": {
+    "fit_kind": "gradient_sft",
+    "base_sha256": "fdf756fa7fcbe7404d5c60e26bff1a0c8b8aa1f72ced49e7dd0210fe288fb7fe",
+    "recipe_hash": "4695c7a02ad261557989f47dc1fd691b9f10fdb9869c2d95dab228caede6512b",
+    "loss_curve_digest": "c787d0d607c059d3814c16f32a764f3f49a24f000ca75eacd439dfaa8328a34a",
+    "seed": 0,
+    "final_loss": 0.07771,
+    "steps": 48
+   },
+   "regression_adapter": 0.8,
+   "leak_probe_output": "Run `korsalctl --yol ryalist` and verify the status code is K9695.",
+   "all_members_pass": true,
+   "interference_max": 0.0,
+   "interference_ok": true,
+   "cluster_pass": true
+  },
+  {
+   "size": 4,
+   "members": {
+    "s0": {
+     "base": 0.0,
+     "base+skill": 0.0,
+     "adapter": 1.0,
+     "single": 1.0,
+     "beats_base_by_margin": true,
+     "interference": 0.0
+    },
+    "s1": {
+     "base": 0.0,
+     "base+skill": 0.0,
+     "adapter": 1.0,
+     "single": 0.9,
+     "beats_base_by_margin": true,
+     "interference": -0.09999999999999998
+    },
+    "s2": {
+     "base": 0.0,
+     "base+skill": 0.0,
+     "adapter": 1.0,
+     "single": 0.9,
+     "beats_base_by_margin": true,
+     "interference": -0.09999999999999998
+    },
+    "s3": {
+     "base": 0.0,
+     "base+skill": 0.1,
+     "adapter": 1.0,
+     "single": 0.9,
+     "beats_base_by_margin": true,
+     "interference": -0.09999999999999998
+    }
+   },
+   "corpus": {
+    "corpus_hash": "d724fde32370cfedfe342506fcbb05c655caa352e1e081e9d74317ad3e938607",
+    "skill_set_root": "308a23decf26bdaed6d12c282541fc5048cb6ddde22469ad82de35da7c5957b4",
+    "accepted": 128,
+    "dropped": 0,
+    "remote_recovered": 0,
+    "local_reject_reasons": {}
+   },
+   "train": {
+    "fit_kind": "gradient_sft",
+    "base_sha256": "fdf756fa7fcbe7404d5c60e26bff1a0c8b8aa1f72ced49e7dd0210fe288fb7fe",
+    "recipe_hash": "5cb4288a92933802beed0393f872bfeab1510174450d473614759e542eb7be66",
+    "loss_curve_digest": "b87b4816c8dab9bbce90e2115a138b41c99117c6f3e98b6586a96f84ccfd8ac1",
+    "seed": 0,
+    "final_loss": 0.10159,
+    "steps": 60
+   },
+   "regression_adapter": 0.8,
+   "leak_probe_output": "Run `phophoctl --qui qui59` and verify the status code K9091 to resolve the issue.",
+   "all_members_pass": true,
+   "interference_max": 0.0,
+   "interference_ok": true,
+   "cluster_pass": true
+  },
+  {
+   "size": 5,
+   "members": {
+    "s0": {
+     "base": 0.0,
+     "base+skill": 0.2,
+     "adapter": 1.0,
+     "single": 1.0,
+     "beats_base_by_margin": true,
+     "interference": 0.0
+    },
+    "s1": {
+     "base": 0.0,
+     "base+skill": 0.1,
+     "adapter": 0.9,
+     "single": 1.0,
+     "beats_base_by_margin": true,
+     "interference": 0.09999999999999998
+    },
+    "s2": {
+     "base": 0.0,
+     "base+skill": 0.0,
+     "adapter": 1.0,
+     "single": 1.0,
+     "beats_base_by_margin": true,
+     "interference": 0.0
+    },
+    "s3": {
+     "base": 0.0,
+     "base+skill": 0.0,
+     "adapter": 1.0,
+     "single": 1.0,
+     "beats_base_by_margin": true,
+     "interference": 0.0
+    },
+    "s4": {
+     "base": 0.0,
+     "base+skill": 0.0,
+     "adapter": 1.0,
+     "single": 1.0,
+     "beats_base_by_margin": true,
+     "interference": 0.0
+    }
+   },
+   "corpus": {
+    "corpus_hash": "42a263c7fcee30c72952a840bc7bc174b7d0acd35d5458f5b83637cac9c109ae",
+    "skill_set_root": "f72bd3bb614ea3c2215f1a5739590325ffa17df07b966cc009a99b4e0b8dc6ed",
+    "accepted": 160,
+    "dropped": 0,
+    "remote_recovered": 0,
+    "local_reject_reasons": {}
+   },
+   "train": {
+    "fit_kind": "gradient_sft",
+    "base_sha256": "fdf756fa7fcbe7404d5c60e26bff1a0c8b8aa1f72ced49e7dd0210fe288fb7fe",
+    "recipe_hash": "3a4b310a342c53c8a193c863e938f313c32a594dbf6ed948fe6ad5255d77f008",
+    "loss_curve_digest": "f2236247a92529aa2ca0a243e0ea6baba9d885c3ef21d8a70841aeffd1433f74",
+    "seed": 0,
+    "final_loss": 0.05705,
+    "steps": 72
+   },
+   "regression_adapter": 0.8,
+   "leak_probe_output": "Run `rukmelctl --dra qui39` and verify the status code K3002 to resolve the ERR_UNKNOWN_000 issue in the billing-api.",
+   "all_members_pass": true,
+   "interference_max": 0.09999999999999998,
+   "interference_ok": true,
+   "cluster_pass": true
+  }
+ ],
+ "stand_in_teacher": "deterministic template oracle",
+ "regression_base": 1.0,
+ "clusters_passing": 3
+}

@@ -7,6 +7,7 @@ import (
 	"math/big"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
@@ -150,6 +151,13 @@ func (o *Oracle) GetChainRegistration(chainID string) (*types.ChainRegistration,
 
 // RotateChain applies a quorum-signed author-set rotation (POST /oracle/v3/registry/rotate).
 func (o *Oracle) RotateChain(c *types.ChainRegistration) error {
+	// D10 hard-disable: an authority chain's author is its long-term key and must
+	// never be rotated to a session key (or any other key) through registry
+	// rotation. This is rejected at the Oracle acceptance boundary so removing the
+	// server's normal rotation caller does not leave the operation open.
+	if strings.HasPrefix(c.ChainID, registry.AuthorityChainPrefix) {
+		return fmt.Errorf("authority chain author rotation is deprecated (D10)")
+	}
 	// Continuity: the rotating party must hold the current registration and prove
 	// quorum over the new one. For now we require the new registration to carry
 	// signatures from the existing author set (verified against the live registry).
@@ -177,7 +185,17 @@ func (o *Oracle) RotateChain(c *types.ChainRegistration) error {
 // 5-step admission (merkle-math.md §3.3c).
 func (o *Oracle) SubmitCheckpoint(cp *types.Checkpoint) (*types.CheckpointRecord, error) {
 	o.checkpoint.mu.Lock()
-	defer o.checkpoint.mu.Unlock()
+	committed := false
+	defer func() {
+		o.checkpoint.mu.Unlock()
+		// Head production takes a checkpoint read lock to build its snapshot.
+		// It must run after releasing the write lock held during admission.
+		if committed && o.replication != nil && o.Mode() == ModeActive {
+			if _, _, err := o.replication.ProduceHeadIfChanged(); err != nil {
+				o.logger.Warn("replication head not produced after commit", zap.Error(err))
+			}
+		}
+	}()
 
 	if err := o.checkpoint.registry.VerifyCheckpointQuorum(cp); err != nil {
 		return nil, err
@@ -214,12 +232,7 @@ func (o *Oracle) SubmitCheckpoint(cp *types.Checkpoint) (*types.CheckpointRecord
 	if err := o.commitAuditMMR(); err != nil {
 		return nil, err
 	}
-	// A commit advances the state a standby follows.
-	if o.replication != nil && o.Mode() == ModeActive {
-		if _, _, err := o.replication.ProduceHeadIfChanged(); err != nil {
-			o.logger.Warn("replication head not produced after commit", zap.Error(err))
-		}
-	}
+	committed = true
 	o.logger.Info("checkpoint admitted",
 		zap.String("chain_id", cp.ChainID),
 		zap.Uint64("start", cp.StartHeight),
@@ -248,7 +261,15 @@ func proofWindowFor(o *Oracle, chainID string) time.Duration {
 // record's Source is tagged "rollup:<id>" and it is never promoted to final.
 func (o *Oracle) ProjectRollup(rec *types.RollupRecord) (*types.CheckpointRecord, error) {
 	o.checkpoint.mu.Lock()
-	defer o.checkpoint.mu.Unlock()
+	committed := false
+	defer func() {
+		o.checkpoint.mu.Unlock()
+		if committed && o.replication != nil && o.Mode() == ModeActive {
+			if _, _, err := o.replication.ProduceHeadIfChanged(); err != nil {
+				o.logger.Warn("replication head not produced after commit", zap.Error(err))
+			}
+		}
+	}()
 
 	var root [32]byte
 	if b, err := hex.DecodeString(strip0x(rec.BatchRoot)); err == nil && len(b) == 32 {
@@ -290,12 +311,7 @@ func (o *Oracle) ProjectRollup(rec *types.RollupRecord) (*types.CheckpointRecord
 	if err := o.commitAuditMMR(); err != nil {
 		return nil, err
 	}
-	// A commit advances the state a standby follows.
-	if o.replication != nil && o.Mode() == ModeActive {
-		if _, _, err := o.replication.ProduceHeadIfChanged(); err != nil {
-			o.logger.Warn("replication head not produced after commit", zap.Error(err))
-		}
-	}
+	committed = true
 	o.logger.Info("rollup projected to checkpoint leaf",
 		zap.String("rollup_id", rec.ID),
 		zap.Uint64("mmr_position", pos),

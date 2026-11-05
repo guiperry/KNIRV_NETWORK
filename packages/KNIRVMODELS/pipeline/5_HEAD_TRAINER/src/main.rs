@@ -1,15 +1,19 @@
 use candle_core::{DType, Device};
 use candle_nn::{VarBuilder, VarMap};
-use head_trainer::data::{self, LoadOpts, Split};
-use head_trainer::eval::{evaluate_with, fit_tau, Restrict, TauFit};
-use head_trainer::export::{decide, version_for, Comparison, GateOpts, Report, Store};
-use head_trainer::train::{train, TrainOpts};
-use head_trainer::preset;
-use knirv_head::Head;
+use heart_decision_trainer::data::{self, LoadOpts, Split};
+use heart_decision_trainer::eval::{evaluate_with, fit_tau, Restrict, TauFit};
+use heart_decision_trainer::export::{decide, version_for, Comparison, GateOpts, Report, Store};
+use heart_decision_trainer::preset;
+use heart_decision_trainer::preset_v2;
+use heart_decision_trainer::setprobe::{evaluate_set, train_set, SetExample, SetTrainOpts};
+use heart_decision_trainer::synth;
+use heart_decision_trainer::train::seed_init;
+use heart_decision_trainer::train::{train, TrainOpts};
+use knirv_heart_decision::{Head, SetHead, SetKind};
 use std::path::PathBuf;
 use std::process::ExitCode;
 
-const USAGE: &str = "head-trainer --data <train.jsonl>... --out <dir> [options]
+const USAGE: &str = "heart-decision-trainer --data <train.jsonl>... --out <dir> [options]
 
   --data FILE         head-train/v1 JSONL (repeatable); split by `split` or by hash of `group`
   --heldout FILE      held-out evaluation set (repeatable); default: the data's test split
@@ -101,12 +105,12 @@ fn parse() -> Result<Args, String> {
 }
 
 /// Name of every head both models have, with the options they share. Score heads map to an empty set.
-fn shared_heads(a: &knirv_head::HeadConfig, b: &knirv_head::HeadConfig) -> Restrict {
+fn shared_heads(a: &knirv_heart_decision::HeadConfig, b: &knirv_heart_decision::HeadConfig) -> Restrict {
     let mut r = Restrict::new();
     for ha in &a.decision_heads {
         let Some(hb) = b.decision_heads.iter().find(|h| h.name == ha.name && h.kind == ha.kind) else { continue };
         let common: std::collections::BTreeSet<String> = ha.options.iter().filter(|o| hb.options.contains(o)).cloned().collect();
-        if ha.kind == knirv_head::HeadKind::Choice && common.len() < 2 {
+        if ha.kind == knirv_heart_decision::HeadKind::Choice && common.len() < 2 {
             continue;
         }
         r.insert(ha.name.clone(), common);
@@ -115,8 +119,8 @@ fn shared_heads(a: &knirv_head::HeadConfig, b: &knirv_head::HeadConfig) -> Restr
 }
 
 /// Same architecture and the same heads in the same order, so weights can carry over.
-fn same_shape(a: &knirv_head::HeadConfig, b: &knirv_head::HeadConfig) -> bool {
-    let norm = |c: &knirv_head::HeadConfig| {
+fn same_shape(a: &knirv_heart_decision::HeadConfig, b: &knirv_heart_decision::HeadConfig) -> bool {
+    let norm = |c: &knirv_heart_decision::HeadConfig| {
         let mut c = c.clone();
         c.tau = 0.0;
         c.model_version.clear();
@@ -179,7 +183,7 @@ fn run(a: Args) -> Result<bool, String> {
 
     let vm = VarMap::new();
     let model = Head::new(cfg.clone(), VarBuilder::from_varmap(&vm, DType::F32, &dev)).map_err(e)?;
-    head_trainer::train::seed_init(&vm, a.seed).map_err(e)?;
+    heart_decision_trainer::train::seed_init(&vm, a.seed).map_err(e)?;
 
     // H8: continue from the promoted model when it has the same shape.
     let mut init_from: Option<String> = None;
@@ -293,7 +297,7 @@ fn run(a: Args) -> Result<bool, String> {
     Ok(gate.promoted)
 }
 
-const CONVERT_USAGE: &str = "head-trainer convert --episodes <episodes.jsonl> --out <train.jsonl> [--soft <teacher.jsonl>] [--soft-heads a,b]
+const CONVERT_USAGE: &str = "heart-decision-trainer convert --episodes <episodes.jsonl> --out <train.jsonl> [--soft <teacher.jsonl>] [--soft-heads a,b]
 
   Converts verified SupervisionEpisode v1 records to head-train/v1. --soft lines are
   {\"episode_id\":..., \"labels\":{\"action\":{\"request_review\":0.7,...}}} (Clef teacher distributions).
@@ -335,9 +339,9 @@ fn convert_cmd() -> Result<(), String> {
     let input = std::fs::read_to_string(&episodes).map_err(|e| format!("{episodes}: {e}"))?;
     let allowed: Vec<&str> = match &heads {
         Some(h) => h.split(',').map(str::trim).filter(|x| !x.is_empty()).collect(),
-        None => head_trainer::episodes::DEFAULT_SOFT_HEADS.to_vec(),
+        None => heart_decision_trainer::episodes::DEFAULT_SOFT_HEADS.to_vec(),
     };
-    let (records, rep) = head_trainer::episodes::convert_opts(&input, &soft, &allowed, emit_input);
+    let (records, rep) = heart_decision_trainer::episodes::convert_opts(&input, &soft, &allowed, emit_input);
     let body: Vec<String> = records.iter().map(|r| r.to_string()).collect();
     std::fs::write(&out, body.join("\n") + "\n").map_err(|e| format!("{out}: {e}"))?;
     eprintln!("{rep:?}");
@@ -348,8 +352,19 @@ fn convert_cmd() -> Result<(), String> {
 }
 
 fn main() -> ExitCode {
-    if std::env::args().nth(1).as_deref() == Some("convert") {
+    let first = std::env::args().nth(1);
+    let sub = first.as_deref();
+    if sub == Some("convert") {
         return match convert_cmd() {
+            Ok(()) => ExitCode::SUCCESS,
+            Err(m) => {
+                eprintln!("{m}");
+                ExitCode::FAILURE
+            }
+        };
+    }
+    if sub == Some("probe") {
+        return match probe_cmd() {
             Ok(()) => ExitCode::SUCCESS,
             Err(m) => {
                 eprintln!("{m}");
@@ -364,5 +379,95 @@ fn main() -> ExitCode {
             eprintln!("{m}");
             ExitCode::FAILURE
         }
+    }
+}
+
+const PROBE_USAGE: &str = "heart-decision-trainer probe [--task a|b] [--preset tiny] [--epochs N] [--lr X] [--seed N] [--n-train N] [--n-test N]
+
+  Task 4.4 kill-gate learnability probe. Trains a choice-set head on synthetic data
+  (no gold) and checks it generalises to UNSEEN choice strings, clearly above the base
+  rate, on both tasks:
+    a  routing:    question topic -> keyword -> the candidate containing that keyword
+    b  evidence:   question entity -> the evidence sentence mentioning that entity
+  Train and test candidate pools are disjoint surface forms, so position/memorisation
+  shortcuts stay at the base rate. Default runs both tasks.";
+
+/// Trains and evaluates one synthetic task; returns (train_acc, train_base, test_acc, test_base).
+fn run_task(task: &str, preset: &str, epochs: usize, seed: u64, lr: f64, n_train: usize, n_test: usize) -> Result<(f32, f32, f32, f32), String> {
+    let head_name = if task == "a" { "route" } else { "evidence" };
+    let sets = vec![SetHead { name: head_name.into(), kind: SetKind::Choice, max_choices: 16 }];
+    let mut cfg = preset_v2(preset, vec![], sets).map_err(|e| e.to_string())?;
+    // "Preset tiny, seq 512": tiny dims, a long enough sequence for several candidates. The
+    // probe keeps it shorter so the CPU run finishes quickly; the gate does not depend on it.
+    cfg.max_seq_len = 256;
+    cfg.validate().map_err(|e| e.to_string())?;
+    let width = cfg.max_seq_len - cfg.summary_slots;
+    let max_choices = cfg.choice_set_heads[0].max_choices;
+
+    let dev = Device::Cpu;
+    let vm = VarMap::new();
+    let model = Head::new(cfg.clone(), VarBuilder::from_varmap(&vm, DType::F32, &dev)).map_err(|e| e.to_string())?;
+    seed_init(&vm, seed).map_err(|e| e.to_string())?;
+
+    let all = synth::generate(task, n_train, n_test, seed);
+    let train: Vec<SetExample> = all.iter().filter(|e| e.split == Split::Train).cloned().collect();
+    let test: Vec<SetExample> = all.iter().filter(|e| e.split == Split::Test).cloned().collect();
+    eprintln!("task {task}: {n_train} train / {n_test} test set questions; width {width}; head {head_name}");
+
+    let norm_of = |vm: &VarMap, name: &str| -> f32 {
+        let d = vm.data().lock().unwrap();
+        d.get(name).map(|t| t.sqr().unwrap().sum_all().unwrap().to_scalar::<f32>().unwrap().sqrt()).unwrap_or(0.0)
+    };
+    let w0 = norm_of(&vm, "set.w");
+
+    let opts = SetTrainOpts { epochs, lr, warmup_steps: 50, max_steps: None, seed };
+    let _hist = train_set(&model, &vm, &train, 0, max_choices, width, &opts, &dev, |i, l| {
+        eprintln!("  task {task} epoch {:>3}  loss {l:.4}", i + 1);
+    })
+    .map_err(|e| e.to_string())?;
+
+    let (tr_acc, tr_base) = evaluate_set(&model, &train, 0, max_choices, width, &dev).map_err(|e| e.to_string())?;
+    let (te_acc, te_base) = evaluate_set(&model, &test, 0, max_choices, width, &dev).map_err(|e| e.to_string())?;
+    let w1 = norm_of(&vm, "set.w");
+    eprintln!("  [diag] set.w norm before train {w0:.4}, after {w1:.4}");
+    Ok((tr_acc, tr_base, te_acc, te_base))
+}
+
+fn probe_cmd() -> Result<(), String> {
+    let (mut task, mut preset, mut epochs, mut seed, mut lr) = ("both".to_string(), "tiny".to_string(), 60usize, 1u64, 3e-4);
+    let (mut n_train, mut n_test) = (120usize, 60usize);
+    let mut it = std::env::args().skip(2);
+    while let Some(k) = it.next() {
+        let mut v = || it.next().ok_or_else(|| format!("{k} needs a value"));
+        let num = |s: String| s.parse::<f64>().map_err(|e| format!("{k}: {e}"));
+        match k.as_str() {
+            "--task" => task = v()?,
+            "--preset" => preset = v()?,
+            "--epochs" => epochs = num(v()?)?.round() as usize,
+            "--seed" => seed = num(v()?)?.round() as u64,
+            "--lr" => lr = num(v()?)?,
+            "--n-train" => n_train = num(v()?)?.round() as usize,
+            "--n-test" => n_test = num(v()?)?.round() as usize,
+            "-h" | "--help" => return Err(PROBE_USAGE.into()),
+            other => return Err(format!("unknown argument {other}\n{PROBE_USAGE}")),
+        }
+    }
+    let tasks: Vec<&str> = if task == "both" { vec!["a", "b"] } else { vec![task.as_str()] };
+    let mut all_pass = true;
+    for t in tasks {
+        let (tr_acc, tr_base, te_acc, te_base) = run_task(t, &preset, epochs, seed, lr, n_train, n_test)?;
+        let pass = te_acc > te_base * 1.5 && te_acc > te_base + 0.2;
+        all_pass &= pass;
+        eprintln!(
+            "task {t}: train acc {tr_acc:.3} (base {tr_base:.3}) | test acc {te_acc:.3} (base {te_base:.3}) -> {}",
+            if pass { "PASSED" } else { "FAILED" }
+        );
+    }
+    if all_pass {
+        eprintln!("KILL GATE: PASSED — set heads learn the rule and generalise to unseen choice strings");
+        Ok(())
+    } else {
+        eprintln!("KILL GATE: FAILED — only memorises or leans on position; stop (do not proceed to 4.5+)");
+        Err("kill gate failed".into())
     }
 }

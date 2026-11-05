@@ -1,6 +1,6 @@
 package cuda
 
-// #cgo LDFLAGS: -L. -lcuda_hash -lcudart
+// #cgo LDFLAGS: -L. -lcuda_hash -lcudart -Wl,-rpath,$ORIGIN -Wl,-rpath,$ORIGIN/lib -Wl,-rpath,${SRCDIR}
 // #cgo CFLAGS: -I/usr/local/cuda/include
 // #include <stdlib.h>
 // #include <stdint.h>

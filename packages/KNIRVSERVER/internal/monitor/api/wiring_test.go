@@ -70,6 +70,42 @@ func TestOptionalMonitorSourcesUnavailable(t *testing.T) {
 	}
 }
 
+func TestRootFailoverIncludesSignedReplicaTelemetry(t *testing.T) {
+	registry := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/state/knirvoracle-1":
+			_, _ = w.Write([]byte(`{"chainID":"knirvoracle-1","phase":"NORMAL","currentRootID":"root","round":2}`))
+		case "/consensus/knirvoracle-1/2":
+			_, _ = w.Write([]byte(`{"activeValidators":["root"]}`))
+		case "/heartbeats/knirvoracle-1":
+			_, _ = w.Write([]byte(`{"node":{"validatorID":"node","replica":{"mode":"standby","headSeq":9,"lagSeq":1,"lagSeconds":2,"diverged":false,"paused":false,"unverifiedClasses":0}}}`))
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer registry.Close()
+	socket := filepath.Join(t.TempDir(), "oracle.sock")
+	listener, err := net.Listen("unix", socket)
+	if err != nil {
+		t.Fatal(err)
+	}
+	oracle := &http.Server{Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/oracle/v3/status" {
+			http.NotFound(w, r)
+			return
+		}
+		_, _ = w.Write([]byte(`{"mode":"standby","head_seq":9,"lag_seq":1,"lag_seconds":2,"diverged":false,"replication_paused":false}`))
+	})}
+	go oracle.Serve(listener)
+	defer oracle.Shutdown(context.Background())
+	server := NewServer(&ServerConfig{RegistryURL: registry.URL, OracleSocketPath: socket})
+	w := httptest.NewRecorder()
+	server.handleRootFailover(w, httptest.NewRequest(http.MethodGet, "/", nil))
+	if w.Code != http.StatusOK || !strings.Contains(w.Body.String(), `"headSeq":9`) || !strings.Contains(w.Body.String(), `"localReplica":{"available":true`) {
+		t.Fatalf("response = %d %s", w.Code, w.Body.String())
+	}
+}
+
 func TestDisabledActuarialService(t *testing.T) {
 	socket := filepath.Join(t.TempDir(), "backend.sock")
 	listener, err := net.Listen("unix", socket)

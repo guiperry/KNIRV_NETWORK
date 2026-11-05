@@ -7,7 +7,12 @@
 //
 // `defect` selects a deliberately broken variant for the negative tests:
 //   0 correct, 1 rejects while observing, 2 accepts an unverified action
-//   while enforcing, 3 accepts a break-glass record without flagging it.
+//   while enforcing, 3 accepts a break-glass record without flagging it,
+//   4 rejects a verifying action while enforcing.
+//
+// What makes a record break-glass is an open owner decision (AUTHORITY_SPEC.md
+// section 10 D4); here it is an input flag. Rollout parameters (soak window, mode
+// storage) are D5 and are not modelled.
 
 event eAuthRolloutSetMode: (tier: int, enforce: bool);
 event eAuthRolloutModeApplied: (tier: int, enforce: bool);
@@ -61,6 +66,10 @@ machine AuthorityRolloutMachine {
                 return;
             }
 
+            if (defect == 4 && valid) {
+                announce eAuthRolloutRejected, (id = a.id, tier = a.tier, valid = valid);
+                return;
+            }
             if (valid || defect == 2) {
                 announce eAuthRolloutAccepted, (id = a.id, tier = a.tier, valid = valid, breakGlass = a.breakGlass, flagged = flagged);
             } else {
@@ -147,11 +156,15 @@ machine AuthorityRolloutEnforceAcceptBugMain {
 machine AuthorityRolloutBreakGlassBugMain {
     start state Init { entry { new AuthorityRolloutWorkload((defect = 3,)); } }
 }
+machine AuthorityRolloutRejectValidBugMain {
+    start state Init { entry { new AuthorityRolloutWorkload((defect = 4,)); } }
+}
 
 module AuthorityRolloutModule = { AuthorityRolloutMain, AuthorityRolloutWorkload, AuthorityRolloutMachine };
 module AuthorityRolloutObserveRejectBugModule = { AuthorityRolloutObserveRejectBugMain, AuthorityRolloutWorkload, AuthorityRolloutMachine };
 module AuthorityRolloutEnforceAcceptBugModule = { AuthorityRolloutEnforceAcceptBugMain, AuthorityRolloutWorkload, AuthorityRolloutMachine };
 module AuthorityRolloutBreakGlassBugModule = { AuthorityRolloutBreakGlassBugMain, AuthorityRolloutWorkload, AuthorityRolloutMachine };
+module AuthorityRolloutRejectValidBugModule = { AuthorityRolloutRejectValidBugMain, AuthorityRolloutWorkload, AuthorityRolloutMachine };
 
 test AuthorityRollout [main = AuthorityRolloutMain]:
     assert AuthorityRolloutMonitor in AuthorityRolloutModule;
@@ -163,3 +176,5 @@ test BrokenAuthorityRolloutEnforceAccept [main = AuthorityRolloutEnforceAcceptBu
     assert AuthorityRolloutMonitor in AuthorityRolloutEnforceAcceptBugModule;
 test BrokenAuthorityRolloutBreakGlass [main = AuthorityRolloutBreakGlassBugMain]:
     assert AuthorityRolloutMonitor in AuthorityRolloutBreakGlassBugModule;
+test BrokenAuthorityRolloutRejectValid [main = AuthorityRolloutRejectValidBugMain]:
+    assert AuthorityRolloutMonitor in AuthorityRolloutRejectValidBugModule;

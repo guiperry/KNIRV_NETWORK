@@ -35,14 +35,15 @@ func killStaleModels(binaryPath string) {
 }
 
 type Manager struct {
-	binaryPath string
-	config     *ManagerConfig
-	cmd        *exec.Cmd
-	logger     *zap.Logger
-	mu         sync.RWMutex
-	running    bool
-	socketPath string
-	startTime  time.Time
+	binaryPath    string
+	config        *ManagerConfig
+	cmd           *exec.Cmd
+	logger        *zap.Logger
+	mu            sync.RWMutex
+	harnessSource func(context.Context) (map[string]json.RawMessage, error)
+	running       bool
+	socketPath    string
+	startTime     time.Time
 }
 
 type ManagerConfig struct {
@@ -61,6 +62,7 @@ type ManagerConfig struct {
 	EnvOverrides          map[string]string
 	KnirvserverDeployed   bool // indicates KNIRVMODELS is initialized by KNIRVSERVER
 	DirectMode            bool // skip CGMiner, drive ASIC directly over raw USB
+	DirectJitter          bool // opt into ASIC jitter hashing in direct mode
 	FormalVerifierEnabled bool // enables formal proof verification via Lean worker
 }
 
@@ -70,7 +72,11 @@ type ModelsStatus struct {
 	SocketPath string             `json:"socket_path"`
 	Uptime     string             `json:"uptime"`
 	Training   *TrainingRunStatus `json:"training,omitempty"`
-	Timestamp  time.Time          `json:"timestamp"`
+	// Harness is the inference instance's status document, carried as KNIRVMODELS
+	// wrote it (backend in use, the embedding server's phase and digest, ...).
+	// Absent when no source is set or the instance does not answer.
+	Harness   map[string]json.RawMessage `json:"harness,omitempty"`
+	Timestamp time.Time                  `json:"timestamp"`
 }
 
 type TrainingRunStatus struct {
@@ -233,9 +239,7 @@ func (m *Manager) Start(ctx context.Context) error {
 	if m.config.KnirvserverDeployed {
 		args = append(args, "--knirvserver-deployed")
 	}
-	if m.config.DirectMode {
-		args = append(args, "--direct")
-	}
+	args = appendDirectArgs(args, m.config.DirectMode, m.config.DirectJitter)
 	if m.config.FormalVerifierEnabled {
 		args = append(args, "--formal-verifier")
 	}
@@ -281,6 +285,16 @@ func (m *Manager) Start(ctx context.Context) error {
 		zap.String("socket", m.socketPath))
 
 	return nil
+}
+
+func appendDirectArgs(args []string, direct, jitter bool) []string {
+	if direct {
+		args = append(args, "--direct")
+		if jitter {
+			args = append(args, "--direct-jitter")
+		}
+	}
+	return args
 }
 
 // setEnvOverride replaces rather than appends an environment variable. A child
@@ -427,7 +441,25 @@ func (m *Manager) GetPID() int {
 	return 0
 }
 
+// SetHarnessStatusSource gives GetStatus a way to fetch the inference status
+// document (Inference.HarnessStatus). It is called outside the manager's lock.
+func (m *Manager) SetHarnessStatusSource(src func(context.Context) (map[string]json.RawMessage, error)) {
+	m.mu.Lock()
+	m.harnessSource = src
+	m.mu.Unlock()
+}
+
 func (m *Manager) GetStatus() *ModelsStatus {
+	m.mu.RLock()
+	src := m.harnessSource
+	m.mu.RUnlock()
+	var harness map[string]json.RawMessage
+	if src != nil {
+		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+		harness, _ = src(ctx) // best effort: a status call must not fail because a source is down
+		cancel()
+	}
+
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
@@ -436,6 +468,7 @@ func (m *Manager) GetStatus() *ModelsStatus {
 		Running:    m.running,
 		SocketPath: m.socketPath,
 		Training:   m.loadTrainingRunStatus(),
+		Harness:    harness,
 		Timestamp:  time.Now(),
 	}
 	if m.running {

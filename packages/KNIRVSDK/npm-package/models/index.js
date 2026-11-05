@@ -12,7 +12,21 @@ export const HEAD_PREFIX = "/models/head";
 export const REGISTRY_PATH = "/models/registry";
 export const HEALTH_PATH = "/models/health";
 export const HEART_PREFIX = "/models/heart";
+export const HEART_DECISION_PREFIX = "/models/heart/decide";
 export const HASHER_PREFIX = "/models/hasher";
+/**
+ * HANDS (server_tasks) namespace. Typed transport mirror of the Go SDK's
+ * `sdk.HandsPrefix` and `sdk.RoleHands`; the Rust core (core/src/models.rs) is
+ * the source of truth, so these are wire-value aliases plus thin HTTP calls.
+ */
+export const HandsPrefix = "/models/hands";
+export const RoleHands = "server_tasks";
+// Parity type test: this assignment only compiles while "server_tasks" is a
+// member of ModelRole, i.e. while the core contract still reports the HANDS
+// server_tasks role. If the core drops it, the build fails here first.
+export function serverTasksRole() {
+    return RoleHands;
+}
 /** The model is up but cannot answer yet (HTTP 503). */
 export class NotReadyError extends Error {
     constructor() { super("model not ready"); this.name = "NotReadyError"; }
@@ -78,6 +92,39 @@ export class ModelsClient {
     health() { return this.json(HEALTH_PATH); }
     heartHealth() { return this.json(`${HEART_PREFIX}/health`); }
     hasherStatus() { return this.json(`${HASHER_PREFIX}/status`); }
+    // ---- HANDS (server_tasks) -------------------------------------------------
+    // Thin transport mirror of the Go SDK's HandsPrefix/RoleHands and the
+    // KNIRVMODELS HANDS facade (pkg/models/hands.go). Untrained HANDS returns 503
+    // (NotReadyError) for generate/plan/act/weights; status/health/models stay 200.
+    handsStatus() { return this.json(`${HandsPrefix}/status`); }
+    handsHealth() { return this.json(`${HandsPrefix}/health`); }
+    handsModels() { return this.json(`${HandsPrefix}/models`); }
+    /** 503 -> NotReadyError until HANDS has a checkpoint. */
+    handsWeights() { return this.requestWithHeaders(`${HandsPrefix}/weights`, "GET", undefined, {}); }
+    handsGenerate(prompt, opts = {}) {
+        return this.post(`${HandsPrefix}/generate`, { prompt, ...opts });
+    }
+    handsPlan(prompt, opts = {}) {
+        return this.post(`${HandsPrefix}/plan`, { prompt, ...opts });
+    }
+    handsAct(prompt, opts = {}) {
+        return this.post(`${HandsPrefix}/act`, { prompt, ...opts });
+    }
+    // ---- HEAD VLM (vision / multimodal) ----------------------------------------
+    // Transport mirror of the Go SDK HeadVision / HeadGenerate / HeadStatus. The four
+    // vision operations each reach their own route; an unknown operation is rejected
+    // client-side before any request leaves the process.
+    headStatus() { return this.json(`${HEAD_PREFIX}/status`); }
+    headCapabilities() { return this.json(`${HEAD_PREFIX}/capabilities`); }
+    headGenerate(req) {
+        return this.post(`${HEAD_PREFIX}/generate`, req);
+    }
+    headVision(req) {
+        if (!["embed", "describe", "ground", "visual-reason"].includes(req.operation)) {
+            return Promise.reject(new Error(`head: unsupported vision operation ${JSON.stringify(req.operation)} (want one of embed, describe, ground, visual-reason)`));
+        }
+        return this.post(`${HEAD_PREFIX}/${req.operation}`, req);
+    }
     async post(path, body) {
         const res = await this.fetchImpl(this.baseUrl + path, {
             method: "POST", headers: { ...this.headers, "Content-Type": "application/json" }, body: JSON.stringify(body),
@@ -95,6 +142,20 @@ export class ModelsClient {
             throw new Error(`heart: ${out.error}`);
         return out.text ?? "";
     }
+    /** Decision-aware HEART generate. When resolve is true HEART consults the
+     *  decision core; otherwise it degrades to plain generation and never fails
+     *  just because the core is unavailable. Returns the full response. */
+    async heartGenerateWithDecision(prompt, resolve, decision) {
+        const body = { prompt };
+        if (resolve)
+            body.with_decision = true;
+        if (decision)
+            body.decision = decision;
+        const out = await this.post(`${HEART_PREFIX}/generate`, body);
+        if (out.error)
+            throw new Error(`heart: ${out.error}`);
+        return out;
+    }
     hasherValidate(req) { return this.post(`${HASHER_PREFIX}/validate`, req); }
     hasherInfer(text) { return this.post(`${HASHER_PREFIX}/infer`, { text }); }
     hasherIndexSearch(req) {
@@ -111,6 +172,18 @@ export class ModelsClient {
     hasherOntologyCheck(claim) {
         const { tenant, ...body } = claim;
         return this.postWithHeaders(`${HASHER_PREFIX}/ontology/check`, body, tenant ? { "X-KNIRV-Tenant": tenant } : {});
+    }
+    /** Verify a text or claims against the evidence index. A degraded answer (judge down) is a normal result. */
+    hasherVerify(req) {
+        const bad = callLocal("models.verify_request_check", { request: req }).error;
+        if (bad)
+            return Promise.reject(new Error(bad));
+        const { tenant, ...body } = req;
+        return this.postWithHeaders(VERIFY_PATH, body, tenant ? { "X-KNIRV-Tenant": tenant } : {});
+    }
+    /** Read a deferred job; only the tenant that submitted it can. */
+    hasherVerifyJob(id, tenant) {
+        return this.requestWithHeaders(VERIFY_JOBS_PATH + encodeURIComponent(id), "GET", undefined, tenant ? { "X-KNIRV-Tenant": tenant } : {});
     }
     async postWithHeaders(path, body, headers) {
         const res = await this.fetchImpl(this.baseUrl + path, {
@@ -133,34 +206,37 @@ export class ModelsClient {
             throw new Error(`models: HTTP ${res.status}`);
         return (await res.json());
     }
+    /** HEAD VLM manifest (vision / mirrored text). Narrow, VLM-specific contract. */
     manifest() { return this.json(`${HEAD_PREFIX}/models`); }
+    /** HEART decision core manifest; the manifest Advise needs. */
+    decisionManifest() { return this.json(`${HEART_DECISION_PREFIX}/models`); }
     reason(tokens) {
-        return this.json(`${HEAD_PREFIX}/reason`, {
+        return this.json(`${HEART_DECISION_PREFIX}/reason`, {
             method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ tokens }),
         });
     }
-    /** manifest → encode → reason → advice; every failure is an abstention. */
+    /** decisionManifest → encode → reason → advice; every failure is an abstention. */
     async advise(c) {
         await initLocal();
         let m;
         try {
-            m = await this.manifest();
+            m = await this.decisionManifest();
         }
         catch {
-            return abstainAdvice("no HEAD model available", "none", "");
+            return abstainAdvice("no decision model available", "none", "");
         }
         let width;
         try {
             width = inputWidth(m);
         }
         catch {
-            return abstainAdvice("no HEAD model available", "none", "");
+            return abstainAdvice("no decision model available", "none", "");
         }
         try {
             return adviceFromReasoning(await this.reason(encodeByteV1(buildAdvisePrompt(c), width)), c);
         }
         catch (e) {
-            return abstainAdvice(e instanceof NoModelError ? "no HEAD model available" : "HEAD could not answer", "none", "");
+            return abstainAdvice(e instanceof NoModelError ? "no decision model available" : "decision model could not answer", "none", "");
         }
     }
 }
@@ -173,3 +249,11 @@ export function roles(s) {
 }
 export * from "./frame.js";
 export const INDEX_STATUS_PATH = `${HASHER_PREFIX}/index/status`;
+/** POST /models/hasher/verify (Task 3.4); twin of Go VerifyRequest. */
+export const VERIFY_PATH = `${HASHER_PREFIX}/verify`;
+export const VERIFY_JOBS_PATH = `${HASHER_PREFIX}/verify/jobs/`;
+export const GATE_NAMES = ["refused", "discouraged", "uncommitted", "seen", "attested", "accepted", "committed"];
+/** The first way a response breaks the contract, or null. The invariants live in the SDK core (models.verify_check); twin of Go VerifyResponse.Check. */
+export function checkVerify(r) {
+    return callLocal("models.verify_check", { response: r }).error;
+}

@@ -292,6 +292,19 @@ icme:
   cloudflare_embeddings_url: "https://embeddings.knirv.com"
   ollama_base_url: "http://localhost:11434"
   ollama_embedding_model: "nomic-embed-text"
+  # Ollama and its embedding model are provisioned and supervised by KNIRVMODELS, the
+  # way llama.cpp + Qwen are (Task 3.2); SERVER only carries these settings and reads
+  # the status back through pkg/knirvmodels. A running, correct instance is always
+  # adopted untouched. Installing needs ollama_enabled plus BOTH pins: the release is
+  # verified against ollama_server_sha256 and nothing is installed on a mismatch. An
+  # empty ollama_embedding_digest reports the digest without enforcing it. The
+  # endpoint must be loopback (a 0.0.0.0 listener is refused). Upgrades are
+  # pinned-version only: change the URL, sha256 and digest here.
+  ollama_enabled: false
+  ollama_server_url: ""        # pinned Linux release: a .tgz/.tar.gz or a bare binary
+  ollama_server_sha256: ""
+  ollama_version: ""
+  ollama_embedding_digest: ""
   spacy_model: "en_core_web_sm"
   graph_window_size: "10m"
   graph_max_nodes: 10000
@@ -301,6 +314,26 @@ icme:
   drift_threshold: 0.20
   signal_queue_size: 512
   signal_workers: 4
+
+# Factuality live lookup ("flash", Task 3.8) is ON by default (owner decision O5,
+# 2026-11-03); set enabled: false to turn it off (the environment equivalents are
+# KNIRV_FLASH=0 or KNIRV_NO_FLASH=1, see KNIRVMODELS/pkg/livesearch/SEARXNG.md). When on, a claim's minimized search
+# words (no prompt, no identifiers) go to a SELF-HOSTED metasearch engine bound to
+# loopback or a Unix socket, and the pages it finds are fetched through an SSRF-guarded
+# client (https only, public addresses only, HTML or text, size and time capped) and
+# written to the quarantine tier. A verdict resting only on quarantine pages needs two
+# independent registered domains. Without metasearch_url only Wikipedia and arXiv are used.
+# The metasearch engine is SearXNG for now (provisional): a separate process the operator
+# runs, not provisioned here.
+# The launcher turns these keys into the KNIRV_FLASH / KNIRV_METASEARCH_* environment of
+# the models daemon (see internal/launcher/factuality_env.go); the environment still wins.
+factuality:
+  flash:
+    enabled: true
+    metasearch_url: ""            # http://127.0.0.1:PORT or unix:///path/to.sock
+    metasearch_engines: []        # engine allow-list passed to the engine
+    allow_domains: []             # if set, only these registered domains are read
+    deny_domains: []              # never read these
 
 # Updater Configuration
 updater:

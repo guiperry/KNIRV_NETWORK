@@ -39,6 +39,9 @@ type Server struct {
 	goatMode           bool
 	knirvserverManaged bool
 	registry           *models.Registry
+	hasher             *models.Hasher
+	closeOnce          sync.Once
+	shutdownCloseOnce  sync.Once
 }
 
 func NewServer(socketPath string, socketPerm os.FileMode, goatModes ...bool) *Server {
@@ -96,6 +99,30 @@ func (s *Server) registerRoutes() {
 	s.mux.HandleFunc("/api/v1/chat", s.handleChat)
 
 	s.mux.HandleFunc("/api/v1/shutdown", s.handleShutdown)
+}
+
+// Close stops the long-lived background work the daemon started (the evidence
+// witness drain loop) and the HTTP server, waiting for the writer to exit so
+// teardown does not race it. Safe to call once; a second call is a no-op.
+// closeShutdown closes the shutdown channel exactly once, regardless of whether
+// it is triggered by Close() or the /api/v1/shutdown handler. Sharing this Once
+// avoids a "close of closed channel" panic when both paths run.
+func (s *Server) closeShutdown() {
+	s.shutdownCloseOnce.Do(func() {
+		close(s.shutdownCh)
+	})
+}
+
+func (s *Server) Close() {
+	s.closeOnce.Do(func() {
+		if s.hasher != nil {
+			s.hasher.StopWitnessing()
+		}
+		s.closeShutdown()
+		if s.server != nil {
+			_ = s.server.Close()
+		}
+	})
 }
 
 func (s *Server) Start() error {
@@ -553,7 +580,7 @@ func (s *Server) handleShutdown(w http.ResponseWriter, r *http.Request) {
 
 	go func() {
 		time.Sleep(100 * time.Millisecond)
-		close(s.shutdownCh)
+		s.closeShutdown()
 	}()
 
 	s.sendSuccess(w, "Shutdown initiated", nil)

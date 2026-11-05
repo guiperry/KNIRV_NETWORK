@@ -1,0 +1,131 @@
+{
+  "as_of": 1750000000,
+  "registry_entry": {
+    "address": "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e",
+    "kind": "root",
+    "long_term_pub": "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798",
+    "scopes": [
+      "*"
+    ]
+  },
+  "cases": [
+    {
+      "name": "earned credential mint",
+      "action": {
+        "action": "badge.mint",
+        "badge_id": "badge-9",
+        "certificate_hash": "7e3e5b641bb95284ab02e6b9f694727d27337f1bc7d89a3d9a7f9788b51667f3",
+        "credential_id": "cred-1",
+        "holder_agent_id": "dve-node-42",
+        "kind": "earned",
+        "suite_hash": "b51b995f829d898ec23a07897c1ba788bd1338de22420a5546928b88b533ef1e"
+      },
+      "tier": 1,
+      "domain": "badge.mint",
+      "hash": "2f54c8ea481f4616a62e594518059e073320ae0159877fc91134dc4965c26042",
+      "record": {
+        "tier": 1,
+        "domain": "badge.mint",
+        "scope": "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e",
+        "operator": "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e",
+        "epoch": 1,
+        "canonical_action_hash": "7e0edf67b9c2f8da41465e4a6f74bc9d596ebf39d809e12e12fdcffca96868cf",
+        "prev_record_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+        "header": "00000201488fcf70b59d1b4b423101415a2ff5397a4271c72e4b617dbd595875b4f0c6210000000000000000000000000000000000000000000000000000000000000000684ee180207fffff00000000",
+        "nonce": 0,
+        "hash": "2f54c8ea481f4616a62e594518059e073320ae0159877fc91134dc4965c26042",
+        "target_bits": 545259519,
+        "witness_kind": "sw",
+        "session_cert": {
+          "session_pub": "0294198103be931e98133bd4a4ca4b6e853cd9abcd60ec804f3e47b1aedccc3228",
+          "operator": "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e",
+          "epoch": 1,
+          "not_before": 1749999940,
+          "not_after": 1750086400,
+          "scope": "*",
+          "entropy": "csprng",
+          "sig_by_longterm": "5fc2e6927d91e133300f2abb871fb6b96040943fa853f51d9d729afc28fa0c375164c56efa414d371375b78590b9357f2c77498a13d88c00996a7799a8559c99"
+        },
+        "signature": "ac222554d4e9bb4723eb37864e039f12fa2da9f97d445ec247450eec71d6f49d6089fbd3b0cdabaaef94427eb44d1d26863526d03a5f81ced00f95695ef70ead"
+      }
+    },
+    {
+      "name": "purchased credential mint has an empty suite hash",
+      "action": {
+        "action": "badge.mint",
+        "badge_id": "badge-9",
+        "certificate_hash": "2b5987515f55a2d05b10288d1e53a0c53a97ce4447011d0a9a098153e82077f1",
+        "credential_id": "cred-2",
+        "holder_agent_id": "dve-node-43",
+        "kind": "purchased",
+        "suite_hash": ""
+      },
+      "tier": 1,
+      "domain": "badge.mint",
+      "hash": "5c983dffba05d249cf047b333c070181f423adfe88a3b578ee10ca103ffcc36c",
+      "record": {
+        "tier": 1,
+        "domain": "badge.mint",
+        "scope": "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e",
+        "operator": "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e",
+        "epoch": 1,
+        "canonical_action_hash": "09cef00a90a337a46a5e41528dbf0cfc50af6d6e2e89d34db3fc93125711b7e2",
+        "prev_record_hash": "2f54c8ea481f4616a62e594518059e073320ae0159877fc91134dc4965c26042",
+        "header": "00000201048c55a2d1ab814a584a8e3b2a3041962a45cec4cb7f984b1e1852b7726a6f4b2f54c8ea481f4616a62e594518059e073320ae0159877fc91134dc4965c26042684ee180207fffff00000003",
+        "nonce": 3,
+        "hash": "5c983dffba05d249cf047b333c070181f423adfe88a3b578ee10ca103ffcc36c",
+        "target_bits": 545259519,
+        "witness_kind": "sw",
+        "session_cert": {
+          "session_pub": "0294198103be931e98133bd4a4ca4b6e853cd9abcd60ec804f3e47b1aedccc3228",
+          "operator": "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e",
+          "epoch": 1,
+          "not_before": 1749999940,
+          "not_after": 1750086400,
+          "scope": "*",
+          "entropy": "csprng",
+          "sig_by_longterm": "5fc2e6927d91e133300f2abb871fb6b96040943fa853f51d9d729afc28fa0c375164c56efa414d371375b78590b9357f2c77498a13d88c00996a7799a8559c99"
+        },
+        "signature": "aa7462e4f01669ee2a242762053f360cde3a4e917bcb59bcb520ffc004e56baf13c3b43f941419c76ffd4a732b86157e10cee012e9c84565d86c767b7c162be4"
+      }
+    },
+    {
+      "name": "credential revocation",
+      "action": {
+        "action": "badge.revoke",
+        "credential_id": "cred-1",
+        "reason": "fraud \"detected\"\nsee case #7",
+        "token_id": "sha256:3f08aace122ee2368432c1ca23a049bc640bafbf00fdf33a52429f38ba12dbf9"
+      },
+      "tier": 2,
+      "domain": "badge.revoke",
+      "hash": "feb9ba91d83b3237038d7d24896a9faded1b9de63f0e4b96092da6ebbc090000",
+      "record": {
+        "tier": 2,
+        "domain": "badge.revoke",
+        "scope": "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e",
+        "operator": "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e",
+        "epoch": 1,
+        "canonical_action_hash": "d4d6b833bc770b83d2e96be4dd80fd703215a52e9376c4a0fb4a51ae41dd6c9d",
+        "prev_record_hash": "5c983dffba05d249cf047b333c070181f423adfe88a3b578ee10ca103ffcc36c",
+        "header": "0000020206628bfc30289f7c72ef318f2b423eacee294e38a17c4fd20c1c2668bd5965505c983dffba05d249cf047b333c070181f423adfe88a3b578ee10ca103ffcc36c684ee1801f00ffff0000637b",
+        "nonce": 25467,
+        "hash": "feb9ba91d83b3237038d7d24896a9faded1b9de63f0e4b96092da6ebbc090000",
+        "target_bits": 520159231,
+        "witness_kind": "sw",
+        "session_cert": {
+          "session_pub": "0294198103be931e98133bd4a4ca4b6e853cd9abcd60ec804f3e47b1aedccc3228",
+          "operator": "knirv1w508d6qejxtdg4y5r3zarvary0c5xw7kaqx36e",
+          "epoch": 1,
+          "not_before": 1749999940,
+          "not_after": 1750086400,
+          "scope": "*",
+          "entropy": "csprng",
+          "sig_by_longterm": "5fc2e6927d91e133300f2abb871fb6b96040943fa853f51d9d729afc28fa0c375164c56efa414d371375b78590b9357f2c77498a13d88c00996a7799a8559c99"
+        },
+        "signature": "e7f0d30458f3fa9936c14444f3784626b3aa2fda64fe3ed01f321b2e41ca58c002a15f92e23036df08dc4b5461d94c0834a36eb060dc0259206312469d92de96"
+      }
+    }
+  ],
+  "note": "Real records issued by KNIRVSERVER internal/authority (a root node, a session key certified by the long-term key) for the bodies in badge_actions.json. Regenerate with UPDATE_AUTHORITY_VECTORS=1. as_of is the service clock when they were issued."
+}

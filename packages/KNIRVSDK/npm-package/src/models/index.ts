@@ -14,9 +14,36 @@ export const HEAD_PREFIX = "/models/head";
 export const REGISTRY_PATH = "/models/registry";
 export const HEALTH_PATH = "/models/health";
 export const HEART_PREFIX = "/models/heart";
+export const HEART_DECISION_PREFIX = "/models/heart/decide";
 export const HASHER_PREFIX = "/models/hasher";
 
-export type ModelRole = "validator" | "generator" | "reasoner";
+/**
+ * HANDS (server_tasks) namespace. Typed transport mirror of the Go SDK's
+ * `sdk.HandsPrefix` and `sdk.RoleHands`; the Rust core (core/src/models.rs) is
+ * the source of truth, so these are wire-value aliases plus thin HTTP calls.
+ */
+export const HandsPrefix = "/models/hands";
+export const RoleHands = "server_tasks";
+
+// Role keys are emitted by the Rust-core contract (core/src/models.rs roles());
+// a HANDS ModelStatus carries RoleHands ("server_tasks"). Add to this union
+// whenever the core adds a role, or the parity type test below fails to compile.
+export type ModelRole =
+  | "decide"
+  | "generate"
+  | "validate"
+  | "vision"
+  | "server_tasks"
+  | "external"
+  | "validator"
+  | "reasoner";
+
+// Parity type test: this assignment only compiles while "server_tasks" is a
+// member of ModelRole, i.e. while the core contract still reports the HANDS
+// server_tasks role. If the core drops it, the build fails here first.
+export function serverTasksRole(): ModelRole {
+  return RoleHands;
+}
 
 /** One registry row. `loaded` is false for a model not built yet (HEART is lazy). */
 export interface ModelStatus {
@@ -44,6 +71,63 @@ export interface HasherInferResult {
 export interface HasherStatus {
   loaded: boolean; mode?: string; hardware_tier?: string; using_hardware?: boolean;
   total_inferences: number; hardware_inferences: number; software_fallbacks: number;
+}
+
+// ---- HANDS (server_tasks) ----------------------------------------------------
+// Transport-only mirror of the KNIRVMODELS HANDS facade (pkg/models/hands.go) and
+// the Go SDK's sdk.HandsPrefix / sdk.RoleHands. Core (core/src/models.rs) is the
+// source of truth; these types describe the wire shapes, not contract logic.
+
+export interface HandsRequest { n?: number; temperature?: number; topK?: number }
+
+/** HANDS status (GET /models/hands/{status,health}). `role` is RoleHands ("server_tasks"). */
+export interface HandsStatus {
+  name: string;
+  role: string;
+  ready: boolean;
+  loaded: boolean;
+  version?: string;
+  trained?: boolean;
+  backend: string;
+  since?: string;
+  error?: string;
+}
+/** HANDS capabilities (GET /models/hands/models). */
+export interface HandsModels {
+  name: string;
+  role: string;
+  backend: string;
+  version: string;
+  capabilities: string[];
+  endpoints: string[];
+}
+/** HANDS checkpoint info (GET /models/hands/weights); 503 until trained. */
+export interface HandsWeights { name: string; version: string; backend: string; checkpoint: string; progress: number }
+/** HANDS generation (POST /models/hands/{generate,plan,act}). */
+export interface HandsGenerateResponse { text: string; stage?: string; frame_hash?: string }
+
+// ---- HEAD VLM + mirrored text generator ---------------------------------------
+// Transport mirror of the Go SDK's head_vlm.go and the KNIRVMODELS Head facade
+// (pkg/models/head.go). The canonical wire contract lives in knirv-sdk
+// core/data/vlm_contract.json; these types and the methods below are bindings only.
+export interface ImageRef { url?: string; hash?: string; kind?: string }
+export interface HeadCapabilities { vision: boolean; text_mirror: boolean; embed: boolean }
+export interface HeadStatus {
+  backend: string; ready: boolean; capabilities: HeadCapabilities; detail?: string;
+}
+export interface HeadGenerateRequest {
+  prompt: string; perceptual_context?: string; images?: ImageRef[]; frame?: string;
+}
+export interface HeadGenerateResponse {
+  text: string; model: string; version?: string; refuted?: boolean; notes?: string[];
+}
+export interface VisionRequest {
+  operation: "embed" | "describe" | "ground" | "visual-reason";
+  text?: string; images?: ImageRef[]; context?: string;
+}
+export interface VisionResponse {
+  operation: string; model?: string; version?: string; result?: Record<string, unknown>;
+  refuted?: boolean; notes?: string[];
 }
 export interface IndexSearchRequest {
   text: string; subject?: string; property?: string; value?: string;
@@ -114,6 +198,34 @@ export interface Reasoning {
   model_version: string;
   dataset_manifest_hash: string;
   policy_bundle_hash: string;
+}
+
+/** Decision envelope: the output of the decision core, or a caller-supplied decision. */
+export interface DecisionEnvelope {
+  decisions: Decision[];
+  abstained?: boolean;
+  reason?: string;
+}
+
+/** Decision-aware HEART generate request. Plain generation (no decision and
+ *  with_decision false) never consults the decision core, so legacy clients keep
+ *  working when the core is unavailable. The wire field is `with_decision` to
+ *  match the Rust core / Go server contract. */
+export interface HeartGenerateRequest {
+  prompt: string;
+  decision?: DecisionEnvelope;
+  with_decision?: boolean;
+}
+
+/** Decision-aware HEART generate response; always carries the (possibly absent
+ *  or abstaining) decision metadata alongside the text. */
+export interface HeartGenerateResponse {
+  text?: string;
+  ready: boolean;
+  progress: number;
+  decision?: DecisionEnvelope;
+  abstained?: boolean;
+  error?: string;
 }
 
 export interface Manifest {
@@ -216,6 +328,42 @@ export class ModelsClient {
   heartHealth(): Promise<HeartHealth> { return this.json<HeartHealth>(`${HEART_PREFIX}/health`); }
   hasherStatus(): Promise<HasherStatus> { return this.json<HasherStatus>(`${HASHER_PREFIX}/status`); }
 
+  // ---- HANDS (server_tasks) -------------------------------------------------
+  // Thin transport mirror of the Go SDK's HandsPrefix/RoleHands and the
+  // KNIRVMODELS HANDS facade (pkg/models/hands.go). Untrained HANDS returns 503
+  // (NotReadyError) for generate/plan/act/weights; status/health/models stay 200.
+
+  handsStatus(): Promise<HandsStatus> { return this.json<HandsStatus>(`${HandsPrefix}/status`); }
+  handsHealth(): Promise<HandsStatus> { return this.json<HandsStatus>(`${HandsPrefix}/health`); }
+  handsModels(): Promise<HandsModels> { return this.json<HandsModels>(`${HandsPrefix}/models`); }
+  /** 503 -> NotReadyError until HANDS has a checkpoint. */
+  handsWeights(): Promise<HandsWeights> { return this.requestWithHeaders<HandsWeights>(`${HandsPrefix}/weights`, "GET", undefined, {}); }
+  handsGenerate(prompt: string, opts: HandsRequest = {}): Promise<HandsGenerateResponse> {
+    return this.post<HandsGenerateResponse>(`${HandsPrefix}/generate`, { prompt, ...opts });
+  }
+  handsPlan(prompt: string, opts: HandsRequest = {}): Promise<HandsGenerateResponse> {
+    return this.post<HandsGenerateResponse>(`${HandsPrefix}/plan`, { prompt, ...opts });
+  }
+  handsAct(prompt: string, opts: HandsRequest = {}): Promise<HandsGenerateResponse> {
+    return this.post<HandsGenerateResponse>(`${HandsPrefix}/act`, { prompt, ...opts });
+  }
+
+  // ---- HEAD VLM (vision / multimodal) ----------------------------------------
+  // Transport mirror of the Go SDK HeadVision / HeadGenerate / HeadStatus. The four
+  // vision operations each reach their own route; an unknown operation is rejected
+  // client-side before any request leaves the process.
+  headStatus(): Promise<HeadStatus> { return this.json<HeadStatus>(`${HEAD_PREFIX}/status`); }
+  headCapabilities(): Promise<HeadCapabilities> { return this.json<HeadCapabilities>(`${HEAD_PREFIX}/capabilities`); }
+  headGenerate(req: HeadGenerateRequest): Promise<HeadGenerateResponse> {
+    return this.post<HeadGenerateResponse>(`${HEAD_PREFIX}/generate`, req);
+  }
+  headVision(req: VisionRequest): Promise<VisionResponse> {
+    if (!["embed", "describe", "ground", "visual-reason"].includes(req.operation)) {
+      return Promise.reject(new Error(`head: unsupported vision operation ${JSON.stringify(req.operation)} (want one of embed, describe, ground, visual-reason)`));
+    }
+    return this.post<VisionResponse>(`${HEAD_PREFIX}/${req.operation}`, req);
+  }
+
   private async post<T>(path: string, body: unknown): Promise<T> {
     const res = await this.fetchImpl(this.baseUrl + path, {
       method: "POST", headers: { ...this.headers, "Content-Type": "application/json" }, body: JSON.stringify(body),
@@ -230,6 +378,18 @@ export class ModelsClient {
     const out = await this.post<{ text?: string; error?: string }>(`${HEART_PREFIX}/generate`, { prompt });
     if (out.error) throw new Error(`heart: ${out.error}`);
     return out.text ?? "";
+  }
+
+  /** Decision-aware HEART generate. When resolve is true HEART consults the
+   *  decision core; otherwise it degrades to plain generation and never fails
+   *  just because the core is unavailable. Returns the full response. */
+  async heartGenerateWithDecision(prompt: string, resolve: boolean, decision?: DecisionEnvelope): Promise<HeartGenerateResponse> {
+    const body: HeartGenerateRequest = { prompt };
+    if (resolve) body.with_decision = true;
+    if (decision) body.decision = decision;
+    const out = await this.post<HeartGenerateResponse>(`${HEART_PREFIX}/generate`, body);
+    if (out.error) throw new Error(`heart: ${out.error}`);
+    return out;
   }
   hasherValidate(req: HasherValidateRequest): Promise<HasherValidateResult> { return this.post(`${HASHER_PREFIX}/validate`, req); }
   hasherInfer(text: string): Promise<HasherInferResult> { return this.post(`${HASHER_PREFIX}/infer`, { text }); }
@@ -247,6 +407,17 @@ export class ModelsClient {
   hasherOntologyCheck(claim: OntologyClaim): Promise<OntologyVerdict> {
     const { tenant, ...body } = claim;
     return this.postWithHeaders(`${HASHER_PREFIX}/ontology/check`, body, tenant ? { "X-KNIRV-Tenant": tenant } : {});
+  }
+  /** Verify a text or claims against the evidence index. A degraded answer (judge down) is a normal result. */
+  hasherVerify(req: VerifyRequest): Promise<VerifyResponse> {
+    const bad = callLocal<{ error: string | null }>("models.verify_request_check", { request: req }).error;
+    if (bad) return Promise.reject(new Error(bad));
+    const { tenant, ...body } = req;
+    return this.postWithHeaders(VERIFY_PATH, body, tenant ? { "X-KNIRV-Tenant": tenant } : {});
+  }
+  /** Read a deferred job; only the tenant that submitted it can. */
+  hasherVerifyJob(id: string, tenant?: string): Promise<VerifyResponse> {
+    return this.requestWithHeaders(VERIFY_JOBS_PATH + encodeURIComponent(id), "GET", undefined, tenant ? { "X-KNIRV-Tenant": tenant } : {});
   }
 
   private async postWithHeaders<T>(path: string, body: unknown, headers: Record<string, string>): Promise<T> {
@@ -268,25 +439,29 @@ export class ModelsClient {
     return (await res.json()) as T;
   }
 
+  /** HEAD VLM manifest (vision / mirrored text). Narrow, VLM-specific contract. */
   manifest(): Promise<Manifest> { return this.json<Manifest>(`${HEAD_PREFIX}/models`); }
 
+  /** HEART decision core manifest; the manifest Advise needs. */
+  decisionManifest(): Promise<Manifest> { return this.json<Manifest>(`${HEART_DECISION_PREFIX}/models`); }
+
   reason(tokens: number[]): Promise<Reasoning> {
-    return this.json<Reasoning>(`${HEAD_PREFIX}/reason`, {
+    return this.json<Reasoning>(`${HEART_DECISION_PREFIX}/reason`, {
       method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ tokens }),
     });
   }
 
-  /** manifest → encode → reason → advice; every failure is an abstention. */
+  /** decisionManifest → encode → reason → advice; every failure is an abstention. */
   async advise(c: AdviseContext): Promise<SupervisorAdvice> {
     await initLocal();
     let m: Manifest;
-    try { m = await this.manifest(); } catch { return abstainAdvice("no HEAD model available", "none", ""); }
+    try { m = await this.decisionManifest(); } catch { return abstainAdvice("no decision model available", "none", ""); }
     let width: number;
-    try { width = inputWidth(m); } catch { return abstainAdvice("no HEAD model available", "none", ""); }
+    try { width = inputWidth(m); } catch { return abstainAdvice("no decision model available", "none", ""); }
     try {
       return adviceFromReasoning(await this.reason(encodeByteV1(buildAdvisePrompt(c), width)), c);
     } catch (e) {
-      return abstainAdvice(e instanceof NoModelError ? "no HEAD model available" : "HEAD could not answer", "none", "");
+      return abstainAdvice(e instanceof NoModelError ? "no decision model available" : "decision model could not answer", "none", "");
     }
   }
 }
@@ -302,6 +477,14 @@ export interface LlamaAdapter { name: string; loaded: boolean; base_sha256?: str
 export interface FrameStatus { mode: "off" | "warn" | "enforce"; constitution_version: string; framed: number; unframed: number; invalid: number; rejected: number; teacher: number }
 /** The wrapper's admission queue by priority class (P0..P3). */
 export interface QueueStatus { free_slots: number; depth: [number, number, number, number]; admitted: [number, number, number, number] }
+/** The embedding server KNIRVMODELS provisions and supervises (Task 3.2). No path, no secret. */
+export interface OllamaStatus {
+  enabled: boolean; endpoint: string; model: string; digest?: string; pinned: boolean; version?: string;
+  phase: "idle" | "disabled" | "adopting" | "downloading" | "starting" | "pulling" | "ready" | "degraded" | "failed" | "stopped";
+  ready: boolean; adopted: boolean; bind?: string; error?: string;
+}
+/** The capability manifest the daemon serves: version, counts and a hash over every frame hash. */
+export interface ManifestStatus { constitution_version: string; stages: number; tools: number; hash: string; error?: string }
 export interface LlamaStatus { frames?: FrameStatus; queue?: QueueStatus; ready: boolean; base_model?: string; base_sha256?: string; adapters?: LlamaAdapter[]; error?: string }
 /** One harness decision, without any prompt or output text. */
 export interface RoutingEvent {
@@ -310,7 +493,7 @@ export interface RoutingEvent {
 }
 export interface RouteStats { calls: number; failures: number; p50_ms: number; p95_ms: number; circuit: string; last_error?: string }
 export interface PlatformStatus {
-  time: string; daemon: ModelStatus[]; daemon_error?: string; llama?: LlamaStatus; routing: RoutingEvent[]; stats: Record<string, RouteStats>;
+  time: string; daemon: ModelStatus[]; daemon_error?: string; llama?: LlamaStatus; ollama?: OllamaStatus; manifest?: ManifestStatus; routing: RoutingEvent[]; stats: Record<string, RouteStats>;
 }
 export type RoleState = "ready" | "idle" | "not ready" | "unavailable";
 /** One row of "which model does what": role -> model -> version. */
@@ -327,6 +510,51 @@ export * from "./frame.js";
 export interface IndexStatus {
   index_version: string; key_version: string; embedder_ids: string[]; retrieval: "lexical" | "hybrid";
   segments: number; spans: number; tiers: Record<string, number>; chunk_words: number;
-  searches: number; hit_rate: number; last_batch?: string; last_ingest?: string;
+  searches: number; hit_rate: number; last_batch?: string; last_ingest?: string; stale_seconds?: number;
 }
 export const INDEX_STATUS_PATH = `${HASHER_PREFIX}/index/status`;
+
+/** POST /models/hasher/verify (Task 3.4); twin of Go VerifyRequest. */
+export const VERIFY_PATH = `${HASHER_PREFIX}/verify`;
+export const VERIFY_JOBS_PATH = `${HASHER_PREFIX}/verify/jobs/`;
+export interface VerifyClaimIn { text: string; subject?: string; property?: string; value?: string }
+export interface VerifyRequest {
+  text?: string; claims?: VerifyClaimIn[];
+  /** flash and hybrid are accepted but answered from the index until live lookup is enabled. */
+  mode?: "index" | "flash" | "hybrid";
+  /** deferred (the default) returns at once with a job id; inline waits up to budget_ms. */
+  delivery?: "inline" | "deferred";
+  budget_ms?: number; domains?: string[]; max_claims?: number;
+  /** Forwarded as X-KNIRV-Tenant, never serialized into the request body. */
+  tenant?: string;
+}
+export interface VerifyEvidence {
+  span_id: string; snapshot: string; source_tier: string; text: string; title?: string; url?: string; fetched_at?: string; license?: string;
+  /** Present only when the span is included in a witnessed batch root (Task 3.9). */
+  witness?: { batch_root: string; proof: string; attestation: string };
+}
+export type GateName = "refused" | "discouraged" | "uncommitted" | "seen" | "attested" | "accepted" | "committed";
+export interface VerifyClaim {
+  text: string; subject?: string; property?: string; value?: string; type: string;
+  verdict: "SUPPORTED" | "REFUTED" | "NEI"; source: "ontology" | "structured" | "judge" | "none";
+  confidence: number; calibrated: number; gate: GateName; gate_level: number;
+  evidence: VerifyEvidence[]; cited?: string[]; agreement: boolean; degraded?: boolean; reason?: string; cached?: boolean;
+}
+export interface VerifyResponse {
+  status: "done" | "pending"; job_id?: string;
+  gate: GateName; gate_level: number; gate_score: number;
+  verdict: "supported" | "refuted" | "mixed" | "nei" | "unchecked"; confidence: number;
+  claims: VerifyClaim[]; unchecked?: { text: string; why?: string }[]; unchecked_fraction: number;
+  degraded: boolean; chargeable: boolean; calibrated: boolean; unverified?: boolean;
+  index_version: string; embedder_id: string; judge?: { model: string; sha256?: string; adapters?: string };
+  mode: string; delivery: string; domains?: string[]; notes?: string[];
+  /** True when live providers were consulted; outbound_queries is exactly what left the machine. */
+  flash_used?: boolean; outbound_queries?: string[];
+  refused: boolean; is_accurate: boolean; citations: number[]; text?: string;
+}
+export const GATE_NAMES: readonly GateName[] = ["refused", "discouraged", "uncommitted", "seen", "attested", "accepted", "committed"];
+
+/** The first way a response breaks the contract, or null. The invariants live in the SDK core (models.verify_check); twin of Go VerifyResponse.Check. */
+export function checkVerify(r: VerifyResponse): string | null {
+  return callLocal<{ error: string | null }>("models.verify_check", { response: r }).error;
+}

@@ -2582,9 +2582,7 @@ func (m Model) runMathVerifier() tea.Cmd {
 		if deviceConfig != nil && deviceConfig.CGMinerHost != "" {
 			args = append(args, "--cgminer-host="+deviceConfig.CGMinerHost)
 		}
-		if deviceConfig != nil && deviceConfig.DirectMode {
-			args = append(args, "--direct")
-		}
+		args = append(args, deviceConfig.DirectArgs()...)
 
 		cmd := exec.Command(hostPath, args...)
 		cmd.Dir = binDir

@@ -60,7 +60,7 @@ func TestHarnessAgainstTheRealDaemon(t *testing.T) {
 
 	client := models.NewClient("http://models", models.NewUnixHTTPClient(sock, 30*time.Second))
 	head, heart, hasher := DaemonModels(client)
-	h := NewHarness([]HarnessModel{head, heart, hasher}, WithChooser(head, 0.6))
+	h := NewHarness([]HarnessModel{head, heart, hasher}, WithChooser(heart, 0.6))
 	ctx := context.Background()
 
 	// HASHER really answers, through the harness.

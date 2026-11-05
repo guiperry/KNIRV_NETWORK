@@ -735,8 +735,8 @@ pub struct Operator {
     pub long_term_pub: Vec<u8>,
     #[serde(default)]
     pub scopes: Vec<String>,
-    /// hex(session_pub) → unix time of retirement. A retired session may only
-    /// sign records issued at or before that time.
+    /// hex(session_pub) → unix time of retirement. A certificate starting after it
+    /// is rejected; records carry no issue time (AUTHORITY_SPEC section 10, D1).
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub retired_sessions: BTreeMap<String, i64>,
 }
@@ -1225,4 +1225,234 @@ mod tests {
         let mut r = f.record.clone();
         assert!(r.sign_with_key(&test_key(9)).is_err());
     }
+
+    // ---- self-contained verification cases (testvectors/authority/verify_cases.json) ----
+
+    struct Case {
+        name: &'static str,
+        note: &'static str,
+        now: i64,
+        registry: Registry,
+        record: Record,
+        expect: &'static str,
+    }
+
+    fn registry_with(
+        f: &Fixture,
+        kind: OperatorKind,
+        scopes: &[&str],
+        retired: Option<(&Vec<u8>, i64)>,
+    ) -> Registry {
+        let mut registry = f.registry.clone();
+        let op = registry.operators.values_mut().next().unwrap();
+        op.kind = kind;
+        op.scopes = scopes.iter().map(|s| s.to_string()).collect();
+        if let Some((session_pub, at)) = retired {
+            op.retired_sessions.insert(hex::encode(session_pub), at);
+        }
+        registry
+    }
+
+    /// Re-issues the fixture's certificate for `cert_scope` and seals a fresh record.
+    fn sealed(f: &Fixture, tier: Tier, scope: &str, cert_scope: &str) -> Record {
+        let mut r = f.record.clone();
+        r.tier = tier;
+        r.scope = scope.into();
+        r.target_bits = 0;
+        r.nonce = 0;
+        r.witness_kind = WITNESS_SOFTWARE.into();
+        r.session_cert.scope = cert_scope.into();
+        r.session_cert = r.session_cert.clone().sign_with_key(&f.long_key).unwrap();
+        r.seal_with_key(&f.session_key, NTIME).unwrap();
+        r
+    }
+
+    fn build_cases() -> Vec<Case> {
+        let f = fixture();
+        let op = f.record.operator.clone();
+        let other = "knirv1other".to_string();
+        let own = [op.as_str()];
+        let root = OperatorKind::Root;
+        let mut cases = Vec::new();
+        let mut add = |name, note, now, registry: Registry, record: Record, expect| {
+            cases.push(Case { name, note, now, registry, record, expect });
+        };
+
+        let t2 = sealed(&f, Tier::T2, &op, &op);
+        let t3 = sealed(&f, Tier::T3, &op, &op); // mines ~2^24 hashes: regenerate with --release
+        let reg = || registry_with(&f, root, &own, None);
+
+        add("valid T1", "software witness at the T1 target", NOW, reg(), f.record.clone(), "ok");
+        add("valid T2 root", "software witness at the T2 target", NOW, reg(), t2.clone(), "ok");
+        add("valid T3 root", "software witness at the T3 target", NOW, reg(), t3.clone(), "ok");
+        {
+            let mut r = f.record.clone();
+            r.session_cert.entropy = "csprng+asic".into();
+            r.session_cert = r.session_cert.clone().sign_with_key(&f.long_key).unwrap();
+            r.witness_kind = WITNESS_ASIC.into();
+            r.seal_with_key(&f.session_key, NTIME).unwrap();
+            add("valid asic labelled", "witness_kind and entropy labels are accepted values", NOW, reg(), r, "ok");
+        }
+        {
+            let r = sealed(&f, Tier::T2, &other, "*");
+            add("valid root under wildcard scope", "certificate and registration both grant *", NOW,
+                registry_with(&f, root, &["*"], None), r, "ok");
+        }
+        add("certificate expired", "now is after not_after", NOT_AFTER + 1, reg(), f.record.clone(), "ErrExpiredSession");
+        add("certificate not yet valid", "now is before not_before", NOT_BEFORE - 1, reg(), f.record.clone(), "ErrExpiredSession");
+        add("operator not registered", "", NOW, Registry::default(), f.record.clone(), "ErrUnknownOperator");
+        {
+            let mut registry = reg();
+            registry.operators.values_mut().next().unwrap().long_term_pub = pub_of(&test_key(9));
+            add("certificate not signed by the registered key", "", NOW, registry, f.record.clone(), "ErrSessionSignature");
+        }
+        {
+            let mut r = f.record.clone();
+            r.session_cert.operator = other.clone();
+            add("certificate operator differs from record operator", "checked before any signature", NOW, reg(), r, "ErrSessionSignature");
+        }
+        {
+            let mut r = f.record.clone();
+            r.session_cert.session_pub = r.session_cert.session_pub[..32].to_vec();
+            add("malformed session key", "32 bytes instead of a compressed key", NOW, reg(), r, "ErrInvalid");
+        }
+        {
+            let mut r = f.record.clone();
+            r.signature.truncate(63);
+            add("record signature has the wrong length", "", NOW, reg(), r, "ErrRecordSignature");
+        }
+        {
+            let mut r = f.record.clone();
+            r.tier = Tier::T0;
+            add("T0 carries no record", "", NOW, reg(), r, "ErrTier");
+        }
+        {
+            let r = sealed(&f, Tier::T1, &other, "*");
+            add("T1 scoped to another address", "T1 may only act on the operator's own address",
+                NOW, registry_with(&f, root, &["*"], None), r, "ErrScope");
+        }
+        {
+            let r = sealed(&f, Tier::T2, &other, &op);
+            add("certificate scope does not cover the record", "registration grants *, certificate only the operator", NOW,
+                registry_with(&f, root, &["*"], None), r, "ErrScope");
+        }
+        {
+            let r = sealed(&f, Tier::T2, &other, "*");
+            add("registered authority does not cover the record", "certificate grants *, registration only the operator", NOW,
+                registry_with(&f, root, &own, None), r, "ErrScope");
+        }
+        add("boot node signs T2", "T2 needs root co-attestation, which is not on the wire yet", NOW,
+            registry_with(&f, OperatorKind::Boot, &own, None), t2.clone(), "ErrTier");
+        add("boot node signs T3", "", NOW, registry_with(&f, OperatorKind::Boot, &own, None), t3.clone(), "ErrTier");
+        {
+            let mut r = f.record.clone();
+            r.target_bits = tier_target_bits(Tier::T2);
+            add("target of another tier", "T1 record claiming the T2 target", NOW, reg(), r, "ErrTarget");
+        }
+        {
+            let mut r = t2.clone();
+            r.header.0[3] = Tier::T1 as u8;
+            add("header tier differs from the record tier", "", NOW, reg(), r, "ErrHeader");
+        }
+        {
+            let mut r = f.record.clone();
+            r.header.0[2] = 3;
+            add("unsupported header version", "", NOW, reg(), r, "ErrHeader");
+        }
+        {
+            let mut r = t2.clone();
+            let mut nonce = 0u32;
+            let header = loop {
+                let h = Header::new(&r.digest(), &r.prev_record_hash, NTIME, r.target_bits, nonce, HEADER_VERSION, Tier::T2);
+                if !meets_target(&h.witness(), r.target_bits) {
+                    break h;
+                }
+                nonce += 1;
+            };
+            r.header = header;
+            r.nonce = nonce;
+            r.hash = header.witness();
+            add("witness above the target", "consistent header and hash, but nonce not mined", NOW, reg(), r, "ErrWitness");
+        }
+        {
+            let pubkey = f.record.session_cert.session_pub.clone();
+            add("session retired before the certificate started", "", NOW,
+                registry_with(&f, root, &own, Some((&pubkey, NOT_BEFORE - 1))), f.record.clone(), "ErrSessionSignature");
+            add("session retired exactly when the certificate started", "boundary: not_before == retirement is accepted", NOW,
+                registry_with(&f, root, &own, Some((&pubkey, NOT_BEFORE))), f.record.clone(), "ok");
+            add("retired session verified after its retirement (known limitation)",
+                "ACCEPTED today: the signature does not cover an issue time, so retirement only bounds certificates, not use; see AUTHORITY_SPEC section 10 D1",
+                NOW, registry_with(&f, root, &own, Some((&pubkey, NOT_BEFORE + 50))), f.record.clone(), "ok");
+        }
+        cases
+    }
+
+    fn case_json(c: &Case) -> Value {
+        let mut v = json!({
+            "name": c.name, "now_unix": c.now, "expect": c.expect,
+            "registry": serde_json::to_value(&c.registry).unwrap(),
+            "record": serde_json::to_value(&c.record).unwrap(),
+        });
+        if !c.note.is_empty() {
+            v["note"] = json!(c.note);
+        }
+        v
+    }
+
+    fn check_case(name: &str, record: &Record, registry: &Registry, now: i64, expect: &str) {
+        match (verify(record, registry, now), expect) {
+            (Ok(()), "ok") => {}
+            (Err(e), want) if e.kind.code() == want => {}
+            (got, want) => panic!("{name}: got {got:?}, want {want}"),
+        }
+    }
+
+    /// Regenerates verify_cases.json: `UPDATE_AUTHORITY_VECTORS=1 cargo test --release
+    /// --lib authority::tests::regenerate_verify_cases`. Every expectation is checked
+    /// against `verify` before anything is written.
+    #[test]
+    fn regenerate_verify_cases() {
+        if std::env::var("UPDATE_AUTHORITY_VECTORS").as_deref() != Ok("1") {
+            return;
+        }
+        let cases = build_cases();
+        for c in &cases {
+            check_case(c.name, &c.record, &c.registry, c.now, c.expect);
+        }
+        let doc = json!({
+            "version": 1,
+            "description": "Self-contained authority verification cases: each carries the record, the registry and the verifier clock, so a port needs no fixture of its own. expect is ok or a failure code from section 6 of AUTHORITY_SPEC.md.",
+            "cases": cases.iter().map(case_json).collect::<Vec<_>>(),
+        });
+        let path = format!("{}/../testvectors/authority/verify_cases.json", env!("CARGO_MANIFEST_DIR"));
+        let mut text = serde_json::to_string_pretty(&doc).unwrap();
+        text.push('\n');
+        std::fs::write(path, text).unwrap();
+    }
+
+    /// Replays the committed cases exactly as a port would: parse, then verify.
+    #[test]
+    fn verify_cases_replay() {
+        let doc = vector("verify_cases.json");
+        let cases = doc["cases"].as_array().expect("cases");
+        let mut seen = std::collections::BTreeSet::new();
+        for c in cases {
+            let name = c["name"].as_str().unwrap();
+            let record: Record = serde_json::from_value(c["record"].clone()).expect(name);
+            let registry: Registry = serde_json::from_value(c["registry"].clone()).expect(name);
+            let expect = c["expect"].as_str().unwrap();
+            check_case(name, &record, &registry, c["now_unix"].as_i64().unwrap(), expect);
+            seen.insert(expect.to_string());
+        }
+        // Every failure class, and acceptance, must be exercised by a shared case.
+        for failure in [
+            Failure::UnknownOperator, Failure::ExpiredSession, Failure::SessionSignature,
+            Failure::RecordSignature, Failure::Header, Failure::Witness, Failure::Target,
+            Failure::Scope, Failure::Tier, Failure::Invalid,
+        ] {
+            assert!(seen.contains(failure.code()), "no shared case expects {}", failure.code());
+        }
+        assert!(seen.contains("ok"));
+    }
+
 }

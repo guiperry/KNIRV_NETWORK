@@ -23,6 +23,8 @@ export interface RootFailoverState {
     winner: string | null;
     rootDown: boolean;
   };
+  heartbeats?: Record<string, { validatorID: string; lastSeen: number; replica?: { mode: 'active' | 'standby' | 'off'; headSeq: number; lagSeq: number; lagSeconds: number; diverged: boolean; paused: boolean; unverifiedClasses: number } }>;
+  localReplica?: { available: boolean; mode?: 'active' | 'standby' | 'off'; headSeq?: number; lagSeq?: number; lagSeconds?: number; diverged?: boolean; paused?: boolean };
 }
 
 async function fetchFailover(): Promise<RootFailoverState> {
