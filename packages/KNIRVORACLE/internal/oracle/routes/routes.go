@@ -61,6 +61,13 @@ func (r *OracleRoutes) RegisterRoutes(mux *http.ServeMux) {
 		}
 		mux.HandleFunc(route.pattern, handler)
 	}
+	// Defense-in-depth: internal-only routes must never be served on the public
+	// listener (the one KNIRVGATEWAY proxies). Refuse them with 403 so a public
+	// caller cannot reach enrollment or any other internal operation. They are
+	// served only on the internal unix socket via RegisterInternalRoutes.
+	for _, pattern := range r.InternalRoutePatterns() {
+		mux.HandleFunc(pattern, InternalRouteRefusal)
+	}
 }
 
 // Guard wraps a mux so that a standby Oracle refuses paths it does not know.
@@ -321,6 +328,65 @@ func (r *OracleRoutes) handleTokenBurnSigned(w http.ResponseWriter, req *http.Re
 	}
 
 	respondJSON(w, http.StatusOK, receipt)
+}
+
+// ========== Bond Escrow Handlers ==========
+
+// handleBondHold locks an operator's funds into the hold's escrow address. The
+// operator authorizes the hold with a bond-hold signature bound to the trusted
+// root registry id. It is idempotent.
+func (r *OracleRoutes) handleBondHold(w http.ResponseWriter, req *http.Request) {
+	if req.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var reqBody struct {
+		HoldID    string                   `json:"hold_id"`
+		Hold      signing.BondHold    `json:"hold"`
+		Signature string                   `json:"signature"`
+	}
+	if err := json.NewDecoder(req.Body).Decode(&reqBody); err != nil {
+		http.Error(w, fmt.Sprintf("Invalid request: %v", err), http.StatusBadRequest)
+		return
+	}
+	if reqBody.HoldID == "" {
+		http.Error(w, "hold_id is required", http.StatusBadRequest)
+		return
+	}
+	var signed signing.SignedMessage
+	if err := json.Unmarshal([]byte(reqBody.Signature), &signed); err != nil {
+		http.Error(w, fmt.Sprintf("Invalid signature: %v", err), http.StatusBadRequest)
+		return
+	}
+	if err := r.oracle.GetNRNToken().Hold(reqBody.HoldID, reqBody.Hold, signed, time.Now()); err != nil {
+		http.Error(w, fmt.Sprintf("Bond hold failed: %v", err), http.StatusBadRequest)
+		return
+	}
+	respondJSON(w, http.StatusOK, map[string]string{"status": "held", "hold_id": reqBody.HoldID})
+}
+
+// handleBondRefund returns a held escrow to the operator after the hold's expiry.
+func (r *OracleRoutes) handleBondRefund(w http.ResponseWriter, req *http.Request) {
+	if req.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var reqBody struct {
+		HoldID string `json:"hold_id"`
+	}
+	if err := json.NewDecoder(req.Body).Decode(&reqBody); err != nil {
+		http.Error(w, fmt.Sprintf("Invalid request: %v", err), http.StatusBadRequest)
+		return
+	}
+	if reqBody.HoldID == "" {
+		http.Error(w, "hold_id is required", http.StatusBadRequest)
+		return
+	}
+	if err := r.oracle.GetNRNToken().Refund(reqBody.HoldID, time.Now()); err != nil {
+		http.Error(w, fmt.Sprintf("Bond refund failed: %v", err), http.StatusBadRequest)
+		return
+	}
+	respondJSON(w, http.StatusOK, map[string]string{"status": "refunded", "hold_id": reqBody.HoldID})
 }
 
 // ========== Governance Handlers ==========

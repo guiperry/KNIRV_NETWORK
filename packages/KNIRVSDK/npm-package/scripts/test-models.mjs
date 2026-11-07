@@ -39,6 +39,7 @@ test("choice-set prompt matches the shared vector", async () => {
 
 test("advice cases", async () => {
   for (const c of await vec("advice_cases.json")) {
+    if (c.questions) continue; // set-request fixtures carry no advice
     const a = adviceFromReasoning(c.reasoning, c.context);
     assert.equal(a.abstain, c.expect.abstain, c.name);
     assert.equal(a.model_version, c.reasoning.model_version, c.name);
@@ -309,4 +310,61 @@ test("heartGenerateWithDecision sends with_decision and resolves a decision", as
   });
   await cp.heartGenerateWithDecision("hi", false);
   assert.ok(!("with_decision" in plain), "plain generation must omit with_decision");
+});
+
+// reasonSets is the TS twin of the Go SDK DecideSets / Rust reason_sets path. It
+// must hit /models/heart/decide/sets with a {"questions":[...]} body and decode
+// per-candidate probabilities; and a v1 model's "no choice-set heads" rejection
+// must reach the caller verbatim (matching the Rust/Go v1 contract, see
+// pkg/heart/decision/contract_test.go TestSetRequestRejectedOnV1Model).
+test("reasonSets POSTs questions to /models/heart/decide/sets and decodes candidates", async () => {
+  const ok = (body, status = 200) => ({ ok: status < 400, status, json: async () => body, text: async () => "" });
+  const seen = [];
+  const c = new ModelsClient("http://x", async (url, init) => {
+    seen.push({ url: String(url), method: init?.method ?? "GET", body: init?.body ? JSON.parse(init.body) : undefined });
+    if (url.endsWith("/models/heart/decide/sets")) {
+      return ok({
+        plan_tokens: [], halting_steps: 1, confidence: 1, model_version: "v1-aaaaaaaa",
+        dataset_manifest_hash: "dm", policy_bundle_hash: "p",
+        decisions: [{
+          name: "route", kind: "choice-set", options: [], probabilities: [], selected: null,
+          value: null, confidence: null, abstain: false,
+          candidates: [
+            { id: "a", text: "route-a", probability: 0.7 },
+            { id: "b", text: "route-b", probability: 0.3 },
+          ],
+        }],
+      });
+    }
+    return ok({}, 404);
+  });
+  const questions = [
+    { name: "route", question: "which route?", state: "develop", choices: [{ id: "a", text: "route-a" }, { id: "b", text: "route-b" }] },
+    { name: "approve", choices: [] },
+  ];
+  const r = await c.reasonSets(questions);
+  assert.equal(seen[0].url, "http://x/models/heart/decide/sets");
+  assert.equal(seen[0].method, "POST");
+  assert.deepEqual(seen[0].body, { questions });
+  assert.equal(r.decisions.length, 1);
+  assert.deepEqual(r.decisions[0].candidates, [
+    { id: "a", text: "route-a", probability: 0.7 },
+    { id: "b", text: "route-b", probability: 0.3 },
+  ]);
+});
+
+test("reasonSets surfaces the v1 'no choice-set heads' rejection verbatim", async () => {
+  const err = (msg, status = 400) => ({ ok: false, status, json: async () => ({ error: msg }), text: async () => msg });
+  const c = new ModelsClient("http://x", async (url) =>
+    url.endsWith("/models/heart/decide/sets") ? err("no choice-set heads") : err("no choice-set heads"));
+  await assert.rejects(() => c.reasonSets([{ name: "x", choices: [] }]), /no choice-set heads/);
+});
+
+test("errorDetail surfaces a non-JSON (plain-text) error body", async () => {
+  // The body is plain text, not JSON: errorDetail must read it once and surface it
+  // verbatim rather than returning an empty fallback (the old json()-then-text() bug).
+  const err = (msg, status = 400) => ({ ok: false, status, json: async () => { throw new Error("not json"); }, text: async () => msg });
+  const c = new ModelsClient("http://x", async (url) =>
+    url.endsWith("/models/heart/decide/sets") ? err("plain text failure reason") : err("plain text failure reason"));
+  await assert.rejects(() => c.reasonSets([{ name: "x", choices: [] }]), /plain text failure reason/);
 });

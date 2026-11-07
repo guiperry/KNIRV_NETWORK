@@ -1,10 +1,13 @@
 package token
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"math/big"
 	"sync"
 
+	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"github.com/knirvcorp/knirvoracle/internal/oracle/crypto"
 	"github.com/knirvcorp/knirvoracle/internal/oracle/ledger"
 	"github.com/knirvcorp/knirvoracle/internal/oracle/types"
@@ -23,11 +26,23 @@ type NRN struct {
 	owner       types.Address
 	ownerKey    *crypto.KeyPair
 	chainID     string
+	// rootRegistryID is the trusted root tx-chain registry id that bond holds
+	// must be bound to. It comes from configuration, never from a request.
+	rootRegistryID string
+	// bondHolds tracks in-memory bond escrow state; it is reconstructed from the
+	// ledger on replay, so a restart sees the same holds as the live process.
+	bondHolds  map[string]*bondHold
 	mu          sync.RWMutex
 	// recorder, when set, is called with one semantic event per mutation
 	// before the in-memory state changes. The Oracle wires it to the durable
 	// ledger; a token used without a ledger (tests, tools) leaves it nil.
 	recorder func(kind string, payload any) error
+	// recorderBatch, when set, commits several durable records as one validated
+	// ledger batch (append + fsync together) so a crash or recorder failure
+	// between the records cannot leave a half-applied escrow. The Oracle wires it
+	// to its batch ledger append; when nil, recordBatch falls back to the single
+	// record path.
+	recorderBatch func(entries []ledger.BatchEntry) error
 }
 
 // SetRecorder installs the durable-ledger hook. It must be called before the
@@ -38,6 +53,22 @@ func (n *NRN) SetRecorder(recorder func(kind string, payload any) error) {
 	n.recorder = recorder
 }
 
+// SetRootRegistryID configures the trusted root registry id bond holds must bind
+// to. It MUST come from configuration, never from a request.
+func (n *NRN) SetRootRegistryID(id string) {
+	n.mu.Lock()
+	defer n.mu.Unlock()
+	n.rootRegistryID = id
+}
+
+// RootRegistryID returns the trusted root registry id bond holds bind to. It is
+// set from configuration at init and never changes for the life of the token.
+func (n *NRN) RootRegistryID() string {
+	n.mu.RLock()
+	defer n.mu.RUnlock()
+	return n.rootRegistryID
+}
+
 func (n *NRN) record(kind string, payload any) error {
 	if n.recorder == nil {
 		return nil
@@ -45,10 +76,54 @@ func (n *NRN) record(kind string, payload any) error {
 	return n.recorder(kind, payload)
 }
 
+// SetRecorderBatch installs the durable-ledger batch hook. It must be called
+// before the token serves requests.
+func (n *NRN) SetRecorderBatch(recorder func(entries []ledger.BatchEntry) error) {
+	n.mu.Lock()
+	defer n.mu.Unlock()
+	n.recorderBatch = recorder
+}
+
+// recordBatch commits several durable records as one validated batch. The Oracle
+// appends and fsyncs them together, so the in-memory cache is only mutated after
+// the whole batch is durable. When no batch recorder is wired (tests, tools) it
+// falls back to committing each record through the single-record path.
+func (n *NRN) recordBatch(entries []ledger.BatchEntry) error {
+	if n.recorderBatch != nil {
+		return n.recorderBatch(entries)
+	}
+	for _, e := range entries {
+		if err := n.record(e.Kind, e.Payload); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// OwnerPublicKeyBytes returns the owner's compressed secp256k1 public key. It is
+// used to derive the immutable root tx-chain registry id the bond holds bind to.
+func (n *NRN) OwnerPublicKeyBytes() []byte {
+	n.mu.RLock()
+	defer n.mu.RUnlock()
+	if n.ownerKey == nil {
+		return nil
+	}
+	return ethcrypto.CompressPubkey(n.ownerKey.PublicKey)
+}
+
+// DeriveRootRegistryID returns the immutable root tx-chain registry id derived
+// from the root owner's compressed public key: "knirvroot1" +
+// hex(sha256(pub)[:8]). It is identical to the launcher's derivation so a hold's
+// RootRegistryID matches on both sides.
+func DeriveRootRegistryID(ownerPubKey []byte) string {
+	sum := sha256.Sum256(ownerPubKey)
+	return "knirvroot1" + hex.EncodeToString(sum[:8])
+}
+
 // Hydrate replaces the in-memory read model with state replayed from the
 // ledger. The owner key pair stays as constructed: it is configuration, not
 // ledger state.
-func (n *NRN) Hydrate(chainID, owner string, totalSupply *big.Int, balances map[string]*big.Int, nonces map[string]uint64, registered map[string]bool) error {
+func (n *NRN) Hydrate(chainID, owner string, totalSupply *big.Int, balances map[string]*big.Int, nonces map[string]uint64, registered map[string]bool, bonds map[string]ledger.BondState) error {
 	ownerAddr, err := types.AddressFromString(owner)
 	if err != nil {
 		return fmt.Errorf("hydrate owner %q: %w", owner, err)
@@ -84,6 +159,35 @@ func (n *NRN) Hydrate(chainID, owner string, totalSupply *big.Int, balances map[
 			return fmt.Errorf("hydrate registration %q: %w", raw, err)
 		}
 		n.registered[addr] = true
+	}
+	n.bondHolds = map[string]*bondHold{}
+	for holdID, bs := range bonds {
+		operator, err := types.AddressFromString(bs.Operator)
+		if err != nil {
+			return fmt.Errorf("hydrate bond %q operator: %w", holdID, err)
+		}
+		escrow, err := types.AddressFromString(bs.EscrowAddr)
+		if err != nil {
+			return fmt.Errorf("hydrate bond %q escrow: %w", holdID, err)
+		}
+		amount, ok := new(big.Int).SetString(bs.Amount, 10)
+		if !ok {
+			return fmt.Errorf("hydrate bond %q amount: not a decimal integer", holdID)
+		}
+		var bootNode types.Address
+		if bs.BootNodeAddress != "" {
+			bootNode, err = types.AddressFromString(bs.BootNodeAddress)
+			if err != nil {
+				return fmt.Errorf("hydrate bond %q boot node: %w", holdID, err)
+			}
+		}
+		n.bondHolds[holdID] = &bondHold{
+			HoldID: holdID, Operator: operator, Amount: amount,
+			RootRegistryID: bs.RootRegistryID, ExpiresAtUnix: bs.ExpiresAtUnix,
+			EscrowAddr: escrow, Status: bs.Status,
+			BootNodeChainID: bs.BootNodeChainID, BootNodeAddress: bootNode,
+			ConsumedChainID: bs.ConsumedChainID,
+		}
 	}
 	return nil
 }
@@ -125,6 +229,7 @@ func NewNRN(name, symbol string, initialSupply, maxSupply *big.Int, ownerPrivate
 		balances:    make(map[types.Address]*big.Int),
 		nonces:      make(map[types.Address]uint64),
 		registered:  make(map[types.Address]bool),
+		bondHolds:   make(map[string]*bondHold),
 		owner:       keyPair.Address,
 		ownerKey:    keyPair,
 		chainID:     "knirvoracle-1",

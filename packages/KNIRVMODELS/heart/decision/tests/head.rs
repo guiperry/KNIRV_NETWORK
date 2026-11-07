@@ -31,6 +31,8 @@ fn cfg() -> HeadConfig {
         dataset_manifest_hash: "m".into(),
         policy_bundle_hash: "p".into(),
         choice_set_heads: vec![],
+        dropout: 0.0,
+        set_match_feature: false,
     }
 }
 

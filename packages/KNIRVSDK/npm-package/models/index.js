@@ -80,12 +80,37 @@ export class ModelsClient {
         this.fetchImpl = fetchImpl;
         this.headers = headers;
     }
+    /** Reads a non-2xx, non-503 response body so transport errors surface the
+     *  server's contract text instead of a bare status — e.g. the Rust core's
+     *  "no choice-set heads" rejection of a v1 /sets choice-set request. Reads the
+     *  body once (as text), then optionally JSON-parses it to prefer the `error`
+     *  field; falls back to the raw text so a non-JSON body is not lost. */
+    async errorDetail(res) {
+        let text;
+        try {
+            text = await res.text();
+        }
+        catch {
+            return "";
+        }
+        if (!text || text.length === 0)
+            return "";
+        try {
+            const body = JSON.parse(text);
+            if (body && typeof body.error === "string" && body.error.length > 0)
+                return body.error;
+        }
+        catch { /* body was not JSON; fall through to raw text */ }
+        return text.slice(0, 240);
+    }
     async json(path, init) {
         const res = await this.fetchImpl(this.baseUrl + path, { ...init, headers: { ...this.headers, ...(init?.headers ?? {}) } });
         if (res.status === 503)
             throw new NoModelError();
-        if (!res.ok)
-            throw new Error(`head: HTTP ${res.status}`);
+        if (!res.ok) {
+            const detail = await this.errorDetail(res);
+            throw new Error(detail ? `head: HTTP ${res.status}: ${detail}` : `head: HTTP ${res.status}`);
+        }
         return (await res.json());
     }
     registry() { return this.json(REGISTRY_PATH); }
@@ -131,8 +156,10 @@ export class ModelsClient {
         });
         if (res.status === 503)
             throw new NotReadyError();
-        if (!res.ok)
-            throw new Error(`models: HTTP ${res.status}`);
+        if (!res.ok) {
+            const detail = await this.errorDetail(res);
+            throw new Error(detail ? `models: HTTP ${res.status}: ${detail}` : `models: HTTP ${res.status}`);
+        }
         return (await res.json());
     }
     /** HEART text; NotReadyError until HEART has a trained generator. */
@@ -191,8 +218,10 @@ export class ModelsClient {
         });
         if (res.status === 503)
             throw new NotReadyError();
-        if (!res.ok)
-            throw new Error(`models: HTTP ${res.status}`);
+        if (!res.ok) {
+            const detail = await this.errorDetail(res);
+            throw new Error(detail ? `models: HTTP ${res.status}: ${detail}` : `models: HTTP ${res.status}`);
+        }
         return (await res.json());
     }
     async requestWithHeaders(path, method, body, headers) {
@@ -202,8 +231,10 @@ export class ModelsClient {
         });
         if (res.status === 503)
             throw new NotReadyError();
-        if (!res.ok)
-            throw new Error(`models: HTTP ${res.status}`);
+        if (!res.ok) {
+            const detail = await this.errorDetail(res);
+            throw new Error(detail ? `models: HTTP ${res.status}: ${detail}` : `models: HTTP ${res.status}`);
+        }
         return (await res.json());
     }
     /** HEAD VLM manifest (vision / mirrored text). Narrow, VLM-specific contract. */
@@ -213,6 +244,13 @@ export class ModelsClient {
     reason(tokens) {
         return this.json(`${HEART_DECISION_PREFIX}/reason`, {
             method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ tokens }),
+        });
+    }
+    /** Choice-set questions (knirv-heart/v2 models). A v1 model answers with a
+     *  "no choice-set heads" error, rejecting the request just like every other runtime. */
+    reasonSets(questions) {
+        return this.json(`${HEART_DECISION_PREFIX}/sets`, {
+            method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ questions }),
         });
     }
     /** decisionManifest → encode → reason → advice; every failure is an abstention. */

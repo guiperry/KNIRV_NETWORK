@@ -254,6 +254,18 @@ export interface Decision {
     value: number | null;
     confidence: number | null;
     abstain: boolean;
+    /** Per-candidate probabilities of a choice-set (knirv-heart/v2) answer, in request order. */
+    candidates?: {
+        id: string;
+        text: string;
+        probability: number;
+    }[];
+}
+/** One choice-set candidate with its probability (knirv-heart/v2). */
+export interface Candidate {
+    id: string;
+    text: string;
+    probability: number;
 }
 export interface Reasoning {
     plan_tokens: number[];
@@ -267,6 +279,17 @@ export interface Reasoning {
     model_version: string;
     dataset_manifest_hash: string;
     policy_bundle_hash: string;
+}
+/** One choice-set question for a knirv-heart/v2 model. `choices` may be omitted
+ *  for null-kind set heads (the model supplies yes/no). */
+export interface SetQuestion {
+    name: string;
+    question?: string;
+    state?: string;
+    choices?: {
+        id: string;
+        text: string;
+    }[];
 }
 /** Decision envelope: the output of the decision core, or a caller-supplied decision. */
 export interface DecisionEnvelope {
@@ -370,6 +393,12 @@ export declare class ModelsClient {
     private fetchImpl;
     private headers;
     constructor(baseUrl: string, fetchImpl?: typeof fetch, headers?: Record<string, string>);
+    /** Reads a non-2xx, non-503 response body so transport errors surface the
+     *  server's contract text instead of a bare status — e.g. the Rust core's
+     *  "no choice-set heads" rejection of a v1 /sets choice-set request. Reads the
+     *  body once (as text), then optionally JSON-parses it to prefer the `error`
+     *  field; falls back to the raw text so a non-JSON body is not lost. */
+    private errorDetail;
     private json;
     registry(): Promise<ModelStatus[]>;
     health(): Promise<Health>;
@@ -412,6 +441,9 @@ export declare class ModelsClient {
     /** HEART decision core manifest; the manifest Advise needs. */
     decisionManifest(): Promise<Manifest>;
     reason(tokens: number[]): Promise<Reasoning>;
+    /** Choice-set questions (knirv-heart/v2 models). A v1 model answers with a
+     *  "no choice-set heads" error, rejecting the request just like every other runtime. */
+    reasonSets(questions: SetQuestion[]): Promise<Reasoning>;
     /** decisionManifest → encode → reason → advice; every failure is an abstention. */
     advise(c: AdviseContext): Promise<SupervisorAdvice>;
 }

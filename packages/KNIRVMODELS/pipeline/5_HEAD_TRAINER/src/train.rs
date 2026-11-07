@@ -57,7 +57,7 @@ pub fn seed_init(vm: &VarMap, seed: u64) -> Result<()> {
         let dims = var.dims().to_vec();
         let n = var.elem_count();
         let h = name.bytes().fold(0xcbf29ce484222325u64, |a, b| (a ^ b as u64).wrapping_mul(0x100000001b3));
-        let mut rng = Xorshift((seed ^ h) | 1);
+        let mut rng = Xorshift((seed ^ h).wrapping_mul(2).wrapping_add(1));
         let vals: Vec<f32> = if name.ends_with(".bias") {
             vec![0.0; n]
         } else if name.ends_with("n1.weight") || name.ends_with("n2.weight") || name == "norm.weight" {
@@ -217,7 +217,7 @@ pub fn train(
     };
     let mut opt = AdamW::new(decayed, ParamsAdamW { lr: o.lr, weight_decay: 0.01, ..Default::default() })?;
     let mut opt_plain = AdamW::new(plain, ParamsAdamW { lr: o.lr, weight_decay: 0.0, ..Default::default() })?;
-    let mut rng = Xorshift(o.seed | 1);
+    let mut rng = Xorshift(o.seed.wrapping_mul(2).wrapping_add(1));
     let mut order: Vec<usize> = (0..data.len()).collect();
     let (mut step, mut history) = (0usize, Vec::new());
 

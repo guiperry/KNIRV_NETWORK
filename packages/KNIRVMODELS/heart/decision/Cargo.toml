@@ -24,3 +24,18 @@ getrandom = { version = "0.3", features = ["wasm_js"] }
 [profile.release]
 opt-level = "s"
 lto = true
+
+[features]
+# Enables the CUDA backend for `candle-core`/`candle-nn` so the regression tests can exercise
+# GPU/CUDA vs CPU agreement. Off by default (and unused by the WASM/browser builds).
+cuda = ["candle-core/cuda", "candle-nn/cuda"]
+# Marks the WASI entry (`heart-decision-wasi`) as wasm-only. The bin is built for the
+# `wasm32-wasip1` target (see the `build-heart-decision-wasi` make target); on x86_64 it is
+# skipped so `cargo build`/`cargo test` do not try to compile it (its candle_core feature set
+# differs from the native build and would otherwise break the x86 build).
+wasi = []
+
+[[bin]]
+name = "heart-decision-wasi"
+path = "src/bin/heart-decision-wasi.rs"
+required-features = ["wasi"]

@@ -59,9 +59,27 @@ func candidatePaths(svc *signerService) []*framework.Path {
 				return &logical.Response{Data: map[string]any{"type_urls": p.TypeURLs, "chain_ids": p.ChainIDs, "messages": p.Messages, "max_fee": p.MaxFee, "rate_limit": p.RateLimit}}, nil
 			},
 		}},
-		{Pattern: "keys/" + name, Fields: map[string]*framework.FieldSchema{"name": nameField, "version": {Type: framework.TypeInt}, "type": {Type: framework.TypeString}, "private_key": {Type: framework.TypeString, DisplayAttrs: &framework.DisplayAttributes{Sensitive: true}}}, Callbacks: map[logical.Operation]framework.OperationFunc{
+		{Pattern: "keys/" + name, Fields: map[string]*framework.FieldSchema{"name": nameField, "version": {Type: framework.TypeInt}, "type": {Type: framework.TypeString}, "private_key": {Type: framework.TypeString, DisplayAttrs: &framework.DisplayAttributes{Sensitive: true}}, "chain_id": {Type: framework.TypeString}}, Callbacks: map[logical.Operation]framework.OperationFunc{
 			logical.UpdateOperation: func(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
-				pub, err := svc.createKey(ctx, req.Storage, d.Get("name").(string), d.Get("type").(string), d.Get("private_key").(string))
+				name := d.Get("name").(string)
+				kind := d.Get("type").(string)
+				imported := d.Get("private_key").(string)
+				chainID := d.Get("chain_id").(string)
+				// Decision-managed plugin keys (bootnode-master / root-owner /
+				// failover-identity) are created with the narrow DEC-1 server-side
+				// allowlist applied, so a widened OpenBao token cannot obtain an
+				// unlisted signature.
+				if _, managed := ManagedKeyRole(name); managed {
+					if err := ProvisionManagedKey(ctx, svc, req.Storage, name, kind, chainID); err != nil {
+						return nil, err
+					}
+					pub, err := describeVersion(ctx, req.Storage, name, 1)
+					if err != nil {
+						return nil, err
+					}
+					return &logical.Response{Data: map[string]any{"version": pub.Version, "type": pub.Type, "address": pub.Address, "public_key": pub.PublicKey, "managed": true}}, nil
+				}
+				pub, err := svc.createKey(ctx, req.Storage, name, kind, imported)
 				if err != nil {
 					return nil, err
 				}
@@ -71,7 +89,24 @@ func candidatePaths(svc *signerService) []*framework.Path {
 		{Pattern: "address/" + name, Fields: map[string]*framework.FieldSchema{"name": nameField, "version": {Type: framework.TypeInt}}, Callbacks: map[logical.Operation]framework.OperationFunc{logical.ReadOperation: readPublic}},
 		{Pattern: "rotate/" + name, Fields: map[string]*framework.FieldSchema{"name": nameField}, Callbacks: map[logical.Operation]framework.OperationFunc{
 			logical.UpdateOperation: func(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
-				pub, err := svc.rotateKey(ctx, req.Storage, d.Get("name").(string))
+				name := d.Get("name").(string)
+				// A managed key's rotation must re-apply the narrow DEC-1 allowlist so
+				// rotation cannot widen the server-side policy.
+				if _, managed := ManagedKeyRole(name); managed {
+					if err := RotateManagedKey(ctx, svc, req.Storage, name); err != nil {
+						return nil, err
+					}
+					md, err := readMetadata(ctx, req.Storage, name)
+					if err != nil {
+						return nil, err
+					}
+					pub, err := describeVersion(ctx, req.Storage, name, md.Version)
+					if err != nil {
+						return nil, err
+					}
+					return &logical.Response{Data: map[string]any{"version": pub.Version, "type": pub.Type, "address": pub.Address, "public_key": pub.PublicKey, "managed": true}}, nil
+				}
+				pub, err := svc.rotateKey(ctx, req.Storage, name)
 				if err != nil {
 					return nil, err
 				}
@@ -102,6 +137,25 @@ func candidatePaths(svc *signerService) []*framework.Path {
 					return rejected(), nil
 				}
 				return responseValue(msg)
+			},
+		}},
+		// Raw compact signing for the failover control plane. The registry Worker
+		// verifies a 64-byte r||s secp256k1 signature over sha256 of a "|"-joined
+		// message and cannot accept the SDK envelope format, so this endpoint signs
+		// a precomputed digest and returns that exact compact signature. Only
+		// allowlisted purposes (failover-identity) are accepted; the OpenBao ACL
+		// grants the path to the backend/failover AppRole only.
+		{Pattern: "sign/raw/" + name, Fields: map[string]*framework.FieldSchema{"name": nameField}, Callbacks: map[logical.Operation]framework.OperationFunc{
+			logical.UpdateOperation: func(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
+				var input rawSignRequest
+				if err := decodeRequest(req.Data, &input); err != nil {
+					return nil, err
+				}
+				resp, err := svc.raw(ctx, req.Storage, d.Get("name").(string), input, time.Now())
+				if err != nil {
+					return rejected(), nil
+				}
+				return responseValue(resp)
 			},
 		}},
 	}

@@ -10,7 +10,7 @@ import (
 )
 
 const embeddedCoreVersion = "0.2.0"
-const embeddedCoreDigest = "cbbe06852d55d5835bc22606424fe54bab83e24d5f67144b0049ce42ebbaa634"
+const embeddedCoreDigest = "664f88d5d7871b4ab4ff48d257c00e501690b166ed5c46488c5252b583759eaf"
 
 //go:embed assets/knirv_core.wasm
 var embeddedCore []byte

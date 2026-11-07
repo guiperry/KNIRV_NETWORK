@@ -2,6 +2,7 @@ package ledger
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -163,5 +164,117 @@ func TestBurnCannotGoNegative(t *testing.T) {
 	payload, _ := json.Marshal(TokenBurn{From: "nobody", Amount: "1"})
 	if err := Apply(state, Record{Seq: 1, Kind: KindTokenBurn, Payload: payload}); err == nil {
 		t.Fatal("Apply allowed a burn from an empty balance")
+	}
+}
+
+// P1#1: a crash that truncates the trailing batch must not fail the whole replay.
+// Committed records before the truncation survive, and the partial tail is dropped
+// deterministically. We truncate the file at every byte offset of the last batch
+// and assert the committed records stay intact.
+func TestLogTruncatedTrailingBatchIsIgnored(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "state_log.json")
+
+	log, err := Open(path)
+	if err != nil {
+		t.Fatalf("open: %v", err)
+	}
+	// Batch A: one committed record.
+	if _, err := log.AppendBatch([]BatchEntry{{KindWalletRegister, WalletRegister{Address: "a1"}}}); err != nil {
+		t.Fatalf("append batch a: %v", err)
+	}
+	// Batch B: the "last batch" we will truncate (three records).
+	if _, err := log.AppendBatch([]BatchEntry{
+		{KindWalletRegister, WalletRegister{Address: "b1"}},
+		{KindWalletRegister, WalletRegister{Address: "b2"}},
+		{KindWalletRegister, WalletRegister{Address: "b3"}},
+	}); err != nil {
+		t.Fatalf("append batch b: %v", err)
+	}
+	if err := log.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	raw, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// File is "FRAME_A\nFRAME_B\n"; find byte offsets of the frame boundaries.
+	lines := strings.Split(string(raw), "\n")
+	if len(lines) != 3 { // two frames + trailing empty from final "\n"
+		t.Fatalf("expected 2 frames + trailing newline, got %d: %q", len(lines), string(raw))
+	}
+	lenA := len(lines[0])                   // FRAME_A length
+	offsetBStart := lenA + 1                // index of FRAME_B (after A's newline)
+	fileEnd := len(raw)                      // index just past the final newline
+	bComplete := fileEnd - 1                // FRAME_B is complete (minus trailing newline) at/after this
+
+	// Full file: all four records replay.
+	full, err := Open(path)
+	if err != nil {
+		t.Fatalf("open full: %v", err)
+	}
+	if full.Len() != 4 {
+		t.Fatalf("full replay has %d records, want 4", full.Len())
+	}
+	full.Close()
+
+	// Truncate at every byte offset from 0 to fileEnd.
+	for cut := 0; cut <= fileEnd; cut++ {
+		truncPath := filepath.Join(dir, fmt.Sprintf("trunc_%d.json", cut))
+		if err := os.WriteFile(truncPath, raw[:cut], 0600); err != nil {
+			t.Fatal(err)
+		}
+		tl, err := Open(truncPath)
+		if err != nil {
+			t.Fatalf("open truncated at %d: %v", cut, err)
+		}
+		want := 4
+		if cut < bComplete {
+			if cut < offsetBStart-1 {
+				want = 0
+			} else {
+				want = 1
+			}
+		}
+		if tl.Len() != want {
+			t.Fatalf("truncated at %d: got %d records, want %d", cut, tl.Len(), want)
+		}
+		tl.Close()
+	}
+}
+
+// P1#1: the crash-atomic batch format round-trips through a full replay, so a
+// reader rebuilding state from the durable log sees the same records as the writer.
+func TestBatchFrameRoundTripsThroughReplay(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "state_log.json")
+	log, err := Open(path)
+	if err != nil {
+		t.Fatalf("open: %v", err)
+	}
+	if _, err := log.AppendBatch([]BatchEntry{
+		{KindWalletRegister, WalletRegister{Address: "x1"}},
+		{KindWalletRegister, WalletRegister{Address: "x2"}},
+	}); err != nil {
+		t.Fatalf("append batch: %v", err)
+	}
+	if err := log.Close(); err != nil {
+		t.Fatal(err)
+	}
+	reopened, err := Open(path)
+	if err != nil {
+		t.Fatalf("reopen: %v", err)
+	}
+	defer reopened.Close()
+	if reopened.Len() != 2 {
+		t.Fatalf("reopened len = %d, want 2", reopened.Len())
+	}
+	state, err := Replay(reopened.Records())
+	if err != nil {
+		t.Fatalf("replay: %v", err)
+	}
+	if !state.Registered["x1"] || !state.Registered["x2"] {
+		t.Fatal("replayed state missing registered addresses")
 	}
 }

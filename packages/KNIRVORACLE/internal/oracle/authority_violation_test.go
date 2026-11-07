@@ -5,6 +5,7 @@ import (
 	"crypto/ecdsa"
 	"crypto/sha256"
 	"encoding/hex"
+	"fmt"
 	"math/big"
 	"os"
 	"path/filepath"
@@ -105,8 +106,20 @@ func newAuthorityHarness(t *testing.T, bond uint64) *authorityHarness {
 		t.Fatal(err)
 	}
 	o.economicsEngine = economics.NewEconomicsEngine(nrn, zap.NewNop())
+	o.nrnToken = nrn
+	nrn.SetRootRegistryID("knirvroot1harness")
+	// The bond owner is the token owner (which holds the minted supply and is staked).
+	// Derive its private key from the owner pub hex so we can sign the D14 enrolment hold.
 	owner := nrn.Owner()
 	if _, err := o.economicsEngine.GetStakingManager().Stake(owner, big.NewInt(2_000_000_000)); err != nil {
+		t.Fatal(err)
+	}
+	ownerBytes, err := hex.DecodeString(strings.Repeat("02", 32))
+	if err != nil {
+		t.Fatal(err)
+	}
+	ownerKey, err := ethcrypto.ToECDSA(ownerBytes)
+	if err != nil {
 		t.Fatal(err)
 	}
 	longTerm, err := signing.NewLocalSigner(avKey(1))
@@ -132,7 +145,14 @@ func newAuthorityHarness(t *testing.T, bond uint64) *authorityHarness {
 	reg := types.ChainRegistration{ChainID: h.chainID, QuorumNumer: 2, QuorumDenom: 3, ProofWindow: 1800,
 		Authors: []types.RegisteredAuthor{{Address: h.operator, PubKey: ethcrypto.CompressPubkey(&key.PublicKey), Weight: 1}}}
 	if bond > 0 {
-		reg.Bond, reg.BondOwner = bond, owner.String()
+		rootID := nrn.RootRegistryID()
+		holdID := "bond:" + owner.String()
+		expiry := time.Now().Add(time.Hour)
+		hold := signing.BondHold{HoldID: holdID, Operator: owner.String(), Amount: fmt.Sprintf("%d", bond), RootRegistryID: rootID, ExpiresAtUnix: uint64(expiry.Unix())}
+		if err := nrn.Hold(holdID, hold, signAuthorityHold(t, ownerKey, nrn.ChainID(), hold), time.Now()); err != nil {
+			t.Fatal(err)
+		}
+		reg.Bond, reg.BondOwner, reg.HoldID = bond, owner.String(), holdID
 	}
 	if err := types.SignRegistration(&reg, key); err != nil {
 		t.Fatal(err)
@@ -391,4 +411,94 @@ func mustKey(t *testing.T) *ecdsa.PrivateKey {
 		t.Fatal(err)
 	}
 	return k
+}
+
+// TestSlashOnViolationScopeAndEquivocation proves the slash-on-violation wiring:
+// BOTH a scope violation AND an equivocation detect and trigger a real slash of
+// the offending chain's bond (plus queued consensus evidence). (sub-item a)
+func TestSlashOnViolationScopeAndEquivocation(t *testing.T) {
+	// Scope violation on chain 1.
+	h := newAuthorityHarness(t, 1_000_000_000)
+	foreign := "knirv1someoneelse"
+	scopeRec := h.record(t, authority.TierT1, foreign, "x", sha256.Sum256([]byte("genesis")))
+	f, err := h.o.ReportAuthorityRecord(h.chainID, scopeRec, nil, avNow)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if f.Verified || f.Violation == nil || f.Violation.Kind != registry.ViolationScope {
+		t.Fatalf("want a scope violation, got %+v", f)
+	}
+	if f.Violation.Amount != 100_000_000 {
+		t.Fatalf("scope slashed %d, want 100_000_000", f.Violation.Amount)
+	}
+
+	// Equivocation on an independent chain 2.
+	h2 := newAuthorityHarness(t, 1_000_000_000)
+	prev := sha256.Sum256([]byte("genesis"))
+	a := h2.record(t, authority.TierT1, h2.operator, "a", prev)
+	b := h2.record(t, authority.TierT1, h2.operator, "b", prev)
+	if f2, err := h2.o.ReportAuthorityRecord(h2.chainID, a, nil, avNow); err != nil || f2.Violation != nil {
+		t.Fatalf("first record: %+v %v", f2, err)
+	}
+	fe, err := h2.o.ReportAuthorityRecord(h2.chainID, b, nil, avNow)
+	if err != nil || fe.Violation == nil || fe.Violation.Kind != registry.ViolationEquivocation {
+		t.Fatalf("want an equivocation, got %+v %v", fe, err)
+	}
+	if fe.Violation.Amount != 100_000_000 {
+		t.Fatalf("equivocation slashed %d, want 100_000_000", fe.Violation.Amount)
+	}
+
+	// Each chain shows the slash in its bond view and queued exactly one evidence.
+	reg1, _ := h.o.GetChainRegistration(h.chainID)
+	if reg1.BondRemaining != 900_000_000 || reg1.BondSlashed != 100_000_000 {
+		t.Fatalf("scope chain bond: remaining=%d slashed=%d", reg1.BondRemaining, reg1.BondSlashed)
+	}
+	reg2, _ := h2.o.GetChainRegistration(h2.chainID)
+	if reg2.BondRemaining != 900_000_000 || reg2.BondSlashed != 100_000_000 {
+		t.Fatalf("equivocation chain bond: remaining=%d slashed=%d", reg2.BondRemaining, reg2.BondSlashed)
+	}
+	if len(h.o.consensusEngine.PendingEvidence()) != 1 {
+		t.Fatalf("scope evidence = %d, want 1", len(h.o.consensusEngine.PendingEvidence()))
+	}
+	if len(h2.o.consensusEngine.PendingEvidence()) != 1 {
+		t.Fatalf("equivocation evidence = %d, want 1", len(h2.o.consensusEngine.PendingEvidence()))
+	}
+}
+
+// TestVerifierApprovalRequiresVerifyAndScope proves the verifier predicate
+// "the record verifies AND its scope is covered" in approval (sub-item b): a
+// record is approved ONLY when both hold; approval is DENIED when either
+// condition fails, and GRANTED when both hold.
+func TestVerifierApprovalRequiresVerifyAndScope(t *testing.T) {
+	h := newAuthorityHarness(t, 1_000_000_000)
+	prev := sha256.Sum256([]byte("genesis"))
+
+	// Both conditions hold: verifies AND in-scope -> approved.
+	good := h.record(t, authority.TierT1, h.operator, "a", prev)
+	f, err := h.o.ReportAuthorityRecord(h.chainID, good, nil, avNow)
+	if err != nil || !f.Verified || f.Violation != nil || f.Err != nil {
+		t.Fatalf("both-hold should be approved: %+v %v", f, err)
+	}
+
+	// Scope not covered: record verifies but targets a foreign scope -> denied.
+	foreign := "knirv1someoneelse"
+	oob := h.record(t, authority.TierT1, foreign, "x", prev)
+	f, err = h.o.ReportAuthorityRecord(h.chainID, oob, nil, avNow)
+	if err != nil || f.Verified || f.Violation == nil || f.Violation.Kind != registry.ViolationScope {
+		t.Fatalf("scope-fail should be denied: %+v %v", f, err)
+	}
+
+	// Does not verify: forged signature -> denied, and NOT attributed as a
+	// violation (a third party could have forged it, so it must not slash).
+	forged := h.record(t, authority.TierT1, foreign, "x", prev)
+	forged.Signature = make([]byte, 64)
+	f, err = h.o.ReportAuthorityRecord(h.chainID, forged, nil, avNow)
+	if err != nil || f.Verified || f.Violation != nil || f.Err == nil {
+		t.Fatalf("verify-fail should be denied without a violation: %+v %v", f, err)
+	}
+
+	// Only the attributable scope violation should have slashed the bond.
+	if reg, _ := h.o.GetChainRegistration(h.chainID); reg.BondSlashed != 100_000_000 {
+		t.Fatalf("only the scope violation should have slashed: got %d", reg.BondSlashed)
+	}
 }

@@ -35,8 +35,8 @@ export interface InitOutput {
     readonly invoke_async: (a: number, b: number, c: number) => number;
     readonly sha256_hex: (a: number, b: number, c: number) => void;
     readonly sha256_matches: (a: number, b: number, c: number, d: number) => number;
-    readonly __wasm_bindgen_func_elem_3435: (a: number, b: number, c: number, d: number) => void;
-    readonly __wasm_bindgen_func_elem_3444: (a: number, b: number, c: number, d: number) => void;
+    readonly __wasm_bindgen_func_elem_3560: (a: number, b: number, c: number, d: number) => void;
+    readonly __wasm_bindgen_func_elem_3569: (a: number, b: number, c: number, d: number) => void;
     readonly __wbindgen_export: (a: number, b: number) => number;
     readonly __wbindgen_export2: (a: number, b: number, c: number, d: number) => number;
     readonly __wbindgen_export3: (a: number) => void;

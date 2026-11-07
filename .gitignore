@@ -191,3 +191,6 @@ modp/PCheckerOutput/
 packages/KNIRVSERVER/pkg/embedded/knirvbao/bin/bao
 packages/KNIRVSERVER/pkg/embedded/knirvbao/bin/openbao-plugin-secrets-knirv
 packages/KNIRVSERVER/pkg/embedded/knirvbao/plugin/assets/knirv_core.wasm
+/.ua/intermediate
+/.ua/tmp
+packages/KNIRVSERVER/pkg/embedded/validationchain/bin/validationchain.prebuilt.bak

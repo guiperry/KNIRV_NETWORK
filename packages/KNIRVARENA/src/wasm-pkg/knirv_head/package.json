@@ -1,7 +1,7 @@
 {
-  "name": "knirv-head",
+  "name": "knirv-heart-decision",
   "type": "module",
-  "description": "knirv-head: Hierarchical Reasoning Model (H/L recurrent, ACT halting, decision heads). Native trainer, browser WASM and WASI builds share this source.",
+  "description": "knirv-heart-decision: Hierarchical Reasoning Model (H/L recurrent, ACT halting, decision heads) — the decision core that now lives under HEART. Native trainer, browser WASM and WASI builds share this source.",
   "version": "0.2.0",
   "license": "MIT",
   "repository": {

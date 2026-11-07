@@ -50,6 +50,12 @@ type Manager struct {
 	mu         sync.RWMutex
 	running    bool
 	baseURL    string
+	// activator performs the 8.6 promotion/demotion AppRole swap. It is wired by
+	// NewManager from ManagerConfig; tests may override it via SetActivator.
+	activator *OracleActivator
+	// restart restarts the Oracle child in a new mode. It is a seam so tests can
+	// observe the target mode without spawning a real binary.
+	restart func(ctx context.Context, mode string) error
 }
 
 // Oracle activation modes, mirroring noderole.OracleMode. They are duplicated
@@ -77,6 +83,10 @@ type ManagerConfig struct {
 	Stdout       io.Writer
 	Stderr       io.Writer
 	EnvOverrides map[string]string
+	// BaoSocketPath is the OpenBao plugin unix socket used by the promotion
+	// AppRole swap (8.6). Empty disables the swap (Promote/Demote will surface a
+	// Degraded error rather than silently changing the Oracle's signing identity).
+	BaoSocketPath string
 }
 
 type HealthStatus struct {
@@ -147,7 +157,97 @@ func NewManager(cfg *ManagerConfig, logger *zap.Logger) *Manager {
 		},
 	}
 
+	m.restart = m.restartInMode
+	// The 8.6 promotion/demotion AppRole swap is injected by the production
+	// constructor (launcher.NewOracleManager) via SetActivator, which wires the
+	// real launcher.AppRolePromoter (it talks to OpenBao over the plugin socket).
+	// A bare NewManager therefore leaves a nil activator on purpose, so Promote/
+	// Demote fail loudly instead of silently running with no AppRole promoter.
+	// Direct use of NewManager on a production path is unreachable as a working
+	// failover path; always go through launcher.NewOracleManager.
+	m.activator = nil
+
 	return m
+}
+
+// SetActivator overrides the promotion/demotion activator (used by tests and by
+// the backend_server when it constructs a custom AppRolePromoter).
+func (m *Manager) SetActivator(a *OracleActivator) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.activator = a
+}
+
+// SetRestartFunc overrides the restart seam used by Promote/Demote. It exists so
+// callers (and tests) can observe the target mode without spawning a real Oracle
+// binary; the default restart restarts the Oracle child in the new mode.
+func (m *Manager) SetRestartFunc(fn func(ctx context.Context, mode string) error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.restart = fn
+}
+
+// Promoter exposes the configured AppRolePromoter (nil until the activator is
+// constructed). It exists so the backend_server can inspect the wiring.
+func (m *Manager) Promoter() AppRolePromoter {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	if m.activator == nil {
+		return nil
+	}
+	return m.activator.promoter
+}
+
+// Promote is the 8.6 promotion transition: swap the Oracle's OpenBao AppRole from
+// oracle-standby to oracle-active and restart the Oracle child in active mode. It
+// is invoked only by the failover service once this node is the elected acting
+// root (CONFIRMED). A swap failure is returned to the caller so the failover phase
+// is left unchanged (surfaced as a metric + WARN), never silently applied.
+func (m *Manager) Promote(ctx context.Context, t PromotionTransition) error {
+	m.mu.RLock()
+	a := m.activator
+	m.mu.RUnlock()
+	if a == nil {
+		return fmt.Errorf("oracle activator not configured")
+	}
+	mode, err := a.Activate(ctx, t)
+	if err != nil {
+		m.logger.Warn("oracle promotion AppRole swap failed; failover phase unchanged", zap.Error(err))
+		return err
+	}
+	return m.restart(ctx, mode)
+}
+
+// Demote is the 8.6 demotion transition (RECLAIMED by the original root): swap the
+// Oracle back to oracle-standby and restart in standby mode, resuming following.
+func (m *Manager) Demote(ctx context.Context, t PromotionTransition) error {
+	m.mu.RLock()
+	a := m.activator
+	m.mu.RUnlock()
+	if a == nil {
+		return fmt.Errorf("oracle activator not configured")
+	}
+	mode, err := a.Deactivate(ctx, t)
+	if err != nil {
+		m.logger.Warn("oracle demotion AppRole swap failed; failover phase unchanged", zap.Error(err))
+		return err
+	}
+	return m.restart(ctx, mode)
+}
+
+// restartInMode restarts the Oracle child in the given mode (active/standby/off),
+// preserving the in-memory snapshot (the child archives its own previous data dir
+// when it restarts in a new mode).
+func (m *Manager) restartInMode(ctx context.Context, mode string) error {
+	m.mu.Lock()
+	m.config.Mode = mode
+	m.mu.Unlock()
+	if m.running {
+		if err := m.Stop(ctx); err != nil {
+			m.logger.Warn("failed to stop oracle before promotion restart", zap.Error(err))
+		}
+	}
+	return m.Start(ctx)
 }
 
 func (m *Manager) Start(ctx context.Context) error {

@@ -14,6 +14,23 @@ import (
 	"time"
 )
 
+func TestDefaultWitnessSocketPathParity(t *testing.T) {
+	// Pin parity with pipeline/3_DATA_SEEDER/pkg/seedwitness.SocketPath (separate
+	// module, cannot import). Both must resolve to the same seed-witness socket for
+	// the same app-data dir so the verifier reaches the seeder (repo rule 20).
+	const wantRel = "sockets/seed-witness.sock"
+	const fallback = "/var/lib/knirvserver"
+
+	t.Setenv("KNIRV_APP_DATA_DIR", "/tmp/knirv-appdata")
+	if got, want := DefaultWitnessSocketPath(), filepath.Join("/tmp/knirv-appdata", wantRel); got != want {
+		t.Fatalf("DefaultWitnessSocketPath() with KNIRV_APP_DATA_DIR set = %q, want %q (must match seedwitness.SocketPath)", got, want)
+	}
+	t.Setenv("KNIRV_APP_DATA_DIR", "")
+	if got, want := DefaultWitnessSocketPath(), filepath.Join(fallback, wantRel); got != want {
+		t.Fatalf("DefaultWitnessSocketPath() fallback = %q, want %q (must match seedwitness.SocketPath fallback)", got, want)
+	}
+}
+
 func TestParseRoot(t *testing.T) {
 	raw, _ := hex.DecodeString("deadbeef")
 	cases := []string{

@@ -5,6 +5,7 @@ go 1.27.0
 toolchain go1.27.3
 
 require (
+	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.4.1
 	github.com/guiperry/knirv-sdk-go v0.0.0-00010101000000-000000000000
 	github.com/openbao/openbao/sdk/v2 v2.7.1
 )

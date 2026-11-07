@@ -656,6 +656,90 @@ pub fn find_root() -> Option<String> {
     first_existing(root_search_paths())
 }
 
+/// The canonical raw (registry-compatible compact) signing request. The request
+/// is identical across the Go, TypeScript and plugin surfaces; they all validate
+/// through this core-owned contract so the purpose allowlist and the 32-byte
+/// digest rule live in exactly one place.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct RawSignRequest {
+    /// Logical purpose the caller wants signed. Only values in
+    /// [`RAW_SIGN_ALLOWED_PURPOSES`] are accepted; the plugin enforces the same
+    /// allowlist server-side as the outer gate.
+    pub purpose: String,
+    /// Hex-encoded 32-byte sha256 digest. The caller canonicalizes the message;
+    /// the signer never re-canonicalizes, so the signed bytes match the legacy
+    /// in-process dcrd `SignCompact(priv, digest, true)[1:]` exactly.
+    pub digest_hex: String,
+}
+
+/// The canonical raw signing response: a hex 64-byte `r||s` secp256k1 compact
+/// signature with the leading recovery byte stripped — byte-for-byte identical to
+/// the registry Worker's legacy failover signature the verifier expects.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct RawSignResponse {
+    pub signature_hex: String,
+}
+
+/// The only purposes the raw compact endpoint will sign. Widening this list is a
+/// security-sensitive change reviewed alongside the OpenBao ACL grant.
+pub const RAW_SIGN_ALLOWED_PURPOSES: &[&str] = &["failover-identity"];
+
+/// Classifies a raw-sign purpose. Only allowlisted purposes return `Ok`; the
+/// plugin and the SDK bindings all funnel through this so the allowlist cannot
+/// drift between implementations.
+pub fn raw_sign_purpose(purpose: &str) -> Result<&'static str> {
+    let p = purpose.trim();
+    for allowed in RAW_SIGN_ALLOWED_PURPOSES {
+        if *allowed == p {
+            return Ok(allowed);
+        }
+    }
+    Err(bad(format!(
+        "raw signing not permitted for purpose {purpose:?}; allowed: {RAW_SIGN_ALLOWED_PURPOSES:?}"
+    )))
+}
+
+/// Validates a [`RawSignRequest`] against the canonical contract: the purpose must
+/// be allowlisted and the hex digest must decode to exactly 32 bytes. Returns the
+/// decoded digest on success. This is the single source of truth the Go and
+/// TypeScript bindings call (and mirror) before performing the Bao HTTP transport.
+pub fn validate_raw_sign_request(req: &RawSignRequest) -> Result<Vec<u8>> {
+    raw_sign_purpose(&req.purpose)?;
+    let digest = hex::decode(req.digest_hex.trim())
+        .map_err(|_| bad("raw sign digest must be hex"))?;
+    if digest.len() != 32 {
+        return Err(bad(format!(
+            "raw sign requires a 32-byte digest, got {}",
+            digest.len()
+        )));
+    }
+    Ok(digest)
+}
+
+/// Independent known-answer vector proving the 64-byte `r||s` compact format is
+/// byte-identical to the legacy dcrd `SignCompact(priv, digest, true)[1:]` the
+/// registry verifies. Frozen once (private key `1` → the secp256k1 generator
+/// point G as the public key), consumed by the core test, the Go/TS bindings and
+/// the OpenBao plugin test. The plugin, which actually signs with dcrd, must
+/// reproduce `RAW_SIGN_KAT_SIG64` for `RAW_SIGN_KAT_DIGEST` exactly.
+pub mod raw_sign_kat {
+    /// secp256k1 private key (hex), deliberately `1`.
+    pub const PRIV_HEX: &str = "0000000000000000000000000000000000000000000000000000000000000001";
+    /// sha256("knirv-raw-sign-kat-v1") (hex).
+    pub const DIGEST_HEX: &str =
+        "27a63df12ab9b1c25967ac3a371c19b65d6f326fcd0748b2b3f657bfd0e64e22";
+    /// dcrd `SignCompact(priv, digest, true)` (65 bytes: recovery byte + 32 r + 32 s).
+    pub const COMPACT_HEX: &str =
+        "20031002a1c9f5e00ac84199972dc2c02dec4580d703d9f572d0fcbd960d33c53e10055df6e29204b5c780de6f0cf6a3ed9e4f017150c04feab3423f43cf2074e4";
+    /// `COMPACT_HEX[1:]` — the 64-byte `r||s` the endpoint returns.
+    pub const SIG64_HEX: &str =
+        "031002a1c9f5e00ac84199972dc2c02dec4580d703d9f572d0fcbd960d33c53e10055df6e29204b5c780de6f0cf6a3ed9e4f017150c04feab3423f43cf2074e4";
+    /// Compressed public key (hex) for `PRIV_HEX`.
+    pub const PUB_HEX: &str = "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798";
+    /// The recovery byte dcrd prepends (compressed, odd Y).
+    pub const RECOVERY_BYTE: u8 = 0x20;
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -947,5 +1031,70 @@ mod tests {
         let boot = open_boot_bytes("boot.key", &file(&v, "boot_key"), password).unwrap();
         assert_eq!(boot.registration_id, "reg-123");
         assert!(open_root_bytes("root.key", &file(&v, "root_key"), b"wrong").is_err());
+    }
+
+    #[test]
+    fn raw_sign_purpose_allowlist_is_the_single_source_of_truth() {
+        assert_eq!(raw_sign_purpose("failover-identity").unwrap(), "failover-identity");
+        for bad in ["", "root", "boot", "checkpoint-signer", "failover", "anything"] {
+            assert!(raw_sign_purpose(bad).is_err(), "{bad} must be rejected");
+        }
+    }
+
+    #[test]
+    fn raw_sign_request_validation_enforces_contract() {
+        // 32-byte hex digest, allowlisted purpose: ok.
+        let ok = validate_raw_sign_request(&RawSignRequest {
+            purpose: "failover-identity".into(),
+            digest_hex: raw_sign_kat::DIGEST_HEX.into(),
+        })
+        .unwrap();
+        assert_eq!(ok.len(), 32);
+
+        // Bad purpose rejected before the digest is even inspected.
+        assert!(validate_raw_sign_request(&RawSignRequest {
+            purpose: "root".into(),
+            digest_hex: raw_sign_kat::DIGEST_HEX.into(),
+        })
+        .is_err());
+
+        // Non-hex digest rejected.
+        assert!(validate_raw_sign_request(&RawSignRequest {
+            purpose: "failover-identity".into(),
+            digest_hex: "zz".into(),
+        })
+        .is_err());
+
+        // Wrong-length digest rejected (31 bytes).
+        assert!(validate_raw_sign_request(&RawSignRequest {
+            purpose: "failover-identity".into(),
+            digest_hex: "aabbcc".repeat(5) + "aabb", // 31 bytes
+        })
+        .is_err());
+    }
+
+    #[test]
+    fn raw_sign_kat_proves_64_byte_r_s_compact_format() {
+        // The frozen compact signature (65 bytes) strips to exactly 64 bytes of
+        // r||s, with the documented recovery byte.
+        let compact = hex::decode(raw_sign_kat::COMPACT_HEX).unwrap();
+        assert_eq!(compact.len(), 65, "compact signature carries one recovery byte");
+        assert_eq!(compact[0], raw_sign_kat::RECOVERY_BYTE);
+        let sig64 = hex::decode(raw_sign_kat::SIG64_HEX).unwrap();
+        assert_eq!(sig64.len(), 64);
+        assert_eq!(&compact[1..], sig64.as_slice());
+
+        // The frozen vector is a genuine secp256k1 compact signature for the
+        // documented key + digest: recovering the public key from it must yield
+        // the known generator point (private key 1). This proves the 64-byte
+        // r||s format is byte-identical to dcrd SignCompact(..., true)[1:].
+        use k256::ecdsa::{RecoveryId, Signature, VerifyingKey};
+        let digest = hex::decode(raw_sign_kat::DIGEST_HEX).unwrap();
+        let sig = Signature::from_slice(&sig64).unwrap();
+        // dcrd recovery code = 27 + (compressed?4:0) + (odd?1:0); compressed+odd = 32 → id 1.
+        let recovery = RecoveryId::try_from(raw_sign_kat::RECOVERY_BYTE - 27 - 4).unwrap();
+        let recovered = VerifyingKey::recover_from_prehash(&digest, &sig, recovery).unwrap();
+        let pub_hex = hex::encode(recovered.to_encoded_point(true).as_bytes());
+        assert_eq!(pub_hex, raw_sign_kat::PUB_HEX);
     }
 }

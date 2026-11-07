@@ -9,6 +9,7 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"regexp"
 	"time"
 )
 
@@ -95,9 +96,12 @@ func (a *baoAPI) initialize(ctx context.Context) (string, []string, error) {
 var bootstrapPolicies = []struct{ Name, Policy string }{
 	{"gateway", `path "knirv-kv/data/node/cloudflare" { capabilities = ["read"] }`},
 	{"oracle", `path "knirv-kv/data/node/payments" { capabilities = ["read"] }
+path "knirv-kv/data/node/validator" { capabilities = ["read"] }
 path "knirv/sign/direct/root-owner" { capabilities = ["update"] }
 path "knirv/sign/message/root-owner" { capabilities = ["update"] }`},
-	{"validation", `path "knirv/sign/message/checkpoint-signer" { capabilities = ["update"] }`},
+	{"validation", `path "knirv/sign/direct/checkpoint-signer" { capabilities = ["update"] }
+path "knirv/sign/message/checkpoint-signer" { capabilities = ["update"] }
+path "knirv/keys/checkpoint-signer" { capabilities = ["read"] }`},
 	{"backend", `path "knirv-kv/data/node/cloudflare" { capabilities = ["read"] }
 path "knirv-kv/data/node/payments" { capabilities = ["read"] }
 path "knirv-kv/data/node/llm" { capabilities = ["read"] }
@@ -106,7 +110,65 @@ path "knirv-kv/data/node/tls" { capabilities = ["read"] }
 path "knirv-kv/data/node/device" { capabilities = ["read"] }
 path "knirv-kv/data/node/registration" { capabilities = ["read"] }
 path "knirv/sign/direct/failover-identity" { capabilities = ["update"] }
+path "knirv/sign/message/failover-identity" { capabilities = ["update"] }
+path "knirv/sign/raw/failover-identity" { capabilities = ["update"] }`},
+	// oracle-standby: a bootnode's mirrored (failover) Oracle. It may read the
+	// validator settings and sign replication-pull on bootnode-master only; the
+	// plugin key policy enforces the domain/purpose allowlist server-side, so a
+	// widened token still cannot obtain an active-mode signature. OpenBao.md §4.7.
+	{"oracle-standby", `path "knirv-kv/data/node/validator" { capabilities = ["read"] }
+path "knirv/sign/message/bootnode-master" { capabilities = ["update"] }`},
+	// oracle-active: the oracle policy plus the signer the node is acting as. A Root
+	// always runs active; a bootnode only after promotion swaps its AppRole.
+	{"oracle-active", `path "knirv-kv/data/node/payments" { capabilities = ["read"] }
+path "knirv-kv/data/node/validator" { capabilities = ["read"] }
+path "knirv/sign/direct/root-owner" { capabilities = ["update"] }
+path "knirv/sign/message/root-owner" { capabilities = ["update"] }
+path "knirv/sign/direct/failover-identity" { capabilities = ["update"] }
 path "knirv/sign/message/failover-identity" { capabilities = ["update"] }`},
+}
+
+// Canonical AppRole / policy names created by bootstrap. The launcher and the
+// bootstrap must agree on these names exactly, so they are defined once here and
+// referenced by both packages (bao_handoff.go derives its AppRole names from these).
+const (
+	RoleGateway       = "gateway"
+	RoleOracle        = "oracle"
+	RoleValidation    = "validation"
+	RoleBackend       = "backend"
+	RoleOracleStandby = "oracle-standby"
+	RoleOracleActive  = "oracle-active"
+)
+
+// BootstrapRoleNames returns the AppRole / policy names the bootstrap creates.
+func BootstrapRoleNames() []string {
+	names := make([]string, 0, len(bootstrapPolicies))
+	for _, p := range bootstrapPolicies {
+		names = append(names, p.Name)
+	}
+	return names
+}
+
+// BootstrapRolePaths returns the OpenBao paths granted by the named role's policy.
+// It is parsed from the canonical bootstrapPolicies definition so ACL tests derive
+// their expectations from a single source of truth rather than a disconnected copy.
+func BootstrapRolePaths(role string) ([]string, bool) {
+	for _, p := range bootstrapPolicies {
+		if p.Name == role {
+			return parsePolicyPaths(p.Policy), true
+		}
+	}
+	return nil, false
+}
+
+var policyPathRe = regexp.MustCompile(`path\s+"([^"]+)"`)
+
+func parsePolicyPaths(policy string) []string {
+	var paths []string
+	for _, m := range policyPathRe.FindAllStringSubmatch(policy, -1) {
+		paths = append(paths, m[1])
+	}
+	return paths
 }
 
 // bootstrap finishes the vault configuration (mounts, policies, roles) and then

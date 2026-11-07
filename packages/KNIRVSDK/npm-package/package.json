@@ -96,7 +96,7 @@
   "scripts": {
     "build": "node ./scripts/build.mjs && tsc --project tsconfig.json",
     "clean": "node ./scripts/clean.mjs",
-    "test": "npm run build && node ./scripts/test-bindings.mjs && node ./scripts/test-network.mjs && node ./scripts/test-vault.mjs && node ./scripts/test-actuarial.mjs && node ./scripts/test-wallet.mjs && node ./scripts/test-models.mjs && node ./scripts/test-uri.mjs && node ./scripts/test-scene.mjs && node ./scripts/test-signing.mjs && node ./scripts/test-no-traps.mjs && node ./scripts/test-pack.mjs",
+    "test": "npm run build && node ../scripts/sdk-dist.mjs manifest && node ../scripts/sdk-dist.mjs stamp && node ./scripts/test-bindings.mjs && node ./scripts/test-network.mjs && node ./scripts/test-vault.mjs && node ./scripts/test-actuarial.mjs && node ./scripts/test-wallet.mjs && node ./scripts/test-models.mjs && node ./scripts/test-uri.mjs && node ./scripts/test-scene.mjs && node ./scripts/test-signing.mjs && node ./scripts/test-no-traps.mjs && node ./scripts/test-pack.mjs",
     "prepack": "npm run build",
     "pack:check": "npm pack --dry-run"
   },

@@ -92,8 +92,8 @@ func TestRegistrationPayloadShape(t *testing.T) {
 	h := newHarness(t, KindRoot, 1)
 	oracle, poster := oracleHarness(t)
 	a := newAnchor(t, h, poster, 0, "")
-	if !strings.Contains(h.logs.String(), "bond 0") {
-		t.Fatalf("a zero bond must warn: %q", h.logs.String())
+	if !strings.Contains(h.logs.String(), "10000") {
+		t.Fatalf("an unset bond must default to the D14 10000 NRN bond: %q", h.logs.String())
 	}
 	if err := a.EnsureRegistered(context.Background()); err != nil {
 		t.Fatal(err)
@@ -112,7 +112,7 @@ func TestRegistrationPayloadShape(t *testing.T) {
 	if reg.QuorumNumer != 1 || reg.QuorumDenom != 1 || reg.ProofWindow != 0 {
 		t.Errorf("quorum %d/%d window %d", reg.QuorumNumer, reg.QuorumDenom, reg.ProofWindow)
 	}
-	if reg.Bond != 0 || reg.BondOwner != "" || reg.LastHeight != 0 {
+	if reg.Bond != 10000 || reg.BondOwner != "" || reg.LastHeight != 0 {
 		t.Errorf("bond %d owner %q last height %d", reg.Bond, reg.BondOwner, reg.LastHeight)
 	}
 	if len(reg.RotationSigs) != 1 || reg.RotationSigs[0].Address != own || len(reg.RotationSigs[0].Signature) != 64 || len(reg.RotationSigs[0].Envelope) == 0 {
@@ -130,15 +130,43 @@ func TestRegistrationPayloadShape(t *testing.T) {
 func TestRegistrationCarriesOperatorSetBond(t *testing.T) {
 	h := newHarness(t, KindRoot, 1)
 	oracle, poster := oracleHarness(t)
-	a := newAnchor(t, h, poster, 500, "knirv1bondowner")
+	// An explicit non-D14 bond is rejected at construction.
+	if _, err := NewAnchor(AnchorConfig{Poster: poster, Signer: h.signer, Store: h.store, Bond: 500, BondOwner: "knirv1bondowner", Logf: h.logs.Logf}); err == nil {
+		t.Fatal("expected rejection of bond 500 (D14 requires exactly 10000 NRN)")
+	}
+	// The D14 bond is carried through to the Oracle registration.
+	a := newAnchor(t, h, poster, 10000, "knirv1bondowner")
 	if strings.Contains(h.logs.String(), "bond 0") {
 		t.Fatal("no zero-bond warning expected when a bond is set")
 	}
 	if err := a.EnsureRegistered(context.Background()); err != nil {
 		t.Fatal(err)
 	}
-	if regs, _ := oracle.snapshot(); regs[0].Bond != 500 || regs[0].BondOwner != "knirv1bondowner" {
+	if regs, _ := oracle.snapshot(); regs[0].Bond != 10000 || regs[0].BondOwner != "knirv1bondowner" {
 		t.Fatalf("%+v", regs[0])
+	}
+}
+
+func TestAnchorBondDefaultsToD14(t *testing.T) {
+	h := newHarness(t, KindRoot, 1)
+	oracle, poster := oracleHarness(t)
+	// Unset bond defaults to 10000 and registers successfully.
+	a := newAnchor(t, h, poster, 0, "")
+	if err := a.EnsureRegistered(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	if regs, _ := oracle.snapshot(); regs[0].Bond != 10000 {
+		t.Fatalf("expected defaulted bond 10000, got %d", regs[0].Bond)
+	}
+}
+
+func TestAnchorBondRejectsNonD14(t *testing.T) {
+	h := newHarness(t, KindRoot, 1)
+	poster := checkpoint.NewPoster("", "")
+	for _, bad := range []uint64{1, 9999, 10001, 20000} {
+		if _, err := NewAnchor(AnchorConfig{Poster: poster, Signer: h.signer, Store: h.store, Bond: bad, Logf: h.logs.Logf}); err == nil {
+			t.Fatalf("expected rejection of bond %d (D14 requires exactly 10000 NRN)", bad)
+		}
 	}
 }
 

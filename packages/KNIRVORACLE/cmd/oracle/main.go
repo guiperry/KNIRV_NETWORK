@@ -21,9 +21,10 @@ import (
 )
 
 var (
-	socketPath = flag.String("socket", "/var/run/knirv/oracle.sock", "Unix socket path")
-	dataDir    = flag.String("data-dir", "", "Oracle data directory")
-	configFile = flag.String("config", "", "Config file path")
+	socketPath       = flag.String("socket", "/var/run/knirv/oracle.sock", "Unix socket path (public listener, proxied by KNIRVGATEWAY)")
+	internalSocket   = flag.String("internal-socket", "/var/run/knirv/oracle-internal.sock", "Internal unix socket path (internal-only routes such as verifiers/register)")
+	dataDir          = flag.String("data-dir", "", "Oracle data directory")
+	configFile       = flag.String("config", "", "Config file path")
 )
 
 // Version information (set by build flags)
@@ -109,6 +110,37 @@ func main() {
 	go func() {
 		if err := server.Serve(listener); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("HTTP server error: %v", err)
+		}
+	}()
+
+	// Internal listener: serves ONLY internal-only routes (e.g. verifiers/
+	// register) on a separate unix socket reachable by the node's own
+	// supervisor and KNIRVGATEWAY's internal forwarding — never by a public
+	// client (DEC-1 rule 2 — not publicly exposed).
+	internalMux := http.NewServeMux()
+	oracleRoutes.RegisterInternalRoutes(internalMux)
+	resolvedInternalSocket, err := resolveSocketPath(*internalSocket)
+	if err != nil {
+		log.Fatalf("Failed to resolve internal socket path: %v", err)
+	}
+	if err := os.MkdirAll(filepath.Dir(resolvedInternalSocket), 0755); err != nil {
+		log.Fatalf("Failed to create internal socket directory: %v", err)
+	}
+	if err := os.Remove(resolvedInternalSocket); err != nil && !os.IsNotExist(err) {
+		log.Printf("Warning: failed to remove existing internal socket: %v", err)
+	}
+	internalListener, err := net.Listen("unix", resolvedInternalSocket)
+	if err != nil {
+		log.Fatalf("Failed to create internal socket listener: %v", err)
+	}
+	if err := os.Chmod(resolvedInternalSocket, 0600); err != nil {
+		log.Printf("Warning: failed to set internal socket permissions: %v", err)
+	}
+	log.Printf("Oracle internal routes listening on %s", resolvedInternalSocket)
+	internalServer := &http.Server{Handler: internalMux}
+	go func() {
+		if err := internalServer.Serve(internalListener); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("Internal HTTP server error: %v", err)
 		}
 	}()
 

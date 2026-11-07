@@ -147,6 +147,37 @@ func Apply(s *State, r Record) error {
 		}
 		s.Governance = raw
 
+	case KindBondHold:
+		var h BondHold
+		if err := json.Unmarshal(r.Payload, &h); err != nil {
+			return fmt.Errorf("bond_hold: %w", err)
+		}
+		// A hold only ever creates or refreshes a pending escrow; if a later
+		// release/refund record already advanced the status, keep that status.
+		if existing, ok := s.Bonds[h.HoldID]; ok && existing.Status != BondStatusPending {
+			break
+		}
+		s.Bonds[h.HoldID] = BondState{
+			HoldID: h.HoldID, Operator: h.Operator, Amount: h.Amount,
+			RootRegistryID: h.RootRegistryID, ExpiresAtUnix: h.ExpiresAtUnix,
+			EscrowAddr: h.EscrowAddr, Status: h.Status,
+		}
+
+	case KindBondRelease:
+		var rel BondRelease
+		if err := json.Unmarshal(r.Payload, &rel); err != nil {
+			return fmt.Errorf("bond_release: %w", err)
+		}
+		bs, ok := s.Bonds[rel.HoldID]
+		if !ok {
+			return fmt.Errorf("bond_release: unknown hold %q", rel.HoldID)
+		}
+		bs.Status = rel.Status
+		bs.BootNodeChainID = rel.BootNodeChainID
+		bs.BootNodeAddress = rel.BootNodeAddress
+		bs.ConsumedChainID = rel.ConsumedChainID
+		s.Bonds[rel.HoldID] = bs
+
 	default:
 		return fmt.Errorf("ledger: unknown record kind %q (refusing to guess)", r.Kind)
 	}

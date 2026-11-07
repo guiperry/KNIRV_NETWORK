@@ -512,3 +512,68 @@ func TestAttestedRequiresWitnessedMinedRoot(t *testing.T) {
 	}
 	_ = dir
 }
+
+func TestDrainNotesErrorsInStatus(t *testing.T) {
+	_, dir := wopen(t)
+	q, err := OpenWitnessQueue(filepath.Join(dir, witnessLedger), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := q.Enqueue("b1", "sha256:"+strings.Repeat("a", 64), TierReference); err != nil {
+		t.Fatal(err)
+	}
+	if err := q.Enqueue("b2", "sha256:"+strings.Repeat("b", 64), TierReference); err != nil {
+		t.Fatal(err)
+	}
+	fail := errors.New("seeder unavailable")
+
+	// error transition: logged once
+	n, derr := q.Drain(context.Background(), failingWitnesser{err: fail}, 0)
+	if n != 0 || derr == nil {
+		t.Fatalf("expected drain error, got n=%d err=%v", n, derr)
+	}
+	changed, msg := q.noteDrainResult(fail)
+	if !changed || msg == "" {
+		t.Fatalf("expected error state-change logged once, changed=%v msg=%q", changed, msg)
+	}
+	// repeat same error: no spam
+	if changed, _ := q.noteDrainResult(fail); changed {
+		t.Fatal("repeat error must not spam")
+	}
+	st := q.Status()
+	if st.DrainErrors == 0 || st.LastError == "" || st.LastErrorAt == "" || st.LastDrainAt == "" {
+		t.Fatalf("expected drain health in status, got %+v", st)
+	}
+	if st.DrainOK || st.ConsecutiveFailures == 0 {
+		t.Fatalf("expected unhealthy current state, got %+v", st)
+	}
+	lastErr, lastAt, count := st.LastError, st.LastErrorAt, st.DrainErrors
+	if st.Pending != 2 {
+		t.Fatalf("pending=%d want 2", st.Pending)
+	}
+
+	// recovery: logged once; sticky last error/time/count preserved
+	changed, _ = q.noteDrainResult(nil)
+	if !changed {
+		t.Fatal("expected recovery state-change logged once")
+	}
+	if changed, _ := q.noteDrainResult(nil); changed {
+		t.Fatal("repeat recovery must not spam")
+	}
+	st = q.Status()
+	if !st.DrainOK || st.ConsecutiveFailures != 0 {
+		t.Fatalf("expected healthy current state after recovery, got %+v", st)
+	}
+	if st.LastError != lastErr || st.LastErrorAt != lastAt || st.DrainErrors != count {
+		t.Fatalf("sticky last error/time/count lost after recovery, got %+v want err=%q at=%q count=%d", st, lastErr, lastAt, count)
+	}
+	if st.LastDrainAt == "" {
+		t.Fatalf("expected last drain time preserved, got %+v", st)
+	}
+}
+
+type failingWitnesser struct{ err error }
+
+func (f failingWitnesser) Witness(context.Context, WitnessEntry) (WitnessAttestation, error) {
+	return WitnessAttestation{}, f.err
+}

@@ -15,9 +15,13 @@ import (
 // (/models/head):
 //
 //	POST {prefix}/reason          {"tokens":[...]} -> Reasoning
+//	POST {prefix}/sets            {"questions":[...]} -> Reasoning (v2 set-head models)
 //	GET  {prefix}/models          -> Manifest
 //	GET  {prefix}/weights/{ver}   safetensors, ETag = sha256, range requests
 //	GET  {prefix}/matrix          a d×d attention projection (KNIRVULORA connectors)
+//
+// A v1 model returns 400 from /sets ("this model has no choice-set heads"), so
+// every runtime rejects a set request the same way (PendingImplementations 4.7).
 //
 // The routes carry no CORS headers and no authentication: they are meant to be
 // reached only through backend_server, over the models unix socket or loopback.
@@ -28,6 +32,7 @@ func Routes(svc *Service, mux *http.ServeMux) {
 // RoutesAt mounts the HEAD surface under one prefix.
 func RoutesAt(svc *Service, mux *http.ServeMux, prefix string) {
 	mux.HandleFunc(prefix+"/reason", func(w http.ResponseWriter, r *http.Request) { reason(svc, w, r) })
+	mux.HandleFunc(prefix+"/sets", func(w http.ResponseWriter, r *http.Request) { reasonSets(svc, w, r) })
 	mux.HandleFunc(prefix+"/models", func(w http.ResponseWriter, r *http.Request) { models(svc, w, r) })
 	mux.HandleFunc(prefix+"/weights/", func(w http.ResponseWriter, r *http.Request) { weights(svc, prefix, w, r) })
 	mux.HandleFunc(prefix+"/matrix", func(w http.ResponseWriter, r *http.Request) { matrix(svc, w, r) })
@@ -72,6 +77,33 @@ func reason(svc *Service, w http.ResponseWriter, r *http.Request) {
 		status := httpStatus(err)
 		// Input the model rejects is the caller's error, not a server fault.
 		if status == http.StatusInternalServerError && (strings.Contains(err.Error(), "tokens") || strings.Contains(err.Error(), "vocab") || strings.Contains(err.Error(), "input")) {
+			status = http.StatusBadRequest
+		}
+		writeJSON(w, status, map[string]string{"error": err.Error()})
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	_, _ = w.Write(raw)
+}
+
+func reasonSets(svc *Service, w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		writeJSON(w, http.StatusMethodNotAllowed, map[string]string{"error": "method not allowed"})
+		return
+	}
+	var req struct {
+		Questions json.RawMessage `json:"questions"`
+	}
+	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 1<<20)).Decode(&req); err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "bad request: " + err.Error()})
+		return
+	}
+	raw, err := svc.ReasonSets(r.Context(), req.Questions)
+	if err != nil {
+		status := httpStatus(err)
+		// Input the model rejects (no set heads, unknown head, bad choices) is the
+		// caller's error, not a server fault — keep the cross-runtime contract uniform.
+		if status == http.StatusInternalServerError {
 			status = http.StatusBadRequest
 		}
 		writeJSON(w, status, map[string]string{"error": err.Error()})

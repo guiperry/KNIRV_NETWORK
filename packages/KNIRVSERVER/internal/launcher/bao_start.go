@@ -7,6 +7,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/guiperry/knirv-sdk-go/secrets"
+	knirvoracle "github.com/KNIRV/KNIRV_NETWORK/KNIRVORACLE"
+	"go.uber.org/zap"
 	"knirv-server/internal/knirvbao"
 )
 
@@ -59,7 +61,23 @@ func (app *ServerApp) startOpenBao(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	app.bao = knirvbao.NewManager(knirvbao.Config{Enabled: true, DataDir: dir, ConfigDir: configDir}, secrets.NewFileProvider())
+	// If a bao manager was injected (tests), reuse it; otherwise build the real one.
+	if app.bao == nil {
+		app.bao = knirvbao.NewManager(knirvbao.Config{Enabled: true, DataDir: dir, ConfigDir: configDir}, secrets.NewFileProvider())
+	}
+
+	// The Oracle failover (spec 8.6) AppRole swap is owned by the OpenBao backend.
+	// Construct the production knirvoracle.Manager through NewOracleManager so the
+	// real launcher.OraclePromoter is injected — a bare knirvoracle.NewManager would
+	// leave a nil promoter and failover would silently no-op. The failover service
+	// (backend_server) drives Manager.Promote/Demote on app.oracleManager when this
+	// node is CONFIRMED/RECLAIMED.
+	app.oracleManager = NewOracleManager(&knirvoracle.ManagerConfig{
+		BaoSocketPath: app.bao.Socket(),
+		SocketPath:    filepath.Join(dir, "sockets", "oracle.sock"),
+		DataPath:      filepath.Join(dir, "oracle"),
+	}, zap.L(), OraclePromoter{})
+
 	return app.bao.Start(ctx)
 }
 

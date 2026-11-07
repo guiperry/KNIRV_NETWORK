@@ -59,6 +59,21 @@ describe("RegistryStore", () => {
       expect(await storage.get("node:chain-1")).toEqual({ ip: "1.2.3.4", port: 8080, lastSeen: expect.any(Number), type: "bootnode" });
     });
 
+    it("rejects unsigned registration that carries a tx-chain address", async () => {
+      const { store, storage } = createStore();
+      const result = await store.register({ chainID: "chain-1", ip: "1.2.3.4", port: 8080, type: "bootnode", txChainAddress: "0xabc123" }, "1.2.3.4", 3600000);
+      expect(result.status).toBe(400);
+      // Nothing is persisted for an unsigned tx-chain submission.
+      expect(await storage.get("node:chain-1")).toBeNull();
+    });
+
+    it("omits txChainAddress when not provided", async () => {
+      const { store, storage } = createStore();
+      await store.register({ chainID: "chain-1", ip: "1.2.3.4", port: 8080, type: "bootnode" }, "1.2.3.4", 3600000);
+      const stored = await storage.get("node:chain-1");
+      expect(stored.txChainAddress).toBeUndefined();
+    });
+
     it("registers a client and suggests a bootnode", async () => {
       const { store, storage } = createStore();
       await storage.put("node:boot-1", { ip: "1.2.3.4", port: 8080, lastSeen: Date.now(), type: "bootnode" });

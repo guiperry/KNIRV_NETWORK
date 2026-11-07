@@ -103,6 +103,23 @@ pub fn input_width(config: &serde_json::Value) -> Result<usize, String> {
 
 // ---- advice ----------------------------------------------------------------
 
+/// One choice-set candidate with its probability (knirv-heart/v2). The `id` is
+/// the option's stable identifier (e.g. an advisory action name); `text` is the
+/// human-readable label; `probability` is the set-head's softmax mass for that
+/// candidate. Padded/oversized candidates carry zero mass and are simply absent
+/// from this list, so variable-N sets need no mask on the consumer side: each
+/// question carries exactly its own valid candidates, index-aligned to the
+/// request order (the producer's `-inf` masked logits never reach the wire).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+pub struct Candidate {
+    #[serde(default, deserialize_with = "null_default")]
+    pub id: String,
+    #[serde(default, deserialize_with = "null_default")]
+    pub text: String,
+    #[serde(default)]
+    pub probability: f32,
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
 pub struct Decision {
     #[serde(default, deserialize_with = "null_default")]
@@ -115,6 +132,14 @@ pub struct Decision {
     pub confidence: Option<f32>,
     #[serde(default, deserialize_with = "null_default")]
     pub abstain: bool,
+    /// Per-candidate probabilities of a choice-set (knirv-heart/v2) answer, in the
+    /// request's own order. Absent for v1 decision-head output.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub candidates: Vec<Candidate>,
+    /// For a score-kind head (knirv-heart/v2): the calibrated level value
+    /// `Σ p_i·i/(N-1)`. Absent for choice/null heads and v1 output.
+    #[serde(default)]
+    pub value: Option<f32>,
 }
 
 #[derive(Debug, Default, Deserialize)]
@@ -390,39 +415,148 @@ pub fn abstain_advice(
     }
 }
 
+// ---- Clef translation rules (Clef_KNIRV_Design.md §4.2) ---------------------
+//
+// Carried over verbatim from the KNIRVMODELS supervision package so the SDK's
+// model-output → `SupervisorAdvice` converter applies exactly the same rules the
+// training/pipeline side uses. They are pure, tested primitives; the converter
+// below wires them into the v2 choice-set (knirv-heart/v2) output. The local
+// Clef harness under MODELS/pipeline/5_HEAD_TRAINER/clef-harness is the
+// calibration baseline (reported ECE 0.63); HEAD must beat it. No hosted Clef
+// calls are made from the SDK.
+
+/// `DEFAULT_ABSTAIN_TAU` is the abstention threshold for the Clef rule-3 abstain
+/// decision (abstain when the peak probability is below tau). PROVISIONAL: its
+/// value must be fitted on a held-out split (Task 4.6) and is not a trained
+/// label. Until then every caller uses this one constant so the threshold is
+/// consistent and easy to replace.
+pub const DEFAULT_ABSTAIN_TAU: f32 = 0.5;
+
+/// `clamp01` clamps a probability to `[0,1]` so a malformed value cannot yield a
+/// negative or `>1` confidence.
+fn clamp01(x: f32) -> f32 {
+    if x < 0.0 {
+        0.0
+    } else if x > 1.0 {
+        1.0
+    } else {
+        x
+    }
+}
+
+/// `noul_confidence` derives confidence for a binary (noul) question from
+/// P(yes)=`p_yes`. Per Clef rule 2 the confidence is `max(p, 1-p)` — never the
+/// raw `p` — and the derivation is explicit. Inputs are clamped to `[0,1]`.
+pub fn noul_confidence(p_yes: f32) -> f32 {
+    let p = clamp01(p_yes);
+    p.max(1.0 - p)
+}
+
+/// `noul_probabilities` synthesises the calibrated distribution for a noul answer
+/// as `{true: p, false: 1-p}`. A single abstain rule then works across all three
+/// Clef question types (noul/choice/score) because each reduces to a peak
+/// probability.
+pub fn noul_probabilities(p_yes: f32) -> (f32, f32) {
+    let p = clamp01(p_yes);
+    (p, 1.0 - p)
+}
+
+/// `peak_probability` returns the maximum value in `probs` (0 when empty): the
+/// confidence the model places on its most likely outcome. It is the quantity the
+/// abstain rule thresholds on.
+pub fn peak_probability(probs: &[f32]) -> f32 {
+    probs.iter().fold(0.0, |m, &p| if p > m { p } else { m })
+}
+
+/// `should_abstain` implements Clef rule 3: abstain when the peak probability is
+/// below `tau`. Abstention is a deterministic calibration threshold, never a
+/// model-chosen label.
+pub fn should_abstain(peak: f32, tau: f32) -> bool {
+    peak < tau
+}
+
+/// `round_severity_for_display` rounds a continuous severity to `decimals`
+/// places. Per Clef rule 1 severity is carried as a float internally and rounded
+/// only at the display boundary; callers must not round before storing or
+/// comparing.
+pub fn round_severity_for_display(severity: f32, decimals: i32) -> f32 {
+    let d = if decimals < 0 { 0 } else { decimals };
+    let scale = 10f64.powi(d as i32);
+    (((severity as f64) * scale).round() / scale) as f32
+}
+
+/// `resolve_choice` maps a decision head onto a `(selected_id, confidence)` pair
+/// using the Clef rules. For a v2 choice-set head (knirv-heart/v2) with
+/// `candidates` the confidence is the peak candidate probability and abstention
+/// follows rule 3 (peak < tau); the recommended action is the argmax candidate.
+/// For a v1 decision head the legacy `selected`/`confidence`/`abstain` fields are
+/// used. Returns `None` when the head should abstain.
+fn resolve_choice(d: &Decision) -> Option<(String, f32)> {
+    // Honor a producer abstention first. The producer derives `abstain` from its
+    // validated model configuration (`cfg.tau`, whose default is not the SDK's
+    // provisional 0.5), so its signal is authoritative and must win even when the
+    // SDK-side peak is above `DEFAULT_ABSTAIN_TAU`. Safe to keep the SDK threshold
+    // as a secondary guard below.
+    if d.abstain {
+        return None;
+    }
+    if d.kind == "choice" && !d.candidates.is_empty() {
+        let peak = d
+            .candidates
+            .iter()
+            .map(|c| c.probability)
+            .fold(0.0_f32, |m, p| if p > m { p } else { m });
+        if should_abstain(peak, DEFAULT_ABSTAIN_TAU) {
+            return None;
+        }
+        let best = d
+            .candidates
+            .iter()
+            .max_by(|a, b| {
+                a.probability
+                    .partial_cmp(&b.probability)
+                    .unwrap_or(std::cmp::Ordering::Equal)
+            })
+            .expect("candidates is non-empty");
+        return Some((best.id.clone(), peak));
+    }
+    match (&d.selected, d.abstain) {
+        (Some(s), false) => Some((s.clone(), d.confidence.unwrap_or(0.0))),
+        _ => None,
+    }
+}
+
 /// Maps decision heads onto `SupervisorAdvice`; every doubtful case abstains.
+/// The v2 choice-set (knirv-heart/v2) action/next_phase heads are read through
+/// the Clef primitives; v1 decision-head output is still supported.
 pub fn advice_from_reasoning(r: &Reasoning, c: &AdviseContext, now: &str) -> SupervisorAdvice {
     let abstain =
         |reason: &str| abstain_advice(reason, &r.model_version, &r.dataset_manifest_hash, now);
-    let find = |name: &str| {
-        r.decisions
-            .iter()
-            .find(|d| d.name == name && d.kind == "choice")
-    };
+    let find = |name: &str| r.decisions.iter().find(|d| d.name == name && d.kind == "choice");
 
     let Some(action) = find("action") else {
         return abstain("model has no action head");
     };
-    let selected = match (&action.selected, action.abstain) {
-        (Some(s), false) => s,
-        _ => return abstain("action confidence below the fitted abstention threshold"),
+    let (selected, conf) = match resolve_choice(action) {
+        Some(x) => x,
+        None => return abstain("action confidence below the fitted abstention threshold"),
     };
     if !ADVICE_ACTIONS.contains(&selected.as_str()) {
         return abstain("action is not in the advisory vocabulary");
     }
-    let mut confidence = action.confidence.unwrap_or(0.0);
+    let mut confidence = conf;
 
     // No next_phase head means the model offers no transition advice: stay put.
     let mut next = c.current_phase.clone();
     if let Some(np) = find("next_phase") {
-        match (&np.selected, np.abstain) {
-            (Some(s), false) => next = s.clone(),
-            _ => return abstain("next_phase confidence below the fitted abstention threshold"),
-        }
-        if let Some(nc) = np.confidence {
-            if nc < confidence {
-                confidence = nc;
+        match resolve_choice(np) {
+            Some((s, nc)) => {
+                next = s;
+                if nc < confidence {
+                    confidence = nc;
+                }
             }
+            None => return abstain("next_phase confidence below the fitted abstention threshold"),
         }
     }
     // The bundle the model was trained under; a mismatch makes the CLI discard the advice.
@@ -432,7 +566,7 @@ pub fn advice_from_reasoning(r: &Reasoning, c: &AdviseContext, now: &str) -> Sup
         r.policy_bundle_hash.clone()
     };
     SupervisorAdvice {
-        recommended_action: selected.clone(),
+        recommended_action: selected,
         next_phase: next,
         confidence,
         abstain: false,
@@ -879,6 +1013,11 @@ mod tests {
     #[test]
     fn advice_cases() {
         for case in vector("advice_cases.json").as_array().unwrap() {
+            // Set-request fixtures (knirv-heart/v2) carry no advice; skip them
+            // here, matching the Go/TS consumers.
+            if case["reasoning"].is_null() {
+                continue;
+            }
             let name = case["name"].as_str().unwrap();
             let r: Reasoning = serde_json::from_value(case["reasoning"].clone()).unwrap();
             let c: AdviseContext = serde_json::from_value(case["context"].clone()).unwrap();
@@ -994,5 +1133,137 @@ mod null_tests {
         let s: PlatformStatus =
             serde_json::from_value(json!({"daemon": null, "stats": null, "llama": null})).unwrap();
         assert_eq!(roles(&s).len(), 6);
+    }
+}
+
+#[cfg(test)]
+mod clef_tests {
+    use super::*;
+
+    fn ctx() -> AdviseContext {
+        AdviseContext {
+            current_phase: "develop".into(),
+            ..Default::default()
+        }
+    }
+
+    fn reasoning_with(decisions: Vec<Decision>) -> Reasoning {
+        Reasoning {
+            decisions,
+            model_version: "v2-test".into(),
+            dataset_manifest_hash: "dm".into(),
+            policy_bundle_hash: "sha256:trained".into(),
+            ..Default::default()
+        }
+    }
+
+    #[test]
+    fn clef_rules() {
+        assert!((noul_confidence(0.2) - 0.8).abs() < 1e-6);
+        assert!((noul_confidence(-1.0) - 1.0).abs() < 1e-6);
+        assert!((noul_confidence(2.0) - 1.0).abs() < 1e-6);
+        let (t, f) = noul_probabilities(0.3);
+        assert!((t - 0.3).abs() < 1e-6 && (f - 0.7).abs() < 1e-6);
+        assert!((peak_probability(&[0.1, 0.7, 0.2]) - 0.7).abs() < 1e-6);
+        assert_eq!(peak_probability(&[]), 0.0);
+        assert!(should_abstain(0.4, 0.5));
+        assert!(!should_abstain(0.6, 0.5));
+        assert!((round_severity_for_display(0.12345, 2) - 0.12).abs() < 1e-6);
+        assert!((round_severity_for_display(0.12345, 1) - 0.1).abs() < 1e-6);
+        assert_eq!(DEFAULT_ABSTAIN_TAU, 0.5);
+    }
+
+    #[test]
+    fn v2_action_choice_set_picks_argmax_and_min_confidence() {
+        let d_action = Decision {
+            name: "action".into(),
+            kind: "choice".into(),
+            candidates: vec![
+                Candidate { id: "allow".into(), text: "allow".into(), probability: 0.7 },
+                Candidate { id: "request_review".into(), text: "request review".into(), probability: 0.2 },
+                Candidate { id: "ask_operator".into(), text: "ask operator".into(), probability: 0.1 },
+            ],
+            ..Default::default()
+        };
+        let d_next = Decision {
+            name: "next_phase".into(),
+            kind: "choice".into(),
+            candidates: vec![
+                Candidate { id: "develop_review".into(), text: "develop review".into(), probability: 0.6 },
+                Candidate { id: "validate".into(), text: "validate".into(), probability: 0.4 },
+            ],
+            ..Default::default()
+        };
+        let a = advice_from_reasoning(&reasoning_with(vec![d_action, d_next]), &ctx(), "now");
+        assert!(!a.abstain);
+        assert_eq!(a.recommended_action, "allow");
+        assert_eq!(a.next_phase, "develop_review");
+        assert!((a.confidence - 0.6).abs() < 1e-6);
+        assert_eq!(a.policy_bundle_hash, "sha256:trained");
+    }
+
+    #[test]
+    fn v2_action_below_tau_abstains() {
+        let d = Decision {
+            name: "action".into(),
+            kind: "choice".into(),
+            candidates: vec![
+                Candidate { id: "allow".into(), text: "allow".into(), probability: 0.3 },
+                Candidate { id: "request_review".into(), text: "rr".into(), probability: 0.4 },
+            ],
+            ..Default::default()
+        };
+        let a = advice_from_reasoning(&reasoning_with(vec![d]), &ctx(), "now");
+        assert!(a.abstain);
+        assert!(a.abstain_reason.contains("below the fitted"));
+    }
+
+    #[test]
+    fn v2_out_of_vocabulary_action_abstains() {
+        let d = Decision {
+            name: "action".into(),
+            kind: "choice".into(),
+            candidates: vec![
+                Candidate { id: "rm -rf /".into(), text: "x".into(), probability: 0.9 },
+            ],
+            ..Default::default()
+        };
+        let a = advice_from_reasoning(&reasoning_with(vec![d]), &ctx(), "now");
+        assert!(a.abstain);
+        assert!(a.abstain_reason.contains("vocabulary"));
+    }
+
+    #[test]
+    fn v1_decision_head_fallback_still_works() {
+        let d = Decision {
+            name: "action".into(),
+            kind: "choice".into(),
+            selected: Some("allow".into()),
+            confidence: Some(0.95),
+            ..Default::default()
+        };
+        let a = advice_from_reasoning(&reasoning_with(vec![d]), &ctx(), "now");
+        assert!(!a.abstain);
+        assert_eq!(a.recommended_action, "allow");
+        assert!((a.confidence - 0.95).abs() < 1e-6);
+        assert_eq!(a.next_phase, "develop");
+    }
+
+    #[test]
+    fn v2_candidates_round_trip_through_json() {
+        let json = serde_json::json!({
+            "decisions": [{
+                "name": "action", "kind": "choice",
+                "candidates": [
+                    {"id": "allow", "text": "allow", "probability": 0.7},
+                    {"id": "request_review", "text": "rr", "probability": 0.3}
+                ]
+            }]
+        });
+        let r: Reasoning = serde_json::from_value(json).unwrap();
+        assert_eq!(r.decisions[0].candidates.len(), 2);
+        let a = advice_from_reasoning(&r, &ctx(), "now");
+        assert_eq!(a.recommended_action, "allow");
+        assert!((a.confidence - 0.7).abs() < 1e-6);
     }
 }

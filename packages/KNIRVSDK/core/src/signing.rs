@@ -6,6 +6,7 @@ use k256::ecdsa::signature::hazmat::PrehashVerifier;
 use k256::ecdsa::{signature::hazmat::PrehashSigner, Signature, SigningKey, VerifyingKey};
 use ripemd::Ripemd160;
 use serde::{Deserialize, Serialize};
+use serde_json;
 use sha2::{Digest, Sha256};
 
 pub const ACTION_SCHEMA_VERSION: &str = "knirv.action.v1";
@@ -21,6 +22,36 @@ pub const PURPOSE_SCENE_MANIFEST: &str = "scene-manifest";
 pub const ROLE_SCENE_SIGNER: &str = "scene-signer";
 pub const PURPOSE_RELAY_RESPONSE: &str = "relay-response";
 pub const RELAY_TARGET_CLI_SUPERVISOR: &str = "cli_supervisor";
+
+/// Registry / bond escrow domain and purposes (root tx-chain design rev 2).
+///
+/// A registry entry is a signed `MessageEnvelope` (secp256k1) over this domain,
+/// reusing the existing signing/canonicalization path — no new crypto. The same
+/// key signs holds and releases of the enrollment bond escrow on the Oracle NRN
+/// ledger.
+pub const REGISTRY_DOMAIN: &str = "knirv.registry";
+pub const PURPOSE_ROOT_TX_CHAIN_RECORD: &str = "root-tx-chain-record";
+pub const PURPOSE_BOND_HOLD: &str = "bond-hold";
+pub const PURPOSE_BOND_RELEASE: &str = "bond-release";
+
+/// Authority / enrollment domain and purposes.
+///
+/// `bootnode-enroll` is the signed-challenge purpose used for automatic node
+/// enrollment (DEC-2 / 2d.2): a NEW boot-node key signs a challenge envelope, and the
+/// root owner countersigns (approves) it, binding the new key to the network. This is
+/// the approval-to-key binding that lets a node enroll automatically while the manual
+/// runbook stays the fallback. Publisher authorization remains a root-owner signature
+/// on the registry entry.
+pub const AUTHORITY_DOMAIN: &str = "knirv.authority";
+pub const PURPOSE_BOOTNODE_ENROLL: &str = "bootnode-enroll";
+
+/// Maximum allowed lifetime of a published root tx-chain registry record. Records
+/// whose `expires_at_unix - issued_at_unix` exceeds this are rejected by the core
+/// verifier, bounding how long a compromised/stale root record can be served.
+pub const REGISTRY_RECORD_MAX_TTL_SECONDS: u64 = 365 * 24 * 60 * 60; // 1 year
+
+/// Prefix of a `knirv`-Bech32 address; used to validate `tx_chain_address`.
+pub const KNIRV_ADDRESS_HRP: &str = "knirv";
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Action {
@@ -122,6 +153,46 @@ pub struct ParsedMessageEnvelope {
     pub issued_at_unix: u64,
     pub expires_at_unix: u64,
     pub payload: Vec<u8>,
+}
+
+/// Canonical registry record published by the root owner for a chain identity.
+///
+/// The canonical payload is the field-order JSON of this struct (declaration order,
+/// matching `Head::canonical`), so Go/TS bindings can reproduce identical bytes.
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+pub struct RegistryRecord {
+    pub chain_id: String,
+    pub tx_chain_address: String,
+    pub owner_pub_key: String,
+    pub nonce: u64,
+    pub expires_at_unix: u64,
+}
+
+/// Bond hold request payload. Idempotent on `hold_id`: re-submitting the same
+/// `hold_id` is a no-op because the ledger keys the escrow by `hold_id`.
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+pub struct BondHold {
+    pub hold_id: String,
+    pub operator: String,
+    pub amount: String,
+    pub root_registry_id: String,
+    pub expires_at_unix: u64,
+}
+
+/// Bond release payload. `boot_node_address` is bound to the held escrow so a
+/// mismatched boot address is rejected at completion time.
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+pub struct BondRelease {
+    pub hold_id: String,
+    pub boot_node_chain_id: String,
+    pub boot_node_address: String,
+}
+
+/// Canonical JSON bytes for a record, in declaration order (deterministic and
+/// reproducible by the Go/TS bindings). This is the payload stored in the
+/// `MessageEnvelope` and what `verify_message_payload` checks against.
+fn canonical_record<T: serde::Serialize>(record: &T) -> Result<Vec<u8>> {
+    serde_json::to_vec(record).map_err(|e| Error::Validation(format!("canonicalize record: {e}")))
 }
 
 /// Canonical controller publication statement carried in a signed message.
@@ -851,6 +922,471 @@ pub fn verify_message_payload(
     }
     Ok(())
 }
+
+
+
+/// Verify a signed envelope of the given domain/purpose/chain_id and decode its
+/// canonical payload back into `T`. The signature, domain, purpose, chain_id, nonce
+/// replay, and validity window are all checked by `verify_message_payload`; the
+/// payload is then decoded and re-canonicalized to guarantee the verifier checks
+/// exactly what was signed.
+fn verify_signed_payload<T: serde::de::DeserializeOwned>(
+    signed: &SignedMessageEnvelope,
+    expected_domain: &str,
+    expected_purpose: &str,
+    expected_chain_id: &str,
+    now_unix: u64,
+) -> Result<T> {
+    let envelope_bytes = BASE64
+        .decode(&signed.envelope)
+        .map_err(|e| Error::Validation(format!("decode envelope: {e}")))?;
+    let fields = parse_message_envelope(&envelope_bytes)?;
+    let payload = fields.payload.clone();
+    verify_message_payload(
+        signed,
+        expected_domain,
+        expected_purpose,
+        expected_chain_id,
+        &payload,
+        now_unix,
+    )?;
+    serde_json::from_slice(&payload).map_err(|e| Error::Validation(format!("decode payload: {e}")))
+}
+
+// ---------------------------------------------------------------------------
+// Registry record signing (CRITICAL fix: unauthenticated POST /register)
+// ---------------------------------------------------------------------------
+
+/// Sign a root-tx-chain registry record. The envelope is bound to the registry
+/// `chain_id`, the `root-tx-chain-record` purpose, and the record's `nonce`
+/// (replay protection). The `tx_chain_address` is a `knirv`-Bech32 address.
+pub fn sign_registry_record(
+    private_key: &[u8; 32],
+    chain_id: &str,
+    record: &RegistryRecord,
+    issued_at_unix: u64,
+) -> Result<SignedMessageEnvelope> {
+    let payload = canonical_record(record)?;
+    let envelope = MessageEnvelope {
+        schema_version: Some(MESSAGE_SCHEMA_VERSION.into()),
+        domain: REGISTRY_DOMAIN.into(),
+        purpose: PURPOSE_ROOT_TX_CHAIN_RECORD.into(),
+        chain_id: chain_id.into(),
+        nonce: format!("root-tx-chain:{}", record.nonce),
+        issued_at_unix,
+        expires_at_unix: record.expires_at_unix,
+        payload: Some(payload),
+    };
+    sign_message_envelope(private_key, &envelope)
+}
+
+/// Verify a signed root tx-chain registry record and return its decoded contents.
+///
+/// In addition to the envelope signature, domain/purpose, chain id, nonce replay
+/// and validity window (enforced by `verify_message`/`verify_message_payload`),
+/// this enforces the record invariants required to close the unauthenticated
+/// `/register` root-address-overwrite issue:
+///
+///   * `record.chain_id == envelope.chain_id` (no internal inconsistency),
+///   * `record.owner_pub_key == signing public key` (self-consistent ownership),
+///   * the signer's `knirv` address equals `expected_root_address` (root anchor),
+///   * `record.chain_id == expected_root_registry_id` (immutable root registry id),
+///   * `tx_chain_address` carries the `knirv` Bech32 HRP (address syntax),
+///   * the record lifetime does not exceed `REGISTRY_RECORD_MAX_TTL_SECONDS`.
+///
+/// `expected_root_address` and `expected_root_registry_id` MUST come from trusted
+/// configuration (Worker env / genesis state) — never from the request or record.
+/// `now_unix` is the verification time (seconds).
+pub fn verify_registry_record(
+    signed: &SignedMessageEnvelope,
+    expected_root_address: &str,
+    expected_root_registry_id: &str,
+    now_unix: u64,
+) -> Result<RegistryRecord> {
+    let envelope = BASE64
+        .decode(&signed.envelope)
+        .map_err(|e| Error::Validation(format!("decode envelope: {e}")))?;
+    let fields = parse_message_envelope(&envelope)?;
+    // Verifies signature + chain id (== expected_root_registry_id) + validity window.
+    verify_message(
+        signed,
+        REGISTRY_DOMAIN,
+        PURPOSE_ROOT_TX_CHAIN_RECORD,
+        expected_root_registry_id,
+        &fields.nonce,
+        now_unix,
+    )?;
+    // The decoded record must agree with the envelope's chain id and re-canonicalize
+    // to exactly the signed payload (tamper detection on any field).
+    let record: RegistryRecord =
+        serde_json::from_slice(&fields.payload).map_err(|e| Error::Validation(format!("decode payload: {e}")))?;
+    if record.chain_id != fields.chain_id {
+        return Err(Error::Validation(
+            "record.chain_id does not match envelope chain id".into(),
+        ));
+    }
+    if record.chain_id != expected_root_registry_id {
+        return Err(Error::Validation(
+            "record chain id is not the immutable root registry id".into(),
+        ));
+    }
+    // Self-consistent ownership: the claimed owner must be the key that signed.
+    if record.owner_pub_key != signed.public_key {
+        return Err(Error::Validation(
+            "record.owner_pub_key does not match the signing key".into(),
+        ));
+    }
+    // Root anchor: the signer must be the trusted root identity.
+    let public_key = BASE64
+        .decode(&signed.public_key)
+        .map_err(|e| Error::Validation(format!("decode public key: {e}")))?;
+    if public_key.len() != 33 {
+        return Err(Error::Validation("compressed public key must be 33 bytes".into()));
+    }
+    let signer_address = knirv_address(&public_key)?;
+    if signer_address != expected_root_address {
+        return Err(Error::Validation("signer is not the trusted root".into()));
+    }
+    // Address syntax: a real `knirv`-Bech32 address — HRP, separator, case rules,
+    // checksum, and a 20-byte payload — not merely a `knirv` prefix. `decode_address`
+    // reuses the exact derivation/decoding path used to build the address.
+    if decode_address(&record.tx_chain_address, KNIRV_ADDRESS_HRP).is_err() {
+        return Err(Error::Validation(
+            "tx_chain_address is not a valid knirv Bech32 address".into(),
+        ));
+    }
+    // Bounded lifetime.
+    let ttl = record
+        .expires_at_unix
+        .saturating_sub(fields.issued_at_unix);
+    if ttl > REGISTRY_RECORD_MAX_TTL_SECONDS {
+        return Err(Error::Validation(
+            "registry record TTL exceeds maximum".into(),
+        ));
+    }
+    // The payload must be the canonical record representation.
+    let canonical = canonical_record(&record)?;
+    if canonical.len() != fields.payload.len()
+        || canonical.iter().zip(fields.payload.iter()).any(|(a, b)| a != b)
+    {
+        return Err(Error::Validation(
+            "payload is not the canonical record representation".into(),
+        ));
+    }
+    Ok(record)
+}
+
+// ---------------------------------------------------------------------------
+// Bond escrow signing (HIGH-1/HIGH-3 fix: idempotent hold + signed release)
+// ---------------------------------------------------------------------------
+
+/// Sign a bond-hold request. The envelope is bound to `root_registry_id` and the
+/// `bond-hold` purpose; the `hold_id` is the deterministic idempotency key.
+pub fn sign_bond_hold(
+    private_key: &[u8; 32],
+    root_registry_id: &str,
+    hold: &BondHold,
+    issued_at_unix: u64,
+) -> Result<SignedMessageEnvelope> {
+    let payload = canonical_record(hold)?;
+    let envelope = MessageEnvelope {
+        schema_version: Some(MESSAGE_SCHEMA_VERSION.into()),
+        domain: REGISTRY_DOMAIN.into(),
+        purpose: PURPOSE_BOND_HOLD.into(),
+        chain_id: root_registry_id.into(),
+        nonce: format!("bond-hold:{}", hold.hold_id),
+        issued_at_unix,
+        expires_at_unix: hold.expires_at_unix,
+        payload: Some(payload),
+    };
+    sign_message_envelope(private_key, &envelope)
+}
+
+/// Verify a signed bond-hold request.
+pub fn verify_bond_hold(
+    signed: &SignedMessageEnvelope,
+    expected_root_registry_id: &str,
+    now_unix: u64,
+) -> Result<BondHold> {
+    verify_signed_payload(
+        signed,
+        REGISTRY_DOMAIN,
+        PURPOSE_BOND_HOLD,
+        expected_root_registry_id,
+        now_unix,
+    )
+}
+
+/// Sign a bond-release request. The envelope is bound to the boot node's
+/// `chain_id` and the `bond-release` purpose; `boot_node_address` is bound to the
+/// held escrow so a mismatched address is rejected at completion.
+pub fn sign_bond_release(
+    private_key: &[u8; 32],
+    boot_node_chain_id: &str,
+    release: &BondRelease,
+    issued_at_unix: u64,
+) -> Result<SignedMessageEnvelope> {
+    let payload = canonical_record(release)?;
+    let envelope = MessageEnvelope {
+        schema_version: Some(MESSAGE_SCHEMA_VERSION.into()),
+        domain: REGISTRY_DOMAIN.into(),
+        purpose: PURPOSE_BOND_RELEASE.into(),
+        chain_id: boot_node_chain_id.into(),
+        nonce: format!("bond-release:{}", release.hold_id),
+        issued_at_unix,
+        expires_at_unix: u64::MAX,
+        payload: Some(payload),
+    };
+    sign_message_envelope(private_key, &envelope)
+}
+
+/// Verify a signed bond-release request.
+pub fn verify_bond_release(
+    signed: &SignedMessageEnvelope,
+    expected_boot_node_chain_id: &str,
+    now_unix: u64,
+) -> Result<BondRelease> {
+    verify_signed_payload(
+        signed,
+        REGISTRY_DOMAIN,
+        PURPOSE_BOND_RELEASE,
+        expected_boot_node_chain_id,
+        now_unix,
+    )
+}
+
+// ---------------------------------------------------------------------------
+// Boot-node enrollment (DEC-2 / 2d.2): SDK-core-bound signed challenge.
+//
+// Binding rule (DEC-2): the enrollment binds the NEW boot-node key to a specific
+// operator AND a nonce/expiry, and the root owner's approval is cryptographically
+// bound to that exact challenge (approval-to-key binding). Replay is prevented by
+// durable atomic nonce consumption supplied by the host (the core stays pure).
+// ---------------------------------------------------------------------------
+
+/// Canonical operator claim carried inside the boot-node enrollment challenge. The
+/// `operator` is bound to the challenge signature so a different operator cannot
+/// replay or substitute it; `claims` carries opaque operator-specific bytes.
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+pub struct BootnodeEnrollClaim {
+    pub operator: String,
+    pub claims: Vec<u8>,
+}
+
+/// An approved boot-node enrollment: a challenge signed by the NEW boot-node key,
+/// countersigned (approved) by the root owner. The approval's payload is the exact
+/// base64 `envelope` string of the challenge, so the root's approval is bound to that
+/// specific challenge — this is the "approval-to-key binding".
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct BootnodeEnrollment {
+    pub challenge: SignedMessageEnvelope,
+    pub approval: SignedMessageEnvelope,
+}
+
+/// Durable atomic nonce-consumption store. The verification core is pure and never
+/// persists; the host (Go/TS) supplies an implementation that durably records consumed
+/// enrollment nonces so a verified enrollment cannot be replayed after expiry.
+pub trait NonceStore {
+    /// Mark `nonce` consumed. Returns `Ok(())` on first use, or `Err` if the nonce was
+    /// already consumed (replay) or the store is unavailable. Implementations MUST make
+    /// this atomic with respect to concurrent verifications.
+    fn consume(&mut self, nonce: &str) -> Result<()>;
+}
+
+/// In-memory `NonceStore` for tests and single-process hosts. For multi-process
+/// durability, implement `NonceStore` against the host's persistent store.
+#[derive(Default)]
+pub struct MemoryNonceStore {
+    used: std::collections::HashSet<String>,
+}
+
+impl MemoryNonceStore {
+    pub fn new() -> Self {
+        Self::default()
+    }
+    pub fn with_used(used: impl IntoIterator<Item = String>) -> Self {
+        Self {
+            used: used.into_iter().collect(),
+        }
+    }
+    /// Snapshot of consumed nonces (for hosts that persist the set durably).
+    pub fn used(&self) -> impl Iterator<Item = &String> {
+        self.used.iter()
+    }
+    /// Whether `nonce` has already been consumed. Exposed for tests that assert a
+    /// failed verification did NOT consume a nonce.
+    pub fn contains(&self, nonce: &str) -> bool {
+        self.used.contains(nonce)
+    }
+}
+
+impl NonceStore for MemoryNonceStore {
+    fn consume(&mut self, nonce: &str) -> Result<()> {
+        if !self.used.insert(nonce.to_string()) {
+            return Err(Error::Validation(
+                "enrollment nonce already consumed (possible replay)".into(),
+            ));
+        }
+        Ok(())
+    }
+}
+
+/// The NEW boot-node key signs a challenge (domain `knirv.authority`, purpose
+/// `bootnode-enroll`) carrying a canonical `operator` claim and opaque `claims`. The
+/// operator is bound into the signed payload, so an enrollment cannot be reused under a
+/// different operator. Returns the signed challenge.
+pub fn sign_bootnode_enroll_challenge(
+    boot_node_key: &[u8; 32],
+    chain_id: &str,
+    nonce: &str,
+    issued_at_unix: u64,
+    expires_at_unix: u64,
+    operator: &str,
+    claims: &[u8],
+) -> Result<SignedMessageEnvelope> {
+    let claim = BootnodeEnrollClaim {
+        operator: operator.to_string(),
+        claims: claims.to_vec(),
+    };
+    let payload = serde_json::to_vec(&claim)?;
+    let envelope = MessageEnvelope {
+        schema_version: Some(MESSAGE_SCHEMA_VERSION.into()),
+        domain: AUTHORITY_DOMAIN.into(),
+        purpose: PURPOSE_BOOTNODE_ENROLL.into(),
+        chain_id: chain_id.into(),
+        nonce: nonce.into(),
+        issued_at_unix,
+        expires_at_unix,
+        payload: Some(payload),
+    };
+    sign_message_envelope(boot_node_key, &envelope)
+}
+
+/// The root owner countersigns (approves) a boot-node challenge. The signed approval
+/// envelope's payload is the exact base64 `envelope` string of the challenge, binding
+/// the approval to that challenge (approval-to-key binding).
+pub fn sign_bootnode_enroll_approval(
+    root_key: &[u8; 32],
+    chain_id: &str,
+    nonce: &str,
+    issued_at_unix: u64,
+    expires_at_unix: u64,
+    challenge_envelope_b64: &str,
+) -> Result<SignedMessageEnvelope> {
+    let envelope = MessageEnvelope {
+        schema_version: Some(MESSAGE_SCHEMA_VERSION.into()),
+        domain: AUTHORITY_DOMAIN.into(),
+        purpose: PURPOSE_BOOTNODE_ENROLL.into(),
+        chain_id: chain_id.into(),
+        nonce: nonce.into(),
+        issued_at_unix,
+        expires_at_unix,
+        payload: Some(challenge_envelope_b64.as_bytes().to_vec()),
+    };
+    sign_message_envelope(root_key, &envelope)
+}
+
+/// Verify an approved boot-node enrollment.
+///
+/// Checks:
+///   * the challenge is a valid `knirv.authority`/`bootnode-enroll` envelope (signed by
+///     the new boot-node key) within its validity window;
+///   * the canonical operator claim inside the challenge equals `expected_operator`
+///     (operator-to-key binding — DEC-2);
+///   * the enrollment `nonce` is atomically consumed via `nonce_store` (replay
+///     prevention); the host persists consumed nonces durably across calls;
+///   * the approval is a valid `knirv.authority`/`bootnode-enroll` envelope signed by
+///     `expected_root_public_key_b64` whose payload is EXACTLY the challenge's base64
+///     envelope string (the approval-to-key binding), on the same chain;
+///   * the approval has not expired.
+///
+/// `expected_root_public_key_b64` MUST come from trusted configuration — never from the
+/// request. `now_unix` is the verification time (seconds).
+pub fn verify_bootnode_enrollment(
+    enrollment: &BootnodeEnrollment,
+    expected_root_public_key_b64: &str,
+    expected_operator: &str,
+    nonce_store: &mut dyn NonceStore,
+    now_unix: u64,
+) -> Result<()> {
+    let challenge_env = BASE64
+        .decode(&enrollment.challenge.envelope)
+        .map_err(|e| Error::Validation(format!("decode challenge envelope: {e}")))?;
+    let challenge = parse_message_envelope(&challenge_env)?;
+    verify_message(
+        &enrollment.challenge,
+        AUTHORITY_DOMAIN,
+        PURPOSE_BOOTNODE_ENROLL,
+        &challenge.chain_id,
+        &challenge.nonce,
+        now_unix,
+    )?;
+    // The operator claim is bound into the signed challenge payload; a substituted or
+    // mismatched operator fails verification (operator-to-key binding, DEC-2).
+    let claim = serde_json::from_slice::<BootnodeEnrollClaim>(&challenge.payload)
+        .map_err(|e| Error::Validation(format!("parse bootnode enroll claim: {e}")))?;
+    if claim.operator != expected_operator {
+        return Err(Error::Validation(
+            "enrollment operator does not match the approved operator".into(),
+        ));
+    }
+    // The approval must be signed by the expected root key and carry the exact
+    // challenge envelope bytes as its payload (approval-to-key binding).
+    if enrollment.approval.public_key != expected_root_public_key_b64 {
+        return Err(Error::Validation(
+            "enrollment approval not signed by the trusted root key".into(),
+        ));
+    }
+    verify_message_payload(
+        &enrollment.approval,
+        AUTHORITY_DOMAIN,
+        PURPOSE_BOOTNODE_ENROLL,
+        &challenge.chain_id,
+        enrollment.challenge.envelope.as_bytes(),
+        now_unix,
+    )?;
+    // Authenticate the full approval→challenge→root binding BEFORE touching the
+    // nonce store. Only then consume atomically, so a bad/untrusted approval can
+    // never burn the nonce and DoS the valid one (replay-safety, DEC-2).
+    nonce_store.consume(&challenge.nonce)?;
+    Ok(())
+}
+
+/// Verify a boot-node enrollment and return the consumed challenge nonce WITHOUT
+/// mutating any store. Hosts (Go/TS) performing durable replay prevention call
+/// this to authenticate, then persist the returned nonce through their own atomic
+/// `consume-if-absent` store. This keeps the cryptographic verification pure and
+/// lets the host own durable state.
+pub fn verify_bootnode_enrollment_auth(
+    enrollment: &BootnodeEnrollment,
+    expected_root_public_key_b64: &str,
+    expected_operator: &str,
+    now_unix: u64,
+) -> Result<String> {
+    let mut sink = NullNonceStore;
+    verify_bootnode_enrollment(
+        enrollment,
+        expected_root_public_key_b64,
+        expected_operator,
+        &mut sink,
+        now_unix,
+    )?;
+    let challenge_env = BASE64
+        .decode(&enrollment.challenge.envelope)
+        .map_err(|e| Error::Validation(format!("decode challenge envelope: {e}")))?;
+    let challenge = parse_message_envelope(&challenge_env)?;
+    Ok(challenge.nonce)
+}
+
+/// A `NonceStore` that records nothing; used by `verify_bootnode_enrollment_auth`
+/// to authenticate without consuming.
+struct NullNonceStore;
+impl NonceStore for NullNonceStore {
+    fn consume(&mut self, _nonce: &str) -> Result<()> {
+        Ok(())
+    }
+}
+
 pub fn parse_message_envelope(data: &[u8]) -> Result<ParsedMessageEnvelope> {
     let mut out = ParsedMessageEnvelope {
         schema_version: String::new(),
@@ -1328,7 +1864,261 @@ fn verify_digest(public_key: &[u8], signature: &[u8], digest: &[u8]) -> Result<(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use bech32::{encode as b32_encode, Bech32, Hrp};
     use serde_json::Value;
+
+    fn test_key() -> [u8; 32] {
+        // Deterministic key for tests only.
+        [
+            0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee,
+            0xff, 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c,
+            0x0d, 0x0e, 0x0f, 0x10,
+        ]
+    }
+
+    use k256::ecdsa::SigningKey;
+
+    /// Derive the signer's base64 compressed public key and `knirv` address from a
+    /// 32-byte secret, mirroring what the verifier recovers from the envelope.
+    fn signer_identity(key: &[u8; 32]) -> (String, String) {
+        let sk = SigningKey::from_bytes(key.as_slice().into()).unwrap();
+        let pk = sk.verifying_key().to_encoded_point(true);
+        let pk_b64 = BASE64.encode(pk.as_bytes());
+        let addr = knirv_address(pk.as_bytes()).unwrap();
+        (pk_b64, addr)
+    }
+
+    const ROOT_ID: &str = "chain-abc";
+
+    #[test]
+    fn registry_record_sign_verify_roundtrip() {
+        let key = test_key();
+        let (pk_b64, addr) = signer_identity(&key);
+        let record = RegistryRecord {
+            chain_id: ROOT_ID.into(),
+            tx_chain_address: addr.clone(),
+            owner_pub_key: pk_b64,
+            nonce: 7,
+            expires_at_unix: 1_700_000_000 + 600,
+        };
+        let signed = sign_registry_record(&key, ROOT_ID, &record, 1_700_000_000).expect("sign");
+        let verified = verify_registry_record(&signed, &addr, ROOT_ID, 1_700_000_000).expect("verify");
+        assert_eq!(verified, record);
+    }
+
+    #[test]
+    fn registry_record_wrong_chain_id_rejected() {
+        let key = test_key();
+        let (pk_b64, addr) = signer_identity(&key);
+        let record = RegistryRecord {
+            chain_id: ROOT_ID.into(),
+            tx_chain_address: addr.clone(),
+            owner_pub_key: pk_b64,
+            nonce: 1,
+            expires_at_unix: 1_700_000_000 + 600,
+        };
+        let signed = sign_registry_record(&key, ROOT_ID, &record, 1_700_000_000).unwrap();
+        // Requester expects a different (immutable) root registry id: must be denied.
+        assert!(verify_registry_record(&signed, &addr, "chain-other", 1_700_000_000).is_err());
+    }
+
+    #[test]
+    fn registry_record_tampered_payload_rejected() {
+        let key = test_key();
+        let (pk_b64, addr) = signer_identity(&key);
+        let record = RegistryRecord {
+            chain_id: ROOT_ID.into(),
+            tx_chain_address: addr.clone(),
+            owner_pub_key: pk_b64,
+            nonce: 1,
+            expires_at_unix: 1_700_000_000 + 600,
+        };
+        let mut signed = sign_registry_record(&key, ROOT_ID, &record, 1_700_000_000).unwrap();
+        // Flip a byte in the encoded envelope -> signature mismatch.
+        let mut bytes = BASE64.decode(&signed.envelope).unwrap();
+        let idx = bytes.len() - 1;
+        bytes[idx] ^= 0xff;
+        signed.envelope = BASE64.encode(bytes);
+        assert!(verify_registry_record(&signed, &addr, ROOT_ID, 1_700_000_000).is_err());
+    }
+
+    #[test]
+    fn registry_record_owner_pub_key_mismatch_rejected() {
+        let key = test_key();
+        let (_pk_b64, addr) = signer_identity(&key);
+        // Claim an owner that is not the signing key inside the signed record.
+        let record = RegistryRecord {
+            chain_id: ROOT_ID.into(),
+            tx_chain_address: addr.clone(),
+            owner_pub_key: "BASE64NOTTHEOWNER".into(),
+            nonce: 1,
+            expires_at_unix: 1_700_000_000 + 600,
+        };
+        let signed = sign_registry_record(&key, ROOT_ID, &record, 1_700_000_000).unwrap();
+        assert!(verify_registry_record(&signed, &addr, ROOT_ID, 1_700_000_000).is_err());
+    }
+
+    #[test]
+    fn registry_record_wrong_root_address_rejected() {
+        let key = test_key();
+        let (pk_b64, addr) = signer_identity(&key);
+        let record = RegistryRecord {
+            chain_id: ROOT_ID.into(),
+            tx_chain_address: addr.clone(),
+            owner_pub_key: pk_b64,
+            nonce: 1,
+            expires_at_unix: 1_700_000_000 + 600,
+        };
+        let signed = sign_registry_record(&key, ROOT_ID, &record, 1_700_000_000).unwrap();
+        // Verifier trusts a different root identity than the signer.
+        assert!(verify_registry_record(&signed, "knirv1someotherroot", ROOT_ID, 1_700_000_000).is_err());
+    }
+
+    #[test]
+    fn registry_record_address_must_be_valid_knirv_bech32() {
+        let key = test_key();
+        let (pk_b64, addr) = signer_identity(&key);
+
+        // A real derived `knirv` address is accepted.
+        let good = RegistryRecord {
+            chain_id: ROOT_ID.into(),
+            tx_chain_address: addr.clone(),
+            owner_pub_key: pk_b64.clone(),
+            nonce: 1,
+            expires_at_unix: 1_700_000_000 + 600,
+        };
+        let signed = sign_registry_record(&key, ROOT_ID, &good, 1_700_000_000).unwrap();
+        assert!(verify_registry_record(&signed, &addr, ROOT_ID, 1_700_000_000).is_ok());
+
+        // Not bech32 at all.
+        let not_bech32 = RegistryRecord {
+            chain_id: ROOT_ID.into(),
+            tx_chain_address: "0xabc123".into(),
+            owner_pub_key: pk_b64.clone(),
+            nonce: 1,
+            expires_at_unix: 1_700_000_000 + 600,
+        };
+        let signed = sign_registry_record(&key, ROOT_ID, &not_bech32, 1_700_000_000).unwrap();
+        assert!(verify_registry_record(&signed, &addr, ROOT_ID, 1_700_000_000).is_err());
+
+        // Wrong HRP (a valid bech32, but not `knirv`).
+        let wrong_hrp = b32_encode::<Bech32>(Hrp::parse("cosmos").unwrap(), &[0u8; 20]).unwrap();
+        let wrong_hrp_rec = RegistryRecord {
+            chain_id: ROOT_ID.into(),
+            tx_chain_address: wrong_hrp,
+            owner_pub_key: pk_b64.clone(),
+            nonce: 1,
+            expires_at_unix: 1_700_000_000 + 600,
+        };
+        let signed = sign_registry_record(&key, ROOT_ID, &wrong_hrp_rec, 1_700_000_000).unwrap();
+        assert!(verify_registry_record(&signed, &addr, ROOT_ID, 1_700_000_000).is_err());
+
+        // Wrong payload length (valid bech32, but 19 bytes, not 20).
+        let wrong_len = b32_encode::<Bech32>(Hrp::parse("knirv").unwrap(), &[0u8; 19]).unwrap();
+        let wrong_len_rec = RegistryRecord {
+            chain_id: ROOT_ID.into(),
+            tx_chain_address: wrong_len,
+            owner_pub_key: pk_b64.clone(),
+            nonce: 1,
+            expires_at_unix: 1_700_000_000 + 600,
+        };
+        let signed = sign_registry_record(&key, ROOT_ID, &wrong_len_rec, 1_700_000_000).unwrap();
+        assert!(verify_registry_record(&signed, &addr, ROOT_ID, 1_700_000_000).is_err());
+
+        // Bad checksum: flip the last character of a valid address.
+        let mut corrupted = addr.clone();
+        let last = corrupted.pop().unwrap();
+        let replacement = if last == '0' { '1' } else { '0' };
+        corrupted.push(replacement);
+        let bad_checksum = RegistryRecord {
+            chain_id: ROOT_ID.into(),
+            tx_chain_address: corrupted,
+            owner_pub_key: pk_b64.clone(),
+            nonce: 1,
+            expires_at_unix: 1_700_000_000 + 600,
+        };
+        let signed = sign_registry_record(&key, ROOT_ID, &bad_checksum, 1_700_000_000).unwrap();
+        assert!(verify_registry_record(&signed, &addr, ROOT_ID, 1_700_000_000).is_err());
+
+        // Mixed case is not valid bech32.
+        let mut mixed = addr.clone();
+        if let Some(ch) = mixed.get_mut(6..7) {
+            ch.make_ascii_uppercase();
+        }
+        let mixed_rec = RegistryRecord {
+            chain_id: ROOT_ID.into(),
+            tx_chain_address: mixed,
+            owner_pub_key: pk_b64.clone(),
+            nonce: 1,
+            expires_at_unix: 1_700_000_000 + 600,
+        };
+        let signed = sign_registry_record(&key, ROOT_ID, &mixed_rec, 1_700_000_000).unwrap();
+        assert!(verify_registry_record(&signed, &addr, ROOT_ID, 1_700_000_000).is_err());
+    }
+
+    #[test]
+    fn registry_record_overlong_ttl_rejected() {
+        let key = test_key();
+        let (pk_b64, addr) = signer_identity(&key);
+        let record = RegistryRecord {
+            chain_id: ROOT_ID.into(),
+            tx_chain_address: addr.clone(),
+            owner_pub_key: pk_b64,
+            nonce: 1,
+            expires_at_unix: 1_700_000_000 + REGISTRY_RECORD_MAX_TTL_SECONDS + 1,
+        };
+        let signed = sign_registry_record(&key, ROOT_ID, &record, 1_700_000_000).unwrap();
+        assert!(verify_registry_record(&signed, &addr, ROOT_ID, 1_700_000_000).is_err());
+    }
+
+    #[test]
+    fn registry_record_max_ttl_accepted() {
+        let key = test_key();
+        let (pk_b64, addr) = signer_identity(&key);
+        let record = RegistryRecord {
+            chain_id: ROOT_ID.into(),
+            tx_chain_address: addr.clone(),
+            owner_pub_key: pk_b64,
+            nonce: 1,
+            expires_at_unix: 1_700_000_000 + REGISTRY_RECORD_MAX_TTL_SECONDS,
+        };
+        let signed = sign_registry_record(&key, ROOT_ID, &record, 1_700_000_000).unwrap();
+        assert!(verify_registry_record(&signed, &addr, ROOT_ID, 1_700_000_000).is_ok());
+    }
+
+    #[test]
+    fn bond_hold_sign_verify_roundtrip_and_bound_to_root() {
+        let key = test_key();
+        let hold = BondHold {
+            hold_id: "hold-1".into(),
+            operator: "knirv1operator".into(),
+            amount: "1000".into(),
+            root_registry_id: "root-reg-xyz".into(),
+            expires_at_unix: 1_700_000_000 + 600,
+        };
+        let signed = sign_bond_hold(&key, "root-reg-xyz", &hold, 1_700_000_000).unwrap();
+        let verified =
+            verify_bond_hold(&signed, "root-reg-xyz", 1_700_000_000).expect("verify");
+        assert_eq!(verified, hold);
+        // Bound to a different root registry id -> denied.
+        assert!(verify_bond_hold(&signed, "root-reg-other", 1_700_000_000).is_err());
+    }
+
+    #[test]
+    fn bond_release_sign_verify_roundtrip_and_bound_to_boot_node() {
+        let key = test_key();
+        let release = BondRelease {
+            hold_id: "hold-1".into(),
+            boot_node_chain_id: "boot-chain-9".into(),
+            boot_node_address: "knirv1boot".into(),
+        };
+        let signed = sign_bond_release(&key, "boot-chain-9", &release, 1_700_000_000).unwrap();
+        let verified = verify_bond_release(&signed, "boot-chain-9", 1_700_000_000).unwrap();
+        assert_eq!(verified, release);
+        assert!(
+            verify_bond_release(&signed, "boot-chain-other", 1_700_000_000).is_err()
+        );
+    }
 
     #[test]
     fn scene_manifest_matches_shared_cross_language_golden_vector() {
@@ -1591,6 +2381,213 @@ mod tests {
             relay.issued_at_unix,
         )
         .unwrap();
+    }
+
+    // --- Boot-node enrollment (DEC-2 / 2d.2) ---
+
+    fn enroll_keys() -> ([u8; 32], [u8; 32]) {
+        let boot = test_key();
+        let mut root = [0u8; 32];
+        root[0] = 0x02; // distinct, valid secp256k1 scalar
+        (boot, root)
+    }
+
+    #[test]
+    fn bootnode_enrollment_roundtrip() {
+        let (boot_key, root_key) = enroll_keys();
+        let (root_pk, _) = signer_identity(&root_key);
+        let now = 1_700_000_000u64;
+        let challenge = sign_bootnode_enroll_challenge(
+            &boot_key,
+            ROOT_ID,
+            "enroll:1",
+            now,
+            now + 600,
+            "operator:alice",
+            b"boot-node-claims",
+        )
+        .expect("challenge");
+        let approval = sign_bootnode_enroll_approval(
+            &root_key,
+            ROOT_ID,
+            "enroll:1",
+            now,
+            now + 600,
+            &challenge.envelope,
+        )
+        .expect("approval");
+        let enrollment = BootnodeEnrollment { challenge, approval };
+        let mut store = MemoryNonceStore::new();
+        verify_bootnode_enrollment(&enrollment, &root_pk, "operator:alice", &mut store, now)
+            .expect("verify");
+    }
+
+    #[test]
+    fn bootnode_enrollment_wrong_root_rejected() {
+        let (boot_key, root_key) = enroll_keys();
+        let mut other_root = [0u8; 32];
+        other_root[0] = 0x03; // a different, valid root key
+        let (other_root_pk, _) = signer_identity(&other_root);
+        let now = 1_700_000_000u64;
+        let challenge = sign_bootnode_enroll_challenge(
+            &boot_key,
+            ROOT_ID,
+            "enroll:1",
+            now,
+            now + 600,
+            "operator:alice",
+            b"x",
+        )
+        .unwrap();
+        let approval =
+            sign_bootnode_enroll_approval(&root_key, ROOT_ID, "enroll:1", now, now + 600, &challenge.envelope)
+                .unwrap();
+        let enrollment = BootnodeEnrollment { challenge, approval };
+        let mut store = MemoryNonceStore::new();
+        // Approval signed by an untrusted root key must be rejected.
+        assert!(verify_bootnode_enrollment(&enrollment, &other_root_pk, "operator:alice", &mut store, now).is_err());
+    }
+
+    #[test]
+    fn bootnode_enrollment_tampered_challenge_rejected() {
+        let (boot_key, root_key) = enroll_keys();
+        let (root_pk, _) = signer_identity(&root_key);
+        let now = 1_700_000_000u64;
+        let challenge = sign_bootnode_enroll_challenge(
+            &boot_key,
+            ROOT_ID,
+            "enroll:1",
+            now,
+            now + 600,
+            "operator:alice",
+            b"x",
+        )
+        .unwrap();
+        // Root approves a DIFFERENT challenge string -> the approval-to-key binding must fail.
+        let approval = sign_bootnode_enroll_approval(
+            &root_key,
+            ROOT_ID,
+            "enroll:1",
+            now,
+            now + 600,
+            "tampered-challenge-envelope",
+        )
+        .unwrap();
+        let enrollment = BootnodeEnrollment { challenge, approval };
+        let mut store = MemoryNonceStore::new();
+        assert!(verify_bootnode_enrollment(&enrollment, &root_pk, "operator:alice", &mut store, now).is_err());
+    }
+
+    #[test]
+    fn bootnode_enrollment_wrong_operator_rejected() {
+        let (boot_key, root_key) = enroll_keys();
+        let (root_pk, _) = signer_identity(&root_key);
+        let now = 1_700_000_000u64;
+        // Challenge is signed for operator:alice.
+        let challenge = sign_bootnode_enroll_challenge(
+            &boot_key,
+            ROOT_ID,
+            "enroll:1",
+            now,
+            now + 600,
+            "operator:alice",
+            b"x",
+        )
+        .unwrap();
+        let approval = sign_bootnode_enroll_approval(
+            &root_key,
+            ROOT_ID,
+            "enroll:1",
+            now,
+            now + 600,
+            &challenge.envelope,
+        )
+        .unwrap();
+        let enrollment = BootnodeEnrollment { challenge, approval };
+        let mut store = MemoryNonceStore::new();
+        // Verifier expects operator:bob -> operator binding must fail.
+        assert!(verify_bootnode_enrollment(&enrollment, &root_pk, "operator:bob", &mut store, now).is_err());
+    }
+
+    #[test]
+    fn bootnode_enrollment_replay_rejected() {
+        let (boot_key, root_key) = enroll_keys();
+        let (root_pk, _) = signer_identity(&root_key);
+        let now = 1_700_000_000u64;
+        let challenge = sign_bootnode_enroll_challenge(
+            &boot_key,
+            ROOT_ID,
+            "enroll:1",
+            now,
+            now + 600,
+            "operator:alice",
+            b"x",
+        )
+        .unwrap();
+        let approval = sign_bootnode_enroll_approval(
+            &root_key,
+            ROOT_ID,
+            "enroll:1",
+            now,
+            now + 600,
+            &challenge.envelope,
+        )
+        .unwrap();
+        let enrollment = BootnodeEnrollment { challenge, approval };
+        let mut store = MemoryNonceStore::new();
+        // First verification consumes the nonce and succeeds.
+        verify_bootnode_enrollment(&enrollment, &root_pk, "operator:alice", &mut store, now)
+            .expect("first verify");
+        // Replaying the same enrollment (same nonce) must be rejected.
+        assert!(verify_bootnode_enrollment(&enrollment, &root_pk, "operator:alice", &mut store, now).is_err());
+    }
+
+    #[test]
+    fn bootnode_enrollment_invalid_approval_does_not_consume_nonce() {
+        let (boot_key, root_key) = enroll_keys();
+        let mut other_root = [0u8; 32];
+        other_root[0] = 0x03; // a different, valid (but untrusted) root key
+        let (other_root_pk, _) = signer_identity(&other_root);
+        let (root_pk, _) = signer_identity(&root_key);
+        let now = 1_700_000_000u64;
+        let challenge = sign_bootnode_enroll_challenge(
+            &boot_key,
+            ROOT_ID,
+            "enroll:1",
+            now,
+            now + 600,
+            "operator:alice",
+            b"x",
+        )
+        .unwrap();
+        let approval =
+            sign_bootnode_enroll_approval(&root_key, ROOT_ID, "enroll:1", now, now + 600, &challenge.envelope)
+                .unwrap();
+        let challenge_env = challenge.envelope.clone();
+        let enrollment = BootnodeEnrollment { challenge, approval };
+        let mut store = MemoryNonceStore::new();
+        // A bad approval (signed by an untrusted root) is rejected BEFORE the nonce is
+        // touched, so a later valid approval with the same nonce can still succeed.
+        assert!(verify_bootnode_enrollment(&enrollment, &other_root_pk, "operator:alice", &mut store, now).is_err());
+        assert!(!store.contains("enroll:1"), "invalid approval must not consume the nonce");
+
+        // The same nonce is therefore still consumable by a valid enrollment.
+        let valid = BootnodeEnrollment {
+            challenge: sign_bootnode_enroll_challenge(
+                &boot_key,
+                ROOT_ID,
+                "enroll:1",
+                now,
+                now + 600,
+                "operator:alice",
+                b"x",
+            )
+            .unwrap(),
+            approval: sign_bootnode_enroll_approval(&root_key, ROOT_ID, "enroll:1", now, now + 600, &challenge_env)
+                .unwrap(),
+        };
+        verify_bootnode_enrollment(&valid, &root_pk, "operator:alice", &mut store, now)
+            .expect("valid enrollment must still verify after a prior invalid one");
     }
 }
 

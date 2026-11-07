@@ -83,3 +83,25 @@ assert.equal(m2.manifestId, "m"); assert.equal(m2.leaseEpoch, 4n); assert.equal(
 assert.throws(() => marshalWasmManifestPayload({ ...manifest, modules: [] }), /module/);
 
 console.log("signing wrappers: all checks passed");
+
+// Boot-node enrollment vectors (DEC-2 / 2d.2) — run against the rebuilt WASM core.
+import { runBootnodeEnrollmentVectors } from "../enrollment.test.js";
+import { runNonceStoreTests } from "../nonceStore.test.js";
+
+const nonce = await runNonceStoreTests();
+if (nonce.skipped) {
+  console.log(`enrollment nonce-store (TS): SKIPPED — ${nonce.reason}`);
+} else if (!nonce.passed) {
+  throw new Error(`enrollment nonce-store (TS) FAILED: ${nonce.reason}`);
+} else {
+  console.log("enrollment nonce-store (TS): all checks passed");
+}
+
+const enr = await runBootnodeEnrollmentVectors();
+if (enr.skipped) {
+  console.log(`bootnode enrollment vectors (TS): SKIPPED — ${enr.reason}`);
+} else if (!enr.passed) {
+  throw new Error(`bootnode enrollment vectors (TS) FAILED: ${enr.reason}`);
+} else {
+  console.log("bootnode enrollment vectors (TS): all checks passed");
+}

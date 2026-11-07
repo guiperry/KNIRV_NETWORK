@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"sync"
@@ -52,45 +53,115 @@ func Open(path string) (*Log, error) {
 	return &Log{path: path, file: file, records: records, lastHash: lastHash}, nil
 }
 
+// readRecords rebuilds the committed record list from the log file. It tolerates
+// a crashed/incomplete TRAILING line (a truncated final batch from a crash) by
+// dropping it deterministically, so replay never fails the whole log; but it
+// still rejects tampering/truncation of any verifiable record (a hash or checksum
+// mismatch is never silently ignored).
 func readRecords(path string) ([]Record, string, error) {
 	file, err := os.Open(path)
-	if os.IsNotExist(err) {
-		return nil, "", nil
-	}
 	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, "", nil
+		}
 		return nil, "", fmt.Errorf("ledger: read %s: %w", path, err)
 	}
 	defer file.Close()
 
-	var records []Record
-	last := ""
+	// Read every line up front so we can tell whether a malformed line is the
+	// trailing (crash) tail or a committed record in the middle of the log.
+	var lines [][]byte
 	scanner := bufio.NewScanner(file)
 	scanner.Buffer(make([]byte, 0, 64*1024), 4*1024*1024)
-	line := 0
 	for scanner.Scan() {
-		line++
 		raw := scanner.Bytes()
 		if len(raw) == 0 {
 			continue
 		}
-		var r Record
-		if err := json.Unmarshal(raw, &r); err != nil {
-			return nil, "", fmt.Errorf("ledger: %s line %d: %w", path, line, err)
-		}
-		want := hashRecord(r.Seq, r.Kind, r.Payload, r.PrevHash)
-		if r.Hash != want {
-			return nil, "", fmt.Errorf("ledger: %s line %d: hash mismatch (record altered or truncated)", path, line)
-		}
-		if r.Seq != uint64(len(records))+1 || r.PrevHash != last {
-			return nil, "", fmt.Errorf("ledger: %s line %d: broken chain (seq %d, prev %q)", path, line, r.Seq, r.PrevHash)
-		}
-		records = append(records, r)
-		last = r.Hash
+		cp := make([]byte, len(raw))
+		copy(cp, raw)
+		lines = append(lines, cp)
 	}
 	if err := scanner.Err(); err != nil {
 		return nil, "", fmt.Errorf("ledger: scan %s: %w", path, err)
 	}
+
+	records := make([]Record, 0, len(lines))
+	last := ""
+	for idx, raw := range lines {
+		recs, newLast, parseErr, valErr := parseLine(raw, last, uint64(len(records))+1)
+		if parseErr != nil {
+			// The line could not be decoded at all. A corrupt or truncated TRAILING
+			// line is an incomplete crash tail and is dropped; anything else is fatal.
+			if idx == len(lines)-1 {
+				break
+			}
+			return nil, "", fmt.Errorf("ledger: %s line %d: %w", path, idx+1, parseErr)
+		}
+		if valErr != nil {
+			// Decoded but failed integrity (hash/checksum/chain): never silently
+			// dropped — reject so tampering is not hidden.
+			return nil, "", fmt.Errorf("ledger: %s line %d: %w", path, idx+1, valErr)
+		}
+		records = append(records, recs...)
+		last = newLast
+	}
 	return records, last, nil
+}
+
+// parseLine decodes one log line, which is either a single Record or a
+// crash-atomic BatchFrame (one JSON line holding a whole batch + checksum). It
+// returns the expanded records, the new head hash, and either a parse error
+// (could not decode) or a validation error (decoded but failed integrity).
+func parseLine(raw []byte, last string, startSeq uint64) (recs []Record, newLast string, parseErr, valErr error) {
+	var r Record
+	if err := json.Unmarshal(raw, &r); err != nil {
+		var f BatchFrame
+		if ferr := json.Unmarshal(raw, &f); ferr != nil {
+			return nil, "", err, nil
+		}
+		recs, newLast, valErr = parseFrame(f, last, startSeq)
+		return recs, newLast, nil, valErr
+	}
+	if r.Kind == "" {
+		var f BatchFrame
+		if ferr := json.Unmarshal(raw, &f); ferr != nil {
+			return nil, "", fmt.Errorf("ledger: empty record kind"), nil
+		}
+		recs, newLast, valErr = parseFrame(f, last, startSeq)
+		return recs, newLast, nil, valErr
+	}
+	if r.Hash != hashRecord(r.Seq, r.Kind, r.Payload, r.PrevHash) {
+		return nil, "", nil, fmt.Errorf("hash mismatch (record altered or truncated)")
+	}
+	if r.Seq != startSeq || r.PrevHash != last {
+		return nil, "", nil, fmt.Errorf("broken chain (seq %d, prev %q)", r.Seq, r.PrevHash)
+	}
+	return []Record{r}, r.Hash, nil, nil
+}
+
+// parseFrame validates and expands a BatchFrame: it verifies the batch checksum,
+// then each inner record's hash-chain link against the running chain, so a batch
+// is only ever applied whole.
+func parseFrame(f BatchFrame, last string, startSeq uint64) ([]Record, string, error) {
+	if f.Checksum != checksumRecords(f.Records) {
+		return nil, "", fmt.Errorf("batch checksum mismatch")
+	}
+	cur := last
+	seq := startSeq
+	out := make([]Record, 0, len(f.Records))
+	for _, rec := range f.Records {
+		if rec.Hash != hashRecord(rec.Seq, rec.Kind, rec.Payload, rec.PrevHash) {
+			return nil, "", fmt.Errorf("batch record hash mismatch")
+		}
+		if rec.Seq != seq || rec.PrevHash != cur {
+			return nil, "", fmt.Errorf("batch broken chain (seq %d, prev %q)", rec.Seq, rec.PrevHash)
+		}
+		out = append(out, rec)
+		cur = rec.Hash
+		seq++
+	}
+	return out, cur, nil
 }
 
 // Append writes and fsyncs one record. The caller applies it to the read model
@@ -112,7 +183,7 @@ func (l *Log) Append(kind string, payload any) (Record, error) {
 	if err != nil {
 		return Record{}, fmt.Errorf("ledger: encode record: %w", err)
 	}
-	if _, err := l.file.Write(append(line, '\n')); err != nil {
+	if err := writeAll(l.file, append(line, '\n')); err != nil {
 		return Record{}, fmt.Errorf("ledger: append: %w", err)
 	}
 	if err := l.file.Sync(); err != nil {
@@ -124,7 +195,100 @@ func (l *Log) Append(kind string, payload any) (Record, error) {
 	return record, nil
 }
 
-// ValidateRecord verifies the sequence and hash-chain fields of a record
+// AppendBatch writes and fsyncs several records as ONE crash-atomic batch: the
+// whole batch is framed into a single JSON line (records + checksum) and a single
+// write+fsync commits it. A crash mid-write leaves a truncated trailing line,
+// which replay detects and ignores (never failing the whole replay). The caller
+// applies the returned records to its read model only after AppendBatch returns.
+// The hash chain is extended sequentially across the batch.
+func (l *Log) AppendBatch(entries []BatchEntry) ([]Record, error) {
+	if len(entries) == 0 {
+		return nil, nil
+	}
+	bodies := make([][]byte, len(entries))
+	for i, e := range entries {
+		body, err := json.Marshal(e.Payload)
+		if err != nil {
+			return nil, fmt.Errorf("ledger: encode %s: %w", e.Kind, err)
+		}
+		bodies[i] = body
+	}
+
+	l.mu.Lock()
+	defer l.mu.Unlock()
+
+	seq := uint64(len(l.records)) + 1
+	prev := l.lastHash
+	inner := make([]Record, 0, len(entries))
+	for i, e := range entries {
+		h := hashRecord(seq, e.Kind, bodies[i], prev)
+		inner = append(inner, Record{Seq: seq, Kind: e.Kind, Payload: bodies[i], PrevHash: prev, Hash: h})
+		prev = h
+		seq++
+	}
+	// Frame the whole batch into one line so a partial write is detectable as an
+	// incomplete trailing record rather than interleaved with committed data.
+	frame := BatchFrame{Records: inner, Checksum: checksumRecords(inner)}
+	buf, err := json.Marshal(frame)
+	if err != nil {
+		return nil, fmt.Errorf("ledger: encode batch frame: %w", err)
+	}
+	buf = append(buf, '\n')
+	if err := writeAll(l.file, buf); err != nil {
+		return nil, fmt.Errorf("ledger: append batch: %w", err)
+	}
+	if err := l.file.Sync(); err != nil {
+		return nil, fmt.Errorf("ledger: fsync batch: %w", err)
+	}
+	// Advance the in-memory view only after the batch is durable.
+	l.records = append(l.records, inner...)
+	l.lastHash = prev
+	return inner, nil
+}
+
+// BatchFrame is a crash-atomic batch: one JSON line holding the whole batch plus
+// a checksum. Replay validates the checksum and applies the batch only whole.
+type BatchFrame struct {
+	Records  []Record `json:"records"`
+	Checksum string   `json:"checksum"`
+}
+
+// checksumRecords is a stable digest over the batch records, used to detect a
+// truncated or altered frame on replay.
+func checksumRecords(records []Record) string {
+	sum := sha256.New()
+	enc := json.NewEncoder(sum)
+	for _, r := range records {
+		_ = enc.Encode(r)
+	}
+	return hex.EncodeToString(sum.Sum(nil))
+}
+
+// writeAll writes buf completely, looping on short writes, so a partial write is
+// never silently accepted.
+func writeAll(w io.Writer, buf []byte) error {
+	for len(buf) > 0 {
+		n, err := w.Write(buf)
+		if n > 0 {
+			buf = buf[n:]
+		}
+		if err != nil {
+			return err
+		}
+		if n == 0 && err == nil {
+			return io.ErrShortWrite
+		}
+	}
+	return nil
+}
+
+// BatchEntry is one record in an AppendBatch call.
+type BatchEntry struct {
+	Kind    string
+	Payload any
+}
+
+
 // received from a replica source. Keeping this beside Append means a follower
 // does not get a second, subtly different implementation of the log format.
 func ValidateRecord(record Record, previous string, expectedSeq uint64) error {

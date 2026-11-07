@@ -11,6 +11,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/knirvcorp/knirvoracle/internal/oracle/ledger"
 	"github.com/knirvcorp/knirvoracle/internal/oracle/mmr"
 	"github.com/knirvcorp/knirvoracle/internal/oracle/registry"
 	"github.com/knirvcorp/knirvoracle/internal/oracle/types"
@@ -90,12 +91,30 @@ func recordKey(chainID string, startHeight uint64) string {
 	return fmt.Sprintf("%s/%d", chainID, startHeight)
 }
 
+// isBondedAuthorityEnrollment reports whether this is a D14 authority/boot-node
+// enrolment that must be backed by an enrolment hold (the escrow flow). The generic
+// persistent authority-chain bond is not a bypass because only a bonded authority/*
+// chain takes this path; an unbonded ordinary registration (verifier /
+// authority-operator) has Bond == 0 and is a separate path that can never create a
+// bonded authority chain.
+func isBondedAuthorityEnrollment(c *types.ChainRegistration) bool {
+	return strings.HasPrefix(c.ChainID, "authority/") && c.Bond > 0
+}
+
 // RegisterChain adds or replaces a chain registration (POST /oracle/v3/registry/register).
 func (o *Oracle) RegisterChain(c *types.ChainRegistration) error {
 	if c == nil {
 		return fmt.Errorf("chain registration required")
 	}
-	if _, exists := o.checkpoint.registry.Get(c.ChainID); exists {
+	if cur, exists := o.checkpoint.registry.Get(c.ChainID); exists {
+		// Idempotent retry: a benign replay of an already-applied registration
+		// (e.g. the HTTP response was lost after the Oracle committed it) must
+		// succeed, not error, so a retrying caller cannot double-submit the bond.
+		newDigest, nerr := types.ChainRegistrationDigest(c)
+		curDigest, cerr := types.ChainRegistrationDigest(cur)
+		if nerr == nil && cerr == nil && newDigest == curDigest {
+			return nil
+		}
 		return fmt.Errorf("chain %s is already registered; use the rotation endpoint", c.ChainID)
 	}
 	digest, err := types.ChainRegistrationDigest(c)
@@ -108,24 +127,108 @@ func (o *Oracle) RegisterChain(c *types.ChainRegistration) error {
 	if c.Bond > 0 && c.BondOwner == "" && len(c.Authors) > 0 {
 		c.BondOwner = c.Authors[0].Address
 	}
-	locked := false
-	if c.Bond > 0 && o.economicsEngine != nil {
-		owner, err := types.AddressFromString(c.BondOwner)
+	var bondOwner types.Address
+	if c.Bond > 0 {
+		addr, err := types.AddressFromString(c.BondOwner)
 		if err != nil {
 			return fmt.Errorf("invalid bond owner: %w", err)
 		}
-		if _, err := o.economicsEngine.LockChainBond(c.ChainID, owner, new(big.Int).SetUint64(c.Bond)); err != nil {
+		bondOwner = addr
+	}
+
+	// D14 authority/boot-node enrolment must be backed by an enrolment hold (the
+	// escrow flow). Reject an omitted hold id up front — before any chain-bond lock
+	// or registry mutation — so a bonded authority registration can never bypass the
+	// D14 escrow. The generic persistent authority-chain bond is not a bypass
+	// because only a bonded authority/* chain takes this path; an unbonded ordinary
+	// registration (verifier / authority-operator) has Bond == 0 and is a separate
+	// path that can never create a bonded authority chain.
+	if isBondedAuthorityEnrollment(c) && c.HoldID == "" {
+		return fmt.Errorf("bonded authority registration requires an enrolment hold id")
+	}
+
+	// Validate any supplied enrolment hold BEFORE taking the chain-bond lock or
+	// mutating the registry: a bonded authority registration must be backed by a
+	// pending hold owned by the bond owner, covering the bond, for this root
+	// registry. Rejecting an empty or invalid hold id here closes the D14 escrow
+	// bypass — the lock and registration never happen.
+	//
+	// The hold is bound to the exact chain id that consumes it (see ConsumeHold): a
+	// hold already consumed by THIS chain is an idempotent retry and is left alone;
+	// a hold already consumed by a DIFFERENT chain is a double-spend attempt and is
+	// rejected outright, so one D14 enrolment hold cannot authorise two concurrent
+	// authority-chain registrations.
+	holdAlreadyClaimed := false
+	if c.HoldID != "" {
+		if bondOwner.IsZero() {
+			return fmt.Errorf("consume bond hold %q: registration has no bond owner", c.HoldID)
+		}
+		hold, herr := o.GetNRNToken().GetHold(c.HoldID)
+		if herr != nil {
+			return fmt.Errorf("registration hold %q invalid: %w", c.HoldID, herr)
+		}
+		if hold.Operator != bondOwner {
+			return fmt.Errorf("registration hold %q is owned by %s, not bond owner %s", c.HoldID, hold.Operator, bondOwner)
+		}
+		if hold.RootRegistryID != o.GetNRNToken().RootRegistryID() {
+			return fmt.Errorf("registration hold %q is for a different root registry id", c.HoldID)
+		}
+		switch hold.Status {
+		case ledger.BondStatusPending:
+			if hold.Amount.Cmp(new(big.Int).SetUint64(c.Bond)) < 0 {
+				return fmt.Errorf("registration hold %q amount %s does not cover bond %d", c.HoldID, hold.Amount, c.Bond)
+			}
+		case ledger.BondStatusReleased:
+			if hold.ConsumedChainID == c.ChainID {
+				// Idempotent retry after a lost response: this chain already consumed the hold.
+				holdAlreadyClaimed = true
+			} else {
+				return fmt.Errorf("registration hold %q already consumed by chain %s", c.HoldID, hold.ConsumedChainID)
+			}
+		case ledger.BondStatusRefunded:
+			return fmt.Errorf("registration hold %q was already refunded", c.HoldID)
+		default:
+			return fmt.Errorf("registration hold %q has unexpected status %s", c.HoldID, hold.Status)
+		}
+	}
+
+	locked := false
+	if c.Bond > 0 && o.economicsEngine != nil {
+		if _, err := o.economicsEngine.LockChainBond(c.ChainID, bondOwner, new(big.Int).SetUint64(c.Bond)); err != nil {
 			return fmt.Errorf("lock chain bond: %w", err)
 		}
 		locked = true
 	}
+	// Consume the validated hold (moves the escrow to the bond owner) exactly once,
+	// after the chain-bond lock is taken. A ledger write failure here releases the
+	// lock and returns before any registry mutation, so the chain is left
+	// unregistered and the hold stays pending/recoverable. ConsumeHold binds the
+	// hold to c.ChainID atomically, so a concurrent registration for a different
+	// chain that also passed the precheck is rejected here and rolled back.
+	if c.HoldID != "" && !holdAlreadyClaimed {
+		if err := o.GetNRNToken().ConsumeHold(c.HoldID, c.ChainID, bondOwner); err != nil {
+			if locked {
+				_ = o.economicsEngine.ReleaseChainBond(c.ChainID)
+			}
+			return fmt.Errorf("consume bond hold %q: %w", c.HoldID, err)
+		}
+	}
+	// Only now mutate the in-memory registry and persist it. The hold has already
+	// been durably consumed, so a failure here still leaves the chain unregistered
+	// and a retry re-applies the same idempotent consume.
 	if err := o.checkpoint.registry.Register(c); err != nil {
 		if locked {
 			_ = o.economicsEngine.ReleaseChainBond(c.ChainID)
 		}
 		return err
 	}
-	return o.persistRegistry()
+	if err := o.persistRegistry(); err != nil {
+		if locked {
+			_ = o.economicsEngine.ReleaseChainBond(c.ChainID)
+		}
+		return fmt.Errorf("persist registry: %w", err)
+	}
+	return nil
 }
 
 // SetChainVerificationKey enrolls a SNARK verification key + preferred proof

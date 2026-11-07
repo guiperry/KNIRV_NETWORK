@@ -25,6 +25,8 @@ const (
 	KindVoteCast        = "vote_cast"
 	KindParamsSet       = "params_set"
 	KindGovernanceState = "governance_state"
+	KindBondHold        = "bond_hold"
+	KindBondRelease     = "bond_release"
 )
 
 // Genesis is written once, when the log is empty.
@@ -117,4 +119,38 @@ type GovernanceState struct {
 	Votes      any `json:"votes"`
 	Validators any `json:"validators"`
 	Params     any `json:"params"`
+}
+
+// Bond statuses for the on-disk record.
+const (
+	BondStatusPending  = "pending"
+	BondStatusConsumed = "consumed"
+	BondStatusReleased = "released"
+	BondStatusRefunded = "refunded"
+)
+
+// BondHold records a bond escrow hold: operator funds locked in a deterministic
+// escrow address until a root-owner release or expiry refund. Field order and
+// JSON keys are part of the on-disk format; add new fields rather than rename.
+type BondHold struct {
+	HoldID          string `json:"hold_id"`
+	Operator        string `json:"operator"`
+	Amount          string `json:"amount"`
+	RootRegistryID  string `json:"root_registry_id"`
+	ExpiresAtUnix   uint64 `json:"expires_at_unix"`
+	EscrowAddr      string `json:"escrow_addr"`
+	Status          string `json:"status"`
+}
+
+// BondRelease records completion of a hold: released to the boot node address,
+// or refunded to the operator after expiry. ConsumedChainID binds a release that
+// was triggered by a chain registration to the exact chain id that claimed it, so
+// a replay reproduces the binding and a second, different chain cannot re-spend
+// the same escrow.
+type BondRelease struct {
+	HoldID          string `json:"hold_id"`
+	BootNodeChainID string `json:"boot_node_chain_id,omitempty"`
+	BootNodeAddress string `json:"boot_node_address,omitempty"`
+	ConsumedChainID string `json:"consumed_chain_id,omitempty"`
+	Status          string `json:"status"`
 }

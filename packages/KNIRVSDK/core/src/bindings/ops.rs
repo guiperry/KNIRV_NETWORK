@@ -42,6 +42,7 @@ fn secrets_portable(operation: &str, payload: &Value) -> Option<Op> {
         "secrets.bao_seal_key" => bao_seal_key(payload),
         "secrets.signer_role" => signer_role(payload),
         "secrets.bao_signer_name" => bao_signer_name(payload),
+        "secrets.raw_sign_validate" => raw_sign_validate(payload),
         _ => return None,
     })
 }
@@ -89,6 +90,15 @@ fn dispatch_inner(operation: &str, payload: &Value) -> Option<Op> {
         "signing.marshal_tx_raw" => sign_marshal_tx_raw(payload),
         "signing.verify_message_payload" => sign_verify_message_payload(payload),
         "signing.parse_message_envelope" => sign_parse_message_envelope(payload),
+        "signing.sign_registry_record" => sign_registry_record(payload),
+        "signing.verify_registry_record" => verify_registry_record(payload),
+        "signing.sign_bond_hold" => sign_bond_hold(payload),
+        "signing.verify_bond_hold" => verify_bond_hold(payload),
+        "signing.sign_bond_release" => sign_bond_release(payload),
+        "signing.verify_bond_release" => verify_bond_release(payload),
+        "signing.sign_bootnode_enroll_challenge" => sign_bootnode_enroll_challenge(payload),
+        "signing.sign_bootnode_enroll_approval" => sign_bootnode_enroll_approval(payload),
+        "signing.verify_bootnode_enrollment" => verify_bootnode_enrollment(payload),
         "signing.public_key" => sign_public_key(payload),
         "address.encode_raw" => address_encode_raw(payload),
         "replication.head_payload" => repl_head_payload(payload),
@@ -154,6 +164,13 @@ fn now_unix(payload: &Value) -> Result<i64, BindingError> {
         .get("now_unix")
         .and_then(Value::as_i64)
         .ok_or_else(|| invalid("now_unix is required"))
+}
+
+fn u64_field(payload: &Value, field: &str) -> Result<u64, BindingError> {
+    payload
+        .get(field)
+        .and_then(Value::as_u64)
+        .ok_or_else(|| invalid(format!("{field} is required")))
 }
 
 /// Binding errors carry the failure class as a `[ErrX] ` prefix so callers can
@@ -558,6 +575,168 @@ fn sign_public_key(payload: &Value) -> Op {
     }))
 }
 
+fn signed_json(s: &crate::signing::SignedMessageEnvelope) -> Value {
+    json!({
+        "envelope": s.envelope,
+        "signature": s.signature,
+        "public_key": s.public_key,
+        "address": s.address,
+    })
+}
+
+fn sign_registry_record(payload: &Value) -> Op {
+    let key = private_key(payload)?;
+    let chain_id = required_string(payload, "chain_id")?;
+    let issued_at_unix = u64_field(payload, "issued_at_unix")?;
+    let record: crate::signing::RegistryRecord = payload_as(
+        payload
+            .get("record")
+            .ok_or_else(|| invalid("record is required"))?,
+    )?;
+    signing::sign_registry_record(&key, &chain_id, &record, issued_at_unix)
+        .map(|s| signed_json(&s))
+        .map_err(core_err)
+}
+
+fn verify_registry_record(payload: &Value) -> Op {
+    let signed = payload_as::<crate::signing::SignedMessageEnvelope>(
+        payload.get("signed").ok_or_else(|| invalid("signed is required"))?,
+    )?;
+    let expected_root_address = required_string(payload, "expected_root_address")?;
+    let expected_root_registry_id = required_string(payload, "expected_root_registry_id")?;
+    let now = now_unix(payload)? as u64;
+    let record = signing::verify_registry_record(
+        &signed,
+        &expected_root_address,
+        &expected_root_registry_id,
+        now,
+    )
+    .map_err(core_err)?;
+    Ok(json!({ "valid": true, "record": serde_json::to_value(record).unwrap() }))
+}
+
+fn sign_bond_hold(payload: &Value) -> Op {
+    let key = private_key(payload)?;
+    let root_registry_id = required_string(payload, "root_registry_id")?;
+    let issued_at_unix = u64_field(payload, "issued_at_unix")?;
+    let hold: crate::signing::BondHold = payload_as(
+        payload.get("hold").ok_or_else(|| invalid("hold is required"))?,
+    )?;
+    signing::sign_bond_hold(&key, &root_registry_id, &hold, issued_at_unix)
+        .map(|s| signed_json(&s))
+        .map_err(core_err)
+}
+
+fn verify_bond_hold(payload: &Value) -> Op {
+    let signed = payload_as::<crate::signing::SignedMessageEnvelope>(
+        payload.get("signed").ok_or_else(|| invalid("signed is required"))?,
+    )?;
+    let root_registry_id = required_string(payload, "root_registry_id")?;
+    let now = now_unix(payload)? as u64;
+    let hold = signing::verify_bond_hold(&signed, &root_registry_id, now).map_err(core_err)?;
+    Ok(json!({ "valid": true, "hold": serde_json::to_value(hold).unwrap() }))
+}
+
+fn sign_bond_release(payload: &Value) -> Op {
+    let key = private_key(payload)?;
+    let boot_node_chain_id = required_string(payload, "boot_node_chain_id")?;
+    let issued_at_unix = u64_field(payload, "issued_at_unix")?;
+    let release: crate::signing::BondRelease = payload_as(
+        payload.get("release").ok_or_else(|| invalid("release is required"))?,
+    )?;
+    signing::sign_bond_release(&key, &boot_node_chain_id, &release, issued_at_unix)
+        .map(|s| signed_json(&s))
+        .map_err(core_err)
+}
+
+fn verify_bond_release(payload: &Value) -> Op {
+    let signed = payload_as::<crate::signing::SignedMessageEnvelope>(
+        payload.get("signed").ok_or_else(|| invalid("signed is required"))?,
+    )?;
+    let boot_node_chain_id = required_string(payload, "boot_node_chain_id")?;
+    let now = now_unix(payload)? as u64;
+    let release =
+        signing::verify_bond_release(&signed, &boot_node_chain_id, now).map_err(core_err)?;
+    Ok(json!({
+        "valid": true,
+        "release": serde_json::to_value(release).unwrap()
+    }))
+}
+
+fn sign_bootnode_enroll_challenge(payload: &Value) -> Op {
+    let key = private_key(payload)?;
+    let chain_id = required_string(payload, "chain_id")?;
+    let nonce = required_string(payload, "nonce")?;
+    let issued_at_unix = u64_field(payload, "issued_at_unix")?;
+    let expires_at_unix = u64_field(payload, "expires_at_unix")?;
+    let operator = required_string(payload, "operator")?;
+    // The Go/TypeScript bindings base64-encode the opaque claim bytes; decode them
+    // here so the signed claim matches exactly what the caller supplied.
+    let claims: Vec<u8> = payload
+        .get("claims")
+        .and_then(Value::as_str)
+        .and_then(|s| BASE64.decode(s).ok())
+        .unwrap_or_default();
+    signing::sign_bootnode_enroll_challenge(
+        &key,
+        &chain_id,
+        &nonce,
+        issued_at_unix,
+        expires_at_unix,
+        &operator,
+        &claims,
+    )
+    .map(|s| signed_json(&s))
+    .map_err(core_err)
+}
+
+fn sign_bootnode_enroll_approval(payload: &Value) -> Op {
+    let key = private_key(payload)?;
+    let chain_id = required_string(payload, "chain_id")?;
+    let nonce = required_string(payload, "nonce")?;
+    let issued_at_unix = u64_field(payload, "issued_at_unix")?;
+    let expires_at_unix = u64_field(payload, "expires_at_unix")?;
+    let challenge_envelope = required_string(payload, "challenge_envelope")?;
+    signing::sign_bootnode_enroll_approval(
+        &key,
+        &chain_id,
+        &nonce,
+        issued_at_unix,
+        expires_at_unix,
+        &challenge_envelope,
+    )
+    .map(|s| signed_json(&s))
+    .map_err(core_err)
+}
+
+fn verify_bootnode_enrollment(payload: &Value) -> Op {
+    let enrollment: crate::signing::BootnodeEnrollment = payload_as(
+        payload
+            .get("enrollment")
+            .ok_or_else(|| invalid("enrollment is required"))?,
+    )?;
+    let expected_root_public_key = required_string(payload, "expected_root_public_key")?;
+    let expected_operator = required_string(payload, "expected_operator")?;
+    // Cryptographic verification is pure. The host owns durable replay prevention:
+    // it authenticates here, then persists the returned nonce through its own atomic
+    // consume-if-absent store (Go/TS FileNonceStore). The core never mutates or
+    // holds consumed-nonce state.
+    let now = now_unix(payload)? as u64;
+    // A verification rejection (operator mismatch, bad/expired signature, untrusted
+    // root) is an expected outcome of Verify, not an infrastructure error: surface it
+    // as `valid: false` so hosts (Go/TS) return a clean `false` rather than throwing.
+    let nonce = match signing::verify_bootnode_enrollment_auth(
+        &enrollment,
+        &expected_root_public_key,
+        &expected_operator,
+        now,
+    ) {
+        Ok(nonce) => nonce,
+        Err(_) => return Ok(json!({ "valid": false, "nonce": "" })),
+    };
+    Ok(json!({ "valid": true, "nonce": nonce }))
+}
+
 fn address_encode_raw(payload: &Value) -> Op {
     let prefix = payload
         .get("prefix")
@@ -681,6 +860,30 @@ fn bao_signer_name(payload: &Value) -> Op {
     let name = payload.get("name").and_then(Value::as_str).unwrap_or_default();
     let identity = secrets::bao_signer_name(name).map_err(BindingError::from_sdk)?;
     Ok(json!({ "name": identity }))
+}
+
+/// `secrets.raw_sign_validate`: validates a raw (registry-compatible compact)
+/// signing request against the canonical contract — allowlisted purpose and a
+/// 32-byte hex digest — before the Go/TS binding performs the Bao HTTP transport.
+/// This is the single source of truth the bindings call so the allowlist cannot
+/// drift; the OpenBao plugin enforces the same contract server-side as the outer
+/// gate (OpenBao.md §4.6).
+#[cfg(feature = "secrets")]
+fn raw_sign_validate(payload: &Value) -> Op {
+    let req = secrets::RawSignRequest {
+        purpose: payload
+            .get("purpose")
+            .and_then(Value::as_str)
+            .unwrap_or_default()
+            .to_string(),
+        digest_hex: payload
+            .get("digest_hex")
+            .and_then(Value::as_str)
+            .unwrap_or_default()
+            .to_string(),
+    };
+    secrets::validate_raw_sign_request(&req).map_err(BindingError::from_sdk)?;
+    Ok(json!({}))
 }
 
 #[cfg(feature = "secrets")]

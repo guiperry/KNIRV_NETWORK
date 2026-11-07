@@ -1,14 +1,21 @@
 package routes
 
 import (
+	"bytes"
 	"encoding/json"
+	"math/big"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
+	ethcrypto "github.com/ethereum/go-ethereum/crypto"
+	knirvsigning "github.com/guiperry/knirv-sdk-go/signing"
 	"github.com/knirvcorp/knirvoracle/internal/oracle"
 	"github.com/knirvcorp/knirvoracle/internal/oracle/crypto"
+	"github.com/knirvcorp/knirvoracle/internal/oracle/ledger"
+	"github.com/knirvcorp/knirvoracle/internal/oracle/types"
 	"go.uber.org/zap"
 )
 
@@ -80,8 +87,17 @@ func TestStandbyRefusesEveryMutatingRoute(t *testing.T) {
 	mux := http.NewServeMux()
 	r.RegisterRoutes(mux)
 
+	internal := map[string]bool{}
+	for _, p := range r.InternalRoutePatterns() {
+		internal[p] = true
+	}
 	for _, route := range r.routeTable() {
 		if route.class != classMutating {
+			continue
+		}
+		if internal[route.pattern] {
+			// Internal-only routes are not in the public table; they are
+			// refused with 403 by the public-side guard, not 503 standby.
 			continue
 		}
 		rec := httptest.NewRecorder()
@@ -183,5 +199,194 @@ func TestHandleRegistryRotateRejectsAuthorityChain_D10(t *testing.T) {
 	}
 	if !strings.Contains(rec.Body.String(), "authority chain author rotation is deprecated (D10)") {
 		t.Fatalf("body = %q, want the D10 rejection", rec.Body.String())
+	}
+}
+
+func mustJSON(t *testing.T, v any) []byte {
+	t.Helper()
+	b, err := json.Marshal(v)
+	if err != nil {
+		t.Fatalf("marshal: %v", err)
+	}
+	return b
+}
+
+// TestVerifiersRegisterNotOnPublicListenerButInternal enforces DEC-1 rule 2: the
+// v3 verifiers/register enrollment route must not be a public route. It is served
+// ONLY on the internal unix socket (RegisterInternalRoutes) and is refused with
+// 403 on the public listener that KNIRVGATEWAY proxies.
+func TestVerifiersRegisterNotOnPublicListenerButInternal(t *testing.T) {
+	o := newTestOracleWithMode(t, oracle.ModeActive)
+	t.Setenv("KNIRV_VERIFIER_REGISTRATION_TOKEN", "tok")
+
+	pub := ethcrypto.CompressPubkey(&mustECDSA(t).PublicKey)
+	addr, err := knirvsigning.Address(pub, knirvsigning.DefaultAddressPrefix)
+	if err != nil {
+		t.Fatalf("address from pub: %v", err)
+	}
+	body := mustJSON(t, map[string]any{"verifier_id": addr, "public_key": pub})
+
+	// Public listener (the mux KNIRVGATEWAY proxies).
+	publicMux := http.NewServeMux()
+	NewOracleRoutes(o, zap.NewNop()).RegisterRoutes(publicMux)
+
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPost, "/oracle/v3/verifiers/register", bytes.NewReader(body))
+	req.Header.Set("Authorization", "Bearer tok")
+	publicMux.ServeHTTP(rec, req)
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("public listener status = %d, want 403 (route must be blocked publicly)", rec.Code)
+	}
+	// The public listener must not have registered the verifier.
+	if o.VerifierCount() != 0 {
+		t.Fatalf("verifier registered through the public listener: %d", o.VerifierCount())
+	}
+
+	// Internal socket (RegisterInternalRoutes).
+	internalMux := http.NewServeMux()
+	NewOracleRoutes(o, zap.NewNop()).RegisterInternalRoutes(internalMux)
+
+	rec2 := httptest.NewRecorder()
+	req2 := httptest.NewRequest(http.MethodPost, "/oracle/v3/verifiers/register", bytes.NewReader(body))
+	req2.Header.Set("Authorization", "Bearer tok")
+	internalMux.ServeHTTP(rec2, req2)
+	if rec2.Code != http.StatusOK {
+		t.Fatalf("internal listener status = %d, want 200: %s", rec2.Code, rec2.Body.String())
+	}
+	if o.VerifierCount() != 1 {
+		t.Fatalf("verifier not registered through internal socket: %d", o.VerifierCount())
+	}
+}
+
+// bondedAuthorityRegistrationWithHold builds a signed bonded authority/* registration
+// backed by a valid D14 enrolment hold owned by the bond owner, mirroring what the
+// KNIRV_CORP CLI posts for D14 enrolment. It is the fixture for the real-route tests.
+func bondedAuthorityRegistrationWithHold(t *testing.T, o *oracle.Oracle, kp *crypto.KeyPair) (types.ChainRegistration, string) {
+	t.Helper()
+	tok := o.GetNRNToken()
+	addr := kp.Address.String()
+	opAddr, err := types.AddressFromString(addr)
+	if err != nil {
+		t.Fatalf("address: %v", err)
+	}
+	if _, err := tok.Mint(opAddr, big.NewInt(2_000_000_000)); err != nil {
+		t.Fatalf("mint: %v", err)
+	}
+	if _, err := o.GetEconomicsEngine().GetStakingManager().Stake(opAddr, big.NewInt(1_000_000_000)); err != nil {
+		t.Fatalf("stake: %v", err)
+	}
+	holdID := "bond:" + addr
+	expiry := time.Now().Add(time.Hour)
+	hold := knirvsigning.BondHold{
+		HoldID:         holdID,
+		Operator:       addr,
+		Amount:         "10000",
+		RootRegistryID: tok.RootRegistryID(),
+		ExpiresAtUnix:  uint64(expiry.Unix()),
+	}
+	signed, err := knirvsigning.SignMessage(ethcrypto.FromECDSA(kp.PrivateKey), knirvsigning.MessageEnvelope{
+		SchemaVersion: knirvsigning.MessageSchemaVersion,
+		Domain:        knirvsigning.RegistryDomain,
+		Purpose:       knirvsigning.PurposeBondHold,
+		ChainID:       tok.ChainID(),
+		Nonce:         "bond-hold:" + holdID,
+		IssuedAtUnix:  time.Now().Unix(),
+		ExpiresAtUnix: int64(hold.ExpiresAtUnix),
+		Payload:       mustJSON(t, hold),
+	})
+	if err != nil {
+		t.Fatalf("sign hold: %v", err)
+	}
+	if err := tok.Hold(holdID, hold, signed, time.Now()); err != nil {
+		t.Fatalf("hold: %v", err)
+	}
+	cpk := ethcrypto.CompressPubkey(kp.PublicKey)
+	reg := types.ChainRegistration{
+		ChainID:     "authority/" + addr,
+		Authors:     []types.RegisteredAuthor{{Address: addr, PubKey: cpk, Weight: 1}},
+		QuorumNumer: 1,
+		QuorumDenom: 1,
+		LastHeight:  0,
+		Bond:        10000,
+		BondOwner:   addr,
+		ProofWindow: 256,
+		HoldID:      holdID,
+	}
+	if err := types.SignRegistration(&reg, kp.PrivateKey); err != nil {
+		t.Fatalf("sign registration: %v", err)
+	}
+	return reg, holdID
+}
+
+// TestRouteRegisterAuthorityOmittedHoldRejectedHTTP is the missing real-route test
+// (round 4): a signed bonded authority registration with hold_id omitted, delivered as
+// a JSON body to /oracle/v3/registry/register, must return 4xx and leave the registry
+// unmutated.
+func TestRouteRegisterAuthorityOmittedHoldRejectedHTTP(t *testing.T) {
+	o := newTestOracleWithMode(t, oracle.ModeActive)
+	kp, err := crypto.GenerateKeyPair()
+	if err != nil {
+		t.Fatal(err)
+	}
+	addr := kp.Address.String()
+	cpk := ethcrypto.CompressPubkey(kp.PublicKey)
+	reg := types.ChainRegistration{
+		ChainID:     "authority/" + addr,
+		Authors:     []types.RegisteredAuthor{{Address: addr, PubKey: cpk, Weight: 1}},
+		QuorumNumer: 1,
+		QuorumDenom: 1,
+		Bond:        10000,
+		BondOwner:   addr,
+		ProofWindow: 256,
+	}
+	if err := types.SignRegistration(&reg, kp.PrivateKey); err != nil {
+		t.Fatal(err)
+	}
+	body := bytes.NewReader(mustJSON(t, reg))
+	req := httptest.NewRequest(http.MethodPost, "/oracle/v3/registry/register", body)
+	req.Header.Set("Content-Type", "application/json")
+	r := NewOracleRoutes(o, zap.NewNop())
+	rec := httptest.NewRecorder()
+	r.handleRegistryRegister(rec, req)
+	if rec.Code < 400 {
+		t.Fatalf("expected 4xx for omitted hold, got %d", rec.Code)
+	}
+	if _, ok := o.GetChainRegistration(reg.ChainID); ok {
+		t.Fatal("chain registered despite omitted hold id at the route")
+	}
+}
+
+// TestRouteRegisterAuthorityValidHoldAcceptedHTTP is the matching positive route test:
+// a signed bonded authority registration carrying a valid D14 enrolment hold is
+// accepted (200) and registered through the real handler, and the hold is consumed.
+func TestRouteRegisterAuthorityValidHoldAcceptedHTTP(t *testing.T) {
+	o := newTestOracleWithMode(t, oracle.ModeActive)
+	kp, err := crypto.GenerateKeyPair()
+	if err != nil {
+		t.Fatal(err)
+	}
+	reg, holdID := bondedAuthorityRegistrationWithHold(t, o, kp)
+	body := bytes.NewReader(mustJSON(t, reg))
+	req := httptest.NewRequest(http.MethodPost, "/oracle/v3/registry/register", body)
+	req.Header.Set("Content-Type", "application/json")
+	r := NewOracleRoutes(o, zap.NewNop())
+	rec := httptest.NewRecorder()
+	r.handleRegistryRegister(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200 for valid hold, got %d: %s", rec.Code, rec.Body.String())
+	}
+	got, ok := o.GetChainRegistration(reg.ChainID)
+	if !ok {
+		t.Fatal("chain not registered through the route")
+	}
+	if got.Bond != 10000 {
+		t.Fatalf("registered bond = %d, want 10000", got.Bond)
+	}
+	h, herr := o.GetNRNToken().GetHold(holdID)
+	if herr != nil {
+		t.Fatalf("get hold: %v", herr)
+	}
+	if h.Status != ledger.BondStatusReleased {
+		t.Fatalf("hold %q status = %q, want released (consumed through route)", holdID, h.Status)
 	}
 }

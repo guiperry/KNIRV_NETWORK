@@ -310,10 +310,10 @@ func TestLateValidationServiceResolvesAfterStartup(t *testing.T) {
 	}
 
 	tokenFile := filepath.Join(t.TempDir(), "token")
-	if err := os.WriteFile(tokenFile, []byte("secret\n"), 0o600); err != nil {
+	if err := os.WriteFile(tokenFile, []byte(fakeJWT(t, time.Now().Add(time.Hour))), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	t.Setenv(validationServiceURLEnv, "http://127.0.0.1:1")
+	t.Setenv(validationServiceURLEnv, "http+unix://"+filepath.Join(t.TempDir(), "validation.sock"))
 	t.Setenv(validationServiceTokenFileEnv, tokenFile)
 	if !svc.configured() {
 		t.Fatal("service should resolve once the endpoint and token file exist")

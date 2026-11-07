@@ -1,0 +1,26 @@
+{
+  "create_request": {
+    "type": "skillnode",
+    "priority": 5,
+    "data": {
+      "cluster_id": "c1",
+      "resolves_errors": [],
+      "member_count": 3,
+      "avg_complexity": 0.5,
+      "generality_score": 0.7
+    },
+    "requested_by": "drq-validation"
+  },
+  "create_response": {
+    "success": true,
+    "id": "task-contract",
+    "status": "pending",
+    "message": "Validation task created successfully",
+    "timestamp": "2026-01-01T00:00:00Z"
+  },
+  "results_response": {
+    "task_id": "task-contract",
+    "status": "completed",
+    "result": { "status": "valid" }
+  }
+}

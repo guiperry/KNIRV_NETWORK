@@ -61,8 +61,16 @@ function stampModules() {
 }
 
 function artifact(path) {
-  const bytes = readFileSync(path);
-  return { sha256: sha256(bytes), size: bytes.length };
+  let buf;
+  try {
+    buf = readFileSync(path);
+  } catch (err) {
+    if (err.code === "ENOENT") {
+      throw new Error(`missing artifact: ${path}\n  run \`make build-wasm\` (or \`npm run build\` in npm-package) to generate the SDK wasm output before running \`check\``);
+    }
+    throw err;
+  }
+  return { path, sha256: createHash("sha256").update(buf).digest("hex"), size: buf.byteLength };
 }
 
 function manifest() {
@@ -146,4 +154,9 @@ if (!run) {
   console.error(`usage: sdk-dist.mjs ${Object.keys(commands).join("|")}`);
   process.exit(2);
 }
-run();
+try {
+  run();
+} catch (err) {
+  console.error(`error: ${err && err.message ? err.message : err}`);
+  process.exit(1);
+}

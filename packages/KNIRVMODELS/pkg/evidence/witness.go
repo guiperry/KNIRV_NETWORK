@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"sort"
@@ -317,6 +318,17 @@ type WitnessQueue struct {
 
 	mu      sync.Mutex
 	entries map[string]*WitnessEntry
+	// drain health (scheduler): counted and surfaced in Status; last error/time are
+	// sticky (never cleared by a successful drain) so recovery still shows the last
+	// failure; drainOK/consecutiveFailures reflect current health and drive logging
+	// once per state change (no spam).
+	drainErrors         uint64
+	lastError           string
+	lastErrorAt         string
+	lastDrainAt         string
+	drainOK             bool
+	consecutiveFailures int
+	hadDrainResult      bool
 }
 
 // OpenWitnessQueue loads the queue at path (created on first write).
@@ -410,14 +422,20 @@ func (q *WitnessQueue) Entry(root string) (WitnessEntry, bool) {
 	return WitnessEntry{}, false
 }
 
-// WitnessStatus summarises the queue.
+// WitnessStatus summarises the queue and scheduler drain health.
 type WitnessStatus struct {
-	Pending   int    `json:"pending"`
-	Witnessed int    `json:"witnessed"`
-	Oldest    string `json:"oldest_pending,omitempty"`
+	Pending             int    `json:"pending"`
+	Witnessed           int    `json:"witnessed"`
+	Oldest              string `json:"oldest_pending,omitempty"`
+	DrainErrors         uint64 `json:"drain_errors,omitempty"`
+	LastError           string `json:"last_drain_error,omitempty"`
+	LastErrorAt         string `json:"last_drain_error_at,omitempty"`
+	LastDrainAt         string `json:"last_drain_at,omitempty"`
+	DrainOK             bool   `json:"drain_ok"`
+	ConsecutiveFailures int    `json:"consecutive_failures,omitempty"`
 }
 
-// Status counts the queue.
+// Status counts the queue and reports scheduler drain health.
 func (q *WitnessQueue) Status() WitnessStatus {
 	q.mu.Lock()
 	defer q.mu.Unlock()
@@ -432,7 +450,45 @@ func (q *WitnessQueue) Status() WitnessStatus {
 			s.Oldest = e.QueuedAt
 		}
 	}
+	s.DrainErrors = q.drainErrors
+	s.LastError = q.lastError
+	s.LastErrorAt = q.lastErrorAt
+	s.LastDrainAt = q.lastDrainAt
+	s.DrainOK = q.drainOK
+	s.ConsecutiveFailures = q.consecutiveFailures
 	return s
+}
+
+// noteDrainResult records scheduler drain health. Last error/time are sticky (a
+// success never clears them). Current health (drainOK/consecutiveFailures) drives
+// log-once-per-state-change: returns (true, msg) on a transition to error or to
+// recovery so the scheduler can log without spamming; repeats return (false, "").
+func (q *WitnessQueue) noteDrainResult(err error) (changed bool, msg string) {
+	q.mu.Lock()
+	defer q.mu.Unlock()
+	now := time.Now().UTC().Format(time.RFC3339)
+	q.lastDrainAt = now
+	wasOK := q.drainOK
+	first := !q.hadDrainResult
+	q.hadDrainResult = true
+	if err == nil {
+		q.drainOK = true
+		q.consecutiveFailures = 0
+		if !wasOK && !first {
+			return true, "recovered"
+		}
+		return false, ""
+	}
+	q.drainOK = false
+	q.consecutiveFailures++
+	q.drainErrors++
+	msg = err.Error()
+	q.lastError = msg
+	q.lastErrorAt = now
+	if wasOK || first {
+		return true, msg
+	}
+	return false, ""
 }
 
 // Witnesser turns a batch root into an attestation (the seeder-backed implementation is a
@@ -558,11 +614,16 @@ func (ix *Index) witnessSchedulerLoop(ctx context.Context, w Witnesser) {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			if _, err := ix.witness.Drain(ctx, w, WitnessSchedulerMax); err != nil {
-				// Non-fatal: the next tick retries. Drain marks individual
-				// roots witnessed/errored, so a transient seeder outage does
-				// not block the queue.
-				_ = err
+			_, err := ix.witness.Drain(ctx, w, WitnessSchedulerMax)
+			// Record drain health and log once per error-state change (no spam).
+			if ix.witness != nil {
+				if changed, msg := ix.witness.noteDrainResult(err); changed {
+					if msg == "recovered" {
+						log.Printf("evidence witness scheduler: drain recovered")
+					} else {
+						log.Printf("evidence witness scheduler: drain error: %s", msg)
+					}
+				}
 			}
 		}
 	}

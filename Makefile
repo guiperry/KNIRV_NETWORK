@@ -499,6 +499,30 @@ sync-binaries-dry-run: ## Preview binary synchronization changes
 	@$(SCRIPTS_DIR)/sync-portal-versions.sh --type binaries --dry-run --verbose
 
 # =============================================================================
+# UNDERSTAND-ANYTHING KNOWLEDGE GRAPH DASHBOARD
+# =============================================================================
+
+UA_DASHBOARD_TOKEN ?= knirv
+UA_DASHBOARD_PORT  ?= 5173
+
+.PHONY: ua-dashboard ua-dashboard-stop
+ua-dashboard: ## Launch the Understand-Anything knowledge-graph dashboard for this repo
+	@$(SCRIPTS_DIR)/ua-dashboard.sh $(PROJECT_ROOT) $(UA_DASHBOARD_TOKEN) $(UA_DASHBOARD_PORT)
+
+ua-dashboard-stop: ## Stop the running Understand-Anything dashboard server
+	@if [ -f /tmp/ua-dashboard.pid ] && kill -0 $$(cat /tmp/ua-dashboard.pid) 2>/dev/null; then \
+		PID=$$(cat /tmp/ua-dashboard.pid); \
+		kill $$PID 2>/dev/null || true; \
+		sleep 1; \
+		if kill -0 $$PID 2>/dev/null; then kill -9 $$PID 2>/dev/null || true; sleep 1; fi; \
+		echo "✓ dashboard stopped (pid $$PID)"; \
+		rm -f /tmp/ua-dashboard.pid; \
+	else \
+		echo "no dashboard pid file found — trying pkill"; \
+		pkill -f "vite.js --host 127.0.0.1" && echo "✓ dashboard stopped" || echo "⚠ no running dashboard found"; \
+	fi
+
+# =============================================================================
 # SUBMODULE MANAGEMENT
 # =============================================================================
 

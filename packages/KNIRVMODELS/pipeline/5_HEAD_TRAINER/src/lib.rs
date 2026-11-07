@@ -20,7 +20,11 @@ pub fn preset(name: &str, heads: Vec<DecisionHead>) -> Result<HeadConfig, String
         "tiny" => (64, 2, 2, 1, 1, 2, 2, 64),
         "small" => (128, 4, 2, 2, 2, 3, 2, 160),
         "base" => (512, 8, 4, 3, 3, 4, 3, 256),
-        other => return Err(format!("unknown preset {other:?} (micro|tiny|small|base)")),
+        // "512" = the Task 4.4 fallback: base dimensions with a 512-token sequence window
+        // (the HEAD plan's intended set-head width), giving the set scorer room for 4..=8
+        // candidates plus the question/state.
+        "512" => (512, 8, 4, 3, 3, 4, 3, 512),
+        other => return Err(format!("unknown preset {other:?} (micro|tiny|small|base|512)")),
     };
     let cfg = HeadConfig {
         format: knirv_heart_decision::config::FORMAT.into(),
@@ -42,6 +46,8 @@ pub fn preset(name: &str, heads: Vec<DecisionHead>) -> Result<HeadConfig, String
         dataset_manifest_hash: String::new(),
         policy_bundle_hash: String::new(),
         choice_set_heads: Vec::new(),
+        dropout: 0.0,
+        set_match_feature: false,
     };
     cfg.validate()?;
     Ok(cfg)

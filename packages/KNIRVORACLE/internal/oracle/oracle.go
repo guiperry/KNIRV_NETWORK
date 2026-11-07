@@ -14,7 +14,6 @@ import (
 
 	"github.com/knirvcorp/knirvoracle/internal/oracle/consensus"
 	"github.com/knirvcorp/knirvoracle/internal/oracle/crosschain"
-	"github.com/knirvcorp/knirvoracle/internal/oracle/crypto"
 	"github.com/knirvcorp/knirvoracle/internal/oracle/did"
 	"github.com/knirvcorp/knirvoracle/internal/oracle/economics"
 	"github.com/knirvcorp/knirvoracle/internal/oracle/governance"
@@ -28,7 +27,6 @@ import (
 	"github.com/knirvcorp/knirvoracle/internal/oracle/token"
 	"github.com/knirvcorp/knirvoracle/internal/oracle/types"
 
-	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	knirvsigning "github.com/guiperry/knirv-sdk-go/signing"
 	"go.uber.org/zap"
 )
@@ -91,6 +89,10 @@ type Oracle struct {
 	// Lifecycle
 	ctx    context.Context
 	cancel context.CancelFunc
+	// supervisorDone is closed when the bond supervisor goroutine exits, so a
+	// clean shutdown (and tests) can wait for it to actually terminate after
+	// Stop cancels the lifecycle context.
+	supervisorDone chan struct{}
 }
 
 // Oracle activation modes. They mirror noderole.OracleMode; the role resolver
@@ -145,8 +147,12 @@ type OracleConfig struct {
 	GossipSubEnabled bool     `json:"gossipsub_enabled"`
 
 	// Validator configuration
-	ValidatorMode bool   `json:"validator_mode"`
-	ValidatorKey  string `json:"validator_key,omitempty"`
+	ValidatorMode bool `json:"validator_mode"`
+	// ValidatorSigner is an already-unlocked signing identity supplied by the
+	// host (resolved from secrets.Provider per the role resolver, Task 8.8).
+	// Key material is never serialized in this field or read from config/env;
+	// ORACLE_VALIDATOR_KEY has no runtime reader.
+	ValidatorSigner knirvsigning.RemoteSigner `json:"-"`
 
 	// IBC configuration
 	IBCEnabled bool `json:"ibc_enabled"`
@@ -254,6 +260,31 @@ func DefaultOracleConfig() *OracleConfig {
 	}
 }
 
+// buildConsensusValidators derives the consensus validator set from the
+// host-supplied RemoteSigner (Task 8.8). It returns nil (no validators) when the
+// Oracle is not in validator mode, and an error when validator mode is on but no
+// signer is available. The validator identity (address + public key) comes
+// entirely from the signer; no raw key is ever read from config or env.
+func buildConsensusValidators(config *OracleConfig) ([]*consensus.ConsensusValidator, error) {
+	if !config.ValidatorMode {
+		return nil, nil
+	}
+	if config.ValidatorSigner == nil {
+		return nil, fmt.Errorf("validator mode enabled but no validator signer supplied")
+	}
+	address, err := types.AddressFromString(config.ValidatorSigner.Address())
+	if err != nil {
+		return nil, fmt.Errorf("validator signer address %q is invalid: %w", config.ValidatorSigner.Address(), err)
+	}
+	validator := &consensus.ConsensusValidator{
+		Address:          address,
+		PubKey:           config.ValidatorSigner.PublicKey(),
+		VotingPower:      big.NewInt(100),
+		ProposerPriority: big.NewInt(0),
+	}
+	return []*consensus.ConsensusValidator{validator}, nil
+}
+
 // NewOracle creates a new Oracle instance
 func NewOracle(config *OracleConfig, logger *zap.Logger) (*Oracle, error) {
 	ctx, cancel := context.WithCancel(context.Background())
@@ -297,27 +328,15 @@ func NewOracle(config *OracleConfig, logger *zap.Logger) (*Oracle, error) {
 		logger,
 	)
 
-	// Initialize consensus validators
-	var validators []*consensus.ConsensusValidator
-	if config.ValidatorMode && config.ValidatorKey != "" {
-		kp, err := crypto.PrivateKeyFromHex(config.ValidatorKey)
-		if err != nil {
-			cancel()
-			return nil, fmt.Errorf("failed to parse validator key: %w", err)
-		}
-
-		validator := &consensus.ConsensusValidator{
-			Address:          kp.Address,
-			PubKey:           ethcrypto.FromECDSAPub(kp.PublicKey),
-			VotingPower:      big.NewInt(100), // Default voting power
-			ProposerPriority: big.NewInt(0),
-		}
-		validators = append(validators, validator)
-
-		logger.Info("Validator initialized",
-			zap.String("address", kp.Address.String()),
-			zap.Int64("voting_power", 100),
-		)
+	// Initialize consensus validators from the host-supplied RemoteSigner
+	// (Task 8.8): the validator identity comes from OpenBao / role resolution,
+	// never from a hex key in config or env. A sealed or missing signer yields a
+	// loud error (Degraded) so the Oracle fails to start rather than silently
+	// running without a validator.
+	validators, err := buildConsensusValidators(config)
+	if err != nil {
+		cancel()
+		return nil, fmt.Errorf("failed to build consensus validators: %w", err)
 	}
 
 	// Initialize chain with validators
@@ -794,6 +813,13 @@ func (o *Oracle) Start() error {
 
 	o.logger.Info("Oracle services started successfully")
 
+	// Server-side D14 bond completion + refund sweep. Root nodes only: a root
+	// completes reserved authority bonds (root-owner-signed Release) and refunds
+	// abandoned holds. Restart-safe (initial pass) and idempotent.
+	if o.Mode() == ModeActive {
+		o.startBondSupervisor(o.ctx)
+	}
+
 	return nil
 }
 
@@ -1152,6 +1178,7 @@ func (o *Oracle) initLedger() error {
 	}
 
 	o.nrnToken.SetRecorder(o.recordMutation)
+	o.nrnToken.SetRecorderBatch(o.recordMutationBatch)
 	o.governanceSystem.SetRecorder(o.recordMutation)
 	// Genesis is deliberately not committed to the audit MMR here: a fresh
 	// Oracle must recover to an empty MMR until a checkpoint or a live mutation
@@ -1178,7 +1205,7 @@ func (o *Oracle) hydrateLedgerState(state *ledger.State) error {
 		}
 		balances[address] = amount
 	}
-	if err := o.nrnToken.Hydrate(state.ChainID, state.Owner, total, balances, state.Nonces, state.Registered); err != nil {
+	if err := o.nrnToken.Hydrate(state.ChainID, state.Owner, total, balances, state.Nonces, state.Registered, state.Bonds); err != nil {
 		return err
 	}
 	return o.governanceSystem.Hydrate(state.Governance)
@@ -1231,6 +1258,39 @@ func (o *Oracle) recordMutation(kind string, payload any) error {
 		o.stateRoot = root
 	}
 	return o.commitLedgerLeaf(record)
+}
+
+// recordMutationBatch commits several records as one validated ledger batch: they
+// are appended and fsync'd together by the log, applied to the read model, and
+// each committed to the audit MMR. The whole batch succeeds or fails together, so
+// a recorder failure or crash between the records cannot leave a half-applied
+// escrow (e.g. a token transfer with no corresponding hold status).
+func (o *Oracle) recordMutationBatch(entries []ledger.BatchEntry) error {
+	o.ledgerMu.Lock()
+	defer o.ledgerMu.Unlock()
+	if o.ledger == nil {
+		return nil
+	}
+	batch := make([]ledger.BatchEntry, len(entries))
+	for i, e := range entries {
+		batch[i] = ledger.BatchEntry{Kind: e.Kind, Payload: e.Payload}
+	}
+	records, err := o.ledger.AppendBatch(batch)
+	if err != nil {
+		return err
+	}
+	for _, record := range records {
+		if err := ledger.Apply(o.state, record); err != nil {
+			return fmt.Errorf("ledger apply seq %d: %w", record.Seq, err)
+		}
+		if root, err := ledger.StateRoot(o.state); err == nil {
+			o.stateRoot = root
+		}
+		if err := o.commitLedgerLeaf(record); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // commitLedgerLeaf makes the record part of the Oracle chain's audit MMR, so a
@@ -1355,6 +1415,13 @@ func initializeNRNToken(config *OracleConfig, logger *zap.Logger) (*token.NRN, e
 	}
 	if err := nrnToken.SetChainID(config.ChainID); err != nil {
 		return nil, err
+	}
+	// Initialize the trusted root tx-chain registry id from the owner's public key
+	// before the token serves requests. This is an immutable genesis constant
+	// (identical to the launcher's derived id); setting it here means production
+	// holds bind to it instead of failing closed on an empty value.
+	if ownerPub := nrnToken.OwnerPublicKeyBytes(); len(ownerPub) > 0 {
+		nrnToken.SetRootRegistryID(token.DeriveRootRegistryID(ownerPub))
 	}
 
 	logger.Info("NRN token initialized",

@@ -11,6 +11,20 @@ type ValidatorState struct {
 	Metadata json.RawMessage `json:"metadata,omitempty"`
 }
 
+// BondState is the durable part of a bond escrow hold.
+type BondState struct {
+	HoldID          string `json:"hold_id"`
+	Operator        string `json:"operator"`
+	Amount          string `json:"amount"`
+	RootRegistryID  string `json:"root_registry_id"`
+	ExpiresAtUnix   uint64 `json:"expires_at_unix"`
+	EscrowAddr      string `json:"escrow_addr"`
+	Status          string `json:"status"`
+	BootNodeChainID string `json:"boot_node_chain_id,omitempty"`
+	BootNodeAddress string `json:"boot_node_address,omitempty"`
+	ConsumedChainID string `json:"consumed_chain_id,omitempty"`
+}
+
 // State is the deterministic result of replaying the log. Every value is a
 // canonical JSON scalar or a map keyed by a canonical string, so the state root
 // is stable across processes and map iteration orders.
@@ -30,6 +44,7 @@ type State struct {
 	Votes         map[string]map[string]json.RawMessage `json:"votes"`
 	Params        json.RawMessage                       `json:"params,omitempty"`
 	Governance    json.RawMessage                       `json:"governance,omitempty"`
+	Bonds         map[string]BondState                  `json:"bonds,omitempty"`
 }
 
 // NewState returns an empty state with every map allocated.
@@ -41,6 +56,7 @@ func NewState() *State {
 		Validators: map[string]ValidatorState{},
 		Proposals:  map[string]json.RawMessage{},
 		Votes:      map[string]map[string]json.RawMessage{},
+		Bonds:      map[string]BondState{},
 	}
 }
 
@@ -75,6 +91,10 @@ func (s *State) Clone() *State {
 			inner[voter] = vote
 		}
 		out.Votes[k] = inner
+	}
+	out.Bonds = make(map[string]BondState, len(s.Bonds))
+	for k, v := range s.Bonds {
+		out.Bonds[k] = v
 	}
 	return out
 }

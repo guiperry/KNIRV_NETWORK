@@ -8,8 +8,11 @@ replace github.com/KNIRV/KNIRV_NETWORK/KNIRVSERVER/pkg/knirvgateway => ./pkg/kni
 
 replace knirvulora => ./pkg/knirvulora
 
+replace github.com/KNIRV/KNIRV_NETWORK/KNIRVORACLE => ./pkg/knirvoracle
+
 require (
 	github.com/KNIRV/KNIRV_NETWORK/KNIRVAGENT v0.0.0
+	github.com/KNIRV/KNIRV_NETWORK/KNIRVORACLE v0.0.0
 	knirvulora v0.0.0
 	github.com/ethereum/go-ethereum v1.13.15
 	github.com/gin-gonic/gin v1.10.1

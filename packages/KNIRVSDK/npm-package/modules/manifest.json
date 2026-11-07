@@ -18,7 +18,7 @@
       "module_kind": "crypto",
       "abi_version": 1,
       "byte_length": 393974,
-      "sha256": "fb625fbf814da9776228a58b32467c6fc172eae9e8aa380acb5d175bd40b4a10",
+      "sha256": "fe04a6d48c96183d985f3164dc7b489376e14e0e1a07335687c6ba5fafd222c9",
       "capabilities": [
         "crypto.vault"
       ]

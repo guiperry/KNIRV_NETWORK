@@ -24,3 +24,15 @@ opt-level = 3
 
 [profile.test]
 opt-level = 3
+
+[features]
+# Enables the CUDA backend for `candle-core`/`candle-nn` (and the decision crate's matching
+# feature) so the trainer can use the GPU. Off by default so `cargo build`/`cargo test` on x86
+# unify a single non-CUDA `candle_core` instance with `knirv-heart-decision` (otherwise the
+# direct CUDA candle_core and the decision crate's non-CUDA candle_core are two non-unifying
+# copies, and any tensor passed across the trainer/decision boundary fails to typecheck).
+cuda = ["knirv-heart-decision/cuda", "candle-core/cuda", "candle-nn/cuda"]
+# Developer-only diagnostics (probe-check / probe-overfit / probe-gradparity / cuda-diag). Off by
+# default so the shipped trainer binary does not carry the bisect/parity/overfit tooling the
+# production path never uses. Build with `--features diag` to enable.
+diag = []

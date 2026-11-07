@@ -50,6 +50,11 @@ type ChainRegistration struct {
 	PreferredProofSystem string `json:"preferred_proof_system,omitempty"`
 	// RotationSigs authorizes a registry update; carried by POST /registry/rotate.
 	RotationSigs []AuthorSig `json:"rotation_sigs,omitempty"`
+	// HoldID, when set, names the pending bond escrow hold to consume atomically
+	// with this registration. It is NOT part of the registration digest (the
+	// signed body excludes it), so a registrant cannot alter what is signed by
+	// changing it.
+	HoldID string `json:"hold_id,omitempty"`
 }
 
 // CheckpointStatus is the lifecycle state of a checkpoint record.

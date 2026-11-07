@@ -1,56 +1,143 @@
 //! Task 4.5 — choice-set evaluation additions.
 //!
 //! Pure functions over set-head outputs. A `ScoredSet` is built from a
-//! [`knirv_heart_decision::model::Reasoning`] / `Decision` / `Candidate` by
-//! re-keying each candidate's probability by its stable `id` (so the metrics are
-//! permutation/order independent). The functions are unit-tested with synthetic
-//! fixtures in `tests/setmetrics_test.rs`.
+//! [`knirv_heart_decision::model::Reasoning`] / `Decision` / `Candidate`. To keep the
+//! metrics honest it carries three views of the same row:
+//!   * `probs` — candidate id -> probability, for cross-permutation lookup (order
+//!     independent),
+//!   * `candidates` — `(id, prob)` in the SERVED (request) order; top-1 uses
+//!     first-maximum on this order, matching the runtime/tensor argmax tie rule,
+//!   * `texts` — candidate id -> canonical choice text, so the novel-option gate
+//!     (Task 4.4/4.5) keys on unseen *choice strings*, not opaque ids.
+//!
+//! Every aggregate validates each row first (N>=2, N unique candidates, finite
+//! non-negative probabilities, finite near-one sum); invalid rows are excluded and
+//! reported, never silently folded into a favourable bucket.
 //!
 //! Data-dependent pieces that need a trained 4.4 model and held-out/gold data are
-//! deliberately NOT fabricated here:
-//!   * `novel_option_accuracy` needs the training-split id set (Task 4.6 / gold).
-//!   * per-skill tagging and `max_choices` / bucket-size selection need held-out
-//!     rows (Task 4.6). The functions accept those inputs and compute when present,
-//!     but no synthetic "gold" is invented and `max_choices` is never auto-chosen.
-//!
-//! The wiring that turns a live model's `reason_sets` output into `ScoredSet` rows
-//! lives in the set-scorer evaluation path (see `setprobe`); it is exercised only
-//! once a model with `choice_set_heads` exists (Task 4.4 kill gate). Until then the
-//! fields below stay `None` and the report's set block is empty.
+//! deliberately NOT fabricated here: `novel_option_accuracy` takes the training
+//! option-text set (Task 4.6 / gold) and stays `None` when empty; per-skill tagging
+//! and `max_choices`/bucket-size selection stay `None`/provisional without held-out
+//! rows. No synthetic "gold" is invented.
 
 use crate::eval::{fit_tau, Confidences, TauFit};
 use serde::Serialize;
 use std::collections::{BTreeMap, BTreeSet};
 
-/// One evaluated choice set. Probabilities are re-keyed by candidate `id`.
+/// One evaluated choice set.
 #[derive(Clone, Debug, Default)]
 pub struct ScoredSet {
     pub head: String,
     pub n: usize,
-    /// candidate id -> probability (order independent)
+    /// candidate id -> probability (kept for cross-permutation lookup)
     pub probs: BTreeMap<String, f32>,
+    /// candidates in the served (request) order; top-1 uses first-maximum here
+    pub candidates: Vec<(String, f32)>,
+    /// candidate id -> canonical choice text (lowercased/trimmed)
+    pub texts: BTreeMap<String, String>,
     /// gold/held-out correct candidate id, if known
     pub correct: Option<String>,
     /// held-out skill tag for the row, if known
     pub skill: Option<String>,
 }
 
+/// Build a scored set from request-ordered choices `(id, canonical_text, prob)`.
+pub fn from_choices(
+    head: &str,
+    choices: &[(&str, &str, f32)],
+    correct: Option<&str>,
+    skill: Option<&str>,
+) -> ScoredSet {
+    let mut probs = BTreeMap::new();
+    let mut candidates = Vec::with_capacity(choices.len());
+    let mut texts = BTreeMap::new();
+    for (id, text, p) in choices {
+        probs.insert(id.to_string(), *p);
+        candidates.push((id.to_string(), *p));
+        texts.insert(id.to_string(), canonical_text(text));
+    }
+    ScoredSet {
+        head: head.to_string(),
+        n: choices.len(),
+        probs,
+        candidates,
+        texts,
+        correct: correct.map(String::from),
+        skill: skill.map(String::from),
+    }
+}
+
+/// Canonicalise a choice string for the novel-option gate (Task 4.4/4.5 gate on
+/// unseen *choice strings*; ids may be reused with changed text, or distinct ids
+/// for the same text).
+pub fn canonical_text(s: &str) -> String {
+    s.trim().to_lowercase()
+}
+
+/// A row is valid for aggregation iff it has >=2 candidates, exactly `n` UNIQUE ids,
+/// finite non-negative probabilities, and (model-output boundary) a finite sum within
+/// 1e-3 of 1.0. Invalid rows are excluded from every aggregate and counted once.
+pub fn valid_row(r: &ScoredSet) -> bool {
+    if r.n < 2 {
+        return false;
+    }
+    if r.candidates.len() != r.n {
+        return false;
+    }
+    let mut ids = BTreeSet::new();
+    let mut sum = 0.0f32;
+    for (id, p) in &r.candidates {
+        if ids.contains(id) {
+            return false; // duplicate id
+        }
+        ids.insert(id.clone());
+        if !p.is_finite() || *p < 0.0 {
+            return false;
+        }
+        sum += *p;
+    }
+    if ids.len() != r.n {
+        return false;
+    }
+    (sum - 1.0).abs() <= 1e-3
+}
+
 /// Relative deviation between two probabilities, robust to near-zero values.
-fn rel_dev(a: f32, b: f32) -> f32 {
+/// Non-finite inputs return +infinity so they are never called "invariant".
+pub fn rel_dev(a: f32, b: f32) -> f32 {
+    if !a.is_finite() || !b.is_finite() {
+        return f32::INFINITY;
+    }
     let denom = a.abs().max(b.abs()).max(1e-12);
     (a - b).abs() / denom
 }
 
+/// First-maximum top-1 in request order. On equal probabilities the earliest request
+/// candidate wins — identical to the runtime/tensor argmax, NOT the lexicographically
+/// smallest id. This is the single documented tie rule used by every aggregate.
+pub fn top1(cands: &[(String, f32)]) -> Option<String> {
+    let mut best_idx: Option<usize> = None;
+    let mut best_p = f32::NEG_INFINITY;
+    for (i, (_, p)) in cands.iter().enumerate() {
+        if *p > best_p {
+            best_p = *p;
+            best_idx = Some(i);
+        }
+    }
+    best_idx.map(|i| cands[i].0.clone())
+}
+
 /// Order-invariance rate over permutation groups.
 ///
-/// `groups` maps a "set identity" (the same underlying choice set, e.g. the sorted
-/// id list) to the several `ScoredSet`s produced by permuting the request's option
-/// order. A group is order-invariant iff every candidate `id`'s probability is
-/// equal across its permutations within `tol` (relative, the plan's 1e-5).
-///
-/// Returns `(rate, worst_relative_deviation)`: the fraction of invariant groups and
-/// the largest relative deviation observed across all groups.
-pub fn order_invariance_rate(groups: &BTreeMap<String, Vec<ScoredSet>>, tol: f32) -> (f32, f32) {
+/// `groups` maps a set identity to the several `ScoredSet`s produced by permuting the
+/// request's option order. A group is order-invariant iff every member shares the same
+/// id set and `n`, and every candidate id's probability is equal across permutations
+/// within `tol`. A member with a different id set/size (e.g. `{a,b}` vs `{a,b,c}`) or
+/// any non-finite probability makes the group non-invariant.
+pub fn order_invariance_rate(
+    groups: &BTreeMap<String, Vec<ScoredSet>>,
+    tol: f32,
+) -> (f32, f32) {
     if groups.is_empty() {
         return (1.0, 0.0);
     }
@@ -61,22 +148,33 @@ pub fn order_invariance_rate(groups: &BTreeMap<String, Vec<ScoredSet>>, tol: f32
             invariant += 1; // nothing to compare against
             continue;
         }
-        let base = &perms[0].probs;
+        let base = &perms[0];
+        if !valid_row(base) {
+            // an invalid base row cannot form a meaningful invariance group
+            continue;
+        }
+        let base_ids: BTreeSet<&String> = base.probs.keys().collect();
         let mut group_ok = true;
         let mut group_worst = 0.0f32;
-        for (id, &p0) in base {
-            for perm in &perms[1..] {
-                match perm.probs.get(id) {
-                    Some(&p1) => {
-                        let dev = rel_dev(p0, p1);
-                        if dev > group_worst {
-                            group_worst = dev;
-                        }
-                        if dev > tol {
-                            group_ok = false;
-                        }
-                    }
-                    None => group_ok = false, // id missing under a permutation
+        for perm in &perms[1..] {
+            if !valid_row(perm) {
+                group_ok = false;
+                continue;
+            }
+            // F1: identical id set AND same n required; otherwise we are comparing
+            // different choice sets, not permutations of one set.
+            if perm.probs.keys().collect::<BTreeSet<_>>() != base_ids || perm.n != base.n {
+                group_ok = false;
+                continue;
+            }
+            for (id, &p0) in &base.probs {
+                let p1 = *perm.probs.get(id).unwrap(); // id guaranteed present
+                let dev = rel_dev(p0, p1);
+                if dev > group_worst {
+                    group_worst = dev;
+                }
+                if dev > tol {
+                    group_ok = false;
                 }
             }
         }
@@ -91,40 +189,55 @@ pub fn order_invariance_rate(groups: &BTreeMap<String, Vec<ScoredSet>>, tol: f32
 }
 
 /// Top-1 accuracy of set heads, bucketed by number of candidates `N`.
-/// Only rows with a known `correct` contribute. Returns `N -> (correct, total)`.
+/// Only valid rows with a known `correct` contribute. Returns `N -> (correct, total)`.
 pub fn accuracy_by_n(rows: &[ScoredSet]) -> BTreeMap<usize, (usize, usize)> {
     let mut out: BTreeMap<usize, (usize, usize)> = BTreeMap::new();
     for r in rows {
         let Some(correct) = &r.correct else { continue };
-        let top = r.probs.iter().max_by(|a, b| a.1.total_cmp(b.1)).map(|(id, _)| id);
+        if !valid_row(r) {
+            continue;
+        }
+        let top = top1(&r.candidates);
         let entry = out.entry(r.n).or_insert((0, 0));
         entry.1 += 1;
-        if top == Some(correct) {
+        if top.as_deref() == Some(correct) {
             entry.0 += 1;
         }
     }
     out
 }
 
-/// Top-1 accuracy on rows whose correct option `id` was NOT in `training_ids`.
+/// Top-1 accuracy on rows whose correct option's *canonical text* was NOT in
+/// `training_texts` (the plan's unseen-choice-string gate).
 ///
-/// PROVISIONAL (needs the training-split id set from Task 4.6 / gold data). Returns
-/// `None` when `training_ids` is empty so a baseline is never fabricated from
-/// nothing.
-pub fn novel_option_accuracy(rows: &[ScoredSet], training_ids: &BTreeSet<String>) -> Option<f32> {
-    if training_ids.is_empty() {
+/// PROVISIONAL (needs the training-split option-text set from Task 4.6 / gold data).
+/// Returns `None` when `training_texts` is empty so a baseline is never fabricated.
+/// Novelty is decided by canonical text, not id: an id reused with new text is novel,
+/// and a new id carrying a seen text is seen.
+pub fn novel_option_accuracy(
+    rows: &[ScoredSet],
+    training_texts: &BTreeSet<String>,
+) -> Option<f32> {
+    if training_texts.is_empty() {
         return None;
     }
     let mut ok = 0usize;
     let mut n = 0usize;
     for r in rows {
         let Some(correct) = &r.correct else { continue };
-        if training_ids.contains(correct) {
+        if !valid_row(r) {
             continue;
         }
+        let text = match r.texts.get(correct) {
+            Some(t) => t,
+            None => continue, // cannot resolve the correct option's text -> skip
+        };
+        if training_texts.contains(text) {
+            continue; // seen option
+        }
         n += 1;
-        let top = r.probs.iter().max_by(|a, b| a.1.total_cmp(b.1)).map(|(id, _)| id);
-        if top == Some(correct) {
+        let top = top1(&r.candidates);
+        if top.as_deref() == Some(correct) {
             ok += 1;
         }
     }
@@ -136,18 +249,21 @@ pub fn novel_option_accuracy(rows: &[ScoredSet], training_ids: &BTreeSet<String>
 }
 
 /// Per-skill top-1 accuracy. Returns `None` when no row carries a skill tag
-/// (held-out only).
+/// (held-out only). Invalid rows are excluded.
 pub fn accuracy_by_skill(rows: &[ScoredSet]) -> Option<BTreeMap<String, (usize, usize)>> {
     let mut out: BTreeMap<String, (usize, usize)> = BTreeMap::new();
     let mut any = false;
     for r in rows {
         let Some(skill) = &r.skill else { continue };
         let Some(correct) = &r.correct else { continue };
+        if !valid_row(r) {
+            continue;
+        }
         any = true;
-        let top = r.probs.iter().max_by(|a, b| a.1.total_cmp(b.1)).map(|(id, _)| id);
+        let top = top1(&r.candidates);
         let entry = out.entry(skill.clone()).or_insert((0, 0));
         entry.1 += 1;
-        if top == Some(correct) {
+        if top.as_deref() == Some(correct) {
             entry.0 += 1;
         }
     }
@@ -170,17 +286,28 @@ pub fn n_bucket(n: usize) -> String {
 
 /// Per-N-bucket tau fit. For each bucket, fit the smallest `tau` (on that bucket's
 /// confidences, scored at batch 1 with each candidate's real `max(p)`) at which
-/// selective accuracy `>= target`. Reuses [`crate::eval::fit_tau`].
+/// selective accuracy `>= target`. Reuses [`crate::eval::fit_tau`]. Invalid rows are
+/// excluded so a NaN/empty/N=1 row can never land in a `9+` bucket.
 pub fn fit_tau_by_n_bucket(rows: &[ScoredSet], target: f32) -> BTreeMap<String, TauFit> {
-    // bucket label -> (head -> Vec<(max_p, correct)>)
     let mut by_bucket: BTreeMap<String, Confidences> = BTreeMap::new();
     for r in rows {
         let Some(correct) = &r.correct else { continue };
-        let Some((_, &maxp)) = r.probs.iter().max_by(|a, b| a.1.total_cmp(b.1)) else {
+        if !valid_row(r) {
             continue;
-        };
-        let top = r.probs.iter().max_by(|a, b| a.1.total_cmp(b.1)).map(|(id, _)| id);
-        let is_correct = top == Some(correct);
+        }
+        // first-maximum: index of the top candidate and its probability
+        let mut best_idx: Option<usize> = None;
+        let mut best_p = f32::NEG_INFINITY;
+        for (i, (_, p)) in r.candidates.iter().enumerate() {
+            if *p > best_p {
+                best_p = *p;
+                best_idx = Some(i);
+            }
+        }
+        let Some(idx) = best_idx else { continue };
+        let maxp = r.candidates[idx].1;
+        let top_id = &r.candidates[idx].0;
+        let is_correct = top_id == correct;
         by_bucket
             .entry(n_bucket(r.n))
             .or_default()
@@ -198,8 +325,10 @@ pub fn fit_tau_by_n_bucket(rows: &[ScoredSet], target: f32) -> BTreeMap<String, 
 /// [`crate::eval::Metrics`].
 #[derive(Clone, Debug, Default, Serialize)]
 pub struct SetMetrics {
-    /// number of set rows scored with a known correct answer
+    /// number of valid set rows scored with a known correct answer
     pub n: usize,
+    /// number of rows excluded by validation (NaN/empty/N=1/duplicate id/non-unit sum)
+    pub invalid_rows: usize,
     /// order-invariance rate over permutation groups, and worst relative deviation
     #[serde(skip_serializing_if = "Option::is_none")]
     pub order_invariance_rate: Option<f32>,
@@ -209,7 +338,7 @@ pub struct SetMetrics {
     pub accuracy_by_n: BTreeMap<usize, (usize, usize)>,
     /// per-N-bucket tau fit
     pub tau_by_n_bucket: BTreeMap<String, TauFit>,
-    /// PROVISIONAL (needs training split): novel-option accuracy
+    /// PROVISIONAL (needs training option-text set): novel-option accuracy
     #[serde(skip_serializing_if = "Option::is_none")]
     pub novel_option_accuracy: Option<f32>,
     /// PROVISIONAL (needs held-out skill tags): per-skill accuracy
@@ -221,15 +350,25 @@ pub struct SetMetrics {
 }
 
 /// Build the set-head metrics report from scored rows. `perm_groups` may be empty
-/// (no permutation study yet). `training_ids` and skill tags are optional inputs;
+/// (no permutation study yet). `training_texts` and skill tags are optional inputs;
 /// when absent the corresponding provisional fields stay `None`.
 pub fn build_set_metrics(
     rows: &[ScoredSet],
     perm_groups: &BTreeMap<String, Vec<ScoredSet>>,
-    training_ids: &BTreeSet<String>,
+    training_texts: &BTreeSet<String>,
     target: f32,
 ) -> SetMetrics {
-    let n = rows.iter().filter(|r| r.correct.is_some()).count();
+    let mut n = 0usize;
+    let mut invalid = 0usize;
+    for r in rows {
+        if !valid_row(r) {
+            invalid += 1;
+            continue;
+        }
+        if r.correct.is_some() {
+            n += 1;
+        }
+    }
     let (oir, odev) = if perm_groups.is_empty() {
         (None, None)
     } else {
@@ -238,11 +377,12 @@ pub fn build_set_metrics(
     };
     SetMetrics {
         n,
+        invalid_rows: invalid,
         order_invariance_rate: oir,
         order_invariance_worst_dev: odev,
         accuracy_by_n: accuracy_by_n(rows),
         tau_by_n_bucket: fit_tau_by_n_bucket(rows, target),
-        novel_option_accuracy: novel_option_accuracy(rows, training_ids),
+        novel_option_accuracy: novel_option_accuracy(rows, training_texts),
         accuracy_by_skill: accuracy_by_skill(rows),
         max_choices_provisional: true,
     }

@@ -3,10 +3,12 @@ package app
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"os"
 	"strings"
@@ -551,40 +553,53 @@ func resolverFromContext(context map[string]interface{}) string {
 // Platform validation client
 // ============================================================================
 
+// validationServiceTestTransport is an injectable RoundTripper used only by tests
+// so the client can be exercised without a real unix socket. In production it is
+// nil and only the internal http+unix:// transport is permitted.
+var validationServiceTestTransport http.RoundTripper
+
 // newValidationServiceClient builds a client for KNIRVSERVER's validation API,
 // or returns (nil, false) when no endpoint/credential is configured.
 //
-// KNIRVSERVER's validation routes are gated by RequireAuth, which accepts only
-// a Bearer JWT or session token — there is no internal-service-token path on
-// those routes. DRQ is an unattended background process with no user session,
-// so it can only call them when an operator supplies a service credential
-// explicitly. Rather than weaken the platform's auth to accommodate this, the
-// client is simply absent until that credential exists.
+// The validation surface is reached over KNIRV's internal transport only — the
+// endpoint must be an http+unix:// socket so no public TCP listener is ever
+// opened. Any other scheme (e.g. http://, tcp) is rejected and the client fails
+// closed. The token is read from the handoff file on every request and rejected
+// if empty, malformed, or expired, so a stale or rotated token can never be
+// replayed.
 func newValidationServiceClient() (drq.ValidationService, bool) {
-	baseURL, token := validationServiceCredentials()
-	if baseURL == "" || token == "" {
+	baseURL := strings.TrimSpace(os.Getenv(validationServiceURLEnv))
+	if baseURL == "" {
 		return nil, false
 	}
-	return &validationServiceClient{
-		baseURL: baseURL,
-		token:   token,
-		client:  &http.Client{Timeout: 30 * time.Second},
-	}, true
-}
-
-// validationServiceCredentials reads the endpoint and Bearer credential, the
-// latter from the token file when one is named and readable, else the environment.
-func validationServiceCredentials() (baseURL, token string) {
-	baseURL = strings.TrimRight(strings.TrimSpace(os.Getenv(validationServiceURLEnv)), "/")
-	if path := strings.TrimSpace(os.Getenv(validationServiceTokenFileEnv)); path != "" {
-		if b, err := os.ReadFile(path); err == nil {
-			token = strings.TrimSpace(string(b))
+	c := &validationServiceClient{
+		httpClient: &http.Client{Timeout: 30 * time.Second},
+	}
+	if validationServiceTestTransport != nil {
+		c.httpClient.Transport = validationServiceTestTransport
+		c.requestBase = strings.TrimRight(baseURL, "/")
+		if _, err := c.readToken(); err != nil {
+			return nil, false
 		}
+		return c, true
 	}
-	if token == "" {
-		token = strings.TrimSpace(os.Getenv(validationServiceTokenEnv))
+	// Fail closed: only the internal unix transport is permitted. A TCP endpoint
+	// would expose the validation surface on a publicly reachable listener.
+	if !strings.HasPrefix(baseURL, "http+unix://") {
+		return nil, false
 	}
-	return baseURL, token
+	sp := strings.TrimPrefix(baseURL, "http+unix://")
+	c.socketPath = sp
+	c.requestBase = "http://unixlocal"
+	c.httpClient.Transport = &http.Transport{
+		DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
+			return net.Dial("unix", c.socketPath)
+		},
+	}
+	if _, err := c.readToken(); err != nil {
+		return nil, false
+	}
+	return c, true
 }
 
 // lateValidationService is a drq.ValidationService that finds its endpoint and
@@ -659,9 +674,118 @@ func (l *lateValidationService) GetValidationProof(ctx context.Context, taskID s
 var errNoValidationService = errors.New("no validation service configured")
 
 type validationServiceClient struct {
-	baseURL string
-	token   string
-	client  *http.Client
+	// requestBase is the origin used for requests: "http://unixlocal" when
+	// talking to the backend API unix socket, or the configured http origin.
+	requestBase string
+	// socketPath is non-empty when communicating over a unix socket.
+	socketPath  string
+	httpClient *http.Client
+}
+
+// readValidationToken reads the service token from its handoff file (preferred,
+// so rotation takes effect without a restart) or the environment, and fails
+// closed on an empty, malformed, or expired token. We cannot verify the HMAC
+// secret locally (only the backend does that), but we do reject anything that is
+// not a well-formed signed JWT with the expected algorithm header and the
+// mandatory iss/aud claims, so a fabricated or corrupt handoff can never be sent.
+func readValidationToken() (string, error) {
+	if path := strings.TrimSpace(os.Getenv(validationServiceTokenFileEnv)); path != "" {
+		f, err := os.Open(path)
+		if err != nil {
+			return "", fmt.Errorf("read validation token file: %w", err)
+		}
+		defer f.Close()
+		b, err := io.ReadAll(io.LimitReader(f, 1<<16))
+		if err != nil {
+			return "", fmt.Errorf("read validation token file: %w", err)
+		}
+		tok := strings.TrimSpace(string(b))
+		if tok == "" {
+			return "", fmt.Errorf("validation token file is empty")
+		}
+		if err := assertTokenWellFormed(tok); err != nil {
+			return "", err
+		}
+		return tok, nil
+	}
+	if tok := strings.TrimSpace(os.Getenv(validationServiceTokenEnv)); tok != "" {
+		if err := assertTokenWellFormed(tok); err != nil {
+			return "", err
+		}
+		return tok, nil
+	}
+	return "", fmt.Errorf("no validation token available")
+}
+
+// assertTokenWellFormed checks that token is a structurally valid JWT carrying the
+// expected HS256 alg header and non-empty iss and aud claims, and that it is not
+// expired. It does NOT verify the HMAC signature — that is the backend's job. It
+// exists to fail closed on fabricated, unsigned, or otherwise malformed content
+// before a request is ever sent.
+func assertTokenWellFormed(token string) error {
+	parts := strings.Split(token, ".")
+	if len(parts) != 3 {
+		return fmt.Errorf("malformed validation token")
+	}
+	header, err := base64.RawURLEncoding.DecodeString(parts[0])
+	if err != nil {
+		return fmt.Errorf("malformed validation token header")
+	}
+	var hdr struct {
+		Alg string `json:"alg"`
+	}
+	if err := json.Unmarshal(header, &hdr); err != nil {
+		return fmt.Errorf("malformed validation token header")
+	}
+	// The backend issues HS256 service tokens; accept only that algorithm locally.
+	if hdr.Alg != "HS256" {
+		return fmt.Errorf("validation token must use HS256, got %q", hdr.Alg)
+	}
+	payload, err := base64.RawURLEncoding.DecodeString(parts[1])
+	if err != nil {
+		return fmt.Errorf("malformed validation token payload")
+	}
+	var claims struct {
+		Exp *float64    `json:"exp"`
+		Iss string      `json:"iss"`
+		Aud interface{} `json:"aud"`
+	}
+	if err := json.Unmarshal(payload, &claims); err != nil {
+		return fmt.Errorf("malformed validation token claims")
+	}
+	if claims.Iss == "" {
+		return fmt.Errorf("validation token missing issuer")
+	}
+	if !jwtAudiencePresent(claims.Aud) {
+		return fmt.Errorf("validation token missing audience")
+	}
+	if claims.Exp == nil {
+		return fmt.Errorf("validation token missing expiry")
+	}
+	if time.Now().After(time.Unix(int64(*claims.Exp), 0)) {
+		return fmt.Errorf("validation token expired")
+	}
+	return nil
+}
+
+// jwtAudiencePresent reports whether a JWT aud claim carries at least one value.
+// aud may be a string or an array of strings.
+func jwtAudiencePresent(aud interface{}) bool {
+	switch v := aud.(type) {
+	case string:
+		return v != ""
+	case []interface{}:
+		for _, e := range v {
+			if s, ok := e.(string); ok && s != "" {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func (c *validationServiceClient) readToken() (string, error) {
+	return readValidationToken()
 }
 
 // SubmitClusterForValidation creates a validation task for a cluster.
@@ -687,14 +811,18 @@ func (c *validationServiceClient) SubmitClusterForValidation(ctx context.Context
 		return nil, fmt.Errorf("marshal validation task request: %w", err)
 	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL+"/validation/tasks", bytes.NewReader(body))
+	token, err := c.readToken()
+	if err != nil {
+		return nil, fmt.Errorf("read validation token: %w", err)
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.requestBase+"/api/v1/validation/tasks", bytes.NewReader(body))
 	if err != nil {
 		return nil, fmt.Errorf("build validation task request: %w", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer "+c.token)
+	req.Header.Set("Authorization", "Bearer "+token)
 
-	resp, err := c.client.Do(req)
+	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("submit validation task: %w", err)
 	}
@@ -739,13 +867,17 @@ func (c *validationServiceClient) GetValidationProof(ctx context.Context, taskID
 		return nil, fmt.Errorf("task id is required")
 	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.baseURL+"/validation/tasks/"+taskID+"/results", nil)
+	token, err := c.readToken()
+	if err != nil {
+		return nil, fmt.Errorf("read validation token: %w", err)
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.requestBase+"/api/v1/validation/tasks/"+taskID+"/results", nil)
 	if err != nil {
 		return nil, fmt.Errorf("build validation result request: %w", err)
 	}
-	req.Header.Set("Authorization", "Bearer "+c.token)
+	req.Header.Set("Authorization", "Bearer "+token)
 
-	resp, err := c.client.Do(req)
+	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("fetch validation result: %w", err)
 	}
@@ -776,6 +908,7 @@ func (c *validationServiceClient) GetValidationProof(ctx context.Context, taskID
 	}
 
 	var result struct {
+		Status      string          `json:"status"`
 		Valid       *bool           `json:"valid"`
 		IsValid     *bool           `json:"is_valid"`
 		Proof       json.RawMessage `json:"proof"`
@@ -786,11 +919,21 @@ func (c *validationServiceClient) GetValidationProof(ctx context.Context, taskID
 		return nil, fmt.Errorf("decode validation result body: %w", err)
 	}
 
+	// Canonical verdict is the result "status" string ("valid"/"invalid"/
+	// "inconclusive"); fall back to explicit boolean flags only for legacy
+	// servers that omit it.
 	valid := false
-	if result.Valid != nil {
-		valid = *result.Valid
-	} else if result.IsValid != nil {
-		valid = *result.IsValid
+	switch strings.ToLower(strings.TrimSpace(result.Status)) {
+	case "valid":
+		valid = true
+	case "invalid":
+		valid = false
+	default:
+		if result.Valid != nil {
+			valid = *result.Valid
+		} else if result.IsValid != nil {
+			valid = *result.IsValid
+		}
 	}
 
 	proofBytes := rawFieldBytes(result.Proof)
@@ -857,9 +1000,11 @@ func newULoRAMintingConfig() (compiler drq.ULoRACompiler, validator drq.BundleVa
 	// The gate: the same validation-service endpoint the cluster validation path
 	// uses. Without it minting still stops at the gate — a configured compiler
 	// with no validator must refuse rather than publish unvalidated bytes.
-	baseURL, token := validationServiceCredentials()
-	if baseURL != "" && token != "" {
-		validator = drq.NewDVEBundleValidator(baseURL, token)
+	baseURL := strings.TrimSpace(os.Getenv(validationServiceURLEnv))
+	if baseURL != "" {
+		if tok, err := readValidationToken(); err == nil {
+			validator = drq.NewDVEBundleValidator(baseURL, tok)
+		}
 	}
 	return drq.NewKNIRVULORAClient(""), validator, models, manifestVersion
 }

@@ -59,6 +59,14 @@ func (r *OracleRoutes) routeTable() []routeDef {
 		{"/oracle/v3/token/burn/signed", classMutating, false, r.handleTokenBurnSigned},
 		{"/oracle/v3/account/nonce/", classRead, false, r.handleAccountNonce},
 
+		// Bond escrow endpoints (root tx-chain enrollment bond). The hold is
+		// created by the operator; the release is triggered only by the internal
+		// server-side supervisor (CompleteBondReleases) on the root node — there
+		// is deliberately no public release route, so a remote caller cannot
+		// move the escrow. The refund route is likewise root-internal.
+		{"/oracle/v3/bond/hold", classMutating, false, r.handleBondHold},
+		{"/oracle/v3/bond/refund", classMutating, false, r.handleBondRefund},
+
 		// Governance endpoints.
 		{"/oracle/v3/governance/proposals", classRead, false, r.handleProposals},
 		{"/oracle/v3/governance/proposals/", classMutating, false, r.handleProposal},
@@ -121,8 +129,15 @@ func (r *OracleRoutes) routeTable() []routeDef {
 		// Finality pipeline.
 		{"/oracle/v3/finality", classMutating, false, r.handleSubmitFinality},
 		{"/oracle/v3/finality/attest", classMutating, false, r.handleSubmitAttestation},
-		{"/oracle/v3/verifiers/register", classMutating, false, r.handleRegisterVerifier},
 		{"/oracle/v3/authority/report", classMutating, false, r.handleAuthorityReport},
+
+		// NOTE: /oracle/v3/verifiers/register is intentionally NOT in the public
+		// table. It is an internal-only route (see internalRouteTable) served on
+		// the Oracle's internal unix socket, never on the public listener that
+		// KNIRVGATEWAY proxies. Enrollment is a signed-challenge, token-gated
+		// operation and must not be a public route (DEC-1 narrow allowlist,
+		// rule 2 — not publicly exposed). RegisterRoutes installs a 403 guard
+		// so any request to it on the public listener is refused.
 
 		// Installation and wallet endpoints.
 		{"/oracle/v3/install/wallet", classMutating, false, r.handleInstallWallet},
@@ -213,4 +228,45 @@ func standbyRefusal(w http.ResponseWriter, _ *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusServiceUnavailable)
 	_, _ = w.Write([]byte(`{"error":"oracle standby"}`))
+}
+
+// internalRouteTable lists routes that must be served ONLY on the Oracle's
+// internal unix socket (RegisterInternalRoutes), never on the public listener
+// that KNIRVGATEWAY proxies. A public request to any of these is refused by the
+// 403 guard installed in RegisterRoutes (see InternalRouteRefusal). verifiers/
+// register is internal: verifier enrollment is a signed-challenge, token-gated
+// operation that must not be publicly exposed (DEC-1 narrow allowlist, rule 2).
+func (r *OracleRoutes) internalRouteTable() []routeDef {
+	return []routeDef{
+		{"/oracle/v3/verifiers/register", classMutating, false, r.handleRegisterVerifier},
+	}
+}
+
+// RegisterInternalRoutes mounts the internal-only routes on the given mux. This
+// mux is wired to the Oracle's internal unix socket, which is reachable only by
+// the node's own supervisor and KNIRVGATEWAY's internal forwarding — never by a
+// public client.
+func (r *OracleRoutes) RegisterInternalRoutes(mux *http.ServeMux) {
+	for _, route := range r.internalRouteTable() {
+		mux.HandleFunc(route.pattern, route.handler)
+	}
+}
+
+// InternalRoutePatterns returns the exact path patterns of the internal-only
+// routes. It is used by RegisterRoutes to install the public-side 403 guard.
+func (r *OracleRoutes) InternalRoutePatterns() []string {
+	defs := r.internalRouteTable()
+	out := make([]string, 0, len(defs))
+	for _, d := range defs {
+		out = append(out, d.pattern)
+	}
+	return out
+}
+
+// InternalRouteRefusal is the body returned on the public listener for any
+// internal-only route. A public caller must get 403, not the handler.
+func InternalRouteRefusal(w http.ResponseWriter, _ *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusForbidden)
+	_, _ = w.Write([]byte(`{"error":"route is internal-only; not served on the public listener"}`))
 }

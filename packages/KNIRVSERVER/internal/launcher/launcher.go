@@ -35,6 +35,7 @@ import (
 	"time"
 
 	knirvagent "github.com/KNIRV/KNIRV_NETWORK/KNIRVAGENT"
+	knirvoracle "github.com/KNIRV/KNIRV_NETWORK/KNIRVORACLE"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/guiperry/knirv-sdk-go/noderole"
@@ -42,7 +43,9 @@ import (
 	"github.com/subosito/gotenv"
 	"go.uber.org/zap"
 	"knirv-server/internal/bootkey"
+	"knirv-server/internal/enroll"
 	dveevidence "knirv-server/internal/dveevidence"
+	"knirv-server/internal/knirvbao"
 	"knirv-server/internal/knirvproof"
 	"knirv-server/internal/monitor"
 	"knirv-server/internal/progress"
@@ -360,7 +363,17 @@ type ServerApp struct {
 	upd                      *updater.Updater
 	monitor                  *monitor.Service
 	bao                      baoManager
+	// oracleManager is the production 8.6 Oracle failover Manager, constructed via
+	// NewOracleManager (which injects the real AppRolePromoter) in startOpenBao. The
+	// failover service drives CONFIRMED/RECLAIMED transitions through it; a bare
+	// knirvoracle.NewManager would leave a nil promoter and failover would silently
+	// no-op.
+	oracleManager            *knirvoracle.Manager
 	roleResolution           atomic.Pointer[noderole.Resolution]
+	// rootPrivateKeyHex holds the decrypted root-owner key in process memory only.
+	// It is never written to env vars, args, files, or logs. Used by the root
+	// tx-chain registry-record publisher (design rev 2).
+	rootPrivateKeyHex string
 }
 
 func (app *ServerApp) startIPFS(ctx context.Context) error {
@@ -3011,6 +3024,36 @@ func setChildEnv(env []string, key, value string) []string {
 	return append(filtered, prefix+value)
 }
 
+// appendValidationServiceChildEnv propagates the validation service endpoint and
+// token-file handoff to the graph child (KNIRVGRAPH, spawned by backend_server).
+// The endpoint is forced to an internal unix socket: an operator override is only
+// honored when it is an http+unix:// URL, so any TCP override is dropped and the
+// DRQ validation surface can never be pointed at a network endpoint (fail-closed).
+func appendValidationServiceChildEnv(cfg *Config, env []string) []string {
+	// 8.9 (a): a scoped validation service token handoff file path. The path lives
+	// in the node's app-data dir so both the backend_server process and its
+	// KNIRVGRAPH grandchild can reach it. An operator-set override wins.
+	if strings.TrimSpace(os.Getenv("KNIRV_VALIDATION_SERVICE_TOKEN_FILE")) == "" {
+		if appDataDir, err := getAppDataDir(); err == nil {
+			tokenFilePath := filepath.Join(appDataDir, "validation_service_token")
+			env = setChildEnv(env, "KNIRV_VALIDATION_SERVICE_TOKEN_FILE", tokenFilePath)
+		}
+	}
+	// Point the graph child's validation client at the backend API unix socket. Any
+	// operator override that is not http+unix:// is rejected so the DRQ validation
+	// surface can never be directed at a TCP endpoint.
+	if override := strings.TrimSpace(os.Getenv("KNIRV_VALIDATION_SERVICE_URL")); override != "" {
+		if !strings.HasPrefix(override, "http+unix://") {
+			log.Printf("[validation] KNIRV_VALIDATION_SERVICE_URL must be an http+unix:// socket; ignoring TCP override")
+		} else {
+			env = setChildEnv(env, "KNIRV_VALIDATION_SERVICE_URL", override)
+		}
+	} else if cfg.BackendSocket != "" {
+		env = setChildEnv(env, "KNIRV_VALIDATION_SERVICE_URL", "http+unix://"+cfg.BackendSocket)
+	}
+	return env
+}
+
 // ensureMainHTTPPortFree kills any existing listeners on the main HTTP port before startup.
 func ensureMainHTTPPortFree(port int) error {
 	if waitForPortFreeMain(port, 250*time.Millisecond) {
@@ -3090,6 +3133,41 @@ func unixHTTPClient(socketPath string, timeout time.Duration) *http.Client {
 // nodes with neither key.
 func (app *ServerApp) startValidationChain(ctx context.Context) error {
 	socketPath := validationChainSocketPath()
+
+	// When OpenBao is ready, route Validation Chain signing through the node-local
+	// OpenBao plugin's checkpoint-signer. This keeps the raw key inside OpenBao and
+	// gives the embedded binary and the Go-side checkpoint runtime the same identity.
+	// The launcher's own admin token is used ONLY here, to mint a single-use wrapped
+	// AppRole secret ID for the Validation Chain's own role — it is never propagated
+	// to the child (OpenBao audit P1). The child authenticates for its role and
+	// receives only its short-lived role token via the 0600 handoff file; until that
+	// login path lands, we fall back to the legacy raw-hex key (set from root.key/
+	// boot.key in startBackend) and never hand the child a broad Bao token.
+	if app.bao != nil {
+		if st := app.bao.Health(); st.State == knirvbao.Ready {
+			if adminToken := strings.TrimSpace(os.Getenv("KNIRV_BAO_TOKEN")); adminToken != "" {
+				ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+				defer cancel()
+				if wrap, err := MintRoleSecretID(ctx, app.bao.Socket(), adminToken, BaoRoleValidation, 60*time.Second); err == nil {
+					handoffDir := filepath.Join(mustAppDataDir(), "bao-handoff")
+					if path, werr := WriteHandoffFile(handoffDir, BaoRoleValidation, wrap); werr == nil {
+						os.Setenv("VALIDATION_CHAIN_BAO_SOCKET", app.bao.Socket())
+						os.Setenv("VALIDATION_CHAIN_BAO_WRAP_TOKEN_FILE", path)
+						// Bao owns the checkpoint-signer identity now; strip the raw
+						// root/boot-derived key from the environment so it is never
+						// handed to (or read by) the validation chain.
+						os.Unsetenv("KNIRV_VALIDATION_SERVICE_PRIVATE_KEY")
+						os.Unsetenv("KNIRV_VALIDATION_SERVICE_KEY_FILE")
+					} else {
+						log.Printf("Warning: bao validation handoff write failed, falling back to legacy key: %v", werr)
+					}
+				} else {
+					log.Printf("Warning: bao validation AppRole mint failed, falling back to legacy key: %v", err)
+				}
+			}
+		}
+	}
+
 	signer, err := validationchain.LoadCheckpointSigner()
 	if err != nil {
 		return fmt.Errorf("load explicitly provisioned Validation Chain service signer: %w", err)
@@ -3481,6 +3559,34 @@ func (app *ServerApp) startBackend() error {
 		"KNIRV_API_HOST=127.0.0.1",
 	)
 
+	// Hand the node-local OpenBao plugin socket + a per-role wrapped AppRole secret
+	// ID to the backend_server child so it (and the KNIRVORACLE subprocess it spawns)
+	// can sign through OpenBao instead of loading raw keys. We never propagate the
+	// launcher's ambient admin token (OpenBao audit P1): the launcher uses it only to
+	// mint a single-use wrapped secret ID for the backend's own AppRole, and the child
+	// authenticates for that role over its unix-socket handoff file to obtain only a
+	// short-lived role token. startValidationChain does the same for the Validation
+	// Chain itself; it runs AFTER startBackend, so for the subprocesses that start now
+	// we mint here. openbao.env (0600) is never logged or embedded.
+	if app.bao != nil {
+		if st := app.bao.Health(); st.State == knirvbao.Ready {
+			if adminToken := strings.TrimSpace(os.Getenv("KNIRV_BAO_TOKEN")); adminToken != "" {
+				ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+				defer cancel()
+				if wrap, err := MintRoleSecretID(ctx, app.bao.Socket(), adminToken, BaoRoleBackend, 60*time.Second); err == nil {
+					handoffDir := filepath.Join(mustAppDataDir(), "bao-handoff")
+					if path, werr := WriteHandoffFile(handoffDir, BaoRoleBackend, wrap); werr == nil {
+						env = append(env, HandoffEnv(app.bao.Socket(), path)...)
+					} else {
+						log.Printf("Warning: bao backend handoff write failed, backend falls back to local signing: %v", werr)
+					}
+				} else {
+					log.Printf("Warning: bao backend AppRole mint failed, backend falls back to local signing: %v", err)
+				}
+			}
+		}
+	}
+
 	// The model harness reads its tuning from the environment. Only explicit
 	// settings are passed so its own defaults apply otherwise.
 	env = append(env, llamaHarnessEnv(app.config.Llama)...)
@@ -3569,6 +3675,11 @@ func (app *ServerApp) startBackend() error {
 			env = append(env, "XION_HOME="+filepath.Join(appDataDir, "xion"))
 		}
 	}
+	// 8.9 (a): propagate the validation service endpoint + token-file handoff to the
+	// graph child (KNIRVGRAPH, spawned by backend_server). See
+	// appendValidationServiceChildEnv for the fail-closed rules (unix-socket only).
+	env = appendValidationServiceChildEnv(app.config, env)
+
 	// Node role is decided in exactly one place: noderole.Resolve. This block
 	// gathers the key-file facts it needs, propagates the credentialed
 	// environment those keys imply, and renders the decision for the children.
@@ -3594,6 +3705,14 @@ func (app *ServerApp) startBackend() error {
 		// its tunnels on Root nodes the same way it does for Bootnodes (from
 		// boot.key, below). Requires ORACLE_KEY_PASSWORD to already be set.
 		rootCreds, keyLoadErr = bootkey.LoadRootKeyCloudflareCreds()
+		if rootCreds != nil && rootCreds.RootPrivateKeyHex != "" {
+			// Keep the decrypted root key in process memory for the root tx-chain
+			// registry-record publisher. Never written to env/args/files/logs.
+			app.rootPrivateKeyHex = rootCreds.RootPrivateKeyHex
+			// Derive this root node's immutable network-registry id and set it in the
+			// launcher process, overriding any inherited value (P4).
+			app.configureNodeRegistrationID(true, rootCreds.RootPrivateKeyHex)
+		}
 		if rootCreds != nil {
 			if rootCreds.CloudflareAPIToken != "" {
 				env = append(env, "CLOUDFLARE_API_TOKEN="+rootCreds.CloudflareAPIToken)
@@ -3672,6 +3791,9 @@ func (app *ServerApp) startBackend() error {
 			log.Printf("Boot node detected (boot.key found) but decryption failed: %v", keyLoadErr)
 			log.Printf("Set BOOT_KEY_PASSWORD to unlock boot.key credentials at startup")
 		}
+		// Non-root nodes must never register under a root-derived or inherited
+		// KNIRV_NODE_REGISTRATION_ID (P4).
+		app.configureNodeRegistrationID(false, "")
 	}
 
 	// One decision, rendered for every child. A privileged role is never
@@ -4116,6 +4238,19 @@ func (app *ServerApp) Start() error {
 		log.Printf("Warning: KNIRVMONITOR was not started: %v", err)
 	}
 
+	// Root tx-chain registry record (root tx-chain design rev 2): a ROOT node
+	// publishes its signed root-tx-chain RegistryRecord to REGISTRY.KNIRV.NETWORK.
+	// Non-root nodes publish nothing. Runs in the background with bounded retries
+	// so a stalled or unreachable Worker cannot block startup; it is never fatal.
+	// The key is read from process memory only.
+	if app.rootPrivateKeyHex != "" {
+		go app.maybePublishRootRegistry(context.Background(), app.rootPrivateKeyHex)
+	}
+
+	// pi_2d2_bond_server: publish this node's Transaction Chain address to the
+	// network registry (and keep it fresh). Non-blocking and never fatal.
+	go app.startNodeRegistry(context.Background())
+
 	// Create HTTP server
 	// WriteTimeout is 0 (disabled) so SSE and long-lived streaming responses are
 	// not killed by the server. ReadTimeout still guards against slow-loris attacks.
@@ -4133,6 +4268,11 @@ func (app *ServerApp) Start() error {
 			log.Fatalf("Failed to start server: %v", err)
 		}
 	}()
+
+	// DEC-2 boot-node enrollment server: internal Unix-domain socket only (Rule 2 —
+	// never on the public HTTP listener). Enabled via KNIRV_ENROLL_SOCKET. Non-fatal:
+	// a failure here is logged and never blocks startup.
+	go app.startEnrollSocket(context.Background())
 
 	// Wait for server to be ready
 	time.Sleep(2 * time.Second)
@@ -4457,4 +4597,32 @@ func Run(assets Assets) {
 	}
 
 	log.Println("KNIRV-SERVER stopped")
+}
+
+// startEnrollSocket brings up the DEC-2 boot-node enrollment server on an internal
+// Unix-domain socket, reachable only through the gateway proxy boundary (Rule 2 —
+// never on the public HTTP listener). It is enabled only when KNIRV_ENROLL_SOCKET is
+// set; KNIRV_ENROLL_ROOT_PUBKEY and KNIRV_ENROLL_OPERATOR supply the trusted root
+// identity the enrollment must match. Failures are logged and never block startup.
+func (app *ServerApp) startEnrollSocket(ctx context.Context) {
+	socketPath := os.Getenv("KNIRV_ENROLL_SOCKET")
+	if socketPath == "" {
+		return
+	}
+	rootPubKey := os.Getenv("KNIRV_ENROLL_ROOT_PUBKEY")
+	operator := os.Getenv("KNIRV_ENROLL_OPERATOR")
+	if rootPubKey == "" || operator == "" {
+		log.Printf("enrollment socket disabled: KNIRV_ENROLL_ROOT_PUBKEY and KNIRV_ENROLL_OPERATOR are required")
+		return
+	}
+	dataDir, err := getAppDataDir()
+	if err != nil {
+		log.Printf("enrollment socket disabled: %v", err)
+		return
+	}
+	store := enroll.NewNonceStore(dataDir)
+	srv := enroll.NewServer(enroll.SDKVerifier{}, store, rootPubKey, operator, zap.L())
+	if err := srv.ServeUnix(ctx, socketPath); err != nil && ctx.Err() == nil {
+		log.Printf("enrollment socket stopped: %v", err)
+	}
 }

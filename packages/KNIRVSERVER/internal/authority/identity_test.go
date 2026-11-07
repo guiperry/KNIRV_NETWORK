@@ -32,6 +32,9 @@ func (f *fakeProvider) Signer(_ context.Context, name string) (knirvsigning.Remo
 	return s, nil
 }
 func (f *fakeProvider) Health(context.Context) secrets.Status { return secrets.Status{} }
+func (f *fakeProvider) ValidatorSettings(_ context.Context, resolverMax string) (*secrets.ValidatorSettingsResult, error) {
+	return &secrets.ValidatorSettingsResult{Enabled: true, OracleModeMax: resolverMax}, nil
+}
 
 func TestResolveIdentity(t *testing.T) {
 	rootS, bootS := testSigner(t, 1), testSigner(t, 2)

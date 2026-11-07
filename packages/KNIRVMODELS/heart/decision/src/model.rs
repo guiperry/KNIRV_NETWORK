@@ -13,24 +13,261 @@
 use crate::config::{HeadConfig, HeadKind, SetKind};
 use crate::layout::{assert_additive, ChoiceLayout};
 use candle_core::{DType, Device, IndexOp, Result, Tensor, D};
-use candle_nn::{
-    linear, linear_no_bias, ops, rms_norm, Embedding, Init, Linear, Module, RmsNorm, VarBuilder,
-};
+use candle_nn::{linear, linear_no_bias, ops, Embedding, Init, Linear, Module, VarBuilder};
 use serde::{Deserialize, Serialize};
 
 const EPS: f64 = 1e-6;
 
+/// Longest common substring length of `a` and `b` (byte strings). Used by the set scorer's
+/// content-overlap feature: a candidate that shares a substring with the question is a stronger
+/// match. Computed on the raw candidate/question text (independent of tokenization) so native,
+/// WASM and WASI all produce identical features from the same `SetQuestion`.
+fn lcs_len(a: &str, b: &str) -> usize {
+    let (a, b) = (a.as_bytes(), b.as_bytes());
+    let (na, nb) = (a.len(), b.len());
+    if na == 0 || nb == 0 {
+        return 0;
+    }
+    let mut best = 0usize;
+    let mut prev = vec![0usize; nb + 1]; // dp[i-1][*]
+    for i in 0..na {
+        let mut cur_row = vec![0usize; nb + 1];
+        for j in 0..nb {
+            cur_row[j + 1] = if a[i] == b[j] { prev[j] + 1 } else { 0 };
+            if cur_row[j + 1] > best {
+                best = cur_row[j + 1];
+            }
+        }
+        prev = cur_row;
+    }
+    best
+}
+
+/// Cap applied to each candidate / question before the LCS overlap feature is computed. The LCS is
+/// bounded by 256 characters per side (at most 1024 UTF-8 bytes for four-byte scalars), so both the
+/// trainer and every runtime truncate to this many characters first; doing it here (the single shared
+/// function used by training and serving) keeps the feature identical everywhere and bounds the work
+/// for unbounded HTTP inputs.
+const FEATURE_TEXT_CAP: usize = 256;
+
+/// Content-overlap feature `[1, M, 1]` for one set question: for each candidate, the fraction of its
+/// (capped) bytes covered by the longest substring it shares with the (capped) question. The correct
+/// candidate shares the question's keyword/entity (→ high), distractors share none (→ 0). This is the
+/// Task 4.4 inductive bias that lets the set head learn the matching rule; it is computed from the
+/// candidate and question text so the trainer and every runtime share it with no external input.
+pub fn overlap_feature(question: &str, choices: &[String]) -> Vec<f32> {
+    let q: String = question.chars().take(FEATURE_TEXT_CAP).collect();
+    choices
+        .iter()
+        .map(|c| {
+            if c.is_empty() {
+                0.0
+            } else {
+                let c: String = c.chars().take(FEATURE_TEXT_CAP).collect();
+                if c.is_empty() {
+                    0.0
+                } else {
+                    lcs_len(&c, &q) as f32 / c.len() as f32
+                }
+            }
+        })
+        .collect()
+}
+
+// candle-nn 0.11's `ops::softmax_last_dim` and `rms_norm` are built via
+// `apply_op{1,2}_no_bwd` (`BackpropOp::none()`), so they carry NO gradient. That makes the
+// whole model untrainable: only matmul weights (set.w, emb_w) ever receive grad. These are
+// drop-in differentiable replacements with identical forward values; param names are unchanged
+// so existing safetensors stay loadable.
+struct DiffRmsNorm {
+    weight: Tensor,
+}
+
+impl DiffRmsNorm {
+    fn new(d: usize, vb: VarBuilder) -> Result<Self> {
+        let weight = vb.get_with_hints((d,), "weight", Init::Const(1.0))?;
+        Ok(Self { weight })
+    }
+    fn forward(&self, x: &Tensor) -> Result<Tensor> {
+        let x = x.contiguous()?;
+        let dims = x.shape().dims();
+        let d = dims[dims.len() - 1];
+        let n_total: usize = dims[..dims.len() - 1].iter().product();
+        // Flatten to 2D and pad the last dim to a multiple of 32. candle 0.11's CUDA backend returns
+        // 0 for `sum_keepdim`/`mean_keepdim` over the last dim at small (<=16) and generally
+        // unreliable widths — the same kernel defect that already forces `softmax_last_dim_diff` to
+        // pad widths to a multiple of 32. Padding the squared input with zeros leaves the sum
+        // unchanged, so we sum the padded width and divide by the TRUE width `d`. The per-row scale
+        // and weight are materialised to full contiguous tensors so the multiplies are plain
+        // elementwise CUDA ops. Mathematically identical to the rank-3 form; a no-op on CPU.
+        let x = x.reshape((n_total, d))?.contiguous()?;
+        let pad = if d < 32 { ((d + 31) / 32) * 32 - d } else { 0 };
+        let xpad = if pad > 0 {
+            let zeros = Tensor::zeros(&[n_total, pad], DType::F32, x.device())?;
+            Tensor::cat(&[x.clone(), zeros], 1)?.contiguous()?
+        } else { x.clone() };
+        let ms = xpad.sqr()?.sum_keepdim(D::Minus1)?.contiguous()?; // [n_total, 1] over padded width
+        let ms = (ms / d as f64)?; // mean = sum / true d (CUDA-safe; mean_keepdim returns 0 on CUDA)
+        let inv = (ms + EPS)?.sqrt()?.recip()?; // [n_total, 1]
+        let inv_full = inv.broadcast_as((n_total, d))?.contiguous()?; // [n_total, d] materialised
+        let normed = x.broadcast_mul(&inv_full)?; // full elementwise (no stride-0 operand)
+        // Materialise the per-channel weight to a full contiguous tensor so the weight multiply is a
+        // plain elementwise op (a stride-0 right operand would be wrong on CUDA and also yields a
+        // zero weight gradient).
+        let w_full = self.weight.reshape((1, d))?.broadcast_as((n_total, d))?.contiguous()?; // [n_total, d]
+        let y = normed.broadcast_mul(&w_full)?; // full elementwise
+        y.reshape(dims.to_vec())
+    }
+}
+
+/// Differentiable last-dim softmax, CUDA-safe. The last dim is padded to a multiple of 32 with
+/// `-inf` (candle 0.11's CUDA softmax/division kernels NaN on widths <= 16) and the softmax is
+/// computed WITHOUT a `broadcast_div`/`recip` (their CUDA backward is broken for stride-0
+/// operands) using `exp(x - logsumexp(x))` from max/exp/sum/log. Returns the **padded-width**
+/// softmax — callers that need the unpadded width (i.e. the loss) must call
+/// `softmax_last_dim_unpad`; the attention path instead pads `v` to the same width and matmuls
+/// without narrowing, because the CUDA `narrow` backward is unreliable on the 4D padded tensor.
+/// CUDA-safe last-dim softmax. candle 0.11's CUDA softmax backward is broken for rank>=4 tensors
+/// and `NaN`s on rank>=3 merges, while the **2D** form is correct and NaN-free. We therefore flatten
+/// every softmax to 2D (`[.., n] -> [prod(leading), n]`), run the proven 2D padded
+/// `exp(x - logsumexp(x))` softmax, and reshape back. Padding the last dim to a multiple of 32 with
+/// `-inf` avoids the CUDA NaN for narrow widths; the `-inf` attention/row bias masks are handled by
+/// `max`/`exp`.
+pub fn softmax_last_dim_diff(x: &Tensor) -> Result<Tensor> {
+    let dims = x.shape().dims();
+    let rank = dims.len();
+    let c = dims[rank - 1];
+    let lead: usize = dims[..rank - 1].iter().product();
+    let x2 = x.reshape((lead, c))?.contiguous()?;
+    let sm2 = softmax_lastdim_2d(&x2)?; // 2D padded
+    sm2.reshape(dims.to_vec())
+}
+
+/// Slice the padded last dim back to `last` (used by the loss; the attention path avoids this).
+pub fn softmax_last_dim_unpad(sm: &Tensor, last: usize) -> Result<Tensor> {
+    let w = sm.dim(D::Minus1)?;
+    if w == last { Ok(sm.contiguous()?) } else { sm.narrow(D::Minus1, 0, last)?.contiguous() }
+}
+
+/// 2D last-dim softmax with the CUDA-safe padding (`-inf` tail to a multiple of 32) and a stable
+/// `exp(x - logsumexp(x))` form (no `broadcast_div`/`recip`). Correct CUDA backward, no NaN.
+///
+/// An all-`-inf` row (a fully masked / padding candidate) is defined to produce an all-`0` row: it
+/// gets no probability mass, which is consistent with the padding mask the scorer applies. Without
+/// this guard an all-`-inf` row is `-inf - -inf = NaN`, which would poison the scorer's softmax and
+/// (for the loss) the unused padded rows. Finite rows are unaffected.
+fn softmax_lastdim_2d(x: &Tensor) -> Result<Tensor> {
+    let dims = x.shape().dims();
+    let last = dims[dims.len() - 1];
+    let pad = if last < 32 { ((last + 31) / 32) * 32 - last } else { 0 };
+    let x = if pad > 0 {
+        let mut padded_shape = dims.to_vec();
+        padded_shape[dims.len() - 1] = pad;
+        let neg = Tensor::new(f32::NEG_INFINITY, x.device())?.broadcast_as(padded_shape.as_slice())?;
+        Tensor::cat(&[x, &neg], dims.len() - 1)?.contiguous()?
+    } else {
+        x.contiguous()?
+    };
+    let m = x.max_keepdim(D::Minus1)?; // [.., 1]; `-inf` iff the whole row is masked
+    let e = x.broadcast_sub(&m)?.exp()?; // exp(x - max)
+    let s = e.sum_keepdim(D::Minus1)?; // sum exp(x - max)
+    let lse = s.log()?.broadcast_add(&m)?; // logsumexp
+    let sm = x.broadcast_sub(&lse)?.exp()?; // softmax
+    // Zero out fully-masked rows (all `-inf`): an all-`-inf` row yields NaN from `-inf - (-inf)`, so
+    // select 0 for those rows instead of multiplying (which would give 0·NaN = NaN). `x.gt(-1e30)`
+    // is NaN-free; a row with any finite entry keeps its softmax, a row with none becomes all-zero.
+    let row_has = x.gt(-1e30)?.sum_keepdim(D::Minus1)?.gt(0.5)?; // [.., 1] bool
+    let row_has = row_has.broadcast_as(sm.shape())?; // [.., W] bool
+    let zeros = Tensor::zeros_like(&sm)?;
+    let sm = row_has.where_cond(&sm, &zeros)?;
+    if pad > 0 {
+        sm.narrow(D::Minus1, 0, last)?.contiguous()
+    } else {
+        Ok(sm)
+    }
+}
+
+/// CUDA-safe mean over `dim`. candle 0.11's CUDA `mean`/`mean_keepdim` return 0 for small (<=16)
+/// and generally unreliable reduced widths — the same kernel defect that forces `softmax_last_dim_diff`
+/// to pad widths to a multiple of 32 and `DiffRmsNorm` to pad its reduction dim. The span widths this
+/// is used on (candidate token spans) are small, so the bug bites directly. We pad `dim` to a multiple
+/// of 32 with zeros (the sum is unchanged), reduce with `sum_keepdim`, divide by the TRUE width, and
+/// restore the axis order. Mathematically identical to `mean`; a no-op on CPU.
+fn mean_dim(x: &Tensor, dim: usize) -> Result<Tensor> {
+    let dims = x.shape().dims();
+    let rank = dims.len();
+    let w = dims[dim];
+    // Move `dim` to the last axis (swap with the last axis) so the padding + 2D sum reduction is
+    // safe. `transpose` swaps two axes; swapping back afterwards restores the original order.
+    let x = if dim == rank - 1 {
+        x.clone()
+    } else {
+        x.transpose(dim, rank - 1)?
+    };
+    let pdims = x.shape().dims();
+    let pad = if w < 32 { ((w + 31) / 32) * 32 - w } else { 0 };
+    let x = if pad > 0 {
+        // Zeros must share `x`'s rank: copy every non-last dim, replace the last with `pad`.
+        let mut zshape = pdims[..rank - 1].to_vec();
+        zshape.push(pad);
+        let zeros = Tensor::zeros(zshape, DType::F32, x.device())?;
+        Tensor::cat(&[&x, &zeros], rank - 1)?
+    } else { x };
+    let s = x.sum_keepdim(D::Minus1)?; // [.., 1] over padded width, reduced dim at last
+    let m = (s / w as f64)?; // divide by the true width
+    // Drop the reduced dim (candle's `mean` removes it, not keepdim) and restore the axis order,
+    // so the result is byte-for-byte the same shape as `mean(dim)`.
+    if dim == rank - 1 {
+        m.squeeze(D::Minus1)
+    } else {
+        m.transpose(dim, rank - 1)?.squeeze(dim)
+    }
+}
+
+/// Differentiable log-softmax (last dim). Same candle 0.11 CUDA workaround as `softmax_last_dim_diff`.
+pub fn log_softmax_last_dim_diff(x: &Tensor) -> Result<Tensor> {
+    let last = x.dim(D::Minus1)?;
+    Ok(softmax_last_dim_unpad(&softmax_last_dim_diff(x)?, last)?.log()?)
+}
+
+/// Single-row negative-log-likelihood of `target` under row-wise log-softmax of `logits`
+/// (last dim). The target logit is gathered by `narrow` (NOT a masked multiply) so the value
+/// and backward are correct and differentiable on **both CPU and CUDA**.
+///
+/// This is the fix for the Task 4.4 set-loss bug: a masked multiply (`log_softmax * one_hot`)
+/// does `-inf * 0.0` for padded / masked rows, which is `NaN` in f32 and silently poisoned the
+/// loss + gradient; and candle 0.11's CUDA `sum_all`/`narrow` reductions over the pad-to-32
+/// softmax output silently returned 0, zeroing both the logged loss and the set-head gradient
+/// (every GPU training run before the fix never trained the set head). `narrow` on the
+/// log-softmax output is numerically exact and avoids both failure modes. `logits` may contain
+/// padded trailing columns and `-inf` rows; `log_softmax_last_dim_diff` handles those correctly.
+/// Returns a `[.., 1]` tensor per row.
+pub fn set_loss_from_logits(logits: &Tensor, target: usize) -> Result<Tensor> {
+    let last = logits.dim(D::Minus1)?;
+    if target >= last {
+        candle_core::bail!("set_loss_from_logits target {target} >= last dim {last}");
+    }
+    let ls = log_softmax_last_dim_diff(logits)?;
+    // Gather the target logit directly via `narrow`: mathematically `-(log_softmax[target])`, but
+    // without a masked multiply (`-inf * 0.0` -> NaN). This is the exact code the CUDA regression
+    // `set_loss_reduction_matches_reference_and_agrees_cpu_cuda` exercises (padded `-inf` rows +
+    // CPU==GPU), so the GPU path is covered.
+    let nll = ls.narrow(D::Minus1, target, 1)?.neg()?; // [.., 1]
+    Ok(nll)
+}
+
 struct Block {
-    n1: RmsNorm,
+    n1: DiffRmsNorm,
     q: Linear,
     k: Linear,
     v: Linear,
     o: Linear,
-    n2: RmsNorm,
+    n2: DiffRmsNorm,
     gate: Linear,
     up: Linear,
     down: Linear,
     heads: usize,
+    dropout: f32,
 }
 
 impl Block {
@@ -38,22 +275,23 @@ impl Block {
         let d = cfg.d_model;
         let f = cfg.ffn_mult * d;
         Ok(Self {
-            n1: rms_norm(d, EPS, vb.pp("n1"))?,
+            n1: DiffRmsNorm::new(d, vb.pp("n1"))?,
             q: linear_no_bias(d, d, vb.pp("attn.q"))?,
             k: linear_no_bias(d, d, vb.pp("attn.k"))?,
             v: linear_no_bias(d, d, vb.pp("attn.v"))?,
             o: linear_no_bias(d, d, vb.pp("attn.o"))?,
-            n2: rms_norm(d, EPS, vb.pp("n2"))?,
+            n2: DiffRmsNorm::new(d, vb.pp("n2"))?,
             gate: linear_no_bias(d, f, vb.pp("mlp.gate"))?,
             up: linear_no_bias(d, f, vb.pp("mlp.up"))?,
             down: linear_no_bias(f, d, vb.pp("mlp.down"))?,
             heads: cfg.n_heads,
+            dropout: cfg.dropout,
         })
     }
 
     /// `bias` is an optional additive `[S, S]` attention bias (0 allowed, -inf forbidden);
-    /// `None` is exactly the v1 computation.
-    fn forward(&self, x: &Tensor, bias: Option<&Tensor>) -> Result<Tensor> {
+    /// `None` is exactly the v1 computation. `train` enables dropout on the residual branches.
+    fn forward(&self, x: &Tensor, bias: Option<&Tensor>, train: bool) -> Result<Tensor> {
         let (b, s, d) = x.dims3()?;
         let hd = d / self.heads;
         let h = self.n1.forward(x)?;
@@ -66,12 +304,16 @@ impl Block {
             Some(m) => att.broadcast_add(m)?,
             None => att,
         };
-        let att = ops::softmax_last_dim(&att)?;
+        let att = softmax_last_dim_diff(&att)?; // CUDA-safe softmax (no stride-0 broadcast_div)
         let ctx = att.matmul(&v)?.transpose(1, 2)?.contiguous()?.reshape((b, s, d))?;
-        let x = (x + self.o.forward(&ctx)?)?;
+        let attn_out = self.o.forward(&ctx)?;
+        let attn_out = if train && self.dropout > 0.0 { ops::dropout(&attn_out, self.dropout)? } else { attn_out };
+        let x = (x + attn_out)?;
         let h = self.n2.forward(&x)?;
         let m = (ops::silu(&self.gate.forward(&h)?)? * self.up.forward(&h)?)?;
-        x + self.down.forward(&m)?
+        let mlp_out = self.down.forward(&m)?;
+        let mlp_out = if train && self.dropout > 0.0 { ops::dropout(&mlp_out, self.dropout)? } else { mlp_out };
+        Ok((x + mlp_out)?)
     }
 }
 
@@ -81,8 +323,8 @@ impl Stack {
     fn new(cfg: &HeadConfig, n: usize, vb: VarBuilder) -> Result<Self> {
         (0..n).map(|i| Block::new(cfg, vb.pp(i))).collect::<Result<Vec<_>>>().map(Self)
     }
-    fn forward(&self, x: &Tensor, bias: Option<&Tensor>) -> Result<Tensor> {
-        self.0.iter().try_fold(x.clone(), |x, b| b.forward(&x, bias))
+    fn forward(&self, x: &Tensor, bias: Option<&Tensor>, train: bool) -> Result<Tensor> {
+        self.0.iter().try_fold(x.clone(), |x, b| b.forward(&x, bias, train))
     }
 }
 
@@ -92,14 +334,20 @@ enum HeadLayer {
 }
 
 /// The set scorer's weights (format v2 only). None of them has a per-slot dimension: the
-/// task and role embeddings are `d` vectors, the two blocks and `W` are `d`-sized, so a
-/// request of any size up to a head's `max_choices` uses the same weights.
+/// task and role embeddings are `d` vectors, `W` is `d x d`, so a request of any size up to a
+/// head's `max_choices` uses the same weights.
 struct SetScorer {
     task: Vec<Tensor>, // one [d] per set head
     role: Tensor,      // [2, d]: row 0 answer, row 1 choice
-    attn: Stack,       // two blocks, no position input
-    norm: RmsNorm,
+    norm: DiffRmsNorm,
     w: Tensor, // [d, d]
+    // E2 (Task 4.4): a learned direction added to each candidate's representation, scaled by the
+    // content-overlap feature `match_feat` (`[B, M, 1]`). When `cfg.set_match_feature` is on, the
+    // feature is **computed inside the model** from each candidate's text and the question (see
+    // `overlap_feature`); otherwise it is zeros, so a feature-off or untrained model stays inert.
+    // The same code path serves native, WASM and WASI, so the trainer and every runtime share the
+    // feature with no external input.
+    match_emb: Tensor, // [d]
 }
 
 pub struct Head {
@@ -112,11 +360,12 @@ pub struct Head {
     z_h0: Tensor,
     l: Stack,
     h: Stack,
-    norm: RmsNorm,
+    norm: DiffRmsNorm,
     halt: Linear,
     heads: Vec<HeadLayer>,
     set: Option<SetScorer>,
     device: Device,
+    training: bool,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -179,9 +428,9 @@ impl Head {
             Some(SetScorer {
                 task,
                 role: vb.get_with_hints((2, d), "set.role", small)?,
-                attn: Stack::new(&cfg, 2, vb.pp("set.attn"))?,
-                norm: rms_norm(d, EPS, vb.pp("set.norm"))?,
+                norm: DiffRmsNorm::new(d, vb.pp("set.norm"))?,
                 w: vb.get_with_hints((d, d), "set.w", small)?,
+                match_emb: vb.get_with_hints(d, "set.match_emb", small)?,
             })
         };
         Ok(Self {
@@ -193,13 +442,20 @@ impl Head {
             z_h0: vb.get_with_hints(d, "z_h_init", small)?,
             l: Stack::new(&cfg, cfg.l_layers, vb.pp("l"))?,
             h: Stack::new(&cfg, cfg.h_layers, vb.pp("h"))?,
-            norm: rms_norm(d, EPS, vb.pp("norm"))?,
+            norm: DiffRmsNorm::new(d, vb.pp("norm"))?,
             halt: linear(d, 2, vb.pp("halt"))?,
             heads,
             set,
             device: vb.device().clone(),
             cfg,
+            training: false,
         })
+    }
+
+    /// Enables/disables dropout on the residual branches. Set `true` while training and `false`
+    /// before inference/evaluation; the set path otherwise always runs in `Mode::Train`.
+    pub fn set_training(&mut self, training: bool) {
+        self.training = training;
     }
 
     /// Load from a safetensors buffer, verifying the tensor set matches the config.
@@ -215,6 +471,13 @@ impl Head {
         adapter: Option<&crate::adapter::Adapter>,
     ) -> Result<(Self, Option<crate::adapter::Applied>)> {
         let mut tensors = candle_core::safetensors::load_buffer(bytes, device)?;
+        // E2: the published knirv-heart/v2 checkpoint predates `set.match_emb`. Inject a small
+        // random one so the model loads and trains it from scratch; a re-saved model then carries
+        // it natively. Inference keeps this inert by passing a zero overlap feature.
+        let d = cfg.d_model;
+        if !cfg.choice_set_heads.is_empty() && !tensors.contains_key("set.match_emb") {
+            tensors.insert("set.match_emb".to_string(), Tensor::randn(0.0f32, 0.02, &[d], device)?);
+        }
         let total: usize = tensors.values().map(|t| t.elem_count()).sum();
         let want = cfg.param_count();
         if total != want {
@@ -270,7 +533,7 @@ impl Head {
         let pooled = layout
             .choice_spans
             .iter()
-            .map(|&(start, len)| hidden.narrow(1, slots + start, len)?.mean(1))
+            .map(|&(start, len)| mean_dim(&hidden.narrow(1, slots + start, len)?, 1))
             .collect::<Result<Vec<_>>>()?;
         Tensor::stack(&pooled, 1)
     }
@@ -284,7 +547,7 @@ impl Head {
         let d = self.cfg.d_model;
         let total = slots + s;
         let x = self.emb.forward(tokens)?;
-        let summ = self.summary.unsqueeze(0)?.broadcast_as((b, slots, d))?;
+        let summ = self.summary.unsqueeze(0)?.repeat((b, 1, 1))?; // materialise (no stride-0 broadcast) so `summary` grad is correct on CUDA
         let x = Tensor::cat(&[&summ, &x], 1)?;
         // Embeddings are initialised small (0.02) so the tied output head starts calibrated;
         // scaling the inputs by sqrt(d) (as in the original Transformer) keeps them from
@@ -316,7 +579,12 @@ impl Head {
             (None, None) => None,
         };
 
-        let init = |v: &Tensor| (v * scale)?.reshape((1, 1, d))?.broadcast_as((b, total, d))?.contiguous();
+        // `repeat` over size-1 dims yields a stride-0 tensor; feeding that into the block's
+        // `Linear` matmul is fine on CPU but candle's CUDA backend mishandles stride-0 matmul
+        // operands (NaN). Materialise so the initial state is contiguous on every device.
+        let init = |v: &Tensor| -> Result<Tensor> {
+            Ok((v * scale)?.reshape((1, 1, d))?.repeat((b, total, 1))?.contiguous()?)
+        };
         let (mut z_l, mut z_h) = (init(&self.z_l0)?, init(&self.z_h0)?);
 
         let (n, t) = (self.cfg.h_cycles, self.cfg.l_steps);
@@ -335,12 +603,12 @@ impl Head {
                 // One-step gradient: only the final L step of a cycle is tracked.
                 let tracked = !train || j + 1 == t;
                 let inp = ((&z_l + &z_h)? + &x)?;
-                z_l = self.l.forward(&if tracked { inp } else { inp.detach() }, bias)?;
+                z_l = self.l.forward(&if tracked { inp } else { inp.detach() }, bias, self.training)?;
                 if !tracked {
                     z_l = z_l.detach();
                 }
             }
-            z_h = self.h.forward(&(&z_h + &z_l)?, bias)?;
+            z_h = self.h.forward(&(&z_h + &z_l)?, bias, self.training)?;
             cycles = i + 1;
 
             let out = self.cycle_output(&z_h, slots, s)?;
@@ -367,10 +635,24 @@ impl Head {
 
     fn cycle_output(&self, z_h: &Tensor, slots: usize, s: usize) -> Result<CycleOut> {
         let out = self.norm.forward(z_h)?;
-        let summary = out.i((.., 0, ..))?;
-        let logits = out.narrow(1, slots, s)?.broadcast_matmul(&self.emb_w.t()?)?;
+        // `i((.., 0, ..))` on the `[B, total, D]` tensor yields a non-contiguous `[B, D]`
+        // view; candle's CUDA backend rejects non-contiguous matmul operands, so the
+        // summary must be made contiguous before it feeds the halt/decision-head Linears.
+        let summary = out.i((.., 0, ..))?.contiguous()?;
+        // `narrow` yields a non-contiguous view; candle's CUDA backend rejects
+        // non-contiguous matmul operands ("matmul is only supported for contiguous
+        // tensors"), which broke every GPU training/serving run through this path.
+        // `.contiguous()` is a differentiable copy and a no-op when already
+        // contiguous, so it is safe on CPU and required on CUDA.
+        // `emb_w.t()` is a non-contiguous transpose; candle's CUDA `broadcast_matmul` silently
+        // produces NaN/garbage when the *right* operand is non-contiguous (the left is caught
+        // earlier by the "contiguous tensors" error), so materialise the transpose as well.
+        let emb_w_t = self.emb_w.t()?.contiguous()?;
+        let logits = out.narrow(1, slots, s)?.contiguous()?.broadcast_matmul(&emb_w_t)?;
         let halt = self.halt.forward(&summary)?;
-        Ok(CycleOut { logits, summary, halt, hidden: out })
+        // `hidden` is the post-norm recurrent state that feeds the set scorer (Task 4.4). `self.norm`
+        // is `DiffRmsNorm` (differentiable; candle-nn 0.11's stock `rms_norm` has no backward pass).
+        Ok(CycleOut { logits, summary, halt, hidden: self.norm.forward(z_h)? })
     }
 
     fn should_halt(&self, halt: &Tensor) -> Result<bool> {
@@ -403,7 +685,7 @@ impl Head {
             .choice_spans
             .iter()
             .map(|&(start, len)| {
-                let pooled = hidden.narrow(0, slots + start, len)?.mean(0)?;
+                let pooled = mean_dim(&hidden.narrow(0, slots + start, len)?, 0)?;
                 pooled + hidden.i(slots + start + len - 1)?
             })
             .collect::<Result<Vec<_>>>()?;
@@ -414,7 +696,7 @@ impl Head {
     /// (`[B, M, D]`); `a` is `[B, D]`. Padded rows (where `valid` is false) get `-inf` and are
     /// never a key. The same kernel backs [`Self::set_probabilities`] (inference) and the
     /// training-time logits ([`Self::set_logits_from_hidden`], [`Self::set_cycle_logits`]).
-    fn set_scores(&self, c: &Tensor, a: &Tensor, head: usize, valid: &[bool]) -> Result<Tensor> {
+    pub fn set_scores(&self, c: &Tensor, a: &Tensor, head: usize, valid: &[bool], match_feat: &Tensor) -> Result<Tensor> {
         let set = self.set.as_ref().ok_or_else(|| candle_core::Error::msg("this model has no choice-set heads (format knirv-heart/v1)"))?;
         let (b, m, _d) = c.dims3()?;
         if a.dims2()?.0 != b {
@@ -424,29 +706,31 @@ impl Head {
             candle_core::bail!("set scoring needs a known head and at least one valid candidate of {m}");
         }
         let d = self.cfg.d_model;
-        let task = set.task[head].reshape((1, 1, d))?;
-        let role_ans = set.role.i(0)?.reshape((1, 1, d))?;
-        let role_ch = set.role.i(1)?.reshape((1, 1, d))?;
-        let answer = (a.unsqueeze(1)? + &task)?.broadcast_add(&role_ans)?; // [B, 1, D]
-        let choices = (c.broadcast_add(&task)?).broadcast_add(&role_ch)?; // [B, M, D]
+        // Materialise `task` / `role` embeddings (stride-0 broadcast via `+`/`broadcast_add`
+        // yields a ZERO/wrong gradient for them on CUDA): one copy per answer row ([B,1,D]) and one
+        // per candidate row ([B, M, D]). The `repeat` backward accumulates the gradient back to the
+        // shared embedding.
+        let task_ans = set.task[head].reshape((1, 1, d))?.repeat((b, 1, 1))?; // [B, 1, D]
+        let task_ch = set.task[head].reshape((1, 1, d))?.repeat((b, m, 1))?; // [B, M, D]
+        let role_ans = set.role.i(0)?.reshape((1, 1, d))?.repeat((b, 1, 1))?; // [B, 1, D]
+        let role_ch = set.role.i(1)?.reshape((1, 1, d))?.repeat((b, m, 1))?; // [B, M, D]
+        // E2: add the learned match direction, scaled by the external overlap feature. Materialise
+        // `match_emb` (stride-0 broadcast otherwise yields a ZERO gradient for it on CUDA).
+        let match_emb_ext = set.match_emb.reshape((1, 1, d))?.repeat((1, m, 1))?; // [1, M, D]
+        let match_term = match_emb_ext.broadcast_mul(match_feat)?; // [B, M, D]
+        let answer = (a.unsqueeze(1)?.broadcast_add(&task_ans)?).broadcast_add(&role_ans)?; // [B, 1, D]
+        let choices = (c.broadcast_add(&task_ch)?).broadcast_add(&role_ch)?.broadcast_add(&match_term)?; // [B, M, D]
         let x = Tensor::cat(&[&choices, &answer], 1)?.contiguous()?; // [B, M+1, D]
-        // Key bias: padded candidates are never keys; the answer row always is.
-        let n = m + 1;
-        let mut bias = vec![0f32; b * n * n];
-        for (bi, ok) in valid.iter().enumerate() {
-            if !ok {
-                for r in 0..n {
-                    bias[bi * n * n + r * n + bi] = f32::NEG_INFINITY;
-                }
-            }
-        }
-        let bias = Tensor::from_vec(bias, (b, n, n), &self.device)?;
-        let x = set.attn.forward(&x, Some(&bias))?;
         let x = set.norm.forward(&x)?; // [B, M+1, D]
         let a_out = x.narrow(1, m, 1)?.contiguous()?.reshape((b, d, 1))?; // [B, D, 1]
-        // scores_i = c'_i . (W a): batched matmul with W broadcast across the batch.
-        let w = set.w.broadcast_as((b, d, d))?;
-        let wa = a_out.transpose(1, 2)?.matmul(&w)?; // [B, 1, D]
+        // scores_i = c'_i . (W a): plain 2D matmul (no batch broadcast of the weight). A batched
+        // matmul with `set.w` broadcast across the batch produced a ZERO gradient for `set.w` on
+        // CUDA (stride-0 operand); this 2D form keeps the weight reduction correct.
+        let a_flat = a_out.squeeze(D::Minus1)?; // [B, D]
+        let wa = a_flat.matmul(&set.w)?.unsqueeze(1)?; // [B, 1, D]
+        // `narrow` here yields a non-contiguous view (same class of bug as the decision
+        // logits path at cycle_output); make it contiguous before the matmul so the
+        // CUDA backend accepts it during serving.
         let scores = x.narrow(1, 0, m)?.matmul(&wa.transpose(1, 2)?)?.squeeze(D::Minus1)?; // [B, M]
         let mask = Tensor::from_vec(
             valid.iter().map(|&v| if v { 0.0f32 } else { f32::NEG_INFINITY }).collect::<Vec<_>>(),
@@ -459,12 +743,12 @@ impl Head {
     /// Probabilities over the `valid` candidates of one set question, index-aligned with the
     /// rows of `c`; a row marked invalid (padding) gets exactly zero mass and is never a key.
     ///
-    /// `a = a + task_k + role_answer`, every `c_i = c_i + task_k + role_choice`, then two
-    /// set-attention blocks over `[c_1 .. c_M, a]` with no position input, and
-    /// `s_i = c'_i . W a'`, softmaxed over the valid rows. Nothing in it depends on the order
-    /// of the rows or on how many there are.
-    pub fn set_probabilities(&self, c: &Tensor, a: &Tensor, head: usize, valid: &[bool]) -> Result<Vec<f32>> {
-        let scores = self.set_scores(&c.unsqueeze(0)?, &a.unsqueeze(0)?, head, valid)?.to_vec2::<f32>()?.remove(0);
+    /// `a = a + task_k + role_answer`, every `c_i = c_i + task_k + role_choice + match_emb * f_i`,
+    /// then a single RMS norm and `s_i = c'_i . W a'` (bilinear over the normalized rows),
+    /// softmaxed over the valid rows. Nothing in it depends on the order of the rows or on how
+    /// many there are.
+    pub fn set_probabilities(&self, c: &Tensor, a: &Tensor, head: usize, valid: &[bool], match_feat: &Tensor) -> Result<Vec<f32>> {
+        let scores = self.set_scores(&c.unsqueeze(0)?, &a.unsqueeze(0)?, head, valid, match_feat)?.to_vec2::<f32>()?.remove(0);
         let max = scores.iter().zip(valid).filter(|(_, &v)| v).map(|(s, _)| *s).fold(f32::NEG_INFINITY, f32::max);
         let exps: Vec<f32> = scores.iter().zip(valid).map(|(s, &v)| if v { (s - max).exp() } else { 0.0 }).collect();
         let sum: f32 = exps.iter().sum();
@@ -474,31 +758,31 @@ impl Head {
     /// Pre-softmax set logits `[B, M]` for one set question from a per-cycle hidden state
     /// `[B, slots+s, D]`. Padded candidates (`valid` false) get `-inf` so softmax ignores them.
     /// Used by the trainer to compute a cross-entropy target per cycle (Task 4.4).
-    pub fn set_logits_from_hidden(&self, hidden: &Tensor, layout: &ChoiceLayout, head: usize, valid: &[bool]) -> Result<Tensor> {
+    pub fn set_logits_from_hidden(&self, hidden: &Tensor, layout: &ChoiceLayout, head: usize, valid: &[bool], match_feat: &Tensor) -> Result<Tensor> {
         let slots = self.cfg.summary_slots;
         let c: Vec<Tensor> = layout
             .choice_spans
             .iter()
             .map(|&(start, len)| {
-                let pooled = hidden.narrow(1, slots + start, len)?.mean(1)?;
+                let pooled = mean_dim(&hidden.narrow(1, slots + start, len)?, 1)?;
                 let last = hidden.narrow(1, slots + start + len - 1, 1)?.squeeze(1)?;
-                (pooled + last)
+                pooled + last
             })
             .collect::<Result<Vec<_>>>()?;
         let c = Tensor::stack(&c, 1)?; // [B, M, D]
         let a = hidden.narrow(1, 0, 1)?.squeeze(1)?; // [B, D]
-        self.set_scores(&c, &a, head, valid)
+        self.set_scores(&c, &a, head, valid, match_feat)
     }
 
     /// Per-cycle set logits for training: runs the recurrent forward at fixed depth under
     /// `layout` and returns one `[B, M]` pre-softmax tensor per high-level cycle. Each cycle's
     /// carried state is detached (see [`Self::run`]), so summing the cycles' losses trains each
     /// on its own one-step gradient (the same deep-supervision scheme as the decision heads).
-    pub fn set_cycle_logits(&self, tokens: &Tensor, layout: &ChoiceLayout, head: usize, valid: &[bool]) -> Result<Vec<Tensor>> {
+    pub fn set_cycle_logits(&self, tokens: &Tensor, layout: &ChoiceLayout, head: usize, valid: &[bool], match_feat: &Tensor) -> Result<Vec<Tensor>> {
         let tr = self.forward_layout(tokens, Mode::Train, Some(layout))?;
         tr.cycle_outputs
             .iter()
-            .map(|c| self.set_logits_from_hidden(&c.hidden, layout, head, valid))
+            .map(|c| self.set_logits_from_hidden(&c.hidden, layout, head, valid, match_feat))
             .collect()
     }
 
@@ -549,7 +833,17 @@ impl Head {
             }
             let input = Tensor::from_slice(&toks, (1, toks.len()), &self.device)?;
             let (c, a) = self.set_inputs(&input, &layout)?;
-            let probs = self.set_probabilities(&c, &a, k, &vec![true; choices.len()])?;
+            // E2 (Task 4.4): the content-overlap feature is computed inside the model from the
+            // candidate and question text when `set_match_feature` is enabled; otherwise it is zero,
+            // so a feature-off or untrained model stays inert (native/WASM/WASI share this path).
+            let m = choices.len();
+            let match_feat = if self.cfg.set_match_feature {
+                let f = overlap_feature(&question, &texts);
+                Tensor::from_vec(f, (1, m, 1), &self.device)?
+            } else {
+                Tensor::zeros((1, m, 1), DType::F32, &self.device)?
+            };
+            let probs = self.set_probabilities(&c, &a, k, &vec![true; choices.len()], &match_feat)?;
             if first_halt.is_none() {
                 let tr = self.run(&input, Mode::Train, Some(&layout), None, false)?.0;
                 first_halt = Some(ops::softmax(&tr.halt, D::Minus1)?.i((0, 0))?.to_scalar::<f32>()?);

@@ -193,6 +193,20 @@ func (r *Runner) ReasonCtx(ctx context.Context, tokens []uint32) (json.RawMessag
 	return raw, err
 }
 
+// ReasonSets returns the raw Reasoning JSON for choice-set questions (a v2 model).
+// `questions` is the JSON array of SetQuestion; the module rejects a v1 model with
+// "this model has no choice-set heads", which the service maps to HTTP 400 so all
+// runtimes agree on the contract (see PendingImplementations 4.7).
+func (r *Runner) ReasonSets(questions json.RawMessage) (json.RawMessage, error) {
+	return r.ReasonSetsCtx(context.Background(), questions)
+}
+
+func (r *Runner) ReasonSetsCtx(ctx context.Context, questions json.RawMessage) (json.RawMessage, error) {
+	var raw json.RawMessage
+	err := r.call(ctx, map[string]any{"op": "reason_sets", "questions": questions}, &raw)
+	return raw, err
+}
+
 func (r *Runner) Close(ctx context.Context) error {
 	r.in.Close()
 	r.outPipe.Close()

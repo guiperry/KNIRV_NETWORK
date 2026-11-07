@@ -169,6 +169,76 @@ func (s *Service) Reason(ctx context.Context, tokens []uint32) (json.RawMessage,
 	return nil, last
 }
 
+// ReasonSets runs choice-set questions (a v2 model), with the same reload/retry
+// discipline as Reason. A v1 model cannot answer set questions: the module
+// returns "this model has no choice-set heads (format knirv-heart/v1)" and the
+// route maps it to HTTP 400 so every runtime rejects the request identically.
+func (s *Service) ReasonSets(ctx context.Context, questions json.RawMessage) (json.RawMessage, error) {
+	s.rmu.Lock()
+	defer s.rmu.Unlock()
+	attempts := s.Attempts
+	if attempts <= 0 {
+		attempts = 3
+	}
+	var last error
+	for i := 0; i < attempts; i++ {
+		if i > 0 {
+			select {
+			case <-time.After(50 * time.Millisecond << (i - 1)):
+			case <-ctx.Done():
+				return nil, ctx.Err()
+			}
+		}
+		raw, err := s.reasonSetsOnce(ctx, questions)
+		if err == nil || !errors.Is(err, ErrRunnerDead) {
+			return raw, err
+		}
+		last = err
+		s.dropRunner()
+		if ctx.Err() != nil {
+			break
+		}
+	}
+	return nil, last
+}
+
+// reasonSetsOnce is one attempt. Caller holds rmu.
+func (s *Service) reasonSetsOnce(ctx context.Context, questions json.RawMessage) (json.RawMessage, error) {
+	v, err := s.latestVersion()
+	if err != nil {
+		return nil, err
+	}
+	s.mu.Lock()
+	runner, loaded, info := s.runner, s.loaded, s.info
+	s.mu.Unlock()
+	if runner == nil {
+		if runner, err = NewRunner(context.Background(), s.Dir); err != nil {
+			return nil, err
+		}
+		runner.Timeout = s.CallTimeout
+		loaded = ""
+		s.mu.Lock()
+		s.runner, s.loaded = runner, ""
+		s.mu.Unlock()
+	}
+	if loaded != v {
+		info, err = runner.LoadCtx(ctx, "head_config.json", "model-"+v+".safetensors")
+		if err != nil {
+			if errors.Is(err, ErrRunnerDead) {
+				return nil, err
+			}
+			return nil, fmt.Errorf("load %s: %w", v, err)
+		}
+		s.mu.Lock()
+		s.loaded, s.info = v, info
+		s.mu.Unlock()
+	}
+	if len(questions) == 0 {
+		return nil, fmt.Errorf("reason_sets needs at least one question")
+	}
+	return runner.ReasonSetsCtx(ctx, questions)
+}
+
 // dropRunner discards the current runner. Caller holds rmu.
 func (s *Service) dropRunner() {
 	s.mu.Lock()

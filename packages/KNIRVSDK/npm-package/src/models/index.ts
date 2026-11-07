@@ -184,6 +184,15 @@ export interface Decision {
   value: number | null;
   confidence: number | null;
   abstain: boolean;
+  /** Per-candidate probabilities of a choice-set (knirv-heart/v2) answer, in request order. */
+  candidates?: { id: string; text: string; probability: number }[];
+}
+
+/** One choice-set candidate with its probability (knirv-heart/v2). */
+export interface Candidate {
+  id: string;
+  text: string;
+  probability: number;
 }
 
 export interface Reasoning {
@@ -198,6 +207,15 @@ export interface Reasoning {
   model_version: string;
   dataset_manifest_hash: string;
   policy_bundle_hash: string;
+}
+
+/** One choice-set question for a knirv-heart/v2 model. `choices` may be omitted
+ *  for null-kind set heads (the model supplies yes/no). */
+export interface SetQuestion {
+  name: string;
+  question?: string;
+  state?: string;
+  choices?: { id: string; text: string }[];
 }
 
 /** Decision envelope: the output of the decision core, or a caller-supplied decision. */
@@ -316,10 +334,31 @@ export class NoModelError extends Error {
 export class ModelsClient {
   constructor(private baseUrl: string, private fetchImpl: typeof fetch = fetch, private headers: Record<string, string> = {}) {}
 
+  /** Reads a non-2xx, non-503 response body so transport errors surface the
+   *  server's contract text instead of a bare status — e.g. the Rust core's
+   *  "no choice-set heads" rejection of a v1 /sets choice-set request. Reads the
+   *  body once (as text), then optionally JSON-parses it to prefer the `error`
+   *  field; falls back to the raw text so a non-JSON body is not lost. */
+  private async errorDetail(res: Response): Promise<string> {
+    let text: string;
+    try {
+      text = await res.text();
+    } catch { return ""; }
+    if (!text || text.length === 0) return "";
+    try {
+      const body = JSON.parse(text) as { error?: unknown };
+      if (body && typeof body.error === "string" && body.error.length > 0) return body.error;
+    } catch { /* body was not JSON; fall through to raw text */ }
+    return text.slice(0, 240);
+  }
+
   private async json<T>(path: string, init?: RequestInit): Promise<T> {
     const res = await this.fetchImpl(this.baseUrl + path, { ...init, headers: { ...this.headers, ...(init?.headers ?? {}) } });
     if (res.status === 503) throw new NoModelError();
-    if (!res.ok) throw new Error(`head: HTTP ${res.status}`);
+    if (!res.ok) {
+      const detail = await this.errorDetail(res);
+      throw new Error(detail ? `head: HTTP ${res.status}: ${detail}` : `head: HTTP ${res.status}`);
+    }
     return (await res.json()) as T;
   }
 
@@ -369,7 +408,10 @@ export class ModelsClient {
       method: "POST", headers: { ...this.headers, "Content-Type": "application/json" }, body: JSON.stringify(body),
     });
     if (res.status === 503) throw new NotReadyError();
-    if (!res.ok) throw new Error(`models: HTTP ${res.status}`);
+    if (!res.ok) {
+      const detail = await this.errorDetail(res);
+      throw new Error(detail ? `models: HTTP ${res.status}: ${detail}` : `models: HTTP ${res.status}`);
+    }
     return (await res.json()) as T;
   }
 
@@ -425,7 +467,10 @@ export class ModelsClient {
       method: "POST", headers: { ...this.headers, ...headers, "Content-Type": "application/json" }, body: JSON.stringify(body),
     });
     if (res.status === 503) throw new NotReadyError();
-    if (!res.ok) throw new Error(`models: HTTP ${res.status}`);
+    if (!res.ok) {
+      const detail = await this.errorDetail(res);
+      throw new Error(detail ? `models: HTTP ${res.status}: ${detail}` : `models: HTTP ${res.status}`);
+    }
     return (await res.json()) as T;
   }
 
@@ -435,7 +480,10 @@ export class ModelsClient {
       ...(body === undefined ? {} : { body: JSON.stringify(body) }),
     });
     if (res.status === 503) throw new NotReadyError();
-    if (!res.ok) throw new Error(`models: HTTP ${res.status}`);
+    if (!res.ok) {
+      const detail = await this.errorDetail(res);
+      throw new Error(detail ? `models: HTTP ${res.status}: ${detail}` : `models: HTTP ${res.status}`);
+    }
     return (await res.json()) as T;
   }
 
@@ -448,6 +496,14 @@ export class ModelsClient {
   reason(tokens: number[]): Promise<Reasoning> {
     return this.json<Reasoning>(`${HEART_DECISION_PREFIX}/reason`, {
       method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ tokens }),
+    });
+  }
+
+  /** Choice-set questions (knirv-heart/v2 models). A v1 model answers with a
+   *  "no choice-set heads" error, rejecting the request just like every other runtime. */
+  reasonSets(questions: SetQuestion[]): Promise<Reasoning> {
+    return this.json<Reasoning>(`${HEART_DECISION_PREFIX}/sets`, {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ questions }),
     });
   }
 

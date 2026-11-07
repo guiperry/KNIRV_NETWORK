@@ -384,7 +384,7 @@ build-heart-decision-trainer:
 
 ## build-head-wasi: Rebuild the embedded WASI module HEART runs under wazero (needs the wasm32-wasip1 rust target)
 build-heart-decision-wasi:
-	cd heart/decision && cargo build --release --bin heart-decision-wasi --target wasm32-wasip1
+	cd heart/decision && cargo build --release --bin heart-decision-wasi --target wasm32-wasip1 --features wasi
 	cp heart/decision/target/wasm32-wasip1/release/heart-decision-wasi.wasm pkg/heart/decision/heart-decision-wasi.wasm
 
 ## test-head: heart-decision crate tests (native) + the browser-wasm golden check; the wazero half is `go test ./pkg/heart/decision`

@@ -30,6 +30,25 @@ export const PURPOSE_RELAY_RESPONSE = 'relay-response';
 export const RELAY_TARGET_DVE_EXPERT_ADVISOR = 'dve_expert_advisor';
 export const RELAY_TARGET_CLI_SUPERVISOR = 'cli_supervisor';
 
+// Registry / bond escrow domain and purposes (root tx-chain design rev 2).
+export const REGISTRY_DOMAIN = 'knirv.registry';
+export const PURPOSE_ROOT_TX_CHAIN_RECORD = 'root-tx-chain-record';
+export const PURPOSE_BOND_HOLD = 'bond-hold';
+export const PURPOSE_BOND_RELEASE = 'bond-release';
+
+// Boot-node enrollment (DEC-2 / 2d.2) domain and purpose.
+export const AUTHORITY_DOMAIN = 'knirv.authority';
+export const PURPOSE_BOOTNODE_ENROLL = 'bootnode-enroll';
+
+export interface BootnodeEnrollment {
+  challenge: SignedMessageEnvelope;
+  approval: SignedMessageEnvelope;
+}
+
+export interface RegistryRecord { chainId: string; txChainAddress: string; ownerPubKey: string; nonce: Uint64; expiresAtUnix: Uint64; }
+export interface BondHold { holdId: string; operator: string; amount: string; rootRegistryId: string; expiresAtUnix: Uint64; }
+export interface BondRelease { holdId: string; bootNodeChainId: string; bootNodeAddress: string; }
+
 export type { Uint64 };
 export interface KNIRVAction { schemaVersion?: string; action: string; sender: string; recipient?: string; amount?: Uint64; payload?: Uint8Array; timestampUnix: Uint64; }
 export interface KNIRVFee { denom?: string; amount?: string; gasLimit?: Uint64; payer?: string; granter?: string; }
@@ -120,6 +139,111 @@ export async function verifyMessage(signed: SignedMessageEnvelope, expectedDomai
 
 export async function verifyMessagePayload(signed: SignedMessageEnvelope, expectedDomain: string, expectedPurpose: string, expectedChainId: string, expectedPayload: Uint8Array, now: Date): Promise<void> {
   callLocal('signing.verify_message_payload', { signed, domain: expectedDomain, purpose: expectedPurpose, chain_id: expectedChainId, payload_base64: toBase64(expectedPayload), now_unix: unixSeconds(now) });
+}
+
+// ---- Root tx-chain registry record signing (CRITICAL: unauthenticated POST /register) ----
+
+const wireRegistryRecord = (r: RegistryRecord) => ({
+  chain_id: r.chainId, tx_chain_address: r.txChainAddress, owner_pub_key: r.ownerPubKey,
+  nonce: r.nonce, expires_at_unix: r.expiresAtUnix,
+});
+const wireBondHold = (h: BondHold) => ({
+  hold_id: h.holdId, operator: h.operator, amount: h.amount,
+  root_registry_id: h.rootRegistryId, expires_at_unix: h.expiresAtUnix,
+});
+const wireBondRelease = (r: BondRelease) => ({
+  hold_id: r.holdId, boot_node_chain_id: r.bootNodeChainId, boot_node_address: r.bootNodeAddress,
+});
+
+/** Signs a root-tx-chain registry record (secp256k1 via the Rust core). */
+export async function signRegistryRecord(privateKey: Uint8Array, chainId: string, record: RegistryRecord, issuedAtUnix: number): Promise<SignedMessageEnvelope> {
+  return callLocal<SignedMessageEnvelope>('signing.sign_registry_record', {
+    private_key_base64: toBase64(privateKey), chain_id: chainId, record: wireRegistryRecord(record), issued_at_unix: issuedAtUnix,
+  });
+}
+
+/**
+ * Verifies a signed root-tx-chain registry record. `expectedRootAddress` and
+ * `expectedRootRegistryId` are the trusted root identity / immutable root registry
+ * id and MUST come from configuration — never from the request or record.
+ */
+export async function verifyRegistryRecord(signed: SignedMessageEnvelope, expectedRootAddress: string, expectedRootRegistryId: string, now: Date): Promise<RegistryRecord> {
+  const out = callLocal<{ valid: boolean; record: RegistryRecord }>('signing.verify_registry_record', {
+    signed, expected_root_address: expectedRootAddress, expected_root_registry_id: expectedRootRegistryId, now_unix: unixSeconds(now),
+  });
+  return out.record;
+}
+
+/** Signs a bond-hold request bound to the root registry id. */
+export async function signBondHold(privateKey: Uint8Array, rootRegistryId: string, hold: BondHold, issuedAtUnix: number): Promise<SignedMessageEnvelope> {
+  return callLocal<SignedMessageEnvelope>('signing.sign_bond_hold', {
+    private_key_base64: toBase64(privateKey), root_registry_id: rootRegistryId, hold: wireBondHold(hold), issued_at_unix: issuedAtUnix,
+  });
+}
+
+/** Verifies a bond-hold request. */
+export async function verifyBondHold(signed: SignedMessageEnvelope, expectedRootRegistryId: string, now: Date): Promise<BondHold> {
+  const out = callLocal<{ valid: boolean; hold: BondHold }>('signing.verify_bond_hold', {
+    signed, root_registry_id: expectedRootRegistryId, now_unix: unixSeconds(now),
+  });
+  return out.hold;
+}
+
+/** Signs a bond-release request bound to the boot node chain id. */
+export async function signBondRelease(privateKey: Uint8Array, bootNodeChainId: string, release: BondRelease, issuedAtUnix: number): Promise<SignedMessageEnvelope> {
+  return callLocal<SignedMessageEnvelope>('signing.sign_bond_release', {
+    private_key_base64: toBase64(privateKey), boot_node_chain_id: bootNodeChainId, release: wireBondRelease(release), issued_at_unix: issuedAtUnix,
+  });
+}
+
+/** Verifies a bond-release request. */
+export async function verifyBondRelease(signed: SignedMessageEnvelope, expectedBootNodeChainId: string, now: Date): Promise<BondRelease> {
+  const out = callLocal<{ valid: boolean; release: BondRelease }>('signing.verify_bond_release', {
+    signed, boot_node_chain_id: expectedBootNodeChainId, now_unix: unixSeconds(now),
+  });
+  return out.release;
+}
+
+/** Signs the new boot-node key's enrollment challenge, binding the operator claim into the
+ * signed payload (operator-to-key binding, DEC-2). Thin pass-through to the Rust core. */
+export async function signBootnodeEnrollChallenge(
+  privateKey: Uint8Array, chainId: string, nonce: string,
+  issuedAtUnix: number, expiresAtUnix: number, operator: string, claims: Uint8Array,
+): Promise<SignedMessageEnvelope> {
+  return callLocal<SignedMessageEnvelope>('signing.sign_bootnode_enroll_challenge', {
+    private_key_base64: toBase64(privateKey), chain_id: chainId, nonce,
+    issued_at_unix: issuedAtUnix, expires_at_unix: expiresAtUnix, operator,
+    claims: toBase64(claims),
+  });
+}
+
+/** Signs the root owner's approval of a challenge; the approval payload is the exact base64
+ * envelope of the challenge (approval-to-key binding). Thin pass-through to the Rust core. */
+export async function signBootnodeEnrollApproval(
+  rootKey: Uint8Array, chainId: string, nonce: string,
+  issuedAtUnix: number, expiresAtUnix: number, challengeEnvelope: string,
+): Promise<SignedMessageEnvelope> {
+  return callLocal<SignedMessageEnvelope>('signing.sign_bootnode_enroll_approval', {
+    private_key_base64: toBase64(rootKey), chain_id: chainId, nonce,
+    issued_at_unix: issuedAtUnix, expires_at_unix: expiresAtUnix, challenge_envelope: challengeEnvelope,
+  });
+}
+
+/** Verifies an approved enrollment, enforcing operator match and replay prevention. Cryptographic
+ * verification is delegated to the Rust core, which authenticates the full approval→challenge→root
+ * binding and returns the consumed nonce. The host then durably consumes that nonce through its own
+ * atomic NonceStore: a replay (already consumed) yields false even though the crypto check passed.
+ * Thin pass-through to the Rust core. */
+export async function verifyBootnodeEnrollment(
+  enrollment: BootnodeEnrollment, expectedRootPublicKey: string, expectedOperator: string,
+  store: import('./nonceStore.js').NonceStore, now: Date,
+): Promise<boolean> {
+  const out = await callLocal<{ valid: boolean; nonce: string }>('signing.verify_bootnode_enrollment', {
+    enrollment, expected_root_public_key: expectedRootPublicKey, expected_operator: expectedOperator,
+    now_unix: unixSeconds(now),
+  });
+  if (!out.valid) return false;
+  return store.consume(out.nonce);
 }
 
 /** True when `signed` is exactly the canonical encoding of `expected` with a valid signature. */
@@ -223,3 +347,64 @@ export function parseWasmManifestPayload(data: Uint8Array): WasmManifestPayload 
     })),
   };
 }
+
+// ---- Raw (registry-compatible compact) signing contract -----------------------
+//
+// The raw compact endpoint signs a precomputed 32-byte digest with a named
+// identity and returns a hex 64-byte r||s secp256k1 signature (the leading
+// recovery byte is stripped) — byte-identical to the registry's legacy dcrd
+// SignCompact(priv, digest, true)[1:]. The canonical contract lives in the Rust
+// core (core/src/secrets.rs RAW_SIGN_*); this is the generated TypeScript binding
+// mirror so the purpose allowlist and 32-byte digest rule cannot drift, and the
+// OpenBao plugin enforces the same contract server-side as the outer gate
+// (OpenBao.md §4.6).
+
+export const RAW_SIGN_ALLOWED_PURPOSES = ['failover-identity'] as const;
+
+export interface RawSignRequest {
+  purpose: string;
+  /** Hex-encoded 32-byte sha256 digest. The caller canonicalizes; the signer never re-canonicalizes. */
+  digestHex: string;
+}
+
+export interface RawSignResponse {
+  /** Hex 64-byte r||s secp256k1 compact signature (recovery byte stripped). */
+  signatureHex: string;
+}
+
+/** Throws when `request` violates the canonical raw-sign contract. */
+export function validateRawSign(request: RawSignRequest): void {
+  const purpose = request.purpose.trim();
+  if (!(RAW_SIGN_ALLOWED_PURPOSES as readonly string[]).includes(purpose)) {
+    throw new Error(
+      `raw signing not permitted for purpose ${JSON.stringify(request.purpose)}; allowed: ${JSON.stringify(RAW_SIGN_ALLOWED_PURPOSES)}`,
+    );
+  }
+  const digest = hexToBytes(request.digestHex.trim());
+  if (digest.length !== 32) {
+    throw new Error(`raw sign requires a 32-byte digest, got ${digest.length}`);
+  }
+}
+
+function hexToBytes(s: string): Uint8Array {
+  const clean = s.replace(/^0x/i, '');
+  if (clean.length % 2 !== 0 || !/^[0-9a-fA-F]*$/.test(clean)) {
+    throw new Error('raw sign digest must be hex');
+  }
+  const out = new Uint8Array(clean.length / 2);
+  for (let i = 0; i < out.length; i++) out[i] = parseInt(clean.substr(i * 2, 2), 16);
+  return out;
+}
+
+/** Independent known-answer vector (core/src/secrets.rs raw_sign_kat). Frozen once:
+ * private key 1 → the secp256k1 generator point G. The OpenBao plugin signs with
+ * dcrd and must reproduce `sig64Hex` for `digestHex` exactly, proving the 64-byte
+ * r||s compact format is byte-identical to legacy dcrd SignCompact(..., true)[1:]. */
+export const RAW_SIGN_KAT = {
+  privHex: '0000000000000000000000000000000000000000000000000000000000000001',
+  digestHex: '27a63df12ab9b1c25967ac3a371c19b65d6f326fcd0748b2b3f657bfd0e64e22',
+  compactHex: '20031002a1c9f5e00ac84199972dc2c02dec4580d703d9f572d0fcbd960d33c53e10055df6e29204b5c780de6f0cf6a3ed9e4f017150c04feab3423f43cf2074e4',
+  sig64Hex: '031002a1c9f5e00ac84199972dc2c02dec4580d703d9f572d0fcbd960d33c53e10055df6e29204b5c780de6f0cf6a3ed9e4f017150c04feab3423f43cf2074e4',
+  pubHex: '0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798',
+  recoveryByte: 0x20,
+};

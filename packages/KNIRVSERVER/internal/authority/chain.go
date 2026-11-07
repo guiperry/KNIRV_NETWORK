@@ -21,14 +21,21 @@ type OraclePoster interface {
 	PostCheckpoint(ctx context.Context, cp *checkpoint.Checkpoint) (map[string]any, error)
 }
 
+// DefaultAuthorityBond is the authority/* chain bond (owner decision D14,
+// 2026-11-04): exactly 10,000 NRN from the operator's controller vault. A
+// missing bond defaults to this; any other explicit value is rejected so a
+// misconfigured node never registers with the wrong bond.
+const DefaultAuthorityBond uint64 = 10000
+
 // AnchorConfig configures the Oracle side of an operator's authority chain.
 type AnchorConfig struct {
 	Poster OraclePoster
 	Signer knirvsigning.RemoteSigner
 	Store  *Store
 	// Bond and BondOwner follow the operator-set pattern (D-U1): the operator
-	// chooses them in configuration. The default is 0 with a WARN, because a bond
-	// moves value and this service must never invent one.
+	// chooses them in configuration. Owner decision D14 pins the authority bond
+	// to exactly DefaultAuthorityBond (10,000 NRN): a zero (unset) bond defaults
+	// to it, and any other explicit value is rejected at construction.
 	Bond      uint64
 	BondOwner string
 
@@ -80,15 +87,23 @@ func NewAnchor(cfg AnchorConfig) (*Anchor, error) {
 	if cfg.Now == nil {
 		cfg.Now = time.Now
 	}
+	// Owner decision D14: the authority/* bond is exactly DefaultAuthorityBond
+	// (10,000 NRN). An unset bond defaults to it; any other explicit value is
+	// rejected so a misconfigured node never registers with the wrong bond. Apply
+	// this before capturing cfg into the Anchor so the defaulted value is stored.
+	switch {
+	case cfg.Bond == 0:
+		cfg.Logf("authority: bond unset; defaulting to D14 bond %d NRN for chain %s", DefaultAuthorityBond, ChainID(cfg.Signer.Address()))
+		cfg.Bond = DefaultAuthorityBond
+	case cfg.Bond != DefaultAuthorityBond:
+		return nil, fmt.Errorf("authority: chain %s bond must be exactly %d NRN (owner decision D14); got %d", ChainID(cfg.Signer.Address()), DefaultAuthorityBond, cfg.Bond)
+	}
 	a := &Anchor{cfg: cfg}
 	st, err := cfg.Store.LoadAnchor()
 	if err != nil {
 		return nil, fmt.Errorf("load anchor state: %w", err)
 	}
 	a.state, a.loaded = st, true
-	if cfg.Bond == 0 {
-		cfg.Logf("WARN authority: chain %s is registered with bond 0; set authority.bond and authority.bond_owner to back it (misbehaviour is only slashable against a bond)", ChainID(cfg.Signer.Address()))
-	}
 	return a, nil
 }
 

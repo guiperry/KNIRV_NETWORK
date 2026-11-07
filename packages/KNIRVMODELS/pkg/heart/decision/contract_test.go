@@ -2,8 +2,10 @@ package decision
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	sdk "github.com/guiperry/knirv-sdk-go/models"
@@ -60,5 +62,32 @@ func TestSDKClientAgainstRealRoutesAndWasm(t *testing.T) {
 
 	if _, err := c.Matrix(ctx, v, "h.0.attn.q.weight"); err != nil {
 		t.Fatalf("matrix: %v", err)
+	}
+}
+
+// A v1 model has no choice-set heads. Both the native Rust core and the wasm the
+// SDK client calls must reject a set request with the same error, so every runtime
+// agrees on the contract (PendingImplementations 4.7). This is the cross-runtime
+// golden: SDK client -> real route -> real wasm must echo Rust's "no choice-set heads".
+func TestSetRequestRejectedOnV1Model(t *testing.T) {
+	const v = "v1-deadbeef"
+	svc := NewService(publish(t, v))
+	defer svc.Close(context.Background())
+	mux := http.NewServeMux()
+	RoutesAt(svc, mux, sdk.HeartDecisionPrefix)
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+	c := sdk.NewClient(srv.URL, nil)
+	ctx := context.Background()
+
+	questions, _ := json.Marshal([]map[string]any{
+		{"name": "route", "state": "develop", "choices": []map[string]string{{"id": "a", "text": "route-a"}, {"id": "b", "text": "route-b"}}},
+	})
+	r, err := c.DecideSets(ctx, questions)
+	if err == nil {
+		t.Fatalf("expected a v1 model to reject set requests, got %+v", r)
+	}
+	if !strings.Contains(err.Error(), "no choice-set heads") {
+		t.Fatalf("error must match the Rust contract 'no choice-set heads', got %q", err.Error())
 	}
 }

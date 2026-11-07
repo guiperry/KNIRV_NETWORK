@@ -41,6 +41,7 @@ type SealSource interface {
 
 type Manager struct {
 	config        Config
+	maxRestarts   int
 	source        SealSource
 	baoBinary     func() []byte
 	pluginBinary  func() []byte
@@ -52,10 +53,29 @@ type Manager struct {
 	cancel        context.CancelFunc
 	done          chan struct{}
 	lockFile      *os.File
+
+	// clock, now, spawn and stableWindow are seams for deterministic testing.
+	// In production they default to the real clock, time.Now, startChild and one
+	// minute. A successful run that lasts at least stableWindow clears the failure
+	// budget; a child that crashes sooner (or never starts) keeps accumulating
+	// restarts so the manager eventually gives up instead of looping forever.
+	clock        clock
+	now          func() time.Time
+	spawn        func(ctx context.Context) (*child, bool, error)
+	stableWindow time.Duration
 }
 
 func NewManager(config Config, source SealSource) *Manager {
-	return &Manager{config: config, source: source, baoBinary: embedded.BaoBinary, pluginBinary: embedded.PluginBinary, pluginSHA: embedded.PluginSHA256, status: Status{State: Absent}}
+	m := &Manager{
+		config: config, source: source,
+		baoBinary: embedded.BaoBinary, pluginBinary: embedded.PluginBinary, pluginSHA: embedded.PluginSHA256,
+		status: Status{State: Absent}, maxRestarts: 5,
+	}
+	m.clock = realClock{}
+	m.now = time.Now
+	m.spawn = m.startChild
+	m.stableWindow = time.Minute
+	return m
 }
 
 func (m *Manager) Socket() string {
@@ -118,7 +138,7 @@ func (m *Manager) healthFailure(reason string) Status {
 
 type child struct {
 	cmd        *exec.Cmd
-	wait       <-chan error
+	wait       chan error
 	socket     string
 	socketInfo os.FileInfo
 	exited     bool
@@ -202,8 +222,11 @@ func (m *Manager) supervise(ctx context.Context, current *child, done chan struc
 	defer close(done)
 	defer func() { m.mu.Lock(); m.cancel = nil; m.mu.Unlock() }()
 	defer m.releaseLock()
-	backoff := time.Second
-	started := time.Now()
+	const initialBackoff = time.Second
+	const maxBackoff = 30 * time.Second
+	backoff := initialBackoff
+	restarts := 0
+	lastHealthy := m.now()
 	for {
 		if current != nil {
 			select {
@@ -214,31 +237,38 @@ func (m *Manager) supervise(ctx context.Context, current *child, done chan struc
 			case <-current.wait:
 				current.exited = true
 				removeOwnedSocket(current)
-				if time.Since(started) < time.Minute {
-					backoff *= 2
-					if backoff > 30*time.Second {
-						backoff = 30 * time.Second
-					}
-				} else {
-					backoff = time.Second
-				}
 				m.setStatus(Status{State: Degraded, Reason: "OpenBao exited; restarting"})
 				log.Print("WARN: OpenBao exited; attempting restart")
+				restarts++
+				if time.Since(lastHealthy) >= m.stableWindow {
+					// The child had a sustained healthy run before crashing: clear
+					// the consecutive-failure budget so a flaky-but-recovering
+					// vault is not declared permanently down.
+					restarts = 0
+					backoff = initialBackoff
+					if !m.waitBackoff(ctx, backoff) {
+						m.setStatus(Status{State: Absent})
+						return
+					}
+				} else {
+					if restarts > m.maxRestarts {
+						m.setStatus(Status{State: Degraded, Reason: "OpenBao restarts exhausted"})
+						log.Print("ERROR: OpenBao restarts exhausted; giving up")
+						return
+					}
+					if !m.waitBackoff(ctx, backoff) {
+						m.setStatus(Status{State: Absent})
+						return
+					}
+					backoff = nextBackoff(backoff, maxBackoff)
+				}
 			}
 		}
 		for {
-			timer := time.NewTimer(backoff)
-			select {
-			case <-ctx.Done():
-				timer.Stop()
-				m.setStatus(Status{State: Absent})
-				return
-			case <-timer.C:
-			}
-			next, absent, err := m.startChild(ctx)
+			next, absent, err := m.spawn(ctx)
 			if err == nil && !absent {
 				current = next
-				started = time.Now()
+				lastHealthy = m.now()
 				m.setStatus(Status{State: Ready})
 				break
 			}
@@ -248,15 +278,49 @@ func (m *Manager) supervise(ctx context.Context, current *child, done chan struc
 			}
 			m.setStatus(Status{State: Degraded, Reason: err.Error()})
 			log.Printf("WARN: OpenBao restart failed: %v", err)
-			if backoff < 30*time.Second {
-				backoff *= 2
-				if backoff > 30*time.Second {
-					backoff = 30 * time.Second
-				}
+			restarts++
+			if restarts > m.maxRestarts {
+				m.setStatus(Status{State: Degraded, Reason: "OpenBao restarts exhausted"})
+				log.Print("ERROR: OpenBao restarts exhausted; giving up")
+				return
 			}
+			if !m.waitBackoff(ctx, backoff) {
+				m.setStatus(Status{State: Absent})
+				return
+			}
+			backoff = nextBackoff(backoff, maxBackoff)
 		}
 	}
 }
+
+// waitBackoff waits for the backoff interval (via the injectable clock) or context
+// cancellation, whichever comes first.
+func (m *Manager) waitBackoff(ctx context.Context, d time.Duration) bool {
+	select {
+	case <-ctx.Done():
+		return false
+	case <-m.clock.After(d):
+		return true
+	}
+}
+
+// nextBackoff doubles d, capping it at max.
+func nextBackoff(d, max time.Duration) time.Duration {
+	d *= 2
+	if d > max {
+		d = max
+	}
+	return d
+}
+
+// clock is the seam used for backoff waits so tests can run deterministically.
+type clock interface {
+	After(d time.Duration) <-chan time.Time
+}
+
+type realClock struct{}
+
+func (realClock) After(d time.Duration) <-chan time.Time { return time.After(d) }
 
 func reserveLoopback() (string, string, error) {
 	a, err := net.Listen("tcp4", "127.0.0.1:0")

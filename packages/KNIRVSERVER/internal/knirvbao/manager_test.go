@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"log"
 	"net"
@@ -17,6 +18,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"syscall"
 	"testing"
@@ -498,4 +500,233 @@ func TestManagerReportsDegradedWhenEnvPersistenceFails(t *testing.T) {
 	if _, statErr := os.Stat(filepath.Join(m.config.ConfigDir, "openbao.env")); !os.IsNotExist(statErr) {
 		t.Fatal("recovery env should be absent when persistence failed")
 	}
+}
+
+// ---------------------------------------------------------------------------
+// Socket-free supervisor tests (injectable clock + fake-child factory). These run
+// under the auditor sandbox because they start no listeners.
+// ---------------------------------------------------------------------------
+
+// fakeClock records every backoff interval requested and fires immediately.
+type fakeClock struct {
+	mu sync.Mutex
+	d  []time.Duration
+}
+
+func (c *fakeClock) After(d time.Duration) <-chan time.Time {
+	c.mu.Lock()
+	c.d = append(c.d, d)
+	c.mu.Unlock()
+	return time.After(0)
+}
+
+func (c *fakeClock) durations() []time.Duration {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	out := make([]time.Duration, len(c.d))
+	copy(out, c.d)
+	return out
+}
+
+// crashingFakeChild is a child whose process "exits" immediately.
+func crashingFakeChild() *child {
+	c := &child{wait: make(chan error, 1)}
+	c.wait <- nil
+	return c
+}
+
+func mgrState(m *Manager) State {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return m.status.State
+}
+
+func mgrReason(m *Manager) string {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return m.status.Reason
+}
+
+func waitForState(m *Manager, want State, timeout time.Duration) error {
+	deadline := time.Now().Add(timeout)
+	for time.Now().Before(deadline) {
+		if mgrState(m) == want {
+			return nil
+		}
+		time.Sleep(5 * time.Millisecond)
+	}
+	return fmt.Errorf("state %s not reached (current %s)", want, mgrState(m))
+}
+
+func waitForSpawn(spawns *atomic.Int64, want int, timeout time.Duration) error {
+	deadline := time.Now().Add(timeout)
+	for time.Now().Before(deadline) {
+		if int(spawns.Load()) >= want {
+			return nil
+		}
+		time.Sleep(5 * time.Millisecond)
+	}
+	return fmt.Errorf("spawn count %d did not reach %d", spawns.Load(), want)
+}
+
+// newSuperviseHarness builds a Manager wired to an injectable clock and child
+// factory, bypassing Start (so no real OpenBao binary is launched).
+func newSuperviseHarness(t *testing.T, stableWindow time.Duration, makeChild func(context.Context) (*child, bool, error)) (*Manager, *fakeClock, *atomic.Int64) {
+	t.Helper()
+	clk := &fakeClock{}
+	var spawns atomic.Int64
+	m := &Manager{
+		config:       Config{Enabled: true},
+		maxRestarts:  5,
+		status:       Status{State: Absent},
+		clock:        clk,
+		now:          time.Now,
+		stableWindow: stableWindow,
+	}
+	m.spawn = func(ctx context.Context) (*child, bool, error) {
+		spawns.Add(1)
+		return makeChild(ctx)
+	}
+	return m, clk, &spawns
+}
+
+// Backoff starts at 1s and doubles to the 30s cap, and a continuously crashing
+// vault is given up after maxRestarts failures (terminal Degraded, no more spawns).
+func TestSuperviseExhaustsAfterMaxRestarts(t *testing.T) {
+	m, clk, spawns := newSuperviseHarness(t, time.Minute, func(context.Context) (*child, bool, error) {
+		return crashingFakeChild(), false, nil
+	})
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	done := make(chan struct{})
+	go m.supervise(ctx, nil, done)
+
+	select {
+	case <-done:
+	case <-time.After(3 * time.Second):
+		t.Fatal("supervisor did not terminate after exhausting restarts")
+	}
+	if got := int(spawns.Load()); got != m.maxRestarts+1 {
+		t.Fatalf("spawn count = %d, want %d", got, m.maxRestarts+1)
+	}
+	st := m.Health()
+	if st.State != Degraded || !strings.Contains(st.Reason, "restarts exhausted") {
+		t.Fatalf("expected terminal degraded, got %+v", st)
+	}
+	got := clk.durations()
+	want := []time.Duration{time.Second, 2 * time.Second, 4 * time.Second, 8 * time.Second, 16 * time.Second}
+	if len(got) != len(want) {
+		t.Fatalf("recorded backoffs = %v, want %v", got, want)
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Fatalf("backoff[%d] = %v, want %v (full %v)", i, got[i], want[i], got)
+		}
+	}
+}
+
+// A child that crashes leaves the manager Degraded while it is down, and once a
+// fresh child is up again the manager recovers to Ready. The restart spawn blocks
+// on a gate so the Degraded window is observable deterministically.
+func TestSuperviseDegradedWhileChildDownThenRecovers(t *testing.T) {
+	var mu sync.Mutex
+	var waits []chan error
+	restartGate := make(chan struct{})
+	m, _, _ := newSuperviseHarness(t, time.Minute, func(ctx context.Context) (*child, bool, error) {
+		mu.Lock()
+		defer mu.Unlock()
+		if len(waits) == 0 {
+			w := make(chan error, 1)
+			waits = append(waits, w)
+			return &child{wait: w}, false, nil
+		}
+		select {
+		case <-restartGate:
+		case <-ctx.Done():
+			return nil, false, ctx.Err()
+		}
+		w := make(chan error, 1)
+		waits = append(waits, w)
+		return &child{wait: w}, false, nil
+	})
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	done := make(chan struct{})
+	go m.supervise(ctx, nil, done)
+	if err := waitForState(m, Ready, 2*time.Second); err != nil {
+		t.Fatalf("did not become ready: %v", err)
+	}
+	mu.Lock()
+	first := waits[0]
+	mu.Unlock()
+	close(first)
+	if err := waitForState(m, Degraded, 2*time.Second); err != nil {
+		t.Fatalf("did not become degraded while child down: %v", err)
+	}
+	close(restartGate)
+	if err := waitForState(m, Ready, 2*time.Second); err != nil {
+		t.Fatalf("did not recover after outage: %v", err)
+	}
+	cancel()
+	<-done
+}
+
+// A sustained healthy run clears the consecutive-failure budget, so the manager
+// does not give up at the fixed maxRestarts boundary. (Mutation of nextBackoff
+// would make the backoff sequence constant and this contract observable as a
+// change; the reset is what keeps it alive past spawn 6.)
+func TestSuperviseResetsCounterAfterSustainedSuccess(t *testing.T) {
+	var mu sync.Mutex
+	var stableWait chan error
+	var spawnN int64
+	m, clk, spawns := newSuperviseHarness(t, 20*time.Millisecond, func(context.Context) (*child, bool, error) {
+		n := atomic.AddInt64(&spawnN, 1)
+		mu.Lock()
+		defer mu.Unlock()
+		if n == 4 {
+			stableWait = make(chan error, 1)
+			return &child{wait: stableWait}, false, nil
+		}
+		return crashingFakeChild(), false, nil
+	})
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	done := make(chan struct{})
+	go m.supervise(ctx, nil, done)
+
+	if err := waitForSpawn(spawns, 4, 2*time.Second); err != nil {
+		t.Fatalf("stable child not started: %v", err)
+	}
+	// Let it run past the stable window, then crash it.
+	time.Sleep(100 * time.Millisecond)
+	mu.Lock()
+	sw := stableWait
+	mu.Unlock()
+	close(sw)
+
+	// Without the reset, restarts would hit maxRestarts at the 6th spawn and the
+	// manager would give up (spawns would stall at exactly 6). With the reset it
+	// keeps going well past that boundary.
+	if err := waitForSpawn(spawns, 8, 2*time.Second); err != nil {
+		t.Fatalf("counter did not reset after sustained success; gave up early: %v", err)
+	}
+	cancel()
+	<-done
+	if got := int(spawns.Load()); got <= m.maxRestarts+1 {
+		t.Fatalf("counter did not reset after sustained success; supervisor stalled at spawns=%d (would exhaust at %d without reset)", got, m.maxRestarts+1)
+	}
+	// The backoff sequence must show a reset to 1s after the sustained success
+	// (climbs 1,2,4 then restarts at 1s again).
+	if !slicesContains(clk.durations(), time.Second) {
+		t.Fatalf("backoff never reset to 1s after sustained success; got %v", clk.durations())
+	}
+}
+
+func slicesContains(s []time.Duration, v time.Duration) bool {
+	for _, x := range s {
+		if x == v {
+			return true
+		}
+	}
+	return false
 }

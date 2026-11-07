@@ -89,6 +89,19 @@ pub struct HeadConfig {
     /// config serialises exactly as before.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub choice_set_heads: Vec<SetHead>,
+    /// Dropout probability applied to the transformer/set-scorer residual branches during
+    /// training (gated by [`crate::model::Head::set_training`]). 0 disables it, keeping the
+    /// original behaviour and serialisation-compatible configs.
+    #[serde(default)]
+    pub dropout: f32,
+    /// When true (and the model has choice-set heads), the set scorer's exact-match / content-overlap
+    /// feature is **computed inside the model** from each candidate's text and the question, so the
+    /// trainer, the browser WASM and the Go wazero host all see the same feature with no external
+    /// input. Default false keeps v1/legacy behaviour (the feature is zero, so an untrained or
+    /// feature-off model stays inert). A model trained with this on must carry it on; the published
+    /// checkpoint injects `set.match_emb` when missing, so config and weights must agree.
+    #[serde(default)]
+    pub set_match_feature: bool,
 }
 
 fn one() -> usize {
@@ -195,15 +208,13 @@ impl HeadConfig {
 
     /// Parameters the set scorer adds; zero for a v1 config, so v1 counts and v1 weights are
     /// unchanged. Task embeddings (one `d` vector per set head), the answer/choice role
-    /// embedding (`2 d`), two set-attention blocks, their final norm (`d`) and the bilinear
-    /// `W` (`d x d`). Nothing here scales with `max_choices`.
+    /// embedding (`2 d`), the final norm (`d`), the bilinear `W` (`d x d`) and the learned
+    /// match-direction `match_emb` (`d`). Nothing here scales with `max_choices`.
     pub fn set_param_count(&self) -> usize {
         if self.choice_set_heads.is_empty() {
             return 0;
         }
         let d = self.d_model;
-        let f = self.ffn_mult * d;
-        let block = 4 * d * d + 3 * d * f + 2 * d;
-        self.choice_set_heads.len() * d + 2 * d + 2 * block + d + d * d
+        self.choice_set_heads.len() * d + 2 * d + d + d * d + d
     }
 }

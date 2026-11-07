@@ -283,5 +283,200 @@
     "expect": {
       "abstain": true
     }
+  },
+  {
+    "name": "v2 choice-set action head",
+    "reasoning": {
+      "plan_tokens": [],
+      "halting_steps": 2,
+      "confidence": 0.5,
+      "model_version": "v2-bbbbbbbb",
+      "dataset_manifest_hash": "dm",
+      "policy_bundle_hash": "sha256:trained",
+      "decisions": [
+        {
+          "name": "action",
+          "kind": "choice",
+          "candidates": [
+            {"id": "allow", "text": "allow", "probability": 0.7},
+            {"id": "request_review", "text": "request review", "probability": 0.2},
+            {"id": "ask_operator", "text": "ask operator", "probability": 0.1}
+          ]
+        },
+        {
+          "name": "next_phase",
+          "kind": "choice",
+          "candidates": [
+            {"id": "develop_review", "text": "develop review", "probability": 0.6},
+            {"id": "validate", "text": "validate", "probability": 0.4}
+          ]
+        }
+      ]
+    },
+    "context": {
+      "current_phase": "develop",
+      "policy_bundle_hash": "sha256:ctx"
+    },
+    "expect": {
+      "abstain": false,
+      "recommended_action": "allow",
+      "next_phase": "develop_review",
+      "confidence": 0.6,
+      "policy_bundle_hash": "sha256:trained"
+    }
+  },
+  {
+    "name": "v2 action below tau abstains",
+    "reasoning": {
+      "plan_tokens": [],
+      "halting_steps": 2,
+      "confidence": 0.5,
+      "model_version": "v2-bbbbbbbb",
+      "dataset_manifest_hash": "dm",
+      "policy_bundle_hash": "sha256:trained",
+      "decisions": [
+        {
+          "name": "action",
+          "kind": "choice",
+          "candidates": [
+            {"id": "allow", "text": "allow", "probability": 0.3},
+            {"id": "request_review", "text": "request review", "probability": 0.4}
+          ]
+        }
+      ]
+    },
+    "context": {
+      "current_phase": "develop"
+    },
+    "expect": {
+      "abstain": true
+    }
+  },
+  {
+    "name": "v2 out-of-vocabulary action abstains",
+    "reasoning": {
+      "plan_tokens": [],
+      "halting_steps": 2,
+      "confidence": 0.5,
+      "model_version": "v2-bbbbbbbb",
+      "dataset_manifest_hash": "dm",
+      "policy_bundle_hash": "sha256:trained",
+      "decisions": [
+        {
+          "name": "action",
+          "kind": "choice",
+          "candidates": [
+            {"id": "rm -rf /", "text": "rm -rf /", "probability": 0.9}
+          ]
+        }
+      ]
+    },
+    "context": {
+      "current_phase": "develop"
+    },
+      "expect": {
+        "abstain": true
+      }
+    },
+    {
+      "name": "v2 producer abstain honored above sdk tau",
+      "note": "producer set abstain=true from its cfg.tau (≠ SDK DEFAULT_ABSTAIN_TAU); peak is above the SDK threshold yet must still abstain",
+      "reasoning": {
+        "plan_tokens": [],
+        "halting_steps": 2,
+        "confidence": 0.5,
+        "model_version": "v2-bbbbbbbb",
+        "dataset_manifest_hash": "dm",
+        "policy_bundle_hash": "sha256:trained",
+        "decisions": [
+          {
+            "name": "action",
+            "kind": "choice",
+            "abstain": true,
+            "candidates": [
+              {"id": "allow", "text": "allow", "probability": 0.9}
+            ]
+          }
+        ]
+      },
+      "context": {
+        "current_phase": "develop"
+      },
+      "expect": {
+        "abstain": true
+      }
+    },
+    {
+      "name": "v2 malformed candidate probability ignored",
+      "note": "negative probability is not the argmax; converter must not crash and must use the valid peak",
+      "reasoning": {
+        "plan_tokens": [],
+        "halting_steps": 2,
+        "confidence": 0.5,
+        "model_version": "v2-bbbbbbbb",
+        "dataset_manifest_hash": "dm",
+        "policy_bundle_hash": "sha256:trained",
+        "decisions": [
+          {
+            "name": "action",
+            "kind": "choice",
+            "candidates": [
+              {"id": "allow", "text": "allow", "probability": -0.2},
+              {"id": "request_review", "text": "request review", "probability": 0.6}
+            ]
+          }
+        ]
+      },
+      "context": {
+        "current_phase": "develop"
+      },
+      "expect": {
+        "abstain": false,
+        "recommended_action": "request_review",
+        "next_phase": "develop",
+        "confidence": 0.6,
+        "policy_bundle_hash": "sha256:trained"
+      }
+    },
+    {
+      "name": "v2 padded masked slot gets zero mass",
+      "note": "a padded/-inf-masked slot would carry ~0 mass on the wire; it must never win over a valid candidate",
+      "reasoning": {
+        "plan_tokens": [],
+        "halting_steps": 2,
+        "confidence": 0.5,
+        "model_version": "v2-bbbbbbbb",
+        "dataset_manifest_hash": "dm",
+        "policy_bundle_hash": "sha256:trained",
+        "decisions": [
+          {
+            "name": "action",
+            "kind": "choice",
+            "candidates": [
+              {"id": "allow", "text": "allow", "probability": 0.0},
+              {"id": "request_review", "text": "request review", "probability": 0.7}
+            ]
+          }
+        ]
+      },
+      "context": {
+        "current_phase": "develop"
+      },
+      "expect": {
+        "abstain": false,
+        "recommended_action": "request_review",
+        "next_phase": "develop",
+        "confidence": 0.7,
+        "policy_bundle_hash": "sha256:trained"
+      }
+    },
+    {
+      "name": "set request (knirv-heart/v2 only)",
+    "note": "choice-set request shape; has no 'reasoning'/advice, so advice consumers skip it",
+    "questions": [
+      {"name": "route", "question": "which route?", "state": "develop", "choices": [{"id": "a", "text": "route-a"}, {"id": "b", "text": "route-b"}]},
+      {"name": "approve", "choices": []}
+    ],
+    "expect": { "set": true }
   }
 ]

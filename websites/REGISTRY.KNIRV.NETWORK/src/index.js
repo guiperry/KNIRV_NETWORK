@@ -4,10 +4,131 @@ import { hmac } from "@noble/hashes/hmac.js";
 import * as secp256k1 from "@noble/secp256k1";
 import { buildTarget, defaultProbes, tokensMatch, validateNode, validationKey, validationMode, validationSettings } from "./validation.js";
 
+// Root tx-chain registry: the signed POST /registry/register and signed lookup
+// are verified by the Rust-core WASM verifier from the KNIRV SDK (no JS crypto).
+// The trusted root identity and the immutable root registry id are read ONLY from
+// Worker configuration (env.ROOT_PUBLIC_ADDRESS / env.ROOT_REGISTRY_ID) — never
+// from the request or the record.
+import { initLocal as sdkInitLocal } from "../../../packages/KNIRVSDK/npm-package/local.js";
+import { verifyRegistryRecord as sdkVerifyRegistryRecord } from "../../../packages/KNIRVSDK/npm-package/signing.js";
+
 secp256k1.hashes.sha256 = sha256;
 secp256k1.hashes.hmacSha256 = (key, msg) => hmac(sha256, key, msg);
 
 const JSON_HEADERS = { "content-type": "application/json; charset=utf-8" };
+const MAX_REGISTRY_BODY_BYTES = 64 * 1024;
+const MAX_CHAIN_ID_LEN = 64;
+
+// --- Rust-core WASM verifier (KNIRV SDK) -----------------------------------
+let sdkReady = null;
+function ensureSdk() {
+  if (!sdkReady) sdkReady = sdkInitLocal();
+  return sdkReady;
+}
+
+// Read and parse a JSON body with a hard size cap and duplicate-key rejection.
+// `request.json()` silently keeps the last of duplicate keys, which lets an
+// attacker smuggle a canonicalization-ambiguous object; we reject on the spot
+// with a small strict parser (the standard parser collapses duplicates first).
+async function readJsonBody(request, maxBytes = MAX_REGISTRY_BODY_BYTES) {
+  const declared = request.headers.get("content-length");
+  if (declared && Number.parseInt(declared, 10) > maxBytes) {
+    return { error: json({ error: "Request body too large" }, 413) };
+  }
+  const text = await request.text();
+  if (text.length > maxBytes) return { error: json({ error: "Request body too large" }, 413) };
+  try {
+    return { value: parseStrict(text) };
+  } catch {
+    return { error: json({ error: "Invalid JSON request body" }, 400) };
+  }
+}
+
+// Minimal JSON parser that throws on duplicate object keys (security control).
+function parseStrict(str) {
+  let i = 0;
+  const n = str.length;
+  const ws = () => { while (i < n && /\s/.test(str[i])) i++; };
+  function strTok() {
+    let s = "";
+    i++; // opening quote
+    while (i < n) {
+      const ch = str[i++];
+      if (ch === '"') return s;
+      if (ch === "\\") {
+        const e = str[i++];
+        if (e === "u") { i += 4; }
+      } else s += ch;
+    }
+    throw new Error("bad string");
+  }
+  function numTok() {
+    const start = i;
+    while (i < n && /[-0-9.eE+]/.test(str[i])) i++;
+    return Number(str.slice(start, i));
+  }
+  function arrTok() {
+    i++; const arr = [];
+    ws(); if (str[i] === "]") { i++; return arr; }
+    for (;;) {
+      arr.push(valTok());
+      ws();
+      const c = str[i++];
+      if (c === ",") continue;
+      if (c === "]") return arr;
+      throw new Error("bad array");
+    }
+  }
+  function objTok() {
+    i++; const keys = new Set(); const obj = {};
+    ws(); if (str[i] === "}") { i++; return obj; }
+    for (;;) {
+      ws();
+      const key = strTok();
+      if (keys.has(key)) throw new Error("duplicate key");
+      keys.add(key);
+      ws();
+      if (str[i++] !== ":") throw new Error("bad object");
+      obj[key] = valTok();
+      ws();
+      const c = str[i++];
+      if (c === ",") continue;
+      if (c === "}") return obj;
+      throw new Error("bad object");
+    }
+  }
+  function valTok() {
+    ws();
+    const c = str[i];
+    if (c === "{") return objTok();
+    if (c === "[") return arrTok();
+    if (c === '"') return strTok();
+    if (c === "t") { i += 4; return true; }
+    if (c === "f") { i += 5; return false; }
+    if (c === "n") { i += 4; return null; }
+    return numTok();
+  }
+  const result = valTok();
+  ws();
+  if (i !== n) throw new Error("trailing data");
+  return result;
+}
+
+// Explicit CORS: never a wildcard for the write endpoint. Only an origin set in
+// configuration is reflected; otherwise no CORS header is emitted (same-origin only).
+function corsHeaders(env, request) {
+  const allow = env.CORS_ALLOW_ORIGIN?.trim();
+  if (!allow) return {};
+  const origin = request.headers.get("origin");
+  if (origin && (allow === "*" || allow.split(",").map((o) => o.trim()).includes(origin))) {
+    return {
+      "access-control-allow-origin": origin,
+      "access-control-allow-methods": "GET, POST, OPTIONS",
+      "access-control-allow-headers": "content-type",
+    };
+  }
+  return {};
+}
 const DEFAULT_NODE_TTL_MS = 60 * 60 * 1000;
 const PRUNE_INTERVAL_MS = 15 * 60 * 1000;
 const HEARTBEAT_TTL_MS = 45 * 1000;
@@ -103,6 +224,14 @@ export class RegistryStore extends DurableObject {
     const type = payload?.type === "bootnode" ? "bootnode" : "client";
     const peerRaw = payload?.peerID ?? payload?.nodeID;
     const peerID = typeof peerRaw === "string" && peerRaw ? peerRaw : undefined;
+    const txChainRaw = payload?.txChainAddress;
+    // A tx-chain address is a payment-route field and may ONLY be published through
+    // the signed POST /registry/register path (verified by the Rust-core WASM). The
+    // unsigned discovery path never persists or returns one — it rejects outright so
+    // it can never overwrite the root's payment identity.
+    if (typeof txChainRaw === "string" && txChainRaw.trim()) {
+      return { status: 400, error: "A tx-chain address requires a signed registry record." };
+    }
     if (!chainID || !Number.isInteger(port)) return { status: 400, error: "Missing required fields: chainID and port are mandatory." };
     if (port < 1 || port > 65535 || !ip) return { status: 400, error: "Invalid data types or value for chainID, port, or IP" };
 
@@ -126,7 +255,9 @@ export class RegistryStore extends DurableObject {
 
   async lookup(chainID) {
     const node = await this.ctx.storage.get(`node:${chainID}`);
-    return node ? { status: 200, node } : { status: 404, error: "Node not found" };
+    // Quarantined (legacy unsigned) tx-chain entries are never returned to clients.
+    if (!node || node.quarantined) return { status: 404, error: "Node not found" };
+    return { status: 200, node };
   }
 
   async allNodes() {
@@ -135,16 +266,105 @@ export class RegistryStore extends DurableObject {
   }
 
   // validatedOnly hides bootnodes that have not passed validation, so clients
-  // are never pointed at them. Non-bootnode entries are never filtered.
+  // are never pointed at them. Non-bootnode entries are never filtered. Quarantined
+  // (legacy unsigned) tx-chain entries are always excluded from client views.
   async nodes(validatedOnly = false) {
     const nodes = await this.allNodes();
-    if (!validatedOnly) return nodes;
-    return Object.fromEntries(Object.entries(nodes).filter(([, node]) => node.type !== "bootnode" || node.validated === true));
+    return Object.fromEntries(
+      Object.entries(nodes).filter(
+        ([, node]) =>
+          !node.quarantined && (!validatedOnly || node.type !== "bootnode" || node.validated === true),
+      ),
+    );
   }
 
   async bootnodes(validatedOnly = false) {
     const nodes = await this.nodes(validatedOnly);
     return Object.entries(nodes).filter(([, node]) => node.type === "bootnode").map(([chainID, node]) => ({ chainID, ...node }));
+  }
+
+  // Signed root tx-chain registry record publication. The envelope is verified by
+  // the Rust-core WASM verifier; the trusted root identity and immutable root
+  // registry id come from env (never the request). The signed envelope and the
+  // highest nonce are persisted in ONE Durable Object storage transaction (or, where
+  // transactions are unavailable, a single combined put) so a crash between writes
+  // leaves no inconsistent state. The per-instance mutex serializes concurrent
+  // submissions so the read-modify-write cannot race; a nonce <= the stored
+  // high-water mark is rejected.
+  async registerSigned(payload, env) {
+    const run = () => this.registerSignedInner(payload, env);
+    const prev = this._regMutex || Promise.resolve();
+    const next = prev.then(run);
+    // Keep the chain alive even if a run rejects; the rejection still propagates to
+    // the immediate caller (the HTTP handler turns it into a 500).
+    this._regMutex = next.catch(() => {});
+    return next;
+  }
+
+  async registerSignedInner(payload, env) {
+    const signed = payload?.signed;
+    if (!signed || typeof signed !== "object" || !signed.envelope || !signed.signature) {
+      return { status: 400, error: "Signed envelope is required." };
+    }
+    // Strict outer schema: only the `signed` field is accepted.
+    const bodyKeys = payload && typeof payload === "object" ? Object.keys(payload) : [];
+    if (bodyKeys.length !== 1 || bodyKeys[0] !== "signed") {
+      return { status: 400, error: "Unknown field in signed registration body." };
+    }
+    const rootAddress = env.ROOT_PUBLIC_ADDRESS?.trim();
+    const rootRegistryId = env.ROOT_REGISTRY_ID?.trim();
+    if (!rootAddress || !rootRegistryId) {
+      return { status: 500, error: "Registry trust configuration is missing." };
+    }
+    await ensureSdk();
+    let record;
+    try {
+      record = await sdkVerifyRegistryRecord(signed, rootAddress, rootRegistryId, new Date());
+    } catch {
+      // Generic external error: never leak verifier/WASM internals.
+      return { status: 401, error: "Invalid registry record signature." };
+    }
+    const chainId = record.chain_id;
+    if (typeof chainId !== "string" || chainId.length === 0 || chainId.length > MAX_CHAIN_ID_LEN) {
+      return { status: 400, error: "Invalid registry record chain id." };
+    }
+    if (typeof record.nonce !== "number" || !Number.isSafeInteger(record.nonce) || record.nonce < 0) {
+      return { status: 400, error: "Invalid registry record nonce." };
+    }
+    const nonce = BigInt(record.nonce);
+    const storedNonceRaw = await this.ctx.storage.get(`registryNonce:${chainId}`);
+    const storedNonce = storedNonceRaw === null || storedNonceRaw === undefined ? -1n : BigInt(storedNonceRaw);
+    if (nonce <= storedNonce) {
+      return { status: 409, error: "Stale or replayed registry record (nonce not greater than stored)." };
+    }
+    // Atomic persistence: both keys commit together, or neither does.
+    const storage = this.ctx.storage;
+    const writeAtomic = async (txn) => {
+      await txn.put(`signedEnvelope:${chainId}`, signed);
+      await txn.put(`registryNonce:${chainId}`, record.nonce);
+    };
+    try {
+      if (typeof storage.transaction === "function") {
+        await storage.transaction(writeAtomic);
+      } else {
+        // Fallback: a single put of one object holding both values is atomic at the
+        // storage layer.
+        await storage.put(`registryRecord:${chainId}`, { signed, nonce: record.nonce });
+      }
+    } catch {
+      return { status: 500, error: "Failed to persist registry record." };
+    }
+    return { status: 201, message: "Registry record published.", chainID: chainId, record, signed };
+  }
+
+  // Signed lookup: returns the originally published signed envelope (not a decoded
+  // or bare record), so clients can re-verify it themselves.
+  async lookupSigned(chainID) {
+    const stored =
+      (await this.ctx.storage.get(`signedEnvelope:${chainID}`)) ??
+      (await this.ctx.storage.get(`registryRecord:${chainID}`))?.signed;
+    if (!stored) return { status: 404, error: "Registry record not found" };
+    return { status: 200, signed: stored };
   }
 
   async validationGet(chainID) {
@@ -458,7 +678,10 @@ export default {
     const path = url.pathname.replace(/\/$/, "") || "/";
     const ttlMs = positiveInt(env.NODE_TTL_SECONDS, DEFAULT_NODE_TTL_MS / 1000) * 1000;
     const store = env.REGISTRY.getByName("network-registry");
-    if (request.method === "OPTIONS") return new Response(null, { headers: { "access-control-allow-origin": "*", "access-control-allow-methods": "GET, POST, OPTIONS", "access-control-allow-headers": "content-type, authorization" } });
+    if (request.method === "OPTIONS") {
+      if (path === "/registry/register") return new Response(null, { status: 204, headers: corsHeaders(env, request) });
+      return new Response(null, { status: 204, headers: { "access-control-allow-origin": "*", "access-control-allow-methods": "GET, POST, OPTIONS", "access-control-allow-headers": "content-type, authorization" } });
+    }
     if (path === "/") return Response.redirect(new URL("/status", url), 308);
     if (path === "/register" && request.method === "GET") return json({ error: "Method Not Allowed. Use POST to /register for node registration.", hint: "See /status for registry information." }, 405, { allow: "POST" });
     if (path === "/register" && request.method === "POST") {
@@ -471,6 +694,19 @@ export default {
     if (path.startsWith("/lookup/") && request.method === "GET") {
       const result = await store.lookup(decodeURIComponent(path.slice(8)));
       return result.error ? json({ error: result.error }, result.status) : json(result.node);
+    }
+    // Signed root tx-chain registry record endpoints (verified by Rust-core WASM).
+    if (path === "/registry/register" && request.method === "POST") {
+      const body = await readJsonBody(request);
+      if (body.error) return body.error;
+      const result = await store.registerSigned(body.value, env);
+      return result.error
+        ? json({ error: result.error }, result.status, corsHeaders(env, request))
+        : json(result, result.status, corsHeaders(env, request));
+    }
+    if (path.startsWith("/registry/lookup/") && request.method === "GET") {
+      const result = await store.lookupSigned(decodeURIComponent(path.slice("/registry/lookup/".length)));
+      return result.error ? json({ error: result.error }, result.status) : json(result.signed);
     }
     const validatedOnly = validationMode(env) === "enforce";
     if (path === "/nodes" && request.method === "GET") return json(await store.nodes(validatedOnly));

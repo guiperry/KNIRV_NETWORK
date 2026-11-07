@@ -19,6 +19,7 @@ import (
 
 	"knirvmodels/internal/analyzer"
 	"knirvmodels/internal/cli/controller"
+	"knirvmodels/pkg/knirvsearch"
 	"knirvmodels/pkg/models"
 )
 
@@ -40,6 +41,7 @@ type Server struct {
 	knirvserverManaged bool
 	registry           *models.Registry
 	hasher             *models.Hasher
+	search             *knirvsearch.Manager
 	closeOnce          sync.Once
 	shutdownCloseOnce  sync.Once
 }
@@ -150,6 +152,20 @@ func (s *Server) Start() error {
 		s.startConfiguredDriver()
 	}
 
+	// Task 3.8: bring up the flash metasearch manager. Flash is ON by default (O5).
+	// When no SearXNG binary/URL is configured it stays Degraded and the local
+	// factslice verification fallback continues to serve; we never start a system
+	// service. Run it off the boot path so a slow/again health probe cannot block
+	// the daemon's HTTP socket. Start() is cheap in the disabled/degraded cases
+	// (it returns immediately) and only blocks when a real binary is configured
+	// and being health-probed, which is an expected boot cost.
+	s.search = knirvsearch.NewFromEnv()
+	go func() {
+		if err := s.search.Start(context.Background()); err != nil {
+			log.Printf("[search] start returned error: %v", err)
+		}
+	}()
+
 	return nil
 }
 
@@ -205,6 +221,12 @@ func (s *Server) setupSocket() error {
 
 func (s *Server) Stop() error {
 	log.Println("Stopping headless server...")
+
+	if s.search != nil {
+		if err := s.search.Stop(); err != nil {
+			log.Printf("[search] stop error: %v", err)
+		}
+	}
 
 	if s.ln != nil {
 		s.ln.Close()

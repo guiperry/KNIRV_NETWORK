@@ -21,6 +21,11 @@ import (
 type rootKeyContent struct {
 	RootPrivateKeyHex  string
 	ReplicationSigner  knirvsigning.RemoteSigner
+	// Note (Task 8.8): the Oracle's consensus validator identity is NOT carried in
+	// the root-key content. It is brokered through secrets.Provider in the
+	// production config path (initOracleWithSecrets -> buildValidatorSigner) so the
+	// raw key is never held in config or env (ORACLE_VALIDATOR_KEY has no runtime
+	// reader).
 	CloudflareAPIToken string
 	CloudflareZoneID   string
 
@@ -40,7 +45,7 @@ type rootKeyContent struct {
 	PaymentOnboardingCallbackURL string
 }
 
-func initOracleWithSecrets(content *rootKeyContent, logger *zap.Logger) (*oracle.Oracle, error) {
+func initOracleWithSecrets(ctx context.Context, content *rootKeyContent, provider secrets.Provider, logger *zap.Logger) (*oracle.Oracle, error) {
 	if content == nil {
 		return nil, nil
 	}
@@ -70,6 +75,17 @@ func initOracleWithSecrets(content *rootKeyContent, logger *zap.Logger) (*oracle
 	}
 	oracleCfg.OwnerPrivateKey = rootPrivateKey
 	oracleCfg.ReplicationSigner = content.ReplicationSigner
+
+	// Task 8.8: the Oracle's consensus validator identity is brokered through
+	// secrets.Provider — never from the root-key content (the raw key is never
+	// carried in config or env; ORACLE_VALIDATOR_KEY has no runtime reader). A
+	// failure to resolve it degrades loudly rather than starting the Oracle with
+	// the wrong signing identity.
+	validatorSigner, err := buildValidatorSigner(ctx, provider, logger)
+	if err != nil {
+		logger.Warn("validator signer could not be resolved; Oracle will not start with a wrong validator identity", zap.Error(err))
+	}
+	oracleCfg.ValidatorSigner = validatorSigner
 
 	// Payment processor config — root.key is authoritative whenever it
 	// carries a value; ORACLE_KEY_PASSWORD remains the only variable an
@@ -157,7 +173,10 @@ func initOracleFromKeyFile(logger *zap.Logger) (*oracle.Oracle, error) {
 	// path until Provider supports a non-environment password handoff.
 	content.ReplicationSigner = replicationFileSigner(content, logger)
 
-	oracleInstance, err := initOracleWithSecrets(content, logger)
+	// The Oracle's validator identity (Task 8.8) is brokered through the provider
+	// in initOracleWithSecrets, not from the root-key content.
+	provider := newSecretsProvider(logger)
+	oracleInstance, err := initOracleWithSecrets(context.Background(), content, provider, logger)
 	if err != nil {
 		return nil, err
 	}
@@ -170,6 +189,32 @@ func initOracleFromKeyFile(logger *zap.Logger) (*oracle.Oracle, error) {
 }
 
 func replicationFileSigner(content *rootKeyContent, logger *zap.Logger) knirvsigning.RemoteSigner {
+	// 2a.5: prefer OpenBao for replication signing when its plugin socket is
+	// present. OpenBao owns the canonical root-owner identity and signs via the
+	// same knirvsigning.RemoteSigner contract the file provider uses, so the
+	// replication path is format-compatible. We still sanity-check that the Bao
+	// root-owner address matches the unlocked root key before trusting it.
+	if socket := strings.TrimSpace(os.Getenv("VALIDATION_CHAIN_BAO_SOCKET")); socket != "" {
+		token := os.Getenv("VALIDATION_CHAIN_BAO_TOKEN")
+		signer, signerErr := secrets.NewBaoProvider(socket, token).Signer(context.Background(), "root-owner")
+		if signerErr != nil {
+			logger.Warn("replication signer unavailable from OpenBao; falling back to key-file/legacy provider", zap.Error(signerErr))
+		} else {
+			existing, keyErr := hex.DecodeString(strings.TrimPrefix(content.RootPrivateKeyHex, "0x"))
+			var identity knirvsigning.RemoteSigner
+			if keyErr == nil {
+				identity, keyErr = knirvsigning.NewLocalSigner(existing)
+			}
+			for i := range existing {
+				existing[i] = 0
+			}
+			if keyErr != nil || signer.Address() != identity.Address() {
+				logger.Warn("OpenBao root-owner identity differs from the unlocked root key; falling back to key-file/legacy provider")
+			} else {
+				return signer
+			}
+		}
+	}
 	if os.Getenv("ORACLE_KEY_PASSWORD") != "" {
 		signer, signerErr := secrets.NewFileProvider().Signer(context.Background(), "root-owner")
 		if signerErr != nil {
@@ -191,6 +236,57 @@ func replicationFileSigner(content *rootKeyContent, logger *zap.Logger) knirvsig
 		}
 	}
 	return nil
+}
+
+// newSecretsProvider returns the secrets.Provider used to broker the Oracle's
+// validator identity (Task 8.8). OpenBao's plugin is preferred when its socket is
+// present; otherwise the file provider is used.
+func newSecretsProvider(logger *zap.Logger) secrets.Provider {
+	if socket := strings.TrimSpace(os.Getenv("VALIDATION_CHAIN_BAO_SOCKET")); socket != "" {
+		return secrets.NewBaoProvider(socket, os.Getenv("VALIDATION_CHAIN_BAO_TOKEN"))
+	}
+	return secrets.NewFileProvider()
+}
+
+// resolveBootnodeRoleMax derives the privilege ceiling the role resolver (8.1)
+// produced: ORACLE_MODE is rendered by KNIRVSERVER from noderole.Resolve. The
+// validator settings may only LOWER this ceiling (never raise it).
+func resolveBootnodeRoleMax() string {
+	if mode, err := oracle.NormalizeMode(os.Getenv("ORACLE_MODE")); err == nil {
+		switch mode {
+		case oracle.ModeActive:
+			return "active"
+		case oracle.ModeStandby:
+			return "standby"
+		case oracle.ModeOff:
+			return "off"
+		}
+	}
+	return "active"
+}
+
+// buildValidatorSigner is the single production path for the Oracle's consensus
+// validator identity (Task 8.8). It resolves the bootnode role (8.1), clamps the
+// resulting privilege ceiling with Provider.ValidatorSettings (lowering-only; a
+// raise is ignored and warned), and returns the validator RemoteSigner from the
+// provider's "validation" identity (OpenBao plugin preferred, file provider
+// default). The raw key is never carried in config or env; ORACLE_VALIDATOR_KEY
+// has no runtime reader.
+func buildValidatorSigner(ctx context.Context, provider secrets.Provider, logger *zap.Logger) (knirvsigning.RemoteSigner, error) {
+	resolverMax := resolveBootnodeRoleMax()
+	vs, err := provider.ValidatorSettings(ctx, resolverMax)
+	if err != nil {
+		return nil, fmt.Errorf("validator settings: %w", err)
+	}
+	if vs.OracleModeMax == "off" {
+		logger.Warn("validator settings disable the Oracle (oracle_mode_max=off); no validator identity wired")
+		return nil, nil
+	}
+	signer, err := provider.Signer(ctx, "validation")
+	if err != nil {
+		return nil, fmt.Errorf("validator signer: %w", err)
+	}
+	return signer, nil
 }
 
 // initOracleForMode activates the Oracle according to ORACLE_MODE, which

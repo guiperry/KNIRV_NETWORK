@@ -673,6 +673,8 @@ type Status struct {
 	LastIngest  string       `json:"last_ingest,omitempty"`
 	// StaleSeconds is the age of the newest ingest when the status was read.
 	StaleSeconds int64 `json:"stale_seconds,omitempty"`
+	// Witness summarises the provenance witness queue/scheduler (Task 3.9).
+	Witness *WitnessStatus `json:"witness,omitempty"`
 }
 
 // Status reports the index without reading any postings.
@@ -700,6 +702,10 @@ func (ix *Index) Status() Status {
 	st.Searches = ix.searches.Load()
 	if st.Searches > 0 {
 		st.HitRate = math.Round(float64(ix.withHits.Load())/float64(st.Searches)*1000) / 1000
+	}
+	if ix.witness != nil {
+		ws := ix.witness.Status()
+		st.Witness = &ws
 	}
 	return st
 }

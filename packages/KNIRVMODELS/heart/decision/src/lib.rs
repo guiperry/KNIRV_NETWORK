@@ -11,6 +11,10 @@ pub mod tokenizer;
 pub use config::{DecisionHead, HeadConfig, HeadKind, SetHead, SetKind};
 pub use layout::{assert_additive, ChoiceLayout};
 pub use model::{Candidate, CycleOut, Decision, Head, Mode, Reasoning, SetChoice, SetQuestion, Trace};
+pub use model::{log_softmax_last_dim_diff, set_loss_from_logits, softmax_last_dim_diff};
+/// Content-overlap feature for the set scorer (Task 4.4): `LCS(candidate, question)/len(candidate)`
+/// per candidate. Shared by the trainer and every runtime so the model needs no external feature input.
+pub use model::overlap_feature;
 
 use candle_core::Device;
 use wasm_bindgen::prelude::*;

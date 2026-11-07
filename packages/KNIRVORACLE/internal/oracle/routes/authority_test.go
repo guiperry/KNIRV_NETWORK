@@ -201,12 +201,30 @@ func TestAuthorityReportRouteRejectsBadRequests(t *testing.T) {
 
 func TestVerifierRegisterEnrolsAuthorityOperatorOnlyWhenAsked(t *testing.T) {
 	f := newAuthFixture(t)
+	// verifiers/register is an INTERNAL-ONLY route; it is served on the
+	// internal unix socket via RegisterInternalRoutes, not on the public mux.
+	internalMux := http.NewServeMux()
+	NewOracleRoutes(f.oracle, zap.NewNop()).RegisterInternalRoutes(internalMux)
 	pub := ethcrypto.CompressPubkey(&mustECDSA(t).PublicKey)
 	addr, _ := signing.Address(pub, signing.DefaultAddressPrefix)
 	path := "/oracle/v3/verifiers/register"
 
+	postInternal := func(t *testing.T, token string, body any) (int, map[string]any) {
+		t.Helper()
+		b, _ := json.Marshal(body)
+		req := httptest.NewRequest(http.MethodPost, path, bytes.NewReader(b))
+		if token != "" {
+			req.Header.Set("Authorization", "Bearer "+token)
+		}
+		rec := httptest.NewRecorder()
+		internalMux.ServeHTTP(rec, req)
+		var out map[string]any
+		_ = json.Unmarshal(rec.Body.Bytes(), &out)
+		return rec.Code, out
+	}
+
 	// Unchanged behaviour for an ordinary verifier.
-	if code, out := f.post(t, path, "tok", map[string]any{"verifier_id": addr, "public_key": pub}); code != 200 {
+	if code, out := postInternal(t, "tok", map[string]any{"verifier_id": addr, "public_key": pub}); code != 200 {
 		t.Fatalf("plain: %d %v", code, out)
 	}
 	if got := f.oracle.VerifierCount(); got != 1 {
@@ -215,13 +233,13 @@ func TestVerifierRegisterEnrolsAuthorityOperatorOnlyWhenAsked(t *testing.T) {
 	// A bad authority_kind changes nothing.
 	pub2 := ethcrypto.CompressPubkey(&mustECDSA(t).PublicKey)
 	addr2, _ := signing.Address(pub2, signing.DefaultAddressPrefix)
-	if code, _ := f.post(t, path, "tok", map[string]any{"verifier_id": addr2, "public_key": pub2, "authority_kind": "king"}); code != 400 {
+	if code, _ := postInternal(t, "tok", map[string]any{"verifier_id": addr2, "public_key": pub2, "authority_kind": "king"}); code != 400 {
 		t.Fatalf("bad kind: %d", code)
 	}
 	if got := f.oracle.VerifierCount(); got != 1 {
 		t.Fatalf("a rejected request still registered a verifier (%d)", got)
 	}
-	if code, out := f.post(t, path, "tok", map[string]any{"verifier_id": addr2, "public_key": pub2, "authority_kind": "root", "authority_scopes": []string{addr2, "knirv1other"}}); code != 200 {
+	if code, out := postInternal(t, "tok", map[string]any{"verifier_id": addr2, "public_key": pub2, "authority_kind": "root", "authority_scopes": []string{addr2, "knirv1other"}}); code != 200 {
 		t.Fatalf("enrol: %d %v", code, out)
 	}
 }
