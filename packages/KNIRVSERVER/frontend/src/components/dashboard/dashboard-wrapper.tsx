@@ -24,7 +24,7 @@ import FinancialComplianceDashboard from '@/components/dashboard/financial-compl
 
 import DVEWorkspacePanel from './dve-workspace-panel'; // Modular DVE Workspace
 import DVECreationManagement from '@/components/dve-management/dve-creation-management';
-import { KNIRVEngineModal } from '@/components/knirvengine/knirvengine-modal';
+import { TestlabModal } from '@/components/testlab/testlab-modal';
 import { CognitiveEnginePanel } from '@/components/dashboard/cognitive-engine-panel';
 import { CognitiveEngineStatusCard } from '@/components/dashboard/cognitive-engine-panel';
 import NeuralDesktopPanel from '@/components/dashboard/neural-desktop-panel';
@@ -147,7 +147,7 @@ function DashboardWrapperInner({ children, onRentDVE }: DashboardWrapperProps) {
   const [dveWorkspaceModalOpen, setDveWorkspaceModalOpen] = useState(false);
   const [dveCreationModalOpen, setDveCreationModalOpen] = useState(false);
   const [dveRefreshKey, setDveRefreshKey] = useState(0);
-  const [knirvEngineModalOpen, setKnirvEngineModalOpen] = useState(false);
+  const [testlabModalOpen, setTestlabModalOpen] = useState(false);
   const [paymentGatewayOpen, setPaymentGatewayOpen] = useState(false);
   const [selectedNode, setSelectedNode] = useState<DVENode | null>(null);
   const [showAdminAccess, setShowAdminAccess] = useState(false);
@@ -449,9 +449,9 @@ function DashboardWrapperInner({ children, onRentDVE }: DashboardWrapperProps) {
     setDveWorkspaceModalOpen(true);
   };
 
-  const handleOpenKNIRVEngine = () => {
+  const handleOpenTestlab = () => {
     setDveWorkspaceModalOpen(false);
-    setKnirvEngineModalOpen(true);
+    setTestlabModalOpen(true);
   };
 
   const handleDVEManagement = () => {
@@ -1507,11 +1507,11 @@ function DashboardWrapperInner({ children, onRentDVE }: DashboardWrapperProps) {
         </PanelErrorBoundary>
       )}
 
-      {/* KNIRVENGINE Modal */}
+      {/* TESTLAB Modal */}
       {selectedNode && (
-        <KNIRVEngineModal
-          isOpen={knirvEngineModalOpen}
-          onClose={() => setKnirvEngineModalOpen(false)}
+        <TestlabModal
+          isOpen={testlabModalOpen}
+          onClose={() => setTestlabModalOpen(false)}
           nodeId={selectedNode.id}
         />
       )}
@@ -1522,7 +1522,7 @@ function DashboardWrapperInner({ children, onRentDVE }: DashboardWrapperProps) {
         onClose={() => setShowAdminAccess(false)}
         nodeId="ADMIN-NODE-01"
         nodeName="Administrative Node"
-        onOpenKNIRVEngine={() => {
+        onOpenTestlab={() => {
           setShowAdminAccess(false);
         }}
       />

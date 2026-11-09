@@ -399,7 +399,7 @@ describe('TerminalCommandService', () => {
       expect(result.exitCode).toBe(0);
       
       expect(fetch).toHaveBeenCalledWith(
-        'http://localhost:3001/api/terminal/execute',
+        'https://testnet-gateway.knirv.com/api/terminal/execute',
         expect.objectContaining({
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },

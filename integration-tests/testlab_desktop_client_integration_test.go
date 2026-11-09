@@ -17,8 +17,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// KNIRVENGINE Desktop Client Integration Test Suite
-// This test suite validates the enhanced testing infrastructure for KNIRVENGINE desktop-client
+// TESTLAB Desktop Client Integration Test Suite
+// This test suite validates the enhanced testing infrastructure for TESTLAB desktop-client
 // and integrates it with the existing KNIRV Network CI/CD pipeline
 
 // PackageTestResult represents the test results for a single package
@@ -44,27 +44,27 @@ type IntegrationTestReport struct {
 }
 
 const (
-	knirvEngineDir    = "../KNIRVENGINE/desktop-client"
+	testlabDir        = "../../KNIRV_CORP/packages/testlab"
 	coverageThreshold = 70.0 // Minimum coverage percentage required
 )
 
-func TestKNIRVENGINEDesktopClientIntegration(t *testing.T) {
-	t.Log("🚀 Starting KNIRVENGINE Desktop Client Integration Test Suite")
+func TestTESTLABDesktopClientIntegration(t *testing.T) {
+	t.Log("🚀 Starting TESTLAB Desktop Client Integration Test Suite")
 
-	// Verify KNIRVENGINE directory exists
-	if _, err := os.Stat(knirvEngineDir); os.IsNotExist(err) {
-		t.Skipf("KNIRVENGINE desktop-client directory not found: %s", knirvEngineDir)
+	// Verify TESTLAB directory exists
+	if _, err := os.Stat(testlabDir); os.IsNotExist(err) {
+		t.Skipf("TESTLAB desktop-client directory not found: %s", testlabDir)
 	}
 
-	// Change to KNIRVENGINE directory
+	// Change to TESTLAB directory
 	originalDir, err := os.Getwd()
 	require.NoError(t, err)
 	defer os.Chdir(originalDir)
 
-	err = os.Chdir(knirvEngineDir)
-	require.NoError(t, err, "Failed to change to KNIRVENGINE directory")
+	err = os.Chdir(testlabDir)
+	require.NoError(t, err, "Failed to change to TESTLAB directory")
 
-	t.Log("✅ Successfully changed to KNIRVENGINE desktop-client directory")
+	t.Log("✅ Successfully changed to TESTLAB desktop-client directory")
 
 	// Run comprehensive test suite
 	report := &IntegrationTestReport{
@@ -124,7 +124,7 @@ func TestKNIRVENGINEDesktopClientIntegration(t *testing.T) {
 	assert.GreaterOrEqual(t, report.Coverage, coverageThreshold,
 		"Overall coverage should meet minimum threshold of %.1f%%", coverageThreshold)
 
-	t.Logf("🎉 KNIRVENGINE Desktop Client Integration Tests Completed")
+	t.Logf("🎉 TESTLAB Desktop Client Integration Tests Completed")
 	t.Logf("📊 Results: %d/%d packages passed, %.1f%% coverage",
 		report.PassedTests, report.TotalTests, report.Coverage)
 }
@@ -196,7 +196,7 @@ func generateTestReport(t *testing.T, report *IntegrationTestReport) {
 
 	// Generate JSON report
 	timestamp := time.Now().Format("20060102_150405")
-	jsonFile := filepath.Join(reportsDir, fmt.Sprintf("knirvengine_desktop_client_test_results_%s.json", timestamp))
+	jsonFile := filepath.Join(reportsDir, fmt.Sprintf("testlab_desktop_client_test_results_%s.json", timestamp))
 
 	jsonData, err := json.MarshalIndent(report, "", "  ")
 	if err != nil {
@@ -210,7 +210,7 @@ func generateTestReport(t *testing.T, report *IntegrationTestReport) {
 	}
 
 	// Generate HTML report
-	htmlFile := filepath.Join(reportsDir, fmt.Sprintf("knirvengine_desktop_client_test_report_%s.html", timestamp))
+	htmlFile := filepath.Join(reportsDir, fmt.Sprintf("testlab_desktop_client_test_report_%s.html", timestamp))
 	htmlContent := generateHTMLReport(report)
 
 	if err := os.WriteFile(htmlFile, []byte(htmlContent), 0644); err != nil {
@@ -232,7 +232,7 @@ func generateHTMLReport(report *IntegrationTestReport) string {
 	html := fmt.Sprintf(`<!DOCTYPE html>
 <html>
 <head>
-    <title>KNIRVENGINE Desktop Client Test Report</title>
+    <title>TESTLAB Desktop Client Test Report</title>
     <style>
         body { font-family: Arial, sans-serif; margin: 20px; }
         .header { background: #f0f0f0; padding: 20px; border-radius: 5px; }
@@ -248,7 +248,7 @@ func generateHTMLReport(report *IntegrationTestReport) string {
 </head>
 <body>
     <div class="header">
-        <h1>KNIRVENGINE Desktop Client Integration Test Report</h1>
+        <h1>TESTLAB Desktop Client Integration Test Report</h1>
         <p><strong>Timestamp:</strong> %s</p>
         <p><strong>Status:</strong> <span class="status">%s</span></p>
         <p><strong>Overall Coverage:</strong> <span class="coverage">%.1f%%</span></p>
@@ -316,12 +316,12 @@ func generateHTMLReport(report *IntegrationTestReport) string {
 	return html
 }
 
-func TestKNIRVENGINEServiceHealth(t *testing.T) {
-	t.Log("🔍 Testing KNIRVENGINE service health and integration")
+func TestTESTLABServiceHealth(t *testing.T) {
+	t.Log("🔍 Testing TESTLAB service health and integration")
 
-	// Test if KNIRVENGINE service is running (if applicable)
+	// Test if TESTLAB service is running (if applicable)
 	endpoints := []string{
-		"http://localhost:8088/health", // KNIRVENGINE default port
+		"http://localhost:8088/health", // TESTLAB default port
 		"http://localhost:8088/api/v1/status",
 	}
 
@@ -331,8 +331,8 @@ func TestKNIRVENGINEServiceHealth(t *testing.T) {
 
 			resp, err := client.Get(endpoint)
 			if err != nil {
-				t.Logf("⚠️ KNIRVENGINE service not running at %s: %v", endpoint, err)
-				t.Skip("KNIRVENGINE service not available for health check")
+				t.Logf("⚠️ TESTLAB service not running at %s: %v", endpoint, err)
+				t.Skip("TESTLAB service not available for health check")
 				return
 			}
 			defer resp.Body.Close()
@@ -341,24 +341,24 @@ func TestKNIRVENGINEServiceHealth(t *testing.T) {
 			require.NoError(t, err)
 
 			assert.Equal(t, http.StatusOK, resp.StatusCode,
-				"KNIRVENGINE health endpoint should return 200 OK")
+				"TESTLAB health endpoint should return 200 OK")
 
-			t.Logf("✅ KNIRVENGINE health check passed: %s", string(body))
+			t.Logf("✅ TESTLAB health check passed: %s", string(body))
 		})
 	}
 }
 
-func TestKNIRVENGINEFrontendIntegration(t *testing.T) {
-	t.Log("🎨 Testing KNIRVENGINE frontend integration")
+func TestTESTLABFrontendIntegration(t *testing.T) {
+	t.Log("🎨 Testing TESTLAB frontend integration")
 
 	// Change to GUI directory
 	originalDir, err := os.Getwd()
 	require.NoError(t, err)
 	defer os.Chdir(originalDir)
 
-	guiDir := filepath.Join(knirvEngineDir, "gui")
+	guiDir := filepath.Join(testlabDir, "gui")
 	if _, err := os.Stat(guiDir); os.IsNotExist(err) {
-		t.Skip("KNIRVENGINE GUI directory not found")
+		t.Skip("TESTLAB GUI directory not found")
 	}
 
 	err = os.Chdir(guiDir)
@@ -387,15 +387,15 @@ func TestKNIRVENGINEFrontendIntegration(t *testing.T) {
 	t.Logf("Output: %s", string(output))
 }
 
-func TestKNIRVENGINEBuildIntegration(t *testing.T) {
-	t.Log("🔨 Testing KNIRVENGINE build integration")
+func TestTESTLABBuildIntegration(t *testing.T) {
+	t.Log("🔨 Testing TESTLAB build integration")
 
-	// Change to KNIRVENGINE directory
+	// Change to TESTLAB directory
 	originalDir, err := os.Getwd()
 	require.NoError(t, err)
 	defer os.Chdir(originalDir)
 
-	err = os.Chdir(knirvEngineDir)
+	err = os.Chdir(testlabDir)
 	require.NoError(t, err)
 
 	// Test Go build
@@ -407,13 +407,13 @@ func TestKNIRVENGINEBuildIntegration(t *testing.T) {
 
 	if err != nil {
 		t.Logf("Build output: %s", string(output))
-		t.Fatalf("KNIRVENGINE build failed: %v", err)
+		t.Fatalf("TESTLAB build failed: %v", err)
 	}
 
 	// Clean up test build
 	defer os.Remove("test-build")
 
-	t.Logf("✅ KNIRVENGINE build completed successfully")
+	t.Logf("✅ TESTLAB build completed successfully")
 
 	// Verify binary was created
 	if _, err := os.Stat("test-build"); err != nil {

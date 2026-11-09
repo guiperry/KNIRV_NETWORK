@@ -78,10 +78,20 @@ func (w *WalletImpl) SignTransaction(tx *Transaction) error {
 	if tx.Fee != nil {
 		fee = tx.Fee.String()
 	}
+	action := tx.Type
+	if action == "" {
+		action = "transfer"
+	}
+	denom := tx.FeeDenom
+	if denom == "" {
+		denom = FeeDenom
+	}
+	tx.AccountNumber = utils.AccountNumberFor(tx.From)
+	tx.FeeDenom = denom
 	signed, err := knirvsigning.SignTransaction(privateKeyBytes(w.PrivateKey), knirvsigning.SignRequest{
-		Action:  knirvsigning.Action{Action: "transfer", Sender: tx.From, Recipient: tx.To, Amount: tx.Amount.Uint64(), Payload: tx.Data, TimestampUnix: tx.Timestamp.Unix()},
+		Action:  knirvsigning.Action{Action: action, Sender: tx.From, Recipient: tx.To, Amount: tx.Amount.Uint64(), Payload: tx.Data, TimestampUnix: tx.Timestamp.Unix()},
 		ChainID: chainID, AccountNumber: tx.AccountNumber, Sequence: tx.Nonce,
-		Fee: knirvsigning.Fee{Denom: "unrn", Amount: fee},
+		Fee: knirvsigning.Fee{Denom: denom, Amount: fee},
 	})
 	if err != nil {
 		return fmt.Errorf("failed to sign transaction: %w", err)
@@ -91,6 +101,10 @@ func (w *WalletImpl) SignTransaction(tx *Transaction) error {
 	tx.PublicKey, tx.Signatures, tx.Signature, tx.Hash = wire.PublicKey, wire.Signatures, wire.Signatures[0], wire.Hash
 	return nil
 }
+
+// FeeDenom is the denomination wallet transactions state their fee in, unless the
+// transaction names one. It matches the chain's signed-fee convention.
+const FeeDenom = "NRN"
 
 func privateKeyBytes(key *ecdsa.PrivateKey) []byte {
 	raw := make([]byte, 32)
@@ -116,26 +130,15 @@ func (w *WalletImpl) GetPublicKeyHex() string {
 }
 
 func (w *WalletImpl) GetAddress() string {
-	// If the address field is already populated (e.g. from UnmarshalJSON with incomplete keys but valid address),
-	// and it looks like a valid address, prefer it.
-	if w.Address != "" && strings.HasPrefix(w.Address, utils.ADDRESS_PREFIX) { // Basic check
-		return w.Address
-	}
-
-	// If we need to generate it from keys, ensure keys are present.
 	if w.PublicKey == nil {
 		return w.Address
 	}
-	publicKey := ethcrypto.CompressPubkey(w.PublicKey)
-	if len(publicKey) == 0 {
-		// log.Println("Warning: GetPublicKeyHex returned empty in GetAddress. Cannot generate address from keys. Returning w.Address.")
-		return w.Address // Fallback to w.Address if key-based generation fails (w.Address might be empty)
-	}
-
-	address, err := knirvsigning.Address(publicKey, knirvsigning.DefaultAddressPrefix)
+	// The address is the SDK's derivation from the compressed public key.
+	address, err := knirvsigning.Address(ethcrypto.CompressPubkey(w.PublicKey), knirvsigning.DefaultAddressPrefix)
 	if err != nil {
 		return w.Address
 	}
+	w.Address = address
 	return address
 }
 

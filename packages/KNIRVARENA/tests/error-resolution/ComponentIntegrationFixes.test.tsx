@@ -14,13 +14,10 @@ import '@testing-library/jest-dom';
 import { SlidingPanel } from '../../src/components/SlidingPanel';
 import { CognitiveShellInterface } from '../../src/components/CognitiveShellInterface';
 import { MetaAccountDashboard } from '../../src/components/MetaAccountDashboard';
-import UnifiedInterface from '../../src/components/UnifiedInterface';
-import { ComponentBridge } from '../../src/shared/ComponentBridge';
 
 // Mock external dependencies
 jest.mock('../../src/services/CognitiveEngineService');
 jest.mock('../../src/services/WalletIntegrationService');
-jest.mock('../../src/shared/ComponentBridge');
 jest.mock('../../src/sensory-shell/CognitiveEngine');
 jest.mock('../../src/sensory-shell/HEADBridge');
 
@@ -45,38 +42,6 @@ jest.mock('lucide-react', () => ({
   Wallet: () => <div data-testid="wallet-icon">👛</div>,
   Menu: () => <div data-testid="menu-icon">☰</div>,
 }));
-
-// Create a proper ComponentBridge mock that implements all required methods
-class MockComponentBridge extends ComponentBridge {
-  public sendMessage = jest.fn();
-  public onMessage = jest.fn();
-  public disconnect = jest.fn();
-  // ComponentBridge is auto-mocked above, so the base getState returns
-  // undefined; UnifiedInterface renders from a real state shape.
-  public getState = jest.fn(() => ({
-    components: { receiver: 'running' as const, cli: 'stopped' as const },
-    cognitive: { headActive: false, loraAdapters: [], learningMode: false, confidence: 0 },
-    wallet: { connected: false, balance: 0, transactions: [] },
-    network: { connected: true, peers: 0, blockHeight: 0 },
-  }));
-
-  constructor() {
-    // Create a mock config to satisfy the constructor
-    const mockConfig = {
-      name: 'test-component',
-      port: 3000,
-      endpoints: {},
-      features: {}
-    };
-
-    super(mockConfig);
-
-    // Override the connect method to prevent actual WebSocket connections
-    (this as any).connect = jest.fn();
-  }
-}
-
-const mockComponentBridge = new MockComponentBridge();
 
 // The shell and unified interface read chat state from ChatBrainProvider,
 // as they do inside App.
@@ -175,50 +140,6 @@ describe('Component Integration Fixes', () => {
     });
   });
 
-  describe('UnifiedInterface Integration', () => {
-    it('should render with ComponentBridge without type errors', () => {
-      render(
-        <UnifiedInterface bridge={mockComponentBridge} />
-      );
-
-      expect(screen.getByText('Unified Interface')).toBeInTheDocument();
-    });
-
-    it('should handle bridge state updates safely', () => {
-      const { rerender } = render(
-        <UnifiedInterface bridge={mockComponentBridge} />
-      );
-
-      // Test that component handles bridge state changes
-      const updatedBridge = new MockComponentBridge();
-
-      // Mock the getState method to return different state
-      updatedBridge.getState = jest.fn().mockReturnValue({
-        components: { manager: 'stopped', receiver: 'error', cli: 'stopped' },
-        cognitive: {
-          headActive: false,
-          loraAdapters: [],
-          learningMode: false,
-          confidence: 0
-        },
-        wallet: {
-          connected: false,
-          balance: 0,
-          transactions: []
-        },
-        network: {
-          connected: false,
-          peers: 0,
-          blockHeight: 0
-        }
-      });
-
-      rerender(<UnifiedInterface bridge={updatedBridge} />);
-
-      expect(updatedBridge.getState).toHaveBeenCalled();
-    });
-  });
-
   describe('Function Hoisting Fixes', () => {
     it('should handle components with proper function definition order', () => {
       // Test that components render without "used before declaration" errors
@@ -262,8 +183,7 @@ describe('Component Integration Fixes', () => {
       const components = [
         { name: 'SlidingPanel', component: SlidingPanel },
         { name: 'CognitiveShellInterface', component: CognitiveShellInterface },
-        { name: 'MetaAccountDashboard', component: MetaAccountDashboard },
-        { name: 'UnifiedInterface', component: UnifiedInterface }
+        { name: 'MetaAccountDashboard', component: MetaAccountDashboard }
       ];
 
       components.forEach(({ name, component }) => {

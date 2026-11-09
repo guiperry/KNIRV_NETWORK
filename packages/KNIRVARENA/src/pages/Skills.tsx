@@ -200,7 +200,7 @@ export default function Skills() {
   }>({
     knirvChain: 'connected',
     knirvGraph: 'connected',
-    knirvNexus: 'connecting',
+    knirvServer: 'connecting',
     knirvGateway: 'disconnected',
   });
 

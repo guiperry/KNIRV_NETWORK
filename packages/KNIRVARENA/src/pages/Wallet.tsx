@@ -43,7 +43,7 @@ export default function WalletPage() {
   }>({
     knirvChain: 'connected',
     knirvGraph: 'connected',
-    knirvNexus: 'connecting',
+    knirvServer: 'connecting',
     knirvGateway: 'disconnected'
   });
 

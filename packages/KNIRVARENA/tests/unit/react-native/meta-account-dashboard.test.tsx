@@ -99,7 +99,7 @@ const mockWalletManager = {
   listWallets: jest.fn().mockResolvedValue(['wallet1', 'wallet2'])
 };
 
-// Mock KNIRVENGINE imports since they're from a sibling project
+// Mock Testlab imports since they're from a sibling project
 const XionMetaAccount = jest.fn().mockImplementation(() => mockMetaAccount);
 const WalletManager = jest.fn().mockImplementation(() => mockWalletManager);
 

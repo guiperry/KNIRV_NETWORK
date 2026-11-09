@@ -8,13 +8,13 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
 
-interface KNIRVEngineModalProps {
+interface TestlabModalProps {
   isOpen: boolean;
   onClose: () => void;
   nodeId: string;
 }
 
-export function KNIRVEngineModal({ isOpen, onClose, nodeId }: KNIRVEngineModalProps) {
+export function TestlabModal({ isOpen, onClose, nodeId }: TestlabModalProps) {
   const [engineStatus, setEngineStatus] = useState<'running' | 'stopped' | 'loading'>('running');
   const [currentTask, setCurrentTask] = useState('Processing validation request #1247');
 
@@ -79,7 +79,7 @@ export function KNIRVEngineModal({ isOpen, onClose, nodeId }: KNIRVEngineModalPr
                 <Brain className="w-6 h-6 text-white" />
               </div>
               <div>
-                <h2 className="text-2xl font-bold">KNIRVENGINE</h2>
+                <h2 className="text-2xl font-bold">Testlab</h2>
                 <p className="text-muted-foreground">
                   AI Engine Interface - Node {nodeId}
                 </p>
@@ -326,7 +326,7 @@ export function KNIRVEngineModal({ isOpen, onClose, nodeId }: KNIRVEngineModalPr
                       <span>Engine Configuration</span>
                     </CardTitle>
                     <CardDescription>
-                      Configure KNIRVENGINE parameters and behavior
+                      Configure Testlab parameters and behavior
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">

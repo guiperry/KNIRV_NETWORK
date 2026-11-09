@@ -1,3 +1,4 @@
+import { getKnirvGatewayUrl } from '../config/runtimeConfig';
 /**
  * Task Scheduling Service
  * Handles automated workflow management, task scheduling, and execution
@@ -81,7 +82,7 @@ export class TaskSchedulingService {
   private baseUrl: string;
   private isRunning: boolean = false;
 
-  constructor(baseUrl: string = 'http://localhost:3001') {
+  constructor(baseUrl: string = getKnirvGatewayUrl()) {
     this.baseUrl = baseUrl;
     this.initializeScheduler();
   }

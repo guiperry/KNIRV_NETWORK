@@ -12,6 +12,7 @@ import {
   Link
 } from 'lucide-react';
 import { apiService } from '../services/APIService';
+import { TESTNET_SERVER_URL, MAINNET_SERVER_URL, getLocalGatewayUrl } from '../config/runtimeConfig';
 
 export interface NetworkType {
   id: string;
@@ -44,36 +45,30 @@ const NetworkSelector: React.FC<NetworkSelectorProps> = ({
   onNetworkChange,
   currentNetwork
 }) => {
-  // Pre-defined network configurations
+  // Networks this client can reach. Public networks go only through KNIRVGATEWAY
+  // (the same origin as the Arena). A local gateway is offered only when the
+  // Client supplies its own gateway URL.
+  const localGateway = getLocalGatewayUrl();
   const preDefinedNetworks: NetworkType[] = [
-    {
-      id: 'local-testnet',
-      name: 'Local Testnet',
-      description: 'Connect to local KNIRV testnet services via IP scanning',
-      type: 'local-testnet',
-      endpoints: {},
-      requiresDiscovery: true,
-      priority: 1
-    },
-    {
-      id: 'local-network',
-      name: 'Local Network',
-      description: 'Connect to services on your local network',
-      type: 'local-network',
-      endpoints: {},
-      requiresDiscovery: true,
-      priority: 2
-    },
+    ...(localGateway
+      ? [{
+          id: 'local-gateway',
+          name: 'Local Gateway',
+          description: 'KNIRVGATEWAY running on this computer',
+          type: 'local-network' as const,
+          endpoints: { KNIRVGATEWAY_API: localGateway },
+          requiresDiscovery: true,
+          priority: 1,
+        }]
+      : []),
     {
       id: 'public-testnet',
       name: 'Public Testnet',
       description: 'Official KNIRV public testnet',
       type: 'public-testnet',
       endpoints: {
-        KNIRVCHAIN_API: 'https://chain-test.knirv.com',
-        KNIRVGRAPH_API: 'https://graph-test.knirv.com',
-        KNIRVNEXUS_API: 'https://nexus-test.knirv.com',
-        KNIRVANA_API: 'https://knirvana-test.knirv.com'
+        KNIRVCHAIN_API: `${TESTNET_SERVER_URL}/api/chain`,
+        KNIRVGRAPH_API: `${TESTNET_SERVER_URL}/api/graph`,
       },
       requiresDiscovery: false,
       priority: 3
@@ -84,10 +79,8 @@ const NetworkSelector: React.FC<NetworkSelectorProps> = ({
       description: 'KNIRV main public network',
       type: 'public-network',
       endpoints: {
-        KNIRVCHAIN_API: 'https://chain.knirv.com',
-        KNIRVGRAPH_API: 'https://graph.knirv.com',
-        KNIRVNEXUS_API: 'https://nexus.knirv.com',
-        KNIRVANA_API: 'https://knirvana.knirv.com'
+        KNIRVCHAIN_API: `${MAINNET_SERVER_URL}/api/chain`,
+        KNIRVGRAPH_API: `${MAINNET_SERVER_URL}/api/graph`,
       },
       requiresDiscovery: false,
       priority: 4
@@ -99,7 +92,6 @@ const NetworkSelector: React.FC<NetworkSelectorProps> = ({
   const [selectedNetwork, setSelectedNetwork] = useState<NetworkType | null>(currentNetwork || null);
   const [isScanning, setIsScanning] = useState(false);
   const [isConnecting, setIsConnecting] = useState<string | null>(null);
-  const [discoveredServices, setDiscoveredServices] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -127,7 +119,7 @@ const NetworkSelector: React.FC<NetworkSelectorProps> = ({
     const servicesToCheck = [
       'KNIRVCHAIN_API',
       'KNIRVGRAPH_API',
-      'KNIRVNEXUS_API',
+      'KNIRVSERVER_API',
       'KNIRVANA_API'
     ];
 
@@ -154,66 +146,38 @@ const NetworkSelector: React.FC<NetworkSelectorProps> = ({
     setServiceConnections(connections);
   };
 
-  const scanLocalNetwork = async (networkType: 'testnet' | 'network') => {
+  // Probes only the local gateway the Client runs. There is no subnet or port scan.
+  const probeLocalGateway = async () => {
+    if (!localGateway) {
+      setError('No local gateway is configured');
+      return;
+    }
     setIsScanning(true);
     setError(null);
-
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
     try {
-      // For demo purposes - in real implementation this would use WebRTC or similar
-      // to scan local network for KNIRV services
-      const scannedServices: string[] = [];
-
-      if (networkType === 'testnet') {
-        // Common local testnet ports
-        const testnetPorts = [8545, 30303, 4000, 5000, 8080];
-        for (const port of testnetPorts) {
-          scannedServices.push(`http://localhost:${port}`);
+      const response = await fetch(`${localGateway}/health`, { signal: controller.signal });
+      setServiceConnections({
+        KNIRVGATEWAY_API: {
+          name: 'KNIRVGATEWAY_API',
+          status: response.ok ? 'connected' : 'disconnected',
+          url: localGateway,
+          lastChecked: new Date()
         }
-      } else {
-        // Common local network ports
-        const networkPorts = [3000, 4000, 5000, 8080, 9000];
-        // In real implementation, scan local subnet
-        for (const port of networkPorts) {
-          scannedServices.push(`http://192.168.1.100:${port}`);
+      });
+    } catch {
+      setServiceConnections({
+        KNIRVGATEWAY_API: {
+          name: 'KNIRVGATEWAY_API',
+          status: 'error',
+          url: localGateway,
+          lastChecked: new Date(),
+          error: 'Not reachable'
         }
-      }
-
-      setDiscoveredServices(scannedServices);
-
-      // Test discovered services
-      const connections: Record<string, ServiceConnection> = {};
-      for (const service of scannedServices) {
-        try {
-          const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 5000);
-
-          const response = await fetch(service + '/health', {
-            signal: controller.signal
-          });
-
-          clearTimeout(timeoutId);
-          connections[service] = {
-            name: service,
-            status: response.ok ? 'connected' : 'disconnected',
-            url: service,
-            lastChecked: new Date()
-          };
-        } catch {
-          connections[service] = {
-            name: service,
-            status: 'error',
-            url: service,
-            lastChecked: new Date(),
-            error: 'Not reachable'
-          };
-        }
-      }
-
-      setServiceConnections(connections);
-    } catch (_error) {
-      setError('Network scanning failed');
-      console.error('Network scan error:', _error);
+      });
     } finally {
+      clearTimeout(timeoutId);
       setIsScanning(false);
     }
   };
@@ -223,20 +187,7 @@ const NetworkSelector: React.FC<NetworkSelectorProps> = ({
     setError(null);
 
     try {
-      let finalEndpoints = network.endpoints;
-
-      // If network requires discovery, use discovered services
-      if (network.requiresDiscovery && discoveredServices.length > 0) {
-        const discoveredEndpoints: Record<string, string> = {};
-        // Map discovered services to KNIRV service names
-        discoveredServices.forEach((serviceEndpoint, index) => {
-          const serviceNames = ['KNIRVCHAIN_API', 'KNIRVGRAPH_API', 'KNIRVNEXUS_API', 'KNIRVANA_API'];
-          if (serviceNames[index]) {
-            discoveredEndpoints[serviceNames[index]] = serviceEndpoint;
-          }
-        });
-        finalEndpoints = discoveredEndpoints;
-      }
+      const finalEndpoints = network.endpoints;
 
       // Update API service with new endpoints
       for (const [, url] of Object.entries(finalEndpoints)) {
@@ -385,7 +336,7 @@ const NetworkSelector: React.FC<NetworkSelectorProps> = ({
             <div className="mt-6 pt-6 border-t border-gray-700/50">
               {selectedNetwork?.requiresDiscovery && (
                 <button
-                  onClick={() => scanLocalNetwork(selectedNetwork.type === 'local-testnet' ? 'testnet' : 'network')}
+                  onClick={() => probeLocalGateway()}
                   disabled={isScanning}
                   className="w-full p-3 bg-purple-500/20 hover:bg-purple-500/30 border border-purple-500/30 text-purple-400 hover:text-purple-300 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 >
@@ -396,7 +347,7 @@ const NetworkSelector: React.FC<NetworkSelectorProps> = ({
                       <Wifi className="w-4 h-4" />
                     )}
                     <span className="text-sm">
-                      {isScanning ? 'Scanning...' : `Scan ${selectedNetwork.type === 'local-testnet' ? 'Testnet' : 'Network'}`}
+                      {isScanning ? 'Checking...' : 'Check Local Gateway'}
                     </span>
                   </div>
                 </button>
@@ -482,22 +433,6 @@ const NetworkSelector: React.FC<NetworkSelectorProps> = ({
                   </div>
                 </div>
 
-                {/* Discovered Services (for local networks) */}
-                {selectedNetwork.requiresDiscovery && discoveredServices.length > 0 && (
-                  <div>
-                    <h4 className="text-md font-semibold text-white mb-4">Discovered Services</h4>
-                    <div className="space-y-2">
-                      {discoveredServices.map((discoveredService, index) => (
-                        <div
-                          key={index}
-                          className="p-3 bg-gray-800/50 border border-gray-700/50 rounded-lg"
-                        >
-                          <p className="text-white font-mono text-sm">{discoveredService}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
               </div>
             ) : (
               <div className="flex items-center justify-center h-full">

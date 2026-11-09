@@ -95,8 +95,7 @@ func TestMCPTransactionProcessing(t *testing.T) {
 	}
 
 	// Sign the transaction
-	walletTx := BlockchainToWalletTransaction(txn)
-	err = wallet.SignTransaction(walletTx)
+	signInPlace(t, txn, wallet)
 	if err != nil {
 		t.Fatalf("Failed to sign transaction: %v", err)
 	}
@@ -328,11 +327,9 @@ func TestCapabilityInvocation(t *testing.T) {
 		t.Fatalf("Failed to create test blockchain: %v", err)
 	}
 
-	// Use specific initiator address
-	from := "fdc23d2edefeca228ddaa7efe7a2483db1eef06f"
-
-	// Create standard test wallet (address won't match initiator but that's okay)
+	// The initiator is the signing wallet: a transaction verifies only from its signer's address.
 	wallet, _ := NewWallet()
+	from := wallet.GetAddress()
 
 	// Initialize account balance for initiator address
 	initialBalance := uint64(1000) // Sufficient for fees
@@ -411,8 +408,7 @@ func TestCapabilityInvocation(t *testing.T) {
 	}
 
 	// Sign the transaction
-	walletInvokeTx := BlockchainToWalletTransaction(invokeTxn)
-	err = wallet.SignTransaction(walletInvokeTx)
+	signInPlace(t, invokeTxn, wallet)
 	if err != nil {
 		t.Fatalf("Failed to sign transaction: %v", err)
 	}
@@ -709,8 +705,7 @@ func TestMCPCapabilityUpdate(t *testing.T) {
 	}
 
 	// Sign the transaction
-	walletUpdateTx := BlockchainToWalletTransaction(txn)
-	err = wallet.SignTransaction(walletUpdateTx)
+	signInPlace(t, txn, wallet)
 	if err != nil {
 		t.Fatalf("Failed to sign transaction: %v", err)
 	}
@@ -752,8 +747,7 @@ func TestMCPCapabilityUpdate(t *testing.T) {
 	}
 
 	// Sign the transaction
-	walletUpdateTxn := BlockchainToWalletTransaction(updateTxn)
-	err = wallet.SignTransaction(walletUpdateTxn)
+	signInPlace(t, updateTxn, wallet)
 	if err != nil {
 		t.Fatalf("Failed to sign transaction: %v", err)
 	}
@@ -1024,8 +1018,7 @@ func TestValidateTransactionInBlockContext_DuplicateCapability(t *testing.T) {
 	if txn1 == nil {
 		t.Fatal("Failed to create first transaction: returned nil")
 	}
-	walletTxn1 := BlockchainToWalletTransaction(txn1)
-	err = wallet.SignTransaction(walletTxn1)
+	signInPlace(t, txn1, wallet)
 	if err != nil {
 		t.Fatalf("Failed to sign first transaction: %v", err)
 	}
@@ -1038,8 +1031,7 @@ func TestValidateTransactionInBlockContext_DuplicateCapability(t *testing.T) {
 	if txn2 == nil {
 		t.Fatal("Failed to create second transaction: returned nil")
 	}
-	walletTxn2 := BlockchainToWalletTransaction(txn2)
-	err = wallet.SignTransaction(walletTxn2)
+	signInPlace(t, txn2, wallet)
 	if err != nil {
 		t.Fatalf("Failed to sign second transaction: %v", err)
 	}
@@ -1078,8 +1070,7 @@ func TestValidateTransactionInBlockContext_DuplicateCapability(t *testing.T) {
 	if txn2 == nil {
 		t.Fatal("Failed to create second transaction: returned nil")
 	}
-	walletTxn2_2 := BlockchainToWalletTransaction(txn2)
-	err = wallet.SignTransaction(walletTxn2_2)
+	signInPlace(t, txn2, wallet)
 	if err != nil {
 		t.Fatalf("Failed to sign second transaction: %v", err)
 	}
@@ -1165,8 +1156,7 @@ func TestChromemDBSkipsInvalidTransactions(t *testing.T) {
 		t.Log("NewMCPTransaction correctly returned nil for invalid (empty) capability ID. Test passes vacuously as txn won't reach ChromemDB.")
 		return
 	}
-	walletInvalidTxn := BlockchainToWalletTransaction(invalidTxn)
-	err = wallet.SignTransaction(walletInvalidTxn)
+	signInPlace(t, invalidTxn, wallet)
 	if err != nil {
 		t.Fatalf("Failed to sign transaction: %v", err)
 	}

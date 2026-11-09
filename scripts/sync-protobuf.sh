@@ -22,7 +22,7 @@ BACKUP_DIR="${PROJECT_ROOT}/.proto-sync-backups/${TIMESTAMP}"
 declare -A SYNC_TARGETS=(
     ["KNIRVCORTEX"]="${PROJECT_ROOT}/KNIRVCORTEX/shared-types/proto"
     ["KNIRVCONTROLLER"]="${PROJECT_ROOT}/KNIRVCONTROLLER/src/core/protobuf/schemas"
-    ["KNIRVENGINE"]="${PROJECT_ROOT}/KNIRVENGINE/desktop-client/proto"
+    ["TESTLAB"]="${PROJECT_ROOT}/../KNIRV_CORP/packages/testlab/proto"
     ["KNIRVANA_RUST"]="${PROJECT_ROOT}/KNIRVANA/gaming/cortex-compiler/proto"
 )
 
@@ -97,7 +97,7 @@ generate_platform_code() {
         "KNIRVCONTROLLER")
             generate_typescript_code "$target_dir"
             ;;
-        "KNIRVENGINE")
+        "TESTLAB")
             generate_go_code "$target_dir"
             ;;
         "KNIRVANA_RUST")

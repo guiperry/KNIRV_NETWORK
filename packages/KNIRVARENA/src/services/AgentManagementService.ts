@@ -1,3 +1,4 @@
+import { getKnirvGatewayUrl } from '../config/runtimeConfig';
 /**
  * Agent Management Service
  * Handles agent upload, compilation, deployment, and lifecycle management
@@ -70,7 +71,7 @@ export interface AgentUploadRequest {
 export class AgentManagementService {
   private baseUrl: string;
 
-  constructor(baseUrl: string = 'http://localhost:3001') {
+  constructor(baseUrl: string = getKnirvGatewayUrl()) {
     this.baseUrl = baseUrl;
   }
 

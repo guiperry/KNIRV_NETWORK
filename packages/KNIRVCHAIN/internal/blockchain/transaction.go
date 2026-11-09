@@ -5,6 +5,7 @@ import (
 	pb "KNIRVCHAIN/internal/protocol/proto"
 	"KNIRVCHAIN/internal/types"
 	"KNIRVCHAIN/internal/utils"
+	"bytes"
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
@@ -15,6 +16,7 @@ import (
 	"math/big"
 	"os"
 	"reflect"
+	"strconv"
 	"strings"
 	"time"
 
@@ -48,10 +50,16 @@ type Transaction struct {
 	AccountNumber   uint64       `json:"account_number,omitempty"`
 	Sequence        uint64       `json:"sequence,omitempty"`
 	DeepCopy        *Transaction `json:"deep_copy,omitempty"`
-	Fee             uint64       `json:"fee"`                  // NRN token gas fee paid for this transaction
-	Type            string       `json:"type,omitempty"`       // Transaction type for MCP transactions
-	Verified        bool         `json:"verified"`             // Whether transaction has been verified
-	BlockHash       string       `json:"block_hash,omitempty"` // Hash of the block containing this transaction
+	Fee             uint64       `json:"fee"` // NRN token gas fee paid for this transaction
+	// The rest of the signed fee, as the signer stated it. VerifySignature binds these
+	// to the signature, so they are stated exactly as the signer signed them.
+	FeeDenom    string `json:"fee_denom,omitempty"`
+	FeeGasLimit uint64 `json:"fee_gas_limit,omitempty"`
+	FeePayer    string `json:"fee_payer,omitempty"`
+	FeeGranter  string `json:"fee_granter,omitempty"`
+	Type        string `json:"type,omitempty"`       // Transaction type for MCP transactions
+	Verified    bool   `json:"verified"`             // Whether transaction has been verified
+	BlockHash   string `json:"block_hash,omitempty"` // Hash of the block containing this transaction
 }
 
 // ToProtoForHashing converts transaction to proto format for hashing
@@ -412,6 +420,31 @@ func (t *Transaction) VerifySignature() (bool, error) {
 	if err != nil || address != t.From {
 		return false, fmt.Errorf("public key does not match transaction sender")
 	}
+	// With sequencing configured, the unsigned fields must be exactly what was signed:
+	// the fee, sequence and account number are part of the signed auth info, and a
+	// relayer must not be able to change them without invalidating the signature.
+	{
+		expectedBody, expectedAuth, _, err := knirvsigning.BuildSignDoc(knirvsigning.SignRequest{
+			Action:        action,
+			ChainID:       t.ChainID,
+			AccountNumber: t.AccountNumber,
+			Sequence:      t.Sequence,
+			Fee: knirvsigning.Fee{
+				Denom:    t.FeeDenom,
+				Amount:   strconv.FormatUint(t.Fee, 10),
+				GasLimit: t.FeeGasLimit,
+				Payer:    t.FeePayer,
+				Granter:  t.FeeGranter,
+			},
+		}, pub)
+		if err != nil {
+			return false, fmt.Errorf("rebuild signed transaction: %w", err)
+		}
+		if !bytes.Equal(expectedBody, body) || !bytes.Equal(expectedAuth, auth) {
+			return false, fmt.Errorf("signed transaction does not match its fee, sequence or account number")
+		}
+	}
+
 	signed := knirvsigning.SignedTransaction{
 		BodyBytes: body, AuthInfoBytes: auth, Signatures: [][]byte{t.Signature},
 		PublicKey: pub, Address: t.From,
@@ -515,6 +548,10 @@ func (tx *Transaction) Clone() *Transaction {
 		Sequence:        tx.Sequence,
 		Verified:        tx.Verified,
 		BlockHash:       tx.BlockHash,
+		FeeDenom:        tx.FeeDenom,
+		FeeGasLimit:     tx.FeeGasLimit,
+		FeePayer:        tx.FeePayer,
+		FeeGranter:      tx.FeeGranter,
 
 		PublicKey: copiedPublicKey,
 		Signature: copiedSignature,

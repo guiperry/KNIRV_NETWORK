@@ -41,7 +41,7 @@ func verdictServer(t *testing.T, verdict map[string]any, echoMode string) string
 	t.Helper()
 	var submittedHash string
 	mux := http.NewServeMux()
-	mux.HandleFunc("/validation/tasks", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/api/validation-tasks", func(w http.ResponseWriter, r *http.Request) {
 		var body struct {
 			Data map[string]any `json:"data"`
 		}
@@ -53,7 +53,7 @@ func verdictServer(t *testing.T, verdict map[string]any, echoMode string) string
 		w.WriteHeader(http.StatusCreated)
 		_ = json.NewEncoder(w).Encode(map[string]string{"id": "task-1"})
 	})
-	mux.HandleFunc("/validation/tasks/task-1/results", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/api/validation-results/task-1", func(w http.ResponseWriter, r *http.Request) {
 		if submittedHash == "" {
 			// The fake cannot attribute a verdict, so say so instead of
 			// returning a misleading empty echo.

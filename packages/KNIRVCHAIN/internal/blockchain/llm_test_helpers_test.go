@@ -2,6 +2,7 @@ package blockchain
 
 import (
 	"path/filepath"
+	"strconv"
 	"testing"
 
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
@@ -22,6 +23,8 @@ const testChainID = "knirv-1"
 type testSigner struct {
 	privateKey []byte
 	address    string
+	// nextSequence is the sequence the signer's next transaction carries.
+	nextSequence uint64
 }
 
 func newTestSigner(t *testing.T) *testSigner {
@@ -54,6 +57,9 @@ func (s *testSigner) newSignedLLMRooting(t *testing.T, llmData LLMRootingData, f
 // ChainID) that VerifySignature/VerifyTxn require.
 func (s *testSigner) signTransaction(t *testing.T, tx *Transaction) *Transaction {
 	t.Helper()
+	tx.AccountNumber = AccountNumberFor(tx.From)
+	tx.Sequence = s.nextSequence
+	s.nextSequence++
 	signed, err := knirvsigning.SignTransaction(s.privateKey, knirvsigning.SignRequest{
 		Action: knirvsigning.Action{
 			Action:        tx.Type,
@@ -66,12 +72,7 @@ func (s *testSigner) signTransaction(t *testing.T, tx *Transaction) *Transaction
 		ChainID:       testChainID,
 		AccountNumber: tx.AccountNumber,
 		Sequence:      tx.Sequence,
-		Fee: knirvsigning.Fee{
-			Denom:    "unrn",
-			Amount:   "0",
-			GasLimit: tx.Fee,
-			Payer:    tx.From,
-		},
+		Fee:           knirvsigning.Fee{Denom: "unrn", Amount: strconv.FormatUint(tx.Fee, 10)},
 	})
 	require.NoError(t, err)
 	wire := signed.Wire()
@@ -79,6 +80,7 @@ func (s *testSigner) signTransaction(t *testing.T, tx *Transaction) *Transaction
 	tx.BodyBytes = wire.BodyBytes
 	tx.AuthInfoBytes = wire.AuthInfoBytes
 	tx.Signature = signed.Signatures[0]
+	tx.FeeDenom = "unrn"
 	tx.ChainID = testChainID
 	// With the canonical signing fields populated, Hash() switches to the
 	// signed TxRaw hash; align the stored hash so VerifySignature's final

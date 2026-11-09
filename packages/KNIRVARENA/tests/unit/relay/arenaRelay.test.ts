@@ -10,10 +10,10 @@ import {
   PURPOSE_RELAY_REQUEST,
   PURPOSE_RELAY_RESPONSE,
   RELAY_TARGET_CLI_SUPERVISOR,
-  marshalMessageEnvelope,
   marshalRelayEnvelope,
   parseMessageEnvelope,
   parseRelayEnvelope,
+  signMessageEnvelope,
   verifyMessagePayload,
 } from '@knirv/sdk/signing';
 import { ArenaRelayKeys, MemoryArenaKeyStore, ARENA_RELAY_CHAIN_ID } from '../../../src/relay/arenaRelayKeys';
@@ -29,27 +29,36 @@ function newClient(keys = new ArenaRelayKeys(new MemoryArenaKeyStore(), wc)) {
   return { keys, client: new ArenaRelayClient((env, fields) => keys.signRelayRequest(PAIRING, env, fields), wc) };
 }
 
-/** Builds a response the way the CLI's buildSignedResponse does, signed with ed25519. */
-async function cliResponse(signed: SignedArenaRelayRequest, result: unknown, key: CryptoKeyPair) {
+/**
+ * Builds a response the way the CLI's buildSignedResponse does: the relay
+ * envelope (with the result digest) is the payload of a knirv.message.v1
+ * relay-response, signed canonically (secp256k1) by the SDK core.
+ */
+async function cliResponse(signed: SignedArenaRelayRequest, result: unknown, privateKey: Uint8Array) {
   const payload = new TextEncoder().encode(JSON.stringify(result));
   const digest = Buffer.from(await wc.subtle.digest('SHA-256', payload)).toString('hex');
   const relay = marshalRelayEnvelope({ ...signed.relayEnvelope, payloadDigest: `sha256:${digest}` });
-  const envelope = marshalMessageEnvelope({
-    schemaVersion: MESSAGE_SCHEMA_VERSION, domain: CONTROLLER_DOMAIN, purpose: PURPOSE_RELAY_RESPONSE,
-    chainId: ARENA_RELAY_CHAIN_ID, nonce: signed.requestId, issuedAtUnix: 1n, expiresAtUnix: 9_999_999_999n, payload: relay,
+  const message = await signMessageEnvelope(privateKey, {
+    schemaVersion: MESSAGE_SCHEMA_VERSION,
+    domain: CONTROLLER_DOMAIN,
+    purpose: PURPOSE_RELAY_RESPONSE,
+    chainId: ARENA_RELAY_CHAIN_ID,
+    nonce: signed.requestId,
+    issuedAtUnix: 1n,
+    expiresAtUnix: 9_999_999_999n,
+    payload: relay,
   });
-  const signature = new Uint8Array(await wc.subtle.sign('Ed25519', key.privateKey, envelope));
-  const publicKey = new Uint8Array(await wc.subtle.exportKey('raw', key.publicKey));
   return {
     request_id: signed.requestId,
-    message_envelope: toBase64(envelope),
-    signature: toBase64(signature),
-    public_key: toBase64(publicKey),
+    message_envelope: message.envelope,
+    signature: message.signature,
+    public_key: message.public_key,
     payload_b64: toBase64(payload),
   };
 }
 
-const ed25519 = () => wc.subtle.generateKey('Ed25519', true, ['sign', 'verify']) as Promise<CryptoKeyPair>;
+/** A CLI secp256k1 relay key: a random 32-byte scalar (valid with overwhelming probability). */
+const secp256k1Key = (): Uint8Array => wc.getRandomValues(new Uint8Array(32));
 
 function fakeFetch(status: number, body: unknown) {
   const calls: Array<{ url: string; init: RequestInit }> = [];
@@ -101,7 +110,7 @@ describe('ArenaRelayClient', () => {
     expect(relay.payloadDigest).toBe(`sha256:${Buffer.from(await wc.subtle.digest('SHA-256', payload)).toString('hex')}`);
     expect(fromB64(signed.body.payload_b64)).toEqual(payload);
 
-    const cliKey = await ed25519();
+    const cliKey = secp256k1Key();
     const { impl, calls } = fakeFetch(200, await cliResponse(signed, { accepted: true }, cliKey));
     const result = await client.send(signed, { serverUrl: 'https://gw.example/', token: 'jwt', fetchImpl: impl, webCrypto: wc });
     expect(JSON.parse(new TextDecoder().decode(result.payload))).toEqual({ accepted: true });
@@ -133,7 +142,7 @@ describe('verifyCliResponse', () => {
   async function signedPair() {
     const { client } = newClient();
     const signed = await client.createSignedRequest({ userSubject: 'u', deviceId: 'd', pairingId: PAIRING, capability: 'chat.invoke', payload: new Uint8Array([7]), leaseEpoch: 1 });
-    return { signed, key: await ed25519() };
+    return { signed, key: secp256k1Key() };
   }
 
   it('accepts a correctly signed response and reports the key to pin', async () => {
@@ -152,7 +161,7 @@ describe('verifyCliResponse', () => {
     expect((await verifyCliResponse('other-request', good, ARENA_RELAY_CHAIN_ID, PAIRING, { webCrypto: wc })).error).toMatch(/request ID/);
     expect((await verifyCliResponse(signed.requestId, good, ARENA_RELAY_CHAIN_ID, 'other-pairing', { webCrypto: wc })).error).toMatch(/target/);
 
-    const other = await ed25519();
+    const other = secp256k1Key();
     const forged = await cliResponse(signed, { text: 'hi' }, other);
     expect((await verifyCliResponse(signed.requestId, { ...good, signature: forged.signature }, ARENA_RELAY_CHAIN_ID, PAIRING, { webCrypto: wc })).error).toMatch(/signature verification failed/);
     expect((await verifyCliResponse(signed.requestId, forged, ARENA_RELAY_CHAIN_ID, PAIRING, { webCrypto: wc, pinnedPublicKey: good.public_key })).error).toMatch(/pinned/);

@@ -9,7 +9,7 @@ KNIRV Network is a multi-package platform for guarded AI agent execution. Polici
 
 **`KNIRVSERVER` is the entry point for the whole network.** It's the one binary you build and run. Everything else in this repo, the chain, the gateway, the graph, the oracle, the models, the agent runtime, the adapter compiler, the local LLM, ships as a binary embedded inside KNIRVSERVER (directly, or inside the embedded `backend_server`) and gets extracted and launched as a subprocess when it starts.
 
-This repo is one half of the KNIRV workspace. Its sibling, the private [`KNIRV_CORP`](../KNIRV_CORP/README.md) repo, holds the source for `backend_server` (the API KNIRVSERVER embeds) and the user-facing products: the KNIRV CLI, the desktop client, the KNIRVCONTROLLER mobile app, and KNIRVENGINE.
+This repo is one half of the KNIRV workspace. Its sibling, the private [`KNIRV_CORP`](../KNIRV_CORP/README.md) repo, holds the source for `backend_server` (the API KNIRVSERVER embeds) and the user-facing products: the KNIRV CLI, the desktop client, the KNIRVCONTROLLER mobile app, and Testlab.
 
 ## Where to Start
 

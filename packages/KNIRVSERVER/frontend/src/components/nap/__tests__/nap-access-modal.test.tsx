@@ -94,12 +94,12 @@ jest.mock('@/hooks/use-toast', () => ({
 
 describe('NetworkAccessModal', () => {
   const mockOnClose = jest.fn();
-  const mockOnOpenKNIRVEngine = jest.fn();
+  const mockOnOpenTestlab = jest.fn();
 
   const defaultProps = {
     isOpen: true,
     onClose: mockOnClose,
-    onOpenKNIRVEngine: mockOnOpenKNIRVEngine,
+    onOpenTestlab: mockOnOpenTestlab,
     nodeId: 'node-123',
     nodeName: 'Test Node',
   };
@@ -203,12 +203,12 @@ describe('NetworkAccessModal', () => {
       </DemoModeProvider>
     );
 
-    // Find the KNIRVENGINE button (second Open button)
+    // Find the TESTLAB button (second Open button)
     const openButtons = screen.getAllByText('Open');
-    const engineButton = openButtons[1]; // KNIRVENGINE is the second Open button
+    const engineButton = openButtons[1]; // TESTLAB is the second Open button
     await user.click(engineButton);
 
-    expect(mockOnOpenKNIRVEngine).toHaveBeenCalled();
+    expect(mockOnOpenTestlab).toHaveBeenCalled();
   });
 
   it('should handle escape key press', () => {

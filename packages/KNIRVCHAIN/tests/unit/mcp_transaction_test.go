@@ -168,8 +168,7 @@ func TestMCPTransactionVerification(t *testing.T) {
 	}
 
 	// Sign the transaction
-	walletTxn := BlockchainToWalletTransaction(txn)
-	err = wallet.SignTransaction(walletTxn)
+	signInPlace(t, txn, wallet)
 	if err != nil {
 		t.Fatalf("Failed to sign transaction: %v", err)
 	}
@@ -287,8 +286,7 @@ func TestVerifyTxn_CapabilityValidation(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create MCP transaction: %v", err)
 	}
-	walletValidTxn := BlockchainToWalletTransaction(validTxn)
-	err = wallet.SignTransaction(walletValidTxn)
+	signInPlace(t, validTxn, wallet)
 	if err != nil {
 		t.Fatalf("Failed to sign transaction: %v", err)
 	}
@@ -313,8 +311,7 @@ func TestVerifyTxn_CapabilityValidation(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create MCP transaction: %v", err)
 	}
-	walletInvalidTypeTxn := BlockchainToWalletTransaction(invalidTypeTxn)
-	err = wallet.SignTransaction(walletInvalidTypeTxn)
+	signInPlace(t, invalidTypeTxn, wallet)
 	if err != nil {
 		t.Fatalf("Failed to sign transaction: %v", err)
 	}
@@ -363,8 +360,7 @@ func TestVerifyTxn_DuplicateCapability(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create MCP transaction: %v", err)
 	}
-	walletTxn1 := BlockchainToWalletTransaction(txn1)
-	err = wallet.SignTransaction(walletTxn1)
+	signInPlace(t, txn1, wallet)
 	if err != nil {
 		t.Fatalf("Failed to sign transaction: %v", err)
 	}
@@ -374,8 +370,7 @@ func TestVerifyTxn_DuplicateCapability(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create MCP transaction: %v", err)
 	}
-	walletTxn2 := BlockchainToWalletTransaction(txn2)
-	err = wallet.SignTransaction(walletTxn2)
+	signInPlace(t, txn2, wallet)
 	if err != nil {
 		t.Fatalf("Failed to sign transaction: %v", err)
 	}
@@ -430,8 +425,7 @@ func TestVerifyTxn_InvalidCapabilityOwner(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create MCP transaction: %v", err)
 	}
-	walletTxn := BlockchainToWalletTransaction(txn)
-	err = wallet2.SignTransaction(walletTxn)
+	signInPlace(t, txn, wallet2)
 	if err != nil {
 		t.Fatalf("Failed to sign transaction: %v", err)
 	}

@@ -1,3 +1,4 @@
+import { getKnirvGatewayUrl } from '../config/runtimeConfig';
 /**
  * UDC Management Service
  * Handles Universal Delegation Certificates (UDC) creation, renewal, and validation
@@ -106,7 +107,7 @@ export class UDCManagementService {
 
   constructor(config: UDCManagementConfig = {}) {
     this.config = {
-      baseUrl: 'http://localhost:3001',
+      baseUrl: getKnirvGatewayUrl(),
       enableNetworking: process.env.NODE_ENV !== 'test',
       enableMonitoring: process.env.NODE_ENV !== 'test',
       ...config

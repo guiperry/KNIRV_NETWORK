@@ -521,6 +521,9 @@ func (s *Server) setupRoutes() error {
 		http.Redirect(w, r, "/transactions", http.StatusMovedPermanently)
 	}).Methods("POST", "OPTIONS")
 
+	// DEC-2 boot-node enrollment — proxied to KNIRVSERVER's enrollment socket.
+	registerEnrollRoute(r, s.config.EnrollSocketPath)
+
 	// Chain proxy — KNIRVCHAIN via chain.sock
 	if s.config.ChainSocketPath != "" {
 		chainProxy := newSocketProxy(s.config.ChainSocketPath, "http://knirvchain")

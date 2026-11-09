@@ -8,9 +8,12 @@
  *      `relay-response`, and on the expected chain;
  *   3. the inner relay envelope targets the same CLI supervisor and request;
  *   4. the payload digest matches the returned payload bytes;
- *   5. the CLI's ed25519 signature over the envelope verifies.
+ *   5. the CLI's canonical secp256k1 signature over the envelope verifies.
  * The arena additionally pins the CLI key per pairing (D8): once a pairing has
  * answered, a response signed by any other key is rejected.
+ *
+ * The signature is the KNIRV SDK's canonical secp256k1 relay-response signature
+ * (the Rust core's `verify_message`), the same check the controller applies.
  */
 
 import {
@@ -19,7 +22,13 @@ import {
   RELAY_TARGET_CLI_SUPERVISOR,
   parseMessageEnvelope,
   parseRelayEnvelope,
+  publicKeyToKNIRVAddress,
+  verifyMessage,
+  type SignedMessageEnvelope,
 } from '@knirv/sdk/signing';
+
+/** Compressed secp256k1 public key length (bytes). */
+const SECP256K1_COMPRESSED_LENGTH = 33;
 
 export interface CliResponsePayload {
   request_id: string;
@@ -35,7 +44,7 @@ export interface CliResponsePayload {
 export interface CliVerification {
   ok: boolean;
   error?: string;
-  /** The CLI's base64 ed25519 key, to pin for this pairing. */
+  /** The CLI's base64 secp256k1 key, to pin for this pairing. */
   publicKey?: string;
   /** Decoded response payload, when present. */
   payload?: Uint8Array;
@@ -98,17 +107,21 @@ export async function verifyCliResponse(
   }
 
   const publicKey = fromB64(response.public_key);
-  const signature = fromB64(response.signature);
-  if (publicKey.byteLength !== 32 || signature.byteLength !== 64) {
-    return { ok: false, error: 'invalid ed25519 key or signature length' };
+  if (publicKey.byteLength !== SECP256K1_COMPRESSED_LENGTH) {
+    return { ok: false, error: 'invalid secp256k1 public key length' };
   }
-  let valid = false;
+  const signed: SignedMessageEnvelope = {
+    envelope: response.message_envelope,
+    signature: response.signature,
+    public_key: response.public_key,
+    address: publicKeyToKNIRVAddress(publicKey),
+  };
   try {
-    const key = await webCrypto.subtle.importKey('raw', publicKey, { name: 'Ed25519' } as AlgorithmIdentifier, false, ['verify']);
-    valid = await webCrypto.subtle.verify({ name: 'Ed25519' } as AlgorithmIdentifier, key, signature, envelopeBytes);
-  } catch {
-    return { ok: false, error: 'ed25519 verification is not supported in this browser' };
+    // The nonce is random per response, so it is taken from the envelope; the
+    // signature binds the envelope, and the relay envelope was checked above.
+    await verifyMessage(signed, CONTROLLER_DOMAIN, PURPOSE_RELAY_RESPONSE, expectedChainId, fields.nonce, new Date());
+  } catch (err) {
+    return { ok: false, error: `canonical relay-response signature verification failed: ${err instanceof Error ? err.message : String(err)}` };
   }
-  if (!valid) return { ok: false, error: 'ed25519 signature verification failed' };
   return { ok: true, publicKey: response.public_key, payload };
 }

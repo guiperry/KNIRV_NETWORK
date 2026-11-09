@@ -158,12 +158,15 @@ type ManagerConfig struct {
 	ChainSocketPath        string
 	GraphSocketPath        string
 	OracleSocketPath       string
-	StartTimeout           time.Duration
-	StopTimeout            time.Duration
-	ChainID                string
-	Stdout                 io.Writer
-	Stderr                 io.Writer
-	EnvOverrides           map[string]string // extra env vars (e.g. Cloudflare creds from root.key)
+	// EnrollSocketPath is the DEC-2 enrollment server's Unix socket; the gateway
+	// proxies POST /enroll/{step} to it. Empty disables the enrollment route.
+	EnrollSocketPath string
+	StartTimeout     time.Duration
+	StopTimeout      time.Duration
+	ChainID          string
+	Stdout           io.Writer
+	Stderr           io.Writer
+	EnvOverrides     map[string]string // extra env vars (e.g. Cloudflare creds from root.key)
 }
 
 type PortConfig struct {
@@ -238,6 +241,34 @@ func NewManager(cfg *ManagerConfig, logger *zap.Logger) *Manager {
 	}
 
 	return m
+}
+
+// socketPathEnv returns the environment entries that point the gateway at each of its
+// Unix sockets. Empty paths add no entry, so the gateway registers no route for them.
+func socketPathEnv(c *ManagerConfig) []string {
+	var env []string
+	if c.BackendSocketPath != "" {
+		env = append(env, fmt.Sprintf("BACKEND_SOCKET_PATH=%s", c.BackendSocketPath))
+	}
+	if c.MonitorSocketPath != "" {
+		env = append(env, fmt.Sprintf("MONITOR_SOCKET_PATH=%s", c.MonitorSocketPath))
+	}
+	if c.AgentControlSocketPath != "" {
+		env = append(env, fmt.Sprintf("AGENT_CONTROL_SOCKET_PATH=%s", c.AgentControlSocketPath))
+	}
+	if c.ChainSocketPath != "" {
+		env = append(env, fmt.Sprintf("CHAIN_SOCKET_PATH=%s", c.ChainSocketPath))
+	}
+	if c.GraphSocketPath != "" {
+		env = append(env, fmt.Sprintf("GRAPH_SOCKET_PATH=%s", c.GraphSocketPath))
+	}
+	if c.OracleSocketPath != "" {
+		env = append(env, fmt.Sprintf("ORACLE_SOCKET_PATH=%s", c.OracleSocketPath))
+	}
+	if c.EnrollSocketPath != "" {
+		env = append(env, fmt.Sprintf("ENROLL_SOCKET_PATH=%s", c.EnrollSocketPath))
+	}
+	return env
 }
 
 func (m *Manager) Start(ctx context.Context) error {
@@ -323,24 +354,7 @@ func (m *Manager) Start(ctx context.Context) error {
 		fmt.Sprintf("DATABASE_PATH=%s", m.config.DBPath),
 	)
 
-	if m.config.BackendSocketPath != "" {
-		env = append(env, fmt.Sprintf("BACKEND_SOCKET_PATH=%s", m.config.BackendSocketPath))
-	}
-	if m.config.MonitorSocketPath != "" {
-		env = append(env, fmt.Sprintf("MONITOR_SOCKET_PATH=%s", m.config.MonitorSocketPath))
-	}
-	if m.config.AgentControlSocketPath != "" {
-		env = append(env, fmt.Sprintf("AGENT_CONTROL_SOCKET_PATH=%s", m.config.AgentControlSocketPath))
-	}
-	if m.config.ChainSocketPath != "" {
-		env = append(env, fmt.Sprintf("CHAIN_SOCKET_PATH=%s", m.config.ChainSocketPath))
-	}
-	if m.config.GraphSocketPath != "" {
-		env = append(env, fmt.Sprintf("GRAPH_SOCKET_PATH=%s", m.config.GraphSocketPath))
-	}
-	if m.config.OracleSocketPath != "" {
-		env = append(env, fmt.Sprintf("ORACLE_SOCKET_PATH=%s", m.config.OracleSocketPath))
-	}
+	env = append(env, socketPathEnv(m.config)...)
 
 	// Apply env overrides (e.g. Cloudflare credentials from root.key).
 	// Replace inherited entries so the child cannot observe a stale role or

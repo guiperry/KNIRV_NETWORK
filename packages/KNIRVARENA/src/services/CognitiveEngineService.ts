@@ -1,3 +1,4 @@
+import { getKnirvGatewayUrl } from '../config/runtimeConfig';
 /**
  * Cognitive Engine Service
  * Handles AI processing, skill execution, and cognitive operations
@@ -72,7 +73,7 @@ export class CognitiveEngineService {
     if (!baseUrl && typeof window !== 'undefined') {
       baseUrl = window.location.origin.replace(':3000', ':3001');
     } else if (!baseUrl) {
-      baseUrl = 'http://localhost:3001';
+      baseUrl = getKnirvGatewayUrl();
     }
     this.baseUrl = baseUrl;
     this.metrics = this.initializeMetrics();

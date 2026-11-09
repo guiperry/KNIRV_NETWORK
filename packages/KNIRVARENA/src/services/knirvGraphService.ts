@@ -1,3 +1,4 @@
+import { getKnirvGatewayUrl } from '../config/runtimeConfig';
 // KNIRVGRAPH Service - Integration with KNIRV Network Knowledge Graph
 import axios, { AxiosInstance } from 'axios';
 import type {
@@ -571,7 +572,7 @@ let knirvGraphServiceInstance: KNIRVGraphService | null = null;
 export const getKNIRVGraphService = (): KNIRVGraphService => {
   if (!knirvGraphServiceInstance) {
     const config: KNIRVGraphConfig = {
-      nodeEndpoint: import.meta.env.VITE_KNIRVGRAPH_ENDPOINT || 'http://localhost:26657',
+      nodeEndpoint: import.meta.env.VITE_KNIRVGRAPH_ENDPOINT || `${getKnirvGatewayUrl()}/api/chain`,
       chainId: import.meta.env.VITE_KNIRVGRAPH_CHAIN_ID || 'knirvgraph-1',
     };
     knirvGraphServiceInstance = new KNIRVGraphService(config);

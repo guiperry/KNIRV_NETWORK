@@ -15,6 +15,7 @@ import (
 	"google.golang.org/protobuf/types/known/structpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
+	"KNIRVCHAIN/internal/protocol"
 	pb "KNIRVCHAIN/internal/protocol/proto"
 	"KNIRVCHAIN/internal/types"
 )
@@ -59,7 +60,16 @@ func NewLevelDB(dbPath string) (*LevelDB, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to open leveldb at %s: %w", dbPath, err)
 	}
-	return &LevelDB{Client: db, path: dbPath, converter: nil}, nil
+	// Every database converts capabilities with the protocol converter, so storing a
+	// capability (including from block application) never depends on the caller.
+	return &LevelDB{Client: db, path: dbPath, converter: protocolConverter{}}, nil
+}
+
+// protocolConverter converts Go capability descriptors to their proto container.
+type protocolConverter struct{}
+
+func (protocolConverter) ConvertToCapabilityDescriptorContainerProto(capability interface{}) (*pb.CapabilityDescriptorContainerProto, error) {
+	return protocol.ConvertToCapabilityDescriptorContainerProto(capability)
 }
 
 // NewLevelDBWithConverter creates a new LevelDB instance with a capability converter.

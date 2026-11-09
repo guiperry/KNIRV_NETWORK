@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# KNIRVENGINE Desktop Client Test Runner
-# Comprehensive testing script for KNIRVENGINE with CI/CD integration
+# TESTLAB Desktop Client Test Runner
+# Comprehensive testing script for TESTLAB with CI/CD integration
 
 set -e
 
@@ -17,7 +17,7 @@ NC='\033[0m' # No Color
 # Configuration
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-KNIRVENGINE_DIR="$PROJECT_ROOT/KNIRVENGINE/desktop-client"
+TESTLAB_DIR="$PROJECT_ROOT/../KNIRV_CORP/packages/testlab"
 REPORTS_DIR="$PROJECT_ROOT/test-reports"
 COVERAGE_DIR="$PROJECT_ROOT/coverage"
 TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
@@ -61,9 +61,9 @@ print_step() {
 check_prerequisites() {
     print_step "Checking prerequisites..."
     
-    # Check if KNIRVENGINE directory exists
-    if [ ! -d "$KNIRVENGINE_DIR" ]; then
-        print_error "KNIRVENGINE desktop-client directory not found: $KNIRVENGINE_DIR"
+    # Check if TESTLAB directory exists
+    if [ ! -d "$TESTLAB_DIR" ]; then
+        print_error "TESTLAB desktop-client directory not found: $TESTLAB_DIR"
         exit 1
     fi
     
@@ -90,15 +90,15 @@ setup_test_environment() {
     mkdir -p "$REPORTS_DIR"
     mkdir -p "$COVERAGE_DIR"
     
-    # Change to KNIRVENGINE directory
-    cd "$KNIRVENGINE_DIR" || exit 1
+    # Change to TESTLAB directory
+    cd "$TESTLAB_DIR" || exit 1
     
     print_success "Test environment setup completed"
 }
 
 # Function to run Go package tests
 run_go_tests() {
-    print_step "Running KNIRVENGINE Go package tests..."
+    print_step "Running TESTLAB Go package tests..."
     
     local packages=(
         "./agentify/..."
@@ -149,7 +149,7 @@ run_go_tests() {
         done
         
         # Generate HTML coverage report
-        go tool cover -html=combined_coverage.out -o "$COVERAGE_DIR/knirvengine_coverage_$TIMESTAMP.html"
+        go tool cover -html=combined_coverage.out -o "$COVERAGE_DIR/testlab_coverage_$TIMESTAMP.html"
         
         # Calculate overall coverage
         local coverage=$(go tool cover -func=combined_coverage.out | grep "total:" | awk '{print $3}' | sed 's/%//')
@@ -173,9 +173,9 @@ run_frontend_tests() {
         return 0
     fi
     
-    print_step "Running KNIRVENGINE frontend tests..."
+    print_step "Running TESTLAB frontend tests..."
     
-    local gui_dir="$KNIRVENGINE_DIR/gui"
+    local gui_dir="$TESTLAB_DIR/gui"
     if [ ! -d "$gui_dir" ]; then
         print_warning "GUI directory not found: $gui_dir"
         return 0
@@ -211,10 +211,10 @@ run_frontend_tests() {
     
     # Copy coverage report
     if [ "$GENERATE_REPORTS" = true ] && [ -d "coverage" ]; then
-        cp -r coverage "$COVERAGE_DIR/knirvengine_frontend_coverage_$TIMESTAMP"
+        cp -r coverage "$COVERAGE_DIR/testlab_frontend_coverage_$TIMESTAMP"
     fi
     
-    cd "$KNIRVENGINE_DIR" || return 1
+    cd "$TESTLAB_DIR" || return 1
     return $result
 }
 
@@ -225,16 +225,16 @@ run_integration_tests() {
         return 0
     fi
     
-    print_step "Running KNIRVENGINE integration tests..."
+    print_step "Running TESTLAB integration tests..."
     
     cd "$PROJECT_ROOT/integration-tests" || return 1
     
-    # Run KNIRVENGINE-specific integration tests
-    if [ -f "knirvengine_desktop_client_integration_test.go" ]; then
+    # Run TESTLAB-specific integration tests
+    if [ -f "testlab_desktop_client_integration_test.go" ]; then
         if [ "$VERBOSE" = true ]; then
-            go test -v -timeout "$TIMEOUT" -run "TestKNIRVENGINE.*" ./knirvengine_desktop_client_integration_test.go
+            go test -v -timeout "$TIMEOUT" -run "TestTESTLAB.*" ./testlab_desktop_client_integration_test.go
         else
-            go test -timeout "$TIMEOUT" -run "TestKNIRVENGINE.*" ./knirvengine_desktop_client_integration_test.go
+            go test -timeout "$TIMEOUT" -run "TestTESTLAB.*" ./testlab_desktop_client_integration_test.go
         fi
         
         local result=$?
@@ -246,7 +246,7 @@ run_integration_tests() {
         
         return $result
     else
-        print_warning "KNIRVENGINE integration test file not found"
+        print_warning "TESTLAB integration test file not found"
         return 0
     fi
 }
@@ -259,10 +259,10 @@ generate_test_report() {
     
     print_step "Generating test summary report..."
     
-    local report_file="$REPORTS_DIR/knirvengine_test_summary_$TIMESTAMP.md"
+    local report_file="$REPORTS_DIR/testlab_test_summary_$TIMESTAMP.md"
     
     cat > "$report_file" << EOF
-# KNIRVENGINE Desktop Client Test Report
+# TESTLAB Desktop Client Test Report
 
 **Generated**: $(date)
 **Timestamp**: $TIMESTAMP
@@ -303,8 +303,8 @@ generate_test_report() {
 - High test coverage with environmental setup
 
 ### Coverage Reports
-- Go Backend Coverage: Available at \`$COVERAGE_DIR/knirvengine_coverage_$TIMESTAMP.html\`
-- Frontend Coverage: Available at \`$COVERAGE_DIR/knirvengine_frontend_coverage_$TIMESTAMP/\`
+- Go Backend Coverage: Available at \`$COVERAGE_DIR/testlab_coverage_$TIMESTAMP.html\`
+- Frontend Coverage: Available at \`$COVERAGE_DIR/testlab_frontend_coverage_$TIMESTAMP/\`
 
 ### Integration with CI/CD
 - Integrated with existing KNIRV Network integration test suite
@@ -331,7 +331,7 @@ EOF
 usage() {
     echo "Usage: $0 [OPTIONS]"
     echo ""
-    echo "Comprehensive test runner for KNIRVENGINE Desktop Client"
+    echo "Comprehensive test runner for TESTLAB Desktop Client"
     echo ""
     echo "Options:"
     echo "  --verbose              Enable verbose output"
@@ -390,11 +390,11 @@ done
 
 # Main execution
 main() {
-    print_header "KNIRVENGINE Desktop Client Comprehensive Test Suite"
+    print_header "TESTLAB Desktop Client Comprehensive Test Suite"
     
-    print_status "Starting KNIRVENGINE test execution..."
+    print_status "Starting TESTLAB test execution..."
     print_status "Project Root: $PROJECT_ROOT"
-    print_status "KNIRVENGINE Directory: $KNIRVENGINE_DIR"
+    print_status "TESTLAB Directory: $TESTLAB_DIR"
     print_status "Coverage Threshold: $COVERAGE_THRESHOLD%"
     print_status "Timeout: $TIMEOUT"
     
@@ -422,10 +422,10 @@ main() {
     
     # Final status
     if [ $overall_result -eq 0 ]; then
-        print_success "All KNIRVENGINE tests completed successfully!"
+        print_success "All TESTLAB tests completed successfully!"
         print_status "🎉 Quality standards achieved and CI/CD integration complete"
     else
-        print_error "Some KNIRVENGINE tests failed (exit code: $overall_result)"
+        print_error "Some TESTLAB tests failed (exit code: $overall_result)"
         print_status "📊 Check test reports for detailed analysis"
     fi
     

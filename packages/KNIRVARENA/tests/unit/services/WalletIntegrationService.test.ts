@@ -1,3 +1,4 @@
+import { TESTNET_SERVER_URL } from "../../../src/config/runtimeConfig";
 /**
  * Tests for WalletIntegrationService
  */
@@ -30,19 +31,19 @@ describe('WalletIntegrationService', () => {
   });
 
   describe('detectBridgeUrl', () => {
-    it('should detect localhost URL for development', () => {
+    it('routes the wallet bridge through the KNIRVGATEWAY origin', () => {
       const service = new (walletIntegrationService.constructor as typeof WalletIntegrationService)();
-      expect(service['bridgeUrl']).toBe('http://localhost:3004');
+      expect(service['bridgeUrl']).toBe(TESTNET_SERVER_URL);
     });
 
-    it('should use production URL for non-localhost', () => {
+    it('uses the same gateway origin on non-localhost hosts', () => {
       Object.defineProperty(window, 'location', {
         value: { hostname: 'app.knirv.com' },
         writable: true
       });
 
       const service = new (walletIntegrationService.constructor as typeof WalletIntegrationService)();
-      expect(service['bridgeUrl']).toBe('/wallet');
+      expect(service['bridgeUrl']).toBe(TESTNET_SERVER_URL);
     });
   });
 
@@ -445,7 +446,7 @@ describe('WalletIntegrationService', () => {
       walletIntegrationService.openWalletInterface();
 
       expect(mockOpen).toHaveBeenCalledWith(
-        'http://localhost:3004/wallet',
+        `${TESTNET_SERVER_URL}/wallet`,
         'knirvwallet',
         'width=400,height=600,scrollbars=yes,resizable=yes'
       );

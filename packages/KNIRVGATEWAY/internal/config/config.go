@@ -64,6 +64,12 @@ type Config struct {
 	// the oracle is only reachable through the gateway's reverse-proxy layer.
 	OracleSocketPath string // Unix socket path for KNIRVORACLE (required)
 
+	// EnrollSocketPath is the Unix socket of the DEC-2 boot-node enrollment server
+	// (KNIRVSERVER). When set, the gateway proxies POST /enroll/{step} to it; the
+	// enrollment protocol authenticates every step itself (signed challenge and root
+	// approval). When empty, no enrollment route is registered.
+	EnrollSocketPath string
+
 	// OracleGatewayURL overrides the default oracle gateway URL derived
 	// from NetworkMode. When set (e.g. ORACLE_GATEWAY_URL), it takes
 	// precedence over the production/testnet hardcoded defaults so
@@ -201,6 +207,7 @@ func Load() (*Config, error) {
 		SessionSecret:              getEnv("SESSION_SECRET", ""),
 		AutoOpenBrowser:            getEnvBool("AUTO_OPEN_BROWSER", true),
 		OracleSocketPath:           getEnv("ORACLE_SOCKET_PATH", ""),
+		EnrollSocketPath:           getEnv("ENROLL_SOCKET_PATH", ""),
 		OracleGatewayURL:           getEnv("ORACLE_GATEWAY_URL", ""),
 		TurnServerEnabled:          getEnvBool("TURN_SERVER_ENABLED", true),
 		TurnServerUDPPort:          getEnvInt("TURN_SERVER_UDP_PORT", 3478),

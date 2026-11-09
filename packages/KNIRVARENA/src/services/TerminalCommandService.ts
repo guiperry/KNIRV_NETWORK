@@ -1,3 +1,4 @@
+import { getKnirvGatewayUrl } from '../config/runtimeConfig';
 /**
  * Terminal Command Processing Service
  * Handles terminal command execution and processing
@@ -31,7 +32,7 @@ export class TerminalCommandService {
   private baseUrl: string;
   private supportedCommands: Map<string, (args: string[]) => Promise<CommandResult>> = new Map();
 
-  constructor(baseUrl: string = 'http://localhost:3001') {
+  constructor(baseUrl: string = getKnirvGatewayUrl()) {
     this.baseUrl = baseUrl;
     this.currentContext = {
       workingDirectory: '/knirv',

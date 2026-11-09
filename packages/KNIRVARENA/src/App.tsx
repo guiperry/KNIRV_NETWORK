@@ -239,9 +239,8 @@ const MenuItem: React.FC<MenuItemProps> = ({ onClick, children, icon, className 
       knirvChain: 'connected',
       knirvGraph: 'connected',
       knirvWallet: 'connected',
-      knirvRouters: 'connected',
       knirvana: 'connected',
-      knirvNexus: 'connected',
+      knirvServer: 'connected',
     });
 
     // Arena relay integration

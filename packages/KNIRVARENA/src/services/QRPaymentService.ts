@@ -1,3 +1,4 @@
+import { getKnirvGatewayUrl } from '../config/runtimeConfig';
 /**
  * QR Payment Processing Service
  * Handles QR code scanning, payment processing, and transaction management
@@ -60,7 +61,7 @@ export class QRPaymentService {
   private paymentHistory: PaymentReceipt[] = [];
   private baseUrl: string;
 
-  constructor(baseUrl: string = 'http://localhost:3001') {
+  constructor(baseUrl: string = getKnirvGatewayUrl()) {
     this.baseUrl = baseUrl;
   }
 

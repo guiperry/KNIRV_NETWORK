@@ -1,3 +1,4 @@
+import { getKnirvGatewayUrl } from '../config/runtimeConfig';
 /**
  * Centralized API Service
  * Handles all API communications with error handling and retries
@@ -43,18 +44,9 @@ export class APIService {
    * Auto-detect the appropriate base URL based on environment
    */
   private detectBaseURL(): string {
-    // Check if running in development
-    if (typeof window !== 'undefined' && window.location) {
-      if (window.location.hostname === 'localhost') {
-        return 'http://localhost:3001/api'; // Local development
-      }
-      if (window.location.hostname.includes('testnet')) {
-        return 'https://api-testnet.knirv.com'; // Testnet
-      }
-    }
-
-    // Production fallback
-    return 'https://api.knirv.com';
+    // Every deployment (testnet, mainnet, standalone dev) reaches the API through
+    // the KNIRVGATEWAY origin resolved from the server-published runtime config.
+    return `${getKnirvGatewayUrl()}/api`;
   }
 
   /**

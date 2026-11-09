@@ -1,3 +1,4 @@
+import { getKnirvGatewayUrl } from '../config/runtimeConfig';
 /**
  * Wallet Integration Service
  * Integrates with KNIRVWALLET/browser-bridge for wallet functionality
@@ -73,16 +74,8 @@ export class WalletIntegrationService {
    * Detect the KNIRVWALLET browser-bridge URL
    */
   private detectBridgeUrl(): string {
-    // Check if we're in a browser environment
-    if (typeof window !== 'undefined' && window.location) {
-      // Check for local development
-      if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-        return 'http://localhost:3004'; // KNIRVWALLET browser-bridge port
-      }
-    }
-
-    // Production environment or non-browser environment - use proxy
-    return '/wallet';
+    // KNIRVGATEWAY origin; wallet routes are /api/wallet/* on the gateway.
+    return getKnirvGatewayUrl();
   }
 
   /**

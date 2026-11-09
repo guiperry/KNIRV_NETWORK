@@ -15,7 +15,6 @@ export interface AgentConfiguration {
   agentVersion: string;
   baseModelId: string;
   knirvgraphEndpoint: string;
-  knirvRouterEndpoint: string;
   nrnWalletAddress?: string;
 }
 
@@ -173,50 +172,20 @@ export class ErrorContextManager {
   }
 
   /**
-   * Invoke a skill through KNIRVROUTER
-   * Implements Phase 2 of the skill invocation lifecycle (Invocation)
+   * Invoke a skill (Phase 2 of the invocation lifecycle). The KNIRVROUTER execution
+   * path no longer exists and chain invocation is not yet migrated, so this reports
+   * a failed invocation instead of calling a service that is not there.
    */
   async invokeSkill(
     skillUri: string,
-    nrnToken: string,
-    parameters?: Record<string, unknown>
+    _nrnToken: string,
+    _parameters?: Record<string, unknown>
   ): Promise<SkillInvocationResult> {
-    logger.info({ 
-      agentId: this.config.agentId,
-      skillUri,
-      hasNrnToken: !!nrnToken 
-    }, 'Invoking skill through KNIRVROUTER');
-
-    try {
-      const invocationRequest: SkillInvocationRequest = {
-        skillUri,
-        agentId: this.config.agentId,
-        nrnToken,
-        parameters
-      };
-
-      const result = await this.callKNIRVRouter(invocationRequest);
-
-      logger.info({ 
-        agentId: this.config.agentId,
-        skillUri,
-        success: result.success 
-      }, 'Skill invocation completed');
-
-      return result;
-
-    } catch (error) {
-      logger.error({ 
-        error,
-        agentId: this.config.agentId,
-        skillUri 
-      }, 'Skill invocation failed');
-      
-      return {
-        success: false,
-        errorMessage: error instanceof Error ? error.message : String(error)
-      };
-    }
+    logger.warn({ agentId: this.config.agentId, skillUri }, 'Skill invocation is not available');
+    return {
+      success: false,
+      errorMessage: 'Skill invocation is not available: KNIRVROUTER was removed and chain invocation is not yet migrated',
+    };
   }
 
   /**
@@ -318,60 +287,5 @@ export class ErrorContextManager {
     }
   }
 
-  /**
-   * Call KNIRVROUTER WASM for skill invocation
-   */
-  private async callKNIRVRouter(request: SkillInvocationRequest): Promise<SkillInvocationResult> {
-    try {
-      // Use the WASM endpoint instead of the deprecated Go endpoint
-      const response = await fetch(`${this.config.knirvRouterEndpoint}/wasm/invoke`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-KNIRV-Engine': 'wasm',
-          'X-KNIRV-Version': '1.0.0'
-        },
-        body: JSON.stringify({
-          invocation_id: `inv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-          agent_id: request.agentId,
-          skill_uri: request.skillUri,
-          nrn_token: request.nrnToken,
-          parameters: request.parameters || {},
-          priority: 'normal',
-          timestamp: Date.now()
-        })
-      });
 
-      if (!response.ok) {
-        throw new Error(`KNIRVROUTER WASM invocation failed: ${response.status} ${response.statusText}`);
-      }
-
-      const result = await response.json();
-
-      // Log WASM response headers for debugging
-      const wasmHeaders = {
-        responseFormat: response.headers.get('X-KNIRV-Response-Format'),
-        invocationId: response.headers.get('X-KNIRV-Invocation-ID'),
-        status: response.headers.get('X-KNIRV-Status'),
-        engine: response.headers.get('X-KNIRV-Engine')
-      };
-
-      logger.info({
-        invocationId: result.invocation_id,
-        wasmHeaders,
-        executionTime: result.execution_time
-      }, 'WASM skill invocation completed');
-
-      return {
-        success: result.status === 'SUCCESS',
-        skillData: result.skill_data,
-        errorMessage: result.error_message,
-        invocationId: result.invocation_id
-      };
-
-    } catch (error) {
-      logger.error({ error }, 'Failed to call KNIRVROUTER WASM');
-      throw error;
-    }
-  }
 }

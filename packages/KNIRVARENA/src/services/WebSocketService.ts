@@ -1,3 +1,4 @@
+import { getKnirvGatewayUrl } from '../config/runtimeConfig';
 /**
  * WebSocket Service
  * Handles real-time data synchronization and event streaming
@@ -35,17 +36,8 @@ export class WebSocketService {
    * Auto-detect the appropriate WebSocket URL based on environment
    */
   private detectWebSocketURL(): string {
-    if (typeof window !== 'undefined' && window.location) {
-      if (window.location.hostname === 'localhost') {
-        return 'ws://localhost:3001/ws'; // Local development
-      }
-      if (window.location.hostname.includes('testnet')) {
-        return 'wss://api-testnet.knirv.com/ws'; // Testnet
-      }
-    }
-
-    // Production fallback
-    return 'wss://api.knirv.com/ws';
+    // Same KNIRVGATEWAY origin as HTTP, websocket scheme.
+    return `${getKnirvGatewayUrl().replace(/^http/, 'ws')}/ws`;
   }
 
   /**

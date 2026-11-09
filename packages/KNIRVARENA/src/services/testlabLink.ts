@@ -1,23 +1,23 @@
 /**
- * Links an error node into KNIRVENGINE for analysis.
+ * Links an error node into Testlab for analysis.
  *
- * The desktop engine registers the knirvengine:// protocol and opens the
+ * The desktop engine registers the testlab:// protocol and opens the
  * node in its error-node analysis view. When no desktop engine handles the
  * link, the same node opens in a browser-launched engine (`--browser`) via
  * its `?errorNode=` dashboard URL.
  */
 
-// 8380: KNIRVENGINE's GUI port (8080 is KNIRVGATEWAY's default).
+// 8380: Testlab's GUI port (8080 is KNIRVGATEWAY's default).
 const DEFAULT_ENGINE_URL = 'http://localhost:8380';
 
 // Read import.meta.env directly so Vite substitutes it at build time.
-export const getKnirvEngineUrl = (): string =>
-  (import.meta.env.VITE_KNIRVENGINE_URL || DEFAULT_ENGINE_URL).replace(/\/$/, '');
+export const getTestlabUrl = (): string =>
+  (import.meta.env.VITE_TESTLAB_URL || import.meta.env.VITE_KNIRVENGINE_URL || DEFAULT_ENGINE_URL).replace(/\/$/, '');
 
-export const knirvEngineDeepLink = (errorNodeId: string): string =>
-  `knirvengine://error-node/${encodeURIComponent(errorNodeId)}`;
+export const testlabDeepLink = (errorNodeId: string): string =>
+  `testlab://error-node/${encodeURIComponent(errorNodeId)}`;
 
-export const knirvEngineBrowserLink = (errorNodeId: string, engineUrl = getKnirvEngineUrl()): string =>
+export const testlabBrowserLink = (errorNodeId: string, engineUrl = getTestlabUrl()): string =>
   `${engineUrl}/dashboard?errorNode=${encodeURIComponent(errorNodeId)}`;
 
 /**
@@ -25,7 +25,7 @@ export const knirvEngineBrowserLink = (errorNodeId: string, engineUrl = getKnirv
  * link (the page lost focus to the engine) and false when nothing handled it
  * within `waitMs`, so the caller can offer the browser engine instead.
  */
-export const openInKnirvEngine = (
+export const openInTestlab = (
   errorNodeId: string,
   {
     waitMs = 1500,
@@ -54,7 +54,7 @@ export const openInKnirvEngine = (
       // An unhandled custom scheme is a silent no-op in browsers, so the
       // link is launched without navigating this page away.
       const anchor = doc.createElement('a');
-      anchor.href = knirvEngineDeepLink(errorNodeId);
+      anchor.href = testlabDeepLink(errorNodeId);
       anchor.rel = 'noopener';
       anchor.style.display = 'none';
       doc.body.appendChild(anchor);

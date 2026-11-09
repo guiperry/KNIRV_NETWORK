@@ -31,9 +31,8 @@ export const NetworkStatus: React.FC<NetworkStatusProps> = ({ connections }) => 
     knirvChain: 'KNIRV-CHAIN',
     knirvGraph: 'KNIRV-GRAPH',
     knirvWallet: 'KNIRV-WALLET',
-    knirvRouters: 'KNIRV-ROUTERS',
     knirvana: 'KNIRVANA',
-    knirvNexus: 'KNIRV-SERVER'
+    knirvServer: 'KNIRV-SERVER'
   };
 
   return (

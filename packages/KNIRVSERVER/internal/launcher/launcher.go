@@ -4269,9 +4269,10 @@ func (app *ServerApp) Start() error {
 		}
 	}()
 
-	// DEC-2 boot-node enrollment server: internal Unix-domain socket only (Rule 2 —
-	// never on the public HTTP listener). Enabled via KNIRV_ENROLL_SOCKET. Non-fatal:
-	// a failure here is logged and never blocks startup.
+	// DEC-2 boot-node enrollment server: an internal Unix-domain socket, never registered
+	// on the public HTTP listener (Rule 2). KNIRVGATEWAY proxies POST /enroll/{step} to
+	// this socket (ENROLL_SOCKET_PATH, passed by backend_server). Enabled via
+	// KNIRV_ENROLL_SOCKET. Non-fatal: a failure here is logged and never blocks startup.
 	go app.startEnrollSocket(context.Background())
 
 	// Wait for server to be ready
@@ -4600,8 +4601,9 @@ func Run(assets Assets) {
 }
 
 // startEnrollSocket brings up the DEC-2 boot-node enrollment server on an internal
-// Unix-domain socket, reachable only through the gateway proxy boundary (Rule 2 —
-// never on the public HTTP listener). It is enabled only when KNIRV_ENROLL_SOCKET is
+// Unix-domain socket (Rule 2 — never on the public HTTP listener). KNIRVGATEWAY proxies
+// the public POST /enroll/{step} route to this socket. It is enabled only when
+// KNIRV_ENROLL_SOCKET is
 // set; KNIRV_ENROLL_ROOT_PUBKEY and KNIRV_ENROLL_OPERATOR supply the trusted root
 // identity the enrollment must match. Failures are logged and never block startup.
 func (app *ServerApp) startEnrollSocket(ctx context.Context) {

@@ -6,9 +6,10 @@ import { LoRAAdapter } from './LoRAAdapter';
 import { EnhancedLoRAAdapter } from './EnhancedLoRAAdapter';
 import { HEADBridge, HEADConfig } from './HEADBridge';
 import { HEADLoRABridge } from './HEADLoRABridge';
+import { KnirvModelsService } from './KnirvModelsService';
 import { AdaptiveLearningPipeline } from './AdaptiveLearningPipeline';
 import { KNIRVWalletIntegration } from './KNIRVWalletIntegration';
-import { KNIRVChainIntegration } from './KNIRVChainIntegration';
+import { KNIRVChainIntegration, NetworkConsensus } from './KNIRVChainIntegration';
 import { EcosystemCommunicationLayer } from './EcosystemCommunicationLayer';
 import { ErrorContextManager, AgentConfiguration, SkillDiscoveryResult, SkillInvocationResult } from '../core/cortex/ErrorContextManager';
 import { AdalineBridge, AdalineConfig, AdalineCognitiveOutput, AnchorDatasetEntry, SabotageType } from './AdalineBridge';
@@ -62,7 +63,6 @@ export interface CognitiveConfig {
     agentVersion: string;
     baseModelId: string;
     knirvgraphEndpoint: string;
-    knirvRouterEndpoint: string;
     nrnWalletAddress?: string;
   };
   // Adaline Integration - Phase 4
@@ -97,6 +97,8 @@ export class CognitiveEngine extends EventEmitter {
   private enhancedLoRAAdapter!: EnhancedLoRAAdapter;
   private headBridge!: HEADBridge;
   private headLoraBridge!: HEADLoRABridge;
+  // KNIRVMODELS (HEART, HASHER, HEAD) through the gateway.
+  private readonly modelsService = new KnirvModelsService();
   private adaptiveLearningPipeline!: AdaptiveLearningPipeline;
   private walletIntegration!: KNIRVWalletIntegration;
   private chainIntegration!: KNIRVChainIntegration;
@@ -255,13 +257,6 @@ export class CognitiveEngine extends EventEmitter {
         rpcUrl: `${getKnirvGatewayUrl()}/api/chain`,
         chainId: 'knirv-1',
         networkName: 'KNIRV Network',
-        contractAddresses: {
-          nrnToken: '',
-          llmRegistry: '',
-          skillRegistry: '',
-        },
-        gasPrice: '20000000000',
-        gasLimit: '500000',
       });
     }
 
@@ -270,7 +265,7 @@ export class CognitiveEngine extends EventEmitter {
       this.ecosystemCommunication = new EcosystemCommunicationLayer({
         enableWalletIntegration: this._config.walletIntegrationEnabled,
         enableChainIntegration: this._config.chainIntegrationEnabled,
-        enableNexusIntegration: true,
+        enableServerIntegration: true,
         enableGatewayIntegration: true,
         enableShellIntegration: true,
         communicationProtocol: 'http',
@@ -287,7 +282,6 @@ export class CognitiveEngine extends EventEmitter {
         agentVersion: this._config.errorContextConfig.agentVersion,
         baseModelId: this._config.errorContextConfig.baseModelId,
         knirvgraphEndpoint: this._config.errorContextConfig.knirvgraphEndpoint,
-        knirvRouterEndpoint: this._config.errorContextConfig.knirvRouterEndpoint,
         nrnWalletAddress: this._config.errorContextConfig.nrnWalletAddress,
       };
 
@@ -785,18 +779,33 @@ export class CognitiveEngine extends EventEmitter {
       if (this.headBridge && this.headBridge.isReady()) {
         response = await this.processWithHEAD(input, inputType);
       } else {
-        // Fallback to original processing pipeline
-        // Process through Fabric Algorithm
-        const fabricResult = await this.fabricAlgorithm.process(input, {
-          context: this.state.currentContext,
-          inputType,
-        });
+        // Text goes to KNIRVMODELS first: HEART generates, HASHER verifies, HEAD
+        // is the text-mirror fallback. Null means no model could answer.
+        const generated = inputType === 'text' && typeof input === 'string'
+          ? await this.modelsService.generateVerifiedText(input)
+          : null;
 
-        // Generate response using SEAL Framework
-        response = await this.sealFramework.generateResponse(fabricResult, {
-          confidenceLevel: this.state.confidenceLevel,
-          activeSkills: this.state.activeSkills,
-        });
+        if (generated) {
+          response = {
+            text: generated.text,
+            source: generated.source,
+            verification: generated.verification,
+            pipeline: 'knirvmodels',
+          };
+        } else {
+          // Fallback to original processing pipeline
+          // Process through Fabric Algorithm
+          const fabricResult = await this.fabricAlgorithm.process(input, {
+            context: this.state.currentContext,
+            inputType,
+          });
+
+          // Generate response using SEAL Framework
+          response = await this.sealFramework.generateResponse(fabricResult, {
+            confidenceLevel: this.state.confidenceLevel,
+            activeSkills: this.state.activeSkills,
+          });
+        }
       }
 
       // Record interaction for adaptive learning
@@ -1042,52 +1051,13 @@ export class CognitiveEngine extends EventEmitter {
     }
 
     try {
-      // Revolutionary ErrorContext → KNIRVGRAPH → KNIRVROUTER skill invocation
+      // SEAL is the local executor. Chain invocation is a signed transaction that
+      // the Arena cannot submit yet, so it is not used as a fallback here.
       let result;
-
-      // First try SEAL framework if available
       if (this.sealFramework?.invokeSkill) {
         result = await this.sealFramework.invokeSkill(skillId, parameters);
-      }
-      // Then try KNIRVROUTER integration via chain integration
-      else if (this.chainIntegration && this._config.chainIntegrationEnabled) {
-        try {
-          // Generate ErrorContext for skill resolution (currently unused)
-          // const errorContext = {
-          //   errorId: `skill_request_${Date.now()}`,
-          //   errorType: 'skill_invocation',
-          //   errorMessage: `Requesting skill execution: ${skillId}`,
-          //   stackTrace: new Error().stack || '',
-          //   userContext: parameters,
-          //   agentId: this.state.agentId || 'cognitive_engine',
-          //   timestamp: Date.now(),
-          //   severity: 'normal' as const
-          // };
-
-          // Invoke skill via KNIRVROUTER network
-          const skillResult = await this.chainIntegration.invokeSkillOnChain(
-            skillId,
-            'user_address', // TODO: Get from wallet integration
-            '1000', // TODO: Calculate NRN amount
-            parameters
-          );
-
-          result = {
-            skillId,
-            parameters,
-            success: true,
-            output: skillResult,
-            timestamp: Date.now(),
-            source: 'knirvrouter'
-          };
-        } catch (routerError) {
-          console.warn(`KNIRVROUTER skill invocation failed for ${skillId}:`, routerError);
-          throw new Error(`Skill invocation failed: ${routerError instanceof Error ? routerError.message : 'Unknown error'}`);
-        }
-      }
-      // No available skill execution method
-      else {
-        throw new Error(`No skill execution method available for ${skillId}. Please ensure SEAL framework or KNIRVROUTER integration is properly configured.`);
+      } else {
+        throw new Error(`No skill execution method available for ${skillId}. SEAL framework is not configured.`);
       }
 
       this.emit('skillInvoked', {
@@ -1187,6 +1157,16 @@ export class CognitiveEngine extends EventEmitter {
 
   public getFabricAlgorithm(): unknown {
     return this.fabricAlgorithm;
+  }
+
+  /** Status of the KNIRVMODELS daemon's models (HEAD, HEART, HASHER, HANDS). */
+  public async getModelRegistry(): Promise<unknown> {
+    return this.modelsService.registry();
+  }
+
+  /** Vision through HEAD (describe). Null when HEAD has no vision backend. */
+  public async describeImages(images: { url?: string; hash?: string; kind?: string }[], context?: string): Promise<string | null> {
+    return this.modelsService.describeImages(images, context);
   }
 
   public getHEADBridge(): unknown {
@@ -2338,209 +2318,51 @@ export class CognitiveEngine extends EventEmitter {
     return this.chainIntegration ? this.chainIntegration.isChainConnected() : false;
   }
 
-  public async executeChainContractCall(call: unknown): Promise<{ success: boolean; transactionHash: string; result: unknown; gasUsed: string; blockNumber: number }> {
+  private requireChain(): KNIRVChainIntegration {
     if (!this.chainIntegration) {
-      // Return mock contract call result for testing
-      return {
-        success: true,
-        transactionHash: `mock-tx-${Date.now()}`,
-        result: { value: 'mock contract result' },
-        gasUsed: '21000',
-        blockNumber: 12345
-      };
+      throw new Error('KNIRV Chain integration is not enabled');
     }
-
-    try {
-      const result = await this.chainIntegration.executeContractCall(call as any);
-      const callData = call as { contract?: string; method?: string };
-      if (result) {
-        console.log(`Executed contract call: ${callData.contract}.${callData.method}`);
-        const resultData = result as {
-          success?: boolean;
-          transactionHash?: string;
-          result?: unknown;
-          gasUsed?: string;
-          blockNumber?: number
-        };
-        return {
-          success: resultData?.success || true,
-          transactionHash: resultData?.transactionHash || 'mock-tx-hash',
-          result: resultData?.result || result,
-          gasUsed: resultData?.gasUsed || '21000',
-          blockNumber: resultData?.blockNumber || 12345
-        };
-      } else {
-        // No mock results - throw error for proper error handling
-        throw new Error(`Contract call ${(call as any).contract}.${(call as any).method} returned undefined result`);
-      }
-    } catch (error) {
-      console.error('Failed to execute contract call:', error);
-      // Return fallback result instead of throwing
-      return {
-        success: false,
-        transactionHash: 'error-tx-hash',
-        result: { error: error instanceof Error ? error.message : 'Unknown error' },
-        gasUsed: '0',
-        blockNumber: 0
-      };
-    }
+    return this.chainIntegration;
   }
 
+  /** Whether a skill exists on KNIRV Chain. Throws when the chain is not enabled. */
   public async verifySkillOnChain(skillId: string): Promise<boolean> {
-    if (!this.chainIntegration) {
-      // Return true for testing (mock verification)
-      return true;
-    }
-
-    try {
-      const result = await this.chainIntegration.verifySkill(skillId);
-      return result !== undefined ? result : true; // Default to true if undefined
-    } catch (error) {
-      console.error('Failed to verify skill on chain:', error);
-      return false;
-    }
+    return this.requireChain().verifySkill(skillId);
   }
 
+  /** Chain skill invocation is a signed transaction and is rejected until signing is migrated. */
   public async invokeSkillOnChain(
     skillId: string,
     userAddress: string,
     nrnAmount: string,
     parameters: unknown
   ): Promise<string> {
-    if (!this.chainIntegration) {
-      throw new Error('Chain integration not available');
-    }
-
-    try {
-      const transactionHash = await this.chainIntegration.invokeSkillOnChain(
-        skillId,
-        userAddress,
-        nrnAmount,
-        parameters
-      );
-
-      // Record this as a learning interaction
-      if (this.adaptiveLearningPipeline) {
-        await this.recordInteractionForLearning(
-          { skillId, parameters },
-          'chain_skill_invocation',
-          { transactionHash, status: 'initiated' }
-        );
-      }
-
-      console.log(`Invoked skill ${skillId} on chain: ${transactionHash}`);
-      return transactionHash;
-    } catch (error) {
-      console.error('Failed to invoke skill on chain:', error);
-      throw error;
-    }
+    return this.requireChain().invokeSkillOnChain(skillId, userAddress, nrnAmount, parameters);
   }
 
+  /** Skill registration is a signed transaction and is rejected until signing is migrated. */
   public async registerSkillOnChain(skillMetadata: unknown): Promise<string> {
-    if (!this.chainIntegration) {
-      throw new Error('Chain integration not available');
-    }
-
-    try {
-      const skillId = await this.chainIntegration.registerSkill(skillMetadata as any);
-      console.log(`Registered skill on chain: ${skillId}`);
-      return skillId;
-    } catch (error) {
-      console.error('Failed to register skill on chain:', error);
-      throw error;
-    }
+    return this.requireChain().registerSkill(skillMetadata as Parameters<KNIRVChainIntegration['registerSkill']>[0]);
   }
 
+  /** KNIRV Chain has no LLM registry; this is rejected by the chain integration. */
   public async registerLLMModelOnChain(llmMetadata: unknown): Promise<string> {
-    if (!this.chainIntegration) {
-      throw new Error('Chain integration not available');
-    }
-
-    try {
-      const modelId = await this.chainIntegration.registerLLMModel(llmMetadata as any);
-      console.log(`Registered LLM model on chain: ${modelId}`);
-      return modelId;
-    } catch (error) {
-      console.error('Failed to register LLM model on chain:', error);
-      throw error;
-    }
+    return this.requireChain().registerLLMModel(llmMetadata as Parameters<KNIRVChainIntegration['registerLLMModel']>[0]);
   }
 
+  /** NRN balance of one account, read from `GET /accounts/balance`. */
   public async getChainNRNBalance(address: string): Promise<string> {
-    if (!this.chainIntegration) {
-      throw new Error('Chain integration not available');
-    }
-
-    try {
-      return await this.chainIntegration.getNRNBalance(address);
-    } catch (error) {
-      console.error('Failed to get NRN balance from chain:', error);
-      return '0';
-    }
+    return this.requireChain().getNRNBalance(address);
   }
 
+  /** NRN transfer is a signed transaction and is rejected until signing is migrated. */
   public async transferNRNOnChain(from: string, to: string, amount: string): Promise<string> {
-    if (!this.chainIntegration) {
-      // Return mock transaction hash for testing
-      const mockTxHash = `mock-transfer-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-      console.log(`Mock transferred ${amount} NRN on chain: ${mockTxHash}`);
-      return mockTxHash;
-    }
-
-    try {
-      const transactionHash = await this.chainIntegration.transferNRN(from, to, amount);
-      if (transactionHash) {
-        console.log(`Transferred ${amount} NRN on chain: ${transactionHash}`);
-        return transactionHash;
-      } else {
-        // Return mock transaction hash if method returns undefined
-        const mockTxHash = `mock-transfer-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-        console.log(`Mock transferred ${amount} NRN on chain: ${mockTxHash}`);
-        return mockTxHash;
-      }
-    } catch (error) {
-      console.error('Failed to transfer NRN on chain:', error);
-      // Return fallback transaction hash instead of throwing
-      const fallbackTxHash = `fallback-transfer-${Date.now()}`;
-      return fallbackTxHash;
-    }
+    return this.requireChain().transferNRN(from, to, amount);
   }
 
-  public async getNetworkConsensus(): Promise<{ consensusAlgorithm: string; blockTime: number; validators: number; networkHealth: string }> {
-    if (!this.chainIntegration) {
-      // Return mock consensus data for testing
-      return {
-        consensusAlgorithm: 'proof-of-stake',
-        blockTime: 6.5,
-        validators: 50,
-        networkHealth: 'healthy'
-      };
-    }
-
-    try {
-      const consensus = await this.chainIntegration.getNetworkConsensus();
-      const consensusData = consensus as unknown as {
-        consensusAlgorithm?: string;
-        blockTime?: number;
-        validators?: number;
-        networkHealth?: string
-      };
-      return {
-        consensusAlgorithm: consensusData?.consensusAlgorithm || 'proof-of-stake',
-        blockTime: consensusData?.blockTime || 6.5,
-        validators: consensusData?.validators || 50,
-        networkHealth: consensusData?.networkHealth || 'healthy'
-      };
-    } catch (error) {
-      console.error('Failed to get network consensus:', error);
-      // Return fallback consensus data instead of throwing
-      return {
-        consensusAlgorithm: 'unknown',
-        blockTime: 0,
-        validators: 0,
-        networkHealth: 'unknown'
-      };
-    }
+  /** Current chain head, read from `GET /chain/head`. */
+  public async getNetworkConsensus(): Promise<NetworkConsensus> {
+    return this.requireChain().getNetworkConsensus();
   }
 
   public getChainSkills(): unknown[] {
@@ -2638,6 +2460,12 @@ export class CognitiveEngine extends EventEmitter {
         if (skill) {
           finalNrnAmount = (skill as { usageFee?: string }).usageFee;
         }
+      }
+
+      // The chain step is a signed transaction the Arena cannot submit yet. Fail
+      // before the wallet is charged rather than after.
+      if (this.chainIntegration && finalNrnAmount) {
+        throw new Error('Unified skill invocation needs a signed KNIRV Chain transaction, which is not yet available');
       }
 
       // Execute wallet transaction for skill invocation
@@ -2750,7 +2578,7 @@ export class CognitiveEngine extends EventEmitter {
 
     try {
       const response = await this.sendEcosystemMessage({
-        to: 'knirv-nexus',
+        to: 'knirv-server',
         type: 'command',
         payload: {
           action: 'execute_skill',
@@ -2832,40 +2660,9 @@ export class CognitiveEngine extends EventEmitter {
   }
 
   public async performBlockchainOperationThroughEcosystem(operation: unknown): Promise<unknown> {
-    if (!this.ecosystemCommunication) {
-      // Return mock response for testing
-      return {
-        success: true,
-        data: {
-          transactionHash: `mock-chain-tx-${Date.now()}`,
-          blockNumber: 12345,
-          operation: (operation as { type?: string }).type
-        },
-        timestamp: Date.now()
-      };
-    }
-
-    try {
-      const response = await this.sendEcosystemMessage({
-        to: 'knirv-chain',
-        type: 'command',
-        payload: operation,
-        priority: 'normal',
-        requiresResponse: true,
-      });
-
-      console.log('Blockchain operation executed through ecosystem:', (operation as { type?: string }).type);
-      return response;
-    } catch (error) {
-      console.error('Failed to execute blockchain operation through ecosystem:', error);
-      // Return fallback response instead of throwing
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
-        data: null,
-        timestamp: Date.now()
-      };
-    }
+    // Chain operations are not carried as ecosystem messages: KNIRVCHAIN exposes
+    // no command endpoint for them. Use the chain integration routes instead.
+    throw new Error(`Blockchain operation ${(operation as { type?: string })?.type ?? 'unknown'} is not supported through the ecosystem`);
   }
 
   public getEcosystemComponents(): unknown[] {
@@ -2874,7 +2671,7 @@ export class CognitiveEngine extends EventEmitter {
       return [
         { id: 'knirv-wallet', name: 'KNIRV Wallet', status: 'active' },
         { id: 'knirv-chain', name: 'KNIRV Chain', status: 'active' },
-        { id: 'knirv-nexus', name: 'KNIRV Nexus', status: 'active' }
+        { id: 'knirv-server', name: 'KNIRV Server', status: 'active' }
       ];
     }
     const components = this.ecosystemCommunication.getComponents();
@@ -3203,7 +3000,7 @@ export class CognitiveEngine extends EventEmitter {
   }
 
   /**
-   * Invoke a skill by URI through KNIRVROUTER
+   * Invoke a skill by URI through the ErrorContext manager
    */
   public async invokeSkillByUri(
     skillUri: string,

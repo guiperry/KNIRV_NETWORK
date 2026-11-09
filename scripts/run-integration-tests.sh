@@ -276,25 +276,25 @@ run_testnet_tests() {
     fi
 }
 
-# Function to run KNIRVENGINE Desktop Client integration tests
-run_knirvengine_tests() {
-    print_step "Running KNIRVENGINE Desktop Client integration tests..."
+# Function to run TESTLAB Desktop Client integration tests
+run_testlab_tests() {
+    print_step "Running TESTLAB Desktop Client integration tests..."
 
-    local engine_test_file="$PROJECT_ROOT/integration-tests/knirvengine_desktop_client_integration_test.go"
+    local engine_test_file="$PROJECT_ROOT/integration-tests/testlab_desktop_client_integration_test.go"
 
     if [ ! -f "$engine_test_file" ]; then
-        print_warning "KNIRVENGINE integration test file not found: $engine_test_file"
+        print_warning "TESTLAB integration test file not found: $engine_test_file"
         return 1
     fi
 
-    print_status "Executing KNIRVENGINE Desktop Client tests..."
+    print_status "Executing TESTLAB Desktop Client tests..."
     cd "$PROJECT_ROOT/integration-tests" || return 1
 
-    if go test -v -timeout 600s -run "TestKNIRVENGINE.*" ./knirvengine_desktop_client_integration_test.go; then
-        print_success "KNIRVENGINE Desktop Client integration tests completed successfully"
+    if go test -v -timeout 600s -run "TestTESTLAB.*" ./testlab_desktop_client_integration_test.go; then
+        print_success "TESTLAB Desktop Client integration tests completed successfully"
         return 0
     else
-        print_error "KNIRVENGINE Desktop Client integration tests failed"
+        print_error "TESTLAB Desktop Client integration tests failed"
         return 1
     fi
 }
@@ -436,9 +436,9 @@ main() {
         run_testnet_tests || test_result=$?
     fi
 
-    # Run KNIRVENGINE tests only if previous tests succeeded
+    # Run TESTLAB tests only if previous tests succeeded
     if [ $test_result -eq 0 ]; then
-        run_knirvengine_tests || test_result=$?
+        run_testlab_tests || test_result=$?
     fi
     
     teardown_test_environment

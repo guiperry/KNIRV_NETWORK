@@ -627,6 +627,27 @@ The frontend automatically connects to the backend API at `http://localhost:8080
 make test
 ```
 
+### DRQ validation service integration
+
+`internal/app/drq_loop_integration_test.go` runs the production DRQ validation client
+against the REAL backend validation routes. The test builds
+`backend_server/cmd/validation_contract_server` from the KNIRV_CORP module and starts it
+as a separate process listening on a unix socket. It mints HS256 service tokens with the
+shared test secret and drives `newValidationServiceClient`, `SubmitClusterForValidation`
+and `GetValidationProof` over that socket. It asserts the real behaviour:
+
+- a correctly signed scoped token can create a task (201, status `pending`);
+- the owner-tenant proof read returns no proof yet (the backend reports `pending`, result `null`);
+- a different-tenant token is refused with 403;
+- an unsigned token and a token signed with another key are refused with 401;
+- the scoped token cannot reach `/execute` (401).
+
+A valid proof needs the execute route and an inference run, so the test does not claim one.
+
+The backend module must be present at `../../../KNIRV_CORP/packages/server/backend_server`,
+or be named with `KNIRV_BACKEND_SERVER_DIR`. The test fails (it does not skip) if it is absent.
+Run it with a Go 1.25.7 toolchain (`GOTOOLCHAIN=go1.25.7`).
+
 ### Frontend Tests
 ```bash
 npm test

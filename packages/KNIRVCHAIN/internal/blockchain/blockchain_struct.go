@@ -1438,7 +1438,7 @@ func (bc *BlockchainStruct) verifyBlockContext(b *Block) error {
 
 // applyBlockTransactions processes transactions within a block and updates a temporary account state.
 // It assumes the caller holds the necessary lock.
-func (bc *BlockchainStruct) applyBlockTransactions(b *Block, tempBlockAccounts map[string]*big.Int) ([]*pb.ContextRecordProto, error) {
+func (bc *BlockchainStruct) applyBlockTransactions(b *Block, tempBlockAccounts map[string]*big.Int, effects *blockStateEffects) ([]*pb.ContextRecordProto, error) {
 	var mcpContextRecordsForSync []*pb.ContextRecordProto
 
 	// --- Checks Passed - Prepare to Modify State ---
@@ -1503,6 +1503,10 @@ func (bc *BlockchainStruct) applyBlockTransactions(b *Block, tempBlockAccounts m
 	for i, tx := range b.Transactions {
 		agentlog.LogInfo(fmt.Sprintf("Processing tx %d/%d (Hash: %s) in block %d", i+1, len(b.Transactions), tx.TransactionHash, b.BlockNumber))
 		// These functions are now methods of BlockchainStruct, defined in transaction.go (or moved to blockchain_struct.go)
+		if err := effects.applySequence(bc.db, b.BlockNumber, tx); err != nil {
+			b.InvalidTxHashes[tx.TransactionHash] = err.Error()
+			return nil, err
+		}
 		if err := bc.ValidateTransactionInBlockContext(tx, tempBlockAccounts); err != nil {
 			// Mark the transaction as invalid in the block for auditability, even though the block will be rejected.
 			b.InvalidTxHashes[tx.TransactionHash] = err.Error()
@@ -1520,6 +1524,12 @@ func (bc *BlockchainStruct) applyBlockTransactions(b *Block, tempBlockAccounts m
 				if err != nil {
 					agentlog.LogError(fmt.Sprintf("Failed to apply MCP transaction effects for %s in block %d: %v", tx.TransactionHash, b.BlockNumber, err), err)
 					return nil, err
+				}
+				if tx.Type == TransactionTypeMCPRegisterCapability {
+					if err := effects.addRegisteredCapability(bc.db, tx); err != nil {
+						b.InvalidTxHashes[tx.TransactionHash] = err.Error()
+						return nil, err
+					}
 				}
 				if contextRecord != nil {
 					if protoRecord, ok := contextRecord.(*pb.ContextRecordProto); ok {
@@ -1563,7 +1573,8 @@ func (bc *BlockchainStruct) addBlockInternal(b *Block) error {
 
 	// --- All transactions in block are valid and effects applied to tempBlockAccounts ---
 	tempBlockAccounts := make(map[string]*big.Int)
-	mcpContextRecordsForSync, err := bc.applyBlockTransactions(b, tempBlockAccounts)
+	effects := newBlockStateEffects()
+	mcpContextRecordsForSync, err := bc.applyBlockTransactions(b, tempBlockAccounts, effects)
 	if err != nil {
 		bc.Unlock()
 		return err
@@ -1592,6 +1603,20 @@ func (bc *BlockchainStruct) addBlockInternal(b *Block) error {
 		}
 	}
 	agentlog.LogInfo(fmt.Sprintf("Successfully updated account balances in DB for block %d.", b.BlockNumber))
+
+	// Sequences and capabilities are written with the block, after validation.
+	for addr, sequence := range effects.sequences {
+		if err := bc.db.SaveAccountSequence(addr, sequence); err != nil {
+			bc.Unlock()
+			return fmt.Errorf("critical error saving account sequence for %s: %w", addr, err)
+		}
+	}
+	for _, capability := range effects.capabilities {
+		if err := bc.db.SaveCapability(capability); err != nil {
+			bc.Unlock()
+			return fmt.Errorf("critical error saving registered capability: %w", err)
+		}
+	}
 
 	// --- Update Blockchain State (Transaction Pool, Blocks list) ---
 	txnMap := make(map[string]bool)

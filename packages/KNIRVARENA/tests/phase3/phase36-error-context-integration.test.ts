@@ -24,7 +24,6 @@ describe('Phase 3.6 - Error Context Integration', () => {
     agentVersion: '1.0.0',
     baseModelId: 'head-cognitive-v1',
     knirvgraphEndpoint: 'http://localhost:8081',
-    knirvRouterEndpoint: 'http://localhost:8080',
     nrnWalletAddress: 'knirv1test123456789'
   };
 
@@ -181,71 +180,6 @@ describe('Phase 3.6 - Error Context Integration', () => {
     });
   });
 
-  describe('KNIRVROUTER WASM Integration', () => {
-    it('should invoke skill through WASM endpoint', async () => {
-      // Mock successful WASM skill invocation
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        headers: {
-          get: (name: string) => {
-            const headers: Record<string, string> = {
-              'X-KNIRV-Engine': 'wasm',
-              'X-KNIRV-Status': 'SUCCESS',
-              'X-KNIRV-Invocation-ID': 'inv_test_123'
-            };
-            return headers[name] || null;
-          }
-        },
-        json: async () => ({
-          invocation_id: 'inv_test_123',
-          status: 'SUCCESS',
-          execution_time: 150,
-          memory_used: 1024,
-          consensus_reached: true,
-          skill_data: '{"skill_name":"javascript-type-checker","version":1}'
-        })
-      } as Response);
-
-      const result = await errorContextManager.invokeSkill(
-        'knirv://skill/javascript-type-checker-v1',
-        'test_nrn_token_123',
-        { error_type: 'TypeError' }
-      );
-
-      expect(result.success).toBe(true);
-      expect(result.skillData).toBeTruthy();
-      expect(result.invocationId).toBe('inv_test_123');
-      expect(mockFetch).toHaveBeenCalledWith(
-        'http://localhost:8080/wasm/invoke',
-        expect.objectContaining({
-          method: 'POST',
-          headers: expect.objectContaining({
-            'Content-Type': 'application/json',
-            'X-KNIRV-Engine': 'wasm',
-            'X-KNIRV-Version': '1.0.0'
-          })
-        })
-      );
-    });
-
-    it('should handle WASM invocation failures', async () => {
-      // Mock failed WASM skill invocation
-      mockFetch.mockResolvedValueOnce({
-        ok: false,
-        status: 500,
-        statusText: 'Internal Server Error'
-      } as Response);
-
-      const result = await errorContextManager.invokeSkill(
-        'knirv://skill/invalid-skill',
-        'test_nrn_token_123'
-      );
-
-      expect(result.success).toBe(false);
-      expect(result.errorMessage).toContain('KNIRVROUTER WASM invocation failed');
-    });
-  });
-
   describe('CognitiveEngine Integration', () => {
     it('should handle errors through ErrorContextManager', async () => {
       // Mock KNIRVGRAPH skill discovery
@@ -292,26 +226,6 @@ describe('Phase 3.6 - Error Context Integration', () => {
         })
       } as Response);
 
-      // Mock WASM skill invocation
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        headers: {
-          get: (name: string) => {
-            const headers: Record<string, string> = {
-              'X-KNIRV-Engine': 'wasm',
-              'X-KNIRV-Status': 'SUCCESS'
-            };
-            return headers[name] || null;
-          }
-        },
-        json: async () => ({
-          invocation_id: 'inv_lifecycle_test',
-          status: 'SUCCESS',
-          execution_time: 200,
-          skill_data: '{"lifecycle":"complete","success":true}'
-        })
-      } as Response);
-
       const testError = new Error('End-to-end lifecycle test error');
       const result = await cognitiveEngine.handleErrorAndInvokeSkill(
         testError,
@@ -321,8 +235,10 @@ describe('Phase 3.6 - Error Context Integration', () => {
 
       expect(result.discoveryResult.skillFound).toBe(true);
       expect(result.discoveryResult.skillUri).toBe('knirv://skill/complete-lifecycle-v1');
-      expect(result.invocationResult?.success).toBe(true);
-      expect(result.invocationResult?.invocationId).toBe('inv_lifecycle_test');
+      // Discovery succeeds; invocation has no execution path (KNIRVROUTER removed,
+      // chain invocation not yet migrated), so it reports a failed invocation.
+      expect(result.invocationResult?.success).toBe(false);
+      expect(result.invocationResult?.errorMessage).toContain('not available');
     });
   });
 
@@ -395,7 +311,6 @@ describe('Phase 3.6 - Error Context Integration', () => {
         agentVersion: '1.0.0',
         baseModelId: 'CodeT5-base',
         knirvgraphEndpoint: 'http://localhost:8080',
-        knirvRouterEndpoint: 'http://localhost:8081',
         nrnWalletAddress: '0x123456789'
       };
 

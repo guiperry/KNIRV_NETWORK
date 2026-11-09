@@ -169,6 +169,8 @@ type Transaction struct {
 	AuthInfoBytes string    `json:"auth_info_bytes"`
 	PublicKey     string    `json:"public_key"`
 	Signatures    []string  `json:"signatures"`
+	Type          string    `json:"type,omitempty"`
+	FeeDenom      string    `json:"fee_denom,omitempty"`
 }
 
 // ServerStatus represents the status of the wallet server

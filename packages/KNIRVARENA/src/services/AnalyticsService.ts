@@ -1,3 +1,4 @@
+import { getKnirvGatewayUrl } from '../config/runtimeConfig';
 /**
  * Analytics Service
  * Handles metrics collection, performance tracking, and dashboard statistics
@@ -119,7 +120,7 @@ export class AnalyticsService {
 
   constructor(config: AnalyticsConfig = {}) {
     this.config = {
-      baseUrl: 'http://localhost:3001',
+      baseUrl: getKnirvGatewayUrl(),
       enableNetworking: process.env.NODE_ENV !== 'test',
       enableCollection: process.env.NODE_ENV !== 'test',
       ...config

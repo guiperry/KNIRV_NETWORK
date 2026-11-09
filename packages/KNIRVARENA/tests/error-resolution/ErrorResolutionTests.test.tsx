@@ -10,16 +10,13 @@ import { CognitiveShellInterface } from '../../src/components/CognitiveShellInte
 import { ChatBrainProvider } from '../../src/contexts/ChatBrainContext';
 import VisualProcessor from '../../src/components/VisualProcessor';
 import { MetaAccountDashboard } from '../../src/components/MetaAccountDashboard';
-import UnifiedInterface from '../../src/components/UnifiedInterface';
 import App, { SkillResult, Adaptation } from '../../src/App';
 import { Agent } from '../../src/types/common';
-import { ComponentBridge } from '../../src/shared/ComponentBridge';
 
 // Mock services
 jest.mock('../../src/services/CognitiveEngineService');
 jest.mock('../../src/services/WalletIntegrationService');
 jest.mock('../../src/services/AgentManagementService');
-jest.mock('../../src/shared/ComponentBridge');
 
 // Mock lucide-react icons
 // Real icons for everything the rendered tree uses; test ids only where the
@@ -281,28 +278,6 @@ describe('Error Resolution Tests', () => {
         </BrowserRouter>
       );
       unmountMeta();
-
-      // Test UnifiedInterface
-      const mockBridge = new (ComponentBridge as any)({
-        name: 'test',
-        port: 3000,
-        endpoints: {},
-        features: {}
-      });
-      // ComponentBridge is auto-mocked, so getState would return undefined.
-      mockBridge.getState = jest.fn(() => ({
-        components: { receiver: 'running', cli: 'stopped' },
-        cognitive: { headActive: false, loraAdapters: [], learningMode: false, confidence: 0 },
-        wallet: { connected: false, balance: 0, transactions: [] },
-        network: { connected: true, peers: 0, blockHeight: 0 },
-      }));
-
-      const { unmount: unmountUnified } = render(
-        <BrowserRouter>
-          <UnifiedInterface bridge={mockBridge} />
-        </BrowserRouter>
-      );
-      unmountUnified();
 
       // Test App component
       // App provides its own router.

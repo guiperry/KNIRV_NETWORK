@@ -208,9 +208,9 @@ describe('CognitiveEngine', () => {
       const skillId = 'testSkill';
       const parameters = { test: 'value' };
 
-      const result = await cognitiveEngine.invokeSkill(skillId, parameters);
-      // With mocked dependencies, may return undefined
-      expect(result !== null).toBe(true);
+      // No SEAL framework is configured in this suite and chain invocation is not
+      // available, so there is no execution path to fall back to.
+      await expect(cognitiveEngine.invokeSkill(skillId, parameters)).rejects.toThrow('No skill execution method available');
     });
 
     it('should execute skills through ecosystem', async () => {
@@ -650,51 +650,33 @@ describe('CognitiveEngine', () => {
       await cognitiveEngine.stop();
     });
 
-    it('should execute smart contract calls', async () => {
-      const contractCall = {
-        contract: 'test-contract',
-        method: 'testMethod',
-        parameters: ['param1', 'param2']
-      };
+    const chainMock = () => cognitiveEngine.getChainIntegration() as unknown as Record<string, jest.Mock>;
 
-      const result = await cognitiveEngine.executeChainContractCall(contractCall);
-      expect(result).toBeDefined();
+    it('should verify skills on chain through the chain integration', async () => {
+      chainMock().verifySkill.mockResolvedValueOnce(true);
+
+      await expect(cognitiveEngine.verifySkillOnChain('test-skill-123')).resolves.toBe(true);
+      expect(chainMock().verifySkill).toHaveBeenCalledWith('test-skill-123');
     });
 
-    it('should verify skills on chain', async () => {
-      const skillId = 'test-skill-123';
+    it('rejects skill and model registration until signed submission exists', async () => {
+      chainMock().registerSkill.mockRejectedValueOnce(new Error('needs a signed KNIRV Chain transaction'));
+      chainMock().registerLLMModel.mockRejectedValueOnce(new Error('KNIRV Chain has no LLM registry'));
 
-      const isVerified = await cognitiveEngine.verifySkillOnChain(skillId);
-      expect(typeof isVerified).toBe('boolean');
+      await expect(cognitiveEngine.registerSkillOnChain({ name: 'Test Skill' })).rejects.toThrow('signed KNIRV Chain transaction');
+      await expect(cognitiveEngine.registerLLMModelOnChain({ name: 'Test Model' })).rejects.toThrow('LLM registry');
     });
 
-    it('should register skills and models', async () => {
-      const skillData = {
-        id: 'test-skill',
-        name: 'Test Skill',
-        description: 'A test skill'
-      };
+    it('rejects NRN transfers until signed submission exists', async () => {
+      chainMock().transferNRN.mockRejectedValueOnce(new Error('needs a signed KNIRV Chain transaction'));
 
-      await cognitiveEngine.registerSkillOnChain(skillData);
-
-      const modelData = {
-        id: 'test-model',
-        name: 'Test Model',
-        version: '1.0.0'
-      };
-
-      await cognitiveEngine.registerLLMModelOnChain(modelData);
-      // Should not throw errors
-      expect(true).toBe(true);
+      await expect(cognitiveEngine.transferNRNOnChain('from', 'to', '50')).rejects.toThrow('signed KNIRV Chain transaction');
     });
 
-    it('should transfer tokens', async () => {
-      const from = 'test-from-address';
-      const to = 'test-to-address';
-      const amount = '50';
+    it('reads an NRN balance from the chain integration', async () => {
+      chainMock().getNRNBalance.mockResolvedValueOnce('42');
 
-      const result = await cognitiveEngine.transferNRNOnChain(from, to, amount);
-      expect(result).toBeDefined();
+      await expect(cognitiveEngine.getChainNRNBalance('knirv1abc')).resolves.toBe('42');
     });
 
     it('should handle chain connection failures', async () => {
@@ -704,9 +686,18 @@ describe('CognitiveEngine', () => {
       await expect(cognitiveEngine.updateChainConfig(invalidConfig)).resolves.not.toThrow();
     });
 
-    it('should get network consensus', async () => {
+    it('should get network consensus from the chain head', async () => {
+      chainMock().getNetworkConsensus.mockResolvedValueOnce({
+        chainId: 'knirv-1', blockHeight: 7, blockHash: 'ab', timestamp: 1,
+      });
+
       const consensus = await cognitiveEngine.getNetworkConsensus();
-      expect(consensus).toBeDefined();
+      expect(consensus.blockHeight).toBe(7);
+    });
+
+    it('fails when the chain integration is not enabled', async () => {
+      const engine = new CognitiveEngine({ ...mockConfig, chainIntegrationEnabled: false } as CognitiveConfig);
+      await expect(engine.getNetworkConsensus()).rejects.toThrow('not enabled');
     });
 
     it('should get chain status', () => {
@@ -730,10 +721,13 @@ describe('CognitiveEngine', () => {
       const parameters = { test: 'value' };
       const nrnAmount = '100';
 
-      const result = await cognitiveEngine.invokeSkillUnified(skillId, parameters, nrnAmount);
-      expect(result).toBeDefined();
-      expect(result).toHaveProperty('walletTransactionId');
-      expect(result).toHaveProperty('chainTransactionHash');
+      (cognitiveEngine.getChainIntegration() as unknown as Record<string, jest.Mock>).verifySkill.mockResolvedValueOnce(true);
+
+      // The chain step is a signed transaction that cannot be submitted yet; the
+      // wallet is not charged for a chain step that cannot complete.
+      await expect(cognitiveEngine.invokeSkillUnified(skillId, parameters, nrnAmount)).rejects.toThrow(
+        /signed KNIRV Chain transaction|No active wallet account/
+      );
     });
 
     it('should handle unified ecosystem operations', async () => {
@@ -761,15 +755,15 @@ describe('CognitiveEngine', () => {
         }
       };
 
-      const result = await cognitiveEngine.performUnifiedEcosystemOperation(operation);
-      expect(result).toBeDefined();
+      // Chain operations are not carried through the ecosystem any more.
+      await expect(cognitiveEngine.performUnifiedEcosystemOperation(operation)).rejects.toThrow('not supported through the ecosystem');
     });
 
     it('should handle multi-service queries', async () => {
       const operation = {
         type: 'multi_service_query' as const,
         payload: {
-          services: ['knirv-nexus', 'knirv-graph'],
+          services: ['knirv-server', 'knirv-graph'],
           query: 'test query'
         }
       };
@@ -800,7 +794,7 @@ describe('CognitiveEngine', () => {
 
     it('should send ecosystem messages', async () => {
       const message = {
-        to: 'knirv-nexus',
+        to: 'knirv-server',
         type: 'query',
         payload: { test: 'data' },
         priority: 'normal' as const,
@@ -824,15 +818,10 @@ describe('CognitiveEngine', () => {
       expect(result).toBeDefined();
     });
 
-    it('should perform blockchain operations through ecosystem', async () => {
-      const operation = {
-        type: 'transfer',
-        to: 'test-address',
-        amount: '10'
-      };
+    it('rejects blockchain operations through the ecosystem', async () => {
+      const operation = { type: 'transfer', to: 'test-address', amount: '10' };
 
-      const result = await cognitiveEngine.performBlockchainOperationThroughEcosystem(operation);
-      expect(result).toBeDefined();
+      await expect(cognitiveEngine.performBlockchainOperationThroughEcosystem(operation)).rejects.toThrow('not supported through the ecosystem');
     });
 
     it('should get ecosystem components', () => {

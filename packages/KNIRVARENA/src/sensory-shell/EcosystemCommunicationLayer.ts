@@ -4,7 +4,7 @@ import { getKnirvGatewayUrl, getKnirvServerUrl } from '../config/runtimeConfig';
 export interface EcosystemConfig {
   enableWalletIntegration: boolean;
   enableChainIntegration: boolean;
-  enableNexusIntegration: boolean;
+  enableServerIntegration: boolean;
   enableGatewayIntegration: boolean;
   enableShellIntegration: boolean;
   communicationProtocol: 'websocket' | 'http' | 'p2p';
@@ -64,7 +64,7 @@ export class EcosystemCommunicationLayer extends EventEmitter {
     this.config = {
       enableWalletIntegration: true,
       enableChainIntegration: true,
-      enableNexusIntegration: true,
+      enableServerIntegration: true,
       enableGatewayIntegration: true,
       enableShellIntegration: true,
       communicationProtocol: 'websocket',
@@ -164,10 +164,10 @@ export class EcosystemCommunicationLayer extends EventEmitter {
       this.registerEndpoint({
         id: 'knirv-wallet',
         name: 'KNIRV-WALLET',
-        url: 'http://localhost:8083',
+        url: `${getKnirvGatewayUrl()}/api/wallet`,
         protocol: 'http',
         authentication: { type: 'none' },
-        healthCheckPath: '/api/v1/health',
+        healthCheckPath: '/api/wallet/state',
         capabilities: ['asset_management', 'transactions', 'cross_platform'],
       });
     }
@@ -180,36 +180,24 @@ export class EcosystemCommunicationLayer extends EventEmitter {
         url: `${getKnirvGatewayUrl()}/api/chain`,
         protocol: 'http',
         authentication: { type: 'none' },
-        healthCheckPath: '/status',
+        healthCheckPath: '/health',
         capabilities: ['blockchain', 'smart_contracts', 'consensus'],
       });
     }
 
     // KNIRV-SERVER endpoints
-    if (this.config.enableNexusIntegration) {
+    if (this.config.enableServerIntegration) {
       this.registerEndpoint({
-        id: 'knirv-nexus',
+        id: 'knirv-server',
         name: 'KNIRV-SERVER',
-        url: 'http://localhost:8081',
+        url: getKnirvServerUrl(),
         protocol: 'http',
         authentication: { type: 'none' },
-        healthCheckPath: '/api/health',
+        healthCheckPath: '/health',
         capabilities: ['orchestration', 'skill_execution', 'dve'],
       });
     }
 
-    // KNIRV-GATEWAY endpoints
-    if (this.config.enableGatewayIntegration) {
-      this.registerEndpoint({
-        id: 'knirv-gateway',
-        name: 'KNIRV-GATEWAY',
-        url: 'http://localhost:8000',
-        protocol: 'http',
-        authentication: { type: 'none' },
-        healthCheckPath: '/api/status',
-        capabilities: ['web_interface', 'api_gateway', 'presentation'],
-      });
-    }
 
     // KNIRV-CLI endpoints
     if (this.config.enableShellIntegration) {
@@ -234,7 +222,7 @@ export class EcosystemCommunicationLayer extends EventEmitter {
       // Route to KNIRV-SERVER for execution
       const response = await this.sendMessage({
         from: 'knirv-cortex',
-        to: 'knirv-nexus',
+        to: 'knirv-server',
         type: 'command',
         payload: {
           action: 'execute_skill',

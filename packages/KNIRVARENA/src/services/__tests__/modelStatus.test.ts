@@ -9,7 +9,7 @@ beforeAll(async () => { await initLocal(); });
 
 // The SDK's shared vectors: the Go and TS twins in KNIRVSDK pass the same file.
 const cases = JSON.parse(
-  readFileSync(join(__dirname, '../../../../KNIRVSDK/testvectors/models/platform_status.json'), 'utf8'),
+  readFileSync(join(process.env.KNIRVSDK_ROOT ?? join(__dirname, '../../../../KNIRVSDK'), 'testvectors/models/platform_status.json'), 'utf8'),
 ) as Record<string, { status: PlatformStatus; roles: RoleLine[] }>;
 
 const norm = (l: RoleLine) => ({ ...l, detail: l.detail || undefined });

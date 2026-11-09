@@ -147,7 +147,7 @@ func (v *DVEBundleValidator) submit(ctx context.Context, cluster *ErrorCluster, 
 		return "", fmt.Errorf("marshal bundle validation request: %w", err)
 	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, v.BaseURL+"/validation/tasks", bytes.NewReader(body))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, v.BaseURL+"/api/validation-tasks", bytes.NewReader(body))
 	if err != nil {
 		return "", fmt.Errorf("build bundle validation request: %w", err)
 	}
@@ -230,7 +230,7 @@ func (v *DVEBundleValidator) await(ctx context.Context, taskID string) (*bundleV
 // fetchVerdict reads the task's result. A task with no result yet is "pending",
 // which is not an error.
 func (v *DVEBundleValidator) fetchVerdict(ctx context.Context, taskID string) (*bundleVerdict, bool, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, v.BaseURL+"/validation/tasks/"+taskID+"/results", nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, v.BaseURL+"/api/validation-results/"+taskID, nil)
 	if err != nil {
 		return nil, false, fmt.Errorf("build bundle result request: %w", err)
 	}

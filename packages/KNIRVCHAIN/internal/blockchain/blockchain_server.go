@@ -37,6 +37,7 @@ type BlockchainServer struct {
 	BlockchainPtr      *BlockchainStruct
 	server             *http.Server
 	db                 *LevelDB
+	sequenceMu         sync.Mutex // serialises intake sequence checks with pool admission
 	discoveryManager   DiscoveryService
 	p2pPort            int
 	testMode           bool                 // Flag indicating if running in test mode
@@ -362,6 +363,9 @@ func (bcs *BlockchainServer) Prepare() (uint64, error) {
 	mux.HandleFunc("/devs", bcs.handleGetPeers)
 	mux.HandleFunc("/p2p/connect", bcs.handleP2PConnect) // Register the new P2P connect handler
 	mux.HandleFunc("/wallet/info", bcs.handleWalletInfo) // New handler
+	mux.HandleFunc("/chain/head", bcs.handleChainHead).Methods(http.MethodGet)
+	mux.HandleFunc("/accounts/balance", bcs.handleAccountBalance).Methods(http.MethodGet)
+	mux.HandleFunc("/accounts/info", bcs.handleAccountInfo).Methods(http.MethodGet)
 
 	// Add the test-only faucet handler
 	mux.HandleFunc("/test/faucet", bcs.handleTestFaucet)
@@ -873,6 +877,18 @@ func (bcs *BlockchainServer) HandleReceiveTransaction(w http.ResponseWriter, r *
 		http.Error(w, "Invalid transaction signature", http.StatusUnauthorized)
 		return
 	}
+	// The sequence check and pool admission happen under one lock, so two
+	// transactions from one account cannot both claim the same next sequence.
+	bcs.sequenceMu.Lock()
+	defer bcs.sequenceMu.Unlock()
+	if status, err := bcs.checkIntakeSequence(&tx); err != nil {
+		http.Error(w, err.Error(), status)
+		return
+	}
+	if status, err := bcs.checkIntakeFunds(&tx); err != nil {
+		http.Error(w, err.Error(), status)
+		return
+	}
 
 	// Dispatch based on transaction type
 	switch tx.Type {
@@ -1377,6 +1393,69 @@ func (bcs *BlockchainServer) handleWalletInfo(w http.ResponseWriter, r *http.Req
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(walletInfo)
+}
+
+// handleChainHead reports the current head of the chain: its id, the height and
+// hash of the latest block. Read-only. Route: GET /chain/head (gateway: /api/chain/chain/head).
+func (bcs *BlockchainServer) handleChainHead(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	if bcs.BlockchainPtr == nil {
+		http.Error(w, "Blockchain not initialized", http.StatusInternalServerError)
+		return
+	}
+
+	head := map[string]interface{}{
+		"chain_id":   bcs.BlockchainPtr.ChainID,
+		"height":     uint64(0),
+		"block_hash": "",
+		"timestamp":  int64(0),
+	}
+	if n := len(bcs.BlockchainPtr.Blocks); n > 0 {
+		latest := bcs.BlockchainPtr.Blocks[n-1]
+		head["height"] = latest.BlockNumber
+		head["block_hash"] = hex.EncodeToString(latest.BlockHash)
+		head["timestamp"] = latest.Timestamp
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(head); err != nil {
+		log.Printf("failed to encode chain head: %v", err)
+	}
+}
+
+// handleAccountBalance returns the NRN balance of one account. Read-only.
+// Route: GET /accounts/balance?address=<addr> (gateway: /api/chain/accounts/balance).
+func (bcs *BlockchainServer) handleAccountBalance(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	address := r.URL.Query().Get("address")
+	if address == "" {
+		http.Error(w, "Missing address query parameter", http.StatusBadRequest)
+		return
+	}
+	if bcs.db == nil {
+		http.Error(w, "Database not initialized", http.StatusServiceUnavailable)
+		return
+	}
+	balance, err := bcs.db.GetAccountBalance(address)
+	if err != nil {
+		log.Printf("Failed to get balance for %s: %v", address, err)
+		http.Error(w, "Failed to retrieve account balance", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(map[string]interface{}{
+		"address": address,
+		"balance": balance,
+	}); err != nil {
+		log.Printf("failed to encode account balance: %v", err)
+	}
 }
 
 func (bcs *BlockchainServer) handleTestFaucet(w http.ResponseWriter, r *http.Request) {

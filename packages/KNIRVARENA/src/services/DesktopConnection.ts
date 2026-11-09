@@ -1,4 +1,4 @@
-import { getKnirvGatewayUrl } from '../config/runtimeConfig';
+import { getKnirvGatewayUrl, getLocalGatewayUrl } from '../config/runtimeConfig';
 import {
   MESSAGE_SCHEMA_VERSION,
   verifyMessageEnvelope,
@@ -376,9 +376,11 @@ export class DesktopConnectionService {
 		expiresAtUnix: envelope.expiresAtUnix, payload: this.bytesToBase64(envelope.payload),
 	  },
 	};
-	// Only the configured network's broker (plus a local KNIRVGATEWAY): a
-	// testnet signing request must never be offered to the mainnet broker.
-	const gateways = [getKnirvGatewayUrl(), 'http://localhost:8080'];
+	// Only the configured network's broker, plus the KNIRVGATEWAY on this computer
+	// when the Client supplies one: a testnet signing request must never be
+	// offered to the mainnet broker.
+	const localGateway = getLocalGatewayUrl();
+	const gateways = localGateway ? [getKnirvGatewayUrl(), localGateway] : [getKnirvGatewayUrl()];
 	let selected = '';
 	let created: { request_id: string; approval_uri: string; expires_at?: string } | undefined;
 	for (const gateway of gateways) {

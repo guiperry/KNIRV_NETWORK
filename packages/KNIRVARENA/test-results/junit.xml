@@ -1,29 +1,29 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuites name="jest tests" tests="11" failures="0" errors="0" time="5.693">
-  <testsuite name="ArenaRelayKeys" errors="0" failures="0" skipped="0" timestamp="2026-10-31T14:58:40" time="2.983" tests="7">
-    <testcase classname="ArenaRelayKeys creates one secp256k1 key per pairing and stores it only encrypted" name="ArenaRelayKeys creates one secp256k1 key per pairing and stores it only encrypted" time="0.078">
+<testsuites name="jest tests" tests="11" failures="0" errors="0" time="4.496">
+  <testsuite name="submitChainWrite" errors="0" failures="0" skipped="0" timestamp="2026-11-09T10:13:31" time="2.482" tests="6">
+    <testcase classname="submitChainWrite keeps the action schema version equal to the SDK" name="submitChainWrite keeps the action schema version equal to the SDK" time="0.02">
     </testcase>
-    <testcase classname="ArenaRelayKeys signs a knirv.message.v1 relay-request that the SDK verifier (the CLI rule) accepts" name="ArenaRelayKeys signs a knirv.message.v1 relay-request that the SDK verifier (the CLI rule) accepts" time="0.031">
+    <testcase classname="submitChainWrite signs through the Controller broker and posts the signed transaction to the chain" name="submitChainWrite signs through the Controller broker and posts the signed transaction to the chain" time="0.043">
     </testcase>
-    <testcase classname="ArenaRelayClient builds a cli_supervisor relay with the payload and posts it to the hub" name="ArenaRelayClient builds a cli_supervisor relay with the payload and posts it to the hub" time="0.044">
+    <testcase classname="submitChainWrite fails when the Controller rejects the request" name="submitChainWrite fails when the Controller rejects the request" time="0.051">
     </testcase>
-    <testcase classname="ArenaRelayClient rejects a lease epoch below 1 and a missing pairing" name="ArenaRelayClient rejects a lease epoch below 1 and a missing pairing" time="0.035">
+    <testcase classname="submitChainWrite refuses a signed transaction from a different address" name="submitChainWrite refuses a signed transaction from a different address" time="0.016">
     </testcase>
-    <testcase classname="ArenaRelayClient surfaces hub errors with their code" name="ArenaRelayClient surfaces hub errors with their code" time="0.027">
+    <testcase classname="submitChainWrite surfaces the chain rejection, such as a stale sequence" name="submitChainWrite surfaces the chain rejection, such as a stale sequence" time="0.013">
     </testcase>
-    <testcase classname="verifyCliResponse accepts a correctly signed response and reports the key to pin" name="verifyCliResponse accepts a correctly signed response and reports the key to pin" time="0.028">
-    </testcase>
-    <testcase classname="verifyCliResponse rejects a tampered payload, another request, a forged signature and an unpinned key" name="verifyCliResponse rejects a tampered payload, another request, a forged signature and an unpinned key" time="0.034">
+    <testcase classname="submitChainWrite fails when the account state cannot be read" name="submitChainWrite fails when the account state cannot be read" time="0.01">
     </testcase>
   </testsuite>
-  <testsuite name="model status (SDK module, run in the Rust core)" errors="0" failures="0" skipped="0" timestamp="2026-10-31T14:58:43" time="1.315" tests="4">
-    <testcase classname="model status (SDK module, run in the Rust core) produces the shared role lines for every case" name="model status (SDK module, run in the Rust core) produces the shared role lines for every case" time="0.033">
+  <testsuite name="KNIRVChainIntegration writes" errors="0" failures="0" skipped="0" timestamp="2026-11-09T10:13:33" time="0.416" tests="5">
+    <testcase classname="KNIRVChainIntegration writes registers a skill as a signed TOOL capability through the gateway" name="KNIRVChainIntegration writes registers a skill as a signed TOOL capability through the gateway" time="0.022">
     </testcase>
-    <testcase classname="model status (SDK module, run in the Rust core) uses the contract path" name="model status (SDK module, run in the Rust core) uses the contract path" time="0.017">
+    <testcase classname="KNIRVChainIntegration writes refuses a skill type the chain does not define" name="KNIRVChainIntegration writes refuses a skill type the chain does not define" time="0.048">
     </testcase>
-    <testcase classname="model status (SDK module, run in the Rust core) fetchModelStatus sends the bearer token and the limit" name="model status (SDK module, run in the Rust core) fetchModelStatus sends the bearer token and the limit" time="0.036">
+    <testcase classname="KNIRVChainIntegration writes records a skill invocation as a signed invoke transaction paying the usage fee" name="KNIRVChainIntegration writes records a skill invocation as a signed invoke transaction paying the usage fee" time="0.017">
     </testcase>
-    <testcase classname="model status (SDK module, run in the Rust core) fetchModelStatus refuses without a token, names an old server, and surfaces other failures" name="model status (SDK module, run in the Rust core) fetchModelStatus refuses without a token, names an old server, and surfaces other failures" time="0.018">
+    <testcase classname="KNIRVChainIntegration writes still refuses NRN transfers, which the chain does not accept" name="KNIRVChainIntegration writes still refuses NRN transfers, which the chain does not accept" time="0.012">
+    </testcase>
+    <testcase classname="KNIRVChainIntegration writes still refuses LLM model registration, which the chain has no registry for" name="KNIRVChainIntegration writes still refuses LLM model registration, which the chain has no registry for" time="0.01">
     </testcase>
   </testsuite>
 </testsuites>

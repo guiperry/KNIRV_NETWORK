@@ -83,12 +83,6 @@ module.exports = {
       functions: 100,
       lines: 100,
       statements: 100
-    },
-    'src/sensory-shell/KNIRVRouterIntegration.ts': {
-      branches: 100,
-      functions: 100,
-      lines: 100,
-      statements: 100
     }
   },
   

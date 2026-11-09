@@ -29,7 +29,6 @@ export class CognitiveShellDemo {
       sealFrameworkEnabled: false,
       fabricAlgorithmEnabled: false,
       knirvChainIntegrationEnabled: false,
-      knirvRouterIntegrationEnabled: false,
       adaptiveLearningEnabled: false,
       walletIntegrationEnabled: false,
       chainIntegrationEnabled: false,

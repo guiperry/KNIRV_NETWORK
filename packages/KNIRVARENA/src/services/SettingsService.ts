@@ -1,3 +1,4 @@
+import { getKnirvGatewayUrl } from '../config/runtimeConfig';
 /**
  * Settings Service
  * Handles configuration persistence, user preferences, and system settings
@@ -139,7 +140,7 @@ export class SettingsService {
 
   constructor(config: SettingsConfig = {}) {
     this.config = {
-      baseUrl: 'http://localhost:3001',
+      baseUrl: getKnirvGatewayUrl(),
       enableNetworking: process.env.NODE_ENV !== 'test',
       enableSync: process.env.NODE_ENV !== 'test',
       ...config
@@ -490,9 +491,9 @@ export class SettingsService {
       },
       advanced: {
         apiEndpoints: {
-          cognitive: 'http://localhost:3001/api/cognitive',
-          wallet: 'http://localhost:3001/api/wallet',
-          analytics: 'http://localhost:3001/api/analytics'
+          cognitive: `${getKnirvGatewayUrl()}/api/cognitive`,
+          wallet: `${getKnirvGatewayUrl()}/api/wallet`,
+          analytics: `${getKnirvGatewayUrl()}/api/analytics`
         },
         featureFlags: {
           experimentalUI: false,

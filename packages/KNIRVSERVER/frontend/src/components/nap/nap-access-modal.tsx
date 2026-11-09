@@ -18,7 +18,7 @@ interface NetworkAccessModalProps {
   onClose: () => void;
   nodeId: string;
   nodeName: string;
-  onOpenKNIRVEngine: () => void;
+  onOpenTestlab: () => void;
   isModular?: boolean;
   onToggleMode?: () => void;
 }
@@ -28,7 +28,7 @@ export function NetworkAccessModal({
   onClose,
   nodeId,
   nodeName,
-  onOpenKNIRVEngine,
+  onOpenTestlab,
   isModular,
   onToggleMode
 }: NetworkAccessModalProps) {

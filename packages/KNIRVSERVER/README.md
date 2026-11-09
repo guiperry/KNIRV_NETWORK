@@ -146,6 +146,19 @@ cd packages/KNIRVSERVER/frontend && npm test
 cd integration-tests && go test -v ./...
 ```
 
+## Boot-node enrollment (DEC-2)
+
+The boot-node enrollment server listens on an internal Unix-domain socket (`KNIRV_ENROLL_SOCKET`).
+KNIRVGATEWAY proxies `POST /enroll/{step}` to that socket, unchanged. The gateway forwards only
+POST and adds no credentials of its own: every step is authenticated by the enrollment
+protocol itself (a challenge signed by the new bootnode key, a root approval, and a nonce
+consumed once from a file-backed store under the app data directory). The gateway route is
+registered only when the socket is configured, and returns 502 while the socket is not listening.
+
+It is enabled by `KNIRV_ENROLL_SOCKET` and needs `KNIRV_ENROLL_ROOT_PUBKEY` and
+`KNIRV_ENROLL_OPERATOR`. The launcher passes the socket to the backend, which passes it to the
+gateway as `ENROLL_SOCKET_PATH`.
+
 ## Implementation Notes
 
 A few things are important when reading the code:

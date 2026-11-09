@@ -1,23 +1,45 @@
 import { EventEmitter } from './EventEmitter';
-import { KNIRVRouterIntegration } from './KNIRVRouterIntegration';
 import { getKnirvGatewayUrl } from '../config/runtimeConfig';
+import { submitChainWrite, type ChainWrite } from '../services/ChainWrites';
+import { showQR } from '../services/ControllerActuarialHandoff';
+
+/**
+ * KNIRV Chain access for the Arena.
+ *
+ * Every call goes to a KNIRVCHAIN route that KNIRVGATEWAY proxies under
+ * `/api/chain/*` (the gateway strips the prefix and forwards to the chain
+ * socket, `internal/blockchain/blockchain_server.go`):
+ *
+ *   GET /api/chain/health                          liveness
+ *   GET /api/chain/chain/head                      head: chain id, height, hash
+ *   GET /api/chain/mcp/capability/list?type=TOOL   skills (MCP TOOL capabilities)
+ *   GET /api/chain/mcp/capability/get?id=<id>      one capability (404 when absent)
+ *   GET /api/chain/accounts/balance?address=<a>    NRN balance of an account
+ *
+ * Writes (register a skill, invoke a skill, transfer NRN) must be signed chain
+ * transactions. The Arena cannot sign them yet, so those methods reject with
+ * an explicit error instead of returning placeholder data.
+ */
+
+/** KNIRVCHAIN capability type that the Arena treats as a skill. */
+export const SKILL_CAPABILITY_TYPE = 'TOOL';
 
 export interface ChainConfig {
+  /** Chain base URL on the gateway, e.g. `https://gateway.knirv.com/api/chain`. */
   rpcUrl: string;
   chainId: string;
   networkName: string;
-  contractAddresses: {
-    nrnToken: string;
-    llmRegistry: string;
-    skillRegistry: string;
-  };
-  gasPrice: string;
-  gasLimit: string;
-  // KNIRVROUTER network configuration
-  knirvRouterUrl?: string;
-  knirvGraphUrl?: string;
-  useKnirvRouter?: boolean;
+  /** Per-request timeout in milliseconds. */
+  requestTimeoutMs: number;
+  /**
+   * Shows the Controller approval URI for a signed write. Defaults to the QR
+   * prompt; returns a closer for the prompt.
+   */
+  onApprovalUri?: ChainWrite['onApprovalUri'];
 }
+
+/** KNIRV Chain capability types a skill may be registered as. */
+const CHAIN_CAPABILITY_TYPES = ['TOOL', 'RESOURCE', 'PROMPT', 'MEMORY_SERVICE'] as const;
 
 export interface SkillMetadata {
   id: string;
@@ -27,6 +49,10 @@ export interface SkillMetadata {
   requirements: Record<string, string>;
   owner: string;
   usageFee: string;
+  /**
+   * KNIRVCHAIN capabilities carry no validation status, so skills read from the
+   * chain are reported as `pending` until the chain exposes one.
+   */
   validationStatus: 'pending' | 'validated' | 'rejected';
   performanceMetrics: {
     successRate: number;
@@ -61,189 +87,72 @@ export interface SkillInvocation {
   transactionHash: string;
 }
 
-export interface ContractCall {
-  contract: string;
-  method: string;
-  params: unknown;
-}
-
-export interface ContractResponse {
-  success: boolean;
-  data?: unknown;
-  error?: string;
-  transactionHash?: string;
-  gasUsed?: string;
-}
-
 export interface NetworkConsensus {
+  chainId: string;
   blockHeight: number;
   blockHash: string;
-  validators: string[];
-  consensusReached: boolean;
   timestamp: number;
 }
 
-// KNIRVROUTER network integration interfaces
-export interface ErrorContext {
-  errorId: string;
-  errorType: string;
-  errorMessage: string;
-  stackTrace: string;
-  userContext: unknown;
-  agentId: string;
-  timestamp: number;
-  severity: 'low' | 'medium' | 'high' | 'critical';
-}
-
-export interface SkillNodeURI {
-  nodeId: string;
-  skillId: string;
-  routerAddress: string;
-  networkPath: string;
-  capabilities: string[];
-  confidence: number;
-}
-
-export interface KNIRVRouterRequest {
-  requestId: string;
-  errorContext: ErrorContext;
-  requiredCapabilities: string[];
-  nrnToken: string;
-  agentId: string;
-  priority: 'low' | 'normal' | 'high';
+interface ChainHeadBody {
+  chain_id: string;
+  height: number;
+  block_hash: string;
   timestamp: number;
 }
 
-export interface KNIRVRouterResponse {
-  requestId: string;
-  status: 'SUCCESS' | 'FAILURE' | 'NOT_FOUND';
-  skillNodeUri?: SkillNodeURI;
-  loraAdapter?: LoRAAdapterData;
-  errorMessage?: string;
-  executionTime: number;
-  networkLatency: number;
-}
+const unsupportedWrite = (operation: string, reason: string): Error =>
+  new Error(`${operation} is not available: ${reason}`);
 
-export interface LoRAAdapterData {
-  adapterId: string;
-  adapterName: string;
-  description: string;
-  baseModelCompatibility: string;
-  version: number;
-  rank: number;
-  alpha: number;
-  weightsA: Float32Array;
-  weightsB: Float32Array;
-  metadata: Record<string, string>;
-  createdAt: Date;
-  lastUsed: Date;
-  usageCount: number;
-  networkScore: number;
-}
+const encode = (value: unknown): Uint8Array => new TextEncoder().encode(JSON.stringify(value));
+
+/** A random identifier from the platform's CSPRNG (available in browsers and jsdom alike). */
+const randomHex = (bytes: number): string =>
+  Array.from(crypto.getRandomValues(new Uint8Array(bytes)), (b) => b.toString(16).padStart(2, '0')).join('');
 
 export class KNIRVChainIntegration extends EventEmitter {
   private config: ChainConfig;
   private isConnected: boolean = false;
   private skills: Map<string, SkillMetadata> = new Map();
+  // KNIRVCHAIN has no LLM-model registry; this map stays empty.
   private llmModels: Map<string, LLMMetadata> = new Map();
+  // Invocations are recorded on chain only once signed submission exists.
   private skillInvocations: Map<string, SkillInvocation[]> = new Map();
-  private knirvRouter: KNIRVRouterIntegration;
   private lastBlockHeight: number = 0;
+  private monitorTimer: ReturnType<typeof setInterval> | null = null;
 
   constructor(config: Partial<ChainConfig>) {
     super();
-
     this.config = {
       rpcUrl: `${getKnirvGatewayUrl()}/api/chain`,
       chainId: 'knirv-1',
       networkName: 'KNIRV Network',
-      contractAddresses: {
-        nrnToken: '',
-        llmRegistry: '',
-        skillRegistry: '',
-      },
-      gasPrice: '20000000000', // 20 gwei
-      gasLimit: '500000',
-      // KNIRVROUTER network defaults
-      knirvRouterUrl: 'http://localhost:5000/knirv-router',
-      knirvGraphUrl: 'http://localhost:5001/knirv-graph',
-      useKnirvRouter: true,
+      requestTimeoutMs: 15000,
+      onApprovalUri: typeof document !== 'undefined' ? showQR : undefined,
       ...config,
     };
-
-    // Initialize KNIRVROUTER integration
-    this.knirvRouter = new KNIRVRouterIntegration({
-      routerUrl: this.config.knirvRouterUrl || 'http://localhost:5000',
-      graphUrl: this.config.knirvGraphUrl || 'http://localhost:5001',
-      oracleUrl: 'http://localhost:5002',
-      timeout: 30000,
-      retryAttempts: 3,
-      enableP2P: true,
-      enableWASM: true
-    });
-
-    // Set up KNIRVROUTER event handlers
-    this.setupKNIRVRouterEventHandlers();
   }
 
-  /**
-   * Set up KNIRVROUTER event handlers
-   */
-  private setupKNIRVRouterEventHandlers(): void {
-    this.knirvRouter.on('connected', (data) => {
-      console.log('KNIRVROUTER connected:', data);
-      this.emit('knirvRouterConnected', data);
-    });
-
-    this.knirvRouter.on('disconnected', (data) => {
-      console.log('KNIRVROUTER disconnected:', data);
-      this.emit('knirvRouterDisconnected', data);
-    });
-
-    this.knirvRouter.on('skillResolved', (data) => {
-      console.log('Skill resolved via KNIRVROUTER:', data);
-      this.emit('skillResolvedViaKNIRVRouter', data);
-    });
-
-    this.knirvRouter.on('skillNodeDiscovered', (data) => {
-      console.log('Skill node discovered:', data);
-      this.emit('skillNodeDiscovered', data);
-    });
-
-    this.knirvRouter.on('p2pConnected', (data) => {
-      console.log('P2P connection established:', data);
-      this.emit('p2pConnected', data);
-    });
-
-    this.knirvRouter.on('wasmSkillExecuted', (data) => {
-      console.log('WASM skill executed:', data);
-      this.emit('wasmSkillExecuted', data);
-    });
-
-    this.knirvRouter.on('loraAdapterRegistered', (data) => {
-      console.log('LoRA adapter registered:', data);
-      this.emit('loraAdapterRegistered', data);
-    });
+  /** The gateway origin that chain signing requests and transactions go through. */
+  private gatewayOrigin(): string {
+    const origin = /^https?:\/\/[^/]+/i.exec(this.config.rpcUrl);
+    if (!origin) {
+      throw new Error(`KNIRV Chain URL is not absolute: ${this.config.rpcUrl}`);
+    }
+    return origin[0];
   }
 
   public async initialize(): Promise<void> {
     console.log('Initializing KNIRV Chain Integration...');
 
     try {
-      // Connect to KNIRV Chain RPC
       await this.connectToChain();
-
-      // Load existing skills and LLM models
       await this.loadSkillRegistry();
-      await this.loadLLMRegistry();
 
-      // Start monitoring blockchain events
       this.startEventMonitoring();
-
       this.isConnected = true;
       this.emit('chainInitialized');
       console.log('KNIRV Chain Integration initialized successfully');
-
     } catch (error) {
       console.error('Failed to initialize KNIRV Chain Integration:', error);
       throw error;
@@ -252,7 +161,8 @@ export class KNIRVChainIntegration extends EventEmitter {
 
   public async disconnect(): Promise<void> {
     console.log('Disconnecting KNIRV Chain Integration...');
-    
+
+    this.stopEventMonitoring();
     this.isConnected = false;
     this.skills.clear();
     this.llmModels.clear();
@@ -262,280 +172,149 @@ export class KNIRVChainIntegration extends EventEmitter {
     console.log('KNIRV Chain Integration disconnected');
   }
 
-  private async connectToChain(): Promise<void> {
+  /** GET a chain route through the gateway. Returns the raw Response; throws on network failure. */
+  private async chainFetch(path: string, query: Record<string, string> = {}): Promise<Response> {
+    const base = this.config.rpcUrl.replace(/\/$/, '');
+    const search = new URLSearchParams(query).toString();
+    const url = `${base}${path}${search ? `?${search}` : ''}`;
+
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), this.config.requestTimeoutMs);
     try {
-      console.log(`Connecting to KNIRV Chain at ${this.config.rpcUrl}...`);
-      
-      // Test connection with a simple RPC call
-      const response = await fetch(`${this.config.rpcUrl}/status`);
-      const result = await response.json();
-
-      if (result.success) {
-        this.lastBlockHeight = result.data.block_height || 0;
-        console.log(`Connected to KNIRV Chain at block height: ${this.lastBlockHeight}`);
-      } else {
-        throw new Error('Failed to connect to KNIRV Chain');
-      }
-
-    } catch (error) {
-      console.error('Chain connection failed:', error);
-      throw error;
+      return await fetch(url, { headers: { Accept: 'application/json' }, signal: controller.signal });
+    } finally {
+      clearTimeout(timer);
     }
+  }
+
+  /** GET a chain route and decode JSON. A 404 resolves with `data: null`; other failures throw. */
+  private async chainGet<T>(path: string, query: Record<string, string> = {}): Promise<{ status: number; data: T | null }> {
+    const response = await this.chainFetch(path, query);
+    if (response.status === 404) {
+      return { status: 404, data: null };
+    }
+    if (!response.ok) {
+      throw new Error(`KNIRV Chain ${path} failed: HTTP ${response.status}`);
+    }
+    return { status: response.status, data: (await response.json()) as T };
+  }
+
+  private async connectToChain(): Promise<void> {
+    console.log(`Connecting to KNIRV Chain at ${this.config.rpcUrl}...`);
+
+    const health = await this.chainFetch('/health');
+    if (!health.ok) {
+      throw new Error(`KNIRV Chain health check failed: HTTP ${health.status}`);
+    }
+
+    const head = await this.chainGet<ChainHeadBody>('/chain/head');
+    if (!head.data) {
+      throw new Error('KNIRV Chain returned no head');
+    }
+    this.lastBlockHeight = head.data.height;
+    console.log(`Connected to KNIRV Chain at block height: ${this.lastBlockHeight}`);
   }
 
   private async loadSkillRegistry(): Promise<void> {
     try {
-      console.log('Loading skill registry from chain...');
-      
-      const response = await this.executeContractCall({
-        contract: 'skill_registry',
-        method: 'get_all_skills',
-        params: {},
-      });
+      console.log('Loading skills from KNIRV Chain...');
 
-      if (response.success && response.data) {
-        const skills = (response.data as { skills?: unknown[] }).skills || [];
-        
-        for (const skill of skills) {
-          const skillMetadata = skill as SkillMetadata;
-          this.skills.set(skillMetadata.id, skillMetadata);
+      const list = await this.chainGet<{ capabilities?: unknown[] }>('/mcp/capability/list', {
+        type: SKILL_CAPABILITY_TYPE,
+      });
+      for (const capability of list.data?.capabilities ?? []) {
+        const skill = this.toSkillMetadata(capability);
+        if (skill) {
+          this.skills.set(skill.id, skill);
         }
-
-        console.log(`Loaded ${this.skills.size} skills from registry`);
-        this.emit('skillsLoaded', Array.from(this.skills.values()));
       }
 
+      console.log(`Loaded ${this.skills.size} skills from KNIRV Chain`);
+      this.emit('skillsLoaded', Array.from(this.skills.values()));
     } catch (error) {
-      console.error('Failed to load skill registry:', error);
+      console.error('Failed to load skills from KNIRV Chain:', error);
     }
   }
 
-  private async loadLLMRegistry(): Promise<void> {
-    try {
-      console.log('Loading LLM registry from chain...');
-      
-      const response = await this.executeContractCall({
-        contract: 'llm_registry',
-        method: 'get_all_models',
-        params: {},
-      });
-
-      if (response.success && response.data) {
-        const models = (response.data as { models?: unknown[] }).models || [];
-        
-        for (const model of models) {
-          const modelMetadata = model as LLMMetadata;
-          this.llmModels.set(modelMetadata.id, modelMetadata);
-        }
-
-        console.log(`Loaded ${this.llmModels.size} LLM models from registry`);
-        this.emit('llmModelsLoaded', Array.from(this.llmModels.values()));
-      }
-
-    } catch (error) {
-      console.error('Failed to load LLM registry:', error);
+  private toSkillMetadata(raw: unknown): SkillMetadata | null {
+    const c = raw as {
+      id?: string;
+      name?: string;
+      capabilityType?: string;
+      owner?: string;
+      gasFeeNRN?: number;
+      timestamp?: number;
+      description?: string;
+    };
+    if (!c || typeof c.id !== 'string' || c.id === '') {
+      return null;
     }
+    return {
+      id: c.id,
+      name: c.name || c.id,
+      skillType: c.capabilityType || SKILL_CAPABILITY_TYPE,
+      capabilities: [],
+      requirements: {},
+      owner: c.owner || '',
+      usageFee: String(c.gasFeeNRN ?? 0),
+      validationStatus: 'pending',
+      performanceMetrics: {
+        successRate: 0,
+        averageLatency: 0,
+        totalInvocations: 0,
+        lastUpdated: Date.now(),
+      },
+      registeredAt: Number(c.timestamp) || 0,
+    };
   }
 
-  public async executeContractCall(call: ContractCall): Promise<ContractResponse> {
-    if (!this.isConnected) {
-      throw new Error('Not connected to KNIRV Chain');
-    }
-
-    try {
-      console.log(`Executing contract call: ${call.contract}.${call.method}`);
-      
-      const response = await fetch(`${this.config.rpcUrl}/contract/call`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          contract: call.contract,
-          method: call.method,
-          params: call.params,
-          gas_price: this.config.gasPrice,
-          gas_limit: this.config.gasLimit,
-        }),
-      });
-
-      const result = await response.json();
-      
-      if (result.success) {
-        this.emit('contractCallExecuted', {
-          call,
-          response: result.data,
-          timestamp: Date.now(),
-        });
-
-        return {
-          success: true,
-          data: result.data,
-          transactionHash: result.transaction_hash,
-          gasUsed: result.gas_used,
-        };
-      } else {
-        return {
-          success: false,
-          error: result.error || 'Contract call failed',
-        };
-      }
-
-    } catch (error) {
-      console.error('Contract call failed:', error);
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : String(error),
-      };
-    }
-  }
-
+  /** Whether a skill (capability) exists on chain. The chain has no validation status to report. */
   public async verifySkill(skillId: string): Promise<boolean> {
     try {
-      const response = await this.executeContractCall({
-        contract: 'skill_registry',
-        method: 'get_skill',
-        params: { skill_id: skillId },
+      const response = await this.chainGet<{ status?: string; capability?: unknown }>('/mcp/capability/get', {
+        id: skillId,
       });
-
-      if (response.success && response.data) {
-        const skill = (response.data as { skill: { validation_status?: string } }).skill;
-        return skill.validation_status === 'validated';
-      }
-
-      return false;
-
+      return response.status === 200 && response.data?.status === 'success' && response.data.capability != null;
     } catch (error) {
-      console.error('Failed to verify skill:', error);
+      console.error('Failed to verify skill on KNIRV Chain:', error);
       return false;
     }
   }
 
   /**
-   * Revolutionary ErrorContext → KNIRVGRAPH → KNIRVROUTER skill invocation
-   * This replaces embedded skill invocation with external network integration
+   * Records a skill invocation on chain. The invoker signs it in the Controller and
+   * pays the usage fee as the network fee.
    */
   public async invokeSkillOnChain(
     skillId: string,
     userAddress: string,
     nrnAmount: string,
-    parameters: unknown
+    _parameters: unknown
   ): Promise<string> {
-    try {
-      console.log(`Invoking skill ${skillId} via KNIRVROUTER network...`);
-
-      // Use KNIRVROUTER if enabled
-      if (this.config.useKnirvRouter) {
-        return await this.invokeSkillViaKNIRVRouter(skillId, userAddress, nrnAmount, parameters);
-      }
-
-      // Fallback to traditional blockchain invocation
-      return await this.invokeSkillOnTraditionalChain(skillId, userAddress, nrnAmount, parameters);
-
-    } catch (error) {
-      console.error('Failed to invoke skill via KNIRVROUTER:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Invoke skill via KNIRVROUTER network (revolutionary ErrorContext → KNIRVGRAPH → SkillNode approach)
-   */
-  private async invokeSkillViaKNIRVRouter(
-    skillId: string,
-    userAddress: string,
-    nrnAmount: string,
-    parameters: unknown
-  ): Promise<string> {
-    // Generate ErrorContext for the skill request
-    const errorContext: ErrorContext = {
-      errorId: `err_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      errorType: 'skill_invocation_request',
-      errorMessage: `Skill invocation requested: ${skillId}`,
-      stackTrace: `Skill: ${skillId}, User: ${userAddress}, NRN: ${nrnAmount}`,
-      userContext: { userAddress, nrnAmount, parameters },
-      agentId: (parameters as { agentId?: string }).agentId || 'unknown-agent',
-      timestamp: Date.now(),
-      severity: (parameters as { priority?: string }).priority === 'high' ? 'high' : 'medium'
+    const timestamp = Math.floor(Date.now() / 1000);
+    const invocation = {
+      contextRecord: {
+        id: '',
+        capabilityID: skillId,
+        interactionType: 'Invoke',
+        initiator: userAddress,
+        status: 'pending',
+        timestamp,
+        timestampInitiated: timestamp,
+      },
     };
-
-    // Use the KNIRVRouterIntegration for skill resolution
-    const routerResponse = await this.knirvRouter.resolveSkillViaErrorContext(
-      errorContext,
-      ((parameters as { capabilities?: unknown[] }).capabilities || []) as string[],
+    const transactionHash = await submitChainWrite(
       {
-        priority: ((parameters as { priority?: string }).priority as 'low' | 'normal' | 'high') || 'normal',
-        useP2P: (parameters as { useP2P?: boolean }).useP2P !== false,
-        useWASM: (parameters as { useWASM?: boolean }).useWASM !== false,
-        nrnToken: nrnAmount
-      }
+        type: 'invoke_capability_txn',
+        sender: userAddress,
+        data: encode(invocation),
+        fee: Number(nrnAmount) || 0,
+        onApprovalUri: this.config.onApprovalUri,
+      },
+      { gatewayUrl: this.gatewayOrigin() },
     );
 
-    if (routerResponse.status !== 'SUCCESS') {
-      throw new Error(`Skill resolution failed: ${routerResponse.errorMessage}`);
-    }
-
-    // Emit the event for backward compatibility
-    this.emit('skillResolvedViaKNIRVRouter', {
-      requestId: routerResponse.requestId,
-      skillId,
-      skillNodeUri: routerResponse.skillNodeUri,
-      userAddress,
-      nrnAmount,
-      executionTime: routerResponse.executionTime,
-      networkLatency: routerResponse.networkLatency,
-      timestamp: Date.now(),
-    });
-
-    return routerResponse.requestId;
-  }
-
-
-
-  /**
-   * Invoke skill on traditional blockchain (fallback)
-   */
-  private async invokeSkillOnTraditionalChain(
-    skillId: string,
-    userAddress: string,
-    nrnAmount: string,
-    parameters: unknown
-  ): Promise<string> {
-    // First, burn NRN tokens for skill usage
-    const burnResponse = await this.executeContractCall({
-      contract: 'nrn_token',
-      method: 'burn_for_skill',
-      params: {
-        from: userAddress,
-        skill_id: skillId,
-        amount: nrnAmount,
-      },
-    });
-
-    if (!burnResponse.success) {
-      throw new Error(`Failed to burn NRN: ${burnResponse.error}`);
-    }
-
-    // Record skill invocation
-    const invocationResponse = await this.executeContractCall({
-      contract: 'skill_registry',
-      method: 'record_invocation',
-      params: {
-        skill_id: skillId,
-        user: userAddress,
-        amount_burned: nrnAmount,
-        parameters: JSON.stringify(parameters),
-      },
-    });
-
-    if (!invocationResponse.success) {
-      throw new Error(`Failed to record invocation: ${invocationResponse.error}`);
-    }
-
-    const transactionHash = invocationResponse.transactionHash || '';
-
-    // Update local cache
-    const invocation: SkillInvocation = {
+    const record: SkillInvocation = {
       skillId,
       user: userAddress,
       amountBurned: nrnAmount,
@@ -543,312 +322,104 @@ export class KNIRVChainIntegration extends EventEmitter {
       success: true,
       transactionHash,
     };
-
     if (!this.skillInvocations.has(skillId)) {
       this.skillInvocations.set(skillId, []);
     }
-    this.skillInvocations.get(skillId)!.push(invocation);
-
-    this.emit('skillInvokedOnChain', invocation);
+    this.skillInvocations.get(skillId)!.push(record);
+    this.emit('skillInvokedOnChain', record);
     return transactionHash;
   }
 
+  /**
+   * Registers a skill as a KNIRV Chain capability. The owner signs the registration in
+   * the Controller; the chain verifies it and stores the capability.
+   */
   public async registerSkill(skillMetadata: Omit<SkillMetadata, 'id' | 'registeredAt'>): Promise<string> {
-    try {
-      console.log(`Registering skill: ${skillMetadata.name}`);
-
-      const response = await this.executeContractCall({
-        contract: 'skill_registry',
-        method: 'register_skill',
-        params: {
-          name: skillMetadata.name,
-          skill_type: skillMetadata.skillType,
-          capabilities: skillMetadata.capabilities,
-          requirements: skillMetadata.requirements,
-          owner: skillMetadata.owner,
-          usage_fee: skillMetadata.usageFee,
-        },
-      });
-
-      if (response.success && response.data) {
-        const skillId = (response.data as { skill_id?: string }).skill_id;
-        
-        // Update local cache
-        const fullSkillMetadata: SkillMetadata = {
-          ...skillMetadata,
-          id: skillId || 'unknown-skill-id',
-          registeredAt: Date.now(),
-          validationStatus: 'pending' as 'pending' | 'validated' | 'rejected',
-          performanceMetrics: {
-            successRate: 0,
-            averageLatency: 0,
-            totalInvocations: 0,
-            lastUpdated: Date.now(),
-          },
-        };
-
-        this.skills.set(skillId || 'unknown-skill-id', fullSkillMetadata);
-        this.emit('skillRegistered', fullSkillMetadata);
-
-        return skillId || 'unknown-skill-id';
-      } else {
-        throw new Error(response.error || 'Failed to register skill');
-      }
-
-    } catch (error) {
-      console.error('Failed to register skill:', error);
-      throw error;
+    if (!(CHAIN_CAPABILITY_TYPES as readonly string[]).includes(skillMetadata.skillType)) {
+      throw new Error(`skill type ${skillMetadata.skillType} is not a KNIRV Chain capability type`);
     }
+    const skillId = `skill-${randomHex(16)}`;
+    const registration = {
+      capabilityID: skillId,
+      name: skillMetadata.name,
+      owner: skillMetadata.owner,
+      version: '1',
+      description: '',
+      capabilityType: skillMetadata.skillType,
+      gasFeeNRN: Number(skillMetadata.usageFee) || 0,
+      capabilityDescriptor: { inputSchemaJSON: '{}', outputSchemaJSON: '{}' },
+    };
+    await submitChainWrite(
+      {
+        type: 'register_capability_txn',
+        sender: skillMetadata.owner,
+        data: encode(registration),
+        onApprovalUri: this.config.onApprovalUri,
+      },
+      { gatewayUrl: this.gatewayOrigin() },
+    );
+
+    const registered: SkillMetadata = {
+      ...skillMetadata,
+      id: skillId,
+      registeredAt: Date.now(),
+      validationStatus: 'pending',
+      performanceMetrics: { successRate: 0, averageLatency: 0, totalInvocations: 0, lastUpdated: Date.now() },
+    };
+    this.skills.set(skillId, registered);
+    this.emit('skillRegistered', registered);
+    return skillId;
   }
 
-  public async registerLLMModel(llmMetadata: Omit<LLMMetadata, 'id' | 'registeredAt'>): Promise<string> {
-    try {
-      console.log(`Registering LLM model: ${llmMetadata.name}`);
-
-      const response = await this.executeContractCall({
-        contract: 'llm_registry',
-        method: 'register_model',
-        params: {
-          name: llmMetadata.name,
-          version: llmMetadata.version,
-          model_hash: llmMetadata.modelHash,
-          capabilities: llmMetadata.capabilities,
-          owner: llmMetadata.owner,
-          registration_fee: llmMetadata.registrationFee,
-          usage_fee: llmMetadata.usageFee,
-          ipfs_hash: llmMetadata.ipfsHash,
-        },
-      });
-
-      if (response.success && response.data) {
-        const modelId = (response.data as { model_id?: string }).model_id;
-        
-        // Update local cache
-        const fullLLMMetadata: LLMMetadata = {
-          ...llmMetadata,
-          id: modelId || 'unknown-model-id',
-          registeredAt: Date.now(),
-          validationStatus: 'pending' as 'pending' | 'validated' | 'rejected',
-        };
-
-        this.llmModels.set(modelId || 'unknown-model-id', fullLLMMetadata);
-        this.emit('llmModelRegistered', fullLLMMetadata);
-
-        return modelId || 'unknown-model-id';
-      } else {
-        throw new Error(response.error || 'Failed to register LLM model');
-      }
-
-    } catch (error) {
-      console.error('Failed to register LLM model:', error);
-      throw error;
-    }
+  public async registerLLMModel(_llmMetadata: Omit<LLMMetadata, 'id' | 'registeredAt'>): Promise<string> {
+    throw unsupportedWrite('Registering an LLM model', 'KNIRV Chain has no LLM model registry');
   }
 
+  public async transferNRN(_from: string, _to: string, _amount: string): Promise<string> {
+    throw unsupportedWrite(
+      'Transferring NRN',
+      'KNIRV Chain does not accept plain transfers; they belong to the Transaction Chain, which has no transfer route yet',
+    );
+  }
+
+  /** Current head of the chain, from `GET /chain/head`. */
   public async getNetworkConsensus(): Promise<NetworkConsensus> {
-    try {
-      const response = await fetch(`${this.config.rpcUrl}/consensus/status`);
-      const result = await response.json();
-
-      if (result.success) {
-        return {
-          blockHeight: result.data.block_height,
-          blockHash: result.data.block_hash,
-          validators: result.data.validators || [],
-          consensusReached: result.data.consensus_reached,
-          timestamp: Date.now(),
-        };
-      } else {
-        throw new Error('Failed to get network consensus');
-      }
-
-    } catch (error) {
-      console.error('Failed to get network consensus:', error);
-      throw error;
+    const head = await this.chainGet<ChainHeadBody>('/chain/head');
+    if (!head.data) {
+      throw new Error('KNIRV Chain returned no head');
     }
+    return {
+      chainId: head.data.chain_id,
+      blockHeight: head.data.height,
+      blockHash: head.data.block_hash,
+      timestamp: Date.now(),
+    };
   }
 
+  /** NRN balance of one account, from `GET /accounts/balance`. Throws on failure. */
   public async getNRNBalance(address: string): Promise<string> {
-    try {
-      const response = await this.executeContractCall({
-        contract: 'nrn_token',
-        method: 'balance_of',
-        params: { address },
-      });
-
-      if (response.success && response.data) {
-        return (response.data as { balance?: string }).balance || '0';
-      }
-
-      return '0';
-
-    } catch (error) {
-      console.error('Failed to get NRN balance:', error);
-      return '0';
-    }
-  }
-
-  public async transferNRN(from: string, to: string, amount: string): Promise<string> {
-    try {
-      const response = await this.executeContractCall({
-        contract: 'nrn_token',
-        method: 'transfer',
-        params: { from, to, amount },
-      });
-
-      if (response.success) {
-        this.emit('nrnTransferred', {
-          from,
-          to,
-          amount,
-          transactionHash: response.transactionHash,
-          timestamp: Date.now(),
-        });
-
-        return response.transactionHash || '';
-      } else {
-        throw new Error(response.error || 'Transfer failed');
-      }
-
-    } catch (error) {
-      console.error('Failed to transfer NRN:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Programmatic LoRA adapter filtering system that traverses skill chains to find relevant adapters
-   */
-  public async findSkillsWithFiltering(filter: {
-    skillType?: string;
-    baseModel?: string;
-    minNetworkScore?: number;
-    maxRank?: number;
-    capabilities?: string[];
-    excludeSkills?: string[];
-  }): Promise<LoRAAdapterData[]> {
-    if (!this.config.useKnirvRouter) {
-      console.warn('LoRA adapter filtering only available with KNIRVROUTER');
-      return [];
-    }
-
-    try {
-      const response = await fetch(`${this.config.knirvRouterUrl}/lora-adapters/filter`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(filter),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Filter request failed: ${response.statusText}`);
-      }
-
-      const result = await response.json();
-      return result.adapters || [];
-
-    } catch (error) {
-      console.error('Failed to filter LoRA adapters:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Create skill chain via KNIRVROUTER network using LoRA adapter composition
-   */
-  public async createSkillChain(skillIds: string[]): Promise<unknown> {
-    if (!this.config.useKnirvRouter) {
-      throw new Error('Skill chains only available with KNIRVROUTER');
-    }
-
-    try {
-      const response = await fetch(`${this.config.knirvRouterUrl}/skill-chains`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ skill_ids: skillIds }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Skill chain creation failed: ${response.statusText}`);
-      }
-
-      const skillChain = await response.json();
-
-      this.emit('skillChainCreated', {
-        chainId: skillChain.chain_id,
-        skillIds,
-        adapterCount: skillChain.adapters?.length || 0,
-        timestamp: Date.now(),
-      });
-
-      return skillChain;
-
-    } catch (error) {
-      console.error('Failed to create skill chain via KNIRVROUTER:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Get all available LoRA adapter skills from KNIRVROUTER network
-   */
-  public async getLoRAAdapterSkills(filter?: unknown): Promise<LoRAAdapterData[]> {
-    if (!this.config.useKnirvRouter) {
-      console.warn('LoRA adapter skills only available with KNIRVROUTER');
-      return [];
-    }
-
-    try {
-      return await this.knirvRouter.getLoRAAdapters(filter as any);
-    } catch (error) {
-      console.error('Failed to get LoRA adapters from KNIRVROUTER:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Register a new LoRA adapter skill via KNIRVROUTER network
-   */
-  public async registerLoRAAdapterSkill(skill: Omit<LoRAAdapterData, 'createdAt' | 'lastUsed' | 'usageCount' | 'networkScore' | 'routerNodes'>): Promise<string> {
-    if (!this.config.useKnirvRouter) {
-      throw new Error('LoRA adapter skill registration only available with KNIRVROUTER');
-    }
-
-    try {
-      return await this.knirvRouter.registerLoRAAdapter(skill);
-    } catch (error) {
-      console.error('Failed to register LoRA adapter via KNIRVROUTER:', error);
-      throw error;
-    }
+    const response = await this.chainGet<{ balance?: number }>('/accounts/balance', { address });
+    return String(response.data?.balance ?? 0);
   }
 
   private startEventMonitoring(): void {
-    // Monitor blockchain events
-    const monitorEvents = async () => {
-      while (this.isConnected) {
-        try {
-          await this.checkForNewBlocks();
-          await this.checkForSkillUpdates();
-          
-          // Wait before next check
-          await new Promise(resolve => setTimeout(resolve, 10000)); // 10 seconds
+    this.stopEventMonitoring();
+    this.monitorTimer = setInterval(() => {
+      void this.checkForNewBlocks();
+    }, 10000);
+  }
 
-        } catch (error) {
-          console.error('Error monitoring blockchain events:', error);
-        }
-      }
-    };
-
-    monitorEvents();
+  private stopEventMonitoring(): void {
+    if (this.monitorTimer) {
+      clearInterval(this.monitorTimer);
+      this.monitorTimer = null;
+    }
   }
 
   private async checkForNewBlocks(): Promise<void> {
     try {
       const consensus = await this.getNetworkConsensus();
-      
+
       if (consensus.blockHeight > this.lastBlockHeight) {
         const newBlocks = consensus.blockHeight - this.lastBlockHeight;
         this.lastBlockHeight = consensus.blockHeight;
@@ -859,41 +430,8 @@ export class KNIRVChainIntegration extends EventEmitter {
           blockHash: consensus.blockHash,
         });
       }
-
     } catch (error) {
       console.error('Error checking for new blocks:', error);
-    }
-  }
-
-  private async checkForSkillUpdates(): Promise<void> {
-    try {
-      // Check for skill validation updates
-      this.skills.forEach(async (skill, skillId) => {
-        if (skill.validationStatus === 'pending') {
-          const response = await this.executeContractCall({
-            contract: 'skill_registry',
-            method: 'get_skill',
-            params: { skill_id: skillId },
-          });
-
-          if (response.success && response.data) {
-            const updatedSkill = (response.data as { skill: { validation_status?: string } }).skill;
-            if (updatedSkill.validation_status !== skill.validationStatus) {
-              skill.validationStatus = (updatedSkill.validation_status as 'pending' | 'validated' | 'rejected') || 'pending';
-              this.skills.set(skillId, skill);
-              
-              this.emit('skillValidationUpdated', {
-                skillId,
-                newStatus: skill.validationStatus,
-                skill,
-              });
-            }
-          }
-        }
-      });
-
-    } catch (error) {
-      console.error('Error checking for skill updates:', error);
     }
   }
 
@@ -942,3 +480,5 @@ export class KNIRVChainIntegration extends EventEmitter {
     };
   }
 }
+
+export default KNIRVChainIntegration;

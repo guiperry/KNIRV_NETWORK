@@ -128,7 +128,7 @@ describe('Parameter Naming Fixes', () => {
 
   describe('P2P Message Handler Fixes', () => {
     it('should handle P2P WebSocket messages correctly', () => {
-      // Test the pattern that was fixed in KNIRVRouterIntegration.ts
+      // Test the pattern used by the chain integration
       const p2pMessageHandler = (event: MessageEvent) => {
         const message = JSON.parse(event.data);
         expect(message).toBeDefined();
@@ -145,7 +145,7 @@ describe('Parameter Naming Fixes', () => {
     });
 
     it('should handle skill node messages correctly', () => {
-      // Test the pattern that was fixed in KNIRVRouterIntegration.ts
+      // Test the pattern used by the chain integration
       const skillNodeHandler = (event: MessageEvent) => {
         const message = JSON.parse(event.data);
         return {

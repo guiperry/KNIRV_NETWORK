@@ -7,7 +7,7 @@ function canonical(value: Record<string, unknown>): string {
   const sort = (v: unknown): unknown => Array.isArray(v) ? v.map(sort) : v && typeof v === 'object' ? Object.fromEntries(Object.entries(v as Record<string, unknown>).sort(([a], [b]) => a.localeCompare(b)).map(([k, x]) => [k, sort(x)])) : v;
   return JSON.stringify(sort(value));
 }
-function showQR(uri: string) {
+export function showQR(uri: string): () => void {
   const dialog = document.createElement('div');
   dialog.style.cssText = 'position:fixed;inset:0;z-index:2147483647;display:grid;place-items:center;background:#000c;color:#fff;padding:24px;text-align:center';
   dialog.innerHTML = '<div style="max-width:360px;background:#172033;padding:24px;border-radius:12px"><h2>Approve in KNIRVCONTROLLER</h2><p>Scan with the mobile Controller. This expires in five minutes.</p><img alt="Controller approval QR code" style="width:280px;height:280px;background:white"/></div>';

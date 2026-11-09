@@ -1,3 +1,4 @@
+import { getKnirvGatewayUrl } from '../../config/runtimeConfig';
 /**
  * Skill Minting Process for KNIRVGRAPH
  * 
@@ -121,7 +122,7 @@ export class SkillMintingProcess extends EventEmitter {
       mintingTimeout: 180000, // 3 minutes
       minValidationScore: 0.8,
       maxConcurrentMinting: 3,
-      knirvchainRpcUrl: 'http://localhost:26657',
+      knirvchainRpcUrl: `${getKnirvGatewayUrl()}/api/chain`,
       enableSecurityValidation: true,
       enablePerformanceValidation: true,
       ...config

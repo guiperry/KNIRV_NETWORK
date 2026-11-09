@@ -2,6 +2,7 @@ package unit
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/hex"
 	"fmt"
 	"math/big"
@@ -10,6 +11,8 @@ import (
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/require"
 
 	"KNIRVCHAIN/config"
 	"KNIRVCHAIN/internal/agent"
@@ -148,13 +151,19 @@ func BlockchainToWalletTransaction(bcTx *blockchain.Transaction) *wallet.Transac
 	signature := fmt.Sprintf("%x", bcTx.Signature) // Convert []byte to hex string
 
 	return &wallet.Transaction{
-		From:      bcTx.From,
-		To:        bcTx.To,
-		Amount:    amount,
-		Data:      bcTx.Data,
-		Hash:      bcTx.TransactionHash,
-		Timestamp: timestamp,
-		Signature: signature,
+		From:          bcTx.From,
+		To:            bcTx.To,
+		Amount:        amount,
+		Fee:           new(big.Int).SetUint64(bcTx.Fee),
+		Data:          bcTx.Data,
+		Hash:          bcTx.TransactionHash,
+		Timestamp:     timestamp,
+		Signature:     signature,
+		ChainID:       bcTx.ChainID,
+		AccountNumber: bcTx.AccountNumber,
+		Nonce:         bcTx.Sequence,
+		Type:          bcTx.Type,
+		FeeDenom:      bcTx.FeeDenom,
 	}
 }
 
@@ -355,4 +364,31 @@ func (m *MockP2PConsensusManager) SetMiningLocked(locked bool) {
 
 func (m *MockP2PConsensusManager) SetUpdateRequired(required bool) {
 	m.updateRequired = required
+}
+
+// walletSequences is the next sequence each test wallet's address signs with.
+var walletSequences = map[string]uint64{}
+
+// signInPlace signs bcTx with the wallet through the SDK and copies every signed field back
+// onto bcTx, so the transaction the test submits is the one that was signed. Each address
+// takes consecutive sequences, as the chain requires.
+func signInPlace(t *testing.T, bcTx *blockchain.Transaction, w *wallet.WalletImpl) {
+	t.Helper()
+	walletTx := BlockchainToWalletTransaction(bcTx)
+	walletTx.Type = bcTx.Type
+	walletTx.Nonce = walletSequences[bcTx.From]
+	walletSequences[bcTx.From]++
+	require.NoError(t, w.SignTransaction(walletTx))
+
+	signature, err := base64.StdEncoding.DecodeString(walletTx.Signature)
+	require.NoError(t, err)
+	bcTx.ChainID = walletTx.ChainID
+	bcTx.AccountNumber = walletTx.AccountNumber
+	bcTx.Sequence = walletTx.Nonce
+	bcTx.FeeDenom = walletTx.FeeDenom
+	bcTx.PublicKey = walletTx.PublicKey
+	bcTx.BodyBytes = walletTx.BodyBytes
+	bcTx.AuthInfoBytes = walletTx.AuthInfoBytes
+	bcTx.Signature = signature
+	bcTx.TransactionHash = bcTx.Hash()
 }
