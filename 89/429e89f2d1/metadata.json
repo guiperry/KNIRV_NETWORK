@@ -1,0 +1,45 @@
+{
+  "cli_version": "0.5.5",
+  "checkpoint_id": "89429e89f2d1",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "packages/KNIRVMODELS/llama/internal/install/install.go",
+    "packages/KNIRVMODELS/llama/internal/install/install_buildbound_test.go",
+    "packages/KNIRVMODELS/llama/internal/install/install_hold_test.go",
+    "packages/KNIRVMODELS/llama/internal/install/install_refusal_test.go",
+    "packages/KNIRVMODELS/llama/internal/install/install_stamp_test.go",
+    "packages/KNIRVMODELS/llama/internal/install/install_test.go",
+    "packages/KNIRVMODELS/pkg/knirvllama/manager.go",
+    "packages/KNIRVMODELS/pkg/knirvllama/startup_test.go",
+    "packages/KNIRVSDK/Makefile",
+    "packages/KNIRVSDK/core/wasm-modules/assets/crypto-core.wasm",
+    "packages/KNIRVSDK/core/wasm-modules/manifest.json",
+    "packages/KNIRVSDK/npm-package/core.json",
+    "packages/KNIRVSDK/npm-package/modules/crypto-core.wasm",
+    "packages/KNIRVSDK/npm-package/modules/manifest.js",
+    "packages/KNIRVSDK/npm-package/modules/manifest.json",
+    "packages/KNIRVSDK/npm-package/wasm/inlined_base64.js",
+    "packages/KNIRVSDK/npm-package/wasm/knirv_sdk_core.d.ts",
+    "packages/KNIRVSDK/npm-package/wasm/knirv_sdk_core.js",
+    "packages/KNIRVSDK/npm-package/wasm/knirv_sdk_core_bg.wasm",
+    "packages/KNIRVSDK/npm-package/wasm/knirv_sdk_core_bg.wasm.d.ts",
+    "packages/KNIRVSDK/scripts/sdk-dist.mjs"
+  ],
+  "sessions": [
+    {
+      "metadata": "/89/429e89f2d1/0/metadata.json",
+      "transcript": "/89/429e89f2d1/0/full.jsonl",
+      "content_hash": "/89/429e89f2d1/0/content_hash.txt",
+      "prompt": "/89/429e89f2d1/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 112260,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 442880,
+    "output_tokens": 2024,
+    "api_call_count": 11
+  }
+}

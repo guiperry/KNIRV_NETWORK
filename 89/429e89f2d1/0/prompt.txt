@@ -1,0 +1,9 @@
+Run the `understand` skill now for the current project.
+
+Arguments to pass to the skill: 
+
+Execute the skill's full procedure as defined in its instructions.
+
+---
+
+Why is incrementsl updates blocked?
