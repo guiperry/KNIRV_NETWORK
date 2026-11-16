@@ -7,6 +7,9 @@ const nextConfig: NextConfig = {
   },
   // Enable static export for Go embedding
   output: 'export',
+  // The web app is served under /app on the public gateway origin; the gateway
+  // WebGUI owns /. Keep in sync with spaAppBasePath in internal/launcher/knirv_app_socket.go.
+  basePath: '/app',
   trailingSlash: true,
   images: {
     unoptimized: true,

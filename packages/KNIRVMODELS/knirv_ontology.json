@@ -1,0 +1,317 @@
+{
+  "organization_id": "knirv",
+  "name": "KNIRV",
+  "ontology": {
+    "industry_jargon": {
+      "error node": "A record on the KNIRV network graph (KNIRVGRAPH) for one distinct, reproducible error, identified by an error node id.",
+      "skill node": "The on-chain record of a skill that resolves an error; the canonical skill record lives on KNIRVCHAIN.",
+      "skill.md": "The file that describes a skill: what error it resolves, how to run it, and its inputs and outputs.",
+      "resolution": "A solution to an error node that has passed the error node's sealed test suite.",
+      "test suite": "The set of tests attached to one error node. It holds exactly 8 tests.",
+      "sealed suite": "A test suite that has 8 tests. It cannot be edited; it can only be replaced as a new version.",
+      "collecting suite": "A test suite with fewer than 8 tests. It cannot yet grade anything.",
+      "KNIRVARENA": "The KNIRV network arena where developers and agents author tests for error nodes and where candidate resolutions are graded.",
+      "badge": "The credential for a skill. A badge certifies that an agent passed the error node's full test suite, or that the holder purchased the skill.",
+      "earned badge": "A badge obtained by passing all 8 tests. The holder's own agent runs the skill and may fetch its body.",
+      "purchased badge": "A badge obtained by purchase. The KNIRV foundation model runs the skill on demand and the skill body is never released to the agent.",
+      "assigned badge": "A badge granted by an administrator. It behaves like an earned badge.",
+      "proof of solution": "The record that a candidate resolution was graded against an error node's sealed suite, including which tests passed.",
+      "reporter": "The user or agent who reports an error.",
+      "solver": "The user or agent who proposes a resolution.",
+      "verifier": "The party, human or automated, whose grading of a resolution is accepted. For a test suite this is the KNIRVGRAPH grader.",
+      "test author": "A developer or agent who contributes a test to an error node's suite through KNIRVARENA.",
+      "exact assertion": "A test assertion that passes when the trimmed output equals the expected value.",
+      "contains assertion": "A test assertion that passes when the output contains the expected value.",
+      "not_contains assertion": "A test assertion that passes when the output does not contain the expected value.",
+      "regex assertion": "A test assertion that passes when the output matches the expected pattern, using RE2 syntax.",
+      "DVE": "Deterministic Validation Environment: it proves what state existed, what was requested, what was approved or denied, and what was produced during a work session.",
+      "NRN": "The KNIRV network token that is metered and spent on network services.",
+      "finding": "A security issue discovered during an authorized test.",
+      "scope statement": "The written list of systems, methods and time window that an authorized test may cover.",
+      "rules of engagement": "The written limits on how an authorized test is carried out.",
+      "authorization letter": "The written permission from the owner of a system that allows a named tester to test it within a defined scope.",
+      "coordinated disclosure": "Telling the affected owner about a vulnerability first, privately, and publishing only after a fix or an agreed deadline.",
+      "proof of concept": "The smallest demonstration that a finding is real, which causes no more impact than needed to show it.",
+      "CVSS": "Common Vulnerability Scoring System, version 4.0, used by KNIRV to score the technical severity of a finding.",
+      "CVE": "Common Vulnerabilities and Exposures: the public identifier assigned to a specific known vulnerability.",
+      "CWE": "Common Weakness Enumeration: the public identifier for a class of software weakness.",
+      "PTES": "Penetration Testing Execution Standard: a seven-phase penetration testing methodology followed by KNIRV.",
+      "NIST SP 800-115": "Technical Guide to Information Security Testing and Assessment (2008): followed by KNIRV for the planning and conduct of security tests.",
+      "OWASP WSTG": "OWASP Web Security Testing Guide, version 4.2: followed by KNIRV for testing web applications and APIs.",
+      "OWASP Top 10": "OWASP Top 10, 2021 edition: used by KNIRV as a reference list of common web application risks, not as a complete test plan.",
+      "MITRE ATT&CK": "A public knowledge base of adversary tactics and techniques, used by KNIRV to name and describe attacker behavior in reports.",
+      "NIST SP 800-61": "Computer Security Incident Handling Guide, Revision 3: followed by KNIRV for handling security incidents.",
+      "ISO/IEC 29147": "The international standard for vulnerability disclosure; KNIRV's disclosure process follows it.",
+      "ISO/IEC 30111": "The international standard for vulnerability handling processes; KNIRV's internal handling follows it.",
+      "security.txt": "A file at /.well-known/security.txt (RFC 9116) that tells researchers how to report vulnerabilities to KNIRV.",
+      "safe harbor": "KNIRV's written promise not to pursue action against a researcher who follows the rules of engagement and discloses in good faith.",
+      "out of scope": "Any system, method or time that the scope statement does not explicitly allow. Out of scope means do not touch."
+    },
+    "stakeholder_hierarchy": {
+      "Head of security": {
+        "reports to": "the chief executive"
+      },
+      "Triage lead": {
+        "reports to": "the head of security"
+      },
+      "Arena maintainer": {
+        "reports to": "the head of security"
+      },
+      "Disclosure coordinator": {
+        "reports to": "the head of security"
+      },
+      "Security tester": {
+        "reports to": "the head of security"
+      },
+      "Penetration test planning and execution": {
+        "standard": "PTES",
+        "also follows": "NIST SP 800-115"
+      },
+      "Web application and API testing": {
+        "standard": "OWASP Web Security Testing Guide",
+        "version": "4.2"
+      },
+      "Web risk reference list": {
+        "standard": "OWASP Top 10",
+        "edition": "2021"
+      },
+      "Attacker behavior naming": {
+        "standard": "MITRE ATT&CK"
+      },
+      "Vulnerability scoring": {
+        "standard": "CVSS",
+        "version": "4.0"
+      },
+      "Vulnerability identifiers": {
+        "identifier for a vulnerability": "CVE",
+        "identifier for a weakness class": "CWE"
+      },
+      "Vulnerability disclosure": {
+        "standard": "ISO/IEC 29147",
+        "handling standard": "ISO/IEC 30111"
+      },
+      "Incident handling": {
+        "standard": "NIST SP 800-61",
+        "revision": "3"
+      },
+      "Security contact file": {
+        "standard": "RFC 9116",
+        "path": "/.well-known/security.txt"
+      }
+    },
+    "decision_rights": {
+      "Test suite size": {
+        "tests required to seal": "8"
+      },
+      "Test grading": {
+        "tests that must pass for a resolution to be verified": "8",
+        "assertion kinds available": "4"
+      },
+      "Triage deadline": {
+        "critical severity": "1 hour",
+        "high severity": "4 hours",
+        "medium severity": "2 business days",
+        "low severity": "5 business days"
+      },
+      "Resolution target": {
+        "critical severity": "24 hours",
+        "high severity": "7 days",
+        "medium severity": "30 days",
+        "low severity": "90 days"
+      },
+      "Escalation": {
+        "unacknowledged critical report is escalated after": "30 minutes",
+        "stalled high severity error is escalated after": "3 days"
+      },
+      "Reopen window": {
+        "days after resolution in which a recurrence reopens the original": "90"
+      },
+      "Changing the severity of an error": {
+        "may be decided by": "the triage lead",
+        "may be overruled by": "the head of security"
+      },
+      "Accepting a resolution": {
+        "may be decided by": "the KNIRVGRAPH grader, automatically, when all 8 tests pass",
+        "may not be decided by": "the solver"
+      },
+      "Reopening a resolved error": {
+        "may be decided by": "the triage lead"
+      },
+      "Revoking a badge": {
+        "may be decided by": "the head of security"
+      },
+      "Approving an exception to a deadline": {
+        "may be decided by": "the head of security"
+      },
+      "Sealing a test suite": {
+        "may be decided by": "nobody; the suite seals automatically at 8 tests"
+      },
+      "Replacing a sealed suite": {
+        "may be decided by": "the arena maintainer"
+      },
+      "Assigning a badge administratively": {
+        "may be decided by": "an organization administrator"
+      },
+      "CVSS severity band: none": {
+        "score range": "0.0"
+      },
+      "CVSS severity band: low": {
+        "score range": "0.1 to 3.9"
+      },
+      "CVSS severity band: medium": {
+        "score range": "4.0 to 6.9"
+      },
+      "CVSS severity band: high": {
+        "score range": "7.0 to 8.9"
+      },
+      "CVSS severity band: critical": {
+        "score range": "9.0 to 10.0"
+      },
+      "KNIRV severity adjustment": {
+        "a finding that exposes keys, funds or user data is at least": "high",
+        "a finding that allows remote takeover of a node is": "critical",
+        "a finding requiring physical access and no network exposure is at most": "medium"
+      },
+      "Vulnerability report acknowledgement": {
+        "business days": "2"
+      },
+      "Vulnerability first assessment": {
+        "days": "7"
+      },
+      "Coordinated disclosure deadline": {
+        "days": "90"
+      },
+      "Disclosure deadline for actively exploited vulnerabilities": {
+        "days": "7"
+      },
+      "Disclosure deadline extension": {
+        "maximum days": "30",
+        "maximum number of extensions": "1"
+      },
+      "Test evidence retention": {
+        "days after a finding is closed": "90"
+      },
+      "Authorizing a security test of KNIRV systems": {
+        "may be decided by": "the head of security"
+      },
+      "Authorizing a security test of a customer's systems": {
+        "may be decided by": "the customer's authorized signatory"
+      },
+      "Approving an exception to the rules of engagement": {
+        "may be decided by": "the head of security",
+        "may not be decided by": "the tester"
+      },
+      "Ordering a test to stop": {
+        "may be decided by": "the head of security, the authorizer, or the tester"
+      },
+      "Approving public disclosure before the deadline": {
+        "may be decided by": "the head of security"
+      },
+      "Granting safe harbor": {
+        "may be decided by": "the head of security"
+      },
+      "Approving cross-border transfer of security tools or findings": {
+        "may be decided by": "the head of security"
+      }
+    },
+    "rules": [
+      "An error node has one of these severity levels, from highest to lowest: critical, high, medium, low, informational.",
+      "Critical severity means the error stops a core network function, endangers funds, keys or user data, or can be used to take over a node, and it has no safe workaround.",
+      "High severity means a core function is badly degraded or a security boundary is weakened, and any workaround is unsafe or hard to apply.",
+      "Medium severity means a function is degraded or wrong in a way that has a safe workaround.",
+      "Low severity means a minor defect with little user impact.",
+      "Informational severity means a note, question or improvement with no defect.",
+      "An error report moves through these states: reported, triaged, in progress, solution proposed, verifying, resolved, closed. A report can also be rejected, and a resolved report can be reopened.",
+      "A report moves from reported to triaged only after a triage owner assigns a severity.",
+      "A report moves from solution proposed to verifying only when the solution has been submitted for grading against the error node's sealed test suite.",
+      "A resolution is verified only when it passes all 8 tests of the error node's sealed suite. Passing 7 of 8 is not verified.",
+      "Verification is deterministic: anyone who holds the suite and the output obtains the same grade.",
+      "A test suite becomes sealed when it has exactly 8 tests; before that it is collecting and cannot grade anything.",
+      "A sealed suite is immutable except by a versioned full replacement.",
+      "The same sealed suite grades both the KNIRVARENA swarm's candidate resolutions and the badge benchmark, so a badge certifies the exact bar the swarm's work was held to.",
+      "Expected answers of a sealed suite never leave KNIRVGRAPH; grading happens inside it.",
+      "Testers may use only the techniques named in the rules of engagement. Prohibited techniques include denial of service against production, destruction or encryption of data, and persistence that is not removed at the end of the test.",
+      "A tester accesses only the minimum data needed to demonstrate a finding. A tester must not copy, keep or share real user data, credentials, private keys or funds beyond what the proof of concept requires.",
+      "Any real credentials, keys or personal data seen during a test are reported immediately to the authorizer and are never used for any other purpose.",
+      "A tester stops at once, and notifies the authorizer, if the test causes unexpected impact, exposes personal data, touches an out-of-scope system, or the authorizer or the head of security orders a stop.",
+      "A tester must not change, delete or add data on production systems except as the rules of engagement allow, and must undo every change made during the test.",
+      "Tests run only inside the authorized window, and the authorizer is notified before the window opens and after it closes.",
+      "Automated scanners and fuzzers run at a rate agreed with the authorizer so that they do not degrade service.",
+      "Testers must not exploit a finding for gain, share it with third parties before disclosure, or use it after the test ends.",
+      "Each tester keeps a log of their actions with times, so the test can be reconstructed and every action shown to be within scope."
+    ],
+    "policies": [
+      "No security test of any system begins without written authorization from the owner of that system, naming the tester or team and the dates of the test.",
+      "A scope statement lists the systems and addresses that may be tested, the methods that may be used, the dates and times of the test, a contact for emergencies, and anything explicitly excluded.",
+      "Anything not named in the scope statement is out of scope. A tester who finds an out-of-scope system stops, does not probe it, and reports it to the authorizer.",
+      "A tester must verify that a target belongs to the authorizer before testing it. Shared hosting, cloud providers, third-party APIs and supply-chain components require separate written authorization from their owners or a provider policy that permits testing.",
+      "Social engineering, physical access and denial-of-service testing are out of scope unless the authorization names them explicitly.",
+      "Testing KNIRV's own production network requires a signed scope statement from the head of security, even for employees.",
+      "A tester must declare any conflict of interest before accepting a test, including a financial interest in, a competing interest to, or a personal relationship with the target.",
+      "A tester refuses any request to test without authorization, to harm users, to extract data for sale, or to help conceal a vulnerability from an affected owner.",
+      "Testers do not use KNIRV tools, access or the KNIRV network for attacks on any party that has not authorized it.",
+      "Anyone who observes a violation of these rules reports it to the head of security, and KNIRV does not retaliate against a person who reports in good faith.",
+      "Agents and skills on the KNIRV network may not be used to exploit, disrupt or gain unauthorized access to systems; a skill that does so is removed and its badge is revoked.",
+      "The guardrails and policy checks of a KNIRV node are never to be disabled, bypassed, or weakened as part of a resolution.",
+      "Dual-use security knowledge is shared to defend, not to attack: tools and techniques are shared with the people who need them to protect systems, and exploit details are withheld until a fix is available."
+    ],
+    "procedures": [
+      "To report an error, the reporter provides the title, the observed behavior, the expected behavior, the steps to reproduce, the affected component and version, and any relevant logs with secrets removed.",
+      "A report that cannot be reproduced is returned to the reporter with a request for more information and is not triaged until it can be.",
+      "Before a new error node is created, the reporter or triage owner searches existing error nodes, and a duplicate is linked to the original instead of creating a second error node.",
+      "The triage owner assigns the severity, the affected component and a resolution owner, and records the reason for the severity.",
+      "A solver submits a resolution together with the skill that implements it and the output of running it.",
+      "A valid resolution must not weaken a security control, must not require disabling guardrails or policy checks, and must not read, copy or send data outside the error's affected scope.",
+      "A resolution is graded by KNIRVGRAPH against the error node's sealed suite. The grade lists which tests passed and why any failed.",
+      "A resolution that fails any test is returned to the solver with the failure reasons and may be resubmitted.",
+      "A tester who contributes a test to KNIRVARENA must supply a name, an input, an expected output and an assertion kind. The first 8 accepted tests seal the suite.",
+      "A resolved error is reopened when the same failure recurs after the fix; the reopening is linked to the original resolution and the fix is regraded.",
+      "A report is rejected, with a written reason, when it is not an error, cannot be reproduced after a request for more information, or duplicates another report.",
+      "A critical or high severity error that is not progressing before its deadline is escalated to the head of security.",
+      "A badge is revoked when its underlying resolution is shown not to pass the suite, when the credential was obtained by tampering with grading, or when the holder violates the network's conduct policy.",
+      "A finding report contains a title, a summary, the severity with its CVSS vector and score, the affected system and version, the steps to reproduce, the evidence, the impact, the recommended fix, and the CWE identifier when one applies.",
+      "A finding report names the date of discovery and every person who has been told of the finding.",
+      "Evidence in a finding report is limited to what proves the issue; credentials, keys and personal data are redacted before the report is stored or sent.",
+      "Finding reports are encrypted in transit and at rest and are shared only with the authorizer, the resolution owner and the head of security.",
+      "Raw test evidence and logs are deleted 90 days after the finding is closed unless law or contract requires longer retention.",
+      "A finding is never described as fixed until it has been retested and the retest passed.",
+      "The owner of the affected system is told first, privately, using the owner's published security contact or the contact in the authorization.",
+      "KNIRV acknowledges a vulnerability report within 2 business days, and gives a first assessment within 7 days.",
+      "KNIRV's coordinated disclosure deadline is 90 days from the date the vendor is notified. If a fix is released earlier, details may be published after users have had reasonable time to update.",
+      "A vulnerability that is already being actively exploited is disclosed to affected users within 7 days of confirmation, even if a fix is not yet available.",
+      "A deadline may be extended once, by up to 30 days, by agreement of the reporter and KNIRV when a fix is in progress.",
+      "Public disclosure before the deadline is allowed only when the vendor does not respond after two documented attempts, when the issue is already public, or when active exploitation requires warning users.",
+      "KNIRV does not pay for silence and does not require a reporter to sign a non-disclosure agreement as a condition of safe harbor.",
+      "A researcher who follows these rules and discloses in good faith is covered by KNIRV's safe harbor, and KNIRV will not pursue legal action against that research.",
+      "A security finding that is not itself a vulnerability disclosure becomes an error node after the owner is told, so that the fix can be graded by a sealed suite.",
+      "A vulnerability whose details are not yet public is not published as an error node until it is fixed and disclosed; until then it is tracked privately.",
+      "A finding of critical severity maps to a critical error, high to high, medium to medium, low to low, and none to informational.",
+      "The resolution owner owns the fix. The verifier for a fix is the sealed test suite of its error node, and the original tester performs the retest.",
+      "A fix for a security finding is accepted only when it passes the sealed suite and the original tester's retest confirms that the proof of concept no longer works.",
+      "Tests contributed to KNIRVARENA for a security error must not contain working exploit code or real credentials; they test the behavior of the fix, not the attack.",
+      "If a retest fails, the error is reopened at its original severity and the deadline restarts only if the head of security approves."
+    ],
+    "regulations": [
+      "In the United States, unauthorized access to a protected computer is prohibited by the Computer Fraud and Abuse Act, 18 U.S.C. section 1030; written authorization is what separates a test from an offence.",
+      "The United States Department of Justice charging policy of 2022 states that good-faith security research is not to be charged under the Computer Fraud and Abuse Act.",
+      "In the United Kingdom, the Computer Misuse Act 1990 prohibits unauthorized access to computer material and unauthorized acts impairing a computer.",
+      "In the European Union, Directive 2013/40/EU on attacks against information systems requires member states to criminalize illegal access, interference and interception.",
+      "The EU NIS2 Directive, 2022/2555, requires essential and important entities to handle and disclose vulnerabilities and to manage cybersecurity risk.",
+      "The EU General Data Protection Regulation, 2016/679, applies to any personal data a tester sees, and a personal data breach found during a test must be reported to the authorizer without delay.",
+      "The Budapest Convention on Cybercrime is the international treaty on computer crime and is the reference for cross-border cooperation.",
+      "Export-control and sanctions rules may restrict sharing offensive security tools and findings across borders; the head of security approves any such transfer."
+    ],
+    "faqs": [
+      "What does KNIRV mean by a verified resolution? A resolution is verified when it passes all 8 tests of the error node's sealed test suite.",
+      "Who writes the tests for an error? Developers and agents contribute them through KNIRVARENA, and the first 8 accepted tests seal the suite.",
+      "How do I earn a badge? Run the skill for an error node and pass all 8 tests of its sealed suite; the badge then belongs to your agent.",
+      "Can I buy a badge instead? Yes. A purchased badge lets the KNIRV foundation model run the skill for you, but the skill body is not released to your agent.",
+      "Why is my resolution rejected at 7 of 8 tests? A resolution must pass every test in the sealed suite; partial passes are not verified.",
+      "Can a sealed suite be changed? Only by a versioned full replacement; individual tests cannot be edited.",
+      "Who decides how severe my error is? The triage lead assigns severity and records the reason; the head of security can overrule it.",
+      "What if I think an error is a security vulnerability? Report it privately through the security contact in security.txt and do not post details publicly.",
+      "Will I see the expected answers of the tests? No. Expected answers stay inside KNIRVGRAPH so that grading cannot be gamed.",
+      "Is my error report public? Error nodes are public on the network graph; reports about vulnerabilities are kept private until they are fixed and disclosed."
+    ]
+  }
+}

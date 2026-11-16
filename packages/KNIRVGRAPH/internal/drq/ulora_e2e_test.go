@@ -17,7 +17,19 @@ import (
 
 // ============================================================================
 // BundleValidator: every acceptance rule, and the ways it must refuse
+//
+// These run the real DVEBundleValidator HTTP path (submit -> poll results ->
+// accept) against a fake validation service that serves the backend's current
+// routes: POST /api/v1/validation/tasks and GET /api/v1/validation/tasks/{id}/results.
+// The transport is a Unix socket, the same way the production clients reach
+// their services, and the fake enforces the bearer credential the validator sends.
 // ============================================================================
+
+const (
+	validationRouteSubmit  = "/api/v1/validation/tasks"
+	validationRouteResults = "/api/v1/validation/tasks/task-1/results"
+	fakeValidationBearer   = "fake-validation-bearer-test-only"
+)
 
 // unixTransport dials a Unix socket regardless of the URL host, mirroring what
 // the production clients do.
@@ -41,19 +53,32 @@ func verdictServer(t *testing.T, verdict map[string]any, echoMode string) string
 	t.Helper()
 	var submittedHash string
 	mux := http.NewServeMux()
-	mux.HandleFunc("/api/validation-tasks", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("POST "+validationRouteSubmit, func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("Authorization") != "Bearer "+fakeValidationBearer {
+			http.Error(w, "missing or wrong bearer", http.StatusUnauthorized)
+			return
+		}
 		var body struct {
+			Type string         `json:"type"`
 			Data map[string]any `json:"data"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 			http.Error(w, "submit decode: "+err.Error(), http.StatusBadRequest)
 			return
 		}
+		if body.Type != bundleValidationTaskType {
+			http.Error(w, "unexpected task type "+body.Type, http.StatusBadRequest)
+			return
+		}
 		submittedHash, _ = body.Data[BundleRevalidationKey].(string)
 		w.WriteHeader(http.StatusCreated)
 		_ = json.NewEncoder(w).Encode(map[string]string{"id": "task-1"})
 	})
-	mux.HandleFunc("/api/validation-results/task-1", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("GET "+validationRouteResults, func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("Authorization") != "Bearer "+fakeValidationBearer {
+			http.Error(w, "missing or wrong bearer", http.StatusUnauthorized)
+			return
+		}
 		if submittedHash == "" {
 			// The fake cannot attribute a verdict, so say so instead of
 			// returning a misleading empty echo.
@@ -84,6 +109,18 @@ func verdictServer(t *testing.T, verdict map[string]any, echoMode string) string
 	return newUnixServer(t, mux)
 }
 
+// validatorOver builds the production validator, pointed at a fake service
+// reached over a Unix socket, with fast polling for tests.
+func validatorOver(socket string) *DVEBundleValidator {
+	return &DVEBundleValidator{
+		BaseURL:      "http://unix",
+		Token:        fakeValidationBearer,
+		Client:       &http.Client{Transport: unixTransport(socket)},
+		PollInterval: 1,
+		PollTimeout:  2,
+	}
+}
+
 func TestBundleValidatorAcceptsAttributableVerdict(t *testing.T) {
 	socket := verdictServer(t, map[string]any{
 		"task_id": "task-1",
@@ -92,14 +129,7 @@ func TestBundleValidatorAcceptsAttributableVerdict(t *testing.T) {
 		"proof":   "proof-bytes",
 		"results": map[string]any{},
 	}, echoSubmittedHash)
-	v := &DVEBundleValidator{
-		BaseURL:      "http://unix",
-		Token:        "tok",
-		Client:       &http.Client{Transport: unixTransport(socket)},
-		PollInterval: 1,
-		PollTimeout:  2,
-	}
-	err := v.ValidateBundle(context.Background(), &ErrorCluster{ClusterID: "c1"},
+	err := validatorOver(socket).ValidateBundle(context.Background(), &ErrorCluster{ClusterID: "c1"},
 		&ULoRACompileResult{ContentHash: "abc123"}, []ULoRADatasetRecord{{Context: "x"}})
 	if err != nil {
 		t.Fatalf("expected an attributable verdict to be accepted, got: %v", err)
@@ -115,11 +145,7 @@ func TestBundleValidatorRefusesVerdictForDifferentBundle(t *testing.T) {
 		"proof":   "proof-bytes",
 		"results": map[string]any{},
 	}, echoOtherHash)
-	v := &DVEBundleValidator{
-		BaseURL: "http://unix", Token: "tok",
-		Client: &http.Client{Transport: unixTransport(socket)},
-	}
-	err := v.ValidateBundle(context.Background(), &ErrorCluster{ClusterID: "c1"},
+	err := validatorOver(socket).ValidateBundle(context.Background(), &ErrorCluster{ClusterID: "c1"},
 		&ULoRACompileResult{ContentHash: "abc123"}, []ULoRADatasetRecord{{Context: "x"}})
 	if err == nil {
 		t.Fatal("a verdict about different content must be refused")
@@ -139,11 +165,7 @@ func TestBundleValidatorRefusesUnattributableVerdict(t *testing.T) {
 		"proof":   "proof-bytes",
 		"results": map[string]any{},
 	}, echoNoHash)
-	v := &DVEBundleValidator{
-		BaseURL: "http://unix", Token: "tok",
-		Client: &http.Client{Transport: unixTransport(socket)},
-	}
-	err := v.ValidateBundle(context.Background(), &ErrorCluster{ClusterID: "c1"},
+	err := validatorOver(socket).ValidateBundle(context.Background(), &ErrorCluster{ClusterID: "c1"},
 		&ULoRACompileResult{ContentHash: "abc123"}, []ULoRADatasetRecord{{Context: "x"}})
 	if err == nil {
 		t.Fatal("a verdict with no bundle attribution must be refused")
@@ -166,11 +188,7 @@ func TestBundleValidatorRefusesNoProofAndLowScore(t *testing.T) {
 	} {
 		t.Run(name, func(t *testing.T) {
 			socket := verdictServer(t, verdict, echoSubmittedHash)
-			v := &DVEBundleValidator{
-				BaseURL: "http://unix", Token: "tok",
-				Client: &http.Client{Transport: unixTransport(socket)},
-			}
-			if err := v.ValidateBundle(context.Background(), &ErrorCluster{ClusterID: "c1"},
+			if err := validatorOver(socket).ValidateBundle(context.Background(), &ErrorCluster{ClusterID: "c1"},
 				&ULoRACompileResult{ContentHash: "abc123"}, []ULoRADatasetRecord{{Context: "x"}}); err == nil {
 				t.Fatal("must be refused")
 			}
@@ -191,8 +209,9 @@ func TestBundleValidatorRefusesWithoutBackend(t *testing.T) {
 // ============================================================================
 
 // TestULoRAMintingEndToEnd drives the whole uLoRA path over real transports:
-// a real Unix-socket compile against a fake ulorad, a real bundle file on disk,
-// a real Unix-socket validation round trip, and a real Unix-socket mint against
+// a real Unix-socket compile against a fake ulorad that enforces its bearer
+// token, a real bundle file on disk, the real DVEBundleValidator round trip
+// (submit, poll, accept) over a Unix socket, and a real Unix-socket mint against
 // a fake KNIRVCHAIN that recomputes the hash of what it received.
 func TestULoRAMintingEndToEnd(t *testing.T) {
 	appData := t.TempDir()
@@ -201,6 +220,9 @@ func TestULoRAMintingEndToEnd(t *testing.T) {
 	// --- fake ulorad: writes a real bundle and reports its true hash ---
 	var compiledDataset []ULoRADatasetRecord
 	uloraSocket := newUnixServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if uloraAuthRejects(w, r, fakeULoRABearer) {
+			return
+		}
 		if r.URL.Path != uloraCompileRoute {
 			http.Error(w, "unexpected route "+r.URL.Path, http.StatusNotFound)
 			return
@@ -246,7 +268,8 @@ func TestULoRAMintingEndToEnd(t *testing.T) {
 		})
 	}))
 
-	// --- fake validation service: echoes back the hash it was asked about ---
+	// --- fake validation service: runs the real submit/results routes and
+	// echoes back the hash it was asked about ---
 	validationSocket := verdictServer(t, map[string]any{
 		"task_id": "task-1", "status": "success", "score": 0.95, "proof": "dve-proof",
 		"results": map[string]any{},
@@ -290,6 +313,7 @@ func TestULoRAMintingEndToEnd(t *testing.T) {
 
 	// --- environment the real clients read ---
 	t.Setenv("ULORA_SOCKET_PATH", uloraSocket)
+	t.Setenv("ULORA_AUTH_TOKEN", fakeULoRABearer)
 	t.Setenv("KNIRV_CHAIN_SOCKET_PATH", chainSocket)
 	t.Setenv("KNIRV_INTERNAL_AUTH_TOKEN", internalToken)
 
@@ -306,10 +330,7 @@ func TestULoRAMintingEndToEnd(t *testing.T) {
 		Chain:     &KNIRVCHAINClient{},
 		SkillDocs: docs,
 		Compiler:  NewKNIRVULORAClient(""),
-		Validator: &DVEBundleValidator{
-			BaseURL: "http://unix", Token: "tok",
-			Client: &http.Client{Transport: unixTransport(validationSocket)},
-		},
+		Validator: validatorOver(validationSocket),
 		TargetModels: map[string]ULoRATargetModel{
 			"llama-3-8b": {Family: "llama", ParamCount: "8b", HiddenSize: 4096, IntermediateSize: 11008, NumLayers: 32, AttentionMechanism: "gqa", ActivationFunc: "silu"},
 		},
@@ -348,12 +369,16 @@ func TestULoRAMintingEndToEnd(t *testing.T) {
 }
 
 // The gate must stop the whole path: with a validator that refuses, nothing may
-// be registered on the chain.
+// be registered on the chain. The refusal here is produced by the real
+// validator against a fake service that attributes the verdict to other content.
 func TestULoRAMintingEndToEndGateBlocksRegistration(t *testing.T) {
 	appData := t.TempDir()
 	clustersDir := filepath.Join(appData, "ulora")
 
 	uloraSocket := newUnixServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if uloraAuthRejects(w, r, fakeULoRABearer) {
+			return
+		}
 		var req uloraCompileRequest
 		_ = json.NewDecoder(r.Body).Decode(&req)
 		bundleDir := filepath.Join(clustersDir, "bundles", req.Provenance.SourceID+"-x")
@@ -368,8 +393,19 @@ func TestULoRAMintingEndToEndGateBlocksRegistration(t *testing.T) {
 		_ = json.NewEncoder(w).Encode(ULoRACompileResult{
 			BundleID: req.Provenance.SourceID, ContentHash: hex.EncodeToString(sum[:]),
 			ManifestPath: manifestPath, WeightsPath: manifestPath,
+			// Without a target the chain client refuses before any network call, so
+			// chainCalled would stay false for an unrelated reason. Set it so only the
+			// validation gate can stop the registration.
+			TargetModels: []string{"llama-3-8b"},
 		})
 	}))
+
+	// The validation service reports a verdict about different content, so the
+	// real validator must refuse it.
+	validationSocket := verdictServer(t, map[string]any{
+		"task_id": "task-1", "status": "success", "score": 0.95, "proof": "dve-proof",
+		"results": map[string]any{},
+	}, echoOtherHash)
 
 	chainCalled := false
 	chainSocket := newUnixServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -379,6 +415,7 @@ func TestULoRAMintingEndToEndGateBlocksRegistration(t *testing.T) {
 	}))
 
 	t.Setenv("ULORA_SOCKET_PATH", uloraSocket)
+	t.Setenv("ULORA_AUTH_TOKEN", fakeULoRABearer)
 	t.Setenv("KNIRV_CHAIN_SOCKET_PATH", chainSocket)
 	t.Setenv("KNIRV_INTERNAL_AUTH_TOKEN", "t")
 
@@ -386,7 +423,7 @@ func TestULoRAMintingEndToEndGateBlocksRegistration(t *testing.T) {
 		Chain:           &KNIRVCHAINClient{},
 		SkillDocs:       &fakeSkillDocs{docs: map[string]string{"e1": "fix", "e2": "fix"}},
 		Compiler:        NewKNIRVULORAClient(""),
-		Validator:       stubValidator{err: ErrDVEValidationUnavailable},
+		Validator:       validatorOver(validationSocket),
 		TargetModels:    map[string]ULoRATargetModel{"llama-3-8b": {Family: "llama", HiddenSize: 4096, IntermediateSize: 11008, NumLayers: 32, AttentionMechanism: "gqa", ActivationFunc: "silu"}},
 		ManifestVersion: "1.0.0",
 	})
@@ -394,6 +431,10 @@ func TestULoRAMintingEndToEndGateBlocksRegistration(t *testing.T) {
 	err := protocol.mintULoRABundle(context.Background(), corpusCluster(), &SkillNode{ID: "skill-1"})
 	if err == nil {
 		t.Fatal("a refusing validator must fail the mint")
+	}
+	// The failure must come from the validation gate, not from some other step.
+	if !strings.Contains(err.Error(), "validate uLoRA bundle") || !strings.Contains(err.Error(), "different content") {
+		t.Fatalf("mint must fail at the validation gate, got: %v", err)
 	}
 	if chainCalled {
 		t.Fatal("the bundle must not be registered when validation refuses")

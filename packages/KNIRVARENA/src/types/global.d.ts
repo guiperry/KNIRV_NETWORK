@@ -87,8 +87,8 @@ export interface AgentMetrics {
   lastActive: Date;
 }
 
-// NRV (Network Resource Virtualization) types
-export interface NRVData {
+// System resource types
+export interface SystemResourceData {
   id: string;
   type: 'skill' | 'agent' | 'system';
   status: 'active' | 'idle' | 'error';

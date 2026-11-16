@@ -1,7 +1,7 @@
 package network
 
 import (
-	"KNIRVGRAPH/internal/nrv"
+	"KNIRVGRAPH/internal/locator"
 	"crypto/subtle"
 	"encoding/json"
 	"errors"
@@ -13,7 +13,7 @@ import (
 	"go.uber.org/zap"
 )
 
-// Error-node test suites (see nrv.ErrorTestSuiteSize).
+// Error-node test suites (see locator.ErrorTestSuiteSize).
 //
 //	GET  /nrv/errors/{errorID}/tests          public, redacted view (no expected values)
 //	POST /nrv/errors/{errorID}/tests          contribute one KNIRVARENA-authored test   [internal]
@@ -28,7 +28,7 @@ import (
 
 // SetErrorTestSuiteStore wires persistence for error-node test suites. Until
 // it is set the routes answer 503.
-func (rpc *RPCServer) SetErrorTestSuiteStore(store *nrv.ErrorTestSuiteStore) {
+func (rpc *RPCServer) SetErrorTestSuiteStore(store *locator.ErrorTestSuiteStore) {
 	rpc.errorTests = store
 }
 
@@ -66,7 +66,7 @@ func requireInternalToken(w http.ResponseWriter, r *http.Request) bool {
 	return true
 }
 
-func (rpc *RPCServer) errorTestStore(w http.ResponseWriter) *nrv.ErrorTestSuiteStore {
+func (rpc *RPCServer) errorTestStore(w http.ResponseWriter) *locator.ErrorTestSuiteStore {
 	if rpc.errorTests == nil {
 		writeJSONError(w, http.StatusServiceUnavailable, "error test suites are not configured on this node")
 	}
@@ -79,7 +79,7 @@ func (rpc *RPCServer) getErrorTests(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	suite, err := store.Get(mux.Vars(r)["errorID"])
-	if errors.Is(err, nrv.ErrTestSuiteNotFound) {
+	if errors.Is(err, locator.ErrTestSuiteNotFound) {
 		writeJSONError(w, http.StatusNotFound, err.Error())
 		return
 	}
@@ -98,7 +98,7 @@ func (rpc *RPCServer) contributeErrorTest(w http.ResponseWriter, r *http.Request
 	if store == nil {
 		return
 	}
-	var tc nrv.ErrorTestCase
+	var tc locator.ErrorTestCase
 	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 1<<20)).Decode(&tc); err != nil {
 		writeJSONError(w, http.StatusBadRequest, "invalid test case")
 		return
@@ -106,7 +106,7 @@ func (rpc *RPCServer) contributeErrorTest(w http.ResponseWriter, r *http.Request
 	errorID := mux.Vars(r)["errorID"]
 	suite, err := store.ContributeTest(errorID, tc)
 	switch {
-	case errors.Is(err, nrv.ErrSuiteSealed):
+	case errors.Is(err, locator.ErrSuiteSealed):
 		writeJSONError(w, http.StatusConflict, err.Error())
 		return
 	case err != nil:
@@ -129,7 +129,7 @@ func (rpc *RPCServer) replaceErrorTests(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	var body struct {
-		Tests []nrv.ErrorTestCase `json:"tests"`
+		Tests []locator.ErrorTestCase `json:"tests"`
 	}
 	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 4<<20)).Decode(&body); err != nil {
 		writeJSONError(w, http.StatusBadRequest, "invalid suite")
@@ -163,7 +163,7 @@ func (rpc *RPCServer) gradeErrorTests(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	suite, err := store.Get(mux.Vars(r)["errorID"])
-	if errors.Is(err, nrv.ErrTestSuiteNotFound) {
+	if errors.Is(err, locator.ErrTestSuiteNotFound) {
 		writeJSONError(w, http.StatusNotFound, err.Error())
 		return
 	}

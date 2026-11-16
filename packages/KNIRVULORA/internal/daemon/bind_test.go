@@ -272,10 +272,15 @@ func TestBindProjectsBundleAndReportsRealHash(t *testing.T) {
 		t.Fatalf("seed connector cache: %v", err)
 	}
 
+	// The base digest is computed by the daemon from the base file, never taken
+	// from the caller.
+	base := writeTinyBase(t, t.TempDir(), 2)
+	baseSHA := sha256File(t, base)
 	payload := map[string]any{
-		"bundle_id":    "cluster-1",
-		"content_hash": wantHash,
-		"target_model": targetModel(),
+		"bundle_id":       "cluster-1",
+		"content_hash":    wantHash,
+		"base_model_path": base,
+		"target_model":    targetModel(),
 	}
 	raw, err := json.Marshal(payload)
 	if err != nil {
@@ -299,6 +304,9 @@ func TestBindProjectsBundleAndReportsRealHash(t *testing.T) {
 	}
 	if out.AdapterRank != 2 {
 		t.Fatalf("AdapterRank = %d, want 2", out.AdapterRank)
+	}
+	if out.BaseSHA256 != baseSHA {
+		t.Fatalf("BaseSHA256 = %q, want the base file's digest %q", out.BaseSHA256, baseSHA)
 	}
 	if out.TargetModules != 1 {
 		t.Fatalf("TargetModules = %d, want 1", out.TargetModules)

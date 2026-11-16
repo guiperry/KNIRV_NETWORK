@@ -47,7 +47,7 @@ test-network:
 
 test-nrv:
 	@echo "Testing NRV system..."
-	go test -v ./internal/nrv/...
+	go test -v ./internal/locator/...
 
 test-graphchain:
 	@echo "Testing GraphChain..."

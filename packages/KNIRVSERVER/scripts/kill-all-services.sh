@@ -11,7 +11,8 @@
 #   backend-owned   knirvmodels (HASHER, HEART, HEAD), knirvgateway, knirvgraph,
 #                   knirvchain, knirvoracle, KNIRVARENA (in-process)
 #   data pipeline   data-connector, data-mapper, data-encoder, data-seeder,
-#                   data-trainer, head-trainer; ASIC driver hasher-host / hasher-server
+#                   data-trainer, heart-decision-trainer (legacy head-trainer too, until
+#                   the fallback is removed); ASIC driver hasher-host / hasher-server
 #   other           container_deployer, os_builder, a stale pre-rename knirvhasher
 #
 # Ctrl+C on a running knirv-server already stops all of these: the launcher stops each
@@ -108,6 +109,22 @@ is_knirv_process() {
     [[ -n "$cmd" ]] || return 1
     [[ "$comm" != "pgrep" && "$comm" != "pkill" && "$comm" != "grep" ]] || return 1
     [[ "$cmd" != *"kill-all-services.sh"* ]] || return 1
+
+    # ps comm is truncated to 15 chars, so the trainer reads back as "heart-decision-".
+    # Decide this comm on the trainer test alone, before the generic KNIRV grep below,
+    # so heart-decision-wasi is not classed as KNIRV even when its path contains KNIRV.
+    if [[ "$comm" == "heart-decision-" ]]; then
+        local hd_exe hd_argv0
+        hd_exe=$(readlink "/proc/$pid/exe" 2>/dev/null || true)
+        hd_argv0=$(tr '\0' '\n' < "/proc/$pid/cmdline" 2>/dev/null | head -n 1 || true)
+        [[ -n "$hd_argv0" ]] || hd_argv0="${cmd%% *}"
+        # Match argv[0]'s basename (or the exe), never a substring of the whole argv:
+        # heart-decision-wasi --artifact heart-decision-trainer.json must not match.
+        if [[ "$(basename -- "$hd_argv0")" == "heart-decision-trainer" || "$hd_exe" == */heart-decision-trainer ]]; then
+            return 0
+        fi
+        return 1
+    fi
 
     # Source-tree/runtime commands carry a KNIRV path/name.  The explicit
     # executable names cover installed services whose argv contains only the
@@ -211,6 +228,37 @@ kill_by_pattern() {
     fi
 }
 
+# Return success only when PID runs the executable $2 (full path inside $1, the real bin
+# dir).  pgrep -x compares against the kernel comm, which is cut to 15 characters, so
+# callers pass the truncated name and this check confirms the full name via the
+# executable path (or argv[0] when /proc/PID/exe is unreadable).
+pid_runs_binary() {
+    local pid="$1" expected="$2"
+    local exe argv0
+
+    exe=$(readlink "/proc/$pid/exe" 2>/dev/null || true)
+    if [[ -n "$exe" ]]; then
+        exe="${exe% (deleted)}"
+        [[ "$exe" == "$expected" ]] && return 0
+        # Shebang scripts run as their interpreter, so /proc/PID/exe is the shell or
+        # interpreter. Accept that only when argv[1] is the script path inside the bin dir.
+        case "$(basename "$exe")" in
+            sh|bash|dash|zsh|ksh|env|python|python[0-9]*|perl|node|ruby)
+                local argv1
+                argv1=$(tr '\0' '\n' < "/proc/$pid/cmdline" 2>/dev/null | sed -n 2p || true)
+                [[ "$argv1" == "$expected" ]] && return 0
+                ;;
+        esac
+        return 1
+    fi
+
+    # Exe unreadable: accept only when argv[0] is the full bin-dir path of the binary.
+    # A bare name is not enough (any process can claim one).
+    argv0=$(tr '\0' '\n' < "/proc/$pid/cmdline" 2>/dev/null | head -n 1 || true)
+    [[ "$argv0" == "$expected" ]] && return 0
+    return 1
+}
+
 # ── Kill by binary path — iterates over executables in a directory ────────
 kill_by_binary_path() {
     local bin_dir="$1"
@@ -221,17 +269,21 @@ kill_by_binary_path() {
 
     echo "Searching in binary directory: $bin_dir"
 
+    local real_dir
+    real_dir=$(readlink -f "$bin_dir" 2>/dev/null || echo "$bin_dir")
+
     for binary in "$bin_dir"/*; do
         if [[ -x "$binary" ]]; then
             local bin_name=$(basename "$binary")
             echo "  Checking for: $bin_name"
             # Match the executable name, not any occurrence in a command
             # line.  The latter used to kill unrelated desktop applications
-            # with common names such as node.
-            local pids=$(pgrep -x -- "$bin_name" 2>/dev/null || true)
+            # with common names such as node.  Names longer than 15 characters
+            # are looked up by their truncated comm, then confirmed in full.
+            local pids=$(pgrep -x -- "${bin_name:0:15}" 2>/dev/null || true)
             if [[ -n "$pids" ]]; then
                 for pid in $pids; do
-                    if is_knirv_process "$pid"; then
+                    if pid_runs_binary "$pid" "$real_dir/$bin_name" && is_knirv_process "$pid"; then
                         echo "    Found PID: $pid - force killing"
                         sudo_kill "$pid" 9 || true
                     fi
@@ -271,7 +323,7 @@ for svc in knirvmodels knirvgateway knirvgraph knirvchain knirvoracle; do
     kill_by_pattern "$svc" "SIGTERM" "true" || true
 done
 # Models data pipeline and ASIC driver.
-for svc in data-connector data-mapper data-encoder data-seeder data-trainer head-trainer hasher-host hasher-server; do
+for svc in data-connector data-mapper data-encoder data-seeder data-trainer heart-decision-trainer head-trainer hasher-host hasher-server; do
     kill_by_pattern "$svc" "SIGTERM" "true" || true
 done
 # Launcher-owned: ULoRA daemon, agent runtime, llama wrapper and its llama-server child,

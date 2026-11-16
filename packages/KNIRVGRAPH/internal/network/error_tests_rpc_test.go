@@ -1,7 +1,7 @@
 package network
 
 import (
-	"KNIRVGRAPH/internal/nrv"
+	"KNIRVGRAPH/internal/locator"
 	"bytes"
 	"encoding/json"
 	"errors"
@@ -27,7 +27,7 @@ func (k *testKV) Get(key []byte) ([]byte, error) {
 
 func errorTestRouter() http.Handler {
 	rpc := &RPCServer{logger: zap.NewNop()}
-	rpc.SetErrorTestSuiteStore(nrv.NewErrorTestSuiteStore(&testKV{m: map[string][]byte{}}))
+	rpc.SetErrorTestSuiteStore(locator.NewErrorTestSuiteStore(&testKV{m: map[string][]byte{}}))
 	r := mux.NewRouter()
 	rpc.registerErrorTestRoutes(r)
 	return r
@@ -56,7 +56,7 @@ func TestErrorTestRoutesContributeSealGrade(t *testing.T) {
 	if rec := doJSON(t, h, "POST", "/nrv/errors/e1/tests", "", tc); rec.Code != http.StatusUnauthorized {
 		t.Fatalf("expected 401 without token, got %d", rec.Code)
 	}
-	for i := 1; i <= nrv.ErrorTestSuiteSize; i++ {
+	for i := 1; i <= locator.ErrorTestSuiteSize; i++ {
 		tc := map[string]string{"id": fmt.Sprintf("t%d", i), "input": fmt.Sprintf("in %d", i), "expected": fmt.Sprintf("out %d", i), "author_id": "dev-1"}
 		if rec := doJSON(t, h, "POST", "/nrv/errors/e1/tests", "secret", tc); rec.Code != http.StatusCreated {
 			t.Fatalf("contribution %d: %d %s", i, rec.Code, rec.Body.String())
@@ -67,14 +67,14 @@ func TestErrorTestRoutesContributeSealGrade(t *testing.T) {
 	if rec.Code != http.StatusOK || strings.Contains(rec.Body.String(), "out 1") {
 		t.Fatalf("public view must succeed and omit expected values: %d %s", rec.Code, rec.Body.String())
 	}
-	var pub nrv.PublicErrorTestSuite
+	var pub locator.PublicErrorTestSuite
 	_ = json.Unmarshal(rec.Body.Bytes(), &pub)
-	if pub.Status != nrv.SuiteSealed || pub.SuiteHash == "" {
+	if pub.Status != locator.SuiteSealed || pub.SuiteHash == "" {
 		t.Fatalf("expected a sealed suite, got %+v", pub)
 	}
 
 	outputs := map[string]string{}
-	for i := 1; i <= nrv.ErrorTestSuiteSize; i++ {
+	for i := 1; i <= locator.ErrorTestSuiteSize; i++ {
 		outputs[fmt.Sprintf("t%d", i)] = fmt.Sprintf("out %d", i)
 	}
 	if rec := doJSON(t, h, "POST", "/nrv/errors/e1/tests/grade", "", map[string]interface{}{"outputs": outputs}); rec.Code != http.StatusUnauthorized {
@@ -85,7 +85,7 @@ func TestErrorTestRoutesContributeSealGrade(t *testing.T) {
 		t.Fatalf("expected a stale suite hash to conflict, got %d", rec.Code)
 	}
 	rec = doJSON(t, h, "POST", "/nrv/errors/e1/tests/grade", "secret", map[string]interface{}{"suite_hash": pub.SuiteHash, "outputs": outputs})
-	var report nrv.GradeReport
+	var report locator.GradeReport
 	_ = json.Unmarshal(rec.Body.Bytes(), &report)
 	if rec.Code != http.StatusOK || !report.AllPassed {
 		t.Fatalf("expected all 8 to pass: %d %s", rec.Code, rec.Body.String())

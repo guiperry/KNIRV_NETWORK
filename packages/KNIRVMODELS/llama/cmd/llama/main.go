@@ -62,7 +62,7 @@ func main() {
 
 	// An explicit -server-path pins that binary; so does KNIRV_LLAMA_UPDATE=0.
 	// Otherwise every start checks for a newer llama.cpp release.
-	checkUpdate := serverPath == "" && os.Getenv("KNIRV_LLAMA_UPDATE") != "0"
+	checkUpdate := updateEnabled(serverPath, os.Getenv)
 	dataDir, configPath, err := config.Paths(dataDir)
 	if err != nil {
 		log.Fatal(err)
@@ -224,4 +224,11 @@ func memoSHA(dataDir, modelPath string) func() (string, error) {
 		}
 		return sum, nil
 	}
+}
+
+// updateEnabled reports whether this start may replace llama-server. An explicit
+// -server-path, or KNIRV_LLAMA_UPDATE=0, pins the binary. Only the flag and the
+// environment decide, before the saved config is loaded.
+func updateEnabled(serverPath string, getenv func(string) string) bool {
+	return serverPath == "" && getenv("KNIRV_LLAMA_UPDATE") != "0"
 }

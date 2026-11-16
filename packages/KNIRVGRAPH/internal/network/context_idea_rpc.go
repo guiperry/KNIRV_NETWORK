@@ -9,7 +9,7 @@ import (
 	"go.uber.org/zap"
 )
 
-// Context and Idea node routes (arena_fixes.md §3.6). NRVSystem already
+// Context and Idea node routes (arena_fixes.md §3.6). LocatorSystem already
 // implements CreateContextNode / CreateIdeaNode; these expose them the same way
 // /nrv/errors is exposed: creation is internal-only (KNIRVSERVER registers
 // nodes for a signed-in user), reads are public like the rest of /nrv/*.

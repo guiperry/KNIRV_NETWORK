@@ -7,13 +7,13 @@ import type { HEADAdapterApplied, HEADAdapterBind } from './HEADBridge';
  * Connects the real HEAD (KNIRVMODELS/head, `knirv-head/v1`) to KNIRVULORA.
  *
  * A uLoRA bundle holds a portable canonical core. The server binds it to this
- * HEAD version with the model's own connector (`POST /api/head/adapters/bind`),
+ * HEAD version with the model's own connector (`POST /api/heart/adapters/bind`),
  * giving per-role low-rank factors; the engine merges them into the attention
  * projections of the in-browser model (`W' = W + alpha/r · B·A`). There is no
  * per-frame weight "syncing": an adapter is applied once, and re-applied only
  * when the HEAD itself is replaced by a newly promoted version.
  *
- * Server-side `/api/head/reason` uses the base model; adapters affect only the
+ * Server-side `/api/heart/decide` uses the base model; adapters affect only the
  * model running in this browser.
  *
  * The arena's EnhancedLoRAAdapter is a separate, small MLP adapter with its own
@@ -142,7 +142,7 @@ export class HEADLoRABridge extends EventEmitter {
   private async fetchBind(bundleId: string): Promise<HEADAdapterBind> {
     const token = authToken();
     if (!token) throw new Error('sign in to bind an adapter');
-    const res = await (this.fetchImpl ?? fetch)(`${getKnirvServerUrl()}/api/head/adapters/bind`, {
+    const res = await (this.fetchImpl ?? fetch)(`${getKnirvServerUrl()}/api/heart/adapters/bind`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
       body: JSON.stringify({ bundle_id: bundleId }),

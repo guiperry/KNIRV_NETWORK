@@ -10,7 +10,7 @@ import (
 func TestErrorNodeInstantiation(t *testing.T) {
 	node := ErrorNode{
 		Id:              "test-id",
-		NrvSource:       "nrv-source",
+		AnnouncementRef: "nrv-source",
 		Description:     "test error",
 		FailureContext:  []byte("context"),
 		Domain:          "testing",
@@ -27,7 +27,7 @@ func TestErrorNodeInstantiation(t *testing.T) {
 		PhenotypeDrift:  make([]float64, 10),
 	}
 	// Dummy reads to satisfy unusedwrite analyzer
-	_ = node.NrvSource
+	_ = node.AnnouncementRef
 	_ = node.Description
 	_ = node.FailureContext
 	_ = node.Domain

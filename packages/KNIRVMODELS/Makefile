@@ -23,8 +23,11 @@ EBPF_OBJS=$(EBPF_SRCS:.c=.o)
 CLANG=clang
 LLVM_STRIP=llvm-strip
 
+# CUDA compiler for the data-seeder helper; override with `make NVCC=<path>`.
+NVCC ?= /usr/local/cuda-12.6/bin/nvcc
 
-.PHONY: all build clean test proto ebpf deps help llama-build llama-clean test-llama test-harness teacher build-asic-test build-probe build-probe build-probe-v2 build-protocol-discover build-monitor build-diagnostics deploy deploy-probe deploy-probe-v2 deploy-protocol-discover deploy-monitor build-pipeline-all build-data-connector build-data-mapper build-data-encoder build-data-seeder build-data-trainer build-heart-decision-trainer build-heart-decision-wasi test-head smoke-models build-knirvbase
+
+.PHONY: all build clean test proto ebpf deps help llama-build llama-clean test-llama test-harness teacher build-asic-test build-probe build-probe build-probe-v2 build-protocol-discover build-monitor build-diagnostics deploy deploy-probe deploy-probe-v2 deploy-protocol-discover deploy-monitor build-pipeline-all build-cuda-hash build-data-connector build-data-mapper build-data-encoder build-data-seeder build-data-trainer build-heart-decision-trainer build-heart-decision-wasi test-heart-decision test-head hands-build smoke-models build-knirvbase
 
 ANTMINER_IP ?= $(shell [ -f .env ] && source .env && echo $$DEVICE_IP || echo 192.168.12.151)
 ANTMINER_USER ?= root
@@ -358,8 +361,15 @@ build-data-encoder:
 	@chmod 755 $(EMBED_DIR)/data-encoder
 	@echo "✅ Built: $(EMBED_DIR)/data-encoder"
 
+## build-cuda-hash: Compile the CUDA double-SHA-256 helper the data seeder links
+build-cuda-hash:
+	@echo "🔨 Building libcuda_hash.so from cuda_bridge.cu..."
+	@test -x "$(NVCC)" || { echo "❌ nvcc not found at $(NVCC); install CUDA or run make NVCC=<path> build-data-seeder"; exit 1; }
+	@$(MAKE) -C $(PIPELINE_DIR)/3_DATA_SEEDER NVCC=$(NVCC) cuda
+	@echo "✅ Built: pkg/hashing/methods/cuda/libcuda_hash.so"
+
 ## build-data-seeder: Build data seeder pipeline binary
-build-data-seeder:
+build-data-seeder: build-cuda-hash
 	@echo "🔨 Building data-seeder from 3_DATA_SEEDER..."
 	@mkdir -p $(EMBED_DIR)
 	cd $(PIPELINE_DIR)/3_DATA_SEEDER && go build -ldflags "-s -w" -o ../../$(EMBED_DIR)/data-seeder ./cmd/data-seeder
@@ -373,7 +383,14 @@ build-data-trainer:
 	cd $(PIPELINE_DIR)/4_DATA_TRAINER && go build -ldflags "-s -w" -o ../../$(EMBED_DIR)/data-trainer ./cmd/data-trainer
 	@echo "✅ Built: $(EMBED_DIR)/data-trainer"
 
-## build-head-trainer: Build the heart-decision trainer (Rust, stage 5; shares the knirv-heart-decision crate with the arena)
+## build-hands-trainer: Build the HANDS trainer (stage 6; streams signed .nrv frames into pkg/hands/gpt). Output stays in pipeline/6_HANDS_TRAINER/bin, not the embed dir, and build-pipeline-all is not changed.
+build-hands-trainer:
+	@echo "🔨 Building hands-trainer from 6_HANDS_TRAINER..."
+	@mkdir -p $(PIPELINE_DIR)/6_HANDS_TRAINER/bin
+	cd $(PIPELINE_DIR)/6_HANDS_TRAINER && go build -ldflags "-s -w" -o bin/hands-trainer ./cmd/hands-trainer
+	@echo "✅ Built: $(PIPELINE_DIR)/6_HANDS_TRAINER/bin/hands-trainer"
+
+## build-heart-decision-trainer: Build the heart-decision trainer (Rust, stage 5; shares the knirv-heart-decision crate with the arena)
 build-heart-decision-trainer:
 	@echo "🔨 Building heart-decision-trainer from 5_HEAD_TRAINER..."
 	cd $(PIPELINE_DIR)/5_HEAD_TRAINER && cargo build --release
@@ -382,23 +399,35 @@ build-heart-decision-trainer:
 	@chmod 755 $(EMBED_DIR)/heart-decision-trainer
 	@echo "✅ Built: $(EMBED_DIR)/heart-decision-trainer"
 
-## build-head-wasi: Rebuild the embedded WASI module HEART runs under wazero (needs the wasm32-wasip1 rust target)
+## build-heart-decision-wasi: Rebuild the embedded WASI module HEART runs under wazero (needs the wasm32-wasip1 rust target)
 build-heart-decision-wasi:
 	cd heart/decision && cargo build --release --bin heart-decision-wasi --target wasm32-wasip1 --features wasi
 	cp heart/decision/target/wasm32-wasip1/release/heart-decision-wasi.wasm pkg/heart/decision/heart-decision-wasi.wasm
 
-## test-head: heart-decision crate tests (native) + the browser-wasm golden check; the wazero half is `go test ./pkg/heart/decision`
-test-head:
+## test-heart-decision: heart-decision crate tests (native) + the browser-wasm golden check + the Go wazero runner tests
+test-heart-decision:
 	cd heart/decision && cargo test --release
 	./heart/decision/scripts/golden-wasm.sh
+	go test ./pkg/heart/decision/...
+
+## test-head: deprecated alias for test-heart-decision (one release)
+test-head: test-heart-decision
+
+## hands-build: Compile the HANDS package (pure Go; no runner binary exists, so nothing is embedded or written to pkg/hands/bin)
+hands-build:
+	go build ./pkg/hands/... ./pkg/models/...
+	go vet ./pkg/hands/...
 
 ## smoke-models: start a built daemon (BIN=path [GZ=1 if gzipped]) and check the /models/* surface
 smoke-models:
 	./scripts/smoke-models.sh $(BIN) $(if $(GZ),--gz,)
 
-## test-head-trainer: Test the HEAD trainer
-test-head-trainer:
+## test-heart-decision-trainer: Test the heart-decision trainer
+test-heart-decision-trainer:
 	cd $(PIPELINE_DIR)/5_HEAD_TRAINER && cargo test --release
+
+## test-head-trainer: deprecated alias for test-heart-decision-trainer (one release)
+test-head-trainer: test-heart-decision-trainer
 
 ## build-knirvbase: Build the standalone embedded KNIRVBASE service
 build-knirvbase:

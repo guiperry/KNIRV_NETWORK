@@ -2,7 +2,7 @@ package network
 
 import (
 	"KNIRVGRAPH/internal/graphchain"
-	"KNIRVGRAPH/internal/nrv"
+	"KNIRVGRAPH/internal/locator"
 	"KNIRVGRAPH/internal/storage"
 	"KNIRVGRAPH/internal/types"
 	"bytes"
@@ -41,7 +41,7 @@ func TestNewRPCServerWithNRV(t *testing.T) {
 	}
 
 	gc := graphchain.NewGraphChain(storage)
-	nrvSystem := nrv.NewNRVSystem("test-peer", nil)
+	nrvSystem := locator.NewLocatorSystem("test-peer", nil)
 	logger, _ := zap.NewDevelopment()
 
 	server := NewRPCServerWithNRV(gc, nrvSystem, logger, 8080)

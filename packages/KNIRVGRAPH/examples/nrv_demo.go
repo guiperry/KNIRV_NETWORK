@@ -1,17 +1,17 @@
 package main
 
 import (
-	"KNIRVGRAPH/internal/nrv"
+	"KNIRVGRAPH/internal/locator"
 	"fmt"
 	"log"
 	"time"
 )
 
 func main() {
-	fmt.Println("=== KNIRV Network Resolution Vector (NRV) System Demo ===")
+	fmt.Println("=== KNIRV Resolution Locator System Demo ===")
 
 	// Create and start NRV system
-	nrvSystem := nrv.NewNRVSystem("demo-peer", nil)
+	nrvSystem := locator.NewLocatorSystem("demo-peer", nil)
 
 	err := nrvSystem.Start()
 	if err != nil {
@@ -19,7 +19,7 @@ func main() {
 	}
 	defer nrvSystem.Stop()
 
-	fmt.Println("\n1. Creating Network Resolution Vectors...")
+	fmt.Println("\n1. Creating Resolution Locators...")
 
 	// Create some example vectors
 	vectors := []struct {

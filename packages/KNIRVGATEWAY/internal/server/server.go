@@ -352,17 +352,19 @@ func (s *Server) setupRoutes() error {
 	// requests stay gateway-owned and never require a monitor TCP listener.
 	if s.config.MonitorSocketPath != "" {
 		monitorProxy := newSocketProxy(s.config.MonitorSocketPath, "http://knirvmonitor")
+		// Every monitor route requires an admin bearer token, matching the admin gate the
+		// launcher applied to these paths (isMonitorAPIPath). Without it they were public.
 		for _, prefix := range []string{
 			"/api/v1/knirvbase/", "/api/v1/knirvchain/", "/api/v1/knirvgraph/",
 			"/api/v1/knirvoracle/", "/api/v1/gateway/", "/api/v1/onboarding/",
 		} {
-			r.PathPrefix(prefix).HandlerFunc(monitorProxy.ServeHTTP)
+			r.PathPrefix(prefix).Handler(requireAdminJWT(monitorProxy.ServeHTTP))
 		}
-		r.Handle("/api/v1/network/stats", monitorProxy).Methods("GET")
-		r.Handle("/api/v1/network/interfaces", monitorProxy).Methods("GET")
-		// Stable public Prometheus exposition endpoint. It maps directly to
-		// KNIRVMONITOR's native /metrics handler, not a nonexistent /targets UI.
-		r.Handle("/api/v1/monitor/metrics", rewriteProxyPath(monitorProxy, "/metrics")).Methods("GET")
+		r.Handle("/api/v1/network/stats", requireAdminJWT(monitorProxy.ServeHTTP)).Methods("GET")
+		r.Handle("/api/v1/network/interfaces", requireAdminJWT(monitorProxy.ServeHTTP)).Methods("GET")
+		// Stable Prometheus exposition endpoint. It maps directly to KNIRVMONITOR's
+		// native /metrics handler, not a nonexistent /targets UI. Scrapers need an admin token.
+		r.Handle("/api/v1/monitor/metrics", requireAdminJWT(rewriteProxyPath(monitorProxy, "/metrics").ServeHTTP)).Methods("GET")
 		s.logger.Info("Network monitor proxy registered", zap.String("socket", s.config.MonitorSocketPath))
 	} else {
 		s.logger.Warn("Network monitor socket path not configured — monitor API routes will not be proxied")
@@ -374,21 +376,40 @@ func (s *Server) setupRoutes() error {
 	// wrapper, so register its more-specific prefix before the generic backend
 	// route. This keeps every public proof request on KNIRVGATEWAY while avoiding
 	// a second implementation in the backend subprocess.
-	if s.config.ServerBaseURL != "" {
+	// KNIRVSERVER's internal app socket (its full router) serves the public paths it
+	// owns. Without a socket, the legacy KNIRV_SERVER_BASE_URL TCP target keeps the
+	// system and DVE API routes working.
+	appProxy := newKnirvServerAppProxy(s.config.KnirvServerAppSocketPath)
+	if appProxy != nil {
+		registerKnirvServerAppRoutes(r, appProxy)
+		s.logger.Info("KNIRVSERVER app socket proxy registered", zap.String("socket", s.config.KnirvServerAppSocketPath))
+	} else if s.config.ServerBaseURL != "" && serverBaseURLLoopsToGateway(s.config.ServerBaseURL, s.config.PublicURL) {
+		s.logger.Warn("KNIRV_SERVER_BASE_URL is this gateway's public origin; the legacy KNIRVSERVER fallback is not proxied to it",
+			zap.String("target", s.config.ServerBaseURL))
+	} else if s.config.ServerBaseURL != "" {
 		serverProxy, err := newHTTPProxy(s.config.ServerBaseURL)
 		if err != nil {
 			return fmt.Errorf("configure KNIRVSERVER native API proxy: %w", err)
 		}
-		r.PathPrefix("/api/v1/knirv/").Handler(serverProxy)
 		r.PathPrefix("/api/v1/system/update").Handler(serverProxy)
 		r.PathPrefix("/api/v1/system/info").Handler(serverProxy)
 		r.PathPrefix("/api/dve/").Handler(serverProxy)
-		r.PathPrefix("/git/").Handler(serverProxy)
-		s.logger.Info("KNIRVSERVER native proof proxy registered", zap.String("target", s.config.ServerBaseURL))
+		s.logger.Info("KNIRVSERVER native API proxy registered", zap.String("target", s.config.ServerBaseURL))
 	}
+	// /api/v1/knirv/* is served only on KNIRVSERVER's internal Unix socket, never on
+	// its TCP listener. Registered regardless of ServerBaseURL. /git/* is internal
+	// only: it is answered 404 here, never proxied publicly.
+	registerKnirvSocketRoutes(r, s.config.KnirvProofSocketPath)
+	registerGitPublicNotFound(r)
 	var backendProxy *httputil.ReverseProxy
 	if s.config.BackendSocketPath != "" {
 		backendProxy = newSocketProxy(s.config.BackendSocketPath, "http://knirvserver")
+		// Monitor-owned API surface served by the backend (root-failover, grafana, bao-audit,
+		// actuarial metrics) is admin-only at the gateway, matching the launcher's monitor
+		// gate (isMonitorAPIPath). Registered before the generic /api/v1/ backend route,
+		// which would otherwise serve these paths without a token.
+		r.PathPrefix("/api/v1/monitor/").Handler(requireAdminJWT(backendProxy.ServeHTTP))
+		r.Handle("/api/v1/actuarial/metrics", requireAdminJWT(backendProxy.ServeHTTP))
 		r.PathPrefix("/api/v1/").Handler(backendProxy)
 		// Browser/device authorization is initiated by KNIRVCLI through the
 		// selected gateway. Keep auth on that same public origin while the
@@ -710,6 +731,9 @@ func (s *Server) setupRoutes() error {
 	// Backend WebSocket tunnel — forward the unified KNIRVSERVER /ws endpoints
 	// over the backend Unix socket so the browser can connect through the
 	// gateway's public HTTP port.
+	if appProxy != nil {
+		registerKnirvServerAppWSRoutes(r, appProxy)
+	}
 	if s.config.BackendSocketPath != "" {
 		r.HandleFunc("/ws/dve/{dveId}/advisor/stream/{sessionId}", s.handleBackendWebSocketProxy).Methods("GET")
 		r.HandleFunc("/ws", s.handleBackendWebSocketProxy).Methods("GET")
@@ -753,7 +777,7 @@ func (s *Server) setupRoutes() error {
 	// These are served at the root level so the explorer can load its assets.
 
 	// Serve Next.js _next directory (contains JS, CSS, chunks, etc.)
-	r.PathPrefix("/_next/").Handler(http.StripPrefix("/", http.FileServer(http.Dir(s.webguiStaticDir))))
+	r.PathPrefix("/_next/").Handler(webguiFileOrAppFallback(s.webguiStaticDir, appProxy))
 
 	// Serve explorer static files at the root level (favicon, svgs, etc.).
 	webguiStaticFiles := []string{"/favicon.ico", "/next.svg", "/window.svg", "/globe.svg", "/vercel.svg", "/file.svg"}
@@ -919,6 +943,10 @@ func (s *Server) setupRoutes() error {
 			assetPath := filepath.Join(s.webguiStaticDir, filepath.Clean(r.URL.Path))
 			if info, err := os.Stat(assetPath); err == nil && !info.IsDir() {
 				http.ServeFile(w, r, assetPath)
+				return
+			}
+			if appProxy != nil {
+				appProxy.ServeHTTP(w, r)
 				return
 			}
 			http.NotFound(w, r)

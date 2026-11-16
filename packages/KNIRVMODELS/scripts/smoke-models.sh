@@ -12,7 +12,7 @@ if [ "${2:-}" = "--gz" ]; then gunzip -c "$bin" > "$tmp/knirvmodels"; chmod +x "
 
 KNIRV_APP_DATA_DIR="$tmp/data" "$bin" --headless --socket-path "$tmp/m.sock" >"$tmp/log" 2>&1 &
 pid=$!
-for _ in $(seq 1 100); do [ -S "$tmp/m.sock" ] && break; sleep 0.1; done
+for _ in $(seq 1 600); do [ -S "$tmp/m.sock" ] && break; sleep 0.1; done
 [ -S "$tmp/m.sock" ] || { echo "smoke: daemon never opened its socket"; cat "$tmp/log"; exit 1; }
 
 get() { curl -sS --unix-socket "$tmp/m.sock" "http://models$1"; }

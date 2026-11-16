@@ -18,8 +18,9 @@ serve_frontend: true
 log_level: "info"
 
 # Embedded local cognitive-inference model. This is ordinary deployment
-# configuration (not root.key data). The harness is on by default (`enabled: false`
-# or `-llama=false` turns it off). The llama.cpp model downloads on first start and
+# configuration (not root.key data). Local inference is on by default: Colibri is
+# tried first and llama.cpp serves only if a Colibri attempt fails (`enabled: false`
+# or `-no-llama` turns all of it off). The llama.cpp model downloads on first start and
 # is then cached under /var/lib/knirvserver/knirvllama/models.
 llama:
   enabled: true

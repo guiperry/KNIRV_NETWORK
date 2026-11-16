@@ -1,8 +1,8 @@
 [package]
 name = "knirv-sdk-wasm-core"
-version = "0.2.0"
+version = "0.2.1"
 edition = "2021"
-rust-version = "1.75"
+rust-version = "1.87"
 description = "Portable WebAssembly core for the KNIRV SDK npm package"
 license = "MIT"
 repository = "https://github.com/KNIRV/KNIRV_NETWORK"
@@ -18,7 +18,7 @@ wasm-bindgen-futures = "0.4"
 js-sys = "0.3"
 # The Rust core is the source of truth. Only its local (non-network) operations
 # are reachable from here, so the HTTP stack is dropped at link time.
-knirv-sdk = { path = "../../core", default-features = false, features = ["js-rng", "module-manifest"] }
+knirv-sdk = { path = "../../core", default-features = false, features = ["js-rng", "ed25519", "mldsa", "module-manifest"] }
 
 [profile.release]
 opt-level = "z"

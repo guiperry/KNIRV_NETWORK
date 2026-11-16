@@ -4,6 +4,7 @@ go 1.24.11
 
 require (
 	github.com/apache/arrow/go/v18 v18.0.0-20241007013041-ab95a4d25142
+	github.com/knirvcorp/knirvbase v1.0.7 // indirect
 	golang.org/x/text v0.33.0
 	google.golang.org/grpc v1.79.1
 	gopkg.in/yaml.v3 v3.0.1
@@ -35,3 +36,5 @@ replace knirvmodels => ../..
 replace github.com/guiperry/knirv-sdk-go/models => ../../../KNIRVSDK/go-package/models
 
 replace github.com/guiperry/knirv-sdk-go => ../../../KNIRVSDK/go-package
+
+replace github.com/knirvcorp/knirvbase => ../../../KNIRVBASE/go

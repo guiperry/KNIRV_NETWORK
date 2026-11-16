@@ -159,6 +159,16 @@ It is enabled by `KNIRV_ENROLL_SOCKET` and needs `KNIRV_ENROLL_ROOT_PUBKEY` and
 `KNIRV_ENROLL_OPERATOR`. The launcher passes the socket to the backend, which passes it to the
 gateway as `ENROLL_SOCKET_PATH`.
 
+Registration keys are bound to the approved onboarding record: the challenge carries a
+`registration_id`, the root countersigns it, and the server rejects anything whose public key
+does not derive to the approved `validator_id`. An accepted enrollment is appended to the
+registry-backed failover validator set (version + 1, signed by the root/authorized publisher)
+through the backend's internal Unix socket. Configure the approved registrations file with
+`KNIRV_ENROLL_REGISTRATIONS` (default `<app-data-dir>/bootnode_approved_registrations.json`)
+and set `KNIRV_ENROLL_CHAIN_ID` to the backend's failover chain (required; the socket stays disabled without it). Challenge nonces are server-issued with `knirvserver enroll issue` for an approved registration, and enrollment keys come from the secrets provider (`--secrets-backend`). The backend must be a
+root/authorized publisher; a non-root node cannot publish its own admission. See
+`RUNBOOK_BOOTNODE_ENROLLMENT.md` for the full automatic and manual flows.
+
 ## Implementation Notes
 
 A few things are important when reading the code:

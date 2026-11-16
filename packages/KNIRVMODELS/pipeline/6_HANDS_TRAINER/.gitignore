@@ -1,0 +1,2 @@
+# Built binary (go build at module root). Anchored so cmd/hands-trainer/ stays tracked.
+/hands-trainer

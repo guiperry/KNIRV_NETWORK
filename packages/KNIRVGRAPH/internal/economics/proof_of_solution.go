@@ -9,13 +9,13 @@ import (
 	"math/big"
 	"time"
 
-	"KNIRVGRAPH/internal/nrv"
+	"KNIRVGRAPH/internal/locator"
 )
 
 // ProofOfSolution implements the Proof-of-Solution consensus mechanism for KNIRVGRAPH
 type ProofOfSolution struct {
 	nrnIntegration *NRNIntegration
-	nrvSystem      *nrv.NRVSystem
+	nrvSystem      *locator.LocatorSystem
 	rewardRates    *RewardRates
 }
 
@@ -54,7 +54,7 @@ type ResolutionEvent struct {
 }
 
 // NewProofOfSolution creates a new Proof-of-Solution instance
-func NewProofOfSolution(nrnIntegration *NRNIntegration, nrvSystem *nrv.NRVSystem) *ProofOfSolution {
+func NewProofOfSolution(nrnIntegration *NRNIntegration, nrvSystem *locator.LocatorSystem) *ProofOfSolution {
 	return &ProofOfSolution{
 		nrnIntegration: nrnIntegration,
 		nrvSystem:      nrvSystem,
@@ -71,7 +71,7 @@ func NewProofOfSolution(nrnIntegration *NRNIntegration, nrvSystem *nrv.NRVSystem
 // ProcessErrorNodeCreation processes the creation of an error node and attaches an NRN bounty.
 // The bounty is tracked locally on the graph and redeemed when the skill is committed
 // to KNIRVCHAIN via CommitSkill.
-func (pos *ProofOfSolution) ProcessErrorNodeCreation(errorNode *nrv.ErrorNode, observerID string) error {
+func (pos *ProofOfSolution) ProcessErrorNodeCreation(errorNode *locator.ErrorNode, observerID string) error {
 	log.Printf("Processing error node creation: %s by observer %s", errorNode.Id, observerID)
 
 	// Validate the error node
@@ -100,7 +100,7 @@ func (pos *ProofOfSolution) ProcessErrorNodeCreation(errorNode *nrv.ErrorNode, o
 
 // ProcessSkillNodeCreation processes the creation of a skill node.
 // The reward is calculated locally — no oracle call.
-func (pos *ProofOfSolution) ProcessSkillNodeCreation(skillNode *nrv.SkillNode, creatorID string) error {
+func (pos *ProofOfSolution) ProcessSkillNodeCreation(skillNode *locator.SkillNode, creatorID string) error {
 	log.Printf("Processing skill node creation: %s by creator %s", skillNode.ID, creatorID)
 
 	// Validate the skill node
@@ -225,7 +225,7 @@ func (pos *ProofOfSolution) verifySolutionProof(proof *SolutionProof) error {
 }
 
 // validateErrorNode validates an error node
-func (pos *ProofOfSolution) validateErrorNode(errorNode *nrv.ErrorNode) error {
+func (pos *ProofOfSolution) validateErrorNode(errorNode *locator.ErrorNode) error {
 	if errorNode.Id == "" {
 		return fmt.Errorf("missing error node ID")
 	}
@@ -234,7 +234,7 @@ func (pos *ProofOfSolution) validateErrorNode(errorNode *nrv.ErrorNode) error {
 		return fmt.Errorf("missing error type")
 	}
 
-	if len(nrv.ErrorContextMap(errorNode)) == 0 {
+	if len(locator.ErrorContextMap(errorNode)) == 0 {
 		return fmt.Errorf("missing error context")
 	}
 
@@ -242,7 +242,7 @@ func (pos *ProofOfSolution) validateErrorNode(errorNode *nrv.ErrorNode) error {
 }
 
 // validateSkillNode validates a skill node
-func (pos *ProofOfSolution) validateSkillNode(skillNode *nrv.SkillNode) error {
+func (pos *ProofOfSolution) validateSkillNode(skillNode *locator.SkillNode) error {
 	if skillNode.ID == "" {
 		return fmt.Errorf("missing skill node ID")
 	}
@@ -259,9 +259,9 @@ func (pos *ProofOfSolution) validateSkillNode(skillNode *nrv.SkillNode) error {
 }
 
 // calculateComplexityMultiplier calculates a multiplier based on error complexity
-func (pos *ProofOfSolution) calculateComplexityMultiplier(errorNode *nrv.ErrorNode) float64 {
+func (pos *ProofOfSolution) calculateComplexityMultiplier(errorNode *locator.ErrorNode) float64 {
 	baseComplexity := 1.0
-	contextComplexity := float64(len(nrv.ErrorContextMap(errorNode))) / 100.0
+	contextComplexity := float64(len(locator.ErrorContextMap(errorNode))) / 100.0
 	if contextComplexity > 2.0 {
 		contextComplexity = 2.0
 	}
@@ -274,7 +274,7 @@ func (pos *ProofOfSolution) calculateDemandMultiplier(errorType string) float64 
 }
 
 // calculateUtilityMultiplier calculates a multiplier based on skill utility
-func (pos *ProofOfSolution) calculateUtilityMultiplier(skillNode *nrv.SkillNode) float64 {
+func (pos *ProofOfSolution) calculateUtilityMultiplier(skillNode *locator.SkillNode) float64 {
 	baseUtility := 1.0
 	capabilityBonus := float64(len(skillNode.Capabilities)) * 0.1
 	if capabilityBonus > 1.0 {

@@ -3,6 +3,7 @@ package controller
 import (
 	"context"
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -17,52 +18,109 @@ import (
 // loop would otherwise start one every batch.
 var headCycleMu sync.Mutex
 
-// headCycleConfig derives stage-5 paths from the app data dir. Env overrides:
+// trainerName is the stage-5 trainer binary the Makefile embeds
+// (build-heart-decision-trainer). legacyTrainerName is the pre-rename name; it is
+// accepted only so an embed built before the rename still runs. The fallback is
+// removed one release after this rename.
+const (
+	trainerName       = "heart-decision-trainer"
+	legacyTrainerName = "head-trainer"
+)
+
+// trainerBinaryPath resolves the trainer through lookup, preferring the current name
+// and falling back to the legacy one. The error reports the current name only.
+func trainerBinaryPath(lookup func(string) (string, error)) (string, error) {
+	p, err := lookup(trainerName)
+	if err == nil {
+		return p, nil
+	}
+	if lp, lerr := lookup(legacyTrainerName); lerr == nil {
+		return lp, nil
+	}
+	return "", err
+}
+
+// Env prefixes for the stage-5 decision model. The current name is
+// KNIRV_HEART_DECISION_<suffix>; the legacy KNIRV_HEAD_<suffix> is still read as a
+// fallback. Legacy names are removed one release after the rename. If both are set,
+// the new name wins.
+const (
+	heartDecisionEnvPrefix = "KNIRV_HEART_DECISION_"
+	legacyHeadEnvPrefix    = "KNIRV_HEAD_"
+)
+
+var (
+	legacyEnvLogMu  sync.Mutex
+	legacyEnvLogged = map[string]bool{}
+)
+
+// HeartDecisionEnv returns the value of KNIRV_HEART_DECISION_<suffix>. An empty value
+// counts as unset. If that is unset, it falls back to KNIRV_HEAD_<suffix> and logs a
+// deprecation notice once per legacy name. It returns "" when neither is set.
+func HeartDecisionEnv(suffix string) string {
+	if v := os.Getenv(heartDecisionEnvPrefix + suffix); v != "" {
+		return v
+	}
+	legacy := legacyHeadEnvPrefix + suffix
+	v := os.Getenv(legacy)
+	if v == "" {
+		return ""
+	}
+	legacyEnvLogMu.Lock()
+	first := !legacyEnvLogged[legacy]
+	legacyEnvLogged[legacy] = true
+	legacyEnvLogMu.Unlock()
+	if first {
+		// Legacy names are removed one release after the rename.
+		log.Printf("DEPRECATED: env %s is read as a fallback; rename it to %s (the legacy name is removed in a later release)", legacy, heartDecisionEnvPrefix+suffix)
+	}
+	return v
+}
+
+// headCycleConfig derives stage-5 paths from the app data dir. Env overrides, each
+// read through HeartDecisionEnv (KNIRV_HEART_DECISION_<suffix>, legacy KNIRV_HEAD_<suffix>):
 //
-//	KNIRV_HEAD_AUTOTRAIN=0        disable the automatic trigger (manual still works)
-//	KNIRV_HEAD_BRONZE_DIR         Bronze JSONL directory
-//	KNIRV_HEAD_PRESET/EPOCHS      model size and epochs
-//	KNIRV_HEAD_MIN_NEW/MIN_GAP    new-episode threshold and minimum hours between cycles
-//	KNIRV_HEAD_POLICY_HASH        policy bundle the model is trained under
+//	AUTOTRAIN=0        disable the automatic trigger (manual still works)
+//	BRONZE_DIR         Bronze JSONL directory
+//	PRESET/EPOCHS      model size and epochs
+//	MIN_NEW/MIN_GAP_HOURS  new-episode threshold and minimum hours between cycles
+//	POLICY_HASH        policy bundle the model is trained under
 func headCycleConfig(force bool) (cycle.Config, error) {
 	app, err := embedded.GetAppDataDir()
 	if err != nil {
 		return cycle.Config{}, err
 	}
-	trainer, err := embedded.GetBinaryPath("head-trainer")
+	trainer, err := trainerBinaryPath(embedded.GetBinaryPath)
 	if err != nil {
-		return cycle.Config{}, fmt.Errorf("head-trainer not available: %w", err)
+		return cycle.Config{}, fmt.Errorf("heart-decision-trainer not available: %w", err)
 	}
 	data := filepath.Join(app, "knirvmodels", "data")
 	work := filepath.Join(app, "knirvmodels", "head-work")
+	bronze := HeartDecisionEnv("BRONZE_DIR")
+	if bronze == "" {
+		bronze = filepath.Join(app, "knirvmodels", "supervision", "bronze")
+	}
 	cfg := cycle.Config{
-		BronzeDir:  envOr("KNIRV_HEAD_BRONZE_DIR", filepath.Join(app, "knirvmodels", "supervision", "bronze")),
+		BronzeDir:  bronze,
 		WorkDir:    work,
 		OutDir:     data, // HEART serves <data>/head
 		TrainerBin: trainer,
-		Preset:     os.Getenv("KNIRV_HEAD_PRESET"),
-		PolicyHash: os.Getenv("KNIRV_HEAD_POLICY_HASH"),
+		Preset:     HeartDecisionEnv("PRESET"),
+		PolicyHash: HeartDecisionEnv("POLICY_HASH"),
 		SoftLabels: filepath.Join(work, "teacher.jsonl"),
 		Force:      force,
 		Log:        func(f string, a ...any) { fmt.Printf(f+"\n", a...) },
 	}
-	if n, err := strconv.Atoi(os.Getenv("KNIRV_HEAD_EPOCHS")); err == nil {
+	if n, err := strconv.Atoi(HeartDecisionEnv("EPOCHS")); err == nil {
 		cfg.Epochs = n
 	}
-	if n, err := strconv.Atoi(os.Getenv("KNIRV_HEAD_MIN_NEW")); err == nil {
+	if n, err := strconv.Atoi(HeartDecisionEnv("MIN_NEW")); err == nil {
 		cfg.MinNew = n
 	}
-	if h, err := strconv.Atoi(os.Getenv("KNIRV_HEAD_MIN_GAP_HOURS")); err == nil {
+	if h, err := strconv.Atoi(HeartDecisionEnv("MIN_GAP_HOURS")); err == nil {
 		cfg.MinGap = time.Duration(h) * time.Hour
 	}
 	return cfg, nil
-}
-
-func envOr(k, d string) string {
-	if v := os.Getenv(k); v != "" {
-		return v
-	}
-	return d
 }
 
 // RunHEADCycle runs stage 5 once. force skips the new-data and spacing checks.
@@ -94,7 +152,7 @@ func (c *Controller) HEADStatus() cycle.State {
 // maybeAutoHEADCycle is called after each complete pipeline batch. It is cheap
 // when there is nothing to do and must never fail or delay the pipeline.
 func (c *Controller) maybeAutoHEADCycle() {
-	if os.Getenv("KNIRV_HEAD_AUTOTRAIN") == "0" {
+	if HeartDecisionEnv("AUTOTRAIN") == "0" {
 		return
 	}
 	go func() {
@@ -123,7 +181,7 @@ func HEADDir() (string, error) {
 // starts training), so stage 5 must not depend on them. The cycle itself decides
 // whether there is enough new data; a check that finds none is silent.
 func (c *Controller) RunHEADScheduler(ctx context.Context, every time.Duration) {
-	if os.Getenv("KNIRV_HEAD_AUTOTRAIN") == "0" || every <= 0 {
+	if HeartDecisionEnv("AUTOTRAIN") == "0" || every <= 0 {
 		return
 	}
 	t := time.NewTimer(time.Minute) // first look shortly after start

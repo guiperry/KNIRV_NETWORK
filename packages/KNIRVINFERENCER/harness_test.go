@@ -57,6 +57,19 @@ func (f *fakeChooser) Choose(_ context.Context, _ Task, eligible []string) (Choi
 	return f.c, f.err
 }
 
+// Server tasks route to HANDS first (models_migration.md §7.6.1). While HANDS is not
+// registered the harness excludes it and falls back to llama, so nothing is lost.
+func TestServerTaskRoutesToHandsThenLlama(t *testing.T) {
+	withHands := NewHarness([]HarnessModel{up("hands"), up("llama")})
+	if _, tr, err := withHands.Do(context.Background(), Task{Kind: KindServerTask, Input: "x"}); err != nil || tr.Chosen != "hands" {
+		t.Fatalf("with hands registered: chose %q err %v, want hands", tr.Chosen, err)
+	}
+	withoutHands := NewHarness([]HarnessModel{up("llama")})
+	if _, tr, err := withoutHands.Do(context.Background(), Task{Kind: KindServerTask, Input: "x"}); err != nil || tr.Chosen != "llama" {
+		t.Fatalf("without hands: chose %q err %v, want llama fallback", tr.Chosen, err)
+	}
+}
+
 func TestRoutingTable(t *testing.T) {
 	models := []HarnessModel{up("head"), up("heart"), up("hasher"), up("llama"), ext()}
 	h := NewHarness(models)

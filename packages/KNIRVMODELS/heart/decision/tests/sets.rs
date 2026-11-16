@@ -2,8 +2,9 @@
 
 use candle_core::{DType, Device, Result, Tensor};
 use candle_nn::{Init, VarBuilder, VarMap};
+use knirv_heart_decision::adapter::{self, Adapter, AdapterLayer};
 use knirv_heart_decision::{overlap_feature, set_loss_from_logits, softmax_last_dim_diff, tokenizer, ChoiceLayout, DecisionHead, Head, HeadConfig, HeadKind, SetChoice, SetHead, SetKind, SetQuestion};
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 
 const MAX_CHOICES: usize = 7; // distinct from every other dimension, so a per-slot weight shows
 const WIDTH: usize = 96;
@@ -66,6 +67,14 @@ fn head(c: &HeadConfig) -> Head {
     Head::new(c.clone(), VarBuilder::from_tensors(weights(c).0, DType::F32, &Device::Cpu)).unwrap()
 }
 
+fn weights_bytes(c: &HeadConfig) -> Vec<u8> {
+    let dir = std::env::temp_dir().join(format!("sets-{}.safetensors", std::process::id()));
+    candle_core::safetensors::save(&weights(c).0, &dir).unwrap();
+    let bytes = std::fs::read(&dir).unwrap();
+    let _ = std::fs::remove_file(dir);
+    bytes
+}
+
 fn q(name: &str, state: &str, choices: &[(&str, &str)]) -> SetQuestion {
     SetQuestion {
         name: name.into(),
@@ -81,6 +90,48 @@ fn probs(h: &Head, question: &SetQuestion) -> Vec<(String, f32)> {
 }
 
 const POOL: [(&str, &str); 6] = [("c1", "wait"), ("c2", "restart"), ("c3", "escalate"), ("c4", "rollback"), ("c5", "page the on-call"), ("c6", "ignore")];
+
+fn mat(r: usize, c: usize, seed: f32) -> Vec<Vec<f32>> {
+    (0..r)
+        .map(|i| (0..c).map(|j| 0.3 * ((i * 7 + j * 3) as f32 * 0.21 + seed).sin()).collect())
+        .collect()
+}
+
+/// The v2 set scorer sits on top of the recurrent attention stack, so adapting
+/// q/k/v/o changes set decisions too. The zero-strength/cleared adapter reverts.
+#[test]
+fn adapter_changes_set_output_and_zero_strength_reverts() {
+    let c = cfg();
+    let w = weights_bytes(&c);
+    let question = q("route", "host=idle load=42", &POOL[..3]);
+    let base = Head::from_safetensors(c.clone(), &w, &Device::Cpu).unwrap();
+    let base_probs = probs(&base, &question);
+
+    let roles = ["self_attn.q_proj", "self_attn.k_proj", "self_attn.v_proj", "self_attn.o_proj"];
+    let layers: BTreeMap<_, _> = roles
+        .iter()
+        .enumerate()
+        .map(|(k, role)| {
+            (role.to_string(), AdapterLayer { a: mat(4, c.d_model, k as f32), b: mat(c.d_model, 4, 9.0 + k as f32) })
+        })
+        .collect();
+    let mut ad = Adapter {
+        adapter_rank: 4,
+        scaling_alpha: 64.0,
+        layers,
+        content_hash: "set-adapter".into(),
+        stacks: vec!["l".into(), "h".into()],
+        strength: 1.0,
+        base_sha256: adapter::base_sha256(&w),
+    };
+    let (tuned, applied) = Head::from_safetensors_adapted(c.clone(), &w, &Device::Cpu, Some(&ad)).unwrap();
+    assert_eq!(applied.unwrap().roles_applied.len(), roles.len());
+    assert_ne!(base_probs, probs(&tuned, &question));
+
+    ad.strength = 0.0;
+    let (zero, _) = Head::from_safetensors_adapted(c, &w, &Device::Cpu, Some(&ad)).unwrap();
+    assert_eq!(base_probs, probs(&zero, &question));
+}
 
 /// Tiny deterministic generator for the permutation property.
 struct Lcg(u64);

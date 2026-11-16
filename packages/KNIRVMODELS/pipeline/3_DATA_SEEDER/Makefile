@@ -4,9 +4,14 @@
 CUDA_DIR := $(CURDIR)/../../pkg/hashing/methods/cuda
 CUDA_LIB := $(CUDA_DIR)/libcuda_hash.so
 CUDA_SRC := $(CUDA_DIR)/cuda_bridge.cu
-NVCC := /usr/local/cuda-12.6/bin/nvcc
-CUDA_ARCH := sm_52
-CUDA_FLAGS := -shared -Xcompiler -fPIC -arch=$(CUDA_ARCH) -O3
+NVCC ?= /usr/local/cuda-12.6/bin/nvcc
+# sm_52 keeps the library loadable on older GPUs; sm_86 (RTX 3060, Ampere) is built
+# natively, with PTX for newer GPUs. Without the native target the driver JIT-compiles
+# the PTX on every load.
+CUDA_ARCH := sm_52,sm_86
+CUDA_FLAGS := -shared -Xcompiler -fPIC -O3 \
+	-gencode arch=compute_52,code=sm_52 \
+	-gencode arch=compute_86,code=[sm_86,compute_86]
 
 # Application name 
 APP_NAME := data-seeder

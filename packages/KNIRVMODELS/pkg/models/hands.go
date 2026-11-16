@@ -1,17 +1,20 @@
 package models
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
 
 	"knirvmodels/internal/policy"
 	"knirvmodels/pkg/hands"
+	"knirvmodels/pkg/hands/gpt"
 	"knirvmodels/pkg/heartqwen"
+	"knirvmodels/pkg/training/nrvtrainer"
 
 	sdk "github.com/guiperry/knirv-sdk-go/models"
 	"github.com/guiperry/knirv-sdk-go/models/frame"
@@ -42,6 +45,13 @@ type Hands struct {
 	failed error
 	failAt time.Time
 	start  time.Time
+	job    *TrainJob
+
+	// runMu serialises training against generation. Training mutates the model's
+	// persisted tensors in place; a concurrent Forward would observe a
+	// half-updated weight set. Generation takes a read lock and returns 503 if
+	// training holds the write lock.
+	runMu sync.RWMutex
 }
 
 // generator is the HANDS model surface the handlers drive. *hands.Engine
@@ -64,6 +74,37 @@ const maxBodyBytes = 64 << 10
 // maxOutputTokens is the ceiling on the number of tokens a single generation may
 // ask for; it matches the frame default and the hands.* stages.
 const maxOutputTokens = 512
+
+// Training ceilings. /models/hands/train is reachable by the backend over the
+// daemon's Unix socket, so every bound is enforced here rather than trusted to
+// the caller.
+const (
+	maxTrainFrames  = 50_000
+	maxTrainWindows = 200_000
+	maxTrainEpochs  = 100
+	maxTrainSteps   = 10_000
+	maxTrainContext = 4096
+)
+
+// TrainJob is the observable state of one /models/hands/train request.
+type TrainJob struct {
+	ID         string     `json:"id"`
+	State      string     `json:"state"`
+	Input      string     `json:"input"`
+	StartedAt  time.Time  `json:"startedAt"`
+	FinishedAt *time.Time `json:"finishedAt,omitempty"`
+	Frames     int        `json:"frames,omitempty"`
+	Windows    int        `json:"windows,omitempty"`
+	Steps      int        `json:"steps,omitempty"`
+	Checkpoint string     `json:"checkpoint,omitempty"`
+	Error      string     `json:"error,omitempty"`
+}
+
+// trainable is the optional surface a HANDS engine exposes for the trainer.
+// Test stand-ins that only generate simply do not implement it.
+type trainable interface {
+	TrainWindows(windows [][]int, opts hands.TrainOptions) (hands.TrainResult, error)
+}
 
 // NewHands wires the HANDS facade with the same concrete executor, gate, audit
 // and frame registry the daemon's HEART path uses, so a real core-authorized T0
@@ -146,7 +187,7 @@ func (h *Hands) Mount(mux *http.ServeMux, prefix string) {
 		return
 	}
 	mux.HandleFunc(prefix+"/status", func(w http.ResponseWriter, r *http.Request) {
-		WriteJSON(w, http.StatusOK, h.Status())
+		WriteJSON(w, http.StatusOK, h.statusPayload())
 	})
 	mux.HandleFunc(prefix+"/health", h.handleHealth)
 	mux.HandleFunc(prefix+"/models", h.handleModels)
@@ -154,6 +195,25 @@ func (h *Hands) Mount(mux *http.ServeMux, prefix string) {
 	mux.HandleFunc(prefix+"/generate", h.handleGenerate)
 	mux.HandleFunc(prefix+"/plan", h.handlePlan)
 	mux.HandleFunc(prefix+"/act", h.handleAct)
+	mux.HandleFunc(prefix+"/train", h.handleTrain)
+}
+
+// statusPayload is sdk.ModelStatus plus the current training job, if any.
+func (h *Hands) statusPayload() any {
+	return struct {
+		sdk.ModelStatus
+		Training *TrainJob `json:"training,omitempty"`
+	}{ModelStatus: h.Status(), Training: h.trainingSnapshot()}
+}
+
+func (h *Hands) trainingSnapshot() *TrainJob {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	if h.job == nil {
+		return nil
+	}
+	copy := *h.job
+	return &copy
 }
 
 func (h *Hands) handleModels(w http.ResponseWriter, r *http.Request) {
@@ -162,8 +222,8 @@ func (h *Hands) handleModels(w http.ResponseWriter, r *http.Request) {
 		"role":         sdk.RoleHands,
 		"backend":      "software",
 		"version":      "gorgonite",
-		"capabilities": []string{"generate", "plan", "act"},
-		"endpoints":    []string{"/status", "/health", "/models", "/weights", "/generate", "/plan", "/act"},
+		"capabilities": []string{"generate", "plan", "act", "train"},
+		"endpoints":    []string{"/status", "/health", "/models", "/weights", "/generate", "/plan", "/act", "/train"},
 	})
 }
 
@@ -226,7 +286,12 @@ func (h *Hands) handleGenerate(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
+	if !h.runMu.TryRLock() {
+		WriteJSON(w, http.StatusServiceUnavailable, map[string]string{"error": "HANDS training in progress"})
+		return
+	}
 	text, err := eng.GenerateText(prompt, n, temperature, topK)
+	h.runMu.RUnlock()
 	if err != nil {
 		WriteJSON(w, http.StatusServiceUnavailable, map[string]string{"error": err.Error()})
 		return
@@ -272,13 +337,13 @@ func (h *Hands) handleFramed(w http.ResponseWriter, r *http.Request, stage strin
 		return
 	}
 
-	e := &heartqwen.Engine{
-		Reg:   h.reg,
-		Facts: func() frame.LiveFacts { return frame.LiveFacts{Model: "hands", NodeMode: "local"} },
-		LLM:   handsLLM{eng: eng},
-		Gate:  h.gate,
-		Exec:  h.exec,
+	if !h.runMu.TryRLock() {
+		WriteJSON(w, http.StatusServiceUnavailable, map[string]string{"error": "HANDS training in progress"})
+		return
 	}
+	defer h.runMu.RUnlock()
+
+	e := hands.NewLoop(eng, h.reg, h.gate, h.exec)
 	in := heartqwen.Input{
 		Stage:     stage,
 		Task:      prompt,
@@ -304,25 +369,6 @@ func (h *Hands) handleFramed(w http.ResponseWriter, r *http.Request, stage strin
 		out["output"] = res.Output
 	}
 	WriteJSON(w, http.StatusOK, out)
-}
-
-// handsLLM adapts the HANDS generator to the heartqwen.LLM contract: the frame
-// is the system message and every user turn (the task, then tool results) is
-// concatenated behind it. The loop supplies stage.MaxOutput as MaxTokens, so the
-// generation length is bounded by the frame, never by an arbitrary caller N.
-type handsLLM struct{ eng generator }
-
-func (l handsLLM) Complete(_ context.Context, req heartqwen.Request) (string, error) {
-	var b strings.Builder
-	b.WriteString(req.Frame.System)
-	for _, m := range req.Messages {
-		if m.Role != "user" {
-			continue
-		}
-		b.WriteString("\n\n")
-		b.WriteString(m.Content)
-	}
-	return l.eng.GenerateText(b.String(), req.MaxTokens, 0, 0)
 }
 
 // callerFrom/privilegeFrom/tenantFrom lift the authenticated request context
@@ -371,4 +417,216 @@ func (h *Hands) engine() (generator, error) {
 	}
 	h.eng = eng
 	return eng, nil
+}
+
+type trainRequest struct {
+	Input        string  `json:"input"`
+	Epochs       int     `json:"epochs"`
+	LearningRate float64 `json:"learningRate"`
+	MaxSteps     int     `json:"maxSteps"`
+	ContextLen   int     `json:"contextLength"`
+	Stride       int     `json:"stride"`
+}
+
+// handleTrain starts one bounded training pass over a signed .nrv corpus. It is
+// POST-only, returns 202 with a job id, and refuses (409) while a job is already
+// running. The job is visible under /models/hands/status; nothing here opens a
+// new listener, so the route stays reachable only through the daemon's Unix
+// socket and KNIRVGATEWAY.
+func (h *Hands) handleTrain(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		WriteJSON(w, http.StatusMethodNotAllowed, map[string]string{"error": "method not allowed"})
+		return
+	}
+	r.Body = http.MaxBytesReader(w, r.Body, maxBodyBytes)
+	var req trainRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		WriteJSON(w, http.StatusBadRequest, map[string]string{"error": fmt.Sprintf("bad request body: %v", err)})
+		return
+	}
+
+	input := filepath.Clean(strings.TrimSpace(req.Input))
+	if input == "" || input == "." {
+		WriteJSON(w, http.StatusBadRequest, map[string]string{"error": "input .nrv path is required"})
+		return
+	}
+	if !filepath.IsAbs(input) {
+		WriteJSON(w, http.StatusBadRequest, map[string]string{"error": "input must be an absolute path"})
+		return
+	}
+	if !strings.EqualFold(filepath.Ext(input), ".nrv") {
+		WriteJSON(w, http.StatusBadRequest, map[string]string{"error": "input must be a .nrv asset"})
+		return
+	}
+	info, err := os.Stat(input)
+	if err != nil {
+		if os.IsNotExist(err) {
+			WriteJSON(w, http.StatusNotFound, map[string]string{"error": "input asset not found"})
+			return
+		}
+		WriteJSON(w, http.StatusBadRequest, map[string]string{"error": fmt.Sprintf("stat input: %v", err)})
+		return
+	}
+	if !info.Mode().IsRegular() || info.Size() == 0 {
+		WriteJSON(w, http.StatusBadRequest, map[string]string{"error": "input must be a non-empty regular file"})
+		return
+	}
+
+	epochs := req.Epochs
+	if epochs <= 0 {
+		epochs = 1
+	}
+	if epochs > maxTrainEpochs {
+		WriteJSON(w, http.StatusBadRequest, map[string]string{"error": fmt.Sprintf("epochs %d exceeds limit %d", epochs, maxTrainEpochs)})
+		return
+	}
+	learningRate := req.LearningRate
+	if learningRate <= 0 {
+		learningRate = 3e-4
+	}
+	if learningRate > 1 {
+		WriteJSON(w, http.StatusBadRequest, map[string]string{"error": "learningRate must be <= 1"})
+		return
+	}
+	maxSteps := req.MaxSteps
+	if maxSteps <= 0 {
+		maxSteps = 128
+	}
+	if maxSteps > maxTrainSteps {
+		WriteJSON(w, http.StatusBadRequest, map[string]string{"error": fmt.Sprintf("maxSteps %d exceeds limit %d", maxSteps, maxTrainSteps)})
+		return
+	}
+	contextLen := req.ContextLen
+	if contextLen <= 0 {
+		contextLen = 64
+	}
+	if contextLen < 2 || contextLen > maxTrainContext {
+		WriteJSON(w, http.StatusBadRequest, map[string]string{"error": fmt.Sprintf("contextLength must be in [2,%d]", maxTrainContext)})
+		return
+	}
+	stride := req.Stride
+	if stride <= 0 {
+		stride = contextLen
+	}
+	if stride > contextLen {
+		WriteJSON(w, http.StatusBadRequest, map[string]string{"error": "stride must be <= contextLength"})
+		return
+	}
+
+	asset, err := nrvtrainer.LoadAsset(input)
+	if err != nil {
+		WriteJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+		return
+	}
+	if len(asset.Frames) > maxTrainFrames {
+		WriteJSON(w, http.StatusRequestEntityTooLarge, map[string]string{
+			"error": fmt.Sprintf("asset has %d frames, exceeds limit %d", len(asset.Frames), maxTrainFrames),
+		})
+		return
+	}
+	windows := asset.TokenWindows(contextLen, stride)
+	if len(windows) == 0 {
+		WriteJSON(w, http.StatusUnprocessableEntity, map[string]string{
+			"error": "asset has no Z3-valid token_window payloads usable for HANDS training",
+		})
+		return
+	}
+	if len(windows) > maxTrainWindows {
+		WriteJSON(w, http.StatusRequestEntityTooLarge, map[string]string{
+			"error": fmt.Sprintf("asset yields %d windows, exceeds limit %d", len(windows), maxTrainWindows),
+		})
+		return
+	}
+
+	eng, err := h.engine()
+	if err != nil || eng == nil {
+		WriteJSON(w, http.StatusServiceUnavailable, map[string]string{"error": "HANDS engine unavailable"})
+		return
+	}
+	trainer, ok := eng.(trainable)
+	if !ok {
+		WriteJSON(w, http.StatusServiceUnavailable, map[string]string{"error": "HANDS engine does not support training"})
+		return
+	}
+	// Reject out-of-vocabulary tokens here rather than letting GPT wrap them
+	// modulo VocabSize; the JSONL path and the .nrv batch trainer reject them too.
+	if cfgr, ok := eng.(interface{ Config() *gpt.Config }); ok {
+		if cfg := cfgr.Config(); cfg != nil && cfg.VocabSize > 0 {
+			if err := asset.CheckTokenRange(cfg.VocabSize); err != nil {
+				WriteJSON(w, http.StatusUnprocessableEntity, map[string]string{"error": err.Error()})
+				return
+			}
+		}
+	}
+
+	job := &TrainJob{
+		ID:        fmt.Sprintf("hands-%d", time.Now().UnixNano()),
+		State:     "running",
+		Input:     input,
+		StartedAt: time.Now(),
+		Frames:    len(asset.Frames),
+		Windows:   len(windows),
+	}
+	if !h.beginTrain(job) {
+		WriteJSON(w, http.StatusConflict, map[string]string{"error": "a HANDS training job is already running"})
+		return
+	}
+
+	savePath := ""
+	if dir := HandsDir(); dir != "" {
+		savePath = filepath.Join(dir, "model-latest")
+	}
+	opts := hands.TrainOptions{
+		Epochs:       epochs,
+		LearningRate: learningRate,
+		MaxSteps:     maxSteps,
+		SavePath:     savePath,
+	}
+	// Snapshot the job before the training goroutine can mutate it under h.mu.
+	h.mu.Lock()
+	accepted := *job
+	h.mu.Unlock()
+	go h.runTrain(job, trainer, windows, opts)
+	WriteJSON(w, http.StatusAccepted, &accepted)
+}
+
+func (h *Hands) beginTrain(job *TrainJob) bool {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	if h.job != nil && h.job.State == "running" {
+		return false
+	}
+	h.job = job
+	return true
+}
+
+func (h *Hands) runTrain(job *TrainJob, trainer trainable, windows [][]int, opts hands.TrainOptions) {
+	var (
+		result hands.TrainResult
+		err    error
+	)
+	func() {
+		defer func() {
+			if recovered := recover(); recovered != nil {
+				err = fmt.Errorf("training panicked: %v", recovered)
+			}
+		}()
+		h.runMu.Lock()
+		defer h.runMu.Unlock()
+		result, err = trainer.TrainWindows(windows, opts)
+	}()
+
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	finished := time.Now()
+	job.FinishedAt = &finished
+	job.Windows = result.Windows
+	job.Steps = result.Steps
+	job.Checkpoint = result.Checkpoint
+	if err != nil {
+		job.State = "failed"
+		job.Error = err.Error()
+		return
+	}
+	job.State = "succeeded"
 }

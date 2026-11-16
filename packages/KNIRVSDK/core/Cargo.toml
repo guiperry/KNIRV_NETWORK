@@ -1,8 +1,8 @@
 [package]
 name = "knirv-sdk"
-version = "0.2.0"
+version = "0.2.1"
 edition = "2021"
-rust-version = "1.75"
+rust-version = "1.87"
 description = "Async Rust SDK for KNIRV Network services"
 license = "MIT"
 repository = "https://github.com/KNIRV/KNIRV_NETWORK"
@@ -10,13 +10,20 @@ keywords = ["knirv", "blockchain", "sdk"]
 categories = ["api-bindings", "cryptography::cryptocurrencies"]
 
 [features]
-default = ["http-reqwest", "rustls-tls", "filesystem", "secrets", "module-manifest", "embedded-modules"]
+default = ["http-reqwest", "rustls-tls", "filesystem", "secrets", "ed25519", "mldsa", "module-manifest", "embedded-modules"]
 # The native HTTP transport. Off for WebAssembly builds, whose host supplies one.
 http-reqwest = ["dep:reqwest", "dep:tokio"]
 rustls-tls = ["http-reqwest", "reqwest/rustls-tls"]
 filesystem = []
 # Encrypted node key files (scrypt + AES-GCM). Off for the browser build.
 secrets = ["dep:scrypt", "dep:aes-gcm"]
+# Ed25519 evidence-bundle verification (`evidence.ed25519_*`). Off for the vault
+# modules, so their bytes do not depend on it.
+ed25519 = ["dep:ed25519-dalek"]
+# ML-DSA-65 (FIPS 204) verify, key generation from a seed and signing, for `.nrv`
+# frame signatures and the `mldsa.*` operations. Off for the vault and relay
+# modules, so their bytes do not depend on it.
+mldsa = ["dep:ml-dsa"]
 # The controller-relay / crypto-core / proof-verifier module BYTES (about 0.8 MB of
 # include_bytes). Off for WebAssembly builds: hosts fetch them from the release URL.
 embedded-modules = ["module-manifest"]
@@ -41,6 +48,11 @@ bech32 = "0.11"
 getrandom = { version = "0.2", features = ["js"], optional = true }
 hex = "0.4"
 hmac = "0.12"
+# Ed25519 verification for evidence bundles (verify only; no RNG, no signing).
+ed25519-dalek = { version = "2", default-features = false, optional = true }
+# ML-DSA-65 (FIPS 204), pure Rust. `alloc` only: no RNG, no getrandom, so the
+# wasm builds keep importing nothing. Pinned exactly; see core/src/mldsa.rs.
+ml-dsa = { version = "=0.1.2", default-features = false, features = ["alloc"], optional = true }
 k256 = { version = "0.13", features = ["ecdsa", "sha256"] }
 pbkdf2 = "0.12"
 rand = "0.8"

@@ -15,6 +15,7 @@
 use crate::config::HeadConfig;
 use candle_core::{DType, Device, Result, Tensor};
 use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, HashMap};
 
 #[derive(Debug, Clone, Deserialize)]
@@ -37,6 +38,36 @@ pub struct Adapter {
     /// Multiplier on the merged delta; 0 disables, 1 is the compiled strength.
     #[serde(default = "one")]
     pub strength: f32,
+    /// SHA-256 of the exact base weights this adapter was bound to. When set,
+    /// applying it to different weights is refused instead of silently merging
+    /// a delta into the wrong model.
+    #[serde(default)]
+    pub base_sha256: String,
+}
+
+/// Lower-case SHA-256 of the base safetensors bytes, for adapter provenance.
+pub fn base_sha256(bytes: &[u8]) -> String {
+    let digest = Sha256::digest(bytes);
+    let mut out = String::with_capacity(64);
+    for b in digest {
+        use std::fmt::Write as _;
+        let _ = write!(out, "{b:02x}");
+    }
+    out
+}
+
+/// Refuse an adapter that names a different base. An adapter without a base
+/// hash is accepted for compatibility with adapters bound before this field.
+pub fn check_base(ad: &Adapter, bytes: &[u8]) -> Result<()> {
+    let want = ad.base_sha256.trim();
+    if want.is_empty() {
+        return Ok(());
+    }
+    let got = base_sha256(bytes);
+    if !want.eq_ignore_ascii_case(&got) {
+        candle_core::bail!("adapter targets base {want}, but these weights are {got}");
+    }
+    Ok(())
 }
 
 fn both() -> Vec<String> {
@@ -106,11 +137,17 @@ pub fn merge(cfg: &HeadConfig, tensors: &mut HashMap<String, Tensor>, ad: &Adapt
 
     let mut applied = Applied { content_hash: ad.content_hash.clone(), ..Default::default() };
     let mut updates: Vec<(String, Tensor)> = Vec::new();
+    // Two roles that alias the same projection (e.g. "q_proj" and "attn.q") would
+    // each compute from the original tensor and one would silently win. Refuse.
+    let mut claimed: HashMap<&'static str, &str> = HashMap::new();
     for (role, layer) in &ad.layers {
         let Some(target) = role_target(role) else {
             applied.roles_skipped.push(role.clone());
             continue;
         };
+        if let Some(other) = claimed.insert(target, role.as_str()) {
+            candle_core::bail!("roles {other:?} and {role:?} both adapt {target}; use one alias");
+        }
         let a = matrix(&layer.a, r, d, &format!("{role}.a"), &dev)?;
         let b = matrix(&layer.b, d, r, &format!("{role}.b"), &dev)?;
         let delta = (b.matmul(&a)? * scale as f64)?; // d_out × d_in, same orientation as the stored weight

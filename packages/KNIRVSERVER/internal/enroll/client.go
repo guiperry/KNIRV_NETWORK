@@ -3,6 +3,7 @@ package enroll
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -18,7 +19,7 @@ import (
 // production implementation delegates to the SDK; tests inject a fake.
 type Signer interface {
 	SignChallenge(privateKey []byte, chainID, nonce string, issuedAtUnix, expiresAtUnix uint64, operator string, claims []byte) (signing.SignedMessage, error)
-	SignApproval(rootKey []byte, chainID, nonce string, issuedAtUnix, expiresAtUnix uint64, challengeEnvelope string) (signing.SignedMessage, error)
+	SignApproval(rootKey []byte, chainID, nonce string, issuedAtUnix, expiresAtUnix uint64, challengeEnvelope string, bootPublicKey []byte) (signing.SignedMessage, error)
 }
 
 // SDKSigner is the production signer, delegating to the SDK's DEC-2 enrollment
@@ -29,8 +30,9 @@ func (SDKSigner) SignChallenge(privateKey []byte, chainID, nonce string, issuedA
 	return signing.SignBootnodeEnrollChallenge(privateKey, chainID, nonce, issuedAtUnix, expiresAtUnix, operator, claims)
 }
 
-func (SDKSigner) SignApproval(rootKey []byte, chainID, nonce string, issuedAtUnix, expiresAtUnix uint64, challengeEnvelope string) (signing.SignedMessage, error) {
-	return signing.SignBootnodeEnrollApproval(rootKey, chainID, nonce, issuedAtUnix, expiresAtUnix, challengeEnvelope)
+func (SDKSigner) SignApproval(rootKey []byte, chainID, nonce string, issuedAtUnix, expiresAtUnix uint64, challengeEnvelope string, bootPublicKey []byte) (signing.SignedMessage, error) {
+	// The approval covers the boot-node public key as well as the challenge bytes.
+	return signing.SignBootnodeEnrollApproval(rootKey, chainID, nonce, issuedAtUnix, expiresAtUnix, challengeEnvelope, base64.StdEncoding.EncodeToString(bootPublicKey))
 }
 
 // StepClient talks to the D14 enrollment server, performing the three steps in
@@ -99,7 +101,7 @@ func ClientDrive(ctx context.Context, signer Signer, steps *StepClient, req Step
 	if err != nil {
 		return stepResponse{}, fmt.Errorf("sign challenge: %w", err)
 	}
-	approval, err := signer.SignApproval(rootKey, req.ChainID, req.Nonce, issued, expires, string(challenge.Envelope))
+	approval, err := signer.SignApproval(rootKey, req.ChainID, req.Nonce, issued, expires, base64.StdEncoding.EncodeToString(challenge.Envelope), challenge.PublicKey)
 	if err != nil {
 		return stepResponse{}, fmt.Errorf("sign approval: %w", err)
 	}

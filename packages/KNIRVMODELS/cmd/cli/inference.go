@@ -16,13 +16,16 @@ import (
 )
 
 // runInference starts every pre-trained model this binary serves for inference:
-// Colibri as the primary harness, llama.cpp as its fallback, both behind one socket.
-// It blocks until SIGINT or SIGTERM.
+// llama.cpp as the primary harness, started first and serving whenever it is ready,
+// and Colibri as the backup, started only while llama.cpp is down. Both sit behind one
+// socket. It blocks until SIGINT or SIGTERM.
 //
-//	KNIRV_COLIBRI=0            run llama.cpp alone
-//	KNIRV_LLAMA_FALLBACK=0     run Colibri alone
+//	KNIRV_LLAMA_FALLBACK=0     disable llama.cpp (the primary); Colibri then serves alone
+//	KNIRV_COLIBRI=0            disable Colibri (the backup); llama.cpp serves alone
+//	KNIRV_COLIBRI_KEEP=1       keep Colibri running while llama.cpp serves (default: released
+//	                           once llama.cpp has been healthy for 30s)
+//	KNIRV_LLAMA_KEEP=1         deprecated alias of KNIRV_COLIBRI_KEEP=1
 //	KNIRV_COLIBRI_MODEL=<id>   choose Colibri's model instead of its recommendation
-//	KNIRV_LLAMA_KEEP=1         keep llama.cpp running while Colibri serves
 //	KNIRV_COLIBRI_VERSION      Colibri release tag to install (default v2.0.0)
 //	KNIRV_COLIBRI_SOURCE_URL   Colibri source archive URL (mirror / air-gapped install)
 //	KNIRV_OLLAMA_*             Ollama and its embedding model (see pkg/knirvollama)
@@ -34,30 +37,35 @@ func runInference(socket string) {
 		os.Exit(1)
 	}
 
+	keepBackup := os.Getenv("KNIRV_COLIBRI_KEEP") == "1"
+	if os.Getenv("KNIRV_LLAMA_KEEP") == "1" {
+		logf("KNIRV_LLAMA_KEEP is deprecated; use KNIRV_COLIBRI_KEEP=1 (it keeps Colibri, the backup, running)")
+		keepBackup = true
+	}
 	cfg := harness.Config{
-		FrontSocket:  socket,
-		KeepFallback: os.Getenv("KNIRV_LLAMA_KEEP") == "1",
-		Logf:         logf,
+		FrontSocket: socket,
+		KeepBackup:  keepBackup,
+		Logf:        logf,
+	}
+	if os.Getenv("KNIRV_LLAMA_FALLBACK") != "0" {
+		llamaSocket := filepath.Join(filepath.Dir(socket), "llama-cpp.sock")
+		m, err := harness.NewLlamaPrimary(appData, llamaSocket, logf)
+		if err != nil {
+			logf("llama.cpp unavailable: %v", err)
+		} else {
+			cfg.Primary = m
+		}
 	}
 	if os.Getenv("KNIRV_COLIBRI") != "0" {
-		cfg.Primary = harness.NewColibri(harness.ColibriConfig{
+		cfg.Backup = harness.NewColibri(harness.ColibriConfig{
 			Home: filepath.Join(appData, "colibri"),
 			Logf: logf,
 		})
 	}
-	if os.Getenv("KNIRV_LLAMA_FALLBACK") != "0" {
-		llamaSocket := filepath.Join(filepath.Dir(socket), "llama-cpp.sock")
-		m, err := harness.NewLlamaFallback(appData, llamaSocket, logf)
-		if err != nil {
-			logf("llama.cpp fallback unavailable: %v", err)
-		} else {
-			cfg.Fallback = m
-		}
-	}
 	// An Ollama-only harness is useful for the private embedding service. Do not
 	// start Colibri or llama.cpp merely to make that route available.
 	ollamaEnabled := os.Getenv("KNIRV_OLLAMA") != "0"
-	if cfg.Primary == nil && cfg.Fallback == nil && !ollamaEnabled {
+	if cfg.Primary == nil && cfg.Backup == nil && !ollamaEnabled {
 		fmt.Fprintln(os.Stderr, "no model harness enabled")
 		os.Exit(1)
 	}
@@ -75,8 +83,8 @@ func runInference(socket string) {
 		cfg.Embed = om.Embed
 		go om.Run(ctx, 10*time.Second)
 	}
-	logf("starting model harness (primary: colibri=%t, fallback: llama.cpp=%t) on unix://%s",
-		cfg.Primary != nil, cfg.Fallback != nil, socket)
+	logf("starting model harness (primary: llama.cpp=%t, backup: colibri=%t) on unix://%s",
+		cfg.Primary != nil, cfg.Backup != nil, socket)
 	harness.New(cfg).Run(ctx)
 	logf("model harness stopped")
 }

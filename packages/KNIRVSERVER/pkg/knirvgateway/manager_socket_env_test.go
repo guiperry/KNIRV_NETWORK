@@ -29,3 +29,37 @@ func containsEnv(env []string, want string) bool {
 	}
 	return false
 }
+
+// TestSocketPathEnvIncludesKnirvAndGitSockets checks that the gateway receives the
+// proof-API and git socket paths exactly when they are configured.
+func TestSocketPathEnvIncludesKnirvAndGitSockets(t *testing.T) {
+	env := socketPathEnv(&ManagerConfig{
+		KnirvProofSocketPath: "/run/knirv/knirvproof.sock",
+		GitSocketPath:        "/run/knirv/git.sock",
+	})
+	if !containsEnv(env, "KNIRVPROOF_SOCKET_PATH=/run/knirv/knirvproof.sock") {
+		t.Fatalf("KNIRVPROOF_SOCKET_PATH missing from %v", env)
+	}
+	if !containsEnv(env, "GIT_SOCKET_PATH=/run/knirv/git.sock") {
+		t.Fatalf("GIT_SOCKET_PATH missing from %v", env)
+	}
+	for _, e := range socketPathEnv(&ManagerConfig{}) {
+		if strings.HasPrefix(e, "KNIRVPROOF_SOCKET_PATH=") || strings.HasPrefix(e, "GIT_SOCKET_PATH=") {
+			t.Fatalf("unexpected entry with empty config: %q", e)
+		}
+	}
+}
+
+// TestSocketPathEnvIncludesKnirvServerAppSocket checks that the gateway receives the
+// KNIRVSERVER app socket path exactly when it is configured.
+func TestSocketPathEnvIncludesKnirvServerAppSocket(t *testing.T) {
+	env := socketPathEnv(&ManagerConfig{KnirvServerAppSocketPath: "/run/knirv/knirvserver-app.sock"})
+	if !containsEnv(env, "KNIRVSERVER_APP_SOCKET_PATH=/run/knirv/knirvserver-app.sock") {
+		t.Fatalf("KNIRVSERVER_APP_SOCKET_PATH missing from %v", env)
+	}
+	for _, e := range socketPathEnv(&ManagerConfig{}) {
+		if strings.HasPrefix(e, "KNIRVSERVER_APP_SOCKET_PATH=") {
+			t.Fatalf("unexpected KNIRVSERVER_APP_SOCKET_PATH with empty config: %q", e)
+		}
+	}
+}

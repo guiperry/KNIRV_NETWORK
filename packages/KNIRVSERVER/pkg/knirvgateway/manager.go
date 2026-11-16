@@ -161,12 +161,21 @@ type ManagerConfig struct {
 	// EnrollSocketPath is the DEC-2 enrollment server's Unix socket; the gateway
 	// proxies POST /enroll/{step} to it. Empty disables the enrollment route.
 	EnrollSocketPath string
-	StartTimeout     time.Duration
-	StopTimeout      time.Duration
-	ChainID          string
-	Stdout           io.Writer
-	Stderr           io.Writer
-	EnvOverrides     map[string]string // extra env vars (e.g. Cloudflare creds from root.key)
+	// KnirvProofSocketPath serves KNIRVSERVER's native proof API (/api/v1/knirv/*)
+	// and GitSocketPath its proof ledger (/git/*). The gateway proxies both public
+	// routes to these sockets. Empty means the gateway answers 404 for that prefix.
+	KnirvProofSocketPath string
+	GitSocketPath        string
+	// KnirvServerAppSocketPath serves KNIRVSERVER's full HTTP router on an internal
+	// socket (its web app, /api/v1/system/*, /api/dve/, /tunnel, /ws). The gateway
+	// forwards those public paths to it. Empty means they are not forwarded.
+	KnirvServerAppSocketPath string
+	StartTimeout             time.Duration
+	StopTimeout              time.Duration
+	ChainID                  string
+	Stdout                   io.Writer
+	Stderr                   io.Writer
+	EnvOverrides             map[string]string // extra env vars (e.g. Cloudflare creds from root.key)
 }
 
 type PortConfig struct {
@@ -267,6 +276,15 @@ func socketPathEnv(c *ManagerConfig) []string {
 	}
 	if c.EnrollSocketPath != "" {
 		env = append(env, fmt.Sprintf("ENROLL_SOCKET_PATH=%s", c.EnrollSocketPath))
+	}
+	if c.KnirvProofSocketPath != "" {
+		env = append(env, fmt.Sprintf("KNIRVPROOF_SOCKET_PATH=%s", c.KnirvProofSocketPath))
+	}
+	if c.GitSocketPath != "" {
+		env = append(env, fmt.Sprintf("GIT_SOCKET_PATH=%s", c.GitSocketPath))
+	}
+	if c.KnirvServerAppSocketPath != "" {
+		env = append(env, fmt.Sprintf("KNIRVSERVER_APP_SOCKET_PATH=%s", c.KnirvServerAppSocketPath))
 	}
 	return env
 }

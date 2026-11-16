@@ -1,4 +1,5 @@
-//! `head-train/v1` JSONL records and their encoding.
+//! `heart-decision-train/v1` JSONL records and their encoding. The loader does not
+//! check a format id; the pre-rename `head-train/v1` name is documentation only.
 //!
 //! ```json
 //! {"id":"ep-1","group":"repo-family","split":"train",

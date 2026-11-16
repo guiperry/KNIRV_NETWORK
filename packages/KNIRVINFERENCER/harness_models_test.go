@@ -50,9 +50,6 @@ func (d *fakeDaemon) client(t *testing.T) *models.Client {
 	mux.HandleFunc(models.HeadPrefix+"/models", func(w http.ResponseWriter, _ *http.Request) {
 		_, _ = w.Write([]byte(`{"version":"head-9","config":{"max_seq_len":40,"summary_slots":8}}`))
 	})
-	mux.HandleFunc(models.HeadPrefix+"/reason", func(w http.ResponseWriter, _ *http.Request) {
-		d.routeHandler(w)
-	})
 	mux.HandleFunc(models.HeartDecisionPrefix+"/reason", func(w http.ResponseWriter, _ *http.Request) {
 		d.routeHandler(w)
 	})
@@ -77,8 +74,8 @@ func (d *fakeDaemon) client(t *testing.T) *models.Client {
 	return models.NewClient(srv.URL, nil)
 }
 
-// routeHandler serves both the (deprecated) HEAD reason route and the HEART decision
-// route with the same fixture behaviour.
+// routeHandler serves the HEART decision route (HEART owns /models/heart/decide/reason;
+// the retired /models/head/reason route is not mounted).
 func (d *fakeDaemon) routeHandler(w http.ResponseWriter) {
 	d.mu.Lock()
 	d.reasons++

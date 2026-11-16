@@ -357,3 +357,62 @@ func TestFailedHydrationKeepsPausedRecoverySnapshot(t *testing.T) {
 		t.Fatalf("recovery status: %+v", got)
 	}
 }
+
+// TestDivergedFollowerRefusesValidExtendingHead pins the absorbing-divergence
+// guard in Sync: once a fork marks the mirror diverged, a later head that is
+// otherwise valid and extends the retained head must still be refused, and the
+// durable snapshot must stay byte-identical.
+func TestDivergedFollowerRefusesValidExtendingHead(t *testing.T) {
+	source, anchor := signedSource(t)
+	path := filepath.Join(t.TempDir(), "replica.json")
+	f, err := Open(path, anchor)
+	if err != nil {
+		t.Fatal(err)
+	}
+	useTestVerification(f)
+	if err := f.Sync(context.Background(), source); err != nil {
+		t.Fatal(err)
+	}
+	original := source.head.Head
+
+	// Fork: same sequence, different root.
+	source.head.Head.MMRRoot = "different"
+	if err := f.Sync(context.Background(), source); !errors.Is(err, replication.ErrDiverged) {
+		t.Fatalf("fork: %v", err)
+	}
+	if !f.Status().Diverged {
+		t.Fatalf("fork did not mark follower diverged: %+v", f.Status())
+	}
+	before, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	snapBefore := f.Snapshot()
+
+	// Re-offering the exact head the mirror already retains must not read as
+	// success while diverged: Sync has to keep refusing with ErrDiverged.
+	source.head = replication.SignedHead{Head: original}
+	if err := f.Sync(context.Background(), source); !errors.Is(err, replication.ErrDiverged) {
+		t.Fatalf("diverged follower reported success for its retained head: err=%v", err)
+	}
+
+	// Now offer a valid successor of the retained head (seq 2, prev = head-1).
+	successor := original
+	successor.Seq = 2
+	successor.PrevHeadHash = "head-1"
+	successor.ProducedAt = time.Now().Unix()
+	source.head = replication.SignedHead{Head: successor}
+	if err := f.Sync(context.Background(), source); !errors.Is(err, replication.ErrDiverged) {
+		t.Fatalf("diverged follower accepted extending head: err=%v", err)
+	}
+	if !f.Status().Diverged {
+		t.Fatalf("divergence cleared by a later head: %+v", f.Status())
+	}
+	if got := f.Snapshot(); got.Head.Head.Seq != snapBefore.Head.Head.Seq || got.Leaves[0] != snapBefore.Leaves[0] {
+		t.Fatalf("diverged follower advanced: before=%+v after=%+v", snapBefore.Head.Head, got.Head.Head)
+	}
+	after, err := os.ReadFile(path)
+	if err != nil || string(before) != string(after) {
+		t.Fatal("diverged follower changed the durable snapshot")
+	}
+}

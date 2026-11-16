@@ -1,5 +1,5 @@
 // Command teacher runs batch jobs on the teacher backend through the
-// inference socket: synthetic training data for adapters, soft labels for the head,
+// inference socket: synthetic training data for adapters, soft labels for the decision model,
 // and a status check. Gold-set suggestions and retrieval judging are `measure`
 // commands, next to the gold set they work on.
 //
@@ -32,7 +32,7 @@ func usage() {
 
   teacher status                      is a teacher backend serving, and how fast
   teacher synth        -seeds FILE -skill NAME -out FILE   synthetic instruction/response pairs for an adapter
-  teacher soft-labels  -episodes FILE -out FILE            teacher distributions for the head (candidate file)
+  teacher soft-labels  -episodes FILE -out FILE            teacher distributions for the decision model (candidate file)
 
 Common flags: -socket PATH (default `+defaultSocket+`), -cache FILE, -wait DURATION.
 Jobs are resumable: answers are cached by model and prompt, so rerunning a job is cheap.
@@ -207,8 +207,8 @@ func cmdSynth(ctx context.Context, args []string) error {
 func cmdSoft(ctx context.Context, args []string) error {
 	fs := flag.NewFlagSet("soft-labels", flag.ExitOnError)
 	cm := addCommon(fs, "soft")
-	episodes := fs.String("episodes", "", "SupervisionEpisode v1 JSONL (the head trainer's gold.jsonl)")
-	out := fs.String("out", "", "teacher file; head-work/teacher.jsonl is picked up by the head cycle and applied to the training split only")
+	episodes := fs.String("episodes", "", "SupervisionEpisode v1 JSONL (the decision trainer's gold.jsonl)")
+	out := fs.String("out", "", "teacher file; head-work/teacher.jsonl is picked up by the decision cycle and applied to the training split only")
 	heads := fs.String("heads", strings.Join(teacher.DefaultSoftHeads, ","), "heads to label")
 	samples := fs.Int("samples", 4, "votes per head")
 	fs.Parse(args)

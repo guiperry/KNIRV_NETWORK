@@ -3,6 +3,7 @@ use std::sync::Arc;
 
 pub mod clock;
 pub mod nrv;
+pub mod payload;
 pub mod types;
 pub mod crypto;
 pub mod storage;

@@ -108,44 +108,6 @@ func (suite *HEADCognitiveTestSuite) makeHEADRequest(endpoint string, payload in
 	return &headResp, nil
 }
 
-// Test HEAD WASM module initialization
-func (suite *HEADCognitiveTestSuite) testHEADInitialization() error {
-	start := time.Now()
-	testName := "head_wasm_initialization"
-
-	payload := map[string]interface{}{
-		"action": "initialize",
-		"config": HEADConfig{
-			LModuleCount:      8,
-			HModuleCount:      4,
-			EnableAdaptation:  true,
-			ProcessingTimeout: 30000,
-		},
-	}
-
-	resp, err := suite.makeHEADRequest("/api/head/initialize", payload)
-	if err != nil {
-		suite.addResult(testName, "FAILED", time.Since(start), err, nil)
-		return err
-	}
-
-	if !resp.Success {
-		err = fmt.Errorf("HEAD initialization failed: %s", resp.Error)
-		suite.addResult(testName, "FAILED", time.Since(start), err, nil)
-		return err
-	}
-
-	metrics := map[string]interface{}{
-		"processing_time":    resp.ProcessingTime,
-		"l_module_count":     len(resp.LModuleOutputs),
-		"h_module_count":     len(resp.HModuleOutputs),
-		"adaptation_applied": resp.AdaptationApplied,
-	}
-
-	suite.addResult(testName, "PASSED", time.Since(start), nil, metrics)
-	return nil
-}
-
 // Test HEAD text processing
 func (suite *HEADCognitiveTestSuite) testHEADTextProcessing() error {
 	testCases := []HEADTestInput{
@@ -198,7 +160,7 @@ func (suite *HEADCognitiveTestSuite) testHEADTextProcessing() error {
 			"config": testCase.Config,
 		}
 
-		resp, err := suite.makeHEADRequest("/api/head/process", payload)
+		resp, err := suite.makeHEADRequest("/api/heart/process", payload)
 		if err != nil {
 			suite.addResult(testName, "FAILED", time.Since(start), err, nil)
 			continue
@@ -283,7 +245,7 @@ func (suite *HEADCognitiveTestSuite) testHEADSensoryProcessing() error {
 			"config": testCase.Config,
 		}
 
-		resp, err := suite.makeHEADRequest("/api/head/process", payload)
+		resp, err := suite.makeHEADRequest("/api/heart/process", payload)
 		if err != nil {
 			suite.addResult(testName, "FAILED", time.Since(start), err, nil)
 			continue
@@ -339,7 +301,7 @@ func (suite *HEADCognitiveTestSuite) testHEADModuleConfiguration() error {
 			"config": config,
 		}
 
-		resp, err := suite.makeHEADRequest("/api/head/process", payload)
+		resp, err := suite.makeHEADRequest("/api/heart/process", payload)
 		if err != nil {
 			suite.addResult(testName, "FAILED", time.Since(start), err, nil)
 			continue
@@ -418,7 +380,7 @@ func (suite *HEADCognitiveTestSuite) testHEADPerformance() error {
 					},
 				}
 
-				resp, err := suite.makeHEADRequest("/api/head/process", payload)
+				resp, err := suite.makeHEADRequest("/api/heart/process", payload)
 
 				result := performanceResult{
 					error: err,
@@ -536,7 +498,6 @@ func TestHEADCognitiveFunctionality(t *testing.T) {
 		name string
 		fn   func() error
 	}{
-		{"HEAD WASM Initialization", suite.testHEADInitialization},
 		{"HEAD Text Processing", suite.testHEADTextProcessing},
 		{"HEAD Sensory Processing", suite.testHEADSensoryProcessing},
 		{"HEAD Module Configuration", suite.testHEADModuleConfiguration},

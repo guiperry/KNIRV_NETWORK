@@ -22,8 +22,8 @@ const mockHEADBridge = {
   })
 };
 
-jest.mock('../../src/sensory-shell/HEADBridge', () => ({
-  HEADBridge: jest.fn().mockImplementation(() => mockHEADBridge)
+jest.mock('../../src/sensory-shell/HeartDecisionBridge', () => ({
+  HeartDecisionBridge: jest.fn().mockImplementation(() => mockHEADBridge)
 }));
 
 describe('Phase 3.3 - HEAD Core Model', () => {

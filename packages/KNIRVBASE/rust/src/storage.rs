@@ -150,7 +150,7 @@ impl FileStorage {
     fn is_sensitive_field(&self, collection: &str, field_name: &str) -> bool {
         let sensitive_fields: HashMap<&str, Vec<&str>> = [
             ("credentials", vec!["hash", "salt"]),
-            ("pqc_keys", vec!["kyber_private_key", "dilithium_private_key"]),
+            ("pqc_keys", vec!["kyber_private_key", "mldsa_private_key"]),
             ("sessions", vec!["token_hash"]),
             ("audit_log", vec!["details"]),
             ("threat_events", vec!["indicators"]),

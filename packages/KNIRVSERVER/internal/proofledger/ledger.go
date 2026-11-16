@@ -85,8 +85,18 @@ func RegisterRoutes(r gin.IRouter, ledger *Ledger) {
 	r.POST("/git/:project_id.git/git-receive-pack", ledger.receivePack)
 }
 
+// projectIDParam returns the project id from a /git/<project>.git/... route.
+// gin does not split a parameter from a literal suffix: for ":project_id.git" the
+// parameter is named "project_id.git" and its value is the whole "<project>.git"
+// segment. Reading c.Param("project_id") returned "" and every git request failed
+// with a 500 "invalid project id". The value is read under the full name, and only
+// the trailing ".git" of the URL segment is removed.
+func projectIDParam(c *gin.Context) string {
+	return strings.TrimSuffix(c.Param("project_id.git"), ".git")
+}
+
 func (l *Ledger) create(c *gin.Context) {
-	projectID := c.Param("project_id")
+	projectID := projectIDParam(c)
 	if !l.authorize(c, projectID, knirvproof.ActionProofSubmit) {
 		return
 	}
@@ -132,7 +142,7 @@ func credentialToken(r *http.Request) (string, error) {
 }
 
 func (l *Ledger) infoRefs(c *gin.Context) {
-	projectID := c.Param("project_id")
+	projectID := projectIDParam(c)
 	if !l.authorize(c, projectID, knirvproof.ActionProofRead) {
 		return
 	}
@@ -172,7 +182,7 @@ func pktLine(s string) []byte {
 }
 
 func (l *Ledger) receivePack(c *gin.Context) {
-	projectID := c.Param("project_id")
+	projectID := projectIDParam(c)
 	if !l.authorize(c, projectID, knirvproof.ActionProofSubmit) {
 		return
 	}

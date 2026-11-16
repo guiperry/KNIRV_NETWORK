@@ -16,6 +16,9 @@ type FrameEntry struct {
 	Z3            Z3Result          `json:"z3"`
 	Brackets      BracketBinaryMap  `json:"brackets"`
 	BracketIndex  []BracketMeta     `json:"bracket_index"`
+	// Payload locates this frame's encoded FramePayload (see payload.go). Nil for
+	// frames written before the uniform payload existed.
+	Payload *ModalityIndex `json:"payload,omitempty"`
 }
 
 type GlobalMetrics struct {

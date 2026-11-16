@@ -1,10 +1,10 @@
 {
-  "id": "/",
+  "id": "/app/",
   "name": "KNIRVSERVER Client",
   "short_name": "KNIRV",
   "description": "Decentralized Trusted Execution Network Client",
-  "start_url": "/",
-  "scope": "/",
+  "start_url": "/app/",
+  "scope": "/app/",
   "display": "standalone",
   "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
   "theme_color": "#000818",
@@ -12,30 +12,30 @@
   "orientation": "any",
   "icons": [
     {
-      "src": "/favicon.ico",
+      "src": "/app/favicon.ico",
       "sizes": "128x128",
       "type": "image/x-icon"
     },
     {
-      "src": "/icons/knirv-192x192.png",
+      "src": "/app/icons/knirv-192x192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/icons/knirv-192x192.png",
+      "src": "/app/icons/knirv-192x192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "maskable"
     },
     {
-      "src": "/icons/knirv-512x512.png",
+      "src": "/app/icons/knirv-512x512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/icons/knirv-512x512.png",
+      "src": "/app/icons/knirv-512x512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
@@ -47,7 +47,7 @@
       "short_name": "Dashboard",
       "description": "View your KNIRV dashboard",
       "url": "/",
-      "icons": [{ "src": "/icons/knirv-192x192.png", "sizes": "192x192" }]
+      "icons": [{ "src": "/app/icons/knirv-192x192.png", "sizes": "192x192" }]
     }
   ],
   "categories": ["productivity", "utilities"],

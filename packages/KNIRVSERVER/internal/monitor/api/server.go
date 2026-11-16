@@ -113,6 +113,7 @@ func (s *Server) Start(ctx context.Context) error {
 	mux.HandleFunc("/api/v1/gateway/routes", s.handleGatewayRoutes)
 	mux.HandleFunc("/api/v1/gateway/health", s.handleGatewayHealth)
 	mux.HandleFunc("/api/v1/monitor/grafana", s.handleGrafanaStatus)
+	mux.HandleFunc("/api/v1/monitor/bao-audit", s.handleBaoAudit)
 	mux.HandleFunc("/api/v1/dream-findings", s.handleDreamFindings)
 	mux.HandleFunc("/api/v1/dream-findings/list", s.handleDreamFindingsList)
 	mux.HandleFunc("/api/v1/onboarding/applications", s.handleOnboardingApplications)

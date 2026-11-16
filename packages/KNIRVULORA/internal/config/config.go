@@ -10,7 +10,6 @@ import (
 
 const (
 	defaultSocketPath = "./ulora.sock"
-	defaultDataDir    = "./ulora_data"
 	defaultTimeout    = 300 * time.Second
 )
 
@@ -30,14 +29,27 @@ func Load() (*Config, error) {
 		socketPath = defaultSocketPath
 	}
 
-	authToken := strings.TrimSpace(os.Getenv("ULORA_AUTH_TOKEN"))
-	if authToken == "" {
-		return nil, fmt.Errorf("ULORA_AUTH_TOKEN is required")
-	}
-
+	// Data dir resolution is the same in KNIRVGRAPH (drq.uloraDataDirFromEnv): an
+	// explicit ULORA_DATA_DIR, then <KNIRV_APP_DATA_DIR>/ulora, then
+	// <launcher app data dir>/ulora (see resolveAppDataDir).
 	dataDir := strings.TrimSpace(os.Getenv("ULORA_DATA_DIR"))
 	if dataDir == "" {
-		dataDir = defaultDataDir
+		appDataDir, err := resolveAppDataDir()
+		if err != nil {
+			return nil, fmt.Errorf("resolve ulorad data dir: %w", err)
+		}
+		dataDir = filepath.Join(appDataDir, "ulora")
+	}
+
+	// ULORA_AUTH_TOKEN is optional. When it is unset, ulorad uses the token in its
+	// own data dir (reused across restarts) or generates one on first start.
+	authToken := strings.TrimSpace(os.Getenv("ULORA_AUTH_TOKEN"))
+	if authToken == "" {
+		generated, err := LoadOrCreateAuthToken(dataDir)
+		if err != nil {
+			return nil, fmt.Errorf("resolve ulorad auth token: %w", err)
+		}
+		authToken = generated
 	}
 
 	// Connectors are cached per model rather than carried in bundles, so the

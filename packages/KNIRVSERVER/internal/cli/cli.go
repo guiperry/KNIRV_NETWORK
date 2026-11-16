@@ -2,29 +2,48 @@ package cli
 
 import (
 	"context"
-	"crypto/rand"
-	"encoding/hex"
 	"flag"
 	"fmt"
 	"os"
+	"strings"
 	"time"
+
+	"github.com/guiperry/knirv-sdk-go/secrets"
 
 	"knirv-server/internal/enroll"
 )
 
-// RunEnroll is the `knirvserver enroll` subcommand. It performs a DEC-2 boot-node
-// enrollment against a running D14 enrollment server, following the order
-// transfer -> bond -> register.
+// RunEnroll is the `knirvserver enroll` subcommand family:
+//
+//	knirvserver enroll issue --socket S --registration-id R --chain-id C
+//	    asks the enrollment server to issue a single-use nonce for an approved
+//	    registration (the "on approval" step) and prints it.
+//	knirvserver enroll --socket S --registration-id R --nonce N --chain-id C --operator O
+//	    performs the DEC-2 enrollment (transfer -> bond -> register) with the issued
+//	    nonce, signing with the boot-node and root keys resolved from the secrets
+//	    provider.
 func RunEnroll(args []string) error {
+	if len(args) > 0 && args[0] == "issue" {
+		return runEnrollIssue(args[1:])
+	}
+	return runEnrollRegister(args)
+}
+
+func runEnrollRegister(args []string) error {
 	fs := flag.NewFlagSet("enroll", flag.ContinueOnError)
 	socket := fs.String("socket", "", "Enrollment server Unix socket path (e.g. /run/knirv/enroll.sock)")
 	chainID := fs.String("chain-id", "knirv-testnet-1", "Chain ID the boot node joins")
 	operator := fs.String("operator", "", "Operator identity claim (e.g. operator:alice)")
-	nonce := fs.String("nonce", "", "Enrollment nonce; generated if empty")
-	bootKeyPath := fs.String("boot-key", "", "Path to the boot-node private key file (raw 32 bytes)")
-	rootKeyPath := fs.String("root-key", "", "Path to the root owner private key file (raw 32 bytes)")
-	claimsPath := fs.String("claims", "", "Optional path to opaque boot-node claims file")
+	nonce := fs.String("nonce", "", "Nonce issued by the enrollment server for this registration (required)")
+	registrationID := fs.String("registration-id", "", "Approved onboarding registration ID bound to this boot-node key (required)")
 	lifetime := fs.Uint64("lifetime", 600, "Enrollment validity window in seconds")
+	backend := fs.String("secrets-backend", "", "Secrets provider for the enrollment keys: auto, file or bao")
+	baoSocket := fs.String("bao-socket", "", "OpenBao Unix socket (with --secrets-backend bao or auto)")
+	baoRoleID := fs.String("bao-role-id", "", "OpenBao AppRole role_id for the enrollment key read (with --secrets-backend bao)")
+	baoSecretIDFile := fs.String("bao-secret-id-file", "", "File holding the single-use AppRole secret_id (mode 0600); exchanged for a short-lived token and revoked after the run")
+	devRawKeys := fs.Bool("dev-raw-keys", false, "DEV/TEST ONLY: read raw 32-byte keys from --boot-key/--root-key instead of the secrets provider")
+	bootKeyPath := fs.String("boot-key", "", "DEV/TEST ONLY: boot-node private key file (raw 32 bytes)")
+	rootKeyPath := fs.String("root-key", "", "DEV/TEST ONLY: root owner private key file (raw 32 bytes)")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
@@ -34,38 +53,32 @@ func RunEnroll(args []string) error {
 	if *operator == "" {
 		return fmt.Errorf("--operator is required")
 	}
-	if *bootKeyPath == "" || *rootKeyPath == "" {
-		return fmt.Errorf("--boot-key and --root-key are required")
+	if *registrationID == "" {
+		return fmt.Errorf("--registration-id is required for automatic admission")
+	}
+	if strings.TrimSpace(*nonce) == "" {
+		return fmt.Errorf("--nonce is required: issue one with `knirvserver enroll issue` (the server never accepts a client-generated nonce)")
 	}
 
-	bootKey, err := os.ReadFile(*bootKeyPath)
+	ctx := context.Background()
+	keys, release, err := resolveKeySource(ctx, *backend, *baoSocket, *baoRoleID, *baoSecretIDFile, *devRawKeys, *bootKeyPath, *rootKeyPath)
 	if err != nil {
-		return fmt.Errorf("read boot key: %w", err)
+		return err
 	}
-	rootKey, err := os.ReadFile(*rootKeyPath)
+	defer release()
+	bootKey, err := keys.BootKey(ctx)
 	if err != nil {
-		return fmt.Errorf("read root key: %w", err)
+		return err
 	}
-	var claims []byte
-	if *claimsPath != "" {
-		claims, err = os.ReadFile(*claimsPath)
-		if err != nil {
-			return fmt.Errorf("read claims: %w", err)
-		}
+	rootKey, err := keys.RootKey(ctx)
+	if err != nil {
+		return err
 	}
 
-	n := *nonce
-	if n == "" {
-		buf := make([]byte, 16)
-		if _, err := rand.Read(buf); err != nil {
-			return fmt.Errorf("generate nonce: %w", err)
-		}
-		n = "enroll:" + hex.EncodeToString(buf)
-	}
-
-	req := enroll.StepRequest{ChainID: *chainID, Operator: *operator, Nonce: n}
+	claims := enroll.MarshalClaims(enroll.EnrollmentClaims{RegistrationID: *registrationID})
+	req := enroll.StepRequest{ChainID: *chainID, Operator: *operator, Nonce: *nonce}
 	steps := enroll.NewStepClientUnix(*socket)
-	resp, err := enroll.ClientDrive(context.Background(), enroll.SDKSigner{}, steps, req, bootKey, rootKey, claims, time.Now(), *lifetime)
+	resp, err := enroll.ClientDrive(ctx, enroll.SDKSigner{}, steps, req, bootKey, rootKey, claims, time.Now(), *lifetime)
 	if err != nil {
 		return err
 	}
@@ -74,4 +87,79 @@ func RunEnroll(args []string) error {
 	}
 	fmt.Printf("enrollment accepted: sequence=%v\n", resp.Order)
 	return nil
+}
+
+func runEnrollIssue(args []string) error {
+	fs := flag.NewFlagSet("enroll issue", flag.ContinueOnError)
+	socket := fs.String("socket", "", "Enrollment server Unix socket path (required)")
+	chainID := fs.String("chain-id", "knirv-testnet-1", "Chain ID the registration joins")
+	registrationID := fs.String("registration-id", "", "Approved onboarding registration ID (required)")
+	ttl := fs.Duration("ttl", enroll.DefaultIssuanceTTL, "How long the issued nonce stays redeemable (max 1h)")
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	if *socket == "" {
+		return fmt.Errorf("--socket is required")
+	}
+	if *registrationID == "" {
+		return fmt.Errorf("--registration-id is required")
+	}
+	issued, err := enroll.RequestIssuedChallenge(context.Background(), *socket, *registrationID, *chainID, *ttl)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("nonce=%s\nregistration_id=%s\nchain_id=%s\nvalidator_id=%s\nexpires_at=%s\n",
+		issued.Nonce, issued.RegistrationID, issued.ChainID, issued.ValidatorID, issued.ExpiresAt.UTC().Format(time.RFC3339))
+	return nil
+}
+
+// resolveKeySource chooses where the enrollment keys come from. The secrets
+// provider is the production path. Raw key files are reachable only through the
+// explicitly named --dev-raw-keys flag and never by default. The returned release
+// function revokes any AppRole token it obtained; call it once the run is over.
+func resolveKeySource(ctx context.Context, backend, baoSocket, roleID, secretIDFile string, devRaw bool, bootPath, rootPath string) (enroll.KeySource, func(), error) {
+	noop := func() {}
+	if devRaw {
+		if backend != "" {
+			return nil, noop, fmt.Errorf("--dev-raw-keys and --secrets-backend are mutually exclusive")
+		}
+		fmt.Fprintln(os.Stderr, "enroll: WARNING --dev-raw-keys reads raw key files; dev/test use only")
+		return enroll.RawFileKeySource{BootPath: bootPath, RootPath: rootPath}, noop, nil
+	}
+	if backend == "" {
+		return nil, noop, fmt.Errorf("--secrets-backend (auto, file or bao) is required; --dev-raw-keys is the test-only file fallback")
+	}
+	token := ""
+	release := noop
+	if backend == string(secrets.BackendBao) {
+		if baoSocket == "" {
+			return nil, noop, fmt.Errorf("--bao-socket is required with --secrets-backend bao")
+		}
+		if roleID == "" {
+			return nil, noop, fmt.Errorf("--bao-role-id is required with --secrets-backend bao")
+		}
+		if secretIDFile == "" {
+			return nil, noop, fmt.Errorf("--bao-secret-id-file is required with --secrets-backend bao")
+		}
+		secretID, err := readSecretIDFile(secretIDFile)
+		if err != nil {
+			return nil, noop, err
+		}
+		session, err := loginBaoAppRole(ctx, baoSocket, roleID, secretID)
+		if err != nil {
+			return nil, noop, err
+		}
+		token = session.Token()
+		release = func() {
+			if err := session.Close(context.Background()); err != nil {
+				fmt.Fprintf(os.Stderr, "enroll: WARNING %v\n", err)
+			}
+		}
+	}
+	provider, err := secrets.Select(backend, baoSocket, token)
+	if err != nil {
+		release()
+		return nil, noop, fmt.Errorf("select secrets provider: %w", err)
+	}
+	return enroll.ProviderKeySource{Provider: provider}, release, nil
 }

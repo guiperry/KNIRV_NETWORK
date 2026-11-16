@@ -16,7 +16,7 @@ SDK_VERSION := $(shell sed -n 's/^version *= *"\(.*\)"/\1/p' core/Cargo.toml | h
 DIST        := dist/$(SDK_VERSION)
 WASI_OUT    := bindings/wasi/target/wasm32-wasip1/release/knirv_core.wasm
 
-.PHONY: help build-wasm stamp check-stamp build-npm build-go test-go parity build-sdk upload-wasm release-sdk clean
+.PHONY: help build-wasm stamp check-stamp check-divergence repro build-npm build-go test-go parity build-sdk upload-wasm release-sdk clean
 
 help: ## list targets
 	@grep -E '^[a-z-]+:.*##' $(MAKEFILE_LIST) | sed 's/:.*## /\t/'
@@ -52,7 +52,14 @@ parity: ## run the shared requests on the Go (WASI) and TypeScript (wasm-bindgen
 
 build-go: stamp test-go ## stamp, then test the Go package against the same digest
 
-build-sdk: build-npm build-go parity check-stamp ## everything, no upload
+check-divergence: ## fail unless versions agree and no wrapper re-implements core logic (scripts/check-sdk-divergence.mjs)
+	node scripts/check-sdk-divergence.mjs
+
+repro: ## clean-target rebuild of modules + both cores into a temp dir; verify the released digests (path-dependent: run from the release checkout)
+	node scripts/sdk-dist.mjs repro
+
+# check-divergence runs first: a stale Go stamp fails it with the fix (make stamp).
+build-sdk: check-divergence build-npm build-go parity check-stamp ## everything, no upload
 
 upload-wasm: check-stamp ## publish dist/ to R2 (identical files are skipped by checksum; changed files for the same version are overwritten)
 	@command -v "$(R2_CMD)" >/dev/null 2>&1 || { echo "ERROR: $(R2_CMD) not found. Install/configure rclone or set R2_CMD."; exit 1; }

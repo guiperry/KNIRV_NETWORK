@@ -3,9 +3,9 @@
 // gate.
 //
 //	Bronze JSONL --(Silver normalise + dedup)--> Gold episodes
-//	  --(head-trainer convert)--> head-train/v1 --(head-trainer)--> <out>/head/ (gated)
+//	  --(heart-decision-trainer convert)--> heart-decision-train/v1 --(heart-decision-trainer)--> <out>/head/ (gated)
 //
-// A cycle never changes the served model by itself: head-trainer publishes only
+// A cycle never changes the served model by itself: heart-decision-trainer publishes only
 // when the candidate beats the current model on the same held-out set, and HEART
 // hot-swaps whatever `model_latest` points at. Running a cycle is therefore
 // always safe; at worst it ends "refused".
@@ -41,7 +41,7 @@ type Config struct {
 	BronzeDir  string // *.jsonl Bronze events (required)
 	WorkDir    string // scratch + state (required)
 	OutDir     string // trainer --out; the model lands in OutDir/head (required)
-	TrainerBin string // path to head-trainer (required)
+	TrainerBin string // path to heart-decision-trainer (required)
 
 	Preset      string        // default "small"
 	Epochs      int           // default 20
@@ -158,7 +158,7 @@ func Run(ctx context.Context, cfg Config) (State, error) {
 		}
 	}
 	if out, code, err := runTrainer(ctx, cfg.TrainerBin, conv); err != nil || code != 0 {
-		return finish(Failed, "convert: "+tail(out), fmt.Errorf("head-trainer convert: exit %d: %v", code, err))
+		return finish(Failed, "convert: "+tail(out), fmt.Errorf("heart-decision-trainer convert: exit %d: %v", code, err))
 	}
 
 	// H8: continue from the promoted model, with a seed that changes every cycle, and
@@ -192,7 +192,7 @@ func Run(ctx context.Context, cfg Config) (State, error) {
 		st.Trained = n // the data was consumed; do not retrain on it until more arrives
 		return finish(Refused, gateReason(st.Metrics), nil)
 	default:
-		return finish(Failed, fmt.Sprintf("trainer exit %d", code), fmt.Errorf("head-trainer: exit %d", code))
+		return finish(Failed, fmt.Sprintf("trainer exit %d", code), fmt.Errorf("heart-decision-trainer: exit %d", code))
 	}
 }
 

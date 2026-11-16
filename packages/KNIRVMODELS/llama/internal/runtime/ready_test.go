@@ -210,10 +210,10 @@ func TestSupervisorTimeoutStopsChild(t *testing.T) {
 }
 
 func TestMlockFlag(t *testing.T) {
-	if got := (Options{Mlock: true}).args("m", "1"); !contains(got, "--mlock") {
+	if got := (Options{Mlock: true}).args("m", "1"); !contains(got, "--load-mode") || !contains(got, "mmap+mlock") {
 		t.Fatalf("%v", got)
 	}
-	if got := (Options{}).args("m", "1"); contains(got, "--mlock") {
+	if got := (Options{}).args("m", "1"); contains(got, "--load-mode") {
 		t.Fatalf("mlock must be opt-in: %v", got)
 	}
 }

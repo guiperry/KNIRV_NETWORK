@@ -39,6 +39,10 @@ const (
 	// uloraCompileTimeout bounds a compile. Adapter compilation runs SFT fitting
 	// over the corpus, so it is far slower than an ordinary RPC.
 	uloraCompileTimeout = 30 * time.Minute
+	// uloraAuthTokenEnv names the bearer credential ulorad requires on every
+	// route. It is the same variable ulorad reads at startup (its config refuses
+	// to start without it), so the two sides cannot drift apart.
+	uloraAuthTokenEnv = "ULORA_AUTH_TOKEN"
 )
 
 // ULoRAErrorDatasetUnavailable and friends are the failure modes a caller needs
@@ -50,6 +54,10 @@ var (
 	ErrDVEValidationUnavailable = errors.New("no bundle validation backend configured")
 	// ErrULoRACompilerUnavailable means no KNIRVULORA client is configured.
 	ErrULoRACompilerUnavailable = errors.New("no uLoRA compiler configured")
+	// ErrULoRAAuthTokenUnavailable means no ulorad bearer token is configured.
+	// ulorad has no unauthenticated mode, so the client refuses to dial rather
+	// than send a request that is certain to be rejected.
+	ErrULoRAAuthTokenUnavailable = errors.New("no ulorad auth token configured (" + uloraAuthTokenEnv + ")")
 )
 
 // ULoRADatasetRecord is one training example: the error's context as input and
@@ -162,12 +170,23 @@ type SkillDocSource interface {
 // KNIRVULORAClient talks to the ulorad daemon over its Unix socket.
 type KNIRVULORAClient struct {
 	socketPath string
+	authToken  string
 	http       *http.Client
 }
 
 // NewKNIRVULORAClient builds a compile client. An empty socketPath falls back to
-// ULORA_SOCKET_PATH, then to the daemon's own default.
+// ULORA_SOCKET_PATH, then to the daemon's own default. The bearer token is resolved
+// at each compile (see resolveULoRAAuthToken), so it can come from the environment
+// or from ulorad's token file.
 func NewKNIRVULORAClient(socketPath string) *KNIRVULORAClient {
+	return NewKNIRVULORAClientWithToken(socketPath, "")
+}
+
+// NewKNIRVULORAClientWithToken is NewKNIRVULORAClient with an explicit bearer
+// token. An empty authToken defers to resolveULoRAAuthToken at compile time. A
+// client that cannot resolve a token is still constructed, but CompileCluster
+// refuses to send.
+func NewKNIRVULORAClientWithToken(socketPath, authToken string) *KNIRVULORAClient {
 	path := strings.TrimSpace(socketPath)
 	if path == "" {
 		path = strings.TrimSpace(os.Getenv("ULORA_SOCKET_PATH"))
@@ -177,6 +196,7 @@ func NewKNIRVULORAClient(socketPath string) *KNIRVULORAClient {
 	}
 	return &KNIRVULORAClient{
 		socketPath: path,
+		authToken:  strings.TrimSpace(authToken),
 		http: &http.Client{
 			Timeout: uloraCompileTimeout,
 			Transport: &http.Transport{
@@ -187,6 +207,17 @@ func NewKNIRVULORAClient(socketPath string) *KNIRVULORAClient {
 			},
 		},
 	}
+}
+
+// bearerToken returns the explicit token if one was given, otherwise resolves it
+// from the environment or ulorad's token file. It returns
+// ErrULoRAAuthTokenUnavailable (or a more specific error for a present but
+// unusable source) and never the token value in an error.
+func (c *KNIRVULORAClient) bearerToken() (string, error) {
+	if c.authToken != "" {
+		return c.authToken, nil
+	}
+	return resolveULoRAAuthToken()
 }
 
 // CompileCluster submits a corpus to KNIRVULORA and returns the bundle it built.
@@ -203,6 +234,13 @@ func (c *KNIRVULORAClient) CompileCluster(ctx context.Context, clusterID string,
 	if strings.TrimSpace(provenance.SourceID) == "" {
 		provenance.SourceID = clusterID
 	}
+	// Fail closed before dialling: ulorad rejects every request without a
+	// matching bearer, so an unauthenticated send can only ever fail. Resolved
+	// here, per compile, so a rotated token file takes effect without a restart.
+	bearer, err := c.bearerToken()
+	if err != nil {
+		return nil, err
+	}
 
 	body, err := json.Marshal(uloraCompileRequest{
 		Provenance:   provenance,
@@ -218,6 +256,7 @@ func (c *KNIRVULORAClient) CompileCluster(ctx context.Context, clusterID string,
 		return nil, fmt.Errorf("build uLoRA compile request: %w", err)
 	}
 	request.Header.Set("Content-Type", "application/json")
+	request.Header.Set("Authorization", "Bearer "+bearer)
 
 	response, err := c.http.Do(request)
 	if err != nil {

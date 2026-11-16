@@ -119,7 +119,14 @@ func (r *NRVReader) VerifyFrame(id string, keyPair *pqc.PQCKeyPair) (bool, error
 				return false, err
 			}
 			bracketData := r.data[entry.Brackets.Offset : entry.Brackets.Offset+int64(entry.Brackets.Length)]
-			return keyPair.Verify(bracketData, sig), nil
+			if entry.Payload == nil {
+				return keyPair.Verify(nrv.FrameSigningMessage(bracketData, nil, false), sig), nil
+			}
+			if entry.Payload.Offset < 0 || entry.Payload.Length < 0 || int64(entry.Payload.Offset)+int64(entry.Payload.Length) > int64(len(r.data)) {
+				return false, fmt.Errorf("nrv: payload of frame %s outside file", id)
+			}
+			payloadData := r.data[entry.Payload.Offset : entry.Payload.Offset+entry.Payload.Length]
+			return keyPair.Verify(nrv.FrameSigningMessage(bracketData, payloadData, true), sig), nil
 		}
 	}
 	return false, fmt.Errorf("nrv: frame not found: %s", id)

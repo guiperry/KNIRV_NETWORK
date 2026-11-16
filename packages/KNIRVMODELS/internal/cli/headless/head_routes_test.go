@@ -1,15 +1,130 @@
 package headless
 
 import (
+	"bytes"
 	"context"
+	"log"
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
+	"knirvmodels/internal/cli/controller"
+
 	sdk "github.com/guiperry/knirv-sdk-go/models"
 )
+
+// bareHeartDecisionServer builds a bare Server and runs the real registerBaseRoutes
+// wiring, which is where registerRoutes mounts the decision routes. It does not call
+// NewServer or registerRoutes: both run registerModels, which needs the SDK frame
+// core and panics in this environment (see the U2 report).
+//
+// The app data dir sits under a regular file, so it cannot be created. A train POST
+// then starts a background cycle that fails before writing anything. Without this,
+// the goroutine extracts the trainer into the temp dir and races t.TempDir cleanup.
+//
+// Every KNIRV_HEAD_* and KNIRV_HEART_DECISION_* variable is cleared for the test, so
+// the caller's shell cannot change the cycle's config. t.Setenv restores each value
+// at cleanup.
+func bareHeartDecisionServer(t *testing.T) *Server {
+	t.Helper()
+	for _, kv := range os.Environ() {
+		name, _, _ := strings.Cut(kv, "=")
+		if strings.HasPrefix(name, "KNIRV_HEAD_") || strings.HasPrefix(name, "KNIRV_HEART_DECISION_") {
+			t.Setenv(name, "")
+			os.Unsetenv(name)
+		}
+	}
+	blocker := filepath.Join(t.TempDir(), "not-a-dir")
+	if err := os.WriteFile(blocker, []byte("x"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("KNIRV_APP_DATA_DIR", filepath.Join(blocker, "appdata"))
+	s := &Server{controller: controller.NewController(false), mux: http.NewServeMux()}
+	s.registerBaseRoutes()
+	return s
+}
+
+func serveRoute(s *Server, method, path string) *httptest.ResponseRecorder {
+	rec := httptest.NewRecorder()
+	s.mux.ServeHTTP(rec, httptest.NewRequest(method, path, nil))
+	return rec
+}
+
+func TestHeartDecisionRoutesServeNewPaths(t *testing.T) {
+	s := bareHeartDecisionServer(t)
+	if rec := serveRoute(s, http.MethodPost, heartDecisionTrainPath); rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), "HEAD cycle started") {
+		t.Fatalf("POST %s: got %d %q", heartDecisionTrainPath, rec.Code, rec.Body.String())
+	}
+	if rec := serveRoute(s, http.MethodGet, heartDecisionStatusPath); rec.Code != http.StatusOK {
+		t.Fatalf("GET %s: got %d", heartDecisionStatusPath, rec.Code)
+	}
+	if rec := serveRoute(s, http.MethodGet, heartDecisionTrainPath); rec.Code != http.StatusMethodNotAllowed {
+		t.Fatalf("GET %s: got %d, want 405", heartDecisionTrainPath, rec.Code)
+	}
+	if rec := serveRoute(s, http.MethodPost, heartDecisionStatusPath); rec.Code != http.StatusMethodNotAllowed {
+		t.Fatalf("POST %s: got %d, want 405", heartDecisionStatusPath, rec.Code)
+	}
+}
+
+func TestLegacyHeadAliasesMatchNewRoutes(t *testing.T) {
+	s := bareHeartDecisionServer(t)
+
+	newStatus := serveRoute(s, http.MethodGet, heartDecisionStatusPath)
+	oldStatus := serveRoute(s, http.MethodGet, legacyHeadStatusPath)
+	if oldStatus.Code != newStatus.Code || oldStatus.Body.String() != newStatus.Body.String() {
+		t.Fatalf("status alias differs: old %d %q, new %d %q", oldStatus.Code, oldStatus.Body.String(), newStatus.Code, newStatus.Body.String())
+	}
+
+	newTrain := serveRoute(s, http.MethodPost, heartDecisionTrainPath)
+	oldTrain := serveRoute(s, http.MethodPost, legacyHeadTrainPath)
+	if oldTrain.Code != newTrain.Code || oldTrain.Body.String() != newTrain.Body.String() {
+		t.Fatalf("train alias differs: old %d %q, new %d %q", oldTrain.Code, oldTrain.Body.String(), newTrain.Code, newTrain.Body.String())
+	}
+
+	if rec := serveRoute(s, http.MethodGet, legacyHeadTrainPath); rec.Code != http.StatusMethodNotAllowed {
+		t.Fatalf("GET %s: got %d, want 405", legacyHeadTrainPath, rec.Code)
+	}
+	if rec := serveRoute(s, http.MethodPost, legacyHeadStatusPath); rec.Code != http.StatusMethodNotAllowed {
+		t.Fatalf("POST %s: got %d, want 405", legacyHeadStatusPath, rec.Code)
+	}
+}
+
+func TestLegacyHeadAliasLogsDeprecationOnce(t *testing.T) {
+	s := bareHeartDecisionServer(t)
+	var buf bytes.Buffer
+	prev := log.Writer()
+	log.SetOutput(&buf)
+	t.Cleanup(func() { log.SetOutput(prev) })
+
+	// A wrong-method request gets 405 and must not log or use up the once-guard.
+	serveRoute(s, http.MethodGet, legacyHeadTrainPath)
+	if got := buf.String(); strings.Contains(got, "DEPRECATED") {
+		t.Fatalf("wrong-method request logged a deprecation:\n%s", got)
+	}
+
+	for i := 0; i < 3; i++ {
+		serveRoute(s, http.MethodGet, legacyHeadStatusPath)
+	}
+	serveRoute(s, http.MethodGet, heartDecisionStatusPath)
+	serveRoute(s, http.MethodPost, legacyHeadTrainPath)
+	serveRoute(s, http.MethodPost, legacyHeadTrainPath)
+
+	got := buf.String()
+	if n := strings.Count(got, "DEPRECATED: "+legacyHeadStatusPath+" "); n != 1 {
+		t.Fatalf("status alias logged %d deprecation lines, want 1:\n%s", n, got)
+	}
+	if n := strings.Count(got, "DEPRECATED: "+legacyHeadTrainPath+" "); n != 1 {
+		t.Fatalf("train alias logged %d deprecation lines, want 1:\n%s", n, got)
+	}
+	if n := strings.Count(got, "DEPRECATED:"); n != 2 {
+		t.Fatalf("logged %d deprecation lines in total, want 2:\n%s", n, got)
+	}
+}
 
 // The backend reaches every model over the daemon's socket, so the daemon's mux
 // must carry the whole /models/* namespace after the migration: hasher (validator),

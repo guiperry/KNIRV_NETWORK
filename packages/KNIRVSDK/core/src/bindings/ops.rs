@@ -35,6 +35,7 @@ fn secrets_portable(operation: &str, payload: &Value) -> Option<Op> {
     Some(match operation {
         "secrets.search_paths" => search_paths(payload),
         "secrets.kdf_params" => kdf_params(payload),
+        "secrets.scrypt_derive" => scrypt_derive(payload),
         "secrets.decrypt_bytes" => decrypt_bytes(payload),
         "secrets.fields_bytes" => fields_bytes(payload),
         "secrets.parse_fields" => parse_fields(payload),
@@ -74,6 +75,16 @@ fn dispatch_inner(operation: &str, payload: &Value) -> Option<Op> {
         "evidence.verify_event_log" => evidence_verify(payload),
         "evidence.merkle_root" => evidence_merkle_root(payload),
         "evidence.verify_artifact_merkle" => evidence_verify_merkle(payload),
+        #[cfg(feature = "ed25519")]
+        "evidence.ed25519_verify" => evidence_ed25519_verify(payload),
+        #[cfg(feature = "ed25519")]
+        "evidence.ed25519_public_key" => evidence_ed25519_public_key(payload),
+        #[cfg(feature = "mldsa")]
+        "mldsa.ml_dsa65_verify" => mldsa_verify(payload),
+        #[cfg(feature = "mldsa")]
+        "mldsa.ml_dsa65_public_key" => mldsa_public_key(payload),
+        #[cfg(feature = "mldsa")]
+        "mldsa.ml_dsa65_sign" => mldsa_sign(payload),
         "authority.tier_target_bits" => tier_target_bits(payload),
         "authority.action_digest" => action_digest(payload),
         "authority.header" => header(payload),
@@ -697,6 +708,8 @@ fn sign_bootnode_enroll_approval(payload: &Value) -> Op {
     let issued_at_unix = u64_field(payload, "issued_at_unix")?;
     let expires_at_unix = u64_field(payload, "expires_at_unix")?;
     let challenge_envelope = required_string(payload, "challenge_envelope")?;
+    // The approval covers the boot-node public key as well as the challenge bytes.
+    let boot_public_key = required_string(payload, "boot_public_key")?;
     signing::sign_bootnode_enroll_approval(
         &key,
         &chain_id,
@@ -704,6 +717,7 @@ fn sign_bootnode_enroll_approval(payload: &Value) -> Op {
         issued_at_unix,
         expires_at_unix,
         &challenge_envelope,
+        &boot_public_key,
     )
     .map(|s| signed_json(&s))
     .map_err(core_err)
@@ -722,19 +736,23 @@ fn verify_bootnode_enrollment(payload: &Value) -> Op {
     // consume-if-absent store (Go/TS FileNonceStore). The core never mutates or
     // holds consumed-nonce state.
     let now = now_unix(payload)? as u64;
-    // A verification rejection (operator mismatch, bad/expired signature, untrusted
-    // root) is an expected outcome of Verify, not an infrastructure error: surface it
-    // as `valid: false` so hosts (Go/TS) return a clean `false` rather than throwing.
-    let nonce = match signing::verify_bootnode_enrollment_auth(
+    // A verification rejection is an expected outcome of Verify, not an infrastructure
+    // error: surface it as `valid: false` with a stable `code` (see
+    // `BootnodeEnrollFailure`) so hosts return a clean `false` and can count reasons.
+    match signing::verify_bootnode_enrollment_auth(
         &enrollment,
         &expected_root_public_key,
         &expected_operator,
         now,
     ) {
-        Ok(nonce) => nonce,
-        Err(_) => return Ok(json!({ "valid": false, "nonce": "" })),
-    };
-    Ok(json!({ "valid": true, "nonce": nonce }))
+        Ok(nonce) => Ok(json!({ "valid": true, "nonce": nonce })),
+        Err(failure) => Ok(json!({
+            "valid": false,
+            "nonce": "",
+            "code": failure.code(),
+            "message": failure.message(),
+        })),
+    }
 }
 
 fn address_encode_raw(payload: &Value) -> Op {
@@ -812,6 +830,53 @@ fn kdf_params(payload: &Value) -> Op {
         "salt_base64": BASE64.encode(p.salt),
         "log_n": p.log_n, "r": p.r, "p": p.p, "key_len": p.key_len,
     }))
+}
+
+/// `secrets.scrypt_derive`: scrypt over a password with an explicit cost, the
+/// derivation a key file uses. `log_n` is 1..=20 and `key_len` is 32 (the AES-256
+/// key size); the same parameters decrypt existing key files byte-for-byte.
+#[cfg(feature = "secrets")]
+fn scrypt_derive(payload: &Value) -> Op {
+    // An empty password is a valid scrypt input (the KDF vectors include one), but
+    // the field itself is required.
+    let password = BASE64
+        .decode(
+            payload
+                .get("password_base64")
+                .and_then(Value::as_str)
+                .ok_or_else(|| invalid("password_base64 is required"))?,
+        )
+        .map_err(|e| invalid(format!("invalid password_base64: {e}")))?;
+    let salt = BASE64
+        .decode(required_string(payload, "salt_base64")?)
+        .map_err(|e| invalid(format!("invalid salt_base64: {e}")))?;
+    let log_n = payload
+        .get("log_n")
+        .and_then(Value::as_u64)
+        .filter(|n| (1..=20).contains(n))
+        .ok_or_else(|| invalid("log_n must be between 1 and 20"))?;
+    let r = payload
+        .get("r")
+        .and_then(Value::as_u64)
+        .and_then(|v| u32::try_from(v).ok())
+        .ok_or_else(|| invalid("r must be an unsigned 32-bit integer"))?;
+    let p = payload
+        .get("p")
+        .and_then(Value::as_u64)
+        .and_then(|v| u32::try_from(v).ok())
+        .ok_or_else(|| invalid("p must be an unsigned 32-bit integer"))?;
+    if payload.get("key_len").and_then(Value::as_u64) != Some(32) {
+        return Err(invalid("key_len must be 32"));
+    }
+    let params = secrets::KdfParams {
+        salt,
+        log_n: log_n as u8,
+        r,
+        p,
+        key_len: 32,
+    };
+    let key = secrets::derive_key(&password, &params).map_err(BindingError::from_sdk)?;
+    Ok(json!({ "derived_key_base64": BASE64.encode(key) }))
 }
 
 #[cfg(feature = "secrets")]
@@ -1050,4 +1115,166 @@ fn evidence_verify_merkle(payload: &Value) -> Op {
     let root = crate::evidence::eventlog::artifact_merkle_root(&evidence_hashes(payload)?);
     let expected = required_string(payload, "expected_root")?;
     Ok(json!({ "valid": root.eq_ignore_ascii_case(expected.trim()), "root": root }))
+}
+
+/// A refused key or signature is a result, not an error: `{"valid":false,"code":…}`.
+#[cfg(feature = "ed25519")]
+fn key_verdict(result: Result<(), crate::evidence::Ed25519Failure>) -> Value {
+    match result {
+        Ok(()) => json!({ "valid": true }),
+        Err(f) => json!({ "valid": false, "code": f.code(), "message": f.message() }),
+    }
+}
+
+/// `evidence.ed25519_verify`: `{public_key_base64, message_base64, signature_base64}`.
+/// The message is the signed bytes (the bundle's claim JSON), base64 so the
+/// binding carries it exactly. Keys and signatures are standard base64; an
+/// empty or missing one is refused as a verdict, not a binding error.
+#[cfg(feature = "ed25519")]
+fn evidence_ed25519_verify(payload: &Value) -> Op {
+    let message = BASE64
+        .decode(required_string(payload, "message_base64")?)
+        .map_err(|e| invalid(format!("invalid message_base64: {e}")))?;
+    let key = str_field(payload, "public_key_base64");
+    let signature = str_field(payload, "signature_base64");
+    Ok(key_verdict(crate::evidence::ed25519_verify(key, &message, signature)))
+}
+
+/// `evidence.ed25519_public_key`: `{public_key_base64}`; returns the checked key
+/// in canonical base64 when it is a valid Ed25519 point.
+#[cfg(feature = "ed25519")]
+fn evidence_ed25519_public_key(payload: &Value) -> Op {
+    let key = str_field(payload, "public_key_base64");
+    Ok(match crate::evidence::ed25519_public_key(key) {
+        Ok(canonical) => json!({ "valid": true, "public_key_base64": canonical }),
+        Err(f) => key_verdict(Err(f)),
+    })
+}
+
+/// `mldsa.ml_dsa65_verify`: `{public_key_base64, message_base64, context_base64,
+/// signature_base64}`; returns `{"valid":true}` or `{"valid":false,"code","message"}`.
+/// A key or signature the core refuses (wrong length or form) is a verdict, not a
+/// binding error. Malformed base64 in any of the four fields is a binding error
+/// (`invalid`, naming the field), the same as `message_base64` and
+/// `context_base64`. An absent field is the empty value.
+#[cfg(feature = "mldsa")]
+fn mldsa_verify(payload: &Value) -> Op {
+    let message = BASE64
+        .decode(required_or_empty(payload, "message_base64"))
+        .map_err(|e| invalid(format!("invalid message_base64: {e}")))?;
+    let context = BASE64
+        .decode(required_or_empty(payload, "context_base64"))
+        .map_err(|e| invalid(format!("invalid context_base64: {e}")))?;
+    let public_key = BASE64
+        .decode(required_or_empty(payload, "public_key_base64"))
+        .map_err(|e| invalid(format!("invalid public_key_base64: {e}")))?;
+    let signature = BASE64
+        .decode(required_or_empty(payload, "signature_base64"))
+        .map_err(|e| invalid(format!("invalid signature_base64: {e}")))?;
+    Ok(match crate::mldsa::ml_dsa65_verify_detail(&public_key, &message, &context, &signature) {
+        Ok(()) => json!({ "valid": true }),
+        Err(f) => json!({ "valid": false, "code": f.code(), "message": f.message() }),
+    })
+}
+
+/// `mldsa.ml_dsa65_public_key`: `{seed_base64}`; returns `{"public_key_base64"}`
+/// (1952 bytes, FIPS 204 KeyGen from a 32-byte seed).
+#[cfg(feature = "mldsa")]
+fn mldsa_public_key(payload: &Value) -> Op {
+    let seed = decode_base64_field(payload, "seed_base64")?;
+    let pk = crate::mldsa::ml_dsa65_public_key(&seed).map_err(mldsa_error)?;
+    Ok(json!({ "public_key_base64": BASE64.encode(pk) }))
+}
+
+/// `mldsa.ml_dsa65_sign`: `{seed_base64, message_base64, context_base64}`; returns
+/// `{"signature_base64"}` from the deterministic FIPS 204 signing variant.
+#[cfg(feature = "mldsa")]
+fn mldsa_sign(payload: &Value) -> Op {
+    let seed = decode_base64_field(payload, "seed_base64")?;
+    let message = BASE64
+        .decode(required_or_empty(payload, "message_base64"))
+        .map_err(|e| invalid(format!("invalid message_base64: {e}")))?;
+    let context = BASE64
+        .decode(required_or_empty(payload, "context_base64"))
+        .map_err(|e| invalid(format!("invalid context_base64: {e}")))?;
+    let sig = crate::mldsa::ml_dsa65_sign(&seed, &message, &context).map_err(mldsa_error)?;
+    Ok(json!({ "signature_base64": BASE64.encode(sig) }))
+}
+
+#[cfg(feature = "mldsa")]
+fn required_or_empty<'a>(payload: &'a Value, field: &str) -> &'a str {
+    payload.get(field).and_then(Value::as_str).unwrap_or_default()
+}
+
+#[cfg(feature = "mldsa")]
+fn decode_base64_field(payload: &Value, field: &str) -> Result<Vec<u8>, BindingError> {
+    BASE64
+        .decode(required_or_empty(payload, field))
+        .map_err(|e| invalid(format!("invalid {field}: {e}")))
+}
+
+#[cfg(feature = "mldsa")]
+fn mldsa_error(f: crate::mldsa::MlDsaFailure) -> BindingError {
+    invalid(format!("{}: {}", f.code(), f.message()))
+}
+
+fn str_field<'a>(payload: &'a Value, field: &str) -> &'a str {
+    payload.get(field).and_then(Value::as_str).unwrap_or_default()
+}
+
+#[cfg(all(test, feature = "mldsa"))]
+mod mldsa_binding_tests {
+    use super::*;
+    use crate::bindings::BindingErrorCode;
+
+    fn verify(fields: Value) -> Op {
+        dispatch_portable("mldsa.ml_dsa65_verify", &fields).expect("operation is registered")
+    }
+
+    // Every field is valid base64 except the one under test, so the only
+    // possible refusal is the malformed field itself.
+    fn with_field(field: &str, value: &str) -> Value {
+        let mut payload = json!({
+            "public_key_base64": "",
+            "message_base64": "",
+            "context_base64": "",
+            "signature_base64": "",
+        });
+        payload[field] = json!(value);
+        payload
+    }
+
+    #[test]
+    fn malformed_base64_is_a_binding_error_in_every_field() {
+        for field in [
+            "public_key_base64",
+            "message_base64",
+            "context_base64",
+            "signature_base64",
+        ] {
+            let err = verify(with_field(field, "!!!not base64!!!"))
+                .expect_err(&format!("{field}: malformed base64 must be an error"));
+            assert_eq!(err.code, BindingErrorCode::InvalidArgument, "{field}");
+            assert!(
+                err.message.contains(field),
+                "{field}: message should name the field, got {:?}",
+                err.message
+            );
+        }
+    }
+
+    #[test]
+    fn well_formed_but_wrong_length_key_is_still_a_verdict() {
+        // Valid base64 that decodes to zero bytes is a refused key, not an error.
+        let out = verify(with_field("public_key_base64", "")).expect("verdict, not error");
+        assert_eq!(out["valid"], json!(false));
+        assert_eq!(out["code"], json!("public_key_length"));
+    }
+
+    #[test]
+    fn absent_fields_are_refused_as_verdicts() {
+        let out = verify(json!({})).expect("absent fields are empty, not a binding error");
+        assert_eq!(out["valid"], json!(false));
+        assert_eq!(out["code"], json!("public_key_length"));
+    }
 }

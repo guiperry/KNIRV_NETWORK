@@ -23,7 +23,7 @@ const (
 	KindAnalyze      Kind = "analyze"       // read and reason over text               -> HEART, llama, external
 	KindGenerate     Kind = "generate"      // produce text                            -> HEART, llama, external
 	KindValidate     Kind = "validate"      // check a prediction against domain rules -> HASHER
-	KindServerTask   Kind = "server_task"   // operational prompts, dream passes       -> llama (base)
+	KindServerTask   Kind = "server_task"   // operational prompts, dream passes       -> hands, then llama (base)
 	KindExecuteSkill Kind = "execute_skill" // run a skill's ULoRA on llama            -> llama + adapter
 	KindPlan         Kind = "plan"          // multi-step planning                     -> external orchestrator
 	KindVerify       Kind = "verify"        // check claims against evidence           -> HASHER
@@ -140,7 +140,7 @@ func DefaultRoutes() map[Kind][]string {
 		KindGenerate:     {"heart", "llama", "external"},
 		KindValidate:     {"hasher"},
 		KindVerify:       {"hasher"},
-		KindServerTask:   {"llama"},
+		KindServerTask:   {"hands", "llama"},
 		KindExecuteSkill: {"llama"},
 		KindPlan:         {"external"},
 		KindVision:       {"head"},

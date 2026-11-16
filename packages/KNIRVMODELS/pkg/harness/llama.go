@@ -12,13 +12,23 @@ import (
 	"knirvmodels/pkg/knirvllama"
 )
 
-// NewLlamaFallback builds the llama.cpp manager from the embedded binary. appDataDir
+// llamaPrimary is llama.cpp as the harness's Primary: the knirvllama manager, plus the
+// lifecycle phase the harness reads to tell a failed start from one still loading.
+type llamaPrimary struct{ *knirvllama.Manager }
+
+// Phase reports the manager's phase and its last error.
+func (l llamaPrimary) Phase() (string, string) {
+	st := l.GetStatus()
+	return st.Phase, st.LastError
+}
+
+// NewLlamaPrimary builds the llama.cpp primary from the embedded binary. appDataDir
 // is the server data directory (the one KNIRV_APP_DATA_DIR names) and socket is where
 // the llama chat wrapper listens; the Router in front of it owns the public socket.
 // The same environment variables the server has always used tune it:
 // KNIRV_LLAMA_PARALLEL, KNIRV_LLAMA_CTX_SIZE, KNIRV_LLAMA_THREADS and the model
 // selectors KNIRV_LLAMA_MODEL_URL, _NAME and _PATH (the wrapper reads those itself).
-func NewLlamaFallback(appDataDir, socket string, logf func(string, ...any)) (*knirvllama.Manager, error) {
+func NewLlamaPrimary(appDataDir, socket string, logf func(string, ...any)) (Primary, error) {
 	binary, err := knirvllama.ExtractEmbeddedBinary(filepath.Join(appDataDir, "bin"))
 	if err != nil {
 		return nil, fmt.Errorf("extract KNIRVLLAMA binary: %w", err)
@@ -31,7 +41,7 @@ func NewLlamaFallback(appDataDir, socket string, logf func(string, ...any)) (*kn
 	cfg.CtxSize = envInt("KNIRV_LLAMA_CTX_SIZE", cfg.CtxSize)
 	cfg.Threads = envInt("KNIRV_LLAMA_THREADS", cfg.Threads)
 	cfg.Logf = logf
-	return knirvllama.NewManager(cfg, zap.NewNop()), nil
+	return llamaPrimary{knirvllama.NewManager(cfg, zap.NewNop())}, nil
 }
 
 func envInt(name string, def int) int {

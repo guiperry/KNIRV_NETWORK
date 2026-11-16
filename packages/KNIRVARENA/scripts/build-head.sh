@@ -10,3 +10,6 @@ HEAD_CRATE="${HEAD_CRATE:-$ROOT/../KNIRVMODELS/heart/decision}"
 [ -f "$HEAD_CRATE/Cargo.toml" ] || { echo "HEAD crate not found at $HEAD_CRATE" >&2; exit 1; }
 wasm-pack build "$HEAD_CRATE" --target web --release \
   --out-dir "$ROOT/src/wasm-pkg/knirv_head" --out-name knirv_head
+# Tracked stub for the package entry (see scripts/templates/knirv_head/index.js).
+# Copied from source each build so the output never carries a stale or hand-edited copy.
+cp "$ROOT/scripts/templates/knirv_head/index.js" "$ROOT/src/wasm-pkg/knirv_head/index.js"

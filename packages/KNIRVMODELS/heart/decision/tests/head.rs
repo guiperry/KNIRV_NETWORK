@@ -269,7 +269,15 @@ mod adapters {
             .enumerate()
             .map(|(k, role)| (role.to_string(), AdapterLayer { a: mat(r, d, k as f32), b: mat(d, r, 9.0 + k as f32) }))
             .collect();
-        Adapter { adapter_rank: r, scaling_alpha: 8.0, layers, content_hash: "h1".into(), stacks: vec!["l".into(), "h".into()], strength: 1.0 }
+        Adapter {
+            adapter_rank: r,
+            scaling_alpha: 8.0,
+            layers,
+            content_hash: "h1".into(),
+            stacks: vec!["l".into(), "h".into()],
+            strength: 1.0,
+            base_sha256: String::new(),
+        }
     }
 
     fn tensors(c: &HeadConfig) -> HashMap<String, Tensor> {
@@ -324,6 +332,24 @@ mod adapters {
     }
 
     #[test]
+    fn wrong_base_is_refused_and_matching_base_is_accepted() {
+        let c = cfg();
+        let w = formula_weights(&c, None);
+        let mut ad = adapter(c.d_model, 2, &["self_attn.q_proj"]);
+
+        ad.base_sha256 = "00".repeat(32);
+        let err = match Head::from_safetensors_adapted(c.clone(), &w, &Device::Cpu, Some(&ad)) {
+            Err(e) => e.to_string(),
+            Ok(_) => panic!("adapter for a different base was accepted"),
+        };
+        assert!(err.contains("targets base"), "unexpected error: {err}");
+
+        ad.base_sha256 = adapter::base_sha256(&w);
+        let (_, applied) = Head::from_safetensors_adapted(c, &w, &Device::Cpu, Some(&ad)).unwrap();
+        assert_eq!(applied.unwrap().roles_applied, vec!["self_attn.q_proj"]);
+    }
+
+    #[test]
     fn stacks_select_where_the_delta_lands() {
         let c = cfg();
         let base = tensors(&c);
@@ -357,6 +383,10 @@ mod adapters {
         let mut mixed = adapter(d, 2, &["k_proj"]);
         mixed.layers.insert("v_proj".into(), AdapterLayer { a: mat(1, d, 0.0), b: mat(d, 2, 0.0) });
         cases.push(("partial", mixed));
+        // two aliases of one projection: refused, not silently last-wins
+        let mut alias = adapter(d, 2, &["q_proj"]);
+        alias.layers.insert("attn.q".into(), AdapterLayer { a: mat(2, d, 3.0), b: mat(d, 2, 4.0) });
+        cases.push(("duplicate alias", alias));
         for (name, ad) in cases {
             let mut t = base.clone();
             assert!(adapter::merge(&c, &mut t, &ad).is_err(), "{name} accepted");

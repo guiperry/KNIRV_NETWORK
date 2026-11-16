@@ -3,6 +3,7 @@ package drq
 import (
 	"context"
 	"crypto/sha256"
+	"crypto/subtle"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -12,8 +13,129 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync/atomic"
 	"testing"
 )
+
+// fakeULoRABearer is a test-only stand-in for ULORA_AUTH_TOKEN. It is not a
+// real credential.
+const fakeULoRABearer = "fake-ulora-bearer-test-only"
+
+// uloraAuthRejects mirrors KNIRVULORA's authMiddleware (internal/daemon/server.go):
+// a missing Authorization header is a 401, and so is a token that does not match.
+// It reports true when it has written the rejection.
+func uloraAuthRejects(w http.ResponseWriter, r *http.Request, token string) bool {
+	authHeader := r.Header.Get("Authorization")
+	if authHeader == "" {
+		http.Error(w, "authorization header required", http.StatusUnauthorized)
+		return true
+	}
+	presented := strings.TrimPrefix(authHeader, "Bearer ")
+	if subtle.ConstantTimeCompare([]byte(presented), []byte(token)) != 1 {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return true
+	}
+	return false
+}
+
+// writeULoRACompileOK writes a valid compile response, as a healthy ulorad would.
+func writeULoRACompileOK(w http.ResponseWriter) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	_ = json.NewEncoder(w).Encode(ULoRACompileResult{
+		BundleID:     "cluster-1",
+		ContentHash:  strings.Repeat("a", 64),
+		ManifestPath: "/tmp/appdata/ulora/bundles/cluster-1-abc/manifest.json",
+		WeightsPath:  "/tmp/appdata/ulora/bundles/cluster-1-abc/core_weights.safetensors",
+		PathUsed:     "B",
+		TargetModels: []string{"llama-3-8b"},
+	})
+}
+
+// compileOnceForTest runs one valid compile through client.
+func compileOnceForTest(client *KNIRVULORAClient) (*ULoRACompileResult, error) {
+	return client.CompileCluster(context.Background(), "cluster-1",
+		[]ULoRADatasetRecord{{Context: "ctx", CorrectedCompletion: "fix", TargetModel: "llama-3-8b"}},
+		[]ULoRATargetModel{{Family: "llama", HiddenSize: 4096, NumLayers: 32, AttentionMechanism: "gqa", ActivationFunc: "silu"}},
+		ULoRAProvenance{SourceID: "cluster-1", SourceDatasetIDs: []string{"e1"}})
+}
+
+func TestKNIRVULORAClientSendsBearerToken(t *testing.T) {
+	var gotAuth string
+	socketPath := newUnixServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotAuth = r.Header.Get("Authorization")
+		if uloraAuthRejects(w, r, fakeULoRABearer) {
+			return
+		}
+		writeULoRACompileOK(w)
+	}))
+
+	client := NewKNIRVULORAClientWithToken(socketPath, fakeULoRABearer)
+	if _, err := compileOnceForTest(client); err != nil {
+		t.Fatalf("compile with the correct token must pass: %v", err)
+	}
+	if want := "Bearer " + fakeULoRABearer; gotAuth != want {
+		t.Fatalf("Authorization header = %q, want %q", gotAuth, want)
+	}
+}
+
+func TestKNIRVULORAClientRejectsWrongBearer(t *testing.T) {
+	var hits atomic.Int32
+	socketPath := newUnixServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		hits.Add(1)
+		if uloraAuthRejects(w, r, fakeULoRABearer) {
+			return
+		}
+		writeULoRACompileOK(w)
+	}))
+
+	client := NewKNIRVULORAClientWithToken(socketPath, "fake-wrong-bearer")
+	result, err := compileOnceForTest(client)
+	if err == nil || result != nil {
+		t.Fatalf("a wrong token must be rejected by ulorad, got result=%v err=%v", result, err)
+	}
+	if !strings.Contains(err.Error(), "HTTP 401") {
+		t.Fatalf("want an HTTP 401 rejection, got: %v", err)
+	}
+	if hits.Load() != 1 {
+		t.Fatalf("request should reach ulorad exactly once, reached %d times", hits.Load())
+	}
+}
+
+func TestKNIRVULORAClientRefusesWithoutToken(t *testing.T) {
+	isolateULoRAAuthEnv(t)
+	var hits atomic.Int32
+	socketPath := newUnixServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		hits.Add(1)
+		writeULoRACompileOK(w)
+	}))
+
+	// No token configured: ulorad has no unauthenticated mode, so the client must
+	// refuse before it sends anything.
+	client := NewKNIRVULORAClient(socketPath)
+	_, err := compileOnceForTest(client)
+	if !errors.Is(err, ErrULoRAAuthTokenUnavailable) {
+		t.Fatalf("want ErrULoRAAuthTokenUnavailable, got: %v", err)
+	}
+	if hits.Load() != 0 {
+		t.Fatalf("an unauthenticated compile must not reach ulorad, reached %d times", hits.Load())
+	}
+}
+
+func TestKNIRVULORAClientReadsTokenFromEnv(t *testing.T) {
+	t.Setenv("ULORA_AUTH_TOKEN", fakeULoRABearer)
+	socketPath := newUnixServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if uloraAuthRejects(w, r, fakeULoRABearer) {
+			return
+		}
+		writeULoRACompileOK(w)
+	}))
+
+	client := NewKNIRVULORAClient(socketPath)
+	if _, err := compileOnceForTest(client); err != nil {
+		t.Fatalf("token from ULORA_AUTH_TOKEN must authenticate: %v", err)
+	}
+}
 
 // fakeSkillDocs resolves member errors to validated fixes.
 type fakeSkillDocs struct {
@@ -151,6 +273,9 @@ func TestKNIRVULORAClientCompile(t *testing.T) {
 
 	socketPath := newUnixServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		gotPath = r.URL.Path
+		if uloraAuthRejects(w, r, fakeULoRABearer) {
+			return
+		}
 		if err := json.NewDecoder(r.Body).Decode(&gotRequest); err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
@@ -167,7 +292,7 @@ func TestKNIRVULORAClientCompile(t *testing.T) {
 		})
 	}))
 
-	client := NewKNIRVULORAClient(socketPath)
+	client := NewKNIRVULORAClientWithToken(socketPath, fakeULoRABearer)
 	result, err := client.CompileCluster(context.Background(), "cluster-1",
 		[]ULoRADatasetRecord{{Context: "ctx", CorrectedCompletion: "fix", TargetModel: "llama-3-8b"}},
 		[]ULoRATargetModel{{Family: "llama", HiddenSize: 4096, NumLayers: 32, AttentionMechanism: "gqa", ActivationFunc: "silu"}},
@@ -190,12 +315,15 @@ func TestKNIRVULORAClientCompile(t *testing.T) {
 // goes looking for bundle files that were never produced.
 func TestKNIRVULORAClientRejectsIncompleteResult(t *testing.T) {
 	socketPath := newUnixServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if uloraAuthRejects(w, r, fakeULoRABearer) {
+			return
+		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
 		_ = json.NewEncoder(w).Encode(ULoRACompileResult{BundleID: "cluster-1"})
 	}))
 
-	client := NewKNIRVULORAClient(socketPath)
+	client := NewKNIRVULORAClientWithToken(socketPath, fakeULoRABearer)
 	_, err := client.CompileCluster(context.Background(), "cluster-1",
 		[]ULoRADatasetRecord{{Context: "c", CorrectedCompletion: "f", TargetModel: "m"}},
 		[]ULoRATargetModel{{Family: "llama", HiddenSize: 4096, NumLayers: 32, AttentionMechanism: "gqa", ActivationFunc: "silu"}},

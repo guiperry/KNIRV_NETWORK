@@ -12,7 +12,7 @@ import (
 	"github.com/guiperry/knirv-sdk-go/signing"
 )
 
-// ---- fakes (the local core build does not implement the DEC-2 enroll ops) ----
+// ---- fakes for ordered-step/replay tests; admission tests use the real SDK core ----
 
 // fakeSigner produces SignedMessages whose "signedness" is controllable so the
 // test can exercise the unsigned-challenge and missing-approval rejection paths.
@@ -32,7 +32,7 @@ func (f fakeSigner) SignChallenge(_ []byte, chainID, nonce string, _, _ uint64, 
 	return msg, nil
 }
 
-func (f fakeSigner) SignApproval(_ []byte, chainID, nonce string, _, _ uint64, challengeEnvelope string) (signing.SignedMessage, error) {
+func (f fakeSigner) SignApproval(_ []byte, chainID, nonce string, _, _ uint64, challengeEnvelope string, _ []byte) (signing.SignedMessage, error) {
 	if !f.signApproval {
 		return signing.SignedMessage{}, nil
 	}

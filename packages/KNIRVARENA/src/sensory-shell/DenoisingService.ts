@@ -578,14 +578,19 @@ export class DenoisingService extends EventEmitter {
     let result = denoisedText;
 
     for (const placeholder of anchorPlaceholders) {
-      if (!result.includes(placeholder)) {
-        const fieldName = placeholder.replace(/[{}]/g, '');
-        const regex = new RegExp(`\\b\\w+\\b`, 'g');
-        const matches = result.match(regex);
+      if (result.includes(placeholder)) continue;
 
-        if (matches && matches.length > 0) {
-          const randomMatch = matches[Math.floor(Math.random() * matches.length)];
-          result = result.replace(randomMatch, placeholder);
+      // Split so that odd indexes hold placeholders already restored and even indexes hold
+      // plain text. Only plain text is a candidate: matching a word inside a placeholder
+      // placed earlier in this loop corrupted it (the flaky DenoisingService test).
+      // The first word is chosen, not a random one, so the result is reproducible.
+      const parts = result.split(/(\{\{[^}]+\}\})/);
+      for (let i = 0; i < parts.length; i += 2) {
+        const word = /\b\w+\b/.exec(parts[i]);
+        if (word) {
+          parts[i] = parts[i].slice(0, word.index) + placeholder + parts[i].slice(word.index + word[0].length);
+          result = parts.join('');
+          break;
         }
       }
     }

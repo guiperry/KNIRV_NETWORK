@@ -28,10 +28,12 @@ hmac = "0.12"
 pbkdf2 = { version = "0.12", features = ["simple"] }
 rand = "0.8"
 
-# Post-quantum cryptography (Kyber-768 KEM + Dilithium-3 signatures)
+# Post-quantum cryptography (Kyber-768 KEM + ML-DSA-65 signatures, FIPS 204).
+# ML-DSA-65 comes from the KNIRVSDK Rust core (the crypto source of truth), with
+# the `mldsa` feature only: no default features, so no HTTP/secrets/vault code.
 pqcrypto-kyber = "0.8"
-pqcrypto-dilithium = "0.5"
 pqcrypto-traits = "0.3"
+knirv-sdk = { path = "../../KNIRVSDK/core", default-features = false, features = ["mldsa"] }
 
 tempfile = "3.0"
 getrandom = { version = "0.2", features = ["js"] }

@@ -1,7 +1,7 @@
 package network
 
 import (
-	"KNIRVGRAPH/internal/nrv"
+	"KNIRVGRAPH/internal/locator"
 	"encoding/json"
 	"net/http"
 	"testing"
@@ -14,7 +14,7 @@ func contextIdeaRouter(t *testing.T, withNRV bool) http.Handler {
 	t.Helper()
 	rpc := &RPCServer{logger: zap.NewNop()}
 	if withNRV {
-		rpc.nrvSystem = nrv.NewNRVSystem("test-peer", nil)
+		rpc.nrvSystem = locator.NewLocatorSystem("test-peer", nil)
 	}
 	r := mux.NewRouter()
 	rpc.registerContextIdeaRoutes(r)
@@ -43,7 +43,7 @@ func TestContextNodeLifecycle(t *testing.T) {
 	if rec.Code != http.StatusCreated {
 		t.Fatalf("create: %d %s", rec.Code, rec.Body.String())
 	}
-	var created nrv.ContextNode
+	var created locator.ContextNode
 	_ = json.Unmarshal(rec.Body.Bytes(), &created)
 	if created.ID == "" || created.Schema["submitted_by"] != "user-42" || created.Status != "pending" {
 		t.Fatalf("unexpected node: %+v", created)
@@ -54,7 +54,7 @@ func TestContextNodeLifecycle(t *testing.T) {
 	if rec := doJSON(t, h, "GET", "/nrv/contexts/missing", "", nil); rec.Code != http.StatusNotFound {
 		t.Fatalf("missing node: %d", rec.Code)
 	}
-	var all []nrv.ContextNode
+	var all []locator.ContextNode
 	_ = json.Unmarshal(doJSON(t, h, "GET", "/nrv/contexts", "", nil).Body.Bytes(), &all)
 	if len(all) != 1 {
 		t.Fatalf("list: %d nodes", len(all))
@@ -73,7 +73,7 @@ func TestIdeaNodeLifecycle(t *testing.T) {
 	if rec.Code != http.StatusCreated {
 		t.Fatalf("create: %d %s", rec.Code, rec.Body.String())
 	}
-	var created nrv.IdeaNode
+	var created locator.IdeaNode
 	_ = json.Unmarshal(rec.Body.Bytes(), &created)
 	if created.FeasibilityData["submitted_by"] != "user-42" || created.FeasibilityData["score"] != 0.7 {
 		t.Fatalf("unexpected node: %+v", created)
@@ -83,7 +83,7 @@ func TestIdeaNodeLifecycle(t *testing.T) {
 	}
 }
 
-func TestContextIdeaRoutesWithoutNRVSystem(t *testing.T) {
+func TestContextIdeaRoutesWithoutLocatorSystem(t *testing.T) {
 	t.Setenv("KNIRV_INTERNAL_AUTH_TOKEN", "secret")
 	h := contextIdeaRouter(t, false)
 	if rec := doJSON(t, h, "POST", "/nrv/ideas", "secret", map[string]interface{}{"idea_type": "asset", "description": "x"}); rec.Code != http.StatusServiceUnavailable {

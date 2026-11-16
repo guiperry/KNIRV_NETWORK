@@ -2,6 +2,10 @@ package hands
 
 import (
 	"errors"
+	"fmt"
+	"os"
+	"path/filepath"
+	"sync"
 
 	"knirvmodels/pkg/hands/gpt"
 	handstok "knirvmodels/pkg/hands/tokenizer"
@@ -14,7 +18,11 @@ import (
 type Engine struct {
 	model *gpt.GPT
 	tok   handstok.Tokenizer
-	path  string
+
+	// pathMu guards path. TrainWindows (training goroutine) writes it while
+	// readers such as the weights handler call Path() concurrently.
+	pathMu sync.RWMutex
+	path   string
 }
 
 // NewEngine builds a HANDS engine from an architecture config. vocabPath is the
@@ -36,7 +44,7 @@ func (e *Engine) Load(path string) error {
 	}
 	// A loaded checkpoint is a trained model: it is ready to generate.
 	e.model.SetTrained(true)
-	e.path = path
+	e.setPath(path)
 	return nil
 }
 
@@ -65,7 +73,17 @@ func (e *Engine) Config() *gpt.Config { return e.model.Config() }
 var ErrNotReady = errors.New("hands engine not ready")
 
 // Path returns the checkpoint path the engine last loaded from, if any.
-func (e *Engine) Path() string { return e.path }
+func (e *Engine) Path() string {
+	e.pathMu.RLock()
+	defer e.pathMu.RUnlock()
+	return e.path
+}
+
+func (e *Engine) setPath(path string) {
+	e.pathMu.Lock()
+	defer e.pathMu.Unlock()
+	e.path = path
+}
 
 // GenerateText encodes prompt, autoregressively extends it by n tokens, and
 // decodes the result back to text. Returns ErrNotReady if no model is loaded.
@@ -76,4 +94,89 @@ func (e *Engine) GenerateText(prompt string, n int, temperature float32, topK in
 	start := e.tok.Encode(prompt)
 	out := gpt.Generate(e.model, start, n, temperature, topK)
 	return e.tok.Decode(out), nil
+}
+
+// TrainOptions bounds one training pass over pre-tokenised windows.
+type TrainOptions struct {
+	Epochs       int
+	LearningRate float64
+	MaxSteps     int
+	// SavePath, when set, receives the checkpoint atomically after the pass.
+	SavePath string
+}
+
+// TrainResult reports what a pass actually did.
+type TrainResult struct {
+	Windows    int
+	Steps      int
+	Checkpoint string
+}
+
+// TrainWindows runs gradient descent over token-ID windows. The caller is
+// responsible for serialising this against generation: TrainWindows mutates the
+// model's persisted tensors in place, so a concurrent Forward would observe a
+// half-updated weight set.
+func (e *Engine) TrainWindows(windows [][]int, opts TrainOptions) (TrainResult, error) {
+	if e == nil || e.model == nil {
+		return TrainResult{}, ErrNotReady
+	}
+	dataset := gpt.DatasetFromWindows(windows)
+	if dataset.Len() == 0 {
+		return TrainResult{}, fmt.Errorf("TrainWindows: no windows with at least two tokens")
+	}
+	epochs := opts.Epochs
+	if epochs <= 0 {
+		epochs = 1
+	}
+	steps := dataset.Len() * epochs
+	if opts.MaxSteps > 0 && opts.MaxSteps < steps {
+		steps = opts.MaxSteps
+	}
+	if err := gpt.TrainModel(e.model, dataset, gpt.TrainConfig{
+		LearningRate: opts.LearningRate,
+		NumEpochs:    epochs,
+		BatchSize:    1,
+		GradientClip: 1.0,
+		MaxSteps:     opts.MaxSteps,
+	}); err != nil {
+		return TrainResult{}, err
+	}
+	e.model.SetTrained(true)
+
+	result := TrainResult{Windows: len(windows), Steps: steps}
+	if opts.SavePath != "" {
+		if err := e.SaveAtomic(opts.SavePath); err != nil {
+			return result, err
+		}
+		result.Checkpoint = opts.SavePath
+		e.setPath(opts.SavePath)
+	}
+	return result, nil
+}
+
+// SaveAtomic writes the checkpoint to a temporary sibling and renames it into
+// place, so a reader never observes a partially-written model-latest.
+func (e *Engine) SaveAtomic(path string) error {
+	dir := filepath.Dir(path)
+	if err := os.MkdirAll(dir, 0o750); err != nil {
+		return fmt.Errorf("create checkpoint dir: %w", err)
+	}
+	tmp, err := os.CreateTemp(dir, "."+filepath.Base(path)+".tmp-*")
+	if err != nil {
+		return fmt.Errorf("create temporary checkpoint: %w", err)
+	}
+	tmpPath := tmp.Name()
+	if err := tmp.Close(); err != nil {
+		os.Remove(tmpPath)
+		return err
+	}
+	if err := e.Save(tmpPath); err != nil {
+		os.Remove(tmpPath)
+		return err
+	}
+	if err := os.Rename(tmpPath, path); err != nil {
+		os.Remove(tmpPath)
+		return fmt.Errorf("promote checkpoint: %w", err)
+	}
+	return nil
 }

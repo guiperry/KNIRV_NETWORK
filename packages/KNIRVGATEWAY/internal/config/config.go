@@ -70,6 +70,23 @@ type Config struct {
 	// approval). When empty, no enrollment route is registered.
 	EnrollSocketPath string
 
+	// KnirvProofSocketPath is the Unix socket of KNIRVSERVER's native proof API
+	// (/api/v1/knirv/*). The gateway is the only public door to it. When empty,
+	// those paths are answered 404 and never reach the backend.
+	KnirvProofSocketPath string
+
+	// GitSocketPath is the Unix socket of KNIRVSERVER's proof ledger (/git/*).
+	// The gateway does not proxy /git/* publicly (it is internal only), so this
+	// path is carried for the launcher's wiring but never routed by the gateway.
+	GitSocketPath string
+
+	// KnirvServerAppSocketPath is KNIRVSERVER's internal Unix socket for its full
+	// HTTP router (the web app, /api/v1/system/*, /api/dve/, /tunnel, /ws, ...).
+	// The gateway forwards those public paths here. When empty, they are not routed
+	// through the gateway (/api/dve/ and the system routes fall back to
+	// KNIRV_SERVER_BASE_URL).
+	KnirvServerAppSocketPath string
+
 	// OracleGatewayURL overrides the default oracle gateway URL derived
 	// from NetworkMode. When set (e.g. ORACLE_GATEWAY_URL), it takes
 	// precedence over the production/testnet hardcoded defaults so
@@ -208,6 +225,9 @@ func Load() (*Config, error) {
 		AutoOpenBrowser:            getEnvBool("AUTO_OPEN_BROWSER", true),
 		OracleSocketPath:           getEnv("ORACLE_SOCKET_PATH", ""),
 		EnrollSocketPath:           getEnv("ENROLL_SOCKET_PATH", ""),
+		KnirvProofSocketPath:       getEnv("KNIRVPROOF_SOCKET_PATH", ""),
+		GitSocketPath:              getEnv("GIT_SOCKET_PATH", ""),
+		KnirvServerAppSocketPath:   getEnv("KNIRVSERVER_APP_SOCKET_PATH", ""),
 		OracleGatewayURL:           getEnv("ORACLE_GATEWAY_URL", ""),
 		TurnServerEnabled:          getEnvBool("TURN_SERVER_ENABLED", true),
 		TurnServerUDPPort:          getEnvInt("TURN_SERVER_UDP_PORT", 3478),

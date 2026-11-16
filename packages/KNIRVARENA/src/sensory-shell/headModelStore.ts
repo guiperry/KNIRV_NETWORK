@@ -1,7 +1,7 @@
 import { getKnirvServerUrl } from '../config/runtimeConfig';
 import { authToken } from '../services/serverLLM';
 
-/** `GET /api/head/models` (arena_fixes.md §2.6, point 5). */
+/** `GET /api/heart/models` (the HEAD manifest; the HEART decision manifest is `GET /api/heart/decide/models`, models_migration.md §7.5). */
 export interface HEADManifest {
   version: string;
   /** `head_config.json` contents. */
@@ -48,7 +48,7 @@ export async function fetchLatestModel(fetchImpl: typeof fetch = fetch): Promise
   const headers = { Authorization: `Bearer ${token}` };
   const base = getKnirvServerUrl();
 
-  const res = await fetchImpl(`${base}/api/head/models`, { headers });
+  const res = await fetchImpl(`${base}/api/heart/models`, { headers });
   if (!res.ok) throw new HEADModelUnavailableError(`HEAD manifest unavailable (HTTP ${res.status})`, res.status);
   const body = (await res.json()) as { success?: boolean; data?: HEADManifest } & Partial<HEADManifest>;
   const manifest = (body.data ?? body) as HEADManifest;
@@ -56,7 +56,7 @@ export async function fetchLatestModel(fetchImpl: typeof fetch = fetch): Promise
     throw new HEADModelUnavailableError('HEAD manifest is malformed');
   }
 
-  const key = `${base}/api/head/models/${encodeURIComponent(manifest.version)}/weights`;
+  const key = `${base}/api/heart/models/${encodeURIComponent(manifest.version)}/weights`;
   const cache = await openCache();
   const cached = cache ? await cache.match(key) : undefined;
   if (cached) {

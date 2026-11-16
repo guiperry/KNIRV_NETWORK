@@ -7,7 +7,7 @@
  * host NonceStore. They run against a rebuilt WASM SDK; if the op is unavailable
  * they skip rather than fail.
  */
-import { signBootnodeEnrollChallenge, signBootnodeEnrollApproval, verifyBootnodeEnrollment } from './signing.js';
+import { signBootnodeEnrollChallenge, signBootnodeEnrollApproval, verifyBootnodeEnrollment, verifyBootnodeEnrollmentDetail } from './signing.js';
 import { MemoryNonceStore } from './nonceStore.js';
 import { fromBase64 } from './local.js';
 function hexToBytes(s) {
@@ -78,7 +78,7 @@ export async function runBootnodeEnrollmentVectors() {
     if (got.length !== claims.length || got.some((b, i) => b !== claims[i])) {
         throw new Error(`claims did not survive the binding base64 contract: got ${toHex(got)} want ${toHex(claims)}`);
     }
-    const approval = await signBootnodeEnrollApproval(rootKey, chainId, nonce, 1_700_000_000, 1_700_000_600, challenge.envelope);
+    const approval = await signBootnodeEnrollApproval(rootKey, chainId, nonce, 1_700_000_000, 1_700_000_600, challenge.envelope, challenge.public_key);
     const expectedRootPk = approval.public_key;
     const enrollment = { challenge, approval };
     const store = new MemoryNonceStore();
@@ -92,6 +92,14 @@ export async function runBootnodeEnrollmentVectors() {
     // Operator substitution must be rejected.
     if (await verifyBootnodeEnrollment(enrollment, expectedRootPk, 'operator:bob', new MemoryNonceStore(), now)) {
         throw new Error('operator substitution must be rejected');
+    }
+    // Key substitution: the same envelope bytes re-signed under another key must fail with the
+    // stable code, because the approval covers the boot-node public key.
+    const attackerKey = hexToBytes('05'.repeat(32));
+    const substituted = await signBootnodeEnrollChallenge(attackerKey, chainId, nonce, 1_700_000_000, 1_700_000_600, operator, claims);
+    const subVerdict = await verifyBootnodeEnrollmentDetail({ challenge: substituted, approval }, expectedRootPk, operator, now);
+    if (subVerdict.valid || subVerdict.code !== 'approval_payload_mismatch') {
+        throw new Error(`substituted boot key: want approval_payload_mismatch, got ${JSON.stringify(subVerdict)}`);
     }
     return { passed: true, skipped: false };
 }

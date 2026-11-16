@@ -256,7 +256,7 @@ export class DesktopConnectionService {
     }
 
     try {
-      const response = await fetch(`${this.connectionStatus.secure_endpoint}/api/head/process`, {
+      const response = await fetch(`${this.connectionStatus.secure_endpoint}/api/heart/process`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

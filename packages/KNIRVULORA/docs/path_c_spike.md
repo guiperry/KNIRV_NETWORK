@@ -122,3 +122,148 @@ Strict labeling (answer must reproduce 2 spans): 152 of 428 failed, the floor re
 
 ## Verdict for the process-style skills
 Path C with a 0.5B student does not turn long prose workflow skills into reliable behaviour. It works for short, factual or procedural skills (the fixtures and the agent skills) and should not be used for the long prose ones without a bigger student and a retrieval-grounded abstention mechanism. The 5.2 kill switch is therefore **not cleared for prose workflow skills**.
+
+
+---
+
+# Update 2026-11-14: re-spike with 1.5B and 3B students (N12.10, phase 1)
+
+Harness: `engines/tests/grounded_spike_r2.py` (new; imports `grounded_spike.py` for labels/gates/corpus report and `spike_path_c.py` for `Gen`/engine/regression; those files are unchanged). Pinned venv built by `scripts/setup-venv.sh` (torch 2.7.1+cu128, transformers 4.53.3, peft 0.16.0). Students: `Qwen2.5-{0.5B,1.5B,3B}-Instruct` (same family as the 0.5B run). Teacher: local `qwen2.5-7b-instruct-q3_k_m` (llama.cpp, CUDA); no remote calls, escalation off. Corpus: the same four jsmastery workflow skills (`debug, check, document, scope`, commit 43b69e4), 30 passages per skill cap, 87 passages.
+
+## Setup changed from the 2026-11-02 run
+| | 2026-11-02 run | this run |
+|---|---|---|
+| student | 0.5B | 0.5B, 1.5B, 3B |
+| labels | 355 accepted, 76 failed (relaxed) | relabelled with the same teacher: 337 accepted, 94 dropped (78.2 %). Labels are shared by all students in this run. |
+| abstention rows (share of training rows) | plain: 6 generic (~1.6 %); hardneg: 172/553 (**31 %**) | plain: 6 generic (**1.6 %**); `rg`: retrieval-grounded negatives only (**3.5 %**); `hn10`: all hard negatives capped at **10 %** |
+| retrieval-grounded abstention | none | abstain only when best TF-IDF cosine to any passage in the 87-passage corpus < tau = 0.177 (5th percentile of support over answerable training questions). Negatives kept only if below tau. |
+| seeds | 0, 1, 2 | **0 only** (scaled down, see below) |
+| eval batch | 16 | 48 (new runs; the 0.5B control was also re-run under the new protocol) |
+
+Retrieval-grounded negatives are rare: of 167 hard-negative candidates only **7** fall below tau (median answerable support is 0.31), so `rg` is almost `plain` plus 7 abstentions. The 3.5 % is the arithmetic 13 / 376 (6 generic + 7 grounded abstention rows out of 369 + 7 rows). The 10 % cap would allow 41 abstention rows (35 beyond the generic ones), so the pool of 7 is the binding limit, not the cap. A 10 % share needs the ungrounded negatives, which is why `hn10` exists as a separate arm.
+
+## Results (seed 0; held-out = 261 answerable questions; probes = 80 hard-negative questions; base = no adapter)
+Margin = adapter minus base on the same questions. "invented" = answer writes a span not in the documents (held / probe). "gate" = retrieval-grounded abstention applied at inference.
+
+| student | arm | abstention rows | good (strict) | margin vs base | good (relaxed) | invented (held) | invented (probe) | abstains on known | gate false refusal | I4 general QA |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 0.5B | base | 0 | 0.134 | — | 0.261 | 0.149 | 0.075 | 0 | — | 1.0 |
+| 0.5B | plain | 1.6 % | 0.211 | +0.077 | 0.345 | 0.268 | 0.312 | 0.077 | 0.046 | 0.8 |
+| 0.5B | rg | 3.5 % | 0.222 | +0.088 | 0.364 | 0.257 | 0.250 | 0.100 | 0.046 | 0.9 |
+| 0.5B | hn10 | 10.2 % | 0.172 | +0.038 | 0.314 | 0.157 | 0.175 | 0.241 | 0.046 | 0.7 |
+| 1.5B | base | 0 | 0.111 | — | 0.234 | 0.169 | 0.125 | 0 | — | 1.0 |
+| 1.5B | plain | 1.6 % | 0.226 | +0.115 | 0.356 | 0.287 | 0.263 | 0.080 | 0.046 | 1.0 |
+| 1.5B | rg | 3.5 % | 0.207 | +0.096 | 0.326 | 0.238 | 0.300 | 0.142 | 0.046 | 1.0 |
+| 1.5B | hn10 | 10.2 % | 0.195 | +0.084 | 0.318 | 0.234 | 0.300 | 0.188 | 0.046 | 1.0 |
+| 3B | base | 0 | 0.126 | — | 0.314 | 0.111 | 0.113 | 0 | — | 1.0 |
+| 3B | plain | 1.6 % | 0.276 | +0.150 | 0.398 | 0.230 | 0.212 | 0.065 | 0.046 | 0.9 |
+| 3B | rg | 3.5 % | 0.245 | +0.119 | 0.375 | 0.230 | 0.287 | 0.107 | 0.046 | 1.0 |
+| 3B | hn10 | 10.2 % | 0.253 | +0.127 | 0.360 | 0.192 | 0.250 | 0.203 | 0.046 | 0.9 |
+
+Gate columns (not in the table, all in `run_A/report.json` under `gate_arm`): with the retrieval gate, strict good falls by 0.01–0.02 in every arm (the 4.6 % false refusals), and **probe-invented rate is unchanged in every arm**. The gate only abstains where retrieval support is below tau, and most hard-negative probes have support above tau, so the gate does not catch the invented spans the adapter writes on them.
+
+Comparison with the 2026-11-02 0.5B run (3 seeds, older labels): plain good 0.25 (0.23–0.26) vs base 0.14, invented 0.23–0.31; hardneg (31 % share) good 0.15, abstains on known 0.44–0.52, probe-invented 0.03–0.09. The new 0.5B plain/hn10 numbers reproduce the same pattern at the same scale: the 10 % share cuts invented spans (0.157 held) but abstention on answerable questions rises (0.24), though less than the 31 % run (0.44–0.52).
+
+Wall time (seed 0, per run, train + eval; recomputed 2026-11-14 from `run_A/report.json` `train_wall_s` / `eval_wall_s`): 0.5B ≈ 3.1–3.4 min train + 2.2–2.5 min eval; 1.5B ≈ 3.4–4.7 min train + 2.7–3.6 min eval; 3B ≈ 5.4–7.4 min train + 4.0–4.9 min eval. The nine runs sum to 71.2 min. The per-student `wall_s` in the JSON are block times overwritten by resumes and are not arm totals. Crashed or resumed segments are not timed. Labelling pass wall time was not recorded separately.
+
+**Correction 2026-11-14 (wall time).** An earlier version of this section gave 0.5B training as ≈ 5 min. The per-run figures above are the correct ones.
+
+## What it shows
+1. **Scale helps the margin, not the invention rate.** Strict margin over base grows 0.077 → 0.115 → 0.150 (0.5B → 1.5B → 3B). The invented-span rate on held questions stays 1.5–2× base at every size (0.23–0.29 vs 0.11–0.17). Bigger students learn the facts faster; they do not learn to stop inventing.
+2. **Reduced abstention share trades inventions for refusals.** Going from 1.6 % to 10 % abstention rows lowers invented spans on held questions (0.5B: 0.268 → 0.157; 1.5B: 0.287 → 0.234; 3B: 0.230 → 0.192) at a cost of 0.11–0.16 more abstention on answerable questions (0.5B: 0.08 → 0.24; 1.5B: 0.08 → 0.19; 3B: 0.07 → 0.20). The 31 % share from 2026-11-02 was worse on refusals.
+3. **Retrieval-grounded abstention does not do what it was meant to.** Grounded negatives are too few to train on (7 of 167), and the inference gate (tau 0.177) refuses 4.6 % of answerable questions while leaving the probe invented-span rate unchanged.
+4. **I4 is not clean.** General QA on 10 questions: 0.8–1.0 vs base 1.0 (single seed, 10 items; noisy).
+
+## Recommendation (go/no-go for 5.3–5.8)
+**No-go for prose workflow skills as single adapters at this recipe, including at 3B.** The best arm (3B plain, +0.15 strict margin) still invents spans at about twice the base rate, and the arms that reduce inventions (hn10) pay with about 20 % refusals on answerable questions. Retrieval-grounded abstention, as built here, does not catch the failures. Per the owner's order, this points to **phase 2** (one small adapter per skill, several loaded together via llama.cpp multi-LoRA, see `Multi-LoRA-Loading.md`). Phase 2 has not been started here.
+
+Caveat on confidence: single seed for the new arms. The 2026-11-02 0.5B runs suggest a seed-to-seed range of about 0.03 on strict good (plain: 0.23–0.26 over three seeds), so the margins above are larger than that spread, but the invented-span and refusal differences between arms have not been replicated.
+
+## Not done (scaled down)
+- Seeds 1 and 2 for the new arms (GPU budget; the remaining 18 runs at the observed 5–12 min each would take roughly 3–4 h). 
+- The 2026-11-02 label set was not reused (not saved); relabelling produced 337 accepted vs 355.
+- No `base+docs` control for 1.5B/3B (the 0.5B control was in the earlier run only).
+- Escalation (remote teacher) not exercised, by design (brief: no remote calls).
+
+## Update 2026-11-14 (seeds phase 2): span verifier, 3 seeds, 3B
+
+Owner decisions of the same day: replace the TF-IDF abstention support with a span verifier for the
+retrieval-grounded arm, run seeds 1 and 2 for the 3B plain and rg arms, decide go/no-go from 3 seeds.
+
+**Span verifier (replaces the TF-IDF tau gate at inference).** `tests/span_verifier.py`. The retrieved
+passage is the top-1 TF-IDF passage over the whole 87-passage corpus (all four skills, not a per-skill cluster) for the question. An answer is supported only if every
+literal span it writes (the `derive_facts.spans` extraction) appears in that passage. Normalisation: NFKC,
+casefold, curly quotes and backticks to ASCII, whitespace collapsed; span edges and trailing `.,;:!?)`
+stripped; a span matches on token boundaries (no `[0-9a-z_]` on either side when it starts with a word
+character). An answer with no spans is vacuously supported; an empty answer is not. Unit tests:
+`tests/test_span_verifier.py` (14 tests, all pass). The rg training rows are unchanged (the TF-IDF filter still
+chooses which hard negatives are kept for training), so the arms are the same as in the seed-0 run.
+
+**Harness.** `tests/grounded_spike_r3.py` (new; reuses r2 metrics, labels and recipe). Labels: the seed-0
+run's `labels.json`. Seed 0 of both arms was not retrained: the run_A adapters were re-evaluated with the
+span verifier (inference-only change, identical rows and seed). Seeds 1–2 were trained. First launch hit a CUDA
+out-of-memory in the training subprocess at plain seed 1 (the 3B training process alone needs about 10.4 GiB
+of the 11.6 GiB card); the remaining runs were relaunched with `PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True`.
+Base (no adapter) reproduces the seed-0 run: good 0.126, invented 0.111.
+
+**Results, 3B, 261 held answerable questions, 80 hard-negative probes.** Mean over seeds 0–2; "±" and "spread" are max − min across the three seeds, not a standard deviation.
+
+| arm | good (ungated) | good (span gate) | invented held (ungated) | false refusal (gate) | abstain on known (gate) | probe invented (ungated) | probe invented (gate) | I4 (general QA, 10) | wall s / seed |
+|---|---|---|---|---|---|---|---|---|---|
+| base | 0.126 | 0.100 | 0.111 | 0.169 | – | 0.113 | – | 1.0 | – |
+| plain | 0.272 ± 0.008 | 0.149 ± 0.015 | 0.222 ± 0.038 | 0.563 ± 0.038 | 0.604 ± 0.073 | 0.221 ± 0.050 | 0.004 ± 0.013 | 0.9 / 1.0 / 1.0 | 462 (seed 0: eval only, 290) |
+| rg (span gate) | 0.253 ± 0.054 | 0.142 ± 0.042 | 0.217 ± 0.069 | 0.520 ± 0.077 | 0.627 ± 0.054 | 0.242 ± 0.075 | 0.000 | 1.0 / 0.9 / 1.0 | 447 (seed 0: eval only, 258) |
+
+Margins vs base (good, ungated base 0.126): plain +0.146 ungated, +0.023 gated; rg +0.126 ungated, +0.015
+gated (gated base is 0.100, so gated margins vs gated base are +0.050 plain, +0.042 rg). Span-gated answers
+never write a span outside their retrieved passage (`invented_passage_held` = 0.000 by construction).
+
+**Why the gate refuses so much.** The top-1 TF-IDF passage is the question's source passage for only 60 %
+of the 261 held questions. Correct answers whose spans sit in a passage ranked second or lower are refused.
+So the verifier's false-refusal rate is mostly a retrieval error, and a top-1 span check cannot separate
+"invented" from "retrieved elsewhere". Verifying against top-k passages is the obvious next variant; it was
+not run here because the owner specified the span check against the retrieved passage.
+
+**Go/no-go: NO-GO (confirmed on 3 seeds).** The span gate removes almost all probe inventions, but it
+refuses about half of the answerable questions (false refusal 0.52–0.56, base gate 0.17), and the
+gated good score (0.14–0.15) is only +0.02 over the base. Ungated, the arms reach 0.25–0.27 good but
+write invented spans on about twice the base rate (0.22 vs 0.11). Neither setting clears 5.2 for prose workflow
+skills. Seed spread on good is 0.01–0.05, so the ungated margin is well above the noise; the gated margin is
+at the noise level.
+
+**Phase 2 (multi-LoRA) started on the no-go.** Result in the section "Phase 2 result (2026-11-14)" below.
+
+### Phase 2 result (2026-11-14): one adapter per skill, multi-LoRA in llama.cpp, 3B
+
+Scope: three per-skill adapters (debug, check, document), trained on the 3B student with the same LoRA recipe,
+seed 0, rows = that skill's teacher-labelled passages + the 26 retention rows (no abstention rows). `scope` has
+no adapter and is excluded from the phase-2 evaluation (the phase-1 single arm was trained on it; see Confound below). Held-out: 171 answerable questions on those three skills; 53 probes.
+Served from one llama.cpp server (CUDA build, 37/37 layers on GPU) with four adapters preloaded
+(`--lora-init-without-apply`): ids 0–2 per-skill, id 3 the phase-1 all-skill plain adapter (seed 0). Each request
+sets every id's scale explicitly. Router: the top-1 TF-IDF passage's skill (accuracy 0.830 on held).
+
+| arm | good (ungated) | invented held (ungated) | good (span gate) | false refusal (gate) |
+|---|---|---|---|---|
+| base (no adapter) | 0.117 | 0.129 | 0.088 | 0.181 |
+| single (phase-1 plain, id 3) | 0.322 | 0.181 | 0.164 | 0.544 |
+| routed (3 per-skill adapters) | 0.228 | 0.152 | 0.152 | 0.380 |
+| oracle (gold-skill adapter) | 0.246 | 0.135 | 0.152 | 0.404 |
+
+Gated invented-span rate on answered questions is 0.000 for every arm by construction (span verifier).
+Probe refusals with the gate: base 0.21, single 0.60, routed 0.40, oracle 0.43; probe invented 0.00 in all arms.
+Single seed; no spread estimate for phase 2.
+
+**Confound.** The "single" arm is the phase-1 plain adapter: trained on all four skills (scope included) with 1.6 % abstention rows (6 generic refusals). The per-skill adapters have three skills each and no abstention rows. The single-vs-routed gap therefore mixes routing, the scope skill and abstention share. A clean test would retrain a per-skill arm with the same 1.6 % share and a scope adapter; not run.
+
+*Correction (I_52_report_fixes2, 2026-11-14):* the scope sentence above originally read "excluded from every arm". Scope is excluded from the phase-2 evaluation and has no per-skill adapter, but the phase-1 single arm was trained on it.
+
+Reading: the per-skill adapters invent fewer spans and are refused less than the single adapter, but
+they are weaker on good answers. The oracle arm is about the same as routed, so routing error (17 %) is
+not the main loss; the per-skill adapters themselves are weaker. Under the span gate, routed does not beat
+the single adapter on good (0.152 vs 0.164). **Phase 2 go/no-go: no-go for prose workflow skills with this
+recipe.** Caveat: one seed, three small adapters trained on 57–138 rows each.
+
+Measurement notes: a first llama.cpp eval gave a contaminated base arm (requests that omitted adapter ids
+were not running the base model; the server kept previous adapter state). Fixed by sending an explicit scale
+for every loaded id; the table above is from the corrected run only. The local llama.cpp checkout was built
+without CUDA (`GGML_CUDA=OFF`); evaluation used a CUDA build of the same tree in scratch.

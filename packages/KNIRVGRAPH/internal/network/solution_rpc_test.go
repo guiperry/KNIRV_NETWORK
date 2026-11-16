@@ -3,7 +3,7 @@ package network
 import (
 	"KNIRVGRAPH/internal/drq"
 	"KNIRVGRAPH/internal/indexing"
-	"KNIRVGRAPH/internal/nrv"
+	"KNIRVGRAPH/internal/locator"
 	"KNIRVGRAPH/internal/query"
 	"context"
 	"encoding/json"
@@ -31,7 +31,7 @@ func (a *recordingApp) RecordGradedSolution(sol *drq.Solution) (string, error) {
 func TestSwarmSolutionsAreGradedAgainstTheErrorNodeSuite(t *testing.T) {
 	t.Setenv("KNIRV_INTERNAL_AUTH_TOKEN", "secret")
 	app := &recordingApp{}
-	store := nrv.NewErrorTestSuiteStore(&testKV{m: map[string][]byte{}})
+	store := locator.NewErrorTestSuiteStore(&testKV{m: map[string][]byte{}})
 	rpc := &RPCServer{logger: zap.NewNop(), app: app}
 	rpc.SetErrorTestSuiteStore(store)
 	r := mux.NewRouter()
@@ -45,13 +45,13 @@ func TestSwarmSolutionsAreGradedAgainstTheErrorNodeSuite(t *testing.T) {
 		t.Fatalf("an error node without tests cannot grade solutions, got %d", rec.Code)
 	}
 
-	for i := 1; i <= nrv.ErrorTestSuiteSize; i++ {
-		if _, err := store.ContributeTest("e1", nrv.ErrorTestCase{ID: fmt.Sprintf("t%d", i), Input: "in", Expected: fmt.Sprintf("out %d", i), AuthorID: "dev"}); err != nil {
+	for i := 1; i <= locator.ErrorTestSuiteSize; i++ {
+		if _, err := store.ContributeTest("e1", locator.ErrorTestCase{ID: fmt.Sprintf("t%d", i), Input: "in", Expected: fmt.Sprintf("out %d", i), AuthorID: "dev"}); err != nil {
 			t.Fatal(err)
 		}
 	}
 	outputs := map[string]string{}
-	for i := 1; i <= nrv.ErrorTestSuiteSize; i++ {
+	for i := 1; i <= locator.ErrorTestSuiteSize; i++ {
 		outputs[fmt.Sprintf("t%d", i)] = fmt.Sprintf("out %d", i)
 	}
 	outputs["t8"] = "wrong"

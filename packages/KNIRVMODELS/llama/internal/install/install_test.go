@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"context"
+	"errors"
 	"io"
 	"net/http"
 	"os"
@@ -149,5 +150,91 @@ func TestUpdateServerInstallsNewerPrebuilt(t *testing.T) {
 	}
 	if b, _ := os.ReadFile(got); string(b) != "new" {
 		t.Fatalf("binary = %q", b)
+	}
+}
+
+// Real `llama-server --version` output: a git checkout build (7780, verified on
+// this host from ~/models/llama.cpp) and a tarball build (b12388 release archive,
+// no git metadata, so build 0).
+const (
+	gitBuildVersion     = "version: 7780 (7dee9ff59)\nbuilt with GNU 11.4.0 for Linux x86_64\n"
+	tarballBuildVersion = "version: 1.0.0-dev (build 0, commit unknown)\nbuilt with GNU 11.4.0 for Linux x86_64\n"
+)
+
+func TestParseBuild(t *testing.T) {
+	tests := []struct {
+		name    string
+		out     string
+		want    int
+		unknown bool
+		wantErr bool
+	}{
+		{name: "git checkout build", out: gitBuildVersion, want: 7780},
+		{name: "git build, 5-digit build", out: "version: 12388 (abcdef012)\n", want: 12388},
+		{name: "tarball build is not 1", out: tarballBuildVersion, unknown: true},
+		{name: "tarball build, build 0 without commit", out: "version: 1.0.0-dev (build 0)\n", unknown: true},
+		{name: "build-tagged nonzero", out: "version: 1.0.0-dev (build 12388, commit abc)\n", want: 12388},
+		{name: "no version line", out: "usage: llama-server [options]\n", wantErr: true},
+		{name: "empty output", out: "", wantErr: true},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got, err := parseBuild(tc.out)
+			if tc.unknown {
+				if !errors.Is(err, errUnknownBuild) {
+					t.Fatalf("err = %v, want errUnknownBuild", err)
+				}
+				return
+			}
+			if tc.wantErr {
+				if err == nil || errors.Is(err, errUnknownBuild) {
+					t.Fatalf("err = %v, want a plain parse error", err)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if got != tc.want {
+				t.Fatalf("build = %d, want %d", got, tc.want)
+			}
+		})
+	}
+}
+
+func TestInstalledBuildRealOutputs(t *testing.T) {
+	i := New()
+	i.Output = func(context.Context, string, ...string) (string, error) { return tarballBuildVersion, nil }
+	if _, err := i.installedBuild(context.Background(), "/x/llama-server"); !errors.Is(err, errUnknownBuild) {
+		t.Fatalf("tarball: err = %v, want errUnknownBuild", err)
+	}
+	i.Output = func(context.Context, string, ...string) (string, error) { return gitBuildVersion, nil }
+	got, err := i.installedBuild(context.Background(), "/x/llama-server")
+	if err != nil || got != 7780 {
+		t.Fatalf("git: got %d, %v; want 7780", got, err)
+	}
+}
+
+// A tarball build must not trigger a download or source build on every start.
+func TestUpdateServerKeepsUnknownBuildWithoutRebuilding(t *testing.T) {
+	dir := t.TempDir()
+	server := dir + "/llama-server"
+	if err := os.WriteFile(server, []byte("x"), 0700); err != nil {
+		t.Fatal(err)
+	}
+	i := New()
+	i.Get = func(url string) (*http.Response, error) {
+		if url != LatestReleaseURL {
+			t.Fatalf("unexpected fetch of %s for an unknown build", url)
+		}
+		return releaseResponder("b12388")(url)
+	}
+	i.Output = func(context.Context, string, ...string) (string, error) { return tarballBuildVersion, nil }
+	i.Run = func(context.Context, string, ...string) error {
+		t.Fatal("unknown build: nothing should run")
+		return nil
+	}
+	if got := i.updateServer(context.Background(), Options{DataDir: dir}, server); got != server {
+		t.Fatalf("server = %s, want %s", got, server)
 	}
 }

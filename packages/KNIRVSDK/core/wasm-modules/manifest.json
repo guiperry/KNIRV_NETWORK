@@ -7,7 +7,7 @@
       "module_kind": "relay",
       "abi_version": 1,
       "byte_length": 45263,
-      "sha256": "5acbec9517e7b8d6d040169926c5d68402d59f898f8799d5fcf42490fec2aba7",
+      "sha256": "fcf300d91d1466cf5bed9d373a1ac3fa3811a904bcbce85f445dbe2246a531b6",
       "capabilities": [
         "relay.envelope"
       ]
@@ -18,7 +18,7 @@
       "module_kind": "crypto",
       "abi_version": 1,
       "byte_length": 394114,
-      "sha256": "b4cb6099b9c8f1bf627bb60ebcb7c1e2b9bc4f640eb54aaf5bbd433f6188c342",
+      "sha256": "4bd302b529f28a328d68b45d352a4d1dadcf3305abd46871441ee5c89dc4ee36",
       "capabilities": [
         "crypto.vault"
       ]
@@ -28,8 +28,8 @@
       "artifact_version": "1.0.0",
       "module_kind": "verifier",
       "abi_version": 1,
-      "byte_length": 268333,
-      "sha256": "4507f9773714814e331ed79e78680c013300ea72332510ddc810e8275b265be1",
+      "byte_length": 268345,
+      "sha256": "04462d93347361cd7ded69083b3b611e36030865890bb4ed682c7615271d7355",
       "capabilities": [
         "proof.verify"
       ]

@@ -239,7 +239,7 @@ func (suite *PerformanceBenchmarkSuite) benchmarkHEADCognitiveProcessing() Bench
 
 	result := suite.executePerformanceTest(
 		"HEAD Cognitive Processing",
-		"/api/head/process",
+		"/api/heart/process",
 		payload,
 		config,
 	)

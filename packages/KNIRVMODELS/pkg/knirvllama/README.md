@@ -128,7 +128,7 @@ model. The wrapper and manager are built so that is slow, not fatal:
 - The model is pre-read into the page cache while it loads (`KNIRV_LLAMA_WARM=0` disables).
 - Preflight fails fast on an unreadable/truncated model, a missing binary or a taken port,
   and warns when available RAM is below the model size.
-- `KNIRV_LLAMA_MLOCK=1` adds `--mlock` (keeps the model resident; needs RAM headroom).
+- `KNIRV_LLAMA_MLOCK=1` adds `--load-mode mmap+mlock` (keeps the model resident; needs RAM headroom). llama.cpp b12388 removed `--mlock`; older llama-server builds will not accept this flag.
 - The manager reaps the child as soon as it exits, retries early exits (`MaxStartAttempts`,
   default 3, `RetryBackoff` 5s then 30s), removes a stale `llama.sock`, prefixes the child's
   output with `[KNIRVLLAMA]`, and reports `phase`, `attempt` and `last_error` in `GetStatus`.
@@ -138,6 +138,14 @@ The embedded wrapper binary is a build artifact: run `make llama-build` in KNIRV
 (KNIRVSERVER's `make llama-build` delegates to it) and rebuild the server for these
 changes to take effect. The wrapper's source is `../../llama`. The manager is no longer
 started by the KNIRVSERVER launcher: `pkg/harness` runs it as the llama.cpp fallback.
+
+## LoRA adapters on /completion
+
+Adapters are loaded once at startup. llama-server applies the server-wide scale to any
+`/completion` request that has no `lora` field, so such a request runs every loaded
+adapter at scale 1.0 (verified on llama.cpp b12388). **Any `/completion` caller must send
+an explicit `lora` list**, for example `"lora": [{"id": 0, "scale": 1.0}, {"id": 1, "scale": 0.0}]`.
+Adapter ids that are not listed are set to 0 for that request.
 
 ## Supervision
 

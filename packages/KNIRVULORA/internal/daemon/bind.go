@@ -33,6 +33,12 @@ type BindRequest struct {
 	ContentHash string `json:"content_hash,omitempty"`
 	// TargetModel is the architecture to project onto.
 	TargetModel api.BaseModelSpec `json:"target_model"`
+	// BaseModelPath, when set, is the base weights file this adapter targets.
+	// Its SHA-256 is computed here exactly as the GGUF route computes it
+	// (baseSHA256), and returned as BindResponse.BaseSHA256 so the serving
+	// runtime can refuse an adapter merged into a different base. The digest is
+	// never taken from the caller: a caller-supplied digest is unverifiable.
+	BaseModelPath string `json:"base_model_path,omitempty"`
 }
 
 // BindResponse is the projected adapter plus the provenance a caller needs to
@@ -50,6 +56,11 @@ type BindResponse struct {
 	AdapterRank   int     `json:"adapter_rank"`
 	ScalingAlpha  float64 `json:"scaling_alpha"`
 	TargetModules int     `json:"target_modules"`
+
+	// BaseSHA256 is the SHA-256 of the base weights named by base_model_path,
+	// computed by the daemon (same function and cache as the GGUF route). Empty
+	// when the request named no base, so an unverified digest is never reported.
+	BaseSHA256 string `json:"base_sha256,omitempty"`
 
 	// Layers maps a target module name to its LoRA A/B matrices.
 	Layers map[string]runtime.LayerWeight `json:"layers"`
@@ -113,6 +124,16 @@ func (s *Server) handleBind(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	baseSHA := ""
+	if base := strings.TrimSpace(req.BaseModelPath); base != "" {
+		sum, err := s.baseSHA256(base)
+		if err != nil {
+			http.Error(w, fmt.Sprintf("base model: %v", err), http.StatusBadRequest)
+			return
+		}
+		baseSHA = sum
+	}
+
 	resp := BindResponse{
 		ContentHash:     contentHash,
 		BundleID:        strings.TrimSpace(req.BundleID),
@@ -122,6 +143,7 @@ func (s *Server) handleBind(w http.ResponseWriter, r *http.Request) {
 		AdapterRank:     manifest.CanonicalCore.AdapterRank,
 		ScalingAlpha:    manifest.CanonicalCore.ScalingFactorAlpha,
 		TargetModules:   len(manifest.CanonicalCore.TargetModules),
+		BaseSHA256:      baseSHA,
 		Layers:          layers,
 	}
 

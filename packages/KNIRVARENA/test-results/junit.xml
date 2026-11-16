@@ -1,29 +1,29 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuites name="jest tests" tests="11" failures="0" errors="0" time="4.496">
-  <testsuite name="submitChainWrite" errors="0" failures="0" skipped="0" timestamp="2026-11-09T10:13:31" time="2.482" tests="6">
-    <testcase classname="submitChainWrite keeps the action schema version equal to the SDK" name="submitChainWrite keeps the action schema version equal to the SDK" time="0.02">
+<testsuites name="jest tests" tests="12" failures="0" errors="0" time="28.682">
+  <testsuite name="headTokenizer" errors="0" failures="0" skipped="0" timestamp="2026-11-14T16:18:05" time="11.471" tests="12">
+    <testcase classname="headTokenizer round-trips text and quantises samples" name="headTokenizer round-trips text and quantises samples" time="0.048">
     </testcase>
-    <testcase classname="submitChainWrite signs through the Controller broker and posts the signed transaction to the chain" name="submitChainWrite signs through the Controller broker and posts the signed transaction to the chain" time="0.043">
+    <testcase classname="sha256Hex matches the known digest of &quot;abc&quot;" name="sha256Hex matches the known digest of &quot;abc&quot;" time="0.076">
     </testcase>
-    <testcase classname="submitChainWrite fails when the Controller rejects the request" name="submitChainWrite fails when the Controller rejects the request" time="0.051">
+    <testcase classname="HEADBridge refuses to run before initialize" name="HEADBridge refuses to run before initialize" time="0.026">
     </testcase>
-    <testcase classname="submitChainWrite refuses a signed transaction from a different address" name="submitChainWrite refuses a signed transaction from a different address" time="0.016">
+    <testcase classname="HEADBridge runs the loaded model and maps real outputs, with no mock path" name="HEADBridge runs the loaded model and maps real outputs, with no mock path" time="0.038">
     </testcase>
-    <testcase classname="submitChainWrite surfaces the chain rejection, such as a stale sequence" name="submitChainWrite surfaces the chain rejection, such as a stale sequence" time="0.013">
+    <testcase classname="HEADBridge uses byte tokens for voice/visual data" name="HEADBridge uses byte tokens for voice/visual data" time="0.018">
     </testcase>
-    <testcase classname="submitChainWrite fails when the account state cannot be read" name="submitChainWrite fails when the account state cannot be read" time="0.01">
+    <testcase classname="HEADBridge falls back to the server when no model loads, and reports server as the source" name="HEADBridge falls back to the server when no model loads, and reports server as the source" time="0.025">
     </testcase>
-  </testsuite>
-  <testsuite name="KNIRVChainIntegration writes" errors="0" failures="0" skipped="0" timestamp="2026-11-09T10:13:33" time="0.416" tests="5">
-    <testcase classname="KNIRVChainIntegration writes registers a skill as a signed TOOL capability through the gateway" name="KNIRVChainIntegration writes registers a skill as a signed TOOL capability through the gateway" time="0.022">
+    <testcase classname="HEADBridge throws HEADUnavailableError rather than inventing output when the server also fails" name="HEADBridge throws HEADUnavailableError rather than inventing output when the server also fails" time="0.023">
     </testcase>
-    <testcase classname="KNIRVChainIntegration writes refuses a skill type the chain does not define" name="KNIRVChainIntegration writes refuses a skill type the chain does not define" time="0.048">
+    <testcase classname="HEADBridge does not use a model whose tokenizer the browser cannot run" name="HEADBridge does not use a model whose tokenizer the browser cannot run" time="0.02">
     </testcase>
-    <testcase classname="KNIRVChainIntegration writes records a skill invocation as a signed invoke transaction paying the usage fee" name="KNIRVChainIntegration writes records a skill invocation as a signed invoke transaction paying the usage fee" time="0.017">
+    <testcase classname="HEADBridge requires sign-in for server reasoning" name="HEADBridge requires sign-in for server reasoning" time="0.142">
     </testcase>
-    <testcase classname="KNIRVChainIntegration writes still refuses NRN transfers, which the chain does not accept" name="KNIRVChainIntegration writes still refuses NRN transfers, which the chain does not accept" time="0.012">
+    <testcase classname="HEADBridge destroy disposes the engine" name="HEADBridge destroy disposes the engine" time="0.022">
     </testcase>
-    <testcase classname="KNIRVChainIntegration writes still refuses LLM model registration, which the chain has no registry for" name="KNIRVChainIntegration writes still refuses LLM model registration, which the chain has no registry for" time="0.01">
+    <testcase classname="HEADBridge adapters (uLoRA) merges into the verified base weights and can remove the adapter again" name="HEADBridge adapters (uLoRA) merges into the verified base weights and can remove the adapter again" time="0.02">
+    </testcase>
+    <testcase classname="HEADBridge adapters (uLoRA) refuses an adapter bound for a different model version, and one with no local model" name="HEADBridge adapters (uLoRA) refuses an adapter bound for a different model version, and one with no local model" time="0.015">
     </testcase>
   </testsuite>
 </testsuites>

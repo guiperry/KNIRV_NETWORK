@@ -1,6 +1,6 @@
 [package]
 name = "knirv-sdk-wasi"
-version = "0.2.0"
+version = "0.2.1"
 edition = "2021"
 publish = false
 description = "The KNIRV SDK core as a WASI module, for hosts that embed a WebAssembly runtime (the Go package uses wazero) instead of linking native code"
@@ -12,7 +12,7 @@ name = "knirv_core"
 [dependencies]
 # The local (non-network) operations only. The HTTP stack is not reachable from
 # here, so it is dropped at link time.
-knirv-sdk = { path = "../../core", default-features = false, features = ["secrets", "module-manifest"] }
+knirv-sdk = { path = "../../core", default-features = false, features = ["secrets", "ed25519", "mldsa", "module-manifest"] }
 
 [profile.release]
 opt-level = 3

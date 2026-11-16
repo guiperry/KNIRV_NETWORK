@@ -47,8 +47,8 @@ type HEARTService struct {
 	generatorSwitcher *GeneratorSwitcher
 	unifiedEngine     *UnifiedHasherEngine
 	attestation       *AttestationBridge
-	headOnce           sync.Once
-	headSvc            *decision.Service
+	decisionOnce           sync.Once
+	decisionSvc            *decision.Service
 	mu                sync.RWMutex
 }
 
@@ -1279,7 +1279,7 @@ func (hs *HEARTService) resolveDecision(ctx context.Context, prompt string) (*De
 	if hs.decisionReasonFn != nil {
 		raw, err = hs.decisionReasonFn(ctx, tokens)
 	} else {
-		raw, err = hs.headService().Reason(ctx, tokens)
+		raw, err = hs.decisionService().Reason(ctx, tokens)
 	}
 	if err != nil {
 		return nil, err
@@ -1425,7 +1425,7 @@ func (hs *HEARTService) handleHealth(w http.ResponseWriter, r *http.Request) {
 		"avg_latency_ms": hs.getAvgLatency(),
 		"total_queries":  hs.stats.TotalInquiries,
 		"success_rate":   hs.getSuccessRate(),
-		"head":            hs.headService().Status(),
+		"head":            hs.decisionService().Status(),
 	}
 
 	json.NewEncoder(w).Encode(health)

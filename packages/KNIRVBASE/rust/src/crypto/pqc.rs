@@ -1,21 +1,21 @@
-// Real post-quantum cryptography using Kyber-768 (KEM) and Dilithium-3 (signatures)
+// Real post-quantum cryptography using Kyber-768 (KEM) and ML-DSA-65 (FIPS 204, signatures)
 // Kyber-768 public keys: 1184 bytes, ciphertexts: 1088 bytes, shared secret: 32 bytes
-// Dilithium-3 public keys: 1952 bytes, signatures: 3293 bytes
+// ML-DSA-65 public keys: 1952 bytes, signatures: 3309 bytes, key seeds: 32 bytes
+// ML-DSA-65 is provided by the KNIRVSDK Rust core (`knirv_sdk::mldsa`); this crate holds no signing code of its own.
 
 use aes_gcm::{Aes256Gcm, Key, Nonce, KeyInit};
 use aes_gcm::aead::Aead;
 use base64::{Engine as _, engine::general_purpose};
 use chrono::{DateTime, Utc};
 use parking_lot::RwLock;
-use pqcrypto_dilithium::dilithium3;
+use knirv_sdk::mldsa;
 use pqcrypto_kyber::kyber768;
 use pqcrypto_traits::kem::{Ciphertext as KemCiphertext, PublicKey as KemPublicKey, SecretKey as KemSecretKey, SharedSecret};
-use pqcrypto_traits::sign::{DetachedSignature, PublicKey as SignPublicKey, SecretKey as SignSecretKey};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::collections::HashMap;
 
-/// PQCKeyPair represents a complete PQC key pair with both Kyber-768 and Dilithium-3 keys.
+/// PQCKeyPair represents a complete PQC key pair with both Kyber-768 and ML-DSA-65 keys.
 /// This mirrors the Go `PQCKeyPair` in `internal/crypto/pqc/keys.go`.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PQCKeyPair {
@@ -33,15 +33,16 @@ pub struct PQCKeyPair {
     #[serde(rename = "kyber_private_key", skip_serializing_if = "Vec::is_empty", default)]
     pub kyber_private_key_bytes: Vec<u8>,
 
-    // Dilithium-3 keys for signatures (stored as bytes)
-    #[serde(rename = "dilithium_public_key", skip_serializing_if = "Vec::is_empty", default)]
-    pub dilithium_public_key_bytes: Vec<u8>,
-    #[serde(rename = "dilithium_private_key", skip_serializing_if = "Vec::is_empty", default)]
-    pub dilithium_private_key_bytes: Vec<u8>,
+    // ML-DSA-65 keys for signatures (stored as bytes). The private key is the
+    // 32-byte FIPS 204 key seed; the 1952-byte public key is derived from it.
+    #[serde(rename = "mldsa_public_key", skip_serializing_if = "Vec::is_empty", default)]
+    pub mldsa_public_key_bytes: Vec<u8>,
+    #[serde(rename = "mldsa_private_key", skip_serializing_if = "Vec::is_empty", default)]
+    pub mldsa_private_key_bytes: Vec<u8>,
 }
 
 impl PQCKeyPair {
-    /// Generate a new PQC key pair with Kyber-768 and Dilithium-3 keys.
+    /// Generate a new PQC key pair with Kyber-768 and ML-DSA-65 keys.
     /// Mirrors Go's `GeneratePQCKeyPair`.
     pub fn generate(name: String, purpose: String) -> Result<Self, Box<dyn std::error::Error + Send + Sync>> {
         // Generate unique ID
@@ -52,21 +53,24 @@ impl PQCKeyPair {
         // Generate Kyber-768 key pair
         let (kyber_pk, kyber_sk) = kyber768::keypair();
 
-        // Generate Dilithium-3 key pair
-        let (dilithium_pk, dilithium_sk) = dilithium3::keypair();
+        // Generate ML-DSA-65 key pair: a random 32-byte seed, public key derived by the core.
+        let mut mldsa_seed = [0u8; mldsa::SEED_LEN];
+        getrandom::getrandom(&mut mldsa_seed)?;
+        let mldsa_pk = mldsa::ml_dsa65_public_key(&mldsa_seed)
+            .map_err(|e| format!("ML-DSA-65 key generation failed: {}", e.message()))?;
 
         Ok(PQCKeyPair {
             id,
             name,
             purpose,
-            algorithm: "Kyber-768+Dilithium-3".to_string(),
+            algorithm: "Kyber-768+ML-DSA-65".to_string(),
             created_at: Utc::now(),
             expires_at: None,
             status: "active".to_string(),
             kyber_public_key_bytes: kyber_pk.as_bytes().to_vec(),
             kyber_private_key_bytes: kyber_sk.as_bytes().to_vec(),
-            dilithium_public_key_bytes: dilithium_pk.as_bytes().to_vec(),
-            dilithium_private_key_bytes: dilithium_sk.as_bytes().to_vec(),
+            mldsa_public_key_bytes: mldsa_pk,
+            mldsa_private_key_bytes: mldsa_seed.to_vec(),
         })
     }
 
@@ -79,7 +83,7 @@ impl PQCKeyPair {
     pub fn marshal(&self) -> Result<Vec<u8>, Box<dyn std::error::Error + Send + Sync>> {
         let mut public_kp = self.clone();
         public_kp.kyber_private_key_bytes = vec![];
-        public_kp.dilithium_private_key_bytes = vec![];
+        public_kp.mldsa_private_key_bytes = vec![];
         Ok(serde_json::to_vec(&public_kp)?)
     }
 
@@ -154,31 +158,23 @@ impl PQCKeyPair {
             .map_err(|_| "AES-GCM decryption failed".into())
     }
 
-    /// Sign a message using Dilithium-3. Returns the detached signature bytes.
+    /// Sign a message using ML-DSA-65 (pure, empty context). Returns the 3309-byte
+    /// detached signature. Deterministic: the same key and message give the same bytes.
     pub fn sign(&self, message: &[u8]) -> Result<Vec<u8>, Box<dyn std::error::Error + Send + Sync>> {
-        if self.dilithium_private_key_bytes.is_empty() {
-            return Err("no Dilithium private key available".into());
+        if self.mldsa_private_key_bytes.is_empty() {
+            return Err("no ML-DSA-65 private key available".into());
         }
-        let sk = dilithium3::SecretKey::from_bytes(&self.dilithium_private_key_bytes)
-            .map_err(|_| "failed to parse Dilithium secret key")?;
-        let sig = dilithium3::detached_sign(message, &sk);
-        Ok(sig.as_bytes().to_vec())
+        let sig = mldsa::ml_dsa65_sign(&self.mldsa_private_key_bytes, message, &[])
+            .map_err(|e| format!("ML-DSA-65 sign failed: {}", e.message()))?;
+        Ok(sig)
     }
 
-    /// Verify a Dilithium-3 detached signature.
+    /// Verify an ML-DSA-65 detached signature (pure, empty context).
     pub fn verify(&self, message: &[u8], signature: &[u8]) -> bool {
-        if self.dilithium_public_key_bytes.is_empty() {
+        if self.mldsa_public_key_bytes.is_empty() {
             return false;
         }
-        let pk = match dilithium3::PublicKey::from_bytes(&self.dilithium_public_key_bytes) {
-            Ok(pk) => pk,
-            Err(_) => return false,
-        };
-        let sig = match dilithium3::DetachedSignature::from_bytes(signature) {
-            Ok(s) => s,
-            Err(_) => return false,
-        };
-        dilithium3::verify_detached_signature(&sig, message, &pk).is_ok()
+        mldsa::ml_dsa65_verify(&self.mldsa_public_key_bytes, message, &[], signature)
     }
 
     /// Check if the key pair has expired.
@@ -315,16 +311,16 @@ mod tests {
     #[test]
     fn test_generate_key_pair() {
         let kp = PQCKeyPair::generate("test".to_string(), "encryption".to_string()).unwrap();
-        assert_eq!(kp.algorithm, "Kyber-768+Dilithium-3");
+        assert_eq!(kp.algorithm, "Kyber-768+ML-DSA-65");
         assert_eq!(kp.status, "active");
         assert!(!kp.kyber_public_key_bytes.is_empty());
         assert!(!kp.kyber_private_key_bytes.is_empty());
-        assert!(!kp.dilithium_public_key_bytes.is_empty());
-        assert!(!kp.dilithium_private_key_bytes.is_empty());
+        assert!(!kp.mldsa_public_key_bytes.is_empty());
+        assert!(!kp.mldsa_private_key_bytes.is_empty());
         // Kyber-768 public key is 1184 bytes
         assert_eq!(kp.kyber_public_key_bytes.len(), kyber768::public_key_bytes());
-        // Dilithium-3 public key is 1952 bytes
-        assert_eq!(kp.dilithium_public_key_bytes.len(), dilithium3::public_key_bytes());
+        // ML-DSA-65 public key is 1952 bytes (FIPS 204 Table 2)
+        assert_eq!(kp.mldsa_public_key_bytes.len(), mldsa::PUBLIC_KEY_LEN);
     }
 
     #[test]
@@ -342,11 +338,11 @@ mod tests {
     #[test]
     fn test_sign_verify_roundtrip() {
         let kp = PQCKeyPair::generate("test".to_string(), "signature".to_string()).unwrap();
-        let message = b"Sign this with Dilithium-3";
+        let message = b"Sign this with ML-DSA-65";
 
         let signature = kp.sign(message).unwrap();
-        // Dilithium-3 detached signature is 3293 bytes
-        assert_eq!(signature.len(), dilithium3::signature_bytes());
+        // ML-DSA-65 detached signature is 3309 bytes (FIPS 204 Table 2)
+        assert_eq!(signature.len(), mldsa::SIGNATURE_LEN);
 
         assert!(kp.verify(message, &signature));
         assert!(!kp.verify(b"different message", &signature));
@@ -366,7 +362,7 @@ mod tests {
         let loaded: PQCKeyPair = serde_json::from_slice(&public_bytes).unwrap();
         assert!(!loaded.kyber_public_key_bytes.is_empty());
         assert!(loaded.kyber_private_key_bytes.is_empty());
-        assert!(loaded.dilithium_private_key_bytes.is_empty());
+        assert!(loaded.mldsa_private_key_bytes.is_empty());
     }
 
     #[test]
@@ -380,5 +376,57 @@ mod tests {
         let encrypted = manager.encrypt_data(plaintext, &key_id).unwrap();
         let decrypted = manager.decrypt_data(&encrypted).unwrap();
         assert_eq!(decrypted.as_slice(), plaintext);
+    }
+
+    #[test]
+    fn test_verify_fails_closed_without_mldsa_public_key() {
+        // A valid signature from an intact key pair must not verify once the
+        // ML-DSA public key is missing: verify() has to fail closed, not accept.
+        let kp = PQCKeyPair::generate("test".to_string(), "signature".to_string()).unwrap();
+        let message = b"fail closed";
+        let signature = kp.sign(message).unwrap();
+        assert!(kp.verify(message, &signature));
+
+        let mut stripped = kp.clone();
+        stripped.mldsa_public_key_bytes = vec![];
+        assert!(!stripped.verify(message, &signature));
+        assert!(!stripped.verify(b"anything at all", &[0u8; mldsa::SIGNATURE_LEN]));
+        assert!(!stripped.verify(message, &[]));
+    }
+
+    #[test]
+    fn test_sign_fails_without_mldsa_private_key() {
+        let kp = PQCKeyPair::generate("test".to_string(), "signature".to_string()).unwrap();
+        let mut stripped = kp.clone();
+        stripped.mldsa_private_key_bytes = vec![];
+        assert!(stripped.sign(b"message").is_err());
+        // The stripped key pair must not be able to produce a signature the full key verifies.
+        assert!(kp.sign(b"message").is_ok());
+    }
+
+    #[test]
+    fn test_legacy_dilithium_key_json_loads_with_empty_mldsa_fields() {
+        // Key JSON written before the Dilithium -> ML-DSA-65 rename carries
+        // `dilithium_*` fields and no `mldsa_*` fields. It must still load,
+        // with the ML-DSA fields empty, and must not verify anything.
+        let kp = PQCKeyPair::generate("legacy".to_string(), "signature".to_string()).unwrap();
+        let mut value = serde_json::to_value(&kp).unwrap();
+        let obj = value.as_object_mut().unwrap();
+        obj.remove("mldsa_public_key");
+        obj.remove("mldsa_private_key");
+        obj.insert("dilithium_public_key".to_string(), serde_json::json!([1, 2, 3]));
+        obj.insert("dilithium_private_key".to_string(), serde_json::json!([4, 5, 6]));
+        let legacy_bytes = serde_json::to_vec(&value).unwrap();
+
+        let loaded = PQCKeyPair::load(&legacy_bytes).unwrap();
+        assert_eq!(loaded.id, kp.id);
+        assert!(loaded.mldsa_public_key_bytes.is_empty());
+        assert!(loaded.mldsa_private_key_bytes.is_empty());
+        // Kyber fields survive the load.
+        assert_eq!(loaded.kyber_public_key_bytes, kp.kyber_public_key_bytes);
+        // With no ML-DSA key the loaded pair neither signs nor verifies.
+        assert!(loaded.sign(b"m").is_err());
+        let sig = kp.sign(b"m").unwrap();
+        assert!(!loaded.verify(b"m", &sig));
     }
 }

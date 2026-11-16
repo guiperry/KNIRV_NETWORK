@@ -206,7 +206,7 @@ fi
 
 # Test NRV system
 echo "Testing NRV system..."
-if go test -v ./internal/nrv/...; then
+if go test -v ./internal/locator/...; then
     print_success "NRV tests passed"
 else
     print_error "NRV tests failed"

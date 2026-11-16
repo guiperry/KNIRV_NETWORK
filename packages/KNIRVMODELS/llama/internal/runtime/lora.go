@@ -24,7 +24,9 @@ import (
 // possible: load every adapter once (optionally inert, via
 // --lora-init-without-apply) and select per call.
 //
-// IMPORTANT (verified against the provisioned build, llama.cpp 9e0e220):
+// IMPORTANT (originally verified against the provisioned build, llama.cpp 9e0e220;
+// re-checked against the llama.cpp b12388 source: parse_lora_request reads only
+// id/scale, so POST cannot load a new path there either):
 // POST /lora-adapters can only change the scale of adapters that were loaded at
 // startup. It does NOT load a new adapter file: a body naming a "path" returns
 // {"success":true} and changes nothing. Adding an adapter therefore needs a

@@ -41,7 +41,7 @@ describe('HEADLoRABridge', () => {
     await b.setBundle('bundle-1');
     expect(f).toHaveBeenCalledTimes(1);
     const [url, init] = (f as jest.Mock).mock.calls[0];
-    expect(url).toBe('https://k/api/head/adapters/bind');
+    expect(url).toBe('https://k/api/heart/adapters/bind');
     expect(init.headers.Authorization).toBe('Bearer tok');
     expect(JSON.parse(init.body)).toEqual({ bundle_id: 'bundle-1' });
     expect(h.calls[0]).toMatchObject({ stacks: ['h'], strength: 0.5, content_hash: 'h1' });

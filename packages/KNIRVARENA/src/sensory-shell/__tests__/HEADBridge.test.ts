@@ -92,7 +92,7 @@ describe('HEADBridge', () => {
     const out = await b.processTextInput('x');
     expect(out.source).toBe('server');
     const [url, init] = fetchImpl.mock.calls[0];
-    expect(String(url)).toMatch(/\/api\/head\/reason$/);
+    expect(String(url)).toMatch(/\/api\/heart\/decide$/);
     expect(JSON.parse(init.body)).toMatchObject({ tokenizer: 'byte-v1' });
   });
 

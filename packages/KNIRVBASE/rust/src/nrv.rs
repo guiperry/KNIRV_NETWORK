@@ -192,7 +192,7 @@ impl NRVWriter {
                 version: 1,
                 dataset_id: id,
                 pqc_manifest: PQCManifest {
-                    algorithm: "Dilithium-3".into(),
+                    algorithm: "ML-DSA-65".into(),
                     frame_signatures: HashMap::new(),
                     ..PQCManifest::default()
                 },

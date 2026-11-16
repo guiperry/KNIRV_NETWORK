@@ -715,11 +715,11 @@ binding becomes a thin call, then the existing shared vectors prove parity.
 
 | Order | Area | Today | Action |
 | --- | --- | --- | --- |
-| 1 | `go-package/dveevidence/` | Pure Go: sha256 hash chaining, ed25519 verification, report derivation (`verify.go`, `sign.go`, `hashcrypto.go`, `policy.go`). Only event-log and Merkle checks call WASM, via `wasmverify.go`, which embeds and runs its own wazero instance of a second copy of `proof-verifier.wasm` with a hard-coded SHA-256. | Add an evidence module to the core. Call it through `internal/core`. Delete `wasmverify.go`, the extra embedded asset and the second wazero path. Shared with Phase 4, step 3: do it once. |
+| 1 | `go-package/dveevidence/` | Ed25519 verification and public-key checks now run in the core (`evidence.ed25519_verify`, `evidence.ed25519_public_key`; vectors in `testvectors/evidence/ed25519_v1.json`). Still Go: ed25519 keygen and signing (`sign.go`), the claim JSON, small SHA-256 uses (`hashcrypto.go`, `store.go`, `verify.go`), report derivation (`policy.go`). Only event-log and Merkle checks call WASM, via `wasmverify.go`, which embeds and runs its own wazero instance of a second copy of `proof-verifier.wasm` with a hard-coded SHA-256. | Finish the move: signing and keygen ops, claim canonicalization and the hashes into the core. Delete `wasmverify.go`, the extra embedded asset and the second wazero path. Shared with Phase 4, step 3: do it once. |
 | 2 | `go-package/models/` and `npm-package/src/models/` | Hand-kept Go and TypeScript twins of the KNIRVMODELS wire contract, held together only by `testvectors/models/`. | Move the wire types and status/advice logic into the core. Keep only language types in each binding. |
 | 3 | `go-package/noderole/` | Pure Go `Resolve`, encoding root and boot-node policy. Vectors in `testvectors/noderole/`. | Move into the core. |
 | 4 | `npm-package/src/actuarial.ts` | A `fetch` client; the header says "the Rust core owns the matching service", but the logic is TypeScript. | Once Phase 1 lands, route through the core's `actuarial.rs` client and delete the TypeScript client. |
-| 5 | `go-package/secrets/file.go` | Runs scrypt with `golang.org/x/crypto/scrypt` in Go for speed, duplicating the key-file format in `core/src/secrets.rs`. This is the only reason `golang.org/x/crypto` is a dependency. | Decide whether to accept this as a documented performance exception or move it. Measure scrypt cost inside wazero first. If it stays, record it as the single sanctioned exception. |
+| 5 | `go-package/secrets/file.go` | Done (Nov 14): scrypt moved into the core (`secrets.scrypt_derive`, vectors in `testvectors/secrets/scrypt_kdf_v1.json`). Go no longer depends on `golang.org/x/crypto`. | None. |
 | 6 | `KNIRV_CORP/packages/cli/internal/core/wallet_manager.go` | A Go wallet keyfile outside the SDK: Argon2id (64 MiB, 3 passes, **4 lanes**) and AES-256-GCM over a raw private key, in its own `WalletFile` JSON (cipher, KDF params, a SHA-256 "MAC"), using `golang.org/x/crypto/argon2` and go-ethereum. It is not a vault consumer: it cannot open vault envelopes and does not need to. It is a second implementation of the same primitives, in a different format. | Decide if the CLI wallet should move to the SDK. If so, the core must read and write the existing `WalletFile` format and its 4-lane parameters, and the CLI must keep opening wallets already on disk (add vectors from real files first). Do not change its format as a side effect of Phase 5. |
 
 `signing`, `uri`, `authority` and `replication` in Go and TypeScript are already
@@ -802,12 +802,14 @@ Exit: the grep above is clean, and `cargo test`, `go test ./...` and
 
 ## Phase 7 decisions and the open item
 
-**Row 5, `secrets` scrypt: keep in Go, as the single sanctioned exception.**
-Measured (`go test ./secrets -bench Scrypt`, this host): 0.44 s per key-file
-unlock with native scrypt against 1.32 s with the core's scrypt inside wazero, 3x.
-It is paid once per root/boot key unlock, so the cost is real but small; the
-format and KDF parameters still come from the core (`secrets.kdf_params`), and
-`golang.org/x/crypto/scrypt` is the only reason that dependency remains.
+**Row 5, `secrets` scrypt: moved into the core (owner decision, Nov 14).**
+The derivation runs in the Rust core (`secrets.scrypt_derive`; the `secrets.*`
+key-file operations take the password and derive internally). Go no longer
+imports `golang.org/x/crypto`. Vectors: `testvectors/secrets/scrypt_kdf_v1.json`,
+captured from the Go implementation before the move and reproduced by the core.
+Cost: about 1.0 s per key-file operation inside wazero (`go test ./secrets -bench
+ScryptInCoreWasm`, this host), against 0.44 s for the old native Go scrypt. The
+password now enters the core's sandbox; it was already in the host process.
 
 **Row 6, CLI wallet keyfile (`KNIRV_CORP/packages/cli/internal/core/wallet_manager.go`): not moved.**
 It is a separate format (Argon2id with 4 lanes, its own `WalletFile` JSON and a

@@ -1,12 +1,12 @@
 /**
  * HEAD WASM Core Model for KNIRVGRAPH Skill Discovery
  * 
- * Uses the existing HEADBridge to analyze and categorize newly trained LoRA adapters
+ * Uses the existing HeartDecisionBridge to analyze and categorize newly trained LoRA adapters
  * Provides skill discovery, naming, and categorization through core model self-training
  */
 
 import pino from 'pino';
-import { HEADBridge, HEADConfig, HEADCognitiveInput, HEADCognitiveOutput } from '../../sensory-shell/HEADBridge';
+import { HeartDecisionBridge, HEADConfig, HEADCognitiveInput, HEADCognitiveOutput } from '../../sensory-shell/HeartDecisionBridge';
 import { LoRAAdapterSkill } from '../lora/LoRAAdapterEngine';
 import { TrainingDataset } from './LoRAAdapterTrainingPipeline';
 
@@ -46,7 +46,7 @@ export interface CoreModelConfig {
 }
 
 export class HEADCoreModel {
-  private headBridge: HEADBridge;
+  private headBridge: HeartDecisionBridge;
   private config: CoreModelConfig;
   private isInitialized: boolean = false;
   private analysisQueue: Map<string, SkillAnalysisContext> = new Map();
@@ -77,7 +77,7 @@ export class HEADCoreModel {
       ...config
     };
 
-    this.headBridge = new HEADBridge(this.config.headConfig);
+    this.headBridge = new HeartDecisionBridge(this.config.headConfig);
     this.initializeCategoryMappings();
   }
 

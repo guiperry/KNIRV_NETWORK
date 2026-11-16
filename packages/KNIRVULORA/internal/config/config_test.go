@@ -2,23 +2,38 @@ package config
 
 import (
 	"os"
+	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 )
 
-func TestLoadDefaults(t *testing.T) {
-	origSocket := os.Getenv("ULORA_SOCKET_PATH")
-	origAuth := os.Getenv("ULORA_AUTH_TOKEN")
-	origData := os.Getenv("ULORA_DATA_DIR")
-	defer func() {
-		os.Setenv("ULORA_SOCKET_PATH", origSocket)
-		os.Setenv("ULORA_AUTH_TOKEN", origAuth)
-		os.Setenv("ULORA_DATA_DIR", origData)
-	}()
+// isolateAppDataDir points every input of the default data-dir chain at temp
+// locations, so a test never reads or creates a real /var/lib or home directory.
+// The system dir is made unusable (a regular file blocks it), so resolution falls
+// through to XDG_DATA_HOME.
+func isolateAppDataDir(t *testing.T) (xdg string) {
+	t.Helper()
+	root := t.TempDir()
+	blocker := filepath.Join(root, "blocker")
+	if err := os.WriteFile(blocker, []byte("x"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	origSystem := defaultSystemAppDataDir
+	defaultSystemAppDataDir = filepath.Join(blocker, "knirvserver")
+	t.Cleanup(func() { defaultSystemAppDataDir = origSystem })
+	t.Setenv("ULORA_DATA_DIR", "")
+	t.Setenv("KNIRV_APP_DATA_DIR", "")
+	t.Setenv("HOME", filepath.Join(root, "home"))
+	xdg = filepath.Join(root, "xdg")
+	t.Setenv("XDG_DATA_HOME", xdg)
+	return xdg
+}
 
-	os.Unsetenv("ULORA_SOCKET_PATH")
-	os.Setenv("ULORA_AUTH_TOKEN", "test-token")
-	os.Unsetenv("ULORA_DATA_DIR")
+func TestLoadDefaults(t *testing.T) {
+	xdg := isolateAppDataDir(t)
+	t.Setenv("ULORA_SOCKET_PATH", "")
+	t.Setenv("ULORA_AUTH_TOKEN", "test-token")
 
 	cfg, err := Load()
 	if err != nil {
@@ -31,14 +46,48 @@ func TestLoadDefaults(t *testing.T) {
 	if cfg.AuthToken != "test-token" {
 		t.Fatalf("expected auth token, got %s", cfg.AuthToken)
 	}
-	if cfg.DataDir != defaultDataDir {
-		t.Fatalf("expected default data dir %s, got %s", defaultDataDir, cfg.DataDir)
+	// Neither ULORA_DATA_DIR nor KNIRV_APP_DATA_DIR is set, so the launcher's
+	// fallback chain decides: XDG here, because the system dir is unusable.
+	if want := filepath.Join(xdg, "knirvserver", "ulora"); cfg.DataDir != want {
+		t.Fatalf("expected default data dir %s, got %s", want, cfg.DataDir)
 	}
 	if cfg.PythonBin != "python3" {
 		t.Fatalf("expected default python bin python3, got %s", cfg.PythonBin)
 	}
 	if cfg.RequestTimeout != defaultTimeout {
 		t.Fatalf("expected default timeout %v, got %v", defaultTimeout, cfg.RequestTimeout)
+	}
+}
+
+// With no env, a writable system app data dir wins over XDG, as in the launcher.
+func TestLoadDataDirPrefersWritableSystemAppDataDir(t *testing.T) {
+	xdg := isolateAppDataDir(t)
+	system := filepath.Join(t.TempDir(), "knirvserver")
+	defaultSystemAppDataDir = system
+	t.Setenv("ULORA_AUTH_TOKEN", "test-token")
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("load: %v", err)
+	}
+	if want := filepath.Join(system, "ulora"); cfg.DataDir != want {
+		t.Fatalf("DataDir = %q, want writable system dir %q (XDG was %q)", cfg.DataDir, want, xdg)
+	}
+}
+
+// With no XDG_DATA_HOME either, the last launcher fallback is ~/.local/share.
+func TestLoadDataDirFallsBackToHomeLocalShare(t *testing.T) {
+	isolateAppDataDir(t)
+	t.Setenv("XDG_DATA_HOME", "")
+	t.Setenv("ULORA_AUTH_TOKEN", "test-token")
+	home := os.Getenv("HOME")
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("load: %v", err)
+	}
+	if want := filepath.Join(home, ".local", "share", "knirvserver", "ulora"); cfg.DataDir != want {
+		t.Fatalf("DataDir = %q, want %q", cfg.DataDir, want)
 	}
 }
 
@@ -99,14 +148,66 @@ func TestLoadCustomValues(t *testing.T) {
 	}
 }
 
-func TestLoadMissingAuthToken(t *testing.T) {
-	origAuth := os.Getenv("ULORA_AUTH_TOKEN")
-	defer os.Setenv("ULORA_AUTH_TOKEN", origAuth)
-	os.Unsetenv("ULORA_AUTH_TOKEN")
+// With ULORA_AUTH_TOKEN unset, Load generates a token into the data dir and a
+// second start reuses it.
+func TestLoadGeneratesThenReusesAuthTokenWhenEnvUnset(t *testing.T) {
+	dataDir := t.TempDir()
+	t.Setenv("ULORA_AUTH_TOKEN", "")
+	t.Setenv("ULORA_DATA_DIR", dataDir)
+	t.Setenv("KNIRV_APP_DATA_DIR", "")
 
-	_, err := Load()
-	if err == nil {
-		t.Fatal("expected error when ULORA_AUTH_TOKEN is not set")
+	first, err := Load()
+	if err != nil {
+		t.Fatalf("first load: %v", err)
+	}
+	if len(first.AuthToken) != 2*generatedTokenBytes {
+		t.Fatalf("generated token length = %d, want %d", len(first.AuthToken), 2*generatedTokenBytes)
+	}
+	onDisk, err := os.ReadFile(AuthTokenPath(dataDir))
+	if err != nil {
+		t.Fatalf("token file not written: %v", err)
+	}
+	if strings.TrimSpace(string(onDisk)) != first.AuthToken {
+		t.Fatal("token file does not hold the generated token")
+	}
+
+	second, err := Load()
+	if err != nil {
+		t.Fatalf("second load: %v", err)
+	}
+	if second.AuthToken != first.AuthToken {
+		t.Fatal("restart did not reuse the persisted token")
+	}
+}
+
+func TestLoadDataDirFromAppDataDir(t *testing.T) {
+	app := t.TempDir()
+	t.Setenv("ULORA_DATA_DIR", "")
+	t.Setenv("KNIRV_APP_DATA_DIR", app)
+	t.Setenv("ULORA_AUTH_TOKEN", "test-token")
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("load: %v", err)
+	}
+	if want := filepath.Join(app, "ulora"); cfg.DataDir != want {
+		t.Fatalf("DataDir = %q, want %q", cfg.DataDir, want)
+	}
+}
+
+func TestLoadExplicitDataDirBeatsAppDataDir(t *testing.T) {
+	app := t.TempDir()
+	explicit := t.TempDir()
+	t.Setenv("ULORA_DATA_DIR", explicit)
+	t.Setenv("KNIRV_APP_DATA_DIR", app)
+	t.Setenv("ULORA_AUTH_TOKEN", "test-token")
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("load: %v", err)
+	}
+	if cfg.DataDir != explicit {
+		t.Fatalf("DataDir = %q, want explicit %q", cfg.DataDir, explicit)
 	}
 }
 

@@ -255,6 +255,25 @@ make build-sdk     # build, stamp, test Rust/Go/npm, check parity and digests
 make release-sdk   # the same, then publish to R2 (needs an rclone remote `incline`)
 ```
 
+## Reproducibility
+
+`make repro` rebuilds the three wasm modules, the WASI core and the npm web core
+into a temporary directory and compares every sha256 with the released digests
+(`core/wasm-modules/manifest.json` and `dist/<version>/manifest.json`).
+
+The published bytes are tied to the checkout path. Cargo folds each path
+dependency's absolute source path into the crate disambiguator (`-C metadata`);
+`--remap-path-prefix` rewrites file and debug path strings but not that hash. The
+released 0.2.1 bytes therefore reproduce from
+`/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSDK` with the
+toolchain recorded under `toolchain` in `dist/<version>/manifest.json`, the
+`--locked` lockfiles, and no ambient `RUSTFLAGS` for the WASI/web builds (the
+module build sets its own remap in `sdk-dist.mjs`). A copy at any other path
+gives different bytes even with identical sources and toolchain, so `make repro`
+fails there by design. `stamp-modules` refuses to overwrite the tracked module
+bytes when a rebuild differs; pass `--force` (or
+`KNIRV_SDK_ALLOW_MODULE_CHANGE=1`) only to publish new bytes on purpose.
+
 ## Development and verification
 
 Run checks from the individual package directories, or everything with

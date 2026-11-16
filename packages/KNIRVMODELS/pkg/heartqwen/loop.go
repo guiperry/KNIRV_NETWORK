@@ -45,9 +45,16 @@ type Executor interface {
 	Exec(ctx context.Context, tool string, args json.RawMessage) ([]byte, error)
 }
 
+// Registry is the part of *frame.Registry the engine uses. *frame.Registry
+// satisfies it; a test may substitute a stand-in that needs no SDK core.
+type Registry interface {
+	Stage(id string) (frame.Stage, bool)
+	Build(stage string, facts frame.LiveFacts) (frame.Frame, error)
+}
+
 // Engine runs stages.
 type Engine struct {
-	Reg   *frame.Registry
+	Reg   Registry
 	Facts func() frame.LiveFacts
 	LLM   LLM
 	Gate  *policy.Gate

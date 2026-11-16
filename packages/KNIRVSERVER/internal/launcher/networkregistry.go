@@ -29,7 +29,7 @@ import (
 const (
 	// networkRegistryEnvOverride lets local/dev point the client at `wrangler dev`.
 	networkRegistryEnvOverride = "KNIRV_REGISTRY_URL"
-	networkRegistryDefaultURL = "https://registry.knirv.com"
+	networkRegistryDefaultURL  = "https://registry.knirv.com"
 
 	// nodeRegistryInterval is the periodic re-registration cadence. The worker
 	// prunes nodes after nodeTtlMs (default 1h), so a 15-minute heartbeat keeps
@@ -82,19 +82,22 @@ func TxChainAddress() string {
 	return validationchain.CheckpointAddress(signer)
 }
 
-// NodeRegistration is the payload POSTed to POST /register.
+// NodeRegistration is the payload POSTed to the unsigned POST /register endpoint.
+// It deliberately has no tx-chain field: the REGISTRY worker rejects any unsigned
+// txChainAddress with 400 ("A tx-chain address requires a signed registry record",
+// websites/REGISTRY.KNIRV.NETWORK/src/index.js register()). A tx-chain address is
+// published only as a signed record on POST /registry/register (see rootregistry.go).
 type NodeRegistration struct {
-	ChainID        string `json:"chainID"`
-	IP             string `json:"ip,omitempty"`
-	Port           int    `json:"port"`
-	Type           string `json:"type"` // "bootnode" | "client"
-	PeerID         string `json:"peerID,omitempty"`
-	TxChainAddress string `json:"txChainAddress,omitempty"`
+	ChainID string `json:"chainID"`
+	IP      string `json:"ip,omitempty"`
+	Port    int    `json:"port"`
+	Type    string `json:"type"` // "bootnode" | "client"
+	PeerID  string `json:"peerID,omitempty"`
 }
 
-// RegisterNode posts the node registration (including TxChainAddress) to the
-// network registry. It is safe to call repeatedly. The URL must be HTTPS except
-// for an explicit loopback test endpoint, and the response is read under a bound.
+// RegisterNode posts the unsigned node registration to the network registry. It is
+// safe to call repeatedly. The URL must be HTTPS except for an explicit loopback
+// test endpoint, and the response is read under a bound.
 func RegisterNode(ctx context.Context, baseURL string, reg NodeRegistration) error {
 	endpoint, err := validatedRegistryURL(baseURL, "/register")
 	if err != nil {
@@ -162,7 +165,6 @@ func (app *ServerApp) nodeRegistryRegistration() (NodeRegistration, bool) {
 	if chainID == "" {
 		return NodeRegistration{}, false
 	}
-	addr := TxChainAddress()
 	nodeType := "client"
 	if resolved := app.roleResolution.Load(); resolved != nil {
 		if resolved.IsRoot() || resolved.IsBootnode() {
@@ -170,23 +172,22 @@ func (app *ServerApp) nodeRegistryRegistration() (NodeRegistration, bool) {
 		}
 	}
 	return NodeRegistration{
-		ChainID:        chainID,
-		IP:             app.config.Host,
-		Port:           app.config.Port,
-		Type:           nodeType,
-		TxChainAddress: addr,
+		ChainID: chainID,
+		IP:      app.config.Host,
+		Port:    app.config.Port,
+		Type:    nodeType,
 	}, true
 }
 
-// startNodeRegistry derives this node's tx-chain address and publishes it to the
-// network registry immediately and on a 15-minute heartbeat. Failures are logged
-// and never fatal: a missing registry must not block node startup. The bond
-// completion flow (pi_2d2_bond_server part b) depends on the root node's entry
-// being present here.
+// startNodeRegistry publishes this node's unsigned registration to the network
+// registry immediately and on a 15-minute heartbeat. Failures are logged and never
+// fatal: a missing registry must not block node startup. The tx-chain address is
+// not part of this unsigned registration; the root publishes its signed record
+// separately (rootregistry.go).
 func (app *ServerApp) startNodeRegistry(ctx context.Context) {
 	reg, ok := app.nodeRegistryRegistration()
 	if !ok {
-		log.Printf("Warning: %s not set; skipping network registry registration (tx-chain address will not be published)", nodeRegistrationIDEnv)
+		log.Printf("Warning: %s not set; skipping network registry registration", nodeRegistrationIDEnv)
 		return
 	}
 	baseURL := nodeRegistryBaseURL()
@@ -196,7 +197,7 @@ func (app *ServerApp) startNodeRegistry(ctx context.Context) {
 			log.Printf("Warning: network registry registration failed for %s: %v", reg.ChainID, err)
 			return
 		}
-		log.Printf("Registered node %s (type=%s) with tx-chain address %s to %s", reg.ChainID, reg.Type, reg.TxChainAddress, baseURL)
+		log.Printf("Registered node %s (type=%s) to %s", reg.ChainID, reg.Type, baseURL)
 	}
 
 	registerOnce()

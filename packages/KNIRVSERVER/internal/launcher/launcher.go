@@ -43,8 +43,8 @@ import (
 	"github.com/subosito/gotenv"
 	"go.uber.org/zap"
 	"knirv-server/internal/bootkey"
-	"knirv-server/internal/enroll"
 	dveevidence "knirv-server/internal/dveevidence"
+	"knirv-server/internal/enroll"
 	"knirv-server/internal/knirvbao"
 	"knirv-server/internal/knirvproof"
 	"knirv-server/internal/monitor"
@@ -52,9 +52,11 @@ import (
 	"knirv-server/internal/proofledger"
 	"knirv-server/internal/tlsprovider"
 	"knirv-server/internal/updater"
+	"knirv-server/internal/vlmserver"
 	"knirv-server/pkg/embedded"
 	"knirv-server/pkg/embedded/validationchain"
 	"knirv-server/pkg/embedded/validationchain/checkpoint"
+	knirvgraph "KNIRVGRAPH"
 	"knirvulora"
 )
 
@@ -79,7 +81,9 @@ var (
 	GitCommit     = "unknown"
 )
 
-const (
+// defaultSystemAppDataDir and defaultSystemConfigDir are vars so tests can point
+// them at directories they control; production always uses the system locations.
+var (
 	defaultSystemAppDataDir = "/var/lib/knirvserver"
 	defaultSystemConfigDir  = "/etc/knirv-server"
 )
@@ -122,10 +126,9 @@ type Config struct {
 	AutoStartDirect bool
 	// AutoStartDirectJitter opts the direct driver into ASIC jitter hashing.
 	AutoStartDirectJitter bool
-	// AutoStartLlama starts the embedded local inference harness (Colibri, with
-	// llama.cpp as its fallback) at the top of the initialization sequence, before
-	// startAgentControl. It is on by default; -llama=false or llama.enabled: false
-	// in the config turns it off, and an explicit -llama flag wins over the config.
+	// AutoStartLlama turns on local inference: the model harness (Colibri first, with
+	// llama.cpp as the fallback on a Colibri failure) and the MiniCPM vision server. On
+	// by default; -no-llama or llama.enabled: false turns it off.
 	AutoStartLlama bool
 	// Llama is ordinary operational configuration. Model locations are not
 	// secrets and must never be sourced from root.key.
@@ -240,7 +243,7 @@ func NewEmbeddedFS() (*EmbeddedFS, error) {
 
 // ServeHTTP implements http.Handler for serving embedded files
 func (efs *EmbeddedFS) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	path := strings.TrimPrefix(r.URL.Path, "/")
+	path := spaExportPath(r.URL.Path)
 
 	// Build candidate paths to try in priority order.
 	// Next.js static export with trailingSlash:true produces directory/index.html files,
@@ -354,12 +357,15 @@ type ServerApp struct {
 	internalAuthToken        string
 	proofValidatorPrivateKey string
 	backendCmd               *exec.Cmd
+	vlm                      *vlmserver.Supervisor
+	vlmCancel                context.CancelFunc
 	ipfsCmd                  *exec.Cmd
 	xionCmd                  *exec.Cmd
 	textEmbedderCmd          *exec.Cmd
 	backendPath              string
 	uloraManager             *knirvulora.Manager
-	tempDir                  string
+	knirvGraphManager        *knirvgraph.Manager
+	tempDir                 string
 	upd                      *updater.Updater
 	monitor                  *monitor.Service
 	bao                      baoManager
@@ -368,8 +374,8 @@ type ServerApp struct {
 	// failover service drives CONFIRMED/RECLAIMED transitions through it; a bare
 	// knirvoracle.NewManager would leave a nil promoter and failover would silently
 	// no-op.
-	oracleManager            *knirvoracle.Manager
-	roleResolution           atomic.Pointer[noderole.Resolution]
+	oracleManager  *knirvoracle.Manager
+	roleResolution atomic.Pointer[noderole.Resolution]
 	// rootPrivateKeyHex holds the decrypted root-owner key in process memory only.
 	// It is never written to env vars, args, files, or logs. Used by the root
 	// tx-chain registry-record publisher (design rev 2).
@@ -1713,8 +1719,28 @@ func (app *ServerApp) extractBackend() error {
 	return nil
 }
 
+// mkdirIfUsable reports whether path exists (or can be created) and is writable.
+// os.MkdirAll succeeds on an existing directory no matter who owns it, so a
+// root-owned /var/lib/knirvserver would otherwise win over the user fallback
+// and make provisioning fail on the first write.
+//
+// Behaviour change (owner-visible): the same check is used for the system
+// config dir (defaultSystemConfigDir, /etc/knirv-server). For a non-root user
+// with a root-owned /etc/knirv-server, getConfigDir now falls back to the user
+// config dir instead of returning the unwritable system path.
 func mkdirIfUsable(path string) bool {
-	return os.MkdirAll(path, 0755) == nil
+	if err := os.MkdirAll(path, 0755); err != nil {
+		return false
+	}
+	f, err := os.CreateTemp(path, ".knirv-write-test-*")
+	if err != nil {
+		return false
+	}
+	name := f.Name()
+	closeErr := f.Close()
+	// Remove the probe file whether or not Close succeeded.
+	removeErr := os.Remove(name)
+	return closeErr == nil && removeErr == nil
 }
 
 // getAppDataDir returns the application data directory path. Privileged
@@ -1900,13 +1926,10 @@ func (app *ServerApp) setupRoutes() error {
 	if err := app.setupProofLedgerRoutes(); err != nil {
 		return fmt.Errorf("failed to configure proof ledger routes: %w", err)
 	}
-	app.router.Any("/git/*path", func(c *gin.Context) {
-		if app.proofLedgerRoutes == nil {
-			c.JSON(http.StatusServiceUnavailable, gin.H{"error": "proof ledger unavailable"})
-			return
-		}
-		app.proofLedgerRoutes.ServeHTTP(c.Writer, c.Request)
-	})
+	// /git/* is served only on the internal git Unix socket (startKnirvRouteSockets),
+	// never on this TCP listener. KNIRVGATEWAY proxies the public route to it. Answer
+	// 404 explicitly here so the SPA NoRoute fallback never serves HTML for /git/*.
+	registerGitTCPNotFound(app.router)
 
 	// Health check endpoint
 	app.router.GET("/health", app.handleHealth)
@@ -2002,8 +2025,10 @@ func (app *ServerApp) setupRoutes() error {
 		api.Any("/*path", func(c *gin.Context) {
 			// KNIRV-native encrypted CAS and proof protocol. This is kept on a
 			// dedicated engine because the /api catch-all owns the Gin prefix.
-			if strings.HasPrefix(c.Request.URL.Path, "/api/v1/knirv/") && app.proofRoutes != nil {
-				app.proofRoutes.ServeHTTP(c.Writer, c.Request)
+			// The native proof API is served only on its internal Unix socket
+			// (startKnirvRouteSockets). Never proxy it from this TCP listener.
+			if strings.HasPrefix(c.Request.URL.Path, "/api/v1/knirv/") {
+				c.JSON(http.StatusNotFound, gin.H{"error": "not found"})
 				return
 			}
 			// Update-status endpoint — handled locally; avoids proxying GitHub
@@ -2273,10 +2298,13 @@ func (app *ServerApp) setupRoutes() error {
 	// Next.js app lazy-loads route chunks with hardcoded /_next/ paths
 	// that our HTML rewrite cannot intercept — these arrive here via NoRoute.
 	app.router.NoRoute(func(c *gin.Context) {
+		// A request KNIRVGATEWAY forwarded here is answered locally. Proxying it back
+		// to the gateway would loop on assets the gateway does not hold.
+		forwarded := c.GetHeader(knirvServerAppForwardHeader) != ""
 		// If the Referer indicates this is a sub-request from the gateway
 		// SPA (e.g. a dynamically-imported page chunk), proxy it through
 		// the gateway's Unix socket so it gets the correct asset.
-		if referer := c.GetHeader("Referer"); referer != "" {
+		if referer := c.GetHeader("Referer"); referer != "" && !forwarded {
 			refURL, err := url.Parse(referer)
 			if err == nil && (strings.HasPrefix(refURL.Path, "/gateway") ||
 				refURL.Path == "/dashboard" ||
@@ -2297,7 +2325,7 @@ func (app *ServerApp) setupRoutes() error {
 		// "always shows /explorer" problem that a blanket redirect to /gateway
 		// would cause.
 		path := c.Request.URL.Path
-		if path == "/dashboard" || path == "/chain-explorer" || path == "/graph-explorer" || path == "/error-explorer" {
+		if !forwarded && (path == "/dashboard" || path == "/chain-explorer" || path == "/graph-explorer" || path == "/error-explorer") {
 			gwProxy, gwErr := newPrefixProxy(gatewayBase, gatewayTransport, "", "")
 			if gwErr == nil {
 				gwProxy.ServeHTTP(c.Writer, c.Request)
@@ -3221,12 +3249,14 @@ func (app *ServerApp) startMonitor(ctx context.Context) error {
 		RegistryURL:       strings.TrimSpace(os.Getenv("KNIRV_REGISTRY_URL")),
 		BackendSocketPath: app.config.BackendSocket,
 		OracleSocketPath:  filepath.Join(mustAppDataDir(), "sockets", "oracle.sock"),
-		KNIRVBaseURL:      strings.TrimSpace(os.Getenv("KNIRV_MONITOR_KNIRVBASE_URL")),
-		KNIRVChainURL:     strings.TrimSpace(os.Getenv("KNIRV_MONITOR_KNIRVCHAIN_URL")),
-		KNIRVGraphURL:     strings.TrimSpace(os.Getenv("KNIRV_MONITOR_KNIRVGRAPH_URL")),
-		KNIRVOracleURL:    strings.TrimSpace(os.Getenv("KNIRV_MONITOR_KNIRVORACLE_URL")),
-		PrometheusURL:     strings.TrimSpace(os.Getenv("KNIRV_MONITOR_PROMETHEUS_URL")),
-		GrafanaURL:        strings.TrimSpace(os.Getenv("KNIRV_MONITOR_GRAFANA_URL")),
+		// OpenBao file audit device log (internal/knirvbao renders it at <data>/openbao/audit.log).
+		BaoAuditLogPath: filepath.Join(mustAppDataDir(), "openbao", "audit.log"),
+		KNIRVBaseURL:    strings.TrimSpace(os.Getenv("KNIRV_MONITOR_KNIRVBASE_URL")),
+		KNIRVChainURL:   strings.TrimSpace(os.Getenv("KNIRV_MONITOR_KNIRVCHAIN_URL")),
+		KNIRVGraphURL:   strings.TrimSpace(os.Getenv("KNIRV_MONITOR_KNIRVGRAPH_URL")),
+		KNIRVOracleURL:  strings.TrimSpace(os.Getenv("KNIRV_MONITOR_KNIRVORACLE_URL")),
+		PrometheusURL:   strings.TrimSpace(os.Getenv("KNIRV_MONITOR_PROMETHEUS_URL")),
+		GrafanaURL:      strings.TrimSpace(os.Getenv("KNIRV_MONITOR_GRAFANA_URL")),
 	}
 
 	service, err := monitor.Start(ctx, cfg)
@@ -3530,12 +3560,10 @@ func (app *ServerApp) startBackend() error {
 		return fmt.Errorf("invalid KNIRV public URL %q", publicURL)
 	}
 	userIDTag := normalizeUserIDTag(app.config.UserIDTag)
-	authPublicURL := strings.TrimRight(strings.TrimSpace(os.Getenv("KNIRV_AUTH_PUBLIC_URL")), "/")
-	if authPublicURL == "" {
-		// Browser authentication is served by the KNIRVSERVER wrapper, not by
-		// KNIRVGATEWAY's SPA. Remote installations can override this origin.
-		authPublicURL = fmt.Sprintf("http://127.0.0.1:%d", app.config.Port)
-	}
+	// Browser authentication links are built on the public gateway origin. The
+	// launcher TCP port answers only /health and /version, so it cannot serve /login.
+	// KNIRV_AUTH_PUBLIC_URL still overrides this origin.
+	authPublicURL := authPublicURLFor(publicURL)
 	env := append(os.Environ(),
 		fmt.Sprintf("KNIRV_API_PORT=%d", app.config.BackendPort),
 		fmt.Sprintf("KNIRV_API_SOCKET=%s", app.config.BackendSocket),
@@ -3546,7 +3574,7 @@ func (app *ServerApp) startBackend() error {
 		// this process's environment; empty means none (the default).
 		fmt.Sprintf("KNIRV_AUTHORITY_SOCKET_PATH=%s", authoritySocketPath()),
 		fmt.Sprintf("KNIRV_PROOF_VALIDATOR_X25519_PRIVATE_KEY=%s", app.proofValidatorPrivateKey),
-		fmt.Sprintf("KNIRV_SERVER_BASE_URL=http://127.0.0.1:%d", app.config.Port),
+		fmt.Sprintf("KNIRV_SERVER_BASE_URL=%s", knirvServerBaseURLFor(publicURL)),
 		fmt.Sprintf("KNIRV_AGENT_CONTROL_GATEWAY_URL=http://127.0.0.1:%d/internal/agent-control", app.config.GatewayPort),
 		fmt.Sprintf("KNIRV_AGENT_CONTROL_TOKEN=%s", app.internalAuthToken),
 		fmt.Sprintf("KNIRV_PUBLIC_URL=%s", publicURL),
@@ -3568,6 +3596,7 @@ func (app *ServerApp) startBackend() error {
 	// short-lived role token. startValidationChain does the same for the Validation
 	// Chain itself; it runs AFTER startBackend, so for the subprocesses that start now
 	// we mint here. openbao.env (0600) is never logged or embedded.
+	baoBackendHandedOff := false
 	if app.bao != nil {
 		if st := app.bao.Health(); st.State == knirvbao.Ready {
 			if adminToken := strings.TrimSpace(os.Getenv("KNIRV_BAO_TOKEN")); adminToken != "" {
@@ -3577,6 +3606,7 @@ func (app *ServerApp) startBackend() error {
 					handoffDir := filepath.Join(mustAppDataDir(), "bao-handoff")
 					if path, werr := WriteHandoffFile(handoffDir, BaoRoleBackend, wrap); werr == nil {
 						env = append(env, HandoffEnv(app.bao.Socket(), path)...)
+						baoBackendHandedOff = true
 					} else {
 						log.Printf("Warning: bao backend handoff write failed, backend falls back to local signing: %v", werr)
 					}
@@ -3620,13 +3650,13 @@ func (app *ServerApp) startBackend() error {
 			fmt.Sprintf("KNIRV_ORACLE_BINARY_DIR=%s", binDir),
 			fmt.Sprintf("KNIRV_KNIRVCLI_PATH=%s", filepath.Join(binDir, "knirvshell")),
 			fmt.Sprintf("KNIRV_ARENA_SOCKET_PATH=%s", filepath.Join(appDataDir, "sockets", "arena.sock")),
-			// ulorad is standalone: only this outer launcher translates the
-			// platform token and paths into its generic service contract.
-			fmt.Sprintf("ULORA_AUTH_TOKEN=%s", app.internalAuthToken),
-			fmt.Sprintf("ULORA_SOCKET_PATH=%s", filepath.Join(appDataDir, "sockets", "ulora.sock")),
-			fmt.Sprintf("ULORA_DATA_DIR=%s", filepath.Join(appDataDir, "ulora")),
-			fmt.Sprintf("ULORA_BINARY_PATH=%s", filepath.Join(binDir, "ulorad")),
 		)
+		// ulorad is standalone: only this outer launcher translates the
+		// platform token and paths into its generic service contract.
+		env = append(env, uloraServiceEnv(appDataDir, app.internalAuthToken)...)
+		// KNIRVGRAPH is started by the launcher (startKNIRVGraphOptional); tell the
+		// backend not to start a second one on the same socket and ports.
+		env = append(env, app.graphOwnershipEnv()...)
 	}
 	if configDir, err := getConfigDir(); err == nil {
 		env = append(env, fmt.Sprintf("KNIRV_CONFIG_DIR=%s", configDir))
@@ -3828,12 +3858,26 @@ func (app *ServerApp) startBackend() error {
 		env = append(env, fmt.Sprintf("KNIRV_AGENT_CONTROL_SOCKET=%s", controlSocket))
 	}
 
-	// Propagate ORACLE_KEY_PASSWORD from the parent environment so the
-	// backend_server subprocess can decrypt root.key without needing an
-	// interactive terminal.  Without this the backend silently skips all
-	// root.key secrets (API keys for Gemini, DeepSeek, Cerebras, etc.).
+	// The backend reports the secrets backend the launcher resolved (same value in
+	// every deployment class).
+	if mode, err := secretsBackendMode(); err == nil {
+		env = append(env, secretsBackendEnv+"="+mode)
+	}
+
+	// ORACLE_KEY_PASSWORD is passed only when the backend must decrypt a key file
+	// itself: a key file is present AND the backend was not handed an OpenBao role
+	// token. Under the OpenBao handoff the child never receives the password
+	// (OpenBao 2a.5: no password in child environments under the Bao backend).
+	// Without it the backend cannot decrypt root.key and skips those secrets.
 	if pwd := os.Getenv("ORACLE_KEY_PASSWORD"); pwd != "" {
-		env = append(env, fmt.Sprintf("ORACLE_KEY_PASSWORD=%s", pwd))
+		switch {
+		case resolution.KeyPath == "":
+			log.Printf("[KEY] ORACLE_KEY_PASSWORD not passed to backend: no key file present")
+		case baoBackendHandedOff:
+			log.Printf("[KEY] ORACLE_KEY_PASSWORD not passed to backend: secrets served via OpenBao handoff")
+		default:
+			env = append(env, fmt.Sprintf("ORACLE_KEY_PASSWORD=%s", pwd))
+		}
 	}
 
 	env = factualityEmbeddingEnv(env, viper.GetViper())
@@ -4021,6 +4065,25 @@ func (app *ServerApp) stopBackend() {
 	}
 }
 
+// uloraDataDir is ulorad's data directory under the app data dir. It is the same
+// path KNIRVGRAPH resolves from KNIRV_APP_DATA_DIR/ulora, where ulorad writes its
+// auth_token file, so both sides agree without a copy step.
+func uloraDataDir(appDataDir string) string {
+	return filepath.Join(appDataDir, "ulora")
+}
+
+// uloraServiceEnv is the environment the launcher gives ulorad: the bearer token,
+// its socket, its data directory and its binary path, all under appDataDir. The
+// launcher builds the backend env from it, and tests pin the ULORA_DATA_DIR line.
+func uloraServiceEnv(appDataDir, authToken string) []string {
+	return []string{
+		fmt.Sprintf("ULORA_AUTH_TOKEN=%s", authToken),
+		fmt.Sprintf("ULORA_SOCKET_PATH=%s", filepath.Join(appDataDir, "sockets", "ulora.sock")),
+		fmt.Sprintf("ULORA_DATA_DIR=%s", uloraDataDir(appDataDir)),
+		fmt.Sprintf("ULORA_BINARY_PATH=%s", filepath.Join(appDataDir, "bin", "ulorad")),
+	}
+}
+
 // startULoRA extracts the embedded ulorad (pkg/knirvulora) and starts it before
 // backend_server so downstream services can use its socket from their first request.
 func (app *ServerApp) startULoRA() error {
@@ -4035,7 +4098,7 @@ func (app *ServerApp) startULoRA() error {
 	app.uloraManager = knirvulora.NewManager(knirvulora.ManagerConfig{
 		BinaryPath: binPath,
 		SocketPath: filepath.Join(appDataDir, "sockets", "ulora.sock"),
-		DataDir:    filepath.Join(appDataDir, "ulora"),
+		DataDir:    uloraDataDir(appDataDir),
 		AuthToken:  app.internalAuthToken,
 	})
 	return app.uloraManager.Start(context.Background())
@@ -4170,6 +4233,10 @@ func (app *ServerApp) Start() error {
 
 	baoCtx, baoCancel := context.WithTimeout(context.Background(), 2*time.Minute)
 	if err := app.startOpenBao(baoCtx); err != nil {
+		if mode, _ := secretsBackendMode(); mode == "bao" {
+			baoCancel()
+			return fmt.Errorf("%s=bao: OpenBao did not start (fail closed): %w", secretsBackendEnv, err)
+		}
 		log.Printf("WARN: OpenBao was not started: %v", err)
 	}
 	baoCancel()
@@ -4203,6 +4270,14 @@ func (app *ServerApp) Start() error {
 	if err := app.startULoRA(); err != nil {
 		return err
 	}
+
+	// KNIRVGRAPH runs before backend_server, which is told not to start its own
+	// copy (graphOwnershipEnv). A failure is logged and the launcher keeps going.
+	app.startKNIRVGraphOptional()
+
+	// Local inference: exports the MiniCPM variables for HEAD, then starts its
+	// supervisor in the background. Must precede startBackend (children inherit env).
+	app.startLocalInference()
 
 	// Start backend (spawns KNIRVORACLE among other services)
 	if err := app.startBackend(); err != nil {
@@ -4255,8 +4330,10 @@ func (app *ServerApp) Start() error {
 	// WriteTimeout is 0 (disabled) so SSE and long-lived streaming responses are
 	// not killed by the server. ReadTimeout still guards against slow-loris attacks.
 	app.server = &http.Server{
-		Addr:        fmt.Sprintf("%s:%d", app.config.Host, app.config.Port),
-		Handler:     app.router,
+		Addr: fmt.Sprintf("%s:%d", app.config.Host, app.config.Port),
+		// Only /health and /version are public on TCP; the rest is served on the
+		// internal app socket behind KNIRVGATEWAY (see publicTCPHandler).
+		Handler:     publicTCPHandler(app.router),
 		ReadTimeout: 15 * time.Second,
 		IdleTimeout: 120 * time.Second,
 	}
@@ -4274,13 +4351,16 @@ func (app *ServerApp) Start() error {
 	// this socket (ENROLL_SOCKET_PATH, passed by backend_server). Enabled via
 	// KNIRV_ENROLL_SOCKET. Non-fatal: a failure here is logged and never blocks startup.
 	go app.startEnrollSocket(context.Background())
+	// KNIRVSERVER's native proof API and proof ledger: internal Unix sockets only,
+	// proxied by KNIRVGATEWAY (KNIRVPROOF_SOCKET_PATH / GIT_SOCKET_PATH).
+	go app.startKnirvRouteSockets(context.Background())
 
 	// Wait for server to be ready
 	time.Sleep(2 * time.Second)
 
-	// With -llama, backend_server (already running) starts the model harness:
-	// Colibri downloads and installs itself while llama.cpp serves as the fallback.
-	// Its failure is isolated from KNIRVSERVER.
+	// backend_server (already running) starts the model harness: Colibri first, with
+	// llama.cpp only after a Colibri failure. The MiniCPM server starts once that has
+	// settled (see local_inference.go). Its failure is isolated from KNIRVSERVER.
 
 	started = true
 	return nil
@@ -4305,11 +4385,14 @@ func (app *ServerApp) Stop() error {
 
 	// Stop backend
 	app.stopBackend()
+	app.stopLocalInference()
 	if app.uloraManager != nil {
 		if err := app.uloraManager.Stop(); err != nil {
 			log.Printf("Warning: stopping ulorad: %v", err)
 		}
 	}
+	// backend_server has stopped, so nothing is still using the graph socket.
+	app.stopKNIRVGraph()
 	stopManagedProcess("Xion", app.xionCmd)
 	stopManagedProcess("IPFS", app.ipfsCmd)
 	stopManagedProcess("text-embedder", app.textEmbedderCmd)
@@ -4361,7 +4444,7 @@ func loadConfig() (*Config, error) {
 		pipelineFlag = flag.Bool("pipeline", false, "Start the KNIRVMODELS data pipeline during server initialization")
 		directFlag   = flag.Bool("direct", false, "Skip CGMiner and drive the ASIC directly over raw USB (requires -models)")
 		jitterFlag   = flag.Bool("direct-jitter", false, "Allow ASIC jitter hashing when -direct is enabled")
-		llamaFlag    = flag.Bool("llama", true, "Start the embedded local inference harness (Colibri, with llama.cpp as fallback) during server initialization; -llama=false disables it")
+		noLlamaFlag  = flag.Bool("no-llama", false, "Do not start local inference: the model harness (Colibri first, llama.cpp on failure) or the MiniCPM vision server. On by default")
 		port         = flag.Int("port", 0, "Server port (overrides config)")
 		host         = flag.String("host", "", "Server host (overrides config)")
 	)
@@ -4494,12 +4577,9 @@ func loadConfig() (*Config, error) {
 	config.AutoStartPipeline = *pipelineFlag
 	config.AutoStartDirect = *directFlag
 	config.AutoStartDirectJitter = *directFlag && *jitterFlag
-	config.AutoStartLlama = config.Llama.Enabled
-	flag.Visit(func(f *flag.Flag) {
-		if f.Name == "llama" {
-			config.AutoStartLlama = *llamaFlag
-		}
-	})
+	// Local inference is on by default. -no-llama, or llama.enabled: false in the config,
+	// turns it off.
+	config.AutoStartLlama = config.Llama.Enabled && !*noLlamaFlag
 	config.Enterprise = networkMode == "enterprise"
 	config.UserIDTag = strings.TrimSpace(*userIDTag)
 	if config.UserIDTag == "" {
@@ -4623,8 +4703,102 @@ func (app *ServerApp) startEnrollSocket(ctx context.Context) {
 		return
 	}
 	store := enroll.NewNonceStore(dataDir)
-	srv := enroll.NewServer(enroll.SDKVerifier{}, store, rootPubKey, operator, zap.L())
+
+	registrationPath := strings.TrimSpace(os.Getenv("KNIRV_ENROLL_REGISTRATIONS"))
+	if registrationPath == "" {
+		registrationPath = filepath.Join(dataDir, "bootnode_approved_registrations.json")
+	}
+	expectedChainID := strings.TrimSpace(os.Getenv("KNIRV_ENROLL_CHAIN_ID"))
+	admitter := newBackendEnrollmentAdmitter(app.config.BackendSocket, app.internalAuthToken)
+
+	if expectedChainID == "" {
+		log.Printf("enrollment socket disabled: KNIRV_ENROLL_CHAIN_ID is required for server-issued challenges")
+		return
+	}
+	registrations := enroll.NewFileRegistrationStore(registrationPath)
+	issuer := enroll.NewIssuer(registrations, expectedChainID, enroll.DefaultIssuanceTTL)
+	srv := enroll.NewServer(enroll.SDKVerifier{}, store, rootPubKey, operator, zap.L()).
+		ConfigureAdmission(expectedChainID, registrations, admitter).
+		WithIssuer(issuer)
+	log.Printf("enrollment admission enabled: chain=%q registrations=%s backend_socket=%s", expectedChainID, registrationPath, app.config.BackendSocket)
 	if err := srv.ServeUnix(ctx, socketPath); err != nil && ctx.Err() == nil {
 		log.Printf("enrollment socket stopped: %v", err)
 	}
+}
+
+// knirvProofSocketPath and gitSocketPath are the internal Unix sockets for the
+// native proof API (/api/v1/knirv/*) and the proof ledger (/git/*). They sit beside
+// the backend socket, as monitor.sock does. KNIRVGATEWAY is passed the same paths
+// (backend_server builds its gateway config from the same directory).
+// An empty BackendSocket yields "" (not a path under "."), so the socket is skipped
+// rather than created in the working directory.
+func (app *ServerApp) knirvProofSocketPath() string {
+	return app.socketInSocketsDir("knirvproof.sock")
+}
+
+func (app *ServerApp) gitSocketPath() string {
+	return app.socketInSocketsDir("git.sock")
+}
+
+func (app *ServerApp) socketInSocketsDir(name string) string {
+	if app.config.BackendSocket == "" {
+		return ""
+	}
+	return filepath.Join(filepath.Dir(app.config.BackendSocket), name)
+}
+
+// startKnirvRouteSockets serves the proof API and the proof ledger on internal Unix
+// sockets (mode 0600, the owner's user only). Neither is ever bound to TCP. A failure
+// is logged and does not block startup. The gateway then answers 502 for those routes.
+func (app *ServerApp) startKnirvRouteSockets(ctx context.Context) {
+	serve := func(name, socketPath string, handler http.Handler) {
+		if handler == nil || socketPath == "" {
+			log.Printf("%s socket not started: route or socket path missing", name)
+			return
+		}
+		if err := os.MkdirAll(filepath.Dir(socketPath), 0o700); err != nil {
+			log.Printf("%s socket not started: %v", name, err)
+			return
+		}
+		// Clear a stale socket from a previous run. Remove only if the path is a
+		// socket; any other file there makes Listen fail instead of being deleted.
+		if fi, statErr := os.Lstat(socketPath); statErr == nil && fi.Mode()&os.ModeSocket != 0 {
+			_ = os.Remove(socketPath)
+		}
+		ln, err := net.Listen("unix", socketPath)
+		if err != nil {
+			log.Printf("%s socket not started: %v", name, err)
+			return
+		}
+		if err := os.Chmod(socketPath, 0o600); err != nil {
+			_ = ln.Close()
+			log.Printf("%s socket not started: chmod: %v", name, err)
+			return
+		}
+		srv := &http.Server{Handler: handler}
+		go func() {
+			<-ctx.Done()
+			_ = srv.Close()
+		}()
+		log.Printf("%s served on internal Unix socket %s", name, socketPath)
+		if err := srv.Serve(ln); err != nil && err != http.ErrServerClosed && ctx.Err() == nil {
+			log.Printf("%s socket stopped: %v", name, err)
+		}
+	}
+	// Each handler is a *gin.Engine; a nil engine is passed as a nil interface so
+	// serve can detect it.
+	var proof http.Handler
+	if app.proofRoutes != nil {
+		proof = app.proofRoutes
+	}
+	var git http.Handler
+	if app.proofLedgerRoutes != nil {
+		git = app.proofLedgerRoutes
+	}
+	// serve blocks until shutdown, so each listener gets its own goroutine.
+	go serve("KNIRVPROOF", app.knirvProofSocketPath(), proof)
+	go serve("GIT", app.gitSocketPath(), git)
+	// The full router on an internal socket: KNIRVGATEWAY forwards the web app,
+	// /api/*, /tunnel and /ws here. It is never bound to TCP.
+	go serve("KNIRVSERVER app", app.knirvServerAppSocketPath(), app.router)
 }

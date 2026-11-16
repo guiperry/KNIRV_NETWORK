@@ -907,21 +907,24 @@ func (o *Oracle) initFollower() error {
 		follower.SetPaused(true)
 		return nil
 	}
-	// Until Task 8.8 supplies the bootnode-master through secrets.Provider,
-	// existing file-backed deployments pass their already-loaded boot identity
-	// through the RemoteSigner interface. No HTTP source ever receives the raw
-	// key, and Bao can replace this construction without changing the follower.
-	if o.config.OwnerPrivateKey == "" {
-		follower.SetPaused(true)
-		return fmt.Errorf("replication sources configured but standby signer is unavailable")
-	}
-	key, err := hex.DecodeString(strip0x(o.config.OwnerPrivateKey))
-	if err != nil {
-		return fmt.Errorf("replication signer key: %w", err)
-	}
-	signer, err := knirvsigning.NewLocalSigner(key)
-	if err != nil {
-		return fmt.Errorf("replication signer: %w", err)
+	// The standby identity is supplied as a RemoteSigner resolved through
+	// secrets.Provider (cmd/oracle standby path, AppRole oracle-standby). When it
+	// is present it is the only signer used for pulls. The OwnerPrivateKey
+	// fallback remains for legacy/test construction only.
+	var signer knirvsigning.RemoteSigner = o.config.ReplicationSigner
+	if signer == nil {
+		if o.config.OwnerPrivateKey == "" {
+			follower.SetPaused(true)
+			return fmt.Errorf("replication sources configured but standby signer is unavailable")
+		}
+		key, err := hex.DecodeString(strip0x(o.config.OwnerPrivateKey))
+		if err != nil {
+			return fmt.Errorf("replication signer key: %w", err)
+		}
+		signer, err = knirvsigning.NewLocalSigner(key)
+		if err != nil {
+			return fmt.Errorf("replication signer: %w", err)
+		}
 	}
 	sources := make([]replica.Source, 0, len(o.config.ReplicationSources))
 	for _, baseURL := range o.config.ReplicationSources {

@@ -1,0 +1,104 @@
+{
+  "version": 1,
+  "description": "Deliberate exceptions to the core-is-the-only-implementation rule. Each entry must name the file, the rule, and (optionally) the enclosing function, and must give a reason and a tracking note. check-sdk-divergence.mjs fails when an entry matches nothing, so fixed items must be removed here.",
+  "entries": [
+    {
+      "file": "go-package/dveevidence/sign.go",
+      "function": "NewSigner",
+      "rule": "R-NATIVE-CRYPTO",
+      "reason": "Ed25519 keygen for evidence-bundle signing. Verification and key parsing now run in the core (evidence.ed25519_verify, evidence.ed25519_public_key); keygen and signing are still Go-side because the core has no signing op and the claim bytes must match Go json.Marshal.",
+      "tracking": "owner decision: add ed25519 keygen and sign ops to core/src/evidence.rs (verify already moved)"
+    },
+    {
+      "file": "go-package/dveevidence/sign.go",
+      "function": "SignerFromSeed",
+      "rule": "R-NATIVE-CRYPTO",
+      "reason": "Ed25519 key derivation from a seed (same gap as NewSigner).",
+      "tracking": "owner decision: same item as NewSigner (signing side; verification already in core)"
+    },
+    {
+      "file": "go-package/dveevidence/sign.go",
+      "function": "Signer.PublicKeyID",
+      "rule": "R-NATIVE-CRYPTO",
+      "reason": "Key identifier is SHA-256 of the Ed25519 public key; belongs with the signing move.",
+      "tracking": "owner decision: same item as NewSigner (signing side; verification already in core)"
+    },
+    {
+      "file": "go-package/dveevidence/sign.go",
+      "function": "Signer.Sign",
+      "rule": "R-NATIVE-CRYPTO",
+      "reason": "Ed25519 signing of the evidence claim (same gap as NewSigner).",
+      "tracking": "owner decision: same item as NewSigner (signing side; verification already in core)"
+    },
+    {
+      "file": "go-package/dveevidence/hashcrypto.go",
+      "function": "sha256Hex",
+      "rule": "R-NATIVE-CRYPTO",
+      "reason": "Content hash labelled sha256:<hex> for evidence artifacts. A pure hash, not yet a core op; it is small and can move with the evidence module.",
+      "tracking": "to move: add evidence.sha256_hex to core/src/evidence.rs and bind it"
+    },
+    {
+      "file": "go-package/dveevidence/store.go",
+      "function": "LoadStoredSession",
+      "rule": "R-NATIVE-CRYPTO",
+      "reason": "Session file name is SHA-256(dveID NUL sessionID) in the shared FileStore layout, which is a storage contract with the server.",
+      "tracking": "to move: core path-digest op, or document the layout as a Go-only reader"
+    },
+    {
+      "file": "go-package/dveevidence/verify.go",
+      "function": "finalizeReport",
+      "rule": "R-NATIVE-CRYPTO",
+      "reason": "CertificateHash is SHA-256 of the marshalled report body. The report is built in Go, so the hash is computed beside it.",
+      "tracking": "to move: evidence.certificate_hash in core/src/evidence.rs"
+    },
+    {
+      "file": "go-package/internal/core/loader.go",
+      "function": "verify",
+      "rule": "R-NATIVE-CRYPTO",
+      "reason": "Integrity check of knirv_core.wasm against the stamped digest, run before the core can be loaded. It cannot be delegated to the core it guards.",
+      "tracking": "permanent host-side exception (trust root)"
+    },
+    {
+      "file": "go-package/secrets/backend.go",
+      "function": "hashOf",
+      "rule": "R-NATIVE-CRYPTO",
+      "reason": "Self-check fingerprint of secret groups, excluding transport paths. Used only to compare providers.",
+      "tracking": "to move: secrets.group_fingerprint op in core/src/secrets.rs"
+    },
+    {
+      "file": "npm-package/src/vault.ts",
+      "function": "fromBytes",
+      "rule": "R-NATIVE-CRYPTO",
+      "reason": "WebCrypto SHA-256 check of crypto-core.wasm against the manifest digest before the module is instantiated. Mirrors the Go loader's trust-root check.",
+      "tracking": "permanent host-side exception (trust root)"
+    },
+    {
+      "file": "npm-package/src/uri/index.ts",
+      "function": "(package scope)",
+      "rule": "R-DUP-LIST",
+      "reason": "RESOURCE_TYPES and QUERY_KEYS are literal-typed mirrors of core/src/uri.rs, kept for compile-time types. uri.test.ts asserts they equal the core's lists.",
+      "tracking": "to move: derive the types from a core uri.registry call if the literal union can be generated"
+    },
+    {
+      "file": "go-package/secrets/raw_contract.go",
+      "function": "(package scope)",
+      "rule": "R-DUP-LIST",
+      "reason": "The raw-sign purpose allowlist is copied from core/src/secrets.rs RAW_SIGN_ALLOWED_PURPOSES because the published core has no secrets.raw_sign_validate op.",
+      "tracking": "held: restore the pre-A raw-sign contract so the Go/TS bindings match the published 0.2.1 core (6fcc5e77), which predates secrets.raw_sign_validate. The core-owned version is parked in ori_knirv/held/raw_sign_core.patch and raw_sign_go.patch; remove this entry when that lands in a release."
+    },
+    {
+      "file": "npm-package/src/signing.ts",
+      "function": "parseWasmManifestPayload",
+      "rule": "R-DUP-LIST",
+      "reason": "RAW_SIGN_ALLOWED_PURPOSES is copied from core/src/secrets.rs because the published core has no secrets.raw_sign_validate op. (The detector attributes this line to the preceding function.)",
+      "tracking": "held: restore the pre-A raw-sign contract so the Go/TS bindings match the published 0.2.1 core (6fcc5e77), which predates secrets.raw_sign_validate. The core-owned version is parked in ori_knirv/held/raw_sign_core.patch and raw_sign_go.patch; remove this entry when that lands in a release."
+    },
+    {
+      "file": "../KNIRVSERVER/pkg/embedded/knirvbao/plugin/assets/knirv_core.wasm",
+      "function": "WASI core (KNIRVSERVER embedded)",
+      "rule": "V-DIGEST",
+      "reason": "TEMPORARY, sdk_core_scrypt_ed25519: KNIRVSERVER still embeds the published 0.2.1 WASI core (6fcc5e77). The scrypt and ed25519 move changes the core digest, so this copy cannot match the new stamp until the core is released and KNIRVSERVER re-embeds it. KNIRVSERVER is outside this unit.",
+      "tracking": "handoff to KNIRVSERVER owner: re-embed the released core (pkg/embedded/knirvbao/plugin/core.go embeddedCoreDigest and assets/knirv_core.wasm) with the next SDK release, then delete this entry (A-STALE will fail until it is removed)"
+    }
+  ]
+}

@@ -2,10 +2,7 @@ package launcher
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"net"
-	"net/http"
 	"os"
 	"path/filepath"
 	"time"
@@ -47,42 +44,11 @@ func approleName(role BaoChildRole) string {
 // role token. This keeps the broad admin credential inside the launcher/manager
 // and never propagates it to a subprocess.
 func MintRoleSecretID(ctx context.Context, socket, adminToken string, role BaoChildRole, wrapTTL time.Duration) (string, error) {
-	url := fmt.Sprintf("http://localhost/v1/auth/approle/role/%s/secret-id", approleName(role))
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, nil)
+	wrap, err := knirvbao.MintWrappedSecretID(ctx, socket, adminToken, approleName(role), wrapTTL)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("bao: %w", err)
 	}
-	req.Header.Set("X-Vault-Token", adminToken)
-	req.Header.Set("X-Vault-Wrap-TTL", wrapTTL.String())
-
-	client := &http.Client{
-		Transport: &http.Transport{
-			DialContext: func(ctx context.Context, _, _ string) (net.Conn, error) {
-				return (&net.Dialer{}).DialContext(ctx, "unix", socket)
-			},
-		},
-		Timeout: 15 * time.Second,
-	}
-	resp, err := client.Do(req)
-	if err != nil {
-		return "", fmt.Errorf("bao: mint secret-id for %s: %w", role, err)
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return "", fmt.Errorf("bao: mint secret-id for %s: http %d", role, resp.StatusCode)
-	}
-	var out struct {
-		WrapInfo struct {
-			Token string `json:"token"`
-		} `json:"wrap_info"`
-	}
-	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
-		return "", fmt.Errorf("bao: decode secret-id wrap for %s: %w", role, err)
-	}
-	if out.WrapInfo.Token == "" {
-		return "", fmt.Errorf("bao: empty wrap token for %s", role)
-	}
-	return out.WrapInfo.Token, nil
+	return wrap, nil
 }
 
 // SwapChildToActive performs the launcher-driven AppRole failover swap for a child that

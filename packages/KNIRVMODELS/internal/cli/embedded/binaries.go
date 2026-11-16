@@ -3,8 +3,10 @@
 package embedded
 
 import (
+	"crypto/sha256"
 	"embed"
 	"fmt"
+	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -71,7 +73,7 @@ var AvailableBinaries = []BinaryInfo{
 		TargetArch:  "amd64",
 	},
 	{
-		Name:        "head-trainer",
+		Name:        "heart-decision-trainer",
 		Description: "HEAD Trainer - trains and gate-promotes the Hierarchical Reasoning Model",
 		TargetOS:    "linux",
 		TargetArch:  "amd64",
@@ -85,6 +87,12 @@ var AvailableBinaries = []BinaryInfo{
 	{
 		Name:        "libspacy_wrapper.so",
 		Description: "Embedded spaCy native runtime used by the data mapper",
+		TargetOS:    "linux",
+		TargetArch:  "amd64",
+	},
+	{
+		Name:        "libcuda_hash.so",
+		Description: "CUDA double-SHA-256 kernel library linked by the data seeder",
 		TargetOS:    "linux",
 		TargetArch:  "amd64",
 	},
@@ -182,6 +190,46 @@ func ListEmbedded() ([]string, error) {
 	return names, nil
 }
 
+// writeFileAtomically writes data next to path and renames it into place, so a
+// crash or a full disk can never leave a truncated binary or shared library.
+func writeFileAtomically(path string, data []byte, perm os.FileMode) error {
+	dir := filepath.Dir(path)
+	tmp, err := os.CreateTemp(dir, "."+filepath.Base(path)+".tmp-*")
+	if err != nil {
+		return err
+	}
+	tmpPath := tmp.Name()
+	defer func() {
+		_ = tmp.Close()
+		_ = os.Remove(tmpPath)
+	}()
+	if _, err := tmp.Write(data); err != nil {
+		return err
+	}
+	if err := tmp.Chmod(perm); err != nil {
+		return err
+	}
+	if err := tmp.Close(); err != nil {
+		return err
+	}
+	return os.Rename(tmpPath, path)
+}
+
+func fileSHA256(path string) ([32]byte, error) {
+	var sum [32]byte
+	f, err := os.Open(path)
+	if err != nil {
+		return sum, err
+	}
+	defer f.Close()
+	h := sha256.New()
+	if _, err := io.Copy(h, f); err != nil {
+		return sum, err
+	}
+	copy(sum[:], h.Sum(nil))
+	return sum, nil
+}
+
 // ExtractBinary extracts an embedded binary to the bin directory
 func ExtractBinary(name string) (string, error) {
 	binDir, err := GetBinDir()
@@ -202,7 +250,7 @@ func ExtractBinary(name string) (string, error) {
 
 	// Write to destination
 	destPath := filepath.Join(binDir, name)
-	if err := os.WriteFile(destPath, data, 0755); err != nil {
+	if err := writeFileAtomically(destPath, data, 0755); err != nil {
 		return "", fmt.Errorf("failed to write binary: %w", err)
 	}
 
@@ -229,10 +277,50 @@ func ForceExtractBinary(name string) (string, error) {
 
 	// Write to destination (overwrite existing)
 	destPath := filepath.Join(binDir, name)
-	if err := os.WriteFile(destPath, data, 0755); err != nil {
+	if err := writeFileAtomically(destPath, data, 0755); err != nil {
 		return "", fmt.Errorf("failed to write binary: %w", err)
 	}
 
+	return destPath, nil
+}
+
+// extractVerified writes name only when the on-disk copy does not already match
+// the embedded bytes, then verifies the result. The embedded SHA-256 acts as the
+// version check: a rebuilt binary replaces the old copy on the next start, while
+// an unchanged one is left alone. This is how libcuda_hash.so is kept in step
+// with the data-seeder binary that links it.
+func extractVerified(name string) (string, error) {
+	binDir, err := GetBinDir()
+	if err != nil {
+		return "", fmt.Errorf("failed to get bin directory: %w", err)
+	}
+	if err := os.MkdirAll(binDir, 0755); err != nil {
+		return "", fmt.Errorf("failed to create bin directory: %w", err)
+	}
+
+	data, err := GetEmbedded(name)
+	if err != nil {
+		return "", fmt.Errorf("binary %s not embedded: %w", name, err)
+	}
+	want := sha256.Sum256(data)
+	destPath := filepath.Join(binDir, name)
+
+	if st, err := os.Stat(destPath); err == nil && st.Size() == int64(len(data)) && st.Mode()&0111 != 0 {
+		if got, err := fileSHA256(destPath); err == nil && got == want {
+			return destPath, nil
+		}
+	}
+
+	if err := writeFileAtomically(destPath, data, 0755); err != nil {
+		return "", fmt.Errorf("failed to write binary: %w", err)
+	}
+	got, err := fileSHA256(destPath)
+	if err != nil {
+		return "", fmt.Errorf("failed to verify extracted %s: %w", name, err)
+	}
+	if got != want {
+		return "", fmt.Errorf("extracted %s does not match the embedded copy", name)
+	}
 	return destPath, nil
 }
 
@@ -306,28 +394,18 @@ func CheckEmbeddedBinaries() []BinaryInfo {
 	return result
 }
 
-// EnsureExtracted ensures all required binaries are extracted.
-// Always overwrites on-disk binaries so every application start
-// deploys a fresh copy of every pipeline stage embedded in the
-// knirvmodels binary. See internal/cli/embedded/bin/.
+// EnsureExtracted ensures all embedded binaries (pipeline stages and their native
+// libraries) are present in the bin directory. Each copy is hash-checked against
+// the embedded bytes, so a rebuilt binary replaces the old one while an unchanged
+// one is left in place. See internal/cli/embedded/bin/.
 func EnsureExtracted() error {
-	binDir, err := GetBinDir()
-	if err != nil {
-		return err
-	}
-
-	// Ensure directory exists
-	if err := os.MkdirAll(binDir, 0755); err != nil {
-		return fmt.Errorf("failed to create bin directory: %w", err)
-	}
-
 	names, err := ListEmbedded()
 	if err != nil {
 		return err
 	}
 
 	for _, name := range names {
-		if _, err := ForceExtractBinary(name); err != nil {
+		if _, err := extractVerified(name); err != nil {
 			return fmt.Errorf("failed to extract %s: %w", name, err)
 		}
 	}

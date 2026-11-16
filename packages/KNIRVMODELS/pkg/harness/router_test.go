@@ -57,31 +57,36 @@ func post(t *testing.T, h http.Handler, path, body string) *httptest.ResponseRec
 	return rec
 }
 
-func TestRouterPrefersFirstReadyBackendAndRewritesModel(t *testing.T) {
+// llama.cpp is listed first, so it is preferred whenever it is ready; Colibri serves
+// while llama.cpp is not, with its own model id.
+func TestRouterPrefersLlamaAndFallsBackToColibri(t *testing.T) {
 	a, b := echoServer("colibri"), echoServer("llama")
 	defer a.Close()
 	defer b.Close()
 	var aReady, bReady atomic.Bool
-	r := NewRouter(nil, tcpBackend("colibri", a, &aReady, "colibri-small"), tcpBackend("llama.cpp", b, &bReady, ""))
+	r := NewRouter(nil, tcpBackend("llama.cpp", b, &bReady, ""), tcpBackend("colibri", a, &aReady, "colibri-small"))
 
 	if rec := post(t, r, "/v1/chat/completions", `{"model":"x"}`); rec.Code != http.StatusServiceUnavailable || rec.Header().Get("Retry-After") == "" {
 		t.Fatalf("nothing ready must be 503 with Retry-After, got %d", rec.Code)
 	}
 
-	bReady.Store(true)
+	aReady.Store(true)
 	rec := post(t, r, "/v1/chat/completions", `{"model":"local-llama","messages":[]}`)
 	var got map[string]any
 	json.Unmarshal(rec.Body.Bytes(), &got)
-	if got["server"] != "llama" || got["model"] != "local-llama" {
-		t.Fatalf("fallback must serve untouched: %v", got)
+	if got["server"] != "colibri" || got["model"] != "colibri-small" || got["path"] != "/v1/chat/completions" {
+		t.Fatalf("colibri must serve while llama.cpp is down, with its own model id: %v", got)
 	}
 
-	aReady.Store(true)
+	bReady.Store(true)
 	rec = post(t, r, "/v1/chat/completions", `{"model":"local-llama","messages":[]}`)
 	got = nil
 	json.Unmarshal(rec.Body.Bytes(), &got)
-	if got["server"] != "colibri" || got["model"] != "colibri-small" || got["path"] != "/v1/chat/completions" {
-		t.Fatalf("primary must serve with its own model id: %v", got)
+	if got["server"] != "llama" || got["model"] != "local-llama" {
+		t.Fatalf("llama.cpp must be preferred when both are ready, untouched model: %v", got)
+	}
+	if rec.Header().Get(BackendHeader) != "llama.cpp" {
+		t.Fatalf("backend header %q", rec.Header().Get(BackendHeader))
 	}
 }
 
@@ -222,29 +227,33 @@ func TestRouterReplacesStaleSocket(t *testing.T) {
 // plainChatOnly stands in for Colibri's qwen36 engine: chat, no grammar, no adapters.
 func plainChatOnly(n Needs) bool { return !n.Adapter && !n.Grammar && !n.Tools && !n.Frame }
 
-func TestRouterSendsStructuredOutputAndAdaptersToTheBackendThatSupportsThem(t *testing.T) {
+// llama.cpp supports everything, so with it ready every request goes there. Colibri
+// (plain chat only) serves plain chat while llama.cpp is down; the rest waits for llama.
+func TestRouterSendsStructuredOutputAndAdaptersToLlamaAndPlainChatToColibriWhenLlamaIsDown(t *testing.T) {
 	a, b := echoServer("colibri"), echoServer("llama")
 	defer a.Close()
 	defer b.Close()
 	var aReady, bReady atomic.Bool
 	aReady.Store(true)
 	bReady.Store(true)
-	colibri, llama := tcpBackend("colibri", a, &aReady, "colibri-small"), tcpBackend("llama.cpp", b, &bReady, "")
+	llama, colibri := tcpBackend("llama.cpp", b, &bReady, ""), tcpBackend("colibri", a, &aReady, "colibri-small")
 	colibri.Supports = plainChatOnly
-	r := NewRouter(nil, colibri, llama)
+	r := NewRouter(nil, llama, colibri)
+	r.OnDemandWait = 200 * time.Millisecond
 
-	for body, want := range map[string]string{
-		`{"model":"x","messages":[]}`:                                             "colibri",
+	bodies := map[string]string{
+		`{"model":"x","messages":[]}`:                                             "llama",
 		`{"model":"x","response_format":{"type":"json_object"}}`:                  "llama",
 		`{"model":"x","response_format":{"type":"json_schema","json_schema":{}}}`: "llama",
-		`{"model":"x","response_format":{"type":"text"}}`:                         "colibri",
+		`{"model":"x","response_format":{"type":"text"}}`:                         "llama",
 		`{"model":"x","adapter":"skill-abc"}`:                                     "llama",
 		`{"model":"x","tools":[{"type":"function"}]}`:                             "llama",
-		`{"model":"x","tools":[]}`:                                                "colibri",
-		// A role-framed call is HEART/INFERENCER work: never Colibri, even with no schema.
+		`{"model":"x","tools":[]}`:                                                "llama",
+		// A role-framed call is HEART/INFERENCER work: llama.cpp, always.
 		`{"model":"x","messages":[],"knirv_stage":"heart.chat","knirv_frame_hash":"h"}`: "llama",
-		`{"model":"x","knirv_stage":""}`:                                                "colibri",
-	} {
+		`{"model":"x","knirv_stage":""}`:                                                "llama",
+	}
+	for body, want := range bodies {
 		var got map[string]any
 		json.Unmarshal(post(t, r, "/v1/chat/completions", body).Body.Bytes(), &got)
 		if got["server"] != want {
@@ -256,19 +265,33 @@ func TestRouterSendsStructuredOutputAndAdaptersToTheBackendThatSupportsThem(t *t
 	if got["server"] != "llama" {
 		t.Fatalf("adapter routes belong to llama.cpp: %v", got)
 	}
+
+	// llama.cpp down: plain chat goes to Colibri; a request only llama can serve waits
+	// for it and then gets a 503 with states.
+	bReady.Store(false)
+	json.Unmarshal(post(t, r, "/v1/chat/completions", `{"model":"x","messages":[]}`).Body.Bytes(), &got)
+	if got["server"] != "colibri" {
+		t.Fatalf("plain chat must go to colibri while llama.cpp is down: %v", got)
+	}
+	rec := post(t, r, "/v1/chat/completions", `{"model":"x","response_format":{"type":"json_object"}}`)
+	if rec.Code != http.StatusServiceUnavailable || !strings.Contains(rec.Body.String(), `"llama.cpp":false`) {
+		t.Fatalf("structured output with llama.cpp down must be 503 with states: %d %s", rec.Code, rec.Body)
+	}
 }
 
-func TestRouterStartsAnOnDemandBackendAndWaitsForIt(t *testing.T) {
+// A request that needs llama.cpp while it is not ready waits for it (its Demand is
+// called); plain chat is not held up by it and goes to Colibri meanwhile.
+func TestRouterWaitsForLlamaForAStructuredRequest(t *testing.T) {
 	a, b := echoServer("colibri"), echoServer("llama")
 	defer a.Close()
 	defer b.Close()
 	var aReady, bReady atomic.Bool
 	aReady.Store(true)
-	colibri, llama := tcpBackend("colibri", a, &aReady, ""), tcpBackend("llama.cpp", b, &bReady, "")
+	llama, colibri := tcpBackend("llama.cpp", b, &bReady, ""), tcpBackend("colibri", a, &aReady, "")
 	colibri.Supports = plainChatOnly
 	var demands atomic.Int32
 	llama.Demand = func(string) { demands.Add(1); go func() { time.Sleep(300 * time.Millisecond); bReady.Store(true) }() }
-	r := NewRouter(nil, colibri, llama)
+	r := NewRouter(nil, llama, colibri)
 
 	start := time.Now()
 	var got map[string]any
@@ -276,11 +299,12 @@ func TestRouterStartsAnOnDemandBackendAndWaitsForIt(t *testing.T) {
 	if got["server"] != "llama" || time.Since(start) < 250*time.Millisecond {
 		t.Fatalf("must wait for llama.cpp to come up and use it: %v after %s", got, time.Since(start))
 	}
-	// A plain request keeps going to Colibri and does not touch llama.cpp.
+	// Plain chat during the wait goes to Colibri and does not wait on llama.cpp.
+	bReady.Store(false)
 	before := demands.Load()
 	json.Unmarshal(post(t, r, "/v1/chat/completions", `{"messages":[]}`).Body.Bytes(), &got)
 	if got["server"] != "colibri" || demands.Load() != before {
-		t.Fatalf("plain chat must stay on colibri: %v", got)
+		t.Fatalf("plain chat must go to colibri while llama.cpp is down: %v", got)
 	}
 }
 
@@ -290,9 +314,9 @@ func TestRouterGivesUpWaitingWith503(t *testing.T) {
 	defer b.Close()
 	var aReady, bReady atomic.Bool
 	aReady.Store(true)
-	colibri, llama := tcpBackend("colibri", a, &aReady, ""), tcpBackend("llama.cpp", b, &bReady, "")
+	llama, colibri := tcpBackend("llama.cpp", b, &bReady, ""), tcpBackend("colibri", a, &aReady, "")
 	colibri.Supports = plainChatOnly
-	r := NewRouter(nil, colibri, llama)
+	r := NewRouter(nil, llama, colibri)
 	r.OnDemandWait = 300 * time.Millisecond
 	rec := post(t, r, "/v1/chat/completions", `{"adapter":"x"}`)
 	if rec.Code != http.StatusServiceUnavailable || rec.Header().Get("Retry-After") == "" {
@@ -300,8 +324,26 @@ func TestRouterGivesUpWaitingWith503(t *testing.T) {
 	}
 }
 
-// With no backend able to do what the request needs, the active one gets it and
-// answers (or refuses) in its own words rather than the router inventing an outage.
+// A llama.cpp that is out for good refuses the request at once instead of waiting.
+func TestRouterRefusesAtOnceWhenTheNeededBackendIsGone(t *testing.T) {
+	a, b := echoServer("colibri"), echoServer("llama")
+	defer a.Close()
+	defer b.Close()
+	var aReady, bReady atomic.Bool
+	aReady.Store(true)
+	llama, colibri := tcpBackend("llama.cpp", b, &bReady, ""), tcpBackend("colibri", a, &aReady, "")
+	colibri.Supports = plainChatOnly
+	llama.Gone = func() bool { return true }
+	llama.Demand = func(string) {}
+	r := NewRouter(nil, llama, colibri)
+	r.OnDemandWait = 10 * time.Second
+	start := time.Now()
+	rec := post(t, r, "/v1/chat/completions", `{"tools":[{"type":"function"}]}`)
+	if rec.Code != http.StatusServiceUnavailable || time.Since(start) > 2*time.Second {
+		t.Fatalf("got %d after %s", rec.Code, time.Since(start))
+	}
+}
+
 func TestRouterForwardsToTheActiveBackendWhenNothingSupportsTheRequest(t *testing.T) {
 	a := echoServer("colibri")
 	defer a.Close()
@@ -325,7 +367,7 @@ func TestRouterAnswersHealthAndAdapterListingItselfWhenLlamaIsStopped(t *testing
 	llama := tcpBackend("llama.cpp", a, &bReady, "")
 	var demands atomic.Int32
 	llama.Demand = func(string) { demands.Add(1) }
-	r := NewRouter(nil, colibri, llama)
+	r := NewRouter(nil, llama, colibri)
 
 	rec := httptest.NewRecorder()
 	r.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/health", nil))
@@ -342,7 +384,7 @@ func TestRouterAnswersHealthAndAdapterListingItselfWhenLlamaIsStopped(t *testing
 	rec = httptest.NewRecorder()
 	r.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/v1/adapters", nil))
 	if rec.Code != http.StatusOK || demands.Load() != 0 || !strings.Contains(rec.Body.String(), `"adapters":[]`) {
-		t.Fatalf("listing must not start llama.cpp: %d %s demands=%d", rec.Code, rec.Body, demands.Load())
+		t.Fatalf("listing must not wait on llama.cpp: %d %s demands=%d", rec.Code, rec.Body, demands.Load())
 	}
 }
 
@@ -357,34 +399,43 @@ func postRole(t *testing.T, h http.Handler, role, body string) *httptest.Respons
 }
 
 // Teacher output is training data: it must come from the strong model or not at all.
-func TestTeacherRequestsAreServedOnlyByTheTeacherBackend(t *testing.T) {
+// Teacher output is training data: it comes from llama.cpp, and from Colibri only once
+// llama.cpp is out for good. A teacher request is never handed to the other backend
+// while the teacher is down.
+func TestTeacherRequestsGoToLlamaUntilItIsOutForGood(t *testing.T) {
 	a, b := echoServer("colibri"), echoServer("llama")
 	defer a.Close()
 	defer b.Close()
-	var aReady, bReady atomic.Bool
-	var teaching atomic.Bool
-	bReady.Store(true)
-	colibri, llama := tcpBackend("colibri", a, &aReady, "colibri-small"), tcpBackend("llama.cpp", b, &bReady, "")
-	colibri.Teacher = teaching.Load
-	r := NewRouter(nil, colibri, llama)
+	var aReady, bReady, out atomic.Bool
+	llama := tcpBackend("llama.cpp", b, &bReady, "qwen")
+	colibri := tcpBackend("colibri", a, &aReady, "colibri-small")
+	llama.Teacher = func() bool { return !out.Load() }
+	llama.Gone = out.Load
+	colibri.Teacher = out.Load
+	r := NewRouter(nil, llama, colibri)
 
+	// llama.cpp down, colibri up: not the teacher, so the request is refused.
+	aReady.Store(true)
+	if rec := postRole(t, r, "teacher", `{"model":"x"}`); rec.Code != http.StatusServiceUnavailable || rec.Header().Get("Retry-After") == "" || strings.Contains(rec.Body.String(), `"server":"colibri"`) {
+		t.Fatalf("a teacher request must not go to colibri while llama.cpp is the teacher: %d %s", rec.Code, rec.Body)
+	}
+
+	bReady.Store(true)
 	rec := postRole(t, r, "teacher", `{"model":"x"}`)
-	if rec.Code != http.StatusServiceUnavailable || rec.Header().Get("Retry-After") == "" || strings.Contains(rec.Body.String(), `"server":"llama"`) {
-		t.Fatalf("with colibri down a teacher request must be refused, not answered by llama.cpp: %d %s", rec.Code, rec.Body)
-	}
-	aReady.Store(true) // loaded, but not (yet) qualified
-	if rec = postRole(t, r, "teacher", `{"model":"x"}`); rec.Code != http.StatusServiceUnavailable {
-		t.Fatalf("an unqualified colibri must not teach: %d", rec.Code)
-	}
-	teaching.Store(true)
-	rec = postRole(t, r, "teacher", `{"model":"x"}`)
 	var got map[string]any
 	json.Unmarshal(rec.Body.Bytes(), &got)
-	if got["server"] != "colibri" || got["model"] != "colibri-small" {
-		t.Fatalf("%v", got)
+	if got["server"] != "llama" || got["model"] != "qwen" || rec.Header().Get(BackendHeader) != "llama.cpp" || rec.Header().Get(ModelHeader) != "qwen" {
+		t.Fatalf("llama.cpp must answer teacher requests: %v %v", got, rec.Header())
 	}
-	if rec.Header().Get(BackendHeader) != "colibri" || rec.Header().Get(ModelHeader) != "colibri-small" {
-		t.Fatalf("provenance headers missing: %v", rec.Header())
+
+	// llama.cpp out for good: colibri becomes the teacher.
+	bReady.Store(false)
+	out.Store(true)
+	rec = postRole(t, r, "teacher", `{"model":"x"}`)
+	got = nil
+	json.Unmarshal(rec.Body.Bytes(), &got)
+	if got["server"] != "colibri" || got["model"] != "colibri-small" || rec.Header().Get(BackendHeader) != "colibri" {
+		t.Fatalf("colibri must be the teacher once llama.cpp is out for good: %d %v %v", rec.Code, got, rec.Header())
 	}
 	// Ordinary traffic still sees the headers.
 	if h := post(t, r, "/v1/chat/completions", `{"model":"x"}`).Header().Get(BackendHeader); h != "colibri" {
@@ -411,44 +462,6 @@ func TestRoleFrameNeedIsDetectedFromHeaderAndBody(t *testing.T) {
 	}
 	if !(Needs{Frame: true}).Any() || (Needs{Frame: true}).String() != "a role frame" {
 		t.Fatal("Any/String")
-	}
-}
-
-// Teacher output comes from Colibri while it is enabled and from llama.cpp when it is
-// not; the response says which, and the two are never mixed.
-func TestLlamaTeachesWhenColibriIsNotEnabled(t *testing.T) {
-	a, b := echoServer("colibri"), echoServer("llama")
-	defer a.Close()
-	defer b.Close()
-	var aReady, bReady, llamaTeaches atomic.Bool
-	colibri, llama := tcpBackend("colibri", a, &aReady, "colibri-small"), tcpBackend("llama.cpp", b, &bReady, "qwen")
-	colibri.Teacher = func() bool { return !llamaTeaches.Load() }
-	llama.Teacher = llamaTeaches.Load
-	started := make(chan string, 1)
-	llama.Demand = func(reason string) { started <- reason; bReady.Store(true) }
-	r := NewRouter(nil, colibri, llama)
-	r.OnDemandWait = 5 * time.Second
-
-	// Colibri enabled but not up yet: refuse, do not hand the work to llama.cpp.
-	if rec := postRole(t, r, "teacher", `{"model":"x"}`); rec.Code != http.StatusServiceUnavailable {
-		t.Fatalf("an enabled colibri that is down must not be replaced mid-run: %d", rec.Code)
-	}
-	select {
-	case <-started:
-		t.Fatal("llama.cpp was started for a teacher request while colibri is enabled")
-	default:
-	}
-
-	// Colibri is out for good: llama.cpp is the teacher, started on demand.
-	llamaTeaches.Store(true)
-	rec := postRole(t, r, "teacher", `{"model":"x"}`)
-	var got map[string]any
-	json.Unmarshal(rec.Body.Bytes(), &got)
-	if rec.Code != 200 || got["server"] != "llama" || rec.Header().Get(BackendHeader) != "llama.cpp" {
-		t.Fatalf("%d %v %v", rec.Code, got, rec.Header())
-	}
-	if (<-started) != "teacher requests" {
-		t.Fatal("wrong demand reason")
 	}
 }
 

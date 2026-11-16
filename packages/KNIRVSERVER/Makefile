@@ -652,9 +652,15 @@ validation-chain-build: validation-chain-deps ## Build validation_chain standalo
 	@gzip -cf $(VALIDATION_CHAIN_DIR)/target/release/validationchain > $(ROOT_DIR)/pkg/embedded/validationchain/bin/validationchain
 	@echo "$(GREEN)validation_chain binary embedded: $(ROOT_DIR)/pkg/embedded/validationchain/bin/validationchain$(NC)"
 
+# Sync the embedded KNIRVBAO core wasm + pin with the current KNIRVSDK stamp so a
+# stale pin can never reach a release build.
+.PHONY: knirvbao-sync
+knirvbao-sync: ## Sync embedded knirv_core.wasm + pin constants from KNIRVSDK stamp
+	bash scripts/sync-knirvbao-core.sh
+
 # Unified Embedded Build
 .PHONY: knirvbao-build
-knirvbao-build: ## Build the pinned OpenBao daemon and KNIRV signing plugin
+knirvbao-build: knirvbao-sync ## Build the pinned OpenBao daemon and KNIRV signing plugin
 	bash scripts/build-knirvbao.sh
 
 embedded-build: validation-chain-build transaction-chain-build knirvbao-build ## Build all embedded programs

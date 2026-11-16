@@ -14,7 +14,6 @@ import (
 	"github.com/guiperry/knirv-sdk-go/secrets"
 	knirvsigning "github.com/guiperry/knirv-sdk-go/signing"
 	"github.com/knirvcorp/knirvoracle/internal/oracle"
-	oraclecrypto "github.com/knirvcorp/knirvoracle/internal/oracle/crypto"
 	"go.uber.org/zap"
 )
 
@@ -312,29 +311,27 @@ func initOracleForMode(logger *zap.Logger) (*oracle.Oracle, error) {
 // signs, votes, gossips or disburses is started; the HTTP guard refuses every
 // route outside the standby allowlist.
 //
-// The token constructor requires an owner address. On a bootnode that is
-// boot.key's master wallet key. If boot.key is absent or locked the standby
-// must still start (it is a failover ledger, not an authority), so it uses an
-// in-memory identity that is never persisted and never used to sign anything.
+// The standby never reads boot.key (Task 8.8 / plan 2a.6). Its replication
+// identity comes from secrets.Provider under AppRole oracle-standby; see
+// standby_identity.go. The token constructor's owner handle is an in-memory key
+// that never signs. If the provider cannot be reached the standby still starts,
+// with pulls disabled.
 func initStandbyOracle(logger *zap.Logger) (*oracle.Oracle, error) {
+	ctx := context.Background()
 	cfg, err := oracle.LoadConfigFromEnv()
 	if err != nil {
 		return nil, fmt.Errorf("standby: load config: %w", err)
 	}
 	cfg.Mode = oracle.ModeStandby
 
-	boot, bootErr := secrets.NewFileProvider().Boot(context.Background())
-	if bootErr == nil && boot != nil && boot.MasterWalletKeyHex != "" {
-		cfg.OwnerPrivateKey = boot.MasterWalletKeyHex
-		logger.Info("Standby Oracle identity: bootnode-master from boot.key")
+	var provider secrets.Provider
+	if p, perr := newStandbyProvider(ctx); perr != nil {
+		logger.Warn("standby OpenBao identity unavailable", zap.Error(perr))
 	} else {
-		key, keyErr := oraclecrypto.GenerateKeyPair()
-		if keyErr != nil {
-			return nil, fmt.Errorf("standby: create in-memory identity: %w", keyErr)
-		}
-		cfg.OwnerPrivateKey = key.PrivateKeyHex()
-		logger.Warn("Standby Oracle started without a usable boot.key; using an in-memory identity that never signs",
-			zap.Error(bootErr))
+		provider = p
+	}
+	if err := applyStandbyIdentity(ctx, cfg, provider, logger); err != nil {
+		return nil, err
 	}
 
 	instance, err := oracle.NewOracle(cfg, logger)

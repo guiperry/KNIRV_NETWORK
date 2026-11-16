@@ -137,6 +137,7 @@ func initEmbeddedBinaries() {
 
 	if embeddedCount > 0 {
 		if err := embedded.EnsureExtracted(); err != nil {
+			fmt.Fprintf(os.Stderr, "warning: failed to extract embedded binaries (pipelines and native libraries may not start): %v\n", err)
 		}
 	}
 }

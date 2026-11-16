@@ -147,6 +147,10 @@ func TestServerMux(t *testing.T) {
 		"/api/v1/pipeline/run",
 		"/api/v1/pipeline/status",
 		// "/api/v1/pipeline/logs", // SSE endpoint - skip in test (blocks)
+		"/api/v1/heart/decision/train",
+		"/api/v1/heart/decision/status",
+		"/api/v1/head/train",  // deprecated alias
+		"/api/v1/head/status", // deprecated alias
 		"/api/v1/verify",
 		"/api/v1/asic/discover",
 		"/api/v1/asic/probe",

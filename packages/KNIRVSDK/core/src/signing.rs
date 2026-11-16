@@ -837,6 +837,89 @@ pub fn sign_message_envelope(
         address: knirv_address(public)?,
     })
 }
+/// Why a signed message failed `check_message`. `verify_message` reports these as
+/// `Error::Validation`; the boot-node enrollment verifier maps them to its own stable
+/// failure codes. Both run the same checks in the same order.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum MessageCheck {
+    /// The envelope is not valid base64.
+    Encoding,
+    /// The envelope fields are missing or do not parse.
+    Malformed,
+    /// Domain, purpose, chain id or nonce differ from what the caller expects.
+    Domain,
+    /// Outside the validity window.
+    Window,
+    /// The public key is not a 33-byte compressed secp256k1 point.
+    PublicKey,
+    /// The stated address does not match the public key.
+    Address,
+    /// The signature is not a 64-byte r|s value.
+    SignatureEncoding,
+    /// The signature does not verify over the envelope.
+    Signature,
+}
+
+impl MessageCheck {
+    fn message(self) -> &'static str {
+        match self {
+            Self::Encoding => "message envelope is not valid base64",
+            Self::Malformed => "signed message envelope is malformed",
+            Self::Domain => "message signing domain does not match request",
+            Self::Window => "signed message is outside its validity window",
+            Self::PublicKey => "compressed secp256k1 public key must be 33 bytes and a valid point",
+            Self::Address => "message address does not match public key",
+            Self::SignatureEncoding => "signature must use Cosmos 64-byte r|s encoding",
+            Self::Signature => "signature verification failed",
+        }
+    }
+}
+
+/// Runs every check on a signed message and returns its decoded envelope fields.
+pub(crate) fn check_message(
+    signed: &SignedMessageEnvelope,
+    expected_domain: &str,
+    expected_purpose: &str,
+    expected_chain_id: &str,
+    expected_nonce: &str,
+    now_unix: u64,
+) -> std::result::Result<ParsedMessageEnvelope, MessageCheck> {
+    let envelope = BASE64
+        .decode(&signed.envelope)
+        .map_err(|_| MessageCheck::Encoding)?;
+    let fields = parse_message_envelope(&envelope).map_err(|_| MessageCheck::Malformed)?;
+    if fields.domain != expected_domain
+        || fields.purpose != expected_purpose
+        || fields.chain_id != expected_chain_id
+        || fields.nonce != expected_nonce
+    {
+        return Err(MessageCheck::Domain);
+    }
+    if now_unix < fields.issued_at_unix.saturating_sub(60) || now_unix > fields.expires_at_unix {
+        return Err(MessageCheck::Window);
+    }
+    let public_key = BASE64
+        .decode(&signed.public_key)
+        .map_err(|_| MessageCheck::PublicKey)?;
+    if public_key.len() != 33 {
+        return Err(MessageCheck::PublicKey);
+    }
+    VerifyingKey::from_sec1_bytes(&public_key).map_err(|_| MessageCheck::PublicKey)?;
+    let address = knirv_address(&public_key).map_err(|_| MessageCheck::Address)?;
+    if !signed.address.is_empty() && signed.address != address {
+        return Err(MessageCheck::Address);
+    }
+    let raw_signature = BASE64
+        .decode(&signed.signature)
+        .map_err(|_| MessageCheck::SignatureEncoding)?;
+    if raw_signature.len() != 64 {
+        return Err(MessageCheck::SignatureEncoding);
+    }
+    let digest = Sha256::digest(&envelope);
+    verify_digest(&public_key, &raw_signature, &digest).map_err(|_| MessageCheck::Signature)?;
+    Ok(fields)
+}
+
 pub fn verify_message(
     signed: &SignedMessageEnvelope,
     expected_domain: &str,
@@ -845,49 +928,16 @@ pub fn verify_message(
     expected_nonce: &str,
     now_unix: u64,
 ) -> Result<()> {
-    let envelope = BASE64
-        .decode(&signed.envelope)
-        .map_err(|e| Error::Validation(format!("decode envelope: {e}")))?;
-    let fields = parse_message_envelope(&envelope)?;
-    if fields.domain != expected_domain
-        || fields.purpose != expected_purpose
-        || fields.chain_id != expected_chain_id
-        || fields.nonce != expected_nonce
-    {
-        return Err(Error::Validation(
-            "message signing domain does not match request".into(),
-        ));
-    }
-    if now_unix < fields.issued_at_unix.saturating_sub(60) || now_unix > fields.expires_at_unix {
-        return Err(Error::Validation(
-            "signed message is outside its validity window".into(),
-        ));
-    }
-    let public_key = BASE64
-        .decode(&signed.public_key)
-        .map_err(|e| Error::Validation(format!("decode public key: {e}")))?;
-    if public_key.len() != 33 {
-        return Err(Error::Validation(
-            "compressed secp256k1 public key must be 33 bytes".into(),
-        ));
-    }
-    let address = knirv_address(&public_key)?;
-    if !signed.address.is_empty() && signed.address != address {
-        return Err(Error::Validation(
-            "message address does not match public key".into(),
-        ));
-    }
-    let raw_signature = BASE64
-        .decode(&signed.signature)
-        .map_err(|e| Error::Validation(format!("decode signature: {e}")))?;
-    if raw_signature.len() != 64 {
-        return Err(Error::Validation(
-            "signature must use Cosmos 64-byte r|s encoding".into(),
-        ));
-    }
-    let digest = Sha256::digest(&envelope);
-    verify_digest(&public_key, &raw_signature, &digest)?;
-    Ok(())
+    check_message(
+        signed,
+        expected_domain,
+        expected_purpose,
+        expected_chain_id,
+        expected_nonce,
+        now_unix,
+    )
+    .map(|_| ())
+    .map_err(|check| Error::Validation(check.message().into()))
 }
 pub fn verify_message_payload(
     signed: &SignedMessageEnvelope,
@@ -1262,9 +1312,125 @@ pub fn sign_bootnode_enroll_challenge(
     sign_message_envelope(boot_node_key, &envelope)
 }
 
-/// The root owner countersigns (approves) a boot-node challenge. The signed approval
-/// envelope's payload is the exact base64 `envelope` string of the challenge, binding
-/// the approval to that challenge (approval-to-key binding).
+/// Canonical bytes the root approves: the exact challenge envelope AND the boot-node
+/// public key it authenticates. The challenge envelope itself carries no key, so an
+/// approval over the envelope bytes alone can be paired with a challenge re-signed under
+/// another key. Field order is fixed by the struct, so the encoding is deterministic.
+#[derive(Serialize)]
+struct BootnodeApprovalPayload<'a> {
+    challenge_envelope: &'a str,
+    boot_public_key: &'a str,
+}
+
+fn bootnode_approval_payload(challenge_envelope_b64: &str, boot_public_key_b64: &str) -> Result<Vec<u8>> {
+    Ok(serde_json::to_vec(&BootnodeApprovalPayload {
+        challenge_envelope: challenge_envelope_b64,
+        boot_public_key: boot_public_key_b64,
+    })?)
+}
+
+/// Stable reason codes for a refused boot-node enrollment. `code()` is the wire name the
+/// bindings return; hosts map it to their own errors and counters. Like
+/// `evidence::Ed25519Failure`, codes are a contract: do not rename or reuse them.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum BootnodeEnrollFailure {
+    ChallengeEncoding,
+    ChallengeMalformed,
+    ChallengeDomain,
+    ChallengeWindow,
+    ChallengePublicKey,
+    ChallengeAddress,
+    ChallengeSignature,
+    OperatorMismatch,
+    ApprovalUntrustedRoot,
+    ApprovalEncoding,
+    ApprovalMalformed,
+    ApprovalDomain,
+    ApprovalWindow,
+    ApprovalPublicKey,
+    ApprovalAddress,
+    ApprovalSignature,
+    ApprovalPayloadMismatch,
+}
+
+impl BootnodeEnrollFailure {
+    pub fn code(self) -> &'static str {
+        match self {
+            Self::ChallengeEncoding => "challenge_encoding",
+            Self::ChallengeMalformed => "challenge_malformed",
+            Self::ChallengeDomain => "challenge_domain",
+            Self::ChallengeWindow => "challenge_window",
+            Self::ChallengePublicKey => "challenge_public_key",
+            Self::ChallengeAddress => "challenge_address",
+            Self::ChallengeSignature => "challenge_signature",
+            Self::OperatorMismatch => "operator_mismatch",
+            Self::ApprovalUntrustedRoot => "approval_untrusted_root",
+            Self::ApprovalEncoding => "approval_encoding",
+            Self::ApprovalMalformed => "approval_malformed",
+            Self::ApprovalDomain => "approval_domain",
+            Self::ApprovalWindow => "approval_window",
+            Self::ApprovalPublicKey => "approval_public_key",
+            Self::ApprovalAddress => "approval_address",
+            Self::ApprovalSignature => "approval_signature",
+            Self::ApprovalPayloadMismatch => "approval_payload_mismatch",
+        }
+    }
+
+    pub fn message(self) -> &'static str {
+        match self {
+            Self::ChallengeEncoding => "enrollment challenge envelope is not valid base64",
+            Self::ChallengeMalformed => "enrollment challenge is malformed",
+            Self::ChallengeDomain => "enrollment challenge domain, purpose, chain or nonce is wrong",
+            Self::ChallengeWindow => "enrollment challenge is outside its validity window",
+            Self::ChallengePublicKey => "enrollment challenge public key is invalid",
+            Self::ChallengeAddress => "enrollment challenge address does not match its key",
+            Self::ChallengeSignature => "enrollment challenge signature does not verify",
+            Self::OperatorMismatch => "enrollment operator does not match the approved operator",
+            Self::ApprovalUntrustedRoot => "enrollment approval is not signed by the trusted root key",
+            Self::ApprovalEncoding => "enrollment approval envelope is not valid base64",
+            Self::ApprovalMalformed => "enrollment approval is malformed",
+            Self::ApprovalDomain => "enrollment approval domain, purpose, chain or nonce does not match the challenge",
+            Self::ApprovalWindow => "enrollment approval is outside its validity window",
+            Self::ApprovalPublicKey => "enrollment approval public key is invalid",
+            Self::ApprovalAddress => "enrollment approval address does not match its key",
+            Self::ApprovalSignature => "enrollment approval signature does not verify",
+            Self::ApprovalPayloadMismatch => "enrollment approval does not cover this challenge and boot-node key",
+        }
+    }
+}
+
+fn challenge_failure(check: MessageCheck) -> BootnodeEnrollFailure {
+    match check {
+        MessageCheck::Encoding => BootnodeEnrollFailure::ChallengeEncoding,
+        MessageCheck::Malformed => BootnodeEnrollFailure::ChallengeMalformed,
+        MessageCheck::Domain => BootnodeEnrollFailure::ChallengeDomain,
+        MessageCheck::Window => BootnodeEnrollFailure::ChallengeWindow,
+        MessageCheck::PublicKey => BootnodeEnrollFailure::ChallengePublicKey,
+        MessageCheck::Address => BootnodeEnrollFailure::ChallengeAddress,
+        MessageCheck::SignatureEncoding | MessageCheck::Signature => {
+            BootnodeEnrollFailure::ChallengeSignature
+        }
+    }
+}
+
+fn approval_failure(check: MessageCheck) -> BootnodeEnrollFailure {
+    match check {
+        MessageCheck::Encoding => BootnodeEnrollFailure::ApprovalEncoding,
+        MessageCheck::Malformed => BootnodeEnrollFailure::ApprovalMalformed,
+        MessageCheck::Domain => BootnodeEnrollFailure::ApprovalDomain,
+        MessageCheck::Window => BootnodeEnrollFailure::ApprovalWindow,
+        MessageCheck::PublicKey => BootnodeEnrollFailure::ApprovalPublicKey,
+        MessageCheck::Address => BootnodeEnrollFailure::ApprovalAddress,
+        MessageCheck::SignatureEncoding | MessageCheck::Signature => {
+            BootnodeEnrollFailure::ApprovalSignature
+        }
+    }
+}
+
+/// The root owner countersigns (approves) a boot-node challenge. The approval's payload
+/// binds BOTH the exact base64 challenge envelope and the boot-node public key
+/// (`boot_public_key_b64`, the challenge signer's key), so the approval cannot be moved
+/// onto a challenge re-signed under a different key (approval-to-key binding).
 pub fn sign_bootnode_enroll_approval(
     root_key: &[u8; 32],
     chain_id: &str,
@@ -1272,6 +1438,7 @@ pub fn sign_bootnode_enroll_approval(
     issued_at_unix: u64,
     expires_at_unix: u64,
     challenge_envelope_b64: &str,
+    boot_public_key_b64: &str,
 ) -> Result<SignedMessageEnvelope> {
     let envelope = MessageEnvelope {
         schema_version: Some(MESSAGE_SCHEMA_VERSION.into()),
@@ -1281,27 +1448,76 @@ pub fn sign_bootnode_enroll_approval(
         nonce: nonce.into(),
         issued_at_unix,
         expires_at_unix,
-        payload: Some(challenge_envelope_b64.as_bytes().to_vec()),
+        payload: Some(bootnode_approval_payload(
+            challenge_envelope_b64,
+            boot_public_key_b64,
+        )?),
     };
     sign_message_envelope(root_key, &envelope)
 }
 
-/// Verify an approved boot-node enrollment.
+/// Verify an approved boot-node enrollment and return the challenge nonce WITHOUT
+/// consuming it. Checks, in order: the challenge is signed by its key and valid for
+/// `knirv.authority`/`bootnode-enroll` in its window; the operator claim matches
+/// `expected_operator`; the approval is signed by `expected_root_public_key_b64`; the
+/// approval is valid on the same chain and nonce; and its payload is exactly the
+/// challenge envelope plus the challenge's public key.
 ///
-/// Checks:
-///   * the challenge is a valid `knirv.authority`/`bootnode-enroll` envelope (signed by
-///     the new boot-node key) within its validity window;
-///   * the canonical operator claim inside the challenge equals `expected_operator`
-///     (operator-to-key binding — DEC-2);
-///   * the enrollment `nonce` is atomically consumed via `nonce_store` (replay
-///     prevention); the host persists consumed nonces durably across calls;
-///   * the approval is a valid `knirv.authority`/`bootnode-enroll` envelope signed by
-///     `expected_root_public_key_b64` whose payload is EXACTLY the challenge's base64
-///     envelope string (the approval-to-key binding), on the same chain;
-///   * the approval has not expired.
-///
-/// `expected_root_public_key_b64` MUST come from trusted configuration — never from the
-/// request. `now_unix` is the verification time (seconds).
+/// `expected_root_public_key_b64` MUST come from trusted configuration. Hosts persist the
+/// returned nonce through their own atomic consume-if-absent store, so a rejection here
+/// never burns the nonce.
+pub fn verify_bootnode_enrollment_auth(
+    enrollment: &BootnodeEnrollment,
+    expected_root_public_key_b64: &str,
+    expected_operator: &str,
+    now_unix: u64,
+) -> std::result::Result<String, BootnodeEnrollFailure> {
+    use BootnodeEnrollFailure as F;
+    let challenge_env = BASE64
+        .decode(&enrollment.challenge.envelope)
+        .map_err(|_| F::ChallengeEncoding)?;
+    let challenge_fields = parse_message_envelope(&challenge_env).map_err(|_| F::ChallengeMalformed)?;
+    check_message(
+        &enrollment.challenge,
+        AUTHORITY_DOMAIN,
+        PURPOSE_BOOTNODE_ENROLL,
+        &challenge_fields.chain_id,
+        &challenge_fields.nonce,
+        now_unix,
+    )
+    .map_err(challenge_failure)?;
+    // The operator claim is bound into the signed challenge payload (DEC-2).
+    let claim = serde_json::from_slice::<BootnodeEnrollClaim>(&challenge_fields.payload)
+        .map_err(|_| F::ChallengeMalformed)?;
+    if claim.operator != expected_operator {
+        return Err(F::OperatorMismatch);
+    }
+    if enrollment.approval.public_key != expected_root_public_key_b64 {
+        return Err(F::ApprovalUntrustedRoot);
+    }
+    let approval_fields = check_message(
+        &enrollment.approval,
+        AUTHORITY_DOMAIN,
+        PURPOSE_BOOTNODE_ENROLL,
+        &challenge_fields.chain_id,
+        &challenge_fields.nonce,
+        now_unix,
+    )
+    .map_err(approval_failure)?;
+    let expected_payload = bootnode_approval_payload(
+        &enrollment.challenge.envelope,
+        &enrollment.challenge.public_key,
+    )
+    .map_err(|_| F::ApprovalPayloadMismatch)?;
+    if approval_fields.payload != expected_payload {
+        return Err(F::ApprovalPayloadMismatch);
+    }
+    Ok(challenge_fields.nonce)
+}
+
+/// Verify an approved enrollment and consume its nonce through the host's store.
+/// See `verify_bootnode_enrollment_auth` for the checks; authentication runs first, so
+/// a bad approval never burns the nonce.
 pub fn verify_bootnode_enrollment(
     enrollment: &BootnodeEnrollment,
     expected_root_public_key_b64: &str,
@@ -1309,82 +1525,15 @@ pub fn verify_bootnode_enrollment(
     nonce_store: &mut dyn NonceStore,
     now_unix: u64,
 ) -> Result<()> {
-    let challenge_env = BASE64
-        .decode(&enrollment.challenge.envelope)
-        .map_err(|e| Error::Validation(format!("decode challenge envelope: {e}")))?;
-    let challenge = parse_message_envelope(&challenge_env)?;
-    verify_message(
-        &enrollment.challenge,
-        AUTHORITY_DOMAIN,
-        PURPOSE_BOOTNODE_ENROLL,
-        &challenge.chain_id,
-        &challenge.nonce,
-        now_unix,
-    )?;
-    // The operator claim is bound into the signed challenge payload; a substituted or
-    // mismatched operator fails verification (operator-to-key binding, DEC-2).
-    let claim = serde_json::from_slice::<BootnodeEnrollClaim>(&challenge.payload)
-        .map_err(|e| Error::Validation(format!("parse bootnode enroll claim: {e}")))?;
-    if claim.operator != expected_operator {
-        return Err(Error::Validation(
-            "enrollment operator does not match the approved operator".into(),
-        ));
-    }
-    // The approval must be signed by the expected root key and carry the exact
-    // challenge envelope bytes as its payload (approval-to-key binding).
-    if enrollment.approval.public_key != expected_root_public_key_b64 {
-        return Err(Error::Validation(
-            "enrollment approval not signed by the trusted root key".into(),
-        ));
-    }
-    verify_message_payload(
-        &enrollment.approval,
-        AUTHORITY_DOMAIN,
-        PURPOSE_BOOTNODE_ENROLL,
-        &challenge.chain_id,
-        enrollment.challenge.envelope.as_bytes(),
-        now_unix,
-    )?;
-    // Authenticate the full approval→challenge→root binding BEFORE touching the
-    // nonce store. Only then consume atomically, so a bad/untrusted approval can
-    // never burn the nonce and DoS the valid one (replay-safety, DEC-2).
-    nonce_store.consume(&challenge.nonce)?;
-    Ok(())
-}
-
-/// Verify a boot-node enrollment and return the consumed challenge nonce WITHOUT
-/// mutating any store. Hosts (Go/TS) performing durable replay prevention call
-/// this to authenticate, then persist the returned nonce through their own atomic
-/// `consume-if-absent` store. This keeps the cryptographic verification pure and
-/// lets the host own durable state.
-pub fn verify_bootnode_enrollment_auth(
-    enrollment: &BootnodeEnrollment,
-    expected_root_public_key_b64: &str,
-    expected_operator: &str,
-    now_unix: u64,
-) -> Result<String> {
-    let mut sink = NullNonceStore;
-    verify_bootnode_enrollment(
+    let nonce = verify_bootnode_enrollment_auth(
         enrollment,
         expected_root_public_key_b64,
         expected_operator,
-        &mut sink,
         now_unix,
-    )?;
-    let challenge_env = BASE64
-        .decode(&enrollment.challenge.envelope)
-        .map_err(|e| Error::Validation(format!("decode challenge envelope: {e}")))?;
-    let challenge = parse_message_envelope(&challenge_env)?;
-    Ok(challenge.nonce)
-}
-
-/// A `NonceStore` that records nothing; used by `verify_bootnode_enrollment_auth`
-/// to authenticate without consuming.
-struct NullNonceStore;
-impl NonceStore for NullNonceStore {
-    fn consume(&mut self, _nonce: &str) -> Result<()> {
-        Ok(())
-    }
+    )
+    .map_err(|f| Error::Validation(f.message().into()))?;
+    nonce_store.consume(&nonce)?;
+    Ok(())
 }
 
 pub fn parse_message_envelope(data: &[u8]) -> Result<ParsedMessageEnvelope> {
@@ -1865,7 +2014,7 @@ fn verify_digest(public_key: &[u8], signature: &[u8], digest: &[u8]) -> Result<(
 mod tests {
     use super::*;
     use bech32::{encode as b32_encode, Bech32, Hrp};
-    use serde_json::Value;
+    use serde_json::{json, Value};
 
     fn test_key() -> [u8; 32] {
         // Deterministic key for tests only.
@@ -2414,6 +2563,7 @@ mod tests {
             now,
             now + 600,
             &challenge.envelope,
+            &challenge.public_key,
         )
         .expect("approval");
         let enrollment = BootnodeEnrollment { challenge, approval };
@@ -2440,7 +2590,7 @@ mod tests {
         )
         .unwrap();
         let approval =
-            sign_bootnode_enroll_approval(&root_key, ROOT_ID, "enroll:1", now, now + 600, &challenge.envelope)
+            sign_bootnode_enroll_approval(&root_key, ROOT_ID, "enroll:1", now, now + 600, &challenge.envelope, &challenge.public_key)
                 .unwrap();
         let enrollment = BootnodeEnrollment { challenge, approval };
         let mut store = MemoryNonceStore::new();
@@ -2471,6 +2621,7 @@ mod tests {
             now,
             now + 600,
             "tampered-challenge-envelope",
+            &challenge.public_key,
         )
         .unwrap();
         let enrollment = BootnodeEnrollment { challenge, approval };
@@ -2501,6 +2652,7 @@ mod tests {
             now,
             now + 600,
             &challenge.envelope,
+            &challenge.public_key,
         )
         .unwrap();
         let enrollment = BootnodeEnrollment { challenge, approval };
@@ -2531,6 +2683,7 @@ mod tests {
             now,
             now + 600,
             &challenge.envelope,
+            &challenge.public_key,
         )
         .unwrap();
         let enrollment = BootnodeEnrollment { challenge, approval };
@@ -2561,9 +2714,10 @@ mod tests {
         )
         .unwrap();
         let approval =
-            sign_bootnode_enroll_approval(&root_key, ROOT_ID, "enroll:1", now, now + 600, &challenge.envelope)
+            sign_bootnode_enroll_approval(&root_key, ROOT_ID, "enroll:1", now, now + 600, &challenge.envelope, &challenge.public_key)
                 .unwrap();
         let challenge_env = challenge.envelope.clone();
+        let challenge_pk = challenge.public_key.clone();
         let enrollment = BootnodeEnrollment { challenge, approval };
         let mut store = MemoryNonceStore::new();
         // A bad approval (signed by an untrusted root) is rejected BEFORE the nonce is
@@ -2583,11 +2737,155 @@ mod tests {
                 b"x",
             )
             .unwrap(),
-            approval: sign_bootnode_enroll_approval(&root_key, ROOT_ID, "enroll:1", now, now + 600, &challenge_env)
+            approval: sign_bootnode_enroll_approval(&root_key, ROOT_ID, "enroll:1", now, now + 600, &challenge_env, &challenge_pk)
                 .unwrap(),
         };
         verify_bootnode_enrollment(&valid, &root_pk, "operator:alice", &mut store, now)
             .expect("valid enrollment must still verify after a prior invalid one");
+    }
+
+    /// A valid enrollment for `enroll_keys()`, operator `operator:alice`, nonce `enroll:f`.
+    fn valid_enrollment(now: u64) -> (BootnodeEnrollment, String) {
+        let (boot_key, root_key) = enroll_keys();
+        let (root_pk, _) = signer_identity(&root_key);
+        let challenge = sign_bootnode_enroll_challenge(
+            &boot_key, ROOT_ID, "enroll:f", now, now + 600, "operator:alice", b"x",
+        )
+        .unwrap();
+        let approval = sign_bootnode_enroll_approval(
+            &root_key, ROOT_ID, "enroll:f", now, now + 600,
+            &challenge.envelope, &challenge.public_key,
+        )
+        .unwrap();
+        (BootnodeEnrollment { challenge, approval }, root_pk)
+    }
+
+    fn failure_of(e: &BootnodeEnrollment, root_pk: &str, operator: &str, now: u64) -> BootnodeEnrollFailure {
+        verify_bootnode_enrollment_auth(e, root_pk, operator, now).expect_err("expected a refusal")
+    }
+
+    #[test]
+    fn bootnode_enrollment_valid_returns_nonce() {
+        let now = 1_700_000_000u64;
+        let (e, root_pk) = valid_enrollment(now);
+        assert_eq!(verify_bootnode_enrollment_auth(&e, &root_pk, "operator:alice", now).unwrap(), "enroll:f");
+    }
+
+    #[test]
+    fn bootnode_enrollment_failure_codes_are_stable() {
+        let now = 1_700_000_000u64;
+        let (base, root_pk) = valid_enrollment(now);
+        let zero_sig = BASE64.encode([0u8; 64]);
+        let mut cases: Vec<(&str, BootnodeEnrollFailure)> = Vec::new();
+
+        let mut e = base.clone();
+        e.challenge.envelope = "!!!".into();
+        cases.push(("challenge_encoding", failure_of(&e, &root_pk, "operator:alice", now)));
+
+        let mut e = base.clone();
+        e.challenge.envelope = BASE64.encode([0xffu8]);
+        cases.push(("challenge_malformed", failure_of(&e, &root_pk, "operator:alice", now)));
+
+        let mut e = base.clone();
+        e.challenge.signature = zero_sig.clone();
+        cases.push(("challenge_signature", failure_of(&e, &root_pk, "operator:alice", now)));
+
+        let mut e = base.clone();
+        e.challenge.public_key = BASE64.encode([2u8; 10]);
+        cases.push(("challenge_public_key", failure_of(&e, &root_pk, "operator:alice", now)));
+
+        let mut e = base.clone();
+        e.challenge.address = "knirv1notthisaddress".into();
+        cases.push(("challenge_address", failure_of(&e, &root_pk, "operator:alice", now)));
+
+        cases.push(("challenge_window", failure_of(&base, &root_pk, "operator:alice", now + 10_000)));
+        cases.push(("operator_mismatch", failure_of(&base, &root_pk, "operator:bob", now)));
+
+        let (other_root_pk, _) = signer_identity(&enroll_keys().0);
+        cases.push(("approval_untrusted_root", failure_of(&base, &other_root_pk, "operator:alice", now)));
+
+        let mut e = base.clone();
+        e.approval.envelope = "!!!".into();
+        cases.push(("approval_encoding", failure_of(&e, &root_pk, "operator:alice", now)));
+
+        let mut e = base.clone();
+        e.approval.envelope = BASE64.encode([0xffu8]);
+        cases.push(("approval_malformed", failure_of(&e, &root_pk, "operator:alice", now)));
+
+        let mut e = base.clone();
+        e.approval.signature = zero_sig;
+        cases.push(("approval_signature", failure_of(&e, &root_pk, "operator:alice", now)));
+
+        // Approval signed for another chain: its domain/chain no longer matches the challenge.
+        let (boot_key, root_key) = enroll_keys();
+        let challenge = base.challenge.clone();
+        let mut e = base.clone();
+        e.approval = sign_bootnode_enroll_approval(
+            &root_key, "other-chain", "enroll:f", now, now + 600,
+            &challenge.envelope, &challenge.public_key,
+        )
+        .unwrap();
+        cases.push(("approval_domain", failure_of(&e, &root_pk, "operator:alice", now)));
+
+        // Approval that has already expired.
+        let mut e = base.clone();
+        e.approval = sign_bootnode_enroll_approval(
+            &root_key, ROOT_ID, "enroll:f", now - 1000, now - 500,
+            &challenge.envelope, &challenge.public_key,
+        )
+        .unwrap();
+        cases.push(("approval_window", failure_of(&e, &root_pk, "operator:alice", now)));
+        let _ = boot_key;
+
+        for (want, got) in cases {
+            assert_eq!(got.code(), want, "wrong code for {want}");
+            assert!(!got.message().is_empty());
+        }
+    }
+
+    /// The approval must cover the boot-node key. The envelope carries no key, so an
+    /// attacker holding a copy of the approved envelope can re-sign it under their own
+    /// key. The legacy approval (envelope bytes only) accepted that substitution.
+    #[test]
+    fn bootnode_approval_rejects_substituted_boot_key() {
+        let now = 1_700_000_000u64;
+        let (legit, root_pk) = valid_enrollment(now);
+        let mut attacker = [0u8; 32];
+        attacker[0] = 0x05;
+        let attacker_challenge = sign_bootnode_enroll_challenge(
+            &attacker, ROOT_ID, "enroll:f", now, now + 600, "operator:alice", b"x",
+        )
+        .unwrap();
+        // Same envelope bytes, different signer: the approved challenge is reproduced exactly.
+        assert_eq!(attacker_challenge.envelope, legit.challenge.envelope);
+        assert_ne!(attacker_challenge.public_key, legit.challenge.public_key);
+        let substituted = BootnodeEnrollment { challenge: attacker_challenge, approval: legit.approval };
+        assert_eq!(
+            failure_of(&substituted, &root_pk, "operator:alice", now),
+            BootnodeEnrollFailure::ApprovalPayloadMismatch
+        );
+        let mut store = MemoryNonceStore::new();
+        assert!(verify_bootnode_enrollment(&substituted, &root_pk, "operator:alice", &mut store, now).is_err());
+        assert!(!store.contains("enroll:f"));
+    }
+
+    #[test]
+    fn bootnode_failure_code_reaches_the_binding() {
+        let now = 1_700_000_000u64;
+        let (mut e, root_pk) = valid_enrollment(now);
+        e.challenge.signature = BASE64.encode([0u8; 64]);
+        let payload = json!({
+            "enrollment": e,
+            "expected_root_public_key": root_pk,
+            "expected_operator": "operator:alice",
+            "now_unix": now,
+        });
+        let out = crate::bindings::local_operation("signing.verify_bootnode_enrollment", &payload)
+            .expect("known operation")
+            .expect("verdict, not an error");
+        assert_eq!(out["valid"], false);
+        assert_eq!(out["code"], "challenge_signature");
+        assert!(out["message"].as_str().unwrap().contains("signature"));
     }
 }
 

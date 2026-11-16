@@ -10,23 +10,13 @@ import (
 	"os/exec"
 	"os/user"
 	"path/filepath"
+	"strings"
 	"sync"
 	"syscall"
 	"time"
 
 	"go.uber.org/zap"
 )
-
-func killStaleGraph(binaryPath string) {
-	if binaryPath == "" {
-		return
-	}
-	binaryName := filepath.Base(binaryPath)
-	if cmd := exec.Command("pkill", "-TERM", "-x", binaryName); cmd.Run() == nil {
-		time.Sleep(1 * time.Second)
-	}
-	exec.Command("pkill", "-KILL", "-x", binaryName).Run()
-}
 
 func waitForPortFree(port int, deadline time.Duration) bool {
 	end := time.Now().Add(deadline)
@@ -45,6 +35,7 @@ type Manager struct {
 	binaryPath string
 	config     *ManagerConfig
 	cmd        *exec.Cmd
+	pidFile    string
 	logger     *zap.Logger
 	client     *http.Client
 	mu         sync.RWMutex
@@ -65,6 +56,11 @@ type ManagerConfig struct {
 	Stdout        io.Writer
 	Stderr        io.Writer
 	EnvOverrides  map[string]string
+	// AppDataDir, when set, is the app data directory the child's ulorad
+	// variables are derived from. Empty means resolve it the same way the
+	// package always has (getAppDataDir). The launcher sets it so the child and
+	// the launcher agree on one directory.
+	AppDataDir string
 }
 
 type HealthStatus struct {
@@ -113,12 +109,22 @@ func NewManager(cfg *ManagerConfig, logger *zap.Logger) *Manager {
 	return m
 }
 
+// defaultSystemAppDataDir is the system app data directory the launcher prefers.
+// It is a var so tests can point it at a temp directory.
+var defaultSystemAppDataDir = "/var/lib/knirvserver"
+
+// getAppDataDir uses the same order as the launcher's getAppDataDir
+// (internal/launcher): KNIRV_APP_DATA_DIR, then /var/lib/knirvserver when writable,
+// then $XDG_DATA_HOME/knirvserver, then ~/.local/share/knirvserver.
 func getAppDataDir() string {
-	if explicit := os.Getenv("KNIRV_APP_DATA_DIR"); explicit != "" {
+	if explicit := strings.TrimSpace(os.Getenv("KNIRV_APP_DATA_DIR")); explicit != "" {
 		return explicit
 	}
-	if err := os.MkdirAll("/var/lib/knirvserver", 0755); err == nil {
-		return "/var/lib/knirvserver"
+	if mkdirIfUsable(defaultSystemAppDataDir) {
+		return defaultSystemAppDataDir
+	}
+	if xdg := strings.TrimSpace(os.Getenv("XDG_DATA_HOME")); xdg != "" {
+		return filepath.Join(xdg, "knirvserver")
 	}
 	if home, err := os.UserHomeDir(); err == nil {
 		return filepath.Join(home, ".local", "share", "knirvserver")
@@ -127,6 +133,52 @@ func getAppDataDir() string {
 		return filepath.Join(usr.HomeDir, ".local", "share", "knirvserver")
 	}
 	return filepath.Join(os.TempDir(), "knirvserver", "data")
+}
+
+// mkdirIfUsable creates path and reports whether it is writable (a temp file is
+// created and removed), matching the launcher's probe.
+func mkdirIfUsable(path string) bool {
+	if err := os.MkdirAll(path, 0755); err != nil {
+		return false
+	}
+	f, err := os.CreateTemp(path, ".knirv-write-test-*")
+	if err != nil {
+		return false
+	}
+	name := f.Name()
+	closeErr := f.Close()
+	removeErr := os.Remove(name)
+	return closeErr == nil && removeErr == nil
+}
+
+// graphChildUloraEnv names the ulorad data directory for the KNIRVGRAPH child
+// explicitly, so its token lookup does not depend on inheriting the launcher's
+// environment. It is the same directory the launcher gives ulorad.
+func graphChildUloraEnv(appDataDir string) []string {
+	return []string{
+		"KNIRV_APP_DATA_DIR=" + appDataDir,
+		"ULORA_DATA_DIR=" + filepath.Join(appDataDir, "ulora"),
+	}
+}
+
+// graphChildEnv builds the environment for the KNIRVGRAPH child process: the
+// inherited environment, then the KNIRVGRAPH ports and data path, then the ulorad
+// data directory for appDataDir, then cfg.EnvOverrides. Later entries win, so the
+// ulorad directory overrides any inherited copy and EnvOverrides can override all.
+// Start uses this seam so the env it hands the child is testable.
+func graphChildEnv(cfg *ManagerConfig, inherited []string, appDataDir string) []string {
+	env := append([]string{}, inherited...)
+	env = append(env,
+		fmt.Sprintf("KNIRVGRAPH_PORT=%d", cfg.Port),
+		fmt.Sprintf("KNIRVGRAPH_P2P_PORT=%d", cfg.P2PPort),
+		fmt.Sprintf("KNIRVGRAPH_API_PORT=%d", cfg.APIPort),
+		fmt.Sprintf("KNIRVGRAPH_DATA_PATH=%s", cfg.DataPath),
+	)
+	env = append(env, graphChildUloraEnv(appDataDir)...)
+	for k, v := range cfg.EnvOverrides {
+		env = append(env, fmt.Sprintf("%s=%s", k, v))
+	}
+	return env
 }
 
 func DefaultConfig() *ManagerConfig {
@@ -216,7 +268,12 @@ func (m *Manager) Start() error {
 		return fmt.Errorf("failed to create data directory: %w", err)
 	}
 
-	killStaleGraph(m.binaryPath)
+	appDataDir := m.config.AppDataDir
+	if appDataDir == "" {
+		appDataDir = getAppDataDir()
+	}
+	m.pidFile = pidFilePath(appDataDir)
+	killStaleGraph(m.pidFile, filepath.Base(m.binaryPath))
 	if !waitForPortFree(m.config.Port, 5*time.Second) {
 		m.logger.Warn("Port not free, proceeding anyway", zap.Int("port", m.config.Port))
 	}
@@ -233,15 +290,7 @@ func (m *Manager) Start() error {
 		m.cmd.Args = append(m.cmd.Args, "--socket", m.config.SocketPath)
 	}
 
-	m.cmd.Env = append(os.Environ(),
-		fmt.Sprintf("KNIRVGRAPH_PORT=%d", m.config.Port),
-		fmt.Sprintf("KNIRVGRAPH_P2P_PORT=%d", m.config.P2PPort),
-		fmt.Sprintf("KNIRVGRAPH_API_PORT=%d", m.config.APIPort),
-		fmt.Sprintf("KNIRVGRAPH_DATA_PATH=%s", m.config.DataPath),
-	)
-	for k, v := range m.config.EnvOverrides {
-		m.cmd.Env = append(m.cmd.Env, fmt.Sprintf("%s=%s", k, v))
-	}
+	m.cmd.Env = graphChildEnv(m.config, os.Environ(), appDataDir)
 
 	if m.config.Stdout != nil {
 		m.cmd.Stdout = m.config.Stdout
@@ -256,6 +305,11 @@ func (m *Manager) Start() error {
 
 	if err := m.cmd.Start(); err != nil {
 		return fmt.Errorf("failed to start KNIRVGRAPH: %w", err)
+	}
+
+	if err := writePIDFile(m.pidFile, m.cmd.Process.Pid); err != nil {
+		m.logger.Warn("Could not record KNIRVGRAPH pid; a later start cannot clean it up",
+			zap.String("pid_file", m.pidFile), zap.Error(err))
 	}
 
 	m.running = true
@@ -319,6 +373,9 @@ func (m *Manager) Stop() error {
 		m.cmd.Wait()
 	}
 
+	if m.pidFile != "" {
+		removePIDFileFor(m.pidFile, m.cmd.Process.Pid)
+	}
 	m.running = false
 	m.logger.Info("KNIRVGRAPH stopped")
 	return nil

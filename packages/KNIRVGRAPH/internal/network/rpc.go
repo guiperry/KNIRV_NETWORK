@@ -4,8 +4,8 @@ import (
 	"KNIRVGRAPH/internal/drq"
 	"KNIRVGRAPH/internal/economics"
 	"KNIRVGRAPH/internal/indexing"
+	"KNIRVGRAPH/internal/locator"
 	graphmetrics "KNIRVGRAPH/internal/metrics"
-	"KNIRVGRAPH/internal/nrv"
 	"KNIRVGRAPH/internal/query"
 	"KNIRVGRAPH/internal/types"
 	"context"
@@ -30,7 +30,7 @@ import (
 
 type RPCServer struct {
 	graphchain      GraphChainInterface
-	nrvSystem       *nrv.NRVSystem
+	nrvSystem       *locator.LocatorSystem
 	nrnIntegration  *economics.NRNIntegration
 	proofOfSolution *economics.ProofOfSolution
 	app             AppInterface
@@ -40,7 +40,7 @@ type RPCServer struct {
 	socketPath      string
 	txMu            sync.Mutex
 	ragMetrics      *graphmetrics.RAGMetrics
-	errorTests      *nrv.ErrorTestSuiteStore
+	errorTests      *locator.ErrorTestSuiteStore
 }
 
 type GraphChainInterface interface {
@@ -84,7 +84,7 @@ func NewRPCServer(gc GraphChainInterface, logger *zap.Logger, port int) *RPCServ
 	return NewRPCServerWithNRV(gc, nil, logger, port)
 }
 
-func NewRPCServerWithNRV(gc GraphChainInterface, nrvSys *nrv.NRVSystem, logger *zap.Logger, port int) *RPCServer {
+func NewRPCServerWithNRV(gc GraphChainInterface, nrvSys *locator.LocatorSystem, logger *zap.Logger, port int) *RPCServer {
 	router := mux.NewRouter()
 
 	rpc := &RPCServer{
@@ -151,7 +151,7 @@ func NewRPCServerWithNRV(gc GraphChainInterface, nrvSys *nrv.NRVSystem, logger *
 }
 
 // NewRPCServerWithEconomics creates a new RPC server with economics integration
-func NewRPCServerWithEconomics(gc GraphChainInterface, nrvSys *nrv.NRVSystem, nrnIntegration *economics.NRNIntegration, proofOfSolution *economics.ProofOfSolution, app AppInterface, logger *zap.Logger, port int, socketPath string) *RPCServer {
+func NewRPCServerWithEconomics(gc GraphChainInterface, nrvSys *locator.LocatorSystem, nrnIntegration *economics.NRNIntegration, proofOfSolution *economics.ProofOfSolution, app AppInterface, logger *zap.Logger, port int, socketPath string) *RPCServer {
 	router := mux.NewRouter()
 	registry := prometheus.NewRegistry()
 
@@ -653,7 +653,7 @@ func (rpc *RPCServer) createError(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(map[string]interface{}{"status": "created", "error_id": "error_demo_" + req.ErrorType, "severity": req.Severity, "message": "demo error created"})
 		return
 	}
-	errContext, stripped := nrv.StripResolverClaims(req.Context)
+	errContext, stripped := locator.StripResolverClaims(req.Context)
 	if len(stripped) > 0 {
 		rpc.logger.Warn("Stripped resolver claims from submitted error context", zap.Strings("keys", stripped))
 	}
@@ -760,7 +760,7 @@ func (rpc *RPCServer) createErrorCommit(w http.ResponseWriter, r *http.Request) 
 	}
 	// The root binds what the reporter submitted; the stored node drops any
 	// resolver attribution, which this public route cannot authorise.
-	errContext, stripped := nrv.StripResolverClaims(commit.Context)
+	errContext, stripped := locator.StripResolverClaims(commit.Context)
 	if len(stripped) > 0 {
 		rpc.logger.Warn("Stripped resolver claims from committed error context",
 			zap.Strings("keys", stripped), zap.String("signer_id", commit.SignerID))
@@ -790,7 +790,7 @@ func (rpc *RPCServer) getAllSkills(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(skills)
 }
 
-// createSkill creates a KNIRVGRAPH nrv.SkillNode.
+// createSkill creates a KNIRVGRAPH locator.SkillNode.
 //
 // Deprecated: this endpoint is retained for backward compatibility only.
 // New skill registrations should go through KNIRVCHAIN's own SkillNode
@@ -827,7 +827,7 @@ func (rpc *RPCServer) createSkill(w http.ResponseWriter, r *http.Request) {
 	// mint can later be addressed and rolled back by ID. Absent an explicit
 	// ID, the derived-ID path is used, exactly as before.
 	var (
-		skillNode *nrv.SkillNode
+		skillNode *locator.SkillNode
 		err       error
 	)
 	if req.SkillID != "" {
@@ -1304,7 +1304,7 @@ func (rpc *RPCServer) ObserveIndexCompletion(duration time.Duration, err error) 
 
 // ── Demo data helpers ────────────────────────────────────────────────────
 
-// SkillNodeResponse mirrors nrv.SkillNode for demo data when NRV system is unavailable
+// SkillNodeResponse mirrors locator.SkillNode for demo data when NRV system is unavailable
 type SkillNodeResponse struct {
 	ID           string                      `json:"id"`
 	SkillType    string                      `json:"skill_type"`
@@ -1315,7 +1315,7 @@ type SkillNodeResponse struct {
 	Timestamp    string                      `json:"timestamp"`
 }
 
-// PerformanceMetricsResponse mirrors nrv.PerformanceMetrics
+// PerformanceMetricsResponse mirrors locator.PerformanceMetrics
 type PerformanceMetricsResponse struct {
 	SuccessRate       float64 `json:"success_rate"`
 	AvgResolutionTime float64 `json:"avg_resolution_time"`
@@ -1323,7 +1323,7 @@ type PerformanceMetricsResponse struct {
 	LastUpdated       string  `json:"last_updated"`
 }
 
-// ValidationStatusResponse mirrors nrv.ValidationStatus
+// ValidationStatusResponse mirrors locator.ValidationStatus
 type ValidationStatusResponse struct {
 	IsValidated     bool     `json:"is_validated"`
 	ValidatedBy     []string `json:"validated_by"`
@@ -1331,7 +1331,7 @@ type ValidationStatusResponse struct {
 	LastValidated   string   `json:"last_validated"`
 }
 
-// ErrorNodeResponse mirrors nrv.ErrorNode for demo data
+// ErrorNodeResponse mirrors locator.ErrorNode for demo data
 type ErrorNodeResponse struct {
 	ID               string                 `json:"id"`
 	ErrorType        string                 `json:"error_type"`
@@ -1343,8 +1343,8 @@ type ErrorNodeResponse struct {
 	Timestamp        string                 `json:"timestamp"`
 }
 
-// NRVVectorResponse mirrors nrv.NetworkResolutionVector for demo data
-type NRVVectorResponse struct {
+// LocatorVectorResponse mirrors locator.ResolutionLocator for demo data
+type LocatorVectorResponse struct {
 	ID          string                 `json:"id"`
 	SourcePeer  string                 `json:"source_peer"`
 	TargetHash  string                 `json:"target_hash"`
@@ -1416,8 +1416,8 @@ func getDemoErrors() []ErrorNodeResponse {
 	}
 }
 
-func getDemoVectors() []NRVVectorResponse {
-	return []NRVVectorResponse{
+func getDemoVectors() []LocatorVectorResponse {
+	return []LocatorVectorResponse{
 		{ID: "vec_001", SourcePeer: "peer_node_01", TargetHash: "abc123def456", Coordinates: []float64{0.12, 0.45, 0.78, 0.23, 0.91}, Confidence: 0.85,
 			Timestamp: "2025-05-15T10:30:00Z", Metadata: map[string]interface{}{"source": "nrv_resolve", "dimension": 5}},
 		{ID: "vec_002", SourcePeer: "peer_node_02", TargetHash: "ghi789jkl012", Coordinates: []float64{0.34, 0.67, 0.21, 0.89, 0.56}, Confidence: 0.92,

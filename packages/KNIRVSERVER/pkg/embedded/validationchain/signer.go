@@ -29,11 +29,22 @@ func LoadCheckpointSigner() (knirvsigning.RemoteSigner, error) {
 	if err != nil {
 		return nil, err
 	}
+	keyBytes, err := checkpointKeyBytes(hexKey)
+	if err != nil {
+		return nil, err
+	}
+	return knirvsigning.NewLocalSigner(keyBytes)
+}
+
+// checkpointKeyBytes validates a provisioned secp256k1 scalar given as hex and
+// returns its 32-byte big-endian form. The validation rules and error text are
+// those of crypto.HexToECDSA; the parsed key object does not leave this function.
+func checkpointKeyBytes(hexKey string) ([]byte, error) {
 	key, err := crypto.HexToECDSA(hexKey)
 	if err != nil {
 		return nil, fmt.Errorf("Validation Chain service key is not valid secp256k1: %w", err)
 	}
-	return knirvsigning.NewLocalSigner(crypto.FromECDSA(key))
+	return crypto.FromECDSA(key), nil
 }
 
 // LoadCheckpointPrivateKeyHex returns the provisioned key as hex for the

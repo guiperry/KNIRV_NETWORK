@@ -44,16 +44,57 @@ type Service struct {
 	// (re)load and the call always see one consistent (runner, version, info).
 	rmu sync.Mutex
 
-	mu       sync.Mutex
-	runner   *Runner
-	loaded   string // version currently in the runner
-	info     Info
-	hashes   map[string]string
-	hashSize map[string]int64
+	mu          sync.Mutex
+	runner      *Runner
+	loaded      string // load key (version, optionally @adapter-hash) currently in the runner
+	info        Info
+	adapter     json.RawMessage
+	adapterHash string
+	loads       int // successful (re)loads of the live model; a cache hit does not increment
+	hashes      map[string]string
+	hashSize    map[string]int64
 }
 
 func NewService(dir string) *Service {
 	return &Service{Dir: dir, hashes: map[string]string{}, hashSize: map[string]int64{}}
+}
+
+// SetAdapter installs a KNIRVULORA adapter (the JSON returned by
+// POST /ulora/v1/bind), or clears it with nil. The next request reloads the
+// model and merges the adapter; a rejected adapter leaves the previous model
+// serving. The merged weights are cached in the live runner under
+// version@adapter-hash, so repeating the same adapter is a cache hit.
+func (s *Service) SetAdapter(adapter []byte) error {
+	var raw json.RawMessage
+	var hash string
+	if len(adapter) > 0 {
+		var probe map[string]json.RawMessage
+		if err := json.Unmarshal(adapter, &probe); err != nil {
+			return fmt.Errorf("adapter: %w", err)
+		}
+		// null decodes to a nil map without error, and a non-adapter object would
+		// only fail at the next request. Refuse both here.
+		if probe == nil {
+			return fmt.Errorf("adapter must be a JSON object, not null")
+		}
+		if layers, ok := probe["layers"]; !ok || string(layers) == "null" {
+			return fmt.Errorf("adapter has no layers; expected the JSON returned by POST /ulora/v1/bind")
+		}
+		raw = append(json.RawMessage(nil), adapter...)
+		sum := sha256.Sum256(adapter)
+		hash = hex.EncodeToString(sum[:])
+	}
+	s.mu.Lock()
+	s.adapter, s.adapterHash = raw, hash
+	s.mu.Unlock()
+	return nil
+}
+
+func loadKey(version, adapterHash string) string {
+	if adapterHash == "" {
+		return version
+	}
+	return version + "@" + adapterHash
 }
 
 func (s *Service) latestVersion() (string, error) {
@@ -210,7 +251,9 @@ func (s *Service) reasonSetsOnce(ctx context.Context, questions json.RawMessage)
 	}
 	s.mu.Lock()
 	runner, loaded, info := s.runner, s.loaded, s.info
+	adapter, adapterHash := s.adapter, s.adapterHash
 	s.mu.Unlock()
+	want := loadKey(v, adapterHash)
 	if runner == nil {
 		if runner, err = NewRunner(context.Background(), s.Dir); err != nil {
 			return nil, err
@@ -221,8 +264,8 @@ func (s *Service) reasonSetsOnce(ctx context.Context, questions json.RawMessage)
 		s.runner, s.loaded = runner, ""
 		s.mu.Unlock()
 	}
-	if loaded != v {
-		info, err = runner.LoadCtx(ctx, "head_config.json", "model-"+v+".safetensors")
+	if loaded != want {
+		info, err = runner.LoadCtx(ctx, "head_config.json", "model-"+v+".safetensors", adapter)
 		if err != nil {
 			if errors.Is(err, ErrRunnerDead) {
 				return nil, err
@@ -230,7 +273,8 @@ func (s *Service) reasonSetsOnce(ctx context.Context, questions json.RawMessage)
 			return nil, fmt.Errorf("load %s: %w", v, err)
 		}
 		s.mu.Lock()
-		s.loaded, s.info = v, info
+		s.loaded, s.info = want, info
+		s.loads++
 		s.mu.Unlock()
 	}
 	if len(questions) == 0 {
@@ -258,7 +302,9 @@ func (s *Service) reasonOnce(ctx context.Context, tokens []uint32) (json.RawMess
 	}
 	s.mu.Lock()
 	runner, loaded, info := s.runner, s.loaded, s.info
+	adapter, adapterHash := s.adapter, s.adapterHash
 	s.mu.Unlock()
+	want := loadKey(v, adapterHash)
 	if runner == nil {
 		if runner, err = NewRunner(context.Background(), s.Dir); err != nil {
 			return nil, err
@@ -269,8 +315,8 @@ func (s *Service) reasonOnce(ctx context.Context, tokens []uint32) (json.RawMess
 		s.runner, s.loaded = runner, ""
 		s.mu.Unlock()
 	}
-	if loaded != v {
-		info, err = runner.LoadCtx(ctx, "head_config.json", "model-"+v+".safetensors")
+	if loaded != want {
+		info, err = runner.LoadCtx(ctx, "head_config.json", "model-"+v+".safetensors", adapter)
 		if err != nil {
 			if errors.Is(err, ErrRunnerDead) {
 				return nil, err
@@ -278,7 +324,8 @@ func (s *Service) reasonOnce(ctx context.Context, tokens []uint32) (json.RawMess
 			return nil, fmt.Errorf("load %s: %w", v, err)
 		}
 		s.mu.Lock()
-		s.loaded, s.info = v, info
+		s.loaded, s.info = want, info
+		s.loads++
 		s.mu.Unlock()
 	}
 	if len(tokens) == 0 || len(tokens) > info.MaxInputLen {
@@ -295,7 +342,11 @@ func (s *Service) Status() map[string]any {
 	if err != nil {
 		return map[string]any{"ready": false, "reason": err.Error()}
 	}
-	return map[string]any{"ready": true, "version": v, "loaded": s.loaded == v}
+	st := map[string]any{"ready": true, "version": v, "loaded": s.loaded == loadKey(v, s.adapterHash)}
+	if s.adapterHash != "" {
+		st["adapter"] = s.adapterHash
+	}
+	return st
 }
 
 func (s *Service) Close(ctx context.Context) {

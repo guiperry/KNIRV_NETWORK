@@ -24,6 +24,7 @@ type Server struct {
 	ln        net.Listener
 	server    *http.Server
 	startTime time.Time
+	adapters  adapterRegistry
 }
 
 func NewServer(cfg *config.Config) (*Server, error) {
@@ -58,6 +59,11 @@ func NewServer(cfg *config.Config) (*Server, error) {
 	// A bundle bound to a llama base model and written as a GGUF LoRA adapter.
 	mux.Handle("/ulora/v1/adapters/gguf", s.authMiddleware(http.HandlerFunc(s.handleGGUFAdapter)))
 	mux.Handle("/ulora/v1/connectors/derive", s.authMiddleware(http.HandlerFunc(s.handleDeriveConnector)))
+	// Adapters named in <DataDir>/adapters/autoload.json, verified against their
+	// base model at start (see autoload.go).
+	mux.Handle("/ulora/v1/adapters/autoloaded", s.authMiddleware(http.HandlerFunc(s.handleAutoloaded)))
+
+	s.autoloadAdapters()
 
 	return s, nil
 }

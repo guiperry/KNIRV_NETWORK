@@ -17,7 +17,7 @@ import (
 
 	"KNIRVGRAPH/internal/drq"
 	"KNIRVGRAPH/internal/embeddings"
-	"KNIRVGRAPH/internal/nrv"
+	"KNIRVGRAPH/internal/locator"
 	"KNIRVGRAPH/internal/types"
 
 	"go.uber.org/zap"
@@ -88,7 +88,7 @@ type drqRuntime struct {
 
 // errorSource supplies ingested error nodes.
 type errorSource interface {
-	GetAllErrorNodes() []*nrv.ErrorNode
+	GetAllErrorNodes() []*locator.ErrorNode
 }
 
 // drqStatus is the loop's observable state, re-exported from the drq package so
@@ -104,7 +104,7 @@ type clusterView = drq.ClusterView
 // when Processing.Enabled, and mining must not be silently disabled by an
 // unrelated feature toggle. When it is nil a dedicated service is built from
 // the app's own EmbeddingConfig instead.
-func newDRQRuntime(nrvSystem *nrv.NRVSystem, embeddingService *embeddings.EmbeddingService, config *Config, logger *zap.Logger) (*drqRuntime, error) {
+func newDRQRuntime(nrvSystem *locator.LocatorSystem, embeddingService *embeddings.EmbeddingService, config *Config, logger *zap.Logger) (*drqRuntime, error) {
 	if nrvSystem == nil {
 		return nil, fmt.Errorf("DRQ requires the NRV system to read ingested errors from")
 	}
@@ -281,7 +281,7 @@ func (rt *drqRuntime) ingest() {
 }
 
 // nrvErrors reads the ingested error nodes.
-func (rt *drqRuntime) nrvErrors() []*nrv.ErrorNode {
+func (rt *drqRuntime) nrvErrors() []*locator.ErrorNode {
 	if rt.errorSource == nil {
 		return nil
 	}
@@ -453,7 +453,7 @@ func (app *App) RecordGradedSolution(sol *drq.Solution) (string, error) {
 
 // NewDRQRuntimeForTest exposes the loop constructor for tests in other packages.
 // It exists only so tests can drive the loop without an App.
-func NewDRQRuntimeForTest(nrvSystem *nrv.NRVSystem, embeddingService *embeddings.EmbeddingService, logger *zap.Logger) (*drqRuntime, error) {
+func NewDRQRuntimeForTest(nrvSystem *locator.LocatorSystem, embeddingService *embeddings.EmbeddingService, logger *zap.Logger) (*drqRuntime, error) {
 	return newDRQRuntime(nrvSystem, embeddingService, nil, logger)
 }
 
@@ -497,18 +497,18 @@ func drqEmbeddingService(config *Config, logger *zap.Logger) (*embeddings.Embedd
 // attribute the fix to an agent. Ownership and bounty are computed from this
 // attribution, so a cluster whose errors carry none cannot mint: there would be
 // no address to pay. The RPC error-creation routes strip them from submitted
-// context (nrv.StripResolverClaims).
-var resolverContextKeys = nrv.ResolverContextKeys
+// context (locator.StripResolverClaims).
+var resolverContextKeys = locator.ResolverContextKeys
 
 // toDRQErrorNode converts an NRV error node into DRQ's clustering node.
-func toDRQErrorNode(node *nrv.ErrorNode) *drq.ErrorNode {
+func toDRQErrorNode(node *locator.ErrorNode) *drq.ErrorNode {
 	if node == nil || strings.TrimSpace(node.Id) == "" {
 		return nil
 	}
 
 	// The canonical node carries its context as a protobuf Struct; DRQ's
 	// clustering node wants a Go map for embedding and attribution.
-	nodeContext := nrv.ErrorContextMap(node)
+	nodeContext := locator.ErrorContextMap(node)
 
 	// The failure context is what gets embedded, so it must carry the error's
 	// identity and description — embedding only the raw JSON map would make

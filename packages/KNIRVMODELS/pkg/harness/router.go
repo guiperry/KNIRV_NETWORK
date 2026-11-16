@@ -36,15 +36,18 @@ type Backend struct {
 	// means everything. A backend that cannot is skipped for such requests.
 	Supports func(Needs) bool
 	// Teacher reports whether the backend is the teacher right now. Nil means it never
-	// is. At most one backend should report true at a time: Colibri while it is enabled,
-	// llama.cpp only when Colibri is not (skipped by the host gate, disabled or failed
-	// for good). Teacher output comes from one or the other, never both, and the
-	// BackendHeader on the response says which.
+	// is. At most one backend should report true at a time: llama.cpp (the primary)
+	// while it is not out for good, Colibri (the backup) once it is. Teacher output
+	// comes from one or the other, never both, and the BackendHeader on the response
+	// says which.
 	Teacher func() bool
-	// Demand is called when a request needs this backend, whether or not it is ready
-	// yet: the owner starts it if it is stopped and records that it is in use. Nil
-	// means the backend cannot be started on demand.
+	// Demand is called when a request waits on this backend, whether or not it is ready
+	// yet: the owner records the use so an idle backup is not released under it. Nil
+	// means a request that needs the backend is refused at once instead of waiting.
 	Demand func(reason string)
+	// Gone reports that the backend will not come back (out for good). A request that
+	// needs it is refused at once instead of waiting for it. Nil means it may come back.
+	Gone func() bool
 
 	inflight atomic.Int32
 }
@@ -52,8 +55,8 @@ type Backend struct {
 // Busy reports whether a request is being served by the backend right now.
 func (b *Backend) Busy() bool { return b.inflight.Load() > 0 }
 
-// Needs is what a request requires beyond plain chat. Colibri serves plain chat; the
-// rest goes to a backend that supports it (llama.cpp), started on demand.
+// Needs is what a request requires beyond plain chat. llama.cpp, the primary, supports
+// all of it; Colibri, the backup, serves plain chat only.
 type Needs struct {
 	// Adapter: a ULoRA skill adapter (the /v1/adapters routes or an "adapter" field).
 	Adapter bool
@@ -89,9 +92,9 @@ func (n Needs) String() string {
 
 // RoleHeader marks the kind of caller. "teacher" is batch work whose output is kept
 // (synthetic training data, suggested labels, retrieval judgments): it is served by
-// the one backend that is the teacher (Colibri while enabled, llama.cpp when Colibri
-// is not), and is refused rather than moved to the other mid-run, so what the caller
-// records about its source (BackendHeader) is true and consistent.
+// the one backend that is the teacher (llama.cpp, or Colibri once llama.cpp is out for
+// good), and is refused rather than moved to the other while the run is going, so
+// what the caller records about its source (BackendHeader) is true and consistent.
 const RoleHeader = "X-Knirv-Role"
 
 // RoleTeacher is the RoleHeader value for teacher requests.
@@ -305,7 +308,7 @@ func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	if strings.EqualFold(req.Header.Get(RoleHeader), RoleTeacher) {
 		if b = r.awaitTeacher(req.Context()); b == nil {
 			w.Header().Set("Retry-After", "30")
-			writeJSONError(w, http.StatusServiceUnavailable, "the teacher backend is not ready yet (Colibri while it is enabled, otherwise llama.cpp); teacher requests are never split between them", r.states())
+			writeJSONError(w, http.StatusServiceUnavailable, "the teacher backend is not ready yet (llama.cpp, or Colibri once llama.cpp is out for good); teacher requests are never split between them", r.states())
 			return
 		}
 	} else {
@@ -389,9 +392,9 @@ func (r *Router) teacher() *Backend {
 	return nil
 }
 
-// awaitTeacher returns the teacher once it is ready. A stopped teacher that can be
-// started on demand (llama.cpp) is started and awaited; Colibri, which is enabled but
-// not up, is not replaced by llama.cpp: that would mix two teachers in one data set.
+// awaitTeacher returns the teacher once it is ready, waiting for it when it can come
+// back. The teacher is never swapped for the other backend while it is down: that
+// would mix two teachers in one data set.
 func (r *Router) awaitTeacher(ctx context.Context) *Backend {
 	want := r.teacher()
 	if want == nil {
@@ -400,14 +403,14 @@ func (r *Router) awaitTeacher(ctx context.Context) *Backend {
 	if want.Ready != nil && want.Ready() {
 		return want
 	}
-	if want.Demand == nil {
+	if want.Demand == nil || (want.Gone != nil && want.Gone()) {
 		return nil
 	}
 	wait := r.OnDemandWait
 	if wait <= 0 {
 		wait = 10 * time.Minute
 	}
-	r.logf("starting %s for a teacher request", want.Name)
+	r.logf("waiting for %s for a teacher request", want.Name)
 	want.Demand("teacher requests")
 	deadline := time.NewTimer(wait)
 	defer deadline.Stop()
@@ -450,7 +453,7 @@ func (r *Router) awaitSupporting(ctx context.Context, n Needs, ready *Backend) *
 			break
 		}
 	}
-	if want == nil {
+	if want == nil || (want.Gone != nil && want.Gone()) {
 		return nil
 	}
 	wait := r.OnDemandWait
@@ -458,7 +461,7 @@ func (r *Router) awaitSupporting(ctx context.Context, n Needs, ready *Backend) *
 		wait = 10 * time.Minute
 	}
 	if want.Demand != nil {
-		r.logf("starting %s for a request that needs %s", want.Name, n.String())
+		r.logf("waiting for %s for a request that needs %s", want.Name, n.String())
 		want.Demand(n.String())
 	}
 	deadline := time.NewTimer(wait)

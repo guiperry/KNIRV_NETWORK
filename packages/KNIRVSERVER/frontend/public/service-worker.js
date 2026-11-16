@@ -5,8 +5,8 @@ const STATIC_CACHE_NAME = 'knirv-static-v3';
 const API_CACHE_NAME = 'knirv-api-v3';
 
 const urlsToCache = [
-  '/manifest.json',
-  '/favicon.ico',
+  '/app/manifest.json',
+  '/app/favicon.ico',
 ];
 
 const API_CACHE_DURATION = 5 * 60 * 1000;
@@ -57,7 +57,7 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  if (url.pathname === '/service-worker.js') {
+  if (url.pathname === '/app/service-worker.js') {
     return;
   }
 
@@ -69,8 +69,8 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  if (url.pathname.startsWith('/icons/') || 
-      url.pathname.startsWith('/screenshots/') ||
+  if (url.pathname.startsWith('/app/icons/') || 
+      url.pathname.startsWith('/app/screenshots/') ||
       url.pathname.endsWith('.png') ||
       url.pathname.endsWith('.jpg') ||
       url.pathname.endsWith('.svg') ||

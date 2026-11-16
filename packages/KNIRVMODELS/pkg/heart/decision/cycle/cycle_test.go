@@ -25,7 +25,7 @@ func bronze(t *testing.T, dir string, n int) {
 func fakeTrainer(t *testing.T, code int) (bin, log string) {
 	t.Helper()
 	d := t.TempDir()
-	bin, log = filepath.Join(d, "head-trainer"), filepath.Join(d, "argv")
+	bin, log = filepath.Join(d, "heart-decision-trainer"), filepath.Join(d, "argv")
 	script := fmt.Sprintf("#!/bin/sh\necho \"$@\" >> %s\nif [ \"$1\" = convert ]; then exit 0; fi\nexit %d\n", log, code)
 	if err := os.WriteFile(bin, []byte(script), 0o755); err != nil {
 		t.Fatal(err)

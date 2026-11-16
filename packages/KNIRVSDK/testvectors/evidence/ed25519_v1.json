@@ -1,0 +1,121 @@
+{
+  "description": "Ed25519 evidence-bundle vectors. Signatures and keys from Go crypto/ed25519 (seeds 0x01.., 0x80..); the message is the bundle claim JSON (SigningMessage). Each verify case states the SDK verdict; go_stdlib_accepts is the Go reference result where Go can express the input. Shared by Rust, Go and TypeScript.",
+  "public_key": [
+    {
+      "name": "valid",
+      "public_key_base64": "ebVWLo/mVPlAeLES6KmLp5AfhTrmlb7X4OORC60ElmQ=",
+      "valid": true,
+      "canonical_base64": "ebVWLo/mVPlAeLES6KmLp5AfhTrmlb7X4OORC60ElmQ="
+    },
+    {
+      "name": "wrong_length",
+      "public_key_base64": "ebVWLo/mVPlAeLES6KmLp5AfhTrmlb7X4OORC60Elg==",
+      "valid": false,
+      "code": "public_key_length"
+    },
+    {
+      "name": "malformed_point",
+      "public_key_base64": "AgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+      "valid": false,
+      "code": "public_key_malformed"
+    },
+    {
+      "name": "bad_encoding",
+      "public_key_base64": "not base64!",
+      "valid": false,
+      "code": "public_key_encoding"
+    }
+  ],
+  "verify": [
+    {
+      "name": "valid",
+      "public_key_base64": "ebVWLo/mVPlAeLES6KmLp5AfhTrmlb7X4OORC60ElmQ=",
+      "message_base64": "eyJzY2hlbWFfdmVyc2lvbiI6ImR2ZS5idW5kbGUudjEiLCJzZXNzaW9uX2lkIjoic2Vzc2lvbi12ZWN0b3IiLCJkdmVfaWQiOiJkdmUtdmVjdG9yIiwidXNlcl9pZCI6InVzZXItdmVjdG9yIiwicHJvamVjdF9pZCI6InByb2plY3QtdmVjdG9yIiwicG9saWN5X2hhc2giOiJzaGEyNTY6cG9saWN5IiwiZXZlbnRsb2dfcm9vdCI6InNoYTI1NjpldmVudGxvZyIsImFydGlmYWN0X21lcmtsZV9yb290Ijoic2hhMjU2Om1lcmtsZSIsIndvcmtzcGFjZV9iYXNlX2hhc2giOiJzaGEyNTY6YmFzZSIsIndvcmtzcGFjZV9maW5hbF9oYXNoIjoic2hhMjU2OmZpbmFsIiwiZXZlbnRfYnVuZGxlX3Jvb3QiOiJzaGEyNTY6ZXZlbnQifQ==",
+      "signature_base64": "wo8W00jq4RjvOz5DYPNnxVtjH9k5AG3QkOTjdm6w1V6sMdAxxCXt4cJbw8oDe2IBm0EvYbTYa3nGadUNd5D/Cw==",
+      "valid": true,
+      "go_stdlib_accepts": true
+    },
+    {
+      "name": "bad_signature",
+      "public_key_base64": "ebVWLo/mVPlAeLES6KmLp5AfhTrmlb7X4OORC60ElmQ=",
+      "message_base64": "eyJzY2hlbWFfdmVyc2lvbiI6ImR2ZS5idW5kbGUudjEiLCJzZXNzaW9uX2lkIjoic2Vzc2lvbi12ZWN0b3IiLCJkdmVfaWQiOiJkdmUtdmVjdG9yIiwidXNlcl9pZCI6InVzZXItdmVjdG9yIiwicHJvamVjdF9pZCI6InByb2plY3QtdmVjdG9yIiwicG9saWN5X2hhc2giOiJzaGEyNTY6cG9saWN5IiwiZXZlbnRsb2dfcm9vdCI6InNoYTI1NjpldmVudGxvZyIsImFydGlmYWN0X21lcmtsZV9yb290Ijoic2hhMjU2Om1lcmtsZSIsIndvcmtzcGFjZV9iYXNlX2hhc2giOiJzaGEyNTY6YmFzZSIsIndvcmtzcGFjZV9maW5hbF9oYXNoIjoic2hhMjU2OmZpbmFsIiwiZXZlbnRfYnVuZGxlX3Jvb3QiOiJzaGEyNTY6ZXZlbnQifQ==",
+      "signature_base64": "wo8W00jq4RjvOz9DYPNnxVtjH9k5AG3QkOTjdm6w1V6sMdAxxCXt4cJbw8oDe2IBm0EvYbTYa3nGadUNd5D/Cw==",
+      "valid": false,
+      "code": "signature_invalid",
+      "go_stdlib_accepts": false
+    },
+    {
+      "name": "wrong_key",
+      "public_key_base64": "zRSzf5VulTGU/3+3Oz2B3MVh1hp1OAlLfD4aZD7l86o=",
+      "message_base64": "eyJzY2hlbWFfdmVyc2lvbiI6ImR2ZS5idW5kbGUudjEiLCJzZXNzaW9uX2lkIjoic2Vzc2lvbi12ZWN0b3IiLCJkdmVfaWQiOiJkdmUtdmVjdG9yIiwidXNlcl9pZCI6InVzZXItdmVjdG9yIiwicHJvamVjdF9pZCI6InByb2plY3QtdmVjdG9yIiwicG9saWN5X2hhc2giOiJzaGEyNTY6cG9saWN5IiwiZXZlbnRsb2dfcm9vdCI6InNoYTI1NjpldmVudGxvZyIsImFydGlmYWN0X21lcmtsZV9yb290Ijoic2hhMjU2Om1lcmtsZSIsIndvcmtzcGFjZV9iYXNlX2hhc2giOiJzaGEyNTY6YmFzZSIsIndvcmtzcGFjZV9maW5hbF9oYXNoIjoic2hhMjU2OmZpbmFsIiwiZXZlbnRfYnVuZGxlX3Jvb3QiOiJzaGEyNTY6ZXZlbnQifQ==",
+      "signature_base64": "wo8W00jq4RjvOz5DYPNnxVtjH9k5AG3QkOTjdm6w1V6sMdAxxCXt4cJbw8oDe2IBm0EvYbTYa3nGadUNd5D/Cw==",
+      "valid": false,
+      "code": "signature_invalid",
+      "go_stdlib_accepts": false
+    },
+    {
+      "name": "tampered_message",
+      "public_key_base64": "ebVWLo/mVPlAeLES6KmLp5AfhTrmlb7X4OORC60ElmQ=",
+      "message_base64": "eyJzY2hlbWFfdmVyc2lvbiI6ImR2ZS5idW5kbGUudjEiLCJzZXNzaW9uX2lkIjoic2Vzc2lvbi12ZWN0b3IiLCJkdmVfaWQiOiJkdmUtdmVjdG9yIiwidXNlcl9pZCI6InVzZXItdmVjdG9yIiwicHJvamVjdF9pZCI6InByb2plY3QtdmVjdG9yIiwicG9saWN5X2hhc2giOiJzaGEyNTY6cG9saWN5IiwiZXZlbnRsb2dfcm9vdCI6InNoYTI1NjpldmVudGxvZyIsImFydGlmYWN0X21lcmtsZV9yb290Ijoic2hhMjU2Om1lcmtsZSIsIndvcmtzcGFjZV9iYXNlX2hhc2giOiJzaGEyNTY6YmFzZSIsIndvcmtzcGFjZV9maW5hbF9oYXNoIjoic2hhMjU2OmZpbmFsIiwiZXZlbnRfYnVuZGxlX3Jvb3QiOiJzaGEyNTY6dGFtcGVyZWQifQ==",
+      "signature_base64": "wo8W00jq4RjvOz5DYPNnxVtjH9k5AG3QkOTjdm6w1V6sMdAxxCXt4cJbw8oDe2IBm0EvYbTYa3nGadUNd5D/Cw==",
+      "valid": false,
+      "code": "signature_invalid",
+      "go_stdlib_accepts": false
+    },
+    {
+      "name": "malformed_key",
+      "public_key_base64": "AgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+      "message_base64": "eyJzY2hlbWFfdmVyc2lvbiI6ImR2ZS5idW5kbGUudjEiLCJzZXNzaW9uX2lkIjoic2Vzc2lvbi12ZWN0b3IiLCJkdmVfaWQiOiJkdmUtdmVjdG9yIiwidXNlcl9pZCI6InVzZXItdmVjdG9yIiwicHJvamVjdF9pZCI6InByb2plY3QtdmVjdG9yIiwicG9saWN5X2hhc2giOiJzaGEyNTY6cG9saWN5IiwiZXZlbnRsb2dfcm9vdCI6InNoYTI1NjpldmVudGxvZyIsImFydGlmYWN0X21lcmtsZV9yb290Ijoic2hhMjU2Om1lcmtsZSIsIndvcmtzcGFjZV9iYXNlX2hhc2giOiJzaGEyNTY6YmFzZSIsIndvcmtzcGFjZV9maW5hbF9oYXNoIjoic2hhMjU2OmZpbmFsIiwiZXZlbnRfYnVuZGxlX3Jvb3QiOiJzaGEyNTY6ZXZlbnQifQ==",
+      "signature_base64": "wo8W00jq4RjvOz5DYPNnxVtjH9k5AG3QkOTjdm6w1V6sMdAxxCXt4cJbw8oDe2IBm0EvYbTYa3nGadUNd5D/Cw==",
+      "valid": false,
+      "code": "public_key_malformed",
+      "go_stdlib_accepts": false
+    },
+    {
+      "name": "wrong_length_key",
+      "public_key_base64": "ebVWLo/mVPlAeLES6KmLp5AfhTrmlb7X4OORC60Elg==",
+      "message_base64": "eyJzY2hlbWFfdmVyc2lvbiI6ImR2ZS5idW5kbGUudjEiLCJzZXNzaW9uX2lkIjoic2Vzc2lvbi12ZWN0b3IiLCJkdmVfaWQiOiJkdmUtdmVjdG9yIiwidXNlcl9pZCI6InVzZXItdmVjdG9yIiwicHJvamVjdF9pZCI6InByb2plY3QtdmVjdG9yIiwicG9saWN5X2hhc2giOiJzaGEyNTY6cG9saWN5IiwiZXZlbnRsb2dfcm9vdCI6InNoYTI1NjpldmVudGxvZyIsImFydGlmYWN0X21lcmtsZV9yb290Ijoic2hhMjU2Om1lcmtsZSIsIndvcmtzcGFjZV9iYXNlX2hhc2giOiJzaGEyNTY6YmFzZSIsIndvcmtzcGFjZV9maW5hbF9oYXNoIjoic2hhMjU2OmZpbmFsIiwiZXZlbnRfYnVuZGxlX3Jvb3QiOiJzaGEyNTY6ZXZlbnQifQ==",
+      "signature_base64": "wo8W00jq4RjvOz5DYPNnxVtjH9k5AG3QkOTjdm6w1V6sMdAxxCXt4cJbw8oDe2IBm0EvYbTYa3nGadUNd5D/Cw==",
+      "valid": false,
+      "code": "public_key_length",
+      "go_stdlib_accepts": false
+    },
+    {
+      "name": "wrong_length_signature",
+      "public_key_base64": "ebVWLo/mVPlAeLES6KmLp5AfhTrmlb7X4OORC60ElmQ=",
+      "message_base64": "eyJzY2hlbWFfdmVyc2lvbiI6ImR2ZS5idW5kbGUudjEiLCJzZXNzaW9uX2lkIjoic2Vzc2lvbi12ZWN0b3IiLCJkdmVfaWQiOiJkdmUtdmVjdG9yIiwidXNlcl9pZCI6InVzZXItdmVjdG9yIiwicHJvamVjdF9pZCI6InByb2plY3QtdmVjdG9yIiwicG9saWN5X2hhc2giOiJzaGEyNTY6cG9saWN5IiwiZXZlbnRsb2dfcm9vdCI6InNoYTI1NjpldmVudGxvZyIsImFydGlmYWN0X21lcmtsZV9yb290Ijoic2hhMjU2Om1lcmtsZSIsIndvcmtzcGFjZV9iYXNlX2hhc2giOiJzaGEyNTY6YmFzZSIsIndvcmtzcGFjZV9maW5hbF9oYXNoIjoic2hhMjU2OmZpbmFsIiwiZXZlbnRfYnVuZGxlX3Jvb3QiOiJzaGEyNTY6ZXZlbnQifQ==",
+      "signature_base64": "wo8W00jq4RjvOz5DYPNnxVtjH9k5AG3QkOTjdm6w1V6sMdAxxCXt4cJbw8oDe2IBm0EvYbTYa3nGadUNd5D/",
+      "valid": false,
+      "code": "signature_length",
+      "go_stdlib_accepts": false
+    },
+    {
+      "name": "empty_signature",
+      "public_key_base64": "ebVWLo/mVPlAeLES6KmLp5AfhTrmlb7X4OORC60ElmQ=",
+      "message_base64": "eyJzY2hlbWFfdmVyc2lvbiI6ImR2ZS5idW5kbGUudjEiLCJzZXNzaW9uX2lkIjoic2Vzc2lvbi12ZWN0b3IiLCJkdmVfaWQiOiJkdmUtdmVjdG9yIiwidXNlcl9pZCI6InVzZXItdmVjdG9yIiwicHJvamVjdF9pZCI6InByb2plY3QtdmVjdG9yIiwicG9saWN5X2hhc2giOiJzaGEyNTY6cG9saWN5IiwiZXZlbnRsb2dfcm9vdCI6InNoYTI1NjpldmVudGxvZyIsImFydGlmYWN0X21lcmtsZV9yb290Ijoic2hhMjU2Om1lcmtsZSIsIndvcmtzcGFjZV9iYXNlX2hhc2giOiJzaGEyNTY6YmFzZSIsIndvcmtzcGFjZV9maW5hbF9oYXNoIjoic2hhMjU2OmZpbmFsIiwiZXZlbnRfYnVuZGxlX3Jvb3QiOiJzaGEyNTY6ZXZlbnQifQ==",
+      "signature_base64": "",
+      "valid": false,
+      "code": "signature_length",
+      "go_stdlib_accepts": false
+    },
+    {
+      "name": "bad_key_encoding",
+      "public_key_base64": "not base64!",
+      "message_base64": "eyJzY2hlbWFfdmVyc2lvbiI6ImR2ZS5idW5kbGUudjEiLCJzZXNzaW9uX2lkIjoic2Vzc2lvbi12ZWN0b3IiLCJkdmVfaWQiOiJkdmUtdmVjdG9yIiwidXNlcl9pZCI6InVzZXItdmVjdG9yIiwicHJvamVjdF9pZCI6InByb2plY3QtdmVjdG9yIiwicG9saWN5X2hhc2giOiJzaGEyNTY6cG9saWN5IiwiZXZlbnRsb2dfcm9vdCI6InNoYTI1NjpldmVudGxvZyIsImFydGlmYWN0X21lcmtsZV9yb290Ijoic2hhMjU2Om1lcmtsZSIsIndvcmtzcGFjZV9iYXNlX2hhc2giOiJzaGEyNTY6YmFzZSIsIndvcmtzcGFjZV9maW5hbF9oYXNoIjoic2hhMjU2OmZpbmFsIiwiZXZlbnRfYnVuZGxlX3Jvb3QiOiJzaGEyNTY6ZXZlbnQifQ==",
+      "signature_base64": "wo8W00jq4RjvOz5DYPNnxVtjH9k5AG3QkOTjdm6w1V6sMdAxxCXt4cJbw8oDe2IBm0EvYbTYa3nGadUNd5D/Cw==",
+      "valid": false,
+      "code": "public_key_encoding",
+      "go_stdlib_accepts": false
+    },
+    {
+      "name": "bad_signature_encoding",
+      "public_key_base64": "ebVWLo/mVPlAeLES6KmLp5AfhTrmlb7X4OORC60ElmQ=",
+      "message_base64": "eyJzY2hlbWFfdmVyc2lvbiI6ImR2ZS5idW5kbGUudjEiLCJzZXNzaW9uX2lkIjoic2Vzc2lvbi12ZWN0b3IiLCJkdmVfaWQiOiJkdmUtdmVjdG9yIiwidXNlcl9pZCI6InVzZXItdmVjdG9yIiwicHJvamVjdF9pZCI6InByb2plY3QtdmVjdG9yIiwicG9saWN5X2hhc2giOiJzaGEyNTY6cG9saWN5IiwiZXZlbnRsb2dfcm9vdCI6InNoYTI1NjpldmVudGxvZyIsImFydGlmYWN0X21lcmtsZV9yb290Ijoic2hhMjU2Om1lcmtsZSIsIndvcmtzcGFjZV9iYXNlX2hhc2giOiJzaGEyNTY6YmFzZSIsIndvcmtzcGFjZV9maW5hbF9oYXNoIjoic2hhMjU2OmZpbmFsIiwiZXZlbnRfYnVuZGxlX3Jvb3QiOiJzaGEyNTY6ZXZlbnQifQ==",
+      "signature_base64": "***",
+      "valid": false,
+      "code": "signature_encoding",
+      "go_stdlib_accepts": false
+    }
+  ],
+  "version": 1
+}

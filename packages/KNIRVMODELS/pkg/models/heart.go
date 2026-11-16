@@ -37,12 +37,24 @@ type Heart struct {
 	// is promoted (spec §3.6).
 	qwen *heartqwen.Engine
 	live func(ctx context.Context) bool
-	fin  *transformer.WASMFinisher
+	fin  wasmFinisher
+}
+
+// wasmFinisher turns a model's field choice into a verified module. The
+// production implementation is *transformer.WASMFinisher (render, check, compile
+// with TinyGo, verify in wazero); tests inject a stand-in so they need no TinyGo.
+type wasmFinisher interface {
+	Finish(ctx context.Context, wasmType transformer.WASMType, raw json.RawMessage, rationale string) (transformer.WASMDecision, error)
 }
 
 // UseQwen makes generate (and health) come from the Qwen backend. live reports
-// whether the llama wrapper is up.
-func (h *Heart) UseQwen(e *heartqwen.Engine, live func(ctx context.Context) bool, fin *transformer.WASMFinisher) {
+// whether the llama wrapper is up. fin may be nil; module routes then answer 503.
+func (h *Heart) UseQwen(e *heartqwen.Engine, live func(ctx context.Context) bool, fin wasmFinisher) {
+	// A nil *transformer.WASMFinisher becomes a non-nil interface; normalise it so
+	// module routes still answer 503 instead of calling into a nil receiver.
+	if f, ok := fin.(*transformer.WASMFinisher); ok && f == nil {
+		fin = nil
+	}
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	h.qwen, h.live, h.fin = e, live, fin

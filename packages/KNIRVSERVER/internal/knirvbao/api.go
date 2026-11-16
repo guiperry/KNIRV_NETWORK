@@ -25,6 +25,11 @@ func newBaoAPI(socket string) *baoAPI {
 // request deliberately omits response bodies from errors: bootstrap replies
 // can contain recovery keys or tokens and must never reach logs.
 func (a *baoAPI) request(ctx context.Context, method, path, token string, body any, out any) (int, error) {
+	return a.requestWithHeaders(ctx, method, path, token, nil, body, out)
+}
+
+// requestWithHeaders is request with extra headers (for example X-Vault-Wrap-TTL).
+func (a *baoAPI) requestWithHeaders(ctx context.Context, method, path, token string, headers map[string]string, body any, out any) (int, error) {
 	var input io.Reader
 	if body != nil {
 		encoded, err := json.Marshal(body)
@@ -40,6 +45,9 @@ func (a *baoAPI) request(ctx context.Context, method, path, token string, body a
 	req.Header.Set("Content-Type", "application/json")
 	if token != "" {
 		req.Header.Set("X-Vault-Token", token)
+	}
+	for k, v := range headers {
+		req.Header.Set(k, v)
 	}
 	resp, err := a.client.Do(req)
 	if err != nil {

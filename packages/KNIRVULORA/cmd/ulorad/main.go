@@ -33,6 +33,12 @@ func main() {
 		log.Fatalf("create data dir: %v", err)
 	}
 
+	// Persist the bearer token where KNIRVGRAPH looks for it (mode 0600). The
+	// error names the file, never the token.
+	if err := config.WriteAuthTokenFile(cfg.DataDir, cfg.AuthToken); err != nil {
+		log.Fatalf("persist auth token: %v", err)
+	}
+
 	srv, err := daemon.NewServer(cfg)
 	if err != nil {
 		log.Fatalf("start server: %v", err)

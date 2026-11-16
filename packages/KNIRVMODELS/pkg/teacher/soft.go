@@ -12,7 +12,7 @@ import (
 )
 
 // Episode is the part of a SupervisionEpisode v1 the teacher reads. Field names match
-// the head trainer's converter (pipeline/5_HEAD_TRAINER/src/episodes.rs).
+// the decision trainer's converter (pipeline/5_HEAD_TRAINER/src/episodes.rs).
 type Episode struct {
 	ID   string `json:"episode_id"`
 	Alt  string `json:"event_id"`
@@ -78,8 +78,8 @@ func redact(s string) string {
 // values seen in the data. `action` is never taught and `risk` is a score head.
 var SoftHeads = []string{"intent", "next_phase", "agent"}
 
-// DefaultSoftHeads are the heads labelled when none are named: the ones the head
-// trainer will take. `intent` (and `risk`) are fields of the head's own prompt, so the
+// DefaultSoftHeads are the heads labelled when none are named: the ones the decision
+// trainer will take. `intent` (and `risk`) are fields of the decision model's own prompt, so the
 // trainer drops teacher distributions for them (finding H4); labelling them would only
 // spend the teacher's slow single lane on data that is thrown away.
 var DefaultSoftHeads = []string{"next_phase", "agent"}
@@ -105,7 +105,7 @@ func (e *Episode) label(head string) string {
 
 // scenario describes the episode for one head WITHOUT the field being labelled, so
 // the teacher judges from the request and context rather than copying the answer
-// (the leak the head trainer's own prompt has for intent and risk).
+// (the leak the decision trainer's own prompt has for intent and risk).
 func (e *Episode) scenario(head string) string {
 	st := e.State
 	if e.StateBefore != nil {
@@ -133,7 +133,7 @@ func (e *Episode) scenario(head string) string {
 	return b.String()
 }
 
-// SoftLine is one line of the candidate teacher file. The head trainer reads
+// SoftLine is one line of the candidate teacher file. The decision trainer reads
 // episode_id and labels; the rest is for people and audits.
 type SoftLine struct {
 	EpisodeID  string                        `json:"episode_id"`

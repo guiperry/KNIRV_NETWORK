@@ -9,8 +9,8 @@ import (
 	"path/filepath"
 )
 
-const embeddedCoreVersion = "0.2.0"
-const embeddedCoreDigest = "38a493a7a32c63c431996c3a7f55d284e2d4411742fe4abcc93a3f50c904424e"
+const embeddedCoreVersion = "0.2.1"
+const embeddedCoreDigest = "6fcc5e770ce0b109b976ecb74814b1c40683f2943a3f0c8e4732253e570bb935"
 
 //go:embed assets/knirv_core.wasm
 var embeddedCore []byte

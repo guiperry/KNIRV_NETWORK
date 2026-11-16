@@ -11,7 +11,8 @@ import (
 )
 
 func TestNativeProofProxyPreservesRequest(t *testing.T) {
-	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	// KNIRVSERVER's proof API is reached only over its internal Unix socket.
+	sock := startUnixUpstream(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/api/v1/knirv/projects/project-one/proofs" {
 			t.Errorf("upstream path = %q", r.URL.Path)
 		}
@@ -26,9 +27,8 @@ func TestNativeProofProxyPreservesRequest(t *testing.T) {
 		w.WriteHeader(http.StatusAccepted)
 		_, _ = w.Write([]byte(`{"status":"uploaded"}`))
 	}))
-	defer upstream.Close()
 
-	gateway := testServer(&config.Config{Port: 8888, ServerBaseURL: upstream.URL})
+	gateway := testServer(&config.Config{Port: 8888, KnirvProofSocketPath: sock})
 	request := httptest.NewRequest(http.MethodPost, "/api/v1/knirv/projects/project-one/proofs", strings.NewReader(`{"project_id":"project-one"}`))
 	request.Header.Set("Authorization", "Bearer token-one")
 	response := httptest.NewRecorder()

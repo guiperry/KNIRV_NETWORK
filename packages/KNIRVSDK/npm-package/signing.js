@@ -153,13 +153,27 @@ export async function signBootnodeEnrollChallenge(privateKey, chainId, nonce, is
         claims: toBase64(claims),
     });
 }
-/** Signs the root owner's approval of a challenge; the approval payload is the exact base64
- * envelope of the challenge (approval-to-key binding). Thin pass-through to the Rust core. */
-export async function signBootnodeEnrollApproval(rootKey, chainId, nonce, issuedAtUnix, expiresAtUnix, challengeEnvelope) {
+/** Signs the root owner's approval of a challenge. The approval covers the challenge's base64
+ * envelope AND the boot-node public key (`bootPublicKey`, base64, the challenge signer's key),
+ * so it cannot be moved onto a challenge re-signed under another key. Thin pass-through to the
+ * Rust core. */
+export async function signBootnodeEnrollApproval(rootKey, chainId, nonce, issuedAtUnix, expiresAtUnix, challengeEnvelope, bootPublicKey) {
     return callLocal('signing.sign_bootnode_enroll_approval', {
         private_key_base64: toBase64(rootKey), chain_id: chainId, nonce,
         issued_at_unix: issuedAtUnix, expires_at_unix: expiresAtUnix, challenge_envelope: challengeEnvelope,
+        boot_public_key: bootPublicKey,
     });
+}
+/** Verifies an approved enrollment without consuming its nonce. On rejection, `code` is the
+ * core's stable reason code. A valid result carries the nonce the host must consume. */
+export async function verifyBootnodeEnrollmentDetail(enrollment, expectedRootPublicKey, expectedOperator, now) {
+    const out = await callLocal('signing.verify_bootnode_enrollment', {
+        enrollment, expected_root_public_key: expectedRootPublicKey, expected_operator: expectedOperator,
+        now_unix: unixSeconds(now),
+    });
+    if (out.valid)
+        return { valid: true, nonce: out.nonce };
+    return { valid: false, code: out.code, message: out.message ?? '' };
 }
 /** Verifies an approved enrollment, enforcing operator match and replay prevention. Cryptographic
  * verification is delegated to the Rust core, which authenticates the full approval→challenge→root
@@ -167,13 +181,10 @@ export async function signBootnodeEnrollApproval(rootKey, chainId, nonce, issued
  * atomic NonceStore: a replay (already consumed) yields false even though the crypto check passed.
  * Thin pass-through to the Rust core. */
 export async function verifyBootnodeEnrollment(enrollment, expectedRootPublicKey, expectedOperator, store, now) {
-    const out = await callLocal('signing.verify_bootnode_enrollment', {
-        enrollment, expected_root_public_key: expectedRootPublicKey, expected_operator: expectedOperator,
-        now_unix: unixSeconds(now),
-    });
-    if (!out.valid)
+    const verdict = await verifyBootnodeEnrollmentDetail(enrollment, expectedRootPublicKey, expectedOperator, now);
+    if (!verdict.valid)
         return false;
-    return store.consume(out.nonce);
+    return store.consume(verdict.nonce);
 }
 /** True when `signed` is exactly the canonical encoding of `expected` with a valid signature. */
 export async function verifyMessageEnvelope(signed, expected) {

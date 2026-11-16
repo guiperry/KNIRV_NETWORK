@@ -48,7 +48,9 @@ The pipeline transforms user ontology data into `.nrv` datasets for future globa
 for inference (KNIRVSERVER's `backend_server` runs it unless KNIRVSERVER is started with `-llama=false`). The code is
 `pkg/harness`.
 
-- **Colibri is the primary** ([JustVugg/colibri](https://github.com/JustVugg/colibri),
+- **llama.cpp is the primary** (`llama/`, embedded as `pkg/knirvllama`). It starts first
+  and serves whenever it is ready.
+- **Colibri is the backup** ([JustVugg/colibri](https://github.com/JustVugg/colibri),
   release `v2.0.0`). On first run the harness downloads the release, then runs
   Colibri's own non-interactive setup (`coli setup --yes --no-start --model <id> ...`):
   it builds or fetches the engine, downloads the model with resume (skipped once `state/knirv-install.json` matches the version, model and port and the model files are on disk at about their listed size), and writes its
@@ -57,13 +59,14 @@ for inference (KNIRVSERVER's `backend_server` runs it unless KNIRVSERVER is star
   `coli setup --list --json` marks `recommended` and `fits` for this machine, which is
   what pressing Enter does in its one-step setup. `KNIRV_COLIBRI_MODEL` overrides it.
   If no model fits the machine the harness says why and leaves llama.cpp serving.
-- **llama.cpp is the fallback** (`llama/`, embedded as `pkg/knirvllama`). On a first
-  run, while Colibri downloads, it starts immediately so inference works. Once Colibri
-  is installed it is not started alongside it (both would fight over the disk and CPUs
-  while the model loads); it starts only if Colibri is not serving after 3 minutes, or
-  fails. It is released once Colibri has been healthy for 30 s (`KNIRV_LLAMA_KEEP=1`
-  keeps it running). If Colibri stops answering, llama.cpp is started again and Colibri
-  is reinstalled/restarted with backoff.
+- **Colibri is the backup.** It is installed and started only while llama.cpp is down:
+  when llama.cpp fails to start or stops answering, or fails for good (then Colibri
+  serves for good). It is released once llama.cpp has been healthy for 30 s
+  (`KNIRV_COLIBRI_KEEP=1` keeps it running). While llama.cpp is down, Colibri's install
+  and start retry with backoff.
+- **Teacher.** `X-Knirv-Role: teacher` requests are answered by llama.cpp. Colibri takes
+  the teacher role only once llama.cpp is out for good; a transient llama.cpp outage
+  makes teacher requests wait (503 after the wait), so one data set never mixes teachers.
 - **llama.cpp for what Colibri cannot do.** Skill (ULoRA) adapters, structured output
   (`response_format` json_object / json_schema / grammar) and tool calls are routed to
   llama.cpp when the running Colibri engine does not support them (decided per engine
@@ -118,7 +121,9 @@ for inference (KNIRVSERVER's `backend_server` runs it unless KNIRVSERVER is star
 | `KNIRV_COLIBRI_MIN_TPS=<n>` | slowest accepted speed in tokens/s (default 1.0; `0` never measures) |
 | `KNIRV_COLIBRI_MODEL=<id>` | the model, instead of Colibri's recommendation |
 | `KNIRV_COLIBRI_VERSION`, `KNIRV_COLIBRI_SOURCE_URL` | another release tag, or a mirror of the source archive |
-| `KNIRV_LLAMA_KEEP=1` | keep llama.cpp running while Colibri serves |
+| `KNIRV_LLAMA_FALLBACK=0` | disable llama.cpp, the primary (Colibri then serves alone) |
+| `KNIRV_COLIBRI=0` | disable Colibri, the backup (llama.cpp serves alone) |
+| `KNIRV_COLIBRI_KEEP=1` | keep Colibri running while llama.cpp serves (`KNIRV_LLAMA_KEEP=1` is a deprecated alias) |
 | `KNIRV_LLAMA_PARALLEL`, `_CTX_SIZE`, `_THREADS`, `_MODEL_URL`, `_MODEL_NAME`, `_MODEL_PATH` | llama.cpp tuning (set from the launcher's `llama:` config) |
 
 Colibri needs Python 3.10+ (and a C compiler, or it uses its prebuilt CPU engine). It

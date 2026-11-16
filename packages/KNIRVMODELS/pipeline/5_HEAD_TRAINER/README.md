@@ -1,7 +1,9 @@
 # 5_HEAD_TRAINER
 
-Trains the `knirv-head` Hierarchical Reasoning Model (arena_fixes.md §2.6). It links the
-same crate the arena runs in the browser (`KNIRVMODELS/head`), so training and
+Trains the HEART decision head (`heart-decision-trainer`, arena_fixes.md §2.6). The
+directory keeps its historical `5_HEAD_TRAINER` name, but the artefact is the HEART
+decision model — the HANDS inner GPT is trained by `pipeline/6_HANDS_TRAINER`. It links
+the same crate the arena runs in the browser (`KNIRVMODELS/heart/decision`, crate `knirv-heart-decision`), so training and
 inference cannot drift.
 
 ```bash
@@ -45,7 +47,7 @@ Exit status: `0` promoted, `3` trained but refused by the gate, `1` error.
 `GET /api/v1/head/status`). It reads Bronze from `<appdata>/knirvmodels/supervision/bronze/*.jsonl`
 (`KNIRV_HEAD_BRONZE_DIR`), and uses `<appdata>/knirvmodels/head-work/teacher.jsonl` as `--soft` if present.
 Knobs: `KNIRV_HEAD_AUTOTRAIN`, `_PRESET`, `_EPOCHS`, `_MIN_NEW`, `_MIN_GAP_HOURS`, `_POLICY_HASH`.
-`make build-heart-decision-trainer build-head-wasi` (part of `build-pipeline-all`, so of KNIRVSERVER `make binary`) embeds it.
+`make build-heart-decision-trainer build-heart-decision-wasi` (part of `build-pipeline-all`, so of KNIRVSERVER `make binary`) embeds it.
 
 ## Converting supervisor episodes
 

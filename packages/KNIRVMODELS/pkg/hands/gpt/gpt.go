@@ -8,6 +8,7 @@ import (
 	"math/rand"
 	"os"
 	"sort"
+	"sync/atomic"
 
 	"gorgonia.org/gorgonia"
 	"gorgonia.org/tensor"
@@ -84,8 +85,8 @@ type GPT struct {
 	outputProj *tensor.Dense // [EmbedDim, VocabSize]
 	layers     []*layerParams
 
-	trained          bool
-	trainingProgress float64
+	trained          atomic.Bool
+	trainingProgress atomic.Uint64
 }
 
 // NewGPT creates a GPT with freshly (Glorot-style) initialized weights.
@@ -569,7 +570,7 @@ func (gpt *GPT) TrainStep(tokenIDs, targetIDs []int, learningRate float32) (floa
 // SetTrained marks the GPT model as trained (or not), enabling the
 // GeneratorSwitcher to route generation requests to the internal model.
 func (gpt *GPT) SetTrained(v bool) {
-	gpt.trained = v
+	gpt.trained.Store(v)
 }
 
 // SetProgress updates the training progress fraction [0.0, 1.0].
@@ -580,25 +581,53 @@ func (gpt *GPT) SetProgress(p float64) {
 	if p > 1 {
 		p = 1
 	}
-	gpt.trainingProgress = p
+	gpt.trainingProgress.Store(math.Float64bits(p))
 	if p >= 1 {
-		gpt.trained = true
+		gpt.trained.Store(true)
 	}
 }
 
 // IsReady implements TrainingStateProvider.
 func (gpt *GPT) IsReady() bool {
-	return gpt.trained
+	return gpt.trained.Load()
 }
 
 // Progress implements TrainingStateProvider.
 func (gpt *GPT) Progress() float64 {
-	return gpt.trainingProgress
+	return math.Float64frombits(gpt.trainingProgress.Load())
 }
 
 type Dataset struct {
 	inputs  [][]int
 	targets [][]int
+}
+
+// DatasetFromWindows builds a next-token dataset from token windows that a
+// producer already tokenised (e.g. a TokenWindow frame payload). Each window
+// of n tokens yields an (n-1)-token input and its shifted target; windows
+// shorter than two tokens are skipped rather than padded.
+func DatasetFromWindows(windows [][]int) *Dataset {
+	dataset := &Dataset{inputs: make([][]int, 0, len(windows)), targets: make([][]int, 0, len(windows))}
+	for _, window := range windows {
+		if len(window) < 2 {
+			continue
+		}
+		input := make([]int, len(window)-1)
+		target := make([]int, len(window)-1)
+		copy(input, window[:len(window)-1])
+		copy(target, window[1:])
+		dataset.inputs = append(dataset.inputs, input)
+		dataset.targets = append(dataset.targets, target)
+	}
+	return dataset
+}
+
+// Len reports the number of training examples.
+func (d *Dataset) Len() int {
+	if d == nil {
+		return 0
+	}
+	return len(d.inputs)
 }
 
 func PrepareDataset(text string, tok tokenizer.Tokenizer, contextLen, stride int) *Dataset {
@@ -630,6 +659,10 @@ type TrainConfig struct {
 	GradientClip float64
 	EvalFreq     int
 	SaveFreq     int
+	// MaxSteps caps the total number of gradient steps across all epochs. Zero
+	// means unlimited. The /models/hands/train route always sets it so a caller
+	// cannot turn an operator endpoint into an unbounded training run.
+	MaxSteps int
 }
 
 func GetPretrainingConfig() TrainConfig {
@@ -662,22 +695,41 @@ func TrainModel(model *GPT, dataset *Dataset, config TrainConfig) error {
 	if batchSize <= 0 {
 		batchSize = 1
 	}
+	maxSteps := config.MaxSteps
+	if maxSteps < 0 {
+		maxSteps = 0
+	}
+	expected := len(dataset.inputs) * config.NumEpochs
+	if maxSteps > 0 && (expected == 0 || maxSteps < expected) {
+		expected = maxSteps
+	}
 
+	totalSteps := 0
 	for epoch := 0; epoch < config.NumEpochs; epoch++ {
 		epochLoss := 0.0
 		steps := 0
 
 		for i := 0; i < len(dataset.inputs); i++ {
+			if maxSteps > 0 && totalSteps >= maxSteps {
+				break
+			}
 			loss, err := model.TrainStep(dataset.inputs[i], dataset.targets[i], float32(config.LearningRate))
 			if err != nil {
 				return fmt.Errorf("train step %d: %w", i, err)
 			}
 			epochLoss += float64(loss)
 			steps++
+			totalSteps++
+			if expected > 0 {
+				model.SetProgress(float64(totalSteps) / float64(expected))
+			}
 
 			if steps%batchSize == 0 {
 				log.Printf("Epoch %d step %d: loss=%.4f", epoch, steps, loss)
 			}
+		}
+		if steps == 0 {
+			break
 		}
 
 		avgLoss := epochLoss / float64(steps)
@@ -688,6 +740,9 @@ func TrainModel(model *GPT, dataset *Dataset, config TrainConfig) error {
 				log.Printf("checkpoint save failed at epoch %d: %v", epoch, err)
 			}
 		}
+	}
+	if totalSteps > 0 {
+		model.SetProgress(1)
 	}
 
 	return nil

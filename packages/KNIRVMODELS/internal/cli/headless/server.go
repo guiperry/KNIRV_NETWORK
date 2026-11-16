@@ -71,7 +71,17 @@ func NewServer(socketPath string, socketPerm os.FileMode, goatModes ...bool) *Se
 	return s
 }
 
+// registerRoutes mounts every route. It is split around registerModels so the
+// parts that need no SDK frame core (registerBaseRoutes, registerTailRoutes) can
+// be tested on a bare Server; registerModels is the step that needs the frame core.
 func (s *Server) registerRoutes() {
+	s.registerBaseRoutes()
+	s.registerModels()
+	s.registerTailRoutes()
+}
+
+// registerBaseRoutes mounts the status, driver, pipeline and stage-5 decision routes.
+func (s *Server) registerBaseRoutes() {
 	s.mux.HandleFunc("/api/v1/status", s.handleGetStatus)
 	s.mux.HandleFunc("/api/v1/health", s.handleHealth)
 
@@ -82,10 +92,11 @@ func (s *Server) registerRoutes() {
 	s.mux.HandleFunc("/api/v1/pipeline/run", s.handleRunPipeline)
 	s.mux.HandleFunc("/api/v1/pipeline/status", s.handleGetPipelineStatus)
 	s.mux.HandleFunc("/api/v1/pipeline/logs", s.handlePipelineLogs)
-	s.mux.HandleFunc("/api/v1/head/train", s.handleHEADTrain)
-	s.mux.HandleFunc("/api/v1/head/status", s.handleHEADStatus)
-	s.registerModels()
+	s.registerHeartDecisionRoutes()
+}
 
+// registerTailRoutes mounts the verify, ASIC, rules, chat and shutdown routes.
+func (s *Server) registerTailRoutes() {
 	s.mux.HandleFunc("/api/v1/verify", s.handleVerify)
 
 	s.mux.HandleFunc("/api/v1/asic/discover", s.handleDiscoverASIC)
@@ -101,6 +112,44 @@ func (s *Server) registerRoutes() {
 	s.mux.HandleFunc("/api/v1/chat", s.handleChat)
 
 	s.mux.HandleFunc("/api/v1/shutdown", s.handleShutdown)
+}
+
+const (
+	heartDecisionTrainPath  = "/api/v1/heart/decision/train"
+	heartDecisionStatusPath = "/api/v1/heart/decision/status"
+
+	// Pre-rename paths, kept as aliases of the same handlers. Removed one release
+	// after the rename, like the legacy trainer binary name in controller/headcycle.go.
+	legacyHeadTrainPath  = "/api/v1/head/train"
+	legacyHeadStatusPath = "/api/v1/head/status"
+)
+
+// registerHeartDecisionRoutes mounts the stage-5 decision-model routes. The old
+// /api/v1/head/* paths are aliases: same handler, same response, plus a one-time
+// deprecation log line per alias.
+func (s *Server) registerHeartDecisionRoutes() {
+	s.mux.HandleFunc(heartDecisionTrainPath, s.handleHeartDecisionTrain)
+	s.mux.HandleFunc(heartDecisionStatusPath, s.handleHeartDecisionStatus)
+
+	// TODO(removal): delete the two legacy aliases in the release after the rename.
+	s.mux.HandleFunc(legacyHeadTrainPath, deprecatedRouteAlias(legacyHeadTrainPath, heartDecisionTrainPath, http.MethodPost, s.handleHeartDecisionTrain))
+	s.mux.HandleFunc(legacyHeadStatusPath, deprecatedRouteAlias(legacyHeadStatusPath, heartDecisionStatusPath, http.MethodGet, s.handleHeartDecisionStatus))
+}
+
+// deprecatedRouteAlias wraps h so the first request to oldPath with the allowed
+// method logs a deprecation notice pointing at newPath. Requests with any other
+// method reach h without consuming the once-guard, so they do not hide the notice.
+// The once-guard is per registration, so one daemon logs it once per alias.
+func deprecatedRouteAlias(oldPath, newPath, method string, h http.HandlerFunc) http.HandlerFunc {
+	var once sync.Once
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == method {
+			once.Do(func() {
+				log.Printf("DEPRECATED: %s is an alias for %s and will be removed in a later release; update callers", oldPath, newPath)
+			})
+		}
+		h(w, r)
+	}
 }
 
 // Close stops the long-lived background work the daemon started (the evidence
@@ -784,9 +833,9 @@ func pipeOutput(reader *bufio.Reader, label string) (<-chan string, func()) {
 	return ch, stop
 }
 
-// handleHEADTrain starts a stage-5 HEAD cycle in the background. {"force":true}
+// handleHeartDecisionTrain starts a stage-5 HEAD cycle in the background. {"force":true}
 // skips the new-data and spacing checks; the promotion gate still applies.
-func (s *Server) handleHEADTrain(w http.ResponseWriter, r *http.Request) {
+func (s *Server) handleHeartDecisionTrain(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -806,7 +855,7 @@ func (s *Server) handleHEADTrain(w http.ResponseWriter, r *http.Request) {
 	s.sendSuccess(w, "HEAD cycle started", map[string]bool{"force": req.Force})
 }
 
-func (s *Server) handleHEADStatus(w http.ResponseWriter, r *http.Request) {
+func (s *Server) handleHeartDecisionStatus(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -816,9 +865,9 @@ func (s *Server) handleHEADStatus(w http.ResponseWriter, r *http.Request) {
 }
 
 // headCheckInterval is how often the daemon looks for enough new Bronze to train on
-// (KNIRV_HEAD_CHECK_MINUTES, default 30).
+// (KNIRV_HEART_DECISION_CHECK_MINUTES, legacy KNIRV_HEAD_CHECK_MINUTES; default 30).
 func headCheckInterval() time.Duration {
-	if n, err := strconv.Atoi(os.Getenv("KNIRV_HEAD_CHECK_MINUTES")); err == nil && n > 0 {
+	if n, err := strconv.Atoi(controller.HeartDecisionEnv("CHECK_MINUTES")); err == nil && n > 0 {
 		return time.Duration(n) * time.Minute
 	}
 	return 30 * time.Minute

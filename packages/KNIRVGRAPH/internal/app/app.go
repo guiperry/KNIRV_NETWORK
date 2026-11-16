@@ -6,8 +6,8 @@ import (
 	"KNIRVGRAPH/internal/embeddings"
 	"KNIRVGRAPH/internal/graphchain"
 	"KNIRVGRAPH/internal/indexing"
+	"KNIRVGRAPH/internal/locator"
 	"KNIRVGRAPH/internal/network"
-	"KNIRVGRAPH/internal/nrv"
 	"KNIRVGRAPH/internal/processing"
 	"KNIRVGRAPH/internal/query"
 	"KNIRVGRAPH/internal/retrieval"
@@ -241,7 +241,7 @@ type ValidationConfig struct {
 // App represents the main GraphChain application
 type App struct {
 	graphchain      *graphchain.GraphChain
-	nrvSystem       *nrv.NRVSystem
+	nrvSystem       *locator.LocatorSystem
 	nrnIntegration  *economics.NRNIntegration
 	proofOfSolution *economics.ProofOfSolution
 	rpc             *network.RPCServer
@@ -359,7 +359,7 @@ func NewApp(homeDir string, rpcPort int, enableAutoRelay bool) (*App, error) {
 	gc := graphchain.NewGraphChain(storageInstance)
 
 	// Initialize NRV system
-	nrvSystem := nrv.NewNRVSystem("local-peer", nil)
+	nrvSystem := locator.NewLocatorSystem("local-peer", nil)
 
 	// Initialize NRN integration (local-only — no oracle dependency)
 	nrnIntegration := economics.NewNRNIntegration()
@@ -397,9 +397,9 @@ func NewApp(homeDir string, rpcPort int, enableAutoRelay bool) (*App, error) {
 	rpc = network.NewRPCServerWithEconomics(gc, nrvSystem, nrnIntegration, proofOfSolution, app, logger, config.Network.RPCPort, config.Network.SocketPath)
 	app.rpc = rpc
 	// Error-node test suites: the tests KNIRVARENA contributors write for each
-	// error, sealed at nrv.ErrorTestSuiteSize and shared by swarm-solution
+	// error, sealed at locator.ErrorTestSuiteSize and shared by swarm-solution
 	// grading and KNIRVSERVER's badge-credential benchmark.
-	rpc.SetErrorTestSuiteStore(nrv.NewErrorTestSuiteStore(storageInstance))
+	rpc.SetErrorTestSuiteStore(locator.NewErrorTestSuiteStore(storageInstance))
 	// Error nodes persist in the same store as their test suites, so neither
 	// outlives the other across a restart.
 	if err := nrvSystem.SetErrorNodeStore(storageInstance); err != nil {
@@ -615,7 +615,7 @@ func NewAppWithConfig(homeDir string, rpcPort int, appConfig *Config, enableAuto
 	gc := graphchain.NewGraphChain(storageInstance)
 
 	// Initialize NRV system
-	nrvSystem := nrv.NewNRVSystem("local-peer", nil)
+	nrvSystem := locator.NewLocatorSystem("local-peer", nil)
 
 	// Initialize NRN integration (local-only — no oracle dependency)
 	nrnIntegration := economics.NewNRNIntegration()
@@ -653,9 +653,9 @@ func NewAppWithConfig(homeDir string, rpcPort int, appConfig *Config, enableAuto
 	rpc = network.NewRPCServerWithEconomics(gc, nrvSystem, nrnIntegration, proofOfSolution, app, logger, config.Network.RPCPort, config.Network.SocketPath)
 	app.rpc = rpc
 	// Error-node test suites: the tests KNIRVARENA contributors write for each
-	// error, sealed at nrv.ErrorTestSuiteSize and shared by swarm-solution
+	// error, sealed at locator.ErrorTestSuiteSize and shared by swarm-solution
 	// grading and KNIRVSERVER's badge-credential benchmark.
-	rpc.SetErrorTestSuiteStore(nrv.NewErrorTestSuiteStore(storageInstance))
+	rpc.SetErrorTestSuiteStore(locator.NewErrorTestSuiteStore(storageInstance))
 	// Error nodes persist in the same store as their test suites, so neither
 	// outlives the other across a restart.
 	if err := nrvSystem.SetErrorNodeStore(storageInstance); err != nil {

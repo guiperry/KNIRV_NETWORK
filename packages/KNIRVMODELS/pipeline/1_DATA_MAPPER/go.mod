@@ -9,6 +9,7 @@ require (
 	github.com/apache/arrow/go/v18 v18.0.0-20241007013041-ab95a4d25142
 	github.com/guiperry/text-embedder v0.1.0
 	github.com/joho/godotenv v1.5.1
+	github.com/knirvcorp/knirvbase v1.0.7 // indirect
 	github.com/vbauerster/mpb/v8 v8.12.0
 	go.etcd.io/bbolt v1.4.3
 )
@@ -38,3 +39,5 @@ require (
 replace knirvmodels => ../..
 
 replace github.com/am-sokolov/go-spacy => ./spacy
+
+replace github.com/knirvcorp/knirvbase => ../../../KNIRVBASE/go

@@ -122,7 +122,7 @@ enum ErrorPriority {
 // Canonical node types
 //
 // ErrorNode is THE canonical error node, shared by every package that records,
-// clusters, validates, or mints from errors (KNIRVGRAPH's drq/nrv, KNIRVCHAIN's
+// clusters, validates, or mints from errors (KNIRVGRAPH's drq/locator, KNIRVCHAIN's
 // types, KNIRVARENA). It exists to end the divergence that previously left three
 // incompatible Go structs and three overlapping proto messages
 // (chain/v1.ErrorNode, lora/v1.ErrorContext, graph/v1.ErrorContext) describing
@@ -141,7 +141,9 @@ enum ErrorPriority {
 message ErrorNode {
   // Identity
   string id = 1;
-  string nrv_source = 2;
+  // Content hash of the originating report/announcement this ErrorNode was
+  // minted from. Opaque pointer; empty if the node was created directly.
+  string announcement_ref = 2;
 
   // Classification
   string error_type = 3;

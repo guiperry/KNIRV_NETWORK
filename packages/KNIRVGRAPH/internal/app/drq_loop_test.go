@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"KNIRVGRAPH/internal/drq"
-	"KNIRVGRAPH/internal/nrv"
+	"KNIRVGRAPH/internal/locator"
 
 	"go.uber.org/zap"
 	"google.golang.org/protobuf/types/known/structpb"
@@ -18,18 +18,18 @@ import (
 
 // fakeErrorSource supplies a fixed set of ingested error nodes.
 type fakeErrorSource struct {
-	nodes []*nrv.ErrorNode
+	nodes []*locator.ErrorNode
 }
 
-func (f *fakeErrorSource) GetAllErrorNodes() []*nrv.ErrorNode { return f.nodes }
+func (f *fakeErrorSource) GetAllErrorNodes() []*locator.ErrorNode { return f.nodes }
 
 // newTestRuntime builds a DRQ runtime over a fixed error source. It uses the
 // hash-fallback embedding model (no service), which is deterministic, so
 // identical failure contexts genuinely cluster together.
-func newTestRuntime(t *testing.T, nodes []*nrv.ErrorNode) *drqRuntime {
+func newTestRuntime(t *testing.T, nodes []*locator.ErrorNode) *drqRuntime {
 	t.Helper()
 
-	nrvSystem := nrv.NewNRVSystem("test-peer", nil)
+	nrvSystem := locator.NewLocatorSystem("test-peer", nil)
 	// The runtime is normally built against the app's embedding service. Here
 	// the clustering manager is built with no service, which selects the
 	// deterministic hash embedding — hermetic, and enough to prove that
@@ -55,7 +55,7 @@ func newTestRuntime(t *testing.T, nodes []*nrv.ErrorNode) *drqRuntime {
 // The loop must actually ingest errors and cluster them — this is the part that
 // is fully live today.
 func TestDRQStepIngestsAndClusters(t *testing.T) {
-	nodes := []*nrv.ErrorNode{
+	nodes := []*locator.ErrorNode{
 		{Id: "e1", ErrorType: "runtime", Description: "nil pointer in handler", Severity: 2},
 		{Id: "e2", ErrorType: "runtime", Description: "nil pointer in handler", Severity: 2},
 		{Id: "e3", ErrorType: "runtime", Description: "nil pointer in handler", Severity: 2},
@@ -91,7 +91,7 @@ func TestDRQStepIngestsAndClusters(t *testing.T) {
 
 // Errors are ingested once: a second tick must not re-cluster them.
 func TestDRQStepIsIdempotentAcrossTicks(t *testing.T) {
-	rt := newTestRuntime(t, []*nrv.ErrorNode{
+	rt := newTestRuntime(t, []*locator.ErrorNode{
 		{Id: "e1", ErrorType: "runtime", Description: "boom", Severity: 1},
 	})
 
@@ -114,7 +114,7 @@ func TestDRQStepIsIdempotentAcrossTicks(t *testing.T) {
 // A converged cluster cannot advance without a training backend, and the status
 // view must say so rather than reporting silent success.
 func TestDRQStatusReportsBlockedStage(t *testing.T) {
-	nodes := []*nrv.ErrorNode{
+	nodes := []*locator.ErrorNode{
 		{Id: "e1", ErrorType: "runtime", Description: "same failure", Severity: 1},
 		{Id: "e2", ErrorType: "runtime", Description: "same failure", Severity: 1},
 		{Id: "e3", ErrorType: "runtime", Description: "same failure", Severity: 1},
@@ -176,7 +176,7 @@ func TestDRQStatusReportsDisabled(t *testing.T) {
 
 // toDRQErrorNode must carry enough information for clustering and attribution.
 func TestToDRQErrorNode(t *testing.T) {
-	node := &nrv.ErrorNode{
+	node := &locator.ErrorNode{
 		Id:          "e1",
 		ErrorType:   "runtime",
 		Description: "nil pointer",
@@ -211,7 +211,7 @@ func TestToDRQErrorNode(t *testing.T) {
 	if toDRQErrorNode(nil) != nil {
 		t.Fatal("nil input must yield nil")
 	}
-	if toDRQErrorNode(&nrv.ErrorNode{}) != nil {
+	if toDRQErrorNode(&locator.ErrorNode{}) != nil {
 		t.Fatal("a node with no id must be rejected")
 	}
 }
@@ -220,7 +220,7 @@ func TestToDRQErrorNode(t *testing.T) {
 // service: mining needs embeddings, but it must not be silently switched off by
 // the unrelated document-processing toggle that builds the app's service.
 func TestNewDRQRuntimeBuildsItsOwnEmbeddingService(t *testing.T) {
-	rt, err := newDRQRuntime(nrv.NewNRVSystem("test-peer", nil), nil, nil, zap.NewNop())
+	rt, err := newDRQRuntime(locator.NewLocatorSystem("test-peer", nil), nil, nil, zap.NewNop())
 	if err != nil {
 		t.Fatalf("expected DRQ to build its own embedding service, got: %v", err)
 	}
@@ -237,7 +237,7 @@ func TestNewDRQRuntimeBuildsItsOwnEmbeddingService(t *testing.T) {
 }
 
 // A nil NRV system is a genuine construction failure and must be reported.
-func TestNewDRQRuntimeRequiresNRVSystem(t *testing.T) {
+func TestNewDRQRuntimeRequiresLocatorSystem(t *testing.T) {
 	if _, err := newDRQRuntime(nil, nil, nil, zap.NewNop()); err == nil {
 		t.Fatal("expected an error with no NRV system")
 	}
@@ -269,7 +269,7 @@ func TestAppConstructionEnablesDRQLoop(t *testing.T) {
 // would be no owner to pay. The status must show the cluster stalling rather
 // than the loop inventing an owner.
 func TestClusterWithoutAttributionCannotMint(t *testing.T) {
-	nodes := []*nrv.ErrorNode{
+	nodes := []*locator.ErrorNode{
 		{Id: "e1", ErrorType: "runtime", Description: "same", Severity: 1},
 		{Id: "e2", ErrorType: "runtime", Description: "same", Severity: 1},
 		{Id: "e3", ErrorType: "runtime", Description: "same", Severity: 1},
@@ -289,7 +289,7 @@ func TestClusterWithoutAttributionCannotMint(t *testing.T) {
 // error, since a malformed context in a fixture is a test bug.
 func mustContext(t *testing.T, values map[string]interface{}) *structpb.Struct {
 	t.Helper()
-	fields, err := nrv.NewErrorContextStruct(values)
+	fields, err := locator.NewErrorContextStruct(values)
 	if err != nil {
 		t.Fatalf("build error context: %v", err)
 	}

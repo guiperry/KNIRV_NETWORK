@@ -3,7 +3,7 @@ package network
 import (
 	"KNIRVGRAPH/internal/drq"
 	"KNIRVGRAPH/internal/economics"
-	"KNIRVGRAPH/internal/nrv"
+	"KNIRVGRAPH/internal/locator"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -67,7 +67,7 @@ func (rpc *RPCServer) submitSolutionProof(w http.ResponseWriter, r *http.Request
 	}
 
 	suite, err := store.Get(req.ErrorNodeID)
-	if errors.Is(err, nrv.ErrTestSuiteNotFound) {
+	if errors.Is(err, locator.ErrTestSuiteNotFound) {
 		writeJSONError(w, http.StatusConflict, "this error node has no tests yet; solutions are graded once its 8 tests are contributed")
 		return
 	}

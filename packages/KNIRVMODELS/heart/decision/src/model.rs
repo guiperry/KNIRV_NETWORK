@@ -470,6 +470,9 @@ impl Head {
         device: &Device,
         adapter: Option<&crate::adapter::Adapter>,
     ) -> Result<(Self, Option<crate::adapter::Applied>)> {
+        if let Some(ad) = adapter {
+            crate::adapter::check_base(ad, bytes)?;
+        }
         let mut tensors = candle_core::safetensors::load_buffer(bytes, device)?;
         // E2: the published knirv-heart/v2 checkpoint predates `set.match_emb`. Inject a small
         // random one so the model loads and trains it from scratch; a re-saved model then carries

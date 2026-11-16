@@ -2,6 +2,7 @@ package routes
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"math/big"
 	"net/http"
@@ -382,11 +383,24 @@ func TestRouteRegisterAuthorityValidHoldAcceptedHTTP(t *testing.T) {
 	if got.Bond != 10000 {
 		t.Fatalf("registered bond = %d, want 10000", got.Bond)
 	}
+	// The route only reserves the hold: registration consumes it and the escrow
+	// stays held until the root-owner release. Release is not a route; it is
+	// performed by the server-side supervisor (Option a), so assert it there.
 	h, herr := o.GetNRNToken().GetHold(holdID)
 	if herr != nil {
 		t.Fatalf("get hold: %v", herr)
 	}
+	if h.Status != ledger.BondStatusConsumed {
+		t.Fatalf("hold %q status = %q, want consumed after route", holdID, h.Status)
+	}
+	if err := o.CompleteBondReleases(context.Background()); err != nil {
+		t.Fatalf("complete bond releases: %v", err)
+	}
+	h, herr = o.GetNRNToken().GetHold(holdID)
+	if herr != nil {
+		t.Fatalf("get hold after release: %v", herr)
+	}
 	if h.Status != ledger.BondStatusReleased {
-		t.Fatalf("hold %q status = %q, want released (consumed through route)", holdID, h.Status)
+		t.Fatalf("hold %q status = %q, want released after CompleteBondReleases", holdID, h.Status)
 	}
 }

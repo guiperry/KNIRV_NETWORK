@@ -1,4 +1,4 @@
-//! `SupervisionEpisode v1` (supervisor_model.md) -> `head-train/v1`.
+//! `SupervisionEpisode v1` (supervisor_model.md) -> `heart-decision-train/v1`.
 //!
 //! Only episodes whose decision was *verified* become action/phase labels:
 //! `outcome.verified && !outcome.human_override`, with a non-abstaining decision.

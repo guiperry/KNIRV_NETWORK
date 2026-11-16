@@ -31,6 +31,34 @@ type Log struct {
 	file     *os.File
 	records  []Record
 	lastHash string
+	// broken is set once a write or fsync failed after bytes may have reached the
+	// file. The in-memory view then no longer matches the file, so every later
+	// append is refused; a restart replays the file, which is authoritative.
+	broken error
+	// fault is a crash-injection seam for tests. It is called at each commit
+	// stage ("before_write", "after_write", "after_sync"); a non-nil return
+	// simulates a crash at that point. Nil in production.
+	fault func(stage string) error
+}
+
+// errLogBroken is returned by every append after a failed write or fsync.
+var errLogBroken = fmt.Errorf("ledger: log is broken after a failed write; restart to replay it")
+
+// SetFaultHook installs a crash-injection hook on a live log (see fault). It is
+// for tests in other packages that need to simulate a crash mid-commit; the
+// production path never calls it. Pass nil to remove the hook.
+func (l *Log) SetFaultHook(hook func(stage string) error) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	l.fault = hook
+}
+
+// checkFault runs the crash-injection hook for one commit stage.
+func (l *Log) checkFault(stage string) error {
+	if l.fault == nil {
+		return nil
+	}
+	return l.fault(stage)
 }
 
 // Open reads an existing log (if any) and opens it for appending. A malformed
@@ -174,6 +202,9 @@ func (l *Log) Append(kind string, payload any) (Record, error) {
 
 	l.mu.Lock()
 	defer l.mu.Unlock()
+	if l.broken != nil {
+		return Record{}, errLogBroken
+	}
 
 	seq := uint64(len(l.records)) + 1
 	hash := hashRecord(seq, kind, body, l.lastHash)
@@ -183,10 +214,23 @@ func (l *Log) Append(kind string, payload any) (Record, error) {
 	if err != nil {
 		return Record{}, fmt.Errorf("ledger: encode record: %w", err)
 	}
+	if err := l.checkFault("before_write"); err != nil {
+		return Record{}, fmt.Errorf("ledger: append: %w", err)
+	}
 	if err := writeAll(l.file, append(line, '\n')); err != nil {
+		l.broken = err
+		return Record{}, fmt.Errorf("ledger: append: %w", err)
+	}
+	if err := l.checkFault("after_write"); err != nil {
+		l.broken = err
 		return Record{}, fmt.Errorf("ledger: append: %w", err)
 	}
 	if err := l.file.Sync(); err != nil {
+		l.broken = err
+		return Record{}, fmt.Errorf("ledger: fsync: %w", err)
+	}
+	if err := l.checkFault("after_sync"); err != nil {
+		l.broken = err
 		return Record{}, fmt.Errorf("ledger: fsync: %w", err)
 	}
 
@@ -216,6 +260,9 @@ func (l *Log) AppendBatch(entries []BatchEntry) ([]Record, error) {
 
 	l.mu.Lock()
 	defer l.mu.Unlock()
+	if l.broken != nil {
+		return nil, errLogBroken
+	}
 
 	seq := uint64(len(l.records)) + 1
 	prev := l.lastHash
@@ -234,10 +281,23 @@ func (l *Log) AppendBatch(entries []BatchEntry) ([]Record, error) {
 		return nil, fmt.Errorf("ledger: encode batch frame: %w", err)
 	}
 	buf = append(buf, '\n')
+	if err := l.checkFault("before_write"); err != nil {
+		return nil, fmt.Errorf("ledger: append batch: %w", err)
+	}
 	if err := writeAll(l.file, buf); err != nil {
+		l.broken = err
+		return nil, fmt.Errorf("ledger: append batch: %w", err)
+	}
+	if err := l.checkFault("after_write"); err != nil {
+		l.broken = err
 		return nil, fmt.Errorf("ledger: append batch: %w", err)
 	}
 	if err := l.file.Sync(); err != nil {
+		l.broken = err
+		return nil, fmt.Errorf("ledger: fsync batch: %w", err)
+	}
+	if err := l.checkFault("after_sync"); err != nil {
+		l.broken = err
 		return nil, fmt.Errorf("ledger: fsync batch: %w", err)
 	}
 	// Advance the in-memory view only after the batch is durable.

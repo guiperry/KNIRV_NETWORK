@@ -48,6 +48,8 @@ func New(name string) Backend {
 		return newHTTPBackend(backendLLAMA, endpointEnv("KNIRV_VLM_LLAMA_ENDPOINT"))
 	case backendOpenAI:
 		return newOpenAIBackend()
+	case backendMiniCPM:
+		return NewMiniCPMBackend(endpointEnv(minicpmEndpointEnv))
 	default:
 		return NoneBackend{}
 	}

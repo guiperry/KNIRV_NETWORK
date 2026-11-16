@@ -1097,4 +1097,54 @@ mod tests {
         let pub_hex = hex::encode(recovered.to_encoded_point(true).as_bytes());
         assert_eq!(pub_hex, raw_sign_kat::PUB_HEX);
     }
+    /// `testvectors/secrets/scrypt_kdf_v1.json`: scrypt output captured from the Go
+    /// `golang.org/x/crypto/scrypt` implementation before the derivation moved here.
+    /// The core must reproduce it byte-for-byte, both in-process and through the
+    /// `secrets.scrypt_derive` binding.
+    #[test]
+    fn scrypt_matches_go_captured_vectors() {
+        let path = format!("{}/../testvectors/secrets/scrypt_kdf_v1.json", env!("CARGO_MANIFEST_DIR"));
+        let fixture: Value = serde_json::from_slice(&std::fs::read(path).unwrap()).unwrap();
+        let cases = fixture["cases"].as_array().unwrap();
+        assert!(cases.len() >= 5);
+        for case in cases {
+            let name = case["name"].as_str().unwrap();
+            let password = case["password"].as_str().unwrap().as_bytes();
+            let salt = BASE64.decode(case["salt_base64"].as_str().unwrap()).unwrap();
+            let expected = case["derived_key_base64"].as_str().unwrap();
+            assert_eq!(case["log_n"], 15, "{name}");
+            let params = KdfParams { salt: salt.clone(), log_n: 15, r: 8, p: 1, key_len: 32 };
+            let key = derive_key(password, &params).unwrap();
+            assert_eq!(BASE64.encode(key), expected, "in-process {name}");
+            let via_binding = crate::bindings::local_operation(
+                "secrets.scrypt_derive",
+                &serde_json::json!({
+                    "password_base64": BASE64.encode(password),
+                    "salt_base64": BASE64.encode(&salt),
+                    "log_n": 15, "r": 8, "p": 1, "key_len": 32,
+                }),
+            )
+            .unwrap()
+            .unwrap();
+            assert_eq!(via_binding["derived_key_base64"], expected, "binding {name}");
+        }
+    }
+
+    /// The binding refuses costs outside the range the host enforced, and any key
+    /// length but 32.
+    #[test]
+    fn scrypt_derive_refuses_unsupported_parameters() {
+        let base = |log_n: u64, key_len: u64| {
+            serde_json::json!({
+                "password_base64": BASE64.encode(b"pw"), "salt_base64": BASE64.encode(b"salt-salt-salt"),
+                "log_n": log_n, "r": 8, "p": 1, "key_len": key_len,
+            })
+        };
+        for (log_n, key_len) in [(0, 32), (21, 32), (15, 16)] {
+            let err = crate::bindings::local_operation("secrets.scrypt_derive", &base(log_n, key_len))
+                .unwrap()
+                .unwrap_err();
+            assert_eq!(err.code, crate::bindings::BindingErrorCode::InvalidArgument, "{log_n}/{key_len}");
+        }
+    }
 }

@@ -428,7 +428,11 @@ func (o *Oracle) ProjectRollup(rec *types.RollupRecord) (*types.CheckpointRecord
 func (o *Oracle) appendAuditLeafLocked(leafData []byte) (uint64, mmr.Hash) {
 	if o.consensusEngine != nil {
 		o.consensusEngine.SetAuditMMR(o.checkpoint.mmr)
-		pos, leaf := o.consensusEngine.AddAuditLeaf(leafData)
+		// AddAuditLeaf returns the MMR bag root, not the leaf. Only the leaf is
+		// recorded, so the leaf log stays a list of leaves (a bag root in it made
+		// every restart after the first leaf look like missing audit leaves).
+		pos, _ := o.consensusEngine.AddAuditLeaf(leafData)
+		leaf := mmr.LeafHash(leafData)
 		o.checkpoint.leafLog = append(o.checkpoint.leafLog, leaf)
 		return pos, leaf
 	}

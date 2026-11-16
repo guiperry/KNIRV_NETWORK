@@ -1,7 +1,7 @@
 package network
 
 import (
-	"KNIRVGRAPH/internal/nrv"
+	"KNIRVGRAPH/internal/locator"
 	"net/http"
 	"testing"
 
@@ -9,9 +9,9 @@ import (
 	"go.uber.org/zap"
 )
 
-func errorCreateRouter(t *testing.T) (http.Handler, *nrv.NRVSystem) {
+func errorCreateRouter(t *testing.T) (http.Handler, *locator.LocatorSystem) {
 	t.Helper()
-	sys := nrv.NewNRVSystem("test-peer", nil)
+	sys := locator.NewLocatorSystem("test-peer", nil)
 	rpc := &RPCServer{logger: zap.NewNop(), nrvSystem: sys}
 	r := mux.NewRouter()
 	r.HandleFunc("/nrv/errors", rpc.createError).Methods("POST")
@@ -19,11 +19,11 @@ func errorCreateRouter(t *testing.T) (http.Handler, *nrv.NRVSystem) {
 	return r, sys
 }
 
-func storedContext(t *testing.T, sys *nrv.NRVSystem, errorType string) map[string]interface{} {
+func storedContext(t *testing.T, sys *locator.LocatorSystem, errorType string) map[string]interface{} {
 	t.Helper()
 	for _, node := range sys.GetAllErrorNodes() {
 		if node.ErrorType == errorType {
-			return nrv.ErrorContextMap(node)
+			return locator.ErrorContextMap(node)
 		}
 	}
 	t.Fatalf("no stored error node of type %s", errorType)
@@ -52,7 +52,7 @@ func TestCreateErrorRequiresInternalTokenAndStripsResolverClaims(t *testing.T) {
 		t.Fatalf("internal creation: %d %s", rec.Code, rec.Body.String())
 	}
 	ctx := storedContext(t, sys, "leak")
-	for _, k := range nrv.ResolverContextKeys {
+	for _, k := range locator.ResolverContextKeys {
 		if _, ok := ctx[k]; ok {
 			t.Fatalf("resolver claim %q must be stripped: %v", k, ctx)
 		}
@@ -78,7 +78,7 @@ func TestCreateErrorCommitStripsResolverClaims(t *testing.T) {
 		t.Fatalf("commit: %d %s", rec.Code, rec.Body.String())
 	}
 	ctx := storedContext(t, sys, "crash")
-	for _, k := range nrv.ResolverContextKeys {
+	for _, k := range locator.ResolverContextKeys {
 		if _, ok := ctx[k]; ok {
 			t.Fatalf("resolver claim %q must be stripped: %v", k, ctx)
 		}

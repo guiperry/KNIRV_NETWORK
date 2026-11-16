@@ -10,6 +10,8 @@ pub mod client;
 pub mod crypto;
 pub mod error;
 pub mod evidence;
+#[cfg(feature = "mldsa")]
+pub mod mldsa;
 pub mod gateway;
 pub mod governance;
 pub mod http_transport;

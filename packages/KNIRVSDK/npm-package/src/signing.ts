@@ -217,16 +217,42 @@ export async function signBootnodeEnrollChallenge(
   });
 }
 
-/** Signs the root owner's approval of a challenge; the approval payload is the exact base64
- * envelope of the challenge (approval-to-key binding). Thin pass-through to the Rust core. */
+/** Signs the root owner's approval of a challenge. The approval covers the challenge's base64
+ * envelope AND the boot-node public key (`bootPublicKey`, base64, the challenge signer's key),
+ * so it cannot be moved onto a challenge re-signed under another key. Thin pass-through to the
+ * Rust core. */
 export async function signBootnodeEnrollApproval(
   rootKey: Uint8Array, chainId: string, nonce: string,
-  issuedAtUnix: number, expiresAtUnix: number, challengeEnvelope: string,
+  issuedAtUnix: number, expiresAtUnix: number, challengeEnvelope: string, bootPublicKey: string,
 ): Promise<SignedMessageEnvelope> {
   return callLocal<SignedMessageEnvelope>('signing.sign_bootnode_enroll_approval', {
     private_key_base64: toBase64(rootKey), chain_id: chainId, nonce,
     issued_at_unix: issuedAtUnix, expires_at_unix: expiresAtUnix, challenge_envelope: challengeEnvelope,
+    boot_public_key: bootPublicKey,
   });
+}
+
+/** Stable enrollment refusal codes returned by the Rust core (BootnodeEnrollFailure). Wire
+ * contract, mirrored verbatim from the Go binding; do not rename. */
+export type BootnodeEnrollCode =
+  | 'challenge_encoding' | 'challenge_malformed' | 'challenge_domain' | 'challenge_window'
+  | 'challenge_public_key' | 'challenge_address' | 'challenge_signature' | 'operator_mismatch'
+  | 'approval_untrusted_root' | 'approval_encoding' | 'approval_malformed' | 'approval_domain'
+  | 'approval_window' | 'approval_public_key' | 'approval_address' | 'approval_signature'
+  | 'approval_payload_mismatch';
+
+/** Verifies an approved enrollment without consuming its nonce. On rejection, `code` is the
+ * core's stable reason code. A valid result carries the nonce the host must consume. */
+export async function verifyBootnodeEnrollmentDetail(
+  enrollment: BootnodeEnrollment, expectedRootPublicKey: string, expectedOperator: string, now: Date,
+): Promise<{ valid: true; nonce: string } | { valid: false; code: BootnodeEnrollCode; message: string }> {
+  const out = await callLocal<{ valid: boolean; nonce: string; code?: BootnodeEnrollCode; message?: string }>(
+    'signing.verify_bootnode_enrollment', {
+      enrollment, expected_root_public_key: expectedRootPublicKey, expected_operator: expectedOperator,
+      now_unix: unixSeconds(now),
+    });
+  if (out.valid) return { valid: true, nonce: out.nonce };
+  return { valid: false, code: out.code as BootnodeEnrollCode, message: out.message ?? '' };
 }
 
 /** Verifies an approved enrollment, enforcing operator match and replay prevention. Cryptographic
@@ -238,12 +264,9 @@ export async function verifyBootnodeEnrollment(
   enrollment: BootnodeEnrollment, expectedRootPublicKey: string, expectedOperator: string,
   store: import('./nonceStore.js').NonceStore, now: Date,
 ): Promise<boolean> {
-  const out = await callLocal<{ valid: boolean; nonce: string }>('signing.verify_bootnode_enrollment', {
-    enrollment, expected_root_public_key: expectedRootPublicKey, expected_operator: expectedOperator,
-    now_unix: unixSeconds(now),
-  });
-  if (!out.valid) return false;
-  return store.consume(out.nonce);
+  const verdict = await verifyBootnodeEnrollmentDetail(enrollment, expectedRootPublicKey, expectedOperator, now);
+  if (!verdict.valid) return false;
+  return store.consume(verdict.nonce);
 }
 
 /** True when `signed` is exactly the canonical encoding of `expected` with a valid signature. */

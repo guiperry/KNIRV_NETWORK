@@ -24,7 +24,7 @@ export const metadata: Metadata = {
   description: "The Crucible of Verifiable AI Intelligence - Powering Trustless Validation, Secure Execution, and Collective Learning in the KNIRV D-TEN",
   keywords: ["KNIRV-SERVER", "DVE", "Decentralized Validation", "AI Intelligence", "Trusted Execution", "CLEAN", "KNIRV D-TEN", "Blockchain", "TEE"],
   authors: [{ name: "KNIRV Network Team" }],
-  manifest: "/manifest.json",
+  manifest: "/app/manifest.json",
   openGraph: {
     title: "KNIRV-SERVER DVE",
     description: "The Crucible of Verifiable AI Intelligence - Powering Trustless Validation and Secure Execution",

@@ -27,7 +27,7 @@ use std::process::ExitCode;
 
 const USAGE: &str = "heart-decision-trainer --data <train.jsonl>... --out <dir> [options]
 
-  --data FILE         head-train/v1 JSONL (repeatable); split by `split` or by hash of `group`
+  --data FILE         heart-decision-train/v1 JSONL (repeatable); split by `split` or by hash of `group`
   --heldout FILE      held-out evaluation set (repeatable); default: the data's test split
   --out DIR           writes DIR/head/ (config, safetensors, model_latest, metrics.json)
   --preset NAME       micro | tiny | small | base (default small)
@@ -347,7 +347,7 @@ fn run(a: Args) -> Result<bool, String> {
 
 const CONVERT_USAGE: &str = "heart-decision-trainer convert --episodes <episodes.jsonl> --out <train.jsonl> [--soft <teacher.jsonl>] [--soft-heads a,b]
 
-  Converts verified SupervisionEpisode v1 records to head-train/v1. --soft lines are
+  Converts verified SupervisionEpisode v1 records to heart-decision-train/v1. --soft lines are
   {\"episode_id\":..., \"labels\":{\"action\":{\"request_review\":0.7,...}}} (Clef teacher distributions).
   --soft-heads: heads the teacher may label (default next_phase,agent). `action`
   (which carries abstain) stays outcome-labelled unless listed here explicitly. Teacher

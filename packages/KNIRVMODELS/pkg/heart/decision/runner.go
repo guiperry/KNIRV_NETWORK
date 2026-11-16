@@ -1,7 +1,8 @@
-// Package head runs the knirv-head Hierarchical Reasoning Model server-side.
+// Package decision runs the knirv-heart-decision Hierarchical Reasoning Model
+// server-side for HEART (/models/heart/decide).
 //
 // The model is the same Rust crate the arena runs in the browser, compiled to
-// WASI (head-wasi.wasm, built by `make build-head-wasi`) and executed under
+// WASI (heart-decision-wasi.wasm, built by `make build-heart-decision-wasi`) and executed under
 // wazero, so server and browser answers agree to float tolerance. The module
 // speaks one JSON object per line over stdin/stdout.
 package decision
@@ -31,20 +32,29 @@ var compilationCache = wazero.NewCompilationCache()
 
 // Info describes the loaded model.
 type Info struct {
-	Loaded          bool   `json:"loaded"`
-	TotalParameters int    `json:"total_parameters"`
-	LModules        int    `json:"l_modules"`
-	HModules        int    `json:"h_modules"`
-	MaxInputLen     int    `json:"max_input_len"`
-	Tokenizer       string `json:"tokenizer"`
-	ModelVersion    string `json:"model_version"`
-	VocabSize       int    `json:"vocab_size"`
+	Loaded          bool            `json:"loaded"`
+	TotalParameters int             `json:"total_parameters"`
+	LModules        int             `json:"l_modules"`
+	HModules        int             `json:"h_modules"`
+	MaxInputLen     int             `json:"max_input_len"`
+	Tokenizer       string          `json:"tokenizer"`
+	ModelVersion    string          `json:"model_version"`
+	VocabSize       int             `json:"vocab_size"`
+	Adapter         *AppliedAdapter `json:"adapter,omitempty"`
+}
+
+// AppliedAdapter describes the KNIRVULORA adapter merged into the loaded model.
+type AppliedAdapter struct {
+	ContentHash    string   `json:"content_hash"`
+	TensorsChanged int      `json:"tensors_changed"`
+	RolesApplied   []string `json:"roles_applied"`
+	RolesSkipped   []string `json:"roles_skipped"`
 }
 
 // ErrRunnerDead marks a runner whose module exited, broke its pipe or timed out.
 // Such a runner is unusable and must be replaced; model-level errors (a bad
 // input) do not wrap it.
-var ErrRunnerDead = errors.New("head module unavailable")
+var ErrRunnerDead = errors.New("decision module unavailable")
 
 // DefaultCallTimeout bounds one request to the module.
 const DefaultCallTimeout = 30 * time.Second
@@ -79,7 +89,7 @@ func NewRunner(ctx context.Context, modelDir string) (*Runner, error) {
 	compiled, err := rt.CompileModule(ctx, wasiModule)
 	if err != nil {
 		rt.Close(ctx)
-		return nil, fmt.Errorf("compile head-wasi: %w", err)
+		return nil, fmt.Errorf("compile heart-decision-wasi: %w", err)
 	}
 	inR, inW := io.Pipe()
 	outR, outW := io.Pipe()
@@ -90,7 +100,7 @@ func NewRunner(ctx context.Context, modelDir string) (*Runner, error) {
 	r := &Runner{rt: rt, in: inW, out: bufio.NewReader(outR), outPipe: outR, done: make(chan error, 1)}
 	go func() {
 		_, err := rt.InstantiateModule(ctx, compiled, cfg)
-		outW.CloseWithError(errors.New("head module exited"))
+		outW.CloseWithError(errors.New("decision module exited"))
 		r.done <- err
 	}()
 	return r, nil
@@ -160,7 +170,7 @@ func (r *Runner) call(ctx context.Context, req any, into any) error {
 	}
 	var resp response
 	if err := json.Unmarshal(bytes.TrimSpace(rep.line), &resp); err != nil {
-		return fmt.Errorf("bad head response: %w", err)
+		return fmt.Errorf("bad decision response: %w", err)
 	}
 	if !resp.OK {
 		return errors.New(resp.Error)
@@ -171,14 +181,23 @@ func (r *Runner) call(ctx context.Context, req any, into any) error {
 	return nil
 }
 
-// Load reads config and weights (file names relative to the model dir).
-func (r *Runner) Load(configFile, weightsFile string) (Info, error) {
-	return r.LoadCtx(context.Background(), configFile, weightsFile)
+// Load reads config and weights (file names relative to the model dir). An
+// optional KNIRVULORA adapter is merged into the base weights before the model
+// becomes live; the adapter is the JSON returned by POST /ulora/v1/bind.
+func (r *Runner) Load(configFile, weightsFile string, adapter ...json.RawMessage) (Info, error) {
+	return r.LoadCtx(context.Background(), configFile, weightsFile, adapter...)
 }
 
-func (r *Runner) LoadCtx(ctx context.Context, configFile, weightsFile string) (Info, error) {
+func (r *Runner) LoadCtx(ctx context.Context, configFile, weightsFile string, adapter ...json.RawMessage) (Info, error) {
+	req := map[string]any{"op": "load", "config_path": "/m/" + configFile, "weights_path": "/m/" + weightsFile}
+	if len(adapter) > 0 && len(adapter[0]) > 0 {
+		if !json.Valid(adapter[0]) {
+			return Info{}, errors.New("adapter: invalid JSON")
+		}
+		req["adapter"] = adapter[0]
+	}
 	var info Info
-	err := r.call(ctx, map[string]string{"op": "load", "config_path": "/m/" + configFile, "weights_path": "/m/" + weightsFile}, &info)
+	err := r.call(ctx, req, &info)
 	return info, err
 }
 

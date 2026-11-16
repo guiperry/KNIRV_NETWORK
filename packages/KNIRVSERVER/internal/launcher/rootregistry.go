@@ -12,13 +12,14 @@ package launcher
 // configured trusted root identity and immutable root registry id; the launcher
 // only ever reaches the Worker over HTTPS outbound.
 //
-// INTERIM (design rev 2 deviation, tracked in PendingImplementations.md): signing
-// uses the in-process root-owner signer built from the already-decrypted root
-// key, NOT the OpenBao RemoteSigner. The key is held only in process memory —
-// it is never written to env vars, args, files, or logs. All signing goes
-// through signRootRegistryRecord so the later swap to the Bao RemoteSigner (once
-// owner-gated item 2a.6/8.8 delivers a root-key path) is a one-line change at
-// the call site.
+// Signing (owner decision N12.4, 2026-11-12): root registry records are signed
+// through OpenBao when it is available. rootRegistrySigner prefers the OpenBao
+// RemoteSigner for the `root-owner` plugin key, verified to hold the same public key
+// as the root.key owner identity. If OpenBao is unavailable, sealed, lacks the key, or
+// returns a different key, it falls back to the in-process legacy LocalSigner built
+// from the decrypted root key and logs a WARN naming the reason. The legacy fallback
+// is never silent: the signing source is logged on every publish. The key is never
+// written to env vars, args, files, or logs.
 //
 // If the node is not ROOT it publishes nothing for the root id.
 
@@ -44,7 +45,10 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/guiperry/knirv-sdk-go/secrets"
 	knirvsigning "github.com/guiperry/knirv-sdk-go/signing"
+
+	"knirv-server/internal/knirvbao"
 )
 
 // publisherNoncePathFunc returns the file used to persist the root-registry
@@ -293,21 +297,72 @@ func signRootRegistryRecord(ctx context.Context, signer knirvsigning.RemoteSigne
 	return signer.SignMessage(ctx, envelope)
 }
 
+// rootOwnerBaoSignerName is the logical name of the OpenBao root-owner identity.
+const rootOwnerBaoSignerName = "root-owner"
+
+// openRootOwnerBaoSigner resolves the OpenBao RemoteSigner for root-owner over the
+// given socket. It is a package seam so unit tests can substitute a fake Bao without
+// a live vault; production always uses the SDK BaoProvider.
+var openRootOwnerBaoSigner = func(ctx context.Context, socket, token string) (knirvsigning.RemoteSigner, error) {
+	return secrets.NewBaoProvider(socket, token).Signer(ctx, rootOwnerBaoSignerName)
+}
+
+// rootRegistrySigner selects the signer for root registry records. legacy is the
+// in-process LocalSigner over the decrypted root.key (the legacy fallback). It returns
+// the OpenBao RemoteSigner for root-owner when that key is reachable and holds the
+// same public key as legacy; otherwise it returns legacy. The second return value
+// names the source ("openbao" or "legacy-local") for logging.
+//
+// The OpenBao path authenticates with the launcher's in-process token
+// (KNIRV_BAO_TOKEN), the same credential the launcher already uses to mint child
+// role secret-ids. A narrower root-owner-only token is a follow-up (needs the live
+// vault and AppRole provisioning).
+func (app *ServerApp) rootRegistrySigner(ctx context.Context, legacy knirvsigning.RemoteSigner) (knirvsigning.RemoteSigner, string) {
+	if app == nil || app.bao == nil {
+		log.Printf("[REGISTRY] WARN root registry signing: legacy-local fallback (OpenBao manager not configured)")
+		return legacy, "legacy-local"
+	}
+	st := app.bao.Health()
+	if st.State != knirvbao.Ready {
+		log.Printf("[REGISTRY] WARN root registry signing: legacy-local fallback (OpenBao state %s)", st.State)
+		return legacy, "legacy-local"
+	}
+	token := strings.TrimSpace(os.Getenv("KNIRV_BAO_TOKEN"))
+	if token == "" {
+		log.Printf("[REGISTRY] WARN root registry signing: legacy-local fallback (no OpenBao token in launcher)")
+		return legacy, "legacy-local"
+	}
+	bctx, cancel := context.WithTimeout(ctx, 15*time.Second)
+	defer cancel()
+	remote, err := openRootOwnerBaoSigner(bctx, app.bao.Socket(), token)
+	if err != nil {
+		log.Printf("[REGISTRY] WARN root registry signing: legacy-local fallback (OpenBao root-owner unavailable: %v)", err)
+		return legacy, "legacy-local"
+	}
+	if !bytes.Equal(remote.PublicKey(), legacy.PublicKey()) {
+		log.Printf("[REGISTRY] WARN root registry signing: legacy-local fallback (OpenBao root-owner public key does not match root.key; not used)")
+		return legacy, "legacy-local"
+	}
+	return remote, "openbao"
+}
+
 // publishRootRegistryRecord derives the root registry id, builds and signs the
-// RegistryRecord with the in-process root-owner signer, and POSTs it to the
-// Worker's signed registration endpoint. It returns nil on success. The Worker
-// URL must be HTTPS except for an explicit loopback test endpoint.
+// RegistryRecord (through OpenBao when available, see rootRegistrySigner), and POSTs
+// it to the Worker's signed registration endpoint. It returns nil on success. The
+// Worker URL must be HTTPS except for an explicit loopback test endpoint.
 func (app *ServerApp) publishRootRegistryRecord(ctx context.Context, rootPrivKeyHex string) error {
 	priv, err := hex.DecodeString(rootPrivKeyHex)
 	if err != nil {
 		return fmt.Errorf("decode root key: %w", err)
 	}
-	// In-process signer only; the key is never written to env/args/files/logs.
-	signer, err := knirvsigning.NewLocalSigner(priv)
+	// Legacy in-process signer; the key is never written to env/args/files/logs.
+	legacy, err := knirvsigning.NewLocalSigner(priv)
 	if err != nil {
 		return fmt.Errorf("root signer: %w", err)
 	}
-	ownerPub := signer.PublicKey()
+	ownerPub := legacy.PublicKey()
+	signer, source := app.rootRegistrySigner(ctx, legacy)
+	log.Printf("[REGISTRY] root registry record signing source: %s", source)
 	rootRegistryID := deriveRootRegistryID(ownerPub)
 
 	txAddr := TxChainAddress()

@@ -73,9 +73,42 @@ func NewNRVWriter(path string, keyPair *pqc.PQCKeyPair) (*NRVWriter, error) {
 	return w, nil
 }
 
+// AppendFrame appends a frame with no payload section. Its signature covers the
+// bracket binary alone (the legacy form; see nrv.FrameSigningMessage).
 func (w *NRVWriter) AppendFrame(
 	frameID string,
 	bracketBuf []byte,
+	bracketIndex []nrv.BracketMeta,
+	thermo nrv.ThermoAtmosphere,
+	ling nrv.LinguisticMapping,
+) error {
+	return w.appendFrame(frameID, bracketBuf, nil, false, bracketIndex, thermo, ling)
+}
+
+// AppendFrameWithPayload appends a frame followed by its encoded FramePayload
+// section. The payload is validated (nrv.EncodeFramePayload), located through
+// FrameEntry.Payload, and covered by the frame signature, so tampering with either
+// section fails verification.
+func (w *NRVWriter) AppendFrameWithPayload(
+	frameID string,
+	bracketBuf []byte,
+	payload nrv.FramePayload,
+	bracketIndex []nrv.BracketMeta,
+	thermo nrv.ThermoAtmosphere,
+	ling nrv.LinguisticMapping,
+) error {
+	encoded, err := nrv.EncodeFramePayload(payload)
+	if err != nil {
+		return fmt.Errorf("nrv: encode payload for frame %s: %w", frameID, err)
+	}
+	return w.appendFrame(frameID, bracketBuf, encoded, true, bracketIndex, thermo, ling)
+}
+
+func (w *NRVWriter) appendFrame(
+	frameID string,
+	bracketBuf []byte,
+	payloadBuf []byte,
+	hasPayload bool,
 	bracketIndex []nrv.BracketMeta,
 	thermo nrv.ThermoAtmosphere,
 	ling nrv.LinguisticMapping,
@@ -104,9 +137,9 @@ func (w *NRVWriter) AppendFrame(
 
 	var sig []byte
 	if w.keyPair != nil {
-		sig, err = w.keyPair.Sign(bracketBuf)
+		sig, err = w.keyPair.Sign(nrv.FrameSigningMessage(bracketBuf, payloadBuf, hasPayload))
 		if err != nil {
-			return fmt.Errorf("nrv: sign brackets: %w", err)
+			return fmt.Errorf("nrv: sign frame: %w", err)
 		}
 	}
 
@@ -116,6 +149,13 @@ func (w *NRVWriter) AppendFrame(
 	}
 	if _, err := w.file.Write(bracketBuf); err != nil {
 		return err
+	}
+	var payloadIndex *nrv.ModalityIndex
+	if hasPayload {
+		payloadIndex = &nrv.ModalityIndex{Offset: int(offset) + len(bracketBuf), Length: len(payloadBuf)}
+		if _, err := w.file.Write(payloadBuf); err != nil {
+			return err
+		}
 	}
 
 	z3 := nrv.Z3Result{Status: "VALID", Relevance: 1.0}
@@ -133,6 +173,7 @@ func (w *NRVWriter) AppendFrame(
 			Length: len(bracketBuf),
 		},
 		BracketIndex: bracketIndex,
+		Payload:      payloadIndex,
 	}
 
 	w.registry.Frames = append(w.registry.Frames, entry)

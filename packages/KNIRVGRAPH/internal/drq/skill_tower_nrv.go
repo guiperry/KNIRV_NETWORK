@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"strings"
 
-	"KNIRVGRAPH/internal/nrv"
+	"KNIRVGRAPH/internal/locator"
 )
 
-// NRVSkillTowerStore adapts KNIRVGRAPH's NRVSystem skill registry to the
+// NRVSkillTowerStore adapts KNIRVGRAPH's LocatorSystem skill registry to the
 // SkillTowerStore port, so DRQ's minting writes into the graph's real skill
 // record store instead of a no-op.
 //
@@ -16,11 +16,11 @@ import (
 // the chain-side mint this pairs with is itself idempotent per skill ID, so a
 // re-mint of an existing skill must not be reported as a failure.
 type NRVSkillTowerStore struct {
-	system *nrv.NRVSystem
+	system *locator.LocatorSystem
 }
 
-// NewNRVSkillTowerStore wraps an NRVSystem.
-func NewNRVSkillTowerStore(system *nrv.NRVSystem) *NRVSkillTowerStore {
+// NewNRVSkillTowerStore wraps an LocatorSystem.
+func NewNRVSkillTowerStore(system *locator.LocatorSystem) *NRVSkillTowerStore {
 	return &NRVSkillTowerStore{system: system}
 }
 

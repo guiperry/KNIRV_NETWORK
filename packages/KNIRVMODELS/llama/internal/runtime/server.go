@@ -45,16 +45,18 @@ type Options struct {
 	CtxSize  int
 	Threads  int
 	APIKey   string
-	// Mlock passes --mlock so the model cannot be paged out after load. It needs RAM
-	// headroom for the whole model, so it is opt-in (KNIRV_LLAMA_MLOCK=1).
+	// Mlock keeps the model resident (no paging after load). It passes
+	// `--load-mode mmap+mlock`: llama.cpp b12388 removed the old `--mlock` flag and
+	// replaced it with --load-mode. It needs RAM headroom for the whole model, so it
+	// is opt-in (KNIRV_LLAMA_MLOCK=1).
 	Mlock bool
 	// LoRA lists adapters to apply, in order.
 	LoRA []LoRAAdapter
-	// LoRAInitWithoutApply passes --lora-init-without-apply. NOTE: against the
-	// provisioned llama.cpp (9e0e220) a request WITHOUT a `lora` field still runs
-	// every loaded adapter at its default scale (GET /lora-adapters reports 1.0),
-	// so this flag alone does not make adapters inert. Callers must also call
-	// ZeroLoRAAdapters after start and send an explicit `lora` list per request.
+	// LoRAInitWithoutApply passes --lora-init-without-apply. NOTE: a request WITHOUT
+	// a `lora` field still runs every loaded adapter at its server-wide scale (GET
+	// /lora-adapters reports 1.0), so this flag alone does not make adapters inert
+	// (same behaviour on llama.cpp b12388, see llama/internal/runtime/lora.go). Callers
+	// must also call ZeroLoRAAdapters after start and send an explicit `lora` list per request.
 	LoRAInitWithoutApply bool
 }
 
@@ -86,7 +88,7 @@ func (o Options) args(model, port string) []string {
 		args = append(args, "--api-key", o.APIKey)
 	}
 	if o.Mlock {
-		args = append(args, "--mlock")
+		args = append(args, "--load-mode", "mmap+mlock")
 	}
 	// Adapters last so the base-model flags above stay stable in the argv the
 	// manager asserts against.

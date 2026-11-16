@@ -4,7 +4,7 @@
 
 KNIRVBASE is a high-performance, memory-safe distributed database prototype implemented in Rust. This is the optimized production reference implementation with zero runtime overhead, featuring:
 
-- **PQC Encryption Layer**: Post-quantum cryptography using Kyber-768 (encryption) and Dilithium-3 (signatures) for secure data storage
+- **PQC Encryption Layer**: Post-quantum cryptography using Kyber-768 (encryption) and ML-DSA-65 (signatures, FIPS 204) for secure data storage
 - CRDT-based conflict resolution using **vector clocks**,
 - **WAL (Write Ahead Logging)** for ACID compliance and crash recovery,
 - **HNSW vector index** for approximate nearest neighbor search with 1M+ vector support,
@@ -18,7 +18,7 @@ This package is intended as the high-performance server-side reference implement
 
 ## 🔍 Features
 
-- **PQC Encryption at Rest**: Field-level encryption for sensitive data using Kyber-768 KEM + AES-256-GCM, with Dilithium-3 signatures for integrity
+- **PQC Encryption at Rest**: Field-level encryption for sensitive data using Kyber-768 KEM + AES-256-GCM, with ML-DSA-65 signatures for integrity
 - Local-first operations and background sync with automatic conflict resolution
 - CRDT resolve using vector clocks (merge rules + LWW tie-breakers)
 - Write Ahead Logging (WAL) with atomic batch commits
@@ -143,7 +143,7 @@ The language is intentionally minimal and aimed at quick integration. Query opti
 - `main.rs` — CLI binary entry point
 - `database.rs` — `DistributedDatabase`: high-level database orchestration
 - `collection.rs` — `DistributedCollection` + `LocalCollection`: local storage, CRDT operation emission, sync logic
-- `crypto/pqc.rs` — Post-quantum cryptography: Kyber-768 encryption, Dilithium-3 signatures, key management
+- `crypto/pqc.rs` — Post-quantum cryptography: Kyber-768 encryption, ML-DSA-65 signatures, key management
 - `network.rs` — `NetworkManager`: P2P networking with QUIC + DHT peer discovery
 - `resolver.rs` — CRDT resolver logic and merge operations
 - `query.rs` / `query_parser.rs` — `KNIRVQL` parser and query execution
@@ -256,7 +256,7 @@ cargo flamegraph --bench vector_search
 
 ## ⚠️ Limitations & Security Notes
 
-- **PQC Encryption at Rest:** Field-level encryption for all sensitive data across collections (`credentials`, `pqc_keys`, `sessions`, `audit_log`, `threat_events`, `access_control`). Encrypts specific fields like `hash`, `salt`, `token_hash`, `details`, `indicators`, `permissions`, etc. Uses Kyber-768 + AES-256-GCM for confidentiality and Dilithium-3 for integrity. Master key must be configured for encryption to be active.
+- **PQC Encryption at Rest:** Field-level encryption for all sensitive data across collections (`credentials`, `pqc_keys`, `sessions`, `audit_log`, `threat_events`, `access_control`). Encrypts specific fields like `hash`, `salt`, `token_hash`, `details`, `indicators`, `permissions`, etc. Uses Kyber-768 + AES-256-GCM for confidentiality and ML-DSA-65 for integrity. Master key must be configured for encryption to be active.
 - **P2P Networking:** QUIC based P2P networking with DHT peer discovery enables true distributed operation across multiple nodes.
 - **Blob handling:** Blobs are stored locally and only referenced in synchronized metadata; no blob distribution is implemented here.
 - **Memory Safety:** Zero unsafe code in public API. All cryptographic operations use constant time implementations.

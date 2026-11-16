@@ -4,7 +4,7 @@ import (
 	"errors"
 	"testing"
 
-	"KNIRVGRAPH/internal/nrv"
+	"KNIRVGRAPH/internal/locator"
 )
 
 var errLookupBoom = errors.New("skill registry unavailable")
@@ -57,7 +57,7 @@ func TestGatherClusterDatasetsPropagatesLookupFailure(t *testing.T) {
 // The real NRV-backed adapter is exercised end to end: mint a skill through the
 // tower store, then read it back as a corpus fix.
 func TestNRVSkillTowerStoreRoundTripFeedsCorpus(t *testing.T) {
-	system := nrv.NewNRVSystem("test-peer", nil)
+	system := locator.NewLocatorSystem("test-peer", nil)
 	store := NewNRVSkillTowerStore(system)
 
 	// Nothing minted yet: the member is skipped rather than failed.

@@ -65,6 +65,9 @@ type ServerConfig struct {
 	// actuarial health. No additional TCP service URL is required.
 	BackendSocketPath string
 	OracleSocketPath  string
+	// BaoAuditLogPath is the OpenBao file audit device log the monitor reads for
+	// the secrets audit view (OpenBao.md §7 Audit). Empty disables the view.
+	BaoAuditLogPath string
 }
 
 // ActuarialMetrics contains aggregate pool health only; no private telemetry,

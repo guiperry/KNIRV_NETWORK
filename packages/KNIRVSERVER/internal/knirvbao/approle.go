@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"time"
 )
 
 // vaultRequester is the subset of the OpenBao client used for AppRole secret-id rotation
@@ -33,7 +34,7 @@ func NewAppRoleManagerForSocket(socket string) *AppRoleManager {
 
 type issueSecretIDResponse struct {
 	Data struct {
-		SecretID          string `json:"secret_id"`
+		SecretID         string `json:"secret_id"`
 		SecretIDAccessor string `json:"secret_id_accessor"`
 	} `json:"data"`
 }
@@ -109,4 +110,29 @@ func (m *AppRoleManager) SwapToActive(ctx context.Context, roleID, oldToken stri
 		}
 	}
 	return newToken, nil
+}
+
+// MintWrappedSecretID uses the admin (bootstrap) credential ONLY to mint a single-use,
+// response-wrapped AppRole secret-id for role. It returns the wrapping token, never the
+// secret-id and never the admin token. This is the single OpenBao call path for child
+// handoffs; the launcher wraps it (launcher.MintRoleSecretID) and does not speak to the
+// socket itself.
+func MintWrappedSecretID(ctx context.Context, socket, adminToken, role string, wrapTTL time.Duration) (string, error) {
+	var out struct {
+		WrapInfo struct {
+			Token string `json:"token"`
+		} `json:"wrap_info"`
+	}
+	headers := map[string]string{"X-Vault-Wrap-TTL": wrapTTL.String()}
+	code, err := newBaoAPI(socket).requestWithHeaders(ctx, http.MethodPost, "auth/approle/role/"+role+"/secret-id", adminToken, headers, nil, &out)
+	if err != nil {
+		return "", fmt.Errorf("mint wrapped secret-id for %s: %w", role, err)
+	}
+	if code < 200 || code >= 300 {
+		return "", fmt.Errorf("mint wrapped secret-id for %s: HTTP %d", role, code)
+	}
+	if out.WrapInfo.Token == "" {
+		return "", fmt.Errorf("mint wrapped secret-id for %s: empty wrap token", role)
+	}
+	return out.WrapInfo.Token, nil
 }

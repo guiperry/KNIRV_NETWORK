@@ -15,8 +15,8 @@ import (
 // skill is minted into.
 //
 // It is a port rather than a direct dependency so the DRQ pipeline can be
-// tested without a live NRVSystem, and so the concrete backing (currently
-// internal/nrv's skill registry) can change without touching this package.
+// tested without a live LocatorSystem, and so the concrete backing (currently
+// internal/locator's skill registry) can change without touching this package.
 type SkillTowerStore interface {
 	// PutSkill records a skill node. Implementations must be idempotent per
 	// skillID: re-minting an existing skill is not an error, because the

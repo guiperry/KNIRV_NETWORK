@@ -228,6 +228,13 @@ var (
 	coreClient *knirv.Client
 )
 
+// coreExecute runs one action in the SDK core. It is a variable so tests can see the
+// exact request body verifyInCore builds, and stand in for the core.
+var coreExecute = func(ctx context.Context, action string, payload []byte) ([]byte, error) {
+	coreOnce.Do(func() { coreClient = knirv.NewClient() })
+	return coreClient.Execute(ctx, action, payload)
+}
+
 type coreVerdict struct {
 	Valid   bool   `json:"valid"`
 	Code    string `json:"code"`
@@ -238,7 +245,6 @@ type coreVerdict struct {
 // Passing the raw JSON (not a re-encoded copy) is what makes this verification
 // "from the block alone": what was committed is what gets checked.
 func verifyInCore(record json.RawMessage, op BadgeAuthorityOperator, asOf time.Time) (coreVerdict, error) {
-	coreOnce.Do(func() { coreClient = knirv.NewClient() })
 	request, err := json.Marshal(map[string]any{
 		"record":   record,
 		"registry": map[string]any{"operators": map[string]BadgeAuthorityOperator{op.Address: op}},
@@ -249,7 +255,7 @@ func verifyInCore(record json.RawMessage, op BadgeAuthorityOperator, asOf time.T
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	out, err := coreClient.Execute(ctx, "authority.verify_record", request)
+	out, err := coreExecute(ctx, "authority.verify_record", request)
 	if err != nil {
 		// A core error here is either "the module could not be loaded" or a
 		// malformed-input error from the core itself; the caller counts both.
