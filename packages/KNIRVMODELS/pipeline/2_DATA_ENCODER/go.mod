@@ -7,7 +7,6 @@ require (
 	github.com/apache/arrow/go/v14 v14.0.2
 	github.com/guiperry/text-embedder v0.1.0
 	github.com/joho/godotenv v1.5.1
-	github.com/knirvcorp/knirvbase v1.0.7 // indirect
 	github.com/pkoukk/tiktoken-go v0.1.8
 	gopkg.in/yaml.v3 v3.0.1
 	knirvmodels v1.0.0

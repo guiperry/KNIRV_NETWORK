@@ -83,6 +83,11 @@ type Config struct {
 	AnnounceInterval time.Duration
 	PublicHost       string
 
+	// GatewayPort is the gateway's public listen port, advertised to the
+	// bootnode registry so its HTTPS health probe can reach it. 0 means
+	// "not advertised": the registry then probes the default port 443.
+	GatewayPort int
+
 	// Chain P2P proxy config
 	NodeRole              string // "Client", "Root", "Bootnode"
 	ChainP2PPort          int
@@ -121,10 +126,11 @@ type DHTManager struct {
 	chainTxSub      *pubsub.Subscription
 
 	// Service identification
-	serviceID  string
-	chainID    string
-	nodeRole   string
-	publicHost string
+	serviceID   string
+	chainID     string
+	nodeRole    string
+	publicHost  string
+	gatewayPort int
 
 	// Chain P2P proxy state
 	chainClientOnly     bool
@@ -253,6 +259,7 @@ func NewDHTManager(cfg *Config) (*DHTManager, error) {
 		chainID:             chainID,
 		nodeRole:            nodeRole,
 		publicHost:          cfg.PublicHost,
+		gatewayPort:         cfg.GatewayPort,
 		chainClientOnly:     cfg.ChainClientOnly,
 		chainIsBootnode:     cfg.ChainIsBootnode,
 		chainCallbackSocket: cfg.ChainCallbackSocket,
@@ -1098,6 +1105,9 @@ type registrationPayload struct {
 	// validation probes https://<fqdn>/health, so a bootnode without it
 	// cannot pass.
 	FQDN string `json:"fqdn,omitempty"`
+	// GatewayPort is the gateway's public HTTPS port (1-65535). Omitted when
+	// not advertised; the registry then probes https://<fqdn>/health on 443.
+	GatewayPort int `json:"gatewayPort,omitempty"`
 }
 
 // registryFQDN returns the public hostname to advertise, or "" when the
@@ -1108,6 +1118,19 @@ func (dm *DHTManager) registryFQDN() string {
 		return ""
 	}
 	return host
+}
+
+// registryGatewayPort returns the gateway port to advertise, or 0 when it is
+// unset or outside the valid TCP port range.
+func (dm *DHTManager) registryGatewayPort() int {
+	return validRegistryGatewayPort(dm.gatewayPort)
+}
+
+func validRegistryGatewayPort(port int) int {
+	if port < 1 || port > 65535 {
+		return 0
+	}
+	return port
 }
 
 func (dm *DHTManager) RegisterBootnodeWithRegistry() error {
@@ -1126,7 +1149,7 @@ func (dm *DHTManager) RegisterBootnodeWithRegistry() error {
 		return err
 	}
 
-	return registerWithRegistry(dm.bootnodeRegistry, dm.chainID, dm.chainP2PPort, publicHost, dm.host.ID().String(), "bootnode", dm.registryFQDN())
+	return registerWithRegistry(dm.bootnodeRegistry, dm.chainID, dm.chainP2PPort, publicHost, dm.host.ID().String(), "bootnode", dm.registryFQDN(), dm.registryGatewayPort())
 }
 
 func (dm *DHTManager) registerNodeWithRegistry() error {
@@ -1146,7 +1169,7 @@ func (dm *DHTManager) registerNodeWithRegistry() error {
 	} else if nodeType == "" {
 		nodeType = "server"
 	}
-	return registerWithRegistry(dm.bootnodeRegistry, dm.chainID, dm.chainP2PPort, publicHost, dm.host.ID().String(), nodeType, dm.registryFQDN())
+	return registerWithRegistry(dm.bootnodeRegistry, dm.chainID, dm.chainP2PPort, publicHost, dm.host.ID().String(), nodeType, dm.registryFQDN(), dm.registryGatewayPort())
 }
 
 func (dm *DHTManager) registryHeartbeat(interval time.Duration) {
@@ -1193,10 +1216,10 @@ func (dm *DHTManager) resolveRegistryPublicHost() (string, error) {
 
 // RegisterWithRegistry publishes this node to the external bootnode registry.
 func RegisterWithRegistry(registryURL string, nodeChainID string, nodeP2PPort int, nodeIP string, nodePeerID string) error {
-	return registerWithRegistry(registryURL, nodeChainID, nodeP2PPort, nodeIP, nodePeerID, "bootnode", "")
+	return registerWithRegistry(registryURL, nodeChainID, nodeP2PPort, nodeIP, nodePeerID, "bootnode", "", 0)
 }
 
-func registerWithRegistry(registryURL string, nodeChainID string, nodeP2PPort int, nodeIP string, nodePeerID string, nodeType string, nodeFQDN string) error {
+func registerWithRegistry(registryURL string, nodeChainID string, nodeP2PPort int, nodeIP string, nodePeerID string, nodeType string, nodeFQDN string, gatewayPort int) error {
 	registryURL = strings.TrimSpace(registryURL)
 	if registryURL == "" {
 		return fmt.Errorf("registry URL is required")
@@ -1210,12 +1233,13 @@ func registerWithRegistry(registryURL string, nodeChainID string, nodeP2PPort in
 	}
 
 	payload := registrationPayload{
-		ChainID: nodeChainID,
-		IP:      nodeIP,
-		Port:    nodeP2PPort,
-		Type:    nodeType,
-		PeerID:  nodePeerID,
-		FQDN:    nodeFQDN,
+		ChainID:     nodeChainID,
+		IP:          nodeIP,
+		Port:        nodeP2PPort,
+		Type:        nodeType,
+		PeerID:      nodePeerID,
+		FQDN:        nodeFQDN,
+		GatewayPort: validRegistryGatewayPort(gatewayPort),
 	}
 
 	jsonData, err := json.Marshal(payload)

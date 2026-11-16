@@ -28,18 +28,18 @@ func TestContextNodeLifecycle(t *testing.T) {
 		"context_type": "mcp_server", "description": "Weather MCP server",
 		"schema": map[string]interface{}{"category": "integration"}, "submitted_by": "user-42",
 	}
-	if rec := doJSON(t, h, "POST", "/nrv/contexts", "", body); rec.Code != http.StatusUnauthorized {
+	if rec := doJSON(t, h, "POST", "/graph/contexts", "", body); rec.Code != http.StatusUnauthorized {
 		t.Fatalf("anonymous creation must be refused, got %d", rec.Code)
 	}
 	for _, bad := range []map[string]interface{}{
 		{"context_type": "MCP Server Context", "description": "x"},
 		{"context_type": "tool", "description": "  "},
 	} {
-		if rec := doJSON(t, h, "POST", "/nrv/contexts", "secret", bad); rec.Code != http.StatusBadRequest {
+		if rec := doJSON(t, h, "POST", "/graph/contexts", "secret", bad); rec.Code != http.StatusBadRequest {
 			t.Fatalf("invalid context %v must be rejected, got %d", bad, rec.Code)
 		}
 	}
-	rec := doJSON(t, h, "POST", "/nrv/contexts", "secret", body)
+	rec := doJSON(t, h, "POST", "/graph/contexts", "secret", body)
 	if rec.Code != http.StatusCreated {
 		t.Fatalf("create: %d %s", rec.Code, rec.Body.String())
 	}
@@ -48,14 +48,14 @@ func TestContextNodeLifecycle(t *testing.T) {
 	if created.ID == "" || created.Schema["submitted_by"] != "user-42" || created.Status != "pending" {
 		t.Fatalf("unexpected node: %+v", created)
 	}
-	if rec := doJSON(t, h, "GET", "/nrv/contexts/"+created.ID, "", nil); rec.Code != http.StatusOK {
+	if rec := doJSON(t, h, "GET", "/graph/contexts/"+created.ID, "", nil); rec.Code != http.StatusOK {
 		t.Fatalf("get: %d", rec.Code)
 	}
-	if rec := doJSON(t, h, "GET", "/nrv/contexts/missing", "", nil); rec.Code != http.StatusNotFound {
+	if rec := doJSON(t, h, "GET", "/graph/contexts/missing", "", nil); rec.Code != http.StatusNotFound {
 		t.Fatalf("missing node: %d", rec.Code)
 	}
 	var all []locator.ContextNode
-	_ = json.Unmarshal(doJSON(t, h, "GET", "/nrv/contexts", "", nil).Body.Bytes(), &all)
+	_ = json.Unmarshal(doJSON(t, h, "GET", "/graph/contexts", "", nil).Body.Bytes(), &all)
 	if len(all) != 1 {
 		t.Fatalf("list: %d nodes", len(all))
 	}
@@ -64,10 +64,10 @@ func TestContextNodeLifecycle(t *testing.T) {
 func TestIdeaNodeLifecycle(t *testing.T) {
 	t.Setenv("KNIRV_INTERNAL_AUTH_TOKEN", "secret")
 	h := contextIdeaRouter(t, true)
-	if rec := doJSON(t, h, "POST", "/nrv/ideas", "secret", map[string]interface{}{"idea_type": "User Innovation Concept", "description": "x"}); rec.Code != http.StatusBadRequest {
+	if rec := doJSON(t, h, "POST", "/graph/ideas", "secret", map[string]interface{}{"idea_type": "User Innovation Concept", "description": "x"}); rec.Code != http.StatusBadRequest {
 		t.Fatalf("free-text idea_type must be rejected, got %d", rec.Code)
 	}
-	rec := doJSON(t, h, "POST", "/nrv/ideas", "secret", map[string]interface{}{
+	rec := doJSON(t, h, "POST", "/graph/ideas", "secret", map[string]interface{}{
 		"idea_type": "innovation", "description": "Self-healing build cache", "feasibility_data": map[string]interface{}{"score": 0.7}, "submitted_by": "user-42",
 	})
 	if rec.Code != http.StatusCreated {
@@ -78,7 +78,7 @@ func TestIdeaNodeLifecycle(t *testing.T) {
 	if created.FeasibilityData["submitted_by"] != "user-42" || created.FeasibilityData["score"] != 0.7 {
 		t.Fatalf("unexpected node: %+v", created)
 	}
-	if rec := doJSON(t, h, "GET", "/nrv/ideas/"+created.ID, "", nil); rec.Code != http.StatusOK {
+	if rec := doJSON(t, h, "GET", "/graph/ideas/"+created.ID, "", nil); rec.Code != http.StatusOK {
 		t.Fatalf("get: %d", rec.Code)
 	}
 }
@@ -86,7 +86,7 @@ func TestIdeaNodeLifecycle(t *testing.T) {
 func TestContextIdeaRoutesWithoutLocatorSystem(t *testing.T) {
 	t.Setenv("KNIRV_INTERNAL_AUTH_TOKEN", "secret")
 	h := contextIdeaRouter(t, false)
-	if rec := doJSON(t, h, "POST", "/nrv/ideas", "secret", map[string]interface{}{"idea_type": "asset", "description": "x"}); rec.Code != http.StatusServiceUnavailable {
+	if rec := doJSON(t, h, "POST", "/graph/ideas", "secret", map[string]interface{}{"idea_type": "asset", "description": "x"}); rec.Code != http.StatusServiceUnavailable {
 		t.Fatalf("without NRV the route must refuse rather than fake a node, got %d", rec.Code)
 	}
 }

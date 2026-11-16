@@ -3617,6 +3617,12 @@ func (app *ServerApp) startBackend() error {
 		}
 	}
 
+	// Q43: the backend authenticates with its own AppRole (wrapped secret-id handoff
+	// above). The launcher's ambient admin/bootstrap token must not reach the backend
+	// or any grandchild it spawns, so drop it from the inherited environment copy.
+	// The launcher's own os.Getenv reads above and below are unaffected.
+	env = StripBaoAdminToken(env)
+
 	// The model harness reads its tuning from the environment. Only explicit
 	// settings are passed so its own defaults apply otherwise.
 	env = append(env, llamaHarnessEnv(app.config.Llama)...)

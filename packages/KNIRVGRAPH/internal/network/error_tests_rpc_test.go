@@ -53,17 +53,17 @@ func TestErrorTestRoutesContributeSealGrade(t *testing.T) {
 	h := errorTestRouter()
 
 	tc := map[string]string{"id": "t1", "input": "in", "expected": "out", "author_id": "dev-1"}
-	if rec := doJSON(t, h, "POST", "/nrv/errors/e1/tests", "", tc); rec.Code != http.StatusUnauthorized {
+	if rec := doJSON(t, h, "POST", "/graph/errors/e1/tests", "", tc); rec.Code != http.StatusUnauthorized {
 		t.Fatalf("expected 401 without token, got %d", rec.Code)
 	}
 	for i := 1; i <= locator.ErrorTestSuiteSize; i++ {
 		tc := map[string]string{"id": fmt.Sprintf("t%d", i), "input": fmt.Sprintf("in %d", i), "expected": fmt.Sprintf("out %d", i), "author_id": "dev-1"}
-		if rec := doJSON(t, h, "POST", "/nrv/errors/e1/tests", "secret", tc); rec.Code != http.StatusCreated {
+		if rec := doJSON(t, h, "POST", "/graph/errors/e1/tests", "secret", tc); rec.Code != http.StatusCreated {
 			t.Fatalf("contribution %d: %d %s", i, rec.Code, rec.Body.String())
 		}
 	}
 
-	rec := doJSON(t, h, "GET", "/nrv/errors/e1/tests", "", nil)
+	rec := doJSON(t, h, "GET", "/graph/errors/e1/tests", "", nil)
 	if rec.Code != http.StatusOK || strings.Contains(rec.Body.String(), "out 1") {
 		t.Fatalf("public view must succeed and omit expected values: %d %s", rec.Code, rec.Body.String())
 	}
@@ -77,14 +77,14 @@ func TestErrorTestRoutesContributeSealGrade(t *testing.T) {
 	for i := 1; i <= locator.ErrorTestSuiteSize; i++ {
 		outputs[fmt.Sprintf("t%d", i)] = fmt.Sprintf("out %d", i)
 	}
-	if rec := doJSON(t, h, "POST", "/nrv/errors/e1/tests/grade", "", map[string]interface{}{"outputs": outputs}); rec.Code != http.StatusUnauthorized {
+	if rec := doJSON(t, h, "POST", "/graph/errors/e1/tests/grade", "", map[string]interface{}{"outputs": outputs}); rec.Code != http.StatusUnauthorized {
 		t.Fatalf("grading must be internal-only, got %d", rec.Code)
 	}
-	rec = doJSON(t, h, "POST", "/nrv/errors/e1/tests/grade", "secret", map[string]interface{}{"suite_hash": "stale", "outputs": outputs})
+	rec = doJSON(t, h, "POST", "/graph/errors/e1/tests/grade", "secret", map[string]interface{}{"suite_hash": "stale", "outputs": outputs})
 	if rec.Code != http.StatusConflict {
 		t.Fatalf("expected a stale suite hash to conflict, got %d", rec.Code)
 	}
-	rec = doJSON(t, h, "POST", "/nrv/errors/e1/tests/grade", "secret", map[string]interface{}{"suite_hash": pub.SuiteHash, "outputs": outputs})
+	rec = doJSON(t, h, "POST", "/graph/errors/e1/tests/grade", "secret", map[string]interface{}{"suite_hash": pub.SuiteHash, "outputs": outputs})
 	var report locator.GradeReport
 	_ = json.Unmarshal(rec.Body.Bytes(), &report)
 	if rec.Code != http.StatusOK || !report.AllPassed {

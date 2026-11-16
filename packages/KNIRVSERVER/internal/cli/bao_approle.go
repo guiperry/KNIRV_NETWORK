@@ -97,17 +97,27 @@ func newBaoUnixClient(socket string) *http.Client {
 	}
 }
 
-// readSecretIDFile reads the single-use AppRole secret_id. The file must be private
-// (no group or other permission bits); the value is trimmed and never printed.
+// readSecretIDFile reads the single-use AppRole secret_id. The file must be owned by the
+// current user (unix; Q56) and private (no group or other permission bits). Ownership and
+// mode are checked on the open handle, so the file checked is the file read. The value is
+// trimmed and never printed.
 func readSecretIDFile(path string) (string, error) {
-	fi, err := os.Stat(path)
+	f, err := os.Open(path)
+	if err != nil {
+		return "", fmt.Errorf("open secret-id file: %w", err)
+	}
+	defer f.Close()
+	fi, err := f.Stat()
 	if err != nil {
 		return "", fmt.Errorf("stat secret-id file: %w", err)
+	}
+	if err := checkSecretIDOwner(fi); err != nil {
+		return "", err
 	}
 	if fi.Mode().Perm()&0o077 != 0 {
 		return "", fmt.Errorf("secret-id file must be mode 0600 or stricter")
 	}
-	raw, err := os.ReadFile(path)
+	raw, err := io.ReadAll(io.LimitReader(f, 1<<16))
 	if err != nil {
 		return "", fmt.Errorf("read secret-id file: %w", err)
 	}

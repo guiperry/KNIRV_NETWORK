@@ -81,11 +81,19 @@ func TestEnsureDownloadsMissingModel(t *testing.T) {
 	}
 }
 
-func releaseResponder(tag string) func(string) (*http.Response, error) {
-	return func(url string) (*http.Response, error) {
-		if url == LatestReleaseURL {
-			return &http.Response{StatusCode: 200, Status: "200 OK", Body: io.NopCloser(strings.NewReader(`[{"tag_name":"v0.8.0"},{"tag_name":"` + tag + `"}]`))}, nil
-		}
+// pinUpstream sets the release this test's installer targets, in place of the shipped
+// pin, and restores it when the test ends. The build is never looked up upstream.
+func pinUpstream(t *testing.T, tag string) {
+	t.Helper()
+	prev := pinnedTag
+	pinnedTag = tag
+	t.Cleanup(func() { pinnedTag = prev })
+}
+
+// releaseResponder answers any plain GET with an error: nothing is fetched upstream
+// for the release list any more, so a test that reaches it has a bug.
+func releaseResponder(string) func(string) (*http.Response, error) {
+	return func(string) (*http.Response, error) {
 		return nil, io.ErrUnexpectedEOF
 	}
 }
@@ -97,6 +105,7 @@ func TestUpdateServerKeepsCurrentBuild(t *testing.T) {
 		t.Fatal(err)
 	}
 	i := New()
+	pinUpstream(t, "b6000")
 	i.Get = releaseResponder("b6000")
 	i.Output = func(context.Context, string, ...string) (string, error) { return "version: 6000 (abc)\n", nil }
 	i.Run = func(context.Context, string, ...string) error { t.Fatal("up to date: nothing should run"); return nil }
@@ -112,6 +121,7 @@ func TestUpdateServerKeepsWorkingBinaryWhenUpdateFails(t *testing.T) {
 		t.Fatal(err)
 	}
 	i := New()
+	pinUpstream(t, "b6100")
 	i.Get = releaseResponder("b6100") // the prebuilt download then fails
 	i.Output = func(context.Context, string, ...string) (string, error) { return "version: 6000 (abc)\n", nil }
 	i.Run = func(context.Context, string, ...string) error { return io.ErrUnexpectedEOF }
@@ -130,11 +140,9 @@ func TestUpdateServerInstallsNewerPrebuilt(t *testing.T) {
 	if err := os.WriteFile(server, []byte("old"), 0700); err != nil {
 		t.Fatal(err)
 	}
+	pinUpstream(t, "b6100")
 	i := New()
 	i.Get = func(url string) (*http.Response, error) {
-		if url == LatestReleaseURL {
-			return releaseResponder("b6100")(url)
-		}
 		return &http.Response{StatusCode: 200, Status: "200 OK", Body: io.NopCloser(strings.NewReader("new"))}, nil
 	}
 	i.Output = func(_ context.Context, path string, _ ...string) (string, error) {
@@ -224,10 +232,8 @@ func TestUpdateServerKeepsUnknownBuildWithoutRebuilding(t *testing.T) {
 	}
 	i := New()
 	i.Get = func(url string) (*http.Response, error) {
-		if url != LatestReleaseURL {
-			t.Fatalf("unexpected fetch of %s for an unknown build", url)
-		}
-		return releaseResponder("b12388")(url)
+		t.Fatalf("unexpected fetch of %s for an unknown build", url)
+		return nil, nil
 	}
 	i.Output = func(context.Context, string, ...string) (string, error) { return tarballBuildVersion, nil }
 	i.Run = func(context.Context, string, ...string) error {

@@ -14,8 +14,8 @@ func errorCreateRouter(t *testing.T) (http.Handler, *locator.LocatorSystem) {
 	sys := locator.NewLocatorSystem("test-peer", nil)
 	rpc := &RPCServer{logger: zap.NewNop(), nrvSystem: sys}
 	r := mux.NewRouter()
-	r.HandleFunc("/nrv/errors", rpc.createError).Methods("POST")
-	r.HandleFunc("/nrv/errors/commit", rpc.createErrorCommit).Methods("POST")
+	handleLocatorRoute(r, zap.NewNop(), "/errors", rpc.createError, "POST")
+	handleLocatorRoute(r, zap.NewNop(), "/errors/commit", rpc.createErrorCommit, "POST")
 	return r, sys
 }
 
@@ -38,17 +38,17 @@ func TestCreateErrorRequiresInternalTokenAndStripsResolverClaims(t *testing.T) {
 		"context": map[string]interface{}{"resolved_by": "attacker", "agent_id": "attacker", "file": "main.go"},
 	}
 
-	if rec := doJSON(t, h, "POST", "/nrv/errors", "", body); rec.Code != http.StatusUnauthorized {
+	if rec := doJSON(t, h, "POST", "/graph/errors", "", body); rec.Code != http.StatusUnauthorized {
 		t.Fatalf("anonymous error creation must be refused, got %d", rec.Code)
 	}
-	if rec := doJSON(t, h, "POST", "/nrv/errors", "wrong", body); rec.Code != http.StatusUnauthorized {
+	if rec := doJSON(t, h, "POST", "/graph/errors", "wrong", body); rec.Code != http.StatusUnauthorized {
 		t.Fatalf("a wrong token must be refused, got %d", rec.Code)
 	}
 	if n := len(sys.GetAllErrorNodes()); n != 0 {
 		t.Fatalf("refused requests must not create nodes, have %d", n)
 	}
 
-	if rec := doJSON(t, h, "POST", "/nrv/errors", "secret", body); rec.Code != http.StatusOK {
+	if rec := doJSON(t, h, "POST", "/graph/errors", "secret", body); rec.Code != http.StatusOK {
 		t.Fatalf("internal creation: %d %s", rec.Code, rec.Body.String())
 	}
 	ctx := storedContext(t, sys, "leak")
@@ -74,7 +74,7 @@ func TestCreateErrorCommitStripsResolverClaims(t *testing.T) {
 		"context": errCtx, "severity": 1, "error_root": root,
 		"signer_id": "cli", "signing_key_id": "cli", "signature": root,
 	}
-	if rec := doJSON(t, h, "POST", "/nrv/errors/commit", "", commit); rec.Code != http.StatusOK {
+	if rec := doJSON(t, h, "POST", "/graph/errors/commit", "", commit); rec.Code != http.StatusOK {
 		t.Fatalf("commit: %d %s", rec.Code, rec.Body.String())
 	}
 	ctx := storedContext(t, sys, "crash")

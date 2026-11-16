@@ -67,18 +67,39 @@ function isAllowedHostname(host, suffixes) {
   return suffixes.length === 0 || suffixes.some((suffix) => lower.endsWith(suffix));
 }
 
+// parseGatewayPort reads the optional gateway port a node advertises for its
+// HTTPS health probe. Absent (undefined, null or "") yields port 0, meaning the
+// registry probes the default 443. Anything else must be an integer 1-65535.
+export function parseGatewayPort(raw) {
+  if (raw === undefined || raw === null || raw === "") return { port: 0 };
+  const text = typeof raw === "number" || typeof raw === "string" ? String(raw).trim() : "";
+  if (!/^\d+$/.test(text)) return { error: "gatewayPort must be an integer between 1 and 65535" };
+  const port = Number(text);
+  if (port < 1 || port > 65535) return { error: "gatewayPort must be an integer between 1 and 65535" };
+  return { port };
+}
+
 // Builds the validation target from a registration or /validate request.
 // Returns { error } when the target cannot be probed safely.
-export function buildTarget({ chainID, ip, port, fqdn, peerID }, settings) {
+export function buildTarget({ chainID, ip, port, fqdn, peerID, gatewayPort }, settings) {
   if (!isPublicIP(ip)) return { error: "ip must be a public IP address" };
   if (!Number.isInteger(port) || port < 1 || port > 65535) return { error: "port must be between 1 and 65535" };
   const host = typeof fqdn === "string" && fqdn.trim() ? fqdn.trim().toLowerCase() : "";
   if (host && !isAllowedHostname(host, settings.fqdnSuffixes)) return { error: "fqdn is not an allowed hostname" };
-  return { target: { chainID: chainID || "", ip, port, fqdn: host, peerID: peerID || "" } };
+  const gateway = parseGatewayPort(gatewayPort);
+  if (gateway.error) return { error: gateway.error };
+  return { target: { chainID: chainID || "", ip, port, fqdn: host, peerID: peerID || "", gatewayPort: gateway.port } };
 }
 
 export function validationKey(target) {
-  return `${target.ip}:${target.port}:${target.fqdn}`;
+  return `${target.ip}:${target.port}:${target.fqdn}${target.gatewayPort ? `:gw${target.gatewayPort}` : ""}`;
+}
+
+// healthURL is the HTTPS health endpoint probed for a target: the advertised
+// gateway port when present, otherwise the default 443.
+export function healthURL(target) {
+  const origin = target.gatewayPort ? `https://${target.fqdn}:${target.gatewayPort}` : `https://${target.fqdn}`;
+  return `${origin}/health`;
 }
 
 function timeoutSignal(ms) {
@@ -136,7 +157,7 @@ export async function validateNode(target, settings, probes = defaultProbes) {
   } else {
     const samples = [];
     for (let i = 0; i < settings.samples; i++) {
-      samples.push(await probes.https(`https://${target.fqdn}/health`, settings.timeoutMs));
+      samples.push(await probes.https(healthURL(target), settings.timeoutMs));
     }
     const reached = samples.filter((s) => s.reached);
     // fetch only resolves over HTTPS when the certificate chain and hostname verify.

@@ -1,5 +1,6 @@
 {
   "version": 1,
+  "source_digest": "c605a5d6a0ef3a8a131a00beb90b2e30610b2e7fab0ff78c924f74c52346efbe",
   "modules": [
     {
       "id": "controller-relay",
@@ -18,7 +19,7 @@
       "module_kind": "crypto",
       "abi_version": 1,
       "byte_length": 394114,
-      "sha256": "4bd302b529f28a328d68b45d352a4d1dadcf3305abd46871441ee5c89dc4ee36",
+      "sha256": "99c8f1281fe07f094acc7a87b2f84d456ddbd970bf66978d3a09d6080816deca",
       "capabilities": [
         "crypto.vault"
       ]

@@ -25,12 +25,12 @@ import (
 
 const (
 	DefaultServerURL = "https://releases.knirv.com/knirv/llama/linux-amd64/llama-server.gz"
-	// LatestReleaseURL lists recent upstream llama.cpp releases. The /latest
-	// endpoint is not used: the repo also publishes non-build tags ("v0.8.0") that it
-	// can resolve to. A build tag is the number ("b6789") `llama-server --version`
-	// prints.
-	LatestReleaseURL = "https://api.github.com/repos/ggml-org/llama.cpp/releases?per_page=30"
-	upstreamRepoURL  = "https://github.com/ggml-org/llama.cpp.git"
+	// PinnedLlamaTag is the upstream llama.cpp release every install and update targets.
+	// It is a fixed build tag, not a query for the newest release: no install or update
+	// asks GitHub what "latest" is, so a new upstream release cannot change what this
+	// host builds or runs. Move it deliberately, with a reviewed change here.
+	PinnedLlamaTag  = "b12388"
+	upstreamRepoURL = "https://github.com/ggml-org/llama.cpp.git"
 )
 
 type Options struct {
@@ -293,36 +293,18 @@ func (i *Installer) installedBuild(ctx context.Context, server string) (int, err
 	return 0, fmt.Errorf("%s: %w", server, perr)
 }
 
-// latestBuild returns the newest upstream release tag and its build number.
-func (i *Installer) latestBuild() (tag string, build int, err error) {
-	resp, err := i.Get(LatestReleaseURL)
-	if err != nil {
-		return "", 0, err
+// pinnedTag is the release every install and update targets. It is PinnedLlamaTag in
+// production; only tests change it, to exercise update logic against other builds.
+var pinnedTag = PinnedLlamaTag
+
+// pinnedBuild returns the pinned upstream release tag and its build number. It makes
+// no network request.
+func (i *Installer) pinnedBuild() (tag string, build int, err error) {
+	build, ok := parseTagBuild(pinnedTag)
+	if !ok {
+		return "", 0, fmt.Errorf("pinned llama.cpp tag %q is not a build tag", pinnedTag)
 	}
-	defer resp.Body.Close()
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return "", 0, fmt.Errorf("unexpected HTTP status %s", resp.Status)
-	}
-	var releases []struct {
-		TagName    string `json:"tag_name"`
-		Draft      bool   `json:"draft"`
-		Prerelease bool   `json:"prerelease"`
-	}
-	if err := json.NewDecoder(io.LimitReader(resp.Body, 4<<20)).Decode(&releases); err != nil {
-		return "", 0, err
-	}
-	for _, r := range releases {
-		if r.Draft || r.Prerelease || !strings.HasPrefix(r.TagName, "b") {
-			continue
-		}
-		if n, err := strconv.Atoi(r.TagName[1:]); err == nil && n > build {
-			tag, build = r.TagName, n
-		}
-	}
-	if build == 0 {
-		return "", 0, fmt.Errorf("no llama.cpp build tag among %d recent releases", len(releases))
-	}
-	return tag, build, nil
+	return pinnedTag, build, nil
 }
 
 // updateServer replaces server with the latest upstream build when it is older.
@@ -334,7 +316,7 @@ func (i *Installer) updateServer(ctx context.Context, o Options, server string) 
 	if errors.Is(ierr, errUnknownBuild) {
 		return i.refreshUnknownServer(ctx, o, server)
 	}
-	tag, latest, err := i.latestBuild()
+	tag, latest, err := i.pinnedBuild()
 	if err != nil {
 		i.logProgress("[KNIRVLLAMA] Could not check the latest llama.cpp release (%v); keeping %s", err, server)
 		return server
@@ -571,7 +553,7 @@ func (i *Installer) refreshStampedBuild(ctx context.Context, o Options, server s
 	if !ok {
 		stamped = 0
 	}
-	tag, latest, err := i.latestBuild()
+	tag, latest, err := i.pinnedBuild()
 	if err != nil {
 		i.logProgress("[KNIRVLLAMA] Could not check the latest llama.cpp release (%v); keeping %s", err, server)
 		return server
@@ -796,7 +778,7 @@ func (i *Installer) Ensure(ctx context.Context, o Options) (Result, error) {
 			// combinations and for deployments that require host-native tuning.
 			fmt.Printf("[KNIRVLLAMA] Prebuilt llama-server unavailable (%v); falling back to a native build\n", downloadErr)
 			var err error
-			server, err = i.installServer(ctx, o.DataDir, "")
+			server, err = i.installServer(ctx, o.DataDir, pinnedTag)
 			if err != nil {
 				return Result{}, fmt.Errorf("provision llama-server: prebuilt download failed: %v; native build failed: %w", downloadErr, err)
 			}

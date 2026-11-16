@@ -15,10 +15,10 @@ import (
 
 // Error-node test suites (see locator.ErrorTestSuiteSize).
 //
-//	GET  /nrv/errors/{errorID}/tests          public, redacted view (no expected values)
-//	POST /nrv/errors/{errorID}/tests          contribute one KNIRVARENA-authored test   [internal]
-//	PUT  /nrv/errors/{errorID}/tests          replace with a full 8-test version        [internal]
-//	POST /nrv/errors/{errorID}/tests/grade    grade outputs against the sealed suite    [internal]
+//	GET  /graph/errors/{errorID}/tests          public, redacted view (no expected values)
+//	POST /graph/errors/{errorID}/tests          contribute one KNIRVARENA-authored test   [internal]
+//	PUT  /graph/errors/{errorID}/tests          replace with a full 8-test version        [internal]
+//	POST /graph/errors/{errorID}/tests/grade    grade outputs against the sealed suite    [internal]
 //
 // Writes and grading are internal-only (X-KNIRV-Internal-Token, the shared
 // KNIRV_INTERNAL_AUTH_TOKEN service key used across KNIRV's service-to-service
@@ -33,10 +33,10 @@ func (rpc *RPCServer) SetErrorTestSuiteStore(store *locator.ErrorTestSuiteStore)
 }
 
 func (rpc *RPCServer) registerErrorTestRoutes(router *mux.Router) {
-	router.HandleFunc("/nrv/errors/{errorID}/tests", rpc.getErrorTests).Methods("GET", "OPTIONS")
-	router.HandleFunc("/nrv/errors/{errorID}/tests", rpc.contributeErrorTest).Methods("POST")
-	router.HandleFunc("/nrv/errors/{errorID}/tests", rpc.replaceErrorTests).Methods("PUT")
-	router.HandleFunc("/nrv/errors/{errorID}/tests/grade", rpc.gradeErrorTests).Methods("POST")
+	handleLocatorRoute(router, rpc.logger, "/errors/{errorID}/tests", rpc.getErrorTests, "GET", "OPTIONS")
+	handleLocatorRoute(router, rpc.logger, "/errors/{errorID}/tests", rpc.contributeErrorTest, "POST")
+	handleLocatorRoute(router, rpc.logger, "/errors/{errorID}/tests", rpc.replaceErrorTests, "PUT")
+	handleLocatorRoute(router, rpc.logger, "/errors/{errorID}/tests/grade", rpc.gradeErrorTests, "POST")
 }
 
 func writeJSON(w http.ResponseWriter, status int, v interface{}) {

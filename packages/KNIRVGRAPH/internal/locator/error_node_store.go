@@ -14,26 +14,46 @@ type ErrorNodeKV interface {
 	ScanPrefix(prefix []byte) (map[string][]byte, error)
 }
 
-const errorNodeKeyPrefix = "nrv:error_nodes:"
+// errorNodeKeyPrefix is where error nodes are written.
+const errorNodeKeyPrefix = "graph:error_nodes:"
+
+// legacyErrorNodeKeyPrefix is the pre-rename prefix. It is read as a fallback
+// only, so rows written before `migrate-announcement-ref` still load; nothing
+// writes to it. Rows move to errorNodeKeyPrefix when the migration runs.
+const legacyErrorNodeKeyPrefix = "nrv:error_nodes:"
 
 // SetErrorNodeStore makes error nodes durable: every node created afterwards is
 // written to kv, and the nodes already in kv are loaded now, so error nodes
 // survive a restart alongside the test suites keyed on their ids. Without a
-// store error nodes are memory-only.
+// store error nodes are memory-only. A node under the current prefix wins over
+// a legacy row with the same id.
 func (nrv *LocatorSystem) SetErrorNodeStore(kv ErrorNodeKV) error {
-	persisted, err := kv.ScanPrefix([]byte(errorNodeKeyPrefix))
+	current, err := kv.ScanPrefix([]byte(errorNodeKeyPrefix))
 	if err != nil {
 		return fmt.Errorf("load persisted error nodes: %w", err)
 	}
-	loaded := make([]*ErrorNode, 0, len(persisted))
-	for key, raw := range persisted {
-		node := &ErrorNode{}
-		if err := unmarshalPersistedErrorNode(raw, node); err != nil || node.Id == "" {
-			log.Printf("Warning: skipping unreadable persisted error node %s: %v", key, err)
-			continue
-		}
-		loaded = append(loaded, node)
+	legacy, err := kv.ScanPrefix([]byte(legacyErrorNodeKeyPrefix))
+	if err != nil {
+		return fmt.Errorf("load legacy error nodes: %w", err)
 	}
+	loaded := make([]*ErrorNode, 0, len(current)+len(legacy))
+	seen := make(map[string]bool, len(current)+len(legacy))
+	load := func(persisted map[string][]byte) {
+		for key, raw := range persisted {
+			node := &ErrorNode{}
+			if err := unmarshalPersistedErrorNode(raw, node); err != nil || node.Id == "" {
+				log.Printf("Warning: skipping unreadable persisted error node %s: %v", key, err)
+				continue
+			}
+			if seen[node.Id] {
+				continue
+			}
+			seen[node.Id] = true
+			loaded = append(loaded, node)
+		}
+	}
+	load(current)
+	load(legacy)
 
 	nrv.errorsMutex.Lock()
 	nrv.errorStore = kv

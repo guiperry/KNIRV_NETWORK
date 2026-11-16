@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"knirv-server/internal/knirvbao"
@@ -84,6 +85,21 @@ func WriteHandoffFile(handoffDir string, role BaoChildRole, payload string) (str
 		return "", fmt.Errorf("bao handoff write: %w", err)
 	}
 	return path, nil
+}
+
+// StripBaoAdminToken returns a copy of env with every KNIRV_BAO_TOKEN entry removed.
+// KNIRV_BAO_TOKEN is the launcher's ambient broad/bootstrap credential; it must never be
+// inherited by a child (Q43). The input slice is not modified.
+func StripBaoAdminToken(env []string) []string {
+	const prefix = "KNIRV_BAO_TOKEN="
+	out := make([]string, 0, len(env))
+	for _, entry := range env {
+		if strings.HasPrefix(entry, prefix) {
+			continue
+		}
+		out = append(out, entry)
+	}
+	return out
 }
 
 // HandoffEnv returns the env entries to pass to a child for Bao access WITHOUT

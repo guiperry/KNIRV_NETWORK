@@ -45,6 +45,7 @@ func TestHeldRefusalArtifactHostErrorBuildsAtMostOnce(t *testing.T) {
 	artifactGets := 0
 	var builds []string
 	i := New()
+	pinUpstream(t, "b6100")
 	i.Get = releaseOnly(t, "b6100", func(string) (*http.Response, error) {
 		artifactGets++
 		return nil, errors.New("artifact host unreachable")
@@ -84,6 +85,7 @@ func TestHeldRefusalBrokenBodyChangedETagBuildsAtMostOnce(t *testing.T) {
 	conditionals := 0
 	var builds []string
 	i := New()
+	pinUpstream(t, "b6100")
 	i.Get = releaseOnly(t, "b6100", nil)
 	i.Conditional = func(string, http.Header) (*http.Response, error) {
 		conditionals++
@@ -123,6 +125,7 @@ func TestHeldRefusalWithinIntervalHostErrorKeepsCheckedAt(t *testing.T) {
 	conditionals := 0
 	var builds []string
 	i := New()
+	pinUpstream(t, "b6100")
 	i.Get = releaseOnly(t, "b6100", func(string) (*http.Response, error) {
 		t.Fatal("full comparison ran within the recheck interval")
 		return nil, nil
@@ -164,6 +167,7 @@ func TestHeldRefusalArtifactAbsentBuildsOncePerInterval(t *testing.T) {
 	artifactGets := 0
 	var builds []string
 	i := New()
+	pinUpstream(t, "b6100")
 	i.Get = releaseOnly(t, "b6100", func(string) (*http.Response, error) {
 		artifactGets++
 		return &http.Response{StatusCode: 404, Status: "404 Not Found", Header: http.Header{}, Body: io.NopCloser(strings.NewReader(""))}, nil
@@ -203,6 +207,7 @@ func TestHeldRefusalChangedETagRefusedBytesBuildsOnceWithNewReason(t *testing.T)
 	var builds []string
 	countBuilds := countSourceBuilds(&builds)
 	i := New()
+	pinUpstream(t, "b6100")
 	i.Get = releaseOnly(t, "b6100", nil)
 	badGz := gzipBytes(t, []byte("#!/bin/sh\nexit 1\n"))
 	i.Conditional = func(_ string, h http.Header) (*http.Response, error) {

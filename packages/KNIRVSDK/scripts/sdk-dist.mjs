@@ -20,7 +20,7 @@
 // the mismatch when run from any other path.
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -95,14 +95,14 @@ function buildModules() {
     const { sha256: digest, size } = artifact(target);
     return { id: m.id, artifact_version: m.artifact_version, module_kind: m.module_kind, abi_version: m.abi_version, byte_length: size, sha256: digest, capabilities: m.capabilities };
   });
-  writeFileSync(resolve(distModules, "manifest.json"), `${JSON.stringify({ version: 1, modules: entries }, null, 2)}\n`);
+  writeFileSync(resolve(distModules, "manifest.json"), `${JSON.stringify({ version: 1, source_digest: moduleSourceDigest(), modules: entries }, null, 2)}\n`);
   console.log(`modules: ${entries.map((e) => `${e.id}=${e.sha256.slice(0, 12)}`).join(" ")}`);
 }
 
-function stampModules() {
+function stampModules(replaceBytes = false) {
   const manifest = JSON.parse(readFileSync(resolve(distModules, "manifest.json"), "utf8"));
   const committedPath = resolve(modulesDir, "manifest.json");
-  const allowChange = process.argv.includes("--force") || process.env.KNIRV_SDK_ALLOW_MODULE_CHANGE === "1";
+  const allowChange = replaceBytes || process.argv.includes("--force") || process.env.KNIRV_SDK_ALLOW_MODULE_CHANGE === "1";
   if (!allowChange && existsSync(committedPath)) {
     const committed = JSON.parse(readFileSync(committedPath, "utf8"));
     const diffs = [];
@@ -121,6 +121,30 @@ function stampModules() {
   for (const m of manifest.modules) copyFileSync(resolve(distModules, `${m.id}.wasm`), resolve(modulesDir, "assets", `${m.id}.wasm`));
   writeFileSync(committedPath, `${JSON.stringify(manifest, null, 2)}\n`);
   console.log("stamp-modules: core/wasm-modules/{manifest.json,assets}");
+}
+
+// Digest of everything that determines the module bytes: the module list, each
+// crate's manifest, lockfile and sources (target/ excluded), and the rustc
+// that compiles them. A stamp records this; `check` fails when it no longer
+// matches, so the tracked bytes can only drift together with a recorded change.
+function moduleSourceDigest() {
+  const { modules } = JSON.parse(readFileSync(p("core/wasm-modules/modules.json"), "utf8"));
+  const h = createHash("sha256");
+  h.update(readFileSync(p("core/wasm-modules/modules.json")));
+  const walk = (dir, rel) => {
+    for (const name of readdirSync(dir).sort()) {
+      if (name === "target") continue;
+      const full = resolve(dir, name);
+      const r = `${rel}/${name}`;
+      if (statSync(full).isDirectory()) walk(full, r);
+      else h.update(`${r}\0`).update(readFileSync(full)).update("\0");
+    }
+  };
+  for (const m of [...modules].sort((a, b) => a.id.localeCompare(b.id))) {
+    walk(resolve(modulesDir, m.crate), m.crate);
+  }
+  h.update(`rustc=${capture("rustc", ["--version"])}`);
+  return h.digest("hex");
 }
 
 function artifact(path) {
@@ -197,9 +221,13 @@ function check() {
   if (!go.includes(`Digest = "${m.sha256}"`)) problems.push("Go stamp digest != manifest");
   const committed = JSON.parse(readFileSync(resolve(modulesDir, "manifest.json"), "utf8"));
   const built = JSON.parse(readFileSync(resolve(distModules, "manifest.json"), "utf8"));
+  const current = moduleSourceDigest();
+  if (committed.source_digest !== current) {
+    problems.push(`core/wasm-modules: the module sources or rustc changed since the modules were stamped (stamped ${committed.source_digest ? committed.source_digest.slice(0, 12) : "none"}, current ${current.slice(0, 12)}). Run: make -C packages/KNIRVSDK sync-modules`);
+  }
   if (JSON.stringify(committed) !== JSON.stringify(built)) {
     const diffs = (built.modules ?? []).filter((b) => (committed.modules ?? []).find((c) => c.id === b.id)?.sha256 !== b.sha256).map((b) => b.id);
-    problems.push(`core/wasm-modules/manifest.json != dist modules manifest${diffs.length ? ` (${diffs.join(", ")})` : ""}: a rebuild from a different checkout path yields different bytes (Cargo crate metadata includes the absolute path); rebuild from build_root in dist/${version}/manifest.json`);
+    problems.push(`core/wasm-modules/manifest.json != dist modules manifest${diffs.length ? ` (${diffs.join(", ")})` : ""}: the tracked bytes are not what this build produces. Rebuild, then restamp with KNIRV_SDK_ALLOW_MODULE_CHANGE=1 or find the original build`);
   }
   for (const m of committed.modules) {
     const a = artifact(resolve(modulesDir, "assets", `${m.id}.wasm`));
@@ -273,7 +301,31 @@ function repro() {
   console.log(`\nreproduce: all ${rows.length} artifacts match the released digests from ${root}`);
 }
 
-const commands = { modules: buildModules, "stamp-modules": stampModules, manifest: writeManifest, stamp, check, repro };
+// sync-modules: rebuild the modules and replace the tracked bytes, but only when
+// the module sources or rustc changed since the last stamp (the source digest is
+// the reason the bytes may change). With unchanged sources, a byte difference is
+// not something a rebuild can explain, so this refuses and leaves the tree alone.
+function syncModules() {
+  buildModules();
+  const built = JSON.parse(readFileSync(resolve(distModules, "manifest.json"), "utf8"));
+  const committedPath = resolve(modulesDir, "manifest.json");
+  const committed = existsSync(committedPath) ? JSON.parse(readFileSync(committedPath, "utf8")) : {};
+  const bytesMatch = (committed.modules ?? []).length === built.modules.length
+    && built.modules.every((b) => (committed.modules ?? []).find((c) => c.id === b.id)?.sha256 === b.sha256);
+  if (committed.source_digest === built.source_digest && bytesMatch) {
+    console.log("sync-modules: tracked module bytes already match the sources");
+    return;
+  }
+  if (committed.source_digest === built.source_digest) {
+    // Same sources, different bytes: not a source change, so do not replace.
+    console.error("sync-modules refused: the module sources are unchanged since the last stamp, but this build produces different bytes. A rebuild cannot explain that; investigate the build inputs before replacing the tracked bytes.");
+    process.exit(1);
+  }
+  console.log(`sync-modules: sources changed (${String(committed.source_digest ?? "none").slice(0, 12)} -> ${built.source_digest.slice(0, 12)}); replacing the tracked module bytes`);
+  stampModules(true);
+}
+
+const commands = { modules: buildModules, "stamp-modules": stampModules, "sync-modules": syncModules, manifest: writeManifest, stamp, check, repro };
 const run = commands[process.argv[2]];
 if (!run) {
   console.error(`usage: sdk-dist.mjs ${Object.keys(commands).join("|")}`);

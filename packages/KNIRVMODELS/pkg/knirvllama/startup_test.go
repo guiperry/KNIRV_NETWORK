@@ -105,7 +105,7 @@ type harness struct {
 // newHarness builds a Manager whose knirvllama is this test binary.
 func newHarness(t *testing.T, cfg ManagerConfig, env ...string) *harness {
 	t.Helper()
-	killStale = func(string) {} // pkill -x would match, and kill, this very test binary
+	killStale = func(string, string) {} // never signal a process this test did not start
 	t.Cleanup(func() { killStale = killStaleLlama })
 	exe, err := os.Executable()
 	if err != nil {

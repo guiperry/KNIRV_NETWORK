@@ -1,0 +1,107 @@
+{
+  "claims": [
+    {
+      "name": "full",
+      "claim": {
+        "schema_version": "dve.bundle.v1",
+        "session_id": "sess-1",
+        "dve_id": "dve-1",
+        "user_id": "user-1",
+        "project_id": "proj-1",
+        "policy_hash": "sha256:aa",
+        "eventlog_root": "sha256:bb",
+        "artifact_merkle_root": "sha256:cc",
+        "workspace_base_hash": "sha256:dd",
+        "workspace_final_hash": "sha256:ee",
+        "event_bundle_root": "sha256:ff"
+      },
+      "message_base64": "eyJzY2hlbWFfdmVyc2lvbiI6ImR2ZS5idW5kbGUudjEiLCJzZXNzaW9uX2lkIjoic2Vzcy0xIiwiZHZlX2lkIjoiZHZlLTEiLCJ1c2VyX2lkIjoidXNlci0xIiwicHJvamVjdF9pZCI6InByb2otMSIsInBvbGljeV9oYXNoIjoic2hhMjU2OmFhIiwiZXZlbnRsb2dfcm9vdCI6InNoYTI1NjpiYiIsImFydGlmYWN0X21lcmtsZV9yb290Ijoic2hhMjU2OmNjIiwid29ya3NwYWNlX2Jhc2VfaGFzaCI6InNoYTI1NjpkZCIsIndvcmtzcGFjZV9maW5hbF9oYXNoIjoic2hhMjU2OmVlIiwiZXZlbnRfYnVuZGxlX3Jvb3QiOiJzaGEyNTY6ZmYifQ=="
+    },
+    {
+      "name": "no_event_bundle_root",
+      "claim": {
+        "schema_version": "dve.bundle.v1",
+        "session_id": "sess-1",
+        "dve_id": "dve-1",
+        "user_id": "user-1",
+        "project_id": "proj-1",
+        "policy_hash": "sha256:aa",
+        "eventlog_root": "sha256:bb",
+        "artifact_merkle_root": "sha256:cc",
+        "workspace_base_hash": "sha256:dd",
+        "workspace_final_hash": "sha256:ee"
+      },
+      "message_base64": "eyJzY2hlbWFfdmVyc2lvbiI6ImR2ZS5idW5kbGUudjEiLCJzZXNzaW9uX2lkIjoic2Vzcy0xIiwiZHZlX2lkIjoiZHZlLTEiLCJ1c2VyX2lkIjoidXNlci0xIiwicHJvamVjdF9pZCI6InByb2otMSIsInBvbGljeV9oYXNoIjoic2hhMjU2OmFhIiwiZXZlbnRsb2dfcm9vdCI6InNoYTI1NjpiYiIsImFydGlmYWN0X21lcmtsZV9yb290Ijoic2hhMjU2OmNjIiwid29ya3NwYWNlX2Jhc2VfaGFzaCI6InNoYTI1NjpkZCIsIndvcmtzcGFjZV9maW5hbF9oYXNoIjoic2hhMjU2OmVlIn0="
+    },
+    {
+      "name": "html_and_controls",
+      "claim": {
+        "schema_version": "v",
+        "session_id": "\u003ca\u003e\u0026b\u003e",
+        "dve_id": "\"q\" \\ /",
+        "user_id": "\b\f\n\r\t\u0001\u001f",
+        "project_id": "\u2028x\u2029",
+        "policy_hash": "é€𝄞",
+        "eventlog_root": "",
+        "artifact_merkle_root": " ",
+        "workspace_base_hash": "\u003c/script\u003e",
+        "workspace_final_hash": "ok",
+        "event_bundle_root": "root\u0000nul"
+      },
+      "message_base64": "eyJzY2hlbWFfdmVyc2lvbiI6InYiLCJzZXNzaW9uX2lkIjoiXHUwMDNjYVx1MDAzZVx1MDAyNmJcdTAwM2UiLCJkdmVfaWQiOiJcInFcIiBcXCAvIiwidXNlcl9pZCI6IlxiXGZcblxyXHRcdTAwMDFcdTAwMWYiLCJwcm9qZWN0X2lkIjoiXHUyMDI4eFx1MjAyOSIsInBvbGljeV9oYXNoIjoiw6nigqzwnYSeIiwiZXZlbnRsb2dfcm9vdCI6IiIsImFydGlmYWN0X21lcmtsZV9yb290Ijoif8KgIiwid29ya3NwYWNlX2Jhc2VfaGFzaCI6Ilx1MDAzYy9zY3JpcHRcdTAwM2UiLCJ3b3Jrc3BhY2VfZmluYWxfaGFzaCI6Im9rIiwiZXZlbnRfYnVuZGxlX3Jvb3QiOiJyb290XHUwMDAwbnVsIn0="
+    },
+    {
+      "name": "empty",
+      "claim": {
+        "schema_version": "",
+        "session_id": "",
+        "dve_id": "",
+        "user_id": "",
+        "project_id": "",
+        "policy_hash": "",
+        "eventlog_root": "",
+        "artifact_merkle_root": "",
+        "workspace_base_hash": "",
+        "workspace_final_hash": ""
+      },
+      "message_base64": "eyJzY2hlbWFfdmVyc2lvbiI6IiIsInNlc3Npb25faWQiOiIiLCJkdmVfaWQiOiIiLCJ1c2VyX2lkIjoiIiwicHJvamVjdF9pZCI6IiIsInBvbGljeV9oYXNoIjoiIiwiZXZlbnRsb2dfcm9vdCI6IiIsImFydGlmYWN0X21lcmtsZV9yb290IjoiIiwid29ya3NwYWNlX2Jhc2VfaGFzaCI6IiIsIndvcmtzcGFjZV9maW5hbF9oYXNoIjoiIn0="
+    }
+  ],
+  "sha256": [
+    {
+      "name": "empty",
+      "data_base64": "",
+      "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "abc",
+      "data_base64": "YWJj",
+      "digest": "sha256:ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
+    },
+    {
+      "name": "dve_session",
+      "data_base64": "ZHZlLTEAc2Vzcy0x",
+      "digest": "sha256:b2bc8ee870d4a9a792c4a4a56b18e454472f2e7a32a7374d73a65c7a347def85"
+    }
+  ],
+  "signatures": [
+    {
+      "name": "seed_ascending",
+      "key_id": "key-seed_ascending",
+      "seed_base64": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8=",
+      "public_key_base64": "A6EHv/POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg=",
+      "derived_key_id": "knirv-pub-56475aa75463474c",
+      "message_base64": "eyJzY2hlbWFfdmVyc2lvbiI6ImR2ZS5idW5kbGUudjEiLCJzZXNzaW9uX2lkIjoicyIsImR2ZV9pZCI6ImQiLCJ1c2VyX2lkIjoidSIsInByb2plY3RfaWQiOiJwIiwicG9saWN5X2hhc2giOiIiLCJldmVudGxvZ19yb290IjoiIiwiYXJ0aWZhY3RfbWVya2xlX3Jvb3QiOiIiLCJ3b3Jrc3BhY2VfYmFzZV9oYXNoIjoic2hhMjU2OmJhc2UiLCJ3b3Jrc3BhY2VfZmluYWxfaGFzaCI6InNoYTI1NjpmaW5hbCIsImV2ZW50X2J1bmRsZV9yb290Ijoic2hhMjU2OmV2ZW50In0=",
+      "signature_base64": "OCl5CDw3iQvStlcrQauxvtENaT1ZLz57u86f03Nf9He6tKHoCf2BdYQqixrqdDpQTDZy5OEN/ZpnRvJcXE2TAQ=="
+    },
+    {
+      "name": "seed_zero",
+      "key_id": "key-seed_zero",
+      "seed_base64": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+      "public_key_base64": "O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik=",
+      "derived_key_id": "knirv-pub-139e3940e64b5491",
+      "message_base64": "eyJzY2hlbWFfdmVyc2lvbiI6ImR2ZS5idW5kbGUudjEiLCJzZXNzaW9uX2lkIjoicyIsImR2ZV9pZCI6ImQiLCJ1c2VyX2lkIjoidSIsInByb2plY3RfaWQiOiJwIiwicG9saWN5X2hhc2giOiIiLCJldmVudGxvZ19yb290IjoiIiwiYXJ0aWZhY3RfbWVya2xlX3Jvb3QiOiIiLCJ3b3Jrc3BhY2VfYmFzZV9oYXNoIjoic2hhMjU2OmJhc2UiLCJ3b3Jrc3BhY2VfZmluYWxfaGFzaCI6InNoYTI1NjpmaW5hbCIsImV2ZW50X2J1bmRsZV9yb290Ijoic2hhMjU2OmV2ZW50In0=",
+      "signature_base64": "Ers63zg+LpcX2GSZmBD37qGUH7QxI+UDtERlnAoxNzh1UN55COUoRTFPwTo3yVfYEc3IGgLCb4nxLeW7txcqDg=="
+    }
+  ]
+}

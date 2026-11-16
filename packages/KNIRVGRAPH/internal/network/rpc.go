@@ -124,19 +124,19 @@ func NewRPCServerWithNRV(gc GraphChainInterface, nrvSys *locator.LocatorSystem, 
 	router.HandleFunc("/node", rpc.createNode).Methods("POST", "OPTIONS")
 	router.HandleFunc("/edge", rpc.createEdge).Methods("POST", "OPTIONS")
 
-	// Register NRV routes (always — returns demo data when NRV system is unavailable)
-	router.HandleFunc("/nrv/vectors", rpc.getAllVectors).Methods("GET", "OPTIONS")
-	router.HandleFunc("/nrv/vectors", rpc.createVector).Methods("POST", "OPTIONS")
-	router.HandleFunc("/nrv/vectors/resolve/{targetHash}", rpc.resolveTarget).Methods("GET", "OPTIONS")
-	router.HandleFunc("/nrv/errors", rpc.getAllErrors).Methods("GET", "OPTIONS")
-	router.HandleFunc("/nrv/errors", rpc.createError).Methods("POST", "OPTIONS")
-	router.HandleFunc("/nrv/errors/commit", rpc.createErrorCommit).Methods("POST", "OPTIONS")
+	// Register Resolution Locator routes (always — returns demo data when NRV system is unavailable)
+	handleLocatorRoute(router, logger, "/vectors", rpc.getAllVectors, "GET", "OPTIONS")
+	handleLocatorRoute(router, logger, "/vectors", rpc.createVector, "POST", "OPTIONS")
+	handleLocatorRoute(router, logger, "/vectors/resolve/{targetHash}", rpc.resolveTarget, "GET", "OPTIONS")
+	handleLocatorRoute(router, logger, "/errors", rpc.getAllErrors, "GET", "OPTIONS")
+	handleLocatorRoute(router, logger, "/errors", rpc.createError, "POST", "OPTIONS")
+	handleLocatorRoute(router, logger, "/errors/commit", rpc.createErrorCommit, "POST", "OPTIONS")
 	rpc.registerErrorTestRoutes(router)
 	rpc.registerContextIdeaRoutes(router)
-	router.HandleFunc("/nrv/skills", rpc.getAllSkills).Methods("GET", "OPTIONS")
-	router.HandleFunc("/nrv/skills", rpc.createSkill).Methods("POST", "OPTIONS")
-	router.HandleFunc("/nrv/skills/{skillID}", rpc.deleteSkill).Methods("DELETE", "OPTIONS")
-	router.HandleFunc("/nrv/skills/for-error/{errorType}", rpc.getSkillsForError).Methods("GET", "OPTIONS")
+	handleLocatorRoute(router, logger, "/skills", rpc.getAllSkills, "GET", "OPTIONS")
+	handleLocatorRoute(router, logger, "/skills", rpc.createSkill, "POST", "OPTIONS")
+	handleLocatorRoute(router, logger, "/skills/{skillID}", rpc.deleteSkill, "DELETE", "OPTIONS")
+	handleLocatorRoute(router, logger, "/skills/for-error/{errorType}", rpc.getSkillsForError, "GET", "OPTIONS")
 
 	rpc.server = &http.Server{
 		Addr:              fmt.Sprintf(":%d", port),
@@ -210,22 +210,22 @@ func NewRPCServerWithEconomics(gc GraphChainInterface, nrvSys *locator.LocatorSy
 	// that cannot advance.
 	router.HandleFunc("/drq/status", rpc.getDRQStatus).Methods("GET", "OPTIONS")
 
-	// Register NRV routes (always — returns demo data when NRV system is unavailable)
-	router.HandleFunc("/nrv/vectors", rpc.getAllVectors).Methods("GET", "OPTIONS")
-	router.HandleFunc("/nrv/vectors", rpc.createVector).Methods("POST", "OPTIONS")
-	router.HandleFunc("/nrv/vectors/resolve/{targetHash}", rpc.resolveTarget).Methods("GET", "OPTIONS")
-	router.HandleFunc("/nrv/errors", rpc.getAllErrors).Methods("GET", "OPTIONS")
-	router.HandleFunc("/nrv/errors", rpc.createError).Methods("POST", "OPTIONS")
-	router.HandleFunc("/nrv/errors/commit", rpc.createErrorCommit).Methods("POST", "OPTIONS")
+	// Register Resolution Locator routes (always — returns demo data when NRV system is unavailable)
+	handleLocatorRoute(router, logger, "/vectors", rpc.getAllVectors, "GET", "OPTIONS")
+	handleLocatorRoute(router, logger, "/vectors", rpc.createVector, "POST", "OPTIONS")
+	handleLocatorRoute(router, logger, "/vectors/resolve/{targetHash}", rpc.resolveTarget, "GET", "OPTIONS")
+	handleLocatorRoute(router, logger, "/errors", rpc.getAllErrors, "GET", "OPTIONS")
+	handleLocatorRoute(router, logger, "/errors", rpc.createError, "POST", "OPTIONS")
+	handleLocatorRoute(router, logger, "/errors/commit", rpc.createErrorCommit, "POST", "OPTIONS")
 	rpc.registerErrorTestRoutes(router)
 	rpc.registerContextIdeaRoutes(router)
-	router.HandleFunc("/nrv/skills", rpc.getAllSkills).Methods("GET", "OPTIONS")
-	router.HandleFunc("/nrv/skills", rpc.createSkill).Methods("POST", "OPTIONS")
-	router.HandleFunc("/nrv/skills/{skillID}", rpc.deleteSkill).Methods("DELETE", "OPTIONS")
-	router.HandleFunc("/nrv/skills/for-error/{errorType}", rpc.getSkillsForError).Methods("GET", "OPTIONS")
+	handleLocatorRoute(router, logger, "/skills", rpc.getAllSkills, "GET", "OPTIONS")
+	handleLocatorRoute(router, logger, "/skills", rpc.createSkill, "POST", "OPTIONS")
+	handleLocatorRoute(router, logger, "/skills/{skillID}", rpc.deleteSkill, "DELETE", "OPTIONS")
+	handleLocatorRoute(router, logger, "/skills/for-error/{errorType}", rpc.getSkillsForError, "GET", "OPTIONS")
 
-	// Register existing NRV routes (from original implementation)
-	router.HandleFunc("/nrv/resolve/{targetHash}", rpc.resolveTarget).Methods("GET", "OPTIONS")
+	// Register the resolve route (from original implementation)
+	handleLocatorRoute(router, logger, "/resolve/{targetHash}", rpc.resolveTarget, "GET", "OPTIONS")
 
 	// Register economics routes
 	router.HandleFunc("/economics/metrics", rpc.getEconomicMetrics).Methods("GET", "OPTIONS")
@@ -621,11 +621,11 @@ func (rpc *RPCServer) getAllErrors(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(errors)
 }
 
-// createError serves POST /nrv/errors. It is internal-only: KNIRVSERVER
+// createError serves POST /graph/errors. It is internal-only: KNIRVSERVER
 // registers errors here on behalf of a signed-in user. Resolver attribution
 // keys are stripped from the context regardless of caller, since whoever they
 // name owns the error's DRQ cluster and its bounty. Unauthenticated reporters
-// (the CLI) use /nrv/errors/commit.
+// (the CLI) use /graph/errors/commit.
 func (rpc *RPCServer) createError(w http.ResponseWriter, r *http.Request) {
 	if !requireInternalToken(w, r) {
 		return
@@ -682,7 +682,7 @@ const ErrorNodeCommitSchema = "knirv.error-node-commit.v1"
 // here (KNIRVGRAPH has no key-resolver/trust-store infrastructure today,
 // unlike KNIRVSERVER's dveevidence.KeyResolver) — SignerID/SigningKeyID/
 // Signature are recorded as provided, matching this endpoint's current
-// trust boundary (same as every other unauthenticated /nrv/* route). Adding
+// trust boundary (same as every other unauthenticated /graph/* route). Adding
 // real signature verification is a natural follow-up once KNIRVGRAPH has a
 // signer-key registry to check against.
 type ErrorNodeCommit struct {

@@ -1,39 +1,45 @@
 {
- "compilerOptions": {
-  "target": "ES2017",
-  "lib": [
-   "dom",
-   "dom.iterable",
-   "esnext"
+  "compilerOptions": {
+    "target": "ES2017",
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "esnext"
+    ],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "noEmit": true,
+    "noImplicitAny": false,
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "preserve",
+    "incremental": false,
+    "paths": {
+      "@/*": [
+        "./src/*"
+      ]
+    },
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ]
+  },
+  "include": [
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts"
   ],
-  "allowJs": true,
-  "skipLibCheck": true,
-  "strict": true,
-  "noEmit": true,
-  "noImplicitAny": false,
-  "esModuleInterop": true,
-  "module": "esnext",
-  "moduleResolution": "bundler",
-  "resolveJsonModule": true,
-  "isolatedModules": true,
-  "jsx": "preserve",
-  "incremental": false,
-  "paths": {
-   "@/*": [
-    "./src/*"
-   ]
-  }
- },
- "include": [
-  "**/*.ts",
-  "**/*.tsx"
- ],
- "exclude": [
-  "node_modules",
-  "out",
-  ".next",
-  "coverage",
-  "playwright-report",
-  "test-results"
- ]
+  "exclude": [
+    "node_modules",
+    "out",
+    ".next",
+    "coverage",
+    "playwright-report",
+    "test-results"
+  ]
 }

@@ -293,7 +293,14 @@ type KV interface {
 	Get(key []byte) ([]byte, error)
 }
 
-const errorTestSuiteKeyPrefix = "nrv:error_tests:"
+// errorTestSuiteKeyPrefix is where test suites are written.
+const errorTestSuiteKeyPrefix = "graph:error_tests:"
+
+// legacyErrorTestSuiteKeyPrefix is the pre-rename prefix. It is read as a
+// fallback only, so suites written before `migrate-announcement-ref` still load
+// and can be sealed or replaced; nothing writes to it. Rows move to
+// errorTestSuiteKeyPrefix when the migration runs.
+const legacyErrorTestSuiteKeyPrefix = "nrv:error_tests:"
 
 // ErrorTestSuiteStore persists ErrorTestSuites keyed by ErrorNode ID.
 type ErrorTestSuiteStore struct {
@@ -404,8 +411,13 @@ func (st *ErrorTestSuiteStore) Get(errorNodeID string) (*ErrorTestSuite, error) 
 func (st *ErrorTestSuiteStore) getLocked(errorNodeID string) (*ErrorTestSuite, error) {
 	raw, err := st.kv.Get([]byte(errorTestSuiteKeyPrefix + errorNodeID))
 	if err != nil || len(raw) == 0 {
-		// Both KNIRVGRAPH storage backends report a missing key as an error.
-		return nil, ErrTestSuiteNotFound
+		// The current prefix wins. Fall back to the legacy row only when no
+		// current row exists. Both KNIRVGRAPH storage backends report a missing
+		// key as an error.
+		raw, err = st.kv.Get([]byte(legacyErrorTestSuiteKeyPrefix + errorNodeID))
+		if err != nil || len(raw) == 0 {
+			return nil, ErrTestSuiteNotFound
+		}
 	}
 	var suite ErrorTestSuite
 	if err := json.Unmarshal(raw, &suite); err != nil {

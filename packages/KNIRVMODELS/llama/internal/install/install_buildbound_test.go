@@ -60,6 +60,7 @@ func TestBuildBoundNoMarker404BuildsOncePerInterval(t *testing.T) {
 	gets := 0
 	var builds []string
 	i := New()
+	pinUpstream(t, "b6100")
 	i.Get = releaseOnly(t, "b6100", func(string) (*http.Response, error) {
 		gets++
 		return bbResp(404, "", nil), nil
@@ -87,6 +88,7 @@ func TestBuildBoundOtherTagMarker404BuildsOncePerInterval(t *testing.T) {
 	writeRejectedFile(t, dir, "b6000", "", "", sha([]byte("x")), time.Now())
 	var builds []string
 	i := New()
+	pinUpstream(t, "b6100")
 	i.Get = releaseOnly(t, "b6100", func(string) (*http.Response, error) {
 		return bbResp(404, "", nil), nil
 	})
@@ -110,6 +112,7 @@ func TestBuildBoundChurnBrokenBodyBuildsOncePerInterval(t *testing.T) {
 	n := 0
 	var builds []string
 	i := New()
+	pinUpstream(t, "b6100")
 	i.Get = releaseOnly(t, "b6100", func(string) (*http.Response, error) {
 		t.Fatal("full GET within the interval")
 		return nil, nil
@@ -138,6 +141,7 @@ func TestBuildBoundDueAbsentThenBrokenReuploadBuildsOnce(t *testing.T) {
 	dir, server := heldRefusalServer(t, `"v1"`, time.Now().Add(-25*time.Hour))
 	var builds []string
 	i := New()
+	pinUpstream(t, "b6100")
 	i.Get = releaseOnly(t, "b6100", func(string) (*http.Response, error) {
 		return bbResp(404, "", nil), nil
 	})
@@ -163,6 +167,7 @@ func TestBuildBoundAllowsBuildAfterInterval(t *testing.T) {
 	})
 	var builds []string
 	i := New()
+	pinUpstream(t, "b6100")
 	i.Get = releaseOnly(t, "b6100", func(string) (*http.Response, error) {
 		return bbResp(404, "", nil), nil
 	})
@@ -184,6 +189,7 @@ func TestBuildBoundIsPerTag(t *testing.T) {
 	})
 	var builds []string
 	i := New()
+	pinUpstream(t, "b6100")
 	i.Get = releaseOnly(t, "b6100", func(string) (*http.Response, error) {
 		return bbResp(404, "", nil), nil
 	})
@@ -242,6 +248,7 @@ func TestBuildBoundStampedBuildFailsOncePerInterval(t *testing.T) {
 	}
 	var builds []string
 	i := New()
+	pinUpstream(t, "b6100")
 	i.Get = releaseOnly(t, "b6100", nil)
 	// The installed server reports no build number, so it is judged by its stamp.
 	i.Output = func(context.Context, string, ...string) (string, error) { return "version: 1.0.0-dev (build 0)\n", nil }
@@ -267,6 +274,7 @@ func TestBuildBoundAttemptWriteFailsOpen(t *testing.T) {
 	}
 	var builds []string
 	i := New()
+	pinUpstream(t, "b6100")
 	i.Get = releaseOnly(t, "b6100", func(string) (*http.Response, error) { return bbResp(404, "", nil), nil })
 	i.Output = artifactOutput("6050")
 	i.LookPath = func(string) (string, error) { return "/usr/bin/x", nil }
@@ -287,6 +295,7 @@ func TestBuildBoundFailedBuildIsRecorded(t *testing.T) {
 	dir, server := refusalServer(t)
 	var builds []string
 	i := New()
+	pinUpstream(t, "b6100")
 	i.Get = releaseOnly(t, "b6100", func(string) (*http.Response, error) { return bbResp(404, "", nil), nil })
 	i.Output = artifactOutput("6050")
 	i.LookPath = func(string) (string, error) { return "/usr/bin/x", nil }
@@ -305,6 +314,7 @@ func TestBuildBoundInterruptedBuildCounts(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	var builds []string
 	i := New()
+	pinUpstream(t, "b6100")
 	i.Get = releaseOnly(t, "b6100", func(string) (*http.Response, error) { return bbResp(404, "", nil), nil })
 	i.Output = artifactOutput("6050")
 	i.LookPath = func(string) (string, error) { return "/usr/bin/x", nil }
@@ -332,6 +342,7 @@ func TestBuildBoundNewTagNotBlockedByOldTagAttempt(t *testing.T) {
 	})
 	var builds []string
 	i := New()
+	pinUpstream(t, "b6200")
 	i.Get = releaseOnly(t, "b6200", func(string) (*http.Response, error) { return bbResp(404, "", nil), nil })
 	i.Output = artifactOutput("6050")
 	i.LookPath = func(string) (string, error) { return "/usr/bin/x", nil }
@@ -372,6 +383,7 @@ func TestReadBuildAttemptsKeepsValidWhenOneEntryMalformed(t *testing.T) {
 	}
 	var builds []string
 	i := New()
+	pinUpstream(t, "b6100")
 	i.Get = releaseOnly(t, "b6100", func(string) (*http.Response, error) { return bbResp(404, "", nil), nil })
 	i.Output = artifactOutput("6050")
 	i.LookPath = func(string) (string, error) { return "/usr/bin/x", nil }
@@ -431,6 +443,7 @@ func TestBuildBoundLockFailureFailsOpen(t *testing.T) {
 	}
 	var builds []string
 	i := New()
+	pinUpstream(t, "b6100")
 	i.Get = releaseOnly(t, "b6100", func(string) (*http.Response, error) { return bbResp(404, "", nil), nil })
 	i.Output = artifactOutput("6050")
 	i.LookPath = func(string) (string, error) { return "/usr/bin/x", nil }
@@ -460,6 +473,7 @@ func TestBuildBoundStaleLockIsBroken(t *testing.T) {
 	}
 	var builds []string
 	i := New()
+	pinUpstream(t, "b6100")
 	i.Get = releaseOnly(t, "b6100", func(string) (*http.Response, error) { return bbResp(404, "", nil), nil })
 	i.Output = artifactOutput("6050")
 	i.LookPath = func(string) (string, error) { return "/usr/bin/x", nil }
@@ -488,6 +502,7 @@ func TestBuildBoundRenameObstructionBuildBounded(t *testing.T) {
 	fixed := []byte("#!/bin/sh\necho 'version: 6100 (fixed)'\n")
 	var builds []string
 	i := New()
+	pinUpstream(t, "b6100")
 	i.Get = releaseOnly(t, "b6100", func(string) (*http.Response, error) {
 		return bbResp(200, `"v1"`, gzipBytes(t, fixed)), nil
 	})

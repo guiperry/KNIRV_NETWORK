@@ -271,7 +271,7 @@ func newSkillNode(skillID, skillType string, capabilities []string, requirements
 
 // CreateSkillNodeWithID creates a skill node under a caller-supplied ID.
 //
-// KNIRVGRAPH's /nrv/skills route derives a skill ID from the skill type and
+// KNIRVGRAPH's /graph/skills route derives a skill ID from the skill type and
 // capabilities, which is fine for interactive registrations but discards the
 // identity of a DRQ-mined skill: a mined skill's ID is derived from its
 // resolved cluster and must stay stable so that the KNIRVGRAPH-side mint can

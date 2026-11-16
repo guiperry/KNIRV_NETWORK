@@ -7,15 +7,113 @@ pub mod eventlog;
 #[path = "../wasm-modules/proof-verifier/src/mmr.rs"]
 pub mod mmr;
 
+use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
+
 #[cfg(feature = "ed25519")]
-pub use ed25519::{ed25519_public_key, ed25519_verify, Ed25519Failure};
+pub use ed25519::{
+    ed25519_key_id, ed25519_public_from_seed, ed25519_public_key, ed25519_sign, ed25519_verify,
+    Ed25519Failure,
+};
+
+/// SHA-256 of `data` as an evidence digest: `sha256:` and 64 lowercase hex digits.
+/// Always compiled (no feature): the digests are the evidence format's own.
+pub fn sha256_digest(data: &[u8]) -> String {
+    format!("sha256:{}", hex::encode(Sha256::digest(data)))
+}
+
+/// The claim an evidence bundle's signature covers: the bundle's identity and roots.
+/// Field order is the order of the signed message. `event_bundle_root` is left out
+/// of the message when empty (the Go `omitempty` tag it replaces).
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct SigningClaim {
+    #[serde(default)]
+    pub schema_version: String,
+    #[serde(default)]
+    pub session_id: String,
+    #[serde(default)]
+    pub dve_id: String,
+    #[serde(default)]
+    pub user_id: String,
+    #[serde(default)]
+    pub project_id: String,
+    #[serde(default)]
+    pub policy_hash: String,
+    #[serde(default)]
+    pub eventlog_root: String,
+    #[serde(default)]
+    pub artifact_merkle_root: String,
+    #[serde(default)]
+    pub workspace_base_hash: String,
+    #[serde(default)]
+    pub workspace_final_hash: String,
+    #[serde(default)]
+    pub event_bundle_root: String,
+}
+
+/// The bytes an evidence signature covers: the claim as a JSON object, keys in
+/// field order. Strings are escaped exactly as Go's `encoding/json` escapes them
+/// (HTML-safe: `<` `>` `&` and U+2028/U+2029 as `\u` escapes, `\b` and `\f` short
+/// forms), so a signature made by either implementation verifies in the other.
+pub fn signing_message(claim: &SigningClaim) -> Vec<u8> {
+    let mut fields: Vec<(&str, &str)> = vec![
+        ("schema_version", &claim.schema_version),
+        ("session_id", &claim.session_id),
+        ("dve_id", &claim.dve_id),
+        ("user_id", &claim.user_id),
+        ("project_id", &claim.project_id),
+        ("policy_hash", &claim.policy_hash),
+        ("eventlog_root", &claim.eventlog_root),
+        ("artifact_merkle_root", &claim.artifact_merkle_root),
+        ("workspace_base_hash", &claim.workspace_base_hash),
+        ("workspace_final_hash", &claim.workspace_final_hash),
+    ];
+    if !claim.event_bundle_root.is_empty() {
+        fields.push(("event_bundle_root", &claim.event_bundle_root));
+    }
+    let mut out = String::from("{");
+    for (index, (key, value)) in fields.iter().enumerate() {
+        if index > 0 {
+            out.push(',');
+        }
+        push_go_json_string(&mut out, key);
+        out.push(':');
+        push_go_json_string(&mut out, value);
+    }
+    out.push('}');
+    out.into_bytes()
+}
+
+/// Appends `value` as a JSON string, escaped as Go's `encoding/json` does with
+/// HTML escaping on. Pinned by `testvectors/evidence/signing_claim_v1.json`.
+fn push_go_json_string(out: &mut String, value: &str) {
+    out.push('"');
+    for c in value.chars() {
+        match c {
+            '"' => out.push_str("\\\""),
+            '\\' => out.push_str("\\\\"),
+            '\n' => out.push_str("\\n"),
+            '\r' => out.push_str("\\r"),
+            '\t' => out.push_str("\\t"),
+            '\u{8}' => out.push_str("\\b"),
+            '\u{c}' => out.push_str("\\f"),
+            '<' | '>' | '&' | '\u{2028}' | '\u{2029}' => {
+                out.push_str(&format!("\\u{:04x}", c as u32))
+            }
+            c if (c as u32) < 0x20 => out.push_str(&format!("\\u{:04x}", c as u32)),
+            c => out.push(c),
+        }
+    }
+    out.push('"');
+}
 
 /// Ed25519 verification of evidence bundles. Gated on the `ed25519` feature so the
 /// vault and relay modules, which do not use it, keep their bytes.
 #[cfg(feature = "ed25519")]
 mod ed25519 {
     use base64::{engine::general_purpose::STANDARD as BASE64, Engine as _};
-    use ed25519_dalek::{Signature, Verifier, VerifyingKey};
+    use ed25519_dalek::{Signature, Signer, SigningKey, Verifier, VerifyingKey};
+    use sha2::{Digest, Sha256};
 
     /// Why an Ed25519 public key or signature was refused. `code` is the stable
     /// wire name the bindings return; the acceptance rule is RFC 8032 verification
@@ -28,6 +126,8 @@ mod ed25519 {
         SignatureEncoding,
         SignatureLength,
         SignatureInvalid,
+        SeedEncoding,
+        SeedLength,
     }
 
     impl Ed25519Failure {
@@ -39,6 +139,8 @@ mod ed25519 {
                 Self::SignatureEncoding => "signature_encoding",
                 Self::SignatureLength => "signature_length",
                 Self::SignatureInvalid => "signature_invalid",
+                Self::SeedEncoding => "seed_encoding",
+                Self::SeedLength => "seed_length",
             }
         }
 
@@ -50,6 +152,8 @@ mod ed25519 {
                 Self::SignatureEncoding => "malformed signature encoding",
                 Self::SignatureLength => "ed25519 signature must be 64 bytes",
                 Self::SignatureInvalid => "signature verification failed",
+                Self::SeedEncoding => "ed25519 seed is not valid base64",
+                Self::SeedLength => "ed25519 seed must be 32 bytes",
             }
         }
     }
@@ -88,6 +192,39 @@ mod ed25519 {
             .map_err(|_| Ed25519Failure::SignatureLength)?;
         key.verify(message, &Signature::from_bytes(&bytes))
             .map_err(|_| Ed25519Failure::SignatureInvalid)
+    }
+
+    fn signing_key(seed_base64: &str) -> Result<SigningKey, Ed25519Failure> {
+        let raw = BASE64
+            .decode(seed_base64)
+            .map_err(|_| Ed25519Failure::SeedEncoding)?;
+        let seed: [u8; 32] = raw
+            .as_slice()
+            .try_into()
+            .map_err(|_| Ed25519Failure::SeedLength)?;
+        Ok(SigningKey::from_bytes(&seed))
+    }
+
+    /// Derives the standard-base64 Ed25519 public key from a 32-byte seed
+    /// (RFC 8032). The host supplies the seed; the core draws no randomness.
+    pub fn ed25519_public_from_seed(seed_base64: &str) -> Result<String, Ed25519Failure> {
+        let key = signing_key(seed_base64)?;
+        Ok(BASE64.encode(key.verifying_key().as_bytes()))
+    }
+
+    /// Signs `message` with the key derived from a 32-byte seed. Ed25519 is
+    /// deterministic, so the same seed and message always give the same signature.
+    pub fn ed25519_sign(seed_base64: &str, message: &[u8]) -> Result<String, Ed25519Failure> {
+        let key = signing_key(seed_base64)?;
+        Ok(BASE64.encode(key.sign(message).to_bytes()))
+    }
+
+    /// The key identifier for a public key: `knirv-pub-` and the first 8 bytes of
+    /// SHA-256 of the key, in hex.
+    pub fn ed25519_key_id(public_key_base64: &str) -> Result<String, Ed25519Failure> {
+        let key = parse_public_key(public_key_base64)?;
+        let digest = Sha256::digest(key.as_bytes());
+        Ok(format!("knirv-pub-{}", hex::encode(&digest[..8])))
     }
     }
 
@@ -180,4 +317,62 @@ mod ed25519 {
             .unwrap_err();
             assert!(err.message.contains("message_base64"));
         }
+}
+
+/// `testvectors/evidence/signing_v1.json`: the Go implementation's outputs for the
+/// signed claim bytes, the SHA-256 helper and Ed25519 seed/key/signature handling.
+/// Every value must match exactly.
+#[cfg(test)]
+mod signing_vector_tests {
+    use super::{signing_message, sha256_digest, SigningClaim};
+    use base64::{engine::general_purpose::STANDARD as BASE64, Engine as _};
+    use serde_json::Value;
+
+    fn fixture() -> Value {
+        let path = format!("{}/../testvectors/evidence/signing_v1.json", env!("CARGO_MANIFEST_DIR"));
+        serde_json::from_slice(&std::fs::read(path).unwrap()).unwrap()
+    }
+
+    #[test]
+    fn claim_message_matches_go_json_bytes() {
+        for case in fixture()["claims"].as_array().unwrap() {
+            let name = case["name"].as_str().unwrap();
+            let claim: SigningClaim = serde_json::from_value(case["claim"].clone()).unwrap();
+            let got = BASE64.encode(signing_message(&claim));
+            assert_eq!(got, case["message_base64"].as_str().unwrap(), "{name}");
+        }
+    }
+
+    #[test]
+    fn sha256_matches_go_digest() {
+        for case in fixture()["sha256"].as_array().unwrap() {
+            let data = BASE64.decode(case["data_base64"].as_str().unwrap()).unwrap();
+            assert_eq!(sha256_digest(&data), case["digest"].as_str().unwrap(), "{}", case["name"]);
+        }
+    }
+
+    #[cfg(feature = "ed25519")]
+    #[test]
+    fn ed25519_seed_key_id_and_signature_match_go() {
+        use super::{ed25519_key_id, ed25519_public_from_seed, ed25519_sign, ed25519_verify};
+        for case in fixture()["signatures"].as_array().unwrap() {
+            let name = case["name"].as_str().unwrap();
+            let seed = case["seed_base64"].as_str().unwrap();
+            let public = ed25519_public_from_seed(seed).unwrap();
+            assert_eq!(public, case["public_key_base64"].as_str().unwrap(), "{name} public");
+            assert_eq!(ed25519_key_id(&public).unwrap(), case["derived_key_id"].as_str().unwrap(), "{name} key id");
+            let message = BASE64.decode(case["message_base64"].as_str().unwrap()).unwrap();
+            let signature = ed25519_sign(seed, &message).unwrap();
+            assert_eq!(signature, case["signature_base64"].as_str().unwrap(), "{name} signature");
+            assert!(ed25519_verify(&public, &message, &signature).is_ok(), "{name} verify");
+        }
+    }
+
+    #[cfg(feature = "ed25519")]
+    #[test]
+    fn ed25519_refuses_bad_seeds() {
+        use super::{ed25519_public_from_seed, Ed25519Failure};
+        assert_eq!(ed25519_public_from_seed("AAAA").unwrap_err(), Ed25519Failure::SeedLength);
+        assert_eq!(ed25519_public_from_seed("!!").unwrap_err(), Ed25519Failure::SeedEncoding);
+    }
 }

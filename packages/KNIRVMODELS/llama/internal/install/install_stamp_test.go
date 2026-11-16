@@ -172,6 +172,7 @@ func TestStampedOldGitBuildRebuilds(t *testing.T) {
 		t.Fatal(err)
 	}
 	i := New()
+	pinUpstream(t, "b6100")
 	i.Get = releaseResponder("b6100")
 	i.Conditional = noNetwork2(t)
 	i.LookPath = func(string) (string, error) { return "/usr/bin/x", nil }
@@ -206,6 +207,7 @@ func TestStampedCurrentGitBuildNotRebuilt(t *testing.T) {
 		t.Fatal(err)
 	}
 	i := New()
+	pinUpstream(t, "b6100")
 	i.Get = releaseResponder("b6100")
 	i.Conditional = noNetwork2(t)
 	i.Run = func(_ context.Context, name string, args ...string) error {
@@ -573,6 +575,7 @@ func TestNumericInstallRejectsStagedBuildZero(t *testing.T) {
 	}
 	artifact := []byte("#!/bin/sh\necho '" + tarballLine + "'\n")
 	i := New()
+	pinUpstream(t, "b6100")
 	i.Get = releaseResponderWithArtifact("b6100", gzipBytes(t, artifact))
 	i.Output = func(_ context.Context, path string, _ ...string) (string, error) {
 		if strings.HasSuffix(path, ".update") {
@@ -603,11 +606,8 @@ func TestNumericInstallRejectsStagedBuildZero(t *testing.T) {
 }
 
 // releaseResponderWithArtifact serves the release list and a gzipped artifact.
-func releaseResponderWithArtifact(tag string, artifact []byte) func(string) (*http.Response, error) {
+func releaseResponderWithArtifact(_ string, artifact []byte) func(string) (*http.Response, error) {
 	return func(url string) (*http.Response, error) {
-		if url == LatestReleaseURL {
-			return releaseResponder(tag)(url)
-		}
 		return &http.Response{StatusCode: 200, Status: "200 OK", Body: io.NopCloser(bytes.NewReader(artifact))}, nil
 	}
 }
@@ -643,6 +643,7 @@ func TestStampWithoutTagRebuildsAtLatest(t *testing.T) {
 		t.Fatal(err)
 	}
 	i := New()
+	pinUpstream(t, "b6100")
 	i.Get = releaseResponder("b6100")
 	i.Conditional = noNetwork2(t)
 	i.LookPath = func(string) (string, error) { return "/usr/bin/x", nil }
@@ -792,11 +793,9 @@ func TestNumericRefusedArtifactNotRefetchedEachStart(t *testing.T) {
 	artifact := gzipBytes(t, []byte("#!/bin/sh\necho 'version: 6050 (x)'\n"))
 	artifactGets, conditionals := 0, 0
 	var sentINM []string
+	pinUpstream(t, "b6100")
 	i := New()
 	i.Get = func(url string) (*http.Response, error) {
-		if url == LatestReleaseURL {
-			return releaseResponder("b6100")(url)
-		}
 		artifactGets++
 		h := http.Header{}
 		h.Set("ETag", `"v1"`)
@@ -845,11 +844,9 @@ func TestNumericRefusedArtifactRetriedWhenValidatorChanges(t *testing.T) {
 	oldPlain := []byte("#!/bin/sh\necho 'version: 6050 (x)'\n")
 	newPlain := []byte("#!/bin/sh\necho 'version: 6100 (new)'\n")
 	writeRejectedFile(t, dir, "b6100", `"v1"`, "", sha(oldPlain), time.Now())
+	pinUpstream(t, "b6100")
 	i := New()
 	i.Get = func(url string) (*http.Response, error) {
-		if url == LatestReleaseURL {
-			return releaseResponder("b6100")(url)
-		}
 		t.Fatal("plain GET of the artifact: the validator-changed retry must be conditional first")
 		return nil, nil
 	}
@@ -893,11 +890,9 @@ func TestNumericRefusedArtifactRetriedWhenTagChanges(t *testing.T) {
 	newPlain := []byte("#!/bin/sh\necho 'version: 6200 (new)'\n")
 	writeRejectedFile(t, dir, "b6100", `"v1"`, "", sha(oldPlain), time.Now())
 	gets := 0
+	pinUpstream(t, "b6200")
 	i := New()
 	i.Get = func(url string) (*http.Response, error) {
-		if url == LatestReleaseURL {
-			return releaseResponder("b6200")(url)
-		}
 		gets++
 		return &http.Response{StatusCode: 200, Status: "200 OK", Body: io.NopCloser(bytes.NewReader(gzipBytes(t, newPlain)))}, nil
 	}
@@ -930,11 +925,9 @@ func TestNumericRefusedArtifactWithoutValidatorsRecheckedOncePerInterval(t *test
 	plain := []byte("#!/bin/sh\necho 'version: 6050 (x)'\n")
 	writeRejectedFile(t, dir, "b6100", "", "", sha(plain), time.Now().Add(-48*time.Hour))
 	gets := 0
+	pinUpstream(t, "b6100")
 	i := New()
 	i.Get = func(url string) (*http.Response, error) {
-		if url == LatestReleaseURL {
-			return releaseResponder("b6100")(url)
-		}
 		gets++
 		return &http.Response{StatusCode: 200, Status: "200 OK", Header: http.Header{}, Body: io.NopCloser(bytes.NewReader(gzipBytes(t, plain)))}, nil
 	}

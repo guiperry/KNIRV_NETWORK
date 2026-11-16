@@ -11,8 +11,8 @@ import (
 
 // Context and Idea node routes (arena_fixes.md §3.6). LocatorSystem already
 // implements CreateContextNode / CreateIdeaNode; these expose them the same way
-// /nrv/errors is exposed: creation is internal-only (KNIRVSERVER registers
-// nodes for a signed-in user), reads are public like the rest of /nrv/*.
+// /graph/errors is exposed: creation is internal-only (KNIRVSERVER registers
+// nodes for a signed-in user), reads are public like the rest of /graph/*.
 //
 // Promotion (Context → Capability on KNIRVCHAIN's MCP registry, Idea → Property
 // via KNIRVCHAIN's PropertyMaker) is a separate step and is not done here.
@@ -28,12 +28,12 @@ var (
 )
 
 func (rpc *RPCServer) registerContextIdeaRoutes(router *mux.Router) {
-	router.HandleFunc("/nrv/contexts", rpc.getAllContexts).Methods("GET", "OPTIONS")
-	router.HandleFunc("/nrv/contexts", rpc.createContext).Methods("POST")
-	router.HandleFunc("/nrv/contexts/{id}", rpc.getContext).Methods("GET", "OPTIONS")
-	router.HandleFunc("/nrv/ideas", rpc.getAllIdeas).Methods("GET", "OPTIONS")
-	router.HandleFunc("/nrv/ideas", rpc.createIdea).Methods("POST")
-	router.HandleFunc("/nrv/ideas/{id}", rpc.getIdea).Methods("GET", "OPTIONS")
+	handleLocatorRoute(router, rpc.logger, "/contexts", rpc.getAllContexts, "GET", "OPTIONS")
+	handleLocatorRoute(router, rpc.logger, "/contexts", rpc.createContext, "POST")
+	handleLocatorRoute(router, rpc.logger, "/contexts/{id}", rpc.getContext, "GET", "OPTIONS")
+	handleLocatorRoute(router, rpc.logger, "/ideas", rpc.getAllIdeas, "GET", "OPTIONS")
+	handleLocatorRoute(router, rpc.logger, "/ideas", rpc.createIdea, "POST")
+	handleLocatorRoute(router, rpc.logger, "/ideas/{id}", rpc.getIdea, "GET", "OPTIONS")
 }
 
 func (rpc *RPCServer) requireNRV(w http.ResponseWriter) bool {

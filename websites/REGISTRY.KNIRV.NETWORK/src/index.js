@@ -2,7 +2,7 @@ import { DurableObject } from "cloudflare:workers";
 import { sha256 } from "@noble/hashes/sha2.js";
 import { hmac } from "@noble/hashes/hmac.js";
 import * as secp256k1 from "@noble/secp256k1";
-import { buildTarget, defaultProbes, tokensMatch, validateNode, validationKey, validationMode, validationSettings } from "./validation.js";
+import { buildTarget, defaultProbes, parseGatewayPort, tokensMatch, validateNode, validationKey, validationMode, validationSettings } from "./validation.js";
 
 // Root tx-chain registry: the signed POST /registry/register and signed lookup
 // are verified by the Rust-core WASM verifier from the KNIRV SDK (no JS crypto).
@@ -234,11 +234,13 @@ export class RegistryStore extends DurableObject {
     }
     if (!chainID || !Number.isInteger(port)) return { status: 400, error: "Missing required fields: chainID and port are mandatory." };
     if (port < 1 || port > 65535 || !ip) return { status: 400, error: "Invalid data types or value for chainID, port, or IP" };
+    const gateway = parseGatewayPort(payload?.gatewayPort);
+    if (gateway.error) return { status: 400, error: gateway.error };
 
     const now = Date.now();
     await this.prune(now, ttlMs);
     await this.ctx.storage.put("nodeTtlMs", ttlMs);
-    const node = { ip, port, lastSeen: now, type, ...(peerID ? { peerID } : {}), ...(validation ? { validated: true, validatedAt: validation.validatedAt, ...(validation.fqdn ? { fqdn: validation.fqdn } : {}) } : {}) };
+    const node = { ip, port, lastSeen: now, type, ...(peerID ? { peerID } : {}), ...(gateway.port ? { gatewayPort: gateway.port } : {}), ...(validation ? { validated: true, validatedAt: validation.validatedAt, ...(validation.fqdn ? { fqdn: validation.fqdn } : {}) } : {}) };
     await this.ctx.storage.put(`node:${chainID}`, node);
     let suggestedBootnode;
     if (type === "client") {
@@ -619,11 +621,11 @@ export async function registerNode(store, payload, ipFallback, ttlMs, env, probe
   const ip = typeof payload?.ip === "string" && payload.ip.trim() ? payload.ip.trim() : ipFallback;
   const port = typeof payload?.port === "string" || typeof payload?.port === "number" ? Number.parseInt(payload.port, 10) : NaN;
   // Let register() produce its usual 400 for malformed basics.
-  if (!chainID || !Number.isInteger(port) || port < 1 || port > 65535 || !ip) return store.register(payload, ipFallback, ttlMs, undefined, validatedOnly);
+  if (!chainID || !Number.isInteger(port) || port < 1 || port > 65535 || !ip || parseGatewayPort(payload?.gatewayPort).error) return store.register(payload, ipFallback, ttlMs, undefined, validatedOnly);
 
   const settings = validationSettings(env);
   const peerRaw = payload?.peerID ?? payload?.nodeID;
-  const built = buildTarget({ chainID, ip, port, fqdn: payload?.fqdn, peerID: typeof peerRaw === "string" ? peerRaw : "" }, settings);
+  const built = buildTarget({ chainID, ip, port, fqdn: payload?.fqdn, peerID: typeof peerRaw === "string" ? peerRaw : "", gatewayPort: payload?.gatewayPort }, settings);
   const now = Date.now();
   let result;
   if (built.error) {

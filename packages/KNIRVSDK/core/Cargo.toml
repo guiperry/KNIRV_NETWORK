@@ -1,8 +1,8 @@
 [package]
 name = "knirv-sdk"
-version = "0.2.1"
+version = "0.2.2"
 edition = "2021"
-rust-version = "1.87"
+rust-version = "1.88"
 description = "Async Rust SDK for KNIRV Network services"
 license = "MIT"
 repository = "https://github.com/KNIRV/KNIRV_NETWORK"
@@ -17,8 +17,8 @@ rustls-tls = ["http-reqwest", "reqwest/rustls-tls"]
 filesystem = []
 # Encrypted node key files (scrypt + AES-GCM). Off for the browser build.
 secrets = ["dep:scrypt", "dep:aes-gcm"]
-# Ed25519 evidence-bundle verification (`evidence.ed25519_*`). Off for the vault
-# modules, so their bytes do not depend on it.
+# Ed25519 evidence-bundle signing and verification (`evidence.ed25519_*`). Off for
+# the vault modules, so their bytes do not depend on it. Seeds come from the host.
 ed25519 = ["dep:ed25519-dalek"]
 # ML-DSA-65 (FIPS 204) verify, key generation from a seed and signing, for `.nrv`
 # frame signatures and the `mldsa.*` operations. Off for the vault and relay
@@ -48,7 +48,7 @@ bech32 = "0.11"
 getrandom = { version = "0.2", features = ["js"], optional = true }
 hex = "0.4"
 hmac = "0.12"
-# Ed25519 verification for evidence bundles (verify only; no RNG, no signing).
+# Ed25519 for evidence bundles: verify and sign from a host-supplied seed. No RNG.
 ed25519-dalek = { version = "2", default-features = false, optional = true }
 # ML-DSA-65 (FIPS 204), pure Rust. `alloc` only: no RNG, no getrandom, so the
 # wasm builds keep importing nothing. Pinned exactly; see core/src/mldsa.rs.

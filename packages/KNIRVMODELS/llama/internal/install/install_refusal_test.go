@@ -46,11 +46,8 @@ func failSourceBuild(t *testing.T) func(context.Context, string, ...string) erro
 }
 
 // releaseOnly answers the release lookup and fails any other plain GET.
-func releaseOnly(t *testing.T, tag string, artifact func(string) (*http.Response, error)) func(string) (*http.Response, error) {
+func releaseOnly(t *testing.T, _ string, artifact func(string) (*http.Response, error)) func(string) (*http.Response, error) {
 	return func(url string) (*http.Response, error) {
-		if url == LatestReleaseURL {
-			return releaseResponder(tag)(url)
-		}
 		if artifact == nil {
 			t.Fatalf("unexpected plain GET of %s", url)
 			return nil, nil
@@ -68,6 +65,7 @@ func TestNumericStableETagFixedArtifactPickedUpWhenDue(t *testing.T) {
 	fixed := []byte("#!/bin/sh\necho 'version: 6100 (fixed)'\n")
 	writeRejectedFile(t, dir, "b6100", `"v1"`, "", sha(old), time.Now().Add(-25*time.Hour))
 	i := New()
+	pinUpstream(t, "b6100")
 	i.Get = releaseOnly(t, "b6100", func(string) (*http.Response, error) {
 		h := http.Header{}
 		h.Set("ETag", `"v1"`)
@@ -94,6 +92,7 @@ func TestNumericRefusalHoldsWithinIntervalWithoutBuild(t *testing.T) {
 	writeRejectedFile(t, dir, "b6100", `"v1"`, "", sha(plain), time.Now())
 	var sentINM []string
 	i := New()
+	pinUpstream(t, "b6100")
 	i.Get = releaseOnly(t, "b6100", nil)
 	i.Conditional = func(_ string, h http.Header) (*http.Response, error) {
 		sentINM = append(sentINM, h.Get("If-None-Match"))
@@ -121,6 +120,7 @@ func TestNumericIgnoredConditionalSameETagNoBodyRead(t *testing.T) {
 	writeRejectedFile(t, dir, "b6100", `"v1"`, "", sha(plain), time.Now())
 	reads := 0
 	i := New()
+	pinUpstream(t, "b6100")
 	i.Get = releaseOnly(t, "b6100", nil)
 	i.Conditional = func(string, http.Header) (*http.Response, error) {
 		h := http.Header{}
@@ -144,6 +144,7 @@ func TestNumericNewETagSameBytesNoReinstall(t *testing.T) {
 	writeRejectedFile(t, dir, "b6100", `"v1"`, "", sha(plain), time.Now())
 	stagedChecks := 0
 	i := New()
+	pinUpstream(t, "b6100")
 	i.Get = releaseOnly(t, "b6100", nil)
 	i.Conditional = func(string, http.Header) (*http.Response, error) {
 		h := http.Header{}
@@ -186,6 +187,7 @@ func TestRefusedCandidateRenameFailureRecordsNoRefusal(t *testing.T) {
 	fixed := []byte("#!/bin/sh\necho 'version: 6100 (fixed)'\n")
 	gets := 0
 	i := New()
+	pinUpstream(t, "b6100")
 	i.Get = releaseOnly(t, "b6100", func(string) (*http.Response, error) {
 		gets++
 		h := http.Header{}

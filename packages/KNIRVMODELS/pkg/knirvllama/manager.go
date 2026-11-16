@@ -22,15 +22,14 @@ import (
 	"go.uber.org/zap"
 )
 
-func killStaleLlama(binaryPath string) {
-	if binaryPath == "" {
+// killStaleLlama stops only the child recorded in the pid file in pidPath, and only
+// while that pid is still a KNIRVLLAMA started from binaryPath. It never matches by
+// name, so other llama-server processes on the host are left alone.
+func killStaleLlama(pidPath, binaryPath string) {
+	if binaryPath == "" || pidPath == "" {
 		return
 	}
-	binaryName := filepath.Base(binaryPath)
-	if cmd := exec.Command("pkill", "-TERM", "-x", binaryName); cmd.Run() == nil {
-		time.Sleep(1 * time.Second)
-	}
-	exec.Command("pkill", "-KILL", "-x", binaryName).Run()
+	stopStaleChild(pidPath, binaryPath)
 }
 
 type Manager struct {
@@ -53,7 +52,7 @@ type Manager struct {
 	lastError string
 }
 
-// killStale is replaced by tests: pkill -x on a test binary's name would kill the test.
+// killStale is replaced by tests so they never signal a process they did not start.
 var killStale = killStaleLlama
 
 // resolveBinary is replaced by tests that need a binary that cannot be found.
@@ -369,7 +368,7 @@ func (m *Manager) startOnce(ctx context.Context, attempt int) error {
 	}
 	m.config.BinaryPath = resolved
 
-	killStale(m.config.BinaryPath)
+	killStale(pidFilePath(m.config.DataDir), m.config.BinaryPath)
 
 	if err := os.MkdirAll(m.config.DataDir, 0755); err != nil {
 		return permanent{fmt.Errorf("failed to create data directory: %w", err)}
@@ -451,8 +450,14 @@ func (m *Manager) startOnce(ctx context.Context, attempt int) error {
 
 	// One goroutine owns Wait for the life of the child, so a crash is reaped at once
 	// (no zombie) and both startup and Stop learn about it from the same channel.
+	pidPath := pidFilePath(m.config.DataDir)
+	if err := writePIDFile(pidPath, cmd.Process.Pid); err != nil {
+		m.logf("could not record pid file %s: %v (a later start cannot stop this child if the manager dies)", pidPath, err)
+	}
+
 	go func() {
 		err := cmd.Wait()
+		removePIDFile(pidPath, cmd.Process.Pid)
 		outW.Flush()
 		errW.Flush()
 		m.setWaitErr(err)

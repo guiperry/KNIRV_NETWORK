@@ -16,7 +16,7 @@ SDK_VERSION := $(shell sed -n 's/^version *= *"\(.*\)"/\1/p' core/Cargo.toml | h
 DIST        := dist/$(SDK_VERSION)
 WASI_OUT    := bindings/wasi/target/wasm32-wasip1/release/knirv_core.wasm
 
-.PHONY: help build-wasm stamp check-stamp check-divergence repro build-npm build-go test-go parity build-sdk upload-wasm release-sdk clean
+.PHONY: help build-wasm stamp check-stamp check-divergence repro sync-modules build-npm build-go test-go parity build-sdk upload-wasm release-sdk clean
 
 help: ## list targets
 	@grep -E '^[a-z-]+:.*##' $(MAKEFILE_LIST) | sed 's/:.*## /\t/'
@@ -69,7 +69,17 @@ upload-wasm: check-stamp ## publish dist/ to R2 (identical files are skipped by 
 	$(R2_CMD) copy --checksum dist/latest "$(R2_REMOTE):$(R2_SDK_PREFIX)/latest/"
 	@echo "Published $(SDK_VERSION) to $(R2_REMOTE):$(R2_SDK_PREFIX)/ (https://releases.knirv.com/sdk/$(SDK_VERSION)/)"
 
-release-sdk: build-sdk upload-wasm ## build, stamp, test and publish
+# sync-modules: rebuild the WASM modules and replace the tracked bytes when the
+# module sources changed since the last stamp. Refuses when the sources are
+# unchanged but the bytes differ (see sync-modules in scripts/sdk-dist.mjs).
+sync-modules: ## rebuild modules and replace tracked bytes if their sources changed
+	node scripts/sdk-dist.mjs sync-modules
+
+# If build-sdk fails, try a module sync once and rebuild. A sync that finds no
+# source change exits non-zero, so an unrelated failure still stops the release.
+release-sdk: ## build, stamp, test and publish
+	$(MAKE) build-sdk || { $(MAKE) sync-modules && $(MAKE) build-sdk; }
+	$(MAKE) upload-wasm
 
 clean: ## remove dist/
 	rm -rf dist

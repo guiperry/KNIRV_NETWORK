@@ -75,10 +75,18 @@ fn dispatch_inner(operation: &str, payload: &Value) -> Option<Op> {
         "evidence.verify_event_log" => evidence_verify(payload),
         "evidence.merkle_root" => evidence_merkle_root(payload),
         "evidence.verify_artifact_merkle" => evidence_verify_merkle(payload),
+        "evidence.sha256" => evidence_sha256(payload),
+        "evidence.signing_message" => evidence_signing_message(payload),
         #[cfg(feature = "ed25519")]
         "evidence.ed25519_verify" => evidence_ed25519_verify(payload),
         #[cfg(feature = "ed25519")]
         "evidence.ed25519_public_key" => evidence_ed25519_public_key(payload),
+        #[cfg(feature = "ed25519")]
+        "evidence.ed25519_public_from_seed" => evidence_ed25519_public_from_seed(payload),
+        #[cfg(feature = "ed25519")]
+        "evidence.ed25519_sign" => evidence_ed25519_sign(payload),
+        #[cfg(feature = "ed25519")]
+        "evidence.ed25519_key_id" => evidence_ed25519_key_id(payload),
         #[cfg(feature = "mldsa")]
         "mldsa.ml_dsa65_verify" => mldsa_verify(payload),
         #[cfg(feature = "mldsa")]
@@ -1149,6 +1157,58 @@ fn evidence_ed25519_public_key(payload: &Value) -> Op {
         Ok(canonical) => json!({ "valid": true, "public_key_base64": canonical }),
         Err(f) => key_verdict(Err(f)),
     })
+}
+
+/// `evidence.ed25519_public_from_seed`: `{seed_base64}` -> `{public_key_base64}`.
+/// A malformed or wrong-length seed is a binding error (the host's bug, not a verdict).
+#[cfg(feature = "ed25519")]
+fn evidence_ed25519_public_from_seed(payload: &Value) -> Op {
+    let seed = str_field(payload, "seed_base64");
+    let key = crate::evidence::ed25519_public_from_seed(seed)
+        .map_err(|f| invalid(f.message()))?;
+    Ok(json!({ "public_key_base64": key }))
+}
+
+/// `evidence.ed25519_sign`: `{seed_base64, message_base64}` -> `{signature_base64}`.
+#[cfg(feature = "ed25519")]
+fn evidence_ed25519_sign(payload: &Value) -> Op {
+    let seed = str_field(payload, "seed_base64");
+    let message = BASE64
+        .decode(required_string(payload, "message_base64")?)
+        .map_err(|e| invalid(format!("invalid message_base64: {e}")))?;
+    let signature = crate::evidence::ed25519_sign(seed, &message)
+        .map_err(|f| invalid(f.message()))?;
+    Ok(json!({ "signature_base64": signature }))
+}
+
+/// `evidence.ed25519_key_id`: `{public_key_base64}` -> `{key_id}`.
+#[cfg(feature = "ed25519")]
+fn evidence_ed25519_key_id(payload: &Value) -> Op {
+    let key = str_field(payload, "public_key_base64");
+    let key_id = crate::evidence::ed25519_key_id(key).map_err(|f| invalid(f.message()))?;
+    Ok(json!({ "key_id": key_id }))
+}
+
+/// `evidence.sha256`: `{data_base64}` -> `{digest: "sha256:<hex>", hex}`.
+fn evidence_sha256(payload: &Value) -> Op {
+    let data = BASE64
+        .decode(required_string(payload, "data_base64")?)
+        .map_err(|e| invalid(format!("invalid data_base64: {e}")))?;
+    let digest = crate::evidence::sha256_digest(&data);
+    let hex = digest.trim_start_matches("sha256:").to_owned();
+    Ok(json!({ "digest": digest, "hex": hex }))
+}
+
+/// `evidence.signing_message`: `{claim: {schema_version, session_id, dve_id,
+/// user_id, project_id, policy_hash, eventlog_root, artifact_merkle_root,
+/// workspace_base_hash, workspace_final_hash, event_bundle_root?}}` -> `{message_base64}`.
+/// The bytes an evidence signature covers (see `crate::evidence::signing_message`).
+fn evidence_signing_message(payload: &Value) -> Op {
+    let claim: crate::evidence::SigningClaim = serde_json::from_value(
+        payload.get("claim").cloned().unwrap_or_else(|| json!({})),
+    )
+    .map_err(|e| invalid(format!("claim: {e}")))?;
+    Ok(json!({ "message_base64": BASE64.encode(crate::evidence::signing_message(&claim)) }))
 }
 
 /// `mldsa.ml_dsa65_verify`: `{public_key_base64, message_base64, context_base64,

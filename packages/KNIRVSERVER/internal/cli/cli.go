@@ -149,6 +149,18 @@ func resolveKeySource(ctx context.Context, backend, baoSocket, roleID, secretIDF
 		if err != nil {
 			return nil, noop, err
 		}
+		// Q47: the secret_id is single-use. Once login has consumed it, delete the file
+		// immediately so no reusable copy stays on disk. If the delete fails, the run is
+		// aborted: the session is revoked and the error surfaces, rather than continuing
+		// with a credential file still present.
+		if err := os.Remove(secretIDFile); err != nil {
+			revokeCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+			defer cancel()
+			if rerr := session.Close(revokeCtx); rerr != nil {
+				fmt.Fprintf(os.Stderr, "enroll: WARNING %v\n", rerr)
+			}
+			return nil, noop, fmt.Errorf("remove secret-id file after login: %w", err)
+		}
 		token = session.Token()
 		release = func() {
 			if err := session.Close(context.Background()); err != nil {
