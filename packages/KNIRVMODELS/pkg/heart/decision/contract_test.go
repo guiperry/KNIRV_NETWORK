@@ -20,7 +20,6 @@ func TestSDKClientAgainstRealRoutesAndWasm(t *testing.T) {
 	defer svc.Close(context.Background())
 	mux := http.NewServeMux()
 	Routes(svc, mux)
-	RoutesAt(svc, mux, sdk.HeartDecisionPrefix)
 	srv := httptest.NewServer(mux)
 	defer srv.Close()
 	c := sdk.NewClient(srv.URL, nil)
@@ -60,8 +59,14 @@ func TestSDKClientAgainstRealRoutesAndWasm(t *testing.T) {
 		t.Fatalf("expected an abstention, got %+v", a)
 	}
 
-	if _, err := c.Matrix(ctx, v, "h.0.attn.q.weight"); err != nil {
-		t.Fatalf("matrix: %v", err)
+	// The SDK's Matrix helper is the real caller path (backend_server deriveConnector);
+	// it must reach the HEART route the daemon serves.
+	mat, err := c.Matrix(ctx, v, "h.0.attn.q.weight")
+	if err != nil {
+		t.Fatalf("matrix via SDK client: %v", err)
+	}
+	if len(mat) == 0 {
+		t.Fatalf("matrix via SDK client: empty projection")
 	}
 }
 

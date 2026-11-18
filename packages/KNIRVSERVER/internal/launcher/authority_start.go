@@ -63,6 +63,7 @@ func (app *ServerApp) startAuthority(ctx context.Context) error {
 		Poster:    checkpoint.NewPoster(gatewayURL, oracleURL),
 		Bond:      viper.GetUint64("authority.bond"),
 		BondOwner: strings.TrimSpace(viper.GetString("authority.bond_owner")),
+		HoldID:    strings.TrimSpace(viper.GetString("authority.hold_id")),
 		Logf:      log.Printf,
 	})
 

@@ -2,7 +2,12 @@ package controller
 
 import (
 	"errors"
+	"os"
+	"path/filepath"
+	"strings"
 	"testing"
+
+	"knirvmodels/internal/cli/embedded"
 )
 
 // fakeLookup returns a path for each name in have and an error for the rest, and
@@ -52,5 +57,35 @@ func TestTrainerLookupErrorNamesCurrentTrainer(t *testing.T) {
 	}
 	if got := err.Error(); got != "heart-decision-trainer not embedded" {
 		t.Fatalf("error %q does not name the current trainer", got)
+	}
+}
+
+// TestTrainerLookupRealEmbeddedGetBinaryPath runs the trainer lookup through the real
+// embedded.GetBinaryPath, not a fake. KNIRV_APP_DATA_DIR points at a temp dir, so the
+// extraction never touches the real app data directory.
+func TestTrainerLookupRealEmbeddedGetBinaryPath(t *testing.T) {
+	if !embedded.IsEmbedded(trainerName) {
+		t.Skipf("%s is not embedded in this build; run make build-heart-decision-trainer first", trainerName)
+	}
+	appData := t.TempDir()
+	t.Setenv("KNIRV_APP_DATA_DIR", appData)
+
+	got, err := trainerBinaryPath(embedded.GetBinaryPath)
+	if err != nil {
+		t.Fatalf("trainerBinaryPath(embedded.GetBinaryPath): %v", err)
+	}
+	wantDir := filepath.Join(appData, "bin")
+	if !strings.HasPrefix(got, wantDir+string(os.PathSeparator)) {
+		t.Fatalf("trainer path %q is not under %q", got, wantDir)
+	}
+	if filepath.Base(got) != trainerName {
+		t.Fatalf("resolved %q; want the current trainer name %q", filepath.Base(got), trainerName)
+	}
+	st, err := os.Stat(got)
+	if err != nil {
+		t.Fatalf("extracted trainer missing: %v", err)
+	}
+	if st.Mode().Perm()&0111 == 0 {
+		t.Fatalf("extracted trainer is not executable: mode %s", st.Mode())
 	}
 }

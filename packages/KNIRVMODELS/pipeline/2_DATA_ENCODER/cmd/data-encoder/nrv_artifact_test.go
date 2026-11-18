@@ -15,12 +15,12 @@ func TestWriteNRVArtifactRetainsPriorArtifactsAndPublishesLatest(t *testing.T) {
 	latestPath := filepath.Join(dir, "training_frames.nrv")
 	frames := []schema.TrainingFrame{{TargetTokenID: 7}}
 
-	first, err := writeNRVArtifact(latestPath, frames)
+	first, err := writeNRVArtifact(latestPath, frames, nil)
 	if err != nil {
 		t.Fatalf("write first NRV artifact: %v", err)
 	}
 	time.Sleep(time.Nanosecond)
-	second, err := writeNRVArtifact(latestPath, frames)
+	second, err := writeNRVArtifact(latestPath, frames, nil)
 	if err != nil {
 		t.Fatalf("write second NRV artifact: %v", err)
 	}
@@ -51,12 +51,12 @@ func TestWriteBatchArtifactsKeepsEveryFormatForEachRun(t *testing.T) {
 	framesDir := t.TempDir()
 	output := filepath.Join(framesDir, "training_frames.json")
 	frames := []schema.TrainingFrame{{SourceFile: "first", TokenSequence: []int32{1, 2}, TargetTokenID: 3}}
-	first, err := writeBatchArtifacts(output, frames)
+	first, err := writeBatchArtifacts(output, frames, nil)
 	if err != nil {
 		t.Fatalf("write first batch: %v", err)
 	}
 	frames[0].SourceFile = "second"
-	second, err := writeBatchArtifacts(output, frames)
+	second, err := writeBatchArtifacts(output, frames, nil)
 	if err != nil {
 		t.Fatalf("write second batch: %v", err)
 	}

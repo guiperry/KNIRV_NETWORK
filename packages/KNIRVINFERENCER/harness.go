@@ -129,6 +129,9 @@ type Harness struct {
 	store    *TraceStore
 	stats    map[string]*modelStats
 	newBreak func() *Breaker
+	// mirrorMu guards mirrorCounts, the mirrored-generation arbitration counters.
+	mirrorMu     sync.Mutex
+	mirrorCounts MirrorCounters
 }
 
 // DefaultRoutes is the authoritative routing table: for each kind, the models in the

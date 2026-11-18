@@ -92,13 +92,6 @@
       "rule": "R-DUP-LIST",
       "reason": "RAW_SIGN_ALLOWED_PURPOSES is copied from core/src/secrets.rs because the published core has no secrets.raw_sign_validate op. (The detector attributes this line to the preceding function.)",
       "tracking": "held: restore the pre-A raw-sign contract so the Go/TS bindings match the published 0.2.1 core (6fcc5e77), which predates secrets.raw_sign_validate. The core-owned version is parked in ori_knirv/held/raw_sign_core.patch and raw_sign_go.patch; remove this entry when that lands in a release."
-    },
-    {
-      "file": "../KNIRVSERVER/pkg/embedded/knirvbao/plugin/assets/knirv_core.wasm",
-      "function": "WASI core (KNIRVSERVER embedded)",
-      "rule": "V-DIGEST",
-      "reason": "TEMPORARY, sdk_core_scrypt_ed25519: KNIRVSERVER still embeds the published 0.2.1 WASI core (6fcc5e77). The scrypt and ed25519 move changes the core digest, so this copy cannot match the new stamp until the core is released and KNIRVSERVER re-embeds it. KNIRVSERVER is outside this unit.",
-      "tracking": "handoff to KNIRVSERVER owner: re-embed the released core (pkg/embedded/knirvbao/plugin/core.go embeddedCoreDigest and assets/knirv_core.wasm) with the next SDK release, then delete this entry (A-STALE will fail until it is removed)"
     }
   ]
 }

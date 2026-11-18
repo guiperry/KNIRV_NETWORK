@@ -1190,9 +1190,18 @@ fn evidence_ed25519_key_id(payload: &Value) -> Op {
 }
 
 /// `evidence.sha256`: `{data_base64}` -> `{digest: "sha256:<hex>", hex}`.
+///
+/// The empty string is valid input (the digest of zero bytes, pinned in
+/// `testvectors/evidence/signing_v1.json`), so it is accepted. A missing or
+/// non-string `data_base64` is still refused: every binding caller sends the key,
+/// so its absence is a caller bug, not an empty message.
 fn evidence_sha256(payload: &Value) -> Op {
+    let encoded = payload
+        .get("data_base64")
+        .and_then(Value::as_str)
+        .ok_or_else(|| invalid("data_base64 must be a string"))?;
     let data = BASE64
-        .decode(required_string(payload, "data_base64")?)
+        .decode(encoded)
         .map_err(|e| invalid(format!("invalid data_base64: {e}")))?;
     let digest = crate::evidence::sha256_digest(&data);
     let hex = digest.trim_start_matches("sha256:").to_owned();
@@ -1278,6 +1287,7 @@ fn mldsa_error(f: crate::mldsa::MlDsaFailure) -> BindingError {
     invalid(format!("{}: {}", f.code(), f.message()))
 }
 
+#[cfg(feature = "mldsa")]
 fn str_field<'a>(payload: &'a Value, field: &str) -> &'a str {
     payload.get(field).and_then(Value::as_str).unwrap_or_default()
 }
@@ -1336,5 +1346,79 @@ mod mldsa_binding_tests {
         let out = verify(json!({})).expect("absent fields are empty, not a binding error");
         assert_eq!(out["valid"], json!(false));
         assert_eq!(out["code"], json!("public_key_length"));
+    }
+}
+
+#[cfg(test)]
+mod evidence_sha256_op_tests {
+    use super::*;
+    use crate::bindings::BindingErrorCode;
+
+    fn fixture() -> Value {
+        let path = format!(
+            "{}/../testvectors/evidence/signing_v1.json",
+            env!("CARGO_MANIFEST_DIR")
+        );
+        serde_json::from_slice(&std::fs::read(path).unwrap()).unwrap()
+    }
+
+    fn sha256(payload: Value) -> Op {
+        dispatch_portable("evidence.sha256", &payload).expect("operation is registered")
+    }
+
+    #[test]
+    fn empty_input_is_accepted_and_digests_zero_bytes() {
+        let out = sha256(json!({ "data_base64": "" })).expect("empty input is valid");
+        assert_eq!(
+            out["digest"],
+            json!("sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855")
+        );
+        assert_eq!(
+            out["hex"],
+            json!("e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855")
+        );
+    }
+
+    #[test]
+    fn vector_file_sha256_cases_match_through_the_op() {
+        let cases = fixture()["sha256"]
+            .as_array()
+            .cloned()
+            .expect("sha256 cases");
+        assert!(!cases.is_empty());
+        for case in cases {
+            let name = case["name"].as_str().unwrap();
+            let out = sha256(json!({ "data_base64": case["data_base64"] }))
+                .unwrap_or_else(|e| panic!("{name}: {e:?}"));
+            assert_eq!(out["digest"], case["digest"], "{name}");
+            let hex = case["digest"]
+                .as_str()
+                .unwrap()
+                .trim_start_matches("sha256:");
+            assert_eq!(out["hex"], json!(hex), "{name}");
+        }
+    }
+
+    #[test]
+    fn missing_or_non_string_field_is_still_a_binding_error() {
+        for payload in [
+            json!({}),
+            json!({ "data_base64": null }),
+            json!({ "data_base64": 7 }),
+        ] {
+            let err = sha256(payload.clone()).expect_err(&format!("{payload} must be refused"));
+            assert_eq!(err.code, BindingErrorCode::InvalidArgument, "{payload}");
+            assert!(
+                err.message.contains("data_base64"),
+                "{payload}: {:?}",
+                err.message
+            );
+        }
+    }
+
+    #[test]
+    fn malformed_base64_is_a_binding_error() {
+        let err = sha256(json!({ "data_base64": "!!!" })).expect_err("malformed base64");
+        assert_eq!(err.code, BindingErrorCode::InvalidArgument);
     }
 }

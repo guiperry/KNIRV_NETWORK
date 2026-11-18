@@ -41,7 +41,7 @@ func (t *FrameTicker) Append(b Bracket) error {
 		if err := t.flushLocked(); err != nil {
 			return err
 		}
-		t.current = &FrameEntry{ID: id, TimestampUnix: time.Now().Unix(), Offset: int64(len(t.writer.brackets)), Linguistic: LinguisticMetadata{Domain: domainForBracket(b)}}
+		t.current = &FrameEntry{ID: id, TimestampUnix: time.Now().Unix(), Offset: int64(len(t.writer.brackets)) * BracketSize, Linguistic: LinguisticMetadata{Domain: domainForBracket(b)}}
 	}
 	raw := EncodeBracket(b)
 	delta := make([]byte, BracketSize)
@@ -52,7 +52,7 @@ func (t *FrameTicker) Append(b Bracket) error {
 	if len(t.current.BracketIndex) == 0 {
 		typeName = "I"
 	}
-	t.current.BracketIndex = append(t.current.BracketIndex, BracketIndexEntry{Index: len(t.writer.brackets) - int(t.current.Offset), Type: typeName, XOR: delta})
+	t.current.BracketIndex = append(t.current.BracketIndex, BracketIndexEntry{Index: len(t.current.BracketIndex), Type: typeName, XOR: delta})
 	t.current.Count++
 	t.writer.Append(b)
 	t.previous = raw

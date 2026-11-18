@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
 # Starts the built daemon on a temp unix socket and checks the /models/* surface a
-# release depends on: all three models registered, HEART idle (asking never builds
-# it), both HEAD prefixes routed, HASHER answering. Usage: smoke-models.sh <binary> [--gz]
+# release depends on: all three models registered, HEART idle after startup (the health
+# and registry checks never build it; only the /models/heart/decide requests below may),
+# the HEAD models route answering 200 or 503, the HEART decision routes mounted under
+# /models/heart/decide (POST 200 or 503; GET on the POST-only reason route 405 or 503; never a fabricated answer), HASHER validate/index/verify
+# answering. Usage: smoke-models.sh <binary> [--gz]
 set -euo pipefail
 bin=${1:?usage: smoke-models.sh <binary> [--gz]}
 tmp=$(mktemp -d)
@@ -37,4 +40,24 @@ echo "$ver" | grep -q '"degraded":true' || fail "verify did not degrade without 
 echo "$ver" | grep -q '"gate":"uncommitted"' || fail "verify gate is not uncommitted without llama: $ver"
 echo "$ver" | grep -q '"chargeable":false' || fail "a degraded verify is chargeable: $ver"
 echo "$ver" | grep -Eq '"verdict":"(SUPPORTED|REFUTED)"' && fail "verify guessed a verdict without llama: $ver"
+# HANDS is mounted only when KNIRV_HANDS_ENABLED=1 (pkg/models/flags.go). Untrained HANDS answers 503 on
+# weights/generate/plan/act; status, health and models always answer 200. train is not checked: it starts a job.
+# On a trained HANDS box (N2) /plan and /act run the policy-gated tool loop, so they are real requests here;
+# a 502 from them counts as a FAIL (N1, intended), since only 200 or 503 is accepted.
+post_code() { curl -sS -o /dev/null -w '%{http_code}' --unix-socket "$tmp/m.sock" -X POST -d "$2" "http://models$1"; }
+if [ "${KNIRV_HANDS_ENABLED:-}" = 1 ]; then
+  for p in /models/hands/status /models/hands/health /models/hands/models; do
+    c=$(code "$p"); [ "$c" = 200 ] || fail "$p returned $c (expected 200)"
+  done
+  c=$(code /models/hands/weights); [ "$c" = 200 ] || [ "$c" = 503 ] || fail "/models/hands/weights returned $c (expected 200 or 503)"
+  c=$(code /models/hands/generate); [ "$c" = 405 ] || fail "GET /models/hands/generate returned $c (expected 405)"
+  for p in /models/hands/generate /models/hands/plan /models/hands/act; do
+    c=$(post_code "$p" '{"prompt":"smoke","n":1}'); [ "$c" = 200 ] || [ "$c" = 503 ] || fail "POST $p returned $c (expected 200 or 503)"
+  done
+fi
+# HEART decision core is served under /models/heart/decide once HEART builds. These requests may build HEART,
+# so they run after the idle assertions above. Build failure or no checkpoint is a 503 (never a fabricated answer).
+c=$(code /models/heart/decide/models); [ "$c" = 200 ] || [ "$c" = 503 ] || fail "/models/heart/decide/models returned $c (expected 200 or 503)"
+c=$(post_code /models/heart/decide/reason '{"tokens":[1]}'); [ "$c" = 200 ] || [ "$c" = 503 ] || fail "POST /models/heart/decide/reason returned $c (expected 200 or 503)"
+c=$(code /models/heart/decide/reason); [ "$c" = 405 ] || [ "$c" = 503 ] || fail "GET /models/heart/decide/reason returned $c (expected 405 or 503)"
 echo "models smoke: ok ($(echo "$reg" | grep -o '"name":"[a-z]*"' | tr '\n' ' '))"

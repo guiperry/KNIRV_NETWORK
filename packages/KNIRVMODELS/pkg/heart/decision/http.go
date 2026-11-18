@@ -11,8 +11,8 @@ import (
 	sdk "github.com/guiperry/knirv-sdk-go/models"
 )
 
-// Routes mounts the model's HTTP surface on mux under sdk.HeadPrefix
-// (/models/head):
+// Routes mounts the HEART decision surface on mux under sdk.HeartDecisionPrefix
+// (/models/heart/decide):
 //
 //	POST {prefix}/reason          {"tokens":[...]} -> Reasoning
 //	POST {prefix}/sets            {"questions":[...]} -> Reasoning (v2 set-head models)
@@ -26,10 +26,11 @@ import (
 // The routes carry no CORS headers and no authentication: they are meant to be
 // reached only through backend_server, over the models unix socket or loopback.
 func Routes(svc *Service, mux *http.ServeMux) {
-	RoutesAt(svc, mux, sdk.HeadPrefix)
+	RoutesAt(svc, mux, sdk.HeartDecisionPrefix)
 }
 
-// RoutesAt mounts the HEAD surface under one prefix.
+// RoutesAt mounts the HEART decision surface under one prefix (Routes passes
+// sdk.HeartDecisionPrefix). A prefix must not be mounted twice on one mux.
 func RoutesAt(svc *Service, mux *http.ServeMux, prefix string) {
 	mux.HandleFunc(prefix+"/reason", func(w http.ResponseWriter, r *http.Request) { reason(svc, w, r) })
 	mux.HandleFunc(prefix+"/sets", func(w http.ResponseWriter, r *http.Request) { reasonSets(svc, w, r) })

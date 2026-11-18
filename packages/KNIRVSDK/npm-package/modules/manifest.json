@@ -17,8 +17,8 @@
       "artifact_version": "2.0.0",
       "module_kind": "crypto",
       "abi_version": 1,
-      "byte_length": 394114,
-      "sha256": "99c8f1281fe07f094acc7a87b2f84d456ddbd970bf66978d3a09d6080816deca",
+      "byte_length": 394098,
+      "sha256": "8308d91067ca5f43dcada2df11584161bd68d95345821c2bf6b58a129f58c45c",
       "capabilities": [
         "crypto.vault"
       ]

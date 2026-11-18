@@ -33,7 +33,12 @@ stronger (I_52 owner decision 20a, seed 0): per-skill adapters with more epochs 
   them under k=1 and k=3. Outputs: stronger_rows.json, stronger_rows_<skill>.json, generations_stronger.json,
   phase2_stronger_report.json.
 
-Scope of every variant: the 3 adapted skills in unmatched; all 4 skills in matched and stronger.
+heldout (I_52 Q35, owner): hold out whole passages per skill (phase2_heldout.py, seed-fixed), retrain the
+  plain phase-1 single recipe on the training passages only (seed 0, same LORA_CFG), and score ONLY on the
+  held-out passages' held and probe questions. The phase-1 single adapter is evaluated on the same questions
+  as an in-distribution control. Stages: split, train_heldout, convert_heldout, eval_heldout (default all four).
+
+Scope of every variant: the 3 adapted skills in unmatched; all 4 skills in matched and stronger and heldout.
 """
 import argparse
 import json
@@ -480,6 +485,163 @@ def stage_eval_topk(a, L, passages, by_id, corpus_lc, tfidf, gguf, base_gguf):
     return res
 
 
+# ---------------------------------------------------------------------------------------------
+# HELD-OUT PASSAGES (I_52 Q35, owner): hold out whole passages per skill (phase2_heldout.py), retrain the
+# plain phase-1 single recipe on the training passages only (seed 0), and score ONLY on the held-out
+# passages' held and probe questions. Old in-distribution single adapter (trained on all passages) is
+# evaluated on the same held-out questions as a control. Stages: split, train_heldout, convert_heldout,
+# eval_heldout (default: all four). Outputs in --out: heldout_split.json, heldout_rows.json,
+# heldout_retention_rows.json, phase2_heldout_report.json.
+# Server ids: 0 = heldout single (new), 1 = phase-1 single (old, in-distribution control).
+HELDOUT_N_IDS = 2
+HELDOUT_IDS = {"heldout": 0, "old_single": 1}
+
+
+def stage_split_heldout(a, L, passages):
+    import phase2_heldout as ho
+    pids = ho.all_passage_ids(L)
+    heldout, counts = ho.split_passages(pids, frac=a.heldout_frac, seed=a.seed)
+    H = ho.heldout_set(heldout)
+    parts = ho.split_labels(L, H)
+    problems = ho.check_split(heldout, parts["train_rows"], parts["train_heldout_rows"], [],
+                              parts["eval_held"], parts["eval_probes"])
+    if problems:
+        raise RuntimeError(f"held-out split failed checks: {problems[:5]}")
+    # passages of the split must be the passages of the eval set (no passage without an eval question is silently
+    # used): report which held-out passages carry no held/probe question
+    q_pass = {r["passage"] for r in parts["eval_held"] + parts["eval_probes"]}
+    info = {"seed": a.seed, "frac": a.heldout_frac, "passages_total": len(pids),
+            "heldout_passages": sorted(H), "heldout_by_skill": heldout, "per_skill": counts,
+            "heldout_passages_without_eval_question": sorted(H - q_pass),
+            "train_passages": len(pids) - len(H), "labelled_rows_train": len(parts["train_rows"]),
+            "labelled_rows_heldout_passage": len(parts["train_heldout_rows"]),
+            "eval_held": len(parts["eval_held"]), "eval_probes": len(parts["eval_probes"]),
+            "eval_held_by_skill": {s: sum(r["skill"] == s for r in parts["eval_held"]) for s in ho.SKILLS},
+            "eval_probes_by_skill": {s: sum(r["skill"] == s for r in parts["eval_probes"]) for s in ho.SKILLS},
+            "other_held_not_scored": len(parts["other_held"]), "other_probes_not_scored": len(parts["other_probes"])}
+    json.dump(info, open(os.path.join(a.out, "heldout_split.json"), "w"), indent=1, ensure_ascii=False)
+    return info, parts
+
+
+def stage_train_heldout(a, L, parts):
+    import phase2_heldout as ho
+    base = r2.local_dir(a.student)
+    retain, rsrc = pr.retention_rows(a.retention_rows, os.path.join(a.out, "heldout_retention_rows.json"),
+                                     make_retention(a))
+    eval_prompts = [x["prompt"] for x in list(L["held"]) + list(L["probes"])]
+    rows, binfo = ho.build_heldout_rows(parts["train_rows"], retain, pr.GENERIC_PROMPTS, eval_prompts, ABSTAIN)
+    if binfo["eval_prompt_overlap_after_build"]:
+        raise RuntimeError(f"held-out train rows still overlap eval prompts: {binfo['eval_prompt_overlap_after_build'][:5]}")
+    json.dump(rows, open(os.path.join(a.out, "heldout_rows.json"), "w"), indent=1, ensure_ascii=False)
+    out = os.path.join(a.out, f"heldout_single_seed{a.seed}.safetensors")
+    info = {"seed": a.seed, "retention_source": rsrc, "recipe": "phase-1 plain (labelled + retention + 6 generic refusals), "
+            "LORA_CFG (r16/a32, lr 2e-4, 3 epochs, batch 4, max_len 512)", **binfo}
+    if os.path.exists(out):
+        print("exists, not retrained:", out, flush=True)
+        info["reused"] = True
+    else:
+        cfg = dict(r2.LORA_CFG, seed=a.seed)
+        t0 = time.time()
+        res = sp.run_engine(base, rows, cfg, out)
+        info.update(final_loss=res["final_loss"], steps=res.get("steps"), train_wall_s=round(time.time() - t0, 1))
+        print("TRAINED heldout_single", json.dumps(info), flush=True)
+    a.heldout_adapter = out
+    return info
+
+
+def stage_convert_heldout(a):
+    base = r2.local_dir(a.student)
+    base_gguf = os.path.join(a.out, "base-f16.gguf")
+    if not os.path.exists(base_gguf):
+        src = os.path.join(a.reuse_dir, "base-f16.gguf") if a.reuse_dir else ""
+        if not (src and os.path.exists(src)):
+            raise RuntimeError("held-out convert needs --reuse-dir with base-f16.gguf (same base conversion as phase 2)")
+        os.symlink(src, base_gguf)
+    gguf = {}
+    for name, st in [("heldout", a.heldout_adapter), ("old_single", a.single_adapter)]:
+        d = write_adapter_dir(st, base, os.path.join(a.out, f"dir_{name}"))
+        g = os.path.join(a.out, f"lora_{name}.gguf")
+        if not os.path.exists(g):
+            subprocess.run([sys.executable, os.path.join(LLAMA, "convert_lora_to_gguf.py"), "--base", base,
+                            "--outfile", g, d], check=True)
+        gguf[name] = g
+    return base_gguf, gguf
+
+
+def dump_heldout_generations(out_dir, outs):
+    """Write every generated arm to generations_heldout.json as {"<held|probe>/<arm>": {"outs": [...]}},
+    the same layout as generations_stronger.json, so the table can be re-scored without a model."""
+    payload = {f"{name}/{arm}": {"outs": outs[name][arm]} for name in outs for arm in outs[name]}
+    with open(os.path.join(out_dir, "generations_heldout.json"), "w") as f:
+        json.dump(payload, f, indent=1, ensure_ascii=False)
+
+
+def stage_eval_heldout(a, L, parts, passages, by_id, corpus_lc, tfidf, gguf, base_gguf):
+    from transformers import AutoTokenizer
+    import phase2_heldout as ho
+    tok = AutoTokenizer.from_pretrained(r2.local_dir(a.student))
+    held_all, probe_all = parts["eval_held"], parts["eval_probes"]
+    p = serve(base_gguf, [gguf["heldout"], gguf["old_single"]])
+    try:
+        outs, ptxt, routed = {}, {}, {}
+        for name, qs in [("held", held_all), ("probe", probe_all)]:
+            prompts = [x["prompt"] for x in qs]
+            tops = [passages[sv.best_passage_index(tfidf, q)] for q in prompts]
+            ptxt[name] = [t["text"] for t in tops]
+            routed[name] = [t["skill"] for t in tops]
+            arms = {"base": [{} for _ in prompts],
+                    "heldout_single": [{HELDOUT_IDS["heldout"]: 1.0} for _ in prompts],
+                    "old_single_control": [{HELDOUT_IDS["old_single"]: 1.0} for _ in prompts]}
+            outs[name] = {}
+            for arm, scales in arms.items():
+                t0 = time.time()
+                outs[name][arm] = generate_grouped(tok, prompts, scales, n_ids=HELDOUT_N_IDS)
+                dump_heldout_generations(a.out, outs)
+                print("GEN", name, arm, round(time.time() - t0, 1), "s", flush=True)
+        results = {"n_held": len(held_all), "n_probe": len(probe_all), "arms": {}}
+        for arm in outs["held"]:
+            results["arms"][arm] = {"full": arm_metrics(outs["held"][arm], outs["probe"][arm],
+                                                        list(range(len(held_all))), list(range(len(probe_all))),
+                                                        ptxt["held"], ptxt["probe"], held_all, probe_all,
+                                                        by_id, corpus_lc)}
+            for s in ho.SKILLS:
+                ih = [i for i, x in enumerate(held_all) if x["skill"] == s]
+                ip = [i for i, x in enumerate(probe_all) if x["skill"] == s]
+                if ih or ip:
+                    results["arms"][arm][s] = arm_metrics(outs["held"][arm], outs["probe"][arm], ih, ip,
+                                                          ptxt["held"], ptxt["probe"], held_all, probe_all,
+                                                          by_id, corpus_lc)
+            print("SCORED", arm, json.dumps(results["arms"][arm]["full"]["gated"]["good"]), flush=True)
+        results["router_acc"] = {name: round(sum(r == x["skill"] for r, x in zip(routed[name], qs)) / max(1, len(qs)), 4)
+                                 for name, qs in [("held", held_all), ("probe", probe_all)]}
+        return results
+    finally:
+        p.terminate()
+        p.wait(timeout=60)
+
+
+def run_heldout(a, L, passages, by_id, corpus_lc, tfidf, stages):
+    import phase2_heldout as ho
+    rep = {"config": dict(r2.LORA_CFG, student=a.student, variant="heldout", seed=a.seed, frac=a.heldout_frac,
+                          retain=a.retain, abstain_prompts=pr.GENERIC_PROMPTS, split_seed_base=ho.HELDOUT_SEED_BASE)}
+    split_info, parts = stage_split_heldout(a, L, passages)
+    rep["split"] = {k: v for k, v in split_info.items() if k not in ("heldout_passages",)}
+    if "split" in stages and len(stages) == 1:
+        print("DONE split", flush=True)
+        return
+    if "train_heldout" in stages:
+        rep["train"] = stage_train_heldout(a, L, parts)
+    if "convert_heldout" in stages or "eval_heldout" in stages:
+        base_gguf, gguf = stage_convert_heldout(a)
+        rep["gguf"] = {k: os.path.getsize(v) for k, v in gguf.items()}
+        rep["gguf"]["base"] = os.path.getsize(base_gguf)
+    if "eval_heldout" in stages:
+        rep["eval"] = stage_eval_heldout(a, L, parts, passages, by_id, corpus_lc, tfidf, gguf, base_gguf)
+    json.dump(rep, open(os.path.join(a.out, "phase2_heldout_report.json"), "w"), indent=1, default=str,
+              ensure_ascii=False)
+    print("DONE", flush=True)
+
+
 def run_matched(a, L, passages, by_id, corpus_lc, tfidf, stages):
     rep = {"config": dict(r2.LORA_CFG, student=a.student, variant="matched", skills=pr.MATCHED_SKILLS,
                           retain=a.retain, abstain_prompts=pr.GENERIC_PROMPTS)}
@@ -725,7 +887,7 @@ def main():
     ap.add_argument("--labels", required=True)
     ap.add_argument("--single-adapter", required=True, help="phase-1 plain adapter (3B seed 0, all skills)")
     ap.add_argument("--out", required=True)
-    ap.add_argument("--variant", default="unmatched", choices=["unmatched", "matched", "stronger"],
+    ap.add_argument("--variant", default="unmatched", choices=["unmatched", "matched", "stronger", "heldout"],
                     help="unmatched: earlier 3-adapter recipe (default, unchanged). matched: I_52 phase 2 "
                          "4 per-skill adapters with the single adapter's abstention share")
     ap.add_argument("--reuse-dir", default="", help="matched only: earlier phase-2 dir to link base/unmatched GGUFs from")
@@ -741,6 +903,8 @@ def main():
     ap.add_argument("--seed", type=int, default=0,
                     help="stronger only: training seed for row sampling and LoRA init (default 0 = seed-0 run)")
     ap.add_argument("--passages-per-skill", type=int, default=30)
+    ap.add_argument("--heldout-frac", type=float, default=1.0 / 3.0,
+                    help="heldout only: fraction of each skill's passages held out (seed-fixed, see phase2_heldout)")
     a = ap.parse_args()
     os.makedirs(a.out, exist_ok=True)
     names = ["debug", "check", "document", "scope"]
@@ -753,6 +917,10 @@ def main():
     if a.variant == "stronger":
         stages = (a.stages or "train_stronger,convert_stronger,eval_stronger").split(",")
         run_stronger(a, L, passages, by_id, corpus_lc, tfidf, stages)
+        return
+    if a.variant == "heldout":
+        stages = (a.stages or "split,train_heldout,convert_heldout,eval_heldout").split(",")
+        run_heldout(a, L, passages, by_id, corpus_lc, tfidf, stages)
         return
     if a.variant == "matched":
         stages = (a.stages or "train,convert,eval_matched").split(",")

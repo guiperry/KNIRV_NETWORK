@@ -9,10 +9,9 @@ package drq
 // announcement goes through a RoundTripper that refuses any host other than the
 // gateway address it expects. No network is used.
 //
-// Rollback findings: MintSkillFromCluster reverts the tower record only for
-// failures at steps 4 (verify), 5 (uLoRA) and 6 (chain mint). Steps 7 (burn),
-// 8 (ownership/bounty) and 9 (DHT announce) return their error without reverting.
-// Those cases are recorded as t.Skip findings instead of being fixed here.
+// Rollback coverage: MintSkillFromCluster reverts the tower record for failures
+// at steps 4 (verify), 5 (uLoRA), 6 (chain mint) and, since R13 Q44, the
+// post-chain steps 7 (burn), 8 (ownership/bounty) and 9 (DHT announce).
 
 import (
 	"context"
@@ -558,60 +557,90 @@ func TestMintSkillRollbackOnFailure(t *testing.T) {
 	})
 }
 
-// TestMintSkillPostChainFailures covers the steps after the canonical chain mint.
-// The protocol has no rollback for them. Each case asserts the error is returned,
-// then skips with a finding if the tower record is left behind. The skip turns into
-// a pass as soon as a rollback is added.
+// TestMintSkillPostChainFailures covers the steps after the canonical chain mint
+// (R13 Q44). A failure there rolls back the tower record, because the KNIRVCHAIN
+// bundle cannot be reverted. The error must name the failed step, the chain
+// bundle and transaction, and the rollback result. None of the earlier
+// post-chain effects (burn, ownership, bounty) has an undo, so none is undone.
 func TestMintSkillPostChainFailures(t *testing.T) {
 	cases := []struct {
 		name  string
 		opts  e2eOpts
 		steps []string
-		want  string
+		// step is the label the error must carry for the failed post-chain step.
+		step string
 	}{
 		{
 			name:  "burn_fails",
 			opts:  e2eOpts{verified: true, oracleFail: map[string]int{"burn": http.StatusInternalServerError}},
-			steps: []string{"tower.put", "oracle.verify", "chain.mint", "oracle.burn"},
-			want:  "burn NRN",
+			steps: []string{"tower.put", "oracle.verify", "chain.mint", "oracle.burn", "tower.delete"},
+			step:  "burn NRN",
 		},
 		{
 			name:  "ownership_fails",
 			opts:  e2eOpts{verified: true, oracleFail: map[string]int{"ownership": http.StatusInternalServerError}},
-			steps: []string{"tower.put", "oracle.verify", "chain.mint", "oracle.burn", "oracle.ownership"},
-			want:  "grant ownership",
+			steps: []string{"tower.put", "oracle.verify", "chain.mint", "oracle.burn", "oracle.ownership", "tower.delete"},
+			step:  "reward/ownership/bounty distribution",
 		},
 		{
 			name:  "bounty_fails",
 			opts:  e2eOpts{verified: true, oracleFail: map[string]int{"bounty": http.StatusInternalServerError}},
-			steps: []string{"tower.put", "oracle.verify", "chain.mint", "oracle.burn", "oracle.ownership", "oracle.bounty"},
-			want:  "pay bounty",
+			steps: []string{"tower.put", "oracle.verify", "chain.mint", "oracle.burn", "oracle.ownership", "oracle.bounty", "tower.delete"},
+			step:  "reward/ownership/bounty distribution",
 		},
 		{
 			name:  "dht_announce_fails",
 			opts:  e2eOpts{verified: true, dhtStatus: http.StatusInternalServerError},
-			steps: []string{"tower.put", "oracle.verify", "chain.mint", "oracle.burn", "oracle.ownership", "oracle.bounty", "oracle.bounty", "dht.announce"},
-			want:  "announce skill",
+			steps: []string{"tower.put", "oracle.verify", "chain.mint", "oracle.burn", "oracle.ownership", "oracle.bounty", "oracle.bounty", "dht.announce", "tower.delete"},
+			step:  "announce skill",
 		},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			h := newE2EHarness(t, tc.opts)
 			_, err := h.mint()
-			if err == nil || !strings.Contains(err.Error(), tc.want) {
-				t.Fatalf("err = %v, want it to mention %q", err, tc.want)
+			if err == nil {
+				t.Fatal("expected post-chain failure")
 			}
-			got := h.calls.steps()
-			if len(got) == 0 || got[len(got)-1] != tc.steps[len(tc.steps)-1] {
-				t.Fatalf("calls = %v, want to stop at %q", got, tc.steps[len(tc.steps)-1])
+			msg := err.Error()
+			// The step, the chain bundle/tx, and a clean rollback result.
+			for _, want := range []string{
+				tc.step + " failed after KNIRVCHAIN mint",
+				"chain event " + h.skillID,
+				"tx e2e-tx",
+				"bundle e2e-bundle-hash",
+				"(rollback: <nil>)",
+			} {
+				if !strings.Contains(msg, want) {
+					t.Fatalf("err = %q, missing %q", msg, want)
+				}
 			}
-			if !h.tower.has(h.skillID) {
-				return // a rollback exists and worked
+			expectSteps(t, h.calls.steps(), tc.steps...)
+			if h.tower.has(h.skillID) {
+				t.Fatalf("tower record %s survived post-chain failure", h.skillID)
 			}
-			t.Skipf("FINDING (rollback missing): %s returned an error after the KNIRVCHAIN mint, "+
-				"and MintSkillFromCluster does not revert the tower record (skill %s still present). "+
-				"Needs an owner decision on whether post-chain failures should roll back the tower.",
-				tc.name, h.skillID)
 		})
 	}
+
+	t.Run("rollback_failure_is_reported_with_step_error", func(t *testing.T) {
+		h := newE2EHarness(t, e2eOpts{
+			verified:    true,
+			oracleFail:  map[string]int{"burn": http.StatusInternalServerError},
+			towerDelErr: errors.New("tower delete refused"),
+		})
+		_, err := h.mint()
+		if err == nil {
+			t.Fatal("expected error")
+		}
+		msg := err.Error()
+		if !strings.Contains(msg, "burn NRN failed after KNIRVCHAIN mint") ||
+			!strings.Contains(msg, "tower delete refused") ||
+			!strings.Contains(msg, "chain event "+h.skillID) {
+			t.Fatalf("err = %q, want the step error, the rollback error and the chain id", msg)
+		}
+		// The orphan is still there, and the error says so.
+		if !h.tower.has(h.skillID) {
+			t.Fatal("expected orphaned tower record when delete is refused")
+		}
+	})
 }

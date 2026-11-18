@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/knirvcorp/knirvoracle/internal/oracle/types"
+	"github.com/knirvcorp/knirvoracle/internal/testhooks"
 )
 
 // Crash points on the Oracle's live mutation path: validate, append and fsync the
@@ -29,13 +30,15 @@ func TestCrashAfterLogFsyncReplaysRecordAndReportsMissingLeaf(t *testing.T) {
 
 	first := startOracle(t, cfg)
 	genesisSupply := first.GetNRNToken().TotalSupply().String()
-	first.ledger.SetFaultHook(func(stage string) error {
+	restoreFault := testhooks.SetLedgerFault(first.ledger.Path(), func(stage string) error {
 		if stage == "after_sync" {
 			return errCrashInjected
 		}
 		return nil
 	})
-	if _, err := first.GetNRNToken().Mint(recipient, big.NewInt(42)); err == nil {
+	_, mintErr := first.GetNRNToken().Mint(recipient, big.NewInt(42))
+	restoreFault() // the restart below must not inherit the injected crash
+	if mintErr == nil {
 		t.Fatal("mint succeeded through an injected crash")
 	}
 	if got := first.GetNRNToken().GetBalance(recipient).String(); got != "0" {

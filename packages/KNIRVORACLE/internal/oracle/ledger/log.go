@@ -10,6 +10,8 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+
+	"github.com/knirvcorp/knirvoracle/internal/testhooks"
 )
 
 // Record is one log entry. Hash chains records: changing or removing an earlier
@@ -35,30 +37,35 @@ type Log struct {
 	// file. The in-memory view then no longer matches the file, so every later
 	// append is refused; a restart replays the file, which is authoritative.
 	broken error
-	// fault is a crash-injection seam for tests. It is called at each commit
-	// stage ("before_write", "after_write", "after_sync"); a non-nil return
-	// simulates a crash at that point. Nil in production.
+	// leaves is the separate leaf-hash list (see leaves.go). Each commit writes
+	// the hashes of its records here after the log itself is durable.
+	leaves *os.File
+	// fault is a package-internal crash-injection seam for this package's tests.
+	// It is called at each commit stage ("before_write", "after_write",
+	// "after_sync"); a non-nil return simulates a crash at that point. Nil in
+	// production. Tests in other packages use internal/testhooks instead.
 	fault func(stage string) error
 }
 
 // errLogBroken is returned by every append after a failed write or fsync.
 var errLogBroken = fmt.Errorf("ledger: log is broken after a failed write; restart to replay it")
 
-// SetFaultHook installs a crash-injection hook on a live log (see fault). It is
-// for tests in other packages that need to simulate a crash mid-commit; the
-// production path never calls it. Pass nil to remove the hook.
-func (l *Log) SetFaultHook(hook func(stage string) error) {
+// Broken reports whether a write or fsync has failed on this log. Once true,
+// every append is refused until a restart replays the file.
+func (l *Log) Broken() bool {
 	l.mu.Lock()
 	defer l.mu.Unlock()
-	l.fault = hook
+	return l.broken != nil
 }
 
-// checkFault runs the crash-injection hook for one commit stage.
+// checkFault runs the crash-injection hook for one commit stage. The package
+// field is used by this package's own tests; other packages install a hook via
+// internal/testhooks, which is inert outside a test binary.
 func (l *Log) checkFault(stage string) error {
-	if l.fault == nil {
-		return nil
+	if l.fault != nil {
+		return l.fault(stage)
 	}
-	return l.fault(stage)
+	return testhooks.LedgerFaultAt(l.path, stage)
 }
 
 // Open reads an existing log (if any) and opens it for appending. A malformed
@@ -78,7 +85,12 @@ func Open(path string) (*Log, error) {
 	if err != nil {
 		return nil, fmt.Errorf("ledger: open %s: %w", path, err)
 	}
-	return &Log{path: path, file: file, records: records, lastHash: lastHash}, nil
+	leaves, err := openLeafList(path)
+	if err != nil {
+		file.Close()
+		return nil, err
+	}
+	return &Log{path: path, file: file, leaves: leaves, records: records, lastHash: lastHash}, nil
 }
 
 // readRecords rebuilds the committed record list from the log file. It tolerates
@@ -233,6 +245,10 @@ func (l *Log) Append(kind string, payload any) (Record, error) {
 		l.broken = err
 		return Record{}, fmt.Errorf("ledger: fsync: %w", err)
 	}
+	if err := l.appendLeafHashes([]Record{record}); err != nil {
+		l.broken = err
+		return Record{}, err
+	}
 
 	l.records = append(l.records, record)
 	l.lastHash = hash
@@ -299,6 +315,10 @@ func (l *Log) AppendBatch(entries []BatchEntry) ([]Record, error) {
 	if err := l.checkFault("after_sync"); err != nil {
 		l.broken = err
 		return nil, fmt.Errorf("ledger: fsync batch: %w", err)
+	}
+	if err := l.appendLeafHashes(inner); err != nil {
+		l.broken = err
+		return nil, err
 	}
 	// Advance the in-memory view only after the batch is durable.
 	l.records = append(l.records, inner...)
@@ -416,6 +436,12 @@ func (l *Log) Close() error {
 	}
 	err := l.file.Close()
 	l.file = nil
+	if l.leaves != nil {
+		if lerr := l.leaves.Close(); err == nil {
+			err = lerr
+		}
+		l.leaves = nil
+	}
 	return err
 }
 

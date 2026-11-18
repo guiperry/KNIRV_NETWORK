@@ -15,6 +15,19 @@ import (
 	"go.uber.org/zap"
 )
 
+// testBracketEncoder is a deterministic stand-in for the KNIRVBASE bracket
+// encoder. The store needs one to seal a suite; these tests only need sealing to
+// succeed and be deterministic.
+type testBracketEncoder struct{}
+
+func (testBracketEncoder) EncodeTestBracket(errorNodeID string, position int, tc locator.ErrorTestCase) ([locator.BracketSize]byte, error) {
+	var b [locator.BracketSize]byte
+	copy(b[0:], []byte(tc.Input))
+	b[locator.BracketSize-1] = byte(position)
+	copy(b[40:], []byte(errorNodeID))
+	return b, nil
+}
+
 type testKV struct{ m map[string][]byte }
 
 func (k *testKV) Put(key, value []byte) error { k.m[string(key)] = value; return nil }
@@ -27,7 +40,7 @@ func (k *testKV) Get(key []byte) ([]byte, error) {
 
 func errorTestRouter() http.Handler {
 	rpc := &RPCServer{logger: zap.NewNop()}
-	rpc.SetErrorTestSuiteStore(locator.NewErrorTestSuiteStore(&testKV{m: map[string][]byte{}}))
+	rpc.SetErrorTestSuiteStore(locator.NewErrorTestSuiteStore(&testKV{m: map[string][]byte{}}).WithBracketEncoder(testBracketEncoder{}))
 	r := mux.NewRouter()
 	rpc.registerErrorTestRoutes(r)
 	return r

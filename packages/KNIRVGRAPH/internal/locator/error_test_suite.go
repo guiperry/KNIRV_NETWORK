@@ -1,8 +1,6 @@
 package locator
 
 import (
-	"crypto/sha256"
-	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -119,7 +117,10 @@ type ErrorTestSuite struct {
 	Version     int             `json:"version"`
 	// SuiteHash is set when the suite seals; it identifies exactly which tests
 	// a credential was earned against.
-	SuiteHash string     `json:"suite_hash,omitempty"`
+	SuiteHash string `json:"suite_hash,omitempty"`
+	// NRVIDs are the bracket IDs by position, set at sealing (see
+	// ErrorNodeNRVIndex for the sidecar that tracks them while collecting).
+	NRVIDs    []string   `json:"nrv_ids,omitempty"`
 	SealedAt  *time.Time `json:"sealed_at,omitempty"`
 	UpdatedAt time.Time  `json:"updated_at"`
 }
@@ -175,24 +176,6 @@ var ErrSuiteNotSealed = fmt.Errorf("this error node's test suite is not sealed y
 
 // ErrSuiteSealed is returned when a contribution arrives after sealing.
 var ErrSuiteSealed = errors.New("this error node's test suite is sealed; replace it with a new version instead")
-
-func (s *ErrorTestSuite) computeHash() string {
-	type graded struct {
-		ID, Input, Expected string
-		Assertion           AssertionKind
-		CaseSensitive       bool
-	}
-	g := make([]graded, 0, len(s.Tests))
-	for _, tc := range s.Tests {
-		g = append(g, graded{tc.ID, tc.Input, tc.Expected, tc.Assertion, tc.CaseSensitive})
-	}
-	canonical, _ := json.Marshal(struct {
-		ErrorNodeID string   `json:"error_node_id"`
-		Tests       []graded `json:"tests"`
-	}{s.ErrorNodeID, g})
-	sum := sha256.Sum256(canonical)
-	return hex.EncodeToString(sum[:])
-}
 
 // Public returns the redacted view of the suite.
 func (s *ErrorTestSuite) Public() *PublicErrorTestSuite {
@@ -304,14 +287,24 @@ const legacyErrorTestSuiteKeyPrefix = "nrv:error_tests:"
 
 // ErrorTestSuiteStore persists ErrorTestSuites keyed by ErrorNode ID.
 type ErrorTestSuiteStore struct {
-	mu  sync.Mutex
-	kv  KV
-	now func() time.Time
+	mu      sync.Mutex
+	kv      KV
+	now     func() time.Time
+	enc     BracketEncoder
+	indexes *ErrorNodeNRVIndexStore
 }
 
-// NewErrorTestSuiteStore builds a store over kv.
+// NewErrorTestSuiteStore builds a store over kv. Without a BracketEncoder the
+// store accepts contributions but cannot seal a suite (ErrNoBracketEncoder).
 func NewErrorTestSuiteStore(kv KV) *ErrorTestSuiteStore {
-	return &ErrorTestSuiteStore{kv: kv, now: time.Now}
+	return &ErrorTestSuiteStore{kv: kv, now: time.Now, indexes: NewErrorNodeNRVIndexStore(kv)}
+}
+
+// WithBracketEncoder sets the encoder used to derive brackets, nrv ids and
+// suite_hash. Call it before the store serves requests.
+func (st *ErrorTestSuiteStore) WithBracketEncoder(enc BracketEncoder) *ErrorTestSuiteStore {
+	st.enc = enc
+	return st
 }
 
 // ErrTestSuiteNotFound is returned when no test has been contributed yet.
@@ -351,9 +344,32 @@ func (st *ErrorTestSuiteStore) ContributeTest(errorNodeID string, tc ErrorTestCa
 	suite.Tests = append(suite.Tests, tc)
 	suite.UpdatedAt = now
 	if len(suite.Tests) == ErrorTestSuiteSize {
-		suite.seal(now)
+		if err := st.sealLocked(suite, now); err != nil {
+			return nil, err
+		}
 	}
-	return suite, st.putLocked(suite)
+	return suite, st.persistLocked(suite)
+}
+
+// persistLocked writes the suite and, when an encoder is configured, its sidecar
+// index. The index is built before anything is written, so a failed encode
+// leaves storage unchanged.
+func (st *ErrorTestSuiteStore) persistLocked(suite *ErrorTestSuite) error {
+	var idx *ErrorNodeNRVIndex
+	if st.enc != nil {
+		built, err := buildNRVIndex(st.enc, suite)
+		if err != nil {
+			return err
+		}
+		idx = built
+	}
+	if err := st.putLocked(suite); err != nil {
+		return err
+	}
+	if idx != nil {
+		return st.indexes.Put(idx)
+	}
+	return nil
 }
 
 // Replace installs a complete ErrorTestSuiteSize-test suite as a new version,
@@ -391,14 +407,31 @@ func (st *ErrorTestSuiteStore) Replace(errorNodeID string, tests []ErrorTestCase
 		return nil, err
 	}
 	suite := &ErrorTestSuite{ErrorNodeID: errorNodeID, Tests: normalized, Version: version, UpdatedAt: now}
-	suite.seal(now)
-	return suite, st.putLocked(suite)
+	if err := st.sealLocked(suite, now); err != nil {
+		return nil, err
+	}
+	return suite, st.persistLocked(suite)
 }
 
-func (s *ErrorTestSuite) seal(at time.Time) {
-	s.Status = SuiteSealed
-	s.SealedAt = &at
-	s.SuiteHash = s.computeHash()
+// sealLocked seals suite at exactly ErrorTestSuiteSize tests. suite_hash is
+// H(the 8 brackets in position order), and NRVIDs are the bracket IDs. It fails
+// closed: with no encoder, or with the wrong test count, the suite stays as it was.
+func (st *ErrorTestSuiteStore) sealLocked(suite *ErrorTestSuite, at time.Time) error {
+	if len(suite.Tests) != ErrorTestSuiteSize {
+		return fmt.Errorf("cannot seal %d tests; a suite seals at exactly %d", len(suite.Tests), ErrorTestSuiteSize)
+	}
+	if st.enc == nil {
+		return ErrNoBracketEncoder
+	}
+	brackets, ids, err := encodeSuiteBrackets(st.enc, suite)
+	if err != nil {
+		return err
+	}
+	suite.Status = SuiteSealed
+	suite.SealedAt = &at
+	suite.SuiteHash = suiteHashFromBrackets(brackets)
+	suite.NRVIDs = ids
+	return nil
 }
 
 // Get returns the full, private suite for errorNodeID.

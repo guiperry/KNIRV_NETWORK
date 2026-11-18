@@ -118,6 +118,9 @@ func Run(cfg *Config) error {
 	if cfg.MaxPrototypes == 0 {
 		cfg.MaxPrototypes = semanticmemory.DefaultMaxPrototypes
 	}
+	if isNRVInput(cfg.InputPath) {
+		return runNRVInput(cfg.InputPath)
+	}
 	resolved, err := loader.ResolveFramesInput(cfg.InputPath)
 	if err != nil {
 		return fmt.Errorf("resolve training batch: %w", err)
@@ -127,6 +130,26 @@ func Run(cfg *Config) error {
 		return runSemantic(cfg)
 	}
 	return runGPT(cfg)
+}
+
+// isNRVInput reports whether the trainer was pointed at an encoder NRV3 artifact.
+// Anything else keeps the JSON frame path.
+func isNRVInput(path string) bool {
+	return strings.EqualFold(filepath.Ext(path), ".nrv")
+}
+
+// runNRVInput validates an encoder NRV3 artifact through the KNIRVBASE payload
+// rules, fail-closed, and then refuses to train from it. An encoder frame holds one
+// shared token window for its whole run, so the per-bracket context a training
+// sample needs is not stored; decoding one would put later tokens into earlier
+// samples. Train from the JSON artifact until the encoder stores per-bracket
+// context.
+func runNRVInput(path string) error {
+	assertions, err := loader.LoadNRVAssertions(path)
+	if err != nil {
+		return fmt.Errorf("load nrv input: %w", err)
+	}
+	return fmt.Errorf("nrv input %s: %d assertions validated, but .nrv training is not enabled: frames carry one shared token window per run, not each bracket's context; train from the JSON artifact", path, len(assertions))
 }
 
 // runGPT preserves the original full-transformer trainer behind an explicit

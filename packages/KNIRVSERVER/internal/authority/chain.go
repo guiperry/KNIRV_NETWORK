@@ -21,6 +21,12 @@ type OraclePoster interface {
 	PostCheckpoint(ctx context.Context, cp *checkpoint.Checkpoint) (map[string]any, error)
 }
 
+// HoldPoster can create and fund a D14 bond escrow hold. The real checkpoint
+// Poster implements it; tests may not.
+type HoldPoster interface {
+	EnsureBondHold(ctx context.Context, signer knirvsigning.RemoteSigner, chainID, holdID string, bond uint64) error
+}
+
 // DefaultAuthorityBond is the authority/* chain bond (owner decision D14,
 // 2026-11-04): exactly 10,000 NRN from the operator's controller vault. A
 // missing bond defaults to this; any other explicit value is rejected so a
@@ -38,6 +44,13 @@ type AnchorConfig struct {
 	// to it, and any other explicit value is rejected at construction.
 	Bond      uint64
 	BondOwner string
+	// HoldID names the D14 enrolment hold backing a bonded registration. If
+	// empty for a bonded non-exempt chain, the anchorer derives a stable hold id
+	// and attempts to ensure it via the poster when supported.
+	HoldID string
+	// ExemptBond disables the D14 bond/hold requirement (used for root nodes,
+	// which do not need a bonded authority registration like bootnodes do).
+	ExemptBond bool
 
 	// The long-term key is always the chain's author. Owner decision D10 (spec
 	// section 10): Oracle-author key rotation is deprecated until a good use case
@@ -87,16 +100,29 @@ func NewAnchor(cfg AnchorConfig) (*Anchor, error) {
 	if cfg.Now == nil {
 		cfg.Now = time.Now
 	}
-	// Owner decision D14: the authority/* bond is exactly DefaultAuthorityBond
-	// (10,000 NRN). An unset bond defaults to it; any other explicit value is
-	// rejected so a misconfigured node never registers with the wrong bond. Apply
-	// this before capturing cfg into the Anchor so the defaulted value is stored.
-	switch {
-	case cfg.Bond == 0:
-		cfg.Logf("authority: bond unset; defaulting to D14 bond %d NRN for chain %s", DefaultAuthorityBond, ChainID(cfg.Signer.Address()))
-		cfg.Bond = DefaultAuthorityBond
-	case cfg.Bond != DefaultAuthorityBond:
-		return nil, fmt.Errorf("authority: chain %s bond must be exactly %d NRN (owner decision D14); got %d", ChainID(cfg.Signer.Address()), DefaultAuthorityBond, cfg.Bond)
+	if cfg.ExemptBond {
+		// Root nodes register their authority chain without a D14 bond/hold.
+		cfg.Bond = 0
+		cfg.BondOwner = ""
+		cfg.HoldID = ""
+	} else {
+		// Owner decision D14: the authority/* bond is exactly DefaultAuthorityBond
+		// (10,000 NRN). An unset bond defaults to it; any other explicit value is
+		// rejected so a misconfigured node never registers with the wrong bond. Apply
+		// this before capturing cfg into the Anchor so the defaulted value is stored.
+		switch {
+		case cfg.Bond == 0:
+			cfg.Logf("authority: bond unset; defaulting to D14 bond %d NRN for chain %s", DefaultAuthorityBond, ChainID(cfg.Signer.Address()))
+			cfg.Bond = DefaultAuthorityBond
+		case cfg.Bond != DefaultAuthorityBond:
+			return nil, fmt.Errorf("authority: chain %s bond must be exactly %d NRN (owner decision D14); got %d", ChainID(cfg.Signer.Address()), DefaultAuthorityBond, cfg.Bond)
+		}
+		if cfg.BondOwner == "" {
+			cfg.BondOwner = cfg.Signer.Address()
+		}
+		if cfg.HoldID == "" {
+			cfg.HoldID = "bond:" + ChainID(cfg.Signer.Address())
+		}
 	}
 	a := &Anchor{cfg: cfg}
 	st, err := cfg.Store.LoadAnchor()
@@ -141,6 +167,7 @@ func (a *Anchor) Registration() (*checkpoint.ChainRegistration, error) {
 		QuorumDenom: 1,
 		Bond:        a.cfg.Bond,
 		BondOwner:   a.cfg.BondOwner,
+		HoldID:      a.cfg.HoldID,
 		ProofWindow: 0,
 	}
 	if err := checkpoint.SignRegistration(reg, signer); err != nil {
@@ -156,6 +183,15 @@ func (a *Anchor) EnsureRegistered(ctx context.Context) error {
 	a.mu.Unlock()
 	if done {
 		return nil
+	}
+	if a.cfg.Bond > 0 && !a.cfg.ExemptBond {
+		if hp, ok := a.cfg.Poster.(HoldPoster); ok {
+			if err := hp.EnsureBondHold(ctx, a.cfg.Signer, ChainID(a.cfg.Signer.Address()), a.cfg.HoldID, a.cfg.Bond); err != nil {
+				return fmt.Errorf("ensure bond hold: %w", err)
+			}
+		} else if a.cfg.HoldID == "" {
+			return fmt.Errorf("register chain: bonded authority registration requires an enrolment hold id")
+		}
 	}
 	reg, err := a.Registration()
 	if err != nil {

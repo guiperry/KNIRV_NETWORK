@@ -130,7 +130,7 @@ func TestBundleValidatorAcceptsAttributableVerdict(t *testing.T) {
 		"results": map[string]any{},
 	}, echoSubmittedHash)
 	err := validatorOver(socket).ValidateBundle(context.Background(), &ErrorCluster{ClusterID: "c1"},
-		&ULoRACompileResult{ContentHash: "abc123"}, []ULoRADatasetRecord{{Context: "x"}})
+		&ULoRACompileResult{ContentHash: "abc123", ManifestPath: writeFitKindManifest(t, "gradient_sft")}, []ULoRADatasetRecord{{Context: "x"}})
 	if err != nil {
 		t.Fatalf("expected an attributable verdict to be accepted, got: %v", err)
 	}
@@ -146,7 +146,7 @@ func TestBundleValidatorRefusesVerdictForDifferentBundle(t *testing.T) {
 		"results": map[string]any{},
 	}, echoOtherHash)
 	err := validatorOver(socket).ValidateBundle(context.Background(), &ErrorCluster{ClusterID: "c1"},
-		&ULoRACompileResult{ContentHash: "abc123"}, []ULoRADatasetRecord{{Context: "x"}})
+		&ULoRACompileResult{ContentHash: "abc123", ManifestPath: writeFitKindManifest(t, "gradient_sft")}, []ULoRADatasetRecord{{Context: "x"}})
 	if err == nil {
 		t.Fatal("a verdict about different content must be refused")
 	}
@@ -166,7 +166,7 @@ func TestBundleValidatorRefusesUnattributableVerdict(t *testing.T) {
 		"results": map[string]any{},
 	}, echoNoHash)
 	err := validatorOver(socket).ValidateBundle(context.Background(), &ErrorCluster{ClusterID: "c1"},
-		&ULoRACompileResult{ContentHash: "abc123"}, []ULoRADatasetRecord{{Context: "x"}})
+		&ULoRACompileResult{ContentHash: "abc123", ManifestPath: writeFitKindManifest(t, "gradient_sft")}, []ULoRADatasetRecord{{Context: "x"}})
 	if err == nil {
 		t.Fatal("a verdict with no bundle attribution must be refused")
 	}
@@ -189,7 +189,7 @@ func TestBundleValidatorRefusesNoProofAndLowScore(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			socket := verdictServer(t, verdict, echoSubmittedHash)
 			if err := validatorOver(socket).ValidateBundle(context.Background(), &ErrorCluster{ClusterID: "c1"},
-				&ULoRACompileResult{ContentHash: "abc123"}, []ULoRADatasetRecord{{Context: "x"}}); err == nil {
+				&ULoRACompileResult{ContentHash: "abc123", ManifestPath: writeFitKindManifest(t, "gradient_sft")}, []ULoRADatasetRecord{{Context: "x"}}); err == nil {
 				t.Fatal("must be refused")
 			}
 		})
@@ -240,7 +240,7 @@ func TestULoRAMintingEndToEnd(t *testing.T) {
 			return
 		}
 		manifestPath := filepath.Join(bundleDir, "manifest.json")
-		if err := os.WriteFile(manifestPath, []byte(`{"manifest_version":"1.0.0"}`), 0o644); err != nil {
+		if err := os.WriteFile(manifestPath, []byte(`{"manifest_version":"1.0.0","training":{"fit_kind":"gradient_sft"}}`), 0o644); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -384,7 +384,7 @@ func TestULoRAMintingEndToEndGateBlocksRegistration(t *testing.T) {
 		bundleDir := filepath.Join(clustersDir, "bundles", req.Provenance.SourceID+"-x")
 		_ = os.MkdirAll(bundleDir, 0o755)
 		manifestPath := filepath.Join(bundleDir, "manifest.json")
-		_ = os.WriteFile(manifestPath, []byte("{}"), 0o644)
+		_ = os.WriteFile(manifestPath, []byte(`{"training":{"fit_kind":"gradient_sft"}}`), 0o644)
 		bundlePath := filepath.Join(clustersDir, "bundles", "ulora-"+req.Provenance.SourceID+".ulora")
 		payload := []byte("bytes")
 		_ = os.WriteFile(bundlePath, payload, 0o644)

@@ -540,8 +540,11 @@ func (fs *FileStorage) isSensitiveField(collection, fieldName string) bool {
 			"salt", // Random salt for KDF
 		},
 		"pqc_keys": {
-			"kyber_private_key",     // Kyber private key
-			"dilithium_private_key", // Dilithium private key
+			"kyber_private_key", // Kyber private key
+			"mldsa_private_key", // ML-DSA private key
+			// TODO(PI_Q31): remove after the next release (legacy name, kept so
+			// pre-rename documents stay encrypted on write).
+			"dilithium_private_key", // legacy ML-DSA private key name
 		},
 		"sessions": {
 			"token_hash", // Session token hash

@@ -51,6 +51,50 @@ describe('PQC Key Management', () => {
       expect(loaded.dilithiumPublicKeyBytes).toEqual(keyPair.dilithiumPublicKeyBytes);
       expect(loaded.dilithiumPrivateKeyBytes).toEqual(keyPair.dilithiumPrivateKeyBytes);
     });
+
+    it('loads a legacy dilithium_*-only key file into the ML-DSA fields', () => {
+      const obj = JSON.parse(marshalWithPrivateKeys(keyPair));
+      obj.dilithium_public_key = obj.mldsa_public_key;
+      obj.dilithium_private_key = obj.mldsa_private_key;
+      delete obj.mldsa_public_key;
+      delete obj.mldsa_private_key;
+
+      const loaded = loadPQCKeyPair(JSON.stringify(obj));
+
+      expect(loaded.dilithiumPublicKeyBytes).toEqual(keyPair.dilithiumPublicKeyBytes);
+      expect(loaded.dilithiumPrivateKeyBytes).toEqual(keyPair.dilithiumPrivateKeyBytes);
+      // The legacy-loaded key must still sign, and the original key must verify its signature.
+      const message = new Uint8Array([72, 101, 108, 108, 111]); // "Hello"
+      const signature = sign(keyPair, message);
+      expect(verify(loaded, message, signature)).toBe(true);
+    });
+
+    it('loads when mldsa_* and dilithium_* are both present and identical', () => {
+      const obj = JSON.parse(marshalWithPrivateKeys(keyPair));
+      obj.dilithium_public_key = obj.mldsa_public_key;
+      obj.dilithium_private_key = obj.mldsa_private_key;
+
+      const loaded = loadPQCKeyPair(JSON.stringify(obj));
+
+      expect(loaded.dilithiumPublicKeyBytes).toEqual(keyPair.dilithiumPublicKeyBytes);
+      expect(loaded.dilithiumPrivateKeyBytes).toEqual(keyPair.dilithiumPrivateKeyBytes);
+    });
+
+    it('refuses when mldsa_* and dilithium_* are both present and the private keys differ', () => {
+      const other = generatePQCKeyPair('other-key', 'signature');
+      const obj = JSON.parse(marshalWithPrivateKeys(keyPair));
+      obj.dilithium_private_key = Buffer.from(other.dilithiumPrivateKeyBytes!).toString('base64');
+
+      expect(() => loadPQCKeyPair(JSON.stringify(obj))).toThrow(/conflicting mldsa_private_key and dilithium_private_key/);
+    });
+
+    it('refuses when mldsa_* and dilithium_* are both present and the public keys differ', () => {
+      const other = generatePQCKeyPair('other-key', 'signature');
+      const obj = JSON.parse(marshalWithPrivateKeys(keyPair));
+      obj.dilithium_public_key = Buffer.from(other.dilithiumPublicKeyBytes).toString('base64');
+
+      expect(() => loadPQCKeyPair(JSON.stringify(obj))).toThrow(/conflicting mldsa_public_key and dilithium_public_key/);
+    });
   });
 
   describe('legacy keys', () => {
@@ -69,10 +113,12 @@ describe('PQC Key Management', () => {
       expect(parsed.name).toBe(keyPair.name);
       expect(parsed.format).toBe('knirv-pqc-key/v2');
       expect(parsed.kyber_public_key).toBeDefined();
-      expect(parsed.dilithium_public_key).toBeDefined();
+      expect(parsed.mldsa_public_key).toBeDefined();
+      expect(parsed.dilithium_public_key).toBeUndefined();
 
       // Private keys should not be present
       expect(parsed.kyber_private_key).toBeUndefined();
+      expect(parsed.mldsa_private_key).toBeUndefined();
       expect(parsed.dilithium_private_key).toBeUndefined();
     });
   });

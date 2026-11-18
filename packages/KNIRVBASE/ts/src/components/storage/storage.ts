@@ -393,7 +393,8 @@ export class FileStorage implements Storage {
   private isSensitiveField(collection: string, fieldName: string): boolean {
     const sensitiveFields: Record<string, string[]> = {
       credentials: ['hash', 'salt'],
-      pqc_keys: ['kyber_private_key', 'dilithium_private_key'],
+      // TODO(PI_Q31): drop 'dilithium_private_key' after the next release (legacy fallback window).
+      pqc_keys: ['kyber_private_key', 'mldsa_private_key', 'dilithium_private_key'],
       sessions: ['token_hash'],
       audit_log: ['details'],
       threat_events: ['indicators'],

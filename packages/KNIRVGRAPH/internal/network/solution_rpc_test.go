@@ -31,7 +31,7 @@ func (a *recordingApp) RecordGradedSolution(sol *drq.Solution) (string, error) {
 func TestSwarmSolutionsAreGradedAgainstTheErrorNodeSuite(t *testing.T) {
 	t.Setenv("KNIRV_INTERNAL_AUTH_TOKEN", "secret")
 	app := &recordingApp{}
-	store := locator.NewErrorTestSuiteStore(&testKV{m: map[string][]byte{}})
+	store := locator.NewErrorTestSuiteStore(&testKV{m: map[string][]byte{}}).WithBracketEncoder(testBracketEncoder{})
 	rpc := &RPCServer{logger: zap.NewNop(), app: app}
 	rpc.SetErrorTestSuiteStore(store)
 	r := mux.NewRouter()

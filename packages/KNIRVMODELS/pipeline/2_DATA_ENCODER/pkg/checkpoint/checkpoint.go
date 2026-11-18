@@ -225,12 +225,27 @@ func recordKey(file string, chunkID, windowStart int32) string {
 	return fmt.Sprintf("%s#%d#%d", file, chunkID, windowStart)
 }
 
-// GetCheckpoint returns a copy of the current checkpoint
+// GetCheckpoint returns a copy of the current checkpoint. The copy is built
+// field by field so the embedded sync.RWMutex is not copied (copying a lock
+// value is a bug that go vet reports). The returned value's mutex is zero and
+// unlocked; it is a plain data snapshot. ProcessedKeys is shared with the
+// live map, as it was before this change.
 func (m *Manager) GetCheckpoint() Checkpoint {
 	m.checkpoint.mu.RLock()
 	defer m.checkpoint.mu.RUnlock()
 
-	return *m.checkpoint
+	return Checkpoint{
+		QuotaLimit:          m.checkpoint.QuotaLimit,
+		QuotaUsed:           m.checkpoint.QuotaUsed,
+		QuotaExceeded:       m.checkpoint.QuotaExceeded,
+		LastProcessedFile:   m.checkpoint.LastProcessedFile,
+		LastProcessedChunk:  m.checkpoint.LastProcessedChunk,
+		LastProcessedWindow: m.checkpoint.LastProcessedWindow,
+		RecordsProcessed:    m.checkpoint.RecordsProcessed,
+		FramesGenerated:     m.checkpoint.FramesGenerated,
+		LastUpdated:         m.checkpoint.LastUpdated,
+		ProcessedKeys:       m.checkpoint.ProcessedKeys,
+	}
 }
 
 // SetQuotaLimit sets the quota limit (useful for testing or overrides)

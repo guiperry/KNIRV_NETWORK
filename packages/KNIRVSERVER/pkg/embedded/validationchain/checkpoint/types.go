@@ -60,6 +60,9 @@ type ChainRegistration struct {
 	VerificationKey      []byte             `json:"verification_key,omitempty"`
 	PreferredProofSystem string             `json:"preferred_proof_system,omitempty"`
 	RotationSigs         []AuthorSig        `json:"rotation_sigs,omitempty"`
+	// HoldID names the pending D14 bond escrow hold consumed atomically with
+	// this registration. It is NOT part of the registration digest.
+	HoldID string `json:"hold_id,omitempty"`
 }
 
 // Checkpoint is the payload POSTed to /oracle/v3/checkpoints.

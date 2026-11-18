@@ -2,6 +2,7 @@ package drq
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
@@ -258,22 +259,56 @@ func (smp *SkillMintingProtocol) MintSkillFromCluster(ctx context.Context, clust
 		return nil, fmt.Errorf("%w (rollback: %v)", err, smp.knirvgraph.RevertSkillMinting(skillNode.ID))
 	}
 
-	// 7. Burn NRN on KNIRVORACLE.
+	// 7. Burn NRN on KNIRVORACLE. Steps 7-9 run after the KNIRVCHAIN mint, so a
+	// failure goes through failAfterChainMint (see its doc comment).
 	if err := smp.knirvOracle.BurnNRNForSkill(skillNode); err != nil {
-		return nil, err
+		return nil, smp.failAfterChainMint("burn NRN", skillNode, err)
 	}
 
-	// 8. Distribute rewards.
+	// 8. Distribute rewards: ownership grant, then contributor bounties.
 	if err := smp.distributeSkillRewards(cluster, skillNode); err != nil {
-		return nil, err
+		return nil, smp.failAfterChainMint("reward/ownership/bounty distribution", skillNode, err)
 	}
 
 	// 9. Announce to the network.
 	if err := smp.broadcastSkillConsensus(skillNode); err != nil {
-		return nil, err
+		return nil, smp.failAfterChainMint("announce skill", skillNode, err)
 	}
 
 	return skillNode, nil
+}
+
+// failAfterChainMint turns a failure at a post-chain step (burn, reward and
+// bounty distribution, DHT announce) into the returned error.
+//
+// The KNIRVCHAIN EventBundle cannot be reverted, so the only rollback is the
+// KNIRVGRAPH tower record, which the pre-chain steps roll back the same way.
+// Reversible post-chain steps are undone in reverse order where an undo
+// exists. None does today: KNIRVORACLE exposes no revoke route for the burn,
+// ownership grant or bounty payments, and KNIRVGATEWAY's DHT client has no
+// unannounce. Those effects are therefore left as they are and reported for
+// reconciliation.
+//
+// The returned error names the failed step, the chain bundle, and the
+// transaction, and reports the rollback result in the same "(rollback: ...)"
+// form as the pre-chain cases. A failed rollback is reported with the step
+// error and not swallowed. The failure is also logged at error level.
+func (smp *SkillMintingProtocol) failAfterChainMint(step string, skillNode *SkillNode, cause error) error {
+	rollbackErr := smp.knirvgraph.RevertSkillMinting(skillNode.ID)
+	err := fmt.Errorf("%s failed after KNIRVCHAIN mint (%s; chain bundle not reversible): %w (rollback: %v)",
+		step, chainMintRef(skillNode), cause, rollbackErr)
+	log.Printf("ERROR DRQ: %v", err)
+	return err
+}
+
+// chainMintRef identifies the minted KNIRVCHAIN bundle for reconciliation. The
+// receipt is the one MintCanonicalSkill stored in skillNode.ValidationProof.
+func chainMintRef(skillNode *SkillNode) string {
+	var receipt knirvchainEventBundleReceipt
+	if err := json.Unmarshal(skillNode.ValidationProof, &receipt); err != nil || receipt.TransactionID == "" {
+		return fmt.Sprintf("chain event %s, receipt unreadable", skillNode.ID)
+	}
+	return fmt.Sprintf("chain event %s, bundle %s, tx %s", receipt.EventID, receipt.BundleHash, receipt.TransactionID)
 }
 
 // mintULoRABundle runs the adapter half of the mint: gather the corpus, compile

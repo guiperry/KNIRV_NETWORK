@@ -81,9 +81,32 @@ function toGoJSON(kp: PQCKeyPair, withPrivate: boolean): string {
     status: kp.status,
     kyber_public_key: b64(kp.kyberPublicKeyBytes),
     kyber_private_key: withPrivate ? b64(kp.kyberPrivateKeyBytes) : undefined,
-    dilithium_public_key: b64(kp.dilithiumPublicKeyBytes),
-    dilithium_private_key: withPrivate ? b64(kp.dilithiumPrivateKeyBytes) : undefined,
+    mldsa_public_key: b64(kp.dilithiumPublicKeyBytes),
+    mldsa_private_key: withPrivate ? b64(kp.dilithiumPrivateKeyBytes) : undefined,
   });
+}
+
+// TODO(PI_Q31): remove after the next release (same release as the KNIRVBASE/go
+// and backend_server fallbacks). Pre-rename files carry dilithium_* ML-DSA names;
+// they are read only when the mldsa_* field is absent or identical.
+function resolveLegacyMLDSAField(current: Uint8Array, legacyField: unknown, suffix: string): Uint8Array {
+  const legacy = bufferFromField(legacyField);
+  if (legacy.length === 0) return current;
+  if (current.length === 0) return legacy;
+  if (!bytesEqual(current, legacy)) {
+    throw new Error(
+      `key file has conflicting mldsa_${suffix} and dilithium_${suffix}: refusing to load`
+    );
+  }
+  return current;
+}
+
+function bytesEqual(a: Uint8Array, b: Uint8Array): boolean {
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) {
+    if (a[i] !== b[i]) return false;
+  }
+  return true;
 }
 
 // LoadPQCKeyPair deserializes a key pair from the Go-compatible JSON format.
@@ -96,6 +119,13 @@ export function loadPQCKeyPair(data: string): PQCKeyPair {
         `(want ${KEY_FORMAT} / ${ALGORITHM_SUITE}): generate a new key pair`
     );
   }
+  // TODO(PI_Q31): drop the dilithium_* fallback after the next release.
+  const mldsaPub = resolveLegacyMLDSAField(bufferFromField(j.mldsa_public_key), j.dilithium_public_key, 'public_key');
+  const mldsaPriv = resolveLegacyMLDSAField(
+    bufferFromField(j.mldsa_private_key),
+    j.dilithium_private_key,
+    'private_key'
+  );
   return {
     id: j.id,
     name: j.name,
@@ -106,8 +136,8 @@ export function loadPQCKeyPair(data: string): PQCKeyPair {
     status: j.status,
     kyberPublicKeyBytes: bufferFromField(j.kyber_public_key),
     kyberPrivateKeyBytes: j.kyber_private_key ? bufferFromField(j.kyber_private_key) : undefined,
-    dilithiumPublicKeyBytes: bufferFromField(j.dilithium_public_key),
-    dilithiumPrivateKeyBytes: j.dilithium_private_key ? bufferFromField(j.dilithium_private_key) : undefined,
+    dilithiumPublicKeyBytes: mldsaPub,
+    dilithiumPrivateKeyBytes: mldsaPriv.length ? mldsaPriv : undefined,
   };
 }
 

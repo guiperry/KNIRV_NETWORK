@@ -4,6 +4,7 @@ go 1.24.11
 
 require (
 	github.com/apache/arrow/go/arrow v0.0.0-20211112161151-bc219186db40
+	github.com/knirvcorp/knirvbase v1.0.7
 	github.com/xitongsys/parquet-go v1.6.2
 	github.com/xitongsys/parquet-go-source v0.0.0-20241021075129-b732d2ac9c9b
 	// Keep the gRPC runtime compatible with Arrow's pre-module-split genproto
@@ -17,6 +18,7 @@ require github.com/guiperry/knirv-sdk-go/models v0.0.0
 
 require (
 	github.com/apache/thrift v0.20.0 // indirect
+	github.com/cloudflare/circl v1.6.2 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/google/flatbuffers v24.3.25+incompatible // indirect
 	github.com/guiperry/knirv-sdk-go v0.1.1 // indirect
@@ -39,3 +41,5 @@ replace github.com/guiperry/knirv-sdk-go/models => ../../../KNIRVSDK/go-package/
 exclude google.golang.org/genproto/googleapis/rpc v0.0.0-20260209200024-4cfbd4190f57
 
 replace github.com/guiperry/knirv-sdk-go => ../../../KNIRVSDK/go-package
+
+replace github.com/knirvcorp/knirvbase => ../../../KNIRVBASE/go

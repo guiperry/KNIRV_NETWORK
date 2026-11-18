@@ -30,6 +30,8 @@ import (
 	"data-encoder/pkg/sliding"
 	"data-encoder/pkg/slotpack"
 	"data-encoder/pkg/tokenizer"
+
+	knirvnrv "github.com/knirvcorp/knirvbase/pkg/nrv"
 )
 
 // Config holds the application configuration
@@ -50,6 +52,10 @@ type Config struct {
 	// NEW: Checkpoint and quota configuration
 	QuotaLimit       int  // Maximum embeddings quota (default: 5000)
 	EnableCheckpoint bool // Enable checkpoint/resume functionality
+
+	// trl holds each encoded record's SFT text for writeNRV's TRLSample. It is
+	// run state, not configuration, and is filled by processSingleRecordWithSlidingWindow.
+	trl *trlSide
 }
 
 // batchManifest is the durable hand-off contract between encoder, trainer,
@@ -620,6 +626,7 @@ func runEncoder(config *Config) error {
 	if len(frames) == 0 && frameCount == 0 && cpManager != nil && ctx.Err() == nil {
 		log.Printf("⚠️  Checkpoint resume produced 0 frames; rerunning encoder without checkpoint to rebuild output artifacts")
 		frames = nil
+		config.trl = nil
 		frameCount, err = processInput(nil)
 		if err != nil {
 			return fmt.Errorf("failed to rebuild encoder output without checkpoint: %w", err)
@@ -630,11 +637,12 @@ func runEncoder(config *Config) error {
 		return fmt.Errorf("encoder generated 0 training frames from %s; refusing to overwrite %s with empty output", config.InputFile, config.OutputFile)
 	}
 
-	manifest, err := writeBatchArtifacts(config.OutputFile, frames)
+	manifest, err := writeBatchArtifacts(config.OutputFile, frames, config.trl)
 	if err != nil {
 		return fmt.Errorf("write immutable batch artifacts: %w", err)
 	}
 	log.Printf("💾 Published immutable batch %s (%d frames)", manifest.BatchID, manifest.FrameCount)
+	config.trl.logSummary()
 
 	// Check for processing errors
 	mu.Lock()
@@ -657,7 +665,7 @@ func runEncoder(config *Config) error {
 
 // writeBatchArtifacts creates a complete batch privately, then atomically
 // replaces frames/latest.json. No completed batch file is ever overwritten.
-func writeBatchArtifacts(outputFile string, frames []schema.TrainingFrame) (batchManifest, error) {
+func writeBatchArtifacts(outputFile string, frames []schema.TrainingFrame, trl *trlSide) (batchManifest, error) {
 	framesDir := filepath.Dir(outputFile)
 	createdAt := time.Now().UTC()
 	id := fmt.Sprintf("batch-%s-%d-%d", createdAt.Format("20060102T150405.000000000Z"), os.Getpid(), atomic.AddUint64(&nrvArtifactSequence, 1))
@@ -675,7 +683,7 @@ func writeBatchArtifacts(outputFile string, frames []schema.TrainingFrame) (batc
 	if err := schema.WriteTrainingFramesToArrowIPC(arrowPath, frames); err != nil {
 		return batchManifest{}, err
 	}
-	if err := writeNRV(nrvPath, frames); err != nil {
+	if err := writeNRV(nrvPath, frames, trl); err != nil {
 		return batchManifest{}, err
 	}
 	manifest := batchManifest{
@@ -726,31 +734,93 @@ func writeLatestBatchManifest(framesDir string, manifest batchManifest) error {
 	return os.Rename(tmpName, filepath.Join(framesDir, "latest.json"))
 }
 
-func writeNRV(path string, frames []schema.TrainingFrame) error {
+func writeNRV(path string, frames []schema.TrainingFrame, trl *trlSide) error {
+	owners, err := trl.recordOwners(frames)
+	if err != nil {
+		return err
+	}
 	w, err := nrvio.NewWriter(path)
 	if err != nil {
 		return err
 	}
-	ticker := nrvio.NewFrameTicker(w, time.Second)
-	for _, frame := range frames {
-		b := slotpack.Bracket(frame.GetAsicSlots(), frame.TargetTokenID, frame.WindowStart)
-		if err := ticker.Append(b); err != nil {
+	// One self-contained assertion frame per assertion: the run of consecutive
+	// windows that share the same asserted span, one 80-byte I-bracket each, plus
+	// a uniform FramePayload whose token window is the full asserted span.
+	n := 0
+	for i := 0; i < len(frames); {
+		j := assertionRunEnd(frames, owners, i)
+		group := frames[i:j]
+		brackets := make([]nrvio.Bracket, len(group))
+		for k, frame := range group {
+			brackets[k] = slotpack.Bracket(frame.GetAsicSlots(), frame.TargetTokenID, frame.WindowStart)
+		}
+		// The last window of a run carries the longest span (the whole assertion up
+		// to its final target). Its first token sits at tokenWindowStart(group[0]).
+		p, err := nrvio.AssertionPayload(group[len(group)-1].AssertionSpan, tokenWindowStart(group[0]), len(group))
+		if err != nil {
+			return fmt.Errorf("frame %d: %w", i, err)
+		}
+		if s, ok := trl.text(owners[i]); ok && s.completion != "" {
+			p.TRLSample = &knirvnrv.TRLSamplePayload{Prompt: s.prompt, Completion: s.completion}
+		}
+		if err := w.AppendAssertion(fmt.Sprintf("assertion-%d", n), brackets, p); err != nil {
 			return err
 		}
-	}
-	if err := ticker.Close(); err != nil {
-		return err
+		n++
+		i = j
 	}
 	return w.Close()
+}
+
+// assertionRunEnd returns the exclusive end of the assertion run that starts at
+// frames[i]. A run is consecutive windows of the same record whose asserted spans
+// begin at the same token, capped at nrvio.MaxBracketsPerAssertion. owners gives
+// each frame's record serial, so a run never crosses into another record even
+// when that record has the same SourceFile and ChunkID. A window with no asserted
+// span is a run of its own.
+func assertionRunEnd(frames []schema.TrainingFrame, owners []int64, i int) int {
+	j := i + 1
+	if len(frames[i].AssertionSpan) == 0 {
+		return j
+	}
+	start := assertionStart(frames[i])
+	for j < len(frames) && j-i < nrvio.MaxBracketsPerAssertion {
+		f := frames[j]
+		// WindowEnd must not decrease: the run's last window is taken to carry the
+		// longest span, so a shorter span after a longer one cannot join the run.
+		if len(f.AssertionSpan) == 0 || owners[j] != owners[i] || f.SourceFile != frames[i].SourceFile ||
+			f.ChunkID != frames[i].ChunkID || assertionStart(f) != start ||
+			f.WindowEnd < frames[j-1].WindowEnd {
+			break
+		}
+		j++
+	}
+	return j
+}
+
+// assertionStart is the token index where a window's asserted span begins. The
+// span ends at the window's target (WindowEnd).
+func assertionStart(f schema.TrainingFrame) int32 {
+	return f.WindowEnd - int32(len(f.AssertionSpan)) + 1
+}
+
+// tokenWindowStart is the stream position of the first token of a window's
+// TokenWindow. For a window with a span that is the span's first token; a window
+// without one has no tokens, so it keeps its context start.
+func tokenWindowStart(f schema.TrainingFrame) int32 {
+	if len(f.AssertionSpan) == 0 {
+		return f.WindowStart
+	}
+	return assertionStart(f)
 }
 
 // writeNRVArtifact creates an immutable, per-encoder-run NRV file and then
 // atomically publishes it as the latest artifact.  The JSON and Arrow files
 // remain current-batch hand-offs for existing trainer/seeder consumers; NRV
 // artifacts are retained as the durable binary batch history.
-func writeNRVArtifact(latestPath string, frames []schema.TrainingFrame) (string, error) {
+func writeNRVArtifact(latestPath string, frames []schema.TrainingFrame, trl *trlSide) (string, error) {
 	artifactPath := newNRVArtifactPath(latestPath, time.Now().UTC(), os.Getpid(), atomic.AddUint64(&nrvArtifactSequence, 1))
-	if err := writeNRV(artifactPath, frames); err != nil {
+	if err := writeNRV(artifactPath, frames, trl); err != nil {
 		return "", err
 	}
 	if err := writeNRVLatestManifest(latestPath, artifactPath, len(frames)); err != nil {
@@ -1104,7 +1174,20 @@ func fixJSONContent(content string) (string, bool) {
 	return fixed, original != fixed
 }
 
+// processSingleRecordWithSlidingWindow encodes one record and tags every frame it
+// appends with the record's serial, so the record's SFT text stays attached to
+// its own frames (see trlSide).
 func processSingleRecordWithSlidingWindow(record *schema.MinedRecord, frameCount *int64, tp *mapper.TensorPacker, tk *tokenizer.Service, ew embeddings.EmbeddingService, frames *[]schema.TrainingFrame, config *Config, cpManager *checkpoint.Manager) error {
+	if config.trl == nil {
+		config.trl = newTRLSide()
+	}
+	serial := config.trl.beginRecord(record)
+	err := encodeRecordWindows(record, frameCount, tp, tk, ew, frames, config, cpManager)
+	config.trl.tagFrames(*frames, serial)
+	return err
+}
+
+func encodeRecordWindows(record *schema.MinedRecord, frameCount *int64, tp *mapper.TensorPacker, tk *tokenizer.Service, ew embeddings.EmbeddingService, frames *[]schema.TrainingFrame, config *Config, cpManager *checkpoint.Manager) error {
 	log.Printf("[PROCESS] Starting record %d from %s (content length: %d chars)", record.ChunkID, record.FileName, len(record.Content))
 
 	// Check quota availability before processing

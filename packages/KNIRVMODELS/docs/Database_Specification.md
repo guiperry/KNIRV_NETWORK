@@ -544,16 +544,18 @@ CREATE COLLECTION pqc_keys WITH SCHEMA {
             "minLength": 2400,
             "maxLength": 2400
         },
-        "dilithium_public_key": {
+        "mldsa_public_key": {
             "type": "binary",
             "minLength": 1952,
-            "maxLength": 1952
+            "maxLength": 1952,
+            "note": "Renamed from dilithium_public_key (PI_Q31). Readers accept the legacy name for one release."
         },
-        "dilithium_private_key": {
+        "mldsa_private_key": {
             "type": "binary",
             "encrypted": true,
             "minLength": 4000,
-            "maxLength": 4000
+            "maxLength": 4000,
+            "note": "Renamed from dilithium_private_key (PI_Q31). Readers accept the legacy name for one release."
         },
         "algorithm": {
             "type": "string",
@@ -609,8 +611,8 @@ SET key_name = "master-encryption-key",
     key_purpose = "encryption",
     kyber_public_key = @kyber_public_key,
     kyber_private_key = @kyber_private_key_encrypted,
-    dilithium_public_key = @dilithium_public_key,
-    dilithium_private_key = @dilithium_private_key_encrypted,
+    mldsa_public_key = @mldsa_public_key,
+    mldsa_private_key = @mldsa_private_key_encrypted,
     algorithm = "Kyber-768",
     kdf_salt = @kdf_salt,
     kdf_iterations = 100000,
@@ -1117,7 +1119,7 @@ CREATE INDEX idx_access_control_permissions ON access_control USING GIN(permissi
 **Level 1: Critical (PQC Encrypted):**
 - `credentials.hash` - KDF outputs
 - `pqc_keys.kyber_private_key` - Private keys
-- `pqc_keys.dilithium_private_key` - Private keys
+- `pqc_keys.mldsa_private_key` - Private keys (renamed from `dilithium_private_key` in PI_Q31; readers accept the legacy name for one release)
 
 **Level 2: Sensitive (Database Encryption):**
 - `sessions.token_hash` - Session tokens

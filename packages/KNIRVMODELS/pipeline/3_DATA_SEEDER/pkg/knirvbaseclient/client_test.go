@@ -35,7 +35,10 @@ func TestSubmitNRVOnceRecordsImmutableArtifactReceipt(t *testing.T) {
 	if err := os.MkdirAll(artifactDir, 0755); err != nil {
 		t.Fatal(err)
 	}
-	meta, err := json.Marshal(map[string]interface{}{"version": "3.0", "frames": []interface{}{}})
+	// One frame covers the single bracket: an uncovered bracket is a gap and is refused.
+	meta, err := json.Marshal(map[string]interface{}{"version": "3.0", "frames": []interface{}{
+		map[string]interface{}{"id": "f0", "count": 1, "offset": 0},
+	}})
 	if err != nil {
 		t.Fatal(err)
 	}

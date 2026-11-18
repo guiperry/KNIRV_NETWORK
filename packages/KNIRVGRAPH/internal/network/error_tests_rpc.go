@@ -52,6 +52,18 @@ func writeJSONError(w http.ResponseWriter, status int, msg string) {
 // requireInternalToken reports whether r carries the internal service token.
 // With no token configured every internal call is refused rather than
 // silently allowed.
+// internalTokenOK reports whether r carries the configured internal token. It
+// writes nothing, so a read can serve the full view to the backend and a cut
+// view to everyone else.
+func internalTokenOK(r *http.Request) bool {
+	expected := strings.TrimSpace(os.Getenv("KNIRV_INTERNAL_AUTH_TOKEN"))
+	if expected == "" {
+		return false
+	}
+	got := strings.TrimSpace(r.Header.Get("X-KNIRV-Internal-Token"))
+	return subtle.ConstantTimeCompare([]byte(got), []byte(expected)) == 1
+}
+
 func requireInternalToken(w http.ResponseWriter, r *http.Request) bool {
 	expected := strings.TrimSpace(os.Getenv("KNIRV_INTERNAL_AUTH_TOKEN"))
 	if expected == "" {

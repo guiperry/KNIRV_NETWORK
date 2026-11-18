@@ -97,12 +97,34 @@ func newBaoUnixClient(socket string) *http.Client {
 	}
 }
 
-// readSecretIDFile reads the single-use AppRole secret_id. The file must be owned by the
-// current user (unix; Q56) and private (no group or other permission bits). Ownership and
-// mode are checked on the open handle, so the file checked is the file read. The value is
-// trimmed and never printed.
+// maxSecretIDBytes caps the secret_id file. A larger file is refused, never truncated:
+// a silently cut credential would fail later with a misleading login error.
+const maxSecretIDBytes = 64 << 10
+
+// secretIDOwnerCheck is the owner check used by readSecretIDFile. It is a package variable
+// so tests can exercise the call site without a foreign-owned file (which needs root).
+var secretIDOwnerCheck = checkSecretIDOwner
+
+// secretIDOpenFile is the open step used by readSecretIDFile. It is a package variable so a
+// test can swap the file between the Lstat check and the open (the os.SameFile branch).
+// Production uses openSecretIDFile.
+var secretIDOpenFile = openSecretIDFile
+
+// readSecretIDFile reads the single-use AppRole secret_id. The path must name a regular
+// file: symlinks, FIFOs, devices and directories are refused before the file is opened,
+// so a special file can never block the read. The opened handle must be the same file that
+// was checked, and the owner and mode checks run on that handle, so the file checked is the
+// file read. The file must be no larger than maxSecretIDBytes. The value is trimmed and
+// never printed.
 func readSecretIDFile(path string) (string, error) {
-	f, err := os.Open(path)
+	li, err := os.Lstat(path)
+	if err != nil {
+		return "", fmt.Errorf("stat secret-id file: %w", err)
+	}
+	if !li.Mode().IsRegular() {
+		return "", fmt.Errorf("secret-id file must be a regular file (symlinks and special files are not allowed)")
+	}
+	f, err := secretIDOpenFile(path)
 	if err != nil {
 		return "", fmt.Errorf("open secret-id file: %w", err)
 	}
@@ -111,15 +133,24 @@ func readSecretIDFile(path string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("stat secret-id file: %w", err)
 	}
-	if err := checkSecretIDOwner(fi); err != nil {
+	if !fi.Mode().IsRegular() {
+		return "", fmt.Errorf("secret-id file must be a regular file (symlinks and special files are not allowed)")
+	}
+	if !os.SameFile(li, fi) {
+		return "", fmt.Errorf("secret-id file changed between checks")
+	}
+	if err := secretIDOwnerCheck(fi); err != nil {
 		return "", err
 	}
 	if fi.Mode().Perm()&0o077 != 0 {
 		return "", fmt.Errorf("secret-id file must be mode 0600 or stricter")
 	}
-	raw, err := io.ReadAll(io.LimitReader(f, 1<<16))
+	raw, err := io.ReadAll(io.LimitReader(f, maxSecretIDBytes+1))
 	if err != nil {
 		return "", fmt.Errorf("read secret-id file: %w", err)
+	}
+	if len(raw) > maxSecretIDBytes {
+		return "", fmt.Errorf("secret-id file is larger than %d bytes", maxSecretIDBytes)
 	}
 	secretID := strings.TrimSpace(string(raw))
 	if secretID == "" {

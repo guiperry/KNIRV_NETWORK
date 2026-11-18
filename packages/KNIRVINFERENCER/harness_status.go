@@ -171,3 +171,26 @@ func manifestStatus(ctx context.Context, c *models.Client) *models.ManifestStatu
 	}
 	return &models.ManifestStatus{Version: m.Version, Stages: len(m.Stages), Tools: len(m.Tools), Hash: hex.EncodeToString(h.Sum(nil))}
 }
+
+// MirrorCounters are the mirrored-generation arbitration counters: how often the mirror
+// path ran, who won, and what HASHER said about each candidate. They carry counts only.
+type MirrorCounters struct {
+	Runs                 uint64 `json:"runs"`
+	Arbitrated           uint64 `json:"arbitrated"`
+	WonHead              uint64 `json:"won_head"`
+	WonHeart             uint64 `json:"won_heart"`
+	RefutedCandidates    uint64 `json:"refuted_candidates"`
+	UnverifiedCandidates uint64 `json:"unverified_candidates"`
+	DegradedCandidates   uint64 `json:"degraded_candidates"`
+	NoCandidate          uint64 `json:"no_candidate"`
+	Unavailable          uint64 `json:"unavailable"`
+	NotCached            uint64 `json:"not_cached"`
+	FallbackToRouted     uint64 `json:"fallback_to_routed"`
+}
+
+// MirrorCounters returns a copy of the mirrored-generation counters.
+func (h *Harness) MirrorCounters() MirrorCounters {
+	h.mirrorMu.Lock()
+	defer h.mirrorMu.Unlock()
+	return h.mirrorCounts
+}

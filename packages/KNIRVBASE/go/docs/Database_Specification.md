@@ -522,9 +522,10 @@ CREATE TABLE pqc_keys (
     kyber_public_key    BYTEA NOT NULL,              -- Kyber-768 public key (1184 bytes)
     kyber_private_key   BYTEA NOT NULL,              -- Kyber-768 private key (2400 bytes, encrypted)
 
-    -- Dilithium Digital Signatures
-    dilithium_public_key  BYTEA,                     -- Dilithium-3 public key (1952 bytes)
-    dilithium_private_key BYTEA,                     -- Dilithium-3 private key (4000 bytes, encrypted)
+    -- ML-DSA-65 (FIPS 204) Digital Signatures. Renamed from dilithium_* (PI_Q31).
+    -- Readers accept the legacy dilithium_* names for one release, then they are removed.
+    mldsa_public_key      BYTEA,                     -- ML-DSA-65 public key (1952 bytes)
+    mldsa_private_key     BYTEA,                     -- ML-DSA-65 private key (encrypted)
 
     -- Key Metadata
     algorithm           VARCHAR(50) NOT NULL,        -- Kyber-768, Dilithium-3
@@ -1007,7 +1008,7 @@ CREATE INDEX idx_access_control_permissions ON access_control USING GIN(permissi
 **Level 1: Critical (PQC Encrypted):**
 - `credentials.hash` - KDF outputs
 - `pqc_keys.kyber_private_key` - Private keys
-- `pqc_keys.dilithium_private_key` - Private keys
+- `pqc_keys.mldsa_private_key` - Private keys (`dilithium_private_key` is still encrypted on write for legacy documents during the fallback window)
 
 **Level 2: Sensitive (Database Encryption):**
 - `sessions.token_hash` - Session tokens

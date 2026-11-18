@@ -1,0 +1,80 @@
+=== RUN   TestProcessClusterFullLifecycle
+--- PASS: TestProcessClusterFullLifecycle (0.00s)
+=== RUN   TestProcessClusterRefusesWithoutTrainer
+--- PASS: TestProcessClusterRefusesWithoutTrainer (0.00s)
+=== RUN   TestProcessClusterPropagatesTrainingFailure
+--- PASS: TestProcessClusterPropagatesTrainingFailure (0.00s)
+=== RUN   TestProcessClusterDegradedValidatorBlocksMinting
+--- PASS: TestProcessClusterDegradedValidatorBlocksMinting (0.00s)
+=== RUN   TestProcessClusterPendingValidationMakesNoProgress
+--- PASS: TestProcessClusterPendingValidationMakesNoProgress (0.00s)
+=== RUN   TestProcessClusterUnknownClusterIsAnError
+--- PASS: TestProcessClusterUnknownClusterIsAnError (0.00s)
+=== RUN   TestProcessClusterRoyaltyShortfallDoesNotDoublePayBounty
+--- PASS: TestProcessClusterRoyaltyShortfallDoesNotDoublePayBounty (0.00s)
+=== RUN   TestTrainerIsIdempotentPerCluster
+--- PASS: TestTrainerIsIdempotentPerCluster (0.00s)
+=== RUN   TestDiscoverSkillRejectsUnusableClusters
+=== RUN   TestDiscoverSkillRejectsUnusableClusters/nil_cluster
+=== RUN   TestDiscoverSkillRejectsUnusableClusters/no_cluster_id
+=== RUN   TestDiscoverSkillRejectsUnusableClusters/no_members
+=== RUN   TestDiscoverSkillRejectsUnusableClusters/no_owner
+--- PASS: TestDiscoverSkillRejectsUnusableClusters (0.00s)
+    --- PASS: TestDiscoverSkillRejectsUnusableClusters/nil_cluster (0.00s)
+    --- PASS: TestDiscoverSkillRejectsUnusableClusters/no_cluster_id (0.00s)
+    --- PASS: TestDiscoverSkillRejectsUnusableClusters/no_members (0.00s)
+    --- PASS: TestDiscoverSkillRejectsUnusableClusters/no_owner (0.00s)
+=== RUN   TestGatherClusterDatasetsPropagatesLookupFailure
+--- PASS: TestGatherClusterDatasetsPropagatesLookupFailure (0.00s)
+=== RUN   TestMintSkillFromClusterEndToEnd
+2026/11/17 04:44:04 DRQ: announced skill skill-cluster-e2e-d021a97cc718ce70 to KNIRVGATEWAY DHT
+--- PASS: TestMintSkillFromClusterEndToEnd (0.01s)
+=== RUN   TestErrorClusterInstantiation
+--- PASS: TestErrorClusterInstantiation (0.00s)
+=== RUN   TestGatherClusterDatasets
+--- PASS: TestGatherClusterDatasets (0.00s)
+=== RUN   TestGatherClusterDatasetsSkipsUnresolvedAndFailsWhenEmpty
+--- PASS: TestGatherClusterDatasetsSkipsUnresolvedAndFailsWhenEmpty (0.00s)
+=== RUN   TestTargetModelsForCorpus
+--- PASS: TestTargetModelsForCorpus (0.00s)
+=== RUN   TestTargetModelSpecAcceptsCompleteArchitecture
+--- PASS: TestTargetModelSpecAcceptsCompleteArchitecture (0.00s)
+=== RUN   TestTargetModelSpecRequiresUloraValidatedFields
+--- PASS: TestTargetModelSpecRequiresUloraValidatedFields (0.00s)
+=== RUN   TestTargetModelSpecRejectsBlankFields
+--- PASS: TestTargetModelSpecRejectsBlankFields (0.00s)
+=== RUN   TestTargetModelSpecRejectsNonPositiveDimensions
+--- PASS: TestTargetModelSpecRejectsNonPositiveDimensions (0.00s)
+=== RUN   TestTargetModelsForCorpusRejectsSpecMissingUloraFields
+--- PASS: TestTargetModelsForCorpusRejectsSpecMissingUloraFields (0.00s)
+=== RUN   TestTargetModelsForCorpusAcceptsCompleteSpec
+--- PASS: TestTargetModelsForCorpusAcceptsCompleteSpec (0.00s)
+=== RUN   TestClusterSkillsIntoWorkflowsEmptyAndSingle
+--- PASS: TestClusterSkillsIntoWorkflowsEmptyAndSingle (0.00s)
+=== RUN   TestClusterSkillsIntoWorkflowsGroupsLinkedSkills
+    workflow_cluster_test.go:97: missing workflow with members "A,B"; got [A C]
+--- FAIL: TestClusterSkillsIntoWorkflowsGroupsLinkedSkills (0.00s)
+=== RUN   TestClusterSkillsIntoWorkflowsLinksTransitively
+    workflow_cluster_test.go:128: want one workflow {A,B,C}, got [A,B]
+--- FAIL: TestClusterSkillsIntoWorkflowsLinksTransitively (0.00s)
+=== RUN   TestClusterSkillsIntoWorkflowsIsOrderIndependent
+--- PASS: TestClusterSkillsIntoWorkflowsIsOrderIndependent (0.00s)
+=== RUN   TestWorkflowIDIsDerivedFromMembers
+--- PASS: TestWorkflowIDIsDerivedFromMembers (0.00s)
+=== RUN   TestCompileWorkflowAdapterCallsCompilerWithTargets
+--- PASS: TestCompileWorkflowAdapterCallsCompilerWithTargets (0.00s)
+=== RUN   TestCompileWorkflowAdapterSurfacesCompileError
+--- PASS: TestCompileWorkflowAdapterSurfacesCompileError (0.00s)
+=== RUN   TestCompileWorkflowAdapterSurfacesValidatorError
+--- PASS: TestCompileWorkflowAdapterSurfacesValidatorError (0.00s)
+=== RUN   TestCompileWorkflowAdapterRefusesUnsetParamCountBeforeCompile
+--- PASS: TestCompileWorkflowAdapterRefusesUnsetParamCountBeforeCompile (0.00s)
+=== RUN   TestCompileWorkflowAdapterRequiresCompilerAndValidator
+--- PASS: TestCompileWorkflowAdapterRequiresCompilerAndValidator (0.00s)
+=== RUN   TestCompileWorkflowAdapterRefusesSingleSkillAndEmptyCorpus
+--- PASS: TestCompileWorkflowAdapterRefusesSingleSkillAndEmptyCorpus (0.00s)
+=== RUN   TestTargetModelParamCountIsValidated
+--- PASS: TestTargetModelParamCountIsValidated (0.00s)
+FAIL
+FAIL	KNIRVGRAPH/internal/drq	0.059s
+FAIL

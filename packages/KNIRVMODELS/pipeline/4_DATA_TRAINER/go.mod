@@ -9,6 +9,7 @@ require (
 	github.com/awalterschulze/gographviz v2.0.3+incompatible // indirect
 	github.com/chewxy/hm v1.0.0 // indirect
 	github.com/chewxy/math32 v1.10.1 // indirect
+	github.com/cloudflare/circl v1.6.2 // indirect
 	github.com/dlclark/regexp2 v1.11.5 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
@@ -17,13 +18,14 @@ require (
 	github.com/guiperry/knirv-sdk-go v0.1.1 // indirect
 	github.com/guiperry/knirv-sdk-go/models v0.0.0 // indirect
 	github.com/guiperry/text-embedder v0.1.0
-	github.com/knirvcorp/knirvbase v1.0.7 // indirect
+	github.com/knirvcorp/knirvbase v1.0.7
 	github.com/leesper/go_rng v0.0.0-20190531154944-a612b043e353 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pkoukk/tiktoken-go v0.1.8
 	github.com/tetratelabs/wazero v1.9.0 // indirect
 	github.com/xtgo/set v1.0.0 // indirect
 	go4.org/unsafe/assume-no-moving-gc v0.0.0-20231121144256-b99613f794b6 // indirect
+	golang.org/x/sys v0.41.0 // indirect
 	golang.org/x/xerrors v0.0.0-20220907171357-04be3eba64a2 // indirect
 	gonum.org/v1/gonum v0.17.0 // indirect
 	google.golang.org/protobuf v1.36.11 // indirect

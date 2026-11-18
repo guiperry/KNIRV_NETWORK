@@ -107,7 +107,7 @@ func main() {
 	}
 
 	for _, e := range errors {
-		errorNode, err := nrvSystem.CreateErrorNode(e.errorType, e.description, e.context, e.severity)
+		errorNode, err := nrvSystem.CreateErrorNode(e.errorType, e.description, e.context, e.severity, nil)
 		if err != nil {
 			log.Printf("Failed to create error node: %v", err)
 			continue

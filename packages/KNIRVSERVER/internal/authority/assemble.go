@@ -19,6 +19,7 @@ type AssembleConfig struct {
 	Poster    OraclePoster
 	Bond      uint64
 	BondOwner string
+	HoldID    string
 	// Entropy defaults to the OS CSPRNG.
 	Entropy EntropySource
 	Now     func() time.Time
@@ -98,7 +99,11 @@ func Assemble(ctx context.Context, c AssembleConfig) (*Service, *Anchor) {
 	if c.Poster == nil {
 		return svc, nil
 	}
-	anchor, err := NewAnchor(AnchorConfig{Poster: c.Poster, Signer: id.Signer, Store: store, Bond: c.Bond, BondOwner: c.BondOwner, Now: c.Now, Logf: logf})
+	bond, owner, holdID, exempt := c.Bond, c.BondOwner, c.HoldID, false
+	if id.Kind == KindRoot {
+		bond, owner, holdID, exempt = 0, "", "", true
+	}
+	anchor, err := NewAnchor(AnchorConfig{Poster: c.Poster, Signer: id.Signer, Store: store, Bond: bond, BondOwner: owner, HoldID: holdID, ExemptBond: exempt, Now: c.Now, Logf: logf})
 	if err != nil {
 		logf("WARN authority: anchoring is disabled: %v", err)
 		return svc, nil

@@ -26,7 +26,9 @@ func arenaTest(i int) ErrorTestCase {
 	}
 }
 
-func newStore() *ErrorTestSuiteStore { return NewErrorTestSuiteStore(&memKV{m: map[string][]byte{}}) }
+func newStore() *ErrorTestSuiteStore {
+	return NewErrorTestSuiteStore(&memKV{m: map[string][]byte{}}).WithBracketEncoder(testBracketEncoder{})
+}
 
 func TestContributionsSealAtEight(t *testing.T) {
 	st := newStore()
@@ -141,7 +143,9 @@ func TestReplaceBumpsVersionAndHash(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	tests[0].Expected = "different"
+	// suite_hash covers the 8 brackets, and a bracket encodes the input (not the
+	// expected answer), so the mutation has to change an input.
+	tests[0].Input = "different input"
 	second, err := st.Replace("e1", tests)
 	if err != nil {
 		t.Fatal(err)

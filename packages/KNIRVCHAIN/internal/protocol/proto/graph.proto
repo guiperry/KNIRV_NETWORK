@@ -119,6 +119,25 @@ enum ErrorPriority {
 }
 
 // ---------------------------------------------------------------------------
+// SourceRef records where an ErrorNode was first observed. It holds pointers
+// and digests only: never code, diffs or file contents. project_id, session_id,
+// ref, path and the line range are private; the public view keeps only the
+// digests (diff_digest, workspace hashes). Commit and path fields are optional.
+// Rows persisted before this message existed simply have no source.
+message SourceRef {
+  string project_id = 1;          // repo identity on the gateway git host
+  string session_id = 2;
+  string commit_sha = 3;          // commit the error was observed at (hex)
+  string ref = 4;                 // branch or tag, optional
+  string path = 5;                // repo-relative file, optional
+  uint32 line_start = 6;
+  uint32 line_end = 7;
+  string diff_digest = 8;         // sha256:<hex> of the private diff, never the diff
+  string workspace_base_hash = 9;  // sha256:<hex>
+  string workspace_final_hash = 10; // sha256:<hex>
+}
+
+// ---------------------------------------------------------------------------
 // Canonical node types
 //
 // ErrorNode is THE canonical error node, shared by every package that records,
@@ -200,6 +219,10 @@ message ErrorNode {
   // existing chain-side field; timestamp is the authoritative event time.
   int64 created_at = 25;
   google.protobuf.Timestamp timestamp = 26;
+
+  // Where this node was first observed. Optional; absent on older rows and on
+  // nodes created without a CLI-reported source. See SourceRef.
+  SourceRef source = 27;
 }
 
 // ContextNode is a node attached to an ErrorNode carrying one piece of the

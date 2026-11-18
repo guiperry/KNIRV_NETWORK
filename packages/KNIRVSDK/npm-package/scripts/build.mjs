@@ -11,7 +11,13 @@ const coreAssets = resolve(root, "../core/wasm-modules/assets");
 rmSync(output, { recursive: true, force: true });
 mkdirSync(output, { recursive: true });
 
-execFileSync("wasm-pack", ["build", "wasm-core", "--target", "web", "--release", "--out-dir", "../wasm", "--out-name", "knirv_sdk_core"], { cwd: root, stdio: "inherit" });
+execFileSync("wasm-pack", ["build", "wasm-core", "--target", "web", "--release", "--out-dir", "../wasm", "--out-name", "knirv_sdk_core"], {
+  cwd: root,
+  stdio: "inherit",
+  // The release environment deliberately pins wasm-pack; suppress its
+  // non-actionable update notice so release output contains real diagnostics.
+  env: { ...process.env, WASM_PACK_DISABLE_VERSION_CHECK: "true" },
+});
 // wasm-pack writes `wasm/.gitignore` containing `*`; npm honors it even when
 // package.json explicitly includes wasm/, so remove this generated file.
 rmSync(resolve(output, ".gitignore"), { force: true });

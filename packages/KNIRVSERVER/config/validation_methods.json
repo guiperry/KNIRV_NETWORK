@@ -277,7 +277,7 @@
           ],
           "returns": {
             "type": "string",
-            "description": "Proof string in format 'PROOF_V1:nodeID:sha256Hash'"
+            "description": "Proof string in format 'PROOF_V1:nodeID:unixTimestamp:sha256Hash' (4-part; the timestamp is hashed into the payload)"
           }
         },
         {

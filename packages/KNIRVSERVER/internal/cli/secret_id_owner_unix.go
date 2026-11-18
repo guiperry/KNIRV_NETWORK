@@ -8,6 +8,13 @@ import (
 	"syscall"
 )
 
+// openSecretIDFile opens path without following a final symlink and without blocking on a
+// FIFO or device that may be swapped in after the Lstat check. The caller re-checks the
+// opened handle.
+func openSecretIDFile(path string) (*os.File, error) {
+	return os.OpenFile(path, os.O_RDONLY|syscall.O_NOFOLLOW|syscall.O_NONBLOCK, 0)
+}
+
 // checkSecretIDOwner refuses a secret-id file that the current process user does not
 // own (Q56). A secret_id is a bearer credential: a file planted or re-owned by another
 // account must never be read as ours. fi must come from an open handle (f.Stat), not a

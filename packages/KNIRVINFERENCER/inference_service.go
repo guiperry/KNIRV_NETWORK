@@ -86,6 +86,9 @@ type InferenceService struct {
 	responseCache   []cachedResponse
 	// Chat session management
 	chatSessions *ChatSessions
+	// mirroredGeneration routes default generation through the harness's mirror path
+	// (KNIRV_MIRRORED_GENERATION=1). Read once in NewInferenceService.
+	mirroredGeneration bool
 }
 
 // NewInferenceService creates a new instance of InferenceService.
@@ -100,7 +103,8 @@ func NewInferenceService(db DatabaseAccessor) (*InferenceService, error) {
 			ChunkByTokenCount,                        // Use token count for better splitting
 			WithProcessingMode(SequentialProcessing), // Default to sequential
 		),
-		db: db, // Store the provided database accessor
+		db:                 db, // Store the provided database accessor
+		mirroredGeneration: os.Getenv(envMirroredGeneration) == "1",
 	}, nil
 }
 
@@ -393,6 +397,9 @@ func (s *InferenceService) GenerateTextWithContext(ctx context.Context, modelNam
 
 	// Default (no model, no instruction) requests go through the harness.
 	if modelName == "" && instructionText == "" && harness != nil {
+		if s.mirroredGeneration {
+			return s.generateMirrored(ctx, harness, promptText)
+		}
 		res, tr, err := harness.Do(ctx, Task{Kind: KindGenerate, Input: promptText})
 		if err != nil {
 			return "", err
@@ -417,6 +424,28 @@ func (s *InferenceService) GenerateTextWithContext(ctx context.Context, modelNam
 
 	log.Println("InferenceService: Generation successful via DelegatorService.")
 	return response, nil
+}
+
+// generateMirrored answers a default request through the mirror path. A verified winner
+// is cached; anything else is returned without being cached (see mirror_operator.go).
+// When no mirror candidate survives, the routed chain answers and its output is not
+// cached.
+func (s *InferenceService) generateMirrored(ctx context.Context, h *Harness, promptText string) (string, error) {
+	text, cacheable, err := h.MirrorGenerate(ctx, promptText)
+	if err == nil {
+		if cacheable {
+			s.storeCache(promptText, text)
+		}
+		return text, nil
+	}
+	log.Printf("InferenceService: mirrored generation unavailable (%v); routing to harness", err)
+	h.noteMirrorFallback()
+	res, tr, err := h.Do(ctx, Task{Kind: KindGenerate, Input: promptText})
+	if err != nil {
+		return "", err
+	}
+	log.Printf("InferenceService: harness routed generation to %s (trace %s, mirror fallback)", tr.Chosen, tr.ID)
+	return res.Text, nil
 }
 
 // GenerateTextWithoutContext implements the validation.InferenceClient interface (without context)

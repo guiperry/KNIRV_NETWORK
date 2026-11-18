@@ -125,6 +125,13 @@ func mirrorTieMargin() float64 {
 // no backend, HEART not ready / abstained) contributes no candidate, so a single
 // surviving model wins cleanly.
 func GenerateMirrored(ctx context.Context, c *models.Client, prompt, perceptual string, images []models.ImageRef, frame string, weights map[string]float64) (*MirroredResult, error) {
+	res, _, err := runMirrored(ctx, c, prompt, perceptual, images, frame, weights)
+	return res, err
+}
+
+// runMirrored is GenerateMirrored plus the MirrorTrace, which is returned even when
+// arbitration finds no survivor so the caller can record what each candidate did.
+func runMirrored(ctx context.Context, c *models.Client, prompt, perceptual string, images []models.ImageRef, frame string, weights map[string]float64) (*MirroredResult, *MirrorTrace, error) {
 	// FIX 7: decide first so the HEART candidate is decision-conditioned. A decision
 	// failure degrades gracefully (no envelope sent); HEAD is never given one.
 	env := decideEnvelope(ctx, c, prompt)
@@ -173,7 +180,8 @@ func GenerateMirrored(ctx context.Context, c *models.Client, prompt, perceptual 
 		cands = append(cands, o.cand)
 		trace.Candidates = append(trace.Candidates, o.trace)
 	}
-	return arbitrate(cands, trace)
+	res, err := arbitrate(cands, trace)
+	return res, trace, err
 }
 
 // applyVerification folds a HASHER verdict into a candidate (refutation + derived weight).

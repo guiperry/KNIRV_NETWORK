@@ -20,6 +20,11 @@ type FrameEntry struct {
 	Thermo        ThermodynamicMetadata `json:"thermo"`
 	Z3            Z3Metadata            `json:"z3"`
 	BracketIndex  []BracketIndexEntry   `json:"bracket_index"`
+	// Payload is the frame's encoded KNIRVBASE FramePayload (the uniform 5-field
+	// object from knirvbase/pkg/nrv). It travels inside the JSON registry, so the
+	// bracket section stays a pure run of 80-byte brackets. Nil for frames written
+	// before the payload existed.
+	Payload json.RawMessage `json:"payload,omitempty"`
 }
 
 type LinguisticMetadata struct {

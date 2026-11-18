@@ -6,10 +6,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"math/big"
 	"net/http"
 	"os"
 	"strings"
 	"time"
+
+	knirvsigning "github.com/guiperry/knirv-sdk-go/signing"
 )
 
 // DefaultOracleGatewayURL is the public mainnet KNIRVGATEWAY entry, mirroring
@@ -181,4 +184,97 @@ func (p *Poster) Health(ctx context.Context) error {
 		lastErr = fmt.Errorf("oracle health at %s returned %d", base, resp.StatusCode)
 	}
 	return fmt.Errorf("all oracle health targets failed: %w", lastErr)
+}
+
+
+// OracleStatus is the subset of /oracle/v3/status needed for bond holds.
+type OracleStatus struct {
+	ChainID       string `json:"chain_id"`
+	RootRegistryID string `json:"root_registry_id"`
+}
+
+func (p *Poster) getJSON(ctx context.Context, path string, out any) error {
+	targets := []string{}
+	if p.gatewayURL != "" {
+		targets = append(targets, p.gatewayURL)
+	}
+	if p.baseURL != "" && p.baseURL != p.gatewayURL {
+		targets = append(targets, p.baseURL)
+	}
+	if p.failoverURL != "" && p.failoverURL != p.baseURL && p.failoverURL != p.gatewayURL {
+		targets = append(targets, p.failoverURL)
+	}
+	if DefaultOracleLocalURL != p.baseURL && DefaultOracleLocalURL != p.gatewayURL && DefaultOracleLocalURL != p.failoverURL {
+		targets = append(targets, DefaultOracleLocalURL)
+	}
+	var lastErr error
+	for _, base := range targets {
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, base+path, nil)
+		if err != nil { lastErr = err; continue }
+		resp, err := p.httpClient.Do(req)
+		if err != nil { lastErr = err; continue }
+		body, _ := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
+		resp.Body.Close()
+		if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+			lastErr = fmt.Errorf("GET %s%s: status %d: %s", base, path, resp.StatusCode, strings.TrimSpace(string(body)))
+			continue
+		}
+		if err := json.Unmarshal(body, out); err != nil { lastErr = err; continue }
+		return nil
+	}
+	if lastErr == nil { lastErr = fmt.Errorf("no oracle targets for GET %s", path) }
+	return lastErr
+}
+
+// EnsureBondHold creates the D14 enrolment hold used by bonded authority
+// registration when missing. It is best-effort idempotent: an existing/pending
+// hold is treated as success.
+func (p *Poster) EnsureBondHold(ctx context.Context, signer knirvsigning.RemoteSigner, chainID, holdID string, bond uint64) error {
+	if holdID == "" || bond == 0 || signer == nil {
+		return fmt.Errorf("missing hold parameters")
+	}
+	var st OracleStatus
+	if err := p.getJSON(ctx, "/oracle/v3/status", &st); err != nil {
+		return fmt.Errorf("fetch oracle status: %w", err)
+	}
+	if st.ChainID == "" || st.RootRegistryID == "" {
+		return fmt.Errorf("oracle status missing chain/root registry context")
+	}
+	hold := knirvsigning.BondHold{
+		HoldID:         holdID,
+		Operator:       signer.Address(),
+		Amount:         new(big.Int).SetUint64(bond).String(),
+		RootRegistryID: st.RootRegistryID,
+	}
+	payload, err := json.Marshal(hold)
+	if err != nil {
+		return fmt.Errorf("encode bond hold: %w", err)
+	}
+	now := time.Now().Unix()
+	signed, err := signer.SignMessage(ctx, knirvsigning.MessageEnvelope{
+		Domain:        knirvsigning.RegistryDomain,
+		Purpose:       knirvsigning.PurposeBondHold,
+		ChainID:       st.ChainID,
+		Nonce:         fmt.Sprintf("bond-hold:%s:%d", holdID, now),
+		IssuedAtUnix:  now,
+		ExpiresAtUnix: now + 300,
+		Payload:       payload,
+	})
+	if err != nil {
+		return fmt.Errorf("sign bond hold: %w", err)
+	}
+	sigJSON, err := json.Marshal(signed)
+	if err != nil {
+		return err
+	}
+	body := map[string]any{"hold_id": holdID, "hold": hold, "signature": string(sigJSON)}
+	_, err = p.postJSON(ctx, "/oracle/v3/bond/hold", body)
+	if err == nil {
+		return nil
+	}
+	msg := strings.ToLower(err.Error())
+	if strings.Contains(msg, "already pending") || strings.Contains(msg, "already consumed") || strings.Contains(msg, "already released") || strings.Contains(msg, "already refunded") || strings.Contains(msg, "already exists") {
+		return nil
+	}
+	return err
 }

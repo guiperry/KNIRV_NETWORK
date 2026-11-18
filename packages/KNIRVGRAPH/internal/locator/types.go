@@ -42,6 +42,10 @@ type LocatorUpdate struct {
 // definition, and these are aliases to it.
 type ErrorNode = proto.ErrorNode
 
+// SourceRef is where an ErrorNode was first observed: pointers and digests
+// only, never code or diffs. See source_ref.go.
+type SourceRef = proto.SourceRef
+
 // SkillNode represents a skill that can resolve errors.
 //
 // Deprecated: KNIRVGRAPH's SkillNode is superseded by KNIRVCHAIN's own

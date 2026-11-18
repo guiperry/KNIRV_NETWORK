@@ -72,6 +72,21 @@ func redactString(s string) string {
 	}
 	return s
 }
+
+// RedactText applies the same secret redaction NormalizeBronze runs on every
+// textual leaf. Pipelines that write text outside NormalizeBronze (the data
+// encoder's TRLSample) call it so the same patterns apply.
+func RedactText(s string) string {
+	return redactString(s)
+}
+
+// ContainsSecret reports whether s still matches a secret pattern. Callers that
+// write text outside NormalizeBronze run it after RedactText and drop the record
+// when it reports true, the same fail-closed rule NormalizeBronze applies.
+func ContainsSecret(s string) bool {
+	return containsSecret(s)
+}
+
 func containsSecret(s string) bool {
 	for _, p := range secretPatterns {
 		if p.MatchString(s) {

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strings"
 
 	"ulora/internal/api"
 )
@@ -46,6 +47,11 @@ func FitKindOfBundle(bundleOrDirPath string) (string, error) {
 // It is the single definition of the honesty gate, shared by the compiler, the
 // daemon and the chain-side validator.
 func PublishableFitKind(kind string) error {
+	// Fail closed: an empty kind means the fit cannot be established, so it is
+	// refused rather than published (matches checkPublishableFitKind in KNIRVGRAPH).
+	if strings.TrimSpace(kind) == "" {
+		return fmt.Errorf("fit kind unverifiable: no training.fit_kind declared, cannot be published")
+	}
 	if kind == api.FitKindLinearEmbeddingFit {
 		return fmt.Errorf("fit_kind %s cannot be published: it is a linear embedding fit, not trained LoRA", kind)
 	}

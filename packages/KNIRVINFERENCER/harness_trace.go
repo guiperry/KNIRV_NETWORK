@@ -53,9 +53,15 @@ type Trace struct {
 	Notes     []string   `json:"notes,omitempty"`
 	Fallbacks []Fallback `json:"fallbacks,omitempty"`
 	// Verify is set for a Verify task: what was asked of HASHER and what came back.
-	Verify    *VerifyTrace `json:"verify,omitempty"`
-	LatencyMs float64      `json:"latency_ms"`
-	Error     string       `json:"error,omitempty"`
+	Verify *VerifyTrace `json:"verify,omitempty"`
+	// Mirror is set when a mirrored (HEAD + HEART arbitrated) generation ran: the HEART
+	// decision and the HASHER verification of each candidate. It holds no candidate text.
+	Mirror *MirrorTrace `json:"mirror,omitempty"`
+	// Cached is true when the returned text was written to the response cache. A mirrored
+	// result is cached only when its winner was verified (never REFUTED or unverified).
+	Cached    bool    `json:"cached,omitempty"`
+	LatencyMs float64 `json:"latency_ms"`
+	Error     string  `json:"error,omitempty"`
 }
 
 // VerifyTrace is what a Verify task adds to its Trace. It carries no claim, prompt or

@@ -3509,6 +3509,19 @@ func creditTransactionChainWallet(ctx context.Context, txChainSocketPath, intern
 	return nil
 }
 
+// buildBackendEnv returns the environment for the backend_server child: the inherited
+// entries followed by the launcher-supplied entries, with every KNIRV_BAO_TOKEN removed.
+// The backend authenticates with its own AppRole (wrapped secret-id handoff), so the
+// launcher's ambient admin/bootstrap token must not reach the backend or any grandchild it
+// spawns (Q43). Both input slices are left unmodified. The launcher's own os.Getenv reads
+// are unaffected.
+func buildBackendEnv(inherited []string, launcherEntries ...string) []string {
+	env := make([]string, 0, len(inherited)+len(launcherEntries))
+	env = append(env, inherited...)
+	env = append(env, launcherEntries...)
+	return StripBaoAdminToken(env)
+}
+
 // startBackend starts the embedded unified backend service
 func (app *ServerApp) startBackend() error {
 	if app.config.BackendSocket != "" {
@@ -3564,7 +3577,7 @@ func (app *ServerApp) startBackend() error {
 	// launcher TCP port answers only /health and /version, so it cannot serve /login.
 	// KNIRV_AUTH_PUBLIC_URL still overrides this origin.
 	authPublicURL := authPublicURLFor(publicURL)
-	env := append(os.Environ(),
+	env := buildBackendEnv(os.Environ(),
 		fmt.Sprintf("KNIRV_API_PORT=%d", app.config.BackendPort),
 		fmt.Sprintf("KNIRV_API_SOCKET=%s", app.config.BackendSocket),
 		fmt.Sprintf("KNIRV_API_SOCKET_PATH=%s", app.config.BackendSocket),
@@ -3616,12 +3629,6 @@ func (app *ServerApp) startBackend() error {
 			}
 		}
 	}
-
-	// Q43: the backend authenticates with its own AppRole (wrapped secret-id handoff
-	// above). The launcher's ambient admin/bootstrap token must not reach the backend
-	// or any grandchild it spawns, so drop it from the inherited environment copy.
-	// The launcher's own os.Getenv reads above and below are unaffected.
-	env = StripBaoAdminToken(env)
 
 	// The model harness reads its tuning from the environment. Only explicit
 	// settings are passed so its own defaults apply otherwise.

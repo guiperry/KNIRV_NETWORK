@@ -113,6 +113,9 @@ is_knirv_process() {
     # ps comm is truncated to 15 chars, so the trainer reads back as "heart-decision-".
     # Decide this comm on the trainer test alone, before the generic KNIRV grep below,
     # so heart-decision-wasi is not classed as KNIRV even when its path contains KNIRV.
+    # The comm gate is only a prefix check. The argv[0] basename / exe test below is what
+    # actually protects the trainer; a full-length comm entry in the case list can never
+    # match, so none is kept.
     if [[ "$comm" == "heart-decision-" ]]; then
         local hd_exe hd_argv0
         hd_exe=$(readlink "/proc/$pid/exe" 2>/dev/null || true)

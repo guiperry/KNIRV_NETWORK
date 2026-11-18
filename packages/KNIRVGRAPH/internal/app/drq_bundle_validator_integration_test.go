@@ -4,6 +4,8 @@ import (
 	"context"
 	"net"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -40,9 +42,17 @@ func TestDVEBundleValidatorAgainstRealBackend(t *testing.T) {
 		PollTimeout:  300 * time.Millisecond,
 	}
 
+	// The gate refuses a bundle whose fit kind cannot be established (PI_Q40),
+	// so the fixture declares real gradient training. Otherwise the test would
+	// stop at the gate and never reach the verdict route it exists to prove.
+	manifest := filepath.Join(t.TempDir(), "manifest.json")
+	if err := os.WriteFile(manifest, []byte(`{"training":{"fit_kind":"gradient_sft"}}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
 	err := v.ValidateBundle(context.Background(),
 		&drq.ErrorCluster{ClusterID: "c-bundle", OwnerAgent: "drq-validation"},
-		&drq.ULoRACompileResult{BundleID: "b1", ContentHash: "abc123"},
+		&drq.ULoRACompileResult{BundleID: "b1", ContentHash: "abc123", ManifestPath: manifest},
 		[]drq.ULoRADatasetRecord{{Context: "x"}})
 	if err == nil {
 		t.Fatal("a bundle with no executable validator must not pass the gate")

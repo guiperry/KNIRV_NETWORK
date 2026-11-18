@@ -102,7 +102,7 @@ func TestLocatorSystemCreateErrorNode(t *testing.T) {
 	}
 	severity := 5
 
-	errorNode, err := nrvSystem.CreateErrorNode(errorType, description, context, severity)
+	errorNode, err := nrvSystem.CreateErrorNode(errorType, description, context, severity, nil)
 	if err != nil {
 		t.Fatalf("Failed to create error node: %v", err)
 	}
@@ -284,12 +284,12 @@ func TestLocatorSystemGetAllErrorNodes(t *testing.T) {
 	}
 
 	// Create some error nodes
-	error1, err := nrvSystem.CreateErrorNode("network_error", "Connection failed", map[string]interface{}{"host": "example.com"}, 5)
+	error1, err := nrvSystem.CreateErrorNode("network_error", "Connection failed", map[string]interface{}{"host": "example.com"}, 5, nil)
 	if err != nil {
 		t.Fatalf("Failed to create error1: %v", err)
 	}
 
-	error2, err := nrvSystem.CreateErrorNode("database_error", "Query timeout", map[string]interface{}{"query": "SELECT *"}, 3)
+	error2, err := nrvSystem.CreateErrorNode("database_error", "Query timeout", map[string]interface{}{"query": "SELECT *"}, 3, nil)
 	if err != nil {
 		t.Fatalf("Failed to create error2: %v", err)
 	}

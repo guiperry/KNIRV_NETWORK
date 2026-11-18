@@ -38,7 +38,7 @@ func TestErrorNodesWriteNewPrefixAndReadLegacyFallback(t *testing.T) {
 		t.Fatalf("legacy row must load through the fallback, got %d nodes", n)
 	}
 
-	fresh, err := sys.CreateErrorNode("leak", "new", map[string]interface{}{"file": "a.go"}, 2)
+	fresh, err := sys.CreateErrorNode("leak", "new", map[string]interface{}{"file": "a.go"}, 2, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

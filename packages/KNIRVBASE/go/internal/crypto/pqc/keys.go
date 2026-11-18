@@ -1,6 +1,7 @@
 package pqc
 
 import (
+	"bytes"
 	"crypto/rand"
 	"encoding/json"
 	"fmt"
@@ -43,10 +44,24 @@ type PQCKeyPair struct {
 	DilithiumPrivateKey sign.PrivateKey `json:"-"`
 
 	// Marshaled versions for storage
-	KyberPublicKeyBytes      []byte `json:"kyber_public_key"`
-	KyberPrivateKeyBytes     []byte `json:"kyber_private_key,omitempty"` // encrypted in storage
+	KyberPublicKeyBytes  []byte `json:"kyber_public_key"`
+	KyberPrivateKeyBytes []byte `json:"kyber_private_key,omitempty"` // encrypted in storage
+	// ML-DSA key JSON names. The Go field names keep the historical
+	// "Dilithium" spelling; only the wire/storage names changed to mldsa_*.
+	DilithiumPublicKeyBytes  []byte `json:"mldsa_public_key,omitempty"`
+	DilithiumPrivateKeyBytes []byte `json:"mldsa_private_key,omitempty"` // encrypted in storage
+}
+
+// legacyDilithiumKeyFields carries the pre-rename ML-DSA JSON names
+// (dilithium_public_key / dilithium_private_key). It is read only by
+// LoadPQCKeyPair as a fallback and is never written.
+//
+// TODO(PI_Q31): remove after the next release, together with the fallback in
+// LoadPQCKeyPair and the "dilithium_private_key" entry in storage's
+// sensitive-field list.
+type legacyDilithiumKeyFields struct {
 	DilithiumPublicKeyBytes  []byte `json:"dilithium_public_key,omitempty"`
-	DilithiumPrivateKeyBytes []byte `json:"dilithium_private_key,omitempty"` // encrypted in storage
+	DilithiumPrivateKeyBytes []byte `json:"dilithium_private_key,omitempty"`
 }
 
 // GeneratePQCKeyPair generates a new PQC key pair with both Kyber and Dilithium keys
@@ -139,7 +154,29 @@ func LoadPQCKeyPair(data []byte) (*PQCKeyPair, error) {
 		kp.KyberPrivateKey = privKey
 	}
 
-	// Unmarshal Dilithium keys
+	// TODO(PI_Q31): remove after the next release. Pre-rename files carry
+	// dilithium_* names; read them only when the mldsa_* field is absent. If
+	// both are present and differ, refuse rather than guess which is current.
+	var legacy legacyDilithiumKeyFields
+	if err := json.Unmarshal(data, &legacy); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal legacy ML-DSA fields: %w", err)
+	}
+	if len(legacy.DilithiumPublicKeyBytes) > 0 {
+		if len(kp.DilithiumPublicKeyBytes) == 0 {
+			kp.DilithiumPublicKeyBytes = legacy.DilithiumPublicKeyBytes
+		} else if !bytes.Equal(kp.DilithiumPublicKeyBytes, legacy.DilithiumPublicKeyBytes) {
+			return nil, fmt.Errorf("key file has conflicting mldsa_public_key and dilithium_public_key: refusing to load")
+		}
+	}
+	if len(legacy.DilithiumPrivateKeyBytes) > 0 {
+		if len(kp.DilithiumPrivateKeyBytes) == 0 {
+			kp.DilithiumPrivateKeyBytes = legacy.DilithiumPrivateKeyBytes
+		} else if !bytes.Equal(kp.DilithiumPrivateKeyBytes, legacy.DilithiumPrivateKeyBytes) {
+			return nil, fmt.Errorf("key file has conflicting mldsa_private_key and dilithium_private_key: refusing to load")
+		}
+	}
+
+	// Unmarshal ML-DSA keys
 	if len(kp.DilithiumPublicKeyBytes) > 0 {
 		pubKey, err := UnmarshalDilithiumPublicKey(kp.DilithiumPublicKeyBytes)
 		if err != nil {

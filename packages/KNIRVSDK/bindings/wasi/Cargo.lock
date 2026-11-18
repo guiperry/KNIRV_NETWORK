@@ -577,7 +577,7 @@ dependencies = [
 
 [[package]]
 name = "knirv-sdk"
-version = "0.2.2"
+version = "0.2.1"
 dependencies = [
  "aes",
  "aes-gcm",
@@ -601,7 +601,7 @@ dependencies = [
 
 [[package]]
 name = "knirv-sdk-wasi"
-version = "0.2.2"
+version = "0.2.1"
 dependencies = [
  "knirv-sdk",
 ]

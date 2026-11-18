@@ -79,7 +79,7 @@ func TestLocatorSystem(t *testing.T) {
 		}
 		severity := 3
 
-		errorNode, err := nrvSystem.CreateErrorNode(errorType, description, context, severity)
+		errorNode, err := nrvSystem.CreateErrorNode(errorType, description, context, severity, nil)
 		if err != nil {
 			t.Fatalf("Failed to create error node: %v", err)
 		}

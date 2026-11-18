@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "source_digest": "c605a5d6a0ef3a8a131a00beb90b2e30610b2e7fab0ff78c924f74c52346efbe",
+  "source_digest": "a7dd79a574bf1571ae421ad01e34688d842b5474a1c116382ea218778b940634",
   "modules": [
     {
       "id": "controller-relay",
@@ -18,8 +18,8 @@
       "artifact_version": "2.0.0",
       "module_kind": "crypto",
       "abi_version": 1,
-      "byte_length": 394114,
-      "sha256": "99c8f1281fe07f094acc7a87b2f84d456ddbd970bf66978d3a09d6080816deca",
+      "byte_length": 394098,
+      "sha256": "8308d91067ca5f43dcada2df11584161bd68d95345821c2bf6b58a129f58c45c",
       "capabilities": [
         "crypto.vault"
       ]

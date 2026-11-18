@@ -1,29 +1,23 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuites name="jest tests" tests="12" failures="0" errors="0" time="28.682">
-  <testsuite name="headTokenizer" errors="0" failures="0" skipped="0" timestamp="2026-11-14T16:18:05" time="11.471" tests="12">
-    <testcase classname="headTokenizer round-trips text and quantises samples" name="headTokenizer round-trips text and quantises samples" time="0.048">
+<testsuites name="jest tests" tests="9" failures="0" errors="0" time="3.475">
+  <testsuite name="dveMembershipClient" errors="0" failures="0" skipped="0" timestamp="2026-11-16T14:44:01" time="2.042" tests="9">
+    <testcase classname="dveMembershipClient builds the per-DVE path and encodes the id" name="dveMembershipClient builds the per-DVE path and encodes the id" time="0.02">
     </testcase>
-    <testcase classname="sha256Hex matches the known digest of &quot;abc&quot;" name="sha256Hex matches the known digest of &quot;abc&quot;" time="0.076">
+    <testcase classname="dveMembershipClient GETs the membership with the session token and returns the entries" name="dveMembershipClient GETs the membership with the session token and returns the entries" time="0.021">
     </testcase>
-    <testcase classname="HEADBridge refuses to run before initialize" name="HEADBridge refuses to run before initialize" time="0.026">
+    <testcase classname="dveMembershipClient omits the Authorization header when no token is stored" name="dveMembershipClient omits the Authorization header when no token is stored" time="0.01">
     </testcase>
-    <testcase classname="HEADBridge runs the loaded model and maps real outputs, with no mock path" name="HEADBridge runs the loaded model and maps real outputs, with no mock path" time="0.038">
+    <testcase classname="dveMembershipClient maps HTTP 404 to not_found" name="dveMembershipClient maps HTTP 404 to not_found" time="0.011">
     </testcase>
-    <testcase classname="HEADBridge uses byte tokens for voice/visual data" name="HEADBridge uses byte tokens for voice/visual data" time="0.018">
+    <testcase classname="dveMembershipClient maps HTTP 403 to forbidden" name="dveMembershipClient maps HTTP 403 to forbidden" time="0.009">
     </testcase>
-    <testcase classname="HEADBridge falls back to the server when no model loads, and reports server as the source" name="HEADBridge falls back to the server when no model loads, and reports server as the source" time="0.025">
+    <testcase classname="dveMembershipClient maps HTTP 401 to forbidden" name="dveMembershipClient maps HTTP 401 to forbidden" time="0.016">
     </testcase>
-    <testcase classname="HEADBridge throws HEADUnavailableError rather than inventing output when the server also fails" name="HEADBridge throws HEADUnavailableError rather than inventing output when the server also fails" time="0.023">
+    <testcase classname="dveMembershipClient maps HTTP 503 to unavailable" name="dveMembershipClient maps HTTP 503 to unavailable" time="0.007">
     </testcase>
-    <testcase classname="HEADBridge does not use a model whose tokenizer the browser cannot run" name="HEADBridge does not use a model whose tokenizer the browser cannot run" time="0.02">
+    <testcase classname="dveMembershipClient rejects a body without error_nodes" name="dveMembershipClient rejects a body without error_nodes" time="0.035">
     </testcase>
-    <testcase classname="HEADBridge requires sign-in for server reasoning" name="HEADBridge requires sign-in for server reasoning" time="0.142">
-    </testcase>
-    <testcase classname="HEADBridge destroy disposes the engine" name="HEADBridge destroy disposes the engine" time="0.022">
-    </testcase>
-    <testcase classname="HEADBridge adapters (uLoRA) merges into the verified base weights and can remove the adapter again" name="HEADBridge adapters (uLoRA) merges into the verified base weights and can remove the adapter again" time="0.02">
-    </testcase>
-    <testcase classname="HEADBridge adapters (uLoRA) refuses an adapter bound for a different model version, and one with no local model" name="HEADBridge adapters (uLoRA) refuses an adapter bound for a different model version, and one with no local model" time="0.015">
+    <testcase classname="dveMembershipClient refuses an empty DVE id before any request" name="dveMembershipClient refuses an empty DVE id before any request" time="0.017">
     </testcase>
   </testsuite>
 </testsuites>

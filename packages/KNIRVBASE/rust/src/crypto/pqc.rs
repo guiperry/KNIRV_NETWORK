@@ -75,8 +75,19 @@ impl PQCKeyPair {
     }
 
     /// Deserialize a key pair from JSON bytes. Mirrors Go's `LoadPQCKeyPair`.
+    ///
+    /// TODO(PI_Q31): remove the `dilithium_*` fallback after the next release
+    /// (same release as the Go and backend_server fallbacks). Pre-rename files
+    /// carry `dilithium_*` ML-DSA names; they are read only when the `mldsa_*`
+    /// field is empty or identical. Conflicting values are refused.
     pub fn load(data: &[u8]) -> Result<Self, Box<dyn std::error::Error + Send + Sync>> {
-        Ok(serde_json::from_slice(data)?)
+        let mut kp: PQCKeyPair = serde_json::from_slice(data)?;
+        let legacy: LegacyMldsaFields = serde_json::from_slice(data)?;
+        kp.mldsa_public_key_bytes =
+            resolve_legacy_mldsa_field(kp.mldsa_public_key_bytes, legacy.dilithium_public_key, "public_key")?;
+        kp.mldsa_private_key_bytes =
+            resolve_legacy_mldsa_field(kp.mldsa_private_key_bytes, legacy.dilithium_private_key, "private_key")?;
+        Ok(kp)
     }
 
     /// Serialize the key pair to JSON without private key bytes.
@@ -190,6 +201,39 @@ impl PQCKeyPair {
     pub fn is_active(&self) -> bool {
         self.status == "active" && !self.is_expired()
     }
+}
+
+/// Read-only view of the pre-rename ML-DSA JSON names. Never written.
+/// TODO(PI_Q31): remove together with the fallback in `PQCKeyPair::load`.
+#[derive(Deserialize, Default)]
+struct LegacyMldsaFields {
+    #[serde(default)]
+    dilithium_public_key: Vec<u8>,
+    #[serde(default)]
+    dilithium_private_key: Vec<u8>,
+}
+
+/// Use the legacy `dilithium_*` value only when the `mldsa_*` value is empty;
+/// refuse if both are present and differ.
+fn resolve_legacy_mldsa_field(
+    current: Vec<u8>,
+    legacy: Vec<u8>,
+    suffix: &str,
+) -> Result<Vec<u8>, Box<dyn std::error::Error + Send + Sync>> {
+    if legacy.is_empty() {
+        return Ok(current);
+    }
+    if current.is_empty() {
+        return Ok(legacy);
+    }
+    if current != legacy {
+        return Err(format!(
+            "key file has conflicting mldsa_{} and dilithium_{}: refusing to load",
+            suffix, suffix
+        )
+        .into());
+    }
+    Ok(current)
 }
 
 /// EncryptionManager manages PQC encryption for sensitive data.
@@ -405,28 +449,61 @@ mod tests {
     }
 
     #[test]
-    fn test_legacy_dilithium_key_json_loads_with_empty_mldsa_fields() {
+    fn test_legacy_dilithium_key_json_loads_into_mldsa_fields() {
         // Key JSON written before the Dilithium -> ML-DSA-65 rename carries
-        // `dilithium_*` fields and no `mldsa_*` fields. It must still load,
-        // with the ML-DSA fields empty, and must not verify anything.
+        // `dilithium_*` ML-DSA fields and no `mldsa_*` fields. It must load the
+        // values into the ML-DSA fields (PI_Q31 read fallback).
         let kp = PQCKeyPair::generate("legacy".to_string(), "signature".to_string()).unwrap();
         let mut value = serde_json::to_value(&kp).unwrap();
         let obj = value.as_object_mut().unwrap();
         obj.remove("mldsa_public_key");
         obj.remove("mldsa_private_key");
-        obj.insert("dilithium_public_key".to_string(), serde_json::json!([1, 2, 3]));
-        obj.insert("dilithium_private_key".to_string(), serde_json::json!([4, 5, 6]));
+        obj.insert("dilithium_public_key".to_string(), serde_json::json!(kp.mldsa_public_key_bytes));
+        obj.insert("dilithium_private_key".to_string(), serde_json::json!(kp.mldsa_private_key_bytes));
         let legacy_bytes = serde_json::to_vec(&value).unwrap();
 
         let loaded = PQCKeyPair::load(&legacy_bytes).unwrap();
         assert_eq!(loaded.id, kp.id);
-        assert!(loaded.mldsa_public_key_bytes.is_empty());
-        assert!(loaded.mldsa_private_key_bytes.is_empty());
+        assert_eq!(loaded.mldsa_public_key_bytes, kp.mldsa_public_key_bytes);
+        assert_eq!(loaded.mldsa_private_key_bytes, kp.mldsa_private_key_bytes);
         // Kyber fields survive the load.
         assert_eq!(loaded.kyber_public_key_bytes, kp.kyber_public_key_bytes);
-        // With no ML-DSA key the loaded pair neither signs nor verifies.
-        assert!(loaded.sign(b"m").is_err());
-        let sig = kp.sign(b"m").unwrap();
-        assert!(!loaded.verify(b"m", &sig));
+        // The loaded ML-DSA key signs and verifies like the original.
+        let sig = loaded.sign(b"m").unwrap();
+        assert!(kp.verify(b"m", &sig));
+    }
+
+    #[test]
+    fn test_legacy_dilithium_conflicting_values_are_refused() {
+        // Both names present with different values: refuse, do not guess.
+        let kp = PQCKeyPair::generate("conflict".to_string(), "signature".to_string()).unwrap();
+        let other = PQCKeyPair::generate("other".to_string(), "signature".to_string()).unwrap();
+        let mut value = serde_json::to_value(&kp).unwrap();
+        let obj = value.as_object_mut().unwrap();
+        obj.insert("dilithium_private_key".to_string(), serde_json::json!(other.mldsa_private_key_bytes));
+        let bytes = serde_json::to_vec(&value).unwrap();
+        assert!(PQCKeyPair::load(&bytes).is_err());
+    }
+
+    #[test]
+    fn test_legacy_and_mldsa_identical_loads() {
+        // Both present and identical: loads.
+        let kp = PQCKeyPair::generate("equal".to_string(), "signature".to_string()).unwrap();
+        let mut value = serde_json::to_value(&kp).unwrap();
+        let obj = value.as_object_mut().unwrap();
+        obj.insert("dilithium_public_key".to_string(), serde_json::json!(kp.mldsa_public_key_bytes));
+        obj.insert("dilithium_private_key".to_string(), serde_json::json!(kp.mldsa_private_key_bytes));
+        let bytes = serde_json::to_vec(&value).unwrap();
+        let loaded = PQCKeyPair::load(&bytes).unwrap();
+        assert_eq!(loaded.mldsa_private_key_bytes, kp.mldsa_private_key_bytes);
+    }
+
+    #[test]
+    fn test_writer_emits_mldsa_names_only() {
+        let kp = PQCKeyPair::generate("writer".to_string(), "signature".to_string()).unwrap();
+        let s = String::from_utf8(kp.marshal_with_private_keys().unwrap()).unwrap();
+        assert!(s.contains("\"mldsa_public_key\""));
+        assert!(s.contains("\"mldsa_private_key\""));
+        assert!(!s.contains("dilithium_"));
     }
 }

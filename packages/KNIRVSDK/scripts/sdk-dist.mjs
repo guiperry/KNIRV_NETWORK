@@ -20,7 +20,7 @@
 // the mismatch when run from any other path.
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -127,21 +127,38 @@ function stampModules(replaceBytes = false) {
 // crate's manifest, lockfile and sources (target/ excluded), and the rustc
 // that compiles them. A stamp records this; `check` fails when it no longer
 // matches, so the tracked bytes can only drift together with a recorded change.
+// The module crates depend on the parent knirv-sdk crate by path (core/), so
+// their inputs are not all under their own directory. rustc's dep-info file
+// (written by each build) lists every file a module's compile actually read,
+// including the path-dependency sources and include_str! data. We hash those
+// files, plus both Cargo manifests and lockfiles, so any input change moves
+// the digest. Requires a built module (`modules` or `sync-modules`).
+function moduleDepInfoPath(m) {
+  const artifact = m.artifact.replace(/\.wasm$/, ".d").replace(/-/g, "_");
+  return resolve(modulesDir, m.crate, "target/wasm32-unknown-unknown/release", artifact);
+}
+
+function depInfoFiles(depPath) {
+  if (!existsSync(depPath)) {
+    throw new Error(`missing dep-info ${depPath}: build the modules first (node scripts/sdk-dist.mjs modules)`);
+  }
+  const text = readFileSync(depPath, "utf8").replace(/\\\r?\n/g, " ");
+  const body = text.slice(text.indexOf(": ") + 2);
+  return body.trim().split(/(?<!\\)\s+/).map((s) => s.replace(/\\ /g, " ")).filter(Boolean);
+}
+
 function moduleSourceDigest() {
   const { modules } = JSON.parse(readFileSync(p("core/wasm-modules/modules.json"), "utf8"));
+  const files = new Set([p("core/Cargo.toml"), p("core/Cargo.lock"), p("core/wasm-modules/modules.json")]);
+  for (const m of modules) {
+    files.add(resolve(modulesDir, m.crate, "Cargo.toml"));
+    files.add(resolve(modulesDir, m.crate, "Cargo.lock"));
+    for (const f of depInfoFiles(moduleDepInfoPath(m))) files.add(f);
+  }
   const h = createHash("sha256");
-  h.update(readFileSync(p("core/wasm-modules/modules.json")));
-  const walk = (dir, rel) => {
-    for (const name of readdirSync(dir).sort()) {
-      if (name === "target") continue;
-      const full = resolve(dir, name);
-      const r = `${rel}/${name}`;
-      if (statSync(full).isDirectory()) walk(full, r);
-      else h.update(`${r}\0`).update(readFileSync(full)).update("\0");
-    }
-  };
-  for (const m of [...modules].sort((a, b) => a.id.localeCompare(b.id))) {
-    walk(resolve(modulesDir, m.crate), m.crate);
+  for (const f of [...files].sort()) {
+    const rel = f.startsWith(`${root}/`) ? f.slice(root.length + 1) : f;
+    h.update(`${rel}\0`).update(readFileSync(f)).update("\0");
   }
   h.update(`rustc=${capture("rustc", ["--version"])}`);
   return h.digest("hex");

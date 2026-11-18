@@ -46,7 +46,8 @@ func newStandbyProvider(ctx context.Context) (secrets.Provider, error) {
 	if roleID == "" {
 		return nil, fmt.Errorf("standby: %s is not set", envStandbyRoleID)
 	}
-	secretID, err := readStandbySecretID(strings.TrimSpace(os.Getenv(envStandbySecretIDFile)))
+	secretIDPath := strings.TrimSpace(os.Getenv(envStandbySecretIDFile))
+	secretID, readInfo, err := readStandbySecretIDFile(secretIDPath)
 	if err != nil {
 		return nil, err
 	}
@@ -54,55 +55,111 @@ func newStandbyProvider(ctx context.Context) (secrets.Provider, error) {
 	if err != nil {
 		return nil, err
 	}
+	// Q47: the secret_id is single-use. Once login has consumed it, delete the file so no
+	// reusable copy stays on disk. Same policy as the enroll path: if the delete fails,
+	// the token is revoked and the standby does not start.
+	if err := removeConsumedSecretIDFile(secretIDPath, readInfo); err != nil {
+		revokeCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+		if rerr := standbyRevokeToken(revokeCtx, socket, token); rerr != nil {
+			return nil, fmt.Errorf("standby: remove secret-id file after login: %w (revoke failed: %v)", err, rerr)
+		}
+		return nil, fmt.Errorf("standby: remove secret-id file after login: %w", err)
+	}
 	return secrets.NewBaoProvider(socket, token), nil
 }
 
+// maxStandbySecretIDBytes caps the secret-id file, the same 64 KiB rule as the KNIRVSERVER
+// enroll reader. A larger file is refused, never truncated.
+const maxStandbySecretIDBytes = 64 << 10
+
 // standbyOpenFile is a seam for the open step so tests can simulate a swap between the
-// Lstat check and the open (the os.SameFile branch). Production uses os.Open.
-var standbyOpenFile = os.Open
+// Lstat check and the open (the os.SameFile branch). Production uses
+// openStandbySecretIDFile, which never blocks on a FIFO or device (see the unix and
+// non-unix files).
+var standbyOpenFile = openStandbySecretIDFile
 
 // readStandbySecretID reads the single-use secret ID from a file that must be a
 // regular file accessible only by its owner (mode 0600 or stricter). Symlinks are
 // rejected: the check uses Lstat, and after open the opened file must be the same
 // file that was checked. The value is never logged or included in errors.
 //
-// The file is not deleted here. Whether the launcher or the standby removes it after
-// login is an owner decision and is not implemented.
+// The file is deleted by newStandbyProvider after a successful AppRole login (Q47),
+// not here: this function only reads. A refused login leaves the file in place, as on
+// the enroll path.
 func readStandbySecretID(path string) (string, error) {
+	secretID, _, err := readStandbySecretIDFile(path)
+	return secretID, err
+}
+
+// readStandbySecretIDFile is readStandbySecretID that also returns the FileInfo of the
+// inode it read (the opened handle). newStandbyProvider passes that info to
+// removeConsumedSecretIDFile so the delete targets the file that was read.
+//
+// Owner and mode are checked on the opened handle, after SameFile, the same order as the
+// enroll reader (internal/cli/bao_approle.go). The Lstat check only confirms a regular file.
+func readStandbySecretIDFile(path string) (string, os.FileInfo, error) {
 	if path == "" {
-		return "", fmt.Errorf("standby: %s is not set", envStandbySecretIDFile)
+		return "", nil, fmt.Errorf("standby: %s is not set", envStandbySecretIDFile)
 	}
+	notRegular := errors.New("standby: secret-id file must be a regular file (symlinks and special files are not allowed)")
 	info, err := os.Lstat(path)
 	if err != nil {
-		return "", fmt.Errorf("standby: stat secret-id file: %w", err)
+		return "", nil, fmt.Errorf("standby: stat secret-id file: %w", err)
 	}
-	if !info.Mode().IsRegular() || info.Mode().Perm()&0o077 != 0 {
-		return "", errors.New("standby: secret-id file must be a regular file accessible only by its owner (mode 0600 or stricter), symlinks not allowed")
-	}
-	if err := checkSecretIDOwner(info); err != nil {
-		return "", err
+	if !info.Mode().IsRegular() {
+		return "", nil, notRegular
 	}
 	f, err := standbyOpenFile(path)
 	if err != nil {
-		return "", fmt.Errorf("standby: open secret-id file: %w", err)
+		return "", nil, fmt.Errorf("standby: open secret-id file: %w", err)
 	}
 	defer f.Close()
 	opened, err := f.Stat()
 	if err != nil {
-		return "", fmt.Errorf("standby: stat opened secret-id file: %w", err)
+		return "", nil, fmt.Errorf("standby: stat opened secret-id file: %w", err)
+	}
+	if !opened.Mode().IsRegular() {
+		return "", nil, notRegular
 	}
 	if !os.SameFile(info, opened) {
-		return "", errors.New("standby: secret-id file changed between checks")
+		return "", nil, errors.New("standby: secret-id file changed between checks")
 	}
-	raw, err := io.ReadAll(f)
+	if err := checkSecretIDOwner(opened); err != nil {
+		return "", nil, err
+	}
+	if opened.Mode().Perm()&0o077 != 0 {
+		return "", nil, errors.New("standby: secret-id file must be mode 0600 or stricter")
+	}
+	raw, err := io.ReadAll(io.LimitReader(f, maxStandbySecretIDBytes+1))
 	if err != nil {
-		return "", fmt.Errorf("standby: read secret-id file: %w", err)
+		return "", nil, fmt.Errorf("standby: read secret-id file: %w", err)
+	}
+	if len(raw) > maxStandbySecretIDBytes {
+		return "", nil, fmt.Errorf("standby: secret-id file is larger than %d bytes", maxStandbySecretIDBytes)
 	}
 	secretID := strings.TrimSpace(string(raw))
 	if secretID == "" {
-		return "", errors.New("standby: secret-id file is empty")
+		return "", nil, errors.New("standby: secret-id file is empty")
 	}
-	return secretID, nil
+	return secretID, opened, nil
+}
+
+// removeConsumedSecretIDFile deletes the secret-id file after login, but only if the path
+// still names the inode that was read. If the path was replaced after the read, nothing is
+// removed and an error is returned, so the file that was not read is not deleted.
+//
+// Residual window: this is a path-based remove, so a swap between the Lstat here and the
+// os.Remove is not closed. Closing it fully needs unlinkat on a directory handle.
+func removeConsumedSecretIDFile(path string, readInfo os.FileInfo) error {
+	cur, err := os.Lstat(path)
+	if err != nil {
+		return err
+	}
+	if readInfo == nil || !os.SameFile(readInfo, cur) {
+		return errors.New("secret-id file changed after it was read; not removed")
+	}
+	return os.Remove(path)
 }
 
 // standbyAppRoleLogin exchanges role_id and secret_id for a client token over the
@@ -145,6 +202,35 @@ func standbyAppRoleLogin(ctx context.Context, socket, roleID, secretID string) (
 		return "", errors.New("standby: approle login returned an empty token")
 	}
 	return out.Auth.ClientToken, nil
+}
+
+// standbyRevokeToken revokes the token obtained by standbyAppRoleLogin (auth/token/
+// revoke-self). It is used when the run must abort after a login, so the credential does
+// not outlive the failed start. Error text carries the HTTP status only.
+func standbyRevokeToken(ctx context.Context, socket, token string) error {
+	client := &http.Client{
+		Timeout: 15 * time.Second,
+		Transport: &http.Transport{
+			DialContext: func(ctx context.Context, _, _ string) (net.Conn, error) {
+				return (&net.Dialer{}).DialContext(ctx, "unix", socket)
+			},
+		},
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, "http://openbao/v1/auth/token/revoke-self", nil)
+	if err != nil {
+		return fmt.Errorf("standby: build token revoke: %w", err)
+	}
+	req.Header.Set("X-Vault-Token", token)
+	resp, err := client.Do(req)
+	if err != nil {
+		return fmt.Errorf("standby: revoke token transport: %w", err)
+	}
+	defer resp.Body.Close()
+	_, _ = io.Copy(io.Discard, io.LimitReader(resp.Body, 1<<20))
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return fmt.Errorf("standby: revoke token: HTTP %d", resp.StatusCode)
+	}
+	return nil
 }
 
 // standbyReplicationSignerName is the provider identity name for replication pulls.

@@ -68,7 +68,12 @@ func TestPublishableFitKind(t *testing.T) {
 	if err := PublishableFitKind(api.FitKindGradientSFT); err != nil {
 		t.Fatalf("gradient_sft must be publishable: %v", err)
 	}
-	if err := PublishableFitKind(""); err != nil {
-		t.Fatalf("unknown kind is left to the caller: %v", err)
+	// Fail closed: an empty fit kind cannot be established, so it is refused.
+	for _, empty := range []string{"", "   "} {
+		if err := PublishableFitKind(empty); err == nil {
+			t.Fatalf("empty fit kind %q must not be publishable", empty)
+		} else if !strings.Contains(err.Error(), "cannot be published") {
+			t.Fatalf("unexpected error for %q: %v", empty, err)
+		}
 	}
 }

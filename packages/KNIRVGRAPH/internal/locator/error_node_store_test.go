@@ -21,7 +21,7 @@ func TestErrorNodesSurviveRestartWithTheirTestSuites(t *testing.T) {
 	if err := sys.SetErrorNodeStore(store); err != nil {
 		t.Fatal(err)
 	}
-	node, err := sys.CreateErrorNode("leak", "fd leak", map[string]interface{}{"file": "main.go"}, 3)
+	node, err := sys.CreateErrorNode("leak", "fd leak", map[string]interface{}{"file": "main.go"}, 3, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -307,19 +307,26 @@ func (v *DVEBundleValidator) accept(verdict *bundleVerdict, taskID, contentHash 
 	return nil
 }
 
+// publishableFitKinds lists the fit kinds this gate lets through. Only trained
+// gradient descent counts as publishable; anything else is refused.
+var publishableFitKinds = map[string]bool{
+	"gradient_sft": true,
+}
+
 // checkPublishableFitKind enforces the honesty gate before any validation task
-// is created (and therefore before any chain registration): a Path B bundle is
-// a deterministic linear embedding fit, not trained LoRA, and must never be
-// published as one. An absent manifest or unknown fit kind is left to the
-// existing validation gate rather than being treated as approval.
+// is created (and therefore before any chain registration). It fails closed:
+// a Path B bundle is a deterministic linear embedding fit, not trained LoRA,
+// and must never be published as one; and a bundle whose fit kind cannot be
+// established (no manifest path, unreadable or unparseable manifest, missing
+// or unknown fit kind) is refused rather than left to pass through.
 func checkPublishableFitKind(manifestPath string) error {
 	path := strings.TrimSpace(manifestPath)
 	if path == "" {
-		return nil
+		return errors.New("fit kind unverifiable: bundle has no manifest path, cannot be published")
 	}
 	data, err := os.ReadFile(path)
 	if err != nil {
-		return nil
+		return fmt.Errorf("fit kind unverifiable: cannot read manifest %s: %v", path, err)
 	}
 	var manifest struct {
 		Training struct {
@@ -327,10 +334,17 @@ func checkPublishableFitKind(manifestPath string) error {
 		} `json:"training"`
 	}
 	if err := json.Unmarshal(data, &manifest); err != nil {
-		return nil
+		return fmt.Errorf("fit kind unverifiable: manifest %s is not valid JSON: %v", path, err)
 	}
-	if manifest.Training.FitKind == "linear_embedding_fit" {
+	kind := strings.TrimSpace(manifest.Training.FitKind)
+	if kind == "" {
+		return fmt.Errorf("fit kind unverifiable: manifest %s declares no training.fit_kind, cannot be published", path)
+	}
+	if kind == "linear_embedding_fit" {
 		return errors.New("fit_kind linear_embedding_fit cannot be published")
+	}
+	if !publishableFitKinds[kind] {
+		return fmt.Errorf("fit_kind %q is not a publishable fit kind, cannot be published", kind)
 	}
 	return nil
 }

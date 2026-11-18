@@ -158,10 +158,11 @@ func TestFileStorage_EncryptionAtRest_AllCollections(t *testing.T) {
 					"key_name":              "test_key",
 					"kyber_public_key":      "public_key_data",
 					"kyber_private_key":     "sensitive_private_key_data",
+					"mldsa_private_key":     "sensitive_mldsa_key_data",
 					"dilithium_private_key": "sensitive_dilithium_key_data",
 				},
 			},
-			sensitiveFields: []string{"kyber_private_key", "dilithium_private_key"},
+			sensitiveFields: []string{"kyber_private_key", "mldsa_private_key", "dilithium_private_key"},
 		},
 		{
 			collection: "sessions",

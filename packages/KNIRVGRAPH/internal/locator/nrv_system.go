@@ -13,6 +13,7 @@ import (
 	"sync"
 	"time"
 
+	gproto "google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -165,8 +166,13 @@ func (nrv *LocatorSystem) ResolveTarget(targetHash string) ([]*ResolutionLocator
 	return localVectors, nil
 }
 
-// CreateErrorNode creates a new error node
-func (nrv *LocatorSystem) CreateErrorNode(errorType, description string, context map[string]interface{}, severity int) (*ErrorNode, error) {
+// CreateErrorNode creates a new error node. source records where the error was
+// observed; it may be nil. A non-nil source is validated (pointers and digests
+// only) and stored on the node. The caller's value is cloned, not kept.
+func (nrv *LocatorSystem) CreateErrorNode(errorType, description string, context map[string]interface{}, severity int, source *SourceRef) (*ErrorNode, error) {
+	if err := ValidateSourceRef(source); err != nil {
+		return nil, fmt.Errorf("invalid source ref: %w", err)
+	}
 	errorID := nrv.generateErrorID(errorType, description)
 
 	errorContext, err := NewErrorContextStruct(context)
@@ -181,6 +187,9 @@ func (nrv *LocatorSystem) CreateErrorNode(errorType, description string, context
 		Context:     errorContext,
 		Severity:    int32(severity),
 		Timestamp:   timestamppb.New(time.Now()),
+	}
+	if source != nil {
+		errorNode.Source = gproto.Clone(source).(*SourceRef)
 	}
 
 	// Attempt to find resolution path

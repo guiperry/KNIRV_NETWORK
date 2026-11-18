@@ -12,6 +12,8 @@ import (
 	"os"
 	"path/filepath"
 	"time"
+
+	knirvnrv "github.com/knirvcorp/knirvbase/pkg/nrv"
 )
 
 type Client struct {
@@ -69,15 +71,33 @@ func (c *Client) SubmitNRV(path string) (int, error) {
 		return 0, fmt.Errorf("invalid NRV file")
 	}
 	legacyV2 := string(data[:4]) == "NRV2"
-	metaLen := binary.LittleEndian.Uint32(data[4:8])
-	start := 8 + int(metaLen)
-	if start > len(data) || (len(data)-start)%80 != 0 {
-		return 0, fmt.Errorf("invalid NRV bracket section")
+	var section []byte
+	if legacyV2 {
+		metaLen := binary.LittleEndian.Uint32(data[4:8])
+		start := 8 + int(metaLen)
+		if start > len(data) || (len(data)-start)%80 != 0 {
+			return 0, fmt.Errorf("invalid NRV bracket section")
+		}
+		section = data[start:]
+	} else {
+		// Refuse the whole file before any bracket is appended if a frame's
+		// FramePayload does not decode and validate under the KNIRVBASE rules.
+		if _, err := NRVAssertionPayloads(data); err != nil {
+			return 0, err
+		}
+		// NRV3 brackets come from KNIRVBASE's canonical reader. It keeps only the
+		// bracket section (its registry has no payload field), so payloads were
+		// validated above.
+		canon, err := knirvnrv.ParseNRV3(data)
+		if err != nil {
+			return 0, err
+		}
+		section = canon.Brackets
 	}
 	count := 0
-	for start < len(data) {
+	for off := 0; off < len(section); off += 80 {
 		var raw [80]byte
-		copy(raw[:], data[start:start+80])
+		copy(raw[:], section[off:off+80])
 		if legacyV2 {
 			raw = migrateV2Bracket(raw)
 		}
@@ -86,7 +106,6 @@ func (c *Client) SubmitNRV(path string) (int, error) {
 			return count, err
 		}
 		count++
-		start += 80
 	}
 	return count, nil
 }
@@ -177,6 +196,89 @@ func saveSubmissionReceipts(path string, receipts submissionReceipts) error {
 		return err
 	}
 	return os.Rename(tmpPath, path)
+}
+
+// nrvFrameRecord is the part of an NRV3 registry entry this client reads.
+type nrvFrameRecord struct {
+	ID      string          `json:"id"`
+	Count   int             `json:"count"`
+	Offset  int64           `json:"offset"`
+	Payload json.RawMessage `json:"payload,omitempty"`
+}
+
+// NRVAssertionPayloads parses an NRV3 file and returns, for each registry frame,
+// its decoded KNIRVBASE FramePayload (nil where the frame carries none). Each
+// payload is decoded and validated by knirvbase and must agree with its frame's
+// bracket count. The file's bracket section is not otherwise interpreted.
+func NRVAssertionPayloads(data []byte) ([]*knirvnrv.FramePayload, error) {
+	canon, err := knirvnrv.ParseNRV3(data)
+	if err != nil {
+		return nil, fmt.Errorf("invalid NRV3 file: %w", err)
+	}
+	if err := checkNRVFrameTiling(canon.Registry.Frames, int64(len(canon.Brackets))); err != nil {
+		return nil, err
+	}
+	// The canonical registry has no payload field, so payloads come from the same
+	// registry bytes. ParseNRV3 has already bounded the registry length.
+	regLen := binary.LittleEndian.Uint32(data[4:8])
+	var reg struct {
+		Frames []nrvFrameRecord `json:"frames"`
+	}
+	if err := json.Unmarshal(data[8:8+int(regLen)], &reg); err != nil {
+		return nil, fmt.Errorf("parse NRV3 registry: %w", err)
+	}
+	if len(reg.Frames) != len(canon.Registry.Frames) {
+		return nil, fmt.Errorf("registry payload view has %d frames, canonical view has %d", len(reg.Frames), len(canon.Registry.Frames))
+	}
+	out := make([]*knirvnrv.FramePayload, len(reg.Frames))
+	for i, f := range reg.Frames {
+		if f.ID != canon.Registry.Frames[i].ID || f.Count != canon.Registry.Frames[i].Count {
+			return nil, fmt.Errorf("frame %d disagrees between registry views", i)
+		}
+		if len(f.Payload) == 0 {
+			continue
+		}
+		p, err := knirvnrv.DecodeFramePayload(f.Payload)
+		if err != nil {
+			return nil, fmt.Errorf("frame %s payload: %w", f.ID, err)
+		}
+		if p.TokenWindow != nil && int(p.TokenWindow.Brackets) != f.Count {
+			return nil, fmt.Errorf("frame %s: token_window.brackets=%d but frame has %d brackets", f.ID, p.TokenWindow.Brackets, f.Count)
+		}
+		out[i] = &p
+	}
+	return out, nil
+}
+
+// checkNRVFrameTiling requires the frames to cover the bracket section exactly, in
+// registry order: overlapping, gapped or trailing bytes are refused.
+func checkNRVFrameTiling(frames []knirvnrv.NRV3FrameEntry, section int64) error {
+	var cursor int64
+	for _, f := range frames {
+		if f.Count < 0 {
+			return fmt.Errorf("frame %s: negative count %d", f.ID, f.Count)
+		}
+		if f.Offset != cursor {
+			return fmt.Errorf("frame %s at offset %d, want %d (overlapping or gapped frames)", f.ID, f.Offset, cursor)
+		}
+		cursor += int64(f.Count) * knirvnrv.BracketSize
+		if cursor > section {
+			return fmt.Errorf("frame %s: brackets outside the bracket section", f.ID)
+		}
+	}
+	if cursor != section {
+		return fmt.Errorf("%d trailing bytes not covered by any frame", section-cursor)
+	}
+	return nil
+}
+
+// ReadNRVAssertionPayloads reads an NRV3 file from disk. See NRVAssertionPayloads.
+func ReadNRVAssertionPayloads(path string) ([]*knirvnrv.FramePayload, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+	return NRVAssertionPayloads(data)
 }
 
 // migrateV2Bracket translates the pre-canonical encoder layout to the public

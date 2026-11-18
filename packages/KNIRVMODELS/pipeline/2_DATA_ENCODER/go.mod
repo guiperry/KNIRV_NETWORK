@@ -7,12 +7,14 @@ require (
 	github.com/apache/arrow/go/v14 v14.0.2
 	github.com/guiperry/text-embedder v0.1.0
 	github.com/joho/godotenv v1.5.1
+	github.com/knirvcorp/knirvbase v1.0.7
 	github.com/pkoukk/tiktoken-go v0.1.8
 	gopkg.in/yaml.v3 v3.0.1
 	knirvmodels v1.0.0
 )
 
 require (
+	github.com/cloudflare/circl v1.6.2 // indirect
 	github.com/dlclark/regexp2 v1.11.5 // indirect
 	github.com/goccy/go-json v0.10.4 // indirect
 	github.com/google/flatbuffers v24.3.25+incompatible // indirect

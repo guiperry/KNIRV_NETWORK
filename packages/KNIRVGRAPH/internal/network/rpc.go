@@ -8,6 +8,7 @@ import (
 	graphmetrics "KNIRVGRAPH/internal/metrics"
 	"KNIRVGRAPH/internal/query"
 	"KNIRVGRAPH/internal/types"
+	"bytes"
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
@@ -617,8 +618,15 @@ func (rpc *RPCServer) getAllErrors(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(getDemoErrors())
 		return
 	}
-	errors := rpc.nrvSystem.GetAllErrorNodes()
-	json.NewEncoder(w).Encode(errors)
+	all := rpc.nrvSystem.GetAllErrorNodes()
+	// The backend (internal token) reads the full record, so its Testlab and
+	// dataset routes keep code_context and project_path (Q83).
+	if internalTokenOK(r) {
+		json.NewEncoder(w).Encode(all)
+		return
+	}
+	// Public listing: source cut to digests, code and absolute paths removed (plan D-12, Q83).
+	json.NewEncoder(w).Encode(locator.PublicErrorNodes(all))
 }
 
 // createError serves POST /graph/errors. It is internal-only: KNIRVSERVER
@@ -657,7 +665,7 @@ func (rpc *RPCServer) createError(w http.ResponseWriter, r *http.Request) {
 	if len(stripped) > 0 {
 		rpc.logger.Warn("Stripped resolver claims from submitted error context", zap.Strings("keys", stripped))
 	}
-	errorNode, err := rpc.nrvSystem.CreateErrorNode(req.ErrorType, req.Description, errContext, req.Severity)
+	errorNode, err := rpc.nrvSystem.CreateErrorNode(req.ErrorType, req.Description, errContext, req.Severity, nil)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -697,6 +705,29 @@ type ErrorNodeCommit struct {
 	SignerID      string                 `json:"signer_id"`
 	SigningKeyID  string                 `json:"signing_key_id"`
 	Signature     string                 `json:"signature"`
+	// SourceRef is optional. decodeCommitSource parses it and rejects unknown
+	// keys and free text. ErrorRoot does not cover it yet; binding it into the
+	// signed root is a follow-up.
+	SourceRef json.RawMessage `json:"source_ref,omitempty"`
+}
+
+// decodeCommitSource parses the optional source_ref of an error commit. Unknown
+// keys are rejected, so no code, diff or other free text can ride in through
+// the pointer field. The error text names no field value.
+func decodeCommitSource(raw json.RawMessage) (*locator.SourceRef, error) {
+	if len(raw) == 0 || string(raw) == "null" {
+		return nil, nil
+	}
+	var src locator.SourceRef
+	dec := json.NewDecoder(bytes.NewReader(raw))
+	dec.DisallowUnknownFields()
+	if err := dec.Decode(&src); err != nil {
+		return nil, fmt.Errorf("source_ref has an unknown or malformed field")
+	}
+	if err := locator.ValidateSourceRef(&src); err != nil {
+		return nil, err
+	}
+	return &src, nil
 }
 
 type errorNodeCommitClaim struct {
@@ -750,6 +781,12 @@ func (rpc *RPCServer) createErrorCommit(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
+	source, err := decodeCommitSource(commit.SourceRef)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	if rpc.nrvSystem == nil {
 		json.NewEncoder(w).Encode(map[string]interface{}{
@@ -765,7 +802,7 @@ func (rpc *RPCServer) createErrorCommit(w http.ResponseWriter, r *http.Request) 
 		rpc.logger.Warn("Stripped resolver claims from committed error context",
 			zap.Strings("keys", stripped), zap.String("signer_id", commit.SignerID))
 	}
-	errorNode, err := rpc.nrvSystem.CreateErrorNode(commit.ErrorType, commit.Description, errContext, commit.Severity)
+	errorNode, err := rpc.nrvSystem.CreateErrorNode(commit.ErrorType, commit.Description, errContext, commit.Severity, source)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -776,7 +813,7 @@ func (rpc *RPCServer) createErrorCommit(w http.ResponseWriter, r *http.Request) 
 		zap.String("session_id", commit.SessionID),
 	)
 	json.NewEncoder(w).Encode(map[string]interface{}{
-		"error_node": errorNode, "error_root": commit.ErrorRoot, "schema_version": ErrorNodeCommitSchema,
+		"error_node": locator.PublicErrorNode(errorNode), "error_root": commit.ErrorRoot, "schema_version": ErrorNodeCommitSchema,
 	})
 }
 

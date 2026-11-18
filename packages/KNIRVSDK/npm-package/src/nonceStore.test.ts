@@ -28,7 +28,7 @@ function runChild(script: string, file: string, nonce: string): Promise<string> 
     const p = spawn("node", [script, file, nonce]);
     let out = "";
     p.stdout.on("data", (d: Uint8Array | string) => (out += d.toString()));
-    p.on("close", () => resolve(out.trim()));
+    p.on("close", (code) => resolve(code === 0 ? out.trim() : `ERROR:${code}`));
     p.on("error", reject);
   });
 }
